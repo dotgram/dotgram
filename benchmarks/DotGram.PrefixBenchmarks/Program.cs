@@ -95,7 +95,8 @@ static class Program
 		foreach (var type in assembly.GetTypes())
 		foreach (var attribute in type.GetCustomAttributesData().Where(attribute => attribute.AttributeType.FullName == "DotGram.GramAttribute"))
 		{
-			var actual = attribute.NamedArguments.FirstOrDefault(argument => argument.MemberName == "PrefixTables").TypedValue.Value as bool? ?? false;
+			var actual = attribute.NamedArguments.FirstOrDefault(argument => argument.MemberName == "PrefixTables").TypedValue.Value as bool?
+				?? (bool)attribute.AttributeType.GetProperty("PrefixTables")!.GetValue(Activator.CreateInstance(attribute.AttributeType))!;
 			if (actual != expected) throw new InvalidOperationException("Unexpected PrefixTables value: " + type.FullName);
 			count++;
 		}

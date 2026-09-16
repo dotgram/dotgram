@@ -126,8 +126,8 @@ public sealed class GramCompilerOptions
 	/// </remarks>
 	public bool Lexical { get; set; }
 
-	/// <summary>Experimentally dispatch disjoint literal prefixes through transition tables. Off by default.</summary>
-	public bool PrefixTables { get; set; }
+	/// <summary>Dispatch disjoint literal prefixes through transition tables. Set false to use the previous strategy.</summary>
+	public bool PrefixTables { get; set; } = true;
 
 	/// <summary>
 	/// Whether a publication that needs none of the automaton may be compiled as methods

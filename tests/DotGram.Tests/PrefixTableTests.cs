@@ -34,6 +34,20 @@ public sealed class PrefixTableTests
 		return Assert.Single(result.Sources).Text;
 	}
 
+	[Fact]
+	public void Compiler_defaults_to_tables_and_can_select_the_previous_strategy()
+	{
+		var options = new GramCompilerOptions
+		{
+			Direct = false, BufferedInput = true, CSharpScanner = RoslynCSharpScanner.Instance,
+		};
+		Assert.True(options.PrefixTables);
+		var compiled = GramCompiler.Compile(Grammar, options);
+		EmittedCode.Quiet(compiled.Diagnostics);
+		Assert.Equal(Emit(Grammar, true), Assert.Single(compiled.Sources).Text);
+		Assert.DoesNotContain("Prefix_DotGram", Emit(Grammar, false));
+	}
+
 	[Theory]
 	[InlineData(1000, false)]
 	[InlineData(3, false)]

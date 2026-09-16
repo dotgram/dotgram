@@ -1,7 +1,7 @@
 # Small-grammar prefix-table comparison
 
-This standalone diagnostic harness compares the existing strategy with
-`PrefixTables = true`. It contains six paired synthetic grammars and can load two
+This standalone diagnostic harness compares the previous strategy
+(`PrefixTables = false`) with the default table strategy (`PrefixTables = true`). It contains six paired synthetic grammars and can load two
 saved builds of DotGram.Web as no-op controls. It verifies the option in each
 Web assembly's attribute metadata before measuring.
 
@@ -9,9 +9,11 @@ Web assembly's attribute metadata before measuring.
 
 ## Run
 
-Build Web in Release/net10.0 and preserve its DLL as the default assembly. Add
-`PrefixTables = true` to all thirteen `[Gram]` attributes in src/DotGram.Web,
-build again and preserve that DLL separately, then restore the source attributes.
+Set `PrefixTables = false` on all thirteen `[Gram]` attributes in src/DotGram.Web,
+build in Release/net10.0 and preserve that DLL as the historical default assembly.
+Set `PrefixTables = true` explicitly, build again and preserve the table assembly,
+then restore the source attributes. Tables are now the compiler default; labels
+in the historical results and harness still call the previous strategy `default`.
 The harness rejects swapped or incompletely configured assemblies.
 
 ```powershell

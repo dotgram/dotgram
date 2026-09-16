@@ -153,7 +153,7 @@ public static partial class CSharpEmitter
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
-		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = false)
+		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true)
 	{
 		statics ??= [];
 

@@ -252,4 +252,5 @@ reproduction commands. No parser optimization is included in this investigation.
 [Prefix-table experiment](results/2026-09-16-prefix-tables.md) compares the default
 strategy with `PrefixTables = true`, using identical FIX grammars. It records
 three-run timings, allocations, table/assembly size, scope and validation. The
-option remains disabled by default, including in the Finance host.
+report describes the original opt-in experiment. Prefix tables are now enabled by
+default, including in Finance; set `PrefixTables = false` for the previous strategy.

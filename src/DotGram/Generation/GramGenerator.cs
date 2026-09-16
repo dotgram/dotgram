@@ -740,7 +740,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
-		bool      PrefixTables = false,
+		bool      PrefixTables = true,
 		bool      Direct     = true,
 		int       Carrier    = 0,
 		int       ValueStorage = 0,
@@ -904,7 +904,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			var prefixTables = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.PrefixTables))
-				.Value.Value as bool? ?? first?.PrefixTables ?? false;
+				.Value.Value as bool? ?? first?.PrefixTables ?? true;
 
 			var direct = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
