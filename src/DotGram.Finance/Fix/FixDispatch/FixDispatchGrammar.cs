@@ -25,10 +25,10 @@ sealed class FixDispatchContext(FixDispatchOptions options)
 		var equals = wire.IndexOf('=');
 		var tag = FixContext.Tag(wire.Slice(0, equals));
 		var dataTag = options.DataTag(tag);
-		if (dataTag == 0) return FixDispatchFactory.Value(tag, wire.Slice(equals + 1, wire.Length - equals - 2));
+		if (dataTag == 0) return FixDispatchFactory.Value(tag, wire.Slice(equals + 1));
 		var second = wire.IndexOf(options.Separator) + 1;
 		var payload = second + wire.Slice(second).IndexOf('=') + 1;
-		var value = new FixBinaryValue(FixConvert.Data(wire.Slice(payload, wire.Length - payload - 1)), start + payload);
+		var value = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 		return FixDispatchFactory.Binary(dataTag, value.Data).WithBinary(value, start);
 	}
 
@@ -45,10 +45,10 @@ sealed class FixDispatchContext(FixDispatchOptions options)
 		var equals = wire.IndexOf((byte)'=');
 		var tag = FixContext.Tag(wire.Slice(0, equals));
 		var dataTag = options.DataTag(tag);
-		if (dataTag == 0) return FixDispatchFactory.Value(tag, wire.Slice(equals + 1, wire.Length - equals - 2));
+		if (dataTag == 0) return FixDispatchFactory.Value(tag, wire.Slice(equals + 1));
 		var second = wire.IndexOf((byte)options.Separator) + 1;
 		var payload = second + wire.Slice(second).IndexOf((byte)'=') + 1;
-		var value = new FixBinaryValue(FixConvert.Data(wire.Slice(payload, wire.Length - payload - 1)), start + payload);
+		var value = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 		return FixDispatchFactory.Binary(dataTag, value.Data).WithBinary(value, start);
 	}
 }

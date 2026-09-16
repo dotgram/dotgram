@@ -58,9 +58,8 @@ public sealed class FixDispatchTests
 
 	[Theory]
 	[InlineData("95=3|55=X|96=abc|")]
-	[InlineData("95=4|96=abc|")]
+	[InlineData("95=5|96=abc|")]
 	[InlineData("96=abc|")]
-	[InlineData("55=abc")]
 	[InlineData("0=x|")]
 	[InlineData("01=x|")]
 	[InlineData("2147483648=x|")]
@@ -89,6 +88,44 @@ public sealed class FixDispatchTests
 		Assert.NotEqual(-1, reader.Read());
 		first.Dispose();
 		Assert.True(input.CanRead);
+	}
+
+	[Theory]
+	[InlineData("55=ABC")]
+	[InlineData("9000=ABC")]
+	[InlineData("95=0|96=")]
+	[InlineData("95=3|96=a|b")]
+	[InlineData("95=4|96=abc|")]
+	public void Final_field_can_end_at_eof_without_losing_value_or_location(string last)
+	{
+		foreach (var separator in new[] { '|', '\u0001' })
+		{
+			var input = ("55=FIRST|" + last).Replace('|', separator);
+			var original = new FixFieldOptions(separator);
+			var dispatch = new FixDispatchOptions(separator);
+			var expected = Fix44.Parse(input + separator, original);
+			Equal(expected, Fix44.Parse(input, original));
+			Equal(expected, FixDispatch.Parse(input, dispatch));
+			using var oldReader = new StringReader(input);
+			using var newReader = new StringReader(input);
+			using var oldStream = new ShortStream(Encoding.Latin1.GetBytes(input));
+			using var newStream = new ShortStream(Encoding.Latin1.GetBytes(input));
+			Equal(expected, Fix44.Parse(oldReader, original, bufferSize: 1));
+			Equal(expected, FixDispatch.Parse(newReader, dispatch, bufferSize: 1));
+			Equal(expected, Fix44.Parse(oldStream, original, bufferSize: 1));
+			Equal(expected, FixDispatch.Parse(newStream, dispatch, bufferSize: 1));
+		}
+	}
+
+	[Theory]
+	[InlineData("95=4|96=abc")]
+	[InlineData("95=0|96=X")]
+	[InlineData("95=1|96=ab")]
+	[InlineData("95=1|96=a55=ABC")]
+	public void Eof_does_not_relax_binary_length_or_intermediate_separators(string input)
+	{
+		Assert.False(Fix44.TryParse(input, out _, out _, new FixFieldOptions('|')));
+		Assert.False(FixDispatch.TryParse(input, out _, out _, new FixDispatchOptions('|')));
 	}
 
 	sealed class ShortStream(byte[] input) : MemoryStream(input)

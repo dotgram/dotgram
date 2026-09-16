@@ -97,8 +97,7 @@ public sealed class FixFlatFieldsTests
 
 	[Theory]
 	[InlineData("95=3|55=X|96=abc|")]
-	[InlineData("95=4|96=abc|")]
-	[InlineData("55=abc")]
+	[InlineData("95=5|96=abc|")]
 	[InlineData("0=x|")]
 	[InlineData("55abc|")]
 	public void Malformed_field_syntax_is_rejected(string input)

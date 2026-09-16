@@ -46,7 +46,8 @@ Concatenated messages are read as one ordered field sequence.
 Raw data and its immediately preceding Length field form one grammar rule.
 The parser requires the correct tag pair and consumes exactly the declared number
 of data bytes, including any delimiter bytes inside the payload. An orphaned
-length or data field is rejected. The final field separator remains required.
+length or data field is rejected. The final field may end at EOF without a separator. Separators between fields
+remain required; the declared binary length still determines the complete payload.
 Malformed field syntax returns false from `TryParse`. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
