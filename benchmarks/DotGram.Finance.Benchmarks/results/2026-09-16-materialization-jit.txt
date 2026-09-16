@@ -1,0 +1,258 @@
+BEFORE
+
+; Assembly listing for method DotGram.Finance.Fix.FixGrammar:Materialize_DotGram_Buffered_ReadFields_Bytes(DotGram.Finance.Fix.FixGrammar+BufferedBytes,DotGram.Finance.Fix.FixGrammar+Parser,DotGram.Finance.Fix.FixGrammar+ParserArena,DotGram.Finance.Fix.FixContext) (FullOpts)
+; Emitting BLENDED_CODE for generic X64 + VEX + EVEX on Windows
+; FullOpts code
+; optimized code
+; rsp based frame
+; fully interruptible
+; No PGO data
+; 0 inlinees with PGO data; 26 single block inlinees; 0 inlinees without PGO data
+
+G_M000_IG01:                ;; offset=0x0000
+	push     r15
+	push     r14
+	push     r13
+	push     r12
+	push     rdi
+	push     rsi
+	push     rbp
+	push     rbx
+	sub      rsp, 88
+	xor      eax, eax
+	mov      qword ptr [rsp+0x28], rax
+	vxorps   xmm4, xmm4, xmm4
+	vmovdqu  ymmword ptr [rsp+0x30], ymm4
+	mov      qword ptr [rsp+0x50], rax
+	mov      rsi, rcx
+	mov      rbx, rdx
+
+G_M000_IG02:                ;; offset=0x002C
+	mov      gword ptr [rsp+0x28], r8
+	mov      rdx, gword ptr [rsp+0x28]
+	mov      edx, dword ptr [rdx+0x10]
+	mov      rcx, rbx
+	cmp      dword ptr [rcx], ecx
+	call     [DotGram.Finance.Fix.FixGrammar+Parser:Materialization(int):System.Object[]:this]
+	mov      rdi, rax
+	mov      rdx, gword ptr [rbx+0x20]
+	mov      gword ptr [rsp+0x40], rdx
+	mov      rdx, gword ptr [rbx+0x28]
+	mov      gword ptr [rsp+0x48], rdx
+	mov      rdx, gword ptr [rbx+0x30]
+	mov      gword ptr [rsp+0x50], rdx
+	mov      rbp, gword ptr [rbx+0x38]
+	mov      rdx, gword ptr [rbx+0x40]
+	mov      gword ptr [rsp+0x30], rdx
+	mov      rdx, gword ptr [rbx+0x48]
+	mov      gword ptr [rsp+0x38], rdx
+	mov      edx, dword ptr [rbx+0x58]
+	mov      rcx, gword ptr [rsp+0x28]
+
+; Total bytes of code 840
+
+; Assembly listing for method DotGram.Finance.Fix.FixGrammar:<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|11089_1(DotGram.Finance.Fix.FixGrammar+BufferedBytes,int,byref) (FullOpts)
+; Emitting BLENDED_CODE for generic X64 + VEX + EVEX on Windows
+; FullOpts code
+; optimized code
+; rsp based frame
+; partially interruptible
+; No PGO data
+
+G_M000_IG01:                ;; offset=0x0000
+	push     r15
+	push     r14
+	push     rdi
+	push     rsi
+	push     rbp
+	push     rbx
+	lea      r11, [rsp-0x6888]
+	call     CORINFO_HELP_STACK_PROBE
+	mov      rsp, r11
+	xor      eax, eax
+	mov      qword ptr [rsp+0x28], rax
+	vxorps   xmm4, xmm4, xmm4
+	vmovdqa  xmmword ptr [rsp+0x30], xmm4
+	mov      rax, -0x6840
+	vmovdqa  xmmword ptr [rsp+rax+0x6880], xmm4
+	vmovdqa  xmmword ptr [rsp+rax+0x6890], xmm4
+	vmovdqa  xmmword ptr [rsp+rax+0x68A0], xmm4
+	add      rax, 48
+	jne      SHORT  -5 instr
+	mov      qword ptr [rsp+0x6880], rax
+	mov      rdi, rcx
+	mov      esi, edx
+	mov      rbx, r8
+
+G_M000_IG02:                ;; offset=0x0064
+	mov      rcx, gword ptr [rbx]
+	lea      rdx, [rsp+0x6860]
+	mov      r8d, esi
+	cmp      dword ptr [rcx], ecx
+	call     [DotGram.Finance.Fix.FixGrammar+ParserArena:get_Item(int):DotGram.Finance.Fix.FixGrammar+ParserEntry:this]
+	lea      rcx, [rsp+0x6860]
+	call     [DotGram.Finance.Fix.FixGrammar+ParserEntry:get_RuleIndex():int:this]
+	cmp      eax, 32
+	jne      G_M000_IG897
+
+G_M000_IG03:                ;; offset=0x0091
+	mov      ebp, -1
+	mov      r14d, -1
+	mov      rcx, gword ptr [rbx+0x08]
+
+; Total bytes of code 149297
+
+; Assembly listing for method DotGram.Finance.Fix.FixGrammar:<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|11089_0(DotGram.Finance.Fix.FixGrammar+BufferedBytes,int,byref) (FullOpts)
+; Emitting BLENDED_CODE for generic X64 + VEX + EVEX on Windows
+; FullOpts code
+; optimized code
+; rsp based frame
+; fully interruptible
+; No PGO data
+; 30 inlinees with PGO data; 425 single block inlinees; 15 inlinees without PGO data
+
+G_M000_IG01:                ;; offset=0x0000
+	push     r15
+	push     r14
+	push     r13
+	push     r12
+	push     rdi
+	push     rsi
+	push     rbp
+	push     rbx
+	sub      rsp, 872
+	xor      eax, eax
+	mov      qword ptr [rsp+0x28], rax
+	vxorps   xmm4, xmm4, xmm4
+	vmovdqa  xmmword ptr [rsp+0x30], xmm4
+	vmovdqa  xmmword ptr [rsp+0x40], xmm4
+	mov      rax, -768
+	vmovdqa32 xmmword ptr [rsp+rax+0x350], xmm4
+	vmovdqa32 xmmword ptr [rsp+rax+0x360], xmm4
+	vmovdqa32 xmmword ptr [rsp+rax+0x370], xmm4
+	add      rax, 48
+	jne      SHORT  -5 instr
+	mov      qword ptr [rsp+0x350], rax
+	mov      rdi, rcx
+	mov      ebx, edx
+	mov      rsi, r8
+
+G_M000_IG02:                ;; offset=0x0062
+	mov      r9, gword ptr [rsi]
+	mov      rbp, gword ptr [r9+0x08]
+	mov      r9, rbp
+	mov      r14d, dword ptr [r9+0x08]
+	cmp      ebx, r14d
+	jae      G_M000_IG307
+	mov      edx, ebx
+	lea      rdx, [rdx+8*rdx]
+	lea      r9, bword ptr [r9+4*rdx+0x10]
+	mov      r15d, dword ptr [r9+0x08]
+	mov      r13d, dword ptr [r9+0x1C]
+	mov      r9d, dword ptr [r9+0x20]
+
+; Total bytes of code 10288
+
+AFTER
+
+; Assembly listing for method DotGram.Finance.Fix.FixGrammar:Materialize_DotGram_Buffered_ReadFields_Bytes(DotGram.Finance.Fix.FixGrammar+BufferedBytes,DotGram.Finance.Fix.FixGrammar+Parser,DotGram.Finance.Fix.FixGrammar+ParserArena,DotGram.Finance.Fix.FixContext) (FullOpts)
+; Emitting BLENDED_CODE for generic X64 + VEX + EVEX on Windows
+; FullOpts code
+; optimized code
+; rsp based frame
+; fully interruptible
+; No PGO data
+; 32 inlinees with PGO data; 456 single block inlinees; 16 inlinees without PGO data
+
+G_M000_IG01:                ;; offset=0x0000
+	push     r15
+	push     r14
+	push     r13
+	push     r12
+	push     rdi
+	push     rsi
+	push     rbp
+	push     rbx
+	sub      rsp, 0x498
+	xor      eax, eax
+	mov      qword ptr [rsp+0xB8], rax
+	vxorps   xmm4, xmm4, xmm4
+	vmovdqa32 xmmword ptr [rsp+0xC0], xmm4
+	mov      rax, -960
+	vmovdqa32 xmmword ptr [rsp+rax+0x490], xmm4
+	vmovdqa32 xmmword ptr [rsp+rax+0x4A0], xmm4
+	vmovdqa32 xmmword ptr [rsp+rax+0x4B0], xmm4
+	add      rax, 48
+	jne      SHORT  -5 instr
+	mov      qword ptr [rsp+0x490], rax
+	mov      rbx, rcx
+	mov      rsi, rdx
+
+G_M000_IG02:                ;; offset=0x005F
+	mov      gword ptr [rsp+0x478], r8
+	mov      rdx, gword ptr [rsp+0x478]
+	mov      edx, dword ptr [rdx+0x10]
+	mov      rcx, rsi
+	cmp      dword ptr [rcx], ecx
+	call     [DotGram.Finance.Fix.FixGrammar+Parser:Materialization(int):System.Object[]:this]
+	mov      rdi, rax
+	mov      gword ptr [rsp+0xB0], rdi
+	mov      rdx, gword ptr [rsi+0x20]
+	mov      gword ptr [rsp+0x490], rdx
+	mov      rbp, gword ptr [rsi+0x28]
+	mov      r14, gword ptr [rsi+0x30]
+	mov      r15, gword ptr [rsi+0x38]
+	mov      gword ptr [rsp+0xA8], r15
+
+; Total bytes of code 13570
+
+; Assembly listing for method DotGram.Finance.Fix.FixGrammar:<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Construct32_Part0|11089_0(DotGram.Finance.Fix.FixGrammar+BufferedBytes,int,int,byref) (FullOpts)
+; Emitting BLENDED_CODE for generic X64 + VEX + EVEX on Windows
+; FullOpts code
+; optimized code
+; rsp based frame
+; fully interruptible
+; No PGO data
+; 0 inlinees with PGO data; 264 single block inlinees; 0 inlinees without PGO data
+
+G_M000_IG01:                ;; offset=0x0000
+	push     r15
+	push     r14
+	push     r13
+	push     r12
+	push     rdi
+	push     rsi
+	push     rbp
+	push     rbx
+	sub      rsp, 72
+	xor      eax, eax
+	mov      qword ptr [rsp+0x28], rax
+	vxorps   xmm4, xmm4, xmm4
+	vmovdqa  xmmword ptr [rsp+0x30], xmm4
+	mov      qword ptr [rsp+0x40], rax
+	mov      gword ptr [rsp+0x90], rcx
+	mov      dword ptr [rsp+0xA0], r8d
+	mov      esi, edx
+	mov      rbx, r9
+
+G_M000_IG02:                ;; offset=0x003B
+	mov      r9, gword ptr [rbx]
+	mov      r9, gword ptr [r9+0x08]
+	mov      rdx, r9
+	mov      r8d, dword ptr [rdx+0x08]
+	cmp      esi, r8d
+	jae      G_M000_IG78
+	mov      eax, esi
+	lea      rax, [rax+8*rax]
+	lea      rdx, bword ptr [rdx+4*rax+0x10]
+	mov      ebp, dword ptr [rdx+0x08]
+	mov      r14d, dword ptr [rdx+0x1C]
+	mov      edx, dword ptr [rdx+0x20]
+	cmp      edx, 32
+	jne      G_M000_IG76
+
+G_M000_IG03:                ;; offset=0x0070
+	mov      eax, -1
+	mov      edx, -1
+
+; Total bytes of code 4004

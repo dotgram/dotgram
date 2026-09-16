@@ -260,6 +260,21 @@ sealed partial class Machine
 							MaterializeRule(file, rule);
 				}
 			}
+
+		foreach (var rule in _rules)
+		{
+			if (!SplitConstruction(rule)) continue;
+			for (var part = 0; part * FactoriesPerPart < _factories[rule].Count; part++)
+			{
+				file.Line();
+				using (file.Block($"void {ConstructionPart(rule, part)}({InputType} text, int completedAt, int chosen)"))
+				{
+					file.Line("var completed = entries[completedAt];");
+					using (file.Block("switch (completed.RuleIndex)"))
+						MaterializeRule(file, rule, part * FactoriesPerPart);
+				}
+			}
+		}
 	}
 
 	/// <summary>
@@ -293,11 +308,20 @@ sealed partial class Machine
 
 			whole += cost;
 
-			if (cost > Limit)
+			var largest = cost;
+			if (SplitConstruction(rule))
+				for (var first = 0; first < _factories[rule].Count; first += FactoriesPerPart)
+				{
+					var construction = new Writer(0);
+					MaterializeRule(construction, rule, first);
+					largest = Math.Max(largest, Branches(construction.ToString()));
+				}
+
+			if (largest > Limit)
 				Oversize(
-					$"Building the value of '{rule.Name}' is estimated at {cost} basic " +
+					$"Building the value of '{rule.Name}' is estimated at {largest} basic " +
 					$"blocks in one switch case; past about {Limit}, the JIT compiles the " +
-					"method holding it without optimization, and a case cannot be divided. " +
+					"method holding it without optimization. " +
 					"Splitting the rule, or building the value in a method of your own " +
 					"called from its '=>', restores optimization.", rule);
 		}
@@ -437,7 +461,7 @@ sealed partial class Machine
 			writer.Line($"var values{TableName(type)} = parser.Materialization{TableName(type)}();");
 	}
 
-	void MaterializeRule(Writer file, RuleSymbol rule)
+	void MaterializeRule(Writer file, RuleSymbol rule, int firstFactory = -1)
 	{
 		var offset    = _captureOffsets[rule];
 		var members   = _graph.Results[rule];
@@ -499,6 +523,23 @@ sealed partial class Machine
 				MaterializeFold(file, rule, type, offset, factories);
 				file.Line("break;");
 
+				return;
+			}
+
+			if (firstFactory < 0 && SplitConstruction(rule))
+			{
+				ChooseConstruction(file);
+				using (file.Block($"switch (chosen / {FactoriesPerPart})"))
+					for (var part = 0; part * FactoriesPerPart < factories.Count; part++)
+					{
+						file.Line($"case {part}:");
+						using (file.Indent())
+						{
+							file.Line($"{ConstructionPart(rule, part)}(text, completedAt, chosen);");
+							file.Line("break;");
+						}
+					}
+				file.Line("break;");
 				return;
 			}
 
@@ -897,26 +938,14 @@ sealed partial class Machine
 		}
 		else
 		{
-			file.Line("var chosen = -1;");
+			if (firstFactory < 0) ChooseConstruction(file);
 
-			using (file.Block(
-				"for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; " +
-				"chosenAt = linkNexts[chosenAt])"))
-			{
-				file.Line("var candidate = entries[chosenAt];");
-
-				using (file.Block(
-					"if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)"))
-				{
-					file.Line("chosen = candidate.State;");
-					file.Line("break;");
-				}
-			}
-
-			file.Line("global::System.Diagnostics.Debug.Assert(chosen >= 0);");
+			var endFactory = firstFactory < 0
+				? factories.Count
+				: Math.Min(factories.Count, firstFactory + FactoriesPerPart);
 
 			using (file.Block("switch (chosen)"))
-				for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
+				for (var factoryIndex = Math.Max(0, firstFactory); factoryIndex < endFactory; factoryIndex++)
 				{
 					var factory = factories[factoryIndex];
 
@@ -934,6 +963,41 @@ sealed partial class Machine
 
 		file.Line("break;");
 	}
+	}
+
+	// A limit on construction alternatives as well as control-flow size: the JIT
+	// can reserve distinct span/position temporaries for every switch case, so even
+	// an optimized method with hundreds of simple cases pays a large frame per call.
+	const int FactoriesPerPart = 64;
+
+	bool SplitConstruction(RuleSymbol rule) =>
+		ValueRule(rule) >= 0 && !IsExtent(rule) &&
+		!(_reread?.Contains(rule) ?? false) && !_graph.Externals.ContainsKey(rule) &&
+		!_graph.Folds.ContainsKey(rule) && _factories[rule].Count > FactoriesPerPart &&
+		!SameIdentityConstruction(_factories[rule]);
+
+	string ConstructionPart(RuleSymbol rule, int part) =>
+		$"Materialize_DotGram{_tag}_Construct{_ruleIds[rule]}_Part{part}";
+
+	static void ChooseConstruction(Writer file)
+	{
+		file.Line("var chosen = -1;");
+
+		using (file.Block(
+			"for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; " +
+			"chosenAt = linkNexts[chosenAt])"))
+		{
+			file.Line("var candidate = entries[chosenAt];");
+
+			using (file.Block(
+				"if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)"))
+			{
+				file.Line("chosen = candidate.State;");
+				file.Line("break;");
+			}
+		}
+
+		file.Line("global::System.Diagnostics.Debug.Assert(chosen >= 0);");
 	}
 
 	bool SameIdentityConstruction(IReadOnlyList<Factory> factories)
