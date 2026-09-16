@@ -122,6 +122,9 @@ sealed class Writer(int depth)
 
 	public void Append(Writer other) => _text.Append(other._text);
 
+	/// <summary>Adds a small header before an already emitted body without copying the body.</summary>
+	public void Prepend(Writer header) => _text.Insert(0, header._text.ToString());
+
 	/// <summary>
 	/// Writes text that is already laid out, each line at the current depth.
 	/// </summary>

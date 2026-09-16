@@ -200,101 +200,102 @@ sealed partial class Machine
 
 		// Render again with the selected carrier and known open rules. Append each rule
 		// and its parts immediately so completed method strings need not all stay alive.
-		var members = new Writer(0);
-
-		foreach (var rule in rules)
-		{
-			_seam       = FollowSets.SeamOf(rule, _graph);
-			_readerPart = 0;
-
-			var reader = new ReaderWriter(this, rule);
-			var tape   = _opens.Contains(rule);
-			var inner  = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
-
-			if (tape)
-				RenderWayBack(
-					members, rule, DirectStrength(rule), seal: OverKinds,
-					deepens: Deepens(rule) ? rule : null);
-
-			members.Line(
-				tape
-					? $"/// <summary>What <c>{rule.Name}</c> is, one reading of it at a time.</summary>"
-					: $"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>");
-
-			// A rule that is a token or a choice of tokens is what a hand-written parser
-			// writes as a test where it stands; asked for as a call, it costs the call. The
-			// JIT inlines a method this small on its own only while the refusals inside it
-			// keep it under its budget, and a choice of six tokens with six of them does not.
-			//
-			// A body is asked for from one place and one only — the way back into it, written
-			// just above — so the same thing is said of every one of them, whatever its size.
-			// Nothing is written twice by it: a method the runtime never calls is a method it
-			// never compiles, so what the reader has is one method a rule where it had two,
-			// which is the shape a person writing the parser would have written to begin with.
-			// Worth a quarter of a character parse over the notation grammar, and it is halved
-			// calls rather than anything cleverer: `Name` reaches `Identifier` reaches a class,
-			// with a seam between each, and every one of those was two calls where it needed
-			// one.
-			if (tape || Trivial(rule))
-				members.Line(
-					"[global::System.Runtime.CompilerServices.MethodImpl(" +
-					"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-
-			using (members.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
-			{
-				// The rule the way back into itself goes through, so the probe stands here and
-				// not at the call: one line a rule instead of one at every place that calls it.
-				if (!tape && Deepens(rule))
-					Probe(members, rule);
-
-				reader.Render(members, _graph.Bodies[rule], FollowOf(rule));
-			}
-
-			members.Line();
-
-			foreach (var (name, taken, part) in reader.Parts)
-			{
-				members.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
-
-				using (members.Block($"public int {name}(int pos{taken})"))
-				{
-					members.Write(part);
-				}
-
-				members.Line();
-			}
-		}
-
 		var entries = new Writer(0);
 		var entryPoints = new List<(RuleSymbol Rule, bool Ends)>();
 
-		foreach (var publication in publications)
+		using (file.Indent())
 		{
-			if (!seen.Add(publication.Rule))
-				continue;
-
-			entryPoints.Add((publication.Rule, true));
-			RenderReaderEntryBody(members, publication.Rule, ends: true);
-
-			// And the entry that begins where it is told and demands no end, which is what a
-			// positional overload calls. Only for a whole parse: `find` already reads from a
-			// position, and asking for both would write one method twice.
-			if (publication.Kind == PublishKind.Parse)
+			foreach (var rule in rules)
 			{
-				entryPoints.Add((publication.Rule, false));
-				RenderReaderEntryBody(members, publication.Rule, ends: false);
-			}
-		}
+				_seam       = FollowSets.SeamOf(rule, _graph);
+				_readerPart = 0;
 
-		// Include entry trivia under both whole-input and positional continuations.
-		// A body or wrapper can use replay state even without opening a new way.
-		_readerWays = Carrier is not ImmediateCarrier ||
-			members.ToString().Contains("ways.", StringComparison.Ordinal);
+				var reader = new ReaderWriter(this, rule);
+				var tape   = _opens.Contains(rule);
+				var inner  = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
+
+				if (tape)
+					RenderWayBack(
+						file, rule, DirectStrength(rule), seal: OverKinds,
+						deepens: Deepens(rule) ? rule : null);
+
+				file.Line(
+					tape
+						? $"/// <summary>What <c>{rule.Name}</c> is, one reading of it at a time.</summary>"
+						: $"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>");
+
+				// A rule that is a token or a choice of tokens is what a hand-written parser
+				// writes as a test where it stands; asked for as a call, it costs the call. The
+				// JIT inlines a method this small on its own only while the refusals inside it
+				// keep it under its budget, and a choice of six tokens with six of them does not.
+				//
+				// A body is asked for from one place and one only — the way back into it, written
+				// just above — so the same thing is said of every one of them, whatever its size.
+				// Nothing is written twice by it: a method the runtime never calls is a method it
+				// never compiles, so what the reader has is one method a rule where it had two,
+				// which is the shape a person writing the parser would have written to begin with.
+				// Worth a quarter of a character parse over the notation grammar, and it is halved
+				// calls rather than anything cleverer: `Name` reaches `Identifier` reaches a class,
+				// with a seam between each, and every one of those was two calls where it needed
+				// one.
+				if (tape || Trivial(rule))
+					file.Line(
+						"[global::System.Runtime.CompilerServices.MethodImpl(" +
+						"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+
+				using (file.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
+				{
+					// The rule the way back into itself goes through, so the probe stands here and
+					// not at the call: one line a rule instead of one at every place that calls it.
+					if (!tape && Deepens(rule))
+						Probe(file, rule);
+
+					reader.Render(file, _graph.Bodies[rule], FollowOf(rule));
+				}
+
+				file.Line();
+
+				foreach (var (name, taken, part) in reader.Parts)
+				{
+					file.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
+
+					using (file.Block($"public int {name}(int pos{taken})"))
+					{
+						file.Write(part);
+					}
+
+					file.Line();
+				}
+			}
+
+			foreach (var publication in publications)
+			{
+				if (!seen.Add(publication.Rule))
+					continue;
+
+				entryPoints.Add((publication.Rule, true));
+				RenderReaderEntryBody(file, publication.Rule, ends: true);
+
+				// And the entry that begins where it is told and demands no end, which is what a
+				// positional overload calls. Only for a whole parse: `find` already reads from a
+				// position, and asking for both would write one method twice.
+				if (publication.Kind == PublishKind.Parse)
+				{
+					entryPoints.Add((publication.Rule, false));
+					RenderReaderEntryBody(file, publication.Rule, ends: false);
+				}
+			}
+
+			// Include entry trivia under both whole-input and positional continuations.
+			// A body or wrapper can use replay state even without opening a new way.
+			_readerWays = Carrier is not ImmediateCarrier ||
+				file.ToString().Contains("ways.", StringComparison.Ordinal);
+		}
 
 		foreach (var (rule, ends) in entryPoints)
 			RenderReaderEntry(entries, rule, ends);
 
-		RenderReaderStruct(file, members);
+		RenderReaderStruct(file);
 		file.Write(entries.ToString());
 
 		if (rules.Any(Valued))
@@ -710,81 +711,86 @@ sealed partial class Machine
 	/// reader took eight parameters and passed them on to every reader it called; now a call
 	/// between two of them passes a position, and the state is loaded once.
 	/// </remarks>
-	void RenderReaderStruct(Writer file, Writer members)
+	void RenderReaderStruct(Writer file)
 	{
+		var header    = new Writer(0);
 		var state     = Carrier.ReaderState.ToList();
 		var registers = Carrier.ReaderRegisters.ToList();
 
-		file.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
+		header.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
 
-		using (file.Block($"private ref struct {ReaderStruct}"))
+		header.Line($"private ref struct {ReaderStruct}");
+		header.Line("{");
+
+		using (header.Indent())
 		{
-			file.Line("readonly global::System.ReadOnlySpan<char> text;");
-			file.Line($"internal {CSharpEmitter.FailureType} failure;");
+			header.Line("readonly global::System.ReadOnlySpan<char> text;");
+			header.Line($"internal {CSharpEmitter.FailureType} failure;");
 
 			if (Probes)
 			{
-				file.Line("/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>");
-				file.Line("internal int probes;");
+				header.Line("/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>");
+				header.Line("internal int probes;");
 
 				if (_stacks > 0)
 				{
-					file.Line("/// <summary>How many stacks this reading has taken past the one it began on.</summary>");
-					file.Line("internal int stacks;");
+					header.Line("/// <summary>How many stacks this reading has taken past the one it began on.</summary>");
+					header.Line("internal int stacks;");
 				}
 			}
 
-			file.Line(_readerWays ? $"readonly {WaysType} ways;" : $"const {WaysType}? ways = null;");
+			header.Line(_readerWays ? $"readonly {WaysType} ways;" : $"const {WaysType}? ways = null;");
 
 			if (Probes)
 			{
-				file.Line("/// <summary>The whole input, for a reading that has to go on with it elsewhere.</summary>");
-				file.Line("readonly global::System.ReadOnlyMemory<char> whole;");
+				header.Line("/// <summary>The whole input, for a reading that has to go on with it elsewhere.</summary>");
+				header.Line("readonly global::System.ReadOnlyMemory<char> whole;");
 			}
 
 			foreach (var (type, name) in state)
-				file.Line($"readonly {type} {name};");
+				header.Line($"readonly {type} {name};");
 
 			foreach (var (type, name) in registers)
-				file.Line($"internal {type} {name};");
+				header.Line($"internal {type} {name};");
 
-			file.Line();
+			header.Line();
 
-			using (file.Block(
+			using (header.Block(
 				$"internal {ReaderStruct}(global::System.ReadOnlySpan<char> text{(_readerWays ? $", {WaysType} ways" : "")}" +
 				string.Concat(state.Select(one => $", {one.Type} {one.Name}")) + WholeParameter + ")"))
 			{
-				file.Line("this.text    = text;");
-				file.Line("this.failure = default;");
+				header.Line("this.text    = text;");
+				header.Line("this.failure = default;");
 				if (_readerWays)
-					file.Line("this.ways    = ways;");
+					header.Line("this.ways    = ways;");
 
 				// A C# 8 struct auto-defaults nothing, and the floor is C# 8.
 				if (Probes)
-					file.Line("this.probes  = 0;");
+					header.Line("this.probes  = 0;");
 
 					if (_stacks > 0)
-						file.Line("this.stacks  = 0;");
+						header.Line("this.stacks  = 0;");
 
 				foreach (var (_, name) in state)
-					file.Line($"this.{name} = {name};");
+					header.Line($"this.{name} = {name};");
 
 				foreach (var (_, name) in registers)
-					file.Line($"this.{name} = default!;");
+					header.Line($"this.{name} = default!;");
 
 				if (Probes)
-					file.Line("this.whole   = parserWhole;");
+					header.Line("this.whole   = parserWhole;");
 			}
 
 			if (Probes)
-				RenderDeepening(file, state, registers);
+				RenderDeepening(header, state, registers);
 
-			file.Line();
+			header.Line();
 			if (Carrier.ReaderMethods is { Length: > 0 } methods)
-				file.Write(methods);
-
-			file.Write(members.ToString());
+				header.Write(methods);
 		}
+
+		file.Prepend(header);
+		file.Line("}");
 
 		if (Probes)
 			RenderDeep(file, state, registers);

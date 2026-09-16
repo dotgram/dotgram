@@ -520,3 +520,46 @@ This is one unprofiled process pair, not a guarantee of the same reduction in Vi
 ### Validation
 
 All **8,179 tests passed**, with zero errors, failures or skips, in 153.683 seconds (`tests-step7-all.log`). This includes existing golden-source, folding, replay, mapped-C# and writer cases. All 127 representative output hashes matched, both Release builds had zero warnings/errors, and BOM/CRLF/tab/whitespace checks plus `git diff --check` passed. No new tests were added solely to mirror the changed rendering order.
+
+## Eighth optimization batch: assemble the reader class in its body buffer
+
+The baseline for this batch is merge commit `9ec4de1`, including main at `30774a2`. Prefix-table dispatch and the FIX grammar changed in main. Earlier measurements in this document remain historical; their fixture inventory and generated text are not a baseline for this batch. Fresh baseline generator and retention-harness binaries were built and saved before editing.
+
+Reader methods are now emitted at their final class indentation directly into the file Writer. Once their required state is known, RenderReaderStruct creates the class header, fields, constructor and support members in a separate smaller writer and prepends that header to the existing method buffer. It then closes the class and appends the outer helpers. The former full members-to-string-to-file copy is gone; mapped source columns and the order of state analysis remain unchanged.
+
+This removes one large duplicate body, not every temporary writer in the generator. The header, entry wrappers, extracted parts, provisional first-pass methods and the later enclosing source assembly still have separate storage. The conditional replay-state text inspection also still materializes a string. No static cache or pool was introduced.
+
+### Fresh baseline comparison
+
+Six fixtures ran sequentially, with no concurrent build or tests. Library medians contain two warm observations after discarding cycle zero; tiny medians contain nine. SQL and Finance were measured baseline-first, followed by the candidate, as were the other fixtures.
+
+| Fixture | Merged baseline time | Candidate time | Baseline allocation | Candidate allocation |
+|---|---:|---:|---:|---:|
+| SQL | 19,792.97 ms | 20,612.23 ms | 19,222.64 MiB | 18,918.92 MiB |
+| Finance | 2,587.12 ms | 2,560.38 ms | 3,336.01 MiB | 3,335.86 MiB |
+| ExpressionLanguage | 1,010.43 ms | 996.84 ms | 383.81 MiB | 372.56 MiB |
+| Web | 518.60 ms | 525.77 ms | 189.65 MiB | 185.76 MiB |
+| Tiny | 5.46 ms | 5.73 ms | 0.95 MiB | 0.95 MiB |
+| TinyStreams | 6.35 ms | 6.22 ms | 2.07 MiB | 2.07 MiB |
+
+SQL allocated approximately **303.72 MiB less**, ExpressionLanguage **11.25 MiB less**. Finance was essentially unchanged. SQL time increased 4.1% in this pair; the observations do not establish a speed improvement. The focus of the change is duplicate body storage and allocation. No full Visual Studio solution-build improvement is claimed.
+
+All **35 generated source hashes matched exactly**, and the fixture runs had no generator errors. The lower file count than the previous 127-file comparisons is due to the FIX changes brought in from main, not omitted fixtures. Local measurement artifacts are `*-step8-base/step8-reader-file.jsonl` and `.hashes`, `measure-reader-file.py`, and saved binaries `step8-base-bin` / `memory-step8-base-bin` under `.work/generator-analysis/`. Both Release validation builds completed with zero warnings/errors.
+
+### Process memory
+
+The corrected unprofiled harness ran three fresh SQL generations, five unrelated C# edits and release in separate sequential baseline/candidate processes. Tests started only after both processes exited.
+
+| Measurement | Merged baseline | Candidate |
+|---|---:|---:|
+| Peak working set | 4.248 GiB | 4.030 GiB |
+| Working set after release | 2.879 GiB | 3.141 GiB |
+| Managed live data after edits | 297.40 MiB | 297.41 MiB |
+| Managed live data after release | 30.79 MiB | 30.79 MiB |
+| Prior/current drivers alive after release | 0 of 8 | 0 of 8 |
+
+Peak working set fell **5.1%** in this single pair, while post-release working set increased by approximately 0.26 GiB. The retained managed result remained essentially unchanged, and all previous drivers collected. This is a measured allocation reduction with mixed process-memory observations, not proof that every memory metric or IDE session improves. Counter files are `memory-sql-step8-base-reader-file/metrics.jsonl` and `memory-sql-step8-reader-file/metrics.jsonl`.
+
+### Validation
+
+All **8,222 tests passed**, with zero errors, failures or skips, in 169.485 seconds (`tests-step8-all.log`). Existing mapped-C#, golden-source and reader tests cover the unchanged output. All 35 fixture source hashes matched. Release builds had zero warnings/errors; BOM, CRLF, tab indentation, trailing-whitespace checks and `git diff --check` passed. This batch does not change the generated parser's runtime algorithm or source size.
