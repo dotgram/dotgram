@@ -102,6 +102,38 @@ public sealed class FixFlatFieldsTests
 	public void Malformed_field_syntax_is_rejected(string input)
 		=> Assert.False(Fix44.TryParse(input, out _, out _, new FixFieldOptions('|')));
 
+	[Theory]
+	[InlineData("96=abc|")]
+	[InlineData("95=3|")]
+	[InlineData("95=3|89=abc|")]
+	[InlineData("95=1|96=a|96=b|")]
+	[InlineData("95=-1|96=|")]
+	[InlineData("95=+1|96=a|")]
+	[InlineData("95=-0|96=|")]
+	public void Incomplete_or_mismatched_pairs_fail_in_all_input_forms(string input)
+	{
+		var options = new FixFieldOptions('|');
+		Assert.False(Fix44.TryParse(input, out _, out _, options));
+		using var reader = new StringReader(input);
+		Assert.False(Fix44.TryParse(reader, out _, out _, options, bufferSize: 1));
+		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
+		Assert.False(Fix44.TryParse(stream, out _, out _, options, bufferSize: 1));
+	}
+
+	[Fact]
+	public void Streaming_pair_returns_both_fields_without_reading_the_next_field()
+	{
+		const string pair = "95=3|96=a|b|";
+		using var stream = new ShortStream(Encoding.Latin1.GetBytes(pair + "55=X|")) { ReadLimit = pair.Length };
+		using var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 1).GetEnumerator();
+		Assert.True(fields.MoveNext());
+		Assert.IsType<FixField.RawDataLength>(fields.Current);
+		Assert.Equal(pair.Length, stream.ReadCount);
+		Assert.True(fields.MoveNext());
+		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields.Current).Value.ToArray());
+		Assert.Equal(pair.Length, stream.ReadCount);
+	}
+
 	[Fact]
 	public void Stream_enumeration_is_lazy_and_does_not_wait_for_the_next_field()
 	{

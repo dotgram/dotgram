@@ -14,54 +14,60 @@ abstract partial class FixFieldGrammar;
 sealed class FixContext
 {
 	readonly FixFieldOptions? options;
-	int fieldStart;
-	int lengthStart;
-	int lengthEnd = -1;
-	int length = -1;
+	int length;
+	int dataTag;
 
 	public FixContext(FixFieldOptions? options = null) => this.options = options;
 
 	public long DataLimit { get; private set; }
 
-	public bool BeginField(int start)
+	public bool BeginPair(int tag, ReadOnlySpan<char> field)
 	{
-		fieldStart = start;
-		return true;
+		var start = field.IndexOf('=') + 1;
+		return BeginPair(tag, Tag(field.Slice(start, field.Length - start - 1)));
 	}
 
-	public bool BeginLength(int start)
+	public bool BeginPair(int tag, ReadOnlySpan<byte> field)
 	{
-		lengthStart = start;
-		return true;
+		var start = field.IndexOf((byte)'=') + 1;
+		return BeginPair(tag, Tag(field.Slice(start, field.Length - start - 1)));
 	}
 
-	public bool RecordLength(int end, ReadOnlySpan<char> value)
+	bool BeginPair(int tag, int count)
 	{
-		lengthEnd = end;
-		length = Tag(value.Slice(value.Length - (end - lengthStart)));
-		return true;
-	}
-
-	public bool RecordLength(int end, ReadOnlySpan<byte> value)
-	{
-		lengthEnd = end;
-		length = Tag(value.Slice(value.Length - (end - lengthStart)));
-		return true;
+		dataTag = DataTag(tag);
+		length = count;
+		return dataTag > 0 && length >= 0;
 	}
 
 	public bool BeginData(int start)
 	{
-		// The adjacent Length value determines the raw extent. Pair membership is
-		// a semantic check. Source positions make speculative calls idempotent.
-		if ((long)lengthEnd + 1 != fieldStart || length < 0) return false;
 		DataLimit = (long)start + length;
 		return true;
 	}
 
-	public bool IsDataTag(ReadOnlySpan<char> tag) => options?.IsDataTag(Tag(tag)) ?? false;
-	public bool IsDataTag(ReadOnlySpan<byte> tag) => options?.IsDataTag(Tag(tag)) ?? false;
-	public bool IsLengthTag(ReadOnlySpan<char> tag) => options?.IsLengthTag(Tag(tag)) ?? false;
-	public bool IsLengthTag(ReadOnlySpan<byte> tag) => options?.IsLengthTag(Tag(tag)) ?? false;
+	int DataTag(int tag)
+	{
+		var standard = FixSchema.DataTag(tag);
+		if (standard != 0) return standard;
+		if (options != null)
+			foreach (var pair in options.DataPairs)
+				if (pair.LengthTag == tag) return pair.DataTag;
+		return 0;
+	}
+
+	bool IsDataTag(int tag) => FixSchema.LengthTag(tag) != 0 || (options?.IsDataTag(tag) ?? false);
+	bool IsTextTag(int tag) => tag > 0 && DataTag(tag) == 0 && !IsDataTag(tag);
+	public bool IsTextTag(ReadOnlySpan<char> tag) => IsTextTag(Tag(tag));
+	public bool IsTextTag(ReadOnlySpan<byte> tag) => IsTextTag(Tag(tag));
+	public bool IsDataTag(ReadOnlySpan<char> tag) => IsDataTag(Tag(tag));
+	public bool IsDataTag(ReadOnlySpan<byte> tag) => IsDataTag(Tag(tag));
+	public bool IsLengthTag(ReadOnlySpan<char> tag) => DataTag(Tag(tag)) != 0;
+	public bool IsLengthTag(ReadOnlySpan<byte> tag) => DataTag(Tag(tag)) != 0;
+	public bool IsPairData(ReadOnlySpan<char> tag) => Tag(tag) == dataTag;
+	public bool IsPairData(ReadOnlySpan<byte> tag) => Tag(tag) == dataTag;
+	public static bool IsUnknown(ReadOnlySpan<char> tag) => Tag(tag) > 0 && FixSchema.Type(Tag(tag)) == null;
+	public static bool IsUnknown(ReadOnlySpan<byte> tag) => Tag(tag) > 0 && FixSchema.Type(Tag(tag)) == null;
 	public static int Tag(ReadOnlySpan<char> value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
 	public static int Tag(ReadOnlySpan<byte> value)
 	{

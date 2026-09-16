@@ -8,9 +8,7 @@ LogSeparator = ['|']
 ValueText    = (?!Separator & any)+
 Digits       = ['1'..'9'] & ['0'..'9']*
 
-LengthValue = { when @(context.BeginLength(parserSpan.Start + parserSpan.Length)) & ValueText & when @(context.RecordLength(parserSpan.Start + parserSpan.Length, parserText)) }
-
-// Raw data is bounded by the preceding length field, not by a delimiter.
+// Only Pair enters Data, after selecting the matching length and data tags.
 Block4096 = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 4096) & any{4096}
 Block256  = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 256) & any{256}
 Block16   = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 16) & any{16}
@@ -22,36 +20,30 @@ Data =
 	& when @(parserSpan.Start + parserSpan.Length == context.DataLimit)
 	}
 
-UnknownData : @FixField =
-	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && context.IsDataTag(tag))
-	& '=' & value: Data
-	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
-
-UnknownText : @FixField =
-	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && !context.IsDataTag(tag) && !context.IsLengthTag(tag))
-	& '=' & value: ValueText
-	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
-
-UnknownLength : @FixField =
-	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && context.IsLengthTag(tag))
-	& '=' & value: LengthValue
+Unknown : @FixField =
+	tag: Digits & when @(FixContext.IsUnknown(tag)) & '='
+	& value: (when @(context.IsDataTag(tag)) & Data | when @(!context.IsDataTag(tag)) & ValueText)
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 Field : @FixField =
-	when @(context.BeginField(parserSpan.Start + parserSpan.Length))
-	& (
-		v: KnownField(ValueText, LengthValue, Data)
-		| v: UnknownData
-		| v: UnknownLength
-		| v: UnknownText
-	)
-	& Separator
-	=> @(v)
+	(v: KnownField(ValueText, Data) | v: Unknown) & Separator => @(v)
 
-Fields : @FixField[] = { Field* }
+Pair : @FixFieldUnit =
+	first: Field & when @(context.BeginPair(first.Tag, parserText))
+	& tag: ?=Digits & when @(context.IsPairData(tag)) & second: Field
+	=> @(new FixFieldUnit(first, second))
+
+Unit : @FixFieldUnit =
+	tag: ?=Digits & (
+		when @(context.IsTextTag(tag)) & field: Field => @(new FixFieldUnit(field))
+		| when @(context.IsLengthTag(tag)) & pair: Pair => @(pair)
+	)
+
+Fields : @FixField[] = units: Unit* => @(FixFieldUnit.Flatten(units))
+Units : @FixFieldUnit[] = { Unit* }
 
 parse Fields stream bytes
 parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
 
-parse Fields as ReadFields stream bytes yield : @FixField
-parse Fields with (Separator = LogSeparator) as ReadLogFields stream bytes yield : @FixField
+parse Units as ReadFields stream bytes yield : @FixFieldUnit
+parse Units with (Separator = LogSeparator) as ReadLogFields stream bytes yield : @FixFieldUnit

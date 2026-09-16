@@ -22,14 +22,17 @@ FixMessage message = FixMessages.Build(wire, fields);
 `Fix44` returns fields in source order, including repeated and unknown tags. It does
 not assemble messages or groups, check required fields, code sets, BodyLength or
 CheckSum. A failed primitive conversion sets `FixField.IsValid` to false; it does
-not reject the field. Text values need no conversion validity check.
+not reject the field, except that a binary length must be valid to find the next
+field boundary. Text values need no conversion validity check.
 
 String, character-span, `TextReader`, byte-array and `Stream` inputs are supported.
 `Parse(TextReader)` and `Parse(Stream)` return a lazy `IEnumerable<FixField>`.
-The grammar publishes `parse Fields stream bytes yield : @FixField`.
-Each completed field is returned without waiting for the next field or EOF.
-Recognition uses native char/byte buffers and releases completed fields' input;
-memory depends on the current field and buffer, not the total stream length.
+The grammar streams units containing an ordinary field or a complete length/data
+pair; the public API yields their fields individually in source order. An ordinary
+field is returned immediately. A length field is returned after its matching data
+field has been read, without waiting for the following field or EOF.
+Recognition uses native char/byte buffers and releases completed units' input;
+memory and `maxRetained` apply to the current field or pair, not the total stream length.
 Locations remain relative to the complete input. The input stays open on completion,
 error or early disposal. Keep one enumeration per input: buffering can read ahead,
 so restarting after an early stop can lose unread buffered data.
@@ -40,8 +43,10 @@ and `TryParse` still materialize the complete result. Empty input returns no fie
 Concatenated messages are read as one ordered field sequence.
 
 `FixFieldOptions` configures SOH or pipe delimiters and optional vendor data pairs.
-Raw data consumes the length given by the immediately preceding Length field;
-the semantic API checks that the length and data tags form the correct pair.
+Raw data and its immediately preceding Length field form one grammar rule.
+The parser requires the correct tag pair and consumes exactly the declared number
+of data bytes, including any delimiter bytes inside the payload. An orphaned
+length or data field is rejected. The final field separator remains required.
 Malformed field syntax returns false from `TryParse`. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.

@@ -229,7 +229,7 @@ def generate_fields():
 		"@using DotGram.Finance.Fix;",
 		"",
 	]
-	grammar.append("KnownField(text, length, data) : @FixField =")
+	grammar.append("KnownField(text, data) : @FixField =")
 	for index, (number, field) in enumerate(fields.items()):
 		name = field.attrib["name"]
 		fix_type = field_type(field)
@@ -242,7 +242,7 @@ def generate_fields():
 			f"\t\t: FixField<{cs_type}>({number}, value);",
 			"",
 		])
-		content = "data" if fix_type == "data" else "length" if fix_type == "Length" else "text"
+		content = "data" if fix_type == "data" else "text"
 		grammar.extend([
 			f"\t// {number}: {name} ({fix_type})",
 			f'\t{"" if index == 0 else "| "}{{ "{number}=" & value: {content} }}',
@@ -250,8 +250,6 @@ def generate_fields():
 			"",
 		])
 	adt[-1] = "}"
-	grammar.extend(["", "// Tag recognition prevents malformed standard fields from falling back to extensions.", "KnownTag ="])
-	grammar.extend("\t" + ("" if index == 0 else "| ") + f'"{number}="' for index, number in enumerate(fields))
 	write("FixField.Generated.cs", "\n".join(adt))
 	write("FixField.gram", "\n".join(grammar))
 
