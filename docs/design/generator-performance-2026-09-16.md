@@ -563,3 +563,46 @@ Peak working set fell **5.1%** in this single pair, while post-release working s
 ### Validation
 
 All **8,222 tests passed**, with zero errors, failures or skips, in 169.485 seconds (`tests-step8-all.log`). Existing mapped-C#, golden-source and reader tests cover the unchanged output. All 35 fixture source hashes matched. Release builds had zero warnings/errors; BOM, CRLF, tab indentation, trailing-whitespace checks and `git diff --check` passed. This batch does not change the generated parser's runtime algorithm or source size.
+
+## Ninth optimization batch: observe provisional reader output without storing it
+
+Main at `dea6d7b` was merged without conflicts as `ecc6009` before this experiment. It adds bounded construction helpers for large materialization choices. Baseline harness binaries were rebuilt and saved from that merge; earlier fixture measurements are not reused as the control.
+
+The provisional reader pass still traverses the same emitter decisions, creates helpers and gathers state before carrier selection. Its Writer now observes the `ways.Open(` marker in submitted text without accumulating a method body. Nested extracted parts use the same observation mode and propagate their result to the owner. Provisional local declarations are skipped because they cannot open replay paths. The real pass retains its existing output behavior.
+
+This is not a replacement of the emitter traversal with a new grammar-only analysis. Formatting expressions still create temporary strings, and guard helpers and other state with effects beyond the provisional body are deliberately preserved. The change removes provisional body accumulation and final strings while keeping those effects. An empty small builder object is still allocated for each observing Writer; no buffer cache or pool was added.
+
+### Sequential fixture measurements
+
+Each library median contains two warm observations after a discarded cold run; each tiny fixture contains nine. Baseline and candidate ran sequentially per fixture, without overlapping compilation or tests.
+
+| Fixture | Merged baseline time | Candidate time | Baseline allocation | Candidate allocation |
+|---|---:|---:|---:|---:|
+| SQL | 20,552.95 ms | 20,353.87 ms | 19,074.68 MiB | 18,591.85 MiB |
+| Finance | 2,505.75 ms | 2,428.72 ms | 3,381.14 MiB | 3,382.83 MiB |
+| ExpressionLanguage | 974.76 ms | 960.01 ms | 371.26 MiB | 366.28 MiB |
+| Web | 501.64 ms | 524.84 ms | 185.76 MiB | 182.02 MiB |
+| Tiny | 5.29 ms | 5.44 ms | 0.95 MiB | 0.95 MiB |
+| TinyStreams | 6.29 ms | 6.41 ms | 2.07 MiB | 2.07 MiB |
+
+SQL allocation fell approximately **482.83 MiB (2.5%)**. Finance allocation was essentially unchanged/slightly higher. SQL time changed by -1.0% and Finance by -3.1%; Web and tiny fixtures were slower in this small sample. This does not establish a general speed improvement. All **35 generated source hashes matched exactly** and all fixture runs reported no generator errors.
+
+Both Release builds passed without warnings/errors. All **22 Writer tests passed**, including three new cases checking observation without retained text, match persistence, and nested scope depth through Line, Write and Exactly. Local artifacts under `.work/generator-analysis/`: `*-step9-base/step9-reader-analysis.jsonl` and `.hashes`, `measure-reader-analysis.py`, saved `step9-base-bin` / `memory-step9-base-bin`, and the step-9 build/test logs.
+
+### Process-memory control
+
+The unprofiled retention harness ran three fresh SQL generations, five unrelated C# edits and release in sequential baseline/candidate processes. No compilation or tests overlapped these measurements.
+
+| Measurement | Merged baseline | Candidate |
+|---|---:|---:|
+| Peak working set | 4.099 GiB | 4.049 GiB |
+| Working set after release | 3.213 GiB | 3.233 GiB |
+| Managed live data after edits | 297.41 MiB | 297.40 MiB |
+| Managed live data after release | 30.80 MiB | 30.79 MiB |
+| Prior/current drivers alive after release | 0 of 8 | 0 of 8 |
+
+The 1.2% peak decrease in this single pair is small relative to earlier run-to-run variation; it does not establish a meaningful peak-memory improvement. Post-release working set was slightly higher. The candidate's edited-checkpoint GC heap also had more fragmentation, despite nearly identical live data. Cumulative allocations, heap extent and process working set remain distinct metrics. The evidence supports reduced provisional-output allocation, not a large speed or process-memory win. Raw files: `memory-sql-step9-base-reader-analysis/metrics.jsonl` and `memory-sql-step9-reader-analysis/metrics.jsonl`.
+
+### Final validation after synchronization
+
+All **8,228 general tests passed** in 187.000 seconds and **3,596 Finance tests passed** in 1.435 seconds, with zero errors, failures or skips. The Finance Release build also passed with zero warnings/errors, validating the newly merged materialization changes together with this optimization. All 35 output hashes matched; BOM/CRLF/tab checks and `git diff --check` passed. No commits from the local main were missing at final validation. Logs: `tests-step9-all.log`, `tests-step9-finance-build.log`, and `tests-step9-finance.log`.

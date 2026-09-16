@@ -175,8 +175,8 @@ sealed partial class Machine
 
 		_directRules = rules;
 
-		// Only retain which rules open a way: the first-pass bodies are no longer needed
-		// once inspected, and keeping them all would overlap the second rendering pass.
+		// Observe which rules open a way without retaining provisional source. Keep the
+		// traversal: it also creates helpers and gathers state needed before carrier selection.
 		var opens = new HashSet<RuleSymbol>();
 
 		foreach (var rule in rules)
@@ -184,12 +184,10 @@ sealed partial class Machine
 			_seam       = FollowSets.SeamOf(rule, _graph);
 			_readerPart = 0;
 
-			var reader = new ReaderWriter(this, rule);
+			var reader = new ReaderWriter(this, rule, analyzing: true);
+			reader.Render(_graph.Bodies[rule], FollowOf(rule));
 
-			var body = reader.Render(_graph.Bodies[rule], FollowOf(rule));
-
-			if (body.Contains("ways.Open(", StringComparison.Ordinal) ||
-				reader.Parts.Exists(one => one.Body.Contains("ways.Open(", StringComparison.Ordinal)))
+			if (reader.ObservedOpen)
 				opens.Add(rule);
 		}
 
@@ -946,7 +944,7 @@ sealed partial class Machine
 	/// </param>
 	sealed class ReaderWriter(
 		Machine machine, RuleSymbol owner, IReadOnlyList<int>? given = null,
-		IReadOnlyList<int>? taken = null, bool handed = false)
+		IReadOnlyList<int>? taken = null, bool handed = false, bool analyzing = false)
 	{
 		/// <summary>
 		/// Whether the rule was left-recursive, and so is a base and a loop of steps over it.
@@ -1024,6 +1022,9 @@ sealed partial class Machine
 		/// <summary>The alternatives written as methods of their own, and their bodies.</summary>
 		public List<(string Name, string Taken, string Body)> Parts { get; } = [];
 
+		/// <summary>Whether the provisional method or any of its parts writes an open way.</summary>
+		public bool ObservedOpen { get; private set; }
+
 		bool _character;
 
 		/// <summary>Ways opened and marks taken, which only a reading over characters has.</summary>
@@ -1054,7 +1055,7 @@ sealed partial class Machine
 		public string Render(
 			Node body, FollowSets.Continuation following, bool entry = false, bool ends = false)
 		{
-			var code = new Writer(0);
+			var code = analyzing ? new Writer(0, "ways.Open(") : new Writer(0);
 			Render(code, body, following, entry, ends);
 			return code.ToString();
 		}
@@ -1092,6 +1093,12 @@ sealed partial class Machine
 			}
 
 			code.Line("return p;");
+
+			if (analyzing)
+			{
+				ObservedOpen |= code.Observed;
+				return;
+			}
 
 			// The body tells us which locals are needed. Insert only those declarations
 			// at this method's start, leaving previously emitted methods untouched.
@@ -2154,9 +2161,10 @@ sealed partial class Machine
 				_kept.Add(slot);
 
 			var name  = machine.ReaderOf(owner) + "_Part" + machine._readerPart++;
-			var apart = new ReaderWriter(machine, owner, given, taken, _folds);
+			var apart = new ReaderWriter(machine, owner, given, taken, _folds, analyzing);
 
 			var written = apart.Render(part, following);
+			ObservedOpen |= apart.ObservedOpen;
 
 			Parts.Add((name, Handing(given, taken, "int "), written));
 
@@ -2171,8 +2179,10 @@ sealed partial class Machine
 
 			// What it wrote itself, what its own parts wrote, and what the rules it calls
 			// were found to write.
-			var opens = written.Contains("ways.Open(", StringComparison.Ordinal) ||
-				apart.Parts.Exists(one => one.Body.Contains("ways.Open(", StringComparison.Ordinal)) ||
+			var opens = (analyzing
+				? apart.ObservedOpen
+				: written.Contains("ways.Open(", StringComparison.Ordinal) ||
+					apart.Parts.Exists(one => one.Body.Contains("ways.Open(", StringComparison.Ordinal))) ||
 				machine.Opens(part);
 
 			return (

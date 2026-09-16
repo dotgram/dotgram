@@ -10,6 +10,22 @@ sealed class Writer(int depth)
 
 	int _depth = depth;
 
+	readonly string? _observing;
+
+	/// <summary>Observes a substring within written lines without retaining their text.</summary>
+	public Writer(int depth, string observing) : this(depth) => _observing = observing;
+
+	public bool Observed { get; private set; }
+
+	bool Observe(string text)
+	{
+		if (_observing is null)
+			return false;
+
+		Observed = Observed || text.Contains(_observing, StringComparison.Ordinal);
+		return true;
+	}
+
 	/// <summary>How far in the next line will be written — what a nested writer starts at.</summary>
 	public int Depth => _depth;
 
@@ -26,6 +42,9 @@ sealed class Writer(int depth)
 	/// </remarks>
 	public void Line(string text = "")
 	{
+		if (Observe(text))
+			return;
+
 		var length = text.Length;
 
 		while (length > 0 && text[length - 1] is ' ' or '\t')
@@ -40,6 +59,9 @@ sealed class Writer(int depth)
 	/// <summary>Inserts a declaration before an existing body and returns the next insertion position.</summary>
 	public int InsertLine(int at, string text)
 	{
+		if (Observe(text))
+			return at;
+
 		var length = text.Length;
 
 		while (length > 0 && text[length - 1] is ' ' or '\t')
@@ -88,7 +110,11 @@ sealed class Writer(int depth)
 	/// directive, and the line under one, which is padded out to the column the grammar
 	/// had so that a C# error lands where the author wrote the code (§7.6).
 	/// </remarks>
-	public void Exactly(string text) => _text.AppendEndingWith(text);
+	public void Exactly(string text)
+	{
+		if (!Observe(text))
+			_text.AppendEndingWith(text);
+	}
 
 	/// <summary>A single indented line — the body of an <c>if</c> without braces.</summary>
 	public void Then(string text)
@@ -120,10 +146,21 @@ sealed class Writer(int depth)
 		return new Outdenter(this);
 	}
 
-	public void Append(Writer other) => _text.Append(other._text);
+	public void Append(Writer other)
+	{
+		if (_observing is null)
+			_text.Append(other._text);
+		else
+			Observe(other.ToString());
+	}
 
 	/// <summary>Adds a small header before an already emitted body without copying the body.</summary>
-	public void Prepend(Writer header) => _text.Insert(0, header._text.ToString());
+	public void Prepend(Writer header)
+	{
+		var text = header.ToString();
+		if (!Observe(text))
+			_text.Insert(0, text);
+	}
 
 	/// <summary>
 	/// Writes text that is already laid out, each line at the current depth.
@@ -150,6 +187,9 @@ sealed class Writer(int depth)
 	/// </remarks>
 	void AppendLines(string text, int extra, bool normalize = false)
 	{
+		if (Observe(text))
+			return;
+
 		var kept = false;
 		var at   = 0;
 

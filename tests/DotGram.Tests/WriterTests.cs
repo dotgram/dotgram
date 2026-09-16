@@ -91,6 +91,26 @@ public sealed class WriterTests
 		Assert.True(Contains(writer, "", at));
 	}
 
+	[Theory]
+	[InlineData("Line")]
+	[InlineData("Write")]
+	[InlineData("Exactly")]
+	public void Observation_retains_only_the_match_and_preserves_scope_depth(string method)
+	{
+		var writer = Activator.CreateInstance(WriterType, [2, "ways.Open("])!;
+		var scope = (IDisposable)WriterType.GetMethod("Block")!.Invoke(writer, ["if (p > 0)"])!;
+		Assert.Equal(3, WriterType.GetProperty("Depth")!.GetValue(writer));
+		Call(writer, method, "ways.Other();");
+		Assert.False((bool)WriterType.GetProperty("Observed")!.GetValue(writer)!);
+		Call(writer, method, "w0 = ways.Open(1);");
+		Call(writer, method, "return p;");
+		scope.Dispose();
+		Assert.True((bool)WriterType.GetProperty("Observed")!.GetValue(writer)!);
+		Assert.Equal(2, WriterType.GetProperty("Depth")!.GetValue(writer));
+		Assert.Equal(0, WriterType.GetProperty("Length")!.GetValue(writer));
+		Assert.Equal("", writer.ToString());
+	}
+
 	static int Insert(object writer, int at, string text) =>
 		(int)WriterType.GetMethod("InsertLine")!.Invoke(writer, [at, text])!;
 
