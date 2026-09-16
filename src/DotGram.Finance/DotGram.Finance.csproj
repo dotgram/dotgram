@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+		<!-- Keep the large-rule estimate visible; measured tradeoffs are recorded in the benchmark README. -->
+		<WarningsNotAsErrors>$(WarningsNotAsErrors);GRAM5003</WarningsNotAsErrors>
 		<RootNamespace>DotGram.Finance</RootNamespace>
 		<Description>FIX 4.4 tag-value parsing built with DotGram.</Description>
 		<PackageReleaseNotes>FIX 4.4 flat typed field parsing with native byte streams and an explicitly invoked message, group and validation API.</PackageReleaseNotes>

@@ -86,9 +86,11 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 ## Implemented grammar strategy
 
 The handwritten `FixGrammar` host inherits `FixFieldGrammar`. Its generated
-`FixField.gram` declares one rule per standard numeric tag plus the `KnownField`
-choice. Rules contain full literals such as `"607="` and accept content and
-separator rules as parameters. There is no manually expanded prefix tree.
+`FixField.gram` declares a single `KnownField` choice with one alternative per
+standard numeric tag. Alternatives contain full literals such as `"607="` and
+construct their ADT case directly. Text, length and data readers are parameters.
+The common handwritten `Field` consumes the separator after the choice. There is
+no manually expanded prefix tree and no separate rule per field.
 The handwritten `FixGrammar.gram` provides `ValueText`, length-delimited `Data`,
 `Separator`, unknown-field recognition and the two parse publications.
 

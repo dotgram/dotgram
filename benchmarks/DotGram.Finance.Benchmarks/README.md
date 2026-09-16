@@ -200,3 +200,12 @@ The `FlatOrderFields`, `FlatRawFields`, and `FlatGroupFields` workloads call
 `Fix44.Parse` and return only fields. Existing message workloads explicitly call
 `FixMessages.Parse`; their costs include semantic assembly and validation.
 Previously recorded results predate this separation.
+
+## Single field-choice grammar: 2026-09-16
+
+[Same-run comparison and full results](results/2026-09-16-flat-fields.md) compare
+commit `910c40f` with one `KnownField` choice and a shared separator. All 186
+fixtures are compared by field case, typed value and location before timing.
+The simpler grammar reduces assembly size by 25.6%, but performance is mixed:
+group workloads improve while short orders regress. Allocations are unchanged.
+The report documents the visible `GRAM5003` warning and reproduction commands.

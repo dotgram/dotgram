@@ -278,11 +278,13 @@ and measurement records are in `docs/design/finance-fix44.md` and
 
 ### Field construction and locations
 
-`FixGrammar` inherits `FixFieldGrammar`, whose `FixField.gram` contains only the
-standard field rules and their `KnownField` choice and tag lookahead. Each rule spells out the full
-tag, for example `"607="`. The handwritten `FixGrammar.gram` supplies text, raw-data
-and separator rules as grammar parameters and defines the eager and `yield` parse publications.
-There are no manually expanded digit-prefix branches.
+`FixGrammar` inherits `FixFieldGrammar`, whose `FixField.gram` contains one
+`KnownField` rule with an alternative for each standard field, plus tag lookahead.
+Each alternative spells out the full tag, for example `"607="`, and constructs its
+`FixField` case directly. The handwritten `FixGrammar.gram` supplies text, length
+and raw-data rules as parameters. Its common `Field` rule consumes the separator
+and defines the complete field extent. Publications support eager and `yield`
+parsing. There are no manually expanded digit-prefix branches.
 
 `FixField.Generated.cs` declares the nested cases of `partial class FixField`.
 The handwritten `FixField.cs` implements locations and typed-value access; the
@@ -296,6 +298,6 @@ without a validation flag; a string's typed value is always available. Restricti
 on a particular field (such as currency syntax or a code set) remain semantic checks.
 
 `LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
-Each field rule covers the complete tag, equals sign, value and separator;
-forwarding rules preserve that extent. `Position`, `ValuePosition` and
+The common `Field` rule covers the complete tag, equals sign, value and separator;
+its location overrides the shorter inner alternative's extent. `Position`, `ValuePosition` and
 `Length` retain their existing meanings, including for unknown and binary fields.

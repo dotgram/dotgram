@@ -24,27 +24,28 @@ Data =
 
 UnknownData : @FixField =
 	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && context.IsDataTag(tag))
-	& '=' & value: Data & Separator
+	& '=' & value: Data
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 UnknownText : @FixField =
 	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && !context.IsDataTag(tag) && !context.IsLengthTag(tag))
-	& '=' & value: ValueText & Separator
+	& '=' & value: ValueText
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 UnknownLength : @FixField =
 	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && context.IsLengthTag(tag))
-	& '=' & value: LengthValue & Separator
+	& '=' & value: LengthValue
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 Field : @FixField =
 	when @(context.BeginField(parserSpan.Start + parserSpan.Length))
 	& (
-		v: KnownField(ValueText, LengthValue, Data, Separator)
+		v: KnownField(ValueText, LengthValue, Data)
 		| v: UnknownData
 		| v: UnknownLength
 		| v: UnknownText
 	)
+	& Separator
 	=> @(v)
 
 Fields : @FixField[] = { Field* }
