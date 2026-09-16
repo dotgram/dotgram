@@ -216,3 +216,10 @@ The report documents the visible `GRAM5003` warning and reproduction commands.
 separate lazy creation, empty enumeration and per-field costs. The large generated
 materialization helper clears about 28 KiB of stack per invocation. Parser startup
 alone does not explain the warm regression. No compiler fix is included yet.
+
+## Explicit length/data pairs: 2026-09-16
+
+[Same-run pair comparison](results/2026-09-16-pairs.md) measures 2512de2 against
+its predecessor. Pair parsing simplifies the grammar but does not speed it up:
+short byte orders take 31% more time, while group allocations rise 12-17%.
+The full report includes all input forms, uncertainty and assembly hashes.
