@@ -23,6 +23,7 @@ sealed partial class Machine
 		Node.Repeat repeatNode, RecoveryPlan recovery, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
+		if (recovery.Recovery.YieldStep) max = 1;
 
 		if (max == 0)
 			return next;
@@ -98,6 +99,7 @@ sealed partial class Machine
 			{
 				atRecovered.Line("recoveryFrom = candidate.Position;");
 				atRecovered.Line("recoveryReach = candidate.AtomicIndex;");
+				atRecovered.Line("break;");
 			}
 			atRecovered.Line(
 				"if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && " +
@@ -111,7 +113,8 @@ sealed partial class Machine
 		DeactivateChoices(atRecovered, "repeat");
 		atRecovered.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
-			"repeat, lookahead, recoveryTo, entries[repeat].Value));");
+			"repeat, lookahead, recoveryTo, entries[repeat].Value" +
+			(recovery.Recovery.YieldStep ? " + failure.RecoveryOrdinal" : "") + "));");
 		atRecovered.Line("var recoveredRepeat = entries[repeat];");
 		atRecovered.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, " +

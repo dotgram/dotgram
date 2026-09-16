@@ -116,14 +116,15 @@ public static partial class CSharpEmitter
 			{
 				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
 				file.Line("var start = 0;");
+				if (publication.YieldRecovery) file.Line("var ordinal = 0;");
 				if (publication.YieldMinimum > 0)
 					file.Line("if (!text.Peek(0, out _)) throw new global::System.FormatException(\"Expected at least one element at offset 0.\");");
 				using (file.Block("while (text.Peek(start, out _))"))
 				{
-					file.Line($"var failure = new {FailureType}();");
+					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
 					file.Line($"var end = {BufferedMethod(publication, bytes)}(text, start{hands});");
 					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
-					file.Line("yield return value;");
+					file.Line(publication.YieldBatch ? "foreach (var item in value) yield return item;" : "yield return value;");
 					file.Line("start = end;");
 					if (!Locating(graph) && !Reaches(graph, publication.Rule).Any(rule =>
 						NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind)))

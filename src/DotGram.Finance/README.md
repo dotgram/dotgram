@@ -37,7 +37,27 @@ Locations remain relative to the complete input. The input stays open on complet
 error or early disposal. Keep one enumeration per input: buffering can read ahead,
 so restarting after an early stop can lose unread buffered data.
 
-Syntax and I/O errors occur during enumeration; malformed fields are not skipped.
+Both grammars use `Field* recover Separator`. A syntax failure returns one
+`FixField.Invalid` in source order, then parsing resumes after the next separator
+(or finishes at EOF). `Invalid.Position` and `Length` describe the rejected input,
+excluding the synchronization separator; `Tag` is 0 and `IsValid` is false.
+`RawText` owns the original character input, while `RawBytes` owns the original
+byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
+I/O errors and exceptions from user C# code still propagate during enumeration.
+
+```csharp
+foreach (var field in FixDispatch.ParseLog("55=ABC|broken|38=2"))
+{
+    if (field is FixField.Invalid invalid)
+        Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
+}
+```
+
+Valid binary payloads are consumed by length, including embedded separators.
+After a malformed binary header or length, separator recovery is best effort:
+the next separator may be inside damaged payload data. Primitive conversion
+failures keep their existing typed field with `IsValid == false`; `recover`
+handles recognition failures, not semantic validation.
 Use `.ToArray()` when a complete list is needed. String/span/byte-array overloads
 and `TryParse` still materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
@@ -48,7 +68,10 @@ The parser requires the correct tag pair and consumes exactly the declared numbe
 of data bytes, including any delimiter bytes inside the payload. An orphaned
 length or data field is rejected. The final field may end at EOF without a separator. Separators between fields
 remain required; the declared binary length still determines the complete payload.
-Malformed field syntax returns false from `TryParse`. Typed values own their data;
+`TryParse` returns false and the first syntax error when recovery produced an
+`Invalid` field; its `fields` output still contains the completed field sequence,
+including errors. The explicit message API rejects these syntax errors in both
+strict and lenient modes. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
 

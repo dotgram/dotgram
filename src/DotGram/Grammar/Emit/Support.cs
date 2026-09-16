@@ -615,8 +615,9 @@ public static partial class CSharpEmitter
 	/// site.
 	/// </remarks>
 	internal static string FailureStructWith(
-		bool reach, bool starved = false, bool expected = false, bool expectedMore = false) =>
+		bool reach, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false) =>
 		Lines.Normalize(FailureStruct)
+			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
 				reach ? Lines.Normalize(ReachField) + Lines.Ending : "")
@@ -639,6 +640,7 @@ public static partial class CSharpEmitter
 			/// succeeded without ever backtracking, and meaningless unless one failed.
 			/// </summary>
 			public int Position;
+			{{recoveryOrdinal}}
 
 			/// <summary>
 			/// Where something wanted more input than remained, one past the position, or

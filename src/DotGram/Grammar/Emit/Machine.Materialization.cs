@@ -596,6 +596,16 @@ sealed partial class Machine
 					file.Line("var candidate = entries[capturedAt];");
 					file.Line();
 
+					// A yielded recovery with a factory produces one scalar, not a one-item array.
+					foreach (var plan in _recoveryPlans)
+						if (plan.Rule == rule && plan.Recovery.YieldStep && plan.Recovery.Factory is not null)
+							foreach (var memberIndex in scalars)
+								if (members[memberIndex].Slots.Contains(plan.Slot - offset))
+								{
+									file.Line($"if (candidate.Kind == ParserEntry.Recovery && candidate.State == {plan.Id} && candidate.CallIndex == completedAt)");
+									file.Then($"captured{memberIndex}At = capturedAt;");
+								}
+
 					// A slot belongs to one member, so the state that names it is a jump
 					// rather than a run of comparisons. The kind is still tested inside:
 					// a `Recovery` entry's own state numbering is not a capture slot's, and

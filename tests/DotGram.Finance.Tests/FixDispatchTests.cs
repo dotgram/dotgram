@@ -52,8 +52,8 @@ public sealed class FixDispatchTests
 		Assert.Equal(size, binary.Length);
 		Assert.True(stream.CanRead);
 		Equal(fields, FixDispatch.Parse(input, options));
-		Assert.Throws<FormatException>(() => FixDispatch.Parse("5000=1|5002=X|", options));
-		Assert.Throws<FormatException>(() => FixDispatch.Parse("5001=X|", options));
+		Assert.Contains(FixDispatch.Parse("5000=1|5002=X|", options), field => field is FixField.Invalid);
+		Assert.Contains(FixDispatch.Parse("5001=X|", options), field => field is FixField.Invalid);
 	}
 
 	[Theory]
@@ -64,12 +64,12 @@ public sealed class FixDispatchTests
 	[InlineData("01=x|")]
 	[InlineData("2147483648=x|")]
 	[InlineData("95=2147483648|96=x|")]
-	public void Malformed_inputs_are_rejected_by_both_parsers(string wire)
+	public void Malformed_inputs_return_invalid_fields_in_both_parsers(string wire)
 	{
-		Assert.Throws<FormatException>(() => Fix44.ParseLog(wire));
-		Assert.Throws<FormatException>(() => FixDispatch.ParseLog(wire));
+		Assert.Contains(Fix44.ParseLog(wire), field => field is FixField.Invalid);
+		Assert.Contains(FixDispatch.ParseLog(wire), field => field is FixField.Invalid);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
-		Assert.Throws<FormatException>(() => FixDispatch.Parse(stream, new FixDispatchOptions('|'), bufferSize: 1).ToArray());
+		Assert.Contains(FixDispatch.Parse(stream, new FixDispatchOptions('|'), bufferSize: 1), field => field is FixField.Invalid);
 	}
 
 	[Fact]
@@ -124,8 +124,8 @@ public sealed class FixDispatchTests
 	[InlineData("95=1|96=a55=ABC")]
 	public void Eof_does_not_relax_binary_length_or_intermediate_separators(string input)
 	{
-		Assert.False(Fix44.TryParse(input, out _, out _, new FixFieldOptions('|')));
-		Assert.False(FixDispatch.TryParse(input, out _, out _, new FixDispatchOptions('|')));
+		Assert.Contains(Fix44.ParseLog(input), field => field is FixField.Invalid);
+		Assert.Contains(FixDispatch.ParseLog(input), field => field is FixField.Invalid);
 	}
 
 	sealed class ShortStream(byte[] input) : MemoryStream(input)

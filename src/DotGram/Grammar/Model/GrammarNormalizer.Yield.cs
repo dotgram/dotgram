@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
@@ -74,9 +74,7 @@ public sealed partial class GrammarNormalizer
 				var element = call.Rule;
 				var collectedType = _types[root].Substring(0, _types[root].Length - 2);
 				var type = publication.ResultType ?? new TypeRef(true, collectedType, false, publication.At);
-				if (_recoveries.ContainsKey(repeat))
-					reason = "Yield with recovery is not supported yet.";
-				else if ((_nullable.TryGetValue(element, out var nullable) && nullable) || element.GivesBack)
+				if ((_nullable.TryGetValue(element, out var nullable) && nullable) || element.GivesBack)
 					reason = "A yielded element must consume input and must not give back a successful match.";
 				else if (!type.IsCSharp || type.IsSequence)
 					reason = "The yield element type must be a C# type written as '@T'.";
@@ -85,11 +83,31 @@ public sealed partial class GrammarNormalizer
 				else if (!PublicationFits(_resolver, actual, type.Name, publication.DeclaredIn))
 					reason = $"The result of '{element.Name}' is not assignable to the yield type '{type.Name}'.";
 				else
-					publications[i] = publication with { Kind = PublishKind.Yield, Rule = element, ResultType = type, YieldMinimum = repeat.Min };
+				{
+					var recovering = _recoveries.TryGetValue(repeat, out var recovery);
+					var target = element;
+					if (recovering)
+					{
+						// One committed iteration uses the existing recovery machine. The driver
+						// releases its input before requesting the next iteration.
+						var name = owner.Name + "_YieldStep" + i;
+						while (_rules.Exists(rule => rule.Namespace == owner.Namespace && rule.Name == name)) name += "_";
+						target = new RuleSymbol(name, owner.Namespace, owner.Declaration);
+						var scalar = recovery!.Factory is not null;
+						var step = new Node.Repeat(new Node.Capture("item", call), 1, scalar ? 1 : null);
+						_rules.Add(target);
+						_bodies[target] = new Node.Construct(step, scalar ? Construction.Operand.Instance : Construction.Sequence.Instance);
+						_types[target] = scalar ? collectedType : collectedType + "[]";
+						_nullable[target] = false;
+						_recoveries[step] = recovery! with { YieldStep = true };
+					}
+					publications[i] = publication with { Kind = PublishKind.Yield, Rule = target, ResultType = type, YieldMinimum = repeat.Min, YieldRecovery = recovering, YieldBatch = recovering && recovery!.Factory is null };
+				}
 			}
 			if (reason is not null)
 				_diagnostics.Add(new GramDiagnostic(UnsafeYield, reason, publication.At.Position, publication.At.Length, GramSeverity.Error));
 		}
 		_publications = publications;
+		if (publications.Exists(publication => publication.YieldRecovery)) ComputeResults();
 	}
 }

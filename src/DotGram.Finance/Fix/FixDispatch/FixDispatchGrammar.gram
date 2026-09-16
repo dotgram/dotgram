@@ -14,7 +14,7 @@ Octet = when @(parserSpan.Start + parserSpan.Length < context.DataLimit) & any
 Data = { Block4096* & Block256* & Block16* & Octet* & when @(parserSpan.Start + parserSpan.Length == context.DataLimit) }
 
 Field : @FixField =
-	wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
+	{ ?=any } & wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
 		case 0: Text
 		case 1:
 			size: Size & Separator & dataTag: Tag & '='
@@ -22,7 +22,8 @@ Field : @FixField =
 	}) & end: (Separator | eof)
 	=> @(context.Create(wire, parserSpan.Start).WithTerminator(end.Length))
 
-Fields : @FixField[] = { Field* }
+Fields : @FixField[] = Field* recover Separator
+	=> @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
 parse Fields stream bytes
 parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
 parse Fields as ReadFields stream bytes yield : @FixField

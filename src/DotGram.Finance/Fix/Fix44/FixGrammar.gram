@@ -50,9 +50,10 @@ Unknown : @FixField =
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 Field : @FixField =
-	(v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
+	{ ?=any } & (v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
 
-Fields : @FixField[] = { Field* }
+Fields : @FixField[] = Field* recover Separator
+	=> @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
 
 parse Fields stream bytes
 parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes

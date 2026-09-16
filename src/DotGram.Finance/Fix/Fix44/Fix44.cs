@@ -108,6 +108,13 @@ public static class Fix44
 	{
 		fields = match.IsSuccess ? match.Value : null;
 		error = match.IsSuccess ? null : new FixParseError((int)match.Position, null, null, match.Error ?? "Invalid FIX field syntax.");
+		if (fields != null)
+			foreach (var field in fields)
+				if (field is FixField.Invalid invalid)
+				{
+					error = new FixParseError(invalid.Position, null, null, invalid.Message);
+					return false;
+				}
 		return match.IsSuccess;
 	}
 }

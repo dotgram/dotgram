@@ -335,6 +335,8 @@ public sealed record Publication(
 	public bool Yield { get; init; }
 	public TypeRef? ResultType { get; init; }
 	public int YieldMinimum { get; init; }
+	public bool YieldRecovery { get; init; }
+	public bool YieldBatch { get; init; }
 
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>

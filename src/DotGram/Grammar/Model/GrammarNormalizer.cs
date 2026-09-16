@@ -264,7 +264,8 @@ public sealed partial class GrammarNormalizer
 		var located = new HashSet<RuleSymbol>();
 
 		foreach (var rule in normalizer._rules)
-			if (normalizer._types.TryGetValue(rule, out var type) && Fits(type))
+			if (!normalizer._publications.Any(publication => publication.YieldRecovery && publication.Rule == rule) &&
+				normalizer._types.TryGetValue(rule, out var type) && Fits(type))
 				located.Add(rule);
 
 		return located;
