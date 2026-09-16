@@ -74,6 +74,8 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A bare <c>@Name</c> the parser cannot call as a recognizer.</summary>
 	public const string UnresolvedExternal = "GRAM4025";
 
+	public const string UnsafeYield = "GRAM4027";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
@@ -206,6 +208,8 @@ public sealed partial class GrammarNormalizer
 		normalizer.ReconcileState();
 
 		// Last of all, because what it drops is what nothing else left a way to.
+		normalizer.LowerYieldPublications();
+
 		normalizer.Prune();
 
 		return new RecognitionGraph(

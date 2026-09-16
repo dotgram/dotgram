@@ -52,10 +52,5 @@ Fields : @FixField[] = { Field* }
 parse Fields stream bytes
 parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
 
-// The fallback reports a malformed field instead of allowing find to skip it.
-StreamField : @FixField =
-	v: Field => @(v)
-	| any => @(FixContext.InvalidField(parserSpan.Start))
-
-find StreamField as ReadFields stream bytes
-find StreamField with (Separator = LogSeparator) as ReadLogFields stream bytes
+parse Fields as ReadFields stream bytes yield : @FixField
+parse Fields with (Separator = LogSeparator) as ReadLogFields stream bytes yield : @FixField

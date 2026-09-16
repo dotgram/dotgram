@@ -182,6 +182,12 @@ public static class GramCompiler
 				0,
 				GramSeverity.Warning));
 
+		if (graph.Publications.Any(one => one.Kind == PublishKind.Yield))
+		{
+			Say("Yield publications currently use character recognition rather than token-kind input.");
+			return null;
+		}
+
 		if (graph.Publications.Any(one => one.Kind == PublishKind.Find))
 		{
 			Say("`find` hunts through characters for a place to begin, and a stream of tokens " +

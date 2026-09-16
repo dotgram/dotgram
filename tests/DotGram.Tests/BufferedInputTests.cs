@@ -222,7 +222,7 @@ public sealed class BufferedInputTests
 	}
 
 	[Fact]
-	public void Recovery_and_existing_stream_publication_coexist()
+	public void Explicit_buffered_input_materializes_even_when_legacy_streaming_is_available()
 	{
 		var grammar = """
 			Start : @string[] = Row* recover eol => @("!" + parserText)
@@ -234,9 +234,10 @@ public sealed class BufferedInputTests
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var assembly = EmittedCode.Compile(compilation.Sources.Single().Text, declarationMembers: """
 			public static string[] Whole(System.IO.TextReader input) => ParseStart(input, bufferSize: 2);
-			public static System.Collections.Generic.IEnumerable<string> Legacy(System.IO.TextReader input) => ParseStart(input);
+			public static string[] Default(System.IO.TextReader input) => ParseStart(input);
 			""");
-		Assert.NotNull(assembly.GetType("Grammar")!.GetMethod("ParseStart", [typeof(TextReader)]));
+		Assert.Null(assembly.GetType("Grammar")!.GetMethod("ParseStart", [typeof(TextReader)]));
+		Assert.Equal(typeof(string[]), assembly.GetType("Grammar")!.GetMethod("Default")!.ReturnType);
 		var input = "abc\r\n123\r\nxyz\n";
 		var expected = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
 		var actual = Read(assembly, new ShortReader(input, 1), 2);
@@ -245,10 +246,9 @@ public sealed class BufferedInputTests
 		Assert.Equal(new[] { "abc", "xyz" }, (string[])assembly.GetType("Grammar")!.GetMethod("Whole")!
 			.Invoke(null, [new StringReader("abc\r\nxyz\n")])!);
 		var original = EmittedCode.Compile(GramCompiler.Compile(grammar.Replace(" stream", ""), options).Sources.Single().Text);
-		var legacy = (System.Collections.Generic.IEnumerable<string>)original.GetType("Grammar")!
-			.GetMethod("ParseStart", [typeof(TextReader)])!.Invoke(null, [new StringReader("abc\r\nxyz\n")])!;
-		Assert.Equal(legacy.ToArray(), ((System.Collections.Generic.IEnumerable<string>)assembly.GetType("Grammar")!
-			.GetMethod("Legacy")!.Invoke(null, [new StringReader("abc\r\nxyz\n")])!).ToArray());
+		Assert.NotNull(original.GetType("Grammar")!.GetMethod("ParseStart", [typeof(TextReader)]));
+		Assert.Equal(new[] { "abc", "xyz" }, (string[])assembly.GetType("Grammar")!
+			.GetMethod("Default")!.Invoke(null, [new StringReader("abc\r\nxyz\n")])!);
 	}
 
 	[Fact]

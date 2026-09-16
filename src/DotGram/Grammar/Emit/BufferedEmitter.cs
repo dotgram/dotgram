@@ -75,7 +75,7 @@ public static partial class CSharpEmitter
 			{
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
 					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
-					bufferedFind: publication.Kind == PublishKind.Find);
+					bufferedFind: publication.Kind != PublishKind.Parse);
 				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
@@ -106,6 +106,30 @@ public static partial class CSharpEmitter
 			", ref failure" + (type is null ? "" : ", out var value") +
 			(machine.UsesContext ? ", context" : "") +
 			(machine.UsesReading ? $", {publication.Reading}" : "");
+		if (publication.Kind == PublishKind.Yield)
+		{
+			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
+			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.YieldType!.Name}> {method}(" +
+				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+			{
+				file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line("var start = 0;");
+				if (publication.YieldMinimum > 0)
+					file.Line("if (!text.Peek(0, out _)) throw new global::System.FormatException(\"Expected at least one element at offset 0.\");");
+				using (file.Block("while (text.Peek(start, out _))"))
+				{
+					file.Line($"var failure = new {FailureType}();");
+					file.Line($"var end = {BufferedMethod(publication, bytes)}(text, start{hands});");
+					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
+					file.Line("yield return value;");
+					file.Line("start = end;");
+					if (!Locating(graph) && !Reaches(graph, publication.Rule).Any(rule =>
+						NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind)))
+						file.Line("text.ReleaseBefore(start);");
+				}
+			}
+			return;
+		}
 		if (publication.Kind == PublishKind.Find)
 		{
 			var retain = Locating(graph) || Reaches(graph, publication.Rule).Any(rule =>

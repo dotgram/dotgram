@@ -5,7 +5,9 @@
 `Fix44.Parse` returns `FixField[]` for contiguous inputs and lazy
 `IEnumerable<FixField>` for `TextReader` and native byte `Stream` inputs. The
 generated buffered machine yields each complete field, releases consumed input,
-and preserves global locations. The syntax path uses no message schema or envelope validator.
+and preserves global locations. The explicit `yield : @FixField` publication handles strict consecutive parsing;
+no `find` fallback or exception-producing grammar branch is needed.
+The syntax path uses no message schema or envelope validator.
 Length fields provide raw-data boundaries; matching tag pairs are checked later.
 
 `FixMessages` owns framing, message/group assembly and validation. Call

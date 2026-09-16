@@ -4,6 +4,12 @@ using DotGram;
 
 namespace DotGram.Compatibility
 {
+	[Gram("Item : @int = 'a' & ';' => @(1)\nFeed : @int[] = { Item* }\n" +
+		"parse Feed as Array stream\nparse Feed as Rows stream yield : @int\nparse Feed as Bytes stream bytes yield : @int")]
+	public partial class YieldInput
+	{
+	}
+
 	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start", BufferedInput = true, BufferedBytes = true, SpanCaptures = true)]
 	public partial class NativeCapture
 	{

@@ -332,6 +332,10 @@ public sealed record Publication(
 	/// <summary>Adds a byte reader form.</summary>
 	public bool BufferedBytes { get; init; }
 
+	public bool Yield { get; init; }
+	public TypeRef? YieldType { get; init; }
+	public int YieldMinimum { get; init; }
+
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
 		(kind == PublishKind.Parse ? "Parse" : "Find") + ruleName;

@@ -131,7 +131,9 @@ namespace DotGram.Examples.Languages;
 		= access: ("public" | "internal" | "private")?
 		& kind: ("parse" | "find") & target: QuantifiedCore & With?
 		& ("as" & alias: Identifier & (':' & type: Type)?)?
-		=> @(new GramPublication(kind, target, alias, type, access))
+		& (stream: "stream" & bytes: "bytes"?)?
+		& (yielded: "yield" & (':' & yieldType: Type)?)?
+		=> @(new GramPublication(kind, target, alias, type, access, stream != null, bytes != null, yielded != null, yieldType))
 
 	// `?` after the name says the rule may give back (§4); over characters, where this
 	// grammar reads, every rule does, and the mark is kept for what it says.
@@ -307,7 +309,8 @@ public partial class GramGrammar
 	public sealed record GramNamespace(string Name, GramUsing[] Usings, GramDecl[] Declarations) : GramDecl;
 
 	public sealed record GramPublication(
-		string Kind, GramExpr Target, string? Alias, string? Type, string? Access = null) : GramDecl;
+		string Kind, GramExpr Target, string? Alias, string? Type, string? Access = null,
+		bool Stream = false, bool Bytes = false, bool Yield = false, string? YieldType = null) : GramDecl;
 
 	public sealed record GramRule(
 		string Name, string? Type, GramExpr Body, bool GivesBack, string? OnFail = null) : GramDecl;

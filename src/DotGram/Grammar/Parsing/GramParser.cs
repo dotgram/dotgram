@@ -467,6 +467,8 @@ public sealed class GramParser
 		var type = TakeIf(TokenKind.Colon) ? ParseType() : null;
 		var bufferedInput = TakeIfKeyword("stream");
 		var bufferedBytes = bufferedInput && TakeIfKeyword("bytes");
+		var yield = !StartsRule() && TakeIfKeyword("yield");
+		var yieldType = yield && TakeIf(TokenKind.Colon) ? ParseType() : null;
 
 		// A bare name is what this directive has always taken, and it still names the
 		// rule it publishes — including the method name derived from it where no `as`
@@ -480,7 +482,7 @@ public sealed class GramParser
 					"an expression this directive would have to make a rule of.",
 					new Location(typeAt, Current.Position - typeAt));
 
-			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes };
+			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, YieldType = yieldType };
 		}
 
 		if (alias is null)
@@ -491,12 +493,12 @@ public sealed class GramParser
 				"called: there is no name here to make one from.",
 				new Location(targetAt, Current.Position - targetAt));
 
-			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes };
+			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, YieldType = yieldType };
 		}
 
 		_lifted.Add(new Decl.Rule(alias, [], type, target) { At = From(targetAt) });
 
-		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes };
+		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, YieldType = yieldType };
 	}
 
 	/// <summary>

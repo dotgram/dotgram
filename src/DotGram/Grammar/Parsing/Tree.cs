@@ -58,7 +58,7 @@ public sealed record Rebinding (string Left, string Right, Location At)         
 /// The two directives of §6, and the whole of the difference between them: whether
 /// input that does not match may sit between the matches.
 /// </summary>
-public enum PublishKind { Parse, Find }
+public enum PublishKind { Parse, Find, Yield }
 
 /// <summary>Who may call what a directive publishes (§6): C#'s three, and public unless it says.</summary>
 public enum PublishAccess { Public, Internal, Private }
@@ -109,6 +109,9 @@ public abstract record Decl : ILocated
 		public bool BufferedInput { get; init; }
 
 		public bool BufferedBytes { get; init; }
+
+		public bool Yield { get; init; }
+		public TypeRef? YieldType { get; init; }
 	}
 
 	/// <summary>
@@ -305,6 +308,7 @@ static class Dump
 
 				if (publish.BufferedInput) Write(text, depth + 1, "Input stream");
 				if (publish.BufferedBytes) Write(text, depth + 1, "Input stream bytes");
+				if (publish.Yield) Write(text, depth + 1, "Yield" + (publish.YieldType is { } yielded ? " " + Label(yielded) : ""));
 
 				foreach (var rebinding in rebindings)
 					Write(text, depth + 1, Label(rebinding));

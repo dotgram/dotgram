@@ -42,6 +42,18 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesIndependentPublicationModifiers()
+	{
+		const string source = "Item : @string = 'a'\nFeed : @string[] = Item*\nparse Feed stream bytes yield : @string";
+		var document = GramLanguageService.Analyze(source);
+		var keywords = document.Classifications.Where(span => span.Kind == GramSyntaxKind.Keyword)
+			.Select(span => source.Substring(span.Position, span.Length)).ToArray();
+		Assert.Contains("stream", keywords);
+		Assert.Contains("bytes", keywords);
+		Assert.Contains("yield", keywords);
+	}
+
+	[Fact]
 	public void UsesRoslynTokenKindsForBothCSharpValueForms()
 	{
 		const string source = "Primary : @int = '(' & inner: Sum & ')' => @(inner)\n" +

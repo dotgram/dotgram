@@ -73,7 +73,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
 		"public", "internal", "private",
 		"is", "not", "and", "or",
-		"context", "state",
+		"context", "state", "stream", "bytes", "yield",
 	];
 
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);

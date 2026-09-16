@@ -26,6 +26,7 @@ not reject the field. Text values need no conversion validity check.
 
 String, character-span, `TextReader`, byte-array and `Stream` inputs are supported.
 `Parse(TextReader)` and `Parse(Stream)` return a lazy `IEnumerable<FixField>`.
+The grammar publishes `parse Fields stream bytes yield : @FixField`.
 Each completed field is returned without waiting for the next field or EOF.
 Recognition uses native char/byte buffers and releases completed fields' input;
 memory depends on the current field and buffer, not the total stream length.
@@ -280,7 +281,7 @@ and measurement records are in `docs/design/finance-fix44.md` and
 `FixGrammar` inherits `FixFieldGrammar`, whose `FixField.gram` contains only the
 standard field rules and their `KnownField` choice and tag lookahead. Each rule spells out the full
 tag, for example `"607="`. The handwritten `FixGrammar.gram` supplies text, raw-data
-and separator rules as grammar parameters and defines the parse publications.
+and separator rules as grammar parameters and defines the eager and `yield` parse publications.
 There are no manually expanded digit-prefix branches.
 
 `FixField.Generated.cs` declares the nested cases of `partial class FixField`.

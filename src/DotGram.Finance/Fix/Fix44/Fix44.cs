@@ -33,10 +33,10 @@ public static class Fix44
 		IEnumerable<FixField> Read()
 		{
 			var state = new FixContext(options);
-			var matches = options?.Separator == '|'
+			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
-			foreach (var match in matches) yield return match.Value;
+			foreach (var field in fields) yield return field;
 		}
 	}
 
@@ -51,10 +51,10 @@ public static class Fix44
 		IEnumerable<FixField> Read()
 		{
 			var state = new FixContext(options);
-			var matches = options?.Separator == '|'
+			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
-			foreach (var match in matches) yield return match.Value;
+			foreach (var field in fields) yield return field;
 		}
 	}
 

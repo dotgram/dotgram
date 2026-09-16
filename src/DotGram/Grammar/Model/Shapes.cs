@@ -232,7 +232,7 @@ public static class Shapes
 	/// cannot be.
 	/// </summary>
 	static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds) =>
-		!overKinds &&
+		!overKinds && publication.Kind != PublishKind.Yield &&
 		(publication.Kind == PublishKind.Find
 			? Retention.Reads(graph, publication.Rule) is null &&
 				Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&

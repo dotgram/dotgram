@@ -384,7 +384,7 @@ public static partial class CSharpEmitter
 					results,
 					graph.Climbing.ContainsKey(publication.Rule),
 					Streams(graph, publication, overKinds) &&
-						!(publication.Kind == PublishKind.Find && (bufferedInput || publication.BufferedInput)),
+						!bufferedInput && !publication.BufferedInput,
 					compiled.Flat,
 					compiled.Machine.Ties,
 					compiled.Machine.UsesInput,
@@ -474,7 +474,7 @@ public static partial class CSharpEmitter
 			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
 			// trivia normalization inserted — have no recognizer of their own, so each gets
 			// one: the driver runs them in order and they have to be runnable one at a time.
-			if (Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
+			if (!bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
 			{
 				var parts = new List<string>(stages.Count);
 
@@ -1243,6 +1243,12 @@ public static partial class CSharpEmitter
 		var reader   = WholeOf(publication.Rule);
 		var position = "0";
 		var extent   = overKinds ? "over" : "end";
+
+		if (publication.Kind == PublishKind.Yield)
+		{
+			EmitYield(file, publication, hands, takes);
+			return;
+		}
 
 		if (publication.Kind == PublishKind.Find)
 		{

@@ -486,6 +486,7 @@ public static class Retention
 
 		foreach (var publication in graph.Publications)
 		{
+			if (publication.Kind == PublishKind.Yield) continue;
 			string? why;
 
 			if (publication.Kind == PublishKind.Find)
