@@ -12,6 +12,53 @@ namespace DotGram.Tests;
 
 public sealed class BufferedInputTests
 {
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Buffered_find_matches_contiguous_results_and_releases_completed_occurrences(bool bytes)
+	{
+		var compilation = GramCompiler.Compile("Item = ['0'..'9']+ & ';'\nfind Item", new GramCompilerOptions
+		{
+			BufferedInput = true, BufferedBytes = true,
+		});
+		EmittedCode.Quiet(compilation.Diagnostics);
+		var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text);
+		var text = string.Concat(Enumerable.Repeat("x12345;", 100));
+		using var reader = new ShortReader(text, 1);
+		using var stream = new ShortStream(System.Text.Encoding.ASCII.GetBytes(text));
+		var method = assembly.GetType("Grammar")!.GetMethod("FindItem", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!;
+		var result = (System.Collections.IEnumerable)method.Invoke(null, [bytes ? stream : reader, 2, 16])!;
+		var matches = result.Cast<object>().ToArray();
+		Assert.Equal(100, matches.Length);
+		for (var i = 0; i < matches.Length; i++)
+		{
+			var match = matches[i];
+			Assert.Equal(i * 7 + 1, Convert.ToInt32(match.GetType().GetProperty("Position")!.GetValue(match)));
+			var value = match.GetType().GetProperty("Value")!.GetValue(match);
+			Assert.Equal("12345;", bytes ? System.Text.Encoding.ASCII.GetString((byte[])value!) : (string)value!);
+		}
+	}
+
+	[Theory]
+	[InlineData("Item = 'a'*\nfind Item stream bytes", "ba", 3)]
+	[InlineData("Item : @int = 'a'+ & 'b' => @(1)\nfind Item stream bytes", "aaaaxab", 1)]
+	[InlineData("Item = 'a' & eof\nfind Item stream bytes", "aba", 1)]
+	[InlineData("Item = ('a' & 'b' & 'c') | 'a'\nfind Item stream bytes", "ababc", 2)]
+	public void Buffered_find_handles_empty_matches_eof_and_backtracking(string grammar, string input, int count)
+	{
+		var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions { BufferedInput = true, CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(compilation.Diagnostics);
+		var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text);
+		foreach (var bytes in new[] { false, true })
+		{
+			using var reader = new ShortReader(input, 1);
+			using var stream = new ShortStream(System.Text.Encoding.ASCII.GetBytes(input));
+			var method = assembly.GetType("Grammar")!.GetMethod("FindItem", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!;
+			var result = (System.Collections.IEnumerable)method.Invoke(null, [bytes ? stream : reader, 1, 100])!;
+			Assert.Equal(count, result.Cast<object>().Count());
+		}
+	}
+
 	[Fact]
 	public void Large_split_dispatch_keeps_char_and_byte_backtracking_correct()
 	{
@@ -228,7 +275,6 @@ public sealed class BufferedInputTests
 	[Theory]
 	[InlineData("Start : @string = 'a' => @(parserInput)\nparse Start stream")]
 	[InlineData("Start = '\\u0400'\nparse Start stream bytes")]
-	[InlineData("Start = 'a'\nfind Start stream")]
 	public void Unsupported_forms_report_a_diagnostic(string grammar)
 	{
 		var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });

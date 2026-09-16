@@ -383,7 +383,8 @@ public static partial class CSharpEmitter
 					publication,
 					results,
 					graph.Climbing.ContainsKey(publication.Rule),
-					Streams(graph, publication, overKinds),
+					Streams(graph, publication, overKinds) &&
+						!(publication.Kind == PublishKind.Find && (bufferedInput || publication.BufferedInput)),
 					compiled.Flat,
 					compiled.Machine.Ties,
 					compiled.Machine.UsesInput,
@@ -895,10 +896,10 @@ public static partial class CSharpEmitter
 		if (machine.BufferedInput)
 		{
 			foreach (var publication in compiled.Publications)
-				machine.Register(publication.Rule, whole: true);
+				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 			file.Write(machine.RenderEngine(engine));
 			foreach (var publication in compiled.Publications)
-				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes), engine, whole: true));
+				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes), engine, whole: publication.Kind == PublishKind.Parse));
 			return;
 		}
 

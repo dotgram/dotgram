@@ -18,6 +18,7 @@ namespace DotGram.Grammar.Emit;
 sealed partial class Machine
 {
 	public bool BufferedInput { get; }
+	readonly bool _bufferedFind;
 	public bool BufferedBytes { get; }
 	public bool BorrowedCaptures { get; }
 	string CaptureSpanType => $"global::System.ReadOnlySpan<{(BufferedBytes ? "byte" : "char")}>";
@@ -30,7 +31,7 @@ sealed partial class Machine
 	{
 		get
 		{
-			if (!BufferedInput || _rules.Count != 1 || _textCaptures.Count != 0) return false;
+			if (!BufferedInput || _bufferedFind || _rules.Count != 1 || _textCaptures.Count != 0) return false;
 			if (_factories.Values.SelectMany(factories => factories).Any(factory => CSharpEmitter.WantsText(_graph, factory))) return false;
 			var rule = _rules.First();
 			if (!_graph.Types.ContainsKey(rule)) return false;
@@ -293,9 +294,10 @@ sealed partial class Machine
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
-		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false)
+		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false)
 	{
 		BufferedInput = bufferedInput;
+		_bufferedFind = bufferedFind;
 		BufferedBytes = bufferedBytes;
 		BorrowedCaptures = bufferedBytes || spanCaptures;
 		_graph = graph;

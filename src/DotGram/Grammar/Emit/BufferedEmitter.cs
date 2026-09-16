@@ -58,14 +58,11 @@ public static partial class CSharpEmitter
 		for (var form = 0; form < 2; form++)
 		{
 			var bytes = form == 1;
-			if (publication.Kind != PublishKind.Parse && !publication.BufferedInput && !publication.BufferedBytes)
-				continue;
 			if (bytes ? !byteRequested && !publication.BufferedBytes : !requested && !publication.BufferedInput)
 				continue;
 
 			var rules = Reaches(graph, publication.Rule);
-			var why = publication.Kind != PublishKind.Parse ? "only parse publications are supported" :
-				overKinds ? "token-kind input is not supported by this form yet" :
+			var why = overKinds ? "token-kind input is not supported by this form yet" :
 				rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External))
 					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
@@ -77,8 +74,9 @@ public static partial class CSharpEmitter
 			if (why is null)
 			{
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
-					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures);
-				machine.Register(publication.Rule, whole: true);
+					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
+					bufferedFind: publication.Kind == PublishKind.Find);
+				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
 			}
@@ -108,6 +106,29 @@ public static partial class CSharpEmitter
 			", ref failure" + (type is null ? "" : ", out var value") +
 			(machine.UsesContext ? ", context" : "") +
 			(machine.UsesReading ? $", {publication.Reading}" : "");
+		if (publication.Kind == PublishKind.Find)
+		{
+			var retain = Locating(graph) || Reaches(graph, publication.Rule).Any(rule =>
+				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
+			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
+			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
+				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+			{
+				file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line("var start = 0;");
+				using (file.Block("while (true)"))
+				{
+					file.Line($"var failure = new {FailureType}();");
+					file.Line($"var end = {BufferedMethod(publication, bytes)}(text, start{hands});");
+					using (file.Block("if (end >= 0)"))
+						file.Line($"yield return {match}.Success({(type is null ? bytes ? "text.Slice(start, end - start).ToArray()" : "text.Slice(start, end - start).ToString()" : "value")}, start, end - start);");
+					file.Line("if (end <= start && !text.Peek(start, out _)) yield break;");
+					file.Line("start = end > start ? end : checked(start + 1);");
+					if (!retain) file.Line("text.ReleaseBefore(start);");
+				}
+			}
+			return;
+		}
 		file.Line("/// <summary>Parses buffered input synchronously without retrying at refill boundaries.</summary>");
 		file.Line("/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>");
 		using (file.Block($"{AccessOf(publication)} static {match} Try{method}(" +

@@ -23,6 +23,8 @@ sealed class FixContext
 
 	public long DataLimit { get; private set; }
 
+	public static FixField InvalidField(int position) => throw new FormatException("Invalid FIX field at offset " + position + ".");
+
 	public bool BeginField(int start)
 	{
 		fieldStart = start;

@@ -2,9 +2,10 @@
 
 ## Flat parser and explicit semantics
 
-`Fix44.Parse` returns only `FixField[]`, preserving source order and locations.
-It reads `TextReader` and native byte `Stream` inputs through the generated buffered
-machine to EOF. The syntax path uses no message schema or envelope validator.
+`Fix44.Parse` returns `FixField[]` for contiguous inputs and lazy
+`IEnumerable<FixField>` for `TextReader` and native byte `Stream` inputs. The
+generated buffered machine yields each complete field, releases consumed input,
+and preserves global locations. The syntax path uses no message schema or envelope validator.
 Length fields provide raw-data boundaries; matching tag pairs are checked later.
 
 `FixMessages` owns framing, message/group assembly and validation. Call

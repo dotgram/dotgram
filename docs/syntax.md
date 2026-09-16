@@ -1627,17 +1627,19 @@ cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
 
-**An additional buffered input form.** `stream` on a `parse` publication requests
+**An additional buffered input form.** `stream` on a `parse` or `find` publication requests
 a synchronous pull reader that continues recognition when its buffer is refilled:
 
 ```gram
 parse Document stream
 parse Packet stream bytes
+find Row stream
+find Packet stream bytes
 ```
 
 The modifier follows any `with`, `as`, or publication result-type clause. It adds
-methods; all existing publications, including eligible reader overloads above,
-remain available. The added methods use the same names, overloaded by input type:
+methods; existing parse publications and their eligible reader overloads remain
+available. Buffered find replaces its legacy reader form when requested. The added methods use the same names, overloaded by input type:
 
 ```csharp
 Match<Document> TryParseDocument(TextReader input,
@@ -1658,10 +1660,16 @@ The caller owns the reader or stream; parsing does not dispose it. Parsing consu
 input and may read ahead, including when recognition fails; it cannot restore the
 underlying source for another consumer.
 
-`[Gram(..., BufferedInput = true)]` adds the character form to parse publications;
+`[Gram(..., BufferedInput = true)]` adds the character form to parse and find publications;
 `BufferedBytes = true` adds the byte form. Both default to false. `GramOptions`
 inherits these settings and can override either with false. An explicit publication
-modifier still requests its form. Host options do not add forms to `find`.
+modifier still requests its form. Buffered `find` returns a lazy
+`IEnumerable<Match<T>>` for `TextReader` or `Stream`. It finds the same non-overlapping
+occurrences as contiguous `find`, including empty matches; it skips unmatched input.
+A completed occurrence is yielded without probing for EOF first. Once enumeration
+resumes, its consumed prefix can be released unless lookbehind or line/column
+tracking requires earlier input. Buffered character `find` replaces the legacy
+reader overload when explicitly requested or enabled by host options.
 
 The generated machine uses a concrete buffered reader and block I/O, with no input
 interface dispatch per symbol. A short nonempty read is not EOF. Refilling does not
@@ -1679,7 +1687,7 @@ Release analysis is currently conservative: source-independent, single-rule
 deterministic loops can release completed iterations. Other grammars retain input
 until completion, including roots returning the entire matched text. This form
 does not promise bounded memory for arbitrary grammars, nor incremental result
-delivery. Captured strings own their contents; a `SourceSpan` remains an extent,
+delivery for `parse`; `find` delivers occurrences incrementally. Captured strings own their contents; a `SourceSpan` remains an extent,
 not an owner of the input. Positions currently fit in `int`, including after buffer
 compaction; inputs approaching that limit produce a resource error rather than wrap.
 

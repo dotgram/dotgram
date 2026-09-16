@@ -12,7 +12,8 @@ using DotGram.Finance.Fix;
 FixField[] fields = Fix44.Parse(wire);
 var logFields = Fix44.ParseLog("55=ABC|38=100|");
 using var input = File.OpenRead("messages.fix");
-FixField[] allFields = Fix44.Parse(input);
+foreach (FixField field in Fix44.Parse(input))
+    Console.WriteLine(field.Tag);
 
 // Explicit, optional semantics; reuses the already parsed field objects.
 FixMessage message = FixMessages.Build(wire, fields);
@@ -24,11 +25,18 @@ CheckSum. A failed primitive conversion sets `FixField.IsValid` to false; it doe
 not reject the field. Text values need no conversion validity check.
 
 String, character-span, `TextReader`, byte-array and `Stream` inputs are supported.
-Readers and streams go directly through DotGram's buffered char/byte machines to
-EOF and remain open. Concatenated messages yield one flat array; an empty input
-yields an empty array. Locations are relative to the complete input. This API
-waits for EOF and materializes the complete result, so use the framed semantic
-API below when consuming messages incrementally from a live connection.
+`Parse(TextReader)` and `Parse(Stream)` return a lazy `IEnumerable<FixField>`.
+Each completed field is returned without waiting for the next field or EOF.
+Recognition uses native char/byte buffers and releases completed fields' input;
+memory depends on the current field and buffer, not the total stream length.
+Locations remain relative to the complete input. The input stays open on completion,
+error or early disposal. Keep one enumeration per input: buffering can read ahead,
+so restarting after an early stop can lose unread buffered data.
+
+Syntax and I/O errors occur during enumeration; malformed fields are not skipped.
+Use `.ToArray()` when a complete list is needed. String/span/byte-array overloads
+and `TryParse` still materialize the complete result. Empty input returns no fields.
+Concatenated messages are read as one ordered field sequence.
 
 `FixFieldOptions` configures SOH or pipe delimiters and optional vendor data pairs.
 Raw data consumes the length given by the immediately preceding Length field;

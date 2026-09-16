@@ -35,6 +35,22 @@ public sealed class FixFlatFieldsTests
 	}
 
 	[Theory]
+	[MemberData(nameof(Fix44Tests.Messages), MemberType = typeof(Fix44Tests))]
+	public void Lazy_streams_match_all_standard_message_fixtures(string name, string wire)
+	{
+		Assert.NotEmpty(name);
+		var expected = Fix44.Parse(wire);
+		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
+		using var reader = new StringReader(wire);
+		foreach (var fields in new[] { Fix44.Parse(stream, bufferSize: 3), Fix44.Parse(reader, bufferSize: 3) })
+		{
+			var actual = fields.ToArray();
+			Assert.Equal(expected.Select(f => (f.GetType(), f.Position, f.ValuePosition, f.Length, f.IsValid)),
+				actual.Select(f => (f.GetType(), f.Position, f.ValuePosition, f.Length, f.IsValid)));
+		}
+	}
+
+	[Theory]
 	[InlineData(1)]
 	[InlineData(3)]
 	[InlineData(17)]
@@ -63,7 +79,7 @@ public sealed class FixFlatFieldsTests
 		var payload = new string(Enumerable.Range(0, size).Select(i => "|=\0ÿ"[i % 4]).ToArray());
 		var input = "95=" + size + "|96=" + payload + "|55=END|";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
-		var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 3);
+		var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 3).ToArray();
 		Assert.Equal(Encoding.Latin1.GetBytes(payload), Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
 		Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[2]).Value);
 	}
@@ -72,7 +88,7 @@ public sealed class FixFlatFieldsTests
 	public void Vendor_raw_fields_use_syntax_options_on_the_native_stream()
 	{
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes("9000=3|9001=a|b|55=X|"));
-		var fields = Fix44.Parse(stream, new FixFieldOptions('|', new FixDataPair(9000, 9001)), bufferSize: 1);
+		var fields = Fix44.Parse(stream, new FixFieldOptions('|', new FixDataPair(9000, 9001)), bufferSize: 1).ToArray();
 		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.Unknown>(fields[1]).Value.ToArray());
 		Assert.Equal("X", Assert.IsType<FixField.Symbol>(fields[2]).Value);
 	}
@@ -86,15 +102,89 @@ public sealed class FixFlatFieldsTests
 	public void Malformed_field_syntax_is_rejected(string input)
 		=> Assert.False(Fix44.TryParse(input, out _, out _, new FixFieldOptions('|')));
 
+	[Fact]
+	public void Stream_enumeration_is_lazy_and_does_not_wait_for_the_next_field()
+	{
+		using var stream = new ShortStream(Encoding.ASCII.GetBytes("55=ABC|38=2|")) { ReadLimit = 7 };
+		var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 1);
+		Assert.Equal(0, stream.ReadCount);
+		using (var iterator = fields.GetEnumerator())
+		{
+			Assert.Equal(0, stream.ReadCount);
+			Assert.True(iterator.MoveNext());
+			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(iterator.Current).Value);
+			Assert.Equal(7, stream.ReadCount);
+		}
+		Assert.True(stream.CanRead);
+	}
+
+	[Fact]
+	public void Reader_enumeration_is_lazy_and_stops_at_a_complete_field()
+	{
+		using var reader = new GatedReader("55=ABC|");
+		var fields = Fix44.Parse(reader, new FixFieldOptions('|'), bufferSize: 1);
+		Assert.Equal(0, reader.ReadCount);
+		using var iterator = fields.GetEnumerator();
+		Assert.True(iterator.MoveNext());
+		Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(iterator.Current).Value);
+		Assert.Equal(7, reader.ReadCount);
+	}
+
+	[Theory]
+	[InlineData("55=A|broken|55=B|")]
+	[InlineData("55=A|95=3|96=ab")]
+	public void Errors_are_reported_during_enumeration_without_skipping_input(string wire)
+	{
+		using var stream = new ShortStream(Encoding.ASCII.GetBytes(wire));
+		using var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 1).GetEnumerator();
+		Assert.True(fields.MoveNext());
+		Assert.IsType<FixField.Symbol>(fields.Current);
+		Assert.Throws<FormatException>(() => { while (fields.MoveNext()) { } });
+		Assert.True(stream.CanRead);
+	}
+
+	[Fact]
+	public void Many_fields_release_input_and_keep_global_locations_and_owned_values()
+	{
+		var wire = string.Concat(Enumerable.Repeat("95=3|96=a|b|55=X|", 1000));
+		using var stream = new ShortStream(Encoding.ASCII.GetBytes(wire));
+		var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 3, maxRetained: 32).ToArray();
+		Assert.Equal(3000, fields.Length);
+		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
+		Assert.Equal(wire.Length - 5, fields[^1].Position);
+		Assert.True(stream.CanRead);
+	}
+
+	sealed class GatedReader(string text) : StringReader(text)
+	{
+		readonly int length = text.Length;
+		public int ReadCount { get; private set; }
+		public override int Read(char[] buffer, int index, int count)
+		{
+			if (ReadCount >= length) throw new IOException("The next field has not arrived.");
+			var read = base.Read(buffer, index, Math.Min(count, 1));
+			ReadCount += read;
+			return read;
+		}
+	}
+
 	sealed class ShortStream(byte[] data) : Stream
 	{
 		readonly MemoryStream inner = new(data);
+		public int ReadLimit { get; set; } = int.MaxValue;
+		public int ReadCount { get; private set; }
 		public override bool CanRead => inner.CanRead;
 		public override bool CanSeek => false;
 		public override bool CanWrite => false;
 		public override long Length => throw new NotSupportedException();
 		public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
-		public override int Read(byte[] buffer, int offset, int count) => inner.Read(buffer, offset, Math.Min(count, 2));
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			if (ReadCount >= ReadLimit) throw new IOException("The next field has not arrived.");
+			var read = inner.Read(buffer, offset, Math.Min(count, Math.Min(2, ReadLimit - ReadCount)));
+			ReadCount += read;
+			return read;
+		}
 		public override void Flush() => throw new NotSupportedException();
 		public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 		public override void SetLength(long value) => throw new NotSupportedException();

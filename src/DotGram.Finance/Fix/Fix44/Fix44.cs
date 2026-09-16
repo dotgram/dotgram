@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace DotGram.Finance.Fix;
 
@@ -20,31 +22,47 @@ public static class Fix44
 	public static FixField[] Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 		=> Parse(input.ToString(), options);
 
-	/// <summary>Reads fields to EOF through DotGram's character buffer; leaves the reader open.</summary>
-	public static FixField[] Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	/// <summary>Lazily reads fields through a reusable character buffer; leaves the reader open.</summary>
+	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options);
-		return options?.Separator == '|'
-			? FixGrammar.ParseLogFields(input, context, bufferSize, maxRetained)
-			: FixGrammar.ParseFields(input, context, bufferSize, maxRetained);
+		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+		if (maxRetained <= 0) throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		return Read();
+
+		IEnumerable<FixField> Read()
+		{
+			var state = new FixContext(options);
+			var matches = options?.Separator == '|'
+				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
+				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
+			foreach (var match in matches) yield return match.Value;
+		}
 	}
 
-	/// <summary>Reads fields to EOF through DotGram's native byte buffer; leaves the stream open.</summary>
-	public static FixField[] Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	/// <summary>Lazily reads fields through a reusable native byte buffer; leaves the stream open.</summary>
+	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options);
-		return options?.Separator == '|'
-			? FixGrammar.ParseLogFields(input, context, bufferSize, maxRetained)
-			: FixGrammar.ParseFields(input, context, bufferSize, maxRetained);
+		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+		if (maxRetained <= 0) throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		return Read();
+
+		IEnumerable<FixField> Read()
+		{
+			var state = new FixContext(options);
+			var matches = options?.Separator == '|'
+				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
+				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
+			foreach (var match in matches) yield return match.Value;
+		}
 	}
 
 	public static FixField[] Parse(byte[] input, FixFieldOptions? options = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		using var stream = new MemoryStream(input, writable: false);
-		return Parse(stream, options);
+		return Parse(stream, options).ToArray();
 	}
 
 	public static FixField[] ParseLog(string input) => Parse(input, logOptions);
@@ -66,6 +84,7 @@ public static class Fix44
 	public static bool TryParse(ReadOnlySpan<char> input, out FixField[]? fields, out FixParseError? error, FixFieldOptions? options = null)
 		=> TryParse(input.ToString(), out fields, out error, options);
 
+	/// <summary>Reads to EOF and materializes all fields; use Parse for lazy enumeration.</summary>
 	public static bool TryParse(TextReader input, out FixField[]? fields, out FixParseError? error, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
@@ -75,6 +94,7 @@ public static class Fix44
 			: FixGrammar.TryParseFields(input, context, bufferSize, maxRetained), out fields, out error);
 	}
 
+	/// <summary>Reads to EOF and materializes all fields; use Parse for lazy enumeration.</summary>
 	public static bool TryParse(Stream input, out FixField[]? fields, out FixParseError? error, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
