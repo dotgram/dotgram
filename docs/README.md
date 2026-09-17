@@ -86,3 +86,9 @@ generator's own comments cite it by that path.
 for an agent and shipped inside the NuGet package. It carries what an agent gets wrong
 rather than what a reader wants to know, and it is checked the only way that means
 anything: by asking one to write a grammar knowing nothing else.
+
+## Continuation snapshots
+
+- [`handoffs/finance.md`](handoffs/finance.md): Finance progress, decisions, validation
+  commands and open questions for continuing on another device. Verify its recorded
+  commits and current working tree before relying on the snapshot.

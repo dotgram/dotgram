@@ -217,6 +217,7 @@ static class FixConvert
 	public static bool Decimal(ReadOnlySpan<char> raw, out decimal value)
 	{
 		value = default;
+
 		var start       = !raw.IsEmpty && raw[0] == '-' ? 1 : 0;
 		var dot         = -1;
 		var lastNonzero = -1;
@@ -229,10 +230,13 @@ static class FixConvert
 				dot = i;
 				continue;
 			}
+
 			if (raw[i] < '0' || raw[i] > '9')
 				return false;
+
 			if (raw[i] != '0')
 				lastNonzero = i;
+
 			digits++;
 		}
 
@@ -245,6 +249,7 @@ static class FixConvert
 	public static bool Decimal(ReadOnlySpan<byte> raw, out decimal value)
 	{
 		value = default;
+
 		var start       = !raw.IsEmpty && raw[0] == '-' ? 1 : 0;
 		var dot         = -1;
 		var lastNonzero = -1;
@@ -257,10 +262,13 @@ static class FixConvert
 				dot = i;
 				continue;
 			}
+
 			if (raw[i] < '0' || raw[i] > '9')
 				return false;
+
 			if (raw[i] != '0')
 				lastNonzero = i;
+
 			digits++;
 		}
 
@@ -277,170 +285,320 @@ static class FixConvert
 		var scale = (decimal.GetBits(value)[3] >> 16) & 255;
 #else
 		Span<int> bits = stackalloc int[4];
+
 		decimal.GetBits(value, bits);
+
 		var scale = (bits[3] >> 16) & 255;
 #endif
 		if (scale >= requiredScale)
 			return true;
 
 		value = default;
+
 		return false;
 	}
 
-	static int Part(ReadOnlySpan<char> raw) => int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : -1;
-	static int Part(ReadOnlySpan<byte> raw) => FixConvert.Tag(raw);
-	public static string Text(ReadOnlySpan<char> raw) => raw.ToString();
+	static int Part(ReadOnlySpan<char> raw)
+	{
+		return int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : -1;
+	}
+
+	static int Part(ReadOnlySpan<byte> raw)
+	{
+		return Tag(raw);
+	}
+
+	public static string Text(ReadOnlySpan<char> raw)
+	{
+		return raw.ToString();
+	}
+
 	public static string Text(ReadOnlySpan<byte> raw)
 	{
 		var chars = new char[raw.Length];
-		for (var i = 0; i < raw.Length; i++) chars[i] = (char)raw[i];
+
+		for (var i = 0; i < raw.Length; i++)
+			chars[i] = (char)raw[i];
+
 		return new string(chars);
 	}
+
 	public static bool Data(ReadOnlySpan<char> raw, out ReadOnlyMemory<byte> value)
 	{
 		var bytes = new byte[raw.Length];
-		for (var i = 0; i < raw.Length; i++) { if (raw[i] > 255) { value = default; return false; } bytes[i] = (byte)raw[i]; }
+
+		for (var i = 0; i < raw.Length; i++)
+		{
+			if (raw[i] > 255)
+			{
+				value = default;
+				return false;
+			}
+
+			bytes[i] = (byte)raw[i];
+		}
+
 		value = bytes;
+
 		return true;
 	}
-	public static bool Data(ReadOnlySpan<byte> raw, out ReadOnlyMemory<byte> value) { value = raw.ToArray(); return true; }
-	static int Days(int year, int month) => month == 2 ? (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) ? 29 : 28) : month is 4 or 6 or 9 or 11 ? 30 : 31;
+
+	public static bool Data(ReadOnlySpan<byte> raw, out ReadOnlyMemory<byte> value)
+	{
+		value = raw.ToArray();
+		return true;
+	}
+
+	static int Days(int year, int month)
+	{
+		return month == 2 ? (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) ? 29 : 28) : month is 4 or 6 or 9 or 11 ? 30 : 31;
+	}
+
 	public static bool Boolean(ReadOnlySpan<char> raw, out bool value)
 	{
 		value = raw.Length == 1 && raw[0] == 'Y';
 		return raw.Length == 1 && (raw[0] == 'Y' || raw[0] == 'N');
 	}
+
 	public static bool Character(ReadOnlySpan<char> raw, out char value)
 	{
 		value = raw.Length == 1 ? (char)raw[0] : default;
 		return raw.Length == 1;
 	}
+
 	public static bool Multiple(ReadOnlySpan<char> raw, out string[] value)
 	{
 		var text = Text(raw);
+
 		value = text.Split(' ');
-		foreach (var item in value) if (item.Length != 1) return false;
+
+		foreach (var item in value)
+			if (item.Length != 1)
+				return false;
+
 		return true;
 	}
+
 	public static bool Date(ReadOnlySpan<char> raw, out FixDate value)
 	{
 		value = default;
-		if (raw.Length != 8) return false;
-		var year = Part(raw.Slice(0, 4));
+
+		if (raw.Length != 8)
+			return false;
+
+		var year  = Part(raw.Slice(0, 4));
 		var month = Part(raw.Slice(4, 2));
-		var day = Part(raw.Slice(6, 2));
-		if (year < 0 || month < 1 || month > 12 || day < 1 || day > Days(year, month)) return false;
+		var day   = Part(raw.Slice(6, 2));
+
+		if (year < 0 || month < 1 || month > 12 || day < 1 || day > Days(year, month))
+			return false;
+
 		value = new FixDate(year, month, day);
+
 		return true;
 	}
 	public static bool Time(ReadOnlySpan<char> raw, out FixTime value)
 	{
 		value = default;
-		if (raw.Length < 8 || raw[2] != ':' || raw[5] != ':') return false;
-		var hour = Part(raw.Slice(0, 2));
+
+		if (raw.Length < 8 || raw[2] != ':' || raw[5] != ':')
+			return false;
+
+		var hour   = Part(raw.Slice(0, 2));
 		var minute = Part(raw.Slice(3, 2));
 		var second = Part(raw.Slice(6, 2));
-		if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 60 || second == 60 && (hour != 23 || minute != 59)) return false;
+
+		if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 60 || second == 60 && (hour != 23 || minute != 59))
+			return false;
+
 		var fraction = "";
+
 		if (raw.Length > 8)
 		{
-			if (raw.Length < 10 || raw[8] != '.') return false;
-			foreach (var c in raw.Slice(9)) if (c < '0' || c > '9') return false;
+			if (raw.Length < 10 || raw[8] != '.')
+				return false;
+
+			foreach (var c in raw.Slice(9))
+				if (c < '0' || c > '9')
+					return false;
+
 			fraction = Text(raw.Slice(9));
 		}
+
 		value = new FixTime(hour, minute, second, fraction);
+
 		return true;
 	}
+
 	public static bool Timestamp(ReadOnlySpan<char> raw, out FixTimestamp value)
 	{
 		value = default;
-		if (raw.Length < 17 || raw[8] != '-' || !Date(raw.Slice(0, 8), out var date) || !Time(raw.Slice(9), out var time)) return false;
+
+		if (raw.Length < 17 || raw[8] != '-' || !Date(raw.Slice(0, 8), out var date) || !Time(raw.Slice(9), out var time))
+			return false;
+
 		value = new FixTimestamp(date, time);
+
 		return true;
 	}
+
 	public static bool MonthYear(ReadOnlySpan<char> raw, out FixMonthYear value)
 	{
 		value = default;
-		if (raw.Length != 6 && raw.Length != 8) return false;
-		var year = Part(raw.Slice(0, 4));
+
+		if (raw.Length != 6 && raw.Length != 8)
+			return false;
+
+		var year  = Part(raw.Slice(0, 4));
 		var month = Part(raw.Slice(4, 2));
-		if (year < 0 || month < 1 || month > 12) return false;
+
+		if (year < 0 || month < 1 || month > 12)
+			return false;
+
 		int? day = null, week = null;
+
 		if (raw.Length == 8)
 		{
-			if (raw[6] == 'w') { week = raw[7] - '0'; if (week < 1 || week > 5) return false; }
-			else { day = Part(raw.Slice(6, 2)); if (day < 1 || day > Days(year, month)) return false; }
+			if (raw[6] == 'w')
+			{
+				week = raw[7] - '0';
+				if (week is < 1 or > 5)
+					return false;
+			}
+			else
+			{
+				day = Part(raw.Slice(6, 2));
+				if (day < 1 || day > Days(year, month))
+					return false;
+			}
 		}
+
 		value = new FixMonthYear(year, month, day, week);
+
 		return true;
 	}
+
 	public static bool Boolean(ReadOnlySpan<byte> raw, out bool value)
 	{
 		value = raw.Length == 1 && raw[0] == 'Y';
 		return raw.Length == 1 && (raw[0] == 'Y' || raw[0] == 'N');
 	}
+
 	public static bool Character(ReadOnlySpan<byte> raw, out char value)
 	{
 		value = raw.Length == 1 ? (char)raw[0] : default;
 		return raw.Length == 1;
 	}
+
 	public static bool Multiple(ReadOnlySpan<byte> raw, out string[] value)
 	{
 		var text = Text(raw);
+
 		value = text.Split(' ');
-		foreach (var item in value) if (item.Length != 1) return false;
+
+		foreach (var item in value)
+			if (item.Length != 1)
+				return false;
+
 		return true;
 	}
+
 	public static bool Date(ReadOnlySpan<byte> raw, out FixDate value)
 	{
 		value = default;
-		if (raw.Length != 8) return false;
-		var year = Part(raw.Slice(0, 4));
+
+		if (raw.Length != 8)
+			return false;
+
+		var year  = Part(raw.Slice(0, 4));
 		var month = Part(raw.Slice(4, 2));
-		var day = Part(raw.Slice(6, 2));
-		if (year < 0 || month < 1 || month > 12 || day < 1 || day > Days(year, month)) return false;
+		var day   = Part(raw.Slice(6, 2));
+
+		if (year < 0 || month < 1 || month > 12 || day < 1 || day > Days(year, month))
+			return false;
+
 		value = new FixDate(year, month, day);
+
 		return true;
 	}
 	public static bool Time(ReadOnlySpan<byte> raw, out FixTime value)
 	{
 		value = default;
-		if (raw.Length < 8 || raw[2] != ':' || raw[5] != ':') return false;
-		var hour = Part(raw.Slice(0, 2));
+
+		if (raw.Length < 8 || raw[2] != ':' || raw[5] != ':')
+			return false;
+
+		var hour   = Part(raw.Slice(0, 2));
 		var minute = Part(raw.Slice(3, 2));
 		var second = Part(raw.Slice(6, 2));
-		if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 60 || second == 60 && (hour != 23 || minute != 59)) return false;
+
+		if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 60 || second == 60 && (hour != 23 || minute != 59))
+			return false;
+
 		var fraction = "";
+
 		if (raw.Length > 8)
 		{
-			if (raw.Length < 10 || raw[8] != '.') return false;
-			foreach (var c in raw.Slice(9)) if (c < '0' || c > '9') return false;
+			if (raw.Length < 10 || raw[8] != '.')
+				return false;
+
+			foreach (var c in raw.Slice(9))
+				if (c < '0' || c > '9')
+					return false;
+
 			fraction = Text(raw.Slice(9));
 		}
+
 		value = new FixTime(hour, minute, second, fraction);
+
 		return true;
 	}
+
 	public static bool Timestamp(ReadOnlySpan<byte> raw, out FixTimestamp value)
 	{
 		value = default;
-		if (raw.Length < 17 || raw[8] != '-' || !Date(raw.Slice(0, 8), out var date) || !Time(raw.Slice(9), out var time)) return false;
+
+		if (raw.Length < 17 || raw[8] != '-' || !Date(raw[..8], out var date) || !Time(raw[9..], out var time))
+			return false;
+
 		value = new FixTimestamp(date, time);
+
 		return true;
 	}
+
 	public static bool MonthYear(ReadOnlySpan<byte> raw, out FixMonthYear value)
 	{
 		value = default;
-		if (raw.Length != 6 && raw.Length != 8) return false;
-		var year = Part(raw.Slice(0, 4));
+
+		if (raw.Length != 6 && raw.Length != 8)
+			return false;
+
+		var year  = Part(raw.Slice(0, 4));
 		var month = Part(raw.Slice(4, 2));
-		if (year < 0 || month < 1 || month > 12) return false;
+
+		if (year < 0 || month < 1 || month > 12)
+			return false;
+
 		int? day = null, week = null;
+
 		if (raw.Length == 8)
 		{
-			if (raw[6] == 'w') { week = raw[7] - '0'; if (week < 1 || week > 5) return false; }
-			else { day = Part(raw.Slice(6, 2)); if (day < 1 || day > Days(year, month)) return false; }
+			if (raw[6] == 'w')
+			{
+				week = raw[7] - '0';
+				if (week is < 1 or > 5)
+					return false;
+			}
+			else
+			{
+				day = Part(raw.Slice(6, 2));
+				if (day < 1 || day > Days(year, month))
+					return false;
+			}
 		}
+
 		value = new FixMonthYear(year, month, day, week);
+
 		return true;
 	}
 }

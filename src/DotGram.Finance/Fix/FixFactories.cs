@@ -1,6 +1,4 @@
 ﻿using System;
-using System;
-#nullable enable
 
 namespace DotGram.Finance.Fix;
 
@@ -8,8 +6,8 @@ static class FixFactories
 {
 	public static FixMessage Message(string type, string source, FixNode[] header, FixNode[] body, FixNode[] trailer) => type switch
 	{
-		"0" => new Heartbeat(source, header, body, trailer),
-		"1" => new TestRequest(source, header, body, trailer),
+		"0" => new Heartbeat    (source, header, body, trailer),
+		"1" => new TestRequest  (source, header, body, trailer),
 		"2" => new ResendRequest(source, header, body, trailer),
 		"3" => new Reject(source, header, body, trailer),
 		"4" => new SequenceReset(source, header, body, trailer),
@@ -51,11 +49,11 @@ static class FixFactories
 		"h" => new TradingSessionStatus(source, header, body, trailer),
 		"i" => new MassQuote(source, header, body, trailer),
 		"j" => new BusinessMessageReject(source, header, body, trailer),
-		"k" => new BidRequest(source, header, body, trailer),
-		"l" => new BidResponse(source, header, body, trailer),
-		"m" => new ListStrikePrice(source, header, body, trailer),
-		"n" => new XMLnonFIX(source, header, body, trailer),
-		"o" => new RegistrationInstructions(source, header, body, trailer),
+		"k" => new BidRequest                      (source, header, body, trailer),
+		"l" => new BidResponse                     (source, header, body, trailer),
+		"m" => new ListStrikePrice                 (source, header, body, trailer),
+		"n" => new XMLnonFIX                       (source, header, body, trailer),
+		"o" => new RegistrationInstructions        (source, header, body, trailer),
 		"p" => new RegistrationInstructionsResponse(source, header, body, trailer),
 		"q" => new OrderMassCancelRequest(source, header, body, trailer),
 		"r" => new OrderMassCancelReport(source, header, body, trailer),
