@@ -33,6 +33,34 @@ a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. An inline gr
 raw string literal, so it needs C# 11; a `.gram` file needs nothing more than the project
 already has.
 
+## Generation summary in Build Output
+
+Enable a per-parser build message in the consuming project:
+
+```xml
+<PropertyGroup>
+  <DotGramReportGeneration>true</DotGramReportGeneration>
+</PropertyGroup>
+```
+
+Or run `dotnet build -p:DotGramReportGeneration=true`. The NuGet package imports
+its MSBuild target automatically; direct analyzer references need to import
+`build/DotGram.targets` from the source project. This repository does that centrally.
+
+Each message includes the host (and named variant), normalized rule count,
+generated C# size in UTF-8 bytes, generation time, actual lexical/character mode,
+and requested strategy options. Rule counts include normalized specializations
+and library rules. Individual publications may fall back from the requested
+options; their existing diagnostics remain authoritative.
+
+Time measures grammar compilation and emission, excluding C# compilation, host
+discovery and symbol queries. A cached generator result retains its original timing.
+A build that skips compilation prints no summary. Design-time builds do not report.
+
+Reporting is off by default. It enables compiler-generated files on disk and adds
+a comment-only report file containing timing; keep it off for reproducible artifacts.
+The option does not change parser behavior or turn messages into warnings.
+
 ## One grammar, three parsers
 
 A grammar does not have to describe only one parser. The arithmetic below is written once

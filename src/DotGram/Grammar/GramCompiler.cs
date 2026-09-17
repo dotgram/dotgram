@@ -159,7 +159,11 @@ public static class GramCompiler
 					options.LanguageRecognitionContract, options.StaticImports,
 					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables)));
 
-		return new GramCompilation(sources, OnePerPosition(diagnostics));
+		return new GramCompilation(sources, OnePerPosition(diagnostics))
+		{
+			NormalizedRuleCount = graph.Rules.Count,
+			UsesLexical = lexical is not null,
+		};
 	}
 
 	/// <summary>A grammar cut in two, or null with a word about why it was not.</summary>

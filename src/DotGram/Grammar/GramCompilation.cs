@@ -9,6 +9,12 @@ public sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IRea
 	public IReadOnlyList<GeneratedSource> Sources     { get; } = sources;
 	public IReadOnlyList<GramDiagnostic>  Diagnostics { get; } = diagnostics;
 
+	/// <summary>Number of normalized rules, including specialized and library rules.</summary>
+	public int NormalizedRuleCount { get; init; }
+
+	/// <summary>Whether recognition uses the lexical split after fallback checks.</summary>
+	public bool UsesLexical { get; init; }
+
 	public bool HasErrors
 	{
 		get
