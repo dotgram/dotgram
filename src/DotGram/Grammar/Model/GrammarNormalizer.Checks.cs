@@ -280,8 +280,8 @@ public sealed partial class GrammarNormalizer
 			if (alternative is Node.Construct)
 				building++;
 
-		// Anywhere else it would be building the value of a group, and a group has no
-		// value — the rule does.
+		// Typed group factories have already become internal rules. Any construction
+		// left inside this body has no independent value boundary.
 		foreach (var construct in Constructs(body))
 			if (!offered.Contains(construct))
 			{

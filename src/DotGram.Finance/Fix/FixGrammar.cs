@@ -30,10 +30,8 @@ namespace DotGram.Finance.Fix;
 		})
 		=> @(context.Create(tag, wire, parserSpan.Start).WithTerminator(0))
 
-	Terminated(field, ending) : @FixField = value: field & end: ending => @(value.WithTerminator(end.Length))
-
 	Fields : @FixField[] =
-		Terminated(Field, (Separator | eof))*
+		(value: Field & end: (Separator | eof) => @(value.WithTerminator(end.Length)))*
 		recover Separator => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
 """,
 	LocationType  = typeof(IFixLocation),

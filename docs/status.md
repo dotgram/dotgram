@@ -40,6 +40,7 @@ then quietly mean nothing.
 | repeated captures of a rule, `items: Row*` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` at the end of a rule | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` per alternative | ✓ | ✓ | ✓ | ✓ | ✓ |
+| nested constructing groups with contextual result types | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a generic C# type, `: @KeyValuePair<string, Row>`, asked about as its definition and arguments | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @string` as the extent §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -141,6 +142,13 @@ after it (`docs/next.md`, the Nitra reading).
 ## Recovery in yielded collections
 
 `Rule* recover Sync` and `Rule+ recover Sync` can be published with `yield`.
+A constructing group can replace the element rule: `(pattern => @(value))*`.
+Its type is the enclosing collection's element type; lowering creates an internal
+rule before recursion rewriting, so captures, factories, recovery and location
+handling use the ordinary rule machinery. Nested scalar groups take the enclosing
+rule's scalar type. No type annotation or inference behavior changes for existing
+rules. `GroupValueTests` covers eager and lazy strings, buffered characters/bytes,
+legacy readers, templates, lexical parsing and discarded alternatives.
 Recognition uses one committed recovery iteration at a time; it does not parse the
 whole collection before yielding. A recovery factory returns one scalar result
 without allocating a one-element collection. Without a factory, the rejected

@@ -504,6 +504,30 @@ The last line carries an important distinction: `Add` without `@` constructs a t
 owned by the grammar, whereas `@Add` would call a host method. Same rule as §2,
 nothing new.
 
+A nested group may also construct a value:
+
+```dotgram
+Fields : @FixField[] =
+    (value: Field & end: (Separator | eof)
+        => @(value.WithTerminator(end.Length)))*
+    recover Separator
+        => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
+```
+
+The group takes its expected result type from the enclosing rule: `T` for `@T`,
+or the element type `T` for `@T[]`. No new type annotation is needed here. A group
+requiring a different result type can be written as a named, explicitly typed rule.
+Existing inference for rules without a construction is unchanged.
+
+A constructing group owns its captures, just like a named rule. Capture its result
+outside the group to use that value; its inner capture names do not escape, and
+its factory cannot refer to captures outside it. `parserText` and `parserSpan`
+describe the group's own match. Plain groups without `=>` keep their existing
+capture scope. The compiler lowers constructing groups to internal rules, using
+the same deferred construction, backtracking and location handling. Repeating a
+group in a typed collection collects its values; a complete `(... => ...)*` or
+`(... => ...)+` also supports `yield` under the restrictions below (§6.3).
+
 **`=>` is not always required.** When it is absent and captures are present, they are
 matched to the result type by name — case 3 in §4.1, which covers most rules. `=>` is
 for where automatic matching does not suffice, or where being explicit is worth it;
@@ -1542,7 +1566,8 @@ without `yield` materializes its declared result.
 concrete types. The optional type belongs to the publication's output contract,
 not to the collection rule, and cannot change how its elements are constructed.
 
-The current proof accepts a complete `Rule*` or `Rule+` collection, optionally
+The current proof accepts a complete `Rule*` or `Rule+` collection, including a
+constructing group lowered to an internal element rule, optionally
 inside atomic groups or transparent collection wrappers. The element rule must
 consume input and cannot be marked as giving back a successful match. The
 collection must have no custom factory, outer choice, prefix/suffix or implicit

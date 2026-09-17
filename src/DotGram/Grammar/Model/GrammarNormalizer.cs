@@ -149,9 +149,12 @@ public sealed partial class GrammarNormalizer
 		// will be, and before anything rewrites the shape of a rule.
 		normalizer.DecideIntersections();
 
+		// Group factories need their contextual type before recursion introduces its
+		// own nested constructions, which remain part of the enclosing fold.
+		normalizer.ComputeTypes();
+		normalizer.LowerGroupValues();
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
-		normalizer.ComputeTypes();
 
 		// After the types, for the same reason as the two passes below it feeds: a
 		// whole-body value-returning external recognizer is §4.1 case 3's pass-through

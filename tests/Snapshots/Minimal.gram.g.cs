@@ -3349,10 +3349,10 @@ namespace DotGram.Snapshots
 				var lookahead = -1;
 				var power   = initialPower;
 				var reach   = 0;
-				var owned   = false;
 				var syncFrom = 0;
 				var c       = '\0';
 				string[]? expected = null;
+				var turn0 = 0;
 				var completedCall = -1;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
@@ -3374,6 +3374,7 @@ namespace DotGram.Snapshots
 					case 15: goto S15;
 					case 20: goto S20;
 					case 22: goto S22;
+					case 23: goto S23;
 					default: expected = null; goto Fail;
 				}
 
@@ -3396,7 +3397,6 @@ namespace DotGram.Snapshots
 				S5:
 				{
 					reach = p;
-					owned = false;
 					entries.Add(new ParserEntry(ParserEntry.Choice, 15, p, call, atomic, repeat, lookahead, 0));
 				}
 
@@ -3528,7 +3528,7 @@ namespace DotGram.Snapshots
 				S15:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					if (!owned && reach <= p) { expected = null; goto Fail; }
+					if ((uint)p >= (uint)text.Length) { expected = null; goto Fail; }
 					entries.Add(new ParserEntry(ParserEntry.PendingRecovery, 15, p, call, reach, repeat, lookahead, 0));
 				}
 
@@ -3621,6 +3621,44 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					goto Return;
+				}
+
+				S23:
+				{
+					var scanned = Scan_eof_Sheet(text, p, ref failure);
+					if (scanned < 0)
+					{
+						p = -1 - scanned;
+						expected = Recognize_DotGram_Sheet_Expected0;
+						goto Fail;
+					}
+					p = scanned;
+				}
+
+				{
+					turn0 = p;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length)
+					{
+						failure.Starved = true;
+						expected = Recognize_DotGram_Sheet_Expected3;
+						goto S27;
+					}
+					p++;
+				}
+
+				{
+					p = turn0;
+					expected = Recognize_DotGram_Sheet_Expected2;
+					goto Fail;
+				}
+
+				S27:
+				{
+					p = turn0;
 					goto Return;
 				}
 
@@ -3846,7 +3884,7 @@ namespace DotGram.Snapshots
 		static int Recognize_Sheet_Whole_Continue0(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? ignored;
-			return Recognize_DotGram_Sheet(text, pos, 22, -1, 0, false, false, ref failure, out ignored);
+			return Recognize_DotGram_Sheet(text, pos, 23, -1, 0, false, false, ref failure, out ignored);
 		}
 
 		static int Recognize_Sheet_Whole_Part1(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -3855,9 +3893,8 @@ namespace DotGram.Snapshots
 			return Recognize_DotGram_Sheet(text, pos, 22, -1, 0, false, false, ref failure, out ignored);
 		}
 
-		static int Recognize_Sheet_Whole_Sync(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Sheet_Whole_Sync(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
-			var failure = new Failure();
 			object? ignored;
 			return Recognize_DotGram_Sheet(text, pos, 12, -1, 0, false, false, ref failure, out ignored);
 		}
@@ -4483,7 +4520,7 @@ namespace DotGram.Snapshots
 
 				if (end0 < 0)
 				{
-					if (failure0.Reach <= start)
+					if (start >= window.Length && window.Ended)
 						break;
 
 					var from = start;
@@ -4494,7 +4531,14 @@ namespace DotGram.Snapshots
 					{
 						while (to <= window.Length)
 						{
-							at = Recognize_Sheet_Whole_Sync(window.Span(), to);
+							var syncFailure = new Failure();
+							at = Recognize_Sheet_Whole_Sync(window.Span(), to, ref syncFailure);
+
+							if ((syncFailure.Starved || (at < 0 ? syncFailure.Position : at) >= window.Length) && !window.Ended)
+							{
+								at = -1;
+								break;
+							}
 
 							if (at > to)
 								break;
