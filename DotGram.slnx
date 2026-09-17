@@ -8,6 +8,7 @@
 		<BuildType Name="Linux" />
 	</Configurations>
 	<Folder Name="/.agents/">
+		<File Path="AGENTS.md" />
 		<File Path="CLAUDE.md" />
 		<Project Path=".claude/.claude.csproj">
 			<Build Project="false" />
