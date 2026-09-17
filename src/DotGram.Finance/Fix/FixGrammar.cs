@@ -17,7 +17,7 @@ namespace DotGram.Finance.Fix;
 	Text         = (?!Separator & any)+
 
 	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.Tag(value))
-	Size : @int = value: { ['0'..'9']+ }             => @(FixConvert.Tag(value))
+	Size : @int = value: { ['0'..'9']+ }              => @(FixConvert.Tag(value))
 
 	Data = @ReadData
 
@@ -45,14 +45,14 @@ sealed partial class FixGrammar
 	{
 		var length = context.DataLimit - position;
 
-		return length >= 0 && length <= int.MaxValue && input.TryAdvance(ref position, (int)length);
+		return length is >= 0 and <= int.MaxValue && input.TryAdvance(ref position, (int)length);
 	}
 
 	static bool ReadData(ParserInput<byte> input, ref int position, FixContext context)
 	{
 		var length = context.DataLimit - position;
 
-		return length >= 0 && length <= int.MaxValue && input.TryAdvance(ref position, (int)length);
+		return length is >= 0 and <= int.MaxValue && input.TryAdvance(ref position, (int)length);
 	}
 
 	public sealed class FixContext(FixOptions options)
