@@ -231,6 +231,7 @@ is worth reading before measuring the generator.
 - An example owes assertions in `tests/DotGram.Tests/ExampleTests.cs`. Nothing under
   `examples/` may reference a test framework — an example that needs a fixture to make
   sense is not an example.
+
 ## CI build diagnostics
 
 Run `gh workflow run build.yml --ref <branch> -f diagnostics=true` to build with
