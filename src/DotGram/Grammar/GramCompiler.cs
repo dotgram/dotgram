@@ -146,6 +146,7 @@ public static class GramCompiler
 					pattern.Rule.Declaration?.At.Length ?? 0,
 					GramSeverity.Warning));
 
+		var sourceParts = new List<string>();
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				options.Suffix is { Length: > 0 } suffix
@@ -157,7 +158,10 @@ public static class GramCompiler
 					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
 					options.LanguageRecognitionContract, options.StaticImports,
-					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables)));
+					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables, sourceParts, options.SourceFileSize)));
+
+		for (var part = 0; part < sourceParts.Count; part++)
+			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

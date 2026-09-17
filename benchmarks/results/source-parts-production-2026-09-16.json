@@ -1,0 +1,72 @@
+{
+  "baselineCommit": "8c34352",
+  "mode": "Generation and Debug compilation with embedded PDB, fresh process per run",
+  "observations": [
+    {
+      "name": "baseline-fix",
+      "assembly": "DotGram.Examples",
+      "generationMs": 5889.601,
+      "totalMs": 133978.0763,
+      "allocatedBytes": 36424893392,
+      "peakWorkingSet": 5473533952,
+      "sourceCount": 38,
+      "sourceCharacters": 74768188,
+      "generatorSHA256": "91B7EA746ACB1D399232AA280E54E8D8D3E61EF3CD828C524AE61F30A30F2FC2"
+    },
+    {
+      "name": "candidate-fix",
+      "assembly": "DotGram.Examples",
+      "generationMs": 6311.5235,
+      "totalMs": 130622.0789,
+      "allocatedBytes": 36894603376,
+      "peakWorkingSet": 5783588864,
+      "sourceCount": 50,
+      "sourceCharacters": 74772016,
+      "generatorSHA256": "6535F1A71B73CEF772B4A3990EE2E6E93F483CEEE37F4C6635F57303EA48E920"
+    },
+    {
+      "name": "candidate-fix-2",
+      "assembly": "DotGram.Examples",
+      "generationMs": 5521.0841,
+      "totalMs": 123508.6302,
+      "allocatedBytes": 36916462832,
+      "peakWorkingSet": 5765419008,
+      "sourceCount": 50,
+      "sourceCharacters": 74772016,
+      "generatorSHA256": "6535F1A71B73CEF772B4A3990EE2E6E93F483CEEE37F4C6635F57303EA48E920"
+    },
+    {
+      "name": "baseline-fix-2",
+      "assembly": "DotGram.Examples",
+      "generationMs": 5961.208,
+      "totalMs": 135962.8488,
+      "allocatedBytes": 36405033256,
+      "peakWorkingSet": 5495615488,
+      "sourceCount": 38,
+      "sourceCharacters": 74768188,
+      "generatorSHA256": "91B7EA746ACB1D399232AA280E54E8D8D3E61EF3CD828C524AE61F30A30F2FC2"
+    },
+    {
+      "name": "baseline-sql",
+      "assembly": "DotGram.Sql",
+      "generationMs": 27683.2098,
+      "totalMs": 73066.3961,
+      "allocatedBytes": 38491527264,
+      "peakWorkingSet": 5680173056,
+      "sourceCount": 6,
+      "sourceCharacters": 120188452,
+      "generatorSHA256": "91B7EA746ACB1D399232AA280E54E8D8D3E61EF3CD828C524AE61F30A30F2FC2"
+    },
+    {
+      "name": "candidate-sql",
+      "assembly": "DotGram.Sql",
+      "generationMs": 28353.726,
+      "totalMs": 72588.9195,
+      "allocatedBytes": 38829352536,
+      "peakWorkingSet": 5165936640,
+      "sourceCount": 27,
+      "sourceCharacters": 120193822,
+      "generatorSHA256": "6535F1A71B73CEF772B4A3990EE2E6E93F483CEEE37F4C6635F57303EA48E920"
+    }
+  ]
+}

@@ -196,7 +196,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// as is not this file's business to depend on. The pieces are strings and numbers,
 	/// which compare the way arithmetic does.
 	/// </remarks>
-	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports)
+	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default)
 	{
 		public void Deliver(SourceProductionContext context)
 		{
@@ -215,6 +215,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				try
 				{
 					context.AddSource(HintName, Text);
+					for (var part = 0; part < Parts.Items.Length; part++)
+						context.AddSource(HintName.Substring(0, HintName.Length - 5) + $".part-{part + 1:D4}.g.cs", Parts.Items[part].Text);
 				}
 				catch (Exception exception) when (Recoverable(exception))
 				{
@@ -472,7 +474,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		return new Parser(
 			result.Sources.Count > 0 ? host.HintName + ".g.cs" : null,
 			result.Sources.Count > 0 ? result.Sources[0].Text  : null,
-			Values(reports));
+			Values(reports),
+			new EquatableArray<GeneratedSource>([.. result.Sources.Skip(1)]));
 	}
 
 	/// <summary>Where each piece of the joined text belongs (§7.6).</summary>

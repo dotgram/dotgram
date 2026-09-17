@@ -243,6 +243,15 @@ sealed class Writer(int depth)
 			length >= prefix.Length && string.CompareOrdinal(text, at, prefix, 0, prefix.Length) == 0;
 	}
 
+	/// <summary>A sink for complete method/reader groups; host fields never use this path.</summary>
+	public Func<string, bool>? SeparateMethods { get; set; }
+
+	public void Methods(string text)
+	{
+		if (SeparateMethods?.Invoke(text) != true)
+			Write(text);
+	}
+
 	public override string ToString() => _text.ToString();
 
 	sealed class Closer(Writer writer) : IDisposable

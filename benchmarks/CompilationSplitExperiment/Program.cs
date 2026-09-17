@@ -15,12 +15,18 @@ using Microsoft.CodeAnalysis.Text;
 
 if (args.Length == 0 || args[0] == "--help")
 {
-	Console.WriteLine("Run from the repository root: prepare | original RUN | split RUN. Outputs: .work/file-split");
+	Console.WriteLine("Run from the repository root: prepare | original RUN | split RUN | generate RUN [PROJECT]. Outputs: .work/file-split");
 	return;
 }
 
 try
 {
+	if (args[0] == "generate")
+	{
+		Production.Run(args[1], args.Length > 2 ? args[2] : "examples/DotGram.Examples");
+		return;
+	}
+
 	var repo = Directory.GetCurrentDirectory();
 	var work = Path.Combine(repo, ".work/file-split");
 	var project = Path.Combine(repo, "examples/DotGram.Examples");

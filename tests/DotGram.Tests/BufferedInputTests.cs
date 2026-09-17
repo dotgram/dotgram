@@ -72,10 +72,11 @@ public sealed class BufferedInputTests
 			BufferedInput = true, Direct = false, PartSize = 128, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(compilation.Diagnostics);
-		var source = Assert.Single(compilation.Sources).Text;
+		Assert.True(compilation.Sources.Count > 1);
+		var source = compilation.Sources[0].Text;
 		Assert.Contains("_Dispatch = new int[]", source);
-		Assert.DoesNotContain("switch (chosen)", source);
-		var assembly = EmittedCode.Compile(source);
+		Assert.All(compilation.Sources, part => Assert.DoesNotContain("switch (chosen)", part.Text));
+		var assembly = EmittedCode.Compile(source, sourceParts: compilation.Sources.Skip(1).Select(part => part.Text));
 		var expected = Enumerable.Range(0, count).Reverse().ToArray();
 		var text = string.Concat(expected.Select(i => $"{i}=123;"));
 		Assert.Equal(expected, Assert.IsType<int[]>(EmittedCode.Match(assembly, "Grammar", "TryParseStart", text).Value));

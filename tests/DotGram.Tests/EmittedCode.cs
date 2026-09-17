@@ -57,7 +57,8 @@ static class EmittedCode
 		string source,
 		string className = "Grammar",
 		string? @namespace = null,
-		string? declarationMembers = null)
+		string? declarationMembers = null,
+		IEnumerable<string>? sourceParts = null)
 	{
 		var declaration = @namespace is null
 			? $"public partial class {className} {{ {declarationMembers} }}"
@@ -75,6 +76,7 @@ static class EmittedCode
 				// What the generator asks Roslyn for beside them, and a harness has to bring.
 				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, Floor),
 				CSharpSyntaxTree.ParseText(source, Floor),
+				.. (sourceParts ?? []).Select(part => CSharpSyntaxTree.ParseText(part, Floor)),
 			],
 			References,
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));

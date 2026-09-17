@@ -88,3 +88,84 @@ and stable unique hint names. Also account for CallerFilePath/CallerLineNumber e
 where applicable. Verify end-to-end generation plus compilation, SQL and ExpressionLanguage,
 release/debug configurations, source/IL size and parser correctness before enabling it
 broadly. The two-million-character group size is an experimental choice, not a tuned default.
+
+## Production implementation
+
+`GramCompiler` now returns additional sources for complete engine/reader groups of
+at least 2,000,000 characters, and `GramGenerator` delivers them as separate syntax
+trees. The emitter uses its own rendering boundaries; it does not parse its output
+with Roslyn. Host fields (including dispatch tables), initializer order and attributes
+stay in the main file. Nested reader types move whole. Small output stays identical.
+`GramCompilerOptions.SourceFileSize = 0` retains one source; direct consumers must
+compile every entry in `GramCompilation.Sources`.
+
+This first implementation separates fewer members than the exploratory rewriter:
+legacy FIX gets 12 additional engine files and a 9,769,989-byte main file, versus
+28 additional files and a 1,569,888-byte main file in the experiment. It does not
+pack all the smaller helper methods into separate files. The original 37% result
+is therefore not a production performance claim.
+
+### End-to-end observations
+
+The production probe prepares handwritten trees and references, then times
+`RunGeneratorsAndUpdateCompilation` and Debug DLL emission with embedded PDB.
+It dumps generated sources after timing. Generator assembly, generated-tree parsing
+and compilation run in one fresh process; the earlier exploratory probe compiled
+previously dumped text and did not run the generator. These timings must not be
+compared directly to the earlier table. No tests or builds overlapped the timed runs.
+
+The baseline generator is from `8c34352` (generator code unchanged from `f7249e8`).
+Both variants use the same project inputs, references and Roslyn/runtime binaries.
+Run order: baseline FIX, candidate FIX, candidate FIX, baseline FIX, baseline SQL,
+candidate SQL. FIX refers to the whole Examples project containing legacy FIX and
+ExpressionLanguage, not solely one generated file.
+
+| Variant | Generation, s | Generation + compilation, s | Allocated bytes | Peak working set, bytes |
+|---|---:|---:|---:|---:|
+| FIX baseline 1 | 5.890 | 133.978 | 36,424,893,392 | 5,473,533,952 |
+| FIX candidate 1 | 6.312 | 130.622 | 36,894,603,376 | 5,783,588,864 |
+| FIX candidate 2 | 5.521 | 123.509 | 36,916,462,832 | 5,765,419,008 |
+| FIX baseline 2 | 5.961 | 135.963 | 36,405,033,256 | 5,495,615,488 |
+
+The FIX two-run mean is **134.970 -> 127.065 seconds (-5.86%)**. Mean allocation
+rises approximately 1.35%, and mean peak working set approximately 5.29%. Generator
+time is effectively unchanged at this sample size. The observations support a modest
+build-time improvement for this workload, not the exploratory 37%, a memory saving,
+a confidence interval, or a measured improvement in Visual Studio solution build time.
+
+Generated Examples sources: **38 -> 50 files**, **74,768,188 -> 74,772,016 characters**
+(+3,828 characters for the repeated partial-file context). Parser method bodies and
+public entry points are preserved. No parser-throughput improvement is claimed.
+
+| SQL variant | Generation, s | Generation + compilation, s | Allocated bytes | Peak working set, bytes |
+|---|---:|---:|---:|---:|
+| Baseline | 27.683 | 73.066 | 38,491,527,264 | 5,680,173,056 |
+| Candidate | 28.354 | 72.589 | 38,829,352,536 | 5,165,936,640 |
+
+For SQL, **73.066 -> 72.589 seconds (-0.65%)** is effectively unchanged given
+one observation per variant. Allocation rises 0.88%; the lower observed peak is
+not sufficient to establish a repeatable reduction. SQL goes from 6 to 27 sources,
+120,188,452 to 120,193,822 characters (+5,370).
+
+Debug DLL sizes including embedded PDB: Examples 30,513,664 -> 30,514,688 bytes;
+SQL 53,130,240 -> 53,095,424 bytes. Source paths and metadata ordering differ, so
+neither DLL identity nor unchanged instruction layout is asserted.
+
+### Production validation
+
+- All 8,294 core tests pass, including forced separation for Flat/Adaptive/Paged
+  storage, char/byte streams, typed guards, backtracking, generic/nested hosts,
+  suffixes, imports, stable names and identical method bodies. Small-output snapshots
+  remain unchanged. The large dispatch test compiles all generated parts at C# 8.
+- The measured candidate Debug DLLs pass all 3,808 Finance and 14,701 SQL tests
+  in isolated test-output copies; normal project DLLs are not replaced.
+- The compatibility project builds at C# 8 for net8.0, netstandard2.0 and net472,
+  with zero warnings/errors. The production measurement probe builds cleanly.
+- Release builds of SQL and Examples/ExpressionLanguage succeed. The 14,701 SQL
+  and 3,808 Finance tests also pass against Release output.
+
+[Raw production observations](../../benchmarks/results/source-parts-production-2026-09-16.json)
+include both generator hashes. The `generate` mode of
+[CompilationSplitExperiment](../../benchmarks/CompilationSplitExperiment/README.md)
+preserves the end-to-end procedure. Measurements here used the same procedure in
+an isolated scratch host before promoting it to that checked-in mode.

@@ -37,3 +37,27 @@ unexpected class attributes or a base list rather than silently copying their ef
 Validation used an isolated copy of the Finance test output directory, replacing only
 DotGram.Examples.dll with each experimental DLL, then running all 3,808 tests. Normal
 project outputs were not replaced. See the [report](../../docs/design/file-split-2026-09-16.md).
+
+## Production generator and compiler
+
+`generate RUN [PROJECT]` measures the generator and compilation together using the
+loaded DotGram assembly, without the experimental source rewriter:
+
+```powershell
+dotnet $probe generate candidate-fix
+dotnet $probe generate candidate-sql src/DotGram.Sql
+```
+
+Build the target project in Release first to provide its generated global-usings
+and assembly-info inputs. The timed compilation uses Debug optimization with an
+embedded PDB. Handwritten inputs and metadata references are prepared before the
+timer; generator execution, generated-tree parsing and DLL emission are timed.
+Source dumps are written after timing under `.work/source-parts/RUN-sources`.
+Use a fresh run name. The JSON includes the loaded generator's SHA-256.
+
+For an A/B comparison, copy the probe output into two isolated directories and
+place the baseline and candidate `DotGram.dll` in the respective directories.
+Keep all other files, runtime, inputs and references identical. Run sequentially,
+without overlapping tests or builds. This is not a full solution/Visual Studio
+build measurement. To reproduce the original `prepare` experiment, use the
+baseline generator before automatic splitting was introduced.

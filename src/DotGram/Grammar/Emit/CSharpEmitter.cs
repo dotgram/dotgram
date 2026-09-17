@@ -173,7 +173,7 @@ public static partial class CSharpEmitter
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
-		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true)
+		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 2_000_000)
 	{
 		statics ??= [];
 
@@ -343,6 +343,7 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		var namespaceEnd = file.Length;
 		var classParts = className.Split('.');
 		for (var i = 0; i < classParts.Length; i++)
 		{
@@ -394,6 +395,18 @@ public static partial class CSharpEmitter
 			scope.Push(file.Block(suffixDeclared
 				? $"static partial class {suffix}"
 				: $"public static partial class {suffix}"));
+
+		var separated = new List<string>();
+		if (sourceParts is not null && sourceFileSize > 0)
+			file.SeparateMethods = methods =>
+			{
+				if (methods.Length < sourceFileSize)
+					return false;
+				var part = new Writer(file.Depth);
+				part.Write(methods);
+				separated.Add(part.ToString());
+				return true;
+			};
 
 		foreach (var compiled in machines)
 			foreach (var publication in compiled.Publications)
@@ -811,7 +824,37 @@ public static partial class CSharpEmitter
 				diagnostics);
 		}
 
+		if (separated.Count > 0)
+		{
+			// Repeat only the namespace/imports and partial declarations. Attributes,
+			// fields, initializers and constructors remain in the original file.
+			var header = new Writer(@namespace is null ? 0 : 1);
+			var closing = new Stack<IDisposable>();
+			foreach (var part in classParts)
+				closing.Push(header.Block($"partial class {part}"));
+			if (suffix is { Length: > 0 })
+				closing.Push(header.Block(suffixDeclared ? $"static partial class {suffix}" : $"public static partial class {suffix}"));
+			var opening = written.Substring(0, namespaceEnd) + header.ToString();
+			var closeAt = header.Length;
+			while (closing.Count > 0)
+				closing.Pop().Dispose();
+			var ending = header.ToString().Substring(closeAt) + (@namespace is null ? "" : "}" + Lines.Ending);
+			foreach (var methods in separated)
+			{
+				var part = Numbered(opening + methods + ending, tables);
+				if (part.IndexOf('\u0001') >= 0)
+					throw new InvalidOperationException("An unsettled state mark reached a generated source part.");
+				Oversee(part, machines.Count > 0 ? machines[0].Machine.Anchor : null, diagnostics);
+				sourceParts!.Add(part);
+			}
+		}
 		return written;
+	}
+
+	static void EmitEngine(Writer file, Machine machine, string engine)
+	{
+		var methods = machine.RenderEngine(engine, field => { file.Line(field); file.Line(); });
+		file.Methods(methods);
 	}
 
 	/// <summary>The file with every value table said by its number rather than by its type.</summary>
@@ -927,7 +970,7 @@ public static partial class CSharpEmitter
 		{
 			foreach (var publication in compiled.Publications)
 				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
-			file.Write(machine.RenderEngine(engine));
+			EmitEngine(file, machine, engine);
 			foreach (var publication in compiled.Publications)
 				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes), engine, whole: publication.Kind == PublishKind.Parse));
 			return;
@@ -946,7 +989,7 @@ public static partial class CSharpEmitter
 
 		if (compiled.Direct)
 		{
-			file.Write(machine.RenderReader(compiled.Publications));
+			file.Methods(machine.RenderReader(compiled.Publications));
 
 			return;
 		}
@@ -1097,7 +1140,7 @@ public static partial class CSharpEmitter
 
 
 
-			file.Write(machine.RenderEngine(engine));
+			EmitEngine(file, machine, engine);
 
 			file.Line();
 

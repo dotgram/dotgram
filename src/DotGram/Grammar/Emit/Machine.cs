@@ -1205,7 +1205,7 @@ sealed partial class Machine
 		return file.ToString();
 	}
 
-	public string RenderEngine(string name)
+	public string RenderEngine(string name, Action<string>? declaration = null)
 	{
 		var file = new Writer(0);
 
@@ -1233,8 +1233,14 @@ sealed partial class Machine
 			table[Accept] = Accept;
 			table[Fail] = Fail;
 			foreach (var one in numbered) table[one.State] = one.Part + First;
-			file.Line($"static readonly int[] {name}_Dispatch = new int[] {{ {string.Join(", ", table)} }};");
-			file.Line();
+			var field = $"static readonly int[] {name}_Dispatch = new int[] {{ {string.Join(", ", table)} }};";
+			if (declaration is null)
+			{
+				file.Line(field);
+				file.Line();
+			}
+			else
+				declaration(field);
 		}
 
 		using (file.Block(

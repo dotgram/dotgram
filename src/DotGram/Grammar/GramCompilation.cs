@@ -129,6 +129,9 @@ public sealed class GramCompilerOptions
 	/// <summary>Dispatch disjoint literal prefixes through transition tables. Set false to use the previous strategy.</summary>
 	public bool PrefixTables { get; set; } = true;
 
+	/// <summary>Separate complete engine/reader groups at this character count; zero keeps one source file.</summary>
+	public int SourceFileSize { get; set; } = 2_000_000;
+
 	/// <summary>
 	/// Whether a publication that needs none of the automaton may be compiled as methods
 	/// (<c>Machine.Direct.cs</c>). On by default; off keeps the engine for every publication,

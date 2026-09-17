@@ -10,6 +10,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Include="Program.cs" />
+		<Compile Include="Production.cs" />
 		<Reference Include="Microsoft.CodeAnalysis">
 			<HintPath>$(MSBuildBinPath)/Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
 		</Reference>

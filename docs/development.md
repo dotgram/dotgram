@@ -193,3 +193,27 @@ is worth reading before measuring the generator.
 - An example owes assertions in `tests/DotGram.Tests/ExampleTests.cs`. Nothing under
   `examples/` may reference a test framework — an example that needs a fixture to make
   sense is not an example.
+
+## Large generated source files
+
+The source generator automatically moves complete engine methods and direct-reader
+groups of at least 2,000,000 characters into additional partial-class files. Small
+groups keep their existing layout. This is a group threshold, not a maximum file
+size: an individual method or nested reader type stays whole. The main file retains
+host fields and their initialization order, shared types, and declaration attributes.
+A reader's fields and constructors move together with its complete nested type.
+
+The public parser API and method bodies are unchanged. This controls source layout
+for the C# compiler, independently of `PartSize`, which controls method subdivision
+for the JIT. Extra files have stable `.part-0001.g.cs` names in emission order.
+
+Callers of `GramCompiler.Compile` must compile **all** entries in
+`GramCompilation.Sources`. Set `GramCompilerOptions.SourceFileSize = 0` to retain
+a single file, or use a positive character threshold for integration experiments.
+The Roslyn source generator uses the default automatically. Direct calls to
+`CSharpEmitter.Emit` retain a single string unless a `sourceParts` collection is
+supplied; that collection receives the additional files.
+
+See the [file-splitting measurements](design/file-split-2026-09-16.md) for the
+measured scope and trade-offs. File splitting is a build-time optimization; it
+does not establish a parser-throughput or memory reduction.
