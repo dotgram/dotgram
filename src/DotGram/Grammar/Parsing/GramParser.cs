@@ -456,29 +456,28 @@ public sealed class GramParser
 		var word       = Take().Value!;
 		var kind       = word == "parse" ? PublishKind.Parse : PublishKind.Find;
 		var targetAt   = Current.Position;
-		var target     = ParseQuantifiedCore(targetAt);
+		var target     = At(TokenKind.Identifier) && Next.Kind == TokenKind.Colon
+			? ParseReference() : ParseQuantifiedCore(targetAt);
 		var rebindings = TakeIfKeyword("with") ? ParseRebindings() : [];
 		var alias      = TakeIfKeyword("as") ? ExpectName() : null;
-		var typeAt     = Current.Position;
 
 		// The third part a rule has, in the place it reads as the method's own: `parse
-		// … as Name : @T`. It belongs to the expression being lifted, so a directive
-		// that lifts nothing has nowhere to put it.
+		// … as Name : @T`. For a named rule it declares the public result contract;
+		// for an inline expression it also tells the lifted rule what to construct.
 		var type = TakeIf(TokenKind.Colon) ? ParseType() : null;
+		var bufferedInput = TakeIfKeyword("stream");
+		var bufferedBytes = bufferedInput && TakeIfKeyword("bytes");
+		var yield = !StartsRule() && TakeIfKeyword("yield");
+		var yieldType = yield && TakeIf(TokenKind.Colon) ? ParseType() : null;
+		if (yield && type is not null && target is Expr.Reference(false, _, { Count: 0 }))
+			Report(PublicationTypeOnRule, "Place the element type after 'yield', not before it.", type.At);
 
 		// A bare name is what this directive has always taken, and it still names the
 		// rule it publishes — including the method name derived from it where no `as`
 		// says otherwise.
 		if (target is Expr.Reference(false, var named, { Count: 0 }))
 		{
-			if (type is not null)
-				Report(
-					PublicationTypeOnRule,
-					$"'{named}' declares its own type where it is written; a type here belongs to " +
-					"an expression this directive would have to make a rule of.",
-					new Location(typeAt, Current.Position - typeAt));
-
-			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access };
+			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType ?? type };
 		}
 
 		if (alias is null)
@@ -489,12 +488,12 @@ public sealed class GramParser
 				"called: there is no name here to make one from.",
 				new Location(targetAt, Current.Position - targetAt));
 
-			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access };
+			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType };
 		}
 
 		_lifted.Add(new Decl.Rule(alias, [], type, target) { At = From(targetAt) });
 
-		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access };
+		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType };
 	}
 
 	/// <summary>
@@ -1078,6 +1077,7 @@ public sealed class GramParser
 
 	Expr ParsePrimary()
 	{
+		if (AtKeyword("switch") && Next.Kind is TokenKind.At or TokenKind.CSharpExpression) return ParseSwitch();
 		var start = Current.Position;
 
 		switch (Current.Kind)
@@ -1133,6 +1133,68 @@ public sealed class GramParser
 
 				return new Expr.Reference(false, "", []) { At = From(start) };
 		}
+	}
+
+	Expr ParseSwitch()
+	{
+		var start = Take().Position;
+		var value = ParseValue();
+		Expect(TokenKind.OpenBrace);
+		var cases = new List<Expr.SwitchCase>();
+		var labels = new HashSet<string>();
+		var pending = new List<string?>();
+		while (!_panic && !At(TokenKind.CloseBrace) && !At(TokenKind.EndOfFile))
+		{
+			string? label = null;
+			if (AtKeyword("case"))
+			{
+				Take();
+				var negative = TakeIf(TokenKind.Minus);
+				if (At(TokenKind.Integer))
+				{
+					var text = (negative ? "-" : "") + Take().Value;
+					if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var signed))
+						label = signed.ToString(CultureInfo.InvariantCulture);
+					else if (!negative && ulong.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var unsigned))
+						label = unsigned.ToString(CultureInfo.InvariantCulture) + "UL";
+					else
+					{
+						Report(ExpectedExpression, "A numeric switch case must fit Int64 or UInt64.");
+						label = "0";
+					}
+				}
+				else if (!negative && At(TokenKind.String))
+					label = "\"" + Take().Value!.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t").Replace("\0", "\\0") + "\"";
+				else
+				{
+					Report(ExpectedExpression, "Expected an integer or string case label.");
+					_panic = true;
+					break;
+				}
+			}
+			else if (AtKeyword("default")) Take();
+			else
+			{
+				Report(ExpectedExpression, "Expected case or default in switch.");
+				_panic = true;
+				break;
+			}
+			if (!labels.Add(label ?? "default")) Report(ExpectedExpression, "Duplicate switch label.");
+			Expect(TokenKind.Colon);
+			pending.Add(label);
+			if (AtKeyword("case") || AtKeyword("default")) continue;
+			// Several labels may share one body; each label still selects one path.
+			var body = ParseBody();
+			foreach (var item in pending) cases.Add(new Expr.SwitchCase(item, body));
+			pending.Clear();
+			TakeIf(TokenKind.Semicolon);
+		}
+		Expect(TokenKind.CloseBrace);
+		if (cases.Count == 0) Report(ExpectedExpression, "A switch requires at least one case or default.");
+		if (labels.Any(one => one.StartsWith("\"", StringComparison.Ordinal)) &&
+			labels.Any(one => one != "default" && !one.StartsWith("\"", StringComparison.Ordinal)))
+			Report(ExpectedExpression, "Switch labels must all have the same type.");
+		return new Expr.Switch(value, cases) { At = From(start) };
 	}
 
 	/// <summary>A value position — <c>=&gt;</c> and <c>when</c> take these.</summary>

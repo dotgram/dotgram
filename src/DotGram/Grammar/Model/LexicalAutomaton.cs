@@ -239,6 +239,9 @@ public sealed class LexicalAutomaton
 
 					return true;
 
+				case Node.Choice { Selection: not null }:
+					return false;
+
 				case Node.Choice(var alternatives):
 					foreach (var alternative in alternatives)
 						if (!Gather(alternative, inside))

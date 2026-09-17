@@ -640,7 +640,7 @@ public static class FirstSets
 		{
 			Node.Literal(var text)                  => text.Length == 1,
 			Node.Element(_, _, _, var references)   => references.Count == 0,
-			Node.Choice(var alternatives)           => alternatives.All(one => OneCharacter(one, graph, seen)),
+			Node.Choice(var alternatives) { Selection: null } => alternatives.All(one => OneCharacter(one, graph, seen)),
 			Node.Sequence(var parts)                => parts.Count(part => !Silent(part)) == 1 &&
 			                                           parts.All(part => Silent(part) || OneCharacter(part, graph, seen)),
 			Node.Capture(_, var held)               => OneCharacter(held, graph, seen),
@@ -939,6 +939,9 @@ public static class FirstSets
 			// unknowable, and with it every proof that rests on knowing.
 			case Node.Call(var called, _):
 				return byRule.TryGetValue(called, out var settledFor) ? settledFor : First.All;
+
+			case Node.Choice { Selection: not null }:
+				return First.All;
 
 			case Node.Choice(var alternatives):
 			{

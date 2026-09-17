@@ -64,9 +64,7 @@ public sealed partial class GrammarNormalizer
 		{
 			var calls = new List<RuleSymbol>();
 
-			foreach (var node in NodeWalk.Descendants(_bodies[rule]))
-				if (node is Node.Call(var called, _))
-					calls.Add(called);
+			calls.AddRange(DirectCalls(_bodies[rule]));
 
 			forward[rule] = calls;
 		}
@@ -174,9 +172,7 @@ public sealed partial class GrammarNormalizer
 
 		var fresh = new List<RuleSymbol>();
 
-		foreach (var node in NodeWalk.Descendants(body))
-			if (node is Node.Call(var called, _))
-				fresh.Add(called);
+		fresh.AddRange(DirectCalls(body));
 
 		return fresh;
 	}
@@ -415,7 +411,11 @@ public sealed partial class GrammarNormalizer
 			Node.Guard    (var text, var at)                                        => new Node.Guard    (Renaming(text), at),
 			Node.External (var name) { HasValue: var hasValue }                     => new Node.External (name) { HasValue = hasValue },
 			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
-			Node.Choice   (var nodes)                                               => new Node.Choice   ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
+			Node.Choice   (var nodes)                                               => ((Node.Choice)node).Rebuild([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]) with
+			{
+				Selection = ((Node.Choice)node).Selection is { } selected
+					? selected with { Selector = (Node.Guard)CloneAndRewrite(selected.Selector, targets, cloneMap, siteName) } : null,
+			},
 			Node.Atomic   (var body)                                                => new Node.Atomic   (CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Marked   (var body, var text)                                      => new Node.Marked   (CloneAndRewrite(body, targets, cloneMap, siteName), Renaming(text)),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap, siteName), min, max),
@@ -449,7 +449,11 @@ public sealed partial class GrammarNormalizer
 			_bounds[clone] = bound;
 
 		if (_recoveries.TryGetValue(node, out var recovery))
-			_recoveries[clone] = recovery;
+			_recoveries[clone] = recovery with
+			{
+				Sync = CloneAndRewrite(recovery.Sync, targets, cloneMap, siteName),
+				Factory = recovery.Factory is { } factory ? Renaming(factory) : null,
+			};
 
 		return clone;
 	}

@@ -1,0 +1,62 @@
+@using DotGram.Finance.Fix;
+@using DotGram.Examples.Finance;
+using Known;
+
+context : @Fix44Context
+
+Separator    = ['\u0001']
+LogSeparator = ['|']
+ValueText    = (?!Separator & any)+
+Digits       = ['1'..'9'] & ['0'..'9']*
+Size         = ['0'..'9']+
+Position : @int = none => @(parserSpan.Start)
+
+// Only binary pairs need a byte limit. Ordinary fields never enter these rules.
+Block4096 = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 4096) & any{4096}
+Block256  = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 256) & any{256}
+Block16   = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 16) & any{16}
+Octet     = when @(parserSpan.Start + parserSpan.Length < context.DataLimit) & any
+Data = { Block4096* & Block256* & Block16* & Octet* & when @(parserSpan.Start + parserSpan.Length == context.DataLimit) }
+
+Binary(dataTag) : @FixBinaryValue =
+	size: Size & Separator & dataTag & start: Position
+	& when @(context.BeginData(size, start)) & value: Data
+	=> @(new FixBinaryValue(FixConvert.Data(value), start))
+
+// Each length/data pair produces one binary field.
+KnownBinary : @FixField =
+	"93=" & value: Binary("89=") => @(new FixField.Signature(value.Data).WithBinary(value, parserSpan.Start))
+	| "90=" & value: Binary("91=") => @(new FixField.SecureData(value.Data).WithBinary(value, parserSpan.Start))
+	| "95=" & value: Binary("96=") => @(new FixField.RawData(value.Data).WithBinary(value, parserSpan.Start))
+	| "212=" & value: Binary("213=") => @(new FixField.XmlData(value.Data).WithBinary(value, parserSpan.Start))
+	| "348=" & value: Binary("349=") => @(new FixField.EncodedIssuer(value.Data).WithBinary(value, parserSpan.Start))
+	| "350=" & value: Binary("351=") => @(new FixField.EncodedSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
+	| "352=" & value: Binary("353=") => @(new FixField.EncodedListExecInst(value.Data).WithBinary(value, parserSpan.Start))
+	| "354=" & value: Binary("355=") => @(new FixField.EncodedText(value.Data).WithBinary(value, parserSpan.Start))
+	| "356=" & value: Binary("357=") => @(new FixField.EncodedSubject(value.Data).WithBinary(value, parserSpan.Start))
+	| "358=" & value: Binary("359=") => @(new FixField.EncodedHeadline(value.Data).WithBinary(value, parserSpan.Start))
+	| "360=" & value: Binary("361=") => @(new FixField.EncodedAllocText(value.Data).WithBinary(value, parserSpan.Start))
+	| "362=" & value: Binary("363=") => @(new FixField.EncodedUnderlyingIssuer(value.Data).WithBinary(value, parserSpan.Start))
+	| "364=" & value: Binary("365=") => @(new FixField.EncodedUnderlyingSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
+	| "445=" & value: Binary("446=") => @(new FixField.EncodedListStatusText(value.Data).WithBinary(value, parserSpan.Start))
+	| "618=" & value: Binary("619=") => @(new FixField.EncodedLegIssuer(value.Data).WithBinary(value, parserSpan.Start))
+	| "621=" & value: Binary("622=") => @(new FixField.EncodedLegSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
+
+// Reserved for a future grammar extension; never matches by default.
+// The consuming shape keeps the yielded Field non-nullable even with an EOF terminator.
+CustomFiled : @FixField = any & when @(false) => @(null!)
+
+Unknown : @FixField =
+	tag: Digits & when @(Fix44Context.IsUnknownText(tag)) & '=' & value: ValueText
+	=> @(new FixField.Unknown(Fix44Context.Tag(tag), FixConvert.Data(value)))
+
+Field : @FixField =
+	{ ?=any } & (v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
+
+Fields : @FixField[] = Field* recover Separator
+	=> @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
+
+parse Fields stream bytes
+parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
+parse Fields as ReadFields stream bytes yield : @FixField
+parse Fields with (Separator = LogSeparator) as ReadLogFields stream bytes yield : @FixField

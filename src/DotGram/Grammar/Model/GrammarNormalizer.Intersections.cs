@@ -121,7 +121,7 @@ public sealed partial class GrammarNormalizer
 	{
 		var count        = Math.Min(_readings.Count, Readable);
 		var everywhere   = count == Readable ? ulong.MaxValue : (1UL << count) - 1;
-		var alternatives = body is Node.Choice(var all) ? all : [body];
+		var alternatives = body is Node.Choice(var all) { Selection: null } ? all : [body];
 		var left         = new List<Node>(alternatives.Count);
 		var reads        = 0UL;
 
@@ -207,7 +207,7 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A rule's body with every alternative's condition answered.</summary>
 	Node Decided(RuleSymbol rule, Node body)
 	{
-		if (body is not Node.Choice(var alternatives))
+		if (body is not Node.Choice(var alternatives) { Selection: null })
 			return Kept(rule, body) ?? Nothing(rule, body);
 
 		var left = new List<Node>(alternatives.Count);

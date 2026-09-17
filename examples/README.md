@@ -116,3 +116,9 @@ whose `parserMessage` names the set of what could have appeared, rather than onl
 which rule and where.
 [`docs/status.md`](../docs/status.md) is the list; where an example works around a gap,
 it says so at that line.
+
+## Finance
+
+[Fix44](DotGram.Examples/Finance/Fix44/Fix44Grammar.gram) retains the large FIX
+grammar for regression tests and benchmarks. It reuses the field model and
+conversion helpers from DotGram.Finance; the production parser is `Fix`.

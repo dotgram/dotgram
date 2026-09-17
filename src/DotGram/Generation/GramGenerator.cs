@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 
 using DotGram.Grammar;
 
@@ -97,9 +100,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 			.Select(static (input, _) => AnswerSafely(input.Left, input.Right))
 			.WithTrackingName(AnsweredStage);
 
+		var reporting = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+			options.GlobalOptions.TryGetValue("build_property.DotGramReportGeneration", out var enabled) &&
+			string.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase) &&
+			!(options.GlobalOptions.TryGetValue("build_property.DesignTimeBuild", out var designTime) &&
+				string.Equals(designTime, "true", StringComparison.OrdinalIgnoreCase)));
+
 		context.RegisterSourceOutput(
-			answered
-				.Select(static (grammar, _) => CompileSafely(grammar))
+			answered.Combine(reporting)
+				.Select(static (input, _) => CompileSafely(input.Left, input.Right))
 				.WithTrackingName(CompiledStage),
 			static (production, parser) => parser.Deliver(production));
 
@@ -146,11 +155,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 	}
 
-	static Parser CompileSafely(Grammar grammar)
+	static Parser CompileSafely(Grammar grammar, bool reporting)
 	{
 		try
 		{
-			return Compile(grammar);
+			return Compile(grammar, reporting);
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -196,7 +205,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// as is not this file's business to depend on. The pieces are strings and numbers,
 	/// which compare the way arithmetic does.
 	/// </remarks>
-	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports)
+	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports, string? Summary = null)
 	{
 		public void Deliver(SourceProductionContext context)
 		{
@@ -215,6 +224,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 				try
 				{
 					context.AddSource(HintName, Text);
+
+					if (Summary is not null)
+						context.AddSource(HintName + ".DotGramReport.g.cs", "// " + Summary + "\n");
 				}
 				catch (Exception exception) when (Recoverable(exception))
 				{
@@ -401,7 +413,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar)
+	static Parser Compile(Grammar grammar, bool reporting)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(null, null, grammar.Reports);
@@ -421,6 +433,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// well went silently missing until it was looked for.
 		reports.AddRange(grammar.Reports.Items);
 
+		var timer = reporting ? Stopwatch.StartNew() : null;
 		var result = GramCompiler.Compile(text, new GramCompilerOptions
 		{
 			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
@@ -444,6 +457,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// setting it to nought means: take the measured default either way.
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
+			PrefixTables   = host.PrefixTables,
 			Direct         = host.Direct,
 			LocationType   = host.LocationType,
 
@@ -453,6 +467,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
 			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
+			ValueStorage   = (ValueStorageKind)host.ValueStorage,
+			BufferedInput  = host.BufferedInput,
+			BufferedBytes  = host.BufferedBytes,
+			SpanCaptures   = host.SpanCaptures,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
 			SuffixDeclared = host.SuffixDeclared,
@@ -461,13 +479,26 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
 		});
 
+		timer?.Stop();
+
 		foreach (var diagnostic in result.Diagnostics)
 			reports.Add(PlacedIn(grammar, text, diagnostic));
 
 		return new Parser(
 			result.Sources.Count > 0 ? host.HintName + ".g.cs" : null,
 			result.Sources.Count > 0 ? result.Sources[0].Text  : null,
-			Values(reports));
+			Values(reports),
+			timer is not null && result.Sources.Count > 0
+				? string.Format(CultureInfo.InvariantCulture,
+					"DotGram: {0}, {1} normalized rules, {2} bytes UTF-8 C#, {3:F2} ms generation, " +
+					"mode={4}, options: Lexical={5}, PrefixTables={6}, Direct={7}, " +
+					"Carrier={8}, ValueStorage={9}, BufferedInput={10}, BufferedBytes={11}, SpanCaptures={12}",
+					host.HintName, result.NormalizedRuleCount,
+					Encoding.UTF8.GetByteCount(result.Sources[0].Text), timer.Elapsed.TotalMilliseconds,
+					result.UsesLexical ? "lexical" : "characters", host.Lexical, host.PrefixTables, host.Direct,
+					(CarrierKind)host.Carrier, (ValueStorageKind)host.ValueStorage,
+					host.BufferedInput, host.BufferedBytes, host.SpanCaptures)
+				: null);
 	}
 
 	/// <summary>Where each piece of the joined text belongs (§7.6).</summary>
@@ -735,8 +766,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
+		bool      PrefixTables = true,
 		bool      Direct     = true,
 		int       Carrier    = 0,
+		int       ValueStorage = 0,
+		bool      BufferedInput = false,
+		bool      BufferedBytes = false,
+		bool      SpanCaptures = false,
 		int       Stacks     = 0,
 		string?   Suffix     = null,
 		bool      SuffixDeclared = false,
@@ -892,6 +928,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
 				.Value.Value as bool? ?? first?.Lexical ?? false;
 
+			var prefixTables = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.PrefixTables))
+				.Value.Value as bool? ?? first?.PrefixTables ?? true;
+
 			var direct = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
 				.Value.Value as bool? ?? first?.Direct ?? true;
@@ -916,6 +956,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var carrier = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
 				.Value.Value as int? ?? first?.Carrier ?? 0;
+
+			// A named compilation inherits storage unless it explicitly overrides it.
+			var valueStorage = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.ValueStorage))
+				.Value.Value as int? ?? first?.ValueStorage ?? 0;
 
 			// How many stacks a parse may take past the one it began on. Nought is as many
 			// as there is memory for, which is the default.
@@ -990,8 +1035,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
 				Lexical:    lexical,
+				PrefixTables: prefixTables,
 				Direct:     direct,
 				Carrier:    carrier,
+				ValueStorage: valueStorage,
+				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,
+				BufferedBytes: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedBytes)).Value.Value as bool? ?? first?.BufferedBytes ?? false,
+				BufferedInput: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedInput)).Value.Value as bool? ?? first?.BufferedInput ?? false,
 				Stacks:     stacks,
 				Suffix:     suffix,
 				SuffixDeclared: suffixDeclared,

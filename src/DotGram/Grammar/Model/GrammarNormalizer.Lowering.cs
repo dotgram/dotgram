@@ -88,6 +88,10 @@ public sealed partial class GrammarNormalizer
 		Expr.Capture   (var name, var operand)           => new Node.Capture(name, Lower(operand, ns)),
 		Expr.Lookahead (var positive, var operand)       => new Node.Lookahead(positive, Lower(operand, ns)),
 		Expr.Guard     (var value)                       => Guarded(value),
+		Expr.Switch(var value, var cases) => new Node.Choice(cases.Select(one => Lower(one.Body, ns)).ToArray())
+		{
+			Selection = new Node.SwitchSelection((Node.Guard)Guarded(value), cases.Select(one => one.Label).ToArray()),
+		},
 		Expr.Condition (var test)                        =>
 			new Node.Condition(
 				Lowered(test, ns),
@@ -1332,7 +1336,7 @@ public sealed partial class GrammarNormalizer
 		Node.Atomic(var body) => MatchesNothing(body, seen),
 		Node.Repeat(var body, _, var max) => max == 0 || MatchesNothing(body, seen),
 		Node.Sequence(var nodes)   => nodes.All(child => MatchesNothing(child, seen)),
-		Node.Choice(var nodes)     => nodes.All(child => MatchesNothing(child, seen)),
+		Node.Choice(var nodes) { Selection: null } => nodes.All(child => MatchesNothing(child, seen)),
 		Node.Capture(_, var body)  => MatchesNothing(body, seen),
 		Node.Construct(var body, _) => MatchesNothing(body, seen),
 		Node.Call(var rule, _)     => MatchesNothing(rule, seen),

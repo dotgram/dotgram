@@ -42,6 +42,50 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesIndependentPublicationModifiers()
+	{
+		const string source = "Item : @string = 'a'\nFeed : @string[] = Item*\nparse Feed stream bytes yield : @string";
+		var document = GramLanguageService.Analyze(source);
+		var keywords = document.Classifications.Where(span => span.Kind == GramSyntaxKind.Keyword)
+			.Select(span => source.Substring(span.Position, span.Length)).ToArray();
+		Assert.Contains("stream", keywords);
+		Assert.Contains("bytes", keywords);
+		Assert.Contains("yield", keywords);
+	}
+
+	[Fact]
+	public void ClassifiesComputedChoiceAndItsCSharpSelector()
+	{
+		const string source = "Text = 'a'\nField = switch @(true ? 1 : 0) { case 1: Text; default: none }\nparse Field";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (source.Substring(span.Position, span.Length), span.Kind)).ToArray();
+
+		Assert.Empty(document.Diagnostics);
+		foreach (var keyword in new[] { "switch", "case", "default", "true" })
+			Assert.Contains((keyword, GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("1", GramSyntaxKind.Number), classified);
+		Assert.DoesNotContain(classified, item => item.Kind == GramSyntaxKind.EmbeddedCode);
+		Assert.Contains(document.Classifications, span =>
+			span.Position == source.IndexOf("Text;", StringComparison.Ordinal) && span.DefinitionPosition == 0);
+	}
+
+	[Theory]
+	[InlineData("parse Item as Value : @object")]
+	[InlineData("find Item : @object")]
+	[InlineData("parse Feed stream bytes yield : @string")]
+	public void ClassifiesPublicationResultTypes(string publication)
+	{
+		var source = "Item : @string = 'a'\nFeed : @string[] = Item*\n" + publication;
+		var document = GramLanguageService.Analyze(source);
+		var position = source.LastIndexOf('@') + 1;
+
+		Assert.Contains(document.Classifications, span =>
+			span.Position == position && span.Kind == GramSyntaxKind.Keyword);
+	}
+
+	[Fact]
 	public void UsesRoslynTokenKindsForBothCSharpValueForms()
 	{
 		const string source = "Primary : @int = '(' & inner: Sum & ')' => @(inner)\n" +

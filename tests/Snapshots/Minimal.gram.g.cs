@@ -3575,6 +3575,7 @@ namespace DotGram.Snapshots
 						{
 							recoveryFrom = candidate.Position;
 							recoveryReach = candidate.AtomicIndex;
+							break;
 						}
 						if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && candidate.State == 20)
 						{
@@ -5682,6 +5683,10 @@ namespace DotGram.Snapshots
 
 			internal static void Return(Ways ways)
 			{
+				// Bound retained capacity, including an earlier parse's high-water size.
+				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
+					return;
+
 				_spare = ways;
 			}
 
@@ -5897,9 +5902,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
-		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways ways)
+		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways? ways)
 		{
-			if (ways.Lookahead > 0)
+			if (ways != null && ways.Lookahead > 0)
 				return;
 
 			if (at > failure.Position)
@@ -5969,6 +5974,9 @@ namespace DotGram.Snapshots
 
 			internal static void Return(DirectValues values)
 			{
+				// Oversized stores are collected instead of retained by the thread.
+				if (0L + values.V0.Length + values.V1.Length + values.V2.Length + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576) return;
+
 				global::System.Array.Clear(values.V0, 0, global::System.Math.Min(values._used, values.V0.Length));
 				global::System.Array.Clear(values.V1, 0, global::System.Math.Min(values._used, values.V1.Length));
 				global::System.Array.Clear(values.V2, 0, global::System.Math.Min(values._used, values.V2.Length));

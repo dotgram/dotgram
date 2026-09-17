@@ -35,6 +35,12 @@ it.
 `coverage.md` is a measurement rather than a text: `--coverage` writes it, nobody edits it,
 and it is out of date from the first change to the grammar until it is run again.
 
+## Repository conventions
+
+| Document | |
+| --- | --- |
+| [`coding-conventions.md`](coding-conventions.md) | Required file formatting, C# layout, naming and code-locality conventions. The canonical source of coding style. |
+
 ## How it is built
 
 | Document | |
@@ -48,7 +54,7 @@ and it is out of date from the first change to the grammar until it is run again
 | Document | |
 | --- | --- |
 | [`design/lexical-adt-design.md`](design/lexical-adt-design.md) | Separating the lexical and syntactic machines. |
-| [`design/finance-fix44.md`](design/finance-fix44.md) | FIX 4.4 architecture assessment, pinned specification and verified coverage matrix. |
+| [`design/finance-fix44.md`](design/finance-fix44.md) | FIX 4.4 architecture assessment, definition maintenance and verified coverage matrix. |
 | [`design/sql-parsers.md`](design/sql-parsers.md) | The SQL parsers: independent grammars meeting in one tree, the standard's BNF as the reference, and the work that follows — a BNF-to-`.gram` converter among it. |
 | [`design/sql-ast.md`](design/sql-ast.md) | The requirements the SQL tree is held to — lossless, flat, composed rather than inherited, validation outside it — and how the SQL:2023 blank is adapted to them. |
 | [`design/sql-tsql-tree.md`](design/sql-tsql-tree.md) | T-SQL moved onto the SQL:2023 tree: what is decided, and a numbered proposal for the rest. |

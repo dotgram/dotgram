@@ -4,6 +4,50 @@ using DotGram;
 
 namespace DotGram.Compatibility
 {
+	[Gram("Item : @int = 'a' & ';' => @(1)\nFeed : @int[] = { Item* }\n" +
+		"parse Feed as Array stream\nparse Feed as Rows stream yield : @int\nparse Feed as Bytes stream bytes yield : @int")]
+	public partial class YieldInput
+	{
+	}
+
+	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start\nparse Start as Boxed : @object", BufferedInput = true, BufferedBytes = true, SpanCaptures = true)]
+	public partial class NativeCapture
+	{
+		static int ToInt(System.ReadOnlySpan<char> text)
+		{
+			var result = 0;
+			for (var i = 0; i < text.Length; i++) result = checked(result * 10 + text[i] - '0');
+			return result;
+		}
+
+		static int ToInt(System.ReadOnlySpan<byte> text)
+		{
+			var result = 0;
+			for (var i = 0; i < text.Length; i++) result = checked(result * 10 + text[i] - (byte)'0');
+			return result;
+		}
+	}
+
+	[Gram("Start : @int = \"ab\"* & '!' => @(42)\nparse Start", BufferedInput = true, BufferedBytes = true)]
+	public partial class BufferedInput
+	{
+	}
+
+	[Gram("Start : @int = switch @(1) { case 1: 'a' => @(1) default: 'b' => @(2) }\nparse Start stream bytes")]
+	public partial class ComputedDispatch
+	{
+	}
+
+	[Gram("Item : @int = { ?=any } & 'a' & ';' => @(1)\nItems : @int[] = Item* recover ';' => @(0)\nparse Items stream bytes yield : @int")]
+	public partial class RecoveringYield
+	{
+	}
+
+	[Gram("Start : @string = text: any* => @(text)\nparse Start stream")]
+	public partial class BufferedCapture
+	{
+	}
+
 	// One grammar reaching for as much of the language as fits in a few lines, so that the
 	// generated file exercises the shapes the emitter has to be careful about: a declared
 	// type built from captures, a construction expression, a guard, a repetition collecting
@@ -36,6 +80,8 @@ namespace DotGram.Compatibility
 		"Nest   : @string  = '(' & inner: Nest & ')' => @(\"(\" + inner + \")\")\n" +
 		"                  | t: Key => @(t)\n" +
 		"\n" +
+		"parse Doc as Objects : @object[] stream\n" +
+		"find Entry as Entries : @object stream\n" +
 		"parse Doc\n" +
 		"parse Nest as Nested\n" +
 		"parse Where as Span\n" +

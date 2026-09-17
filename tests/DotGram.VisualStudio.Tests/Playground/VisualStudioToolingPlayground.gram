@@ -68,3 +68,17 @@ parse Fixed        as ToolingFixed
 parse Shift        as ToolingShift
 parse Insensitive  as ToolingInsensitive
 parse Backtracking as ToolingBacktracking
+
+// Check keyword colors for switch/case/default and C# colors in the selector.
+// F12 on Insensitive inside the selected branch should open its rule above.
+Selected = switch @(1) { case 1: Insensitive; default: 'x' }
+parse Selected as ToolingSelected : @string
+
+// Check stream/bytes/yield and the C# int keyword in the output contract.
+namespace LazyExample
+{
+	trivia = none
+	LazyItem : @int = 'x' => @(1)
+	LazyItems : @int[] = LazyItem*
+	parse LazyItems as ToolingLazy stream bytes yield : @int
+}

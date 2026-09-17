@@ -535,7 +535,7 @@ sealed partial class Machine
 
 			if (member.Rule is null)
 			{
-				var expression = member.IsOptional ? "null" : "string.Empty";
+				var expression = BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty";
 
 				for (var at = member.Slots.Count - 1; at >= 0; at--)
 				{

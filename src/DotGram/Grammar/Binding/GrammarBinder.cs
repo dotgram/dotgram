@@ -404,6 +404,8 @@ public sealed class GrammarBinder
 						break;
 					}
 
+					if (publish.ResultType is { } resultType) ResolveType(resultType, ns, []);
+
 					var method = publish.Alias ?? Publication.DefaultMethodName(publish.Kind, published.Name);
 
 					// Two directives producing one name would generate two methods with the
@@ -441,6 +443,10 @@ public sealed class GrammarBinder
 						ChainResolve(EmptyBindings, ownPublicationBindings), ownPublicationBindings)
 					{
 						Access = publish.Access,
+						BufferedInput = publish.BufferedInput,
+						BufferedBytes = publish.BufferedBytes,
+						Yield = publish.Yield,
+						ResultType = publish.ResultType,
 					});
 
 					break;
@@ -737,6 +743,11 @@ public sealed class GrammarBinder
 			case Expr.Construct(var pattern, var value):
 				ResolveExpression(pattern, ns, parameters);
 				ResolveExpression(value, ns, parameters, csharpValue: true);
+				return;
+
+			case Expr.Switch(var selected, var cases):
+				ResolveExpression(selected, ns, parameters, csharpValue: true);
+				foreach (var branch in cases) ResolveExpression(branch.Body, ns, parameters);
 				return;
 
 			case Expr.Guard(var guarded):

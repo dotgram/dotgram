@@ -140,9 +140,9 @@ public static class GramLanguageService
 {
 	static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
 	{
-		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
-		"context", "state",
-		"any", "none", "eol", "eof", "trivia", "word", "wordboundary", "stream", "bytes",
+		"using", "namespace", "parse", "find", "as", "when", "switch", "case", "default", "recover", "with",
+		"context", "state", "stream", "bytes", "yield",
+		"any", "none", "eol", "eof", "trivia", "word", "wordboundary",
 	};
 
 	/// <summary>Analyzes a complete snapshot of a standalone <c>.gram</c> document.</summary>
@@ -773,6 +773,10 @@ public static class GramLanguageService
 				case Expr.CSharp csharp:
 					AddCSharpReferences(csharp);
 					break;
+				case Expr.Switch selected:
+					Visit(selected.Value);
+					foreach (var branch in selected.Cases) Visit(branch.Body);
+					break;
 				case Expr.Choice choice:
 					foreach (var alternative in choice.Alternatives) Visit(alternative);
 					break;
@@ -957,6 +961,10 @@ public static class GramLanguageService
 		{
 			switch (item)
 			{
+				case Expr.Switch selected:
+					Visit(selected.Value);
+					foreach (var branch in selected.Cases) Visit(branch.Body);
+					break;
 				case Expr.Choice choice:
 					foreach (var alternative in choice.Alternatives) Visit(alternative);
 					break;
