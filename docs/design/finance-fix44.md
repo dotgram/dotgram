@@ -81,11 +81,13 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 
 ## Implemented grammar strategy
 
-The handwritten production `FixGrammar.gram` reads a numeric tag and uses
+The handwritten production grammar in `FixGrammar.cs` reads a numeric tag and uses
 `switch @(context.Kind(tag))` to select text or a length/data pair. C# validates
-the pair and `FixFactory.cs` constructs the corresponding `FixField`
-case. The common `Field` accepts a separator or EOF; the `Fields` collection
-adds recovery. Eager and lazy publications share this grammar.
+the pair and constructs the corresponding `FixField` case. `Field` reads only the
+field contents. `Fields` repeats a constructing group containing `Field` and
+`(Separator | eof)`, records the terminator length, and adds recovery. The group
+gets its `FixField` result type from `Fields : @FixField[]`; no `Terminated`
+wrapper is needed. Eager and lazy publications share this grammar.
 
 The reference `Fix44Grammar` inherits `FixFieldGrammar`. Its
 `FixField.gram` retains a large `KnownField` choice with one alternative per

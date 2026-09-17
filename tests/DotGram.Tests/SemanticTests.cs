@@ -3033,10 +3033,12 @@ public sealed class SemanticTests
 			"""Start : @int = "a" => @(1) | "b" """);
 
 	[Fact]
-	public void A_construction_belongs_on_an_alternative_of_the_rule() =>
-		Refused(
-			GrammarNormalizer.UnbuiltConstruction,
-			"""Start : @int = ("a" => @(1) | "b" => @(2)) & 'c' => @(3)""");
+	public void A_group_construction_has_its_own_value()
+	{
+		Assert.Equal(3, Built(
+			"""Start : @int = value: ("a" => @(1) | "b" => @(2)) & 'c' => @(value + 1)""",
+			"bc"));
+	}
 
 	// ── Left recursion, and what it says about associativity (§4.3) ─────────────
 

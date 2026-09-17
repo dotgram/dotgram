@@ -585,6 +585,17 @@ public static partial class CSharpEmitter
 				if (found is not null)
 					sync = streamedSyncs[publication.Rule].Name;
 
+				var compiled = machines.Find(one => one.Publications.Contains(publication));
+
+				string Recognizer(RuleSymbol rule)
+				{
+					// Joined publications already share the plain wrapper in this machine.
+					if (compiled is not null && compiled.Publications.Any(one => one.Rule == rule))
+						return MethodOf(rule);
+
+					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? "");
+				}
+
 				EmitStreamingParse(
 					file, graph, publication, results, stages, parts,
 					found?.Recovery, sync, factory,
@@ -592,7 +603,7 @@ public static partial class CSharpEmitter
 						? probe.Name
 						: null,
 					machines.Exists(static compiled => compiled.Machine.UsesInput),
-					machines.Find(one => one.Publications.Contains(publication))?.Tag ?? "");
+					Recognizer);
 				file.Line();
 			}
 		}
@@ -1144,6 +1155,9 @@ public static partial class CSharpEmitter
 						suffix.Add(stages[after].Node);
 
 
+
+					// A parse continuation includes the implicit end-of-input check.
+					suffix.Add(new Node.Lookahead(false, new Node.Element(true, [], [], [])));
 
 					var continuation = suffix.Count switch
 

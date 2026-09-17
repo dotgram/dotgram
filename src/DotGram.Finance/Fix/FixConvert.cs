@@ -6,7 +6,11 @@ namespace DotGram.Finance.Fix;
 
 static class FixConvert
 {
-	public static int Tag(ReadOnlySpan<char> value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
+	public static int Tag(ReadOnlySpan<char> value)
+	{
+		return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
+	}
+
 	public static int Tag(ReadOnlySpan<byte> value)
 	{
 		var result = 0;
