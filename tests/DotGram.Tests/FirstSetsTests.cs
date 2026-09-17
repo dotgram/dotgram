@@ -24,6 +24,71 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class FirstSetsTests
 {
+	[Fact]
+	public void Reachability_reuses_roots_and_keeps_graphs_separate()
+	{
+		static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root) =>
+			(HashSet<RuleSymbol>)typeof(RecognitionGraph).GetMethod("Reaches",
+				System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+				.Invoke(graph, [root])!;
+
+		var graph = Graph("A = 'a' & B?\nB = 'b' & A?\nC = 'c'");
+		var a = graph.Rules.Single(rule => rule.Name == "A");
+		var b = graph.Rules.Single(rule => rule.Name == "B");
+		var c = graph.Rules.Single(rule => rule.Name == "C");
+		var reached = Reaches(graph, a);
+		Assert.Contains(a, reached);
+		Assert.Contains(b, reached);
+		Assert.DoesNotContain(c, reached);
+		Assert.Same(reached, Reaches(graph, a));
+		Assert.Contains(c, Reaches(graph, c));
+		Assert.DoesNotContain(a, Reaches(graph, c));
+		Assert.Empty(Reaches(graph, null));
+
+		var other = Graph("A = 'a'");
+		var otherA = other.Rules.Single(rule => rule.Name == "A");
+		Assert.NotSame(reached, Reaches(other, otherA));
+		Assert.DoesNotContain(b, Reaches(other, otherA));
+
+		var spaced = Graph("trivia = Space\nSpace = ' '\nA = 'a'");
+		var spacedA = spaced.Rules.Single(rule => rule.Name == "A");
+		Assert.Contains(spaced.Rules.Single(rule => rule.Name == "Space"), Reaches(spaced, spacedA));
+	}
+
+	[Theory]
+	[InlineData("a", true)]
+	[InlineData("c", true)]
+	[InlineData("x", true)]
+	[InlineData("z", true)]
+	[InlineData("ayz", true)]
+	[InlineData("d", false)]
+	[InlineData("ay!", false)]
+	[InlineData("", false)]
+	[InlineData("\uFFFF", true)]
+	public void Keyword_boundaries_cover_only_literals_wholly_inside_the_class(string literal, bool bounded)
+	{
+		var graph = Graph("wordboundary = WordChar\nWordChar = ['a'..'c' | 'x'..'z' | '\uFFFF']\nStart = \"" + literal + "\"");
+		var start = graph.Rules.Single(rule => rule.Name == "Start");
+		Assert.Equal(bounded, HasBehind(graph.Bodies[start]));
+	}
+
+	[Fact]
+	public void Boundary_membership_is_reused_without_crossing_normalizations()
+	{
+		foreach (var boundary in new[] { "'a'..'z'", "'0'..'9'" })
+		{
+			var graph = Graph("wordboundary = [" + boundary + "]\nA = \"abc\"\nB = \"xyz\"\nC = \"123\"\nD = \"789\"");
+			foreach (var name in new[] { "A", "B", "C", "D" })
+			{
+				var rule = graph.Rules.Single(rule => rule.Name == name);
+				var expected = boundary == "'a'..'z'" ? name is "A" or "B" : name is "C" or "D";
+				Assert.Equal(expected, HasBehind(graph.Bodies[rule]));
+			}
+		}
+	}
+
+	static bool HasBehind(Node node) => node is Node.Behind || node.Children.Any(HasBehind);
+
 	// ── The algebra ──────────────────────────────────────────────────────────────
 
 	[Fact]
@@ -210,6 +275,28 @@ public sealed class FirstSetsTests
 
 		foreach (var name in new[] { "Leaf", "Middle", "Outer" })
 			Assert.True(FirstSets.Same(expected, follow[graph.Rules.Single(rule => rule.Name == name)].Plain));
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void First_propagates_through_calls_and_lookahead_in_either_rule_order(bool reverse)
+	{
+		var rules = new[]
+		{
+			"Start = Prefix? & Tail",
+			"Prefix = Middle",
+			"Middle = Leaf",
+			"Leaf = 'a'",
+			"Tail = 'z'",
+			"Constrained = ?=Prefix & ['a'..'z']",
+			"Excluded = ?!Prefix & ['a'..'z']",
+		};
+		var graph = Graph(string.Join("\n", reverse ? rules.Reverse() : rules));
+		FirstSets.First FirstOf(string name) => FirstSets.Of(graph.Bodies[graph.Rules.Single(rule => rule.Name == name)], graph);
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new('a', 'a'), new('z', 'z')]), FirstOf("Start")));
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new('a', 'a')]), FirstOf("Constrained")));
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new('b', 'z')]), FirstOf("Excluded")));
 	}
 
 	// ── Nullability ───────────────────────────────────────────────────────────────────

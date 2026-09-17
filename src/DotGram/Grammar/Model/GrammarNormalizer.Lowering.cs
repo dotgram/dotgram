@@ -1197,8 +1197,12 @@ public sealed partial class GrammarNormalizer
 		if (value.Length == 0 || BoundaryFor(ns) is not { } boundary)
 			return literal;
 
+		var element = BoundaryElement(boundary);
+		if (element is null || BoundaryCharacters(element) is not { Anything: false } characters)
+			return literal;
+
 		foreach (var character in value)
-			if (!Continues(boundary, character))
+			if (!Continues(characters.Ranges, character))
 				return literal;
 
 		// Both edges, not one. The lookahead alone kept `"as"` from starting a longer
@@ -1206,9 +1210,20 @@ public sealed partial class GrammarNormalizer
 		// back and match the keyword mid-word, reading `Xas` as `X as` — which no
 		// author means and no lexer would do. The lookbehind completes the symmetry:
 		// a word lexeme is delimited by the boundary on both sides.
-		return BoundaryElement(boundary) is { } element
-			? new Node.Sequence([new Node.Behind(element), literal, new Node.Lookahead(false, boundary)])
-			: new Node.Sequence([literal, new Node.Lookahead(false, boundary)]);
+		return new Node.Sequence([new Node.Behind(element), literal, new Node.Lookahead(false, boundary)]);
+	}
+
+	// Analysis of element values, not a node annotation to transfer on rebuild.
+	Dictionary<Node.Element, FirstSets.First>? _boundaryCharacters;
+
+	FirstSets.First BoundaryCharacters(Node.Element element)
+	{
+		// Lowering replaces elements instead of mutating their ranges. Key the resolved
+		// element, not its rule: a rebound or replaced body must get a fresh answer.
+		var cache = _boundaryCharacters ??= new(NodeIdentity.Instance);
+		if (!cache.TryGetValue(element, out var characters))
+			cache[element] = characters = FirstSets.OfElement(element);
+		return characters;
 	}
 
 	/// <summary>
@@ -1223,10 +1238,22 @@ public sealed partial class GrammarNormalizer
 	/// element set, which is exactly a set of characters, so membership is a question this
 	/// side can answer while it still has the grammar in hand.
 	/// </remarks>
-	bool Continues(Node boundary, char character) =>
-		ElementOf(boundary) is { } element &&
-		FirstSets.OfElement(element) is { Anything: false } characters &&
-		characters.Overlaps(FirstSets.First.Chars([new CharRange(character, character)]));
+	static bool Continues(IReadOnlyList<CharRange> ranges, char character)
+	{
+		// FIRST ranges are sorted and disjoint. Membership needs neither a singleton
+		// FIRST set nor another normalization of the boundary's Unicode ranges.
+		var low = 0;
+		var high = ranges.Count - 1;
+		while (low <= high)
+		{
+			var middle = low + (high - low) / 2;
+			var range = ranges[middle];
+			if (character < range.From) high = middle - 1;
+			else if (character > range.To) low = middle + 1;
+			else return true;
+		}
+		return false;
+	}
 
 	/// <summary>
 	/// The element a node comes down to, through any chain of plain references.

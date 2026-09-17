@@ -713,6 +713,48 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	internal CallGraph Calls => field ??= new CallGraph(Rules, Called);
 
+	Dictionary<RuleSymbol, HashSet<RuleSymbol>>? _reachable;
+
+	/// <summary>Cached publication reachability, including each rule's trivia. Treat the result as read-only.</summary>
+	internal HashSet<RuleSymbol> Reaches(RuleSymbol? root)
+	{
+		if (root is not null && _reachable is not null && _reachable.TryGetValue(root, out var cached))
+			return cached;
+
+		var seen    = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		if (root is not null)
+			pending.Push(root);
+
+		while (pending.Count > 0)
+		{
+			var rule = pending.Pop();
+
+			if (!seen.Add(rule))
+				continue;
+
+			foreach (var body in ReachableBodies(rule))
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Call(var called, _))
+						pending.Push(called);
+		}
+
+		if (root is not null)
+			(_reachable ??= [])[root] = seen;
+
+		return seen;
+
+		IEnumerable<Node> ReachableBodies(RuleSymbol rule)
+		{
+			if (Bodies.TryGetValue(rule, out var body))
+				yield return body;
+
+			if (Trivia.TryGetValue(rule, out var trivia))
+				yield return trivia;
+		}
+	}
+
 	IEnumerable<RuleSymbol> Called(RuleSymbol rule)
 	{
 		if (!Bodies.TryGetValue(rule, out var body))

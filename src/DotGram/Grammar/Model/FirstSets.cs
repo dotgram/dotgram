@@ -830,25 +830,27 @@ public static class FirstSets
 		// out reads the estimate rather than starting the walk again.
 		graph.FirstByRule = estimates;
 
-		// No round limit: the step is monotone over a finite lattice, so it settles. A bound
-		// here would be an admission that the argument is not believed.
-		for (var changed = true; changed;)
+		// Every body contributes once. Later only callers of a changed estimate need
+		// another visit; unrelated rules cannot learn anything from that change.
+		var pending = new Queue<RuleSymbol>(graph.Rules);
+		var queued = new HashSet<RuleSymbol>(graph.Rules);
+		var calls = graph.Calls;
+
+		while (pending.Count > 0)
 		{
-			changed = false;
+			var rule = pending.Dequeue();
+			queued.Remove(rule);
+			if (!graph.Bodies.TryGetValue(rule, out var body))
+				continue;
 
-			foreach (var rule in graph.Rules)
-			{
-				if (!graph.Bodies.TryGetValue(rule, out var body))
-					continue;
+			var next = Of(body, graph, estimates);
+			if (Same(next, estimates[rule]))
+				continue;
 
-				var next = Of(body, graph, estimates);
-
-				if (Same(next, estimates[rule]))
-					continue;
-
-				estimates[rule] = next;
-				changed         = true;
-			}
+			estimates[rule] = next;
+			foreach (var caller in calls.CalledBy(rule))
+				if (queued.Add(caller))
+					pending.Enqueue(caller);
 		}
 
 		graph.FirstSettled = true;

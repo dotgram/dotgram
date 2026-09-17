@@ -3239,38 +3239,7 @@ public static partial class CSharpEmitter
 	/// (<c>Machine.BodyOf</c>), so whatever the trivia calls belongs to that machine as much
 	/// as the body does. A machine built without it would jump to a state nobody wrote.
 	/// </remarks>
-	static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root)
-	{
-		var seen    = new HashSet<RuleSymbol>();
-		var pending = new Stack<RuleSymbol>();
-
-		if (root is not null)
-			pending.Push(root);
-
-		while (pending.Count > 0)
-		{
-			var rule = pending.Pop();
-
-			if (!seen.Add(rule))
-				continue;
-
-			foreach (var body in Bodies(rule))
-				foreach (var node in NodeWalk.Descendants(body))
-					if (node is Node.Call(var called, _))
-						pending.Push(called);
-		}
-
-		return seen;
-
-		IEnumerable<Node> Bodies(RuleSymbol rule)
-		{
-			if (graph.Bodies.TryGetValue(rule, out var body))
-				yield return body;
-
-			if (graph.Trivia.TryGetValue(rule, out var trivia))
-				yield return trivia;
-		}
-	}
+	static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root) => graph.Reaches(root);
 
 	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>
 	/// <remarks>
