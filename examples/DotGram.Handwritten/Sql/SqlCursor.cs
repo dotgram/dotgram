@@ -44,7 +44,7 @@ enum SqlTokenKind : byte
 
 	LeftParen, RightParen, Comma, Dot, Semicolon, Colon, DoubleColon,
 	Equal, Less, Greater, LessOrEqual, GreaterOrEqual, NotEqual,
-	Plus, Minus, Asterisk, Solidus, Percent, Concat, Arrow, Ampersand,
+	Plus, Minus, Asterisk, Solidus, Percent, Concat, Arrow, DoubleArrow, Ampersand,
 	LeftBracket, RightBracket, LeftBrace, RightBrace, LeftBraceMinus, MinusRightBrace,
 	Question,
 
@@ -373,15 +373,23 @@ struct SqlCursor
 			case '%': Punctuation(SqlTokenKind.Percent,    at + 1); return;
 			case '+': Punctuation(SqlTokenKind.Plus,       at + 1); return;
 			case '&': Punctuation(SqlTokenKind.Ampersand,  at + 1); return;
-			case '=': Punctuation(SqlTokenKind.Equal,      at + 1); return;
+			case '=':
+				//  names an argument;  is the comparison.
+				Punctuation(At(at + 1) == '>' ? SqlTokenKind.DoubleArrow : SqlTokenKind.Equal, At(at + 1) == '>' ? at + 2 : at + 1);
+				return;
 			case '[': Punctuation(SqlTokenKind.LeftBracket,  at + 1); return;
 			case ']': Punctuation(SqlTokenKind.RightBracket, at + 1); return;
 			case '}': Punctuation(SqlTokenKind.RightBrace,   at + 1); return;
 
 			case '-':
-				// `-}` closes a row pattern's exclusion; `--` was trivia and never reaches here.
-				Punctuation(At(at + 1) == '}' ? SqlTokenKind.MinusRightBrace : SqlTokenKind.Minus, At(at + 1) == '}' ? at + 2 : at + 1);
-				return;
+				// `->` dereferences, `-}` closes a row pattern's exclusion; `--` was trivia and
+				// never reaches here.
+				switch (At(at + 1))
+				{
+					case '>': Punctuation(SqlTokenKind.Arrow,           at + 2); return;
+					case '}': Punctuation(SqlTokenKind.MinusRightBrace, at + 2); return;
+					default : Punctuation(SqlTokenKind.Minus,           at + 1); return;
+				}
 
 			case '{':
 				Punctuation(At(at + 1) == '-' ? SqlTokenKind.LeftBraceMinus : SqlTokenKind.LeftBrace, At(at + 1) == '-' ? at + 2 : at + 1);

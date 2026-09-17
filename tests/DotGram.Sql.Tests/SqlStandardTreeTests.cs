@@ -268,7 +268,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("NEXT VALUE FOR s.q", "NextValue(s.q)")]
 	[InlineData("ARRAY[1, 2]", "Array([1, 2], false)")]
 	public void A_value_expression_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseValueExpression(input)));
+		Assert.Equal(tree, Show(Both.ParseValueExpression(input)));
 
 	// ── §8 Predicates ───────────────────────────────────────────────────────────
 
@@ -285,7 +285,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("p IMMEDIATELY PRECEDES q", "PeriodPredicate(Reference(p), ImmediatelyPrecedes, Period(Reference(q)))")]
 	[InlineData("m NOT MEMBER OF n", "MemberOf(m, true, true, n)")]
 	public void A_search_condition_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
+		Assert.Equal(tree, Show(Both.ParseSearchCondition(input)));
 
 	// ── §6.30–6.36 Value functions, §6.10 Windows, §10.9 Aggregates, JSON ───────
 
@@ -314,12 +314,12 @@ public sealed class SqlStandardTreeTests
 	[InlineData("a[$ to last]", "JsonAccessor(a, Array([JsonSubscript(Variable(Context, null), Variable(Last, null))]))")]
 	[InlineData("a.double()", "Member(a, Dot, double, [])")]
 	public void A_function_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseValueExpression(input)));
+		Assert.Equal(tree, Show(Both.ParseValueExpression(input)));
 
 	[Fact]
 	public void A_window_frame_keeps_the_row_pattern_after_it()
 	{
-		var measure = Assert.IsType<DotGram.Sql.Ast.Expression.Invocation>(SqlStandardParser.ParseValueExpression("m OVER (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING PATTERN (A B*) DEFINE A AS a > 1)"));
+		var measure = Assert.IsType<DotGram.Sql.Ast.Expression.Invocation>(Both.ParseValueExpression("m OVER (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING PATTERN (A B*) DEFINE A AS a > 1)"));
 		var frame   = Assert.IsType<WindowReference.Specification>(measure.Over).Value.Frame!;
 
 		Assert.True(measure.WithoutParentheses);
@@ -329,7 +329,7 @@ public sealed class SqlStandardTreeTests
 
 	[Fact]
 	public void A_JSON_exists_predicate_keeps_what_happens_on_error() =>
-		Assert.Equal("JsonExists(JsonApiCommon(a, '$.x', null, [], null), True)", Show(SqlStandardParser.ParseSearchCondition("JSON_EXISTS(a, '$.x' TRUE ON ERROR)")));
+		Assert.Equal("JsonExists(JsonApiCommon(a, '$.x', null, [], null), True)", Show(Both.ParseSearchCondition("JSON_EXISTS(a, '$.x' TRUE ON ERROR)")));
 
 	// ── §7 Query expressions ───────────────────────────────────────────────────
 
@@ -351,7 +351,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("WITH RECURSIVE r (n) AS (VALUES 1) SEARCH DEPTH FIRST BY n SET s SELECT n FROM r",
 		"Select(With: WithClause(true, [CommonTableExpression(r, [n], Select(Body: Values([RowValue([1], false)])), SearchClause(DepthFirst, [n], s), null)]), Items: [ExpressionItem(n, null, false)], From: FromClause([Named(r)]))")]
 	public void A_query_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseQueryExpression(input)));
+		Assert.Equal(tree, Show(Both.ParseQueryExpression(input)));
 
 	[Theory]
 	[InlineData("t AS x (a) LEFT OUTER JOIN u USING (a) CROSS JOIN v TABLESAMPLE BERNOULLI (10)",
@@ -369,14 +369,14 @@ public sealed class SqlStandardTreeTests
 	[InlineData("JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, a INTEGER PATH '$.a' DEFAULT 0 ON EMPTY, NESTED PATH '$.b' COLUMNS (b INTEGER FORMAT JSON)) ERROR ON ERROR) AS jt",
 		"JsonTable(JsonTableDefinition(JsonApiCommon(j, '$', null, [], null), [Ordinality(id), Regular(a, Numeric(Integer, null, null), '$.a', Default(0), null), Nested('$.b', null, [Formatted(b, Numeric(Integer, null, null), JsonRepresentation(null, null), null, null, null, null, null)], true)], null, Error, false), Alias(jt, null, true))")]
 	public void A_table_reference_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseTableReference(input)));
+		Assert.Equal(tree, Show(Both.ParseTableReference(input)));
 
 	[Theory]
 	[InlineData("EXISTS (SELECT 1 FROM t)", "Exists(Select(Items: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])))")]
 	[InlineData("a IN (VALUES 1)", "In(a, false, Query(Select(Body: Values([RowValue([1], false)]))))")]
 	[InlineData("a = ANY (TABLE t)", "QuantifiedComparison(a, Equal, Any, Select(Body: Table(t)))")]
 	public void A_subquery_in_a_predicate_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
+		Assert.Equal(tree, Show(Both.ParseSearchCondition(input)));
 
 	// ── §14 Data change statements ─────────────────────────────────────────────
 
@@ -386,39 +386,39 @@ public sealed class SqlStandardTreeTests
 	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
 	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: Named(t), SourceValue: DefaultValues())")]
 	public void An_insert_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseInsertStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseInsertStatement(input)));
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) FOR PORTION OF p FROM a TO b AS x SET c = DEFAULT, (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE c > 0",
 		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
 	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
 	public void A_searched_update_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseUpdateStatementSearched(input)));
+		Assert.Equal(tree, Show(Both.ParseUpdateStatementSearched(input)));
 
 	[Fact]
 	public void A_positioned_statement_names_its_cursor()
 	{
 		Assert.Equal("Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
-			Show(SqlStandardParser.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
+			Show(Both.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
 		Assert.Equal("Delete(Target: Named(t), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
-			Show(SqlStandardParser.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
+			Show(Both.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
 	}
 
 	[Theory]
 	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: Named(t), Where: Comparison(a, Equal, 1))")]
 	public void A_searched_delete_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseDeleteStatementSearched(input)));
+		Assert.Equal(tree, Show(Both.ParseDeleteStatementSearched(input)));
 
 	[Fact]
 	public void A_merge_keeps_its_clauses_in_order() =>
 		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
-			Show(SqlStandardParser.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
+			Show(Both.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
 
 	[Theory]
 	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", "TruncateTable(Target: Named(t), Identity: Restart)")]
 	[InlineData("TRUNCATE TABLE t", "TruncateTable(Target: Named(t))")]
 	public void A_truncate_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseTruncateTableStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseTruncateTableStatement(input)));
 
 	// ── §11 Schema definition and manipulation, §12 Access control ─────────────
 
@@ -520,7 +520,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_data_change_delta_table_holds_its_statement() =>
 		Assert.Equal("DataChange(New, Insert(Target: Named(t), SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
-			Show(SqlStandardParser.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
+			Show(Both.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
 
 	// ── The tree written back ──────────────────────────────────────────────────
 
@@ -545,7 +545,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("INTERVAL -'1:30' HOUR(2) TO SECOND(3) + a")]
 	[InlineData("a.SPECIFICTYPE() COLLATE c || b")]
 	public void A_value_expression_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseValueExpression);
+		WrittenBack(input, Both.ParseValueExpression);
 
 	[Theory]
 	[InlineData("WITH RECURSIVE r (n) AS (VALUES 1) SEARCH DEPTH FIRST BY n SET s SELECT DISTINCT t.*, u.* AS (x, y), n AS m FROM r")]
@@ -555,7 +555,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("SELECT a FROM JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, NESTED PATH '$.b' AS p COLUMNS (b INTEGER FORMAT JSON OMIT QUOTES)) PLAN DEFAULT (UNION, INNER) EMPTY ON ERROR) AS jt GROUP BY GROUPING SETS (ROLLUP (a), ()) HAVING COUNT(*) > 1 WINDOW w AS (ORDER BY a)")]
 	[InlineData("SELECT a FROM NEW TABLE (INSERT INTO t (a) OVERRIDING SYSTEM VALUE VALUES (DEFAULT), 1) AS x")]
 	public void A_query_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseQueryExpression);
+		WrittenBack(input, Both.ParseQueryExpression);
 
 	[Theory]
 	[InlineData("CREATE GLOBAL TEMPORARY TABLE t (a INT DEFAULT 1 NOT NULL, CONSTRAINT pk PRIMARY KEY (a) NOT DEFERRABLE, FOREIGN KEY (a) REFERENCES u (b) MATCH FULL ON DELETE CASCADE ON UPDATE SET NULL) ON COMMIT PRESERVE ROWS")]

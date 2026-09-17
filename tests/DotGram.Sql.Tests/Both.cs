@@ -13,6 +13,7 @@ namespace DotGram.Sql.Tests;
 // Inside the namespace, where it is asked before DotGram.Sql's own Expression — the tree T-SQL
 // builds, which a using directive above the namespace would lose to.
 using Expression = DotGram.Sql.Ast.Expression;
+using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
 /// Both readings of ISO/IEC 9075-2:2023 at once: the generated <see cref="SqlStandardParser"/> and
@@ -138,6 +139,155 @@ static class Both
 	public static DataType ParseDataType(string input) => TryParseDataType(input).IsSuccess
 		? SqlStandardParser.ParseDataType(input)
 		: throw Refused(input, "data type");
+
+	// ── §6.28 Value expressions, §8 predicates ─────────────────────────────────
+
+	public static SqlStandardParser.Match<Expression> TryParseValueExpression(string input)
+	{
+		var read = SqlStandardParser.TryParseValueExpression(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseValueExpression(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Expression ParseValueExpression(string input) => TryParseValueExpression(input).IsSuccess
+		? SqlStandardParser.ParseValueExpression(input)
+		: throw Refused(input, "value expression");
+
+	public static SqlStandardParser.Match<Expression> TryParseSearchCondition(string input)
+	{
+		var read = SqlStandardParser.TryParseSearchCondition(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSearchCondition(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Expression ParseSearchCondition(string input) => TryParseSearchCondition(input).IsSuccess
+		? SqlStandardParser.ParseSearchCondition(input)
+		: throw Refused(input, "search condition");
+
+	// ── §7 Query expressions ───────────────────────────────────────────────────
+
+	public static SqlStandardParser.Match<Statement.Select> TryParseQueryExpression(string input)
+	{
+		var read = SqlStandardParser.TryParseQueryExpression(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseQueryExpression(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.Select ParseQueryExpression(string input) => TryParseQueryExpression(input).IsSuccess
+		? SqlStandardParser.ParseQueryExpression(input)
+		: throw Refused(input, "query expression");
+
+	public static SqlStandardParser.Match<TableSource> TryParseTableReference(string input)
+	{
+		var read = SqlStandardParser.TryParseTableReference(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseTableReference(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static TableSource ParseTableReference(string input) => TryParseTableReference(input).IsSuccess
+		? SqlStandardParser.ParseTableReference(input)
+		: throw Refused(input, "table reference");
+
+	// ── §14 Data change statements ─────────────────────────────────────────────
+
+	public static SqlStandardParser.Match<Statement.Insert> TryParseInsertStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseInsertStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseInsertStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.Insert ParseInsertStatement(string input) => TryParseInsertStatement(input).IsSuccess
+		? SqlStandardParser.ParseInsertStatement(input)
+		: throw Refused(input, "insert statement");
+
+	public static SqlStandardParser.Match<Statement.Update> TryParseUpdateStatementSearched(string input)
+	{
+		var read = SqlStandardParser.TryParseUpdateStatementSearched(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseUpdateStatementSearched(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.Update ParseUpdateStatementSearched(string input) => TryParseUpdateStatementSearched(input).IsSuccess
+		? SqlStandardParser.ParseUpdateStatementSearched(input)
+		: throw Refused(input, "update statement: searched");
+
+	public static SqlStandardParser.Match<Statement.Update> TryParseUpdateStatementPositioned(string input)
+	{
+		var read = SqlStandardParser.TryParseUpdateStatementPositioned(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseUpdateStatementPositioned(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.Update ParseUpdateStatementPositioned(string input) => TryParseUpdateStatementPositioned(input).IsSuccess
+		? SqlStandardParser.ParseUpdateStatementPositioned(input)
+		: throw Refused(input, "update statement: positioned");
+
+	public static SqlStandardParser.Match<Statement.Delete> TryParseDeleteStatementSearched(string input)
+	{
+		var read = SqlStandardParser.TryParseDeleteStatementSearched(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDeleteStatementSearched(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.Delete ParseDeleteStatementSearched(string input) => TryParseDeleteStatementSearched(input).IsSuccess
+		? SqlStandardParser.ParseDeleteStatementSearched(input)
+		: throw Refused(input, "delete statement: searched");
+
+	public static SqlStandardParser.Match<Statement.Delete> TryParseDeleteStatementPositioned(string input)
+	{
+		var read = SqlStandardParser.TryParseDeleteStatementPositioned(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDeleteStatementPositioned(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.Delete ParseDeleteStatementPositioned(string input) => TryParseDeleteStatementPositioned(input).IsSuccess
+		? SqlStandardParser.ParseDeleteStatementPositioned(input)
+		: throw Refused(input, "delete statement: positioned");
+
+	public static SqlStandardParser.Match<Statement.Merge> TryParseMergeStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseMergeStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseMergeStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.Merge ParseMergeStatement(string input) => TryParseMergeStatement(input).IsSuccess
+		? SqlStandardParser.ParseMergeStatement(input)
+		: throw Refused(input, "merge statement");
+
+	public static SqlStandardParser.Match<Statement.TruncateTable> TryParseTruncateTableStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseTruncateTableStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseTruncateTableStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.TruncateTable ParseTruncateTableStatement(string input) => TryParseTruncateTableStatement(input).IsSuccess
+		? SqlStandardParser.ParseTruncateTableStatement(input)
+		: throw Refused(input, "truncate table statement");
 
 	// ── Holding one to the other ───────────────────────────────────────────────
 
