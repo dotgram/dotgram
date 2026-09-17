@@ -12,6 +12,42 @@ namespace DotGram.Tests;
 
 public sealed class BufferedInputTests
 {
+	[Fact]
+	public void Large_buffered_parse_and_yield_share_machines_and_preserve_recovery()
+	{
+		var grammar = string.Join("\n", Enumerable.Range(0, 129)
+			.Select(i => $"R{i} : @int = n: R{i + 1} => @(n + 1)")) +
+			"\nR129 : @int = 'a' => @(1) | 'b' => @(2)\n" +
+			"Row : @int = n: R0 & ';' => @(n)\n" +
+			"Start : @int[] = Row* recover ';' => @(-1)\n" +
+			"parse Start stream bytes\nparse Start as ReadRows stream bytes yield : @int";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			BufferedInput = true, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		var methods = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
+			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>();
+		Assert.Equal(2, methods.Count(method => method.Identifier.ValueText.StartsWith("Materialize_DotGram_Buffered_")));
+		var assembly = EmittedCode.Compile(source, declarationMembers: """
+			public static int[] Read(bool bytes, bool yield)
+			{
+				var input = "a;!;b;";
+				using var chars = new System.IO.StringReader(input);
+				using var data = new System.IO.MemoryStream(System.Text.Encoding.ASCII.GetBytes(input));
+				if (yield)
+					return System.Linq.Enumerable.ToArray(bytes
+						? ReadRows(data, bufferSize: 1, maxRetained: 8)
+						: ReadRows(chars, bufferSize: 1, maxRetained: 8));
+				return bytes ? ParseStart(data, bufferSize: 1) : ParseStart(chars, bufferSize: 1);
+			}
+			""");
+		foreach (var bytes in new[] { false, true })
+			foreach (var yield in new[] { false, true })
+				Assert.Equal(new[] { 130, -1, 131 }, (int[])assembly.GetType("Grammar")!
+					.GetMethod("Read")!.Invoke(null, [bytes, yield])!);
+	}
 	[Theory]
 	[InlineData(false)]
 	[InlineData(true)]

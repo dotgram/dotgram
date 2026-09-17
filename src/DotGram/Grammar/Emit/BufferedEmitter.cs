@@ -58,6 +58,11 @@ public static partial class CSharpEmitter
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
 		Dictionary<string, (string Name, string Declaration)>? expectedTables)
 	{
+		if (!requested && !byteRequested && !graph.Publications.Any(one => one.BufferedInput || one.BufferedBytes))
+			return;
+
+		var added = new List<Compiled>();
+
 		foreach (var publication in graph.Publications)
 		for (var form = 0; form < 2; form++)
 		{
@@ -71,7 +76,7 @@ public static partial class CSharpEmitter
 					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
 			var tag = "_Buffered_" + publication.MethodName + (bytes ? "_Bytes" : "");
-			while (machines.Any(compiled => compiled.Tag == tag)) tag += "_";
+			while (machines.Concat(added).Any(compiled => compiled.Tag == tag)) tag += "_";
 			Machine? machine = null;
 			// Compile before emission so unsupported source-dependent factories cannot leave
 			// an apparently usable public entry point in the generated file.
@@ -79,8 +84,7 @@ public static partial class CSharpEmitter
 			{
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
 					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
-					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables);
-				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
+					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true);
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
 			}
@@ -91,7 +95,59 @@ public static partial class CSharpEmitter
 					publication.At.Position, publication.At.Length, GramSeverity.Error));
 				continue;
 			}
-			machines.Add(new Compiled(machine!, [publication], "Recognize_DotGram" + tag, tag, false));
+			added.Add(new Compiled(machine!, [publication], "Recognize_DotGram" + tag, tag, false));
+		}
+		// Keep single-rule release proofs and small parsers independent. Large,
+		// substantially overlapping readers may share states within one input form.
+		var reached = added.ToDictionary(compiled => compiled,
+			compiled => Reaches(graph, compiled.Publications[0].Rule));
+		for (var host = 0; host < added.Count; host++)
+		{
+			var owner = added[host];
+			var rules = new HashSet<RuleSymbol>(reached[owner]);
+			if (!Large(rules))
+				continue;
+
+			var publications = owner.Publications.ToList();
+			var guests = new List<int>();
+			for (var guest = host + 1; guest < added.Count; guest++)
+			{
+				var candidate = added[guest];
+				var other = reached[candidate];
+				if (candidate.Machine.BufferedBytes != owner.Machine.BufferedBytes ||
+					candidate.Machine.UsesContext != owner.Machine.UsesContext || !Large(other) ||
+					rules.Count(other.Contains) * 10 < Math.Max(rules.Count, other.Count) * 9)
+					continue;
+
+				rules.UnionWith(other);
+				publications.AddRange(candidate.Publications);
+				guests.Add(guest);
+			}
+
+			if (guests.Count == 0)
+				continue;
+
+			var shared = new Machine(graph, results, lines, only: graph.Rules.Where(rules.Contains).ToArray(),
+				tag: owner.Tag, partSize: partSize, bufferedInput: true, bufferedBytes: owner.Machine.BufferedBytes,
+				spanCaptures: spanCaptures, bufferedFind: publications.Any(one => one.Kind != PublishKind.Parse),
+				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true);
+			added[host] = owner with { Machine = shared, Publications = publications };
+			for (var guest = guests.Count - 1; guest >= 0; guest--)
+				added.RemoveAt(guests[guest]);
+		}
+
+		foreach (var compiled in added)
+		{
+			compiled.Machine.CompileRules();
+			foreach (var publication in compiled.Publications)
+				compiled.Machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
+			machines.Add(compiled);
+		}
+
+		bool Large(IReadOnlyCollection<RuleSymbol> rules)
+		{
+			return rules.Count > 1 && rules.SelectMany(rule => NodeWalk.Descendants(graph.Bodies[rule]))
+				.Take(128).Count() == 128;
 		}
 	}
 

@@ -41,6 +41,38 @@ public sealed class SiblingPublicationTests
 	}
 
 	[Fact]
+	public void Shared_machines_preserve_each_publications_reading()
+	{
+		var grammar = "Version = \"Old\" | \"New\"\n" +
+			string.Join("\n", Enumerable.Range(0, 129)
+				.Select(i => $"R{i} : @int = n: R{i + 1} => @(n + 1)")) +
+			"\nR129 : @int = '(' & n: R0 & ')' => @(n + 1)" +
+			" | when Version is \"Old\" & 'o' => @(1)" +
+			" | when Version is \"New\" & 'n' => @(2)\n" +
+			"Number : @int = n: R0 => @(n)\n" +
+			"Text : @string = n: R0 => @(n.ToString())\n" +
+			"parse Number with (Version = \"Old\") as OldNumber\n" +
+			"parse Text with (Version = \"New\") as NewText";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		var methods = CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
+			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>();
+		Assert.Single(methods, m => m.Identifier.Text.StartsWith("Materialize_DotGram_") && m.Identifier.Text.EndsWith("_Direct"));
+		var assembly = EmittedCode.Compile(source);
+
+		for (var i = 0; i < 2; i++)
+		{
+			Assert.Equal(390, EmittedCode.Match(assembly, "Grammar", "TryOldNumber", "((o))").Value);
+			Assert.Equal("391", EmittedCode.Match(assembly, "Grammar", "TryNewText", "((n))").Value);
+			Assert.False(EmittedCode.Match(assembly, "Grammar", "TryOldNumber", "((n))").IsSuccess);
+			Assert.False(EmittedCode.Match(assembly, "Grammar", "TryNewText", "((o))").IsSuccess);
+		}
+	}
+	[Fact]
 	public void Joined_publications_preserve_each_roots_failure_expectations()
 	{
 		var rules = string.Join("\n", Enumerable.Range(0, 129)

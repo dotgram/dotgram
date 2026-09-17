@@ -1,0 +1,413 @@
+[
+  {
+    "File": "DotGram.Sql.Standard.Sql92Parser.g.cs",
+    "SHA256": "09ADA13E28EA417D90884A4F93DFAEF3E3A448FF132AE09D2E87169F22E24840",
+    "Bytes": 780755,
+    "Categories": [
+      {
+        "Category": "Factories",
+        "Count": 117,
+        "Bytes": 43564.0
+      },
+      {
+        "Category": "Lexer",
+        "Count": 13,
+        "Bytes": 331076.0
+      },
+      {
+        "Category": "Materializers",
+        "Count": 1,
+        "Bytes": 62007.0
+      },
+      {
+        "Category": "Other",
+        "Count": 74,
+        "Bytes": 59098.0
+      },
+      {
+        "Category": "OtherFields",
+        "Count": 70,
+        "Bytes": 8050.0
+      },
+      {
+        "Category": "Readers",
+        "Count": 150,
+        "Bytes": 185330.0
+      },
+      {
+        "Category": "Recognizers",
+        "Count": 220,
+        "Bytes": 54508.0
+      }
+    ],
+    "Largest": [
+      {
+        "Name": "Scan_Cells",
+        "Bytes": 240922
+      },
+      {
+        "Name": "Materialize_DotGram_DirectSelect_Direct",
+        "Bytes": 62007
+      },
+      {
+        "Name": "Scan_High1",
+        "Bytes": 30643
+      },
+      {
+        "Name": "Scan_High0",
+        "Bytes": 30545
+      },
+      {
+        "Name": "Read_ValueFunction_DirectSelect",
+        "Bytes": 15046
+      },
+      {
+        "Name": "Read_PredicateTail_DirectSelect",
+        "Bytes": 10604
+      },
+      {
+        "Name": "Read_DataType_DirectSelect",
+        "Bytes": 10520
+      },
+      {
+        "Name": "Scan_Part0",
+        "Bytes": 9549
+      },
+      {
+        "Name": "Read_Reserved_DirectSelect",
+        "Bytes": 8192
+      },
+      {
+        "Name": "Read_CaseExpression_DirectSelect",
+        "Bytes": 7225
+      },
+      {
+        "Name": "Scan_Running",
+        "Bytes": 5802
+      },
+      {
+        "Name": "Read_QueryExpression_DirectSelect_Part0",
+        "Bytes": 4460
+      },
+      {
+        "Name": "Scan_States",
+        "Bytes": 4243
+      },
+      {
+        "Name": "Read_TableReference_DirectSelect_Part0",
+        "Bytes": 4230
+      },
+      {
+        "Name": "Read_SetFunctionSpecification_DirectSelect",
+        "Bytes": 3630
+      }
+    ]
+  },
+  {
+    "File": "DotGram.Sql.Standard.SqlStandardParser.g.cs",
+    "SHA256": "BBAF28535A9E5E20A7E4F4715FEF9EAEB73E94EF985CD5BC2585AC8EFBE52673",
+    "Bytes": 13791317,
+    "Categories": [
+      {
+        "Category": "Factories",
+        "Count": 1163,
+        "Bytes": 471951.0
+      },
+      {
+        "Category": "Materializers",
+        "Count": 4,
+        "Bytes": 876746.0
+      },
+      {
+        "Category": "Other",
+        "Count": 516,
+        "Bytes": 389396.0
+      },
+      {
+        "Category": "OtherFields",
+        "Count": 689,
+        "Bytes": 36356.0
+      },
+      {
+        "Category": "Readers",
+        "Count": 6341,
+        "Bytes": 10326482.0
+      },
+      {
+        "Category": "Recognizers",
+        "Count": 1865,
+        "Bytes": 1461401.0
+      }
+    ],
+    "Largest": [
+      {
+        "Name": "Materialize_DotGram_DirectSQLStatement_Direct",
+        "Bytes": 562225
+      },
+      {
+        "Name": "Materialize_DotGram_ValueExpressionTree_Direct",
+        "Bytes": 301329
+      },
+      {
+        "Name": "Read_Lexical_ReservedWord_ValueExpressionTree_Body",
+        "Bytes": 208121
+      },
+      {
+        "Name": "Read_Lexical_ReservedWord_DirectSQLStatement_Body",
+        "Bytes": 207744
+      },
+      {
+        "Name": "Read_Lexical_ReservedWord_TableName_Body",
+        "Bytes": 183510
+      },
+      {
+        "Name": "Read_Lexical_ReservedWord_Literal_Body",
+        "Bytes": 182756
+      },
+      {
+        "Name": "Return",
+        "Bytes": 57555
+      },
+      {
+        "Name": "Room",
+        "Bytes": 52388
+      },
+      {
+        "Name": "Read_NumericValueFunction_ValueExpressionTree_Body",
+        "Bytes": 31831
+      },
+      {
+        "Name": "Read_NumericValueFunction_DirectSQLStatement_Body",
+        "Bytes": 31777
+      },
+      {
+        "Name": "Read_SQLSchemaStatement_DirectSQLStatement_Body",
+        "Bytes": 27115
+      },
+      {
+        "Name": "Read_DescriptorItemName_DirectSQLStatement_Body",
+        "Bytes": 26409
+      },
+      {
+        "Name": "Read_AggregateCall_ValueExpressionTree_Body",
+        "Bytes": 25324
+      },
+      {
+        "Name": "Read_AggregateCall_DirectSQLStatement_Body",
+        "Bytes": 25270
+      },
+      {
+        "Name": "Read_StringValueFunction_ValueExpressionTree_Body",
+        "Bytes": 24814
+      }
+    ]
+  },
+  {
+    "File": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs",
+    "SHA256": "02AAD2A63BA07AAA0543B575442FC2867974A67378E32A2632071D2AB5586512",
+    "Bytes": 22026182,
+    "Categories": [
+      {
+        "Category": "Factories",
+        "Count": 1505,
+        "Bytes": 560359.0
+      },
+      {
+        "Category": "Lexer",
+        "Count": 22,
+        "Bytes": 2806917.0
+      },
+      {
+        "Category": "Materializers",
+        "Count": 4,
+        "Bytes": 3201344.0
+      },
+      {
+        "Category": "Other",
+        "Count": 216,
+        "Bytes": 273511.0
+      },
+      {
+        "Category": "OtherFields",
+        "Count": 186,
+        "Bytes": 16762.0
+      },
+      {
+        "Category": "Readers",
+        "Count": 9022,
+        "Bytes": 11852100.0
+      },
+      {
+        "Category": "Recognizers",
+        "Count": 3304,
+        "Bytes": 2806131.0
+      }
+    ],
+    "Largest": [
+      {
+        "Name": "Scan_Cells",
+        "Bytes": 2411481
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Script_Dialect_Direct",
+        "Bytes": 986838
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Statement_Dialect_Direct",
+        "Bytes": 986586
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Sql_Dialect_Direct",
+        "Bytes": 981421
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Select_Dialect_Direct",
+        "Bytes": 246499
+      },
+      {
+        "Name": "Scan_States",
+        "Bytes": 72014
+      },
+      {
+        "Name": "Read_PermissionName_Dialect_Statement_Dialect",
+        "Bytes": 58752
+      },
+      {
+        "Name": "Read_PermissionName_Dialect_Script_Dialect",
+        "Bytes": 58464
+      },
+      {
+        "Name": "Read_PermissionName_Dialect_Sql_Dialect",
+        "Bytes": 58176
+      },
+      {
+        "Name": "Scan_Accepts",
+        "Bytes": 55656
+      },
+      {
+        "Name": "Read_CreateIndexStatement_Dialect_Dialect_Statement_Dialect",
+        "Bytes": 31589
+      },
+      {
+        "Name": "Read_CreateIndexStatement_Dialect_Dialect_Script_Dialect",
+        "Bytes": 31415
+      },
+      {
+        "Name": "Read_CreateIndexStatement_Dialect_Dialect_Sql_Dialect",
+        "Bytes": 31241
+      },
+      {
+        "Name": "Scan_High1",
+        "Bytes": 30643
+      },
+      {
+        "Name": "Scan_High0",
+        "Bytes": 30545
+      }
+    ]
+  },
+  {
+    "File": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs",
+    "SHA256": "E377778D6B16595B99A13478D1042F6CAF88E7E8128541B5E1A41D79CD545EA0",
+    "Bytes": 23034176,
+    "Categories": [
+      {
+        "Category": "Factories",
+        "Count": 1505,
+        "Bytes": 752904.0
+      },
+      {
+        "Category": "Lexer",
+        "Count": 22,
+        "Bytes": 2843563.0
+      },
+      {
+        "Category": "Materializers",
+        "Count": 4,
+        "Bytes": 3835197.0
+      },
+      {
+        "Category": "Other",
+        "Count": 197,
+        "Bytes": 273460.0
+      },
+      {
+        "Category": "OtherFields",
+        "Count": 181,
+        "Bytes": 16489.0
+      },
+      {
+        "Category": "Readers",
+        "Count": 9207,
+        "Bytes": 12497913.0
+      },
+      {
+        "Category": "Recognizers",
+        "Count": 3304,
+        "Bytes": 2810208.0
+      }
+    ],
+    "Largest": [
+      {
+        "Name": "Scan_Cells",
+        "Bytes": 2436183
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Statement_Dialect_Direct",
+        "Bytes": 1182918
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Script_Dialect_Direct",
+        "Bytes": 1179631
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Sql_Dialect_Direct",
+        "Bytes": 1170567
+      },
+      {
+        "Name": "Materialize_DotGram_Dialect_Select_Dialect_Direct",
+        "Bytes": 302081
+      },
+      {
+        "Name": "Scan_States",
+        "Bytes": 72741
+      },
+      {
+        "Name": "Read_PermissionName_Dialect_Statement_Dialect",
+        "Bytes": 61228
+      },
+      {
+        "Name": "Read_PermissionName_Dialect_Script_Dialect",
+        "Bytes": 60940
+      },
+      {
+        "Name": "Read_PermissionName_Dialect_Sql_Dialect",
+        "Bytes": 60652
+      },
+      {
+        "Name": "Scan_Accepts",
+        "Bytes": 56221
+      },
+      {
+        "Name": "Read_CreateIndexStatement_Dialect_Dialect_Statement_Dialect",
+        "Bytes": 32719
+      },
+      {
+        "Name": "Read_CreateIndexStatement_Dialect_Dialect_Script_Dialect",
+        "Bytes": 32545
+      },
+      {
+        "Name": "Read_CreateIndexStatement_Dialect_Dialect_Sql_Dialect",
+        "Bytes": 32371
+      },
+      {
+        "Name": "Scan_High1",
+        "Bytes": 30946
+      },
+      {
+        "Name": "Scan_High0",
+        "Bytes": 30847
+      }
+    ]
+  }
+]

@@ -288,11 +288,16 @@ public static partial class CSharpEmitter
 				machines.RemoveAt(guests[guest]);
 		}
 
-		bool Eligible(Compiled compiled) => compiled.Direct && !compiled.Flat &&
-			reached[compiled].Count >= 128 && compiled.Publications.All(publication => publication.Reading == 0 &&
-				!Streams(graph, publication, overKinds)) &&
-			(carrier == CarrierKind.Tape || carrier == CarrierKind.Auto && replay is not null &&
-				reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)));
+		bool Eligible(Compiled compiled)
+		{
+			// A reading is passed by each publication at runtime, so different readings
+			// may share the same rule bodies without sharing their selected version.
+			return compiled.Direct && !compiled.Flat &&
+				reached[compiled].Count >= 128 && compiled.Publications.All(publication =>
+					!Streams(graph, publication, overKinds)) &&
+				(carrier == CarrierKind.Tape || carrier == CarrierKind.Auto && replay is not null &&
+					reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)));
+		}
 		HashSet<RuleSymbol> Rules(Compiled compiled) => new(compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule)));
 
 		foreach (var compiled in machines)

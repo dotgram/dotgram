@@ -146,6 +146,24 @@ sealed partial class Machine
 				cuts.Add(cut);
 		}
 
+		// Shared buffered publications can leave a second root's entire recovery loop
+		// in the last part of the first root. Keep their entry chains in separate
+		// methods so an unused publication does not enlarge the streaming hot path.
+		// Departing handles any jumps across these additional boundaries.
+		if (BufferedInput)
+		{
+			var roots = new HashSet<int>(_entries.Values.Where(_roots.Contains).Select(Resolved));
+
+			if (roots.Count > 1)
+			{
+				for (var at = 1; at < _order.Count; at++)
+					if (roots.Contains(_order[at] + First) && !cuts.Contains(at))
+						cuts.Add(at);
+
+				cuts.Sort();
+			}
+		}
+
 		var from = 0;
 
 		foreach (var cut in cuts)

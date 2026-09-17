@@ -1,0 +1,11 @@
+Runtime=10.0.12; TieredCompilation=0; paired rotating order; 15 rounds
+SQL identical statements=7716; SHA256=6088BEB886476100640001E0C60D430272E9E21D463A3C9241BBE19695AEF136
+sql,before-located,ns=4714.68,IQR=4696.00..4779.30,bytes=1716.51
+sql,after-located,ns=4770.97,IQR=4726.26..4811.99,bytes=1716.51
+sql,ScriptDom,ns=17994.05,IQR=17926.63..18046.37,bytes=42543.53
+sql,before,ns=4106.42,IQR=4084.60..4119.27,bytes=1716.51
+sql,after,ns=4118.68,IQR=4091.30..4159.94,bytes=1716.51
+sql,paired before-located/after-located=0.9945
+sql,paired ScriptDom/after-located=3.7730
+sql,paired before/after-located=0.8601
+sql,paired after/after-located=0.8621

@@ -1,0 +1,88 @@
+{
+  "Source": "P:\\dotgram.WorkTrees\\finance\\examples\\DotGram.Examples\\obj\\GeneratedFiles\\DotGram\\DotGram.Generation.GramGenerator\\DotGram.Examples.Finance.Fix44Grammar.g.cs",
+  "FileSHA256": "825033BA1EA88A9DA7D2011F9EC12D30493B71D50F502987F0A5FC7605564425",
+  "Utf8Bytes": 71560015,
+  "Categories": [
+    {
+      "Category": "Factories",
+      "Count": 3668,
+      "Bytes": 1994620.0
+    },
+    {
+      "Category": "Fields",
+      "Count": 1037,
+      "Bytes": 1548080.0
+    },
+    {
+      "Category": "Materializers",
+      "Count": 12,
+      "Bytes": 5766276.0
+    },
+    {
+      "Category": "OtherMembers",
+      "Count": 182,
+      "Bytes": 71729.0
+    },
+    {
+      "Category": "Recognizers",
+      "Count": 1296,
+      "Bytes": 62176558.0
+    }
+  ],
+  "NonMemberBytes": 2752,
+  "LargestMethods": [
+    {
+      "Name": "Recognize_DotGram_Fields_With1_YieldStep3",
+      "Bytes": 5247399
+    },
+    {
+      "Name": "Recognize_DotGram_Fields_With1",
+      "Bytes": 5235365
+    },
+    {
+      "Name": "Recognize_DotGram_Fields_YieldStep2",
+      "Bytes": 5194875
+    },
+    {
+      "Name": "Recognize_DotGram_Fields",
+      "Bytes": 5182841
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ParseLogFields",
+      "Bytes": 5177130
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ReadLogFields",
+      "Bytes": 5176216
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ParseFields",
+      "Bytes": 5130921
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ReadFields",
+      "Bytes": 5130007
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ParseLogFields_Bytes",
+      "Bytes": 5098248
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ReadLogFields_Bytes",
+      "Bytes": 5097334
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ParseFields_Bytes",
+      "Bytes": 5052039
+    },
+    {
+      "Name": "Recognize_DotGram_Buffered_ReadFields_Bytes",
+      "Bytes": 5051125
+    }
+  ],
+  "PrefixFieldsBytes": 696716,
+  "DispatchFieldsBytes": 580804,
+  "ExpectedFieldsBytes": 254265,
+  "PrimaryRecognizerLiteralComparisons": 912,
+  "PrimaryKnownFieldTraceCalls": 7031
+}

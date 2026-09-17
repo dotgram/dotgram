@@ -1,0 +1,262 @@
+{
+  "before": {
+    "Project": "Fix44",
+    "Kind": "fresh-0",
+    "Ms": 5933.4248,
+    "Allocated": 5021031616,
+    "GC0": 94,
+    "GC1": 75,
+    "GC2": 7,
+    "Sources": 4,
+    "Chars": 71561901,
+    "Errors": [],
+    "Stages": [
+      {
+        "Stage": "Compiled",
+        "Ms": 5302.8709,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 5273.1341,
+            "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+          },
+          {
+            "Ms": 29.7368,
+            "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+          }
+        ]
+      },
+      {
+        "Stage": "Asked",
+        "Ms": 44.1027,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 37.5973,
+            "Name": null
+          },
+          {
+            "Ms": 6.5054,
+            "Name": null
+          }
+        ]
+      },
+      {
+        "Stage": "Answered",
+        "Ms": 85.73089999999999,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 78.573,
+            "Name": null
+          },
+          {
+            "Ms": 7.1579,
+            "Name": null
+          }
+        ]
+      }
+    ]
+  },
+  "before-2": {
+    "Project": "Fix44",
+    "Kind": "fresh-0",
+    "Ms": 5918.2038,
+    "Allocated": 5023174712,
+    "GC0": 94,
+    "GC1": 73,
+    "GC2": 7,
+    "Sources": 4,
+    "Chars": 71561901,
+    "Errors": [],
+    "Stages": [
+      {
+        "Stage": "Compiled",
+        "Ms": 5150.0276,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 5128.2495,
+            "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+          },
+          {
+            "Ms": 21.7781,
+            "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+          }
+        ]
+      },
+      {
+        "Stage": "Answered",
+        "Ms": 124.8571,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 117.423,
+            "Name": null
+          },
+          {
+            "Ms": 7.4341,
+            "Name": null
+          }
+        ]
+      },
+      {
+        "Stage": "Asked",
+        "Ms": 52.0664,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 45.8329,
+            "Name": null
+          },
+          {
+            "Ms": 6.2335,
+            "Name": null
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "Project": "Fix44",
+    "Kind": "fresh-0",
+    "Ms": 4388.3772,
+    "Allocated": 3360799032,
+    "GC0": 64,
+    "GC1": 51,
+    "GC2": 6,
+    "Sources": 4,
+    "Chars": 48645051,
+    "Errors": [],
+    "Stages": [
+      {
+        "Stage": "Answered",
+        "Ms": 88.8052,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 81.7985,
+            "Name": null
+          },
+          {
+            "Ms": 7.0067,
+            "Name": null
+          }
+        ]
+      },
+      {
+        "Stage": "Compiled",
+        "Ms": 3769.4442,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 3730.4141,
+            "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+          },
+          {
+            "Ms": 39.0301,
+            "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+          }
+        ]
+      },
+      {
+        "Stage": "Asked",
+        "Ms": 44.040099999999995,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 38.0644,
+            "Name": null
+          },
+          {
+            "Ms": 5.9757,
+            "Name": null
+          }
+        ]
+      }
+    ]
+  },
+  "after-2": {
+    "Project": "Fix44",
+    "Kind": "fresh-0",
+    "Ms": 4786.168,
+    "Allocated": 3360784448,
+    "GC0": 64,
+    "GC1": 51,
+    "GC2": 6,
+    "Sources": 4,
+    "Chars": 48645051,
+    "Errors": [],
+    "Stages": [
+      {
+        "Stage": "Compiled",
+        "Ms": 4141.1326,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 4104.5516,
+            "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+          },
+          {
+            "Ms": 36.581,
+            "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+          }
+        ]
+      },
+      {
+        "Stage": "Answered",
+        "Ms": 87.05550000000001,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 79.8636,
+            "Name": null
+          },
+          {
+            "Ms": 7.1919,
+            "Name": null
+          }
+        ]
+      },
+      {
+        "Stage": "Asked",
+        "Ms": 48.294200000000004,
+        "Reasons": {
+          "New": 2
+        },
+        "Hosts": [
+          {
+            "Ms": 41.6403,
+            "Name": null
+          },
+          {
+            "Ms": 6.6539,
+            "Name": null
+          }
+        ]
+      }
+    ]
+  }
+}
