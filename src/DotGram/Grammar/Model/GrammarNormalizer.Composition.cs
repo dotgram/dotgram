@@ -38,7 +38,15 @@ public sealed partial class GrammarNormalizer
 		Collect(_model.Root);
 
 		if (contracts.Count == 0)
+		{
+			foreach (var rule in _rules)
+				if (_bodies.TryGetValue(rule, out var body))
+					foreach (var node in NodeWalk.Descendants(body))
+						if (node is Node.External { UsesContext: true } external)
+							Report(UnresolvedExternal, $"'@{external.Name}' requires a 'context : @T' declaration.", rule.Declaration?.At ?? default);
+
 			return;
+		}
 
 		_context = _model.Context ?? Widest();
 

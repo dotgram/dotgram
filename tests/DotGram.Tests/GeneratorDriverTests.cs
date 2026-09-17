@@ -2792,14 +2792,15 @@ public sealed class GeneratorDriverTests
 	/// host class, and what that C# is — a guard, a transformation, one that may refuse —
 	/// is a question only a real compilation answers (§8.1).
 	/// </remarks>
-	internal static Assembly Build(string source)
+	internal static Assembly Build(string source, string? permittedWarning = null)
 	{
 		var run = RunGenerator(source, out var output);
 
 		// Anything but information. A grammar that is told what it did not get is still a
 		// grammar worth building — §6.3's "no reader overload" is exactly that.
 		Assert.Empty(run.Diagnostics.Where(
-			static diagnostic => diagnostic.Severity != DiagnosticSeverity.Info));
+			diagnostic => diagnostic.Severity != DiagnosticSeverity.Info &&
+				!(diagnostic.Severity == DiagnosticSeverity.Warning && diagnostic.Id == permittedWarning)));
 
 		using var stream = new MemoryStream();
 

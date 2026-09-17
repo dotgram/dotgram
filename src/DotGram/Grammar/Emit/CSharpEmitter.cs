@@ -359,6 +359,8 @@ public static partial class CSharpEmitter
 			file.Line();
 			file.Write(MatchStruct);
 			file.Line();
+			file.Write(ParserInputTypes);
+			file.Line();
 		}
 
 		// Unless the author declared that class, in which case what the author wrote says who
@@ -553,6 +555,10 @@ public static partial class CSharpEmitter
 				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery)));
 			file.Line();
 		}
+
+		if (shared is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
+			graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External { UsesInputView: true }))))
+			file.Write(ParserInputTypes);
 
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput && !compiled.Machine.BufferedBytes))
 			file.Write(BufferedTextClass);

@@ -237,7 +237,8 @@ public sealed partial class GrammarNormalizer
 								$"'@{reader.Name}' names no method the parser can call. An external recognizer is " +
 								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
 								"with 'out T value' after the position, declared in the class the grammar is attached " +
-								"to, a class around it, or one it derives from (docs/syntax.md §7.1).",
+								"to, a class around it, or one it derives from. Buffered recognizers use ParserInput<char> " +
+								"and may also take the grammar context last (docs/syntax.md §7.1).",
 								expression.At);
 
 							break;
@@ -248,16 +249,28 @@ public sealed partial class GrammarNormalizer
 								$"'{reader.Name}' has no overload the parser can call as an external recognizer: " +
 								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
 								"with 'out T value' after the position, that the class the grammar is attached to can " +
-								"reach (docs/syntax.md §7.1).",
+								"reach. Buffered recognizers use ParserInput<char> and may also take the grammar " +
+								"context last (docs/syntax.md §7.1).",
 								expression.At);
 
 							break;
 					}
 
-					return new Node.External(reader.Name);
+					return ExternalNode(reader.Name);
 			}
 
 		return new Node.Element(false, [], [], [symbol]);
+	}
+
+	Node.External ExternalNode(string method)
+	{
+		var resolution = _resolver.ResolveExternalMethod(method, ExternalMethodRole.Recognizer);
+
+		return new Node.External(method)
+		{
+			UsesInputView = resolution is ExternalMethodResolution.FoundInput or ExternalMethodResolution.FoundInputWithContext,
+			UsesContext   = resolution is ExternalMethodResolution.FoundInputWithContext,
+		};
 	}
 
 	/// <summary>Every value-returning external recognizer synthesized so far, by method name.</summary>
@@ -285,7 +298,7 @@ public sealed partial class GrammarNormalizer
 
 		_externals[method] = rule;
 		_rules.Add(rule);
-		_bodies[rule] = new Node.External(method) { HasValue = true };
+		_bodies[rule] = ExternalNode(method) with { HasValue = true };
 		_types[rule]  = valueType;
 
 		return rule;

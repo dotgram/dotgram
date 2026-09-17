@@ -1,4 +1,4 @@
-# .Gram — the language and its bond with C#
+# .Gram вЂ” the language and its bond with C#
 
 The engine plan lives in [`implementation.md`](implementation.md). Nothing decided
 there is a decision about the language.
@@ -24,7 +24,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
 - [3. Recognition expressions](#3-recognition-expressions)
   - [3.1 Elementary](#31-elementary)
   - [3.2 Composition](#32-composition)
-  - [3.3 Quantifiers — postfix, as in regular expressions](#33-quantifiers--postfix-as-in-regular-expressions)
+  - [3.3 Quantifiers вЂ” postfix, as in regular expressions](#33-quantifiers--postfix-as-in-regular-expressions)
   - [3.4 Lookahead](#34-lookahead)
   - [3.5 Capture](#35-capture)
   - [3.6 Guard](#36-guard)
@@ -35,7 +35,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [4.2 Parameters](#42-parameters)
   - [4.3 Precedence and associativity](#43-precedence-and-associativity)
   - [4.4 Rule separator](#44-rule-separator)
-  - [4.5 Trivia — insignificant whitespace and comments](#45-trivia--insignificant-whitespace-and-comments)
+  - [4.5 Trivia вЂ” insignificant whitespace and comments](#45-trivia--insignificant-whitespace-and-comments)
   - [4.6 Keyword boundaries](#46-keyword-boundaries)
 - [5. Namespaces](#5-namespaces)
   - [5.1 Rebinding](#51-rebinding)
@@ -61,7 +61,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [7.8 What holds while something is being read](#78-what-holds-while-something-is-being-read)
 - [8. Failure, recovery and streaming](#8-failure-recovery-and-streaming)
   - [8.1 Recognition failure and C# exceptions](#81-recognition-failure-and-c-exceptions)
-  - [8.2 `recover` — a repetition that survives a bad element](#82-recover--a-repetition-that-survives-a-bad-element)
+  - [8.2 `recover` вЂ” a repetition that survives a bad element](#82-recover--a-repetition-that-survives-a-bad-element)
   - [8.3 What a parse hands back](#83-what-a-parse-hands-back)
 - [9. A complete example](#9-a-complete-example)
 - [10. The grammar of `.gram` itself](#10-the-grammar-of-gram-itself)
@@ -94,9 +94,9 @@ using Lexical;
 Header = "H" & '|' & date: Date & '|' & source: Text & eol
 ```
 
-`@using X.Y;` imports a C# namespace, `using X.Y;` a grammar namespace (§2). The syntax
+`@using X.Y;` imports a C# namespace, `using X.Y;` a grammar namespace (В§2). The syntax
 is C#'s own directive, semicolon and all; there is no module system of our own for
-C# — project references already are one.
+C# вЂ” project references already are one.
 
 ---
 
@@ -108,9 +108,9 @@ One rule, no exceptions and no clever resolution:
 | --- | --- |
 | `Name` | among grammar rules |
 | `@Name` | among C# symbols (type, method, property) |
-| `string`, `int`, `bool`, `char`, `decimal`, … | always a C# type — these are keywords and cannot name a rule |
+| `string`, `int`, `bool`, `char`, `decimal`, вЂ¦ | always a C# type вЂ” these are keywords and cannot name a rule |
 
-`@` never qualifies or overrides — it switches vocabulary. There is no fallback in
+`@` never qualifies or overrides вЂ” it switches vocabulary. There is no fallback in
 either direction (a bare name that sometimes finds a C# type and sometimes generates
 one): that is the single source of ambiguity worth removing outright.
 
@@ -132,7 +132,7 @@ Lexical.Token            // a rule from a grammar namespace
 ```
 
 Otherwise `using System;` and `using Lexical;` would look identical while resolving
-in different vocabularies — exactly the implicit ambiguity `@` exists to
+in different vocabularies вЂ” exactly the implicit ambiguity `@` exists to
 remove.
 
 Of all keywords `@` applies only to `using`, and that is not an exception: `namespace`,
@@ -150,7 +150,7 @@ A name, a call, or a **parenthesized C# expression** may follow `@`:
 ```
 
 Those parentheses are not `.Gram` notation but C#'s own: they are balanced and so
-delimit the insertion themselves. The generator never parses C# — it only finds the
+delimit the insertion themselves. The generator never parses C# вЂ” it only finds the
 matching `)`, minding literals, and hands the text to the compiler.
 
 The block form (Razor's `@{ ... }`) is not supported, and not arbitrarily: the
@@ -180,13 +180,13 @@ any                     any single item
 ```
 
 `\p{...}` is the .NET regular-expression spelling, with the same category names
-(`Lu`, `Ll`, `Nd`, `Zs`, `Pc`, …). Character input only.
+(`Lu`, `Ll`, `Nd`, `Zs`, `Pc`, вЂ¦). Character input only.
 
-A trailing `i` — no space before it — comes from Lark, where the same suffix on a
+A trailing `i` вЂ” no space before it вЂ” comes from Lark, where the same suffix on a
 quoted literal means the same thing. It compares by `char.ToUpperInvariant`, a
 character at a time: no culture sensitivity, and a character with no case (a digit,
 punctuation) compares exactly as it would without `i`. It attaches to the literal
-alone — `"text"i & X` folds only the literal's own case, not whatever `X` is.
+alone вЂ” `"text"i & X` folds only the literal's own case, not whatever `X` is.
 
 Square brackets in an expression are always an element set, testing **one** input
 item. Inside them `|` is set union rather than ordered choice, and only ranges,
@@ -199,26 +199,26 @@ alternation, which means something else.
 Seven ordinary rules, not keywords, that every grammar has without declaring them:
 
 ```dotgram
-any             one input item, whatever it is — fails only where there is none left
-none            zero input items — always succeeds, consumes nothing
+any             one input item, whatever it is вЂ” fails only where there is none left
+none            zero input items вЂ” always succeeds, consumes nothing
 eol             one line ending: "\r\n" | "\n" | "\r", CRLF checked first
-eof             the end of input — succeeds exactly where `any` would fail, consuming nothing
-trivia          none by default (§4.5)
-wordboundary    none by default (§4.6)
-word            one whole word, whatever it says (§4.6)
+eof             the end of input вЂ” succeeds exactly where `any` would fail, consuming nothing
+trivia          none by default (В§4.5)
+wordboundary    none by default (В§4.6)
+word            one whole word, whatever it says (В§4.6)
 ```
 
 A rule of the same name shadows the built-in one exactly like any other lexical
-shadowing (§5) — no directive, no mode, nothing declared specially to make it
+shadowing (В§5) вЂ” no directive, no mode, nothing declared specially to make it
 possible. Whitespace handling and keyword boundaries rest on exactly that: `trivia`
 and `wordboundary` are ordinary rules whose only distinction is what the compiler
-automatically does around them once they are not empty (their own sections, §4.5
-and §4.6, cover the insertion and the appended check).
+automatically does around them once they are not empty (their own sections, В§4.5
+and В§4.6, cover the insertion and the appended check).
 
 `any` and `none` are complements of each other and, along with `eol` and `eof`,
 each stand on their own: `eol` is an ordinary choice of literals and `eof` is
 built the same way `?!any` would be, but neither is a *call* to `any` under the
-name `any` — each carries its own copy of "one input item, whatever it is."
+name `any` вЂ” each carries its own copy of "one input item, whatever it is."
 Shadowing `any` therefore changes what `any` itself matches and nothing else;
 `eof` still means the true end of input even in a grammar that redefines `any` to
 mean something narrower.
@@ -234,17 +234,17 @@ a | b                   ordered choice
 
 A connector between operands is always required. `.Gram` has no juxtaposition: two
 expressions cannot sit side by side without `&` or `|`. That is precisely why rules
-need no separator (§4.4).
+need no separator (В§4.4).
 
 `|` is ordered choice. What happens once an alternative has matched depends on what is
 being read: over characters a failure further on comes back and tries the next
-alternative; over kinds — the syntactic half of a split grammar — it does not, and the
-first alternative that matches is the one (§4).
+alternative; over kinds вЂ” the syntactic half of a split grammar вЂ” it does not, and the
+first alternative that matches is the one (В§4).
 
-`trivia` is inserted between the operands of a sequence — an empty rule by default,
-so by default nothing is inserted (§4.5).
+`trivia` is inserted between the operands of a sequence вЂ” an empty rule by default,
+so by default nothing is inserted (В§4.5).
 
-### 3.3 Quantifiers — postfix, as in regular expressions
+### 3.3 Quantifiers вЂ” postfix, as in regular expressions
 
 ```dotgram
 X?                      zero or one
@@ -260,7 +260,7 @@ immediately following an operand with a numeric or parameterized body are a coun
 braces in primary position are an atomic group.
 
 The body of `X*`, `X+` or `X{n,m}` must consume at least one input item per
-iteration — a build-time check, not runtime behaviour. `(A?)*` and `(?!A)*` are
+iteration вЂ” a build-time check, not runtime behaviour. `(A?)*` and `(?!A)*` are
 rejected by the compiler.
 
 ### 3.4 Lookahead
@@ -288,18 +288,18 @@ Identifier  = ?!Keyword & Letter & LetterOrDigit*
 name: X
 ```
 
-The colon reads "this name — that". What stands on the right is decided by position,
+The colon reads "this name вЂ” that". What stands on the right is decided by position,
 and there are exactly two positions:
 
 | Where | On the right | Example |
 | --- | --- | --- |
-| in an expression — a **capture** | a recognizer | `symbol: Text`, `value: (A & B)`, `y: Digits(4)` |
-| in a rule header or a parameter | a **type** | `Row : @Row = …`, `n: int` |
+| in an expression вЂ” a **capture** | a recognizer | `symbol: Text`, `value: (A & B)`, `y: Digits(4)` |
+| in a rule header or a parameter | a **type** | `Row : @Row = вЂ¦`, `n: int` |
 
 Usually the difference is invisible, because a rule's name is by default the name of
-its type (§4): in `symbol: Text` the right side is the rule `Text`, and the captured
+its type (В§4): in `symbol: Text` the right side is the rule `Text`, and the captured
 value's type is `Text` too. They part company where a rule declares a type of its
-own: after `Date : @DateOnly = …`, the capture `d: Date` names the **rule** `Date`
+own: after `Date : @DateOnly = вЂ¦`, the capture `d: Date` names the **rule** `Date`
 while the value has type `@DateOnly`.
 
 A capture cannot take a type: a group and a call are allowed on its right
@@ -307,7 +307,7 @@ A capture cannot take a type: a group and a call are allowed on its right
 
 **A capture may be called anything the grammar can spell, C#'s own words included.** A
 capture becomes a parameter of the method a `=>` compiles into, and one named `using`,
-`base` or `checked` is written there as C# writes such a name — `@using` — so that is how
+`base` or `checked` is written there as C# writes such a name вЂ” `@using` вЂ” so that is how
 the `=>` names it too:
 
 ```dotgram
@@ -348,7 +348,7 @@ recognition, with the same speculative-effect requirements as the guard itself. 
 sequence is handled as one array in grammar order, including values supplied by `recover`.
 
 **The guard's position is the author's choice and carries meaning.** A guard has no
-outcome of its own — it is an ordinary operand, and its failure means whatever the
+outcome of its own вЂ” it is an ordinary operand, and its failure means whatever the
 failure of any operand in that place means:
 
 ```dotgram
@@ -362,16 +362,16 @@ nothing has been consumed before the guard (lookahead does not move the input), 
 Row = "D" & '|' & symbol: Text & when @IsSupportedSymbol(symbol) & ...
 ```
 
-`"D"` has been consumed — the line is plainly a data row, and failure should produce
+`"D"` has been consumed вЂ” the line is plainly a data row, and failure should produce
 a diagnostic about the unsupported symbol rather than a silent fall-through to
 another alternative.
 
 The first reading is what the language does: ordered choice backtracks fully, and the
-only thing that commits is an atomic group (§3.2), which this guard is not inside — so a
+only thing that commits is an atomic group (В§3.2), which this guard is not inside вЂ” so a
 failing guard is a non-match and a sibling is tried.
 
 The second is what one would want in the `Row` case, and the notation has no way to say
-it — see §11. Note that it is a question about diagnostics, not about parsing: whichever
+it вЂ” see В§11. Note that it is a question about diagnostics, not about parsing: whichever
 way it is answered, the guard's position stays the author's choice and still decides how
 much work is thrown away and where the message points.
 
@@ -382,20 +382,20 @@ kind of question, and the two are told apart by what follows the first operand:
 Test = l: Name & "*=" & r: Name & when Version is "2000"
 ```
 
-`is` asks whether two recognizers have a string in common. Both sides are recognizers —
-a name, a literal, a bracketed choice — and neither is C#, because the question is about
+`is` asks whether two recognizers have a string in common. Both sides are recognizers вЂ”
+a name, a literal, a bracketed choice вЂ” and neither is C#, because the question is about
 their languages and a C# expression has none. Unlike every other guard it has an answer
 before anything is read, and it is given that answer when the parser is generated: where
 it holds, nothing of it is emitted; where it does not, the alternative it stands in is not
 in that parser at all. Nothing tests it while a parser runs. What gives it more than one
-answer is §5.1: `with` substitutes a rule at every one of its uses, so one grammar
+answer is В§5.1: `with` substitutes a rule at every one of its uses, so one grammar
 publishes parsers that answer it differently.
 
-It combines the way C#'s patterns do — `is not`, `and`, `or` and brackets, with `and`
+It combines the way C#'s patterns do вЂ” `is not`, `and`, `or` and brackets, with `and`
 binding tighter than `or`:
 
 ```dotgram
-… & when (Version is "2008" or Version is "2022") and Product is not "Azure"
+вЂ¦ & when (Version is "2008" or Version is "2022") and Product is not "Azure"
 ```
 
 There is no combinator inside a pattern: `Version is ("2008" | "2022")` already says what
@@ -408,17 +408,17 @@ whole once the conditions are answered:
 | --- | --- |
 | a false condition `and @(g)` | no alternative, and `g` compiled into nothing |
 | a true condition `and @(g)` | `when @(g)` |
-| a true condition `or @(g)` | nothing — no answer of `g` could change the reading |
+| a true condition `or @(g)` | nothing вЂ” no answer of `g` could change the reading |
 | `@(a) and @(b)` | `when @((a) && (b))` |
 
 A literal written case-insensitively is every way of spelling it, so `"v1"i` meets both
 `"v1"` and `"V1"`. Three things a condition does not do. It stands only among the
 operands of an alternative, since removing an alternative is what it is for (`GRAM4020`).
-It is answered only where each side accepts a listable set of strings — a literal, a choice
-of them, a rule that is one — which is what a domain and a range are; elsewhere it says so
+It is answered only where each side accepts a listable set of strings вЂ” a literal, a choice
+of them, a rule that is one вЂ” which is what a domain and a range are; elsewhere it says so
 and keeps the alternative (`GRAM4021`), because deciding either way would silently change
 what the parser reads. Each side is read as a whole input, so the word boundary on either
-edge of a keyword (§4.6) holds and is no obstacle; words with trivia between them are not a
+edge of a keyword (В§4.6) holds and is no obstacle; words with trivia between them are not a
 listable set, since the trivia has no bound. And a rule every alternative of which it rules out is not an error
 (`GRAM4022`, information): a construct removed from a dialect has to be removable, and what
 is left is a rule that cannot match, so a caller fails where the construct is written. `is`,
@@ -471,15 +471,15 @@ it is read rather than holding it for a walk at the end (`GRAM5012` says which i
 why). A parse that succeeds then runs exactly the constructions it would have run anyway.
 A parse that fails may already have run those of what it read before failing, since
 nothing was held back to be dropped. Where a construction must not run for input that is
-refused — it counts, logs, or throws — say so:
+refused вЂ” it counts, logs, or throws вЂ” say so:
 
 ```csharp
-[Gram("…", Carrier = GramCarrier.Tape)]
+[Gram("вЂ¦", Carrier = GramCarrier.Tape)]
 ```
 
 and every construction waits until the parse has accepted.
 
-**It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
+**It binds to one alternative, not to the rule body** вЂ” by В§3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
 needed for that:
 
@@ -488,9 +488,9 @@ Expr = value: Number           => value
      | '(' & inner: Expr & ')' => inner
 ```
 
-A name, a call or a parenthesized C# expression may stand on the right (§2). Captures
+A name, a call or a parenthesized C# expression may stand on the right (В§2). Captures
 are visible there as ordinary local variables, along with the names the parser supplies
-itself — `parserText`, `parserSpan`, `parserInput` and the rest of §8.2's table. They are
+itself вЂ” `parserText`, `parserSpan`, `parserInput` and the rest of В§8.2's table. They are
 names of the rule like a capture is, so either form reaches them: `=> @Hold(parserSpan)`
 and `=> @(Hold(parserSpan))` say the same thing.
 
@@ -501,11 +501,11 @@ Add             = l: Expr & '+' & r: Expr     => Add(l, r)
 ```
 
 The last line carries an important distinction: `Add` without `@` constructs a type
-owned by the grammar, whereas `@Add` would call a host method. Same rule as §2,
+owned by the grammar, whereas `@Add` would call a host method. Same rule as В§2,
 nothing new.
 
 **`=>` is not always required.** When it is absent and captures are present, they are
-matched to the result type by name — case 3 in §4.1, which covers most rules. `=>` is
+matched to the result type by name вЂ” case 3 in В§4.1, which covers most rules. `=>` is
 for where automatic matching does not suffice, or where being explicit is worth it;
 when present it wins over the other cases.
 
@@ -533,14 +533,14 @@ so `name: X*` is `(name: X)*` and `?!X*` is `(?!X)*`.
 `=>` binds to a single alternative rather than to the whole rule body, which is what
 lets each branch of a `|` construct its own result.
 
-`recover` (§8.2), `with (...)` (§5.1) and `with state` (§7.8) are not in the table: all
-are optional suffixes on row 2 rather than levels of their own, and `with` — when both are
-written on the same operand — always comes after `recover`, applying to everything to its
+`recover` (В§8.2), `with (...)` (В§5.1) and `with state` (В§7.8) are not in the table: all
+are optional suffixes on row 2 rather than levels of their own, and `with` вЂ” when both are
+written on the same operand вЂ” always comes after `recover`, applying to everything to its
 left, quantifier included. `X* recover S with (A = B)` recovers `X*` first and rebinds
 the result of that as a whole.
 
-Inside a `when`, a condition (§3.6) has three levels of its own, highest first: `A is B`
-and `A is not B`, then `and`, then `or` — C#'s order.
+Inside a `when`, a condition (В§3.6) has three levels of its own, highest first: `A is B`
+and `A is not B`, then `and`, then `or` вЂ” C#'s order.
 
 ---
 
@@ -550,12 +550,12 @@ and `A is not B`, then `and`, then `or` — C#'s order.
 Name = pattern                          // the result type is named Name
 Name : Type = pattern                   // the result type is given explicitly
 Name(params) : Type = pattern           // a parameterized rule
-Name : Type on fail "…" = pattern       // and what a refusal of it says (§7.5)
+Name : Type on fail "вЂ¦" = pattern       // and what a refusal of it says (В§7.5)
 ```
 
-**A declaration always begins with the rule's name** — the form without a type is not
+**A declaration always begins with the rule's name** вЂ” the form without a type is not
 an exception but its degenerate case, where rule name and type name coincide. The
-colon here stands in type position (§3.5): a result type is on its right, not a
+colon here stands in type position (В§3.5): a result type is on its right, not a
 recognizer.
 
 ```dotgram
@@ -565,11 +565,11 @@ Id   : string = Letter & LetterOrDigit*
 Date : @DateOnly = y: Digit{4} & '-' & m: Digit{2} & '-' & d: Digit{2}
 ```
 
-`T[]` in type position means "a sequence of T" — the same array notation as C#. In
+`T[]` in type position means "a sequence of T" вЂ” the same array notation as C#. In
 expression position `[` opens an element set; the positions do not overlap, just as
 an array type and an indexer do not overlap in C#.
 
-**`on fail` says what a refusal of the rule says** (§7.5), between the type and the body:
+**`on fail` says what a refusal of the rule says** (В§7.5), between the type and the body:
 
 ```dotgram
 Expression : @Expression on fail "Expected an expression." = e: Assignment => @(e)
@@ -584,7 +584,7 @@ The text is handed back as it stands. Nothing here reads it, so it is a sentence
 sentence is wanted and a code where the caller has its own words in its own languages.
 
 An event and a value, rather than the text alone: what else a rule may want to say about
-itself is then written the same way, and `on` is a word everywhere else — between a rule's
+itself is then written the same way, and `on` is a word everywhere else вЂ” between a rule's
 type and its `=` nothing else may stand.
 
 **Over characters, a rule call is transparent to backtracking.** If a later expression
@@ -612,7 +612,7 @@ half (`Lexical = true` on the host attribute), the syntactic half reads tokens, 
 a choice is decided by the token in front of it and never revisited: once a rule has
 matched, nothing that fails after it sends the parse back into it, and `|` takes the
 first alternative that matches. This is what a parser written by hand does at every
-choice — sees the token, enters, never looks back — and it is the default because it is
+choice вЂ” sees the token, enters, never looks back вЂ” and it is the default because it is
 what nearly every rule over tokens wants. `{ }` there says what is already so.
 
 A rule that needs to give back says so on its name:
@@ -625,7 +625,7 @@ NamedType? : @Type
 ```
 
 Inside a rule marked `?`, a choice or a repetition may be revisited when something later
-*in the same rule* fails — here the greedy dotted name gives a part back at a time until
+*in the same rule* fails вЂ” here the greedy dotted name gives a part back at a time until
 the guard is satisfied. Its answer still stands at its boundary: a caller that fails
 after it is not sent back into it. What a caller needs given back it has to read itself:
 `"new" & type: Type & "[]"` cannot have `Type` hand back the `[]` it read, and is written
@@ -635,9 +635,9 @@ already.
 
 **This is the language, not the engine.** A rule is a function from a position to a
 match, and the rest of the language rests on that. What a match records is which
-alternative it came through — one number per call — and that is what lets construction
-happen after recognition rather than during it (§7.3), what lets a fold collect its steps
-(§4.3), and what lets a repetition be committed by `recover` (§8.2). A rule that answered
+alternative it came through вЂ” one number per call вЂ” and that is what lets construction
+happen after recognition rather than during it (В§7.3), what lets a fold collect its steps
+(В§4.3), and what lets a repetition be committed by `recover` (В§8.2). A rule that answered
 more than once would be a function from a position to a *sequence* of matches, and every
 one of those would have to be built again around it.
 
@@ -649,15 +649,15 @@ is about. Over characters a rule earns its own commit only by being written insi
 
 ### 4.1 A rule's result
 
-1. There is `=> expr` — the expression gives the result.
-2. The result type is `T[]` — a sequence. Every operand that **declares** a type
+1. There is `=> expr` вЂ” the expression gives the result.
+2. The result type is `T[]` вЂ” a sequence. Every operand that **declares** a type
    assignable to `T` joins it in order; `X*`, `X+` and `X{n,m}` contribute all of
    their elements. Everything else contributes nothing: an operand of some other
-   type, and equally a rule that declares no type at all — which is how whitespace,
+   type, and equally a rule that declares no type at all вЂ” which is how whitespace,
    separators and other plumbing are written. A rule with no contributing operand is
    a build error.
-3. There are captures — they are matched to the result type by name (§7.3).
-4. None of the above — the result is the matched extent: `string` gives the text,
+3. There are captures вЂ” they are matched to the result type by name (В§7.3).
+4. None of the above вЂ” the result is the matched extent: `string` gives the text,
    `@SourceSpan` gives the bounds. Any other type requires an explicit `=>`.
 
 ```dotgram
@@ -669,7 +669,7 @@ result in order; `eof` declares none and contributes nothing. A separator writte
 `Space = [' ']+` is silent for the same reason, and needs no keyword to say so.
 
 A name, a call and a parenthesized C# expression are allowed in `=>` and `when`
-(§2), with captures visible as ordinary local variables:
+(В§2), with captures visible as ordinary local variables:
 
 ```dotgram
 Number : int    = ['0'..'9']+ => @int.Parse(parserText)
@@ -679,25 +679,25 @@ Row             = ... & when @(qty > 0 && symbol.Length == 4)
 
 Besides captures, the names the parser supplies are always in scope inside `=>` and
 `when`: `parserText` (the matched text, when `TIn` is a character), `parserSpan` (the
-current rule's `SourceSpan`), and the rest of §8.2's table. They all begin with
-`parser`, which is what that prefix is for — a capture may not take one of those names
+current rule's `SourceSpan`), and the rest of В§8.2's table. They all begin with
+`parser`, which is what that prefix is for вЂ” a capture may not take one of those names
 (GRAM4012), and every other name in the grammar is the author's to choose.
 
 A `when` runs before its rule is finished, so the two that say what the rule matched say
 what it has matched **so far**: from where the rule began to where the parse stands. That
-is the same extent either way — `parserText` is the string of it and `parserSpan` is the
-two numbers — and it is what lets a guard record *where* something was read, which is the
+is the same extent either way вЂ” `parserText` is the string of it and `parserSpan` is the
+two numbers вЂ” and it is what lets a guard record *where* something was read, which is the
 only thing a `=>` cannot do later. Construction runs children before parents, so anything
 written inside a construct is built before the construct is.
 
 There is no limit on the size of an expression, but there is a recommendation: once
 it stops reading at a glance it is better off as a named method in the partial class
 next door, where it has a debugger and refactoring. The generator neither declares nor
-resolves that method (§7.4).
+resolves that method (В§7.4).
 
 ### 4.2 Parameters
 
-A parameter is written like a capture — `name` or `name: Type` — because it does the
+A parameter is written like a capture вЂ” `name` or `name: Type` вЂ” because it does the
 same thing: binds a name to something that came from outside.
 
 ```dotgram
@@ -713,7 +713,7 @@ Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 | `item: Row` | a recognizer constrained to produce `Row` | the same, but obliged to produce `Row` |
 | `n: int`, `t: @Tag` | a value | a literal, or a value this rule was handed itself |
 
-Which kind a parameter is follows from §2, with nothing new needed: **rules** live in
+Which kind a parameter is follows from В§2, with nothing new needed: **rules** live in
 the grammar namespace, **types** in C#'s. That settles an ambiguity otherwise
 unresolvable: `item: Row` is a recognizer producing `Row`, while `item: @Row` is a
 ready value of type `Row`.
@@ -725,7 +725,7 @@ over at run time anyway: a rule is specialized for each call site, where the arg
 type is already concrete.
 
 ```dotgram
-Numbers = List(Number, ',')      // : string — §4.1 case 4, the extent it matched
+Numbers = List(Number, ',')      // : string вЂ” В§4.1 case 4, the extent it matched
 Name    = Lex(Identifier)        // : string, and for the same reason
 ```
 
@@ -740,7 +740,7 @@ Numbers : @int[] = v: List(Number, ',') => @(v)
 
 A value parameter is allowed anywhere a value is expected: in a quantifier count
 (`{n}`), in the arguments of `@Method`, inside `@(...)`. It stands for the literal the
-call passed, put where the name was written — so `Padded(item, pad: char)` called as
+call passed, put where the name was written вЂ” so `Padded(item, pad: char)` called as
 `Padded(Word, '!')` reads a `'!'` and hands `'!'` to the C# it wrote. Two calls passing
 different literals are two specializations, the same as two calls passing different
 recognizers.
@@ -751,7 +751,7 @@ reaches C# needs one. What a value **cannot** be is something the parse produces
 specialization is made before anything runs, and a captured value exists only while it
 does. Pass a literal, or capture the thing and hand it to the `=>`.
 
-A recognizer parameter never becomes a delegate — specialization means calling it
+A recognizer parameter never becomes a delegate вЂ” specialization means calling it
 costs exactly what calling the rule directly costs. A recursive parameterized call
 that would spawn an unbounded number of specializations is rejected when the grammar
 is built.
@@ -760,13 +760,13 @@ is built.
 
 There are two ways, and which to use is a real choice rather than a fallback.
 
-**Levels as rules** is the default. It needs no engine, no notation and no annotation —
+**Levels as rules** is the default. It needs no engine, no notation and no annotation вЂ”
 a grammar written this way compiles to the same recursive descent as everything else,
 and for the handful of levels most notations have it is the faster of the two as well:
 an operator costs one iteration of an ordinary repetition. Use it unless something
 below says you cannot.
 
-**Binding powers** (§4.3.1) buy the two things levels cannot: an expression language
+**Binding powers** (В§4.3.1) buy the two things levels cannot: an expression language
 with many levels written as one rule, and the shapes ordered choice cannot settle. They
 cost a precedence-climbing engine at run time, which is why they are not the default.
 
@@ -796,8 +796,8 @@ Power = left: Unary & ('^' & right: Power)?             => @Raise(left, right)
 written.
 
 **The two are not written the same way, and the difference is the point.** `Sum`
-recurses on the left, and §4.3 rewrites a left-recursive rule into a loop over its tails
-— so the operand at the head is read once however many alternatives there are. `Power`
+recurses on the left, and В§4.3 rewrites a left-recursive rule into a loop over its tails
+вЂ” so the operand at the head is read once however many alternatives there are. `Power`
 recurses on the right, where there is no such rewrite, and the obvious form
 
 ```dotgram
@@ -807,8 +807,8 @@ Power = left: Unary & '^' & right: Power                => @Raise(left, right)
 
 reads `Unary` twice: once for an alternative that wants a `^` after it and once for the
 one that does not. That is a factor of two, and where the shared operand leads back to
-the rule holding it — as `Unary` leads back to `Power` through the parentheses at the
-bottom of every expression grammar — it *compounds*: the second reading reads everything
+the rule holding it вЂ” as `Unary` leads back to `Power` through the parentheses at the
+bottom of every expression grammar вЂ” it *compounds*: the second reading reads everything
 inside them twice again. And a flat cost with no nesting is still a cost paid once per
 alternative: eleven alternatives reading one operand is eleven readings where one would
 do. `GRAM4016` reports the shape wherever the compiler could not share the operand itself.
@@ -821,29 +821,29 @@ operand that can give back will give back to let the rest of the first alternati
 Path = dir: Segments & '/' & file: Name | dir: Segments      // a/b/c is a/b and c
 ```
 
-is how the last part of a path is split off, and no optional tail says it — written with
+is how the last part of a path is split off, and no optional tail says it вЂ” written with
 one the `Segments` would take `a/b/c` and leave no file. So where the operand can give
 back, which form to write is a decision about meaning, and only the author has it.
 
-Associativity therefore belongs to an **alternative**, not to a rule — that is where
+Associativity therefore belongs to an **alternative**, not to a rule вЂ” that is where
 the recursion is. A rule ends up with one because a level of precedence is a rule, and
 mixing two in one rule is legal and a bad idea, the same way it is in any grammar.
 
 **In a left-recursive alternative, the leading capture is the accumulator.** `left:
-Sum` is not a fresh parse of `Sum`; it is the value built so far — the first time from
+Sum` is not a fresh parse of `Sum`; it is the value built so far вЂ” the first time from
 the alternatives that are not left-recursive, and afterwards from the previous
 application of this one. Which is to say `=>` is a fold, and both `=>` in the rule
 above are used: the base builds the first value, the recursive alternative applies once
 per operator.
 
-A fold is no exception to §7.2: nothing is built while matching. What the match records
+A fold is no exception to В§7.2: nothing is built while matching. What the match records
 is which alternative it came through and, for a chain, which step followed which; the
 `=>` of each is applied once the whole match has succeeded, in that order. So a step
 tried and given back never ran at all.
 
 Three things are rejected when the grammar is built:
 
-- **indirect left recursion** — `A` reaching itself through `B` without consuming —
+- **indirect left recursion** вЂ” `A` reaching itself through `B` without consuming вЂ”
   **unless every rule between is only a name for what it forwards.** That case is made
   direct and then rewritten like any other: a rule whose every alternative hands another
   rule's value straight back (`Primary : @Expr = p: Call => @(p) | n: Number => @(n)`, or
@@ -859,11 +859,11 @@ Three things are rejected when the grammar is built:
 
   An intermediary that does anything of its own is still refused. Its operands and its
   own `=>` would join the tail of the fold, so a step would have to apply two
-  constructions in order against an accumulator that is itself the result of one —
+  constructions in order against an accumulator that is itself the result of one вЂ”
   arbitrarily many shapes, which is what this rejection is about.
 
   **Every postfix step goes in one rule**, and that is not a style choice. Written as
-  several rules that each begin with the forwarder — `Member`, `Index`, `Apply` —
+  several rules that each begin with the forwarder вЂ” `Member`, `Index`, `Apply` вЂ”
   making each one's recursion direct leaves them recursive through *each other*, which
   no rewrite removes and which is refused for the reason above. One rule whose tail is
   a choice of steps is the same language and folds:
@@ -878,7 +878,7 @@ Three things are rejected when the grammar is built:
   cannot settle it: the leading `E` would be the accumulator and the trailing one
   would take everything to the right, so what is written left-associative would parse
   right-associative. Write the operands at the next level down, or say what you mean
-  with §4.3.1.
+  with В§4.3.1.
 
 #### 4.3.1 Binding powers, when levels are not enough
 
@@ -895,7 +895,7 @@ Expr : @int = left: Expr & '+' & right: Expr   << 1  => @(left + right)
 ```
 
 One expression language, one rule, and `-1-2` is `-3` because unary minus is stronger
-than binary minus — which is said here rather than arranged by how the rules are
+than binary minus вЂ” which is said here rather than arranged by how the rules are
 stacked.
 
 **`<<` and `>>` mean one thing: at what strength the operand to the right is parsed.**
@@ -909,7 +909,7 @@ statement with no left operand, which is why it needs no third marker.
 | `left: E & op & right: E >> n` | infix, right-associative, level `n` |
 | `op & operand: E >> n` | prefix, level `n` |
 | `left: E & op << n` | postfix, level `n` |
-| no marker | an atom — a literal, a group, a call |
+| no marker | an atom вЂ” a literal, a group, a call |
 
 Higher binds tighter. The numbers are the author's and need not be contiguous: gaps are
 where a level is inserted later without renumbering the rest.
@@ -926,17 +926,17 @@ expression can never be "continued" by the next rule. An identifier followed by 
 a new rule. It cannot be a capture: a capture must follow `&` or `|`, and there the
 expression does not count as complete.
 
-### 4.5 Trivia — insignificant whitespace and comments
+### 4.5 Trivia вЂ” insignificant whitespace and comments
 
 The rule `trivia` is always inserted between the operands of a sequence. It is empty
 by default, so by default nothing is inserted:
 
 ```dotgram
-// built in (§3.1.1)
+// built in (В§3.1.1)
 none                  = any{0}                 // zero repetitions: succeeds, consumes nothing
 trivia                = none
 
-// the grammar's own, over the standard library (§5.2)
+// the grammar's own, over the standard library (В§5.2)
 Whitespace            = Std.Whitespace*
 WhitespaceAndComments = (Std.Spacing | Std.LineComment("//") | Std.BlockComment("/*", "*/"))*
 ```
@@ -951,14 +951,14 @@ No directive, no mode: it is an ordinary rule, and `none` is expressed in the la
 itself as `any{0}` rather than by a new primitive.
 
 **At every seam between the operands of a sequence.** The turns of a repetition are such a
-seam wherever the thing repeated is itself a sequence — `A & (S & A)*` is how one writes
+seam wherever the thing repeated is itself a sequence вЂ” `A & (S & A)*` is how one writes
 `A S A S A`, and the join that wraps around is no different from the ones inside. An author
 who wrote `S & A` has already said that a space may stand between `S` and `A`; refusing one
 between `A` and the next `S` would be the same seam answered two ways.
 
 **Not before a `when`.** A seam separates two readings of text, and a guard reads none:
 there is no token on its far side for trivia to stand in front of. So a guard evaluates
-where the operand before it ended — which is also what its `parserSpan` says — and an
+where the operand before it ended вЂ” which is also what its `parserSpan` says вЂ” and an
 alternative that ends in a guard ends where its last reading operand did, exactly as its
 guard-free twin does.
 
@@ -966,27 +966,27 @@ guard-free twin does.
 trivia = Whitespace
 
 Pair    = Word & Word            // matches "ab cd"
-List    = Word & (',' & Word)*   // matches "a , b , c" — the repeated part is a sequence
+List    = Word & (',' & Word)*   // matches "a , b , c" вЂ” the repeated part is a sequence
 Several = Word*                  // matches "abcd", and stops at the space in "ab cd"
 Entries = Entry*                 // Entry builds a value, so this is a list: "a; b;"
 ```
 
 **A repetition of a valued rule is a list, and lists are spaced.** `Entry*` in a rule
-declared `: @T[]` is the collection §4.1 case 2 gathers, and a grammar that separates its
+declared `: @T[]` is the collection В§4.1 case 2 gathers, and a grammar that separates its
 operands with trivia separates its collections the same way: `entries: Entry*` reads
 `a; b;` as readily as `a;b;`. Valuedness is what draws the line, and it is the author's
 own declaration doing the drawing: a rule that builds a value is a thing being collected,
 and things stand apart.
 
 **A repetition of anything valueless gets nothing**, and that is what keeps lexemes
-whole. A repetition is how a lexeme is written —
-`Digits = ['0'..'9']+`, `Name = Letter+` — and spacing those turns would make `1 2` one
+whole. A repetition is how a lexeme is written вЂ”
+`Digits = ['0'..'9']+`, `Name = Letter+` вЂ” and spacing those turns would make `1 2` one
 number and `a b` one name in every grammar that ignores whitespace. A valueless operand is
 a fragment of text rather than a thing, so its turns have no seam between them.
 
 An **optional** is left alone for a reason of its own: it has no second turn, so it has no seam.
-So is a repetition of a **choice**, which is what keeps `trivia`'s own usual shape —
-`(Whitespace | LineComment | BlockComment)*` — from being asked to space itself.
+So is a repetition of a **choice**, which is what keeps `trivia`'s own usual shape вЂ”
+`(Whitespace | LineComment | BlockComment)*` вЂ” from being asked to space itself.
 
 What is left over is a spaced run of a single valueless thing, which nothing can infer:
 `Word*` and `Digit*` have the same shape and only the author knows which is a list. So the author says
@@ -1003,16 +1003,16 @@ A run with a separator needs none of that, because the thing it repeats is a seq
 List(item, sep) : item[] = item & (sep & item)*    // "1, 2 , 3"
 ```
 
-**Trivia that can swallow more than one character at a time — comments — is worth making
+**Trivia that can swallow more than one character at a time вЂ” comments вЂ” is worth making
 atomic:**
 
 ```dotgram
 trivia = { (Whitespace | LineComment | BlockComment)* }
 ```
 
-The braces say that what a comment swallowed stays swallowed. Without them §11's ordered
+The braces say that what a comment swallowed stays swallowed. Without them В§11's ordered
 choice means a failing parse may re-read a comment's interior as syntax, one give-back at
-a time — legal, useless, and expensive. With them the engine can also prove that a spaced
+a time вЂ” legal, useless, and expensive. With them the engine can also prove that a spaced
 list never needs to hand a completed element back, which is the difference between a
 syntax error reported in milliseconds and one reported in minutes. Whitespace-only trivia
 needs no braces: single characters leave nothing to re-read.
@@ -1025,11 +1025,11 @@ Name   = { ['a'..'z' | '_'] & ['a'..'z' | '0'..'9' | '_']* }
 ```
 
 A rule like this is meant to read to the end of what it recognizes and never hand a
-character back — that is what its author means by it, and what anyone writing the parser by
+character back вЂ” that is what its author means by it, and what anyone writing the parser by
 hand would do. Written without braces the grammar does not say so, and nothing downstream
 can prove it: what may follow a name includes a letter, because trivia may match nothing,
 so a reading one character shorter cannot be ruled out. The proofs that rest on it then go
-too — a repetition whose end is not settled writes a way back at every turn, and two
+too вЂ” a repetition whose end is not settled writes a way back at every turn, and two
 alternatives that begin with the same lexeme cannot be read as one.
 
 **It is a choice and not a rule of style.** Braces commit the first reading, so a rule that
@@ -1041,11 +1041,11 @@ TypeName = Word & ('.' & Word)*      // no braces: a dotted name is a type only 
 ```
 
 The grammars that ship hold both, and the difference between them is not in their shape
-— it is in what the author meant. That is why this is written here rather than diagnosed:
+вЂ” it is in what the author meant. That is why this is written here rather than diagnosed:
 the compiler can see that the reading is unsettled, and cannot see whether that was the
 intention.
 
-**Switching per block is the shadowing from §5**, not a separate mechanism:
+**Switching per block is the shadowing from В§5**, not a separate mechanism:
 
 ```dotgram
 trivia = WhitespaceAndComments
@@ -1069,7 +1069,7 @@ namespace Syntax
 **Scoping is lexical:** a rule uses the `trivia` visible where it is **declared**, not
 where it is called. A rule means the same thing wherever it is used.
 
-**`trivia` must be nullable** — it has to accept empty input, or the build fails. That
+**`trivia` must be nullable** вЂ” it has to accept empty input, or the build fails. That
 condition is what makes unconditional insertion safe: a second application consumes
 nothing, so nothing is ever doubled and no rule of the form "insert after a literal
 but not after a structural call" is needed. The single exception is one insertion at
@@ -1078,12 +1078,12 @@ the start of a published rule, for leading whitespace.
 When `trivia` is empty the insertions are dropped entirely during normalization:
 nothing of them survives to run time.
 
-A silent failure is possible here — a lexical rule that ended up by oversight in a
+A silent failure is possible here вЂ” a lexical rule that ended up by oversight in a
 namespace with non-empty `trivia` will quietly accept `i f` as `if`. No mechanism
 catches that, but a warning does: a rule whose operands all test a single input item
 is almost certainly a mistake in such a namespace.
 
-#### `~` — where trivia may not go
+#### `~` вЂ” where trivia may not go
 
 `a ~ b` is `a & b` with no seam between them: what `b` matches must begin exactly where
 `a` ended. It binds tighter than `&`, so `a & b ~ c` is `a & (b ~ c)`.
@@ -1097,7 +1097,7 @@ Shift = left: Shift & '>' ~ '>' & right: Additive
 Type  = Name & ('<' & Type & (',' & Type)* & '>')?
 ```
 
-`x >> 2` shifts, `List<List<int>>` closes twice, and `a > > b` is refused — which is what
+`x >> 2` shifts, `List<List<int>>` closes twice, and `a > > b` is refused вЂ” which is what
 C# and Java answer, and what C++ answered only from C++11.
 
 **Writing the shift as `">>"` instead cannot work**, and the reason is worth stating
@@ -1107,10 +1107,10 @@ both characters and the inner argument list, which wants one `>`, is handed a sh
 is no order of alternatives that recovers from that, because the choice was made before
 the parser was asked. With `'>' ~ '>'` there is no `>>` for the scanner to make.
 
-**One meaning in both halves of a split grammar** (§4). Over characters `~` is simply the
+**One meaning in both halves of a split grammar** (В§4). Over characters `~` is simply the
 seam withheld: with nothing woven between them the operands are adjacent because there is
 nowhere for anything to stand. Over kinds the trivia was skipped before the tokens were
-made, so two operands are two tokens whether or not anything stood between them — and the
+made, so two operands are two tokens whether or not anything stood between them вЂ” and the
 question is asked of the tokens themselves, each of which records where it began and how
 long it is. The same grammar reads the same language either way, which is the point.
 
@@ -1119,7 +1119,7 @@ refused: `trivia = none` there means there was never a seam to withhold.
 
 ### 4.6 Keyword boundaries
 
-`wordboundary` is a built-in rule (§3.1.1), `none` by default, naming the characters
+`wordboundary` is a built-in rule (В§3.1.1), `none` by default, naming the characters
 that continue a word:
 
 ```dotgram
@@ -1129,21 +1129,21 @@ wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
 Once it is not empty, every string literal **whose characters all fall in that class**
 is guarded on **both sides**: it may not be followed by a boundary character, and it may
 not be preceded by one. The first keeps `"if"` from matching the start of `iffy`; the
-second keeps it from matching the end of `stiff` — the reading backtracking would
+second keeps it from matching the end of `stiff` вЂ” the reading backtracking would
 otherwise find, where an identifier hands characters back and a keyword matches
 mid-word. A word literal is a lexeme, and a lexeme is whole. Whether a literal qualifies
 is decided when the grammar is built: `"if"` gets the checks, `"("` does not.
 
-Same shape as `trivia` (§4.5), and for the same reason: a rule, ordinary shadowing,
+Same shape as `trivia` (В§4.5), and for the same reason: a rule, ordinary shadowing,
 and the insertion dropped entirely while the rule is empty. A regex or a feed grammar
 pays nothing; a language grammar pays one line. The boundary may name its class through
-another rule — `wordboundary = WordOrDigit` — and Unicode categories count as classes.
+another rule вЂ” `wordboundary = WordOrDigit` вЂ” and Unicode categories count as classes.
 
-**A lexical namespace shields it.** A namespace whose own `trivia` is empty (§4.5) does
+**A lexical namespace shields it.** A namespace whose own `trivia` is empty (В§4.5) does
 not inherit a `wordboundary` declared outside: its literals are the parts of one lexeme,
 not lexemes standing next to each other, and the `'u'` of an escape sequence must not be
 told it cannot precede a hex digit. A namespace that declares its own boundary beside its
-empty trivia keeps it — that is the scannerless keyword grammar, `SqlReadOnly` in the
+empty trivia keeps it вЂ” that is the scannerless keyword grammar, `SqlReadOnly` in the
 examples being one.
 
 The boundary checks go **before** the trivia insertion. The other order would ask
@@ -1155,11 +1155,11 @@ The other half of the same fact. `wordboundary` says what a word is made of; `wo
 one whole word made of it, whatever that word says:
 
 ```dotgram
-OptionName = word           // FILLFACTOR, DATA_COMPRESSION, ONLINE, PAD_INDEX, …
+OptionName = word           // FILLFACTOR, DATA_COMPRESSION, ONLINE, PAD_INDEX, вЂ¦
 ```
 
-It is a run of boundary characters that does not stop short of one — maximal by
-construction, so `word` cannot read half of `FILLFACTOR` however the parse backtracks —
+It is a run of boundary characters that does not stop short of one вЂ” maximal by
+construction, so `word` cannot read half of `FILLFACTOR` however the parse backtracks вЂ”
 and it gives back the characters it read, like any rule that names none of its parts.
 Each namespace's `word` is that namespace's own: a boundary is declared per namespace
 (above), and a word is a run of whatever the boundary in scope says continues one.
@@ -1167,7 +1167,7 @@ Each namespace's `word` is that namespace's own: a boundary is declared per name
 It is for the places where a language admits a word and does not care which: an option's
 name inside brackets, a permission spelled out of words the language reserves, a name
 belonging to some other catalogue passing through this one. Written out, those become a
-list of every word the specification happened to have — a list that is wrong the day the
+list of every word the specification happened to have вЂ” a list that is wrong the day the
 specification grows one, and that says *a catalogue* where the grammar meant *a word*.
 Where only some words will do, the shape is a lookahead and not a list:
 
@@ -1178,9 +1178,9 @@ PermissionEnd  = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
 
 `word` in a grammar with no `wordboundary` is `GRAM4019`: it would be a run of nothing.
 
-**Over kinds it is a kind test.** Where the grammar is cut in two (§4) the boundary is
+**Over kinds it is a kind test.** Where the grammar is cut in two (В§4) the boundary is
 gone with the rest of the lexer, and being a word is a property the token kind already
-has — so `word` becomes one range test over every kind that is a word: a keyword, and a
+has вЂ” so `word` becomes one range test over every kind that is a word: a keyword, and a
 class every character of which continues a word. It reads exactly one token there, which
 is what it read over characters too.
 
@@ -1208,15 +1208,15 @@ namespace Syntax
 
 The top of a file is an implicit global namespace. The `{ }` after `namespace Name` is
 a block of declarations, not an expression; in expression position braces mean a
-repetition count or an atomic group and nothing else (§3.2, §3.3). An inner namespace
+repetition count or an atomic group and nothing else (В§3.2, В§3.3). An inner namespace
 sees the outer one; the qualified name `Namespace.Rule` is available from outside.
 Declaring a rule whose name already resolves outside is refused rather than taken as
-shadowing — replacing a rule is what a rebinding is for, and the rule is stated where the
+shadowing вЂ” replacing a rule is what a rebinding is for, and the rule is stated where the
 two are told apart below.
 
 `using X;` without `@` brings the names of namespace `X` into the current namespace
 unqualified. Import directives stand at the top of the file or at the top of a
-`namespace` block — where C# expects them. If two imports supply the same name, the
+`namespace` block вЂ” where C# expects them. If two imports supply the same name, the
 error is raised at the use site rather than at the import, and is settled by
 qualification, as in C#.
 
@@ -1226,7 +1226,7 @@ Every namespace becomes a nested static class in the generated code.
 
 A `namespace` may carry a header, `namespace Name with (A = B, ...) { ... }`. This does
 something different from an ordinary declaration in the block: it rebinds `A` to `B`
-for the *whole call graph reached from what the namespace declares* — not only for
+for the *whole call graph reached from what the namespace declares* вЂ” not only for
 calls written lexically inside it. `with` is required; a header written without it is
 refused (`GRAM2006`) rather than silently accepted as something else.
 
@@ -1244,7 +1244,7 @@ D = 'd'
 ```
 
 `F`, outside the namespace, still resolves `A` to the ordinary `B`. `E`, inside,
-resolves the same `A` through `D` — even though `A` is declared outside the namespace
+resolves the same `A` through `D` вЂ” even though `A` is declared outside the namespace
 and never mentions `D`. `A` itself is untouched: nothing about `F`'s behavior depends
 on the namespace existing.
 
@@ -1270,7 +1270,7 @@ D = 'd'
 ```
 
 **What replaces a rule may be any operand, not only another rule's name.** One operand,
-the same bound a directive's target has — so a choice needs brackets:
+the same bound a directive's target has вЂ” so a choice needs brackets:
 
 ```dotgram
 parse List with (Comma = (',' | ';')) as Loose
@@ -1281,13 +1281,13 @@ named after what it replaces, so the substitution reads the `trivia`, the import
 the bindings that surround it. The left side stays a name: it identifies what is being
 replaced, and identifying is what a name is for.
 
-A binding is not a declaration — it does not introduce a rule named `B` — so it does
+A binding is not a declaration вЂ” it does not introduce a rule named `B` вЂ” so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
 also *declare* a rule under a name that is actively bound; write a nested
 `namespace Name with (B = ...)` instead of redeclaring `B`. Both sides must already resolve
-to a visible rule. A parameterized rule (§4.2) may replace and be replaced by one of
-the same signature — the same parameter count, each parameter the same kind, a value
-where a value was and a recognizer where a recognizer was — because a rebinding
+to a visible rule. A parameterized rule (В§4.2) may replace and be replaced by one of
+the same signature вЂ” the same parameter count, each parameter the same kind, a value
+where a value was and a recognizer where a recognizer was вЂ” because a rebinding
 substitutes the rule and keeps every call's arguments: `A('a')` under `with (A = B)`
 is `B('a')`, and an argument the call carried resolves through the same header's
 other bindings, like everything else the binding reaches. Mismatched signatures are
@@ -1301,21 +1301,21 @@ one's bindings and may replace any of them with its own.
 
 `trivia` is an ordinary rule, so it is an ordinary rebinding target:
 `namespace Name with (trivia = none)` reuses an already-written rule under different
-whitespace handling — the same substitution as any other binding, and a different
-mechanism from shadowing `trivia` locally (§4.5), which affects only what the block
+whitespace handling вЂ” the same substitution as any other binding, and a different
+mechanism from shadowing `trivia` locally (В§4.5), which affects only what the block
 itself declares.
 
 **Which of the two to reach for is a question of what the result needs to be, not a
 style choice between them.** A binding clones the whole call graph reached from inside
-the namespace and rewrites every call inside those clones — so the *same* shared rule,
+the namespace and rewrites every call inside those clones вЂ” so the *same* shared rule,
 called from both inside and outside the namespace, behaves two different ways depending
 on which call path reached it. Shadowing does not do that: it changes what a name
 means only where the replacement is lexically visible, and a rule declared outside the
 shadowing scope never sees it, namespace block or not. Reach for a header when the
 point is exactly that a shared rule should mean something different from inside one
-place than from everywhere else it is called — `LocaleNumberExample`'s two decimal
-points over one `Number` rule is the shape this exists for. Reach for shadowing — an
-ordinary declaration, no `namespace` needed at all — when a rule's meaning is simply
+place than from everywhere else it is called вЂ” `LocaleNumberExample`'s two decimal
+points over one `Number` rule is the shape this exists for. Reach for shadowing вЂ” an
+ordinary declaration, no `namespace` needed at all вЂ” when a rule's meaning is simply
 different for the rest of the file or block from that point on, with nothing shared
 reaching back out to an unshadowed view of it: `trivia = none` at the top of a whole
 grammar is exactly that, and wrapping the entire file in `namespace Name with (trivia =
@@ -1331,8 +1331,8 @@ ParseEuropeanNumber = Number with (Point = Comma)
 
 is the one-line version of wrapping `Number` in a single-purpose `namespace with
 (Point = Comma) { ... }` just to reach the substitution once. `with` binds as tightly
-as a quantifier or `recover` (§3.8) — `Number+ with (X = Y)` is `(Number+) with (X =
-Y)`, not `Number+` of something already rebound — and reaches only the one expression
+as a quantifier or `recover` (В§3.8) вЂ” `Number+ with (X = Y)` is `(Number+) with (X =
+Y)`, not `Number+` of something already rebound вЂ” and reaches only the one expression
 it is written on, not the rest of the rule around it:
 
 ```dotgram
@@ -1344,21 +1344,21 @@ for `with` when the substitution belongs to one place a rule is used; reach for 
 header once more than one call needs the same rebinding, or the substitution is worth
 a name of its own.
 
-A `parse`/`find` directive (§6) may carry the same header directly, rather than being
+A `parse`/`find` directive (В§6) may carry the same header directly, rather than being
 wrapped in a `namespace Name with (...)` block just to reach it:
 
 ```dotgram
 parse Number with (Point = Comma) as Evaluate
 ```
 
-is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
+is `parse`'s own equivalent of `Number with (Point = Comma)` above вЂ” one directive, no
 block, no name for the substitution beyond the publication's own. A publication's own
 `with` is the more locally written of the two extents, so it composes on top of an
 enclosing `namespace Name with (...)`'s own rebinding of the same rule rather than instead
 of it.
 
 **A publication named in an action means it under the same substitution.** An action that
-reads a piece of the input again calls a publication by its name — `TryParseHole(…)` — and
+reads a piece of the input again calls a publication by its name вЂ” `TryParseHole(вЂ¦)` вЂ” and
 under a publication's `with` that name reads the rule the way the publication does:
 
 ```dotgram
@@ -1373,8 +1373,8 @@ for is left as it is, and so is one written after a dot: `Owner.TryParseHole` is
 else's method. A rebinding that only a condition asks about (below) does not redirect a name.
 
 **A rebinding is also what answers a condition.** A guard of the form `when A is B`
-(§3.6) is decided when the parser is generated, against the rules as that parser has
-them — so a publication's own `with` is what gives it an answer:
+(В§3.6) is decided when the parser is generated, against the rules as that parser has
+them вЂ” so a publication's own `with` is what gives it an answer:
 
 ```dotgram
 Version = "2000" | "2008" | "2022"
@@ -1390,29 +1390,29 @@ parse Test as ParseAny
 
 `ParseOld` has the first alternative and not the second, `ParseNew` the other way round.
 The question is answered when the parsers are generated, and the three share one machine:
-what is left to ask while one of them runs is which of them it is — one test, at an
+what is left to ask while one of them runs is which of them it is вЂ” one test, at an
 alternative some of them have and the others do not. `ParseAny` names none, so it keeps the
-grammar's own `Version` — the choice of every version — and has all three. A parser that
+grammar's own `Version` вЂ” the choice of every version вЂ” and has all three. A parser that
 reads one version, one that reads several and one that reads everything are one construct
 with a narrower or a wider argument, which is also how products are said: on-premises SQL
 Server, Azure and Fabric are a set rather than a chain, and a set is what a choice is.
 
 A range is a rule, not an operator. With `Since2008 = "2008" | "2022"`, `when Version is
-Since2008` asks exactly what `when Version is "2008"` asks — whether two languages meet —
+Since2008` asks exactly what `when Version is "2008"` asks вЂ” whether two languages meet вЂ”
 which is why nothing needs to know that versions happen to be ordered and products do not.
 
 It is also what a chain of dialects cannot say. Each grammar in a chain adds to the one
-below it, so a construct taken out of the language — `*=` above — has nowhere to be written
+below it, so a construct taken out of the language вЂ” `*=` above вЂ” has nowhere to be written
 once; here it is an alternative with a condition on it, in the one grammar that has every
 version.
 
-Write a rebinding in the header rather than as a same-named declaration in the body —
+Write a rebinding in the header rather than as a same-named declaration in the body вЂ”
 `namespace Name with (A = B) { ... }` is a substitution, written where a reader expects one;
 a declaration with the same name sitting in the body, with no header entry for it, is
 an error. A declaration always means a new rule; a rebinding is the only way to replace
-one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
+one вЂ” so a rule declared inside a nested `namespace { ... }` whose name also resolves in
 an enclosing *grammar* scope, or through that namespace's own `using` import, is
-refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
+refused вЂ” `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
 shadowing a built-in rule (`trivia`, `wordboundary`, `word`, `any`, `none`, `eol`, `eof`),
 at any depth, is the language's normal, silent mechanism and is never reported; neither
 is shadowing at the top level of a file, where there is no `namespace Name with (...)`
@@ -1420,8 +1420,8 @@ header nearby to have meant instead.
 
 ### 5.2 The standard library, `Std`
 
-The lexemes every grammar writes and none should have to — digits, an identifier, a
-number as a value, a comment, a quoted string — are a grammar of their own, carried
+The lexemes every grammar writes and none should have to вЂ” digits, an identifier, a
+number as a value, a comment, a quoted string вЂ” are a grammar of their own, carried
 inside the generator, and every grammar has it under the name `Std`:
 
 ```dotgram
@@ -1430,26 +1430,26 @@ trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))*
 Pair : @int = a: Std.Integer & ',' & b: Std.Integer & eof => @(a * b)
 ```
 
-The shape is C#'s. An included grammar (§6.7) is a reference, and the library is the
+The shape is C#'s. An included grammar (В§6.7) is a reference, and the library is the
 one reference every compilation has, the way every C# compilation has the framework:
 `Std.Integer` names it in full with nothing declared, and `using Std;` opens the
-namespace as `using` opens any other, after which `Integer` is enough — on the terms
-every `using` has (§5): at the top of the file a rule of the grammar's own wins over an
+namespace as `using` opens any other, after which `Integer` is enough вЂ” on the terms
+every `using` has (В§5): at the top of the file a rule of the grammar's own wins over an
 opened name, and a namespace that opens the library and declares one of its names is
 refused (`GRAM3012`). A grammar with lexemes of its own to declare names the library in
 full and keeps its names.
 
 The library is spliced onto the end of every grammar, into a namespace called `Std`,
-exactly as an included grammar is — so it has no `trivia` of its own and a token is its
+exactly as an included grammar is вЂ” so it has no `trivia` of its own and a token is its
 characters, while the calling grammar spaces and comments around the call as it does
-around anything else (§4.5). Whatever the grammar does not call is not compiled: the
+around anything else (В§4.5). Whatever the grammar does not call is not compiled: the
 library costs the rules used and nothing for the rest, and a grammar that never names
 it has nothing of it in what comes out. A grammar that uses it and is then included by
-another keeps it — the including grammar's own compilation has the same library, and a
+another keeps it вЂ” the including grammar's own compilation has the same library, and a
 name resolves to it from inside the namespace the included grammar was spliced into.
 
 There is no class behind the library, and that decides what it can mean. Its values are
-what the .NET parsers make of the text, in the invariant culture — `Std.Integer` is
+what the .NET parsers make of the text, in the invariant culture вЂ” `Std.Integer` is
 `int.Parse`, and what `int.Parse` refuses, a number too wide for `int`, it refuses the
 way it always does. A grammar that wants a message instead of an exception, or a
 location, or a string with its escapes resolved, declares that rule itself: what a
@@ -1471,18 +1471,18 @@ recognition, which every grammar spells the same way.
 | `Integer` | digits | `int` |
 | `Long` | digits | `long` |
 | `Decimal` | digits, and a point and digits | `decimal` |
-| `Double` | digits, a point and digits, an exponent — each after the first optional | `double` |
+| `Double` | digits, a point and digits, an exponent вЂ” each after the first optional | `double` |
 | `LineComment(start)` | `start` to the end of the line, the line ending left unread | text |
 | `BlockComment(open, close)` | `open` to the first `close` | text |
-| `Quoted(quote)` | `quote` to `quote`, with `quote` doubled inside — `Quoted('\'')` is SQL's string, `Quoted('"')` its delimited identifier and CSV's field | text, as written |
-| `Escaped(quote, escape)` | `quote` to `quote`, with `escape` in front of a quote or anything else inside — `Escaped('"', '\\')` is C's string | text, as written |
+| `Quoted(quote)` | `quote` to `quote`, with `quote` doubled inside вЂ” `Quoted('\'')` is SQL's string, `Quoted('"')` its delimited identifier and CSV's field | text, as written |
+| `Escaped(quote, escape)` | `quote` to `quote`, with `escape` in front of a quote or anything else inside вЂ” `Escaped('"', '\\')` is C's string | text, as written |
 
 A comment or a string is parameterized by what delimits it, because that is all that
 differs between one language's and the next: `Std.LineComment("--")` is SQL's and
 `Std.LineComment("//")` is C's, and each call is a specialization that costs what the
-rule written out would (§4.2). The strings are written with the until idiom, `(?!quote
-& any)*`, rather than an element set — a set names its characters and cannot take a
-parameter — and the idiom is the one lookahead a lexer reads as a pattern (§6.3), so
+rule written out would (В§4.2). The strings are written with the until idiom, `(?!quote
+& any)*`, rather than an element set вЂ” a set names its characters and cannot take a
+parameter вЂ” and the idiom is the one lookahead a lexer reads as a pattern (В§6.3), so
 they are tokens in a grammar read over tokens. The numbers are unsigned: whether `-` is
 part of a number or an operator in front of one is a question about the calling grammar,
 not about digits.
@@ -1504,17 +1504,17 @@ is allowed to sit between the matches.**
 
 | Directive | What it says | Generated |
 | --- | --- | --- |
-| `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)` |
-| `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
+| `parse R` | the whole input is an `R` | `R ParseR(input)` вЂ” throws `FormatException`<br>`Match<R> TryParseR(input)` |
+| `find R` | there are `R`s inside something else | `FindR(input)` вЂ” a lazy sequence of `Match<R>` |
 
 `find` is a sequence and needs no companion for "all of them" or "the first one":
 `First()`, `Where()`, `Take()` are LINQ's job and it would be strange to reinvent
 three of them. It yields occurrences as it finds them, so a document with a million
 matches costs one at a time rather than an array of a million.
 
-A rule whose value is a sequence — `Feed : FeedItem[]` — is published with `parse`
+A rule whose value is a sequence вЂ” `Feed : FeedItem[]` вЂ” is published with `parse`
 like any other, and what comes back is that sequence. Reading a feed is not a third
-directive: it is one `parse` of a rule that happens to be a list, and §6.3 decides
+directive: it is one `parse` of a rule that happens to be a list, and В§6.3 decides
 whether the list is materialized or walked.
 
 ### Explicit lazy results
@@ -1564,7 +1564,7 @@ Readers remain caller-owned. Stopping early may leave read-ahead in the iterator
 buffer; a new enumeration does not recover that buffered input.
 
 Anything else is a consequence rather than a directive. Where a match may sit is the
-grammar's business, how much is held is the input's (§6.3), and picking things out of
+grammar's business, how much is held is the input's (В§6.3), and picking things out of
 a sequence is the caller's.
 
 **Who may call it.** A directive publishes `public` methods unless it says otherwise, and it
@@ -1580,12 +1580,12 @@ The modifier is every method the directive makes: the whole form, the one taking
 position, the one taking a window, the ones over a reader. An entry point left public beside
 a private pair is exactly what it is for. It is a word only in front of `parse` or `find`, so
 a rule may still be called `internal`. A `private` publication in a nested reading
-(`[GramOptions]`, §6.6) is private to that nested class, which is where that reading's own
+(`[GramOptions]`, В§6.6) is private to that nested class, which is where that reading's own
 constructions call it from.
 
 **What a directive names is an expression, not only a rule.** Wherever the notation
-refers to a rule, any operand may stand — the same bound `recover`'s synchronization
-expression has (§8.2), so a choice needs brackets and the `with` that may follow is the
+refers to a rule, any operand may stand вЂ” the same bound `recover`'s synchronization
+expression has (В§8.2), so a choice needs brackets and the `with` that may follow is the
 directive's own:
 
 ```dotgram
@@ -1595,20 +1595,20 @@ find  ['0'..'9']+       as Numbers
 ```
 
 An expression has no name to make a method name from, so `as` is required for anything
-but a bare name — `parse ('a' | 'b')` on its own is refused (`GRAM2007`) rather than
+but a bare name вЂ” `parse ('a' | 'b')` on its own is refused (`GRAM2007`) rather than
 given a name nobody wrote. What the expression becomes is an ordinary rule of that
 name, declared where the directive is written: it reads the `trivia`, the imports and
 the rebindings that surround it, exactly as a rule written in its place would, and
 everything after the front end sees a publication of a rule.
 
-Being an ordinary rule also settles its value — §4.1 case 4, the extent it matched — and
+Being an ordinary rule also settles its value вЂ” В§4.1 case 4, the extent it matched вЂ” and
 lets it be given the third part a rule has, in the place that reads as the method's own:
 
 ```dotgram
 parse (v: Padded(Word, '#') => @(v)) as Marked : @string
 ```
 
-With a type declared, everything §4.1 offers is reachable from the directive, a `=>`
+With a type declared, everything В§4.1 offers is reachable from the directive, a `=>`
 included; without one a construction is refused where it always is (`GRAM4008`). The
 type supplies construction for an inline expression. On a named rule, it instead
 sets the public result contract while preserving the rule's construction:
@@ -1636,7 +1636,7 @@ place its element type after `yield` (`GRAM2008` if written before it).
 ```csharp
 public readonly struct Match<T>
 {
-    public Outcome Outcome  { get; }   // Success | NoMatch | Starved (§7.5)
+    public Outcome Outcome  { get; }   // Success | NoMatch | Starved (В§7.5)
     public T       Value    { get; }   // meaningless unless IsSuccess
     public string? Error    { get; }   // null when it matched
     public long    Position { get; }   // where it matched, or where it gave up
@@ -1648,8 +1648,8 @@ public readonly struct Match<T>
 
 **No `out` parameters anywhere.** `int.Parse` and `int.TryParse` are a pair because an
 `int` has no room to carry a failure; a result that has room does not need a second
-shape for it, and every later thing a match might want to say — what was expected,
-which record it was, whether the record was broken rather than absent — is a field
+shape for it, and every later thing a match might want to say вЂ” what was expected,
+which record it was, whether the record was broken rather than absent вЂ” is a field
 here instead of another parameter on every signature.
 
 What is left of the pair is a real choice, and it stays: `ParseR` asserts that the
@@ -1664,14 +1664,14 @@ position worth naming.
 ### 6.2 Why the signatures use BCL types only
 
 `.Gram` ships no runtime assembly: everything a generated parser needs is emitted
-beside it. What is emitted into a namespace is `internal`; a parser's own types —
-`Match<T>`, `SourceSpan` and the types its grammar generates — are `public` and nested in
+beside it. What is emitted into a namespace is `internal`; a parser's own types вЂ”
+`Match<T>`, `SourceSpan` and the types its grammar generates вЂ” are `public` and nested in
 the host class, so their names are the host's. A consumer therefore takes one analyzer
 package, acquires no dependency, and has nowhere for a "generator of one version, runtime
 of another" skew to come from.
 
 The shape of the public API follows: an `internal` type cannot appear in the signature
-of a public method. So besides the host's own nested types only BCL types face outward —
+of a public method. So besides the host's own nested types only BCL types face outward вЂ”
 `string`, `int`, `FormatException` (the very type `int.Parse` throws).
 
 `Match<T>` and a rule's own type are not exceptions to this. They are generated from
@@ -1680,7 +1680,7 @@ skew, and nothing crosses an assembly boundary.
 
 **Nothing is shared, and that is the design rather than a stage of it.** A library
 exposing a parser in its public API exposes its own generated types, and a consumer uses
-those — exactly as it would use any other type the library declares. There is no mode in
+those вЂ” exactly as it would use any other type the library declares. There is no mode in
 which two assemblies bind to one copy of anything.
 
 ### 6.3 The input type picks the execution mode
@@ -1692,7 +1692,7 @@ because it is a property of the data rather than of the grammar.
 | Input | How it runs | Retains |
 | --- | --- | --- |
 | `string`, `ReadOnlySpan<char>` | everything in memory | all of it, and the result may be walked again |
-| `IEnumerable<string>`, `TextReader` | through a reused, growable buffer | whatever the parse cannot yet let go of — one record's worth, for a well-formed feed — and the result is walked once |
+| `IEnumerable<string>`, `TextReader` | through a reused, growable buffer | whatever the parse cannot yet let go of вЂ” one record's worth, for a well-formed feed вЂ” and the result is walked once |
 
 The shape of what comes back does not change with the input: `parse` of a sequence
 rule yields a sequence either way, and `find` yields one either way. What changes is
@@ -1700,7 +1700,7 @@ how much is held while it is walked.
 
 The same grammar serves both. `Feed : FeedItem[] = Header & Row* & Trailer & eof`
 checks that there is exactly one header, that the trailer is there and that nothing
-follows — which is precisely what is lost when the caller chops the input into records
+follows вЂ” which is precisely what is lost when the caller chops the input into records
 and parses them one by one.
 
 **The reader overload is emitted only where retention analysis can prove it needs
@@ -1714,7 +1714,7 @@ overload is refused, the reason is reported at the publication:
 'ParseFeed' gets no overload taking a reader: in 'Feed', the repetition 'Row' can
 begin with the same input as what follows it, so where it ends is settled by
 backtracking. A streamed parse hands each element to the caller as it reads it and
-cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
+cannot take one back. docs/syntax.md В§6.3 says which rules get one, and why.
 ```
 
 Which is the shared responsibility: the author picks an overload, and the compiler
@@ -1833,7 +1833,8 @@ class or survive asynchronous work. These options do not silently change the
 return type or ownership of an untyped publication.
 
 Explicitly requested unsupported forms report `GRAM4026`. Current exclusions also
-include token-kind machines, external recognizers, and `parserInput` factories.
+include token-kind machines, span-based external recognizers, and `parserInput` factories.
+External recognizers using `ParserInput<T>` support buffered input (В§7.1).
 Async refill, caller-fed chunks, and a contiguous byte publication are not supplied
 by these options.
 
@@ -1846,9 +1847,9 @@ Match<T> TryParseX(string input, int at, int length);  // and sees nothing from 
 ```
 
 Neither demands the end of the input. What comes back says where the reading began and
-how far it got, and every position in it — and in whatever the reading builds — is an
+how far it got, and every position in it вЂ” and in whatever the reading builds вЂ” is an
 offset into `input`, so a host reading a piece of a text it holds keeps what those
-positions mean. Over a grammar cut into tokens (§4) the first form has to begin where a
+positions mean. Over a grammar cut into tokens (В§4) the first form has to begin where a
 token of the whole text begins, and is refused elsewhere. The second cuts only the window
 into tokens, so it may begin anywhere, and a character no token begins with ends the
 tokens rather than refusing the reading: a hole in an interpolated string, read up to the
@@ -1856,7 +1857,7 @@ tokens rather than refusing the reading: a hole in an interpolated string, read 
 method, with the one entry a whole parse needs, gets neither: its rules were proved to
 need nothing else only against the end of the input.
 
-**What "how far back" means is fixed by §4**, and this is the whole of the retention
+**What "how far back" means is fixed by В§4**, and this is the whole of the retention
 rule:
 
 - a call may resume choices in its callee, so rule extraction does not reduce retention;
@@ -1869,20 +1870,20 @@ no better than reading it. What bounds it is a construct that says the parse wil
 back past a point, and `recover` is one by construction: its synchronization expression
 is exactly such a point, so a marked repetition retains one element and not the file.
 
-**A capture is materialized when the rule that owns it accepts** — not when the parse
+**A capture is materialized when the rule that owns it accepts** вЂ” not when the parse
 ends, and not lazily afterwards. Since a rule's extent is also its retention, a captured
 string is made while the input it names is still there, and a buffer may be reused the
 moment the rule that read it has answered. That is what makes a capture and a reused
-buffer compatible at all, and it is why construction runs at the accepting state (§7.3)
+buffer compatible at all, and it is why construction runs at the accepting state (В§7.3)
 rather than at the end of the parse.
 
 **Absolute offsets are `long`; extents are `int`.** A position is into the input, and an
-input may be a file larger than an `int` can index. An extent — a span, a length, a
-capture — is into a buffer, and a buffer never is. Counts of things, like a line number
+input may be a file larger than an `int` can index. An extent вЂ” a span, a length, a
+capture вЂ” is into a buffer, and a buffer never is. Counts of things, like a line number
 or an ordinal, are `int`: nothing has two billion lines.
 
 Inside recognition, a position is an ordinary index into whatever currently holds the
-input — a reused window, or the in-memory buffer itself. `Match<T>.Position` (§6.1) is
+input вЂ” a reused window, or the in-memory buffer itself. `Match<T>.Position` (В§6.1) is
 a `long` regardless of mode, since even in-memory input could in principle be a string
 an `int` cannot index; it is only ever widened once, at the one place a position
 crosses a publication's own boundary out to the caller, so an error at offset
@@ -1898,7 +1899,7 @@ How large a part is aimed to be is counted in the generator's estimated basic bl
 the default is chosen on grammars that are not yours:
 
 ```csharp
-[Gram("…", PartSize = 80)]
+[Gram("вЂ¦", PartSize = 80)]
 public partial class MyParser { }
 ```
 
@@ -1908,7 +1909,7 @@ recognizer asks for one part, zero means nothing was asked, and everything betwe
 taken at its word. A number that made a grammar stop compiling would be a knob nobody
 could safely turn.
 
-Whether to divide *at all* is not tunable and is not the same question — a grammar
+Whether to divide *at all* is not tunable and is not the same question вЂ” a grammar
 small enough to hold in one method is faster that way, and one too large for it is far
 slower undivided. The generator decides that from the size it estimates.
 
@@ -1918,8 +1919,8 @@ A grammar that recurses can be handed input the author did not write: a thousand
 or a hundred thousand. Recursive descent reads that on the machine stack, and a machine
 stack ends.
 
-So a rule a cycle re-enters probes the stack as it begins — once in every sixty-four
-entries, because the runtime reserves far more than sixty-four frames of a reader — and
+So a rule a cycle re-enters probes the stack as it begins вЂ” once in every sixty-four
+entries, because the runtime reserves far more than sixty-four frames of a reader вЂ” and
 where the margin has gone the reading is **carried onto a stack of its own and goes on from
 that rule**. Nothing is re-read and nothing is lost. A reading deep enough to run the new
 stack low takes another, and by default it may take them for as long as there is memory to
@@ -1928,7 +1929,7 @@ take one with.
 Say how many is enough where that is not what you want:
 
 ```csharp
-[Gram("…", Stacks = 4)]
+[Gram("вЂ¦", Stacks = 4)]
 public partial class MyParser { }
 ```
 
@@ -1936,7 +1937,7 @@ Past that many the parse fails with `InsufficientExecutionStackException`. Zero,
 default, is no limit. A reading that never goes deep takes none whatever this says, and a
 grammar with no cycle in it never probes.
 
-One thing is not carried: a reading over a window (§6.3) has no whole input to hand to
+One thing is not carried: a reading over a window (В§6.3) has no whole input to hand to
 another stack, so a streamed parse that runs low fails.
 
 ### 6.6 `[GramOptions]`, a second reading of the same grammar
@@ -1954,21 +1955,21 @@ public static partial class Sql { }
 `Sql.ParseQuery` is the first; `Sql.Immediate.ParseQuery` is the second. Two files come
 out, one per attribute.
 
-Everything a `[GramOptions]` does not say it takes from the `[Gram]` — the grammar, whether
-it is read as tokens, how it is divided — and what it does say is the difference. That is
+Everything a `[GramOptions]` does not say it takes from the `[Gram]` вЂ” the grammar, whether
+it is read as tokens, how it is divided вЂ” and what it does say is the difference. That is
 the shape this is for: the class's own parser, compiled the other way and no other way.
 The options themselves are the same on both, since `[Gram]` is a `[GramOptions]` with a
 grammar in it; only `Source` and `IncludedAs` are the grammar's own.
 
 **Why a class rather than a suffix on the method names.** Everything a parser needs is
-emitted beside it (§6.2), and a file's share of that — the match, the failure, the lexer,
-the value tables — is written once and named for what it is. Two compilations in one
+emitted beside it (В§6.2), and a file's share of that вЂ” the match, the failure, the lexer,
+the value tables вЂ” is written once and named for what it is. Two compilations in one
 scope would collide on every one of them. A class is a scope, so nothing collides and
 neither compilation can see the other. What the host itself declares stays in reach:
 a nested class reads the static members of the class around it by their simple names,
 which is what a grammar's `=>` calls are.
 
-**What the host's own C# names is the host's.** `SourceSpan` (§4.1) and `Match<T>` (§6.1)
+**What the host's own C# names is the host's.** `SourceSpan` (В§4.1) and `Match<T>` (В§6.1)
 appear in the signatures a grammar calls and a caller reads, so where a class carries
 several grammars they are written once, in the class itself, and every scope reads them
 from around it. Otherwise a factory handing a span to a method of the host would be
@@ -1988,8 +1989,8 @@ public static partial class Sql
 }
 ```
 
-Two readings wanting the same scope — the same `Suffix`, or a `[GramOptions]` with none,
-which is the scope the `[Gram]` already has — is refused (`GRAM0006`), because one of them
+Two readings wanting the same scope вЂ” the same `Suffix`, or a `[GramOptions]` with none,
+which is the scope the `[Gram]` already has вЂ” is refused (`GRAM0006`), because one of them
 would silently win.
 
 The value types a grammar generates are the compilation's own, so two compilations of a
@@ -2046,18 +2047,18 @@ The compiler API exposes the same choice as
 public abstract partial class TransactSqlParser { }
 ```
 
-`[GramInclude]` is the reference. It names a class that carries a grammar — one with a
-`[Gram]` of its own, in this project or in one this project references — and that
+`[GramInclude]` is the reference. It names a class that carries a grammar вЂ” one with a
+`[Gram]` of its own, in this project or in one this project references вЂ” and that
 grammar is compiled into this one, wrapped in a namespace called what `As` says, or
 what the class's `IncludedAs` says, or the class's own name. Its rules are reached in
 full, `Sql92.Identifier`, and `using Sql92;` opens the namespace as `using` opens any
-other (§5). Written as many times as there are grammars to build on; what an included
+other (В§5). Written as many times as there are grammars to build on; what an included
 grammar includes comes along too, each grammar once however many paths lead to it, so
 a cycle ends rather than being reported.
 
 An included grammar is a whole file, and it stays one. What it sees outward is what a
 compilation sees of its references and no more: the built-in rules, the standard
-library, and the grammars it included itself — never the rules of the grammar that
+library, and the grammars it included itself вЂ” never the rules of the grammar that
 included it, which were not written for it, and never that grammar's `trivia`,
 `wordboundary` or `context`, each of which is its own to declare and defaults as it
 would in a file of its own. Its `parse` directives are its own class's public API,
@@ -2065,7 +2066,7 @@ already generated there, and are left where they were written; the including gra
 publishes what it means to publish. Nothing has to derive from anything: the host is
 its own class, and what its grammar built on is a matter of the attribute.
 
-Two includes under one name are one namespace, and then their rules can collide — that
+Two includes under one name are one namespace, and then their rules can collide вЂ” that
 is refused (`GRAM0008`), and the fix is an `As` of its own for all but one. Under
 different names they cannot collide at all, whatever they are called inside.
 
@@ -2081,21 +2082,21 @@ responsibility, and the generator does not stand between a grammar and its C#.
 
 **A grammar travels with its assembly.** A `.gram` file is read at compile time and is
 not part of what ships, so the generator writes the grammar's text onto the class it
-compiled — `[GramSource("…")]` — and an include across a project reference reads it off
+compiled вЂ” `[GramSource("вЂ¦")]` вЂ” and an include across a project reference reads it off
 the type it already names. The file wins where both are in reach, so that a diagnostic
 points at something somebody can edit. It costs the size of the grammar, and it follows
 what the class already says: a publicly visible host carries its grammar and one nobody
-outside can name does not, and `[Gram(Portable = …)]` says otherwise where that guess
+outside can name does not, and `[Gram(Portable = вЂ¦)]` says otherwise where that guess
 is wrong. An include that finds neither a file nor a carried text is `GRAM0003`.
 
 ### 6.8 Generation options
 
 The options written on `[Gram]` and `[GramOptions]` change how a grammar is compiled into a
-parser — which machine reads it, how it carries what it read until it builds, how its
-methods are divided, what a value is told about where it was written — and not what the
+parser вЂ” which machine reads it, how it carries what it read until it builds, how its
+methods are divided, what a value is told about where it was written вЂ” and not what the
 grammar means. Under every setting a grammar accepts the same texts and builds the same
 values, except where an entry below says otherwise: `Lexical` reads over tokens, where a
-rule's answer stands (§4); `Direct` off reads such a grammar on the automaton, where it does
+rule's answer stands (В§4); `Direct` off reads such a grammar on the automaton, where it does
 not; `Carrier` decides whether a construction may run for a reading that is abandoned or
 refused; `LocationType` hands values their positions; `Stacks` fails a reading deeper than
 it allows.
@@ -2103,18 +2104,18 @@ it allows.
 `Lexical`, `Carrier` and `Direct` are requests rather than settings. Where a grammar cannot
 be compiled the way one asks, the parser is compiled the way it would have been without the
 request, and a diagnostic says why: `GRAM5004`, `GRAM5007`, and `GRAM5005` for a rule of a
-grammar cut into tokens that the methods refuse. `PartSize` is a wish (§6.4), and no value
+grammar cut into tokens that the methods refuse. `PartSize` is a wish (В§6.4), and no value
 of it fails a build.
 
 | Option | Default | What it says |
 | --- | --- | --- |
-| `Source` | the `.gram` file named after the class | `[Gram]` only, as its constructor argument: a path to a `.gram` file, or the grammar text itself. A single-line value ending in `.gram` is a path (§1). |
-| `IncludedAs` | the class's own name | `[Gram]` only: the name another grammar includes this one under where its `[GramInclude]` gives no `As` (§6.7). |
-| `Suffix` | none — the host class itself | the nested class a reading goes into (§6.6). |
-| `PartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
-| `Stacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
-| `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
-| `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
+| `Source` | the `.gram` file named after the class | `[Gram]` only, as its constructor argument: a path to a `.gram` file, or the grammar text itself. A single-line value ending in `.gram` is a path (В§1). |
+| `IncludedAs` | the class's own name | `[Gram]` only: the name another grammar includes this one under where its `[GramInclude]` gives no `As` (В§6.7). |
+| `Suffix` | none вЂ” the host class itself | the nested class a reading goes into (В§6.6). |
+| `PartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (В§6.4). |
+| `Stacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (В§6.5). |
+| `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (В§6.7). |
+| `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (В§4, В§7.1). A grammar that cannot be cut is `GRAM5004`. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `PrefixTables` | `true` | table dispatch for disjoint, case-sensitive literal prefixes in the character/byte automaton. Set `false` to select the previous strategy. Other choices retain their existing strategy. No tokenization is introduced. |
 | `Direct` | `true` | compile as methods where the automaton is not needed; below. |
@@ -2122,27 +2123,27 @@ of it fails a build.
 
 `[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
 `IncludedAs` may be written on either, and a `[GramOptions]` takes what it does not say from
-the `[Gram]` (§6.6).
+the `[Gram]` (В§6.6).
 
 #### `Carrier`
 
-A reader holds what it has read until the constructions (§3.7) run, and the carrier is how:
+A reader holds what it has read until the constructions (В§3.7) run, and the carrier is how:
 
-- **`Auto`** — the generator chooses, and says which as `GRAM5012`: `Immediate` where every
+- **`Auto`** вЂ” the generator chooses, and says which as `GRAM5012`: `Immediate` where every
   parse that succeeds runs only the constructions of what it accepted, the tape everywhere
   else. A parse that fails may already have run the constructions of what it read.
-- **`Tape`** — records on a tape, built into values once the parse is accepted. No
-  construction runs for input that is refused (§3.7).
-- **`Immediate`** — no deferral: a construction runs the moment its alternative has been
+- **`Tape`** вЂ” records on a tape, built into values once the parse is accepted. No
+  construction runs for input that is refused (В§3.7).
+- **`Immediate`** вЂ” no deferral: a construction runs the moment its alternative has been
   read, and one abandoned afterwards has already run. That is once per derivation tried
   rather than once per derivation accepted: invisible to a pure allocation, visible to a
   counter. It is for factories the author knows to be pure.
-- **`Mixed`** — deferral without a tape: what a rule read is kept in a typed shape of its
+- **`Mixed`** вЂ” deferral without a tape: what a rule read is kept in a typed shape of its
   own, and the constructions run over those shapes once the parse is accepted, once per node
   of the accepted derivation, as on the tape. It does not carry a rule whose value is the
-  extent it matched, a recovery, a mark (§7.8), or a rule read at a strength (§4.3.1).
+  extent it matched, a recovery, a mark (В§7.8), or a rule read at a strength (В§4.3.1).
 
-A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why —
+A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why вЂ”
 among the reasons, that no part of the grammar is read by methods, since a carrier is what a
 reader holds.
 
@@ -2153,7 +2154,7 @@ automaton keeps what the methods refuse: a stream, a `find`, a recovery, a captu
 lookahead, a rule called with arguments. Off keeps the automaton for every publication.
 
 Over characters the two read alike. Over a grammar cut into tokens they do not: it is the
-methods that make a rule's answer stand (§4), and on the automaton a choice that has matched
+methods that make a rule's answer stand (В§4), and on the automaton a choice that has matched
 can be revisited when something later fails. Where the methods refuse a rule of such a
 grammar, `GRAM5005` names it; `Direct = false` asks for that reading and is not reported.
 
@@ -2164,13 +2165,13 @@ grammar, `GRAM5005` names it; `Direct = false` asks for that reading and is not 
 ```
 
 Name an interface with a settable property called `Span`, and every rule whose value
-implements it is handed the range of input it was built from — the rule's own text, without
+implements it is handed the range of input it was built from вЂ” the rule's own text, without
 the trivia around it, so that a comment falls between two values rather than inside one. The
 property is written once, by the reader, on a value it has just made and nothing has yet
 seen.
 
 It changes nothing about what is read, and a grammar that names no interface pays nothing.
-Being an option, it may be given to one reading of a grammar and not to another (§6.6).
+Being an option, it may be given to one reading of a grammar and not to another (В§6.6).
 
 #### Attributes for tooling
 
@@ -2179,7 +2180,7 @@ they change nothing a parser reads or builds.
 
 | Attribute | What it says |
 | --- | --- |
-| `[GramLanguage(id, Extensions = …)]` | a stable identifier for the language, unique to whoever owns it — a reverse domain name is the usual shape — and the file extensions it claims, with the dot |
+| `[GramLanguage(id, Extensions = вЂ¦)]` | a stable identifier for the language, unique to whoever owns it вЂ” a reverse domain name is the usual shape вЂ” and the file extensions it claims, with the dot |
 | `[GramClassify(target, role)]` | gives a rule (`Keyword`) or a capture of one (`Declaration.type`) a role from `GramClassification`: `Keyword`, `Identifier`, `Type`, `Variable`, `Function`, `Method`, `Property`, `Number`, `String`, `Comment`, `Operator`, `Punctuation`, `Namespace`, `Parameter` or `Label`. A capture's role overrides its rule's |
 | `[GramToolingGuard(expression, accepted)]` | the answer an editor takes for a guard it does not execute |
 | `[GramToolingExternal(method, rule)]` | a grammar rule equivalent to an external recognizer, for an editor to read in its place |
@@ -2188,7 +2189,7 @@ A role says what something means, not how it looks: an editor's theme decides th
 
 Two more are written by the generator and never by an author. `[GramSource]` carries the
 grammar's text on the class it compiled, which is how an include across a project reference
-finds it (§6.7). `[GramLanguageDescriptor]` carries a versioned description of the language
+finds it (В§6.7). `[GramLanguageDescriptor]` carries a versioned description of the language
 on a generated parser, for tooling to read.
 
 ## 7. The bond with C#
@@ -2207,13 +2208,15 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | `bool M(char c)` | element predicate | `[@M]` inside an element set |
 | `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M` as a grammar operand |
 | `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | bare `@M` as a grammar operand |
+| `bool M(ParserInput<char> input, ref int pos)` | contiguous or buffered external recognizer | bare `@M` |
+| `bool M(ParserInput<char> input, ref int pos, out T value, Context context)` | input-view recognizer with value and context; both trailing parameters are optional | bare `@M` |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
 
 **Everything under the `@` is the consumer's own C#, and the grammar does not look
 inside it.** `=> @M(a, b)` and `=> @(M(a, b))` are one construction written two ways:
 both go across as text, so a name in either needs no `@` of its own, and both see the
-same things — the rule's captures and the names of §8.2, which are what the generated
+same things вЂ” the rule's captures and the names of В§8.2, which are what the generated
 method takes as parameters.
 
 ```dotgram
@@ -2222,13 +2225,13 @@ method takes as parameters.
 => @Hold(parserInput, parserSpan)                        // and the supplied names, likewise
 ```
 
-**This is the one place §2's rule stops.** Outside an `@` a bare name is the grammar's —
-a capture, a rule, a parameter — and that is unchanged, including in the argument list of
+**This is the one place В§2's rule stops.** Outside an `@` a bare name is the grammar's вЂ”
+a capture, a rule, a parameter вЂ” and that is unchanged, including in the argument list of
 a call to a rule. The line is the `@`, not the bracket.
 
 It stops there because resolving names inside a consumer's C# would mean keeping up with
 C#, and every construct this compiler has not learnt would become one the language forbids
-for no reason of its own — and two spellings of the same construction would not accept the
+for no reason of its own вЂ” and two spellings of the same construction would not accept the
 same things.
 
 There is one rule to read this by: **syntactic position determines the call shape.**
@@ -2238,18 +2241,20 @@ overloads, accessibility, parameter types and result types are C#'s responsibili
 
 Two exceptions, narrow and specific, both about bare `@M`. The first: it alone does not
 say whether `M` is the second row or the third, since the notation is the same either way.
-The host is asked whether `M` also has a `(ReadOnlySpan<char>, ref int, out T)` overload.
+The host is asked whether `M` has an `out T` recognizer overload with either input form.
 Finding one hands the rule-shaped identity a value-producing call needs; finding none
 leaves bare `@M` the second row. More than one such overload with a different `T` is a
-tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
+tie, reported rather than guessed at, the same as an ambiguous constructor (В§7.3).
 
-The second: whether `M` can be called in its role at all — as a recognizer where it is bare,
+The second: whether `M` can be called in its role at all вЂ” as a recognizer where it is bare,
 as a predicate over a character where it is `[@M]`. Where no method of that row's shape is
-in reach of the class the grammar is attached to — in it, around it, in what it derives
-from, or in the class of a grammar it includes — that is said about the grammar
+in reach of the class the grammar is attached to вЂ” in it, around it, in what it derives
+from, or in the class of a grammar it includes вЂ” that is said about the grammar
 (`GRAM4025`), rather than by the C# compiler about a call in a generated file. It is said
 only where it is certain, and it changes nothing about what `@M` means: the role is still
-the position's.
+the position's. The host also identifies whether a bare recognizer uses a span or
+`ParserInput<char>`, and whether the latter takes a context argument. Declare one
+character-input contract per recognizer name.
 
 The same C# name may therefore implement both contracts without ambiguity:
 
@@ -2261,28 +2266,58 @@ Many = @Foo
 The first call selects `bool Foo(char)`, the second
 `bool Foo(ReadOnlySpan<char>, ref int)` by ordinary C# overload resolution.
 
-The external recognizer's signature is deliberately built from BCL types only: nothing
-emitted appears in it (§6.2), and it needs no interface dispatch.
-Its value is the text it covered — the same as any rule that captures nothing.
+The span-based recognizer's signature uses BCL types only; nothing emitted appears
+in it (В§6.2). An input-view recognizer uses the host's generated `ParserInput<T>`
+instead. Both forms keep the same bare `@M` notation.
+Its value is the text it covered вЂ” the same as any rule that captures nothing.
 
 **A recognizer is trusted absolutely, and that is the bargain.** The `ref` is the method
 saying that it moves the position; it is handed the parser's own, and nothing copies it
 away, bounds-checks it afterwards, or reasons about what came back. Move it backwards,
-move it past the end, leave it somewhere that makes the rest of the grammar nonsense —
+move it past the end, leave it somewhere that makes the rest of the grammar nonsense вЂ”
 all of that is allowed and none of it is diagnosed.
 
 This is deliberate. A seam that second-guessed the code on the other side of it would
 still not make a wrong recognizer right. Reaching into the parse means taking the
 parse's invariants on with it.
 
-One thing follows from it, and it is arithmetic rather than punishment: a grammar
-containing an external recognizer gets no streaming overloads (§6.3). The method is
-handed a span and told nothing about where it came from, so it cannot tell the end of a
-window from the end of the input, and nothing in its signature lets it say which it hit.
-It would read a record cut in half as a record that ended.
+A span-based external recognizer gets no streaming overloads (В§6.3): it cannot
+distinguish the end of a buffer from EOF. For buffered input, declare the callback
+in the parser host using the generated `ParserInput<char>` type. Add a
+`ParserInput<byte>` overload for `stream bytes`; the character overload also serves
+contiguous input. The optional last parameter receives the grammar's declared
+`context : @Context`. An optional `out T` precedes the context, if present.
+
+```dotgram
+Data = @ReadData
+```
+
+```csharp
+static bool ReadData(ParserInput<byte> input, ref int position, Context context)
+{
+    return input.TryAdvance(ref position, context.Length);
+}
+```
+
+`Ensure(position, length)` reads until the requested extent is available or EOF is
+known. `TryAdvance(ref position, length)` does the same and advances only on success.
+`Peek(position, out value)` reads one element without advancing; `Slice(position,
+length)` returns a borrowed span and throws if the extent is unavailable. Negative
+arguments throw; an extent beyond `int.MaxValue` fails `Ensure` without advancing.
+Positions are absolute, including after earlier yielded records have been released.
+Do not access released input or retain a borrowed span across another input operation
+or callback return. Buffer growth and retention limits are the same as for grammar
+rules; callbacks cannot release buffers or bypass the configured limit.
+
+Refilling does not restart a callback. Grammar backtracking can call it again, and
+value-producing callbacks are called again when their result is materialized, as
+with span-based recognizers. Keep speculative side effects and context changes
+consistent with those rules. Input-view recognizers use character parsing when a
+lexical split is requested; their reads can depend on the current syntactic context.
+No runtime assembly is required: the input view is emitted into the parser host.
 
 **A terminal the lexer begins and something else ends.** In a grammar cut into a lexer
-and a syntactic half (§4, `Lexical = true`), a terminal is read by one automaton together
+and a syntactic half (В§4, `Lexical = true`), a terminal is read by one automaton together
 with every other, and an automaton reads only regular languages. Comments that nest,
 interpolated strings, raw strings whose delimiter varies are not regular. They are written
 as a regular beginning followed by one operand that is not:
@@ -2321,7 +2356,7 @@ ordinary C# rules.
 
 ### 7.2 What the C# side must guarantee
 
-- A value transformation has no access to the input — it physically never receives it.
+- A value transformation has no access to the input вЂ” it physically never receives it.
 - An external recognizer must restore `pos` to its entry value on any outcome other
   than success.
 - An external recognizer and a `when` guard execute during recognition. Ordered choice
@@ -2346,8 +2381,8 @@ Names are matched by one mechanical casing transform: the capture `symbol` fits 
 parameter `symbol` and the property `Symbol`.
 
 A handful of names are **supplied rather than captured**: declare a parameter with one
-of them and the generator fills it in. They are listed in §8.2, where the same names
-serve a rejected element — `parserSpan` and `parserText` for the extent and the input
+of them and the generator fills it in. They are listed in В§8.2, where the same names
+serve a rejected element вЂ” `parserSpan` and `parserText` for the extent and the input
 it covers, `parserOrdinal`, `parserLine`, `parserColumn` and `parserPosition` for where
 it was.
 
@@ -2356,22 +2391,22 @@ A capture's own type follows from what it captures:
 | Captured | Type |
 | --- | --- |
 | a rule reference | that rule's result type |
-| a literal, an element set, or a group of those | `string` — the matched text |
-| a quantifier over something that yields text | `string`, the text joined — not `char[]` |
+| a literal, an element set, or a group of those | `string` вЂ” the matched text |
+| a quantifier over something that yields text | `string`, the text joined вЂ” not `char[]` |
 | a quantifier over a rule that yields a value | `T[]` |
 
 The two quantifier rows are what makes the regex-shaped case behave:
 `scheme: ['a'..'z']+` gives `"http"`, while `items: Row*` gives `Row[]`. Both are the
-same principle as §4.1 case 4 — where nothing produces a value of its own, the value
-is the matched extent — applied one level down, at the capture.
+same principle as В§4.1 case 4 вЂ” where nothing produces a value of its own, the value
+is the matched extent вЂ” applied one level down, at the capture.
 
-A capture binds tighter than a quantifier (§3.8), so `scheme: ['a'..'z']+` is one capture
-repeated rather than a capture of a run — and the two rows above are how that is read:
+A capture binds tighter than a quantifier (В§3.8), so `scheme: ['a'..'z']+` is one capture
+repeated rather than a capture of a run вЂ” and the two rows above are how that is read:
 repeated text is the text joined, a repeated rule is an array of its values.
 
 An optional capture and an empty run are different answers and stay different: `(sign:
 '-')?` that did not match is null, while `digits: ['0'..'9']*` that matched nothing is
-`""` — the text of no iterations.
+`""` вЂ” the text of no iterations.
 
 ```dotgram
 Url = scheme: ("https" | "http" | "ftp") & "://" & host: Host
@@ -2390,13 +2425,13 @@ public sealed class Url
 
 This is what a regex's named group becomes: a member of a known type, checked at
 compile time, rather than `Match.Groups["scheme"].Value` looked up by string at run
-time. And it can be typed all the way — `scheme: Scheme` with `Scheme : @UriScheme`
+time. And it can be typed all the way вЂ” `scheme: Scheme` with `Scheme : @UriScheme`
 hands back the enum instead of the text.
 
 When no accessible C# type exists for a rule, an ordinary class with the same members
-is generated — a constructor and a get-only property per capture, and nothing else. Not
+is generated вЂ” a constructor and a get-only property per capture, and nothing else. Not
 a bespoke node framework, and not a `record`: a positional record needs `IsExternalInit`,
-which lives in `System.Runtime.CompilerServices`, and §6.2 is why nothing is ever emitted
+which lives in `System.Runtime.CompilerServices`, and В§6.2 is why nothing is ever emitted
 into a namespace that is not ours. A consumer targeting an older framework has their own
 copy of that type from a polyfill package, and a second one is a compile error in their
 build rather than ours.
@@ -2404,7 +2439,7 @@ build rather than ours.
 ### 7.4 C# stays C#
 
 The generator does not resolve or declare methods named by `when` and `=>`. It emits
-the call exactly as written, under the `#line` mapping of §7.6. A missing name, a wrong
+the call exactly as written, under the `#line` mapping of В§7.6. A missing name, a wrong
 overload, an inaccessible member or an incompatible result is therefore an ordinary C#
 diagnostic at the corresponding place in the grammar.
 
@@ -2432,28 +2467,28 @@ public readonly struct Match<T>
 }
 ```
 
-`public`, unlike the support types of §6.2, because a published method hands it back
-and an `internal` type cannot appear in a `public` signature (§6.2). `Position` is a
-`long` because an input may be larger than an `int` can index (§6.3), and `Length` an
+`public`, unlike the support types of В§6.2, because a published method hands it back
+and an `internal` type cannot appear in a `public` signature (В§6.2). `Position` is a
+`long` because an input may be larger than an `int` can index (В§6.3), and `Length` an
 `int` because an extent is into a buffer. `Error` is built where it is asked for
 rather than where the match failed, so a caller who only wants to know whether the
 input matched pays nothing for the words.
 
 **`Outcome` says which kind of answer this is, and the two failures differ.**
 `NoMatch` is input that was there and did not fit; `Starved` is input that ran out
-where more was needed — the answer a caller reading from a stream acts on differently
+where more was needed вЂ” the answer a caller reading from a stream acts on differently
 from the one reading a finished document. Both are exact: the furthest position the
 parse reached is either the end of the input, or a place where something wanted more
 characters than remained.
 
-**A rule's own `on fail` (§4) is what `Error` says, where that rule is the refusal.** The
+**A rule's own `on fail` (В§4) is what `Error` says, where that rule is the refusal.** The
 rule has to have been entered where the parse stopped and read nothing: a rule that read
 part of what it wanted and failed further in is not what went wrong here, and what it
-wanted there is the better answer. Where one applies, it is the whole of `Error` — the
+wanted there is the better answer. Where one applies, it is the whole of `Error` вЂ” the
 author took the wording, and nothing is appended to it.
 
 Exceptions appear only at the publication boundary, and only in the methods without a
-`Try` prefix — where a .NET developer expects them. What is thrown is
+`Try` prefix вЂ” where a .NET developer expects them. What is thrown is
 `FormatException`: the same type as `int.Parse` throws, and one that requires nothing
 shared between assemblies.
 
@@ -2469,7 +2504,7 @@ breakpoints and for "go to definition" in both directions.
 
 Some grammars need somewhere to put what the reading works out: a table of names, the
 label a jump goes to, whatever the language being read means by scope. A `=>` cannot hold
-it — it runs after the whole match — and a `when` that writes into a static field has made
+it вЂ” it runs after the whole match вЂ” and a `when` that writes into a static field has made
 that field global, which is a bug waiting for the second thread and the second parse.
 
 So a grammar may declare one:
@@ -2488,13 +2523,13 @@ var names = new Names();
 var tree  = Grammar.ParseLambda(text, names);
 ```
 
-**`context` is then a name a `=>` and a `when` may use**, like the supplied names of §8.2
+**`context` is then a name a `=>` and a `when` may use**, like the supplied names of В§8.2
 and under the same rule: a hook that does not name it is not passed it, so a grammar that
 declares a context and never uses it is compiled exactly as one that declares none, and
 its publications take no extra argument.
 
 ```dotgram
-Local = type: Type & name: Word & when @(context.Declare(type, name, parserSpan)) & …
+Local = type: Type & name: Word & when @(context.Declare(type, name, parserSpan)) & вЂ¦
 Name : @Expression = n: Word => @(context.Named(n, parserSpan))
 ```
 
@@ -2503,33 +2538,33 @@ for: a `when` runs while the text is read, in the order it is written, and a `=>
 afterwards, against what the guards have by then recorded.
 
 **One per grammar** (`GRAM3014`), and the one at the top of a file is the one a caller
-supplies. A grammar included in another (§6.7) may declare its own, and that is a *contract*
+supplies. A grammar included in another (В§6.7) may declare its own, and that is a *contract*
 rather than a second object: the rules written there see the caller's object through the type
 their own grammar named, and an including grammar may strengthen the type for its own rules
 without changing what the included ones were compiled against.
 
 **And what is handed over has to satisfy every contract along the way** (`GRAM3019`). One
 object flows down, and the parts of a composed grammar see it through as many static types as
-there are grammars in it — the base’s rules through what the base declared, the including
-grammar’s through what it declared. The type actually supplied is the one at the top of the
+there are grammars in it вЂ” the baseвЂ™s rules through what the base declared, the including
+grammarвЂ™s through what it declared. The type actually supplied is the one at the top of the
 file, and it has to be assignable to every contract underneath it. Which is ordinary
 subtyping: virtual dispatch works, new members are invisible to the grammar that did not
 declare them, and inherited semantic code keeps meaning what it meant when it was written.
 
 Where the top of the file declares none, the effective type is the contract that satisfies
-all the others — the most derived of what was inherited. Where no single one does, there is
+all the others вЂ” the most derived of what was inherited. Where no single one does, there is
 no object to hand over and the grammar has to say which type it means.
 
 **What it is not** is somewhere to put state that has to be *undone*. Nothing here unwinds:
 a `when` runs on readings the parse goes on to abandon, and what it wrote stays written.
-That is why what belongs here is what can be written down more than once without harm — a
-position, a declaration keyed by where it was read — and why a grammar that needs "this
+That is why what belongs here is what can be written down more than once without harm вЂ” a
+position, a declaration keyed by where it was read вЂ” and why a grammar that needs "this
 holds while that is being matched" is asking for something this is not.
 
 ### 7.8 What holds while something is being read
 
-§7.7's context is state a parse *accumulates*: written once, still written at the end. The
-other kind is state that holds **while** one thing is being read and is gone after it —
+В§7.7's context is state a parse *accumulates*: written once, still written at the end. The
+other kind is state that holds **while** one thing is being read and is gone after it вЂ”
 what C# means by `checked(...)`, what a language means by "inside a loop", "inside a query".
 
 A grammar marks the extent:
@@ -2549,7 +2584,7 @@ Additive : @Expression
 	=> @(Arithmetic.Add(left, right, parserState))
 ```
 
-`Additive` is one rule. **The mark changes nothing about what is read** — the same
+`Additive` is one rule. **The mark changes nothing about what is read** вЂ” the same
 characters, the same route, the same failures in the same places. What differs is which
 `Expression.Add*` the host calls, and that is decided after the parse, where the value is
 built:
@@ -2568,20 +2603,20 @@ static Expression Add(Expression left, Expression right, ReadOnlySpan<Overflow> 
 ```
 
 **`parserState` is the marks standing over that construction, outermost first**, so the
-last is the nearest. Named like the supplied names of §8.2 and given by the same rule: a
+last is the nearest. Named like the supplied names of В§8.2 and given by the same rule: a
 hook that does not name it is not passed it, and a grammar that places no mark hands an
 empty span to one that does.
 
 **One type for all of them** (`GRAM3016`, `GRAM3020`). A grammar included in another may
 declare it too, and what that declares is a claim to be the *same* type rather than a
-contract of its own — which is where `state` parts company with §7.7’s `context`, and the
+contract of its own вЂ” which is where `state` parts company with В§7.7вЂ™s `context`, and the
 reason is not the variance that makes it mechanically impossible. A context is one object
 flowing down; a mark is a heterogeneous stack of values placed by several authors and read as
 one span, and a span admits exactly one element type.
 
 Which is why a grammar meant to be inherited declares its `state` as a reference type: a
 consumer cannot extend an enum to add a concern of their own.
-Which mark a hook means is the hook's to decide — it reads back for the
+Which mark a hook means is the hook's to decide вЂ” it reads back for the
 nearest value of its own concern and walks past everything belonging to another, which is
 why `Overflow` and a `Strictness` lying between it and its reader do not collide. The limit
 this sets is real and worth stating plainly: **two unrelated concerns must be different
@@ -2590,15 +2625,15 @@ grammar declares.
 
 **Nesting is what a mark is for.** `checked(a + unchecked(b + c) + d)` is not two flags
 cancelling: the inner mark stands over its own protraction and the outer one is in force
-again after it. That falls out of where the marks are kept — in the arena, in order — and
+again after it. That falls out of where the marks are kept вЂ” in the arena, in order вЂ” and
 so does the other half: **an abandoned reading's marks are abandoned with it.** Nothing
 unwinds them, because being gone is the whole of what unwinding owes them, and the walk
 that reads them runs over what was accepted.
 
-`with state` and §5.1's `with (...)` share a word and no mechanism, which is why this one is
+`with state` and В§5.1's `with (...)` share a word and no mechanism, which is why this one is
 qualified. A rebinding replaces rules before anything runs and is visible to the grammar; a
 mark leaves the grammar alone and is visible only to hooks. A rule named `state` stays
-ordinary and stays rebindable — `with (state = other)` is parenthesized and this is not.
+ordinary and stays rebindable вЂ” `with (state = other)` is parenthesized and this is not.
 
 ---
 
@@ -2611,12 +2646,12 @@ grammar that does not ask for it.
 
 ### 8.1 Recognition failure and C# exceptions
 
-The seam already exists — §7.2: `when` runs **during** the match, `=>` runs **after**
+The seam already exists вЂ” В§7.2: `when` runs **during** the match, `=>` runs **after**
 it, once the match is final and from the alternative that actually matched.
 
 A recognition failure is a shape the grammar does not describe. It happens during the
 match, and ordered choice may undo it and try something else. Only past a commit point
-(§8.2) does it stop being "try something else" and become an error.
+(В§8.2) does it stop being "try something else" and become an error.
 
 Construction runs after recognition. Its C# must produce the rule's declared value;
 compile-time mistakes are C# diagnostics, and an exception thrown while constructing a
@@ -2624,11 +2659,11 @@ value leaves the parse. The generator does not infer another parser outcome from
 method's signature.
 
 There is also a failure that belongs to no single record: the **envelope**
-— a missing `Trailer`, input that did not end, a declared count that does not match.
+вЂ” a missing `Trailer`, input that did not end, a declared count that does not match.
 It is settled when the whole parse finishes, which for a streamed parse is after the
 records have long since been handed out.
 
-### 8.2 `recover` — a repetition that survives a bad element
+### 8.2 `recover` вЂ” a repetition that survives a bad element
 
 ```dotgram
 Feed : FeedItem[] = Header
@@ -2643,7 +2678,7 @@ Feed : FeedItem[] = Header
    without it, a bad row is merely a row that did not match, the repetition ends, and
    the failure surfaces at the top of the file as "the feed does not parse".
 2. **On an error the parser skips past the next match of the synchronization
-   expression** — `eol` here — and starts the next iteration there. The ordinal
+   expression** вЂ” `eol` here вЂ” and starts the next iteration there. The ordinal
    advances, so a rejected record still occupies its place in the numbering.
 3. **What follows the repetition is not tried on the error path.** An error means the
    element was there and was broken, not that the repetition ended.
@@ -2663,8 +2698,8 @@ also have consumed that line. This is general sequence/repetition behavior, not 
 feed-specific rule.
 
 **Nothing is ever caught.** An exception out of a `=>` leaves the parse, inside a marked
-repetition as anywhere else. Catching would mean catching `Exception` — there is no way
-to tell "this record's quantity is not a number" from `NullReferenceException` by type —
+repetition as anywhere else. Catching would mean catching `Exception` вЂ” there is no way
+to tell "this record's quantity is not a number" from `NullReferenceException` by type вЂ”
 and a parser that turns a bug in the author's own C# into "row 400 was malformed" is
 worse than one that stops.
 
@@ -2673,12 +2708,12 @@ failed, therefore malformed" is wrong for ordinary grammars, and this language's
 example proves it:
 
 ```dotgram
-IPv6 = (H16 & ':'){6} & LS32 | …
+IPv6 = (H16 & ':'){6} & LS32 | вЂ¦
 ```
 
 An iteration matches `H16` and fails on `':'` having consumed four characters. That is
 a healthy backtrack, not a broken address. Marking the repetition is how an author says
-which reading applies, and it changes nothing outside the repetition it is written on —
+which reading applies, and it changes nothing outside the repetition it is written on вЂ”
 a rule still means one thing everywhere it is called.
 
 **A rule may mark as many repetitions as it has**, each with its own synchronization
@@ -2690,7 +2725,7 @@ Sheet = "H" & eol & head: Row* recover eol => @(Bad("head", parserText))
       & eof
 ```
 
-The one exception is a parse read from a `TextReader` (§6.3): the driver steps over a
+The one exception is a parse read from a `TextReader` (В§6.3): the driver steps over a
 bad element as it hands the good ones back, one repetition at a time, so a rule that
 marks two is told it gets no reader overload (`GRAM5001`) rather than silently
 recovering in one place only. Read whole, it recovers in both.
@@ -2702,19 +2737,19 @@ fields: Field* recover ('|' | eol)      // either separator, whichever comes fir
 fields: Field* recover  '|' | eol       // (fields: Field* recover '|') | eol
 ```
 
-`recover` binds tighter than `|`, the same way `&` does (§3.8), so the second line is a
+`recover` binds tighter than `|`, the same way `&` does (В§3.8), so the second line is a
 choice between a recovering repetition and `eol` rather than a recovery with two ways to
 resume. Both are legitimate things to write, which is why this is precedence rather than
 an error.
 
 A choice is worth having. Resuming at the next field separator rather than the next line
 keeps the rest of a record instead of throwing it away, which is what a recovery *inside*
-a record wants — `eol` in the same choice is then the backstop for a record so broken
+a record wants вЂ” `eol` in the same choice is then the backstop for a record so broken
 that no separator is left in it.
 
 **The synchronization expression is also the retention bound.** An element of a marked
 repetition cannot reach back past the previous synchronization point, so a streamed
-parse holds one element and not the file. This is what §6.3 promises to prove before
+parse holds one element and not the file. This is what В§6.3 promises to prove before
 emitting a streaming overload; `recover eol` proves it by construction.
 
 #### The failure factory
@@ -2727,26 +2762,26 @@ Row* recover eol => @BadRow(parserOrdinal, parserLine, parserText, parserMessage
 ```
 
 The factory's result must fit the sequence's element type, exactly as a successful
-element must — so this form needs a declared `: T[]` whose type can hold both. Failure
+element must вЂ” so this form needs a declared `: T[]` whose type can hold both. Failure
 then needs no channel of its own: it arrives in the stream, in its place, and the
 question of matching a rejection to the record it came from does not arise.
 
-Without a `=>` the failed element is dropped and reported out of band (§8.3), which is
+Without a `=>` the failed element is dropped and reported out of band (В§8.3), which is
 what a grammar that has no type to spare should do.
 
 #### Positions, and the names that are filled in
 
-The factory's arguments are matched by name, the way §7.3 matches captures, and these
+The factory's arguments are matched by name, the way В§7.3 matches captures, and these
 names are supplied rather than captured:
 
 | | |
 | --- | --- |
 | `parserOrdinal` | which element of the repetition this is, counting rejected ones, from 0 |
 | `parserLine`, `parserColumn` | where it starts, for a person, from 1 |
-| `parserPosition` | absolute offset, `long` — for a machine |
+| `parserPosition` | absolute offset, `long` вЂ” for a machine |
 | `parserSpan`, `parserText` | its extent, and the input it covers |
-| `parserInput` | the whole of what was read, `string` — see below |
-| `parserMessage` | why it was rejected — only here, never in a capture |
+| `parserInput` | the whole of what was read, `string` вЂ” see below |
+| `parserMessage` | why it was rejected вЂ” only here, never in a capture |
 
 Every one of them begins with `parser`, and that prefix is the whole of the collision
 story: the supplied names become parameters of the generated factory for a `=>` or a
@@ -2758,7 +2793,7 @@ rather than by a C# error in a file nobody wrote (GRAM4012).
 `parserInput` is the one name here that hands over something the parse did not itself
 produce, and it is what a value that means to cut its own string later is built from:
 `parserSpan` says where, `parserInput` says what to cut it out of. Nothing else offers
-that, because nothing else has to — every other name is about the one element.
+that, because nothing else has to вЂ” every other name is about the one element.
 
 ```dotgram
 Host : @Text = (Unreserved | SubDelim)+ => @(new Text(parserInput, parserSpan))
@@ -2768,13 +2803,13 @@ Host : @Text = (Unreserved | SubDelim)+ => @(new Text(parserInput, parserSpan))
 built this way is two integers and a reference where an eager one is a built string, so
 a caller who reads one part of seven pays for one; and it keeps the whole input alive
 for as long as any part of the result lives, which for three names lifted out of a large
-document is the document. `Regex` makes exactly this bargain — a `Match` holds its input
-— and it is invisible until somebody parses something large. The generator does not
+document is the document. `Regex` makes exactly this bargain вЂ” a `Match` holds its input
+вЂ” and it is invisible until somebody parses something large. The generator does not
 choose a default here: `: @string` is the eager form, `: @SourceSpan` is the extent with
 no string at all, and this is the middle one, said in the grammar rather than settled
 for everybody by a switch.
 
-A rule asking for it gets no overload taking a reader, and is told so (§6.3, GRAM5001).
+A rule asking for it gets no overload taking a reader, and is told so (В§6.3, GRAM5001).
 A stream is what having no whole input is called: a window holds the part being read,
 and that is not what this name means.
 
@@ -2803,7 +2838,7 @@ refused on performance, which here outranks the convenience:
   factory's C# mentions and passes only those. `parserLine` is a scan of everything
   consumed so far; on a million-record feed, computing it for every element whether or
   not anybody wanted it is quadratic. A context object has to be filled before it is
-  handed over, so either every field is eagerly computed — the quadratic case — or the
+  handed over, so either every field is eagerly computed вЂ” the quadratic case вЂ” or the
   object computes them lazily.
 - **Lazily is what it cannot do.** Computing a line number later means holding the
   input, and the input is a `ReadOnlySpan<char>`. A class cannot hold one, so a lazy
@@ -2811,9 +2846,9 @@ refused on performance, which here outranks the convenience:
   cost of the feature paid by every parse that never uses it.
 - **A container also allocates**, once per rejected element and once per `=>` that asks
   for anything at all, in a design whose whole shape is that nothing is allocated while
-  matching (§4).
+  matching (В§4).
 
-Feedback out of the parse already goes through `OnRecovered` (§8.3).
+Feedback out of the parse already goes through `OnRecovered` (В§8.3).
 
 What is left is the name collision, and a prefix costs nothing to solve it.
 
@@ -2843,16 +2878,16 @@ while (feed.Read())
 
 Success and failure are the same iteration here, so nothing has to be matched up
 afterwards, and there is no element to allocate. It is also the shape a reused record
-needs — `Current` valid until the next `Read` — which no compiler-generated iterator
+needs вЂ” `Current` valid until the next `Read` вЂ” which no compiler-generated iterator
 can offer.
 
 `RowOutcome` is generated per grammar, `public`, and nested in the host class, with
-members drawn from the BCL and from the grammar's own types. It follows the rule of §7.3
+members drawn from the BCL and from the grammar's own types. It follows the rule of В§7.3
 rather than being an exception to it: no C# type declared, so one is generated. Nothing
-about it is shared between assemblies, which is what §6.2 says of everything.
+about it is shared between assemblies, which is what В§6.2 says of everything.
 
 **The sink of the fourth row is a method of the host.** A grammar with a `recover` that has
-no `=>` (§8.2) gets this declaration in its host class:
+no `=>` (В§8.2) gets this declaration in its host class:
 
 ```csharp
 static partial void OnRecovered(
@@ -2861,19 +2896,19 @@ static partial void OnRecovered(
 
 It is called for every element a recovering repetition could not read, with the rule the
 element should have been, the input it covered up to where the parse picked up again, where
-it began, which element of the repetition it was, and why it was rejected — the numbers
-counted as §8.2 counts them. There is one per host class, which is why it is told the rule.
+it began, which element of the repetition it was, and why it was rejected вЂ” the numbers
+counted as В§8.2 counts them. There is one per host class, which is why it is told the rule.
 It is a `partial void` without an access modifier, so an implementation is optional: where
 there is none the compiler removes every call to it together with its arguments, and a parse
 materializes no text and counts no lines for a channel nobody listens on.
 
 **A rejection carries the text it was rejected from.** A position alone is useless in a
-streamed parse — a `TextReader` cannot be wound back and the buffer has been reused —
+streamed parse вЂ” a `TextReader` cannot be wound back and the buffer has been reused вЂ”
 so the text of a failed element is materialized. Only of a failed one: the premise is
 that failures are rare, and a grammar that fails on every record has a different
 problem.
 
-Exceptions appear only where §7.5 puts them: in the published methods without a `Try`
+Exceptions appear only where В§7.5 puts them: in the published methods without a `Try`
 prefix. `ParseFeed(string)` throws on the first failure of any kind; everything else
 answers.
 
@@ -2936,19 +2971,19 @@ in itself, with no more than two tokens of lookahead.
 That grammar is not printed here, because a printed one is not checked.
 `examples/DotGram.Examples/Languages/GramExample.cs` holds it, this generator compiles it, and
 `ExampleTests.The_notation_reads_its_own_corpus` runs it over every grammar in this
-repository — the snapshots on disk and the text of every `[Gram]` in the examples
+repository вЂ” the snapshots on disk and the text of every `[Gram]` in the examples
 assembly, which a new grammar joins without anyone remembering to add it.
 
 Two things in the running grammar are worth knowing about, since neither is visible in
 a production list:
 
-* **The lexical rules sit in a namespace with `trivia = none`** (§4.5), so an identifier
+* **The lexical rules sit in a namespace with `trivia = none`** (В§4.5), so an identifier
   is letters with nothing allowed between them while everything outside is spaced and
   commented freely.
 
 * **`@(...)` is not recognized by the grammar at all.** Finding the parenthesis that
   closes it means knowing C#'s own strings and comments, which no grammar can do; the
-  rule is a bare external recognizer (§7.1) that reads the input itself. What follows
+  rule is a bare external recognizer (В§7.1) that reads the input itself. What follows
   is about that seam.
 
 `@(` is the only place in the whole language holding raw C# text, and the only one
@@ -2969,10 +3004,10 @@ and `..` are all valid C# operators. On `when @(qty > 0) & b: Y` it would consum
 
 Consequences. `.gram`'s lexer is not single-mode: after `@(` it switches to C#
 tokenization and returns at the matching `)`, as Razor does. This does not affect the
-two-token bound above. And Razor's limits on implicit expressions — no spaces, no
-generics — do not carry over: there they exist because the end has to be guessed
+two-token bound above. And Razor's limits on implicit expressions вЂ” no spaces, no
+generics вЂ” do not carry over: there they exist because the end has to be guessed
 inside a stream of markup, whereas here a grammar token marks the end. So
-`@ int . Parse ( text )` and `@List<int>` are both fine — `<` and `>` are free, since
+`@ int . Parse ( text )` and `@List<int>` are both fine вЂ” `<` and `>` are free, since
 the grammar has no comparison operators.
 
 ---
@@ -2981,22 +3016,22 @@ the grammar has no comparison operators.
 
 None of what follows changes the notation described above.
 
-- **Repairing a document.** When a whole input is one construct — a source
-  file in an editor — there is no notation for it: recovery here is scoped to
-  one repetition (§8.2), for a feed. A general repair pass over a whole
-  broken document — finding the edit an author most likely meant — is a
+- **Repairing a document.** When a whole input is one construct вЂ” a source
+  file in an editor вЂ” there is no notation for it: recovery here is scoped to
+  one repetition (В§8.2), for a feed. A general repair pass over a whole
+  broken document вЂ” finding the edit an author most likely meant вЂ” is a
   different kind of engine.
 
   The two do not overlap in what they'd answer even if both existed: repair
-  answers "what did the author most likely mean" for one document; §8.2
+  answers "what did the author most likely mean" for one document; В§8.2
   answers "this record is bad, say why and go on" for a hundred million of
   them, holding nothing but the current record.
 
 - **Alternatives are never reordered.** `|` is ordered choice and stays so, including
   where one literal alternative is a prefix of another. Over characters a prefix does
   not shadow anything, because backtracking is what ordered choice means there; over
-  kinds the first alternative that matches is the one (§4), and an alternative written
-  first does shadow what follows it — as it does in a parser written by hand.
+  kinds the first alternative that matches is the one (В§4), and an alternative written
+  first does shadow what follows it вЂ” as it does in a parser written by hand.
 
   The rule is **the first alternative that succeeds**, and what counts as succeeding is
   the directive's business rather than the choice's. `parse` needs the whole input, so
@@ -3010,7 +3045,7 @@ None of what follows changes the notation described above.
   find  A as EveryA      // EveryA("https") yields "http"
   ```
 
-  `find` asks for an occurrence, and `"http"` at that position is one — so it is the
+  `find` asks for an occurrence, and `"http"` at that position is one вЂ” so it is the
   answer, and reading goes on from the `s`. Both follow the same rule; they differ in
   what they are asking for. Where the longer reading is the one wanted, write it first:
   `"https" | "http"` answers `https` to both.
@@ -3023,17 +3058,17 @@ None of what follows changes the notation described above.
   Rule = part: ("x" | "xy") & 'y'?
   ```
 
-  input `xy` gives `part = "x"` as written and `part = "xy"` reordered — both parses
+  input `xy` gives `part = "x"` as written and `part = "xy"` reordered вЂ” both parses
   succeed, and even full backtracking would not make them agree. Order stops being
   incidental the moment two alternatives can match different lengths, and which of
-  "first that matches" and "longest that matches" is wanted is the author's call —
+  "first that matches" and "longest that matches" is wanted is the author's call вЂ”
   .NET regular expressions take the first, POSIX the longest.
 
   Normalization does merge alternatives automatically where order provably
   cannot matter: single-element sets, where the match is always exactly one item, so
   `'a' | 'b'` becomes `['a'..'b']`.
 
-- **`trivia`** — the mechanism is in §4.5. It needs no notation of its own: an ordinary
+- **`trivia`** вЂ” the mechanism is in В§4.5. It needs no notation of its own: an ordinary
   rule and ordinary shadowing.
 
 - **Atomic groups are explicit.** `{ X }` has the same matches and value as `X`, but when
@@ -3041,11 +3076,11 @@ None of what follows changes the notation described above.
   before the closing brace remains an ordinary failure. Rule boundaries never imply
   this behavior; an author chooses it only where the grammar has a real commit point.
 
-- **Keyword boundaries** — §4.6, the same mechanism again.
+- **Keyword boundaries** вЂ” В§4.6, the same mechanism again.
 
 - **`Incomplete`** does not exist. An outcome is `Success`, `NoMatch` or `Starved`.
-  A source that cannot block — an async socket, where control has to go back to the
-  caller mid-parse — is what would need it; a file, however large, is read by a reader
+  A source that cannot block вЂ” an async socket, where control has to go back to the
+  caller mid-parse вЂ” is what would need it; a file, however large, is read by a reader
   that simply fetches the next chunk. Adding it means a rule for every construct
   (repetition, both lookaheads, recovery, `find`) plus a resumption model,
   and that is a lot to carry before anything asks for it.
@@ -3053,15 +3088,15 @@ None of what follows changes the notation described above.
 - **A sliding window** over input that is neither memory-sized nor line-oriented.
   Source files fit in memory; feeds are line-oriented; what is left is huge binary
   input, which is out of scope. If it ever arrives, it slots in beside the two modes
-  in §6.3 without disturbing them.
+  in В§6.3 without disturbing them.
 
 - **A precedence table** separate from the rules, the way `yacc` declares one. What it
-  would buy is in §4.3.1 instead, written on the alternatives themselves — an operator
+  would buy is in В§4.3.1 instead, written on the alternatives themselves вЂ” an operator
   and its strength in one place rather than two that must be kept in step.
 
 - **Telling an error from a non-match.** A guard is recognition and stays a non-match:
   a failing `when @IsSupportedSymbol(symbol)` is an ordinary non-match, not an error
   carrying a message like "unsupported symbol XYZ". Most of what an author wants to say
-  there is not about recognition at all — it is about a value, after a match, which is
-  what the C# of a construction is for (§8.1), or what a repetition's `recover`
-  is for (§8.2). Neither changes what a guard means.
+  there is not about recognition at all вЂ” it is about a value, after a match, which is
+  what the C# of a construction is for (В§8.1), or what a repetition's `recover`
+  is for (В§8.2). Neither changes what a guard means.

@@ -112,11 +112,12 @@ Handwritten conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> over
 Numbers preserve exact precision; FIX calendar values preserve year zero and leap
 seconds. Standard code sets still constrain the underlying primitive in Strict mode.
 
-Raw data uses an atomic grammar rule: a guard computes the end from the immediately
-preceding registered length/data pair, and the grammar consumes blocks of 4096, 256 and 16 octets, then individual
-octets up to that end. Each attempt installs its own bound before consuming input. Guards use the end
-of parserSpan (the current position), which also works when rules are inlined.
-There is no external recognizer and no group-counter stack during recognition.
+Raw data uses `Data = @ReadData`. A guard validates the immediately preceding
+registered length/data pair and computes its end. Character and byte C# recognizer
+overloads consume that exact extent through `ParserInput<T>.TryAdvance`; buffered
+input refills inside the call. Truncated payloads fail without advancing the position,
+and separators inside the payload remain data. Each attempt installs its own bound
+before reading. There is no group-counter stack during recognition.
 
 `FixSemantics` interprets the flat fields using cached schema membership tables,
 constructs typed nested groups, and delegates field/requiredness/order validation

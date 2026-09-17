@@ -131,6 +131,12 @@ public enum ExternalMethodResolution
 
 	/// <summary>Methods of that name, and none of them one the parser can call in that role.</summary>
 	NoOverload,
+
+	/// <summary>A recognizer taking the generated ParserInput&lt;char&gt; view.</summary>
+	FoundInput,
+
+	/// <summary>An input-view recognizer also taking the grammar context as its last argument.</summary>
+	FoundInputWithContext,
 }
 
 /// <summary>A property an object initializer may write.</summary>

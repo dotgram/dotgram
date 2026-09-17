@@ -18,11 +18,7 @@ namespace DotGram.Finance.Fix;
 	Size         = ['0'..'9']+
 	Text         = (?!Separator & any)+
 
-	Block4096 = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 4096) & any{4096}
-	Block256  = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 256)  & any{256}
-	Block16   = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 16)   & any{16}
-	Octet     = when @(parserSpan.Start  + parserSpan.Length < context.DataLimit)        & any
-	Data      = { Block4096* & Block256* & Block16* & Octet* & when @(parserSpan.Start + parserSpan.Length == context.DataLimit) }
+	Data = @ReadData
 
 	Field : @FixField =
 		{ ?=any } & wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
@@ -42,6 +38,20 @@ namespace DotGram.Finance.Fix;
 	Portable      = false)]
 sealed partial class FixGrammar
 {
+	static bool ReadData(ParserInput<char> input, ref int position, FixContext context)
+	{
+		var length = context.DataLimit - position;
+
+		return length >= 0 && length <= int.MaxValue && input.TryAdvance(ref position, (int)length);
+	}
+
+	static bool ReadData(ParserInput<byte> input, ref int position, FixContext context)
+	{
+		var length = context.DataLimit - position;
+
+		return length >= 0 && length <= int.MaxValue && input.TryAdvance(ref position, (int)length);
+	}
+
 	public sealed class FixContext(FixOptions options)
 	{
 		public long DataLimit { get; private set; }
