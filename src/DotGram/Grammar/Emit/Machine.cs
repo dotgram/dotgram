@@ -2531,9 +2531,9 @@ sealed partial class Machine
 					DeclareTables(writer);
 					writer.Line("var guardBuilt  = parser.Materialized();");
 					writer.Line("var guardNeedsMaterialization = false;");
-					// Recovery values can be reached through their owner; keep the full
-					// walk there until recovery roots have an equally explicit bound.
-					writer.Line(_recoveryPlans.Count == 0 ? "var guardFrom = entries.Count;" : "var guardFrom = 0;");
+					// Both captured calls and directly requested recovery entries contribute
+					// their arena index below. Their dependencies are written after them.
+					writer.Line("var guardFrom = entries.Count;");
 				}
 
 				for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)

@@ -1,0 +1,5052 @@
+{
+  "baselineCommit": "0459ed97",
+  "mergedCommit": "a47cf61c",
+  "runtime": ".NET 10.0.12",
+  "methodology": "Two fresh processes per comparison; reversed assembly load order; 1.5 s warmup per variant/case; nine rotating rounds; new reader per operation and full enumeration; pre-encoded bytes; allocations over three warmed operations. Shared current Release Finance model. Internal-entry comparison bypasses incompatible public APIs and uses compact log separators.",
+  "generatorHashes": [
+    {
+      "Path": "P:\\WorkTrees\\2909\\dotgram\\.work\\main-impact\\before-generator.dll",
+      "Hash": "AFAFB4C4F3913EF54766F8D5FA48EAB718A53837689BAC0757A8FCDDEF05319D"
+    },
+    {
+      "Path": "P:\\WorkTrees\\2909\\dotgram\\.work\\generator-analysis\\harness\\bin\\Release\\net10.0\\DotGram.dll",
+      "Hash": "0E34E464E308ACC1C9F68B65BBD6F7DE7EACC76A005B71E45CDE1D62CC12EF9E"
+    }
+  ],
+  "generation": {
+    "before1": [
+      {
+        "Project": "Fix44",
+        "Kind": "fresh-0",
+        "Ms": 4888.9006,
+        "Allocated": 3808390368,
+        "GC0": 72,
+        "GC1": 59,
+        "GC2": 6,
+        "Sources": 4,
+        "Chars": 54664641,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Compiled",
+            "Ms": 4285.1737,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 4249.9155,
+                "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+              },
+              {
+                "Ms": 35.2582,
+                "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 42.717,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 36.8471,
+                "Name": null
+              },
+              {
+                "Ms": 5.8699,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 82.5477,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 75.5129,
+                "Name": null
+              },
+              {
+                "Ms": 7.0348,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.Sql",
+        "Kind": "fresh-0",
+        "Ms": 15621.8191,
+        "Allocated": 7833331056,
+        "GC0": 151,
+        "GC1": 77,
+        "GC2": 12,
+        "Sources": 6,
+        "Chars": 39682426,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 848.1119000000001,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 680.0825,
+                "Name": null
+              },
+              {
+                "Ms": 89.5618,
+                "Name": null
+              },
+              {
+                "Ms": 49.3024,
+                "Name": null
+              },
+              {
+                "Ms": 29.1652,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 1468.196,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 1284.1961,
+                "Name": null
+              },
+              {
+                "Ms": 101.9216,
+                "Name": null
+              },
+              {
+                "Ms": 42.7561,
+                "Name": null
+              },
+              {
+                "Ms": 39.3222,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 12826.064900000001,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 4580.7362,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+              },
+              {
+                "Ms": 4347.8951,
+                "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+              },
+              {
+                "Ms": 3113.897,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+              },
+              {
+                "Ms": 783.5366,
+                "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.ExpressionLanguage",
+        "Kind": "fresh-0",
+        "Ms": 2112.5924,
+        "Allocated": 333508688,
+        "GC0": 8,
+        "GC1": 6,
+        "GC2": 3,
+        "Sources": 4,
+        "Chars": 3467006,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Compiled",
+            "Ms": 1399.4976000000001,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 833.9795,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.g.cs"
+              },
+              {
+                "Ms": 565.5181,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 46.2,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 41.0578,
+                "Name": null
+              },
+              {
+                "Ms": 5.1422,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 182.76270000000002,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 135.8994,
+                "Name": null
+              },
+              {
+                "Ms": 46.8633,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyScalar",
+        "Kind": "fresh-0",
+        "Ms": 612.8702,
+        "Allocated": 12533512,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 30854,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Answered",
+            "Ms": 49.3533,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 49.3533,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 21.4872,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.4872,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 103.4455,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 103.4455,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyStreams",
+        "Kind": "fresh-0",
+        "Ms": 634.0386,
+        "Allocated": 13764088,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 76417,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Answered",
+            "Ms": 49.7985,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 49.7985,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 21.7391,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.7391,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 121.0891,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 121.0891,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "after1": [
+      {
+        "Project": "Fix44",
+        "Kind": "fresh-0",
+        "Ms": 5070.7178,
+        "Allocated": 4151804792,
+        "GC0": 78,
+        "GC1": 61,
+        "GC2": 6,
+        "Sources": 4,
+        "Chars": 59441690,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 43.1086,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 37.1186,
+                "Name": null
+              },
+              {
+                "Ms": 5.99,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 4460.9862,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 4433.4182,
+                "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+              },
+              {
+                "Ms": 27.568,
+                "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 82.7383,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 75.8119,
+                "Name": null
+              },
+              {
+                "Ms": 6.9264,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.Sql",
+        "Kind": "fresh-0",
+        "Ms": 15274.6067,
+        "Allocated": 7900476640,
+        "GC0": 153,
+        "GC1": 75,
+        "GC2": 13,
+        "Sources": 6,
+        "Chars": 39682426,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Answered",
+            "Ms": 1375.3383,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 1198.5877,
+                "Name": null
+              },
+              {
+                "Ms": 99.8824,
+                "Name": null
+              },
+              {
+                "Ms": 41.1395,
+                "Name": null
+              },
+              {
+                "Ms": 35.7287,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 12634.9995,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 4765.6559,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+              },
+              {
+                "Ms": 4194.9019,
+                "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+              },
+              {
+                "Ms": 2944.984,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+              },
+              {
+                "Ms": 729.4577,
+                "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 793.4143,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 627.206,
+                "Name": null
+              },
+              {
+                "Ms": 90.4875,
+                "Name": null
+              },
+              {
+                "Ms": 46.6164,
+                "Name": null
+              },
+              {
+                "Ms": 29.1044,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.ExpressionLanguage",
+        "Kind": "fresh-0",
+        "Ms": 2243.9379,
+        "Allocated": 333550128,
+        "GC0": 8,
+        "GC1": 6,
+        "GC2": 3,
+        "Sources": 4,
+        "Chars": 3467006,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Compiled",
+            "Ms": 1480.8775,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 877.7826,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.g.cs"
+              },
+              {
+                "Ms": 603.0949,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 47.2135,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 42.0024,
+                "Name": null
+              },
+              {
+                "Ms": 5.2111,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 189.6406,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 141.8962,
+                "Name": null
+              },
+              {
+                "Ms": 47.7444,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyScalar",
+        "Kind": "fresh-0",
+        "Ms": 626.2354,
+        "Allocated": 12533432,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 30854,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 21.0592,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.0592,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 48.8508,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 48.8508,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 101.3839,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 101.3839,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyStreams",
+        "Kind": "fresh-0",
+        "Ms": 620.5117,
+        "Allocated": 13764536,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 76417,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Answered",
+            "Ms": 48.1716,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 48.1716,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 21.5417,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.5417,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 116.8966,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 116.8966,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "before2": [
+      {
+        "Project": "Fix44",
+        "Kind": "fresh-0",
+        "Ms": 4576.6931,
+        "Allocated": 3808031872,
+        "GC0": 72,
+        "GC1": 59,
+        "GC2": 6,
+        "Sources": 4,
+        "Chars": 54664641,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Answered",
+            "Ms": 81.2533,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 74.3825,
+                "Name": null
+              },
+              {
+                "Ms": 6.8708,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 3995.7747,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 3960.654,
+                "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+              },
+              {
+                "Ms": 35.1207,
+                "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 41.7912,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 35.9258,
+                "Name": null
+              },
+              {
+                "Ms": 5.8654,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.Sql",
+        "Kind": "fresh-0",
+        "Ms": 14672.2858,
+        "Allocated": 7870258144,
+        "GC0": 152,
+        "GC1": 75,
+        "GC2": 13,
+        "Sources": 6,
+        "Chars": 39682426,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 733.9158000000001,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 566.8966,
+                "Name": null
+              },
+              {
+                "Ms": 89.2563,
+                "Name": null
+              },
+              {
+                "Ms": 47.7965,
+                "Name": null
+              },
+              {
+                "Ms": 29.9664,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 11989.8178,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 4315.4425,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+              },
+              {
+                "Ms": 4045.6655,
+                "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+              },
+              {
+                "Ms": 2876.5367,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+              },
+              {
+                "Ms": 752.1731,
+                "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 1465.4031,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 1279.8946,
+                "Name": null
+              },
+              {
+                "Ms": 102.3889,
+                "Name": null
+              },
+              {
+                "Ms": 44.3998,
+                "Name": null
+              },
+              {
+                "Ms": 38.7198,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.ExpressionLanguage",
+        "Kind": "fresh-0",
+        "Ms": 2132.1612,
+        "Allocated": 333506112,
+        "GC0": 8,
+        "GC1": 6,
+        "GC2": 3,
+        "Sources": 4,
+        "Chars": 3467006,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Answered",
+            "Ms": 181.5449,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 134.1525,
+                "Name": null
+              },
+              {
+                "Ms": 47.3924,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 46.6937,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 41.044,
+                "Name": null
+              },
+              {
+                "Ms": 5.6497,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 1423.7293,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 837.9514,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.g.cs"
+              },
+              {
+                "Ms": 585.7779,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyScalar",
+        "Kind": "fresh-0",
+        "Ms": 603.3236,
+        "Allocated": 12533504,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 30854,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 21.226,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.226,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 47.852,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 47.852,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 102.1151,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 102.1151,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyStreams",
+        "Kind": "fresh-0",
+        "Ms": 618.4789,
+        "Allocated": 13764712,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 76417,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 21.2775,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.2775,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 48.5002,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 48.5002,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 116.5721,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 116.5721,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "after2": [
+      {
+        "Project": "Fix44",
+        "Kind": "fresh-0",
+        "Ms": 4793.78,
+        "Allocated": 4150349728,
+        "GC0": 78,
+        "GC1": 62,
+        "GC2": 6,
+        "Sources": 4,
+        "Chars": 59441690,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 42.8055,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 36.7091,
+                "Name": null
+              },
+              {
+                "Ms": 6.0964,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 81.0372,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 74.2706,
+                "Name": null
+              },
+              {
+                "Ms": 6.7666,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 4206.3521,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 4165.6218,
+                "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+              },
+              {
+                "Ms": 40.7303,
+                "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.Sql",
+        "Kind": "fresh-0",
+        "Ms": 14526.0472,
+        "Allocated": 7844327272,
+        "GC0": 152,
+        "GC1": 75,
+        "GC2": 13,
+        "Sources": 6,
+        "Chars": 39682426,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 776.2152000000001,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 610.2264,
+                "Name": null
+              },
+              {
+                "Ms": 89.5239,
+                "Name": null
+              },
+              {
+                "Ms": 47.172,
+                "Name": null
+              },
+              {
+                "Ms": 29.2929,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 11824.5864,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 4283.4841,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+              },
+              {
+                "Ms": 3935.9819,
+                "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+              },
+              {
+                "Ms": 2854.4362,
+                "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+              },
+              {
+                "Ms": 750.6842,
+                "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 1455.3543,
+            "Reasons": {
+              "New": 4
+            },
+            "Hosts": [
+              {
+                "Ms": 1275.1684,
+                "Name": null
+              },
+              {
+                "Ms": 100.4632,
+                "Name": null
+              },
+              {
+                "Ms": 42.9602,
+                "Name": null
+              },
+              {
+                "Ms": 36.7625,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "DotGram.ExpressionLanguage",
+        "Kind": "fresh-0",
+        "Ms": 2126.6059,
+        "Allocated": 331076560,
+        "GC0": 8,
+        "GC1": 6,
+        "GC2": 3,
+        "Sources": 4,
+        "Chars": 3467006,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 49.927499999999995,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 44.6397,
+                "Name": null
+              },
+              {
+                "Ms": 5.2878,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 184.3358,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 136.9091,
+                "Name": null
+              },
+              {
+                "Ms": 47.4267,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 1404.2139,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 865.1047,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.g.cs"
+              },
+              {
+                "Ms": 539.1092,
+                "Name": "DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyScalar",
+        "Kind": "fresh-0",
+        "Ms": 613.4596,
+        "Allocated": 12533600,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 30854,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Compiled",
+            "Ms": 104.9689,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 104.9689,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 21.4723,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.4723,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 48.5625,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 48.5625,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Project": "TinyStreams",
+        "Kind": "fresh-0",
+        "Ms": 621.0784,
+        "Allocated": 13765336,
+        "GC0": 0,
+        "GC1": 0,
+        "GC2": 0,
+        "Sources": 3,
+        "Chars": 76417,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Asked",
+            "Ms": 21.2069,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 21.2069,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 117.3765,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 117.3765,
+                "Name": "Grammar.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 48.5415,
+            "Reasons": {
+              "New": 1
+            },
+            "Hosts": [
+              {
+                "Ms": 48.5415,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "oldGrammarBefore": [
+      {
+        "Project": "Fix44",
+        "Kind": "fresh-0",
+        "Ms": 4341.6522,
+        "Allocated": 3362216656,
+        "GC0": 64,
+        "GC1": 51,
+        "GC2": 6,
+        "Sources": 4,
+        "Chars": 48781981,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Compiled",
+            "Ms": 3742.8892,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 3705.8404,
+                "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+              },
+              {
+                "Ms": 37.0488,
+                "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Answered",
+            "Ms": 83.21900000000001,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 76.0567,
+                "Name": null
+              },
+              {
+                "Ms": 7.1623,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 42.481,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 36.5855,
+                "Name": null
+              },
+              {
+                "Ms": 5.8955,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "oldGrammarAfter": [
+      {
+        "Project": "Fix44",
+        "Kind": "fresh-0",
+        "Ms": 4440.0739,
+        "Allocated": 3671577448,
+        "GC0": 69,
+        "GC1": 59,
+        "GC2": 6,
+        "Sources": 4,
+        "Chars": 52964391,
+        "Errors": [],
+        "Stages": [
+          {
+            "Stage": "Answered",
+            "Ms": 82.009,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 75.0341,
+                "Name": null
+              },
+              {
+                "Ms": 6.9749,
+                "Name": null
+              }
+            ]
+          },
+          {
+            "Stage": "Compiled",
+            "Ms": 3838.7653,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 3811.4961,
+                "Name": "DotGram.Examples.Finance.Fix44Grammar.g.cs"
+              },
+              {
+                "Ms": 27.2692,
+                "Name": "DotGram.Examples.Finance.FixFieldGrammar.g.cs"
+              }
+            ]
+          },
+          {
+            "Stage": "Asked",
+            "Ms": 42.3059,
+            "Reasons": {
+              "New": 2
+            },
+            "Hosts": [
+              {
+                "Ms": 36.5242,
+                "Name": null
+              },
+              {
+                "Ms": 5.7817,
+                "Name": null
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "compilation": [
+    {
+      "Kind": "fix",
+      "Variant": "main-before",
+      "Ms": 150462.2806,
+      "ParseMs": 2010.6393,
+      "Allocated": 22685473768,
+      "AssemblyBytes": 14364672,
+      "Errors": []
+    },
+    {
+      "Kind": "fix",
+      "Variant": "main-after",
+      "Ms": 190785.9252,
+      "ParseMs": 2166.4908,
+      "Allocated": 25457588312,
+      "AssemblyBytes": 15725056,
+      "Errors": []
+    }
+  ],
+  "sameCurrentGrammar1": [
+    {
+      "Name": "Wire4",
+      "Form": "String",
+      "Length": 28,
+      "BeforeUs": 4.306071284736206,
+      "AfterUs": 2.829107142857143,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          4.306071284736206,
+          4.310904148207813,
+          4.284011276681434,
+          4.272472815142972,
+          4.2731977446637135,
+          4.294744260974627,
+          4.56905960531615,
+          4.414246878775675,
+          4.60303060813532
+        ],
+        [
+          2.8262882653061223,
+          2.947155612244898,
+          2.817589285714286,
+          2.829107142857143,
+          2.8611989795918364,
+          2.8328188775510204,
+          2.8127295918367348,
+          2.8285076530612243,
+          2.8439477040816326
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "TextReader",
+      "Length": 28,
+      "BeforeUs": 3.464369722557298,
+      "AfterUs": 2.1984387197501953,
+      "BeforeBytes": 632,
+      "AfterBytes": 632,
+      "Samples": [
+        [
+          3.49066646562123,
+          3.464369722557298,
+          3.591141435464415,
+          3.3696094692400482,
+          3.342053679131484,
+          3.5140304583835946,
+          3.3177397466827503,
+          3.6021034378769605,
+          3.4420762967430636
+        ],
+        [
+          2.3473640385115795,
+          2.131157949518605,
+          2.111183970856102,
+          2.246177465521728,
+          2.227046578194119,
+          2.148566224303929,
+          2.1202446005724696,
+          2.3338329430132707,
+          2.1984387197501953
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "Stream",
+      "Length": 28,
+      "BeforeUs": 3.0041389272704433,
+      "AfterUs": 2.1534888791975577,
+      "BeforeBytes": 600,
+      "AfterBytes": 600,
+      "Samples": [
+        [
+          2.4534983042331366,
+          2.8912510991081524,
+          3.01969601808818,
+          2.979776409998744,
+          2.9572541138047983,
+          3.0886634844868732,
+          3.2838839341791233,
+          3.0136666247958797,
+          3.0041389272704433
+        ],
+        [
+          1.7103881378107282,
+          1.9787221979938945,
+          2.176620148277366,
+          2.1892237243785435,
+          2.18958569559529,
+          2.1061971216746618,
+          2.1815176624509376,
+          2.0117880505887484,
+          2.1534888791975577
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "String",
+      "Length": 28000,
+      "BeforeUs": 478303.5333333334,
+      "AfterUs": 345518.1666666667,
+      "BeforeBytes": 15364258.666666666,
+      "AfterBytes": 376080,
+      "Samples": [
+        [
+          474762.23333333334,
+          471597.9666666666,
+          470079.5,
+          471475.39999999997,
+          478303.5333333334,
+          492699.6333333333,
+          491652.4666666666,
+          494173.89999999997,
+          485882.7
+        ],
+        [
+          344386.3,
+          339841,
+          345518.1666666667,
+          337334.06666666665,
+          335397.4666666667,
+          351252.10000000003,
+          358321,
+          377864.9666666666,
+          346887.6666666667
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "TextReader",
+      "Length": 28000,
+      "BeforeUs": 3318.646153846154,
+      "AfterUs": 2058.808695652174,
+      "BeforeBytes": 344288,
+      "AfterBytes": 344288,
+      "Samples": [
+        [
+          3376.6153846153848,
+          3641.7846153846153,
+          3208.6846153846154,
+          3221.6846153846154,
+          3532.276923076923,
+          3250.276923076923,
+          3318.646153846154,
+          3635.1846153846154,
+          3232.876923076923
+        ],
+        [
+          2055.691304347826,
+          2110.6782608695653,
+          2060.504347826087,
+          2072.108695652174,
+          2030.9782608695652,
+          2058.808695652174,
+          2116.2,
+          2004.4608695652173,
+          2007.2652173913043
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "Stream",
+      "Length": 28000,
+      "BeforeUs": 2394.62,
+      "AfterUs": 1689.27,
+      "BeforeBytes": 280320,
+      "AfterBytes": 280320,
+      "Samples": [
+        [
+          2186.5,
+          2467.5,
+          2478.965,
+          2461.725,
+          2609.59,
+          2353.835,
+          2211.65,
+          2386.46,
+          2394.62
+        ],
+        [
+          1541.2533333333333,
+          1543.2966666666666,
+          1710.7833333333333,
+          1720.9833333333333,
+          1689.27,
+          1671.3266666666668,
+          1599.1633333333334,
+          1706.6866666666667,
+          1689.2866666666666
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "String",
+      "Length": 2052,
+      "BeforeUs": 169.4983870967742,
+      "AfterUs": 2.4652067565072917,
+      "BeforeBytes": 4256,
+      "AfterBytes": 4256,
+      "Samples": [
+        [
+          152.99419354838707,
+          154.00387096774193,
+          156.69870967741934,
+          175.22612903225806,
+          173.41709677419357,
+          167.63193548387096,
+          175.35451612903228,
+          169.4983870967742,
+          169.97193548387096
+        ],
+        [
+          2.5044489569872623,
+          2.2591563596086397,
+          2.2662220786413143,
+          2.3881022706294996,
+          2.513023813919143,
+          2.4835702418312717,
+          2.4537059257891825,
+          2.574861546981724,
+          2.4652067565072917
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "TextReader",
+      "Length": 2052,
+      "BeforeUs": 160.32151898734176,
+      "AfterUs": 11.802317880794702,
+      "BeforeBytes": 4456,
+      "AfterBytes": 4456,
+      "Samples": [
+        [
+          155.98259493670886,
+          160.32151898734176,
+          161.3256329113924,
+          184.98101265822785,
+          158.248417721519,
+          151.9756329113924,
+          152.6373417721519,
+          166.70348101265824,
+          164.65791139240505
+        ],
+        [
+          11.45224146714213,
+          11.9143148242486,
+          11.802317880794702,
+          12.29253693326541,
+          11.63349465104432,
+          11.748853795211412,
+          11.69903209373408,
+          12.571115639327559,
+          12.079648497198166
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "Stream",
+      "Length": 2052,
+      "BeforeUs": 164.95241379310343,
+      "AfterUs": 8.784875705034468,
+      "BeforeBytes": 8608,
+      "AfterBytes": 8608,
+      "Samples": [
+        [
+          169.72137931034482,
+          154.8658620689655,
+          167.27206896551724,
+          147.86241379310346,
+          148.15827586206896,
+          149.57103448275862,
+          164.95241379310343,
+          181.12,
+          206.13068965517243
+        ],
+        [
+          9.506831000626697,
+          9.145038646333822,
+          9.073072905786505,
+          8.784875705034468,
+          8.408147064967622,
+          8.400250678922081,
+          8.646751618968038,
+          8.674409860037603,
+          10.495947357426363
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "String",
+      "Length": 36,
+      "BeforeUs": 5.4986287325387675,
+      "AfterUs": 2.6829294887327357,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          5.478457003716519,
+          5.525054466230936,
+          5.798744072792515,
+          5.567576573112905,
+          5.567961040625401,
+          5.4986287325387675,
+          5.420082019735999,
+          5.36875560681789,
+          5.463526848647956
+        ],
+        [
+          2.7117034165253213,
+          2.6764417252241337,
+          2.7287921007996125,
+          2.7428156045553673,
+          2.764526290283499,
+          2.6829294887327357,
+          2.6757450932881026,
+          2.667179549309426,
+          2.6704749212503027
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "TextReader",
+      "Length": 36,
+      "BeforeUs": 4.4578314512756165,
+      "AfterUs": 2.1989732953072334,
+      "BeforeBytes": 632,
+      "AfterBytes": 632,
+      "Samples": [
+        [
+          4.374236721037223,
+          4.82818904224174,
+          4.4578314512756165,
+          4.402289836888332,
+          4.751997072354663,
+          4.271988707653701,
+          4.247877457130907,
+          4.577906733584274,
+          4.714188624006692
+        ],
+        [
+          2.0584599429608503,
+          2.3324708322530463,
+          2.2440238527352867,
+          2.088799585169821,
+          2.2367850661135598,
+          2.3995281306715066,
+          2.120648172154524,
+          2.181654135338346,
+          2.1989732953072334
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "Stream",
+      "Length": 36,
+      "BeforeUs": 3.0315954118873827,
+      "AfterUs": 1.6185189450650699,
+      "BeforeBytes": 600,
+      "AfterBytes": 600,
+      "Samples": [
+        [
+          3.0588857440786534,
+          2.762393862654551,
+          2.7220095337405033,
+          2.72797556978996,
+          3.079226873231044,
+          3.117473558766572,
+          3.0315954118873827,
+          2.972218084314018,
+          3.0514002681364514
+        ],
+        [
+          1.655073131406196,
+          1.543076509654881,
+          1.6829168106261279,
+          1.497727359975431,
+          1.635007102000077,
+          1.619225306153787,
+          1.6185189450650699,
+          1.5215670467196438,
+          1.603869630312104
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "String",
+      "Length": 2209,
+      "BeforeUs": 375.6,
+      "AfterUs": 2.7846733935209773,
+      "BeforeBytes": 4568,
+      "AfterBytes": 4568,
+      "Samples": [
+        [
+          395.44354838709677,
+          369.45403225806456,
+          379.51693548387095,
+          377.6338709677419,
+          375.42903225806447,
+          376.8201612903226,
+          375.6,
+          369.6306451612903,
+          373.43145161290323
+        ],
+        [
+          2.9453212958045674,
+          2.7846733935209773,
+          2.5547955390334574,
+          2.609750398300584,
+          2.80842272968667,
+          2.8185395645246945,
+          2.5569729155602765,
+          2.4419702602230484,
+          2.808964418481147
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "TextReader",
+      "Length": 2209,
+      "BeforeUs": 408.7310924369748,
+      "AfterUs": 14.047746195808212,
+      "BeforeBytes": 4768,
+      "AfterBytes": 4768,
+      "Samples": [
+        [
+          408.7310924369748,
+          415.9378151260504,
+          468.97058823529414,
+          420.24285714285713,
+          403.8016806722689,
+          397.56302521008405,
+          391.2798319327731,
+          409.6411764705883,
+          404.3957983193277
+        ],
+        [
+          14.449095607235142,
+          14.070600057421764,
+          17.855957507895493,
+          14.15523973585989,
+          14.047746195808212,
+          13.97843812805053,
+          13.792276772896928,
+          13.836434108527133,
+          13.840855584266436
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "Stream",
+      "Length": 2209,
+      "BeforeUs": 168.50433333333334,
+      "AfterUs": 10.771915103652518,
+      "BeforeBytes": 9232,
+      "AfterBytes": 9232,
+      "Samples": [
+        [
+          202.72033333333331,
+          180.398,
+          167.90066666666667,
+          171.88566666666665,
+          166.13266666666667,
+          162.29666666666665,
+          162.15033333333332,
+          168.50433333333334,
+          178.20666666666668
+        ],
+        [
+          13.131688055281343,
+          10.599407699901285,
+          11.138968410661402,
+          11.664906219151035,
+          12.030281342546889,
+          10.771915103652518,
+          10.505059230009872,
+          10.641337611056267,
+          10.602838104639684
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "String",
+      "Length": 1032,
+      "BeforeUs": 417.38717948717954,
+      "AfterUs": 1.5069346548062421,
+      "BeforeBytes": 2216,
+      "AfterBytes": 2216,
+      "Samples": [
+        [
+          426.9811965811966,
+          409.2188034188034,
+          408.65213675213676,
+          445.02991452991455,
+          477.4726495726496,
+          414.2726495726496,
+          420.71794871794873,
+          417.38717948717954,
+          414.4470085470086
+        ],
+        [
+          1.4649081227492382,
+          1.565545261473114,
+          1.6958662932069315,
+          1.5029486903259566,
+          1.9975376281202868,
+          1.5069346548062421,
+          1.5396965126658253,
+          1.458669087999015,
+          1.4979808550586353
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "TextReader",
+      "Length": 1032,
+      "BeforeUs": 2972.65625,
+      "AfterUs": 6.549289734655589,
+      "BeforeBytes": 2416,
+      "AfterBytes": 2416,
+      "Samples": [
+        [
+          2880.625,
+          3019.975,
+          2924.5,
+          3199.4125,
+          2972.65625,
+          2925.44375,
+          3048.3125,
+          2968.0125,
+          2993.56875
+        ],
+        [
+          7.54624765478424,
+          6.738970785312248,
+          6.441530420798713,
+          6.485071026534441,
+          6.4849772179040475,
+          6.747855802733851,
+          6.748271240954168,
+          6.488166711337443,
+          6.549289734655589
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "Stream",
+      "Length": 1032,
+      "BeforeUs": 1951.2192307692308,
+      "AfterUs": 4.880627156484676,
+      "BeforeBytes": 4528,
+      "AfterBytes": 4528,
+      "Samples": [
+        [
+          1951.2192307692308,
+          1903.85,
+          1820.5576923076924,
+          1944.6269230769233,
+          1902.2961538461536,
+          2277.5307692307692,
+          2490.3038461538463,
+          2183.7384615384613,
+          2231.85
+        ],
+        [
+          5.250913334686421,
+          4.777795818956769,
+          5.369839659021717,
+          5.123178404708748,
+          4.832261010757053,
+          5.17318855287193,
+          4.8598437182869905,
+          4.684189161761721,
+          4.880627156484676
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "String",
+      "Length": 270,
+      "BeforeUs": 27.33575791227096,
+      "AfterUs": 1.2461312390407744,
+      "BeforeBytes": 5168,
+      "AfterBytes": 904,
+      "Samples": [
+        [
+          27.79822320932815,
+          26.479067184897282,
+          29.379122709605777,
+          26.43892282065519,
+          26.768684064408664,
+          27.33575791227096,
+          31.99966685174903,
+          29.254636313159356,
+          27.208106607440314
+        ],
+        [
+          1.4166135684473093,
+          1.219243782568966,
+          1.201224963572152,
+          1.1914277246795584,
+          1.2556098886172236,
+          1.234457039836013,
+          1.2775579758464843,
+          1.2461312390407744,
+          1.259465066311032
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "TextReader",
+      "Length": 270,
+      "BeforeUs": 186.95785440613028,
+      "AfterUs": 2.421825375890266,
+      "BeforeBytes": 5448,
+      "AfterBytes": 1096,
+      "Samples": [
+        [
+          186.95785440613028,
+          183.71302681992336,
+          189.20459770114942,
+          181.95900383141765,
+          187.54980842911877,
+          201.95747126436783,
+          182.5536398467433,
+          187.1,
+          181.19310344827588
+        ],
+        [
+          2.4326826694803483,
+          2.4193141651279344,
+          2.341118438406753,
+          2.27746768662622,
+          2.421825375890266,
+          2.4566974413083615,
+          2.4648430493273543,
+          2.43217093115273,
+          2.2879345819045107
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "Stream",
+      "Length": 270,
+      "BeforeUs": 126.01348600508906,
+      "AfterUs": 1.9784042403489843,
+      "BeforeBytes": 5248,
+      "AfterBytes": 896,
+      "Samples": [
+        [
+          124.16412213740458,
+          126.01348600508906,
+          126.76615776081425,
+          131.70127226463103,
+          124.69923664122138,
+          135.55521628498727,
+          125.6501272264631,
+          125.65394402035624,
+          132.22290076335878
+        ],
+        [
+          2.146348327782729,
+          1.979773910596182,
+          1.7737229701205497,
+          1.7882264646559405,
+          1.7658520568506963,
+          1.7613349594258643,
+          1.9784042403489843,
+          1.9894601060087247,
+          1.9942023547070689
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "String",
+      "Length": 1038,
+      "BeforeUs": 226.36084905660377,
+      "AfterUs": 1.7805266749628677,
+      "BeforeBytes": 19040,
+      "AfterBytes": 2440,
+      "Samples": [
+        [
+          227.4320754716981,
+          250.19716981132078,
+          226.36084905660377,
+          228.11084905660377,
+          223.36415094339623,
+          224.74009433962266,
+          232.72735849056602,
+          218.84622641509435,
+          220.11179245283017
+        ],
+        [
+          1.7805266749628677,
+          1.7014491590060616,
+          1.7662317851551523,
+          1.7987314840833366,
+          1.7683473164465497,
+          1.7587290755088112,
+          1.8511260085905825,
+          1.895536108546425,
+          1.8147846332945285
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "TextReader",
+      "Length": 1038,
+      "BeforeUs": 2806.9176470588236,
+      "AfterUs": 6.696939472605547,
+      "BeforeBytes": 19320,
+      "AfterBytes": 2632,
+      "Samples": [
+        [
+          2701.8352941176468,
+          3086.470588235294,
+          2806.9176470588236,
+          2775.4882352941177,
+          2873.1529411764704,
+          2816.535294117647,
+          2789.5117647058823,
+          3060.694117647059,
+          2791.211764705882
+        ],
+        [
+          6.691296625222025,
+          6.664680967345266,
+          6.636330099740402,
+          7.17484629047684,
+          6.716901216013117,
+          6.8053012706653915,
+          6.696939472605547,
+          6.535701598579041,
+          6.864981554857222
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "Stream",
+      "Length": 1038,
+      "BeforeUs": 1827.8629629629631,
+      "AfterUs": 4.7579343429592695,
+      "BeforeBytes": 18352,
+      "AfterBytes": 1664,
+      "Samples": [
+        [
+          1827.8629629629631,
+          1785.4037037037037,
+          1862.111111111111,
+          1839.8074074074075,
+          1797.4851851851852,
+          1806.6333333333332,
+          1899.2148148148149,
+          1816.8148148148148,
+          1829.177777777778
+        ],
+        [
+          5.100818361395918,
+          5.0392719405512185,
+          4.635876211080801,
+          5.234192456024833,
+          4.6262534098391495,
+          4.7579343429592695,
+          4.702078826074687,
+          4.753635594017497,
+          4.776925971216254
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "String",
+      "Length": 4110,
+      "BeforeUs": 3010.825,
+      "AfterUs": 4.20919014084507,
+      "BeforeBytes": 74384,
+      "AfterBytes": 8584,
+      "Samples": [
+        [
+          3010.825,
+          3216.51875,
+          2817.15,
+          2758.45625,
+          3137.9,
+          2912.60625,
+          3072.01875,
+          2902.98125,
+          3268.56875
+        ],
+        [
+          4.205695422535211,
+          4.054973591549296,
+          4.0789788732394365,
+          4.283080985915493,
+          4.20919014084507,
+          4.250827464788732,
+          4.200475352112676,
+          4.287605633802817,
+          4.317244718309859
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "TextReader",
+      "Length": 4110,
+      "BeforeUs": 44529.76666666666,
+      "AfterUs": 24.230699547055863,
+      "BeforeBytes": 74664,
+      "AfterBytes": 8776,
+      "Samples": [
+        [
+          44522.9,
+          46192.1,
+          51176.799999999996,
+          45483.96666666667,
+          44529.76666666666,
+          43740.1,
+          44934.299999999996,
+          44044.6,
+          44190.93333333333
+        ],
+        [
+          26.6675390035229,
+          24.384901862103675,
+          24.230699547055863,
+          23.871816809260192,
+          26.425868142929037,
+          23.967237040764974,
+          23.8,
+          24.20045294413689,
+          24.786361348766984
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "Stream",
+      "Length": 4110,
+      "BeforeUs": 29082.666666666668,
+      "AfterUs": 16.55574229691877,
+      "BeforeBytes": 70624,
+      "AfterBytes": 4736,
+      "Samples": [
+        [
+          32187.266666666666,
+          33635.6,
+          29082.666666666668,
+          29065.100000000002,
+          28854.100000000002,
+          28949.666666666668,
+          30815.033333333336,
+          29281.533333333336,
+          28898.066666666666
+        ],
+        [
+          20.317727090836335,
+          20.075870348139254,
+          16.499719887955184,
+          16.18951580632253,
+          16.55574229691877,
+          16.212084833933574,
+          16.886834733893558,
+          17.254421768707484,
+          16.314285714285713
+        ]
+      ]
+    }
+  ],
+  "sameCurrentGrammar2": [
+    {
+      "Name": "Wire4",
+      "Form": "String",
+      "Length": 28,
+      "BeforeUs": 4.55450643776824,
+      "AfterUs": 3.0929057070256167,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          4.801984978540773,
+          4.627564377682404,
+          4.445096566523605,
+          4.734763948497854,
+          4.48719957081545,
+          4.465783261802575,
+          4.55450643776824,
+          4.727296137339056,
+          4.508830472103004
+        ],
+        [
+          3.279060504086258,
+          3.9314950896229655,
+          2.984396676052469,
+          2.9660188173889153,
+          3.0007005013391934,
+          3.3646590206716573,
+          3.1463086326488567,
+          3.0929057070256167,
+          3.040986196003022
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "TextReader",
+      "Length": 28,
+      "BeforeUs": 3.6168190588037916,
+      "AfterUs": 2.2215581346862185,
+      "BeforeBytes": 632,
+      "AfterBytes": 632,
+      "Samples": [
+        [
+          4.1883063501384115,
+          4.158032044291587,
+          4.8844308363392335,
+          3.616022145793138,
+          3.8325140508346616,
+          3.6168190588037916,
+          3.4567989262645753,
+          3.542982971227246,
+          3.5117859239996645
+        ],
+        [
+          2.765876711376746,
+          2.6803043991938287,
+          2.760476753075266,
+          2.4629300159844325,
+          2.2215581346862185,
+          2.2077003266384043,
+          2.1875460421155046,
+          2.195329765793314,
+          2.1941413579817914
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "Stream",
+      "Length": 28,
+      "BeforeUs": 2.3447944946019317,
+      "AfterUs": 1.6986535473847746,
+      "BeforeBytes": 600,
+      "AfterBytes": 600,
+      "Samples": [
+        [
+          2.300681861228613,
+          2.3919691899741147,
+          2.3447944946019317,
+          2.277580655344403,
+          2.290087758065534,
+          2.4445482669360437,
+          2.313163709830166,
+          2.659063072163647,
+          2.3622766588799795
+        ],
+        [
+          4.188399792853444,
+          1.6991498360089763,
+          3.1930044881753843,
+          1.7614750561021923,
+          1.671508717417573,
+          1.6599818746763335,
+          1.6230105299499396,
+          1.6986535473847746,
+          1.615876920421198
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "String",
+      "Length": 28000,
+      "BeforeUs": 500990.06666666665,
+      "AfterUs": 357303.3333333333,
+      "BeforeBytes": 15361757.333333334,
+      "AfterBytes": 376080,
+      "Samples": [
+        [
+          500990.06666666665,
+          502214.1666666667,
+          507885.23333333334,
+          495743,
+          485011.8666666667,
+          497618.5333333334,
+          481661.6666666667,
+          587825.2999999999,
+          504901.3
+        ],
+        [
+          358300.26666666666,
+          353869.8666666667,
+          356449.7,
+          369979.1333333333,
+          357303.3333333333,
+          371942.7,
+          344607.73333333334,
+          351036.39999999997,
+          358433.4666666666
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "TextReader",
+      "Length": 28000,
+      "BeforeUs": 3407.7615384615387,
+      "AfterUs": 2212.8136363636363,
+      "BeforeBytes": 344288,
+      "AfterBytes": 344288,
+      "Samples": [
+        [
+          3389.361538461538,
+          3560.269230769231,
+          3625.3307692307694,
+          3248.6692307692306,
+          3408.076923076923,
+          3339.7461538461534,
+          3514.0307692307692,
+          3285.4615384615386,
+          3407.7615384615387
+        ],
+        [
+          2366.9500000000003,
+          2347.2999999999997,
+          2126.3636363636365,
+          2574.2954545454545,
+          2092.6,
+          2111.6363636363635,
+          2212.8136363636363,
+          2264.4727272727273,
+          2067.3136363636363
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "Stream",
+      "Length": 28000,
+      "BeforeUs": 2219.2799999999997,
+      "AfterUs": 1617.2366666666667,
+      "BeforeBytes": 280320,
+      "AfterBytes": 280320,
+      "Samples": [
+        [
+          2219.2799999999997,
+          2412.2200000000003,
+          2392.895,
+          2244.535,
+          2336.955,
+          2216.8650000000002,
+          2201.2599999999998,
+          2213.5,
+          2217.54
+        ],
+        [
+          1628.6100000000001,
+          1727.0366666666666,
+          1602.5566666666666,
+          1710.2133333333334,
+          1816.3766666666668,
+          1617.2366666666667,
+          1560.7666666666667,
+          1596.2966666666666,
+          1560.1333333333334
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "String",
+      "Length": 2052,
+      "BeforeUs": 176.17088607594937,
+      "AfterUs": 2.610439584520314,
+      "BeforeBytes": 4256,
+      "AfterBytes": 4256,
+      "Samples": [
+        [
+          158.86993670886076,
+          163.51613924050633,
+          178.251582278481,
+          175.31582278481014,
+          189.7753164556962,
+          176.62689873417722,
+          176.80284810126582,
+          176.17088607594937,
+          173.16898734177215
+        ],
+        [
+          2.1415085243458827,
+          2.176109918043564,
+          2.7909278169785687,
+          2.61918306525836,
+          2.7349826883464083,
+          2.5708375334180658,
+          2.7772713327781915,
+          2.610439584520314,
+          2.5949073059560854
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "TextReader",
+      "Length": 2052,
+      "BeforeUs": 156.02138157894737,
+      "AfterUs": 11.996570121951219,
+      "BeforeBytes": 4456,
+      "AfterBytes": 4456,
+      "Samples": [
+        [
+          153.31809210526316,
+          161.0516447368421,
+          152.11513157894737,
+          183.32664473684213,
+          174.14210526315787,
+          159.00230263157894,
+          156.02138157894737,
+          154.66907894736843,
+          153.88848684210527
+        ],
+        [
+          11.692632113821137,
+          11.805970528455285,
+          11.996570121951219,
+          13.610391260162602,
+          14.982571138211382,
+          14.757647357723577,
+          13.41326219512195,
+          11.986407520325203,
+          11.614405487804879
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "Stream",
+      "Length": 2052,
+      "BeforeUs": 160.25376712328767,
+      "AfterUs": 8.541775126536514,
+      "BeforeBytes": 8608,
+      "AfterBytes": 8608,
+      "Samples": [
+        [
+          161.02876712328768,
+          156.5527397260274,
+          161.30205479452053,
+          159.41164383561642,
+          165.08938356164384,
+          160.16472602739725,
+          161.1821917808219,
+          157.54109589041096,
+          160.25376712328767
+        ],
+        [
+          8.274114244396241,
+          8.625542299349242,
+          9.458477946493131,
+          8.517263195950832,
+          9.2117136659436,
+          8.794992769342011,
+          8.391377440347071,
+          8.509381778741865,
+          8.541775126536514
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "String",
+      "Length": 36,
+      "BeforeUs": 5.890657627118644,
+      "AfterUs": 2.6809292565947245,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          5.892664406779661,
+          5.943674576271186,
+          5.556298305084745,
+          6.309884745762712,
+          6.223959322033898,
+          5.557003389830508,
+          5.4587796610169494,
+          5.591335593220339,
+          5.890657627118644
+        ],
+        [
+          2.7536750599520388,
+          2.6693045563549163,
+          2.6233633093525177,
+          2.622601918465228,
+          2.7177158273381297,
+          2.726864508393285,
+          2.6809292565947245,
+          2.6474460431654676,
+          2.718974820143885
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "TextReader",
+      "Length": 36,
+      "BeforeUs": 4.327332457293036,
+      "AfterUs": 2.1296483188301325,
+      "BeforeBytes": 632,
+      "AfterBytes": 632,
+      "Samples": [
+        [
+          4.327332457293036,
+          4.314222177297078,
+          4.336126554129183,
+          4.331476801779036,
+          4.713504498129991,
+          4.289639138785,
+          4.6143535833417575,
+          4.241999393510563,
+          4.222510866269079
+        ],
+        [
+          2.1415478090726534,
+          2.1296483188301325,
+          2.2459296637660264,
+          2.194052829411462,
+          2.083960661140003,
+          2.033180577725143,
+          2.065393131146697,
+          2.149194171257917,
+          2.070228103599197
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "Stream",
+      "Length": 36,
+      "BeforeUs": 2.7864709547877866,
+      "AfterUs": 1.5331647121943743,
+      "BeforeBytes": 600,
+      "AfterBytes": 600,
+      "Samples": [
+        [
+          2.775849892681576,
+          2.775863740220176,
+          2.862133905698262,
+          2.8505227445821504,
+          2.7732327078861734,
+          2.7864709547877866,
+          2.9903759606729903,
+          2.7704839714740706,
+          2.7902721041334906
+        ],
+        [
+          1.539974706829156,
+          1.5265348355943895,
+          1.5036790066681995,
+          1.553276615313865,
+          1.5331647121943743,
+          1.5169655859584579,
+          1.5484325898674025,
+          1.5707710584808767,
+          1.5219935617383307
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "String",
+      "Length": 2209,
+      "BeforeUs": 364.89130434782606,
+      "AfterUs": 2.8579021610336848,
+      "BeforeBytes": 4568,
+      "AfterBytes": 4568,
+      "Samples": [
+        [
+          361.9391304347826,
+          426.5231884057971,
+          359.56159420289856,
+          383.0927536231884,
+          364.89130434782606,
+          407.11304347826086,
+          365.28840579710146,
+          355.2731884057971,
+          362.9768115942029
+        ],
+        [
+          2.6913163685606274,
+          3.3878857981154433,
+          3.005868081024657,
+          3.0857191220448006,
+          2.8415279580206514,
+          2.8579021610336848,
+          2.852553179484286,
+          2.7854313603791683,
+          3.533194154488518
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "TextReader",
+      "Length": 2209,
+      "BeforeUs": 382.69374999999997,
+      "AfterUs": 13.351947698174884,
+      "BeforeBytes": 4768,
+      "AfterBytes": 4768,
+      "Samples": [
+        [
+          403.8080357142857,
+          379.2473214285714,
+          383.2044642857143,
+          386.2857142857143,
+          379.2205357142857,
+          376.10535714285714,
+          376.4946428571429,
+          382.69374999999997,
+          384.4142857142857
+        ],
+        [
+          13.607654590029965,
+          13.412285480795424,
+          13.984227730863525,
+          13.325878507218743,
+          13.244919640424952,
+          13.259792971942248,
+          13.351947698174884,
+          13.062871152274585,
+          13.382130209752113
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "Stream",
+      "Length": 2209,
+      "BeforeUs": 165.0379746835443,
+      "AfterUs": 11.185448073701842,
+      "BeforeBytes": 9232,
+      "AfterBytes": 9232,
+      "Samples": [
+        [
+          165.0379746835443,
+          176.6762658227848,
+          172.20822784810127,
+          206.5996835443038,
+          186.66930379746836,
+          163.94462025316454,
+          162.33987341772152,
+          156.83291139240507,
+          159.02025316455698
+        ],
+        [
+          11.255611390284757,
+          11.185448073701842,
+          11.442776381909548,
+          11.644200167504186,
+          11.475984087102178,
+          10.778182579564488,
+          11.145812395309884,
+          11.116164154103853,
+          9.873283082077053
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "String",
+      "Length": 1032,
+      "BeforeUs": 390.6646551724138,
+      "AfterUs": 1.3227259534451732,
+      "BeforeBytes": 2216,
+      "AfterBytes": 2216,
+      "Samples": [
+        [
+          391.7655172413793,
+          390.6646551724138,
+          394.8206896551724,
+          390.2491379310345,
+          388.7637931034483,
+          389.25344827586207,
+          389.2586206896552,
+          402.2215517241379,
+          401.36293103448276
+        ],
+        [
+          1.3562285946479364,
+          1.3183374934695535,
+          1.3170372090323328,
+          1.314062227898067,
+          1.32244441864515,
+          1.3227259534451732,
+          1.3292534974168455,
+          1.3503018517443548,
+          1.4336303477099903
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "TextReader",
+      "Length": 1032,
+      "BeforeUs": 2743.2176470588233,
+      "AfterUs": 5.984075897682239,
+      "BeforeBytes": 2416,
+      "AfterBytes": 2416,
+      "Samples": [
+        [
+          2761.6352941176474,
+          2752.564705882353,
+          2778.0529411764705,
+          2706.711764705882,
+          2720.735294117647,
+          2731.7823529411767,
+          2743.2176470588233,
+          2742.7823529411767,
+          2750.494117647059
+        ],
+        [
+          5.989263840518794,
+          5.984075897682239,
+          5.887630599255434,
+          6.330815419718986,
+          5.9200672511108445,
+          5.904575477362796,
+          5.9527681037588565,
+          6.02358592530323,
+          6.0856250750570435
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "Stream",
+      "Length": 1032,
+      "BeforeUs": 1738.6107142857143,
+      "AfterUs": 4.468428172062405,
+      "BeforeBytes": 4528,
+      "AfterBytes": 4528,
+      "Samples": [
+        [
+          1751.4607142857144,
+          1728.2857142857142,
+          1745.689285714286,
+          1743.7464285714286,
+          1749.0214285714285,
+          1738.6107142857143,
+          1738.082142857143,
+          1738.5035714285714,
+          1732.8464285714285
+        ],
+        [
+          4.481846875281811,
+          4.472513301469925,
+          4.470385066281901,
+          4.447605735413473,
+          4.462052484444043,
+          4.461845071692669,
+          4.471268824961673,
+          4.468428172062405,
+          4.461457300027054
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "String",
+      "Length": 270,
+      "BeforeUs": 27.965964912280704,
+      "AfterUs": 1.2563937611595422,
+      "BeforeBytes": 5168,
+      "AfterBytes": 904,
+      "Samples": [
+        [
+          27.7012865497076,
+          27.618479532163743,
+          28.583976608187132,
+          29.021695906432747,
+          28.874619883040936,
+          28.930000000000003,
+          27.0912865497076,
+          27.76438596491228,
+          27.965964912280704
+        ],
+        [
+          1.372090641739313,
+          1.5823574204390296,
+          1.2276073941812835,
+          1.2643498582081714,
+          1.2101932570108183,
+          1.2735138115744145,
+          1.236650561915765,
+          1.197917760739418,
+          1.2563937611595422
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "TextReader",
+      "Length": 270,
+      "BeforeUs": 186.6951219512195,
+      "AfterUs": 2.5105251724325206,
+      "BeforeBytes": 5448,
+      "AfterBytes": 1096,
+      "Samples": [
+        [
+          199.32967479674795,
+          188.81788617886178,
+          186.6951219512195,
+          186.08658536585367,
+          191.0967479674797,
+          182.96544715447155,
+          184.4621951219512,
+          187.05528455284554,
+          181.68048780487806
+        ],
+        [
+          2.550779340683213,
+          2.447890077662521,
+          2.6923640905881716,
+          2.535583555096942,
+          2.4059088687340466,
+          2.4276652365176776,
+          2.518275131700429,
+          2.5105251724325206,
+          2.421088361483734
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "Stream",
+      "Length": 270,
+      "BeforeUs": 131.60822281167108,
+      "AfterUs": 1.8669990557129368,
+      "BeforeBytes": 5248,
+      "AfterBytes": 896,
+      "Samples": [
+        [
+          133.0864721485411,
+          137.01671087533157,
+          130.44907161803715,
+          133.15225464190982,
+          134.69177718832893,
+          131.60822281167108,
+          125.00159151193634,
+          121.63076923076923,
+          119.43527851458886
+        ],
+        [
+          2.357314447592068,
+          4.031252124645892,
+          1.862738432483475,
+          1.8669990557129368,
+          2.0085099150141645,
+          1.8964079320113314,
+          1.8340925401322001,
+          1.790832861189802,
+          1.8068479697828141
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "String",
+      "Length": 1038,
+      "BeforeUs": 220.40950226244343,
+      "AfterUs": 1.9087084897750883,
+      "BeforeBytes": 19040,
+      "AfterBytes": 2440,
+      "Samples": [
+        [
+          235.2638009049774,
+          215.5764705882353,
+          224.16018099547512,
+          227.58009049773753,
+          227.19683257918552,
+          220.40950226244343,
+          218.66018099547512,
+          218.7,
+          214.16425339366518
+        ],
+        [
+          2.0462472205008564,
+          1.832599424051325,
+          1.9591769037290854,
+          1.925363613166624,
+          1.8772427368497795,
+          1.794816461925418,
+          1.9250173149126963,
+          1.9087084897750883,
+          1.7513177559873145
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "TextReader",
+      "Length": 1038,
+      "BeforeUs": 2765.711764705882,
+      "AfterUs": 6.812165517241379,
+      "BeforeBytes": 19320,
+      "AfterBytes": 2632,
+      "Samples": [
+        [
+          2725.3823529411766,
+          2679.0470588235294,
+          2789.6294117647058,
+          2728.0823529411764,
+          2765.711764705882,
+          2877.694117647059,
+          2757.223529411765,
+          2772.9882352941177,
+          2813.1058823529415
+        ],
+        [
+          6.896179310344828,
+          6.91424827586207,
+          6.622524137931035,
+          6.69663448275862,
+          6.812165517241379,
+          6.767462068965517,
+          6.930648275862069,
+          6.592620689655172,
+          6.912593103448276
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "Stream",
+      "Length": 1038,
+      "BeforeUs": 1849.5407407407406,
+      "AfterUs": 4.773642645607108,
+      "BeforeBytes": 18352,
+      "AfterBytes": 1664,
+      "Samples": [
+        [
+          1816.8074074074075,
+          1808.888888888889,
+          1936.5296296296297,
+          1842.2740740740742,
+          2052.325925925926,
+          1849.5407407407406,
+          1836.3037037037036,
+          1868.0592592592593,
+          1972.3111111111111
+        ],
+        [
+          4.70365251727542,
+          5.005054294175715,
+          4.753060217176703,
+          4.729871668311945,
+          5.092931885488648,
+          5.267690029615005,
+          4.773642645607108,
+          4.957749259624877,
+          4.721994076999013
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "String",
+      "Length": 4110,
+      "BeforeUs": 2724.338888888889,
+      "AfterUs": 4.138121131002175,
+      "BeforeBytes": 74384,
+      "AfterBytes": 8584,
+      "Samples": [
+        [
+          2787.1777777777775,
+          2691.238888888889,
+          2787.1555555555556,
+          2661.777777777778,
+          2657.088888888889,
+          2732.883333333333,
+          2829.461111111111,
+          2724.338888888889,
+          2644.383333333333
+        ],
+        [
+          4.035059394344989,
+          4.188547766438012,
+          4.171348502593275,
+          4.138121131002175,
+          4.012673582064581,
+          4.201589426133512,
+          4.027154090680943,
+          3.970788020746194,
+          4.1832859293960185
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "TextReader",
+      "Length": 4110,
+      "BeforeUs": 44211.56666666667,
+      "AfterUs": 24.58732116428219,
+      "BeforeBytes": 74664,
+      "AfterBytes": 8776,
+      "Samples": [
+        [
+          42935.299999999996,
+          44299.73333333334,
+          44211.56666666667,
+          43282.23333333333,
+          42958.933333333334,
+          44117.700000000004,
+          45925.73333333334,
+          49753.700000000004,
+          50503.333333333336
+        ],
+        [
+          24.317661568820917,
+          24.493635915145536,
+          24.097631968426246,
+          27.768524913665516,
+          24.30848544647262,
+          24.58732116428219,
+          27.459743463246177,
+          28.29620128268377,
+          26.87163295510607
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "Stream",
+      "Length": 4110,
+      "BeforeUs": 26763.566666666666,
+      "AfterUs": 15.433829585049097,
+      "BeforeBytes": 70624,
+      "AfterBytes": 4736,
+      "Samples": [
+        [
+          26763.566666666666,
+          26760.2,
+          26813.433333333334,
+          27477.733333333334,
+          26624.666666666668,
+          27208.3,
+          26941.266666666666,
+          26707.666666666668,
+          26753.2
+        ],
+        [
+          15.303706050047515,
+          15.3615774469433,
+          15.549255622426355,
+          15.3165663604688,
+          15.450776053215078,
+          15.433829585049097,
+          16.205511561609125,
+          16.245707950586,
+          15.293918276845107
+        ]
+      ]
+    }
+  ],
+  "preMergeParser1": [
+    {
+      "Name": "Wire4",
+      "Form": "String",
+      "Length": 28,
+      "BeforeUs": 4.201550222977278,
+      "AfterUs": 2.823095380923815,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          4.189647483542153,
+          4.203206625610533,
+          4.171416436610746,
+          4.487778721596942,
+          4.1791569335315355,
+          4.206084094287535,
+          4.177001486515183,
+          4.598736462093863,
+          4.201550222977278
+        ],
+        [
+          2.83379124175165,
+          2.8005938812237554,
+          2.936478704259148,
+          2.869886022795441,
+          2.823095380923815,
+          2.8355668866226758,
+          2.822219556088782,
+          2.816034793041392,
+          2.817258548290342
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "TextReader",
+      "Length": 28,
+      "BeforeUs": 3.176054272093876,
+      "AfterUs": 1.9791838070306655,
+      "BeforeBytes": 552,
+      "AfterBytes": 552,
+      "Samples": [
+        [
+          3.185119178584525,
+          3.176054272093876,
+          3.1566776677667767,
+          3.1640850751741842,
+          3.189409607627429,
+          3.401217455078841,
+          3.2512724605793912,
+          3.1274000733406675,
+          3.113281994866153
+        ],
+        [
+          1.9787771129394165,
+          1.9794736350037399,
+          1.9970222513089007,
+          1.9791838070306655,
+          2.1473261032161557,
+          1.962916043380703,
+          1.9834330590875093,
+          1.9585732984293196,
+          1.9539407255048615
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "Stream",
+      "Length": 28,
+      "BeforeUs": 2.16838089424691,
+      "AfterUs": 1.5668380748030037,
+      "BeforeBytes": 520,
+      "AfterBytes": 520,
+      "Samples": [
+        [
+          2.1361564677755736,
+          2.162281906505926,
+          2.1807569052342437,
+          2.1970344371534667,
+          2.148262882140495,
+          2.18273055597945,
+          2.195182867897655,
+          2.165054173660919,
+          2.16838089424691
+        ],
+        [
+          1.603299914912508,
+          1.5668380748030037,
+          1.5906810698827272,
+          1.5654877732973251,
+          1.5514372387259074,
+          1.5683178572749805,
+          1.5508453257371166,
+          1.5519440642225593,
+          1.5962265546964596
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "String",
+      "Length": 28000,
+      "BeforeUs": 458710.39999999997,
+      "AfterUs": 330324.76666666666,
+      "BeforeBytes": 15364373.333333334,
+      "AfterBytes": 376080,
+      "Samples": [
+        [
+          464485,
+          456892,
+          462261.10000000003,
+          457964.5,
+          456381.60000000003,
+          455969.8666666667,
+          461876.39999999997,
+          458710.39999999997,
+          459247.4666666666
+        ],
+        [
+          333483.5,
+          328815.23333333334,
+          331191.4666666667,
+          328752.13333333336,
+          330074.3,
+          327765,
+          330799.5,
+          330828.23333333334,
+          330324.76666666666
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "TextReader",
+      "Length": 28000,
+      "BeforeUs": 2994.975,
+      "AfterUs": 1875.176923076923,
+      "BeforeBytes": 344208,
+      "AfterBytes": 344208,
+      "Samples": [
+        [
+          3037.9625,
+          3022.275,
+          2994.15625,
+          2994.975,
+          2973.49375,
+          2998.20625,
+          3134.875,
+          2990.05,
+          2981.46875
+        ],
+        [
+          1888.2846153846153,
+          1889.1692307692308,
+          1865.4653846153847,
+          1884.923076923077,
+          1870.5653846153846,
+          1875.176923076923,
+          1879.1384615384616,
+          1863.9499999999998,
+          1870.5500000000002
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "Stream",
+      "Length": 28000,
+      "BeforeUs": 2036.6541666666665,
+      "AfterUs": 1484.3909090909092,
+      "BeforeBytes": 280240,
+      "AfterBytes": 280240,
+      "Samples": [
+        [
+          2036.9083333333335,
+          2050.2166666666667,
+          2049.266666666667,
+          2036.6541666666665,
+          2037.8083333333334,
+          2002.9416666666666,
+          2014.9041666666665,
+          2031.7791666666665,
+          2034.4166666666667
+        ],
+        [
+          1479.9030303030304,
+          1484.3909090909092,
+          1478.0545454545456,
+          1560.5545454545456,
+          1469.2757575757576,
+          1445.530303030303,
+          1523.678787878788,
+          1610.3848484848484,
+          1484.7272727272727
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "String",
+      "Length": 2052,
+      "BeforeUs": 146.56264705882353,
+      "AfterUs": 1.9777366685433926,
+      "BeforeBytes": 4256,
+      "AfterBytes": 4256,
+      "Samples": [
+        [
+          144.885,
+          145.40205882352942,
+          147.81323529411765,
+          146.56264705882353,
+          146.73470588235296,
+          146.39323529411763,
+          146.18558823529412,
+          147.09529411764706,
+          146.83764705882353
+        ],
+        [
+          1.9685715434730153,
+          1.975922946995898,
+          2.0582482104077857,
+          1.9798600498672885,
+          1.9769243143247808,
+          2.00326148154106,
+          1.986785168503177,
+          1.9770127885466098,
+          1.9777366685433926
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "TextReader",
+      "Length": 2052,
+      "BeforeUs": 144.85865102639298,
+      "AfterUs": 10.87722443559097,
+      "BeforeBytes": 4376,
+      "AfterBytes": 4376,
+      "Samples": [
+        [
+          144.85865102639298,
+          145.76392961876832,
+          144.4398826979472,
+          151.17126099706746,
+          149.28768328445747,
+          143.67360703812315,
+          142.9041055718475,
+          144.73958944281523,
+          145.50263929618768
+        ],
+        [
+          10.929570606463038,
+          10.863125276671093,
+          11.123395307658257,
+          10.742540947321825,
+          10.87722443559097,
+          10.850686144311643,
+          10.806529437804338,
+          11.069034971226207,
+          11.226737494466578
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "Stream",
+      "Length": 2052,
+      "BeforeUs": 144.16802325581395,
+      "AfterUs": 7.873587592973571,
+      "BeforeBytes": 8528,
+      "AfterBytes": 8528,
+      "Samples": [
+        [
+          148.77122093023257,
+          145.9171511627907,
+          144.16802325581395,
+          143.97354651162792,
+          142.09854651162792,
+          151.22093023255815,
+          143.0938953488372,
+          144.16773255813953,
+          145.0171511627907
+        ],
+        [
+          7.873587592973571,
+          8.176847602468746,
+          7.827915809463523,
+          8.543836050007913,
+          7.973223611330908,
+          7.911394207944295,
+          7.778920715303054,
+          7.791786675106821,
+          7.731159993669884
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "String",
+      "Length": 28,
+      "BeforeUs": 4.221179018739994,
+      "AfterUs": 2.494264352190735,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          4.18974479706187,
+          4.174799886995008,
+          4.209774931726151,
+          4.248667482813824,
+          4.233204633204633,
+          4.243798851115924,
+          4.233016291552877,
+          4.218994255579622,
+          4.221179018739994
+        ],
+        [
+          2.495064310362857,
+          2.4875248353027293,
+          2.494264352190735,
+          2.525692774234027,
+          2.5070113980968314,
+          2.492486667363798,
+          2.490316846177978,
+          2.493464394018613,
+          2.4947558297605354
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "TextReader",
+      "Length": 28,
+      "BeforeUs": 3.360575296108291,
+      "AfterUs": 1.8401654530570037,
+      "BeforeBytes": 552,
+      "AfterBytes": 552,
+      "Samples": [
+        [
+          3.3226513646729936,
+          3.360575296108291,
+          3.366195836092106,
+          3.323364967262562,
+          3.3530861472816893,
+          3.2799308467593615,
+          3.7051497094092545,
+          3.7637901861252114,
+          3.4317516368719194
+        ],
+        [
+          1.808143392649403,
+          1.8270153819638932,
+          1.9672325391012107,
+          1.8822181050454565,
+          1.8401654530570037,
+          1.7917919772502044,
+          1.8265629712611486,
+          1.8444138049894439,
+          2.083390064199233
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "Stream",
+      "Length": 28,
+      "BeforeUs": 2.1951169046141112,
+      "AfterUs": 1.3811498491451557,
+      "BeforeBytes": 520,
+      "AfterBytes": 520,
+      "Samples": [
+        [
+          2.1855834885164493,
+          2.1941444237533623,
+          2.187300848334368,
+          2.2194599627560523,
+          2.1951169046141112,
+          2.2086747361887027,
+          2.1946720463480243,
+          2.207536726670805,
+          2.214183736809435
+        ],
+        [
+          1.3811498491451557,
+          1.3889171974522294,
+          1.3806369426751592,
+          1.3901374455246398,
+          1.3854274220583307,
+          1.376040898424405,
+          1.3798524974857527,
+          1.3692960107274554,
+          1.3932517599731813
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "String",
+      "Length": 2207,
+      "BeforeUs": 155.63034055727553,
+      "AfterUs": 2.2893141199588287,
+      "BeforeBytes": 4568,
+      "AfterBytes": 4568,
+      "Samples": [
+        [
+          155.55727554179566,
+          154.49938080495357,
+          154.27523219814242,
+          155.63034055727553,
+          155.8551083591331,
+          155.7405572755418,
+          155.1953560371517,
+          156.59164086687306,
+          156.72291021671828
+        ],
+        [
+          2.280251707682231,
+          2.3075559090483764,
+          2.2893141199588287,
+          2.27840366800786,
+          2.283358285767755,
+          2.2831477496023207,
+          2.3047955459904554,
+          2.344296809207448,
+          2.313338635725648
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "TextReader",
+      "Length": 2207,
+      "BeforeUs": 158.3384126984127,
+      "AfterUs": 12.81494579246257,
+      "BeforeBytes": 4688,
+      "AfterBytes": 4688,
+      "Samples": [
+        [
+          154.74190476190475,
+          163.21238095238095,
+          160.27650793650793,
+          156.43714285714285,
+          163.2695238095238,
+          157.24984126984126,
+          158.3384126984127,
+          167.90507936507936,
+          156.4679365079365
+        ],
+        [
+          12.718017552916882,
+          12.697083118224057,
+          12.894682498709344,
+          12.994295302013423,
+          12.609989674754775,
+          12.878497676819824,
+          12.806917914300465,
+          12.81494579246257,
+          14.272922044398555
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "Stream",
+      "Length": 2207,
+      "BeforeUs": 153.27049689440994,
+      "AfterUs": 8.725729442970822,
+      "BeforeBytes": 9152,
+      "AfterBytes": 9152,
+      "Samples": [
+        [
+          153.27049689440994,
+          157.15621118012425,
+          157.08726708074533,
+          151.31894409937888,
+          151.33416149068321,
+          153.47049689440993,
+          150.45341614906832,
+          157.7086956521739,
+          151.66335403726708
+        ],
+        [
+          8.742599469496021,
+          8.725729442970822,
+          8.65027409372237,
+          8.638249336870027,
+          8.63076923076923,
+          8.640088417329796,
+          9.043448275862069,
+          8.740671971706455,
+          8.732714412024757
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "String",
+      "Length": 1030,
+      "BeforeUs": 72.44666666666666,
+      "AfterUs": 1.3292573588981906,
+      "BeforeBytes": 2216,
+      "AfterBytes": 2216,
+      "Samples": [
+        [
+          72.47144927536232,
+          72.3508695652174,
+          72.26275362318842,
+          81.4440579710145,
+          72.53826086956522,
+          72.38202898550725,
+          72.70536231884057,
+          72.35739130434783,
+          72.44666666666666
+        ],
+        [
+          1.3214825816905211,
+          1.3322576289495005,
+          1.4268674048069134,
+          1.3292573588981906,
+          1.330850661625709,
+          1.3239643532271133,
+          1.3206994328922494,
+          1.329762354847421,
+          1.323769916284094
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "TextReader",
+      "Length": 1030,
+      "BeforeUs": 73.12808823529411,
+      "AfterUs": 6.048834385624089,
+      "BeforeBytes": 2336,
+      "AfterBytes": 2336,
+      "Samples": [
+        [
+          73.74485294117648,
+          73.2489705882353,
+          73.12808823529411,
+          73.97382352941176,
+          73.41779411764706,
+          72.60367647058824,
+          72.38161764705882,
+          72.58411764705882,
+          72.44617647058824
+        ],
+        [
+          6.037676056338029,
+          6.0516148615832925,
+          6.036898980087421,
+          6.08135016998543,
+          6.048834385624089,
+          6.074380767362797,
+          5.9898980087421085,
+          5.92764691597863,
+          6.10222195240408
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "Stream",
+      "Length": 1030,
+      "BeforeUs": 71.61216022889843,
+      "AfterUs": 4.295268220816362,
+      "BeforeBytes": 4448,
+      "AfterBytes": 4448,
+      "Samples": [
+        [
+          71.61216022889843,
+          71.42188841201717,
+          71.35092989985694,
+          73.452217453505,
+          72.81487839771101,
+          73.76609442060087,
+          71.04864091559371,
+          72.56652360515021,
+          71.27596566523606
+        ],
+        [
+          4.292858999913338,
+          4.299020712366756,
+          4.295268220816362,
+          4.3070283386775285,
+          4.446997140133461,
+          4.29421960308519,
+          4.290709766877546,
+          4.622844267267528,
+          4.281350203657163
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "String",
+      "Length": 270,
+      "BeforeUs": 15.336977099236641,
+      "AfterUs": 1.1272275754732095,
+      "BeforeBytes": 992,
+      "AfterBytes": 904,
+      "Samples": [
+        [
+          15.288824427480916,
+          15.32,
+          15.197312977099235,
+          15.955145038167938,
+          15.336977099236641,
+          16.542076335877862,
+          16.492,
+          16.811175572519083,
+          15.285312977099236
+        ],
+        [
+          1.1216154356732508,
+          1.1272275754732095,
+          1.1270627818086105,
+          1.1277517108786705,
+          1.13274816323728,
+          1.123011604220549,
+          1.1331715914032638,
+          1.1753313039298712,
+          1.1211073218740701
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "TextReader",
+      "Length": 270,
+      "BeforeUs": 5.366339360555623,
+      "AfterUs": 2.2177758529425917,
+      "BeforeBytes": 1192,
+      "AfterBytes": 1016,
+      "Samples": [
+        [
+          5.349491078912705,
+          5.47772721829721,
+          6.144030655011377,
+          5.52485929828763,
+          5.351682433241528,
+          5.363046341755479,
+          5.366339360555623,
+          5.430990300562806,
+          5.351634534786253
+        ],
+        [
+          2.2032529714643183,
+          2.23458928829219,
+          2.227477022279967,
+          2.2632548962995043,
+          2.1989894615273564,
+          2.182570617390886,
+          2.2177758529425917,
+          2.1930128482748663,
+          2.2333333333333334
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "Stream",
+      "Length": 270,
+      "BeforeUs": 4.679257115291848,
+      "AfterUs": 1.6262455303933252,
+      "BeforeBytes": 992,
+      "AfterBytes": 816,
+      "Samples": [
+        [
+          4.645856246985046,
+          4.679257115291848,
+          4.7814954172696575,
+          4.614230583695128,
+          4.673159671972987,
+          4.800318379160637,
+          4.953854317414375,
+          4.657115291847564,
+          4.747322720694646
+        ],
+        [
+          1.6040864975310745,
+          1.6134820364379363,
+          1.6191043759577728,
+          1.6262455303933252,
+          1.64256087178614,
+          1.6317112208411373,
+          1.6152392303762984,
+          1.6512276519666271,
+          2.2093751064192064
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "String",
+      "Length": 1038,
+      "BeforeUs": 56.37903225806452,
+      "AfterUs": 1.6828869098786232,
+      "BeforeBytes": 2528,
+      "AfterBytes": 2440,
+      "Samples": [
+        [
+          57.47004608294931,
+          59.83675115207374,
+          56.37903225806452,
+          56.26566820276498,
+          56.1668202764977,
+          55.324769585253456,
+          55.82453917050691,
+          56.80702764976959,
+          56.779608294930874
+        ],
+        [
+          1.7136746552969089,
+          1.6803906061960596,
+          1.6876285115015646,
+          1.835206134167727,
+          1.672523467317677,
+          1.6673658150809751,
+          1.6828869098786232,
+          1.6471237492693327,
+          1.8771859849396553
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "TextReader",
+      "Length": 1038,
+      "BeforeUs": 18.097108910891087,
+      "AfterUs": 6.462481219145739,
+      "BeforeBytes": 2728,
+      "AfterBytes": 2552,
+      "Samples": [
+        [
+          18.01259405940594,
+          18.15940594059406,
+          18.097108910891087,
+          18.015168316831684,
+          19.883603960396037,
+          29.229425742574257,
+          17.868237623762376,
+          18.75821782178218,
+          17.56118811881188
+        ],
+        [
+          6.462481219145739,
+          6.428375187808543,
+          6.515024683408456,
+          8.159841167632539,
+          8.096286756814767,
+          7.585640695428204,
+          6.410517278385919,
+          6.421871646276025,
+          6.298819489160764
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "Stream",
+      "Length": 1038,
+      "BeforeUs": 15.772764743183261,
+      "AfterUs": 4.343180583227676,
+      "BeforeBytes": 1760,
+      "AfterBytes": 1584,
+      "Samples": [
+        [
+          15.888934686112872,
+          15.8498731769182,
+          15.902314521242866,
+          17.083164235890933,
+          15.641819911223843,
+          15.772764743183261,
+          15.684749524413443,
+          15.705263157894738,
+          15.738490805326569
+        ],
+        [
+          4.351621083137113,
+          4.357697880818692,
+          4.354337982249592,
+          4.343180583227676,
+          4.320829559862344,
+          4.367732294874117,
+          4.31199058141641,
+          4.30723600796957,
+          4.319452997645354
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "String",
+      "Length": 4110,
+      "BeforeUs": 219.43981900452488,
+      "AfterUs": 3.8909141895681434,
+      "BeforeBytes": 8672,
+      "AfterBytes": 8584,
+      "Samples": [
+        [
+          226.46515837104073,
+          219.43981900452488,
+          218.29592760180995,
+          219.53122171945702,
+          219.44615384615383,
+          218.1443438914027,
+          223.32986425339368,
+          214.49954751131222,
+          218.26923076923077
+        ],
+        [
+          3.878735678230911,
+          4.015663808989665,
+          3.8909141895681434,
+          3.785954651069626,
+          3.9526560371765083,
+          3.796418556205432,
+          3.8585530005608524,
+          4.052768207675667,
+          3.9574473199262883
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "TextReader",
+      "Length": 4110,
+      "BeforeUs": 105.50413907284768,
+      "AfterUs": 29.820303867403318,
+      "BeforeBytes": 8872,
+      "AfterBytes": 8696,
+      "Samples": [
+        [
+          106.15662251655628,
+          91.10960264900662,
+          73.47201986754966,
+          99.008940397351,
+          113.69105960264899,
+          110.96771523178808,
+          109.17549668874172,
+          104.9112582781457,
+          105.50413907284768
+        ],
+        [
+          29.820303867403318,
+          31.004558011049724,
+          28.180455801104973,
+          29.155248618784533,
+          29.77430939226519,
+          35.81767955801105,
+          31.385911602209948,
+          29.56098066298343,
+          33.95835635359116
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "Stream",
+      "Length": 4110,
+      "BeforeUs": 100.01335676625659,
+      "AfterUs": 23.610107260726075,
+      "BeforeBytes": 4832,
+      "AfterBytes": 4656,
+      "Samples": [
+        [
+          101.59472759226713,
+          95.72108963093146,
+          99.35149384885764,
+          100.58998242530755,
+          99.01370826010546,
+          100.01335676625659,
+          102.31370826010544,
+          100.0481546572935,
+          99.02565905096661
+        ],
+        [
+          24.05990099009901,
+          22.912747524752476,
+          23.63910891089109,
+          23.681848184818485,
+          23.573597359735974,
+          23.756394389438945,
+          23.610107260726075,
+          23.520338283828384,
+          22.06105610561056
+        ]
+      ]
+    }
+  ],
+  "preMergeParser2": [
+    {
+      "Name": "Wire4",
+      "Form": "String",
+      "Length": 28,
+      "BeforeUs": 5.918837412587412,
+      "AfterUs": 4.004379013526438,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          5.9460008741258745,
+          5.918837412587412,
+          5.596984265734266,
+          6.403485576923076,
+          6.071164772727273,
+          5.8036166958041955,
+          5.4044580419580415,
+          6.263690996503497,
+          5.4490166083916085
+        ],
+        [
+          4.138509359202077,
+          3.9604932367809806,
+          3.281910097007788,
+          3.34013526438038,
+          4.2393906271348545,
+          4.004379013526438,
+          3.932927995627818,
+          4.205868288017489,
+          4.184970624402241
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "TextReader",
+      "Length": 28,
+      "BeforeUs": 4.425532155797102,
+      "AfterUs": 2.727827720381055,
+      "BeforeBytes": 552,
+      "AfterBytes": 552,
+      "Samples": [
+        [
+          4.256567028985507,
+          3.746376811594203,
+          3.449886775362319,
+          4.403747735507246,
+          4.425532155797102,
+          4.761458333333333,
+          4.75450634057971,
+          4.638790760869566,
+          4.767900815217391
+        ],
+        [
+          2.3105595062390982,
+          2.4780088554944317,
+          2.789098349657856,
+          2.8716557091104256,
+          2.6187575472963904,
+          2.919300952636522,
+          2.8705688984301623,
+          2.163269824231853,
+          2.727827720381055
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4",
+      "Form": "Stream",
+      "Length": 28,
+      "BeforeUs": 2.4744121611502172,
+      "AfterUs": 1.9828423060618905,
+      "BeforeBytes": 520,
+      "AfterBytes": 520,
+      "Samples": [
+        [
+          2.308379511756777,
+          2.710843193050771,
+          2.403197543807099,
+          2.4744121611502172,
+          2.811651939493785,
+          3.294308821326943,
+          3.041568069492287,
+          2.3586715590834206,
+          2.3095252358843794
+        ],
+        [
+          1.7217306061890632,
+          2.368572488342518,
+          1.8965875370919882,
+          1.7019499788045782,
+          2.471423272573124,
+          2.473675286138194,
+          2.3143810936837643,
+          1.9828423060618905,
+          1.8989508266214499
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "String",
+      "Length": 28000,
+      "BeforeUs": 615993.4333333333,
+      "AfterUs": 441764.3333333333,
+      "BeforeBytes": 15361616,
+      "AfterBytes": 376194.6666666667,
+      "Samples": [
+        [
+          662410.3333333334,
+          615993.4333333333,
+          583252.3333333334,
+          599719.2666666667,
+          638817.7333333333,
+          570459.4333333333,
+          623761.4666666667,
+          652899.5333333333,
+          609528.3666666667
+        ],
+        [
+          465013.5,
+          412385.0333333334,
+          476653.6333333333,
+          448327.8666666667,
+          441764.3333333333,
+          436605,
+          434826.39999999997,
+          420608.76666666666,
+          513903.10000000003
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "TextReader",
+      "Length": 28000,
+      "BeforeUs": 4912.391666666666,
+      "AfterUs": 2823.261111111111,
+      "BeforeBytes": 344208,
+      "AfterBytes": 344208,
+      "Samples": [
+        [
+          4793.608333333334,
+          4912.391666666666,
+          4972.866666666667,
+          4965.05,
+          4952.483333333334,
+          4964.116666666667,
+          4519.083333333333,
+          3253.191666666667,
+          3225.508333333333
+        ],
+        [
+          2606.45,
+          2823.261111111111,
+          3149.811111111111,
+          3154.3611111111113,
+          3139.733333333333,
+          3042.0222222222224,
+          1959.0611111111111,
+          1940.4333333333334,
+          2219.3999999999996
+        ]
+      ]
+    },
+    {
+      "Name": "Wire4000",
+      "Form": "Stream",
+      "Length": 28000,
+      "BeforeUs": 2957.676470588235,
+      "AfterUs": 2246.5714285714284,
+      "BeforeBytes": 280240,
+      "AfterBytes": 280240,
+      "Samples": [
+        [
+          3059.205882352941,
+          2544.723529411765,
+          2774.0529411764705,
+          3008.9,
+          2931.305882352941,
+          2957.676470588235,
+          2675.4117647058824,
+          3137.4823529411765,
+          3197.458823529412
+        ],
+        [
+          2255.485714285714,
+          2241.1380952380955,
+          2238.2666666666664,
+          2246.5714285714284,
+          2170.5095238095237,
+          2218.114285714286,
+          3859.4619047619044,
+          2331.3142857142857,
+          2404.8285714285716
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "String",
+      "Length": 2052,
+      "BeforeUs": 170.82015503875968,
+      "AfterUs": 2.7303556827473425,
+      "BeforeBytes": 4256,
+      "AfterBytes": 4256,
+      "Samples": [
+        [
+          166.2565891472868,
+          178.84612403100778,
+          149.9418604651163,
+          170.82015503875968,
+          182.3686046511628,
+          191.68759689922481,
+          192.53953488372093,
+          148.3875968992248,
+          149.2422480620155
+        ],
+        [
+          2.665872853638594,
+          2.2314441946034345,
+          2.4645083810302535,
+          2.6913890024529845,
+          2.7303556827473425,
+          2.899575838103025,
+          3.1304732215862634,
+          2.7412408013082583,
+          2.779221177432543
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "TextReader",
+      "Length": 2052,
+      "BeforeUs": 219.5395652173913,
+      "AfterUs": 17.35333333333333,
+      "BeforeBytes": 4376,
+      "AfterBytes": 4376,
+      "Samples": [
+        [
+          223.5717391304348,
+          177.37391304347827,
+          222.69260869565218,
+          222.18826086956523,
+          223.1482608695652,
+          154.4534782608696,
+          149.84652173913042,
+          189.20608695652174,
+          219.5395652173913
+        ],
+        [
+          16.170133333333332,
+          17.35333333333333,
+          18.243081481481482,
+          18.221896296296297,
+          18.236711111111113,
+          16.17502222222222,
+          12.609037037037037,
+          12.643674074074074,
+          17.652177777777776
+        ]
+      ]
+    },
+    {
+      "Name": "WireText",
+      "Form": "Stream",
+      "Length": 2052,
+      "BeforeUs": 215.1590361445783,
+      "AfterUs": 11.91577559338288,
+      "BeforeBytes": 8528,
+      "AfterBytes": 8528,
+      "Samples": [
+        [
+          195.21164658634538,
+          204.29959839357429,
+          199.29959839357429,
+          231.90401606425704,
+          223.7875502008032,
+          215.1590361445783,
+          201.99397590361446,
+          221.6987951807229,
+          217.21887550200802
+        ],
+        [
+          11.829393430831935,
+          12.122584512107409,
+          11.91577559338288,
+          13.227187724766242,
+          13.034979621193958,
+          13.006593143131143,
+          8.221313833613042,
+          8.274011028530328,
+          11.633205466315031
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "String",
+      "Length": 28,
+      "BeforeUs": 6.356978653530377,
+      "AfterUs": 3.7187527036770005,
+      "BeforeBytes": 456,
+      "AfterBytes": 456,
+      "Samples": [
+        [
+          6.406302892509789,
+          6.299482127068334,
+          6.403296703296704,
+          6.274801061007957,
+          6.383150183150184,
+          6.3138436276367305,
+          6.3900846280156625,
+          5.460161677403057,
+          6.356978653530377
+        ],
+        [
+          3.7152775775054074,
+          3.7546142754145637,
+          3.74393655371305,
+          3.3481398702235037,
+          3.7187527036770005,
+          3.7401369863013696,
+          3.6273107426099496,
+          2.784816149963951,
+          3.7285147801009373
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "TextReader",
+      "Length": 28,
+      "BeforeUs": 4.8208080999243,
+      "AfterUs": 2.886379023819782,
+      "BeforeBytes": 552,
+      "AfterBytes": 552,
+      "Samples": [
+        [
+          4.927999621498865,
+          4.915934897804693,
+          4.854589326267979,
+          4.456718395155185,
+          4.8208080999243,
+          4.851343679031037,
+          3.549829674489023,
+          4.641937925813777,
+          4.386232021196063
+        ],
+        [
+          2.9112574629162307,
+          2.920970025235428,
+          2.886379023819782,
+          2.0947744198929037,
+          2.894872899612236,
+          2.9088508647750353,
+          2.4860835846617837,
+          2.869323567427833,
+          2.569957530621038
+        ]
+      ]
+    },
+    {
+      "Name": "Log4",
+      "Form": "Stream",
+      "Length": 28,
+      "BeforeUs": 2.942341463414634,
+      "AfterUs": 2.2136436931079326,
+      "BeforeBytes": 520,
+      "AfterBytes": 520,
+      "Samples": [
+        [
+          2.806466898954704,
+          2.8573797909407666,
+          3.3129756097560974,
+          2.942341463414634,
+          2.3180557491289195,
+          2.8077003484320557,
+          3.26993031358885,
+          3.33204181184669,
+          3.314745644599303
+        ],
+        [
+          1.70148244473342,
+          1.7544135240572172,
+          2.263032509752926,
+          2.253414824447334,
+          1.5242704811443433,
+          1.5034226267880364,
+          2.2136436931079326,
+          2.2893940182054617,
+          2.264462938881665
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "String",
+      "Length": 2207,
+      "BeforeUs": 178.76572580645163,
+      "AfterUs": 3.356048827497591,
+      "BeforeBytes": 4568,
+      "AfterBytes": 4568,
+      "Samples": [
+        [
+          158.02862903225807,
+          158.21209677419355,
+          178.76572580645163,
+          204.14112903225808,
+          208.07419354838711,
+          176.54959677419356,
+          160.56693548387096,
+          211.45967741935485,
+          210.7334677419355
+        ],
+        [
+          3.3555220044972693,
+          3.2465917121747507,
+          3.473273369739801,
+          3.434333440411179,
+          3.356048827497591,
+          3.3746610986186956,
+          2.9486347574686795,
+          2.610671378091873,
+          3.4285769354320594
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "TextReader",
+      "Length": 2207,
+      "BeforeUs": 233.29780701754387,
+      "AfterUs": 20.8584142394822,
+      "BeforeBytes": 4688,
+      "AfterBytes": 4688,
+      "Samples": [
+        [
+          235.1486842105263,
+          161.5013157894737,
+          235.40570175438597,
+          235.71929824561403,
+          235.94561403508771,
+          196.76271929824563,
+          233.29780701754387,
+          227.94956140350877,
+          230.67236842105265
+        ],
+        [
+          18.295792880258897,
+          13.385639158576053,
+          20.8584142394822,
+          20.96427993527508,
+          20.9707928802589,
+          18.230258899676375,
+          21.011974110032362,
+          20.55509708737864,
+          20.937904530744337
+        ]
+      ]
+    },
+    {
+      "Name": "LogText",
+      "Form": "Stream",
+      "Length": 2207,
+      "BeforeUs": 213.93180212014133,
+      "AfterUs": 14.140773100344187,
+      "BeforeBytes": 9152,
+      "AfterBytes": 9152,
+      "Samples": [
+        [
+          213.93180212014133,
+          176.8035335689046,
+          207.10282685512368,
+          221.86042402826854,
+          220.7763250883392,
+          217.34240282685514,
+          214.88303886925794,
+          206.95194346289753,
+          202.76466431095406
+        ],
+        [
+          15.37188244638602,
+          14.352290177389461,
+          14.511305268731798,
+          14.417527137940164,
+          14.140773100344187,
+          14.081996293354514,
+          13.974662430500398,
+          13.396743447180302,
+          12.491527667460948
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "String",
+      "Length": 1030,
+      "BeforeUs": 98.30863970588236,
+      "AfterUs": 1.4136552229092094,
+      "BeforeBytes": 2216,
+      "AfterBytes": 2216,
+      "Samples": [
+        [
+          86.00183823529412,
+          98.30863970588236,
+          110.67977941176471,
+          110.94466911764707,
+          81.43419117647058,
+          75.59816176470588,
+          76.92242647058823,
+          101.98143382352941,
+          152.62794117647059
+        ],
+        [
+          1.3970794012365768,
+          1.3960218027985682,
+          1.9909453302961275,
+          1.9876830458835013,
+          1.391624633908233,
+          1.411381386267491,
+          1.4136552229092094,
+          1.738358281809307,
+          4.5680890009762445
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "TextReader",
+      "Length": 1030,
+      "BeforeUs": 113.51875,
+      "AfterUs": 9.910476008411393,
+      "BeforeBytes": 2336,
+      "AfterBytes": 2336,
+      "Samples": [
+        [
+          119.99590517241379,
+          121.25409482758621,
+          113.64741379310345,
+          92.87349137931035,
+          75.00991379310345,
+          115.18793103448276,
+          85.99655172413793,
+          113.51875,
+          113.19353448275862
+        ],
+        [
+          10.49057541579048,
+          10.455113744981839,
+          9.92192697380998,
+          9.910476008411393,
+          8.48210667176448,
+          10.051194800229402,
+          8.172012999426496,
+          8.789466641177594,
+          9.754502007264385
+        ]
+      ]
+    },
+    {
+      "Name": "LogSpaces",
+      "Form": "Stream",
+      "Length": 1030,
+      "BeforeUs": 108.03440643863179,
+      "AfterUs": 7.191831425598336,
+      "BeforeBytes": 4448,
+      "AfterBytes": 4448,
+      "Samples": [
+        [
+          103.40281690140844,
+          116.9169014084507,
+          116.54064386317907,
+          108.03440643863179,
+          85.65593561368209,
+          102.08853118712274,
+          106.20362173038228,
+          108.92454728370221,
+          109.35875251509054
+        ],
+        [
+          7.802042143600416,
+          7.6658298647242455,
+          7.31520551508845,
+          7.191831425598336,
+          5.481022372528616,
+          6.173530176899063,
+          4.680189906347555,
+          6.841727367325702,
+          7.337578043704475
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "String",
+      "Length": 270,
+      "BeforeUs": 22.41808774834437,
+      "AfterUs": 1.6604239709128683,
+      "BeforeBytes": 992,
+      "AfterBytes": 904,
+      "Samples": [
+        [
+          22.35703642384106,
+          22.41808774834437,
+          22.372475165562914,
+          23.751779801324506,
+          24.055173841059602,
+          16.835016556291393,
+          15.956539735099337,
+          22.50223509933775,
+          23.647433774834436
+        ],
+        [
+          1.6943319049474093,
+          1.6604239709128683,
+          1.7078788469029995,
+          1.7064439683158033,
+          1.474337748344371,
+          1.4349954551356967,
+          1.3335800545383716,
+          1.2784605895338266,
+          1.756294637060122
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "TextReader",
+      "Length": 270,
+      "BeforeUs": 7.642911545785009,
+      "AfterUs": 3.202308057837214,
+      "BeforeBytes": 1192,
+      "AfterBytes": 1016,
+      "Samples": [
+        [
+          8.524891812359357,
+          8.672528994287692,
+          5.602302232992903,
+          7.436212567076337,
+          6.7917950493335635,
+          7.632715942530725,
+          8.082222606889388,
+          7.642911545785009,
+          7.825238012809417
+        ],
+        [
+          2.2480347566356667,
+          3.4512049419591335,
+          2.41315592967212,
+          3.3456588147444166,
+          3.119747471318987,
+          3.105328898241803,
+          3.3439074061502954,
+          3.202308057837214,
+          3.2262575521010115
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery256",
+      "Form": "Stream",
+      "Length": 270,
+      "BeforeUs": 4.996615861534488,
+      "AfterUs": 1.6860839714813836,
+      "BeforeBytes": 992,
+      "AfterBytes": 816,
+      "Samples": [
+        [
+          5.238439679669336,
+          4.852079566003617,
+          5.019336088865925,
+          4.996615861534488,
+          5.14903125807285,
+          5.05799535003875,
+          4.893218806509946,
+          4.8696848359597,
+          4.988413846551279
+        ],
+        [
+          1.7160329196373558,
+          1.996351553560426,
+          1.6904057741396004,
+          1.6436053164334126,
+          1.6816081330868762,
+          1.6538817005545285,
+          1.652763841211161,
+          1.7356746765249538,
+          1.6860839714813836
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "String",
+      "Length": 1038,
+      "BeforeUs": 58.36962332928311,
+      "AfterUs": 1.7771152956252447,
+      "BeforeBytes": 2528,
+      "AfterBytes": 2440,
+      "Samples": [
+        [
+          58.3325637910085,
+          57.48906439854192,
+          57.84775212636695,
+          57.268165249088696,
+          58.36962332928311,
+          60.42940461725395,
+          62.81154313487242,
+          75.75297691373025,
+          60.73256379100851
+        ],
+        [
+          1.7312141814686932,
+          1.7097604385434095,
+          1.7211369380272665,
+          1.7797529633716584,
+          1.7296835510625423,
+          1.8576442530167658,
+          2.166660733990674,
+          2.21388246182323,
+          1.7771152956252447
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "TextReader",
+      "Length": 1038,
+      "BeforeUs": 18.701456496742047,
+      "AfterUs": 6.514065560924644,
+      "BeforeBytes": 2728,
+      "AfterBytes": 2552,
+      "Samples": [
+        [
+          18.84526638558835,
+          18.93277117669605,
+          18.701456496742047,
+          18.456036795707167,
+          18.317247987734763,
+          21.653813721732465,
+          18.836374089689535,
+          18.501111536987352,
+          18.6927558451514
+        ],
+        [
+          6.534569674807366,
+          6.459736189108005,
+          6.514065560924644,
+          6.538095859997387,
+          6.364777327935222,
+          6.820673893169649,
+          6.93048191197597,
+          6.412785686300118,
+          6.495925297113753
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery1024",
+      "Form": "Stream",
+      "Length": 1038,
+      "BeforeUs": 20.44006298110567,
+      "AfterUs": 5.532808988764045,
+      "BeforeBytes": 1760,
+      "AfterBytes": 1584,
+      "Samples": [
+        [
+          20.545066480055983,
+          20.44006298110567,
+          20.656787963610917,
+          20.97071378586424,
+          21.21546536039188,
+          16.265745276417075,
+          20.013785864240727,
+          19.920538838348495,
+          18.90223932820154
+        ],
+        [
+          5.281778212017587,
+          5.299384465070835,
+          5.635036638983879,
+          5.739970688812897,
+          4.935994137762579,
+          4.498641914997557,
+          5.619452857840742,
+          5.532808988764045,
+          5.627855398143625
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "String",
+      "Length": 4110,
+      "BeforeUs": 250.36705202312137,
+      "AfterUs": 4.525557941918013,
+      "BeforeBytes": 8672,
+      "AfterBytes": 8584,
+      "Samples": [
+        [
+          240.88959537572256,
+          245.14104046242775,
+          241.49075144508672,
+          252.40809248554913,
+          250.36705202312137,
+          248.4699421965318,
+          289.42890173410404,
+          257.5884393063584,
+          252.06416184971098
+        ],
+        [
+          4.481781678961621,
+          4.448921467924176,
+          4.291726585115323,
+          4.510785320758241,
+          4.90967410589224,
+          5.437351760201699,
+          5.776795218974694,
+          4.8775702679988795,
+          4.525557941918013
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "TextReader",
+      "Length": 4110,
+      "BeforeUs": 75.54320241691843,
+      "AfterUs": 24.357178095707944,
+      "BeforeBytes": 8872,
+      "AfterBytes": 8696,
+      "Samples": [
+        [
+          75.55740181268882,
+          74.13942598187312,
+          77.26873111782477,
+          72.77658610271904,
+          81.26012084592145,
+          78.2296072507553,
+          71.36344410876133,
+          75.54320241691843,
+          73.67930513595165
+        ],
+        [
+          24.357178095707944,
+          23.997089294523928,
+          24.40937345831278,
+          25.114158855451407,
+          23.882585101134683,
+          24.517858904785395,
+          23.844153922052293,
+          23.91282683769117,
+          25.369955599407994
+        ]
+      ]
+    },
+    {
+      "Name": "Recovery4096",
+      "Form": "Stream",
+      "Length": 4110,
+      "BeforeUs": 64.55119047619047,
+      "AfterUs": 16.282013911891354,
+      "BeforeBytes": 4832,
+      "AfterBytes": 4656,
+      "Samples": [
+        [
+          66.94788359788359,
+          64.36640211640211,
+          64.49550264550264,
+          69.37169312169313,
+          64.55119047619047,
+          63.6818783068783,
+          64.87275132275133,
+          64.84113756613756,
+          64.39960317460317
+        ],
+        [
+          16.390460417356742,
+          16.070387545544882,
+          17.15763497846969,
+          16.282013911891354,
+          16.430804902285523,
+          15.92891685988738,
+          16.244683670089433,
+          15.998410069559457,
+          16.292414706856576
+        ]
+      ]
+    }
+  ]
+}

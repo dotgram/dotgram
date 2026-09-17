@@ -167,7 +167,11 @@ sealed partial class Machine
 		{
 			file.Line();
 
-			using (file.Block("for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
+			// A requested recovery is itself a root; an indirectly requested one follows
+			// its owning call. Neither can precede the earliest root of this walk.
+			using (file.Block(cached
+				? "for (var recoveryAt = materializeFrom; recoveryAt < entries.Count; recoveryAt++)"
+				: "for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
 			{
 				file.Line("var recovered = entries[recoveryAt];");
 				file.Line(
