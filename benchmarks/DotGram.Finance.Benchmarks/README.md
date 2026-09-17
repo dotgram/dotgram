@@ -277,3 +277,7 @@ pool ownership, retention semantics, raw measurements and compatibility checks.
 grammar and C# field construction with Fix44 in the same assembly. Byte orders
 are about 2.1x faster, groups 1.65x, binary input 1.34x and string orders 4.0x.
 The report includes all timings, allocation, validation and reproduction commands.
+
+[Comparison with recovery](results/2026-09-16-recovery-dispatch.md) measures both
+parsers after adding recover, including malformed inputs. FixDispatch wins ordinary
+field workloads; Fix44 remains faster on the measured 64 KiB binary payload.
