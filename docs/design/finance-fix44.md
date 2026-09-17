@@ -98,6 +98,10 @@ FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
 result, so the machine does not need a separate value stack per case. The original
 wire view is called `FixFieldView`.
 
+`Tag` and `Size` return `int` through the character/byte conversion overloads.
+Dispatch, binary-pair checks and field construction receive the parsed numbers;
+overflow keeps the invalid sentinel and is handled by field recovery.
+
 The C# factory constructs each named case from its native value span.
 Conversions return `(Valid, Value)`; plain text returns a string.
 `LocationType = typeof(IFixLocation)` supplies the complete field extent.

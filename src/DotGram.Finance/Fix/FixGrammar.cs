@@ -14,9 +14,10 @@ namespace DotGram.Finance.Fix;
 
 	Separator    = ['\u0001']
 	LogSeparator = ['|']
-	Tag          = ['1'..'9'] & ['0'..'9']*
-	Size         = ['0'..'9']+
 	Text         = (?!Separator & any)+
+
+	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.Tag(value))
+	Size : @int = value: { ['0'..'9']+ }             => @(FixConvert.Tag(value))
 
 	Data = @ReadData
 
@@ -27,7 +28,7 @@ namespace DotGram.Finance.Fix;
 				size: Size & Separator & dataTag: Tag & '='
 				& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & Data
 		}) & end: (Separator | eof)
-		=> @(context.Create(wire, parserSpan.Start).WithTerminator(end.Length))
+		=> @(context.Create(tag, wire, parserSpan.Start).WithTerminator(end.Length))
 
 	Fields : @FixField[] = Field* recover Separator => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
 """,
@@ -56,29 +57,25 @@ sealed partial class FixGrammar
 	{
 		public long DataLimit { get; private set; }
 
-		int Kind(int tag)
+		public int Kind(int tag)
 		{
 			return tag <= 0 ? -1 : options.DataTag(tag) != 0 ? 1 : options.IsData(tag) ? -1 : 0;
 		}
 
-		public int Kind(ReadOnlySpan<char> tag)
+		// Captures belonging to only one switch arm are optional in the generated guard.
+		public bool BeginData(int tag, int? size, int? dataTag, int start)
 		{
-			return Kind(FixConvert.Tag(tag));
-		}
-
-		public bool BeginData(ReadOnlySpan<char> tag, ReadOnlySpan<char> size, ReadOnlySpan<char> dataTag, int start)
-		{
-			var length = FixConvert.Tag(size);
+			if (size is not int length || length < 0 || options.DataTag(tag) != dataTag)
+				return false;
 
 			DataLimit = (long)start + length;
 
-			return length >= 0 && options.DataTag(FixConvert.Tag(tag)) == FixConvert.Tag(dataTag);
+			return true;
 		}
 
-		public FixField Create(ReadOnlySpan<char> wire, int start)
+		public FixField Create(int tag, ReadOnlySpan<char> wire, int start)
 		{
 			var equals  = wire.IndexOf('=');
-			var tag     = FixConvert.Tag(wire.Slice(0, equals));
 			var dataTag = options.DataTag(tag);
 
 			if (dataTag == 0)
@@ -91,24 +88,9 @@ sealed partial class FixGrammar
 			return FixFactory.Binary(dataTag, value.Data).WithBinary(value, start);
 		}
 
-		public int Kind(ReadOnlySpan<byte> tag)
-		{
-			return Kind(FixConvert.Tag(tag));
-		}
-
-		public bool BeginData(ReadOnlySpan<byte> tag, ReadOnlySpan<byte> size, ReadOnlySpan<byte> dataTag, int start)
-		{
-			var length = FixConvert.Tag(size);
-
-			DataLimit = (long)start + length;
-
-			return length >= 0 && options.DataTag(FixConvert.Tag(tag)) == FixConvert.Tag(dataTag);
-		}
-
-		public FixField Create(ReadOnlySpan<byte> wire, int start)
+		public FixField Create(int tag, ReadOnlySpan<byte> wire, int start)
 		{
 			var equals  = wire.IndexOf((byte)'=');
-			var tag     = FixConvert.Tag(wire.Slice(0, equals));
 			var dataTag = options.DataTag(tag);
 
 			if (dataTag == 0)
