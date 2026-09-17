@@ -396,9 +396,16 @@ sealed partial class Machine
 				var (repetition, recovery, recoverySlot) = recoveries[found];
 				var plan = new RecoveryPlan(
 					rule, recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
-					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found),
+					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found) + (BorrowedCaptures ? "_Span" + _tag : ""),
 					recoverySlot < 0 ? null : layout.Slots[recoverySlot].Rule);
 
+				if (BorrowedCaptures && recovery.Factory is not null && recoverySlot >= 0)
+				{
+					var helper = new Writer(0);
+					CSharpEmitter.EmitRecoveryFactory(helper, results, rule, plan.Method, recovery, graph, recoverySlot,
+						BufferedBytes ? "global::System.ReadOnlySpan<byte>" : "global::System.ReadOnlySpan<char>");
+					_extra.Add(helper.ToString());
+				}
 				_recoveries[repetition] = plan;
 				_recoveryPlans.Add(plan);
 			}

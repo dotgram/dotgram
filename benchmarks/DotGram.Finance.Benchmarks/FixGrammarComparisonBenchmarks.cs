@@ -8,7 +8,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using BenchmarkDotNet.Attributes;
-using DotGram.Finance.Fix;
+using DotGram.Examples.Finance;
+using DotGram.Finance;
 
 namespace DotGram.Finance.Benchmarks;
 
@@ -27,10 +28,9 @@ public class FixGrammarComparisonBenchmarks
 	[GlobalSetup]
 	public void Setup()
 	{
-		var path = Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE")
-			?? throw new InvalidOperationException("Set DOTGRAM_FIX_BASELINE to the previous DotGram.Finance.dll.");
-		var old = baseline ??= new AssemblyLoadContext("Previous FIX").LoadFromAssemblyPath(Path.GetFullPath(path)).GetType(typeof(Fix44).FullName!)!;
-		var current = typeof(Fix44);
+		var path = Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE");
+		var old = path is null ? typeof(Fix44) : baseline ??= PreviousType(path);
+		var current = typeof(Fix);
 		var order = Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
 		var raw = Fix44Benchmarks.Wire("A", "98=0|108=30|95=65536|96=" + new string('X', 65536) + "|");
 		var body = new StringBuilder("55=ABC|262=REQ|268=1000|");
@@ -51,6 +51,13 @@ public class FixGrammarComparisonBenchmarks
 		}
 		previous = Operation(Bind(old, Input), wire, Input);
 		simplified = Operation(Bind(current, Input), wire, Input);
+	}
+
+	internal static Type PreviousType(string path)
+	{
+		var assembly = new AssemblyLoadContext("Previous FIX").LoadFromAssemblyPath(Path.GetFullPath(path));
+		return assembly.GetType("DotGram.Finance.Fix") ?? assembly.GetType("DotGram.Examples.Finance.Fix44") ??
+			assembly.GetType("DotGram.Finance.Fix.Fix44", throwOnError: true)!;
 	}
 
 	internal static Func<object, IEnumerable> Bind(Type type, string input)

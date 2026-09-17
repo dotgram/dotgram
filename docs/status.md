@@ -138,6 +138,17 @@ rather than a design: the arena would have to record each entry's *size* instead
 position, so that a tail nothing touched stays valid when an edit shifts everything
 after it (`docs/next.md`, the Nitra reading).
 
+## Recovery in yielded collections
+
+`Rule* recover Sync` and `Rule+ recover Sync` can be published with `yield`.
+Recognition uses one committed recovery iteration at a time; it does not parse the
+whole collection before yielding. A recovery factory returns one scalar result
+without allocating a one-element collection. Without a factory, the rejected
+iteration reports through the existing hook and yields no value. Ordinals and
+positions continue across iterations, and EOF retains ordinary recovery behavior.
+Character and byte buffered input support recovery factories with native span
+arguments. Existing restrictions on byte input and line/column tracking still apply.
+
 ## Computed switch dispatch
 
 `switch @(expression) { case 1: Body default: Other }` selects one branch using an

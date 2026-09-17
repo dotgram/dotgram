@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 /// <summary>Receives source coordinates from the generated parser.</summary>
 public interface IFixLocation
@@ -13,7 +13,7 @@ public abstract partial class FixField : IFixLocation
 {
 	int prefixLength;
 	int terminatorLength = 1;
-	internal bool IsBinary => prefixLength != TagPrefixLength;
+	internal bool IsBinary => this is not Invalid && prefixLength != TagPrefixLength;
 	internal int DataPosition => ValuePosition - TagPrefixLength;
 	int TagPrefixLength
 	{
@@ -60,6 +60,37 @@ public abstract partial class FixField : IFixLocation
 
 	/// <summary>Whether conversion to the declared primitive succeeded. Raw input is retained in Lenient mode.</summary>
 	public bool IsValid { get; }
+
+	/// <summary>A malformed field skipped by recovery. Raw input excludes the synchronization separator.</summary>
+	public sealed class Invalid : FixField
+	{
+		public Invalid(string raw, int position, string message) : base(0, false)
+		{
+			RawText = raw ?? throw new ArgumentNullException(nameof(raw));
+			Message = message ?? throw new ArgumentNullException(nameof(message));
+			prefixLength = 0;
+			terminatorLength = 0;
+			Locate(position, raw.Length);
+		}
+
+		public Invalid(ReadOnlySpan<char> raw, int position, string message) : this(raw.ToString(), position, message) { }
+
+		public Invalid(ReadOnlySpan<byte> raw, int position, string message) : base(0, false)
+		{
+			RawBytes = raw.ToArray();
+			Message = message ?? throw new ArgumentNullException(nameof(message));
+			prefixLength = 0;
+			terminatorLength = 0;
+			Locate(position, raw.Length);
+		}
+
+		/// <summary>The original text for character input; null for byte input.</summary>
+		public string? RawText { get; }
+		/// <summary>The original bytes for byte input; empty for character input.</summary>
+		public ReadOnlyMemory<byte> RawBytes { get; }
+		public bool IsByteInput => RawText == null;
+		public string Message { get; }
+	}
 
 	public sealed class Unknown : FixField<ReadOnlyMemory<byte>>
 	{

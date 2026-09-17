@@ -1545,13 +1545,18 @@ not to the collection rule, and cannot change how its elements are constructed.
 The current proof accepts a complete `Rule*` or `Rule+` collection, optionally
 inside atomic groups or transparent collection wrappers. The element rule must
 consume input and cannot be marked as giving back a successful match. The
-collection must have no custom factory, outer choice, prefix/suffix, recovery or
-implicit trivia. Unsupported shapes receive `GRAM4027`; the compiler does not
+collection must have no custom factory, outer choice, prefix/suffix or implicit
+trivia. A recovery on the outer repetition is supported. Unsupported shapes receive `GRAM4027`; the compiler does not
 silently materialize the collection or change its backtracking behavior.
 
-Enumeration parses consecutive elements and stops at clean EOF. Malformed input
-throws `FormatException` from `MoveNext`; earlier elements may already have been
-returned. No input is skipped, and there is no `Try` companion for the lazy
+Enumeration parses consecutive elements and stops at clean EOF. Without recovery,
+malformed input throws `FormatException` from `MoveNext`; earlier elements may
+already have been returned. With `Rule* recover Sync => @(Bad(...))`, a rejected
+element is yielded in its place and parsing resumes after synchronization. A
+recovery without a factory drops the rejected element and reports it through the
+ordinary recovery hook. Recovery ordinals remain global to the enumeration;
+absolute source positions retain their ordinary meaning. Each iteration reads
+only one successful or recovered element. There is no `Try` companion for the lazy
 publication. Publish the ordinary `parse` form separately for an all-or-nothing
 `TryParse`. Each buffered element is constructed before yielding; completed input
 can then be released when lookbehind or location tracking does not require it.

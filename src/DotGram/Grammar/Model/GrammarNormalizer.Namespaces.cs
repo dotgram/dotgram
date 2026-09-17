@@ -64,9 +64,7 @@ public sealed partial class GrammarNormalizer
 		{
 			var calls = new List<RuleSymbol>();
 
-			foreach (var node in NodeWalk.Descendants(_bodies[rule]))
-				if (node is Node.Call(var called, _))
-					calls.Add(called);
+			calls.AddRange(DirectCalls(_bodies[rule]));
 
 			forward[rule] = calls;
 		}
@@ -174,9 +172,7 @@ public sealed partial class GrammarNormalizer
 
 		var fresh = new List<RuleSymbol>();
 
-		foreach (var node in NodeWalk.Descendants(body))
-			if (node is Node.Call(var called, _))
-				fresh.Add(called);
+		fresh.AddRange(DirectCalls(body));
 
 		return fresh;
 	}
@@ -453,7 +449,11 @@ public sealed partial class GrammarNormalizer
 			_bounds[clone] = bound;
 
 		if (_recoveries.TryGetValue(node, out var recovery))
-			_recoveries[clone] = recovery;
+			_recoveries[clone] = recovery with
+			{
+				Sync = CloneAndRewrite(recovery.Sync, targets, cloneMap, siteName),
+				Factory = recovery.Factory is { } factory ? Renaming(factory) : null,
+			};
 
 		return clone;
 	}

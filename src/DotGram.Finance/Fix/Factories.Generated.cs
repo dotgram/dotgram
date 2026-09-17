@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 static class FixFactories
 {

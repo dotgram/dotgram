@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
@@ -8,7 +8,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Text;
 using BenchmarkDotNet.Attributes;
-using DotGram.Finance.Fix;
+using DotGram.Examples.Finance;
+using DotGram.Finance;
 
 namespace DotGram.Finance.Benchmarks;
 
@@ -21,10 +22,9 @@ public class FixInitializationBenchmarks
 	Func<int> previous = null!;
 	Func<int> simplified = null!;
 
-	internal static Type TypeOf(bool old) => !old ? typeof(Fix44) : oldType ??=
-		new AssemblyLoadContext("Initialization baseline").LoadFromAssemblyPath(Path.GetFullPath(
-			Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE") ?? throw new InvalidOperationException("Set DOTGRAM_FIX_BASELINE.")))
-		.GetType(typeof(Fix44).FullName!)!;
+	internal static Type TypeOf(bool old) => !old ? typeof(Fix) : oldType ??=
+		Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE") is { } path
+			? FixGrammarComparisonBenchmarks.PreviousType(path) : typeof(Fix44);
 
 	[GlobalSetup]
 	public void Setup()
@@ -54,7 +54,7 @@ public class FixInitializationBenchmarks
 	internal static void Probe(bool old)
 	{
 		var type = TypeOf(old);
-		var parser = type.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")!;
+		var parser = type.Assembly.GetType(type.Namespace + (type.Name == "Fix44" && type.Namespace == "DotGram.Examples.Finance" ? ".Fix44Grammar" : ".FixGrammar"))!;
 		var start = Stopwatch.GetTimestamp();
 		RuntimeHelpers.RunClassConstructor(parser.TypeHandle);
 		Console.WriteLine($"Class initialization: {Stopwatch.GetElapsedTime(start).TotalMilliseconds:F3} ms");

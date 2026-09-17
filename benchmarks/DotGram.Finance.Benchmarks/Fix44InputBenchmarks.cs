@@ -2,7 +2,8 @@
 using System.IO;
 using System.Text;
 using BenchmarkDotNet.Attributes;
-using DotGram.Finance.Fix;
+using DotGram.Examples.Finance;
+using DotGram.Finance;
 
 namespace DotGram.Finance.Benchmarks;
 

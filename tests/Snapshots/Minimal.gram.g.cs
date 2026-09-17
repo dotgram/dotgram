@@ -3575,6 +3575,7 @@ namespace DotGram.Snapshots
 						{
 							recoveryFrom = candidate.Position;
 							recoveryReach = candidate.AtomicIndex;
+							break;
 						}
 						if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && candidate.State == 20)
 						{

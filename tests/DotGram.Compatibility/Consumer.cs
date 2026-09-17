@@ -38,6 +38,11 @@ namespace DotGram.Compatibility
 	{
 	}
 
+	[Gram("Item : @int = { ?=any } & 'a' & ';' => @(1)\nItems : @int[] = Item* recover ';' => @(0)\nparse Items stream bytes yield : @int")]
+	public partial class RecoveringYield
+	{
+	}
+
 	[Gram("Start : @string = text: any* => @(text)\nparse Start stream")]
 	public partial class BufferedCapture
 	{

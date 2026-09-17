@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Numerics;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 /// <summary>An exact base-ten number: Coefficient multiplied by ten to the power -Scale.</summary>
 public readonly struct FixDecimal

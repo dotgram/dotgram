@@ -4,7 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 
-using DotGram.Finance.Fix;
+using DotGram.Examples.Finance;
+using DotGram.Finance;
 
 using Xunit;
 
@@ -35,13 +36,13 @@ public sealed class FixFieldGrammarTests
 	public void Location_covers_whole_fields_and_conversion_does_not_need_coordinates(char separator)
 	{
 		var wire = "1=arbitrary text|10=007|607=invalid|9001=vendor|".Replace('|', separator);
-		var context = new FixContext();
-		var direct = separator == '|' ? FixGrammar.ParseLogFields(wire, context) : FixGrammar.ParseFields(wire, context);
+		var context = new Fix44Context();
+		var direct = separator == '|' ? Fix44Grammar.ParseLogFields(wire, context) : Fix44Grammar.ParseFields(wire, context);
 		using var reader = new StringReader(wire);
-		var chars = separator == '|' ? FixGrammar.ParseLogFields(reader, context, bufferSize: 1) : FixGrammar.ParseFields(reader, context, bufferSize: 1);
+		var chars = separator == '|' ? Fix44Grammar.ParseLogFields(reader, context, bufferSize: 1) : Fix44Grammar.ParseFields(reader, context, bufferSize: 1);
 		using var stream = new MemoryStream(Bytes(wire));
-		var byteContext = new FixContext();
-		var bytes = separator == '|' ? FixGrammar.ParseLogFields(stream, byteContext, bufferSize: 1) : FixGrammar.ParseFields(stream, byteContext, bufferSize: 1);
+		var byteContext = new Fix44Context();
+		var bytes = separator == '|' ? Fix44Grammar.ParseLogFields(stream, byteContext, bufferSize: 1) : Fix44Grammar.ParseFields(stream, byteContext, bufferSize: 1);
 		foreach (var fields in new[] { direct, chars, bytes })
 		{
 			AssertExtents(wire, fields);
@@ -123,12 +124,12 @@ public sealed class FixFieldGrammarTests
 		foreach (var capacity in new[] { 1, 3, 17, 4096 })
 		{
 			using var stream = new MemoryStream(Bytes(wire));
-			var result = FixGrammar.TryParseFields(stream, new FixContext(), bufferSize: capacity);
+			var result = Fix44Grammar.TryParseFields(stream, new Fix44Context(), bufferSize: capacity);
 			Assert.True(result.IsSuccess, result.Error);
 			AssertExtents(wire, result.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixField.RawData>(result.Value.Single(f => f.Tag == 96)).Value.ToArray());
 			using var reader = new StringReader(log);
-			var textResult = FixGrammar.TryParseLogFields(reader, new FixContext(), bufferSize: capacity);
+			var textResult = Fix44Grammar.TryParseLogFields(reader, new Fix44Context(), bufferSize: capacity);
 			Assert.True(textResult.IsSuccess, textResult.Error);
 			AssertExtents(log, textResult.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixField.RawData>(textResult.Value.Single(f => f.Tag == 96)).Value.ToArray());

@@ -578,7 +578,8 @@ public static partial class CSharpEmitter
 				// writes the ties it meets. It is not among `machines`, so a grammar whose
 				// syntax was all flat declared a failure its lexical half could not compile.
 				expectedMore: valuing is not null || machines.Exists(static compiled =>
-					!compiled.Flat || compiled.Machine.Ties)));
+					!compiled.Flat || compiled.Machine.Ties),
+				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery)));
 			file.Line();
 		}
 
@@ -2589,13 +2590,13 @@ public static partial class CSharpEmitter
 	/// </param>
 	internal static void EmitRecoveryFactory(
 		Writer file, ResultTypes results, RuleSymbol rule, string method, Recovery recovery,
-		RecognitionGraph graph, int slot)
+		RecognitionGraph graph, int slot, string? textType = null)
 	{
 		var element    = LayoutOf(graph, results, rule).Slots[slot].Rule;
 		var parameters = new List<string>();
 
 		foreach (var name in recovery.Asks)
-			parameters.Add(TypeOfSupplied(name) + " " + name);
+			parameters.Add((name == "parserText" && textType is not null ? textType : TypeOfSupplied(name)) + " " + name);
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> makes of an element it could not read.</summary>");
 		file.Line(

@@ -1,7 +1,8 @@
-@using DotGram.Finance.Fix;
+@using DotGram.Finance;
+@using DotGram.Examples.Finance;
 using Known;
 
-context : @FixContext
+context : @Fix44Context
 
 Separator    = ['\u0001']
 LogSeparator = ['|']
@@ -46,13 +47,14 @@ KnownBinary : @FixField =
 CustomFiled : @FixField = any & when @(false) => @(null!)
 
 Unknown : @FixField =
-	tag: Digits & when @(FixContext.IsUnknownText(tag)) & '=' & value: ValueText
-	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
+	tag: Digits & when @(Fix44Context.IsUnknownText(tag)) & '=' & value: ValueText
+	=> @(new FixField.Unknown(Fix44Context.Tag(tag), FixConvert.Data(value)))
 
 Field : @FixField =
-	(v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
+	{ ?=any } & (v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
 
-Fields : @FixField[] = { Field* }
+Fields : @FixField[] = Field* recover Separator
+	=> @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
 
 parse Fields stream bytes
 parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes

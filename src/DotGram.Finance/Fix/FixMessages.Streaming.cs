@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 public static partial class FixMessages
 {

@@ -3,7 +3,7 @@
 using System;
 using System.Numerics;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 public abstract partial class FixField
 {

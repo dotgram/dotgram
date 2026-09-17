@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 /// <summary>FIX 4.4 Heartbeat, MsgType 0.</summary>
 public sealed class Heartbeat : FixMessage

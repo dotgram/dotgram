@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 /// <summary>Parses one complete FIX 4.4 tag-value message.</summary>
 public static partial class FixMessages
@@ -82,7 +82,7 @@ public static partial class FixMessages
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) return Fail(0, null, null, "Unknown parsing mode.", out error);
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		if (!Fix44.TryParse(input, out var fields, out error, options?.FieldOptions)) return false;
+		if (!Fix.TryParse(input, out var fields, out error, options?.FieldOptions)) return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
 		return FixSemantics.TryBuild(input, type, Nodes(input, fields!), mode, options, out message, out error);
 	}
@@ -95,7 +95,7 @@ public static partial class FixMessages
 		var lengthEnd = input.Slice(12).IndexOf((byte)separator);
 		if (lengthEnd < 0) return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
 		lengthEnd += 12;
-		var bodyLength = FixContext.Tag(input.Slice(12, lengthEnd - 12));
+		var bodyLength = FixConvert.Tag(input.Slice(12, lengthEnd - 12));
 		if (bodyLength < 0) return Fail(12, 9, null, "Invalid BodyLength.", out error);
 		var bodyStart = lengthEnd + 1;
 		if (input.Length - bodyStart < 4 || !input.Slice(bodyStart, 3).SequenceEqual("35="u8)) return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
@@ -105,7 +105,7 @@ public static partial class FixMessages
 		if (bodyLength != input.Length - bodyStart - 7) return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
 		var checksumStart = bodyStart + bodyLength;
 		if (!input.Slice(checksumStart, 3).SequenceEqual("10="u8) || input[input.Length - 1] != separator) return Fail(checksumStart, 10, type, "Expected final CheckSum field.", out error);
-		var expected = FixContext.Tag(input.Slice(checksumStart + 3, 3));
+		var expected = FixConvert.Tag(input.Slice(checksumStart + 3, 3));
 		if (expected < 0) return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
 		var checksum = 0;
 		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
@@ -127,7 +127,7 @@ public static partial class FixMessages
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
 		using var stream = new MemoryStream(input, writable: false);
-		if (!Fix44.TryParse(stream, out var fields, out error, options?.FieldOptions)) return false;
+		if (!Fix.TryParse(stream, out var fields, out error, options?.FieldOptions)) return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
 		var wire = FixConvert.Text(input);
 		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields!), mode, options, out message, out error);
@@ -170,7 +170,7 @@ public static partial class FixMessages
 				var lengthPrefix = lengthTag.ToString(CultureInfo.InvariantCulture) + "=";
 				var header = source.AsSpan(position, tagPosition - position);
 				if (header.Length <= lengthPrefix.Length || !header.StartsWith(lengthPrefix.AsSpan()) || header[header.Length - 1] != separator ||
-					FixContext.Tag(header.Slice(lengthPrefix.Length, header.Length - lengthPrefix.Length - 1)) != field.Length)
+					FixConvert.Tag(header.Slice(lengthPrefix.Length, header.Length - lengthPrefix.Length - 1)) != field.Length)
 					return Fail(position, lengthTag, type, "Binary length does not match the supplied source.", out error);
 			}
 			position = field.ValuePosition + field.Length + 1;
@@ -192,7 +192,7 @@ public static partial class FixMessages
 			{
 				var header = source.AsSpan(value.Position, value.DataPosition - value.Position - 1);
 				var equals = header.IndexOf('=');
-				var tag = FixContext.Tag(header.Slice(0, equals));
+				var tag = FixConvert.Tag(header.Slice(0, equals));
 				var length = LengthField(tag, header.Slice(equals + 1));
 				length.Locate(value.Position, value.DataPosition - value.Position);
 				fields[index++] = new FixNode(tag, length.Position, length.ValuePosition, length.Length, typedValue: length);

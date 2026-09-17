@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
-/// <summary>Delimiter and optional replacement length/data dictionary for FixDispatch.</summary>
-public sealed class FixDispatchOptions
+/// <summary>Delimiter and optional replacement length/data dictionary for Fix.</summary>
+public sealed class FixOptions
 {
-	internal static readonly FixDispatchOptions Default = new();
+	internal static readonly FixOptions Default = new();
 	readonly Dictionary<int, int>? pairs;
 	readonly HashSet<int>? dataTags;
 
 	/// <param name="lengthDataPairs">Null uses the standard dictionary. A supplied dictionary replaces it and is copied.</param>
 	/// <param name="separator">SOH for wire input or pipe for logs.</param>
-	public FixDispatchOptions(char separator = '\u0001', IReadOnlyDictionary<int, int>? lengthDataPairs = null)
+	public FixOptions(char separator = '\u0001', IReadOnlyDictionary<int, int>? lengthDataPairs = null)
 	{
 		if (separator != '\u0001' && separator != '|') throw new ArgumentOutOfRangeException(nameof(separator));
 		Separator = separator;
