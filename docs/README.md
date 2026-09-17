@@ -35,6 +35,12 @@ it.
 `coverage.md` is a measurement rather than a text: `--coverage` writes it, nobody edits it,
 and it is out of date from the first change to the grammar until it is run again.
 
+## Repository conventions
+
+| Document | |
+| --- | --- |
+| [`coding-conventions.md`](coding-conventions.md) | Required file formatting, C# layout, naming and code-locality conventions. The canonical source of coding style. |
+
 ## How it is built
 
 | Document | |
