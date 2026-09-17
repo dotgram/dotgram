@@ -7,17 +7,17 @@ namespace DotGram.Finance.Fix;
 /// </summary>
 public static class FixParser
 {
-	static readonly FixOptions _logOptions = new('|');
-
+	/// <summary>
+	/// Reads wire fields separated by SOH.
+	/// </summary>
 	public static FixField[] Parse(string input, FixOptions? options = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
+
 		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
 
-		return options?.Separator == '|'
-			? FixGrammar.ParseLogFields(input, context)
-			: FixGrammar.ParseFields(input, context);
+		return FixGrammar.ParseFields(input, context);
 	}
 
 	public static FixField[] Parse(ReadOnlySpan<char> input, FixOptions? options = null)
@@ -25,50 +25,111 @@ public static class FixParser
 		return Parse(input.ToString(), options);
 	}
 
-	/// <summary>Lazily reads fields through a reusable character buffer; leaves the reader open.</summary>
+	/// <summary>
+	/// Lazily reads fields through a reusable buffer; leaves the input open.
+	/// </summary>
 	public static IEnumerable<FixField> Parse(TextReader input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
-		if (input == null)    throw new ArgumentNullException(nameof(input));
-		if (bufferSize  <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
-		if (maxRetained <= 0) throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		if (input == null)     throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
+		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
 
-		var state  = new FixGrammar.FixContext(options ?? FixOptions.Default);
-		var fields = options?.Separator == '|'
-			? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
-			: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
+		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
 
-		foreach (var field in fields)
+		foreach (var field in FixGrammar.ReadFields(input, context, bufferSize, maxRetained))
 			yield return field;
 	}
 
-	/// <summary>Lazily reads fields through a reusable native byte buffer; leaves the stream open.</summary>
+	/// <summary>
+	/// Lazily reads fields through a reusable buffer; leaves the input open.
+	/// </summary>
 	public static IEnumerable<FixField> Parse(Stream input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
-		if (input == null)    throw new ArgumentNullException(nameof(input));
-		if (bufferSize  <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
-		if (maxRetained <= 0) throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		if (input == null)     throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
+		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
+
 		return Read();
 
 		IEnumerable<FixField> Read()
 		{
-			var state = new FixGrammar.FixContext(options ?? FixOptions.Default);
-			var fields = options?.Separator == '|'
-				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
-				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
-			foreach (var field in fields) yield return field;
+			var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
+
+			foreach (var field in FixGrammar.ReadFields(input, context, bufferSize, maxRetained))
+				yield return field;
 		}
 	}
 
 	public static FixField[] Parse(byte[] input, FixOptions? options = null)
 	{
-		if (input == null) throw new ArgumentNullException(nameof(input));
+		if (input == null)
+			throw new ArgumentNullException(nameof(input));
+
 		using var stream = new MemoryStream(input, writable: false);
+
 		return Parse(stream, options).ToArray();
 	}
 
-	public static FixField[] ParseLog(string input)
+	/// <summary>
+	/// Reads log fields separated by a pipe with optional surrounding spaces.
+	/// </summary>
+	public static FixField[] ParseLog(string input, FixOptions? options = null)
 	{
-		return Parse(input, _logOptions);
+		if (input == null)
+			throw new ArgumentNullException(nameof(input));
+
+		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
+
+		return FixGrammar.ParseLogFields(input, context);
 	}
 
+	public static FixField[] ParseLog(ReadOnlySpan<char> input, FixOptions? options = null)
+	{
+		return ParseLog(input.ToString(), options);
+	}
+
+	/// <summary>
+	/// Lazily reads fields through a reusable buffer; leaves the input open.
+	/// </summary>
+	public static IEnumerable<FixField> ParseLog(TextReader input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	{
+		if (input == null)     throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
+		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
+
+		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
+
+		foreach (var field in FixGrammar.ReadLogFields(input, context, bufferSize, maxRetained))
+			yield return field;
+	}
+
+	/// <summary>
+	/// Lazily reads fields through a reusable buffer; leaves the input open.
+	/// </summary>
+	public static IEnumerable<FixField> ParseLog(Stream input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	{
+		if (input == null)     throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
+		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
+
+		return Read();
+
+		IEnumerable<FixField> Read()
+		{
+			var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
+
+			foreach (var field in FixGrammar.ReadLogFields(input, context, bufferSize, maxRetained))
+				yield return field;
+		}
+	}
+
+	public static FixField[] ParseLog(byte[] input, FixOptions? options = null)
+	{
+		if (input == null)
+			throw new ArgumentNullException(nameof(input));
+
+		using var stream = new MemoryStream(input, writable: false);
+
+		return ParseLog(stream, options).ToArray();
+	}
 }

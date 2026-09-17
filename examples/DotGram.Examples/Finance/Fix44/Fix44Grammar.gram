@@ -5,7 +5,7 @@ using Known;
 context : @Fix44Context
 
 Separator    = ['\u0001']
-LogSeparator = ['|']
+LogSeparator = ' '* & '|' & ' '*
 ValueText    = (?!Separator & any)+
 Digits       = ['1'..'9'] & ['0'..'9']*
 Size         = ['0'..'9']+

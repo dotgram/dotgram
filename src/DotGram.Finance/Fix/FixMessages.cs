@@ -80,7 +80,9 @@ public static partial class FixMessages
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) return Fail(0, null, null, "Unknown parsing mode.", out error);
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		var fields = FixParser.Parse(input, options?.FieldOptions);
+		var fields = separator == '|'
+			? FixParser.ParseLog(input, options?.FieldOptions)
+			: FixParser.Parse(input, options?.FieldOptions);
 		if (!CheckSyntax(fields, out error))
 			return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
@@ -126,7 +128,9 @@ public static partial class FixMessages
 		message = null;
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		var fields = FixParser.Parse(input, options?.FieldOptions);
+		var fields = separator == '|'
+			? FixParser.ParseLog(input, options?.FieldOptions)
+			: FixParser.Parse(input, options?.FieldOptions);
 		if (!CheckSyntax(fields, out error))
 			return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;

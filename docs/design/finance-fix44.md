@@ -10,7 +10,8 @@ returns fields incrementally. `recover Separator` produces `FixField.Invalid`
 with the rejected input, position and error, then resumes after the separator.
 The syntax path uses no message schema or envelope validator. Length fields
 provide raw-data boundaries; the parser checks the configured length/data tag pair.
-`FixOptions` selects SOH or pipe and an optional replacement pair dictionary.
+`FixParser.Parse` reads SOH and `ParseLog` reads pipes with optional surrounding
+ASCII spaces. `FixOptions` supplies an optional replacement pair dictionary.
 
 The public API and shared types live in `DotGram.Finance.Fix`, with production sources
 in `src/DotGram.Finance/Fix`. The reference parser lives in
@@ -110,13 +111,15 @@ Conversions return `(Valid, Value)`; plain text returns a string.
 `LocationType = typeof(IFixLocation)` supplies the complete field extent.
 
 `Field` recognizes the field contents without the final separator. `Fields`
-repeats `Terminated(Field, (Separator | eof))`; the small parameterized wrapper
-preserves field locations and supplies a complete element for streaming `yield`.
+repeats `(value: Field & end: (Separator | eof) => @(value.WithTerminator(end.Length)))*`.
+The constructing group preserves field locations and supplies a complete element
+for streaming `yield`.
 Recovery remains on the collection and classifies invalid first tokens without an
 atomic lookahead marker; EOF ends the collection.
 
-`Separator` is an elementary rule. The pipe publication uses
-`with (Separator = LogSeparator)`. `Text` tests the rule with negative lookahead;
+`Separator` is a rule. The pipe publication uses
+`with (Separator = LogSeparator)`, where `LogSeparator = ' '* & '|' & ' '*`.
+Binary payloads are still length-delimited and are never trimmed. `Text` tests the rule with negative lookahead;
 it must retain that reference through specialization rather than flatten a named
 set before `with` is applied.
 

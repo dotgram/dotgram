@@ -13,7 +13,7 @@ namespace DotGram.Finance.Fix;
 	context : @FixContext
 
 	Separator    = ['\u0001']
-	LogSeparator = ['|']
+	LogSeparator = ' '* & '|' & ' '*
 	Text         = (?!Separator & any)+
 
 	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.Tag(value))
@@ -33,7 +33,7 @@ namespace DotGram.Finance.Fix;
 	Fields : @FixField[] =
 		(value: Field & end: (Separator | eof) => @(value.WithTerminator(end.Length)))*
 		recover Separator => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
-""",
+	""",
 	LocationType  = typeof(IFixLocation),
 	SpanCaptures  = true,
 	BufferedInput = true,
@@ -83,7 +83,7 @@ sealed partial class FixGrammar
 			if (dataTag == 0)
 				return FixFactory.Value(tag, wire.Slice(equals + 1));
 
-			var second  = wire.IndexOf(options.Separator) + 1;
+			var second  = equals + 1;
 			var payload = second + wire.Slice(second).IndexOf('=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 
@@ -98,7 +98,7 @@ sealed partial class FixGrammar
 			if (dataTag == 0)
 				return FixFactory.Value(tag, wire.Slice(equals + 1));
 
-			var second  = wire.IndexOf((byte)options.Separator) + 1;
+			var second  = equals + 1;
 			var payload = second + wire.Slice(second).IndexOf((byte)'=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 

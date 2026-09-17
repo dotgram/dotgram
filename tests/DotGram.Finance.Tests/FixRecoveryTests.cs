@@ -20,8 +20,8 @@ public sealed class FixRecoveryTests
 		Assert.Equal(6, text.Length);
 		using var reader = new StringReader(input);
 		using var stream = new MemoryStream(Encoding.Latin1.GetBytes(input));
-		var chars = dispatch ? FixParser.Parse(reader, new FixOptions('|'), 1, 16) : Fix44.Parse(reader, new FixOptions('|'), 1, 16);
-		var bytes = dispatch ? FixParser.Parse(stream, new FixOptions('|'), 1, 16) : Fix44.Parse(stream, new FixOptions('|'), 1, 16);
+		var chars = dispatch ? FixParser.ParseLog(reader, null, 1, 16) : Fix44.ParseLog(reader, 1, 16);
+		var bytes = dispatch ? FixParser.ParseLog(stream, null, 1, 16) : Fix44.ParseLog(stream, 1, 16);
 		Check(text, false);
 		Check(chars, false);
 		Check(bytes, true);
@@ -84,7 +84,7 @@ public sealed class FixRecoveryTests
 	public void Raw_error_data_preserves_high_bytes_and_unicode_text(bool dispatch)
 	{
 		var wire = new byte[] { 255, 0, 124, 53, 53, 61, 88 };
-		var bytes = dispatch ? FixParser.Parse(wire, new FixOptions('|')) : Fix44.Parse(wire, new FixOptions('|'));
+		var bytes = dispatch ? FixParser.ParseLog(wire) : Fix44.ParseLog(wire);
 		Assert.Equal(new byte[] { 255, 0 }, Assert.IsType<FixField.Invalid>(bytes[0]).RawBytes.ToArray());
 		Assert.Equal("X", Assert.IsType<FixField.Symbol>(bytes[1]).Value);
 		var fields = dispatch ? FixParser.ParseLog("ошибка|55=X") : Fix44.ParseLog("ошибка|55=X");
