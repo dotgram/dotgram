@@ -36,8 +36,15 @@ sealed partial class Machine
 	{
 		if (OverKinds || _starves || repeat.Max != null ||
 			repeat.Body is not Node.Sequence({ Count: 2 } turn) ||
-			turn[0] is not Node.Lookahead(false, var guard) || RunTest(turn[1]) != "true" ||
-			DelimiterBody(guard) is not Node.Sequence(var parts) || parts.Count is < 2 or > 3 ||
+			turn[0] is not Node.Lookahead(false, var guard) || RunTest(turn[1]) != "true")
+			return null;
+
+		return PaddedDelimiter(guard);
+	}
+
+	(string Padding, string Stop)? PaddedDelimiter(Node guard)
+	{
+		if (OverKinds || _starves || DelimiterBody(guard) is not Node.Sequence(var parts) || parts.Count is < 2 or > 3 ||
 			DelimiterBody(parts[0]) is not Node.Repeat(var padding, 0, null))
 			return null;
 
@@ -66,25 +73,53 @@ sealed partial class Machine
 		_usesRuns = true;
 		_usesChar = true;
 
-		writer.Line("// Linear delimiter scan: remember the start of trailing padding.");
 		writer.Line("var runStart = p;");
-		writer.Line("var paddingStart = p;");
-		using (writer.Block($"while ({Room(1)})"))
-		{
-			writer.Line($"c = {ReadAt("p")};");
-			using (writer.Block($"if ({stop})"))
-			{
-				writer.Line("p = paddingStart;");
-				writer.Line("break;");
-			}
-			writer.Line("p++;");
-			writer.Line($"if (!({padding})) paddingStart = p;");
-		}
+		EmitDelimiterScan(writer, padding, stop);
 		// Re-enter the original path only on a minimum-length failure, so its
 		// exact diagnostic and failure position remain unchanged.
 		var retry = repeat.Min > 0 ? CompileRepeat(repeat, next, following) : (int?)null;
 		FinishScan(writer, repeat, next, retry);
 
 		return state;
+	}
+
+	void EmitDelimiterScan(Writer writer, string? padding, string stop)
+	{
+		_usesChar = true;
+		writer.Line("// Linear delimiter scan: remember the start of trailing padding.");
+		if (padding != null)
+			writer.Line("var paddingStart = p;");
+
+		using (writer.Block($"while ({Room(1)})"))
+		{
+			writer.Line($"c = {ReadAt("p")};");
+			using (writer.Block($"if ({stop})"))
+			{
+				if (padding != null)
+					writer.Line("p = paddingStart;");
+				writer.Line("break;");
+			}
+			writer.Line("p++;");
+			if (padding != null)
+				writer.Line($"if (!({padding})) paddingStart = p;");
+		}
+	}
+
+	void EmitRecoverySearch(Writer writer, Node sync)
+	{
+		if (OverKinds || _starves)
+			return;
+
+		var body      = DelimiterBody(sync);
+		var delimiter = PaddedDelimiter(body);
+		var stop      = delimiter?.Stop ?? (body is Node.Element or Node.Literal ? RunTest(body) : null);
+		if (stop == null || stop == "true")
+			return;
+
+		writer.Line("var searchStart = p;");
+		EmitDelimiterScan(writer, delimiter?.Padding, stop);
+		// Replay the last rejected candidate before trying the delimiter (or EOF).
+		// Its ordinary failure preserves the furthest diagnostic and expected tokens.
+		writer.Line("if (p > searchStart) p--;");
 	}
 }

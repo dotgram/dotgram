@@ -74,6 +74,7 @@ sealed partial class Machine
 		atAsked.Line($"goto {Label(atAsked, scan)};");
 
 		atScan.Line($"if ({Short(1)}) goto {Label(atScan, recovered)};");
+		EmitRecoverySearch(atScan, recovery.Recovery.Sync);
 		atScan.Line("syncFrom = p;");
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atScan, advance)}, p, call, atomic, repeat, lookahead, 0));");
 		atScan.Line($"goto {Label(atScan, sync)};");

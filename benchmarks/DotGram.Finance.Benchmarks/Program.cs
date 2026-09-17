@@ -17,6 +17,12 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		if (args.Length == 3 && args[0] == "--recovery-performance")
+		{
+			FixRecoveryPerformance.Run(args[1..]);
+			return;
+		}
+
 		if (args.Length == 3 && args[0] == "--log-performance")
 		{
 			FixLogPerformance.Run(args[1..]);

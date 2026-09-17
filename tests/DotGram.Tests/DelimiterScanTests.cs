@@ -88,6 +88,63 @@ public sealed class DelimiterScanTests
 		Assert.DoesNotContain("Linear delimiter scan", Assert.Single(result.Sources).Text);
 	}
 
+	[Theory]
+	[InlineData("'|'")]
+	[InlineData("['|' | ';']")]
+	[InlineData("' '* & '|' & ' '*")]
+	public void Recovery_search_preserves_raw_extents_and_diagnostics(string separator)
+	{
+		var grammar = "Separator = " + separator + "\nSync = Separator\n" +
+			"Item : @string = \"abc\" & Separator => @(\"ok\")\n" +
+			"Start : @string[] = Item* recover Sync => @(Error(parserPosition, parserText, parserMessage))\n" +
+			"parse Start stream bytes";
+		const string members = """
+			static string Error(long position, string raw, string message)
+			{
+				return position + ":" + raw + ":" + message;
+			}
+			static string Error(long position, global::System.ReadOnlySpan<byte> raw, string message)
+			{
+				return Error(position, global::System.Text.Encoding.ASCII.GetString(raw.ToArray()), message);
+			}
+			""";
+		Assembly Build(string text)
+		{
+			var result = GramCompiler.Compile(text, Options());
+			EmittedCode.Quiet(result.Diagnostics);
+			var source = Assert.Single(result.Sources).Text;
+			if (text.Contains("Sync = {"))
+				Assert.DoesNotContain("var searchStart = p;", source);
+			else
+				Assert.Contains("var searchStart = p;", source);
+
+			return EmittedCode.Compile(source, declarationMembers: members);
+		}
+
+		var fast = Build(grammar);
+		var slow = Build(grammar.Replace("Sync = Separator", "Sync = { Separator }"));
+		foreach (var input in new[] { "", "broken|abc|", "abx | abc|tail", "broken   ",
+			"||", "abc|broken|broken|abc|", "ab |abc|", "bad ;abc;", "bad   |  abc|",
+			"bad" + new string(' ', 4096) + "x|abc|", "bad" + new string(' ', 4096) })
+			foreach (var mode in new[] { typeof(string), typeof(TextReader), typeof(Stream) })
+				Assert.Equal(ReadRecovered(slow, input, mode), ReadRecovered(fast, input, mode));
+	}
+
+	static string ReadRecovered(Assembly assembly, string input, Type mode)
+	{
+		using var reader = new StringReader(input);
+		using var stream = new OneByteStream(Encoding.ASCII.GetBytes(input));
+		var parameters = mode == typeof(string) ? new[] { mode } : new[] { mode, typeof(int), typeof(int) };
+		object?[] arguments = mode == typeof(string) ? [input] : [mode == typeof(Stream) ? stream : reader, 1, int.MaxValue];
+		var result = assembly.GetType("Grammar")!.GetMethod("TryParseStart", parameters)!.Invoke(null, arguments)!;
+		var type = result.GetType();
+		var fields = (string[]?)type.GetProperty("Value")!.GetValue(result);
+
+		return type.GetProperty("IsSuccess")!.GetValue(result) + ":" +
+			type.GetProperty("Position")!.GetValue(result) + ":" +
+			type.GetProperty("Error")!.GetValue(result) + ":" + string.Join("\n", fields ?? []);
+	}
+
 	static GramCompilerOptions Options()
 	{
 		return new GramCompilerOptions

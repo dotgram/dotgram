@@ -399,3 +399,44 @@ all 12 reproduce with the unmodified generator from `4fb923fb`. There are no
 new failures. The 12 delimiter tests compare results, rollback and diagnostics
 with an unoptimized equivalent, including EOF, bounds, publication specialization,
 unsupported patterns and single-byte reads. Their generated code compiles at C# 8.
+
+## Linear recovery synchronization: 2026-09-17
+
+Recovery now shares the pure-delimiter search with guarded text. The parser scans
+to the earliest candidate, replays the final rejected candidate to preserve failure
+diagnostics, and consumes the delimiter through the original synchronization rule.
+Unsupported rules retain the general algorithm. No Finance-specific recovery code
+or new grammar syntax is involved.
+
+Reproduce the paired diagnostic probe with separately built Finance assemblies:
+
+```powershell
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --recovery-performance <previous-assembly> <current-assembly>
+```
+
+Each operation parses `"broken" + new string(' ', N) + "x|55=END"` as a string.
+Both implementations are bound once in separate load contexts in the same process.
+Setup compares serialized fields, including raw error data, coordinates and messages.
+After 150 ms warmup per implementation, nine alternating samples of at least 60 ms
+are taken; the table reports medians. Allocations are measured separately over 32
+operations. No builds or tests ran concurrently. These are diagnostic timings, not
+BenchmarkDotNet confidence intervals.
+
+| Spaces | Previous us | Current us | Previous bytes | Current bytes |
+| ---: | ---: | ---: | ---: | ---: |
+| 256 | 14.875 | 0.588 | 5160 | 984 |
+| 512 | 50.936 | 0.794 | 9792 | 1496 |
+| 1024 | 187.322 | 1.228 | 19032 | 2520 |
+| 2048 | 719.870 | 2.064 | 37488 | 4568 |
+| 4096 | 2810.691 | 3.798 | 74376 | 8664 |
+
+[CSV results](results/recovery-linear-scan-2026-09-17.csv). The large-input scaling
+changes from quadratic to linear; at 4096 spaces this is about 740 times faster.
+
+Validation: all 3835 Finance tests and all 15 delimiter tests pass. The full
+8376-test generator run has the same 12 previously established switch-inference
+failures and no new failures. Differential recovery tests compare values, raw
+extents, positions and messages with an unoptimized atomic synchronization rule,
+for string, TextReader and one-byte Stream inputs, including missing separators,
+EOF padding, repeated errors and long internal space runs. Generated test code is
+compiled at the C# 8 floor.

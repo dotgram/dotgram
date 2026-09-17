@@ -6,6 +6,10 @@ The merged generator builds and all 12 delimiter-scan tests pass.
 
 ## Priority 1: recovery synchronization
 
+Implemented in the follow-up: recovery and guarded text now share the pure-delimiter
+search emitter. The measurements below describe the original problem; updated paired
+results are recorded in the Finance benchmark README.
+
 `Item* recover Separator` still attempts the entire synchronization rule at every
 position. `Machine.Recovery.cs`, `CompileRecoveringRepeat`, emits a Choice entry,
 tries Sync, and advances by one on failure. For `' '* & '|' & ' '*`, a long run
