@@ -4,6 +4,7 @@
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 	<ItemGroup>
+		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
 		<ProjectReference Include="../../src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
 		<ProjectReference Include="../../src/DotGram.Sql/DotGram.Sql.csproj" />
 	</ItemGroup>

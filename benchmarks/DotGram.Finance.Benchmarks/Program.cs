@@ -17,6 +17,18 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		if (args.Length == 1 && args[0] == "--hand-fix-performance")
+		{
+			HandFixBenchmarks.Compare();
+			return;
+		}
+
+		if (args.Length == 2 && args[0] == "--hand-fix-first")
+		{
+			HandFixBenchmarks.FirstCall(args[1] == "handwritten");
+			return;
+		}
+
 		if (args.Length == 3 && args[0] == "--recovery-performance")
 		{
 			FixRecoveryPerformance.Run(args[1..]);

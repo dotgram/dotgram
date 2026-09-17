@@ -103,7 +103,8 @@ public abstract class FixField : IFixLocation
 			this.value = value;
 		}
 
-		protected Typed(int tag, (bool Valid, T Value) parsed) : base(tag, parsed.Valid)
+		protected Typed(int tag, (bool Valid, T Value) parsed)
+			: base(tag, parsed.Valid)
 		{
 			value = parsed.Value;
 		}

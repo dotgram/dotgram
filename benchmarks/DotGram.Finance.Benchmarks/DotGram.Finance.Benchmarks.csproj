@@ -6,6 +6,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" />
+		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
 		<ProjectReference Include="../../examples/DotGram.Examples/DotGram.Examples.csproj" />
 	</ItemGroup>
