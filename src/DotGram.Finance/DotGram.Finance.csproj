@@ -17,6 +17,15 @@
 		<InternalsVisibleTo Include="DotGram.Examples" />
 		<ProjectReference Include="../DotGram/DotGram.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<AdditionalFiles Include="Fix/*.gram" />
+		<None Update="Fix/Fix.Generate.tt">
+			<Generator>TextTemplatingFileGenerator</Generator>
+			<LastGenOutput>Fix.Generate.txt</LastGenOutput>
+		</None>
+		<None Update="Fix/Fix.Generate.ttinclude;Fix/Fix.Generate.txt">
+			<DependentUpon>Fix.Generate.tt</DependentUpon>
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+		</None>
 		<None Include="README.md" Pack="true" PackagePath="/" />
 		<None Include="Fix/Specification/LICENSE" Pack="true" PackagePath="licenses/FIX-Orchestra/" />
 		<None Include="../../LICENSE" Pack="true" PackagePath="licenses/DotGram/" />
@@ -26,4 +35,12 @@
 		<PackageReference Include="System.Memory" />
 		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
 	</ItemGroup>
+	<ItemGroup>
+		<Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+	</ItemGroup>
+	<!-- Explicit regeneration; ordinary builds compile the checked-in outputs. -->
+	<Target Name="GenerateFix" Condition="'$(TargetFramework)' == ''">
+		<Exec WorkingDirectory="$(MSBuildProjectDirectory)/../.." Command="dotnet tool restore" />
+		<Exec WorkingDirectory="$(MSBuildProjectDirectory)/../.." Command="dotnet t4 &quot;$(MSBuildProjectDirectory)/Fix/Fix.Generate.tt&quot;" />
+	</Target>
 </Project>

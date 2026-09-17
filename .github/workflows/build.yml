@@ -22,8 +22,8 @@ jobs:
 
       - name: Check generated FIX definitions
         run: |
-          python3 tools/generate-fix44.py
-          git diff --exit-code -- src/DotGram.Finance tests/DotGram.Finance.Tests/Fixtures.json
+          dotnet msbuild src/DotGram.Finance -t:GenerateFix
+          git diff --exit-code -- src/DotGram.Finance examples/DotGram.Examples/Finance/Fix44/FixField.gram tests/DotGram.Finance.Tests/Fixtures.json
 
       # The Linux solution configuration: every project built as Release, minus the
       # two that need the Visual Studio SDK and cannot be built off Windows. Being a

@@ -1,0 +1,9 @@
+Generated from Specification/OrchestraFIX44.xml (FIX.4.4_EP311).
+src/DotGram.Finance/Fix/Messages.Generated.cs
+src/DotGram.Finance/Fix/Specification/inventory.json
+src/DotGram.Finance/Fix/Schema.Generated.cs
+src/DotGram.Finance/Fix/Factories.Generated.cs
+src/DotGram.Finance/Fix/FixField.Generated.cs
+examples/DotGram.Examples/Finance/Fix44/FixField.gram
+src/DotGram.Finance/Fix/FixFactory.Generated.cs
+tests/DotGram.Finance.Tests/Fixtures.json

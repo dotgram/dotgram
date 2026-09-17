@@ -10,7 +10,7 @@ grammar files, schema XML, reflection configuration or initialization step.
 using DotGram.Finance;
 
 FixField[] fields = Fix.Parse(wire);
-var logFields = Fix.ParseLog("55=ABC|38=100|");
+var logFields = Fix.ParseLog("55=ABC | 38=100");
 using var input = File.OpenRead("messages.fix");
 foreach (FixField field in Fix.Parse(input))
     Console.WriteLine(field.Tag);
@@ -308,12 +308,24 @@ It contains 912 fields, 247 code sets, 15 components and 92 group definitions;
 91 groups are reachable from the 93 standard messages. Wire rules follow
 [FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
 
-Run `python tools/generate-fix44.py` from the repository to reproduce checked-in
-field declarations, model types, schema tables and test fixtures. The generator owns
+Run from the repository root:
+
+```powershell
+dotnet msbuild src/DotGram.Finance -t:GenerateFix
+```
+
+This reproduces checked-in field declarations, model types, schema tables and test fixtures. The generator owns
 the example `FixField.gram`, production `FixFactory.Generated.cs` and
 `FixField.Generated.cs`; it never rewrites `FixGrammar.gram`,
-`FixField.cs`, `FixConvert.cs` or the parser host. It uses only the Python standard
-library and the pinned local XML; package consumers do not run it.
+`FixField.cs`, `FixConvert.cs` or the parser host. The T4 template uses C# and the
+pinned local XML; package consumers do not run it.
+In Visual Studio, open `Fix/Fix.Generate.tt` in the Finance project and run
+**Run Custom Tool** (or **Transform All T4 Templates**). `Fix.Generate.ttinclude`
+contains shared dictionary and fixture helpers; `Fix.Generate.txt` lists outputs.
+
+For command-line regeneration, the `GenerateFix` target restores the pinned
+`dotnet-t4` tool from `.config/dotnet-tools.json` and transforms the same template.
+Ordinary builds compile the checked-in generated files without running T4.
 The original source and its Apache 2.0 license remain unmodified. See the packaged
 third-party notices for attribution.
 

@@ -14,6 +14,7 @@
 		</Project>
 	</Folder>
 	<Folder Name="/.root/">
+		<File Path=".config/dotnet-tools.json" />
 		<File Path=".editorconfig" />
 		<File Path=".gitattributes" />
 		<File Path=".gitignore" />
