@@ -1,0 +1,16 @@
+[
+  {
+    "project": "fix",
+    "beforeCharacters": 74768188,
+    "afterCharacters": 74766907,
+    "removedTableBindings": 32,
+    "onlyTableBindingsChanged": true
+  },
+  {
+    "project": "sql",
+    "beforeCharacters": 120188452,
+    "afterCharacters": 120103615,
+    "removedTableBindings": 2539,
+    "onlyTableBindingsChanged": true
+  }
+]

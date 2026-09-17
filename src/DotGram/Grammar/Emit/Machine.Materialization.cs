@@ -460,7 +460,7 @@ sealed partial class Machine
 	/// <summary>The tables in view wherever values are read or written.</summary>
 	void DeclareTables(Writer writer)
 	{
-		foreach (var type in _valueTypes)
+		foreach (var type in MaterializationTypes)
 			writer.Line($"var values{TableName(type)} = parser.Materialization{TableName(type)}();");
 	}
 

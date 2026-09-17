@@ -651,11 +651,17 @@ sealed partial class Machine
 	/// </remarks>
 	public void ShareValueTables(IReadOnlyList<string> tables)
 	{
+		if (_materializationTypes is null && _valueTypes.Count < tables.Count)
+			_materializationTypes = _valueTypes.ToArray();
 		_valueTypes.Clear();
 		_valueTypes.AddRange(tables);
 	}
 
 	readonly List<string> _valueTypes = [];
+
+	// Keep this machine's own types before table numbering is shared with its siblings.
+	string[]? _materializationTypes;
+	IReadOnlyList<string> MaterializationTypes => _materializationTypes ?? (IReadOnlyList<string>)_valueTypes;
 
 	/// <summary>
 	/// Every type that will be stored, gathered before anything is written.

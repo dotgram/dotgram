@@ -778,7 +778,7 @@ sealed partial class Machine
 			}
 
 			if (!DenseDirectValues && Carrier is not TapeCarrier { PagedStore: true })
-				foreach (var type in _valueTypes)
+				foreach (var type in MaterializationTypes)
 					file.Line($"var values{TableName(type)} = values.V{TableName(type)}{(Carrier is TapeCarrier { AdaptiveStore: true } ? ".First" : "")};");
 
 			file.Line();

@@ -1162,7 +1162,6 @@ namespace DotGram.Snapshots
 				}
 			}
 			var values0 = values.V0;
-			var values1 = values.V1;
 
 			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
@@ -1651,7 +1650,6 @@ namespace DotGram.Snapshots
 				}
 			}
 			var values0 = values.V0;
-			var values1 = values.V1;
 
 			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
@@ -2038,7 +2036,6 @@ namespace DotGram.Snapshots
 				}
 			}
 			var values0 = values.V0;
-			var values1 = values.V1;
 
 			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
@@ -3147,7 +3144,6 @@ namespace DotGram.Snapshots
 					}
 				}
 			}
-			var values0 = values.V0;
 			var values1 = values.V1;
 
 			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
@@ -3308,7 +3304,6 @@ namespace DotGram.Snapshots
 					{
 						var values = parser.Materialization(entries.Count);
 						var values0 = parser.Materialization0();
-						var values1 = parser.Materialization1();
 						Materialize_DotGram_Word(text, parser, entries);
 						switch (rootRule)
 						{
@@ -3489,7 +3484,6 @@ namespace DotGram.Snapshots
 		{
 			var values = parser.Materialization(entries.Count);
 			var values0 = parser.Materialization0();
-			var values1 = parser.Materialization1();
 			var linkHeads = parser.MaterializationHeads();
 			var linkNexts = parser.MaterializationNexts();
 
