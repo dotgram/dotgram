@@ -17,18 +17,11 @@ public sealed class FixRecoveryTests
 	{
 		const string input = "55=ABC|bad|38=2|0=X|55=END|tail";
 		var text = dispatch ? FixParser.ParseLog(input) : Fix44.ParseLog(input);
-		FixField[]? parsed;
-		FixParseError? error;
-		var success = dispatch
-			? FixParser.TryParse(input, out parsed, out error, new FixOptions('|'))
-			: Fix44.TryParse(input, out parsed, out error, new FixOptions('|'));
-		Assert.False(success);
-		Assert.NotNull(error);
-		Assert.Equal(6, parsed!.Length);
+		Assert.Equal(6, text.Length);
 		using var reader = new StringReader(input);
 		using var stream = new MemoryStream(Encoding.Latin1.GetBytes(input));
-		var chars = dispatch ? FixParser.Parse(reader, new FixOptions('|'), 1, 16) : Fix44.Parse(reader, new FixOptions('|'), 1, 16);
-		var bytes = dispatch ? FixParser.Parse(stream, new FixOptions('|'), 1, 16) : Fix44.Parse(stream, new FixOptions('|'), 1, 16);
+		var chars = dispatch ? FixParser.ParseLog(reader, null, 1, 16) : Fix44.ParseLog(reader, 1, 16);
+		var bytes = dispatch ? FixParser.ParseLog(stream, null, 1, 16) : Fix44.ParseLog(stream, 1, 16);
 		Check(text, false);
 		Check(chars, false);
 		Check(bytes, true);
@@ -54,12 +47,44 @@ public sealed class FixRecoveryTests
 	}
 
 	[Theory]
+	[InlineData(FixParseMode.Strict)]
+	[InlineData(FixParseMode.Lenient)]
+	public void Message_validation_rejects_recovered_fields_with_the_original_diagnostic(FixParseMode mode)
+	{
+		var wire    = Fix44Tests.Wire("0", "broken|55=END|");
+		var fields  = FixParser.Parse(wire);
+		var invalid = Assert.Single(fields.OfType<FixField.Invalid>());
+		var options = new FixParseOptions(mode);
+
+		Assert.False(FixMessages.TryParse(wire, out var message, out var error, options));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
+
+		using var reader = new StringReader(wire);
+		using var stream = new MemoryStream(Encoding.Latin1.GetBytes(wire));
+
+		Assert.False(FixMessages.TryParse(reader, out message, out error, mode));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
+		Assert.False(FixMessages.TryParse(stream, out message, out error, mode));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
+		Assert.False(FixMessages.TryBuild(wire, fields, out message, out error, options));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
+	}
+
+	[Theory]
 	[InlineData(false)]
 	[InlineData(true)]
 	public void Raw_error_data_preserves_high_bytes_and_unicode_text(bool dispatch)
 	{
 		var wire = new byte[] { 255, 0, 124, 53, 53, 61, 88 };
-		var bytes = dispatch ? FixParser.Parse(wire, new FixOptions('|')) : Fix44.Parse(wire, new FixOptions('|'));
+		var bytes = dispatch ? FixParser.ParseLog(wire) : Fix44.ParseLog(wire);
 		Assert.Equal(new byte[] { 255, 0 }, Assert.IsType<FixField.Invalid>(bytes[0]).RawBytes.ToArray());
 		Assert.Equal("X", Assert.IsType<FixField.Symbol>(bytes[1]).Value);
 		var fields = dispatch ? FixParser.ParseLog("ошибка|55=X") : Fix44.ParseLog("ошибка|55=X");

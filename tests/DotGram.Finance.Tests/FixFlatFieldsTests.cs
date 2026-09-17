@@ -81,7 +81,7 @@ public sealed class FixFlatFieldsTests
 		var payload = new string(Enumerable.Range(0, size).Select(i => "|=\0ÿ"[i % 4]).ToArray());
 		var input = "95=" + size + "|96=" + payload + "|55=END|";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
-		var fields = Fix44.Parse(stream, new FixOptions('|'), bufferSize: 3).ToArray();
+		var fields = Fix44.ParseLog(stream, bufferSize: 3).ToArray();
 		Assert.Equal(Encoding.Latin1.GetBytes(payload), Assert.IsType<FixField.RawData>(fields[0]).Value.ToArray());
 		Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[1]).Value);
 	}
@@ -94,7 +94,7 @@ public sealed class FixFlatFieldsTests
 		Assert.All(fields, field => Assert.IsType<FixField.Unknown>(field));
 		Assert.Contains(Fix44.ParseLog("9000=3|9001=a|b|"), field => field is FixField.Invalid);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes("9000=3|9001=a|b|"));
-		Assert.Contains(Fix44.Parse(stream, new FixOptions('|'), bufferSize: 1), field => field is FixField.Invalid);
+		Assert.Contains(Fix44.ParseLog(stream, bufferSize: 1), field => field is FixField.Invalid);
 	}
 
 	[Theory]
@@ -115,20 +115,19 @@ public sealed class FixFlatFieldsTests
 	[InlineData("95=-0|96=|")]
 	public void Incomplete_or_mismatched_pairs_return_invalid_fields_in_all_input_forms(string input)
 	{
-		var options = new FixOptions('|');
-		Assert.Contains(Fix44.Parse(input, options), field => field is FixField.Invalid);
+		Assert.Contains(Fix44.ParseLog(input), field => field is FixField.Invalid);
 		using var reader = new StringReader(input);
-		Assert.Contains(Fix44.Parse(reader, options, bufferSize: 1), field => field is FixField.Invalid);
+		Assert.Contains(Fix44.ParseLog(reader, bufferSize: 1), field => field is FixField.Invalid);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
-		Assert.Contains(Fix44.Parse(stream, options, bufferSize: 1), field => field is FixField.Invalid);
+		Assert.Contains(Fix44.ParseLog(stream, bufferSize: 1), field => field is FixField.Invalid);
 	}
 
 	[Fact]
 	public void Streaming_pair_returns_one_binary_field_without_reading_the_next_field()
 	{
-		const string pair = "95=3|96=a|b|";
-		using var stream = new ShortStream(Encoding.Latin1.GetBytes(pair + "55=X|")) { ReadLimit = pair.Length };
-		using var fields = Fix44.Parse(stream, new FixOptions('|'), bufferSize: 1).GetEnumerator();
+		const string pair = "95=3\u000196=a|b\u0001";
+		using var stream = new ShortStream(Encoding.Latin1.GetBytes(pair + "55=X\u0001")) { ReadLimit = pair.Length };
+		using var fields = Fix44.Parse(stream, bufferSize: 1).GetEnumerator();
 		Assert.True(fields.MoveNext());
 		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields.Current).Value.ToArray());
 		Assert.Equal(pair.Length, stream.ReadCount);
@@ -139,10 +138,10 @@ public sealed class FixFlatFieldsTests
 	[InlineData(true)]
 	public void A_recovered_field_is_yielded_without_reading_the_next_field(bool dispatch)
 	{
-		using var stream = new ShortStream(Encoding.ASCII.GetBytes("bad|55=X|")) { ReadLimit = 4 };
+		using var stream = new ShortStream(Encoding.ASCII.GetBytes("bad\u000155=X\u0001")) { ReadLimit = 4 };
 		var source = dispatch
-			? FixParser.Parse(stream, new FixOptions('|'), bufferSize: 1)
-			: Fix44.Parse(stream, new FixOptions('|'), bufferSize: 1);
+			? FixParser.Parse(stream, bufferSize: 1)
+			: Fix44.Parse(stream, bufferSize: 1);
 		using var fields = source.GetEnumerator();
 		Assert.True(fields.MoveNext());
 		Assert.Equal(new byte[] { 98, 97, 100 }, Assert.IsType<FixField.Invalid>(fields.Current).RawBytes.ToArray());
@@ -152,8 +151,8 @@ public sealed class FixFlatFieldsTests
 	[Fact]
 	public void Stream_enumeration_is_lazy_and_does_not_wait_for_the_next_field()
 	{
-		using var stream = new ShortStream(Encoding.ASCII.GetBytes("55=ABC|38=2|")) { ReadLimit = 7 };
-		var fields = Fix44.Parse(stream, new FixOptions('|'), bufferSize: 1);
+		using var stream = new ShortStream(Encoding.ASCII.GetBytes("55=ABC\u000138=2\u0001")) { ReadLimit = 7 };
+		var fields = Fix44.Parse(stream, bufferSize: 1);
 		Assert.Equal(0, stream.ReadCount);
 		using (var iterator = fields.GetEnumerator())
 		{
@@ -168,8 +167,8 @@ public sealed class FixFlatFieldsTests
 	[Fact]
 	public void Reader_enumeration_is_lazy_and_stops_at_a_complete_field()
 	{
-		using var reader = new GatedReader("55=ABC|");
-		var fields = Fix44.Parse(reader, new FixOptions('|'), bufferSize: 1);
+		using var reader = new GatedReader("55=ABC\u0001");
+		var fields = Fix44.Parse(reader, bufferSize: 1);
 		Assert.Equal(0, reader.ReadCount);
 		using var iterator = fields.GetEnumerator();
 		Assert.True(iterator.MoveNext());
@@ -183,7 +182,7 @@ public sealed class FixFlatFieldsTests
 	public void Errors_are_returned_during_enumeration(string wire)
 	{
 		using var stream = new ShortStream(Encoding.ASCII.GetBytes(wire));
-		using var fields = Fix44.Parse(stream, new FixOptions('|'), bufferSize: 1).GetEnumerator();
+		using var fields = Fix44.ParseLog(stream, bufferSize: 1).GetEnumerator();
 		Assert.True(fields.MoveNext());
 		Assert.IsType<FixField.Symbol>(fields.Current);
 		Assert.True(fields.MoveNext());
@@ -197,7 +196,7 @@ public sealed class FixFlatFieldsTests
 	{
 		var wire = string.Concat(Enumerable.Repeat("95=3|96=a|b|55=X|", 1000));
 		using var stream = new ShortStream(Encoding.ASCII.GetBytes(wire));
-		var fields = Fix44.Parse(stream, new FixOptions('|'), bufferSize: 3, maxRetained: 32).ToArray();
+		var fields = Fix44.ParseLog(stream, bufferSize: 3, maxRetained: 32).ToArray();
 		Assert.Equal(2000, fields.Length);
 		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields[0]).Value.ToArray());
 		Assert.Equal(wire.Length - 5, fields[^1].Position);

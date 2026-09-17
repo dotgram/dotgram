@@ -3,7 +3,7 @@
 namespace DotGram.Finance.Fix;
 
 /// <summary>
-/// Delimiter and optional replacement length/data dictionary for Fix.
+/// Optional replacement length/data dictionary for FIX fields.
 /// </summary>
 public sealed class FixOptions
 {
@@ -12,14 +12,8 @@ public sealed class FixOptions
 	readonly HashSet<int>?              _dataTags;
 
 	/// <param name="lengthDataPairs">Null uses the standard dictionary. A supplied dictionary replaces it and is copied.</param>
-	/// <param name="separator">SOH for wire input or pipe for logs.</param>
-	public FixOptions(char separator = '\u0001', IReadOnlyDictionary<int,int>? lengthDataPairs = null)
+	public FixOptions(IReadOnlyDictionary<int,int>? lengthDataPairs = null)
 	{
-		if (separator != '\u0001' && separator != '|')
-			throw new ArgumentOutOfRangeException(nameof(separator));
-
-		Separator = separator;
-
 		if (lengthDataPairs == null)
 			return;
 
@@ -39,8 +33,6 @@ public sealed class FixOptions
 			if (_pairs.ContainsKey(tag))
 				throw new ArgumentException("A data tag cannot also be a length tag.", nameof(lengthDataPairs));
 	}
-
-	public char Separator { get; }
 
 	internal int  DataTag(int tag)
 	{

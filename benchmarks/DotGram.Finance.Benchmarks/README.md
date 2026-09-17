@@ -291,3 +291,152 @@ The report includes all timings, allocation, validation and reproduction command
 parsers before the rename, after adding recover, including malformed inputs.
 FixDispatch (now `FixParser`) wins ordinary field workloads; Fix44 is faster on the
 measured 64 KiB binary payload.
+
+## Optional log separator spaces: 2026-09-17
+
+Compared `a071ee4d` (single-character log separator) with `5245f309`
+(optional ASCII spaces around the pipe), using the same Release generator and
+.NET 10.0 runtime. The production grammar was not changed for this measurement.
+
+Run the paired probe with separately built Finance assemblies:
+
+```powershell
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --log-performance <previous-assembly> <current-assembly>
+```
+
+`FixLogPerformance` binds public entry points once, checks matching field types and
+values, warms each operation for 150 ms, then alternates nine 60 ms samples per
+implementation. Results are median nanoseconds and allocated bytes per complete
+parse. This is a diagnostic timing probe, not a BenchmarkDotNet confidence study;
+small differences need a longer isolated run before optimization decisions.
+Stream construction and full enumeration are included. Inputs are prepared outside
+timing. Previous and current assemblies run in separate load contexts in one process.
+
+The `Pipe` rows compare identical compact input. `Padded` compares current padded
+input with equivalent compact input in the previous parser, which did not support
+presentation padding. It therefore includes the cost of extra input characters.
+`Wire` is the SOH control. No concurrent build ran during the recorded confirmation
+run. Full results: [CSV](results/log-separator-2026-09-17.csv).
+
+| Workload | Compact pipe slowdown | Padded versus previous compact |
+| --- | ---: | ---: |
+| Two short fields | 8-9% | 13-14% |
+| Order fields | 6-12% | 10-18% |
+| 2.2 KB text with ordinary spaces | 38-49% | 38-49% |
+| Text containing 1024 consecutive internal spaces | 19.6-27.2 times | 19.4-27.0 times |
+
+Ranges cover string, TextReader and Stream inputs. Allocations were identical in
+all pairs. SOH timing differences were approximately -1% to +6%; do not interpret
+these small differences as a proven change to wire parsing.
+
+The log separator is now `' '* & '|' & ' '*`. In
+`Text = (?!Separator & any)+`, negative lookahead retries this entire separator at
+each position. Inside a run of N spaces followed by a non-pipe character, it scans
+N, N-1, ... spaces before failing each time: quadratic work. Negative lookahead
+consumes no input; `Fields` consumes the actual separator afterwards.
+
+A follow-up should scan a space run once and decide whether it belongs to text or
+to the separator, preserving EOF spaces, original locations and length-delimited
+binary payloads. These measurements establish the regression; they do not include
+that optimization.
+
+## Linear text scanning: 2026-09-17
+
+The same paired probe compares the padded-separator implementation at `27cd67f2`
+(parser unchanged since `5245f309`) against linear text scanning. Both parsers now
+receive identical input, including the `Padded` cases. The probe detects whether
+the previous assembly has the legacy separator option and selects its API accordingly.
+
+Wire text uses a complemented SOH character set. Log text uses an external recognizer
+that reads to the pipe once, tracks the last non-space position, and leaves trailing
+padding for the separator. At EOF it retains spaces. Binary recognition is unchanged.
+
+| Input workload | New / previous elapsed time across input forms |
+| --- | ---: |
+| Short logs, compact or padded | 0.70-0.82 |
+| Order logs, compact or padded | 0.64-0.80 |
+| Long text logs | 0.055-0.40 |
+| Logs with 1024 internal spaces | 0.004-0.016 |
+| Short SOH fields | 0.84-0.86 |
+
+Allocated bytes per operation are unchanged. These are diagnostic median timings,
+not confidence intervals; absolute timings vary with machine load. The earlier
+quadratic text scan is removed. Recovery still uses its existing synchronization
+rule and is not measured by these valid-input workloads.
+
+[Full results](results/log-linear-text-2026-09-17.csv). Validation: both Finance target
+frameworks build, the benchmark project builds, and all 3835 Finance tests pass,
+including long internal/padding/EOF space runs, source coordinates, empty values,
+recovery, binary payloads and one-byte input chunks.
+
+## Generated delimiter scan: 2026-09-17
+
+Finance again declares `Text = (?!Separator & any)+`; its handwritten text
+recognizers have been removed. The generator recognizes single-character guards
+and unbounded padded-character delimiters, emitting ordinary run backtracking
+plus a linear scan. See `Machine.Delimiter.cs` and the implementation document
+for eligibility and fallback rules.
+
+The paired probe compares the unchanged padded grammar from `27cd67f2` against
+that grammar with the generator optimization. All rows use identical inputs.
+No builds or tests ran concurrently with this measurement.
+
+| Workload | New / previous time | Approximate improvement |
+| --- | ---: | ---: |
+| Short logs | 0.77-0.84 | 16-23% less time |
+| Order logs | 0.68-0.75 | 25-32% less time |
+| Long text logs | 0.034-0.072 | 14-29 times faster |
+| Logs with 1024 internal spaces | 0.0031-0.0042 | 241-328 times faster |
+
+Allocations remain unchanged. These are diagnostic medians across string,
+TextReader and Stream paths, not confidence intervals. [Full results](results/log-generated-scan-2026-09-17.csv).
+
+Validation: all 3835 Finance tests pass. The generator suite ran 8373 tests;
+15 failures caused by the temporary binary location passed when rerun from the
+repository's usual directory structure (54 tests in those classes, all passing).
+The remaining 12 failures concern pre-existing switch result-type inference:
+all 12 reproduce with the unmodified generator from `4fb923fb`. There are no
+new failures. The 12 delimiter tests compare results, rollback and diagnostics
+with an unoptimized equivalent, including EOF, bounds, publication specialization,
+unsupported patterns and single-byte reads. Their generated code compiles at C# 8.
+
+## Linear recovery synchronization: 2026-09-17
+
+Recovery now shares the pure-delimiter search with guarded text. The parser scans
+to the earliest candidate, replays the final rejected candidate to preserve failure
+diagnostics, and consumes the delimiter through the original synchronization rule.
+Unsupported rules retain the general algorithm. No Finance-specific recovery code
+or new grammar syntax is involved.
+
+Reproduce the paired diagnostic probe with separately built Finance assemblies:
+
+```powershell
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --recovery-performance <previous-assembly> <current-assembly>
+```
+
+Each operation parses `"broken" + new string(' ', N) + "x|55=END"` as a string.
+Both implementations are bound once in separate load contexts in the same process.
+Setup compares serialized fields, including raw error data, coordinates and messages.
+After 150 ms warmup per implementation, nine alternating samples of at least 60 ms
+are taken; the table reports medians. Allocations are measured separately over 32
+operations. No builds or tests ran concurrently. These are diagnostic timings, not
+BenchmarkDotNet confidence intervals.
+
+| Spaces | Previous us | Current us | Previous bytes | Current bytes |
+| ---: | ---: | ---: | ---: | ---: |
+| 256 | 14.875 | 0.588 | 5160 | 984 |
+| 512 | 50.936 | 0.794 | 9792 | 1496 |
+| 1024 | 187.322 | 1.228 | 19032 | 2520 |
+| 2048 | 719.870 | 2.064 | 37488 | 4568 |
+| 4096 | 2810.691 | 3.798 | 74376 | 8664 |
+
+[CSV results](results/recovery-linear-scan-2026-09-17.csv). The large-input scaling
+changes from quadratic to linear; at 4096 spaces this is about 740 times faster.
+
+Validation: all 3835 Finance tests and all 15 delimiter tests pass. The full
+8376-test generator run has the same 12 previously established switch-inference
+failures and no new failures. Differential recovery tests compare values, raw
+extents, positions and messages with an unoptimized atomic synchronization rule,
+for string, TextReader and one-byte Stream inputs, including missing separators,
+EOF padding, repeated errors and long internal space runs. Generated test code is
+compiled at the C# 8 floor.

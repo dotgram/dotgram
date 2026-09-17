@@ -342,6 +342,26 @@ proves today:
   single `LoopExit` rather than a `Choice` per turn.
 - **Where such a body also writes nothing to the arena**, the whole construct is a loop:
   no entry, no count, no way back, and its required turns written out rather than counted.
+- **A character run guarded by negative delimiter lookahead**, `(?!Delimiter & any)*`
+  or `+`, has a specialized state-machine path (`Machine.Delimiter.cs`). A pure
+  one-character delimiter test becomes a complemented run test. A delimiter shaped as
+  `Padding* & Stop & Suffix*` (the suffix is optional in the grammar) becomes a linear
+  scan remembering the start of trailing padding. Padding and Stop must be disjoint
+  pure character tests; Suffix must also be a pure character test. Named rules are
+  resolved after `with` specialization. At EOF unmatched padding remains in the text.
+  The padded case accepts unbounded repetitions, including a specified minimum;
+  bounded padded runs retain the general machine. Existing run entries preserve
+  shortening on backtracking. A minimum-length failure re-enters the general path to
+  retain exact diagnostics. Captures, C# guards/actions, recursive aliases, recovery,
+  overlapping sets, token-kind and incremental starvation paths are not bypassed.
+- **Recovery with a pure character delimiter** reuses that linear search before
+  invoking its ordinary synchronization rule. This includes disjoint padding and
+  stop sets. The last rejected candidate is checked normally to preserve the
+  furthest diagnostic; the separator is consumed by the existing recovery path.
+  No per-position synchronization attempts are needed over the skipped text.
+  Raw error extents still exclude delimiter padding, while unmatched EOF padding
+  remains part of the error. Unsupported synchronization rules keep the original
+  per-position search.
 - **Text alternatives none of which begins another** are decided where they differ, reading
   what they share once and moving the position only when one has matched whole.
 
