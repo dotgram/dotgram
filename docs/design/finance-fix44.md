@@ -2,7 +2,7 @@
 
 ## Flat parser and explicit semantics
 
-`Fix.Parse` returns `FixField[]` for contiguous inputs and lazy
+`FixParser.Parse` returns `FixField[]` for contiguous inputs and lazy
 `IEnumerable<FixField>` for `TextReader` and native byte `Stream` inputs. The
 generated buffered machine yields each complete field, releases consumed input,
 and preserves global locations. The explicit `yield : @FixField` publication
@@ -12,7 +12,7 @@ The syntax path uses no message schema or envelope validator. Length fields
 provide raw-data boundaries; the parser checks the configured length/data tag pair.
 `FixOptions` selects SOH or pipe and an optional replacement pair dictionary.
 
-The public API and shared types live in `DotGram.Finance`, with production sources
+The public API and shared types live in `DotGram.Finance.Fix`, with production sources
 in `src/DotGram.Finance/Fix`. The reference parser lives in
 `examples/DotGram.Examples/Finance/Fix44`, within the existing examples project,
 and is excluded from the Finance package.

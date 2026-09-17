@@ -7,19 +7,19 @@ grammar files, schema XML, reflection configuration or initialization step.
 ## Flat field parsing
 
 ```csharp
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
-FixField[] fields = Fix.Parse(wire);
-var logFields = Fix.ParseLog("55=ABC | 38=100");
+FixField[] fields = FixParser.Parse(wire);
+var logFields = FixParser.ParseLog("55=ABC | 38=100");
 using var input = File.OpenRead("messages.fix");
-foreach (FixField field in Fix.Parse(input))
+foreach (FixField field in FixParser.Parse(input))
     Console.WriteLine(field.Tag);
 
 // Explicit, optional semantics; reuses the already parsed field objects.
 FixMessage message = FixMessages.Build(wire, fields);
 ```
 
-`Fix` returns fields in source order, including repeated and unknown tags. It does
+`FixParser` returns fields in source order, including repeated and unknown tags. It does
 not assemble messages or groups, check required fields, code sets, BodyLength or
 CheckSum. A failed primitive conversion sets `FixField.IsValid` to false; it does
 not reject the field, except that a binary length must be valid to find the next
@@ -46,7 +46,7 @@ byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
 I/O errors and exceptions from user C# code still propagate during enumeration.
 
 ```csharp
-foreach (var field in Fix.ParseLog("55=ABC|broken|38=2"))
+foreach (var field in FixParser.ParseLog("55=ABC|broken|38=2"))
 {
     if (field is FixField.Invalid invalid)
         Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
@@ -77,7 +77,7 @@ for recognition; native byte-stream parsing creates no complete character view.
 
 ## Computed dispatch parser
 
-`Fix` is the main parser, with string, character-span, byte-array, `TextReader`
+`FixParser` is the main parser, with string, character-span, byte-array, `TextReader`
 and byte `Stream` input forms. Its small [grammar](Fix/FixGrammar.gram) reads a
 numeric tag and uses `switch` to select text or a length/data pair. C# supplies
 classification and typed field construction.
@@ -87,13 +87,13 @@ The large `Fix44` grammar is retained in
 It is not included in the Finance package.
 
 ```csharp
-var fields = Fix.ParseLog("55=ABC|38=100|");
+var fields = FixParser.ParseLog("55=ABC|38=100|");
 var options = new FixOptions('|', new Dictionary<int, int>
 {
     [95] = 96,
     [5000] = 5001,
 });
-var custom = Fix.Parse("5000=3|5001=a|b|", options);
+var custom = FixParser.Parse("5000=3|5001=a|b|", options);
 ```
 
 A supplied length/data dictionary **replaces** the standard pairs and is copied
@@ -112,7 +112,7 @@ is not part of flat field parsing.
 validation and group assembly without parsing it again. `Parse` combines both steps.
 
 ```csharp
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 if (FixMessages.TryParse(wire, out var message, out var error))
 {

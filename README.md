@@ -468,8 +468,8 @@ difference, with the standard underneath written once.
 
 ## DotGram.Finance
 
-[`DotGram.Finance`](src/DotGram.Finance/README.md) provides `Fix.Parse` and
-`Fix.TryParse` in the `DotGram.Finance` namespace. The parser returns typed fields,
+[`DotGram.Finance`](src/DotGram.Finance/README.md) provides `FixParser.Parse` and
+`FixParser.TryParse` in the `DotGram.Finance.Fix` namespace. The parser returns typed fields,
 with lazy enumeration over character and byte streams, length-delimited binary
 data, and recovery through `FixField.Invalid`. `FixOptions` selects the delimiter
 and optional custom length/data pairs.

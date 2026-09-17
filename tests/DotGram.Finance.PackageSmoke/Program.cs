@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 var body = "35=0\u000149=S\u000156=T\u000134=1\u000152=20260915-12:00:00\u0001";
 var prefix = "8=FIX.4.4\u00019=" + body.Length.ToString(CultureInfo.InvariantCulture) + "\u0001" + body;
@@ -27,10 +27,10 @@ foreach (var item in FixMessages.ReadMessages(stream))
 	count++;
 }
 if (count != 2) throw new Exception("Expected two messages on one stream.");
-var fields = Fix.Parse(wire);
+var fields = FixParser.Parse(wire);
 if (fields.Length != 8 || fields[0] is not FixField.BeginString)
-	throw new Exception("Expected flat typed fields from Fix.");
-if (typeof(Fix).Assembly.GetType("DotGram.Examples.Finance.Fix44") != null ||
-	typeof(Fix).Assembly.GetReferencedAssemblies().Any(name => name.Name == "DotGram.Examples"))
+	throw new Exception("Expected flat typed fields from FixParser.");
+if (typeof(FixParser).Assembly.GetType("DotGram.Examples.Finance.Fix44") != null ||
+	typeof(FixParser).Assembly.GetReferencedAssemblies().Any(name => name.Name == "DotGram.Examples"))
 	throw new Exception("The example parser must not be included in the package.");
 Console.WriteLine("DotGram.Finance package smoke: char, byte stream, pipe and typed ADT passed.");
