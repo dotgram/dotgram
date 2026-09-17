@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
+using DotGram.Handwritten;
 using DotGram.Sql.Ast;
 using DotGram.Sql.Standard;
 
@@ -75,6 +76,17 @@ static class Standard
 		if (start.StartsWith('~') && path is not null)
 		{
 			RoundTrip(start[1..], path);
+
+			return;
+		}
+
+		// `^` before the production asks the parser written by hand beside the generated one: each
+		// line is read by both, and the two must agree about whether it is the production and about
+		// every property of the tree they build. Then the two are timed against each other, which is
+		// what the handwritten parser is kept for.
+		if (start.StartsWith('^') && path is not null)
+		{
+			Handwritten(start[1..], path);
 
 			return;
 		}
@@ -228,6 +240,138 @@ static class Standard
 	}
 
 	/// <summary>A tree as text, every property but where it was written: two trees are one where their dumps are.</summary>
+	/// <summary>What a publication answers with, as both parsers are asked for it: the tree, or null.</summary>
+	delegate object? Reading(string input);
+
+	/// <summary>What the handwritten parser's publications look like.</summary>
+	delegate bool TryRead<T>(string input, out T value);
+
+	/// <summary>
+	/// The handwritten parser beside the generated one: agreement first, and then the ratio.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Agreement comes first for the reason <c>SqlAgainst.Agree</c> gives: a parser that quietly
+	/// reads a smaller language is faster for a reason that says nothing about how the other one is
+	/// built. Nothing is timed until the two have answered the same on every line of the file.
+	/// </para>
+	/// <para>
+	/// Both are called through a delegate and not through reflection: an <c>Invoke</c> in the loop
+	/// would be added to both sides and would be most of what either number measured.
+	/// </para>
+	/// </remarks>
+	static void Handwritten(string production, string path)
+	{
+		var rule      = Bnf.RuleName(production);
+		var published = typeof(SqlStandardParser).GetMethod("TryParse" + rule, [typeof(string)])
+			?? throw new ArgumentException($"SqlStandardParser publishes no rule for <{production}>");
+		var written   = Array.Find(
+			typeof(HandSqlStandard).GetMethods(BindingFlags.Public | BindingFlags.Static),
+			one => one.Name == "TryParse" + rule && one.GetParameters().Length == 2)
+			?? throw new ArgumentException($"HandSqlStandard reads no <{production}> yet");
+
+		var built     = published.ReturnType.GetGenericArguments()[0];
+		var generated = Bind(nameof(Generated), built, published);
+		var byHand    = Bind(nameof(ByHand), built, written);
+
+		var lines = File.ReadLines(path)
+			.Where(static line => line.Trim().Length > 0 && !line.TrimStart().StartsWith("--", StringComparison.Ordinal))
+			.ToArray();
+
+		var differ = 0;
+
+		foreach (var line in lines)
+		{
+			var ours   = generated(line);
+			var theirs = byHand(line);
+
+			if (ours is null != theirs is null)
+			{
+				Console.WriteLine($"{(ours is not null ? "grammar only" : "by hand only"),13}  {line}");
+				differ++;
+
+				continue;
+			}
+
+			if (ours is null)
+				continue;
+
+			var expected = Dump(ours);
+			var actual   = Dump(theirs);
+
+			if (expected != actual)
+			{
+				Console.WriteLine($"{"other tree",13}  {line}");
+				Console.WriteLine($"    generated: {expected}");
+				Console.WriteLine($"    by hand:   {actual}");
+				differ++;
+			}
+		}
+
+		Console.WriteLine();
+		Console.WriteLine($"{lines.Length} lines, {differ} differ");
+
+		if (differ > 0)
+			return;
+
+		// Round-robin, for Against's reason: a ratio between two numbers taken a minute apart is only
+		// as good as the machine having stayed the same, and on a developer's machine it does not.
+		var watch = new Stopwatch();
+		var best  = (Generated: double.MaxValue, Hand: double.MaxValue);
+
+		for (var round = 0; round < 5; round++)
+		{
+			watch.Restart();
+
+			foreach (var line in lines)
+				_sink += generated(line) is null ? 0 : 1;
+
+			var ours = watch.Elapsed.TotalMilliseconds;
+
+			watch.Restart();
+
+			foreach (var line in lines)
+				_sink += byHand(line) is null ? 0 : 1;
+
+			var theirs = watch.Elapsed.TotalMilliseconds;
+
+			// The first round pays for whatever of either parser the file is the first to reach.
+			if (round > 0 && ours + theirs < best.Generated + best.Hand)
+				best = (ours, theirs);
+		}
+
+		Console.WriteLine();
+		Console.WriteLine($"generated {best.Generated,9:0.00} ms   by hand {best.Hand,9:0.00} ms   {best.Generated / best.Hand,6:0.00}x");
+	}
+
+	/// <summary>Kept assigned so that nothing measured here can be optimized away.</summary>
+	static volatile int _sink;
+
+	static Reading Bind(string binder, Type built, MethodInfo method) =>
+		(Reading)typeof(Standard)
+			.GetMethod(binder, BindingFlags.NonPublic | BindingFlags.Static)!
+			.MakeGenericMethod(built)
+			.Invoke(null, [method])!;
+
+	static Reading Generated<T>(MethodInfo method)
+	{
+		var read = method.CreateDelegate<Func<string, SqlStandardParser.Match<T>>>();
+
+		return input =>
+		{
+			var match = read(input);
+
+			return match.IsSuccess ? match.Value : null;
+		};
+	}
+
+	static Reading ByHand<T>(MethodInfo method)
+	{
+		var read = method.CreateDelegate<TryRead<T>>();
+
+		return input => read(input, out var value) ? value : null;
+	}
+
 	static string Dump(object? node)
 	{
 		var text = new StringBuilder();
