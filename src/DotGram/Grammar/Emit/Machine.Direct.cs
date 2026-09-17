@@ -213,6 +213,7 @@ sealed partial class Machine
 
 	/// <summary>Whether any guard the readers run is handed a value, which the reader then builds from the log.</summary>
 	bool _directBuilds;
+	internal bool BuildsDuringRecognition => _directBuilds;
 
 	/// <summary>Whether any guard the readers run names the context.</summary>
 	bool _directGuardContext;

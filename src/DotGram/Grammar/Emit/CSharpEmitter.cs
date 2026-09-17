@@ -256,6 +256,44 @@ public static partial class CSharpEmitter
 		// A publication whose rule another machine already reaches is read by that machine,
 		// entered at its own rule, rather than by a second copy of everything it reaches.
 		Joined(graph, machines, overKinds);
+		// Share substantial overlap only when every member already requires the tape.
+		// A small publication must not acquire a large sibling's parsing infrastructure.
+		var reached = machines.ToDictionary(compiled => compiled, Rules);
+		for (var host = 0; host < machines.Count; host++)
+		{
+			var owner = machines[host];
+			if (!Eligible(owner)) continue;
+			var union = new HashSet<RuleSymbol>(reached[owner]);
+			var guests = new List<int>();
+			var publications = owner.Publications.ToList();
+			for (var guest = host + 1; guest < machines.Count; guest++)
+			{
+				var candidate = machines[guest];
+				if (!Eligible(candidate) || candidate.Machine.BuildsDuringRecognition != owner.Machine.BuildsDuringRecognition) continue;
+				var other = reached[candidate];
+				if (union.Count(other.Contains) * 10 < Math.Max(union.Count, other.Count) * 9) continue;
+				union.UnionWith(other);
+				guests.Add(guest);
+				publications.AddRange(candidate.Publications);
+			}
+			if (guests.Count == 0) continue;
+			var made = new Machine(
+				graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
+				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
+				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables);
+			made.Anchor = owner.Machine.Anchor;
+			if (!made.CanDirect(publications)) continue;
+			machines[host] = owner with { Machine = made, Publications = publications };
+			for (var guest = guests.Count - 1; guest >= 0; guest--)
+				machines.RemoveAt(guests[guest]);
+		}
+
+		bool Eligible(Compiled compiled) => compiled.Direct && !compiled.Flat &&
+			reached[compiled].Count >= 128 && compiled.Publications.All(publication => publication.Reading == 0 &&
+				!Streams(graph, publication, overKinds)) &&
+			(carrier == CarrierKind.Tape || carrier == CarrierKind.Auto && replay is not null &&
+				reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)));
+		HashSet<RuleSymbol> Rules(Compiled compiled) => new(compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule)));
 
 		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables);
 

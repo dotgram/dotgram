@@ -218,3 +218,10 @@ The [measurements](design/file-split-2026-09-16.md) did not establish enough ben
 to enable splitting by default: FIX improved modestly with higher memory use,
 and SQL showed no meaningful time improvement. Reconsider automatic splitting only
 after a repeatable benefit in actual solution builds has been demonstrated.
+
+## Shared publication machines
+
+Large direct readers with at least 90% rule overlap may share a machine when each
+already needs deferred value construction. Small and streamed publications remain
+separate. This reduces duplicate generated methods independently of source-file
+splitting. See the [implementation and measurements](design/sibling-publications-2026-09-17.md).

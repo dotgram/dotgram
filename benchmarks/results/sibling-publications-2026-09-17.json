@@ -1,0 +1,51 @@
+{
+  "baselineCommit": "17383239",
+  "mode": "Fresh-process generator plus Debug compilation with embedded PDB",
+  "observations": [
+    {
+      "name": "siblings-final-sql",
+      "assembly": "DotGram.Sql",
+      "generationMs": 31648.5949,
+      "totalMs": 64117.8929,
+      "allocatedBytes": 28040406992,
+      "peakWorkingSet": 3892158464,
+      "sourceCount": 6,
+      "sourceCharacters": 58867005,
+      "generatorSHA256": "55EA8D86ED184565BB6CFD7201083356AFB3B14436898442E6C1A7221E22B17C"
+    },
+    {
+      "name": "siblings-baseline-sql",
+      "assembly": "DotGram.Sql",
+      "generationMs": 32415.1766,
+      "totalMs": 81475.0964,
+      "allocatedBytes": 38556980248,
+      "peakWorkingSet": 5563072512,
+      "sourceCount": 6,
+      "sourceCharacters": 120103615,
+      "generatorSHA256": "3D29A268D4783E6D61D17B5FDDDA5CF0A217714FAE0B9EEE96CA49F7E51607C7"
+    },
+    {
+      "name": "siblings-baseline-sql-2",
+      "assembly": "DotGram.Sql",
+      "generationMs": 31724.9189,
+      "totalMs": 77371.4443,
+      "allocatedBytes": 38404362304,
+      "peakWorkingSet": 5628399616,
+      "sourceCount": 6,
+      "sourceCharacters": 120103615,
+      "generatorSHA256": "3D29A268D4783E6D61D17B5FDDDA5CF0A217714FAE0B9EEE96CA49F7E51607C7"
+    },
+    {
+      "name": "siblings-final-sql-2",
+      "assembly": "DotGram.Sql",
+      "generationMs": 31367.8623,
+      "totalMs": 63840.988,
+      "allocatedBytes": 28027928776,
+      "peakWorkingSet": 3901190144,
+      "sourceCount": 6,
+      "sourceCharacters": 58867005,
+      "generatorSHA256": "55EA8D86ED184565BB6CFD7201083356AFB3B14436898442E6C1A7221E22B17C"
+    }
+  ],
+  "examplesByteIdentical": true
+}

@@ -1,0 +1,21 @@
+{
+  "sql": [
+    "terms=1; beforeUs=2.432; afterUs=2.456; pairedBeforeOverAfter=0.991; beforeBytes=1384; afterBytes=1384",
+    "terms=64; beforeUs=68.820; afterUs=69.392; pairedBeforeOverAfter=0.991; beforeBytes=28096; afterBytes=28096",
+    "terms=1000; beforeUs=1066.990; afterUs=1077.734; pairedBeforeOverAfter=0.990; beforeBytes=424960; afterBytes=424960",
+    "terms=10000; beforeUs=10851.820; afterUs=10935.100; pairedBeforeOverAfter=1.002; beforeBytes=4240960; afterBytes=4240960"
+  ],
+  "numeric": [
+    "terms=1; beforeUs=4.027; afterUs=4.286; pairedBeforeOverAfter=0.946; beforeBytes=752; afterBytes=752",
+    "terms=64; beforeUs=235.145; afterUs=239.125; pairedBeforeOverAfter=0.981; beforeBytes=32696; afterBytes=32696",
+    "terms=1000; beforeUs=31200.580; afterUs=31188.756; pairedBeforeOverAfter=1.001; beforeBytes=41948944; afterBytes=41948944"
+  ],
+  "numericReversedLoad": [
+    "terms=1; beforeUs=5.798; afterUs=6.037; pairedBeforeOverAfter=0.952; beforeBytes=752; afterBytes=752",
+    "terms=64; beforeUs=299.781; afterUs=310.184; pairedBeforeOverAfter=0.964; beforeBytes=32696; afterBytes=32696"
+  ],
+  "reversedLabels": "before=candidate, after=baseline",
+  "numeric10000": "Stopped; no result",
+  "baselineReleaseSHA256": "4AF54B1FE6A156C372D8F189704F9E3B2D1A2EEEC137A8734A07239144F1A249",
+  "candidateReleaseSHA256": "95C8B97600FB41F211D979BC407C36A612F95730A85BE5F5BE204095BA38DDCE"
+}
