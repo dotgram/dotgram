@@ -59,19 +59,29 @@ the next separator may be inside damaged payload data. Primitive conversion
 failures keep their existing typed field with `IsValid == false`; `recover`
 handles recognition failures, not semantic validation.
 Use `.ToArray()` when a complete list is needed. String/span/byte-array overloads
-and `TryParse` still materialize the complete result. Empty input returns no fields.
+materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixOptions` configures SOH or pipe delimiters.
+`FixParser.Parse` reads SOH-delimited wire input. `FixParser.ParseLog` reads logs
+with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
+spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
+`FixOptions` configures only replacement Length/Data pairs, not the delimiter.
+
+The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
+before or after a pipe belong to that separator. Spaces inside text values are
+preserved; spaces before EOF are also preserved when no pipe follows. Length-delimited
+binary payloads are never trimmed, even when they contain ` | ` or end in spaces.
+Field positions refer to the original input, including its formatting spaces.
+A streamed log field reads ahead through the padding to the next character or
+EOF before yielding. Wire parsing can yield as soon as SOH is read.
 Raw data and its immediately preceding Length field form one grammar rule.
 The parser requires the correct tag pair and consumes exactly the declared number
 of data bytes, including any delimiter bytes inside the payload. An orphaned
 length or data field is rejected. The final field may end at EOF without a separator. Separators between fields
 remain required; the declared binary length still determines the complete payload.
-`TryParse` returns false and the first syntax error when recovery produced an
-`Invalid` field; its `fields` output still contains the completed field sequence,
-including errors. The explicit message API rejects these syntax errors in both
-strict and lenient modes. Typed values own their data;
+`FixParser.Parse` returns the completed field sequence, including `Invalid` fields.
+Use `FixMessages.TryParse` or `FixMessages.TryBuild` for validation; both reject
+recovered syntax errors in strict and lenient modes with the first syntax diagnostic. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
 
@@ -88,12 +98,12 @@ It is not included in the Finance package.
 
 ```csharp
 var fields = FixParser.ParseLog("55=ABC|38=100|");
-var options = new FixOptions('|', new Dictionary<int, int>
+var options = new FixOptions(new Dictionary<int, int>
 {
     [95] = 96,
     [5000] = 5001,
 });
-var custom = FixParser.Parse("5000=3|5001=a|b|", options);
+var custom = FixParser.ParseLog("5000=3 | 5001=a|b | ", options);
 ```
 
 A supplied length/data dictionary **replaces** the standard pairs and is copied
@@ -284,8 +294,14 @@ foreach (var item in FixMessages.ReadMessages(logReader, options))
     Console.WriteLine(item.MessageType);
 ```
 
+For logs with added presentation spaces, use the flat `FixParser.ParseLog` API.
+The message-validation APIs below require the lossless representation: replace each
+structural SOH with one pipe without adding formatting spaces, so BodyLength and
+CheckSum can still be verified.
+
 The common grammar declares `Separator` and specializes the log publication with
-`with (Separator = LogSeparator)`. Text termination changes with that rule too.
+`with (Separator = LogSeparator)`. The generator recognizes the guarded text run
+`(?!Separator & any)+` and emits a linear scan for these delimiters.
 Only structural SOH separators are rendered as pipes. Raw-data payload octets must
 remain untouched; a log that replaces or escapes payload bytes is not lossless and
 requires its own decoding before this API. Arbitrary log prefixes are not accepted.
@@ -324,8 +340,9 @@ and measurement records are in `docs/design/finance-fix44.md` and
 
 `FixGrammar` parses the tag and selects one branch through `switch`.
 `FixFactory.cs` constructs the corresponding typed field in C#.
-The common `Field` rule consumes the separator or EOF and defines the complete
-field extent. Publications support eager and `yield` parsing.
+`Field` reads the field contents. `Fields` repeats a constructing group that adds
+the separator or EOF and records the actual separator length. Publications support
+eager and `yield` parsing.
 
 The example `Fix44Grammar` inherits `FixFieldGrammar`, whose
 `FixField.gram` contains one alternative per standard field. Tests compare
@@ -343,6 +360,6 @@ without a validation flag; a string's typed value is always available. Restricti
 on a particular field (such as currency syntax or a code set) remain semantic checks.
 
 `LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
-The common `Field` rule covers the complete tag, equals sign, value and optional final separator;
-it supplies the field's source extent. `Position`, `ValuePosition` and
+The constructing group in `Fields` covers the complete tag, equals sign, value
+and optional final separator; it supplies the field's source extent. `Position`, `ValuePosition` and
 `Length` retain their existing meanings, including for unknown and binary fields.

@@ -10,7 +10,8 @@ returns fields incrementally. `recover Separator` produces `FixField.Invalid`
 with the rejected input, position and error, then resumes after the separator.
 The syntax path uses no message schema or envelope validator. Length fields
 provide raw-data boundaries; the parser checks the configured length/data tag pair.
-`FixOptions` selects SOH or pipe and an optional replacement pair dictionary.
+`FixParser.Parse` reads SOH and `ParseLog` reads pipes with optional surrounding
+ASCII spaces. `FixOptions` supplies an optional replacement pair dictionary.
 
 The public API and shared types live in `DotGram.Finance.Fix`, with production sources
 in `src/DotGram.Finance/Fix`. The reference parser lives in
@@ -77,7 +78,8 @@ cannot be inferred from tag numbers: vendor definitions are needed to interpret 
 No silent loss of extensions is acceptable.
 
 Parse failures expose source offset, known tag, known MsgType and a reason.
-TryParse must not catch exceptions as its ordinary malformed-input path.
+`FixMessages.TryParse` checks recovered fields for syntax errors; the flat
+`FixParser` exposes only `Parse` methods and returns errors as `FixField.Invalid`.
 
 ## Implemented grammar strategy
 
@@ -109,15 +111,19 @@ Conversions return `(Valid, Value)`; plain text returns a string.
 `LocationType = typeof(IFixLocation)` supplies the complete field extent.
 
 `Field` recognizes the field contents without the final separator. `Fields`
-repeats `Terminated(Field, (Separator | eof))`; the small parameterized wrapper
-preserves field locations and supplies a complete element for streaming `yield`.
+repeats `(value: Field & end: (Separator | eof) => @(value.WithTerminator(end.Length)))*`.
+The constructing group preserves field locations and supplies a complete element
+for streaming `yield`.
 Recovery remains on the collection and classifies invalid first tokens without an
 atomic lookahead marker; EOF ends the collection.
 
-`Separator` is an elementary rule. The pipe publication uses
-`with (Separator = LogSeparator)`. `Text` tests the rule with negative lookahead;
-it must retain that reference through specialization rather than flatten a named
-set before `with` is applied.
+`Separator` is a rule. The pipe publication uses
+`with (Separator = LogSeparator)`, where `LogSeparator = ' '* & '|' & ' '*`.
+`Text = (?!Separator & any)+` is recognized by the generator as a delimiter scan.
+The SOH case becomes a complemented character test; the padded-pipe case scans
+linearly while tracking the start of trailing spaces. EOF spaces remain text.
+There is no handwritten text recognizer in Finance. Source coordinates and
+length-delimited binary payloads are preserved.
 
 The parser host requests native character spans and buffered byte/character input.
 Handwritten conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> overloads.

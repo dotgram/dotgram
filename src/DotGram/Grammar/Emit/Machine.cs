@@ -2869,6 +2869,12 @@ sealed partial class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
+				if (PaddedDelimiter(repeat) is { } delimiter)
+					return CompilePaddedScan(repeat, delimiter.Padding, delimiter.Stop, next, following);
+
+				if (GuardedCharacterTest(repeat.Body) is { } guardedTest)
+					return CompileRun(repeat, guardedTest, next, following);
+
 				if (SilentRepeat(repeat, following))
 					return CompileSilentRepeat(repeat, next, following);
 
@@ -3963,6 +3969,16 @@ sealed partial class Machine
 			writer.Line("p++;");
 		}
 
+		var retry = min > 0 && GuardedCharacterTest(repeatNode.Body) != null
+			? CompileRepeat(repeatNode, next, following) : (int?)null;
+		FinishScan(writer, repeatNode, next, retry);
+
+		return state;
+	}
+
+	void FinishScan(Writer writer, Node.Repeat repeatNode, int next, int? retry = null)
+	{
+		var min   = repeatNode.Min;
 		var floor = min == 0 ? "runStart" : $"runStart + {min}";
 
 		if (min > 0)
@@ -3971,7 +3987,15 @@ sealed partial class Machine
 
 			writer.Line($"if (p < {floor})");
 			using (writer.Block(""))
-				EmitTerminalFailure(writer, Fail, arrayName);
+			{
+				if (retry is { } fallback)
+				{
+					writer.Line("p = runStart;");
+					writer.Line($"goto {Label(writer, fallback)};");
+				}
+				else
+					EmitTerminalFailure(writer, Fail, arrayName);
+			}
 		}
 
 		writer.Line($"if (p > {floor})");
@@ -3981,8 +4005,6 @@ sealed partial class Machine
 
 		writer.Line($"Trace(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");
-
-		return state;
 	}
 
 	/// <summary>

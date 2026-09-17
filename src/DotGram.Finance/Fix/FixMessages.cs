@@ -80,9 +80,13 @@ public static partial class FixMessages
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) return Fail(0, null, null, "Unknown parsing mode.", out error);
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		if (!FixParser.TryParse(input, out var fields, out error, options?.FieldOptions)) return false;
+		var fields = separator == '|'
+			? FixParser.ParseLog(input, options?.FieldOptions)
+			: FixParser.Parse(input, options?.FieldOptions);
+		if (!CheckSyntax(fields, out error))
+			return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
-		return FixSemantics.TryBuild(input, type, Nodes(input, fields!), mode, options, out message, out error);
+		return FixSemantics.TryBuild(input, type, Nodes(input, fields), mode, options, out message, out error);
 	}
 
 	static bool Envelope(ReadOnlySpan<byte> input, char separator, FixField[]? fields, out string type, out FixParseError? error)
@@ -124,11 +128,14 @@ public static partial class FixMessages
 		message = null;
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		using var stream = new MemoryStream(input, writable: false);
-		if (!FixParser.TryParse(stream, out var fields, out error, options?.FieldOptions)) return false;
+		var fields = separator == '|'
+			? FixParser.ParseLog(input, options?.FieldOptions)
+			: FixParser.Parse(input, options?.FieldOptions);
+		if (!CheckSyntax(fields, out error))
+			return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
 		var wire = FixConvert.Text(input);
-		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields!), mode, options, out message, out error);
+		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields), mode, options, out message, out error);
 	}
 
 	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
@@ -150,6 +157,8 @@ public static partial class FixMessages
 		message = null;
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(source, separator, null, out var type, out error)) return false;
+		if (!CheckSyntax(fields, out error))
+			return false;
 		var position = 0;
 		foreach (var field in fields)
 		{
@@ -176,6 +185,17 @@ public static partial class FixMessages
 		if (position != source.Length) return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
 		if (separator == '|' && !Envelope(source, separator, fields, out _, out error)) return false;
 		return FixSemantics.TryBuild(source, type, Nodes(source, fields), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
+	}
+
+	static bool CheckSyntax(FixField[] fields, out FixParseError? error)
+	{
+		foreach (var field in fields)
+			if (field is FixField.Invalid invalid)
+				return Fail(invalid.Position, null, null, invalid.Message, out error);
+
+		error = null;
+
+		return true;
 	}
 
 	static FixNode[] Nodes(string source, FixField[] values)

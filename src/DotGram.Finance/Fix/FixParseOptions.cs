@@ -11,11 +11,15 @@ public sealed class FixParseOptions
 	public FixParseOptions(char separator, FixParseMode mode = FixParseMode.Strict)
 	{
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) throw new ArgumentOutOfRangeException(nameof(mode));
-		FieldOptions = new FixOptions(separator);
+		if (separator != '\u0001' && separator != '|')
+			throw new ArgumentOutOfRangeException(nameof(separator));
+
+		Separator = separator;
+		FieldOptions = new FixOptions();
 		Mode = mode;
 	}
 
 	public FixOptions FieldOptions { get; }
-	public char Separator => FieldOptions.Separator;
+	public char Separator { get; }
 	public FixParseMode Mode { get; }
 }
