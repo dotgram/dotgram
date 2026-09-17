@@ -114,6 +114,38 @@ public sealed class FixLogTests
 		Assert.Equal(limit, reader.ReadCount);
 	}
 
+	[Theory]
+	[InlineData(1)]
+	[InlineData(1024)]
+	[InlineData(16384)]
+	public void Long_space_runs_preserve_internal_and_eof_spaces(int length)
+	{
+		var spaces = new string(' ', length);
+		var value  = "A" + spaces + "B";
+
+		foreach (var fields in ReadLog("58=" + value + spaces + " | 55=END" + spaces))
+		{
+			Assert.Equal(2, fields.Length);
+			Assert.Equal(value, Assert.IsType<FixField.Text>(fields[0]).Value);
+			Assert.Equal(value.Length, fields[0].Length);
+			Assert.Equal("END" + spaces, Assert.IsType<FixField.Symbol>(fields[1]).Value);
+			Assert.Equal(3 + value.Length + spaces.Length + 3, fields[1].Position);
+		}
+	}
+
+	[Theory]
+	[InlineData("58= | 55=END")]
+	[InlineData("58=|55=END")]
+	public void Empty_text_before_a_pipe_remains_invalid(string input)
+	{
+		foreach (var fields in ReadLog(input))
+		{
+			Assert.Equal(2, fields.Length);
+			Assert.IsType<FixField.Invalid>(fields[0]);
+			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[1]).Value);
+		}
+	}
+
 	static IEnumerable<FixField[]> ReadLog(string input, FixOptions? options = null)
 	{
 		yield return FixParser.ParseLog(input, options);

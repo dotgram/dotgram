@@ -339,3 +339,32 @@ A follow-up should scan a space run once and decide whether it belongs to text o
 to the separator, preserving EOF spaces, original locations and length-delimited
 binary payloads. These measurements establish the regression; they do not include
 that optimization.
+
+## Linear text scanning: 2026-09-17
+
+The same paired probe compares the padded-separator implementation at `27cd67f2`
+(parser unchanged since `5245f309`) against linear text scanning. Both parsers now
+receive identical input, including the `Padded` cases. The probe detects whether
+the previous assembly has the legacy separator option and selects its API accordingly.
+
+Wire text uses a complemented SOH character set. Log text uses an external recognizer
+that reads to the pipe once, tracks the last non-space position, and leaves trailing
+padding for the separator. At EOF it retains spaces. Binary recognition is unchanged.
+
+| Input workload | New / previous elapsed time across input forms |
+| --- | ---: |
+| Short logs, compact or padded | 0.70-0.82 |
+| Order logs, compact or padded | 0.64-0.80 |
+| Long text logs | 0.055-0.40 |
+| Logs with 1024 internal spaces | 0.004-0.016 |
+| Short SOH fields | 0.84-0.86 |
+
+Allocated bytes per operation are unchanged. These are diagnostic median timings,
+not confidence intervals; absolute timings vary with machine load. The earlier
+quadratic text scan is removed. Recovery still uses its existing synchronization
+rule and is not measured by these valid-input workloads.
+
+[Full results](results/log-linear-text-2026-09-17.csv). Validation: both Finance target
+frameworks build, the benchmark project builds, and all 3835 Finance tests pass,
+including long internal/padding/EOF space runs, source coordinates, empty values,
+recovery, binary payloads and one-byte input chunks.

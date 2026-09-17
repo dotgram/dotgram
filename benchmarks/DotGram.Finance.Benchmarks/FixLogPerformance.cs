@@ -15,6 +15,7 @@ public static class FixLogPerformance
 	{
 		var previous = Load(args[0], "previous");
 		var current  = Load(args[1], "current");
+		var legacy   = previous.Assembly.GetType("DotGram.Finance.Fix.FixOptions")!.GetProperty("Separator") != null;
 		var samples = new Dictionary<string,string>
 		{
 			["Short"] = "55=ABC|38=100|",
@@ -29,9 +30,9 @@ public static class FixLogPerformance
 		foreach (var mode in new[] { "Wire", "Pipe", "Padded" })
 		{
 			var wire = sample.Value.Replace('|', '\u0001');
-			var oldText = mode == "Wire" ? wire : sample.Value;
+			var oldText = mode == "Wire" ? wire : mode == "Padded" && !legacy ? sample.Value.Replace("|", " | ") : sample.Value;
 			var newText = mode == "Padded" ? sample.Value.Replace("|", " | ") : oldText;
-			var oldParse = Bind(previous, input, mode != "Wire", true);
+			var oldParse = Bind(previous, input, mode != "Wire", legacy);
 			var newParse = Bind(current, input, mode != "Wire", false);
 			var oldRun = Operation(oldParse, input, oldText);
 			var newRun = Operation(newParse, input, newText);

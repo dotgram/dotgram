@@ -5,16 +5,17 @@ namespace DotGram.Finance.Fix;
 [Gram("""
 	@using DotGram.Finance.Fix;
 
-	parse Fields                                 as ParseFields    stream bytes
-	parse Fields                                 as ReadFields     stream bytes yield : @FixField
-	parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
-	parse Fields with (Separator = LogSeparator) as ReadLogFields  stream bytes yield : @FixField
+	parse Fields                                                as ParseFields    stream bytes
+	parse Fields                                                as ReadFields     stream bytes yield : @FixField
+	parse Fields with (Separator = LogSeparator, Text = LogText) as ParseLogFields stream bytes
+	parse Fields with (Separator = LogSeparator, Text = LogText) as ReadLogFields  stream bytes yield : @FixField
 
 	context : @FixContext
 
 	Separator    = ['\u0001']
 	LogSeparator = ' '* & '|' & ' '*
-	Text         = (?!Separator & any)+
+	Text         = [^ '\u0001']+
+	LogText      = @ReadLogText
 
 	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.Tag(value))
 	Size : @int = value: { ['0'..'9']+ }              => @(FixConvert.Tag(value))
@@ -41,6 +42,50 @@ namespace DotGram.Finance.Fix;
 	Portable      = false)]
 sealed partial class FixGrammar
 {
+	static bool ReadLogText(ParserInput<char> input, ref int position)
+	{
+		var start = position;
+		var end   = position;
+
+		while (input.Peek(position, out var value))
+		{
+			if (value == '|')
+			{
+				// Leave presentation padding for Separator; EOF spaces remain text.
+				position = end;
+				return position > start;
+			}
+
+			position++;
+			if (value != ' ')
+				end = position;
+		}
+
+		return position > start;
+	}
+
+	static bool ReadLogText(ParserInput<byte> input, ref int position)
+	{
+		var start = position;
+		var end   = position;
+
+		while (input.Peek(position, out var value))
+		{
+			if (value == '|')
+			{
+				// Leave presentation padding for Separator; EOF spaces remain text.
+				position = end;
+				return position > start;
+			}
+
+			position++;
+			if (value != ' ')
+				end = position;
+		}
+
+		return position > start;
+	}
+
 	static bool ReadData(ParserInput<char> input, ref int position, FixContext context)
 	{
 		var length = context.DataLimit - position;

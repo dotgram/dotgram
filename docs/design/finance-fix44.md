@@ -118,10 +118,13 @@ Recovery remains on the collection and classifies invalid first tokens without a
 atomic lookahead marker; EOF ends the collection.
 
 `Separator` is a rule. The pipe publication uses
-`with (Separator = LogSeparator)`, where `LogSeparator = ' '* & '|' & ' '*`.
-Binary payloads are still length-delimited and are never trimmed. `Text` tests the rule with negative lookahead;
-it must retain that reference through specialization rather than flatten a named
-set before `with` is applied.
+`with (Separator = LogSeparator, Text = LogText)`, where
+`LogSeparator = ' '* & '|' & ' '*`. Wire text uses `[^ '\u0001']+`.
+`LogText = @ReadLogText` scans to a pipe once, tracking the last non-space
+position. At a pipe it leaves trailing ASCII spaces for `Separator`; at EOF it
+retains them as text. This avoids repeated separator lookahead through space runs.
+The recognizer has character and byte overloads and preserves source coordinates.
+Binary payloads are still length-delimited and are never trimmed.
 
 The parser host requests native character spans and buffered byte/character input.
 Handwritten conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> overloads.
