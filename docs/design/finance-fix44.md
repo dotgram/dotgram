@@ -96,8 +96,8 @@ The reference `Fix44Grammar` inherits `FixFieldGrammar`. Its
 standard numeric tag. Finance tests compare both parsers using the same field
 model, fixtures and streaming inputs; benchmarks can load either implementation.
 
-`FixField.Cases.cs` supplies only nested case declarations in `partial class
-FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
+`FixField.cs` contains `FixField`, its nested `Typed<T>` base and all field case
+declarations, together with location and typed-value behavior;
 `FixConvert.cs` owns primitive conversions. Cases share `FixField` as their grammar
 result, so the machine does not need a separate value stack per case. The original
 wire view is called `FixFieldView`.
