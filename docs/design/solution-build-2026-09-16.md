@@ -139,3 +139,9 @@ FIX parser and moves the large legacy Fix44 grammar into examples. The timings a
 remain measurements of 2b58638; they must not be attributed to the new production
 Finance layout. A subsequent profile must locate that large grammar in its new project
 and verify whether whole-solution compilation cost moved rather than disappeared.
+
+Main was merged as 7f62902. Release builds and 52 focused guard/switch/recovery tests
+passed, followed by all 3,808 Finance tests. The existing largest-tag regression was
+updated to the renamed Fix/FixOptions API after the merge. NuGetAudit=false was used
+for validation because the vulnerability service was inaccessible; repository settings
+were unchanged. No full-solution timing is claimed for the merged layout.
