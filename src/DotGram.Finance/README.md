@@ -309,7 +309,7 @@ models, example grammar and test cases together.
 The initial definitions were extracted from FIX Trading Community's
 [Orchestra FIX 4.4](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
 version `FIX.4.4_EP311`. The XML and T4 generator are no longer included.
-The retained inventory covers 912 fields, 247 code sets, 15 components and 92 group
+The maintained definitions cover 912 fields, 247 code sets, 15 components and 92 group
 definitions; 91 groups are reachable from the 93 standard messages.
 `FieldCases.json` preserves the field IDs and code-value regression cases previously
 read from the XML; it is maintained manually alongside `Fixtures.json`.

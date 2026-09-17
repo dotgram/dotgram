@@ -35,8 +35,8 @@ version `FIX.4.4_EP311`, pinned to commit
 been removed. Definitions and regression fixtures are now maintained manually,
 preserving their existing filenames and contents.
 Historical generation comments describe their origin, not a current build step.
-The original Apache 2.0 license and third-party notices remain included. The inventory
-is 93 messages, 912 fields, 15 components, 92 groups and 247 code sets.
+The original Apache 2.0 license and third-party notices remain included. The definitions
+cover 93 messages, 912 fields, 15 components, 92 groups and 247 code sets.
 
 Wire rules follow the official
 [FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
@@ -164,7 +164,7 @@ framing, malformed input, primitive boundaries, public API behavior and extensio
 | Header and trailer | components 1024/1025 | Fully populated headers and signed trailers, framing and checksum failures |
 | Required/optional components | reference presence | Minimal/full fixtures, missing required fields and component activation checks |
 | 91 reachable groups | group graph | Typed entries in full fixtures; excessive count mutation for every reachable group |
-| Unused group definition | ExecsGrp (2016) | Retained in inventory/model/schema; no FIX 4.4 message references it |
+| Unused group definition | ExecsGrp (2016) | Retained in model/schema; no FIX 4.4 message references it |
 | Nested groups | groupRef graph | Full recursive fixtures and a hand-authored Parties/subgroup case |
 | 247 code sets | codeSets/codeSet | Every declared code tested; invalid code and IOIQty numeric cases |
 | Primitive types | datatype definitions | Invariant parsing; numeric, calendar, precision, multi-value and identifier boundaries |
