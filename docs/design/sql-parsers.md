@@ -96,9 +96,11 @@ is open until it is built, and `status.md` is what will say when it has been.
   asks for the same tree and the same text — every fuzz family of the standard's grammar, over 60,000
   lines, with no difference. The first step of moving T-SQL onto the tree.
 - **The handwritten SQL:2023 parser, chapter by chapter** (`examples/DotGram.Handwritten/Sql`).
-  §5's tokens, separators, literals and names and §6.1's data types are written, and go through
-  `Both` in the tests; the rest of §6, §7, §8 and the statements follow. Two places where it
-  mirrors the generated parser rather than the BNF are written down in the project's README.
+  Written: §5, §6.1, §6's value expressions with their functions, §7's query expressions and
+  table references, §8's predicates and §14's data change statements — twenty-three of the forty-two
+  publications, all going through `Both` in the tests. What is left is §11 and §12's schema
+  statements and §16 to §23's. Two places where it mirrors the generated parser rather than the
+  BNF are written down in the project's README.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before

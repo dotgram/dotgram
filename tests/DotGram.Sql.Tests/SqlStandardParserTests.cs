@@ -324,7 +324,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a + 1 AND b", false)]
 	public void A_value_expression(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>A search condition: `x IN (a + 1)` is refused, since an in value list holds row value expressions.</summary>
@@ -355,7 +355,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a <> b", true)]
 	public void A_search_condition(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSearchCondition(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSearchCondition(input).IsSuccess);
 	}
 
 	// ── §7 Query expressions ─────────────────────────────────────────────────────
@@ -488,7 +488,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM t t2 t3", false)]
 	public void A_query_expression(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §6.10 Window functions, §10.9 Aggregates ─────────────────────────────────
@@ -535,7 +535,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("COUNT(DISTINCT *)", false)]
 	public void An_aggregate_or_a_window_function(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -598,7 +598,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM t WHERE a = ANY ((SELECT a FROM t))", true)]
 	public void An_aggregate_in_a_query(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §7.6 Row pattern recognition ─────────────────────────────────────────────
@@ -680,7 +680,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT SUM(a) OVER (w MEASURES x AS y ROWS CURRENT ROW) FROM t", true)]
 	public void Row_pattern_recognition(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── A bracket, read once ─────────────────────────────────────────────────────
@@ -734,7 +734,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("FINAL PREV(a)", false)]
 	public void A_bracket_read_once(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>`TABLE (…)`: a routine's invocation alone needs no correlation name, and any other collection does.</summary>
@@ -757,7 +757,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM t GROUP BY (a, b)", true)]
 	public void A_table_function_or_a_collection(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §6.33–6.39 JSON, §7.11 JSON table ──────────────────────────────────────
@@ -938,7 +938,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a . double ( )", true)]
 	public void A_JSON_value(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>`JSON_TABLE` needs a correlation name, and `JSON_TABLE_PRIMITIVE` takes one without `AS`.</summary>
@@ -961,7 +961,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT j.* FROM t", true)]
 	public void A_JSON_table(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -990,7 +990,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM JSON_TABLE (j, '$' COLUMNS (x ORDINALITY)) x", true)]
 	public void A_name_is_read_whole(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §14 Data change statements ─────────────────────────────────────────────
@@ -1024,7 +1024,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("INSERT INTO t VALUES DEFAULT + 1", false)]
 	public void An_insert_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseInsertStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseInsertStatement(input).IsSuccess);
 	}
 
 	/// <summary>A searched `UPDATE`: `FOR PORTION OF` before the correlation name, and set targets that are columns, elements or mutated attributes.</summary>
@@ -1054,7 +1054,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("UPDATE t SET t.a = 1", true)]
 	public void A_searched_update(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseUpdateStatementSearched(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseUpdateStatementSearched(input).IsSuccess);
 	}
 
 	/// <summary>A positioned `UPDATE`: `WHERE CURRENT OF` a cursor, and nothing a searched one says instead.</summary>
@@ -1084,7 +1084,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("UPDATE t SET t.a = 1", false)]
 	public void A_positioned_update(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseUpdateStatementPositioned(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseUpdateStatementPositioned(input).IsSuccess);
 	}
 
 	/// <summary>A searched `DELETE`.</summary>
@@ -1100,7 +1100,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DELETE FROM MODULE.t", true)]
 	public void A_searched_delete(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDeleteStatementSearched(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDeleteStatementSearched(input).IsSuccess);
 	}
 
 	/// <summary>A positioned `DELETE`.</summary>
@@ -1116,7 +1116,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DELETE FROM MODULE.t", false)]
 	public void A_positioned_delete(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDeleteStatementPositioned(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDeleteStatementPositioned(input).IsSuccess);
 	}
 
 	/// <summary>`MERGE`: at least one `WHEN`, and one row to insert.</summary>
@@ -1133,7 +1133,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MERGE INTO t USING u ON a WHEN NOT MATCHED THEN INSERT OVERRIDING SYSTEM VALUE VALUES (1)", true)]
 	public void A_merge_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseMergeStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseMergeStatement(input).IsSuccess);
 	}
 
 	/// <summary>`TRUNCATE TABLE`.</summary>
@@ -1144,7 +1144,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("TRUNCATE t", false)]
 	public void A_truncate_table_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseTruncateTableStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseTruncateTableStatement(input).IsSuccess);
 	}
 
 	/// <summary>A data change delta table: what a searched data change statement changed, as a table.</summary>
@@ -1158,7 +1158,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM OLD TABLE (UPDATE t SET a = 1 WHERE CURRENT OF c)", false)]
 	public void A_data_change_delta_table(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §11, §12 Schema definition and manipulation, access control ───────────────

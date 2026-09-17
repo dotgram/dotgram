@@ -82,15 +82,25 @@ would say nothing about the generator.
 - **Publications keep the generated names**: `ParseLiteral`, `TryParseDataType` and the
   rest, one pair per publication of the grammar. `TryParseX(string, out T)` answers rather
   than throwing, and `ParseX` throws `FormatException`.
-- **Written chapter by chapter**, in the order the grammar was: §5's tokens, separators,
-  literals and names and §6.1's data types are read today.
+- **Written chapter by chapter**, in the order the grammar was. Read today: §5's tokens,
+  separators, literals and names; §6.1's data types; §6's value expressions with the
+  towers the BNF types them by, its value functions, window functions, aggregates and JSON
+  functions; §7's query expressions, table references, joins and row pattern recognition;
+  §8's predicates; and §14's data change statements. What is left is §11 and §12's schema
+  statements and §16 to §23's, which are the last of the forty-two publications.
 - **No array of tokens.** `SqlCursor` makes one token at a time as the parser asks for it,
   because the generated parser reads characters where it stands and keeps nothing of what
   it passed. A parser that built an array would be paying a cost on one side of the
   comparison only. Going back is a copy of the cursor struct.
 - **A reserved word is an integer.** `SqlWord` and `SqlWords.Of` turn a word into one of
   §5.2's 376 reserved words, refusing it by length and by initial letter before anything is
-  compared, so a name costs two tests and no comparison.
+  compared, so a name costs two tests and no comparison. Where the BNF writes a word §5.2
+  does not reserve — `FINAL`, `PERMUTE`, `OCTETS`, `WRAPPER` — the comparison is by
+  spelling, because that word is a name wherever it is not that key word.
+- **The towers are carried, not tried.** The BNF types its value expressions as towers that
+  meet only in a primary, so the shape they share is read once and `SqlTowers` says which
+  towers the whole still belongs to. That is the same reasoning the generated parser
+  carries, because it is a property of the BNF and not of either parser.
 
 ### How it is held to the generated parser
 

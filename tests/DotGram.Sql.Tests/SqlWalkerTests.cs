@@ -42,7 +42,7 @@ public sealed class SqlWalkerTests
 	[Fact]
 	public void The_standard_tree_is_walked_through_its_lists()
 	{
-		var query = SqlStandardParser.ParseQueryExpression("SELECT a + 1 FROM t WHERE b = 2");
+		var query = Both.ParseQueryExpression("SELECT a + 1 FROM t WHERE b = 2");
 		var seen  = new List<ISqlSpan>();
 
 		Assert.True(SqlWalker.Walk(query, node =>

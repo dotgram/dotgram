@@ -23008,3 +23008,65 @@ the construction is corrected they go together.
 names 10.1x, data types 7.7x the handwritten parser. Small productions read one line at a time,
 so they measure the entry more than the reading — the number to watch is the one a whole
 statement will give, when the chapters that read one are written.
+
+## The yardstick reads the expressions, the queries and the data change statements
+
+§6, §7, §8 and §14 are one slice: the BNF recurses between a value expression, a subquery and a
+query specification, so a handwritten parser cannot have one without the others. With §5 and §6.1
+already there, that is twenty-three of the grammar's forty-two publications, and everything the
+fuzzers of the standard's grammar generate except the schema statements.
+
+**The towers are carried, not tried.** The BNF types its value expressions — numeric, character,
+datetime, interval — as towers that meet only in a primary, and this parser answers it the way the
+generated one does: read the shape they share, and ask `SqlTowers` what the whole can still be.
+That code is the grammar's `Towers` reasoning, ported, because it is a property of the BNF rather
+than of either parser; what differs between the two is how the operands are read, which is what is
+being measured.
+
+**Where the two parted, and why.** Eleven differences, every one of them the handwritten parser's:
+
+- a delimited identifier and a Unicode delimited one were no primaries at all, so `a || U&"b"` was
+  refused — the switch that dispatches a primary read only words.
+- the word literals: `DATE '2020-01-01'`, `INTERVAL '1' DAY` and the truth values are words, and a
+  primary has to ask for a literal before it asks what key word it is.
+- `->` was no token; the lexer read it as a minus and a greater-than.
+- a partitioned join table on the right of a join — `t LEFT JOIN u PARTITION BY (a) ON …` — where
+  the partitioning belongs to the right operand and needs no join after it. The BNF writes two
+  rules, one for the joins after a factor and one for a join's right side, and the two differ in
+  exactly that.
+- `JSON_ARRAY(RETURNING JSON)`: the elements are one optional group, and what was read as an
+  element is the output clause when the bracket does not close after it.
+- `JSON_OBJECTAGG(KEY VALUE v)`: §5.2 does not reserve `KEY`, so a member may be named by a column
+  called that.
+- `PATTERN (PERMUTE)`: nor `PERMUTE`, so a pattern may name a variable called that.
+- `RUNNING SUM(a)`: §5.2 reserves `RUNNING` and not `FINAL`, so one is compared as an integer and
+  the other by spelling. The switch had both as spellings, and the integer never matched.
+- `INSERT INTO t VALUES 1 ORDER BY a`: the rows are a query's table value constructor too, and a
+  query goes on where the constructor stops. The BNF's ordered choice comes back for the query when
+  the insert statement it left behind does not end there.
+- a JSON table's `WITH WRAPPER` was read twice, once by the wrapper and once by the column.
+- `a.double()` and `a.decimal(1, 2)`: an item method keeps its name and its numbers as they were
+  written, and the tree said `DOUBLE` and `10` where the text said `double` and `1_0`.
+
+**Agreement.** `Both` in the SQL tests puts every row of `SqlStandardParserTests` and
+`SqlStandardTreeTests` for those productions to both parsers: 14,701 tests, no failure. Then the
+fuzz families of the standard's grammar, clean and mutated — queries, aggregates, JSON, row pattern
+recognition, lists, the gentle ones, the data change statements, and the lexical corpora again —
+about 70,000 lines, nothing differing.
+
+**And the numbers.** Release, the same file read by both, round-robin, the best of five rounds:
+
+| corpus | generated | by hand | ratio |
+| --- | --- | --- | --- |
+| queries, 5,000 lines | 677 ms | 31 ms | 21.9x |
+| row pattern recognition, 3,000 | 447 | 25 | 18.0x |
+| queries with JSON, 3,000 | 486 | 75 | 6.5x |
+| aggregates, 3,000 | 340 | 42 | 8.0x |
+| insert, 1,000 | 109 | 8 | 13.1x |
+| merge, 1,000 | 170 | 19 | 9.0x |
+| value expressions, 2,009 | 138 | 10 | 14.1x |
+
+The spread — four to twenty-two — is the thing to look at rather than any single number: the
+generated parser is slowest where the BNF's ordered choice makes it read the same text again, and
+the handwritten one is fastest where a key word says which alternative it is before anything is
+read. That is the shape of the work the generator has left to do.
