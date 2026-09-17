@@ -11,7 +11,7 @@ namespace DotGram.Finance.Tests;
 
 public sealed class PrimitiveTests
 {
-	public static IEnumerable<object[]> OfficialCodes()
+	public static IEnumerable<object[]> KnownCodes()
 	{
 		using var cases = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "FieldCases.json")));
 		foreach (var code in cases.RootElement.GetProperty("codes").EnumerateArray())
@@ -19,8 +19,8 @@ public sealed class PrimitiveTests
 	}
 
 	[Theory]
-	[MemberData(nameof(OfficialCodes))]
-	public void Every_official_code_is_accepted(int tag, string value) => Assert.True(Valid(tag, value), $"Tag {tag}: {value}");
+	[MemberData(nameof(KnownCodes))]
+	public void Every_known_code_is_accepted(int tag, string value) => Assert.True(Valid(tag, value), $"Tag {tag}: {value}");
 
 	[Theory]
 	[InlineData(38, "0", true)]

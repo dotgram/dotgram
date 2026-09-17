@@ -222,7 +222,7 @@ The report documents the visible `GRAM5003` warning and reproduction commands.
 ## Short-input regression investigation: 2026-09-16
 
 [Initialization measurements and JIT evidence](results/2026-09-16-initialization.md)
-separate lazy creation, empty enumeration and per-field costs. The large generated
+separate lazy creation, empty enumeration and per-field costs. The large reference
 materialization helper clears about 28 KiB of stack per invocation. Parser startup
 alone does not explain the warm regression. No compiler fix is included yet.
 

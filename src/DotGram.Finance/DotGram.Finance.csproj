@@ -7,7 +7,6 @@
 		<PackageReleaseNotes>FIX 4.4 flat typed field parsing with native byte streams and an explicitly invoked message, group and validation API.</PackageReleaseNotes>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>fix;finance;trading;parser;dotgram</PackageTags>
-		<PackageLicenseExpression>MIT AND Apache-2.0</PackageLicenseExpression>
 
 		<DebugType>embedded</DebugType>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
@@ -23,9 +22,7 @@
 		<AdditionalFiles Include="Fix/*.gram" />
 
 		<None Include="README.md" Pack="true" PackagePath="/" />
-		<None Include="Fix/Specification/LICENSE" Pack="true" PackagePath="licenses/FIX-Orchestra/" />
 		<None Include="../../LICENSE" Pack="true" PackagePath="licenses/DotGram/" />
-		<None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="/" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

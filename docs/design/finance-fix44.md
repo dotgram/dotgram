@@ -22,28 +22,15 @@ and is excluded from the Finance package.
 `FixMessages.Parse` / `ReadMessages` to combine parsing with semantic processing.
 The historical measurements below include semantics, not only field recognition.
 
-## Scope and sources
+## Scope
 
 Parse complete tag-value messages from strings, character readers or byte streams.
 No transport, session engine, persistence or serialization is included. Preserve
 the original wire and frame each message independently on a shared stream.
 
-The initial schema definitions were extracted from FIX Trading Community's
-[OrchestraFIX44.xml](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
-version `FIX.4.4_EP311`, pinned to commit
-`cd24169a2abd8daba7c360987c7a46ca11873a12`. The XML and dictionary generator have
-been removed. Definitions and regression fixtures are now maintained manually,
-preserving their existing filenames and contents.
-Historical generation comments describe their origin, not a current build step.
-The original Apache 2.0 license and third-party notices remain included. The definitions
-cover 93 messages, 912 fields, 15 components, 92 groups and 247 code sets.
-
-Wire rules follow the official
-[FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
-Application scope follows the
-[FIX 4.4 specification with 20030618 errata](https://www.fixtrading.org/documents/fix-4-4/).
-Conditional business requirements written in narrative documentation are not
-automatically executable schema constraints.
+Definitions and regression fixtures are maintained manually. The definitions cover
+93 messages, 912 fields, 15 components, 92 groups and 247 code sets.
+Conditional business requirements are not automatically executable schema constraints.
 
 ## Architecture assessment before implementation
 
@@ -55,7 +42,7 @@ Parameters accept compile-time values; an input capture cannot be passed as a
 runtime repetition count. The lexical split design note is not authoritative
 about implementation; `docs/status.md` and the emitter are.
 
-Use generated grammar for recognition and generated schema definitions for
+Use the grammar for recognition and schema definitions for
 structural validation and typed access. Raw data cannot be split on SOH: its
 preceding length determines the extent. Buffered input does not support external
 recognizers, so guards bound ordinary grammar repetitions to that extent.
@@ -96,22 +83,22 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 
 The handwritten production `FixGrammar.gram` reads a numeric tag and uses
 `switch @(context.Kind(tag))` to select text or a length/data pair. C# validates
-the pair and `FixFactory.Generated.cs` constructs the corresponding `FixField`
+the pair and `FixFactory.cs` constructs the corresponding `FixField`
 case. The common `Field` accepts a separator or EOF; the `Fields` collection
 adds recovery. Eager and lazy publications share this grammar.
 
-The reference `Fix44Grammar` inherits `FixFieldGrammar`. Its generated
+The reference `Fix44Grammar` inherits `FixFieldGrammar`. Its
 `FixField.gram` retains a large `KnownField` choice with one alternative per
 standard numeric tag. Finance tests compare both parsers using the same field
 model, fixtures and streaming inputs; benchmarks can load either implementation.
 
-`FixField.Generated.cs` supplies only nested case declarations in `partial class
+`FixField.Cases.cs` supplies only nested case declarations in `partial class
 FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
 `FixConvert.cs` owns primitive conversions. Cases share `FixField` as their grammar
 result, so the machine does not need a separate value stack per case. The original
 wire view is called `FixFieldView`.
 
-The generated C# factory constructs each named case from its native value span.
+The C# factory constructs each named case from its native value span.
 Conversions return `(Valid, Value)`; plain text returns a string.
 `LocationType = typeof(IFixLocation)` supplies the complete field extent.
 
@@ -154,7 +141,7 @@ results and rejection behavior. Neither emitter change refers to FIX.
 
 ## Coverage matrix
 
-Fixtures are generated schema coverage cases. Hand-authored tests separately check
+Fixtures are manually maintained schema coverage cases. Hand-authored tests separately check
 framing, malformed input, primitive boundaries, public API behavior and extensions.
 
 | Area | Source | Evidence |
@@ -171,7 +158,7 @@ framing, malformed input, primitive boundaries, public API behavior and extensio
 | Length/data | all 16 lengthId references | Every pair tested with embedded SOH, equals, NUL and non-ASCII octets |
 | BodyLength/CheckSum | tag-value specification | Exact octet length/sum, malformed length, overflow and truncation |
 | Extensions | explicit parser policy | Scalar tags, tags inside groups, unknown MsgType, registered vendor data pairs |
-| ADT and input forms | 912 generated cases | Full/minimal fixtures agree for chars, bytes and pipes; tiny-buffer raw-data checks |
+| ADT and input forms | 912 field cases | Full/minimal fixtures agree for chars, bytes and pipes; tiny-buffer raw-data checks |
 | Wire preservation | field extents | Every fixture reconstructed byte-for-byte from ordered field wire spans |
 | Malformed input | grammar and validation | Every prefix of a message, targeted failures and 1,000 deterministic syntax mutations |
 | Performance | BenchmarkDotNet | Ordinary messages, 64 KiB data and 1,000 entries; allocation and messages/sec recorded |

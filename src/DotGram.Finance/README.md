@@ -242,7 +242,7 @@ outside its checks. ISO identifiers are checked for their lexical shape.
 ## Field ADT and typed values
 
 `FixFieldView.TypedValue` is a `FixField` with one concrete `FixField` case per
-standard tag. The tag and primitive type come from the pinned specification:
+standard tag. Each case declares its tag and primitive type:
 
 ```csharp
 var order = (NewOrderSingle)FixMessages.Parse(wire);
@@ -264,7 +264,7 @@ Console.WriteLine(quantity.Value.Scale);       // decimal scale
 | UTCTimeOnly, UTCTimestamp, MonthYear | FixTime, FixTimestamp, FixMonthYear |
 | data | ReadOnlyMemory<byte> |
 
-Code sets are validated against the specification in Strict mode; their underlying
+Code sets are validated against the schema tables in Strict mode; their underlying
 primitive remains the value type. Dates retain year zero and leap-second notation.
 The char numeric hooks use invariant .NET parsing. Byte numeric hooks accumulate
 ASCII digits directly, retaining arbitrary integer and decimal precision.
@@ -298,28 +298,23 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 Unknown tags are read as delimiter-terminated text unless their binary length/data
 pair is configured through `FixOptions` as described above.
 
-## Definition maintenance and provenance
+## Definition maintenance
 
 Field declarations, model types, schema tables, the example field grammar and test
-fixtures are maintained manually. The existing `.Generated.cs` filenames and
-historical generation comments are retained; they do not imply a regeneration step.
-When changing definitions, update the affected factory cases, schema entries,
-models, example grammar and test cases together.
+fixtures are maintained manually. When changing definitions, update the affected
+factory cases, schema entries, models, example grammar and test cases together.
 
-The initial definitions were extracted from FIX Trading Community's
-[Orchestra FIX 4.4](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
-version `FIX.4.4_EP311`. The XML and T4 generator are no longer included.
-The maintained definitions cover 912 fields, 247 code sets, 15 components and 92 group
+- `Fix/FixField.Cases.cs`: typed field cases.
+- `Fix/FixFactory.cs`: construction of typed fields.
+- `Fix/FixMessageTypes.cs`: message and group models.
+- `Fix/FixFactories.cs`: construction of message and group models.
+- `Fix/FixSchema.cs`: field types, code sets and message/group definitions.
+
+The definitions cover 912 fields, 247 code sets, 15 components and 92 group
 definitions; 91 groups are reachable from the 93 standard messages.
-`FieldCases.json` preserves the field IDs and code-value regression cases previously
-read from the XML; it is maintained manually alongside `Fixtures.json`.
-Wire rules follow [FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
-
-Removing the source and generator does not relicense the retained definitions.
-The package retains its license expression, license texts and third-party attribution.
-See `THIRD-PARTY-NOTICES.md` for the original source revision.
-DotGram still compiles `.gram` files during builds; only dictionary generation has
-been removed.
+`FieldCases.json` holds field IDs and code-value regression cases;
+`Fixtures.json` holds message test inputs. Maintain both alongside the definitions.
+DotGram compiles `.gram` files during builds.
 
 Tests and BenchmarkDotNet workloads are separate solution projects. The coverage
 and measurement records are in `docs/design/finance-fix44.md` and
@@ -328,20 +323,20 @@ and measurement records are in `docs/design/finance-fix44.md` and
 ### Field construction and locations
 
 `FixGrammar` parses the tag and selects one branch through `switch`.
-`FixFactory.Generated.cs` constructs the corresponding typed field in C#.
+`FixFactory.cs` constructs the corresponding typed field in C#.
 The common `Field` rule consumes the separator or EOF and defines the complete
 field extent. Publications support eager and `yield` parsing.
 
-The example `Fix44Grammar` inherits `FixFieldGrammar`, whose generated
+The example `Fix44Grammar` inherits `FixFieldGrammar`, whose
 `FixField.gram` contains one alternative per standard field. Tests compare
 its results with the production parser using the same shared field model.
 
-`FixField.Generated.cs` declares the nested cases of `partial class FixField`.
+`FixField.Cases.cs` declares the nested cases of `partial class FixField`.
 The handwritten `FixField.cs` implements locations and typed-value access; the
-generated declarations contain no conversion or location logic. `FixFieldView`
+case declarations contain no conversion or location logic. `FixFieldView`
 provides access to the original source text.
 
-The generated C# factory constructs field cases, for example
+The C# factory constructs field cases, for example
 `new FixField.LegProduct(FixConvert.Integer(value))`. Primitive conversions return
 `(Valid, Value)` for the field constructor. Plain text conversion returns a string
 without a validation flag; a string's typed value is always available. Restrictions

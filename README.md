@@ -475,8 +475,7 @@ data, and recovery through `FixField.Invalid`. `FixOptions` selects the delimite
 and optional custom length/data pairs.
 
 `FixMessages` explicitly assembles messages and nested groups and applies Strict
-or Lenient validation. The field model and schema were initially extracted from FIX Orchestra and are
-now maintained manually; the small handwritten grammar uses computed dispatch. The large
+or Lenient validation. The field model and schema are maintained manually; the small handwritten grammar uses computed dispatch. The large
 [`Fix44` example](examples/DotGram.Examples/Finance/Fix44/Fix44Grammar.gram)
 remains available for grammar regression tests and benchmarks.
 
