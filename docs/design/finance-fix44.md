@@ -5,10 +5,17 @@
 `Fix.Parse` returns `FixField[]` for contiguous inputs and lazy
 `IEnumerable<FixField>` for `TextReader` and native byte `Stream` inputs. The
 generated buffered machine yields each complete field, releases consumed input,
-and preserves global locations. The explicit `yield : @FixField` publication handles strict consecutive parsing;
-no `find` fallback or exception-producing grammar branch is needed.
-The syntax path uses no message schema or envelope validator.
-Length fields provide raw-data boundaries; matching tag pairs are checked later.
+and preserves global locations. The explicit `yield : @FixField` publication
+returns fields incrementally. `recover Separator` produces `FixField.Invalid`
+with the rejected input, position and error, then resumes after the separator.
+The syntax path uses no message schema or envelope validator. Length fields
+provide raw-data boundaries; the parser checks the configured length/data tag pair.
+`FixOptions` selects SOH or pipe and an optional replacement pair dictionary.
+
+The public API and shared types live in `DotGram.Finance`, with production sources
+in `src/DotGram.Finance/Fix`. The reference parser lives in
+`examples/DotGram.Examples/Finance/Fix44`, within the existing examples project,
+and is excluded from the Finance package.
 
 `FixMessages` owns framing, message/group assembly and validation. Call
 `FixMessages.Build(source, fields)` to validate an already parsed field array, or
@@ -66,12 +73,12 @@ values that do not fit CLR decimal or DateTime, including leap seconds.
 The character input contract must define how octets are represented: length and
 checksum are octet operations, not Unicode character operations. A lossless
 one-character-per-octet representation permits encoded fields without assuming
-that their payload is UTF-8. A future byte input can share source extents and
-schema shape without an interface call per character.
+that their payload is UTF-8. Native byte input uses the same field model and preserves raw binary payloads.
 
 ## Validation contract
 
-Both modes require unambiguous field boundaries, complete input and valid framing.
+`FixMessages` exposes Strict and Lenient modes. Both require unambiguous field
+boundaries, complete input and valid framing; recovered syntax errors are rejected.
 Strict additionally checks schema membership, required presence, primitive syntax,
 code sets, duplicate fields, group counts and group order. Optional components
 activate their required children only when present. Message body field order is
@@ -85,14 +92,16 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 
 ## Implemented grammar strategy
 
-The handwritten `FixGrammar` host inherits `FixFieldGrammar`. Its generated
-`FixField.gram` declares a single `KnownField` choice with one alternative per
-standard numeric tag. Alternatives contain full literals such as `"607="` and
-construct their ADT case directly. Text, length and data readers are parameters.
-The common handwritten `Field` consumes the separator after the choice. There is
-no manually expanded prefix tree and no separate rule per field.
-The handwritten `FixGrammar.gram` provides `ValueText`, length-delimited `Data`,
-`Separator`, unknown-field recognition and the two parse publications.
+The handwritten production `FixGrammar.gram` reads a numeric tag and uses
+`switch @(context.Kind(tag))` to select text or a length/data pair. C# validates
+the pair and `FixFactory.Generated.cs` constructs the corresponding `FixField`
+case. The common `Field` accepts a separator or EOF; the `Fields` collection
+adds recovery. Eager and lazy publications share this grammar.
+
+The reference `Fix44Grammar` inherits `FixFieldGrammar`. Its generated
+`FixField.gram` retains a large `KnownField` choice with one alternative per
+standard numeric tag. Finance tests compare both parsers using the same field
+model, fixtures and streaming inputs; benchmarks can load either implementation.
 
 `FixField.Generated.cs` supplies only nested case declarations in `partial class
 FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
@@ -100,12 +109,12 @@ FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
 result, so the machine does not need a separate value stack per case. The original
 wire view is called `FixFieldView`.
 
-Each field directly constructs its named case from the native value span.
+The generated C# factory constructs each named case from its native value span.
 Conversions return `(Valid, Value)`; plain text returns a string.
 `LocationType = typeof(IFixLocation)` supplies the complete field extent.
 
 `Separator` is an elementary rule. The pipe publication uses
-`with (Separator = LogSeparator)`. `ValueText` tests the rule with negative lookahead;
+`with (Separator = LogSeparator)`. `Text` tests the rule with negative lookahead;
 it must retain that reference through specialization rather than flatten a named
 set before `with` is applied.
 
@@ -132,7 +141,7 @@ retention to a frame, not an entire connection, but is not allocation-free.
 
 The shared grammar exposed general generator size issues. Identity alternatives
 that all return the same typed capture now share one materialization call, rather
-than a switch with hundreds of equivalent bodies. The parser uses `Direct = false`
+than a switch with hundreds of equivalent bodies. The reference parser uses `Direct = false`
 to keep large choices in the split automaton.
 
 The earlier shared grammar exposed another generator size issue. Large split machines now

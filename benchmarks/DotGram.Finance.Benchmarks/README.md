@@ -206,7 +206,7 @@ These numbers measure the existing byte-to-character FIX adapter, not a future
 native byte parser or lazy field decoding implementation.
 
 The `FlatOrderFields`, `FlatRawFields`, and `FlatGroupFields` workloads call
-`Fix44.Parse` and return only fields. Existing message workloads explicitly call
+`Fix.Parse` and return only fields. Existing message workloads explicitly call
 `FixMessages.Parse`; their costs include semantic assembly and validation.
 Previously recorded results predate this separation.
 
@@ -282,11 +282,12 @@ pool ownership, retention semantics, raw measurements and compatibility checks.
 
 ## Computed switch and alternative FIX parser: 2026-09-16
 
-[FixDispatch comparison](results/2026-09-16-dispatch.md) compares the new small
-grammar and C# field construction with Fix44 in the same assembly. Byte orders
+[FixDispatch comparison](results/2026-09-16-dispatch.md) records the then-new small
+grammar and C# field construction against Fix44, then in the same assembly. Byte orders
 are about 2.1x faster, groups 1.65x, binary input 1.34x and string orders 4.0x.
 The report includes all timings, allocation, validation and reproduction commands.
 
 [Comparison with recovery](results/2026-09-16-recovery-dispatch.md) measures both
-parsers after adding recover, including malformed inputs. FixDispatch wins ordinary
-field workloads; Fix44 remains faster on the measured 64 KiB binary payload.
+parsers before the rename, after adding recover, including malformed inputs.
+FixDispatch (now `Fix`) wins ordinary field workloads; Fix44 is faster on the
+measured 64 KiB binary payload.

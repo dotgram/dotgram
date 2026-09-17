@@ -1,7 +1,7 @@
 # DotGram.Finance
 
 A standalone FIX 4.4 tag-value parser for `netstandard2.0` and `net10.0`.
-DotGram compiles the composed field grammar into one parser at build time; applications need no DotGram runtime,
+DotGram compiles the handwritten dispatch grammar at build time; applications need no DotGram runtime,
 grammar files, schema XML, reflection configuration or initialization step.
 
 ## Flat field parsing
@@ -344,6 +344,6 @@ without a validation flag; a string's typed value is always available. Restricti
 on a particular field (such as currency syntax or a code set) remain semantic checks.
 
 `LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
-The common `Field` rule covers the complete tag, equals sign, value and separator;
+The common `Field` rule covers the complete tag, equals sign, value and optional final separator;
 it supplies the field's source extent. `Position`, `ValuePosition` and
 `Length` retain their existing meanings, including for unknown and binary fields.
