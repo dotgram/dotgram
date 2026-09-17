@@ -31,6 +31,7 @@ public static partial class CSharpEmitter
 	static string BufferedByteClass() => BufferedTextClass
 		.Replace("BufferedText", "BufferedBytes")
 		.Replace("global::System.IO.TextReader", "global::System.IO.Stream")
+		.Replace("IParserInputSource<char>", "IParserInputSource<byte>")
 		.Replace("char[]", "byte[]")
 		.Replace("ArrayPool<char>", "ArrayPool<byte>")
 		.Replace("Array.Empty<char>", "Array.Empty<byte>")
@@ -65,7 +66,7 @@ public static partial class CSharpEmitter
 
 			var rules = Reaches(graph, publication.Rule);
 			var why = overKinds ? "token-kind input is not supported by this form yet" :
-				rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External))
+				rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External { UsesInputView: false }))
 					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
 			var tag = "_Buffered_" + publication.MethodName + (bytes ? "_Bytes" : "");
@@ -183,7 +184,7 @@ public static partial class CSharpEmitter
 	}
 
 	const string BufferedTextClass = """
-		private sealed class BufferedText : global::System.IDisposable
+		private sealed class BufferedText : global::System.IDisposable, IParserInputSource<char>
 		{
 			private readonly global::System.IO.TextReader _input;
 			private readonly int _limit;

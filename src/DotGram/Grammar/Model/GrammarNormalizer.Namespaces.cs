@@ -409,7 +409,7 @@ public sealed partial class GrammarNormalizer
 			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element  (negated, ranges, categories, references),
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
 			Node.Guard    (var text, var at)                                        => new Node.Guard    (Renaming(text), at),
-			Node.External (var name) { HasValue: var hasValue }                     => new Node.External (name) { HasValue = hasValue },
+			Node.External external                                                 => external with { },
 			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
 			Node.Choice   (var nodes)                                               => ((Node.Choice)node).Rebuild([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]) with
 			{

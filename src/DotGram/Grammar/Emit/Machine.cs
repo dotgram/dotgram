@@ -449,7 +449,8 @@ sealed partial class Machine
 						(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
 							CSharpEmitter.Uses(graph, asked, "context") ||
 						node is Node.Guard { Text: var condition } &&
-							CSharpEmitter.Uses(graph, condition, "context")))
+							CSharpEmitter.Uses(graph, condition, "context") ||
+						node is Node.External { UsesContext: true }))
 					{
 						UsesContext = true;
 					}
@@ -1069,6 +1070,15 @@ sealed partial class Machine
 	}
 
 	bool _spans;
+
+	string ExternalCall(Node.External external, string position, string? value = null)
+	{
+		var input   = external.UsesInputView ? $"new ParserInput<{(BufferedBytes ? "byte" : "char")}>(text)" : "text";
+		var output  = value is null ? "" : $", out {value}";
+		var context = external.UsesContext ? ", context" : "";
+
+		return $"{external.Name}({input}, ref {position}{output}{context})";
+	}
 
 	/// <summary>
 	/// Whether anything in this machine names the grammar's own state (§7.7).
@@ -2359,7 +2369,7 @@ sealed partial class Machine
 				return state;
 			}
 
-			case Node.External(var method) { HasValue: var hasValue }:
+			case Node.External external:
 			{
 				var state = Reserve(out var writer);
 
@@ -2367,9 +2377,7 @@ sealed partial class Machine
 				// where there is one, is recovered later by re-invoking the method against
 				// the recorded start position (Machine.Materialization.cs), not trusted from
 				// a call that may run on an abandoned path.
-				writer.Line(hasValue
-					? $"if (!{method}(text, ref p, out _)) {{ expected = null; goto Fail; }}"
-					: $"if (!{method}(text, ref p)) {{ expected = null; goto Fail; }}");
+				writer.Line($"if (!{ExternalCall(external, "p", external.HasValue ? "_" : null)}) {{ expected = null; goto Fail; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;

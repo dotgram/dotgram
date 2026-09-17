@@ -1833,7 +1833,8 @@ class or survive asynchronous work. These options do not silently change the
 return type or ownership of an untyped publication.
 
 Explicitly requested unsupported forms report `GRAM4026`. Current exclusions also
-include token-kind machines, external recognizers, and `parserInput` factories.
+include token-kind machines, span-based external recognizers, and `parserInput` factories.
+External recognizers using `ParserInput<T>` support buffered input (§7.1).
 Async refill, caller-fed chunks, and a contiguous byte publication are not supplied
 by these options.
 
@@ -2207,6 +2208,8 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | `bool M(char c)` | element predicate | `[@M]` inside an element set |
 | `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M` as a grammar operand |
 | `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | bare `@M` as a grammar operand |
+| `bool M(ParserInput<char> input, ref int pos)` | contiguous or buffered external recognizer | bare `@M` |
+| `bool M(ParserInput<char> input, ref int pos, out T value, Context context)` | input-view recognizer with value and context; both trailing parameters are optional | bare `@M` |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
 
@@ -2238,7 +2241,7 @@ overloads, accessibility, parameter types and result types are C#'s responsibili
 
 Two exceptions, narrow and specific, both about bare `@M`. The first: it alone does not
 say whether `M` is the second row or the third, since the notation is the same either way.
-The host is asked whether `M` also has a `(ReadOnlySpan<char>, ref int, out T)` overload.
+The host is asked whether `M` has an `out T` recognizer overload with either input form.
 Finding one hands the rule-shaped identity a value-producing call needs; finding none
 leaves bare `@M` the second row. More than one such overload with a different `T` is a
 tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
@@ -2249,7 +2252,9 @@ in reach of the class the grammar is attached to — in it, around it, in what i
 from, or in the class of a grammar it includes — that is said about the grammar
 (`GRAM4025`), rather than by the C# compiler about a call in a generated file. It is said
 only where it is certain, and it changes nothing about what `@M` means: the role is still
-the position's.
+the position's. The host also identifies whether a bare recognizer uses a span or
+`ParserInput<char>`, and whether the latter takes a context argument. Declare one
+character-input contract per recognizer name.
 
 The same C# name may therefore implement both contracts without ambiguity:
 
@@ -2261,8 +2266,9 @@ Many = @Foo
 The first call selects `bool Foo(char)`, the second
 `bool Foo(ReadOnlySpan<char>, ref int)` by ordinary C# overload resolution.
 
-The external recognizer's signature is deliberately built from BCL types only: nothing
-emitted appears in it (§6.2), and it needs no interface dispatch.
+The span-based recognizer's signature uses BCL types only; nothing emitted appears
+in it (§6.2). An input-view recognizer uses the host's generated `ParserInput<T>`
+instead. Both forms keep the same bare `@M` notation.
 Its value is the text it covered — the same as any rule that captures nothing.
 
 **A recognizer is trusted absolutely, and that is the bargain.** The `ref` is the method
@@ -2275,11 +2281,40 @@ This is deliberate. A seam that second-guessed the code on the other side of it 
 still not make a wrong recognizer right. Reaching into the parse means taking the
 parse's invariants on with it.
 
-One thing follows from it, and it is arithmetic rather than punishment: a grammar
-containing an external recognizer gets no streaming overloads (§6.3). The method is
-handed a span and told nothing about where it came from, so it cannot tell the end of a
-window from the end of the input, and nothing in its signature lets it say which it hit.
-It would read a record cut in half as a record that ended.
+A span-based external recognizer gets no streaming overloads (§6.3): it cannot
+distinguish the end of a buffer from EOF. For buffered input, declare the callback
+in the parser host using the generated `ParserInput<char>` type. Add a
+`ParserInput<byte>` overload for `stream bytes`; the character overload also serves
+contiguous input. The optional last parameter receives the grammar's declared
+`context : @Context`. An optional `out T` precedes the context, if present.
+
+```dotgram
+Data = @ReadData
+```
+
+```csharp
+static bool ReadData(ParserInput<byte> input, ref int position, Context context)
+{
+    return input.TryAdvance(ref position, context.Length);
+}
+```
+
+`Ensure(position, length)` reads until the requested extent is available or EOF is
+known. `TryAdvance(ref position, length)` does the same and advances only on success.
+`Peek(position, out value)` reads one element without advancing; `Slice(position,
+length)` returns a borrowed span and throws if the extent is unavailable. Negative
+arguments throw; an extent beyond `int.MaxValue` fails `Ensure` without advancing.
+Positions are absolute, including after earlier yielded records have been released.
+Do not access released input or retain a borrowed span across another input operation
+or callback return. Buffer growth and retention limits are the same as for grammar
+rules; callbacks cannot release buffers or bypass the configured limit.
+
+Refilling does not restart a callback. Grammar backtracking can call it again, and
+value-producing callbacks are called again when their result is materialized, as
+with span-based recognizers. Keep speculative side effects and context changes
+consistent with those rules. Input-view recognizers use character parsing when a
+lexical split is requested; their reads can depend on the current syntactic context.
+No runtime assembly is required: the input view is emitted into the parser host.
 
 **A terminal the lexer begins and something else ends.** In a grammar cut into a lexer
 and a syntactic half (§4, `Lexical = true`), a terminal is read by one automaton together
