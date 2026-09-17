@@ -196,24 +196,25 @@ is worth reading before measuring the generator.
 
 ## Large generated source files
 
-The source generator automatically moves complete engine methods and direct-reader
-groups of at least 2,000,000 characters into additional partial-class files. Small
-groups keep their existing layout. This is a group threshold, not a maximum file
-size: an individual method or nested reader type stays whole. The main file retains
-host fields and their initialization order, shared types, and declaration attributes.
-A reader's fields and constructors move together with its complete nested type.
+File splitting is experimental and disabled by default, including in the Roslyn
+source generator. To opt in through `GramCompiler.Compile`, set
+`GramCompilerOptions.SourceFileSize` to a positive character threshold, for example
+`2_000_000`. Complete engine methods and direct-reader groups at least that large
+move into additional partial-class files. This is a group threshold, not a maximum
+file size: an individual method or nested reader type stays whole.
 
-The public parser API and method bodies are unchanged. This controls source layout
-for the C# compiler, independently of `PartSize`, which controls method subdivision
-for the JIT. Extra files have stable `.part-0001.g.cs` names in emission order.
+The main file retains host fields and their initialization order, shared types,
+and declaration attributes. A reader's fields and constructors move together with
+its complete nested type. Parser entry points and method bodies are unchanged.
+This controls source layout independently of `PartSize`, which controls method
+subdivision for the JIT. Extra files use stable `.part-0001.g.cs` names.
 
-Callers of `GramCompiler.Compile` must compile **all** entries in
-`GramCompilation.Sources`. Set `GramCompilerOptions.SourceFileSize = 0` to retain
-a single file, or use a positive character threshold for integration experiments.
-The Roslyn source generator uses the default automatically. Direct calls to
-`CSharpEmitter.Emit` retain a single string unless a `sourceParts` collection is
-supplied; that collection receives the additional files.
+When opting in, compile **all** entries in `GramCompilation.Sources`.
+`SourceFileSize = 0` retains one file and is the default. Direct callers of
+`CSharpEmitter.Emit` must supply both a positive `sourceFileSize` and a
+`sourceParts` collection to receive additional files.
 
-See the [file-splitting measurements](design/file-split-2026-09-16.md) for the
-measured scope and trade-offs. File splitting is a build-time optimization; it
-does not establish a parser-throughput or memory reduction.
+The [measurements](design/file-split-2026-09-16.md) did not establish enough benefit
+to enable splitting by default: FIX improved modestly with higher memory use,
+and SQL showed no meaningful time improvement. Reconsider automatic splitting only
+after a repeatable benefit in actual solution builds has been demonstrated.

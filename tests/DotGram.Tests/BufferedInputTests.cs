@@ -67,10 +67,15 @@ public sealed class BufferedInputTests
 		var grammar = string.Join("\n", rules) + "\nItem : @int = (" +
 			string.Join(" | ", Enumerable.Range(0, count).Select(i => $"v: R{i}")) +
 			") => @(v)\nStart : @int[] = Item+\nparse Start stream bytes";
-		var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions
+		var options = new GramCompilerOptions
 		{
 			BufferedInput = true, Direct = false, PartSize = 128, CSharpScanner = RoslynCSharpScanner.Instance,
-		});
+		};
+		var single = GramCompiler.Compile(grammar, options);
+		EmittedCode.Quiet(single.Diagnostics);
+		Assert.Single(single.Sources);
+		options.SourceFileSize = 2_000_000;
+		var compilation = GramCompiler.Compile(grammar, options);
 		EmittedCode.Quiet(compilation.Diagnostics);
 		Assert.True(compilation.Sources.Count > 1);
 		var source = compilation.Sources[0].Text;

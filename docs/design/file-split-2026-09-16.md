@@ -169,3 +169,11 @@ include both generator hashes. The `generate` mode of
 [CompilationSplitExperiment](../../benchmarks/CompilationSplitExperiment/README.md)
 preserves the end-to-end procedure. Measurements here used the same procedure in
 an isolated scratch host before promoting it to that checked-in mode.
+
+## Decision after production measurements
+
+Automatic splitting is disabled. Both compiler and emitter size defaults are zero;
+positive thresholds remain available for explicit experiments. The measurements
+above describe the enabled implementation at commit 4ac5e42, not the default
+behavior after this decision. Re-enabling it requires repeatable improvement in
+actual solution builds, with time and memory evaluated together.
