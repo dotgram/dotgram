@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 
+using DotGram.Handwritten;
 using DotGram.Sql;
 
 namespace DotGram.Benchmarks;

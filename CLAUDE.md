@@ -67,6 +67,7 @@ src/
 	                      teaching material — and, being an ordinary project the generator
 	                      runs over, it is where a real symbol resolver is exercised
 examples/
+	DotGram.Handwritten/  reusable manual parsers for differential tests and benchmarks.
 	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
 	                      attaches to, and the code written against it. No test
 	                      framework and no scaffolding — DotGram.Tests runs them.

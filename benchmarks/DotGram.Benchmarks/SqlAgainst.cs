@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using DotGram.Handwritten;
 using DotGram.Sql;
 using DotGram.Sql.Standard;
 

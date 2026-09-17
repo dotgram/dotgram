@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace DotGram.Benchmarks;
+namespace DotGram.Handwritten;
 
 /// <summary>
 /// The hand-written parser the first day's numbers were divided by, recovered verbatim.
@@ -31,7 +31,7 @@ namespace DotGram.Benchmarks;
 /// not the yardstick: <see cref="HandSqlTokens"/> is.
 /// </para>
 /// </remarks>
-static class HandSqlOriginal
+public static class HandSqlOriginal
 {
 	static ReadOnlySpan<char> T => default;
 

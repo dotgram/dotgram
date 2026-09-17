@@ -3,6 +3,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 
+using DotGram.Handwritten;
 using DotGram.Sql;
 using DotGram.Sql.Standard;
 

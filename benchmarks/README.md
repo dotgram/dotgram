@@ -1,5 +1,9 @@
 # Benchmarks
 
+Reusable handwritten parsers live in
+[DotGram.Handwritten](../examples/DotGram.Handwritten/README.md).
+The comparison and timing harnesses remain in this directory.
+
 FIX message workloads and measured results are in
 [`DotGram.Finance.Benchmarks`](DotGram.Finance.Benchmarks/README.md).
 

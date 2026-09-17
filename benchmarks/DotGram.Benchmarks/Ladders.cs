@@ -3,6 +3,8 @@ using System.Diagnostics;
 
 using DotGram;
 
+using DotGram.Handwritten;
+
 namespace DotGram.Benchmarks;
 
 /// <summary>

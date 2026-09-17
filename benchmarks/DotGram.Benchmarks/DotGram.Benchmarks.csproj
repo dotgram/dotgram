@@ -55,6 +55,7 @@
 		     because the generator's emission does not vary with the referencing project's
 		     target framework. What the library was built with and what would be generated
 		     here are the same C#. -->
+		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
 	</ItemGroup>
