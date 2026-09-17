@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 /// <summary>The validation policy applied after wire recognition.</summary>
 public enum FixParseMode

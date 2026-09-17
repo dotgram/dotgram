@@ -2,9 +2,9 @@
 // Generated from the pinned Orchestra FIX 4.4 dictionary.
 using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
-static class FixDispatchFactory
+static class FixFactory
 {
 	public static FixField Value(int tag, ReadOnlySpan<char> value) => (tag / 64) switch
 	{

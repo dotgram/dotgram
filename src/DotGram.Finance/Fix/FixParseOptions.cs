@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 /// <summary>An immutable parsing policy, reusable concurrently across messages.</summary>
 public sealed class FixParseOptions
@@ -11,11 +11,11 @@ public sealed class FixParseOptions
 	public FixParseOptions(char separator, FixParseMode mode = FixParseMode.Strict)
 	{
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) throw new ArgumentOutOfRangeException(nameof(mode));
-		FieldOptions = new FixFieldOptions(separator);
+		FieldOptions = new FixOptions(separator);
 		Mode = mode;
 	}
 
-	public FixFieldOptions FieldOptions { get; }
+	public FixOptions FieldOptions { get; }
 	public char Separator => FieldOptions.Separator;
 	public FixParseMode Mode { get; }
 }

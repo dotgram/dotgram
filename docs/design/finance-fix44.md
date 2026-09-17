@@ -2,7 +2,7 @@
 
 ## Flat parser and explicit semantics
 
-`Fix44.Parse` returns `FixField[]` for contiguous inputs and lazy
+`Fix.Parse` returns `FixField[]` for contiguous inputs and lazy
 `IEnumerable<FixField>` for `TextReader` and native byte `Stream` inputs. The
 generated buffered machine yields each complete field, releases consumed input,
 and preserves global locations. The explicit `yield : @FixField` publication handles strict consecutive parsing;

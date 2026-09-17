@@ -11,12 +11,12 @@ namespace DotGram.Finance.Benchmarks;
 
 static class FixProfile
 {
-	public static void Run(string path, string input, string workload, int iterations, string parser = "Fix44")
+	public static void Run(string path, string input, string workload, int iterations, string parser = "Fix")
 	{
 		if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
 		if (input != "Bytes" && input != "Characters" && input != "String") throw new ArgumentException("Unknown input.");
-		if (parser != "Fix44" && parser != "FixDispatch") throw new ArgumentException("Unknown parser.");
-		var type = new AssemblyLoadContext("Profile target").LoadFromAssemblyPath(Path.GetFullPath(path)).GetType("DotGram.Finance.Fix." + parser)!;
+		if (parser != "Fix44" && parser != "Fix") throw new ArgumentException("Unknown parser.");
+		var type = new AssemblyLoadContext("Profile target").LoadFromAssemblyPath(Path.GetFullPath(path)).GetType(parser == "Fix44" ? "DotGram.Examples.Finance.Fix44" : "DotGram.Finance.Fix", throwOnError: true)!;
 		var wire = Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
 		if (workload == "Groups")
 		{

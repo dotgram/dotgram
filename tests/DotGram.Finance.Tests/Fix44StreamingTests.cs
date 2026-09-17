@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using DotGram.Finance.Fix;
+using DotGram.Examples.Finance;
+using DotGram.Finance;
 using Xunit;
 
 namespace DotGram.Finance.Tests;

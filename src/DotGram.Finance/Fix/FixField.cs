@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 /// <summary>Receives source coordinates from the generated parser.</summary>
 public interface IFixLocation

@@ -1,5 +1,5 @@
-@using DotGram.Finance.Fix;
-context : @FixDispatchContext
+@using DotGram.Finance;
+context : @FixContext
 
 Separator = ['\u0001']
 LogSeparator = ['|']

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 static class FixPrimitives
 {
@@ -17,7 +17,7 @@ static class FixPrimitives
 			"int" => Numeric(value, false, true),
 			"Length" or "NumInGroup" => Numeric(value, false, false),
 			"SeqNum" or "TagNum" => Numeric(value, false, false) && Nonzero(value),
-			"DayOfMonth" => Numeric(value, false, false) && FixContext.Tag(value) is >= 1 and <= 31,
+			"DayOfMonth" => Numeric(value, false, false) && FixConvert.Tag(value) is >= 1 and <= 31,
 			"float" or "Qty" or "Price" or "PriceOffset" or "Amt" or "Percentage" => Numeric(value, true, true),
 			"char" => value.Length == 1,
 			"Boolean" => value.Length == 1 && value[0] is 'Y' or 'N',

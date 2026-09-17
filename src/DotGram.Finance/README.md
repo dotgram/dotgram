@@ -7,19 +7,19 @@ grammar files, schema XML, reflection configuration or initialization step.
 ## Flat field parsing
 
 ```csharp
-using DotGram.Finance.Fix;
+using DotGram.Finance;
 
-FixField[] fields = Fix44.Parse(wire);
-var logFields = Fix44.ParseLog("55=ABC|38=100|");
+FixField[] fields = Fix.Parse(wire);
+var logFields = Fix.ParseLog("55=ABC|38=100|");
 using var input = File.OpenRead("messages.fix");
-foreach (FixField field in Fix44.Parse(input))
+foreach (FixField field in Fix.Parse(input))
     Console.WriteLine(field.Tag);
 
 // Explicit, optional semantics; reuses the already parsed field objects.
 FixMessage message = FixMessages.Build(wire, fields);
 ```
 
-`Fix44` returns fields in source order, including repeated and unknown tags. It does
+`Fix` returns fields in source order, including repeated and unknown tags. It does
 not assemble messages or groups, check required fields, code sets, BodyLength or
 CheckSum. A failed primitive conversion sets `FixField.IsValid` to false; it does
 not reject the field, except that a binary length must be valid to find the next
@@ -37,7 +37,7 @@ Locations remain relative to the complete input. The input stays open on complet
 error or early disposal. Keep one enumeration per input: buffering can read ahead,
 so restarting after an early stop can lose unread buffered data.
 
-Both grammars use `Field* recover Separator`. A syntax failure returns one
+The grammar uses `Field* recover Separator`. A syntax failure returns one
 `FixField.Invalid` in source order, then parsing resumes after the next separator
 (or finishes at EOF). `Invalid.Position` and `Length` describe the rejected input,
 excluding the synchronization separator; `Tag` is 0 and `IsValid` is false.
@@ -46,7 +46,7 @@ byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
 I/O errors and exceptions from user C# code still propagate during enumeration.
 
 ```csharp
-foreach (var field in FixDispatch.ParseLog("55=ABC|broken|38=2"))
+foreach (var field in Fix.ParseLog("55=ABC|broken|38=2"))
 {
     if (field is FixField.Invalid invalid)
         Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
@@ -62,7 +62,7 @@ Use `.ToArray()` when a complete list is needed. String/span/byte-array overload
 and `TryParse` still materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixFieldOptions` configures SOH or pipe delimiters.
+`FixOptions` configures SOH or pipe delimiters.
 Raw data and its immediately preceding Length field form one grammar rule.
 The parser requires the correct tag pair and consumes exactly the declared number
 of data bytes, including any delimiter bytes inside the payload. An orphaned
@@ -75,22 +75,25 @@ strict and lenient modes. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
 
-## Alternative computed dispatch parser
+## Computed dispatch parser
 
-`FixDispatch` is an alternative to `Fix44`, with the same flat field types and
-string, character-span, byte-array, `TextReader` and byte `Stream` input forms.
-Its small [grammar](Fix/FixDispatch/FixDispatchGrammar.gram) reads a numeric tag
-once for classification and uses `switch` to select text or a length/data pair.
-C# supplies classification and typed field construction. `Fix44` remains available.
+`Fix` is the main parser, with string, character-span, byte-array, `TextReader`
+and byte `Stream` input forms. Its small [grammar](Fix/FixGrammar.gram) reads a
+numeric tag and uses `switch` to select text or a length/data pair. C# supplies
+classification and typed field construction.
+
+The large `Fix44` grammar is retained in
+`examples/DotGram.Examples/Finance/Fix44` for regression tests and benchmarks.
+It is not included in the Finance package.
 
 ```csharp
-var fields = FixDispatch.ParseLog("55=ABC|38=100|");
-var options = new FixDispatchOptions('|', new Dictionary<int, int>
+var fields = Fix.ParseLog("55=ABC|38=100|");
+var options = new FixOptions('|', new Dictionary<int, int>
 {
     [95] = 96,
     [5000] = 5001,
 });
-var custom = FixDispatch.Parse("5000=3|5001=a|b|", options);
+var custom = Fix.Parse("5000=3|5001=a|b|", options);
 ```
 
 A supplied length/data dictionary **replaces** the standard pairs and is copied
@@ -109,7 +112,7 @@ is not part of flat field parsing.
 validation and group assembly without parsing it again. `Parse` combines both steps.
 
 ```csharp
-using DotGram.Finance.Fix;
+using DotGram.Finance;
 
 if (FixMessages.TryParse(wire, out var message, out var error))
 {
@@ -292,10 +295,8 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 
 ## Custom fields
 
-Unknown tags are read as delimiter-terminated text. Runtime registration of vendor
-binary pairs is not supported. The handwritten grammar reserves `CustomFiled`,
-which never matches by default, for a future extension through inheritance and
-`with`. The extension mechanism is not implemented yet.
+Unknown tags are read as delimiter-terminated text unless their binary length/data
+pair is configured through `FixOptions` as described above.
 
 ## Specification and reproducibility
 
@@ -309,7 +310,8 @@ It contains 912 fields, 247 code sets, 15 components and 92 group definitions;
 
 Run `python tools/generate-fix44.py` from the repository to reproduce checked-in
 field declarations, model types, schema tables and test fixtures. The generator owns
-`FixField.gram` and `FixField.Generated.cs`; it never rewrites `FixGrammar.gram`,
+the example `FixField.gram`, production `FixFactory.Generated.cs` and
+`FixField.Generated.cs`; it never rewrites `FixGrammar.gram`,
 `FixField.cs`, `FixConvert.cs` or the parser host. It uses only the Python standard
 library and the pinned local XML; package consumers do not run it.
 The original source and its Apache 2.0 license remain unmodified. See the packaged
@@ -321,20 +323,21 @@ and measurement records are in `docs/design/finance-fix44.md` and
 
 ### Field construction and locations
 
-`FixGrammar` inherits `FixFieldGrammar`, whose `FixField.gram` contains one
-`KnownField` rule with an alternative for each standard field, plus tag lookahead.
-Each alternative spells out the full tag, for example `"607="`, and constructs its
-`FixField` case directly. The handwritten `FixGrammar.gram` supplies text, length
-and raw-data rules as parameters. Its common `Field` rule consumes the separator
-and defines the complete field extent. Publications support eager and `yield`
-parsing. There are no manually expanded digit-prefix branches.
+`FixGrammar` parses the tag and selects one branch through `switch`.
+`FixFactory.Generated.cs` constructs the corresponding typed field in C#.
+The common `Field` rule consumes the separator or EOF and defines the complete
+field extent. Publications support eager and `yield` parsing.
+
+The example `Fix44Grammar` inherits `FixFieldGrammar`, whose generated
+`FixField.gram` contains one alternative per standard field. Tests compare
+its results with the production parser using the same shared field model.
 
 `FixField.Generated.cs` declares the nested cases of `partial class FixField`.
 The handwritten `FixField.cs` implements locations and typed-value access; the
 generated declarations contain no conversion or location logic. `FixFieldView`
 provides access to the original source text.
 
-The grammar constructs field cases directly, for example
+The generated C# factory constructs field cases, for example
 `new FixField.LegProduct(FixConvert.Integer(value))`. Primitive conversions return
 `(Valid, Value)` for the field constructor. Plain text conversion returns a string
 without a validation flag; a string's typed value is always available. Restrictions
@@ -342,5 +345,5 @@ on a particular field (such as currency syntax or a code set) remain semantic ch
 
 `LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
 The common `Field` rule covers the complete tag, equals sign, value and separator;
-its location overrides the shorter inner alternative's extent. `Position`, `ValuePosition` and
+it supplies the field's source extent. `Position`, `ValuePosition` and
 `Length` retain their existing meanings, including for unknown and binary fields.

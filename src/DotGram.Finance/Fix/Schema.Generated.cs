@@ -2,7 +2,7 @@
 #nullable enable
 using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 static class FixSchema
 {

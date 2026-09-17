@@ -2,10 +2,24 @@
 using System.Globalization;
 using System.Numerics;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance;
 
 static class FixConvert
 {
+	public static int Tag(ReadOnlySpan<char> value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
+	public static int Tag(ReadOnlySpan<byte> value)
+	{
+		var result = 0;
+		if (value.IsEmpty) return -1;
+		foreach (var c in value)
+		{
+			var digit = c - '0';
+			if (digit < 0 || digit > 9 || result > (int.MaxValue - digit) / 10) return -1;
+			result = result * 10 + digit;
+		}
+		return result;
+	}
+
 	public static (bool Valid, BigInteger Value) Integer(ReadOnlySpan<char> raw)
 	{
 		var valid = Integer(raw, out var value);
@@ -173,7 +187,7 @@ static class FixConvert
 		return true;
 	}
 	static int Part(ReadOnlySpan<char> raw) => int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : -1;
-	static int Part(ReadOnlySpan<byte> raw) => FixContext.Tag(raw);
+	static int Part(ReadOnlySpan<byte> raw) => FixConvert.Tag(raw);
 	public static string Text(ReadOnlySpan<char> raw) => raw.ToString();
 	public static string Text(ReadOnlySpan<byte> raw)
 	{

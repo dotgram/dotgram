@@ -8,7 +8,8 @@ using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
-using DotGram.Finance.Fix;
+using DotGram.Examples.Finance;
+using DotGram.Finance;
 
 namespace DotGram.Finance.Benchmarks;
 
@@ -18,7 +19,7 @@ static class Program
 	{
 		if (args.Length is 5 or 6 && args[0] == "profile")
 		{
-			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix44");
+			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix");
 			return;
 		}
 		if (args.Length == 2 && args[0] == "--fix-jit-probe")
@@ -66,9 +67,9 @@ public class Fix44Benchmarks
 		if (FixMessages.Parse(orderInput).OriginalWire != order || FixMessages.Parse(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
 	}
 
-	[Benchmark] public FixField[] FlatOrderFields() => Fix44.Parse(order);
-	[Benchmark] public FixField[] FlatRawFields() => Fix44.Parse(raw);
-	[Benchmark] public FixField[] FlatGroupFields() => Fix44.Parse(groups);
+	[Benchmark] public FixField[] FlatOrderFields() => Fix.Parse(order);
+	[Benchmark] public FixField[] FlatRawFields() => Fix.Parse(raw);
+	[Benchmark] public FixField[] FlatGroupFields() => Fix.Parse(groups);
 
 	[Benchmark] public FixMessage Heartbeat() => FixMessages.Parse(heartbeat);
 	[Benchmark] public FixMessage NewOrderSingle() => FixMessages.Parse(order);
