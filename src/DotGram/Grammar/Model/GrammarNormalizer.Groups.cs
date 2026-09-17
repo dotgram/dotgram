@@ -21,7 +21,9 @@ public sealed partial class GrammarNormalizer
 			if (!_types.TryGetValue(owner, out var type))
 				continue;
 
-			var offered = ValueAlternatives(_bodies[owner]);
+			// A trailing switch can build the enclosing rule after a shared prefix.
+			// Those constructions keep the prefix captures in their original scope.
+			var offered = Fold.Of(_bodies[owner], null);
 
 			if (!Constructs(_bodies[owner]).Any(node => !offered.Contains(node)))
 				continue;
@@ -34,7 +36,7 @@ public sealed partial class GrammarNormalizer
 
 			Node Visit(Node node, bool alternative)
 			{
-				if (!alternative && ValueAlternatives(node).Any(part => part is Node.Construct))
+				if (!alternative && ValueAlternatives(node).Any(part => part is Node.Construct && !offered.Contains(part)))
 				{
 					var name = owner.Name + "_Group" + _rules.Count;
 

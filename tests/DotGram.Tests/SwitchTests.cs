@@ -46,6 +46,23 @@ public sealed class SwitchTests
 		Assert.Equal(3, host.GetField("Calls")!.GetValue(null));
 	}
 
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Trailing_switch_keeps_outer_captures_when_another_group_is_lowered(bool lexical)
+	{
+		var assembly = Compile((lexical ? "trivia = { ' '* }\n" : "") + """
+			Start : @int = n: ('x' => @(10) | 'y' => @(20)) & switch @(n) {
+				case 10: 'a' => @(n + 1)
+				default: 'b' => @(n + 2)
+			}
+			parse Start
+			""", lexical: lexical);
+
+		Assert.Equal(11, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "xa").Value);
+		Assert.Equal(22, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "yb").Value);
+	}
+
 	[Fact]
 	public void Failed_selected_case_does_not_try_default_but_outer_choice_can_backtrack()
 	{
