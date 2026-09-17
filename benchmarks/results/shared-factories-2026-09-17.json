@@ -1,0 +1,2596 @@
+{
+  "before": [
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 16881.041,
+      "Allocated": 9568293256,
+      "GC0": 182,
+      "GC1": 107,
+      "GC2": 12,
+      "Sources": 6,
+      "Chars": 59610816,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1527.2477999999999,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1340.8,
+              "Name": null
+            },
+            {
+              "Ms": 105.3236,
+              "Name": null
+            },
+            {
+              "Ms": 43.6619,
+              "Name": null
+            },
+            {
+              "Ms": 37.4623,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 14072.5112,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 5327.6879,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 4119.4978,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 3883.7905,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 741.535,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 797.9318999999999,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 628.5749,
+              "Name": null
+            },
+            {
+              "Ms": 90.9352,
+              "Name": null
+            },
+            {
+              "Ms": 48.5335,
+              "Name": null
+            },
+            {
+              "Ms": 29.8883,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 16394.7839,
+      "Allocated": 9505761384,
+      "GC0": 183,
+      "GC1": 102,
+      "GC2": 15,
+      "Sources": 6,
+      "Chars": 59610816,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 13789.355,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 5165.714,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 4263.2985,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 3619.2088,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 741.1337,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1378.6896,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1195.9692,
+              "Name": null
+            },
+            {
+              "Ms": 104.6562,
+              "Name": null
+            },
+            {
+              "Ms": 42.127,
+              "Name": null
+            },
+            {
+              "Ms": 35.9372,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 750.2669,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 578.3645,
+              "Name": null
+            },
+            {
+              "Ms": 94.9449,
+              "Name": null
+            },
+            {
+              "Ms": 47.1137,
+              "Name": null
+            },
+            {
+              "Ms": 29.8438,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "after-2": [
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 16765.8767,
+      "Allocated": 9512843176,
+      "GC0": 182,
+      "GC1": 102,
+      "GC2": 14,
+      "Sources": 6,
+      "Chars": 59610816,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Asked",
+          "Ms": 784.5154,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 616.3082,
+              "Name": null
+            },
+            {
+              "Ms": 91.5428,
+              "Name": null
+            },
+            {
+              "Ms": 46.9266,
+              "Name": null
+            },
+            {
+              "Ms": 29.7378,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 14109.853299999999,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 5281.4864,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 4342.174,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 3739.4397,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 746.7532,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1387.9864000000002,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1207.4208,
+              "Name": null
+            },
+            {
+              "Ms": 103.5673,
+              "Name": null
+            },
+            {
+              "Ms": 41.208,
+              "Name": null
+            },
+            {
+              "Ms": 35.7903,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "before-2": [
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 17672.2909,
+      "Allocated": 9547013776,
+      "GC0": 182,
+      "GC1": 101,
+      "GC2": 12,
+      "Sources": 6,
+      "Chars": 59610816,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 14937.6738,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 5481.361,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 4605.7349,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 4089.9221,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 760.6558,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 784.4490000000001,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 611.7181,
+              "Name": null
+            },
+            {
+              "Ms": 93.3178,
+              "Name": null
+            },
+            {
+              "Ms": 48.7774,
+              "Name": null
+            },
+            {
+              "Ms": 30.6357,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1462.7842999999998,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1278.6985,
+              "Name": null
+            },
+            {
+              "Ms": 103.1706,
+              "Name": null
+            },
+            {
+              "Ms": 43.0119,
+              "Name": null
+            },
+            {
+              "Ms": 37.9033,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tiny-before": [
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-0",
+      "Ms": 616.6794,
+      "Allocated": 12530760,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 49.1119,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 49.1119,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 103.5174,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 103.5174,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 21.5595,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 21.5595,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-1",
+      "Ms": 9.1564,
+      "Allocated": 986456,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1257,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1257,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 2.8442,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 2.8442,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2886,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2886,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-2",
+      "Ms": 5.8573,
+      "Allocated": 984312,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.114,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.114,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1954,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1954,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2392,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2392,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-3",
+      "Ms": 5.7553,
+      "Allocated": 985744,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1296,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1296,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2795,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2795,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2278,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2278,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-4",
+      "Ms": 9.9601,
+      "Allocated": 984392,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.3066,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.3066,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 5.0517,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 5.0517,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2448,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2448,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-5",
+      "Ms": 6.0446,
+      "Allocated": 985912,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.2264,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2264,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2386,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2386,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.214,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.214,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-6",
+      "Ms": 6.3121,
+      "Allocated": 984640,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.3231,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.3231,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1999,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1999,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.203,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.203,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-7",
+      "Ms": 5.7431,
+      "Allocated": 985744,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.2731,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2731,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2542,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2542,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1952,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1952,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-8",
+      "Ms": 6.0515,
+      "Allocated": 984480,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.196,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.196,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2636,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2636,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2137,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2137,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-9",
+      "Ms": 6.3532,
+      "Allocated": 985744,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.2492,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2492,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.3079,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.3079,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2301,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2301,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-10",
+      "Ms": 5.9189,
+      "Allocated": 984352,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1833,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1833,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1716,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1716,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2215,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2215,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-11",
+      "Ms": 5.4169,
+      "Allocated": 985744,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1462,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1462,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1184,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1184,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1894,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1894,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-12",
+      "Ms": 5.607,
+      "Allocated": 984216,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1864,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1864,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.13,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.13,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2021,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2021,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-13",
+      "Ms": 5.8076,
+      "Allocated": 985744,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.2131,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2131,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1707,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1707,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2253,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2253,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-14",
+      "Ms": 5.7152,
+      "Allocated": 984216,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1804,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1804,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1586,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1586,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2061,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2061,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-15",
+      "Ms": 5.3866,
+      "Allocated": 986056,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1576,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1576,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.0667,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.0667,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1886,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1886,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-16",
+      "Ms": 5.5541,
+      "Allocated": 984424,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1613,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1613,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1198,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1198,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2077,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2077,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-17",
+      "Ms": 5.6457,
+      "Allocated": 985744,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1835,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1835,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1309,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1309,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1911,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1911,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-18",
+      "Ms": 5.6749,
+      "Allocated": 984216,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1529,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1529,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1068,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1068,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1922,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1922,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-19",
+      "Ms": 5.4896,
+      "Allocated": 985784,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.1864,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1864,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.095,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.095,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1927,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1927,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-20",
+      "Ms": 10.9245,
+      "Allocated": 984528,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1.9927,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.9927,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 1.5967,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.5967,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.3096,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.3096,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tiny-after": [
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-0",
+      "Ms": 622.7155,
+      "Allocated": 12529576,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 104.552,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 104.552,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 49.3218,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 49.3218,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 21.5045,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 21.5045,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-1",
+      "Ms": 9.251,
+      "Allocated": 985304,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 2.8687,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 2.8687,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1444,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1444,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2919,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2919,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-2",
+      "Ms": 6.2357,
+      "Allocated": 983152,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2301,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2301,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1283,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1283,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2461,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2461,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-3",
+      "Ms": 5.5859,
+      "Allocated": 984712,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2221,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2221,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.156,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.156,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2248,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2248,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-4",
+      "Ms": 9.7743,
+      "Allocated": 983192,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 5.0275,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 5.0275,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.2322,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2322,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2465,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2465,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-5",
+      "Ms": 6.068,
+      "Allocated": 984848,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2101,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2101,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.3046,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.3046,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2372,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2372,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-6",
+      "Ms": 6.0249,
+      "Allocated": 983544,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1791,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1791,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.2078,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2078,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.204,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.204,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-7",
+      "Ms": 5.766,
+      "Allocated": 984720,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1589,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1589,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1931,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1931,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1897,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1897,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-8",
+      "Ms": 5.8756,
+      "Allocated": 983416,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2381,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2381,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1925,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1925,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2067,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2067,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-9",
+      "Ms": 5.9547,
+      "Allocated": 984680,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2859,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2859,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.218,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.218,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2376,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2376,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-10",
+      "Ms": 5.7237,
+      "Allocated": 983192,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2114,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2114,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1847,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1847,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2024,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2024,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-11",
+      "Ms": 5.6906,
+      "Allocated": 984680,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1697,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1697,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1687,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1687,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2067,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2067,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-12",
+      "Ms": 6.1152,
+      "Allocated": 983152,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2024,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2024,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.2096,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2096,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2153,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2153,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-13",
+      "Ms": 5.9338,
+      "Allocated": 984968,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2051,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2051,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1983,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1983,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1954,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1954,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-14",
+      "Ms": 6.1149,
+      "Allocated": 983152,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2232,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2232,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1875,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1875,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2169,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2169,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-15",
+      "Ms": 5.8892,
+      "Allocated": 985024,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2344,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2344,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1897,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1897,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2047,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2047,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-16",
+      "Ms": 5.6628,
+      "Allocated": 983328,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.2081,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.2081,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1849,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1849,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1962,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1962,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-17",
+      "Ms": 5.4134,
+      "Allocated": 984680,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.0986,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.0986,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1736,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1736,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1889,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1889,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-18",
+      "Ms": 5.6966,
+      "Allocated": 983152,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1466,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1466,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1753,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1753,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.2011,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.2011,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-19",
+      "Ms": 5.7878,
+      "Allocated": 984680,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.1339,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1339,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1815,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1815,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1973,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1973,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "TinyScalar",
+      "Kind": "fresh-20",
+      "Ms": 5.3526,
+      "Allocated": 983272,
+      "GC0": 0,
+      "GC1": 0,
+      "GC2": 0,
+      "Sources": 3,
+      "Chars": 30854,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 1.0896,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.0896,
+              "Name": "Grammar.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1.1724,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 1.1724,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 0.1845,
+          "Reasons": {
+            "New": 1
+          },
+          "Hosts": [
+            {
+              "Ms": 0.1845,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

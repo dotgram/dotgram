@@ -3349,7 +3349,6 @@ namespace DotGram.Snapshots
 				var lookahead = -1;
 				var power   = initialPower;
 				var reach   = 0;
-				var owned   = false;
 				var syncFrom = 0;
 				var c       = '\0';
 				string[]? expected = null;
@@ -3396,7 +3395,6 @@ namespace DotGram.Snapshots
 				S5:
 				{
 					reach = p;
-					owned = false;
 					entries.Add(new ParserEntry(ParserEntry.Choice, 15, p, call, atomic, repeat, lookahead, 0));
 				}
 
@@ -3528,7 +3526,7 @@ namespace DotGram.Snapshots
 				S15:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
-					if (!owned && reach <= p) { expected = null; goto Fail; }
+					if ((uint)p >= (uint)text.Length) { expected = null; goto Fail; }
 					entries.Add(new ParserEntry(ParserEntry.PendingRecovery, 15, p, call, reach, repeat, lookahead, 0));
 				}
 
@@ -3855,9 +3853,8 @@ namespace DotGram.Snapshots
 			return Recognize_DotGram_Sheet(text, pos, 22, -1, 0, false, false, ref failure, out ignored);
 		}
 
-		static int Recognize_Sheet_Whole_Sync(global::System.ReadOnlySpan<char> text, int pos)
+		static int Recognize_Sheet_Whole_Sync(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
-			var failure = new Failure();
 			object? ignored;
 			return Recognize_DotGram_Sheet(text, pos, 12, -1, 0, false, false, ref failure, out ignored);
 		}
@@ -4483,7 +4480,7 @@ namespace DotGram.Snapshots
 
 				if (end0 < 0)
 				{
-					if (failure0.Reach <= start)
+					if (start >= window.Length && window.Ended)
 						break;
 
 					var from = start;
@@ -4494,7 +4491,14 @@ namespace DotGram.Snapshots
 					{
 						while (to <= window.Length)
 						{
-							at = Recognize_Sheet_Whole_Sync(window.Span(), to);
+							var syncFailure = new Failure();
+							at = Recognize_Sheet_Whole_Sync(window.Span(), to, ref syncFailure);
+
+							if ((syncFailure.Starved || (at < 0 ? syncFailure.Position : at) >= window.Length) && !window.Ended)
+							{
+								at = -1;
+								break;
+							}
 
 							if (at > to)
 								break;

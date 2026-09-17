@@ -2040,6 +2040,12 @@ public static partial class CSharpEmitter
 	internal static IReadOnlyList<Machine.Factory> FactoriesOf(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
+		return results.FactoriesOf(graph, rule);
+	}
+
+	internal static IReadOnlyList<Machine.Factory> BuildFactories(
+		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
 		var name   = "Construct_" + IdentifierOf(rule);
 		var fold   = graph.Folds.TryGetValue(rule, out var found0) ? found0 : null;
 		var layout = LayoutOf(graph, results, rule);

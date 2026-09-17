@@ -411,11 +411,6 @@ sealed partial class Machine
 			}
 		}
 
-		// After the first pass, because qualification reads the factories of callees the
-		// pass may not have reached yet; before anything compiles, because a site is a
-		// run of slots and the run has to be numbered before a state names it.
-		PlanSites();
-
 		var ruleIndex = 0;
 
 		foreach (var rule in _rules)
@@ -493,6 +488,10 @@ sealed partial class Machine
 
 		_rulesCompiled = true;
 		var graph = _graph;
+
+		// Site slots are only needed by emitted code, not strategy selection. Wait
+		// until this machine survives publication grouping before assigning them.
+		PlanSites();
 
 		foreach (var rule in _rules)
 		{

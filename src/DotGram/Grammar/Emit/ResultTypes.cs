@@ -31,6 +31,22 @@ sealed class ResultTypes
 	readonly List<RuleSymbol>               _built    = [];
 	readonly string                         _prefix;
 
+	Dictionary<(RecognitionGraph Graph, RuleSymbol Rule), IReadOnlyList<Machine.Factory>>? _factories;
+
+	/// <summary>
+	/// Shares rule-local factory descriptions across sibling machines of this host.
+	/// </summary>
+	internal IReadOnlyList<Machine.Factory> FactoriesOf(RecognitionGraph graph, RuleSymbol rule)
+	{
+		var factories = _factories ??= [];
+		var key       = (graph, rule);
+
+		if (!factories.TryGetValue(key, out var found))
+			factories[key] = found = CSharpEmitter.BuildFactories(graph, this, rule);
+
+		return found;
+	}
+
 	/// <param name="className">The host class, as a chain — <c>Outer.Inner</c>.</param>
 	public ResultTypes(RecognitionGraph graph, string className, string? @namespace)
 	{
