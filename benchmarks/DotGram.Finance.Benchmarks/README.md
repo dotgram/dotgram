@@ -4,7 +4,7 @@ The production parser is `DotGram.Finance.Fix`. The large grammar is
 `DotGram.Examples.Finance.Fix44` in the existing examples project.
 `FixGrammarComparisonBenchmarks` compares these by default; `DOTGRAM_FIX_BASELINE`
 can still select an older assembly. For `profile`, pass the Finance assembly
-with parser `Fix`, or the Examples assembly with parser `Fix44`.
+with parser `FixParser`, or the Examples assembly with parser `Fix44`.
 Reports below retain the parser names and paths used at measurement time.
 
 # FIX 4.4 parsing benchmarks
@@ -206,7 +206,7 @@ These numbers measure the existing byte-to-character FIX adapter, not a future
 native byte parser or lazy field decoding implementation.
 
 The `FlatOrderFields`, `FlatRawFields`, and `FlatGroupFields` workloads call
-`Fix.Parse` and return only fields. Existing message workloads explicitly call
+`FixParser.Parse` and return only fields. Existing message workloads explicitly call
 `FixMessages.Parse`; their costs include semantic assembly and validation.
 Previously recorded results predate this separation.
 
@@ -222,7 +222,7 @@ The report documents the visible `GRAM5003` warning and reproduction commands.
 ## Short-input regression investigation: 2026-09-16
 
 [Initialization measurements and JIT evidence](results/2026-09-16-initialization.md)
-separate lazy creation, empty enumeration and per-field costs. The large generated
+separate lazy creation, empty enumeration and per-field costs. The large reference
 materialization helper clears about 28 KiB of stack per invocation. Parser startup
 alone does not explain the warm regression. No compiler fix is included yet.
 
@@ -289,5 +289,5 @@ The report includes all timings, allocation, validation and reproduction command
 
 [Comparison with recovery](results/2026-09-16-recovery-dispatch.md) measures both
 parsers before the rename, after adding recover, including malformed inputs.
-FixDispatch (now `Fix`) wins ordinary field workloads; Fix44 is faster on the
+FixDispatch (now `FixParser`) wins ordinary field workloads; Fix44 is faster on the
 measured 64 KiB binary payload.

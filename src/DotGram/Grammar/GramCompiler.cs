@@ -163,7 +163,11 @@ public static class GramCompiler
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));
 
-		return new GramCompilation(sources, OnePerPosition(diagnostics));
+		return new GramCompilation(sources, OnePerPosition(diagnostics))
+		{
+			NormalizedRuleCount = graph.Rules.Count,
+			UsesLexical = lexical is not null,
+		};
 	}
 
 	/// <summary>A grammar cut in two, or null with a word about why it was not.</summary>

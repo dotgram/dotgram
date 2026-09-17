@@ -1,4 +1,4 @@
-@using DotGram.Finance;
+@using DotGram.Finance.Fix;
 @using DotGram.Examples.Finance;
 using Known;
 

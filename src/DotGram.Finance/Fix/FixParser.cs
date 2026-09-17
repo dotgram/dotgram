@@ -1,19 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
-/// <summary>Reads an ordered, flat list of FIX fields using computed dispatch without message validation.</summary>
-public static class Fix
+/// <summary>
+/// Reads an ordered, flat list of FIX fields using computed dispatch without message validation.
+/// </summary>
+public static class FixParser
 {
 	static readonly FixOptions logOptions = new('|');
 
 	public static FixField[] Parse(string input, FixOptions? options = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options ?? FixOptions.Default);
+		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
 		return options?.Separator == '|'
 			? FixGrammar.ParseLogFields(input, context)
 			: FixGrammar.ParseFields(input, context);
@@ -32,7 +31,7 @@ public static class Fix
 
 		IEnumerable<FixField> Read()
 		{
-			var state = new FixContext(options ?? FixOptions.Default);
+			var state = new FixGrammar.FixContext(options ?? FixOptions.Default);
 			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
@@ -50,7 +49,7 @@ public static class Fix
 
 		IEnumerable<FixField> Read()
 		{
-			var state = new FixContext(options ?? FixOptions.Default);
+			var state = new FixGrammar.FixContext(options ?? FixOptions.Default);
 			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
@@ -75,7 +74,7 @@ public static class Fix
 			error = new FixParseError(0, null, null, "Input is null.");
 			return false;
 		}
-		var context = new FixContext(options ?? FixOptions.Default);
+		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
 		return Result(options?.Separator == '|'
 			? FixGrammar.TryParseLogFields(input, context)
 			: FixGrammar.TryParseFields(input, context), out fields, out error);
@@ -88,7 +87,7 @@ public static class Fix
 	public static bool TryParse(TextReader input, out FixField[]? fields, out FixParseError? error, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options ?? FixOptions.Default);
+		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
 		return Result(options?.Separator == '|'
 			? FixGrammar.TryParseLogFields(input, context, bufferSize, maxRetained)
 			: FixGrammar.TryParseFields(input, context, bufferSize, maxRetained), out fields, out error);
@@ -98,7 +97,7 @@ public static class Fix
 	public static bool TryParse(Stream input, out FixField[]? fields, out FixParseError? error, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options ?? FixOptions.Default);
+		var context = new FixGrammar.FixContext(options ?? FixOptions.Default);
 		return Result(options?.Separator == '|'
 			? FixGrammar.TryParseLogFields(input, context, bufferSize, maxRetained)
 			: FixGrammar.TryParseFields(input, context, bufferSize, maxRetained), out fields, out error);

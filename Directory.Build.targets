@@ -1,0 +1,8 @@
+﻿<Project>
+	<!-- Project references do not import a NuGet package's build assets. -->
+	<PropertyGroup>
+		<_DotGramAnalyzerReferences>@(ProjectReference->WithMetadataValue('OutputItemType', 'Analyzer'))</_DotGramAnalyzerReferences>
+	</PropertyGroup>
+	<Import Project="src/DotGram/build/DotGram.targets"
+	        Condition="'$(_DotGramAnalyzerReferences)' != ''" />
+</Project>

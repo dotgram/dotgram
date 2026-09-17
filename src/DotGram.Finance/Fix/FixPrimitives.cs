@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 static class FixPrimitives
 {

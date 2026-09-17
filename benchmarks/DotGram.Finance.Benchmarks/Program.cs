@@ -9,7 +9,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
 using DotGram.Examples.Finance;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;
 
@@ -67,9 +67,9 @@ public class Fix44Benchmarks
 		if (FixMessages.Parse(orderInput).OriginalWire != order || FixMessages.Parse(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
 	}
 
-	[Benchmark] public FixField[] FlatOrderFields() => Fix.Parse(order);
-	[Benchmark] public FixField[] FlatRawFields() => Fix.Parse(raw);
-	[Benchmark] public FixField[] FlatGroupFields() => Fix.Parse(groups);
+	[Benchmark] public FixField[] FlatOrderFields() => FixParser.Parse(order);
+	[Benchmark] public FixField[] FlatRawFields()   => FixParser.Parse(raw);
+	[Benchmark] public FixField[] FlatGroupFields() => FixParser.Parse(groups);
 
 	[Benchmark] public FixMessage Heartbeat() => FixMessages.Parse(heartbeat);
 	[Benchmark] public FixMessage NewOrderSingle() => FixMessages.Parse(order);

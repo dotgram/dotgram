@@ -89,6 +89,7 @@
 		     somebody who has already installed it what to write. It links back rather
 		     than repeating what it links to. -->
 		<None Include="README.md" Pack="true" PackagePath="\" />
+		<None Include="build/DotGram.targets" Pack="true" PackagePath="build/" />
 
 		<!-- And the skill beside it, so that an agent working in a project that has
 		     restored this package can read how to write a grammar without leaving the

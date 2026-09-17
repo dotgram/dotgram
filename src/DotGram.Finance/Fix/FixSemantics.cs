@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 /// <summary>Interprets a flat sequence of fields using the FIX message schema.</summary>
 static class FixSemantics

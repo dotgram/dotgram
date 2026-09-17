@@ -1,7 +1,6 @@
 ﻿using System;
 
-using DotGram;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 namespace DotGram.Examples.Finance;
 

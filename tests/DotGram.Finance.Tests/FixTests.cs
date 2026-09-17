@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 
 using DotGram.Examples.Finance;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 using Xunit;
 
@@ -24,12 +21,12 @@ public sealed class FixTests
 	{
 		Assert.NotEmpty(name);
 		var expected = Fix44.Parse(wire);
-		Equal(expected, Fix.Parse(wire));
+		Equal(expected, FixParser.Parse(wire));
 		using var reader = new StringReader(wire);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
-		Equal(expected, Fix.Parse(reader, bufferSize: 3));
-		Equal(expected, Fix.Parse(stream, bufferSize: 3));
-		Equal(expected, Fix.Parse(Encoding.Latin1.GetBytes(wire)));
+		Equal(expected, FixParser.Parse(reader, bufferSize: 3));
+		Equal(expected, FixParser.Parse(stream, bufferSize: 3));
+		Equal(expected, FixParser.Parse(Encoding.Latin1.GetBytes(wire)));
 	}
 
 	[Theory]
@@ -44,7 +41,7 @@ public sealed class FixTests
 		var payload = new string(Enumerable.Range(0, size).Select(i => "|=\0ÿ"[i % 4]).ToArray());
 		var input = "55=ABC|5000=" + size + "|5001=" + payload + "|55=END|";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
-		var fields = Fix.Parse(stream, options, bufferSize: 3).ToArray();
+		var fields = FixParser.Parse(stream, options, bufferSize: 3).ToArray();
 		Assert.Equal(new[] { 55, 5001, 55 }, fields.Select(field => field.Tag));
 		var binary = Assert.IsType<FixField.Unknown>(fields[1]);
 		Assert.Equal(Encoding.Latin1.GetBytes(payload), binary.Value.ToArray());
@@ -52,9 +49,9 @@ public sealed class FixTests
 		Assert.Equal(input.IndexOf("5001=", StringComparison.Ordinal) + 5, binary.ValuePosition);
 		Assert.Equal(size, binary.Length);
 		Assert.True(stream.CanRead);
-		Equal(fields, Fix.Parse(input, options));
-		Assert.Contains(Fix.Parse("5000=1|5002=X|", options), field => field is FixField.Invalid);
-		Assert.Contains(Fix.Parse("5001=X|", options), field => field is FixField.Invalid);
+		Equal(fields, FixParser.Parse(input, options));
+		Assert.Contains(FixParser.Parse("5000=1|5002=X|", options), field => field is FixField.Invalid);
+		Assert.Contains(FixParser.Parse("5001=X|", options), field => field is FixField.Invalid);
 	}
 
 	[Theory]
@@ -68,9 +65,9 @@ public sealed class FixTests
 	public void Malformed_inputs_return_invalid_fields_in_both_parsers(string wire)
 	{
 		Assert.Contains(Fix44.ParseLog(wire), field => field is FixField.Invalid);
-		Assert.Contains(Fix.ParseLog(wire), field => field is FixField.Invalid);
+		Assert.Contains(FixParser.ParseLog(wire), field => field is FixField.Invalid);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
-		Assert.Contains(Fix.Parse(stream, new FixOptions('|'), bufferSize: 1), field => field is FixField.Invalid);
+		Assert.Contains(FixParser.Parse(stream, new FixOptions('|'), bufferSize: 1), field => field is FixField.Invalid);
 	}
 
 	[Fact]
@@ -78,8 +75,8 @@ public sealed class FixTests
 	{
 		using var input = new ShortStream(Encoding.Latin1.GetBytes("95=3|96=a|b|55=END|"));
 		using var reader = new StringReader("95=1|96=X|55=NEXT|");
-		using var first = Fix.Parse(input, new FixOptions('|'), bufferSize: 1).GetEnumerator();
-		using var second = Fix.Parse(reader, new FixOptions('|'), bufferSize: 1).GetEnumerator();
+		using var first = FixParser.Parse(input, new FixOptions('|'), bufferSize: 1).GetEnumerator();
+		using var second = FixParser.Parse(reader, new FixOptions('|'), bufferSize: 1).GetEnumerator();
 		Assert.True(first.MoveNext());
 		Assert.True(second.MoveNext());
 		Assert.Equal("a|b", Encoding.Latin1.GetString(Assert.IsType<FixField.RawData>(first.Current).Value.Span));
@@ -106,15 +103,15 @@ public sealed class FixTests
 			var dispatch = new FixOptions(separator);
 			var expected = Fix44.Parse(input + separator, original);
 			Equal(expected, Fix44.Parse(input, original));
-			Equal(expected, Fix.Parse(input, dispatch));
+			Equal(expected, FixParser.Parse(input, dispatch));
 			using var oldReader = new StringReader(input);
 			using var newReader = new StringReader(input);
 			using var oldStream = new ShortStream(Encoding.Latin1.GetBytes(input));
 			using var newStream = new ShortStream(Encoding.Latin1.GetBytes(input));
 			Equal(expected, Fix44.Parse(oldReader, original, bufferSize: 1));
-			Equal(expected, Fix.Parse(newReader, dispatch, bufferSize: 1));
+			Equal(expected, FixParser.Parse(newReader, dispatch, bufferSize: 1));
 			Equal(expected, Fix44.Parse(oldStream, original, bufferSize: 1));
-			Equal(expected, Fix.Parse(newStream, dispatch, bufferSize: 1));
+			Equal(expected, FixParser.Parse(newStream, dispatch, bufferSize: 1));
 		}
 	}
 
@@ -126,7 +123,7 @@ public sealed class FixTests
 	public void Eof_does_not_relax_binary_length_or_intermediate_separators(string input)
 	{
 		Assert.Contains(Fix44.ParseLog(input), field => field is FixField.Invalid);
-		Assert.Contains(Fix.ParseLog(input), field => field is FixField.Invalid);
+		Assert.Contains(FixParser.ParseLog(input), field => field is FixField.Invalid);
 	}
 
 	[Fact]

@@ -12,6 +12,8 @@
 		     CI has always built with -warnaserror; saying it here too means such a build
 		     fails on the machine that wrote the code rather than on the server. -->
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<DotGramReportGeneration>true</DotGramReportGeneration>
 	</PropertyGroup>
 
 	<PropertyGroup>

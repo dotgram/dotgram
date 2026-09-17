@@ -468,15 +468,14 @@ difference, with the standard underneath written once.
 
 ## DotGram.Finance
 
-[`DotGram.Finance`](src/DotGram.Finance/README.md) provides `Fix.Parse` and
-`Fix.TryParse` in the `DotGram.Finance` namespace. The parser returns typed fields,
+[`DotGram.Finance`](src/DotGram.Finance/README.md) provides `FixParser.Parse` and
+`FixParser.TryParse` in the `DotGram.Finance.Fix` namespace. The parser returns typed fields,
 with lazy enumeration over character and byte streams, length-delimited binary
 data, and recovery through `FixField.Invalid`. `FixOptions` selects the delimiter
 and optional custom length/data pairs.
 
 `FixMessages` explicitly assembles messages and nested groups and applies Strict
-or Lenient validation. The field model and schema come from FIX Orchestra; the
-small handwritten grammar uses computed dispatch. The large
+or Lenient validation. The field model and schema are maintained manually; the small handwritten grammar uses computed dispatch. The large
 [`Fix44` example](examples/DotGram.Examples/Finance/Fix44/Fix44Grammar.gram)
 remains available for grammar regression tests and benchmarks.
 

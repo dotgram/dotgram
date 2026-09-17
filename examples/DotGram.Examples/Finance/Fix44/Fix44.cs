@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 namespace DotGram.Examples.Finance;
 
