@@ -291,3 +291,51 @@ The report includes all timings, allocation, validation and reproduction command
 parsers before the rename, after adding recover, including malformed inputs.
 FixDispatch (now `FixParser`) wins ordinary field workloads; Fix44 is faster on the
 measured 64 KiB binary payload.
+
+## Optional log separator spaces: 2026-09-17
+
+Compared `a071ee4d` (single-character log separator) with `5245f309`
+(optional ASCII spaces around the pipe), using the same Release generator and
+.NET 10.0 runtime. The production grammar was not changed for this measurement.
+
+Run the paired probe with separately built Finance assemblies:
+
+```powershell
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --log-performance <previous-assembly> <current-assembly>
+```
+
+`FixLogPerformance` binds public entry points once, checks matching field types and
+values, warms each operation for 150 ms, then alternates nine 60 ms samples per
+implementation. Results are median nanoseconds and allocated bytes per complete
+parse. This is a diagnostic timing probe, not a BenchmarkDotNet confidence study;
+small differences need a longer isolated run before optimization decisions.
+Stream construction and full enumeration are included. Inputs are prepared outside
+timing. Previous and current assemblies run in separate load contexts in one process.
+
+The `Pipe` rows compare identical compact input. `Padded` compares current padded
+input with equivalent compact input in the previous parser, which did not support
+presentation padding. It therefore includes the cost of extra input characters.
+`Wire` is the SOH control. No concurrent build ran during the recorded confirmation
+run. Full results: [CSV](results/log-separator-2026-09-17.csv).
+
+| Workload | Compact pipe slowdown | Padded versus previous compact |
+| --- | ---: | ---: |
+| Two short fields | 8-9% | 13-14% |
+| Order fields | 6-12% | 10-18% |
+| 2.2 KB text with ordinary spaces | 38-49% | 38-49% |
+| Text containing 1024 consecutive internal spaces | 19.6-27.2 times | 19.4-27.0 times |
+
+Ranges cover string, TextReader and Stream inputs. Allocations were identical in
+all pairs. SOH timing differences were approximately -1% to +6%; do not interpret
+these small differences as a proven change to wire parsing.
+
+The log separator is now `' '* & '|' & ' '*`. In
+`Text = (?!Separator & any)+`, negative lookahead retries this entire separator at
+each position. Inside a run of N spaces followed by a non-pipe character, it scans
+N, N-1, ... spaces before failing each time: quadratic work. Negative lookahead
+consumes no input; `Fields` consumes the actual separator afterwards.
+
+A follow-up should scan a space run once and decide whether it belongs to text or
+to the separator, preserving EOF spaces, original locations and length-delimited
+binary payloads. These measurements establish the regression; they do not include
+that optimization.
