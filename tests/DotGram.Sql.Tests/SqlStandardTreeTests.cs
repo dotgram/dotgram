@@ -27,7 +27,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("U&\"a\\0041\"", "U&\"a\\0041\"", IdentifierStyle.UnicodeDelimited)]
 	public void An_identifier_keeps_its_spelling_and_its_style(string input, string text, IdentifierStyle style)
 	{
-		var identifier = SqlStandardParser.ParseIdentifier(input);
+		var identifier = Both.ParseIdentifier(input);
 
 		Assert.Equal(text, identifier.Text);
 		Assert.Equal(style, identifier.Style);
@@ -41,7 +41,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_Unicode_identifier_keeps_the_escape_character_it_names()
 	{
-		var identifier = SqlStandardParser.ParseIdentifier("U&\"a\\0041\"UESCAPE'\\'");
+		var identifier = Both.ParseIdentifier("U&\"a\\0041\"UESCAPE'\\'");
 
 		Assert.Equal("U&\"a\\0041\"", identifier.Text);
 		Assert.Equal('\\', identifier.UnicodeEscape);
@@ -52,14 +52,14 @@ public sealed class SqlStandardTreeTests
 	[InlineData("a.b.c.d", new[] { "a", "b", "c", "d" })]
 	[InlineData("a . \"b\"", new[] { "a", "\"b\"" })]
 	public void An_identifier_chain_is_its_parts(string input, string[] parts) =>
-		Assert.Equal(parts, SqlStandardParser.ParseIdentifierChain(input).Parts.Select(one => one.Text));
+		Assert.Equal(parts, Both.ParseIdentifierChain(input).Parts.Select(one => one.Text));
 
 	[Theory]
 	[InlineData("t", new[] { "t" })]
 	[InlineData("c.s.t", new[] { "c", "s", "t" })]
 	[InlineData("MODULE.t", new[] { "MODULE", "t" })]
 	public void A_table_name_is_its_qualifiers_and_its_name(string input, string[] parts) =>
-		Assert.Equal(parts, SqlStandardParser.ParseTableName(input).Parts.Select(one => one.Text));
+		Assert.Equal(parts, Both.ParseTableName(input).Parts.Select(one => one.Text));
 
 	[Theory]
 	[InlineData("a.b", new[] { "a", "b" })]
@@ -67,7 +67,7 @@ public sealed class SqlStandardTreeTests
 	public void A_column_reference_is_a_reference_to_a_name(string input, string[] parts)
 	{
 		// Qualified: inside DotGram.Sql, `Expression` is the tree T-SQL builds.
-		var reference = Assert.IsType<DotGram.Sql.Ast.Expression.Reference>(SqlStandardParser.ParseColumnReference(input));
+		var reference = Assert.IsType<DotGram.Sql.Ast.Expression.Reference>(Both.ParseColumnReference(input));
 
 		Assert.Equal(parts, reference.Name.Parts.Select(one => one.Text));
 	}
@@ -83,7 +83,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("0b101", "0b101", NumericLiteralKind.BinaryInteger)]
 	public void A_number_keeps_its_sign_and_its_kind(string input, string text, NumericLiteralKind kind)
 	{
-		var literal = Assert.IsType<LiteralValue.Numeric>(SqlStandardParser.ParseLiteral(input));
+		var literal = Assert.IsType<LiteralValue.Numeric>(Both.ParseLiteral(input));
 
 		Assert.Equal(text, literal.Text);
 		Assert.Equal(kind, literal.Kind);
@@ -98,7 +98,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("U&'a\\0041'", "'a\\0041'", StringLiteralKind.Unicode, null)]
 	public void A_string_keeps_its_quotes_its_kind_and_its_character_set(string input, string text, StringLiteralKind kind, string? characterSet)
 	{
-		var literal = Assert.IsType<LiteralValue.String>(SqlStandardParser.ParseLiteral(input));
+		var literal = Assert.IsType<LiteralValue.String>(Both.ParseLiteral(input));
 
 		Assert.Equal(text, literal.Text);
 		Assert.Equal(kind, literal.Kind);
@@ -109,7 +109,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_Unicode_string_keeps_its_escape_character()
 	{
-		var literal = Assert.IsType<LiteralValue.String>(SqlStandardParser.ParseLiteral("U&'a\\0041'UESCAPE'\\'"));
+		var literal = Assert.IsType<LiteralValue.String>(Both.ParseLiteral("U&'a\\0041'UESCAPE'\\'"));
 
 		Assert.Equal("'a\\0041'", literal.Text);
 		Assert.Equal('\\', literal.UnicodeEscape);
@@ -117,7 +117,7 @@ public sealed class SqlStandardTreeTests
 
 	[Fact]
 	public void A_binary_string_keeps_its_quotes() =>
-		Assert.Equal("'0A 1B'", Assert.IsType<LiteralValue.Binary>(SqlStandardParser.ParseLiteral("X'0A 1B'")).Text);
+		Assert.Equal("'0A 1B'", Assert.IsType<LiteralValue.Binary>(Both.ParseLiteral("X'0A 1B'")).Text);
 
 	[Theory]
 	[InlineData("DATE '2020-01-01'", DateTimeLiteralKind.Date, "'2020-01-01'")]
@@ -125,7 +125,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("TIMESTAMP '2020-01-01 10:00:00'", DateTimeLiteralKind.Timestamp, "'2020-01-01 10:00:00'")]
 	public void A_datetime_keeps_its_kind_and_its_string(string input, DateTimeLiteralKind kind, string text)
 	{
-		var literal = Assert.IsType<LiteralValue.DateTime>(SqlStandardParser.ParseLiteral(input));
+		var literal = Assert.IsType<LiteralValue.DateTime>(Both.ParseLiteral(input));
 
 		Assert.Equal(kind, literal.Kind);
 		Assert.Equal(text, literal.Text);
@@ -134,12 +134,12 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void An_interval_keeps_its_sign_its_string_and_its_qualifier()
 	{
-		var literal = Assert.IsType<LiteralValue.Interval>(SqlStandardParser.ParseLiteral("INTERVAL -'1:30' HOUR(2) TO MINUTE"));
+		var literal = Assert.IsType<LiteralValue.Interval>(Both.ParseLiteral("INTERVAL -'1:30' HOUR(2) TO MINUTE"));
 
 		Assert.Equal("'1:30'", literal.Text);
 		Assert.Equal(UnaryOperator.Minus, literal.Sign);
 		Assert.Equal(new IntervalQualifier(DateTimeField.Hour, 2, DateTimeField.Minute), literal.Qualifier with { });
-		Assert.Null(SqlStandardParser.ParseLiteral("INTERVAL '1' DAY") is LiteralValue.Interval { Sign: { } } ? "signed" : null);
+		Assert.Null(Both.ParseLiteral("INTERVAL '1' DAY") is LiteralValue.Interval { Sign: { } } ? "signed" : null);
 	}
 
 	[Theory]
@@ -147,14 +147,14 @@ public sealed class SqlStandardTreeTests
 	[InlineData("false", BooleanLiteral.False)]
 	[InlineData("Unknown", BooleanLiteral.Unknown)]
 	public void A_truth_value_is_a_boolean_literal(string input, BooleanLiteral value) =>
-		Assert.Equal(value, Assert.IsType<LiteralValue.Boolean>(SqlStandardParser.ParseLiteral(input)).Value);
+		Assert.Equal(value, Assert.IsType<LiteralValue.Boolean>(Both.ParseLiteral(input)).Value);
 
 	// ── §6.1 Data types ─────────────────────────────────────────────────────────
 
 	[Fact]
 	public void A_character_type_keeps_its_spelling_length_units_character_set_and_collation()
 	{
-		var type = Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType("CHAR VARYING(10 CHARACTERS) CHARACTER SET s.latin1 COLLATE c"));
+		var type = Assert.IsType<DataType.Character>(Both.ParseDataType("CHAR VARYING(10 CHARACTERS) CHARACTER SET s.latin1 COLLATE c"));
 
 		Assert.Equal(CharacterTypeKind.CharVarying, type.Kind);
 		Assert.Equal(10, type.Length);
@@ -171,16 +171,16 @@ public sealed class SqlStandardTreeTests
 	[InlineData("NCHAR LARGE OBJECT", CharacterTypeKind.NcharLargeObject)]
 	[InlineData("national character large object", CharacterTypeKind.NationalCharacterLargeObject)]
 	public void A_character_type_is_the_spelling_written(string input, CharacterTypeKind kind) =>
-		Assert.Equal(kind, Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType(input)).Kind);
+		Assert.Equal(kind, Assert.IsType<DataType.Character>(Both.ParseDataType(input)).Kind);
 
 	[Fact]
 	public void A_large_object_keeps_its_multiplier()
 	{
-		var type = Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType("CHAR LARGE OBJECT(2K OCTETS)"));
+		var type = Assert.IsType<DataType.Character>(Both.ParseDataType("CHAR LARGE OBJECT(2K OCTETS)"));
 
 		Assert.Equal(new LargeObjectSize(2, 'K'), type.LargeObject);
 		Assert.Equal(LengthUnit.Octets, type.Unit);
-		Assert.Equal(new LargeObjectSize(4, 'm'), Assert.IsType<DataType.Binary>(SqlStandardParser.ParseDataType("BLOB(4 m)")).LargeObject);
+		Assert.Equal(new LargeObjectSize(4, 'm'), Assert.IsType<DataType.Binary>(Both.ParseDataType("BLOB(4 m)")).LargeObject);
 	}
 
 	[Theory]
@@ -190,7 +190,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("FLOAT(0x10)", NumericTypeKind.Float, 16, null)]
 	public void A_numeric_type_keeps_its_spelling_precision_and_scale(string input, NumericTypeKind kind, int? precision, int? scale)
 	{
-		var type = Assert.IsType<DataType.Numeric>(SqlStandardParser.ParseDataType(input));
+		var type = Assert.IsType<DataType.Numeric>(Both.ParseDataType(input));
 
 		Assert.Equal(kind, type.Kind);
 		Assert.Equal(precision, type.Precision);
@@ -200,18 +200,18 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_datetime_type_keeps_its_precision_and_its_time_zone()
 	{
-		var type = Assert.IsType<DataType.DateTime>(SqlStandardParser.ParseDataType("TIMESTAMP(3) WITHOUT TIME ZONE"));
+		var type = Assert.IsType<DataType.DateTime>(Both.ParseDataType("TIMESTAMP(3) WITHOUT TIME ZONE"));
 
 		Assert.Equal(DateTimeTypeKind.Timestamp, type.Kind);
 		Assert.Equal(3, type.Precision);
 		Assert.Equal(TimeZoneMode.Without, type.TimeZone);
-		Assert.Null(Assert.IsType<DataType.DateTime>(SqlStandardParser.ParseDataType("TIME")).TimeZone);
+		Assert.Null(Assert.IsType<DataType.DateTime>(Both.ParseDataType("TIME")).TimeZone);
 	}
 
 	[Fact]
 	public void A_collection_type_wraps_what_stands_before_it()
 	{
-		var multiset = Assert.IsType<DataType.Multiset>(SqlStandardParser.ParseDataType("INT ARRAY??(10??) MULTISET"));
+		var multiset = Assert.IsType<DataType.Multiset>(Both.ParseDataType("INT ARRAY??(10??) MULTISET"));
 		var array    = Assert.IsType<DataType.Array>(multiset.ElementType);
 
 		Assert.Equal(10, array.MaximumCardinality);
@@ -222,15 +222,15 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void Row_reference_interval_and_user_defined_types_have_their_parts()
 	{
-		var row = Assert.IsType<DataType.Row>(SqlStandardParser.ParseDataType("ROW(a INT, b s.t)"));
+		var row = Assert.IsType<DataType.Row>(Both.ParseDataType("ROW(a INT, b s.t)"));
 
 		Assert.Equal(new[] { "a", "b" }, row.Fields.Select(one => one.Name.Text));
 		Assert.Equal(new[] { "s", "t" }, Assert.IsType<DataType.UserDefined>(row.Fields[1].Type).Name.Parts.Select(one => one.Text));
 
-		var reference = Assert.IsType<DataType.Reference>(SqlStandardParser.ParseDataType("REF(t) SCOPE s.u"));
+		var reference = Assert.IsType<DataType.Reference>(Both.ParseDataType("REF(t) SCOPE s.u"));
 
 		Assert.Equal(new[] { "s", "u" }, reference.Scope!.Parts.Select(one => one.Text));
-		Assert.Equal(new IntervalQualifier(DateTimeField.Second, 2, null, 3), Assert.IsType<DataType.Interval>(SqlStandardParser.ParseDataType("INTERVAL SECOND(2, 3)")).Qualifier);
+		Assert.Equal(new IntervalQualifier(DateTimeField.Second, 2, null, 3), Assert.IsType<DataType.Interval>(Both.ParseDataType("INTERVAL SECOND(2, 3)")).Qualifier);
 	}
 
 	// ── §6.28 Value expressions ─────────────────────────────────────────────────

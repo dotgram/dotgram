@@ -10,6 +10,8 @@ library; test frameworks and benchmark runners stay outside it.
 - `Fix.HandFixParser`: independent FIX field parser with eager and lazy input APIs.
 - `HandExpression`: expression-language lexer and recursive-descent parser. Uses
   the production expression factories and state so comparisons build the same values.
+- `HandSqlStandard`: ISO/IEC 9075-2:2023 read by hand, in `Sql/`. Builds the production
+  `DotGram.Sql.Ast` tree and is held to `SqlStandardParser` answer for answer.
 - `HandSqlTokens`: SQL search-condition lexer and parser. Builds the production SQL
   tree and is checked by the SQL comparison harness before timing.
 - `HandSqlOriginal`: historical, deliberately limited SQL baseline. It does not
@@ -69,3 +71,45 @@ field output before timing. See the Finance benchmark README for commands.
 
 `benchmarks/DotGram.HandDeferred` remains a separate experiment comparing deferred
 construction strategies, with its own benchmark runner.
+
+## SQL:2023
+
+`DotGram.Handwritten.HandSqlStandard` is the yardstick `SqlStandardParser` is measured
+against, and the target it is optimized towards. It reads the same language, builds the
+same tree and refuses the same input; a ratio against a parser that quietly read less
+would say nothing about the generator.
+
+- **Publications keep the generated names**: `ParseLiteral`, `TryParseDataType` and the
+  rest, one pair per publication of the grammar. `TryParseX(string, out T)` answers rather
+  than throwing, and `ParseX` throws `FormatException`.
+- **Written chapter by chapter**, in the order the grammar was: §5's tokens, separators,
+  literals and names and §6.1's data types are read today.
+- **No array of tokens.** `SqlCursor` makes one token at a time as the parser asks for it,
+  because the generated parser reads characters where it stands and keeps nothing of what
+  it passed. A parser that built an array would be paying a cost on one side of the
+  comparison only. Going back is a copy of the cursor struct.
+- **A reserved word is an integer.** `SqlWord` and `SqlWords.Of` turn a word into one of
+  §5.2's 376 reserved words, refusing it by length and by initial letter before anything is
+  compared, so a name costs two tests and no comparison.
+
+### How it is held to the generated parser
+
+- `Both` in `tests/DotGram.Sql.Tests` calls both parsers and asserts the same verdict and
+  the same tree, property by property. Every row of `SqlStandardParserTests` and
+  `SqlStandardTreeTests` for a production it reads goes through it, so `dotnet test` is the
+  check.
+- `--standard "^production" file` in DotGram.Benchmarks puts every line of a corpus to both
+  and prints what tells them apart; when nothing does, it times the two round-robin. The
+  corpora are `.work/fuzz_lexical.py`'s, clean and mutated.
+
+### Two places it mirrors the generated parser rather than the BNF
+
+Both are how the generated parser's construction finds the parts of an introduced string
+literal, and both need a delimited name inside the introducer to show at all:
+
+- `_u&".s".x'a'` — the character set is split at every period, the one inside the delimited
+  name included, so it is three parts and not two.
+- `_u&"'s".x'a'` — the literal's text is taken from the first quote in the token, which is
+  the one inside the delimited name.
+
+Where the generated parser is corrected, these go with it.

@@ -29,6 +29,16 @@ is open until it is built, and `status.md` is what will say when it has been.
   point to preserve: `SqlStandard92.gram` moves to a temporary `Sql92Parser`, which T-SQL
   includes and the benchmarks hold against a hand-written parser, and goes when T-SQL restates
   what it takes from it and 1992 is an edition of the new grammar.
+- **The standard's parser has a yardstick written by hand** (Igor, 2026-09-17).
+  `examples/DotGram.Handwritten/Sql/HandSqlStandard.cs` reads ISO/IEC 9075-2:2023 the way a
+  person would write it, builds the same `DotGram.Sql.Ast` tree, and is held to the generated
+  parser's every answer. It is what the generated parser is measured against and optimized
+  towards: a ratio is only worth having if the other side did the same work, so the handwritten
+  one reads the whole language rather than a convenient part of it, chapter by chapter, and
+  nothing is timed until the two agree on every line of a file. Both readings go through
+  `Both` in `DotGram.Sql.Tests`, so every row already written for the generated parser is put to
+  both; `--standard "^production" file` puts a whole corpus to them and then times the two
+  round-robin.
 - **Where the standard and T-SQL disagree about the tree, the standard wins.** It is formal and
   T-SQL is not; the reshaping is the test of the decisions taken while T-SQL alone shaped the
   tree, and T-SQL's measurements have to stay where they were through each of them.
@@ -85,6 +95,10 @@ is open until it is built, and `status.md` is what will say when it has been.
   `--standard "~production" file`, which writes each tree the grammar builds, reads the text back and
   asks for the same tree and the same text — every fuzz family of the standard's grammar, over 60,000
   lines, with no difference. The first step of moving T-SQL onto the tree.
+- **The handwritten SQL:2023 parser, chapter by chapter** (`examples/DotGram.Handwritten/Sql`).
+  §5's tokens, separators, literals and names and §6.1's data types are written, and go through
+  `Both` in the tests; the rest of §6, §7, §8 and the statements follow. Two places where it
+  mirrors the generated parser rather than the BNF are written down in the project's README.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before

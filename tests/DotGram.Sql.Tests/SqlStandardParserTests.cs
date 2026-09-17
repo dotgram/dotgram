@@ -84,7 +84,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("/* a /* b */ c */ 1")]
 	public void A_literal_reads(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseLiteral(input).IsSuccess, input);
+		Assert.True(Both.TryParseLiteral(input).IsSuccess, input);
 	}
 
 	/// <summary>What the BNF refuses, and why it does.</summary>
@@ -116,7 +116,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("2K")]
 	public void What_is_not_a_literal_is_refused(string input)
 	{
-		Assert.False(SqlStandardParser.TryParseLiteral(input).IsSuccess, input);
+		Assert.False(Both.TryParseLiteral(input).IsSuccess, input);
 	}
 
 	// ── §5.4 Names and identifiers ───────────────────────────────────────────────
@@ -138,7 +138,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("U&\"a\"UESCAPE'\\'")]
 	public void An_identifier_reads(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseIdentifier(input).IsSuccess, input);
+		Assert.True(Both.TryParseIdentifier(input).IsSuccess, input);
 	}
 
 	/// <summary>A reserved word in any case, an empty delimited identifier, and what no identifier begins or holds.</summary>
@@ -155,7 +155,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a.b")]
 	public void What_is_not_an_identifier_is_refused(string input)
 	{
-		Assert.False(SqlStandardParser.TryParseIdentifier(input).IsSuccess, input);
+		Assert.False(Both.TryParseIdentifier(input).IsSuccess, input);
 	}
 
 	[Theory]
@@ -170,7 +170,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MODULE.a.b", false)]
 	public void An_identifier_chain(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseIdentifierChain(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseIdentifierChain(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -183,7 +183,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MODULE.a", false)]
 	public void A_column_reference(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseColumnReference(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseColumnReference(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -199,7 +199,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MODULE.a.b", false)]
 	public void A_table_name(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseTableName(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseTableName(input).IsSuccess);
 	}
 	// ── §6 Scalar expressions, §8 Predicates ─────────────────────────────────────
 
@@ -1938,6 +1938,6 @@ public sealed class SqlStandardParserTests
 	[InlineData("INTEGER ARRAY[3]  MULTISET", true)]
 	public void A_data_type(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDataType(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDataType(input).IsSuccess);
 	}
 }

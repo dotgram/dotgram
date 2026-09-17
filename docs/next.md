@@ -22957,3 +22957,54 @@ and built again, and both the trees — compared as a dump of every property but
 texts written must be one. Over every fuzz family of the standard's grammar, over 60,000 lines, nothing
 differs. A direct SQL statement's semicolon is the production's and no part of the tree, and the harness
 adds it back. `SqlStandardTreeTests` holds a line or two of each chapter to the same, so a build asks it too.
+
+## A yardstick for the standard's parser
+
+The generated parser has had nothing to be measured against since the standard's grammar was
+written: `HandSqlTokens` reads SQL-92's search condition and nothing else. So the standard gets a
+parser written by hand, in `examples/DotGram.Handwritten/Sql`, which is where the manual parsers
+now live — the same language, the same `DotGram.Sql.Ast` tree, the same refusals. It is the
+target the generated parser is optimized towards (Igor, 2026-09-17), which is why it reads the
+whole language chapter by chapter rather than the part a benchmark happens to use.
+
+**The tract is the generated parser's.** `Recognize_X(ReadOnlySpan<char>, int at, …)` reads
+characters where it stands and keeps nothing of what it passed, so the handwritten one does too:
+`SqlCursor` makes one token at a time as the parser asks for it, and going back is a copy of a
+struct. An array of tokens would have been a cost on one side of the ratio only, and the note
+under `HandSqlTokens` — that it tokenizes first *because the generated parser does* — is about
+SQL-92's grammar, which is read through a lexical split; SQL:2023's is not.
+
+**What agreement costs to establish.** `Both` in the SQL tests calls both parsers and compares
+the trees property by property, and every row already written for §5 and §6.1 goes through it.
+Then `--standard "^production" file`: 12,000 random literals, names and types, and as many again
+mutated. Seven differences, every one of them the handwritten parser's:
+
+- a key word glued to what stands before it — `CHAR(198OCTETS)` — which §5.2 refuses, because a
+  key word is guarded by a word boundary on both sides. A name is not: `2K` is a length and its
+  multiplier, and `SELECT 1a` is an alias. So the cursor marks a word glued and refuses to hand
+  it over as a key word.
+- `0X_1`: a radix other than ten lets an underscore stand before its first digit.
+- `0b10E1`: an integer of any radix is an `<exact numeric literal>`, so an exponent may follow
+  one, and it is approximate.
+- `BLOB(9.19)`: a large object's length is an `<unsigned integer>`, which a decimal is not.
+- a bracketed comment that closes nowhere was being swallowed to the end of the text, where the
+  grammar leaves the reading in front of it.
+- `/* a /* b * c */`: the BNF's contents are `(<bracketed comment> | any character)*`, so where
+  reading the inner one as a comment leaves the outer unclosed, the choice takes its other
+  branch. The comment is read by the same recursive descent the BNF describes, which is what
+  makes `/* a /* b *E/ c */ '1'/**/SECOND` close where the grammar closes it — inside the second
+  comment, and not before the literal.
+- a binary literal's runs were being checked over the raw text between the first quote and the
+  last, comments included, so a quote inside a comment made `X'A B' /* a /* b */' c */ '0 A'`
+  look like hexits that are not.
+
+Two differences were left standing and mirrored instead, both in what the generated parser's
+construction makes of an introduced literal whose introducer holds a delimited name with a
+period or a quote inside it — `_u&".s".x'a'`, `_u&"'s".x'a'`. They are `Nodes.cs`'s, not the
+grammar's, and the handwritten parser is written to agree with them; the README says so, and if
+the construction is corrected they go together.
+
+**The first numbers**, Release, nine seeds, 3,000 lines each and nothing differing: literals 4.7x,
+names 10.1x, data types 7.7x the handwritten parser. Small productions read one line at a time,
+so they measure the entry more than the reading — the number to watch is the one a whole
+statement will give, when the chapters that read one are written.
