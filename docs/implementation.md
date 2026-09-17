@@ -293,6 +293,14 @@ A failure unwinds by taking entries off the end until it finds a way back. A com
 Materialization walks what is left and runs the constructions; a `Recovery` entry is what a
 recovered element leaves for its handler and for the report.
 
+When a guard or computed selector asks for typed captures, the engine marks their
+unbuilt values and bounds the materializer's owner/construction scans by the earliest
+requested capture. Child calls have later indices, so earlier records need not be
+visited on each turn of a repeated field. Link maintenance remains incremental, and
+acceptance uses the full range. Recovery grammars retain the full scan; enclosing
+state marks still require their complete chain. See
+[the value-dependent switch experiment](design/value-dependent-switch-2026-09-16.md).
+
 **An entry's index is its name.** A capture of a rule's value holds the index of the entry
 its call completed into; one materialized value names the next. So nothing may renumber the
 entries around it: a commit puts a way back out where it lies rather than removing it, and

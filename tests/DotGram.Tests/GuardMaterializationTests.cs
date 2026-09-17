@@ -56,4 +56,49 @@ public sealed class GuardMaterializationTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ax").IsSuccess);
 		Assert.Equal(2, calls.GetValue(null));
 	}
+
+	[Theory]
+	[InlineData(ValueStorageKind.Flat)]
+	[InlineData(ValueStorageKind.Adaptive)]
+	[InlineData(ValueStorageKind.Paged)]
+	public void Engine_switch_builds_only_requested_values_in_repeated_records(ValueStorageKind storage)
+	{
+		var compilation = GramCompiler.Compile("""
+			Number : @int = '1' => @(One())
+			Pair : @int = a: Number & '/' & b: Number => @(a + b)
+			Unused : @int = 'x' => @(Unexpected())
+			Item : @int = Unused & n: Pair & switch @(n) { case 2: ';' => @(n) }
+			Feed : @int[] = Item+
+			parse Feed
+			""", new GramCompilerOptions { Direct = false, ValueStorage = storage, CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(compilation.Diagnostics);
+		var source = Assert.Single(compilation.Sources).Text;
+		var assembly = EmittedCode.Compile(source, declarationMembers: """
+			public static int Calls;
+			static int One() { Calls++; return 1; }
+			static int Unexpected() => throw new System.InvalidOperationException("Unrequested value");
+			""");
+		var input = string.Concat(Enumerable.Repeat("x1/1;", 1000));
+		var match = EmittedCode.Match(assembly, "Grammar", "TryParseFeed", input);
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal(Enumerable.Repeat(2, 1000), Assert.IsType<int[]>(match.Value));
+		Assert.Equal(2000, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+	}
+
+	[Fact]
+	public void Engine_guard_bound_includes_the_earliest_pending_capture()
+	{
+		var compilation = GramCompiler.Compile("""
+			Number : @int = '1' => @(One())
+			Item : @int = a: Number & b: Number & when @(b == 1) & when @(a + b == 2) & ';' => @(a + b)
+			Feed : @int[] = Item+
+			parse Feed
+			""", new GramCompilerOptions { Direct = false, CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(compilation.Diagnostics);
+		var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text,
+			declarationMembers: "public static int Calls; static int One() { Calls++; return 1; }");
+		Assert.Equal(new[] { 2, 2 }, EmittedCode.Match(assembly, "Grammar", "TryParseFeed", "11;11;").Value);
+		Assert.Equal(4, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+	}
+
 }

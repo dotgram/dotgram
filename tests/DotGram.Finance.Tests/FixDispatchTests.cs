@@ -128,6 +128,25 @@ public sealed class FixDispatchTests
 		Assert.False(FixDispatch.TryParse(input, out _, out _, new FixDispatchOptions('|')));
 	}
 
+	[Fact]
+	public void Largest_tags_keep_text_and_binary_meanings_on_all_inputs()
+	{
+		var text = "2147483647=X";
+		Assert.Equal(int.MaxValue, Assert.Single(FixDispatch.Parse(text)).Tag);
+		var options = new FixDispatchOptions('|', new Dictionary<int, int> { [int.MaxValue - 1] = int.MaxValue });
+		var wire = "2147483646=3|2147483647=a|b|55=END";
+		var expected = FixDispatch.Parse(wire, options);
+		var binary = Assert.IsType<FixField.Unknown>(expected[0]);
+		Assert.Equal(int.MaxValue, binary.Tag);
+		Assert.Equal("a|b", Encoding.Latin1.GetString(binary.Value.Span));
+		Assert.Equal(0, binary.Position);
+		Assert.Equal(wire.IndexOf("a|b", StringComparison.Ordinal), binary.ValuePosition);
+		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
+		using var reader = new StringReader(wire);
+		Equal(expected, FixDispatch.Parse(stream, options, bufferSize: 1));
+		Equal(expected, FixDispatch.Parse(reader, options, bufferSize: 1));
+	}
+
 	sealed class ShortStream(byte[] input) : MemoryStream(input)
 	{
 		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, 1));

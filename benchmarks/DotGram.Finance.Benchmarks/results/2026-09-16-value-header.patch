@@ -1,0 +1,62 @@
+--- a/src/DotGram.Finance/Fix/FixDispatch/FixDispatchGrammar.cs
++++ b/src/DotGram.Finance/Fix/FixDispatch/FixDispatchGrammar.cs
+@@ -13 +13,7 @@
+-	int Kind(int tag) => tag <= 0 ? -1 : options.DataTag(tag) != 0 ? 1 : options.IsData(tag) ? -1 : 0;
++	// Positive: a text tag; negative: the paired binary tag; zero: invalid.
++	int Header(int tag)
++	{
++		if (tag <= 0) return 0;
++		var dataTag = options.DataTag(tag);
++		return dataTag != 0 ? -dataTag : options.IsData(tag) ? 0 : tag;
++	}
+@@ -15,2 +21,2 @@
+-	public int Kind(ReadOnlySpan<char> tag) => Kind(FixContext.Tag(tag));
+-	public bool BeginData(ReadOnlySpan<char> tag, ReadOnlySpan<char> size, ReadOnlySpan<char> dataTag, int start)
++	public int Header(ReadOnlySpan<char> tag) => Header(FixContext.Tag(tag));
++	public bool BeginData(int header, ReadOnlySpan<char> size, ReadOnlySpan<char> dataTag, int start)
+@@ -20 +26 @@
+-		return length >= 0 && options.DataTag(FixContext.Tag(tag)) == FixContext.Tag(dataTag);
++		return length >= 0 && -header == FixContext.Tag(dataTag);
+@@ -23 +29 @@
+-	public FixField Create(ReadOnlySpan<char> wire, int start)
++	public FixField Create(int header, ReadOnlySpan<char> wire, int start)
+@@ -26,3 +32 @@
+-		var tag = FixContext.Tag(wire.Slice(0, equals));
+-		var dataTag = options.DataTag(tag);
+-		if (dataTag == 0) return FixDispatchFactory.Value(tag, wire.Slice(equals + 1));
++		if (header > 0) return FixDispatchFactory.Value(header, wire.Slice(equals + 1));
+@@ -32 +36 @@
+-		return FixDispatchFactory.Binary(dataTag, value.Data).WithBinary(value, start);
++		return FixDispatchFactory.Binary(-header, value.Data).WithBinary(value, start);
+@@ -35,2 +39,2 @@
+-	public int Kind(ReadOnlySpan<byte> tag) => Kind(FixContext.Tag(tag));
+-	public bool BeginData(ReadOnlySpan<byte> tag, ReadOnlySpan<byte> size, ReadOnlySpan<byte> dataTag, int start)
++	public int Header(ReadOnlySpan<byte> tag) => Header(FixContext.Tag(tag));
++	public bool BeginData(int header, ReadOnlySpan<byte> size, ReadOnlySpan<byte> dataTag, int start)
+@@ -40 +44 @@
+-		return length >= 0 && options.DataTag(FixContext.Tag(tag)) == FixContext.Tag(dataTag);
++		return length >= 0 && -header == FixContext.Tag(dataTag);
+@@ -43 +47 @@
+-	public FixField Create(ReadOnlySpan<byte> wire, int start)
++	public FixField Create(int header, ReadOnlySpan<byte> wire, int start)
+@@ -46,3 +50 @@
+-		var tag = FixContext.Tag(wire.Slice(0, equals));
+-		var dataTag = options.DataTag(tag);
+-		if (dataTag == 0) return FixDispatchFactory.Value(tag, wire.Slice(equals + 1));
++		if (header > 0) return FixDispatchFactory.Value(header, wire.Slice(equals + 1));
+@@ -52 +54 @@
+-		return FixDispatchFactory.Binary(dataTag, value.Data).WithBinary(value, start);
++		return FixDispatchFactory.Binary(-header, value.Data).WithBinary(value, start);
+--- a/src/DotGram.Finance/Fix/FixDispatch/FixDispatchGrammar.gram
++++ b/src/DotGram.Finance/Fix/FixDispatch/FixDispatchGrammar.gram
+@@ -6,0 +7 @@
++Header : @int = tag: Tag & '=' => @(context.Header(tag))
+@@ -17 +18 @@
+-	wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
++	wire: (header: Header & switch @(header > 0 ? 0 : header < 0 ? 1 : -1) {
+@@ -21 +22 @@
+-			& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & Data
++			& when @(context.BeginData(header, size, dataTag, parserSpan.Start + parserSpan.Length)) & Data
+@@ -23 +24 @@
+-	=> @(context.Create(wire, parserSpan.Start).WithTerminator(end.Length))
++	=> @(context.Create(header, wire, parserSpan.Start).WithTerminator(end.Length))

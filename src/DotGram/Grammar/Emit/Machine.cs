@@ -2496,6 +2496,9 @@ sealed partial class Machine
 					DeclareTables(writer);
 					writer.Line("var guardBuilt  = parser.Materialized();");
 					writer.Line("var guardNeedsMaterialization = false;");
+					// Recovery values can be reached through their owner; keep the full
+					// walk there until recovery roots have an equally explicit bound.
+					writer.Line(_recoveryPlans.Count == 0 ? "var guardFrom = entries.Count;" : "var guardFrom = 0;");
 				}
 
 				for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
@@ -2520,6 +2523,7 @@ sealed partial class Machine
 								using (writer.Block("if (!guardBuilt[guardValueAt])"))
 								{
 									writer.Line("guardValues[guardValueAt] = parser;");
+									writer.Line("guardFrom = global::System.Math.Min(guardFrom, guardValueAt);");
 									writer.Line("guardNeedsMaterialization = true;");
 								}
 							}
@@ -2558,6 +2562,7 @@ sealed partial class Machine
 							$"if (guardCaptured{memberIndex}At >= 0 && !guardBuilt[guardCaptured{memberIndex}At])"))
 						{
 							writer.Line($"guardValues[guardCaptured{memberIndex}At] = parser;");
+							writer.Line($"guardFrom = global::System.Math.Min(guardFrom, guardCaptured{memberIndex}At);");
 							writer.Line("guardNeedsMaterialization = true;");
 						}
 				}
@@ -2566,7 +2571,7 @@ sealed partial class Machine
 				{
 					writer.Line(
 						$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
-						$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument});");
+						$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, guardFrom);");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{

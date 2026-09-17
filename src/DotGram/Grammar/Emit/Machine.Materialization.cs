@@ -41,7 +41,8 @@ sealed partial class Machine
 
 		using (helper.Block(
 			$"static void Materialize_DotGram{_tag}({InputType} text, Parser parser, " +
-			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
+			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}" +
+			(Caches ? ", int materializeFrom = 0)" : ")")))
 			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());
@@ -100,15 +101,17 @@ sealed partial class Machine
 		//
 		// With caching a `when` guard calls this mid-parse, having marked whichever values
 		// its own condition asks for: the marked set is then not reachable from the root
-		// and not knowable without looking, so the scan is still what finds it. Seeding a
-		// walk from the root there would silently build a different set from the one the
+		// and not knowable without looking. The guard supplies the earliest unbuilt
+		// capture it marked: descendants have later arena indices, so preceding fields
+		// need not be scanned again on every guard. Acceptance uses the default bound
+		// of zero. Seeding a walk from the root would build a different set from the one the
 		// guard asked about, which is the sort of thing the guard tests in
 		// `GeneratorDriverTests` exist to catch, and did.
 		file.Line();
 
 		if (cached)
 		{
-			using (file.Block("for (var ownerAt = 0; ownerAt < entries.Count; ownerAt++)"))
+			using (file.Block("for (var ownerAt = materializeFrom; ownerAt < entries.Count; ownerAt++)"))
 			{
 				file.Line("if (!global::System.Object.ReferenceEquals(values[ownerAt], parser)) continue;");
 
@@ -198,7 +201,7 @@ sealed partial class Machine
 		var parts = MaterializeParts();
 
 		using (file.Block(cached
-			? "for (var completedAt = entries.Count - 1; completedAt >= 0; completedAt--)"
+			? "for (var completedAt = entries.Count - 1; completedAt >= materializeFrom; completedAt--)"
 			: "for (var ownerIndex = ownerCount - 1; ownerIndex >= 0; ownerIndex--)"))
 		{
 			if (!cached)

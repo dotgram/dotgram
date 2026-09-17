@@ -18,10 +18,14 @@ static class FixProfile
 		if (parser != "Fix44" && parser != "FixDispatch") throw new ArgumentException("Unknown parser.");
 		var type = new AssemblyLoadContext("Profile target").LoadFromAssemblyPath(Path.GetFullPath(path)).GetType("DotGram.Finance.Fix." + parser)!;
 		var wire = Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
-		if (workload == "Groups")
+		var groups = workload == "Groups" ? 1000 : workload.StartsWith("Groups:", StringComparison.Ordinal)
+			? int.Parse(workload.AsSpan(7), System.Globalization.CultureInfo.InvariantCulture) : 0;
+		if (groups < 0 || groups == 0 && workload.StartsWith("Groups:", StringComparison.Ordinal))
+			throw new ArgumentOutOfRangeException(nameof(workload), "Group count must be positive.");
+		if (groups > 0)
 		{
-			var body = new StringBuilder("55=ABC|262=REQ|268=1000|");
-			for (var i = 0; i < 1000; i++) body.Append("269=0|270=12.50|271=100|");
+			var body = new StringBuilder("55=ABC|262=REQ|268=" + groups.ToString(System.Globalization.CultureInfo.InvariantCulture) + "|");
+			for (var i = 0; i < groups; i++) body.Append("269=0|270=12.50|271=100|");
 			wire = Fix44Benchmarks.Wire("W", body.ToString());
 		}
 		else if (workload == "Raw") wire = Fix44Benchmarks.Wire("A", "98=0|108=30|95=65536|96=" + new string('X', 65536) + "|");
@@ -29,7 +33,7 @@ static class FixProfile
 		else if (workload != "Order") throw new ArgumentException("Unknown workload.");
 		var operation = FixGrammarComparisonBenchmarks.Operation(FixGrammarComparisonBenchmarks.Bind(type, input), wire, input);
 		var fieldsPerOperation = operation();
-		Measure(operation, workload is "Groups" or "Raw" ? 100 : 50000);
+		Measure(operation, groups > 0 || workload == "Raw" ? 100 : 50000);
 		Console.WriteLine($"Assembly SHA256: {Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))}");
 		Console.WriteLine($"Parser={parser}");
 		Console.WriteLine($"Workload={workload}, Input={input}, Iterations={iterations}, Fields/operation={fieldsPerOperation}");
