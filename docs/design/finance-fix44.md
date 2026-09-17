@@ -77,7 +77,8 @@ cannot be inferred from tag numbers: vendor definitions are needed to interpret 
 No silent loss of extensions is acceptable.
 
 Parse failures expose source offset, known tag, known MsgType and a reason.
-TryParse must not catch exceptions as its ordinary malformed-input path.
+`FixMessages.TryParse` checks recovered fields for syntax errors; the flat
+`FixParser` exposes only `Parse` methods and returns errors as `FixField.Invalid`.
 
 ## Implemented grammar strategy
 

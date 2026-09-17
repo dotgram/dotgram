@@ -17,14 +17,7 @@ public sealed class FixRecoveryTests
 	{
 		const string input = "55=ABC|bad|38=2|0=X|55=END|tail";
 		var text = dispatch ? FixParser.ParseLog(input) : Fix44.ParseLog(input);
-		FixField[]? parsed;
-		FixParseError? error;
-		var success = dispatch
-			? FixParser.TryParse(input, out parsed, out error, new FixOptions('|'))
-			: Fix44.TryParse(input, out parsed, out error, new FixOptions('|'));
-		Assert.False(success);
-		Assert.NotNull(error);
-		Assert.Equal(6, parsed!.Length);
+		Assert.Equal(6, text.Length);
 		using var reader = new StringReader(input);
 		using var stream = new MemoryStream(Encoding.Latin1.GetBytes(input));
 		var chars = dispatch ? FixParser.Parse(reader, new FixOptions('|'), 1, 16) : Fix44.Parse(reader, new FixOptions('|'), 1, 16);
@@ -51,6 +44,38 @@ public sealed class FixRecoveryTests
 				Assert.NotEmpty(field.Message);
 			});
 		}
+	}
+
+	[Theory]
+	[InlineData(FixParseMode.Strict)]
+	[InlineData(FixParseMode.Lenient)]
+	public void Message_validation_rejects_recovered_fields_with_the_original_diagnostic(FixParseMode mode)
+	{
+		var wire    = Fix44Tests.Wire("0", "broken|55=END|");
+		var fields  = FixParser.Parse(wire);
+		var invalid = Assert.Single(fields.OfType<FixField.Invalid>());
+		var options = new FixParseOptions(mode);
+
+		Assert.False(FixMessages.TryParse(wire, out var message, out var error, options));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
+
+		using var reader = new StringReader(wire);
+		using var stream = new MemoryStream(Encoding.Latin1.GetBytes(wire));
+
+		Assert.False(FixMessages.TryParse(reader, out message, out error, mode));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
+		Assert.False(FixMessages.TryParse(stream, out message, out error, mode));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
+		Assert.False(FixMessages.TryBuild(wire, fields, out message, out error, options));
+		Assert.Null(message);
+		Assert.Equal(invalid.Position, error!.Position);
+		Assert.Equal(invalid.Message, error.Reason);
 	}
 
 	[Theory]

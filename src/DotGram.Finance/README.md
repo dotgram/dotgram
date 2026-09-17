@@ -59,7 +59,7 @@ the next separator may be inside damaged payload data. Primitive conversion
 failures keep their existing typed field with `IsValid == false`; `recover`
 handles recognition failures, not semantic validation.
 Use `.ToArray()` when a complete list is needed. String/span/byte-array overloads
-and `TryParse` still materialize the complete result. Empty input returns no fields.
+materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
 `FixOptions` configures SOH or pipe delimiters.
@@ -68,10 +68,9 @@ The parser requires the correct tag pair and consumes exactly the declared numbe
 of data bytes, including any delimiter bytes inside the payload. An orphaned
 length or data field is rejected. The final field may end at EOF without a separator. Separators between fields
 remain required; the declared binary length still determines the complete payload.
-`TryParse` returns false and the first syntax error when recovery produced an
-`Invalid` field; its `fields` output still contains the completed field sequence,
-including errors. The explicit message API rejects these syntax errors in both
-strict and lenient modes. Typed values own their data;
+`FixParser.Parse` returns the completed field sequence, including `Invalid` fields.
+Use `FixMessages.TryParse` or `FixMessages.TryBuild` for validation; both reject
+recovered syntax errors in strict and lenient modes with the first syntax diagnostic. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
 
