@@ -167,8 +167,8 @@ public static partial class ExpressionParser
 	/// <remarks>
 	/// An interface's own methods do not include what it inherits, nor <c>object</c>'s, and a
 	/// value of an interface type has both — `list.Contains(1)` on an <c>IList&lt;int&gt;</c>
-	/// is <c>ICollection&lt;T&gt;</c>'s. A generic method is no candidate: nothing here can
-	/// name its type arguments, and nothing infers them.
+	/// is <c>ICollection&lt;T&gt;</c>'s. Generic method definitions are kept for type inference
+	/// from the supplied arguments.
 	/// </remarks>
 	static List<Candidate> Methods(Type type, string name, bool instance, Expression[] arguments, Assembly caller)
 	{
@@ -185,9 +185,8 @@ public static partial class ExpressionParser
 	/// <remarks>
 	/// An extension method is a static method whose first parameter is the receiver, so the
 	/// candidates are gathered over the arguments with the receiver written in front of them
-	/// and nothing else here has to know the difference. A generic one is no candidate, for
-	/// the reason <see cref="Methods"/> gives: nothing infers its type arguments yet, which is
-	/// what keeps `Where` and `Select` out until they can be inferred.
+	/// and nothing else here has to know the difference. Generic definitions participate
+	/// when their type arguments can be inferred and their constraints are satisfied.
 	/// </remarks>
 	static List<Candidate> Extensions(
 		string name, Expression[] extended, Assembly caller, IReadOnlyList<string>? imports)
@@ -197,7 +196,7 @@ public static partial class ExpressionParser
 
 		foreach (var space in imports ?? [])
 		{
-			Consider(Loaded.Holders(space));
+			Consider(Loaded.Holders(caller, space));
 			Consider(Loaded.HoldersInside(caller, space));
 		}
 

@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace DotGram.ExpressionLanguage;
 
-// What a name written as a type means, and what the loaded assemblies say about names.
+// What a name written as a type means in the caller's runtime reference graph.
 //
 // A layer of its own because it answers before anything is built: whether a word is a
 // type at all is what tells `(Foo)x` from `(foo)`, and the grammar asks it while the
@@ -18,8 +19,7 @@ public static partial class ExpressionParser
 	// them. A name is not: `Exception` means something only against a set of namespaces to
 	// look in, and the text says which with a `using`, as a C# file does. Nothing is
 	// imported unasked, `System` included — what a name means is written where it is used.
-	// The `using`s belong to the reading (`State`); what is shared is only what the loaded
-	// assemblies say, which is the same for every reading.
+	// The `using`s belong to the reading (`State`); name caches belong to its caller.
 
 	/// <summary>A dotted name from the words the grammar read, and nothing between them.</summary>
 	/// <remarks>
@@ -58,7 +58,7 @@ public static partial class ExpressionParser
 			var head = dotted.Substring(0, end);
 			var full = space is null ? head : space + "." + head;
 
-			if ((Loaded.Inside(caller, full) ?? Loaded.Find(full)) is { } type)
+			if ((Loaded.Inside(caller, full) ?? Loaded.Find(caller, full)) is { } type)
 			{
 				for (var at = end; type is not null && at < dotted.Length;)
 				{
@@ -93,46 +93,66 @@ public static partial class ExpressionParser
 			? nested
 			: null;
 
-	/// <summary>What the assemblies loaded into this process say about names.</summary>
+	/// <summary>Names in the caller's assembly and its transitive runtime references.</summary>
 	/// <remarks>
 	/// <para>
-	/// Shared, because it is the same for every reading — unlike the `using`s, which belong
-	/// to one. Public types only: a type another assembly keeps internal is not one C# written
-	/// outside it can name, and neither is it here.
+	/// The reference graph is fixed per caller. Loading an unrelated assembly cannot change
+	/// a name, namespace or extension-method lookup. Other assemblies contribute public types.
 	/// </para>
 	/// <para>
-	/// Both answers are kept once found, a type's absence included: a name is asked about far
-	/// more often than it names anything, since every `s.Length` asks whether `s` is a type.
-	/// An assembly loaded later may make an absent name present, so a load forgets what was
-	/// kept — which is also why this is a class of its own, whose static constructor is the
-	/// one place the subscription is made exactly once.
+	/// This is the runtime reference graph, not the compiler's original reference list.
+	/// References are loaded through their owner's load context on .NET and through the
+	/// assembly loader on .NET Framework. Duplicate public names are ambiguous.
 	/// </para>
 	/// </remarks>
 	static class Loaded
 	{
-		static readonly ConcurrentDictionary<string, Type?> _types = new(StringComparer.Ordinal);
+		static readonly ConcurrentDictionary<(Assembly, string), Type?> _types = new();
+		static readonly ConcurrentDictionary<Assembly, HashSet<string>> _namespaces = new();
+		static readonly ConcurrentDictionary<(Assembly, string), Type[]> _holders = new();
+		static readonly ConditionalWeakTable<Assembly, Assembly[]> _references = new();
 
-		static HashSet<string>? _namespaces;
-
-		static Loaded() =>
-			AppDomain.CurrentDomain.AssemblyLoad += static (_, _) =>
+		static Assembly[] References(Assembly caller) => _references.GetValue(caller, static root =>
+		{
+			var seen = new HashSet<Assembly> { root };
+			var pending = new Queue<Assembly>();
+			var references = new List<Assembly>();
+			pending.Enqueue(root);
+			while (pending.Count > 0)
 			{
-				_types.Clear();
-				_holders.Clear();
-				_namespaces = null;
-			};
+				var owner = pending.Dequeue();
+				foreach (var name in owner.GetReferencedAssemblies())
+				{
+					var assembly = LoadReference(owner, name);
+					if (!seen.Add(assembly))
+						continue;
+					references.Add(assembly);
+					pending.Enqueue(assembly);
+				}
+			}
+			return [.. references];
+		});
 
-		static readonly ConcurrentDictionary<string, Type[]> _holders = new(StringComparer.Ordinal);
+		// Reflection keeps the netstandard2.0 asset usable on .NET Framework without a
+		// System.Runtime.Loader package dependency, while honoring .NET load contexts.
+		static readonly Type? ContextType = typeof(object).Assembly.GetType("System.Runtime.Loader.AssemblyLoadContext");
+		static readonly MethodInfo? GetContext = ContextType?.GetMethod("GetLoadContext", [typeof(Assembly)]);
+		static readonly MethodInfo? LoadInContext = ContextType?.GetMethod("LoadFromAssemblyName", [typeof(AssemblyName)]);
+
+		static Assembly LoadReference(Assembly owner, AssemblyName name) =>
+			GetContext?.Invoke(null, [owner]) is { } context
+				? (Assembly)LoadInContext!.Invoke(context, [name])!
+				: Assembly.Load(name);
 
 		static readonly ConcurrentDictionary<(Assembly, string), Type[]> _holdersInside = new();
 
-		/// <summary>The public static classes standing in that namespace, in any loaded assembly.</summary>
+		/// <summary>The public static classes in that namespace in the caller's references.</summary>
 		/// <remarks>
 		/// What an extension method is written in, and the only thing worth walking a namespace
 		/// for: a class that is not static holds none, and C# looks for one nowhere else.
 		/// </remarks>
-		public static Type[] Holders(string @namespace) =>
-			Cached(_holders, @namespace, static space => Held(space));
+		public static Type[] Holders(Assembly caller, string @namespace) =>
+			Cached(_holders, (caller, @namespace), static key => Held(key.Item1, key.Item2));
 
 		/// <summary>The same in the calling assembly, where an internal class is nameable too.</summary>
 		public static Type[] HoldersInside(Assembly caller, string @namespace) =>
@@ -149,11 +169,11 @@ public static partial class ExpressionParser
 					return [.. holders];
 				});
 
-		static Type[] Held(string @namespace)
+		static Type[] Held(Assembly caller, string @namespace)
 		{
 			var holders = new List<Type>();
 
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			foreach (var assembly in References(caller))
 			{
 				if (assembly.IsDynamic)
 					continue;
@@ -190,15 +210,17 @@ public static partial class ExpressionParser
 			}
 		}
 
-		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
-		public static Type? Find(string fullName) => Cached(_types, fullName, static name => Search(name));
+		/// <summary>The unique public type by that full name in the caller's references, or null.</summary>
+		public static Type? Find(Assembly caller, string fullName) =>
+			Cached(_types, (caller, fullName), static key => Search(key.Item1, key.Item2));
 
-		/// <summary>Whether a loaded assembly has a public type in that namespace, or in one inside it.</summary>
+		/// <summary>Whether a reference has a public type in that namespace, or in one inside it.</summary>
 		/// <remarks>
 		/// Inside it too, because C# takes `using System.Collections;` whether or not that
 		/// namespace declares a type of its own: it is there because something is in it.
 		/// </remarks>
-		public static bool Has(string @namespace) => (_namespaces ?? Gather()).Contains(@namespace);
+		public static bool Has(Assembly caller, string @namespace) =>
+			_namespaces.GetOrAdd(caller, static assembly => Gather(assembly)).Contains(@namespace);
 
 		static readonly ConcurrentDictionary<(Assembly, string), Type?> _inside = new();
 
@@ -265,20 +287,25 @@ public static partial class ExpressionParser
 			return true;
 		}
 
-		static Type? Search(string name)
+		static Type? Search(Assembly caller, string name)
 		{
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			Type? found = null;
+			foreach (var assembly in References(caller))
 				if (!assembly.IsDynamic && assembly.GetType(name, false, false) is { IsVisible: true } type)
-					return type;
+				{
+					if (found is not null && found != type)
+						throw new InvalidOperationException($"'{name}' is ambiguous between '{found.Assembly.FullName}' and '{type.Assembly.FullName}'.");
+					found = type;
+				}
 
-			return null;
+			return found;
 		}
 
-		static HashSet<string> Gather()
+		static HashSet<string> Gather(Assembly caller)
 		{
 			var namespaces = new HashSet<string>(StringComparer.Ordinal);
 
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			foreach (var assembly in References(caller))
 			{
 				if (assembly.IsDynamic)
 					continue;
@@ -307,7 +334,7 @@ public static partial class ExpressionParser
 				}
 			}
 
-			return _namespaces = namespaces;
+			return namespaces;
 		}
 	}
 }

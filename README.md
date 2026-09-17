@@ -41,7 +41,7 @@ query and filter languages, markup, and languages of your own — including ones
 ## Getting started
 
 ```xml
-<PackageReference Include="DotGram" Version="0.1.0"
+<PackageReference Include="DotGram" Version="0.1.1"
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 

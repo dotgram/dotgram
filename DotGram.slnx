@@ -67,6 +67,9 @@
 		</Project>
 	</Folder>
 	<Folder Name="/tests/">
+		<Project Path="tests/DotGram.GrammarLibrary/DotGram.GrammarLibrary.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>

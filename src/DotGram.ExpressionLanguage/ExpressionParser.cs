@@ -2878,7 +2878,7 @@ public static partial class ExpressionParser
 			if (@namespace is null)
 				throw new ArgumentNullException(nameof(@namespace));
 
-			if (!Loaded.Has(@namespace) && !Loaded.HasInside(Caller, @namespace))
+			if (!Loaded.Has(Caller, @namespace) && !Loaded.HasInside(Caller, @namespace))
 			{
 				Refuse(at.Start, $"The type or namespace name '{@namespace}' could not be found.");
 

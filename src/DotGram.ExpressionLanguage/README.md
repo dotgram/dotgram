@@ -3,6 +3,10 @@
 A C#-style expression language written in `.gram`, compiled into `System.Linq.Expressions`
 trees.
 
+**ExpressionLanguage is not a sandbox.** Do not compile or execute untrusted expression
+text. Expressions run with the permissions of the host process and can call accessible
+members, create objects, and access the calling assembly's internal types and members.
+
 It is an ordinary C# library. .Gram generated the parser into this assembly when it was
 compiled, so nothing here carries a parser runtime, and neither does anything that
 references it.
@@ -53,11 +57,16 @@ match.IsSuccess;   // false: there is no minus over a string
 match.Error;       // what Expression.Subtract said about String and Int32
 ```
 
-A type named rather than spelled as a keyword is found the way C# finds one: written whole,
-or through a `using` at the top of the text. Nothing is imported unasked, `System`
-included, and a text's `using`s are its own — the next text starts with none. What it can
-name is what C# written in the calling assembly could: public types, and that assembly's
-own internal types and members.
+A type can be named in full or through a `using` at the top of the text. Nothing is imported
+unasked, `System` included, and a text's `using`s are its own — the next text starts with none.
+Resolution uses the calling assembly and its transitive runtime assembly references, loaded
+through their owning load contexts on .NET. The caller's own types take precedence; other
+assemblies contribute public types. Duplicate public full names in referenced assemblies
+are ambiguous. Loading an unrelated plugin does not add names or extension methods.
+
+This runtime reference graph is not the C# compiler's original reference list: a reference
+unused by compiled code may not be recorded in assembly metadata. The overloads accepting
+an `Assembly` explicitly choose the caller whose graph and internal members are available.
 
 ```csharp
 var count = ExpressionParser.Compile<Func<IList<int>, int>>(
@@ -69,9 +78,10 @@ var count = ExpressionParser.Compile<Func<IList<int>, int>>(
 ```
 
 Conversions, operators and overloads follow C#'s rules: `x + 1.5` over an `int` is a
-`double`, `byte b = 1` fits, and `Math.Sqrt(x)` finds the `double` overload. Where it is
-not C# — no generic or extension method is called, and a constant is folded only across a
-minus — is written down, with the reason for each, at the top of the file below.
+`double`, `byte b = 1` fits, and `Math.Sqrt(x)` finds the `double` overload. Generic method
+type arguments can be inferred from arguments, and imported extension methods are considered
+when no applicable instance method is found, including LINQ calls such as `Where` and `Select`.
+The implementation's remaining differences from C# are described in the source below.
 
 The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
 AST specific to .Gram that must later be translated into an expression tree — which also

@@ -70,6 +70,12 @@ jobs:
           test -f analyzers/dotnet/cs/DotGram.dll || { echo "analyzer assembly missing"; exit 1; }
           test -f README.md                      || { echo "readme missing";            exit 1; }
           test -f SKILL.md                       || { echo "skill missing";             exit 1; }
+          version=$(sed -n 's/.*<version>\([^<]*\)<\/version>.*/\1/p' DotGram.nuspec)
+          test -n "$version" || { echo "package version missing"; exit 1; }
+          grep -Fq "blob/v$version/docs/syntax.md" SKILL.md || { echo "skill version differs from package"; exit 1; }
+          if grep -Eq 'github.com/dotgram/dotgram/(blob|tree)/main/' SKILL.md; then
+            echo "packaged skill points at main"; exit 1
+          fi
           if [ -d lib ]; then echo "generator package has a lib/ folder:"; find lib -type f; exit 1; fi
           cd ..
 

@@ -1,6 +1,8 @@
 DotGram language support
 
-Initial preview for Visual Studio 18.
+0.1.1: maintenance build alongside the generator capture and guard fixes.
+
+0.1.0: initial preview for Visual Studio 2022 17.14 and Visual Studio 18.
 
 - Syntax classification and diagnostics for standalone .gram files and embedded grammars.
 - Completion, signature help, Quick Info, brace matching, and folding.

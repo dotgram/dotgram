@@ -24,7 +24,7 @@ nothing to deploy beside your application.
 ## Getting started
 
 ```xml
-<PackageReference Include="DotGram" Version="0.1.0"
+<PackageReference Include="DotGram" Version="0.1.1"
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 

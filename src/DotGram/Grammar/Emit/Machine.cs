@@ -2394,6 +2394,28 @@ sealed partial class Machine
 					foreach (var slot in slots)
 						tests.Add($"candidate.State == {_captureOffsets[rule] + slot}");
 
+					if (member.Rule is null && slots.Any(DirectRepeated(rule).Contains))
+					{
+						writer.Line($"var guardPieces{memberIndex} = new global::System.Text.StringBuilder();");
+						if (member.IsOptional)
+							writer.Line($"var guardPieces{memberIndex}Present = false;");
+						using (writer.Block("for (var candidateAt = call + 1; candidateAt < entries.Count; candidateAt++)"))
+						{
+							writer.Line("var candidate = entries[candidateAt];");
+							using (writer.Block("if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && " +
+								$"({string.Join(" || ", tests)}))"))
+							{
+								writer.Line($"guardPieces{memberIndex}.Append(" + Cut("candidate.Position", "candidate.Value - candidate.Position") + ");");
+								if (member.IsOptional)
+									writer.Line($"guardPieces{memberIndex}Present = true;");
+							}
+						}
+						writer.Line($"var guardCaptured{memberIndex} = " +
+							(member.IsOptional ? $"guardPieces{memberIndex}Present ? guardPieces{memberIndex}.ToString() : null;" :
+								$"guardPieces{memberIndex}.ToString();"));
+						continue;
+					}
+
 					if (member.Rule is not null && member.IsSequence)
 					{
 						var collected = GuardSequenceTest(rule, slots);

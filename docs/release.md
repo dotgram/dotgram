@@ -15,9 +15,14 @@ The `build` workflow builds and checks artifacts. Publication is a separate manu
 
 ## Prepare the version
 
+For a maintenance release, start from the previous release tag and keep the release branch
+to fixes, tests, documentation and packaging. New features stay on `main`. Any candidate
+change after verification needs another successful CI run on the resulting commit.
+
 1. Set `Version` in `Directory.Build.props`. The VSIX takes this version too.
-2. Update the explicit versions in all package smoke projects and the installation
-   examples in the READMEs. Search for the previous version to find every occurrence.
+2. Update the explicit versions in all package smoke projects, installation examples
+   and the version-pinned links in `src/DotGram/SKILL.md`. Preserve previous release notes
+   and shipped diagnostic history. Search for the previous version to find every occurrence.
 3. Review each package's `Description`, `PackageReleaseNotes` and README, the VSIX
    release notes and Marketplace description, and the release notes under `docs/release-notes/`.
    Package README links must work from NuGet, including images.
@@ -44,7 +49,7 @@ gh run list --workflow build.yml --limit 10 --json databaseId,headSha,status,con
 Record the chosen run ID and verify that its commit is the local candidate:
 
 ```powershell
-$releaseVersion = '0.1.0'
+$releaseVersion = '0.1.1'
 $releaseTag = "v$releaseVersion"
 $releaseCommit = git rev-parse HEAD
 if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve the candidate commit.' }

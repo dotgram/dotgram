@@ -109,6 +109,10 @@ and an analyzer folder the compiler does not look in.
 
 ## The library packages
 
+Grammar reuse across projects is checked during the solution build and tests:
+`tests/DotGram.GrammarLibrary` produces a real assembly, and `ReferencedGrammarTests`
+executes parsers that include or inherit its grammar through `GramSource` metadata.
+
 `tests/DotGram.Sql.PackageSmoke`, `DotGram.Web.PackageSmoke`,
 `DotGram.ExpressionLanguage.PackageSmoke` and `DotGram.Finance.PackageSmoke` are
 independent consumers, each referencing only its own NuGet package. Empty local props

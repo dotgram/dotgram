@@ -11,17 +11,18 @@ time, no runtime package, and nothing to deploy beside the application.
 
 Everything below is checkable. The full specification is [`docs/syntax.md`][syntax], every
 diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are under
-[`examples/`][examples], and the largest grammars written in this notation — RFC 3986,
-RFC 5646, RFC 6570 and RFC 9651, an expression language, SQL:2023, and SQL-92 with T-SQL as
-a dialect over it — are
-[`DotGram.Web`][web], [`DotGram.ExpressionLanguage`][expressions] and [`DotGram.Sql`][sql].
+[`examples/`][examples], and complete parsers for JSON, HTTP fields, URIs, email addresses,
+timestamps, language tags, FIX 4.4, a C#-style expression language and SQL live in
+[`DotGram.Web`][web], [`DotGram.Finance`][finance], [`DotGram.ExpressionLanguage`][expressions]
+and [`DotGram.Sql`][sql]. These links describe the same version as this package.
 
-[syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
-[diagnostics]: https://github.com/dotgram/dotgram/blob/main/docs/diagnostics.md
-[examples]:    https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples
-[web]:         https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web
-[expressions]: https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage
-[sql]:         https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql
+[syntax]:      https://github.com/dotgram/dotgram/blob/v0.1.1/docs/syntax.md
+[diagnostics]: https://github.com/dotgram/dotgram/blob/v0.1.1/docs/diagnostics.md
+[examples]:    https://github.com/dotgram/dotgram/tree/v0.1.1/examples/DotGram.Examples
+[web]:         https://github.com/dotgram/dotgram/tree/v0.1.1/src/DotGram.Web
+[finance]:     https://github.com/dotgram/dotgram/tree/v0.1.1/src/DotGram.Finance
+[expressions]: https://github.com/dotgram/dotgram/tree/v0.1.1/src/DotGram.ExpressionLanguage
+[sql]:         https://github.com/dotgram/dotgram/tree/v0.1.1/src/DotGram.Sql
 
 ## The order to do it in
 
@@ -442,7 +443,7 @@ The traps, in the order they are usually met:
 - **Recovery is one repetition's.** There is no repair of a document, and no outcome at
   all for a failure past a commit point.
 
-[status]: https://github.com/dotgram/dotgram/blob/main/docs/status.md
+[status]: https://github.com/dotgram/dotgram/blob/v0.1.1/docs/status.md
 
 ## Working rules
 

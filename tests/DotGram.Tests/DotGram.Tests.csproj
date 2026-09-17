@@ -40,6 +40,7 @@
 		<!-- The examples carry no test framework so they can be copied as they stand;
 		     this project is what runs them. -->
 		<ProjectReference Include="..\..\examples\DotGram.Examples\DotGram.Examples.csproj" />
+		<ProjectReference Include="..\DotGram.GrammarLibrary\DotGram.GrammarLibrary.csproj" />
 
 		<!-- And the parsers that ship, for the same reason and one more: they are where
 		     the generator runs against a real Roslyn compilation of a real grammar, so

@@ -3,7 +3,7 @@
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
 		<RootNamespace>DotGram.Finance</RootNamespace>
 		<Description>FIX 4.4 tag-value parsing built with DotGram.</Description>
-		<PackageReleaseNotes>FIX 4.4 typed message parsing, strict and lenient validation, nested repeating groups, lossless raw data and vendor length/data pairs.</PackageReleaseNotes>
+		<PackageReleaseNotes>Maintenance release rebuilt with generator capture and guard fixes.</PackageReleaseNotes>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>fix;finance;parser;dotgram</PackageTags>
 		<PackageLicenseExpression>MIT AND Apache-2.0</PackageLicenseExpression>

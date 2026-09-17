@@ -10,7 +10,7 @@
 		<Description>SQL:2023, SQL-92 and T-SQL parsers written in .gram, with typed syntax trees and SQL writers.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;sql;iso-sql;tsql;t-sql;sql-server;dotgram</PackageTags>
-		<PackageReleaseNotes>First release: SQL:2023 parsing with a typed syntax tree and SQL writer; SQL-92 and T-SQL sharing a separate tree, writer and walker, with T-SQL parsers for SQL Server compatibility levels from 100 to 170.</PackageReleaseNotes>
+		<PackageReleaseNotes>Maintenance release rebuilt with generator capture and guard fixes. SQL:2023 and SQL-92/T-SQL retain their separate syntax trees and writers.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->

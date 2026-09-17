@@ -114,7 +114,7 @@ then quietly mean nothing.
 | a host inheriting the grammar of its base class | — | — | — | ✓ | ✓ |
 | the same naming itself with `[Gram(IncludedAs = "…")]` | — | — | — | ✓ | ✓ |
 | `[GramInclude(typeof(X), As = "…")]`, several at once §6.7 | — | — | — | ✓ | ✓ |
-| a base or an include in a referenced assembly, read from its `[GramSource]` §6.7 | — | — | — | ✓ | untested |
+| a base or an include in a referenced assembly, read from its `[GramSource]` §6.7 | — | — | — | ✓ | ✓ |
 | `[GramOptions(Suffix = "…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
 | a rule's own refusal message, `on fail "…"` §4/§7.5 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `internal parse`, `private find` §6 | ✓ | — | — | ✓ | ✓ |

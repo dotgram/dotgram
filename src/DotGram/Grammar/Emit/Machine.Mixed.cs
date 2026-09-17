@@ -279,6 +279,8 @@ sealed partial class Machine
 
 		public override IEnumerable<string> MarkRecords(string name) => [];
 
+		public override IReadOnlyList<string> RecordMarks(string name) => [];
+
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
 		{
 			if (owner is null)
