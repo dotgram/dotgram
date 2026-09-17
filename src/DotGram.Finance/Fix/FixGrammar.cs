@@ -27,10 +27,14 @@ namespace DotGram.Finance.Fix;
 			case 1:
 				size: Size & Separator & dataTag: Tag & '='
 				& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & Data
-		}) & end: (Separator | eof)
-		=> @(context.Create(tag, wire, parserSpan.Start).WithTerminator(end.Length))
+		})
+		=> @(context.Create(tag, wire, parserSpan.Start).WithTerminator(0))
 
-	Fields : @FixField[] = Field* recover Separator => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
+	Terminated(field, ending) : @FixField = value: field & end: ending => @(value.WithTerminator(end.Length))
+
+	Fields : @FixField[] =
+		Terminated(Field, (Separator | eof))*
+		recover Separator => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
 """,
 	LocationType  = typeof(IFixLocation),
 	SpanCaptures  = true,

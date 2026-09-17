@@ -106,6 +106,11 @@ The C# factory constructs each named case from its native value span.
 Conversions return `(Valid, Value)`; plain text returns a string.
 `LocationType = typeof(IFixLocation)` supplies the complete field extent.
 
+`Field` recognizes the field contents without the final separator. `Fields`
+repeats `Terminated(Field, (Separator | eof))`; the small parameterized wrapper
+preserves field locations and supplies a complete element for streaming `yield`.
+Recovery remains on the collection.
+
 `Separator` is an elementary rule. The pipe publication uses
 `with (Separator = LogSeparator)`. `Text` tests the rule with negative lookahead;
 it must retain that reference through specialization rather than flatten a named

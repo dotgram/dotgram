@@ -79,10 +79,11 @@ untouched older code as a reason to undo the user's style.
 
 ### Layout and alignment
 
-- Use a block body for ordinary methods and constructors, including a single
-  return when it benefits from the same layout as neighboring methods. Keep short,
-  obvious accessors and compact tables of forwarding members expression-bodied.
-  Do not mechanically convert every member in either direction.
+- Use block bodies for methods and constructors, including single-return methods
+  and forwarding methods. Do not use expression-bodied (`=>`) notation for them.
+  Short property accessors may remain expression-bodied. This does not prohibit
+  lambda expressions or grammar semantic actions.
+  Preserve unrelated existing code rather than reformatting it opportunistically.
 - Put each statement on its own line. Expand loop bodies and nested control flow;
   do not compress a constructor or a multi-statement loop into `{ ...; ...; }`.
   A simple `if`, `foreach` or `while` may omit braces, with its body on the next
