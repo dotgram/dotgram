@@ -165,6 +165,15 @@ public static partial class MultiQueryLanguage
 {
 }
 
+// Check the same new keywords and C# result types inside an embedded grammar.
+[Gram("""
+	Item : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+	Items : @int[] = Item*
+	parse Item as Value : @object
+	parse Items as Values stream bytes yield : @int
+	""")]
+public static partial class PublicationSyntaxPlayground;
+
 public static class MultiQueryExample
 {
 	public static object Select() => MultiQueryLanguage.ParseSelectQuery("select customer");

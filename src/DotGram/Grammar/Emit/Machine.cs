@@ -17,6 +17,43 @@ namespace DotGram.Grammar.Emit;
 /// </summary>
 sealed partial class Machine
 {
+	public bool BufferedInput { get; }
+	readonly bool _bufferedFind;
+	readonly bool _prefixTables;
+	public bool BufferedBytes { get; }
+	public bool BorrowedCaptures { get; }
+	string CaptureSpanType => $"global::System.ReadOnlySpan<{(BufferedBytes ? "byte" : "char")}>";
+	string EmptyCapture => BorrowedCaptures ? $"default({CaptureSpanType})" : "string.Empty";
+
+	// A first conservative release proof: one source-independent, deterministic rule.
+	// Silent proves that its repetitions cannot be shortened by the continuation.
+	// More general graphs keep input until their outstanding obligations are tracked.
+	bool CanReleaseBuffered
+	{
+		get
+		{
+			if (!BufferedInput || _bufferedFind || _rules.Count != 1 || _textCaptures.Count != 0) return false;
+			if (_factories.Values.SelectMany(factories => factories).Any(factory => CSharpEmitter.WantsText(_graph, factory))) return false;
+			var rule = _rules.First();
+			if (!_graph.Types.ContainsKey(rule)) return false;
+			var body = _graph.Bodies[rule];
+			while (body is Node.Construct construct)
+			{
+				if (construct.How is Construction.Expression expression &&
+					(CSharpEmitter.Uses(_graph, expression.Text, "parserLine") ||
+					 CSharpEmitter.Uses(_graph, expression.Text, "parserColumn") ||
+					 CSharpEmitter.Uses(_graph, expression.Text, "parserInput"))) return false;
+				body = construct.Body;
+			}
+			return NodeWalk.Descendants(body).All(node => node is
+				Node.Empty or Node.Literal or Node.Element or Node.Sequence or Node.Repeat) &&
+				Silent(body, FollowSets.Continuation.End);
+		}
+	}
+
+	string InputType => BufferedBytes ? "BufferedBytes" : BufferedInput ? "BufferedText" : "global::System.ReadOnlySpan<char>";
+	string ReadAt(string position) => BufferedInput ? $"text.Get({position})" : $"text[{position}]";
+
 	const int Return = 0;
 	const int Accept = 1;
 	const int Fail   = 2;
@@ -140,6 +177,8 @@ sealed partial class Machine
 
 			foreach (var index in _order)
 				if (_bodies[index].Contains("c = text[", StringComparison.Ordinal) ||
+					_bodies[index].Contains("c = text.Get(", StringComparison.Ordinal) ||
+					_bodies[index].Contains("c = (char)text.Get(", StringComparison.Ordinal) ||
 					_bodies[index].Contains("c == ", StringComparison.Ordinal))
 					return true;
 
@@ -171,6 +210,7 @@ sealed partial class Machine
 	bool _materializer;
 	bool _guardValues;
 	int _guards;
+	readonly Dictionary<Node, (Node.SwitchSelection Selection, int[] Targets)> _switches = new(NodeIdentity.Instance);
 	int _sharpens;
 	int _captures;
 
@@ -256,8 +296,13 @@ sealed partial class Machine
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
-		Replay.Report? replay = null)
+		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false)
 	{
+		BufferedInput = bufferedInput;
+		_bufferedFind = bufferedFind;
+		_prefixTables = prefixTables;
+		BufferedBytes = bufferedBytes;
+		BorrowedCaptures = bufferedBytes || spanCaptures;
 		_graph = graph;
 		_carrierKind = carrier;
 		_replay = replay;
@@ -280,6 +325,7 @@ sealed partial class Machine
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other));
 			var factories = CSharpEmitter.FactoriesOf(graph, results, rule);
+			if (BufferedBytes) factories = factories.Select(factory => factory with { Method = factory.Method + "_Bytes" }).ToArray();
 
 			_captureOffsets[rule] = _captures;
 			_factories[rule] = factories;
@@ -345,9 +391,16 @@ sealed partial class Machine
 				var (repetition, recovery, recoverySlot) = recoveries[found];
 				var plan = new RecoveryPlan(
 					rule, recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
-					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found),
+					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found) + (BorrowedCaptures ? "_Span" + _tag : ""),
 					recoverySlot < 0 ? null : layout.Slots[recoverySlot].Rule);
 
+				if (BorrowedCaptures && recovery.Factory is not null && recoverySlot >= 0)
+				{
+					var helper = new Writer(0);
+					CSharpEmitter.EmitRecoveryFactory(helper, results, rule, plan.Method, recovery, graph, recoverySlot,
+						BufferedBytes ? "global::System.ReadOnlySpan<byte>" : "global::System.ReadOnlySpan<char>");
+					_extra.Add(helper.ToString());
+				}
 				_recoveries[repetition] = plan;
 				_recoveryPlans.Add(plan);
 			}
@@ -972,7 +1025,7 @@ sealed partial class Machine
 	string Cut(string from, string length) =>
 		OverKinds
 			? $"Text_DotGram{_tag}(parserSource, parserStarts, parserLengths, {from}, {length})"
-			: $"text.Slice({from}, {length}).ToString()";
+			: $"text.Slice({from}, {length}){(BorrowedCaptures ? "" : ".ToString()")}";
 
 	/// <summary>
 	/// The token a terminal that builds stands on: the source it came from, where it begins,
@@ -1128,7 +1181,7 @@ sealed partial class Machine
 			: "";
 
 		using (file.Block(
-			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
+			$"static int {name}({InputType} text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
 			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
@@ -1153,6 +1206,7 @@ sealed partial class Machine
 	public string RenderEngine(string name)
 	{
 		var file = new Writer(0);
+
 		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
 		var hasValues = false;
 
@@ -1162,8 +1216,27 @@ sealed partial class Machine
 		if (hasValues)
 			EnsureMaterializer();
 
+		PlanLayout();
+		// Large split machines would otherwise put thousands of case labels back
+		// into the outer dispatcher, defeating the JIT budget of the parts.
+		var indexedDispatch = Divided && Dispatching().Count > 1000;
+		if (indexedDispatch)
+		{
+			var dispatch = Dispatching();
+			var numbered = Enumerable.Range(0, _parts.Count)
+				.SelectMany(part => Numbering(dispatch, part).Select(state => (State: state, Part: part)))
+				.ToArray();
+			var table = Enumerable.Repeat(-1, numbered.Max(one => one.State) + 1).ToArray();
+			table[Return] = Return;
+			table[Accept] = Accept;
+			table[Fail] = Fail;
+			foreach (var one in numbered) table[one.State] = one.Part + First;
+			file.Line($"static readonly int[] {name}_Dispatch = new int[] {{ {string.Join(", ", table)} }};");
+			file.Line();
+		}
+
 		using (file.Block(
-			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
+			$"static int {name}({InputType} text, int pos, int state, " +
 			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, " +
 			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
@@ -1200,7 +1273,7 @@ sealed partial class Machine
 				}
 
 				if (UsesChar)
-					file.Line("var c       = '\\0';");
+					file.Line(BufferedBytes ? "var c       = 0;" : "var c       = '\\0';");
 				file.Line("string[]? expected = null;");
 				// Set where a room check fails and read where a failure is recorded, so
 				// what it says is of the furthest failure and not of any (§7.5).
@@ -1242,7 +1315,9 @@ sealed partial class Machine
 				// Fallen into rather than jumped to: the entry above is the line before it.
 				file.Line("Dispatch:");
 
-				using (file.Block("switch (state)"))
+				using (file.Block(indexedDispatch
+					? $"switch ((uint)state < (uint){name}_Dispatch.Length ? {name}_Dispatch[state] : -1)"
+					: "switch (state)"))
 				{
 					file.Line($"case {Return}: goto Return;");
 					file.Line($"case {Accept}: goto Accept;");
@@ -1280,12 +1355,17 @@ sealed partial class Machine
 						{
 							var any = false;
 
-							foreach (var one in Numbering(cases, part))
+							if (indexedDispatch)
 							{
-								file.Line($"case {one}:");
-
-								any = true;
+								any = Numbering(cases, part).Any();
+								if (any) file.Line($"case {part + First}:");
 							}
+							else
+								foreach (var one in Numbering(cases, part))
+								{
+									file.Line($"case {one}:");
+									any = true;
+								}
 
 							if (!any)
 								continue;
@@ -1349,7 +1429,9 @@ sealed partial class Machine
 
 				file.Line();
 				file.Line("Accept:");
-				file.Line("if (whole && p != text.Length) { expected = null; goto Fail; }");
+				file.Line(BufferedInput
+					? "if (whole && text.Peek(p, out _)) { expected = null; goto Fail; }"
+					: "if (whole && p != text.Length) { expected = null; goto Fail; }");
 
 				if (hasValues || _recoveryPlans.Count > 0)
 				{
@@ -1609,7 +1691,7 @@ sealed partial class Machine
 						file.Line();
 
 						using (file.Block(
-							$"int {name}_Part{part}(global::System.ReadOnlySpan<char> text, " +
+							$"int {name}_Part{part}({InputType} text, " +
 							$"ref {CSharpEmitter.FailureType} failure)"))
 						{
 							using (file.Block("switch (state)"))
@@ -1780,7 +1862,9 @@ sealed partial class Machine
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
-					writer.Line(ignoreCase
+					writer.Line(BufferedBytes
+						? $"if (!text.Matches(p, {Quoted(value)}))"
+						: ignoreCase
 						? "if (!global::System.MemoryExtensions.Equals(" +
 						  $"text.Slice(p, {value.Length}), {Spanned(value)}, " +
 						  "global::System.StringComparison.OrdinalIgnoreCase))"
@@ -1910,7 +1994,7 @@ sealed partial class Machine
 				}
 
 				{
-					writer.Line("if ((uint)p >= (uint)text.Length)");
+					writer.Line($"if ({Short(1)})");
 					using (writer.Block(""))
 					{
 						if (_starves)
@@ -1923,7 +2007,7 @@ sealed partial class Machine
 				if (test != "true")
 				{
 					_usesChar = true;
-					writer.Line("c = text[p];");
+					writer.Line($"c = {ReadAt("p")};");
 					writer.Line($"if (!({test}))");
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
@@ -1949,8 +2033,18 @@ sealed partial class Machine
 				return target;
 			}
 
+			case Node.Choice(var alternatives) { Selection: { } selected }:
+			{
+				var targets = alternatives.Select(branch => Compile(branch, next, following)).ToArray();
+				_switches[selected.Selector] = (selected, targets);
+				return Compile(selected.Selector, next, following);
+			}
+
 			case Node.Choice(var alternatives):
 			{
+				if (_prefixTables && !OverKinds && PrefixPlan(alternatives) is { } prefixes)
+					return CompilePrefixChoice(alternatives, prefixes, next, following);
+
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
@@ -2283,6 +2377,7 @@ sealed partial class Machine
 
 			case Node.Guard(var condition):
 			{
+				var dispatch = _switches.TryGetValue(node, out var selection);
 				var rule = _owners[node];
 				var layout = CaptureLayout.Of(
 					_graph.Bodies[rule],
@@ -2299,7 +2394,7 @@ sealed partial class Machine
 				// names it — most conditions ask about the captures, not about the run.
 				if (node is Node.Guard { Text: var guardText } && CSharpEmitter.Uses(_graph, guardText, "parserText"))
 				{
-					parameters.Add("string parserText");
+					parameters.Add((BorrowedCaptures ? CaptureSpanType : "string") + " parserText");
 					arguments.Add(Cut("ruleStart", "p - ruleStart"));
 				}
 
@@ -2353,19 +2448,41 @@ sealed partial class Machine
 					var optional = member.IsOptional || slots.Count != member.Slots.Count;
 
 					var parameterType = member.Rule is null
-						? "string"
+						? BorrowedCaptures ? CaptureSpanType : "string"
 						: _results.ValueOf(member.Rule) + (member.IsSequence ? "[]" : "");
 
 					parameters.Add(
-						$"{parameterType}{(optional && !member.IsSequence ? "?" : "")} " +
+						$"{parameterType}{(optional && !member.IsSequence && !(BorrowedCaptures && member.Rule is null) ? "?" : "")} " +
 						ResultTypes.ParameterOf(member));
 					arguments.Add($"guardCaptured{visible.Count}");
 					visible.Add((member with { IsOptional = optional }, slots));
 				}
 
-				helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
-				CSharpEmitter.Handed(
-					helper, _lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
+				if (dispatch)
+				{
+					helper.Line($"static int {method}_Key(int value) => value;");
+					helper.Line($"static uint {method}_Key(uint value) => value;");
+					helper.Line($"static long {method}_Key(long value) => value;");
+					helper.Line($"static ulong {method}_Key(ulong value) => value;");
+					helper.Line($"static string? {method}_Key(string? value) => value;");
+					using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
+					{
+						helper.Line($"switch ({method}_Key(");
+						CSharpEmitter.Handed(helper, _lines, ((Node.Guard)node).At, condition + "))");
+						using (helper.Block(""))
+						{
+							for (var index = 0; index < selection.Selection.Labels.Count; index++)
+								helper.Line((selection.Selection.Labels[index] is { } label ? $"case {label}" : "default") + $": return {index};");
+							if (!selection.Selection.Labels.Contains(null)) helper.Line("default: return -1;");
+						}
+					}
+				}
+				else
+				{
+					helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
+					CSharpEmitter.Handed(
+						helper, _lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
+				}
 				_extra.Add(helper.ToString());
 
 				var state = Reserve(out var writer);
@@ -2458,7 +2575,7 @@ sealed partial class Machine
 					if (member.Rule is null)
 						writer.Line(
 							$"var guardCaptured{memberIndex} = guardCaptured{memberIndex}At < 0 ? " +
-							(member.IsOptional ? "null" : "string.Empty") + " : " +
+							(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty") + " : " +
 							Cut(
 								$"entries[guardCaptured{memberIndex}At].Position",
 								$"entries[guardCaptured{memberIndex}At].Value - " +
@@ -2539,6 +2656,16 @@ sealed partial class Machine
 				// `Fail:` everywhere but inside a committed choice, where a refused guard
 				// falls to the next tail rather than into the unwinder. A guard reads
 				// nothing and records nothing, so there is nothing to unwind past.
+				if (dispatch)
+				{
+					using (writer.Block($"switch ({method}({string.Join(", ", arguments)}))"))
+					{
+						for (var index = 0; index < selection.Targets.Length; index++)
+							writer.Line($"case {index}: goto {Label(writer, selection.Targets[index])};");
+						writer.Line($"default: expected = null; goto {Label(writer, _fail)};");
+					}
+					return state;
+				}
 				writer.Line(
 					$"if (!{method}({string.Join(", ", arguments)})) " +
 					$"{{ expected = null; goto {Label(writer, _fail)}; }}");
@@ -2584,7 +2711,7 @@ sealed partial class Machine
 				// atomic boundary, no commit walk — nothing is written that a commit
 				// would have to put out, which is the whole of what the braces meant.
 				if (_recoveries.Count == 0 &&
-					body is Node.Choice(var decided) && decided.Count > 1 &&
+					body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
 					decided.All(Weightless))
 				{
 					var chosen = Compile(decided[decided.Count - 1], next, following);
@@ -2606,7 +2733,7 @@ sealed partial class Machine
 				// `Silent`'s own Atomic case asks — recoveries included, whose owned
 				// mark only the engine's commit writes — so the two agree.
 				if (_recoveries.Count == 0 &&
-					(body is Node.Choice(var options)
+					(body is Node.Choice(var options) { Selection: null }
 						? AllSilent(options, following, sequence: false)
 						: Silent(body, following)))
 				{
@@ -2775,7 +2902,7 @@ sealed partial class Machine
 
 				using (writer.Block("if (p > 0)"))
 				{
-					writer.Line("c = text[p - 1];");
+					writer.Line($"c = {ReadAt("p - 1")};");
 					writer.Line($"if ({CSharpEmitter.Test(boundary, Tabulate)})");
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
@@ -2821,19 +2948,19 @@ sealed partial class Machine
 
 						if (isPositive)
 						{
-							atAsk.Line("if ((uint)p >= (uint)text.Length)");
+							atAsk.Line($"if ({Short(1)})");
 							using (atAsk.Block(""))
 								EmitTerminalFailure(atAsk, _fail, askedName);
-							atAsk.Line("c = text[p];");
+							atAsk.Line($"c = {ReadAt("p")};");
 							atAsk.Line($"if (!({asked}))");
 							using (atAsk.Block(""))
 								EmitTerminalFailure(atAsk, _fail, askedName);
 						}
 						else
 						{
-							using (atAsk.Block("if ((uint)p < (uint)text.Length)"))
+							using (atAsk.Block($"if ({Room(1)})"))
 							{
-								atAsk.Line("c = text[p];");
+								atAsk.Line($"c = {ReadAt("p")};");
 								atAsk.Line($"if ({asked})");
 								using (atAsk.Block(""))
 									EmitTerminalFailure(atAsk, _fail, askedName);
@@ -3093,7 +3220,7 @@ sealed partial class Machine
 			var tests = new List<string> { Room(rest.Length) };
 
 			if (rest.Length > 1)
-				tests.Add(
+				tests.Add(BufferedBytes ? $"text.Matches(p, {Quoted(rest)})" :
 					$"global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {rest.Length}), " +
 					$"{Spanned(rest)})");
 			else
@@ -3155,7 +3282,7 @@ sealed partial class Machine
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
 
-			writer.Line(
+			writer.Line(BufferedBytes ? $"if (!text.Matches(p, {Quoted(shared)}))" :
 				"if (!global::System.MemoryExtensions.SequenceEqual(" +
 				$"text.Slice(p, {shared.Length}), {Spanned(shared)}))");
 
@@ -3242,7 +3369,7 @@ sealed partial class Machine
 			var rest = text.Substring(shared.Length);
 
 			if (rest.Length > 1)
-				tests.Add(
+				tests.Add(BufferedBytes ? $"text.Matches(p + {shared.Length}, {Quoted(rest)})" :
 					$"global::System.MemoryExtensions.SequenceEqual(text.Slice({(shared.Length == 0 ? "p" : $"p + {shared.Length}")}, {rest.Length}), {Spanned(rest)})");
 			else if (rest.Length == 1)
 				tests.Add($"{At(shared.Length)} == {CSharpEmitter.Char(rest[0])}");
@@ -3405,13 +3532,14 @@ sealed partial class Machine
 	/// </remarks>
 	int CompileChainedChoice(
 		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following,
-		FirstSets.First? proven = null)
+		FirstSets.First? proven = null, Dictionary<Node, int>? prefixHeads = null)
 	{
 		var last   = alternatives.Count - 1;
 		var run    = LiteralGroup(alternatives, last, following.Plain);
 		var target = run > 0
 			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 			: Compile(alternatives[last], next, following);
+		if (prefixHeads is not null) prefixHeads[alternatives[last]] = target;
 		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
 
 		for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
@@ -3433,6 +3561,7 @@ sealed partial class Machine
 			}
 
 			var first = Compile(alternatives[i], next, following);
+			if (prefixHeads is not null) prefixHeads[alternatives[i]] = first;
 			var mine  = Decidable(alternatives[i]);
 			var state = Reserve(out var writer);
 
@@ -3468,9 +3597,9 @@ sealed partial class Machine
 			{
 				_usesChar = true;
 
-				using (writer.Block("if ((uint)p < (uint)text.Length)"))
+				using (writer.Block($"if ({Room(1)})"))
 				{
-					writer.Line("c = text[p];");
+					writer.Line($"c = {ReadAt("p")};");
 
 					// Not to the next alternative's own test but past it, wherever
 					// that test is one this jump has already answered. Reaching it
@@ -3558,19 +3687,19 @@ sealed partial class Machine
 		IReadOnlyList<Node> alternatives,
 		IReadOnlyList<(FirstSets.First Set, List<Node> Members)> groups,
 		int next,
-		FollowSets.Continuation following)
+		FollowSets.Continuation following, Dictionary<Node, int>? prefixHeads = null)
 	{
 		var heads = new int[groups.Count];
 
 		for (var i = 0; i < groups.Count; i++)
-			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set);
+			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set, prefixHeads);
 
 		var state     = Reserve(out var writer);
 		var arrayName = DeclareExpected([.. alternatives.SelectMany(Displays).Distinct()]);
 
 		_usesChar = true;
 
-		writer.Line("if ((uint)p >= (uint)text.Length)");
+		writer.Line($"if ({Short(1)})");
 		using (writer.Block(""))
 		{
 			if (_starves)
@@ -3579,7 +3708,7 @@ sealed partial class Machine
 			EmitTerminalFailure(writer, _fail, arrayName);
 		}
 
-		writer.Line("c = text[p];");
+		writer.Line($"c = {ReadAt("p")};");
 
 		using (writer.Block("switch (c)"))
 		{
@@ -3630,7 +3759,7 @@ sealed partial class Machine
 		// below.
 		var arrayName = DeclareExpected(PredictedDisplays(alternatives));
 
-		writer.Line("if ((uint)p >= (uint)text.Length)");
+		writer.Line($"if ({Short(1)})");
 		using (writer.Block(""))
 		{
 			if (_starves)
@@ -3639,7 +3768,7 @@ sealed partial class Machine
 			EmitTerminalFailure(writer, _fail, arrayName);
 		}
 
-		writer.Line("c = text[p];");
+		writer.Line($"c = {ReadAt("p")};");
 
 		for (var i = 0; i < targets.Length; i++)
 			writer.Line(advanced[i]
@@ -3806,7 +3935,7 @@ sealed partial class Machine
 
 			if (_starves)
 			{
-				writer.Line("if ((uint)p >= (uint)text.Length)");
+				writer.Line($"if ({Short(1)})");
 				using (writer.Block(""))
 				{
 					writer.Line("failure.Starved = true;");
@@ -3814,12 +3943,12 @@ sealed partial class Machine
 				}
 			}
 			else
-				writer.Line("if ((uint)p >= (uint)text.Length) break;");
+				writer.Line($"if ({Short(1)}) break;");
 
 			if (test != "true")
 			{
 				_usesChar = true;
-				writer.Line("c = text[p];");
+				writer.Line($"c = {ReadAt("p")};");
 				writer.Line($"if (!({test})) break;");
 			}
 
@@ -3972,6 +4101,8 @@ sealed partial class Machine
 
 			if (!direct)
 				atLoop.Line($"turn{mine} = p;");
+			if (mine == 0 && CanReleaseBuffered)
+				atLoop.Line("text.ReleaseBefore(p);");
 			atLoop.Line($"goto {Label(atLoop, inner)};");
 
 			target = loop;
@@ -4034,9 +4165,9 @@ sealed partial class Machine
 			var entered = Compile(body, next, following);
 			var state   = Reserve(out var atTest);
 
-			using (atTest.Block("if ((uint)p < (uint)text.Length)"))
+			using (atTest.Block($"if ({Room(1)})"))
 			{
-				atTest.Line("c = text[p];");
+				atTest.Line($"c = {ReadAt("p")};");
 				atTest.Line($"if ({RangesTest(begins.Ranges, Tabulate)}) goto {Label(atTest, entered)};");
 			}
 
@@ -4172,9 +4303,9 @@ sealed partial class Machine
 
 			var probed = Reserve(out var atProbe);
 
-			using (atProbe.Block("if ((uint)p < (uint)text.Length)"))
+			using (atProbe.Block($"if ({Room(1)})"))
 			{
-				atProbe.Line("c = text[p];");
+				atProbe.Line($"c = {ReadAt("p")};");
 				atProbe.Line($"if ({could}) goto {Label(atProbe, entry)};");
 			}
 
@@ -4466,7 +4597,7 @@ sealed partial class Machine
 	/// character left, and <c>p + 1 &gt; text.Length</c> is the general form of that
 	/// question rather than the question.
 	/// </remarks>
-	static string At(int offset) => offset == 0 ? "text[p]" : $"text[p + {offset}]";
+	string At(int offset) => ReadAt(offset == 0 ? "p" : $"p + {offset}");
 
 	/// <summary>Whether the input is too short for <paramref name="count"/> more.</summary>
 	/// <remarks>
@@ -4505,12 +4636,14 @@ sealed partial class Machine
 	/// which is the one direction a room check may not fail in.
 	/// </para>
 	/// </remarks>
-	static string Short(int count) =>
+	string Short(int count) =>
+		BufferedInput ? $"!text.Ensure(p, {count})" :
 		count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
 	/// <remarks>The same the other way up — see <see cref="Short"/>.</remarks>
-	static string Room(int count) =>
+	string Room(int count) =>
+		BufferedInput ? $"text.Ensure(p, {count})" :
 		count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
 
 	/// <summary>The literal as a span, for a comparison to be made against.</summary>
@@ -4584,7 +4717,7 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		helper.Line(
-			$"static int {method}(global::System.ReadOnlySpan<char> text, int p, " +
+			$"static int {method}({InputType} text, int p, " +
 			"ref string[]? expected)");
 
 		using (helper.Block(""))
@@ -4656,7 +4789,7 @@ sealed partial class Machine
 		return true;
 	}
 
-	static void Sharpen(Writer writer, string value, bool ignoreCase = false)
+	void Sharpen(Writer writer, string value, bool ignoreCase = false)
 	{
 		writer.Line($"if ({Folded(At(0), ignoreCase)} == {Folded(value[0], ignoreCase)})");
 
@@ -4851,7 +4984,7 @@ sealed partial class Machine
 
 	/// <summary>Whether a character stands in one of a set's ranges.</summary>
 	string SearchMethod =>
-		$"static bool {Search}(char[] set, char c)\n" +
+		$"static bool {Search}(char[] set, {(BufferedBytes ? "int" : "char")} c)\n" +
 		"{\n" +
 		"\tvar low  = 0;\n" +
 		"\tvar high = set.Length / 2 - 1;\n" +

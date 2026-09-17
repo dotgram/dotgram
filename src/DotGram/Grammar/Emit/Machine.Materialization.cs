@@ -40,7 +40,7 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		using (helper.Block(
-			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
+			$"static void Materialize_DotGram{_tag}({InputType} text, Parser parser, " +
 			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 			Materialize(helper, cached: Caches);
 
@@ -250,7 +250,7 @@ sealed partial class Machine
 
 				using (file.Block(
 					$"void Materialize_DotGram{_tag}_Part{part}(" +
-					"global::System.ReadOnlySpan<char> text, int completedAt)"))
+					$"{InputType} text, int completedAt)"))
 				{
 					file.Line("var completed = entries[completedAt];");
 					file.Line();
@@ -260,6 +260,21 @@ sealed partial class Machine
 							MaterializeRule(file, rule);
 				}
 			}
+
+		foreach (var rule in _rules)
+		{
+			if (!SplitConstruction(rule)) continue;
+			for (var part = 0; part * FactoriesPerPart < _factories[rule].Count; part++)
+			{
+				file.Line();
+				using (file.Block($"void {ConstructionPart(rule, part)}({InputType} text, int completedAt, int chosen)"))
+				{
+					file.Line("var completed = entries[completedAt];");
+					using (file.Block("switch (completed.RuleIndex)"))
+						MaterializeRule(file, rule, part * FactoriesPerPart);
+				}
+			}
+		}
 	}
 
 	/// <summary>
@@ -293,11 +308,20 @@ sealed partial class Machine
 
 			whole += cost;
 
-			if (cost > Limit)
+			var largest = cost;
+			if (SplitConstruction(rule))
+				for (var first = 0; first < _factories[rule].Count; first += FactoriesPerPart)
+				{
+					var construction = new Writer(0);
+					MaterializeRule(construction, rule, first);
+					largest = Math.Max(largest, Branches(construction.ToString()));
+				}
+
+			if (largest > Limit)
 				Oversize(
-					$"Building the value of '{rule.Name}' is estimated at {cost} basic " +
+					$"Building the value of '{rule.Name}' is estimated at {largest} basic " +
 					$"blocks in one switch case; past about {Limit}, the JIT compiles the " +
-					"method holding it without optimization, and a case cannot be divided. " +
+					"method holding it without optimization. " +
 					"Splitting the rule, or building the value in a method of your own " +
 					"called from its '=>', restores optimization.", rule);
 		}
@@ -387,23 +411,38 @@ sealed partial class Machine
 	{
 		using (file.Block("switch (rootRule)"))
 		{
-			foreach (var rule in _rules)
+			if (_rules.Count > 512)
 			{
-				if (ValueRule(rule) < 0)
-					continue;
-
-				file.Line($"case {_ruleIds[rule]}:");
-
-				using (file.Indent())
+				// The number of semantic rules need not multiply identical table reads.
+				foreach (var group in _rules.Where(rule => ValueRule(rule) >= 0).GroupBy(rule =>
+					IsExtent(rule) ? "null" : ValueFrom(_results.QualifiedOf(rule)!, "0")))
 				{
-					// An extent was never put anywhere: the wrapper works it out from the
-					// position it gave and the one it was told.
-					file.Line(IsExtent(rule)
-						? "recognized = null;"
-						: $"recognized = {ValueFrom(_results.QualifiedOf(rule)!, "0")};");
-					file.Line("break;");
+					foreach (var rule in group) file.Line($"case {_ruleIds[rule]}:");
+					using (file.Indent())
+					{
+						file.Line($"recognized = {group.Key};");
+						file.Line("break;");
+					}
 				}
 			}
+			else
+				foreach (var rule in _rules)
+				{
+					if (ValueRule(rule) < 0)
+						continue;
+
+					file.Line($"case {_ruleIds[rule]}:");
+
+					using (file.Indent())
+					{
+						// An extent was never put anywhere: the wrapper works it out from the
+						// position it gave and the one it was told.
+						file.Line(IsExtent(rule)
+							? "recognized = null;"
+							: $"recognized = {ValueFrom(_results.QualifiedOf(rule)!, "0")};");
+						file.Line("break;");
+					}
+				}
 
 			file.Line("default:");
 
@@ -422,7 +461,7 @@ sealed partial class Machine
 			writer.Line($"var values{TableName(type)} = parser.Materialization{TableName(type)}();");
 	}
 
-	void MaterializeRule(Writer file, RuleSymbol rule)
+	void MaterializeRule(Writer file, RuleSymbol rule, int firstFactory = -1)
 	{
 		var offset    = _captureOffsets[rule];
 		var members   = _graph.Results[rule];
@@ -487,6 +526,23 @@ sealed partial class Machine
 				return;
 			}
 
+			if (firstFactory < 0 && SplitConstruction(rule))
+			{
+				ChooseConstruction(file);
+				using (file.Block($"switch (chosen / {FactoriesPerPart})"))
+					for (var part = 0; part * FactoriesPerPart < factories.Count; part++)
+					{
+						file.Line($"case {part}:");
+						using (file.Indent())
+						{
+							file.Line($"{ConstructionPart(rule, part)}(text, completedAt, chosen);");
+							file.Line("break;");
+						}
+					}
+				file.Line("break;");
+				return;
+			}
+
 			// One walk of a call's captures, not one per member. The list is chained through
 			// `linkNexts`, so every step of it is a load from somewhere else in the arena
 			// again — walking it once per member had a rule of five members chase the same
@@ -539,6 +595,16 @@ sealed partial class Machine
 				{
 					file.Line("var candidate = entries[capturedAt];");
 					file.Line();
+
+					// A yielded recovery with a factory produces one scalar, not a one-item array.
+					foreach (var plan in _recoveryPlans)
+						if (plan.Rule == rule && plan.Recovery.YieldStep && plan.Recovery.Factory is not null)
+							foreach (var memberIndex in scalars)
+								if (members[memberIndex].Slots.Contains(plan.Slot - offset))
+								{
+									file.Line($"if (candidate.Kind == ParserEntry.Recovery && candidate.State == {plan.Id} && candidate.CallIndex == completedAt)");
+									file.Then($"captured{memberIndex}At = capturedAt;");
+								}
 
 					// A slot belongs to one member, so the state that names it is a jump
 					// rather than a run of comparisons. The kind is still tested inside:
@@ -631,7 +697,7 @@ sealed partial class Machine
 						for (var part = 0; part < sited.Members.Count; part++)
 							arguments.Add(
 								$"captured{memberIndex}_{part}From < 0 ? " +
-								(sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
+								(BorrowedCaptures ? EmptyCapture : sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
 								Cut($"captured{memberIndex}_{part}From",
 									$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From"));
 
@@ -766,7 +832,7 @@ sealed partial class Machine
 				{
 					file.Line(
 						$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
-						(member.IsOptional ? "null" : "string.Empty") + " : " +
+						(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty") + " : " +
 						Cut($"captured{memberIndex}From",
 							$"captured{memberIndex}To - captured{memberIndex}From") + ";");
 					file.Line();
@@ -781,10 +847,10 @@ sealed partial class Machine
 				// not tile, what stands between them is not part of the value, and the
 				// pieces are copied out in reading order instead. The walk runs backwards,
 				// so the buffer is filled from its end.
-				file.Line($"string{(member.IsOptional ? "?" : "")} captured{memberIndex};");
+				file.Line($"{(BorrowedCaptures ? CaptureSpanType : "string" + (member.IsOptional ? "?" : ""))} captured{memberIndex};");
 				file.Line();
 				file.Line($"if (captured{memberIndex}From < 0)");
-				file.Then($"captured{memberIndex} = {(member.IsOptional ? "null" : "string.Empty")};");
+				file.Then($"captured{memberIndex} = {(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty")};");
 				file.Line(
 					$"else if (captured{memberIndex}To - captured{memberIndex}From == " +
 					$"captured{memberIndex}Length)");
@@ -807,7 +873,7 @@ sealed partial class Machine
 					}
 					else
 					{
-						file.Line($"var captured{memberIndex}Chars = new char[captured{memberIndex}Length];");
+						file.Line($"var captured{memberIndex}Chars = new {(BufferedBytes ? "byte" : "char")}[captured{memberIndex}Length];");
 						file.Line($"var captured{memberIndex}At    = captured{memberIndex}Length;");
 					}
 
@@ -846,7 +912,7 @@ sealed partial class Machine
 							file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
 							file.Line(
 								$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
-								$"new global::System.Span<char>(captured{memberIndex}Chars, " +
+								$"new global::System.Span<{(BufferedBytes ? "byte" : "char")}>(captured{memberIndex}Chars, " +
 								$"captured{memberIndex}At, captured{memberIndex}Piece));");
 						}
 					}
@@ -855,7 +921,7 @@ sealed partial class Machine
 					file.Line(
 						OverKinds
 							? $"captured{memberIndex} = captured{memberIndex}Built.ToString();"
-							: $"captured{memberIndex} = new string(captured{memberIndex}Chars);");
+							: BorrowedCaptures ? $"captured{memberIndex} = captured{memberIndex}Chars;" : $"captured{memberIndex} = new string(captured{memberIndex}Chars);");
 				}
 
 				file.Line();
@@ -871,37 +937,25 @@ sealed partial class Machine
 						$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
 						(i + 1 < members.Count ? "," : ");"));
 		}
-		else if (factories.Count == 1)
+		else if (factories.Count == 1 || SameIdentityConstruction(factories))
 		{
-			// One factory means the question the Construct entry answered — which
-			// construction ran — has only one answer, so no entry was written and
-			// there is nothing to walk for.
+			// A single construction needs no choice. Neither do alternatives that
+			// all return the same typed capture: their factories differ only in source
+			// location, and running one still applies Locate exactly once.
 			file.Line(
 				$"{ValueInto(type, "completedAt")} = " +
 				$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))});");
 		}
 		else
 		{
-			file.Line("var chosen = -1;");
+			if (firstFactory < 0) ChooseConstruction(file);
 
-			using (file.Block(
-				"for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; " +
-				"chosenAt = linkNexts[chosenAt])"))
-			{
-				file.Line("var candidate = entries[chosenAt];");
-
-				using (file.Block(
-					"if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)"))
-				{
-					file.Line("chosen = candidate.State;");
-					file.Line("break;");
-				}
-			}
-
-			file.Line("global::System.Diagnostics.Debug.Assert(chosen >= 0);");
+			var endFactory = firstFactory < 0
+				? factories.Count
+				: Math.Min(factories.Count, firstFactory + FactoriesPerPart);
 
 			using (file.Block("switch (chosen)"))
-				for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
+				for (var factoryIndex = Math.Max(0, firstFactory); factoryIndex < endFactory; factoryIndex++)
 				{
 					var factory = factories[factoryIndex];
 
@@ -919,6 +973,62 @@ sealed partial class Machine
 
 		file.Line("break;");
 	}
+	}
+
+	// A limit on construction alternatives as well as control-flow size: the JIT
+	// can reserve distinct span/position temporaries for every switch case, so even
+	// an optimized method with hundreds of simple cases pays a large frame per call.
+	const int FactoriesPerPart = 64;
+
+	bool SplitConstruction(RuleSymbol rule) =>
+		ValueRule(rule) >= 0 && !IsExtent(rule) &&
+		!(_reread?.Contains(rule) ?? false) && !_graph.Externals.ContainsKey(rule) &&
+		!_graph.Folds.ContainsKey(rule) && _factories[rule].Count > FactoriesPerPart &&
+		!SameIdentityConstruction(_factories[rule]);
+
+	string ConstructionPart(RuleSymbol rule, int part) =>
+		$"Materialize_DotGram{_tag}_Construct{_ruleIds[rule]}_Part{part}";
+
+	static void ChooseConstruction(Writer file)
+	{
+		file.Line("var chosen = -1;");
+
+		using (file.Block(
+			"for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; " +
+			"chosenAt = linkNexts[chosenAt])"))
+		{
+			file.Line("var candidate = entries[chosenAt];");
+
+			using (file.Block(
+				"if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)"))
+			{
+				file.Line("chosen = candidate.State;");
+				file.Line("break;");
+			}
+		}
+
+		file.Line("global::System.Diagnostics.Debug.Assert(chosen >= 0);");
+	}
+
+	bool SameIdentityConstruction(IReadOnlyList<Factory> factories)
+	{
+		var first = factories[0];
+		if (first.Members.Count != 1) return false;
+		var member = first.Members[0];
+		if (member.Rule is null || member.IsSequence || member.IsOptional) return false;
+		var type = _results.ValueOf(member.Rule);
+
+		foreach (var factory in factories)
+		{
+			if (factory.Located != first.Located || factory.Accumulator is not null ||
+				factory.Members.Count != 1 ||
+				factory.Of is not Node.Construct { How: Construction.Expression expression }) return false;
+			var other = factory.Members[0];
+			if (other.Rule is null || other.IsSequence || other.IsOptional || other.Name != member.Name ||
+				_results.ValueOf(other.Rule) != type ||
+				(expression.Text.Trim() != other.Name && expression.Text.Trim() != "(" + other.Name + ")")) return false;
+		}
+		return true;
 	}
 
 	/// <summary>
@@ -1336,7 +1446,7 @@ sealed partial class Machine
 
 		file.Line(member.Rule is null
 			? $"var foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
-				(member.IsOptional ? "null" : "string.Empty") + " : " +
+				(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty") + " : " +
 				Cut(
 					$"entries[foldCaptured{memberIndex}At].Position",
 					$"entries[foldCaptured{memberIndex}At].Value - " +

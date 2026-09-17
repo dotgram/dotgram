@@ -580,13 +580,47 @@ sealed partial class Machine
 	/// <summary>C#'s reserved words, for the parameter a capture's name becomes.</summary>
 	static readonly HashSet<string> Keywords = ["base", "string", "object", "int", "value", "default", "params"];
 
+	ValueStorageKind _valueStorage;
+	bool _adaptiveStore;
+
+	/// <summary>Many types justify dense indexing when no guard can materialize and rewind records.</summary>
+	/// <remarks>Starts becomes the record-to-value map after the reachability pass has finished.</remarks>
+	bool DenseDirectValues => _valueStorage == ValueStorageKind.Auto &&
+		Carrier is TapeCarrier && !_directBuilds && _valueTypes.Count >= 8;
+
+	internal static void ShareDirectStores(IEnumerable<Machine> machines)
+	{
+		var readers = machines.Where(machine => machine.Carrier is TapeCarrier).ToArray();
+		var dense = readers.Any(machine => machine.DenseDirectValues);
+		foreach (var reader in readers)
+			((TapeCarrier)reader.Carrier).DenseStore = dense;
+	}
+
+	internal static void ShareAdaptiveStores(IEnumerable<Machine> machines, ValueStorageKind storage)
+	{
+		// Plan storage without resolving carriers: Mixed needs value arms registered
+		// first, and Auto must keep its later choice. A fallback tape reads these flags.
+		var all = machines.ToArray();
+		var readers = all.Where(machine => machine._carrierKind is CarrierKind.Tape or CarrierKind.Auto).ToArray();
+		var dense = readers.Any(machine => !machine._directBuilds && machine._valueTypes.Count >= 8);
+		var adaptive = !dense && readers.Any(machine => machine._directBuilds && machine._valueTypes.Count >= 32);
+		foreach (var machine in all)
+		{
+			machine._valueStorage = storage;
+			machine._adaptiveStore = storage == ValueStorageKind.Adaptive ||
+				storage == ValueStorageKind.Auto && adaptive && readers.Contains(machine);
+		}
+	}
+
 	/// <summary>Where a direct walk writes a rule's value: into the table's held slot.</summary>
 	string DirectInto(string type, string index) =>
-		ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
-
-	/// <summary>Where a direct walk reads one back.</summary>
-	string DirectFrom(string type, string index) =>
-		ValueFrom(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
+		DenseDirectValues
+			? $"values.V{TableName(type)}[valueSlot].Value"
+			: Carrier is TapeCarrier { AdaptiveStore: true }
+				? $"((uint){index} < (uint)values{TableName(type)}.Length ? ref values{TableName(type)}[{index}] : ref values.V{TableName(type)}[{index}]).Value"
+				: Carrier is TapeCarrier { PagedStore: true }
+					? $"values.V{TableName(type)}[{index}].Value"
+					: ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
 
 	/// <summary>The materializer for one direct machine: a walk over the log, a switch per rule.</summary>
 	/// <remarks>
@@ -645,8 +679,11 @@ sealed partial class Machine
 			var twice  = _directBuilds;
 			var strays = DirectStrays(rules);
 			var placed = DirectPositions(rules);
+			// Small materializers retain their straight walk. Large split methods can
+			// amortize selection; marks still need every record visited in order.
+			var selected = twice && strays && !UsesMarks && parts.Count > 1;
 
-			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")});");
+			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")});");
 			file.Line();
 			file.Line("var log   = ways.Log;");
 
@@ -681,7 +718,11 @@ sealed partial class Machine
 					file.Line("var at   = starts[back];");
 					file.Line("var slot = first + back;");
 					file.Line();
+					// A built value already owns the values its factory consumed. Reaching
+					// its children again cannot build anything the requested root still needs.
+					// The rollback watermark has invalidated reused records above before here.
 					file.Line("if (!live[slot]) continue;");
+					if (selected) file.Line("if (built[slot]) { live[slot] = false; continue; }");
 					file.Line();
 					file.Line($"var read = at + {(DirectPositions(rules) ? 4 : 2)};");
 					file.Line();
@@ -711,8 +752,9 @@ sealed partial class Machine
 				}
 			}
 
-			foreach (var type in _valueTypes)
-				file.Line($"var values{TableName(type)} = values.V{TableName(type)};");
+			if (!DenseDirectValues && Carrier is not TapeCarrier { PagedStore: true })
+				foreach (var type in _valueTypes)
+					file.Line($"var values{TableName(type)} = values.V{TableName(type)}{(Carrier is TapeCarrier { AdaptiveStore: true } ? ".First" : "")};");
 
 			file.Line();
 
@@ -728,8 +770,23 @@ sealed partial class Machine
 				file.Line();
 			}
 
-			using (file.Block("for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)"))
+			using (file.Block(selected
+				? "for (var slot = first; slot < ways.Records; slot++)"
+				: "for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)"))
 			{
+				if (selected)
+				{
+					// Starts already indexes the current window. Scan the compact live map
+					// only across holes, instead of rereading the tape for built subtrees.
+					using (file.Block("if (!live[slot])"))
+					{
+						file.Line("var next = global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(live, slot, ways.Records - slot), true);");
+						file.Line("if (next < 0) break;");
+						file.Line("slot += next;");
+					}
+					file.Line("var at = starts[slot - first];");
+					file.Line();
+				}
 				if (UsesMarks)
 				{
 					using (file.Block("if (log[at + 1] < 0)"))
@@ -741,7 +798,7 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				if (strays || twice)
+				if (!selected && (strays || twice))
 				{
 					file.Line(
 						"if (" +
@@ -935,6 +992,9 @@ sealed partial class Machine
 				return;
 			}
 
+			if (DenseDirectValues)
+				file.Line($"var valueSlot = values.Add{TableName(type)}(slot);");
+
 			if (_reread is not null && _reread.Contains(rule))
 			{
 				// A terminal that builds: the lexer measured it, and the character machine of its
@@ -1046,16 +1106,16 @@ sealed partial class Machine
 				file.Line($"var from{i} = log[read++];");
 				file.Line($"var to{i}   = log[read++];");
 				file.Line(
-					$"var captured{i} = from{i} < 0 ? {(optional ? "null" : "string.Empty")} : " +
+					$"var captured{i} = from{i} < 0 ? {(BorrowedCaptures ? EmptyCapture : optional ? "null" : "string.Empty")} : " +
 					Cut($"from{i}", $"to{i} - from{i}") + ";");
 				break;
 
 			case MemberShape.Pieces:
 				file.Line($"var count{i} = log[read++];");
-				file.Line($"string{(optional ? "?" : "")} captured{i};");
+				file.Line($"{(BorrowedCaptures ? CaptureSpanType : "string" + (optional ? "?" : ""))} captured{i};");
 
 				using (file.Block($"if (count{i} == 0)"))
-					file.Line($"captured{i} = {(optional ? "null" : "string.Empty")};");
+					file.Line($"captured{i} = {(BorrowedCaptures ? EmptyCapture : optional ? "null" : "string.Empty")};");
 
 				using (file.Block($"else if (count{i} == 1)"))
 				{
@@ -1133,7 +1193,7 @@ sealed partial class Machine
 							}
 
 							file.Line();
-							file.Line($"captured{i} = new string(chars{i});");
+							file.Line(BorrowedCaptures ? $"captured{i} = chars{i};" : $"captured{i} = new string(chars{i});");
 						}
 					}
 				}
@@ -1181,7 +1241,13 @@ sealed partial class Machine
 		type == "SourceSpan"
 			? Span($"log[{record} + 2]", $"log[{record} + 3] - log[{record} + 2]")
 			: TableFor(type) >= 0
-				? $"values{TableName(type)}[{record}].Value"
+				? DenseDirectValues
+					? $"values.V{TableName(type)}[values.Starts[{record}]].Value"
+					: Carrier is TapeCarrier { AdaptiveStore: true }
+						? $"((uint){record} < (uint)values{TableName(type)}.Length ? values{TableName(type)}[{record}].Value : values.V{TableName(type)}[{record}].Value)"
+						: Carrier is TapeCarrier { PagedStore: true }
+							? $"values.V{TableName(type)}.Read({record}).Value"
+							: $"values{TableName(type)}[{record}].Value"
 				: throw new InvalidOperationException($"No value table for '{type}'.");
 
 	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>

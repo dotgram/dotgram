@@ -235,13 +235,15 @@ public sealed partial class GrammarNormalizer
 	/// what a `namespace` block names by declaring rules in its span, a `with` expression
 	/// names by calling them directly in the one expression it wraps.
 	/// </summary>
-	static HashSet<RuleSymbol> DirectCalls(Node root)
+	HashSet<RuleSymbol> DirectCalls(Node root)
 	{
 		var seed = new HashSet<RuleSymbol>();
 
 		foreach (var node in NodeWalk.Descendants(root))
-			if (node is Node.Call(var called, _))
-				seed.Add(called);
+		{
+			if (node is Node.Call(var called, _)) seed.Add(called);
+			if (_recoveries.TryGetValue(node, out var recovery)) seed.UnionWith(DirectCalls(recovery.Sync));
+		}
 
 		return seed;
 	}
@@ -269,7 +271,11 @@ public sealed partial class GrammarNormalizer
 			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at),
 			Node.External (var name) { HasValue: var hasValue }                     => new Node.External(name) { HasValue = hasValue },
 			Node.Sequence (var nodes)                                               => new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
-			Node.Choice   (var nodes)                                               => new Node.Choice([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+			Node.Choice   (var nodes)                                               => ((Node.Choice)node).Rebuild([.. nodes.Select(child => SpliceWithSites(child, rewrites))]) with
+			{
+				Selection = ((Node.Choice)node).Selection is { } selected
+					? selected with { Selector = (Node.Guard)SpliceWithSites(selected.Selector, rewrites) } : null,
+			},
 			Node.Atomic   (var body)                                                => new Node.Atomic(SpliceWithSites(body, rewrites)),
 			Node.Marked   (var body, var text)                                      => new Node.Marked(SpliceWithSites(body, rewrites), text),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
@@ -291,7 +297,7 @@ public sealed partial class GrammarNormalizer
 			_bounds[rebuilt] = bound;
 
 		if (_recoveries.TryGetValue(node, out var recovery))
-			_recoveries[rebuilt] = recovery;
+			_recoveries[rebuilt] = recovery with { Sync = SpliceWithSites(recovery.Sync, rewrites) };
 
 		if (rewrites.TryGetValue(node, out var site))
 			rebuilt = CloneAndRewrite(rebuilt, site.Targets, site.CloneMap, site.Name);
@@ -543,13 +549,16 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The calls in a body, not counting any a condition makes.</summary>
-	static IEnumerable<RuleSymbol> Called(Node node)
+	IEnumerable<RuleSymbol> Called(Node node)
 	{
 		if (node is Node.Condition)
 			yield break;
 
 		if (node is Node.Call(var called, _))
 			yield return called;
+
+		if (_recoveries.TryGetValue(node, out var recovery))
+			foreach (var one in Called(recovery.Sync)) yield return one;
 
 		foreach (var child in node.Children)
 			foreach (var one in Called(child))

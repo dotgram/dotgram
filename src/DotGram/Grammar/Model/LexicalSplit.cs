@@ -229,6 +229,8 @@ public sealed class LexicalSplit
 			foreach (var rule in valued)
 				results[rule] = [];
 
+			GrammarNormalizer.FactorCommittedPrefixes(graph, rules, bodies, results);
+
 			var syntax = new RecognitionGraph(
 				rules,
 				bodies,
@@ -463,7 +465,8 @@ public sealed class LexicalSplit
 				{
 					var rewritten = alternatives.Select(one => Rewrite(one, owner, blocked)).ToList();
 
-					return rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+					return ((Node.Choice)node).Selection is not null ? ((Node.Choice)node).Rebuild(rewritten)
+						: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 				}
 
 				// What is left of a node whose whole content was the lexer's is nothing, and

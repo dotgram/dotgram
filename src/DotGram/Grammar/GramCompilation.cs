@@ -9,6 +9,12 @@ public sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IRea
 	public IReadOnlyList<GeneratedSource> Sources     { get; } = sources;
 	public IReadOnlyList<GramDiagnostic>  Diagnostics { get; } = diagnostics;
 
+	/// <summary>Number of normalized rules, including specialized and library rules.</summary>
+	public int NormalizedRuleCount { get; init; }
+
+	/// <summary>Whether recognition uses the lexical split after fallback checks.</summary>
+	public bool UsesLexical { get; init; }
+
 	public bool HasErrors
 	{
 		get
@@ -126,6 +132,9 @@ public sealed class GramCompilerOptions
 	/// </remarks>
 	public bool Lexical { get; set; }
 
+	/// <summary>Dispatch disjoint literal prefixes through transition tables. Set false to use the previous strategy.</summary>
+	public bool PrefixTables { get; set; } = true;
+
 	/// <summary>
 	/// Whether a publication that needs none of the automaton may be compiled as methods
 	/// (<c>Machine.Direct.cs</c>). On by default; off keeps the engine for every publication,
@@ -166,6 +175,22 @@ public sealed class GramCompilerOptions
 	/// author's, and a grammar a chosen carrier cannot carry is compiled on the tape instead.
 	/// </summary>
 	public CarrierKind Carrier { get; set; } = CarrierKind.Auto;
+
+	/// <summary>
+	/// Typed value storage for all direct tape readers in this compilation. Other
+	/// carriers and the non-direct engine do not use these tables. Auto chooses at
+	/// generation time; explicit strategies override both dense and paged heuristics.
+	/// </summary>
+	public ValueStorageKind ValueStorage { get; set; } = ValueStorageKind.Auto;
+
+	/// <summary>Add a buffered pull-input form beside existing publications.</summary>
+	public bool BufferedInput { get; set; }
+
+	/// <summary>Add buffered byte-input publications; no text decoding is performed.</summary>
+	public bool BufferedBytes { get; set; }
+
+	/// <summary>Pass character captures to semantic actions as ReadOnlySpan&lt;char&gt;.</summary>
+	public bool SpanCaptures { get; set; }
 
 	/// <summary>
 	/// How many stacks one parse may take beyond the one it began on, or nought for as

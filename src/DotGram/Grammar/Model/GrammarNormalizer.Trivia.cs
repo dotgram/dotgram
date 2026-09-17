@@ -123,7 +123,7 @@ public sealed partial class GrammarNormalizer
 			}
 
 			case Node.Choice(var alternatives):
-				return new Node.Choice([.. alternatives.Select(one => Unwoven(one, seam))]);
+				return ((Node.Choice)node).Rebuild([.. alternatives.Select(one => Unwoven(one, seam))]);
 
 			case Node.Repeat(var body, var min, var max):
 				return new Node.Repeat(Unwoven(body, seam), min, max);

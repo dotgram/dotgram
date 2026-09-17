@@ -9,7 +9,20 @@ namespace DotGram.Grammar.Emit;
 
 sealed partial class Machine
 {
-	/// <summary>The class an immediate parser rents: the stacks a rule gathers on, one per value type and one for text.</summary>
+	/// <summary>One store is shared by all immediate machines in the generated class.</summary>
+	internal static void ShareImmediateStacks(IEnumerable<Machine> machines)
+	{
+		var carriers = machines.Select(machine => machine.Carrier).OfType<ImmediateCarrier>().ToList();
+		if (carriers.Count < 2)
+			return;
+
+		var stacks = new HashSet<string>(carriers.SelectMany(carrier => carrier.GatheredRequirements), StringComparer.Ordinal);
+
+		foreach (var carrier in carriers)
+			carrier.SharedRequirements = stacks;
+	}
+
+	/// <summary>The class an immediate parser rents: only the stacks its readers require.</summary>
 	/// <remarks>
 	/// <para>
 	/// A stack per type for what a rule gathers across turns, and one for pieces of text,
@@ -23,11 +36,11 @@ sealed partial class Machine
 	/// the collector's write barrier — a fifth of the parse, measured on the SQL yardstick.
 	/// </para>
 	/// </remarks>
-	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null)
+	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes, IReadOnlyCollection<string> stacks, string? stateType = null)
 	{
 		var text = new StringBuilder();
 
-		text.Append("/// <summary>What an immediate parse gathers on: a stack per value type, and one for text (Machine.Immediate.cs).</summary>\n");
+		text.Append("/// <summary>The stacks used by immediate readers in this class (Machine.Immediate.cs).</summary>\n");
 		text.Append("sealed class ImmediateValues\n{\n");
 		Stack(text, "string", "Text");
 
@@ -43,31 +56,42 @@ sealed partial class Machine
 				.Append(stateType).Append("[8];\n\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
-			Stack(text, valueTypes[i], i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
+			Stack(text, valueTypes[i], TableName(valueTypes[i]));
 
-		text.Append("\n\t[global::System.ThreadStatic]\n\tstatic ImmediateValues? _spare;\n\n");
-		text.Append("\tinternal static ImmediateValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new ImmediateValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
-		// Only the stacks something was pushed on. A grammar has a stack per value type and
-		// a parse gathers on one or two of them; the rest are asked whether they are empty,
-		// which is a compare, rather than told to empty themselves, which was a call. The
-		// high-water mark is the question: nothing is pushed without raising it, and the
-		// count never stands above it.
-		text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
-		Emptied(text, "Text");
-		Emptied(text, "Spans");
+		if (stacks.Count != 0 || stateType is not null)
+		{
+			text.Append("\n\t[global::System.ThreadStatic]\n\tstatic ImmediateValues? _spare;\n\n");
+			text.Append("\tinternal static ImmediateValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new ImmediateValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
+			// A required stack can still be unused by this particular parse. Its high-water
+			// mark includes values discarded by backtracking, so every retained reference
+			// is cleared before the store is made available to another parse.
+			text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
+			var capacities = stacks.OrderBy(stack => stack, StringComparer.Ordinal)
+				.Select(stack => "values.Stack" + stack + ".Length").ToList();
+			if (stateType is not null)
+				capacities.Add("values.MarkState.Length");
+			text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
+			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
+			Emptied(text, "Text");
+			Emptied(text, "Spans");
 
-		for (var i = 0; i < valueTypes.Count; i++)
-			Emptied(text, i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
+			for (var i = 0; i < valueTypes.Count; i++)
+				Emptied(text, TableName(valueTypes[i]));
 
-		text.Append("\t\t_spare = values;\n\t}\n\n");
+			text.Append("\t\t_spare = values;\n\t}\n\n");
+		}
+
 		text.Append("\t/// <summary>Whether a local a record would have been kept in was never written.</summary>\n");
 		text.Append("\tinternal static bool IsDefault<T>(T value) => global::System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default!);\n");
 		text.Append("}\n");
 
 		return text.ToString().Replace("\n", Lines.Ending);
 
-		static void Emptied(StringBuilder text, string tag)
+		void Emptied(StringBuilder text, string tag)
 		{
+			if (!stacks.Contains(tag))
+				return;
+
 			text.Append("\t\tif (values.High").Append(tag).Append(" > 0)\n\t\t{\n");
 			text.Append("\t\t\tglobal::System.Array.Clear(values.Stack").Append(tag)
 				.Append(", 0, values.High").Append(tag).Append(");\n");
@@ -75,8 +99,11 @@ sealed partial class Machine
 			text.Append("\t\t}\n\n");
 		}
 
-		static void Stack(StringBuilder text, string type, string tag)
+		void Stack(StringBuilder text, string type, string tag)
 		{
+			if (!stacks.Contains(tag))
+				return;
+
 			// `new T[8]` where the element type is itself an array is written `new E[8][]`,
 			// not `new E[][8]`: the size goes in the first rank, whatever the element is.
 			// A rule whose value is a sequence gathered across turns is exactly that type.
@@ -142,6 +169,12 @@ sealed partial class Machine
 		int _factory;
 		string? _start, _end;
 		readonly List<(DirectMember Member, string Value)> _puts = [];
+		internal readonly HashSet<string> GatheredRequirements = new(StringComparer.Ordinal);
+		internal IReadOnlyCollection<string>? SharedRequirements;
+
+		// Requirements are collected while writing the rule bodies, before entries and
+		// reader fields. Sharing the generated store must not add needs to this reader.
+		bool NeedsStorage => Marks || GatheredRequirements.Count != 0;
 		bool _accumulated;
 
 		/// <remarks>
@@ -153,7 +186,8 @@ sealed partial class Machine
 		{
 			get
 			{
-				yield return ("ImmediateValues", "values");
+				if (NeedsStorage)
+					yield return ("ImmediateValues", "values");
 
 				if (machine.OverKinds)
 					foreach (var token in Machine.TokenState)
@@ -321,7 +355,7 @@ sealed partial class Machine
 
 		public override string PutText(DirectMember member, string from, string to)
 		{
-			var missing = member.Member.IsOptional ? "null" : "string.Empty";
+			var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.Member.IsOptional ? "null" : "string.Empty";
 
 			_puts.Add((member, $"({from} < 0 ? {missing} : {machine.Cut(from, $"{to} - {from}")})"));
 
@@ -341,7 +375,7 @@ sealed partial class Machine
 		/// </summary>
 		public override string Collect(DirectMember member, string from, bool pairs)
 		{
-			var stack = pairs ? "Spans" : StackOf(machine._results.ValueOf(member.Member.Rule));
+			var stack = pairs ? Gathering("Spans") : StackOf(machine._results.ValueOf(member.Member.Rule));
 			var taken = $"values.Take{stack}({from}_{stack})";
 
 			_puts.Add((member, pairs ? $"Joined_DotGram({taken}, {(member.Member.IsOptional ? "true" : "false")})" : taken));
@@ -413,7 +447,7 @@ sealed partial class Machine
 			valueType == "SourceSpan" ? "lastSpan" : $"last{TableName(valueType)}";
 
 		public override string PushText(int slot, string from, string to) =>
-			$"values.PushSpans(((long)({from}) << 32) | (uint)({to}));";
+			$"values.Push{Gathering("Spans")}(((long)({from}) << 32) | (uint)({to}));";
 
 		/// <remarks>
 		/// §10's join, written once for the reader and called where a run of text is collected.
@@ -437,10 +471,10 @@ sealed partial class Machine
 
 				file.Line("/// <summary>A run of text gathered across turns, joined: one cut where its pieces tile, each piece on its own where they do not.</summary>");
 
-				using (file.Block("string Joined_DotGram(long[] pieces, bool optional)"))
+				using (file.Block($"{(machine.BorrowedCaptures ? machine.CaptureSpanType : "string")} Joined_DotGram(long[] pieces, bool optional)"))
 				{
 					file.Line("if (pieces.Length == 0)");
-					file.Then("return optional ? null! : string.Empty;");
+					file.Then(machine.BorrowedCaptures ? "return default;" : "return optional ? null! : string.Empty;");
 					file.Line();
 					file.Line("var first  = (int)(pieces[0] >> 32);");
 					file.Line("var last   = (int)pieces[pieces.Length - 1];");
@@ -452,18 +486,18 @@ sealed partial class Machine
 					file.Line("if (last - first == length)");
 					file.Then($"return {machine.Cut("first", "length")};");
 					file.Line();
-					file.Line("var built = new global::System.Text.StringBuilder();");
+					file.Line(machine.BorrowedCaptures ? "var built = new char[length]; int filled = 0;" : "var built = new global::System.Text.StringBuilder();");
 					file.Line();
 
 					using (file.Block("foreach (var piece in pieces)"))
 					{
 						file.Line("var from = (int)(piece >> 32);");
 						file.Line();
-						file.Line($"built.Append({machine.Cut("from", "(int)piece - from")});");
+						file.Line(machine.BorrowedCaptures ? "text.Slice(from, (int)piece - from).CopyTo(new global::System.Span<char>(built, filled, (int)piece - from)); filled += (int)piece - from;" : $"built.Append({machine.Cut("from", "(int)piece - from")});");
 					}
 
 					file.Line();
-					file.Line("return built.ToString();");
+					file.Line(machine.BorrowedCaptures ? "return built;" : "return built.ToString();");
 				}
 
 				file.Line();
@@ -493,19 +527,21 @@ sealed partial class Machine
 		/// <remarks>Peeked rather than taken: the record written later collects the same items.</remarks>
 		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text)
 		{
-			var stack = text ? "Text" : StackOf(type);
+			var stack = text ? Gathering("Text") : StackOf(type);
 
 			code.Line($"var {handed} = values.Peek{stack}({from}_{stack});");
 		}
 
 		public override IEnumerable<string> Rent()
 		{
-			yield return "var values = ImmediateValues.Rent();";
+			if (NeedsStorage)
+				yield return "var values = ImmediateValues.Rent();";
 		}
 
 		public override IEnumerable<string> Return()
 		{
-			yield return "ImmediateValues.Return(values);";
+			if (NeedsStorage)
+				yield return "ImmediateValues.Return(values);";
 		}
 
 		/// <remarks>Read off the reader, which is what the register is a field of.</remarks>
@@ -517,7 +553,7 @@ sealed partial class Machine
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => "";
 
 		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-			ImmediateValuesClass(valueTypes, stateType);
+			ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType);
 
 		public override string? Refuses()
 		{
@@ -554,7 +590,7 @@ sealed partial class Machine
 
 				var stack = member.Shape switch
 				{
-					MemberShape.Pieces  => "Spans",
+					MemberShape.Pieces  => Gathering("Spans"),
 					MemberShape.Records => StackOf(machine._results.ValueOf(member.Member.Rule)),
 					_                   => null,
 				};
@@ -564,10 +600,18 @@ sealed partial class Machine
 			}
 		}
 
+		/// <summary>Require a stack when writing an operation that uses it.</summary>
+		string Gathering(string stack)
+		{
+			GatheredRequirements.Add(stack);
+
+			return stack;
+		}
+
 		/// <summary>The stack a type's gathered values go on: the one numbered as its table is.</summary>
 		string StackOf(string valueType) =>
 			machine.TableFor(valueType) >= 0
-				? TableName(valueType)
+				? Gathering(TableName(valueType))
 				: throw new InvalidOperationException($"No value table for '{valueType}'.");
 	}
 }

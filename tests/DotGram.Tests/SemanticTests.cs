@@ -2230,14 +2230,12 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void But_not_of_a_rule_that_declares_its_own()
+	public void A_named_rule_can_repeat_its_result_type_as_a_public_contract()
 	{
-		// Nothing is lifted when the target is a name, so a type here would have nowhere
-		// to go — and the rule it names has already said what it produces.
-		Assert.Contains(
-			GramParser.PublicationTypeOnRule,
-			Compile("Word : @string = w: ['a'..'z']+ => @(w)\nparse Word as W : @string")
-				.Diagnostics.Select(diagnostic => diagnostic.Id));
+		var result = Compile("Word : @string = w: ['a'..'z']+ => @(w)\nparse Word as W : @string");
+		EmittedCode.Quiet(result.Diagnostics);
+		var assembly = EmittedCode.Compile(result.Sources.Single().Text);
+		Assert.Equal("abc", EmittedCode.Match(assembly, "Grammar", "TryW", "abc").Value);
 	}
 
 	[Fact]

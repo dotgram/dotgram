@@ -109,6 +109,7 @@ sealed partial class Machine
 			Node.Construct(var built, _)               => _valuesInLocals && Silent(built, following),
 
 			Node.Sequence(var parts)                   => AllSilent(parts, following),
+			Node.Choice { Selection: not null }        => false,
 			// Three ways a choice writes nothing. One character telling every alternative
 			// apart is the first, and the second is the whole choice being one run of
 			// literals: `CompileLiterals` decides those where their texts differ and never
@@ -145,7 +146,7 @@ sealed partial class Machine
 			// Not where the machine recovers: §8.2's discriminator rests on the commit
 			// marking the element owned, and that mark is the engine's.
 			Node.Atomic(var kept)                      => _recoveries.Count == 0 &&
-			                                              (kept is Node.Choice(var options)
+			                                              (kept is Node.Choice(var options) { Selection: null }
 			                                              ? AllSilentWithin(options, following)
 			                                              : SilentWithin(kept, following)),
 

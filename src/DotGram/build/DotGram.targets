@@ -1,0 +1,34 @@
+﻿<Project>
+	<PropertyGroup Condition="'$(DotGramReportGeneration)' == 'true'">
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$(IntermediateOutputPath)DotGramGenerated</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+	<ItemGroup>
+		<CompilerVisibleProperty Include="DotGramReportGeneration" />
+		<CompilerVisibleProperty Include="DesignTimeBuild" />
+		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(DotGramReportGeneration)' == 'true'" />
+	</ItemGroup>
+
+	<!-- Only reports from this compiler invocation may be printed. A skipped compile
+	     therefore prints nothing, and removed hosts cannot leave stale messages. -->
+	<Target Name="DotGramPrepareGenerationReports" BeforeTargets="CoreCompile"
+	        Condition="'$(DotGramReportGeneration)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+		<ItemGroup>
+			<_DotGramOldReports Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReport.g.cs" />
+		</ItemGroup>
+		<Delete Files="@(_DotGramOldReports)" />
+	</Target>
+
+	<Target Name="DotGramPrintGenerationReports" AfterTargets="CoreCompile"
+	        Condition="'$(DotGramReportGeneration)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+		<ItemGroup>
+			<_DotGramReports Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReport.g.cs" />
+			<FileWrites Include="@(_DotGramReports)" />
+		</ItemGroup>
+		<ReadLinesFromFile File="%(_DotGramReports.Identity)" Condition="'@(_DotGramReports)' != ''">
+			<Output TaskParameter="Lines" ItemName="_DotGramReportLines" />
+		</ReadLinesFromFile>
+		<Message Text="@(_DotGramReportLines->Replace('// ', ''), '%0A')" Importance="High"
+		         Condition="'@(_DotGramReportLines)' != ''" />
+	</Target>
+</Project>

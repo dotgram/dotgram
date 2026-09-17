@@ -123,6 +123,7 @@ static class Questions
 		var predicates = new List<string>();
 		var producers = new List<(string Method, string Against)>();
 		var contexts  = new List<string>();
+		var contracts = new List<string>();
 
 		Collect(file.Usings, file.Decls);
 
@@ -138,6 +139,11 @@ static class Questions
 				declared.Add(type + "[]");
 
 		var questions = ImmutableHashSet.CreateBuilder<Question>();
+		foreach (var contract in contracts)
+			foreach (var type in declared.Concat(new[] { "string", "byte[]" }))
+				foreach (var source in new[] { type }.Concat(imports.Select(import => import + "." + type)))
+					foreach (var target in new[] { contract }.Concat(imports.Select(import => import + "." + contract)))
+						questions.Add(Question.Fits(source, target));
 
 		// §4.1 case 2 asks which of the grammar's own result types fit into a sequence's
 		// element type, and it asks after binding — so every pairing is asked for here.
@@ -274,6 +280,11 @@ static class Questions
 					// them at once (GRAM3019). Which pair the model ends up asking about
 					// depends on which contract turns out to be the effective one, so every
 					// pairing is asked for here — the same superset as §4.1's above.
+					case Decl.Publish { ResultType: { } resultType }:
+						Type(resultType);
+						contracts.Add(GrammarNormalizer.TypeName(resultType));
+						break;
+
 					case Decl.Context(var contract):
 
 						Exists(contract);
@@ -332,6 +343,10 @@ static class Questions
 				// value and every guard.
 				case Expr.Construct(var pattern, _):
 					Walk(pattern);
+					return;
+
+				case Expr.Switch(_, var cases):
+					foreach (var branch in cases) Walk(branch.Body);
 					return;
 
 				case Expr.Guard:

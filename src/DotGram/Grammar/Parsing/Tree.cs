@@ -58,7 +58,7 @@ public sealed record Rebinding (string Left, string Right, Location At)         
 /// The two directives of §6, and the whole of the difference between them: whether
 /// input that does not match may sit between the matches.
 /// </summary>
-public enum PublishKind { Parse, Find }
+public enum PublishKind { Parse, Find, Yield }
 
 /// <summary>Who may call what a directive publishes (§6): C#'s three, and public unless it says.</summary>
 public enum PublishAccess { Public, Internal, Private }
@@ -104,6 +104,14 @@ public abstract record Decl : ILocated
 	{
 		/// <summary><c>internal parse …</c>, <c>private find …</c>: what the methods are declared as.</summary>
 		public PublishAccess Access { get; init; }
+
+		/// <summary>Requests an additional buffered pull-input publication.</summary>
+		public bool BufferedInput { get; init; }
+
+		public bool BufferedBytes { get; init; }
+
+		public bool Yield { get; init; }
+		public TypeRef? ResultType { get; init; }
 	}
 
 	/// <summary>
@@ -149,6 +157,8 @@ public abstract record Expr : ILocated
 	/// <summary>A repetition that survives a bad element (§8.2).</summary>
 	public sealed record Recovering(Expr Body, Expr Sync, Expr? Factory)       : Expr;
 
+	public sealed record Switch(Expr Value, IReadOnlyList<SwitchCase> Cases) : Expr;
+	public sealed record SwitchCase(string? Label, Expr Body);
 	public sealed record Guard     (Expr Value)                                : Expr;
 
 	/// <summary>
@@ -298,6 +308,11 @@ static class Dump
 					? $"Publication {access}{kind} {Quote(rule)}"
 					: $"Publication {access}{kind} {Quote(rule)} as {Quote(alias)}");
 
+				if (publish.BufferedInput) Write(text, depth + 1, "Input stream");
+				if (publish.BufferedBytes) Write(text, depth + 1, "Input stream bytes");
+				if (publish.Yield) Write(text, depth + 1, "Yield" + (publish.ResultType is { } yielded ? " " + Label(yielded) : ""));
+				else if (publish.ResultType is { } result) Write(text, depth + 1, "Result " + Label(result));
+
 				foreach (var rebinding in rebindings)
 					Write(text, depth + 1, Label(rebinding));
 
@@ -333,6 +348,7 @@ static class Dump
 		Expr.Glued(var operands)            => operands,
 		Expr.Construct(var pattern, var value) => [pattern, value],
 		Expr.Guard(var value)               => [value],
+		Expr.Switch(var value, var cases)    => new[] { value }.Concat(cases.Select(one => one.Body)).ToArray(),
 		Expr.Condition(var test)            => Test.Operands(test),
 		Expr.Capture(_, var operand)        => [operand],
 		Expr.Bound(var body, _, _)          => [body],
@@ -368,6 +384,7 @@ static class Dump
 		Expr.Sequence                             => "Sequence",
 		Expr.Glued                                => "Glued",
 		Expr.Guard                                => "Guard",
+		Expr.Switch                               => "Switch",
 		Expr.Condition                            => "Condition",
 		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",
 		Expr.Group                                => "Group",

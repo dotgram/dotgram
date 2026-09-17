@@ -165,7 +165,7 @@ public sealed partial class GrammarNormalizer
 				{
 					var inlined = Rebuilt(alternatives);
 
-					return inlined is null ? node : new Node.Choice(inlined);
+					return inlined is null ? node : ((Node.Choice)node).Rebuild(inlined);
 				}
 
 				case Node.Repeat(var body, var min, var max):

@@ -45,6 +45,7 @@ public enum TokenKind
 	Question,           // ?
 	Star,               // *
 	Plus,               // +
+	Minus,              // -
 	Caret,              // ^
 	Dot,                // .
 	DotDot,             // ..
@@ -78,6 +79,7 @@ public static class TokenKindExtensions
 		TokenKind.Question          => "?",
 		TokenKind.Star              => "*",
 		TokenKind.Plus              => "+",
+		TokenKind.Minus             => "-",
 		TokenKind.Caret             => "^",
 		TokenKind.Dot               => ".",
 		TokenKind.DotDot            => "..",

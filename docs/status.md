@@ -17,6 +17,7 @@ then quietly mean nothing.
 | references to elementary rules in a set | ✓ | ✓ | ✓ | ✓ | ✓ |
 | sequence `&` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | ordered choice `\|` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| computed `switch` over a C# integral/string result | ✓ | ✓ | ✓ | ✓ | ✓ |
 | quantifiers `? * + {n} {n,m}` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | lookahead `?=` `?!` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a capture of what a lookahead saw §3.4 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -136,6 +137,30 @@ record of a feed. **Incremental parsing** is not started, and has one known prer
 rather than a design: the arena would have to record each entry's *size* instead of its
 position, so that a tail nothing touched stays valid when an edit shifts everything
 after it (`docs/next.md`, the Nitra reading).
+
+## Recovery in yielded collections
+
+`Rule* recover Sync` and `Rule+ recover Sync` can be published with `yield`.
+Recognition uses one committed recovery iteration at a time; it does not parse the
+whole collection before yielding. A recovery factory returns one scalar result
+without allocating a one-element collection. Without a factory, the rejected
+iteration reports through the existing hook and yields no value. Ordinals and
+positions continue across iterations, and EOF retains ordinary recovery behavior.
+Character and byte buffered input support recovery factories with native span
+arguments. Existing restrictions on byte input and line/column tracking still apply.
+
+## Computed switch dispatch
+
+`switch @(expression) { case 1: Body default: Other }` selects one branch using an
+integral or string C# result. Selectors support preceding captures, context and
+span access on character and byte inputs, including yielded streams. A selected
+branch never falls through to a sibling on failure. Ordinary result inference is
+unchanged. Numeric/string labels, shared bodies and an optional default are supported.
+
+Computed dispatch currently uses the shared machine, not the direct-reader emitter.
+Lexical syntax reports the existing GRAM5005 fallback warning; computed switches
+inside token patterns cannot be compiled into the lexer's static tables. Buffered
+input retains its existing restriction on token-kind input (GRAM4026).
 
 ## Backtracking, and where it stops
 

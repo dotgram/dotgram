@@ -680,6 +680,8 @@ public sealed class TerminalInventory
 		{
 			switch (node)
 			{
+				case Node.Choice { Selection: not null }: return null;
+
 				case Node.Choice(var alternatives):
 				{
 					var literals = new List<Node.Literal>(alternatives.Count);
@@ -980,7 +982,7 @@ public sealed class TerminalInventory
 				Node.Call(var rule, _) when seen.Add(rule) &&
 					graph.Bodies.TryGetValue(rule, out var called) => Resolve(called, seen),
 				Node.Sequence([var only])             => Resolve(only, seen),
-				Node.Choice([var only])               => Resolve(only, seen),
+				Node.Choice([var only]) { Selection: null } => Resolve(only, seen),
 				Node.Atomic(var kept)                 => Resolve(kept, seen),
 				Node.Marked(var marked, _)            => Resolve(marked, seen),
 				_                                     => null,

@@ -42,6 +42,50 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesIndependentPublicationModifiers()
+	{
+		const string source = "Item : @string = 'a'\nFeed : @string[] = Item*\nparse Feed stream bytes yield : @string";
+		var document = GramLanguageService.Analyze(source);
+		var keywords = document.Classifications.Where(span => span.Kind == GramSyntaxKind.Keyword)
+			.Select(span => source.Substring(span.Position, span.Length)).ToArray();
+		Assert.Contains("stream", keywords);
+		Assert.Contains("bytes", keywords);
+		Assert.Contains("yield", keywords);
+	}
+
+	[Fact]
+	public void ClassifiesComputedChoiceAndItsCSharpSelector()
+	{
+		const string source = "Text = 'a'\nField = switch @(true ? 1 : 0) { case 1: Text; default: none }\nparse Field";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (source.Substring(span.Position, span.Length), span.Kind)).ToArray();
+
+		Assert.Empty(document.Diagnostics);
+		foreach (var keyword in new[] { "switch", "case", "default", "true" })
+			Assert.Contains((keyword, GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("1", GramSyntaxKind.Number), classified);
+		Assert.DoesNotContain(classified, item => item.Kind == GramSyntaxKind.EmbeddedCode);
+		Assert.Contains(document.Classifications, span =>
+			span.Position == source.IndexOf("Text;", StringComparison.Ordinal) && span.DefinitionPosition == 0);
+	}
+
+	[Theory]
+	[InlineData("parse Item as Value : @object")]
+	[InlineData("find Item : @object")]
+	[InlineData("parse Feed stream bytes yield : @string")]
+	public void ClassifiesPublicationResultTypes(string publication)
+	{
+		var source = "Item : @string = 'a'\nFeed : @string[] = Item*\n" + publication;
+		var document = GramLanguageService.Analyze(source);
+		var position = source.LastIndexOf('@') + 1;
+
+		Assert.Contains(document.Classifications, span =>
+			span.Position == position && span.Kind == GramSyntaxKind.Keyword);
+	}
+
+	[Fact]
 	public void UsesRoslynTokenKindsForBothCSharpValueForms()
 	{
 		const string source = "Primary : @int = '(' & inner: Sum & ')' => @(inner)\n" +
@@ -239,6 +283,19 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesStreamAndBytesAsKeywords()
+	{
+		const string source = "Start = stream & bytes";
+
+		var classified = GramLanguageService.Analyze(source).Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Contains(("stream", GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("bytes", GramSyntaxKind.Keyword), classified);
+	}
+
+	[Fact]
 	public void ClassifiesGrammarConditionsAndIndexesTheirRuleReferences()
 	{
 		const string source =
@@ -276,6 +333,54 @@ public sealed class GramLanguageServiceTests
 		Assert.DoesNotContain("not", classified);
 		Assert.DoesNotContain("and", classified);
 		Assert.DoesNotContain("or", classified);
+	}
+
+	[Fact]
+	public void ClassifiesOnFailWordsOnlyInRuleFailureClause()
+	{
+		const string source =
+			"Start : @string on fail \"Expected a value.\" = 'a' => @(\"a\")\n" +
+			"on = 'o'\n" +
+			"fail = on\n" +
+			"parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.DoesNotContain(document.Diagnostics,
+			diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
+		Assert.Equal(1, classified.Count(item => item is ("on", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("fail", GramSyntaxKind.Keyword)));
+		Assert.Contains(("\"Expected a value.\"", GramSyntaxKind.String), classified);
+		Assert.Contains(("on", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("fail", GramSyntaxKind.Identifier), classified);
+	}
+
+	[Fact]
+	public void ClassifiesAccessWordsOnlyOnPublicationDirectives()
+	{
+		const string source =
+			"Start = public\n" +
+			"public = internal\n" +
+			"internal = private\n" +
+			"private = 'p'\n" +
+			"public parse Start\n" +
+			"internal find Start\n" +
+			"private parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Equal(1, classified.Count(item => item is ("public", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("internal", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("private", GramSyntaxKind.Keyword)));
+		Assert.Contains(("public", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("internal", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("private", GramSyntaxKind.Identifier), classified);
 	}
 
 	[Fact]

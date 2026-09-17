@@ -156,6 +156,8 @@ public sealed class CaptureLayout
 			case Node.Choice(var alternatives):
 
 				_before[node] = _slots.Count;
+				if (((Node.Choice)node).Selection is { } selection)
+					_before[selection.Selector] = _slots.Count;
 
 				foreach (var alternative in alternatives)
 					Walk(alternative, buildsValue, repeated, inFold);
@@ -252,6 +254,8 @@ public sealed record ResultMember(
 /// </summary>
 public sealed record Recovery(Node Sync, string? Factory)
 {
+	public bool YieldStep { get; init; }
+
 	/// <summary>
 	/// The names §8.2 supplies to a failure factory, in the order it takes them.
 	/// </summary>

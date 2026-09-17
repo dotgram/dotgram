@@ -430,6 +430,10 @@ sealed partial class Machine
 	/// </remarks>
 	sealed class TapeCarrier(Machine machine) : ValueCarrier
 	{
+		internal bool DenseStore;
+		internal bool AdaptiveStore => machine._adaptiveStore;
+		internal bool PagedStore => machine._valueStorage == ValueStorageKind.Paged;
+
 		/// <remarks>
 		/// The tables where a guard builds; the tokens where a guard or a glue asks about
 		/// text over kinds; the context where a guard names it or builds a value whose
@@ -565,7 +569,11 @@ sealed partial class Machine
 		string ValueOfType(string type, string record) =>
 			type == "SourceSpan"
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
-				: $"values.V{TableName(type)}[{record}].Value";
+				: machine.DenseDirectValues
+					? $"values.V{TableName(type)}[values.Starts[{record}]].Value"
+					: PagedStore
+						? $"values.V{TableName(type)}.Read({record}).Value"
+						: $"values.V{TableName(type)}[{record}].Value";
 
 		/// <remarks>
 		/// Gathered turn by turn on the tape, and collected here the way the rule's end would
@@ -616,13 +624,13 @@ sealed partial class Machine
 				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});";
 
 			yield return
-				$"value = {(extent ? machine.RecordValue(type, "ways.Last").Replace("log[", "ways.Log[") : machine.DirectFrom(type, "ways.Last").Replace("values", "values.V"))};";
+				$"value = {(extent ? machine.RecordValue(type, "ways.Last").Replace("log[", "ways.Log[") : ValueOfType(type, "ways.Last"))};";
 		}
 
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => machine.RenderDirectMaterializer(rules);
 
 		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-			CSharpEmitter.DirectValuesClass(valueTypes, stateType);
+			CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore, PagedStore);
 
 		public override string? Refuses() => null;
 	}

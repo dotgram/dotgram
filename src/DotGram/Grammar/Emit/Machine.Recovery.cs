@@ -23,6 +23,7 @@ sealed partial class Machine
 		Node.Repeat repeatNode, RecoveryPlan recovery, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
+		if (recovery.Recovery.YieldStep) max = 1;
 
 		if (max == 0)
 			return next;
@@ -70,7 +71,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(atAsked, scan)};");
 
-		atScan.Line($"if ((uint)p >= (uint)text.Length) goto {Label(atScan, recovered)};");
+		atScan.Line($"if ({Short(1)}) goto {Label(atScan, recovered)};");
 		atScan.Line("syncFrom = p;");
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atScan, advance)}, p, call, atomic, repeat, lookahead, 0));");
 		atScan.Line($"goto {Label(atScan, sync)};");
@@ -98,6 +99,7 @@ sealed partial class Machine
 			{
 				atRecovered.Line("recoveryFrom = candidate.Position;");
 				atRecovered.Line("recoveryReach = candidate.AtomicIndex;");
+				atRecovered.Line("break;");
 			}
 			atRecovered.Line(
 				"if (!recoveryBoundary && candidate.Kind == ParserEntry.Choice && " +
@@ -111,7 +113,8 @@ sealed partial class Machine
 		DeactivateChoices(atRecovered, "repeat");
 		atRecovered.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
-			"repeat, lookahead, recoveryTo, entries[repeat].Value));");
+			"repeat, lookahead, recoveryTo, entries[repeat].Value" +
+			(recovery.Recovery.YieldStep ? " + failure.RecoveryOrdinal" : "") + "));");
 		atRecovered.Line("var recoveredRepeat = entries[repeat];");
 		atRecovered.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, " +

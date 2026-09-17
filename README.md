@@ -19,6 +19,9 @@
 [![Runtime dependencies: none](https://img.shields.io/badge/runtime%20dependencies-none-brightgreen)](#no-runtime-parser-library)
 [![License: MIT](https://img.shields.io/github/license/dotgram/dotgram)](LICENSE)
 
+> [!NOTE]
+> **Totally vibecoded™** — accidentally got 20,000+ tests, somehow learned dozens of specifications and notations, survived thousands of profiling runs, reviewed 200,000+ lines the agents wrote — including roughly 150,000 lines of C# — defended the architecture with both fists, nearly got into fights with the agents over it, got fuzzed, benchmarked, differential-tested, stress-tested, cross-platform tested, allocation-profiled, JIT-inspected, and survived verification against thousands of real SQL Server scripts; argued with Claude and Codex, made up, fired Claude twice and Codex three times, hired everyone back, nearly went drinking together, and somehow ended up friends.
+
 .Gram is a source generator that compiles grammars into strongly typed C# parsers, from
 single-character rules to the SQL standard.
 
@@ -465,10 +468,16 @@ difference, with the standard underneath written once.
 
 ## DotGram.Finance
 
-[`DotGram.Finance`](src/DotGram.Finance/README.md) parses FIX 4.4 tag-value messages
-into typed messages and nested groups. It provides `Fix44.Parse` and `TryParse`,
-Strict and Lenient policies, exact wire preservation, and length-aware raw data.
-Its grammars and model are generated from the official FIX Orchestra repository.
+[`DotGram.Finance`](src/DotGram.Finance/README.md) provides `FixParser.Parse` and
+`FixParser.TryParse` in the `DotGram.Finance.Fix` namespace. The parser returns typed fields,
+with lazy enumeration over character and byte streams, length-delimited binary
+data, and recovery through `FixField.Invalid`. `FixOptions` selects the delimiter
+and optional custom length/data pairs.
+
+`FixMessages` explicitly assembles messages and nested groups and applies Strict
+or Lenient validation. The field model and schema are maintained manually; the small handwritten grammar uses computed dispatch. The large
+[`Fix44` example](examples/DotGram.Examples/Finance/Fix44/Fix44Grammar.gram)
+remains available for grammar regression tests and benchmarks.
 
 ## DotGram.Web
 

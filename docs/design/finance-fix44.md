@@ -1,24 +1,36 @@
 # DotGram.Finance: FIX 4.4 parser
 
-## Scope and sources
+## Flat parser and explicit semantics
 
-Parse one complete contiguous tag-value message. No transport, session engine,
-streaming, persistence or serialization is included. Preserve the original wire.
+`FixParser.Parse` returns `FixField[]` for contiguous inputs and lazy
+`IEnumerable<FixField>` for `TextReader` and native byte `Stream` inputs. The
+generated buffered machine yields each complete field, releases consumed input,
+and preserves global locations. The explicit `yield : @FixField` publication
+returns fields incrementally. `recover Separator` produces `FixField.Invalid`
+with the rejected input, position and error, then resumes after the separator.
+The syntax path uses no message schema or envelope validator. Length fields
+provide raw-data boundaries; the parser checks the configured length/data tag pair.
+`FixOptions` selects SOH or pipe and an optional replacement pair dictionary.
 
-The source of schema generation is FIX Trading Community's
-[OrchestraFIX44.xml](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
-version `FIX.4.4_EP311`, pinned to commit
-`cd24169a2abd8daba7c360987c7a46ca11873a12`. This is the maintained FIX 4.4
-repository, not FIX Latest with its additional messages. Its Apache 2.0 license
-is retained beside the unmodified XML. The inventory is 93 messages, 912 fields,
-15 components, 92 groups and 247 code sets.
+The public API and shared types live in `DotGram.Finance.Fix`, with production sources
+in `src/DotGram.Finance/Fix`. The reference parser lives in
+`examples/DotGram.Examples/Finance/Fix44`, within the existing examples project,
+and is excluded from the Finance package.
 
-Wire rules follow the official
-[FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
-Application scope follows the
-[FIX 4.4 specification with 20030618 errata](https://www.fixtrading.org/documents/fix-4-4/).
-Conditional business requirements written in narrative documentation are not
-automatically executable schema constraints.
+`FixMessages` owns framing, message/group assembly and validation. Call
+`FixMessages.Build(source, fields)` to validate an already parsed field array, or
+`FixMessages.Parse` / `ReadMessages` to combine parsing with semantic processing.
+The historical measurements below include semantics, not only field recognition.
+
+## Scope
+
+Parse complete tag-value messages from strings, character readers or byte streams.
+No transport, session engine, persistence or serialization is included. Preserve
+the original wire and frame each message independently on a shared stream.
+
+Definitions and regression fixtures are maintained manually. The definitions cover
+93 messages, 912 fields, 15 components, 92 groups and 247 code sets.
+Conditional business requirements are not automatically executable schema constraints.
 
 ## Architecture assessment before implementation
 
@@ -30,10 +42,10 @@ Parameters accept compile-time values; an input capture cannot be passed as a
 runtime repetition count. The lexical split design note is not authoritative
 about implementation; `docs/status.md` and the emitter are.
 
-Use generated grammar for recognition and generated schema definitions for
+Use the grammar for recognition and schema definitions for
 structural validation and typed access. Raw data cannot be split on SOH: its
-preceding length determines the extent. First prove a bounded external recognizer
-for that extent, with ordinary tags, delimiters and text recognized by grammar.
+preceding length determines the extent. Buffered input does not support external
+recognizers, so guards bound ordinary grammar repetitions to that extent.
 Do not add FIX names, types or switches to DotGram core. Any necessary core
 extension must be specified and tested as a general language capability first.
 
@@ -50,12 +62,12 @@ values that do not fit CLR decimal or DateTime, including leap seconds.
 The character input contract must define how octets are represented: length and
 checksum are octet operations, not Unicode character operations. A lossless
 one-character-per-octet representation permits encoded fields without assuming
-that their payload is UTF-8. A future byte input can share source extents and
-schema shape without an interface call per character.
+that their payload is UTF-8. Native byte input uses the same field model and preserves raw binary payloads.
 
 ## Validation contract
 
-Both modes require unambiguous field boundaries, complete input and valid framing.
+`FixMessages` exposes Strict and Lenient modes. Both require unambiguous field
+boundaries, complete input and valid framing; recovered syntax errors are rejected.
 Strict additionally checks schema membership, required presence, primitive syntax,
 code sets, duplicate fields, group counts and group order. Optional components
 activate their required children only when present. Message body field order is
@@ -69,26 +81,67 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 
 ## Implemented grammar strategy
 
-Each MsgType has a specialized generated grammar. Ordinary body tags share a
-literal-set rule; groups retain specialized delimiters and nested productions.
-Explicit factories combine header arrays: an array-valued rule is not implicitly
-flattened by a surrounding sequence in the current compiler.
+The handwritten production `FixGrammar.gram` reads a numeric tag and uses
+`switch @(context.Kind(tag))` to select text or a length/data pair. C# validates
+the pair and `FixFactory.cs` constructs the corresponding `FixField`
+case. The common `Field` accepts a separator or EOF; the `Fields` collection
+adds recovery. Eager and lazy publications share this grammar.
 
-`NumInGroup` is interpreted during recognition through caller context. Group and
-entry recognition, entry repetition and body repetition are atomic. This matters:
-the counter stack cannot be replayed after a successful group is abandoned by
-backtracking. A failed group records a sticky error, and the public wrapper rejects
-that context even if another recognition path were to return a value. Malformed
-group-count tests cover every reachable group definition.
+The reference `Fix44Grammar` inherits `FixFieldGrammar`. Its
+`FixField.gram` retains a large `KnownField` choice with one alternative per
+standard numeric tag. Finance tests compare both parsers using the same field
+model, fixtures and streaming inputs; benchmarks can load either implementation.
 
-Raw-data recognition reads the preceding numeric length and advances across the
-payload as one extent. Grammar recognizes the tags and delimiters; validation checks
-the exact length/data association. Core DotGram requires no changes. Internal parser
-hosts use `Portable = false` because their grammar metadata is not a consumer API.
+`FixField.Cases.cs` supplies only nested case declarations in `partial class
+FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
+`FixConvert.cs` owns primitive conversions. Cases share `FixField` as their grammar
+result, so the machine does not need a separate value stack per case. The original
+wire view is called `FixFieldView`.
+
+The C# factory constructs each named case from its native value span.
+Conversions return `(Valid, Value)`; plain text returns a string.
+`LocationType = typeof(IFixLocation)` supplies the complete field extent.
+
+`Separator` is an elementary rule. The pipe publication uses
+`with (Separator = LogSeparator)`. `Text` tests the rule with negative lookahead;
+it must retain that reference through specialization rather than flatten a named
+set before `with` is applied.
+
+The parser host requests native character spans and buffered byte/character input.
+Handwritten conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> overloads.
+Numbers preserve exact precision; FIX calendar values preserve year zero and leap
+seconds. Standard code sets still constrain the underlying primitive in Strict mode.
+
+Raw data uses an atomic grammar rule: a guard computes the end from the immediately
+preceding registered length/data pair, and the grammar consumes blocks of 4096, 256 and 16 octets, then individual
+octets up to that end. Each attempt installs its own bound before consuming input. Guards use the end
+of parserSpan (the current position), which also works when rules are inlined.
+There is no external recognizer and no group-counter stack during recognition.
+
+`FixSemantics` interprets the flat fields using cached schema membership tables,
+constructs typed nested groups, and delegates field/requiredness/order validation
+to `FixValidation`. Group boundaries and counts are checked independently of the
+lexical grammar. Unknown vendor messages retain ordered flat body fields.
+
+A frame adapter reads exactly one BodyLength-delimited message without consuming
+the next one. Byte frames are recognized and converted natively; the legacy model
+also owns a character view for lossless field spans and validation. Streaming bounds
+retention to a frame, not an entire connection, but is not allocation-free.
+
+The shared grammar exposed general generator size issues. Identity alternatives
+that all return the same typed capture now share one materialization call, rather
+than a switch with hundreds of equivalent bodies. The reference parser uses `Direct = false`
+to keep large choices in the split automaton.
+
+The earlier shared grammar exposed another generator size issue. Large split machines now
+use a state-to-part lookup table in their outer dispatcher, and identical root-value
+reads share switch arms. Small machines keep their existing emitted shape. A
+600-rule regression test compares contiguous, character-stream and byte-stream
+results and rejection behavior. Neither emitter change refers to FIX.
 
 ## Coverage matrix
 
-Fixtures are generated schema coverage cases. Hand-authored tests separately check
+Fixtures are manually maintained schema coverage cases. Hand-authored tests separately check
 framing, malformed input, primitive boundaries, public API behavior and extensions.
 
 | Area | Source | Evidence |
@@ -98,13 +151,14 @@ framing, malformed input, primitive boundaries, public API behavior and extensio
 | Header and trailer | components 1024/1025 | Fully populated headers and signed trailers, framing and checksum failures |
 | Required/optional components | reference presence | Minimal/full fixtures, missing required fields and component activation checks |
 | 91 reachable groups | group graph | Typed entries in full fixtures; excessive count mutation for every reachable group |
-| Unused group definition | ExecsGrp (2016) | Retained in inventory/model/schema; no FIX 4.4 message references it |
+| Unused group definition | ExecsGrp (2016) | Retained in model/schema; no FIX 4.4 message references it |
 | Nested groups | groupRef graph | Full recursive fixtures and a hand-authored Parties/subgroup case |
 | 247 code sets | codeSets/codeSet | Every declared code tested; invalid code and IOIQty numeric cases |
 | Primitive types | datatype definitions | Invariant parsing; numeric, calendar, precision, multi-value and identifier boundaries |
 | Length/data | all 16 lengthId references | Every pair tested with embedded SOH, equals, NUL and non-ASCII octets |
 | BodyLength/CheckSum | tag-value specification | Exact octet length/sum, malformed length, overflow and truncation |
 | Extensions | explicit parser policy | Scalar tags, tags inside groups, unknown MsgType, registered vendor data pairs |
+| ADT and input forms | 912 field cases | Full/minimal fixtures agree for chars, bytes and pipes; tiny-buffer raw-data checks |
 | Wire preservation | field extents | Every fixture reconstructed byte-for-byte from ordered field wire spans |
 | Malformed input | grammar and validation | Every prefix of a message, targeted failures and 1,000 deterministic syntax mutations |
 | Performance | BenchmarkDotNet | Ordinary messages, 64 KiB data and 1,000 entries; allocation and messages/sec recorded |

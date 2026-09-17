@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Xml.Linq;
+using System.Text.Json;
 
 using DotGram.Finance.Fix;
 
@@ -12,22 +9,16 @@ namespace DotGram.Finance.Tests;
 
 public sealed class PrimitiveTests
 {
-	public static IEnumerable<object[]> OfficialCodes()
+	public static IEnumerable<object[]> KnownCodes()
 	{
-		XNamespace ns = "http://fixprotocol.io/2020/orchestra/repository";
-		var repository = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "OrchestraFIX44.xml")).Root!;
-		var codeSets = repository.Element(ns + "codeSets")!.Elements().ToDictionary(x => (string)x.Attribute("name")!);
-		foreach (var field in repository.Element(ns + "fields")!.Elements())
-		{
-			if (!codeSets.TryGetValue((string)field.Attribute("type")!, out var codeSet)) continue;
-			foreach (var code in codeSet.Elements(ns + "code"))
-				yield return new object[] { (int)field.Attribute("id")!, (string)code.Attribute("value")! };
-		}
+		using var cases = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "FieldCases.json")));
+		foreach (var code in cases.RootElement.GetProperty("codes").EnumerateArray())
+			yield return new object[] { code.GetProperty("tag").GetInt32(), code.GetProperty("value").GetString()! };
 	}
 
 	[Theory]
-	[MemberData(nameof(OfficialCodes))]
-	public void Every_official_code_is_accepted(int tag, string value) => Assert.True(Valid(tag, value), $"Tag {tag}: {value}");
+	[MemberData(nameof(KnownCodes))]
+	public void Every_known_code_is_accepted(int tag, string value) => Assert.True(Valid(tag, value), $"Tag {tag}: {value}");
 
 	[Theory]
 	[InlineData(38, "0", true)]
@@ -65,5 +56,5 @@ public sealed class PrimitiveTests
 	[InlineData(27, "12345", true)]
 	public void Primitive_boundaries(int tag, string value, bool expected) => Assert.Equal(expected, Valid(tag, value));
 
-	static bool Valid(int tag, string value) => FixPrimitives.Valid(new FixField(value, tag, 0, 0, value.Length), FixSchema.Type(tag), FixSchema.Codes(tag));
+	static bool Valid(int tag, string value) => FixPrimitives.Valid(new FixFieldView(value, tag, 0, 0, value.Length), FixSchema.Type(tag), FixSchema.Codes(tag));
 }

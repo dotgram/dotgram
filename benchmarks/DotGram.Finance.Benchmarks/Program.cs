@@ -1,20 +1,40 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Text;
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Columns;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
+using DotGram.Examples.Finance;
 using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;
 
 static class Program
 {
-	static void Main(string[] args) => BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args,
-		DefaultConfig.Instance.AddColumn(StatisticColumn.OperationsPerSecond));
+	static void Main(string[] args)
+	{
+		if (args.Length is 5 or 6 && args[0] == "profile")
+		{
+			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix");
+			return;
+		}
+		if (args.Length == 2 && args[0] == "--fix-jit-probe")
+		{
+			FixInitializationBenchmarks.Probe(args[1] == "previous");
+			return;
+		}
+		if (args.Length == 3 && args[0] == "--memory")
+		{
+			new Fix44InputBenchmarks { Workload = args[1] }.MeasureMemory(args[2]);
+			return;
+		}
+		BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args,
+			DefaultConfig.Instance.AddColumn(StatisticColumn.OperationsPerSecond));
+	}
 }
 
 [MemoryDiagnoser]
@@ -24,6 +44,8 @@ public class Fix44Benchmarks
 	string order = "";
 	string raw = "";
 	string groups = "";
+	byte[] orderBytes = Array.Empty<byte>();
+	byte[] rawBytes = Array.Empty<byte>();
 
 	[GlobalSetup]
 	public void Setup()
@@ -37,15 +59,37 @@ public class Fix44Benchmarks
 		// may be reordered independently of the entry field order.
 		body.Insert(0, "55=ABC|");
 		groups = Wire("W", body.ToString());
-		foreach (var input in new[] { heartbeat, order, raw, groups }) Fix44.Parse(input);
+		foreach (var input in new[] { heartbeat, order, raw, groups }) FixMessages.Parse(input);
+		orderBytes = Encoding.Latin1.GetBytes(order);
+		rawBytes = Encoding.Latin1.GetBytes(raw);
+		using var orderInput = new MemoryStream(orderBytes);
+		using var rawInput = new MemoryStream(rawBytes);
+		if (FixMessages.Parse(orderInput).OriginalWire != order || FixMessages.Parse(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
 	}
 
-	[Benchmark] public FixMessage Heartbeat() => Fix44.Parse(heartbeat);
-	[Benchmark] public FixMessage NewOrderSingle() => Fix44.Parse(order);
-	[Benchmark] public FixMessage LargeRawData() => Fix44.Parse(raw);
-	[Benchmark] public FixMessage RepeatingGroups() => Fix44.Parse(groups);
+	[Benchmark] public FixField[] FlatOrderFields() => FixParser.Parse(order);
+	[Benchmark] public FixField[] FlatRawFields()   => FixParser.Parse(raw);
+	[Benchmark] public FixField[] FlatGroupFields() => FixParser.Parse(groups);
 
-	static string Wire(string type, string fields)
+	[Benchmark] public FixMessage Heartbeat() => FixMessages.Parse(heartbeat);
+	[Benchmark] public FixMessage NewOrderSingle() => FixMessages.Parse(order);
+	[Benchmark] public FixMessage LargeRawData() => FixMessages.Parse(raw);
+	[Benchmark] public FixMessage RepeatingGroups() => FixMessages.Parse(groups);
+
+	[Benchmark]
+	public FixMessage NewOrderSingleBytes()
+	{
+		using var input = new MemoryStream(orderBytes, writable: false);
+		return FixMessages.Parse(input);
+	}
+	[Benchmark]
+	public FixMessage LargeRawDataBytes()
+	{
+		using var input = new MemoryStream(rawBytes, writable: false);
+		return FixMessages.Parse(input);
+	}
+
+	internal static string Wire(string type, string fields)
 	{
 		var body = "35=" + type + "|49=S|56=T|34=1|52=20260915-12:00:00|" + fields;
 		body = body.Replace('|', '\u0001');

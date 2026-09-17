@@ -1,0 +1,943 @@
+﻿using System;
+using System;
+#nullable enable
+
+namespace DotGram.Finance.Fix;
+
+static class FixFactories
+{
+	public static FixMessage Message(string type, string source, FixNode[] header, FixNode[] body, FixNode[] trailer) => type switch
+	{
+		"0" => new Heartbeat(source, header, body, trailer),
+		"1" => new TestRequest(source, header, body, trailer),
+		"2" => new ResendRequest(source, header, body, trailer),
+		"3" => new Reject(source, header, body, trailer),
+		"4" => new SequenceReset(source, header, body, trailer),
+		"5" => new Logout(source, header, body, trailer),
+		"6" => new IOI(source, header, body, trailer),
+		"7" => new Advertisement(source, header, body, trailer),
+		"8" => new ExecutionReport(source, header, body, trailer),
+		"9" => new OrderCancelReject(source, header, body, trailer),
+		"A" => new Logon(source, header, body, trailer),
+		"B" => new News(source, header, body, trailer),
+		"C" => new Email(source, header, body, trailer),
+		"D" => new NewOrderSingle(source, header, body, trailer),
+		"E" => new NewOrderList(source, header, body, trailer),
+		"F" => new OrderCancelRequest(source, header, body, trailer),
+		"G" => new OrderCancelReplaceRequest(source, header, body, trailer),
+		"H" => new OrderStatusRequest(source, header, body, trailer),
+		"J" => new AllocationInstruction(source, header, body, trailer),
+		"K" => new ListCancelRequest(source, header, body, trailer),
+		"L" => new ListExecute(source, header, body, trailer),
+		"M" => new ListStatusRequest(source, header, body, trailer),
+		"N" => new ListStatus(source, header, body, trailer),
+		"P" => new AllocationInstructionAck(source, header, body, trailer),
+		"Q" => new DontKnowTrade(source, header, body, trailer),
+		"R" => new QuoteRequest(source, header, body, trailer),
+		"S" => new Quote(source, header, body, trailer),
+		"T" => new SettlementInstructions(source, header, body, trailer),
+		"V" => new MarketDataRequest(source, header, body, trailer),
+		"W" => new MarketDataSnapshotFullRefresh(source, header, body, trailer),
+		"X" => new MarketDataIncrementalRefresh(source, header, body, trailer),
+		"Y" => new MarketDataRequestReject(source, header, body, trailer),
+		"Z" => new QuoteCancel(source, header, body, trailer),
+		"a" => new QuoteStatusRequest(source, header, body, trailer),
+		"b" => new MassQuoteAcknowledgement(source, header, body, trailer),
+		"c" => new SecurityDefinitionRequest(source, header, body, trailer),
+		"d" => new SecurityDefinition(source, header, body, trailer),
+		"e" => new SecurityStatusRequest(source, header, body, trailer),
+		"f" => new SecurityStatus(source, header, body, trailer),
+		"g" => new TradingSessionStatusRequest(source, header, body, trailer),
+		"h" => new TradingSessionStatus(source, header, body, trailer),
+		"i" => new MassQuote(source, header, body, trailer),
+		"j" => new BusinessMessageReject(source, header, body, trailer),
+		"k" => new BidRequest(source, header, body, trailer),
+		"l" => new BidResponse(source, header, body, trailer),
+		"m" => new ListStrikePrice(source, header, body, trailer),
+		"n" => new XMLnonFIX(source, header, body, trailer),
+		"o" => new RegistrationInstructions(source, header, body, trailer),
+		"p" => new RegistrationInstructionsResponse(source, header, body, trailer),
+		"q" => new OrderMassCancelRequest(source, header, body, trailer),
+		"r" => new OrderMassCancelReport(source, header, body, trailer),
+		"s" => new NewOrderCross(source, header, body, trailer),
+		"t" => new CrossOrderCancelReplaceRequest(source, header, body, trailer),
+		"u" => new CrossOrderCancelRequest(source, header, body, trailer),
+		"v" => new SecurityTypeRequest(source, header, body, trailer),
+		"w" => new SecurityTypes(source, header, body, trailer),
+		"x" => new SecurityListRequest(source, header, body, trailer),
+		"y" => new SecurityList(source, header, body, trailer),
+		"z" => new DerivativeSecurityListRequest(source, header, body, trailer),
+		"AA" => new DerivativeSecurityList(source, header, body, trailer),
+		"AB" => new NewOrderMultileg(source, header, body, trailer),
+		"AC" => new MultilegOrderCancelReplace(source, header, body, trailer),
+		"AD" => new TradeCaptureReportRequest(source, header, body, trailer),
+		"AE" => new TradeCaptureReport(source, header, body, trailer),
+		"AF" => new OrderMassStatusRequest(source, header, body, trailer),
+		"AG" => new QuoteRequestReject(source, header, body, trailer),
+		"AH" => new RFQRequest(source, header, body, trailer),
+		"AI" => new QuoteStatusReport(source, header, body, trailer),
+		"AJ" => new QuoteResponse(source, header, body, trailer),
+		"AK" => new Confirmation(source, header, body, trailer),
+		"AL" => new PositionMaintenanceRequest(source, header, body, trailer),
+		"AM" => new PositionMaintenanceReport(source, header, body, trailer),
+		"AN" => new RequestForPositions(source, header, body, trailer),
+		"AO" => new RequestForPositionsAck(source, header, body, trailer),
+		"AP" => new PositionReport(source, header, body, trailer),
+		"AQ" => new TradeCaptureReportRequestAck(source, header, body, trailer),
+		"AR" => new TradeCaptureReportAck(source, header, body, trailer),
+		"AS" => new AllocationReport(source, header, body, trailer),
+		"AT" => new AllocationReportAck(source, header, body, trailer),
+		"AU" => new ConfirmationAck(source, header, body, trailer),
+		"AV" => new SettlementInstructionRequest(source, header, body, trailer),
+		"AW" => new AssignmentReport(source, header, body, trailer),
+		"AX" => new CollateralRequest(source, header, body, trailer),
+		"AY" => new CollateralAssignment(source, header, body, trailer),
+		"AZ" => new CollateralResponse(source, header, body, trailer),
+		"BA" => new CollateralReport(source, header, body, trailer),
+		"BB" => new CollateralInquiry(source, header, body, trailer),
+		"BC" => new NetworkCounterpartySystemStatusRequest(source, header, body, trailer),
+		"BD" => new NetworkCounterpartySystemStatusResponse(source, header, body, trailer),
+		"BE" => new UserRequest(source, header, body, trailer),
+		"BF" => new UserResponse(source, header, body, trailer),
+		"BG" => new CollateralInquiryAck(source, header, body, trailer),
+		"BH" => new ConfirmationRequest(source, header, body, trailer),
+		_ => new CustomFixMessage(source, type, header, body, trailer),
+	};
+
+	public static IReadOnlyList<FixFieldSet> Group(int id, string source, List<FixNode[]> entries)
+	{
+		switch (id)
+		{
+			case 1007:
+			{
+				var result = new LegStipulationsEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new LegStipulationsEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1008:
+			{
+				var result = new NestedPartiesEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new NestedPartiesEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1009:
+			{
+				var result = new NestedParties2Entry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new NestedParties2Entry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1010:
+			{
+				var result = new NestedParties3Entry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new NestedParties3Entry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1012:
+			{
+				var result = new PartiesEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new PartiesEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1014:
+			{
+				var result = new PositionAmountDataEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new PositionAmountDataEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1015:
+			{
+				var result = new PositionQtyEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new PositionQtyEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1017:
+			{
+				var result = new SettlPartiesEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SettlPartiesEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1019:
+			{
+				var result = new StipulationsEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new StipulationsEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1020:
+			{
+				var result = new TrdRegTimestampsEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new TrdRegTimestampsEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 1023:
+			{
+				var result = new UnderlyingStipulationsEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new UnderlyingStipulationsEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2001:
+			{
+				var result = new AffectedOrdGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new AffectedOrdGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2002:
+			{
+				var result = new AllocAckGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new AllocAckGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2003:
+			{
+				var result = new AllocGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new AllocGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2004:
+			{
+				var result = new BidCompReqGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new BidCompReqGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2005:
+			{
+				var result = new BidCompRspGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new BidCompRspGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2006:
+			{
+				var result = new BidDescReqGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new BidDescReqGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2007:
+			{
+				var result = new ClrInstGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new ClrInstGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2008:
+			{
+				var result = new CollInqQualGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new CollInqQualGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2009:
+			{
+				var result = new CompIDReqGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new CompIDReqGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2010:
+			{
+				var result = new CompIDStatGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new CompIDStatGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2011:
+			{
+				var result = new ContAmtGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new ContAmtGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2012:
+			{
+				var result = new ContraGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new ContraGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2013:
+			{
+				var result = new CpctyConfGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new CpctyConfGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2014:
+			{
+				var result = new ExecAllocGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new ExecAllocGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2015:
+			{
+				var result = new ExecCollGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new ExecCollGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2016:
+			{
+				var result = new ExecsGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new ExecsGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2017:
+			{
+				var result = new InstrmtGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new InstrmtGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2018:
+			{
+				var result = new InstrmtLegExecGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new InstrmtLegExecGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2019:
+			{
+				var result = new InstrmtLegGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new InstrmtLegGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2020:
+			{
+				var result = new InstrmtLegIOIGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new InstrmtLegIOIGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2021:
+			{
+				var result = new InstrmtLegSecListGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new InstrmtLegSecListGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2022:
+			{
+				var result = new InstrmtMDReqGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new InstrmtMDReqGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2023:
+			{
+				var result = new InstrmtStrkPxGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new InstrmtStrkPxGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2024:
+			{
+				var result = new IOIQualGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new IOIQualGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2025:
+			{
+				var result = new LegOrdGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new LegOrdGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2026:
+			{
+				var result = new LegPreAllocGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new LegPreAllocGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2027:
+			{
+				var result = new LegQuotGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new LegQuotGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2028:
+			{
+				var result = new LegQuotStatGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new LegQuotStatGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2029:
+			{
+				var result = new LinesOfTextGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new LinesOfTextGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2030:
+			{
+				var result = new ListOrdGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new ListOrdGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2031:
+			{
+				var result = new MDFullGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new MDFullGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2032:
+			{
+				var result = new MDIncGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new MDIncGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2033:
+			{
+				var result = new MDReqGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new MDReqGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2034:
+			{
+				var result = new MDRjctGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new MDRjctGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2035:
+			{
+				var result = new MiscFeesGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new MiscFeesGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2036:
+			{
+				var result = new OrdAllocGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new OrdAllocGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2037:
+			{
+				var result = new OrdListStatGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new OrdListStatGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2038:
+			{
+				var result = new PosUndInstrmtGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new PosUndInstrmtGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2039:
+			{
+				var result = new PreAllocGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new PreAllocGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2040:
+			{
+				var result = new PreAllocMlegGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new PreAllocMlegGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2041:
+			{
+				var result = new QuotCxlEntriesGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotCxlEntriesGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2042:
+			{
+				var result = new QuotEntryAckGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotEntryAckGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2043:
+			{
+				var result = new QuotEntryGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotEntryGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2044:
+			{
+				var result = new QuotQualGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotQualGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2045:
+			{
+				var result = new QuotReqGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotReqGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2046:
+			{
+				var result = new QuotReqLegsGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotReqLegsGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2047:
+			{
+				var result = new QuotReqRjctGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotReqRjctGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2048:
+			{
+				var result = new QuotSetAckGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotSetAckGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2049:
+			{
+				var result = new QuotSetGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new QuotSetGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2050:
+			{
+				var result = new RelSymDerivSecGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new RelSymDerivSecGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2051:
+			{
+				var result = new RFQReqGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new RFQReqGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2052:
+			{
+				var result = new RgstDistInstGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new RgstDistInstGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2053:
+			{
+				var result = new RgstDtlsGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new RgstDtlsGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2054:
+			{
+				var result = new RoutingGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new RoutingGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2055:
+			{
+				var result = new SecListGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SecListGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2056:
+			{
+				var result = new SecTypesGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SecTypesGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2057:
+			{
+				var result = new SettlInstGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SettlInstGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2058:
+			{
+				var result = new SideCrossOrdCxlGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SideCrossOrdCxlGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2059:
+			{
+				var result = new SideCrossOrdModGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SideCrossOrdModGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2060:
+			{
+				var result = new TrdAllocGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new TrdAllocGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2061:
+			{
+				var result = new TrdCapRptSideGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new TrdCapRptSideGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2062:
+			{
+				var result = new TrdCollGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new TrdCollGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2063:
+			{
+				var result = new TrdInstrmtLegGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new TrdInstrmtLegGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2064:
+			{
+				var result = new TrdgSesGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new TrdgSesGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2065:
+			{
+				var result = new UndInstrmtCollGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new UndInstrmtCollGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2066:
+			{
+				var result = new UndInstrmtGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new UndInstrmtGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2067:
+			{
+				var result = new UndInstrmtStrkPxGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new UndInstrmtStrkPxGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2069:
+			{
+				var result = new TrdCapDtGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new TrdCapDtGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2070:
+			{
+				var result = new EvntGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new EvntGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2071:
+			{
+				var result = new SecAltIDGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SecAltIDGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2072:
+			{
+				var result = new LegSecAltIDGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new LegSecAltIDGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2073:
+			{
+				var result = new UndSecAltIDGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new UndSecAltIDGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2074:
+			{
+				var result = new AttrbGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new AttrbGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2075:
+			{
+				var result = new DlvyInstGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new DlvyInstGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2076:
+			{
+				var result = new SettlPtysSubGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new SettlPtysSubGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2077:
+			{
+				var result = new PtysSubGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new PtysSubGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2078:
+			{
+				var result = new NstdPtysSubGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new NstdPtysSubGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2079:
+			{
+				var result = new NstdPtys2SubGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new NstdPtys2SubGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2080:
+			{
+				var result = new NstdPtys3SubGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new NstdPtys3SubGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2085:
+			{
+				var result = new HopGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new HopGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			case 2098:
+			{
+				var result = new MsgTypeGrpEntry[entries.Count];
+				for (var n = 0; n < result.Length; n++)
+					result[n] = new MsgTypeGrpEntry(source, entries[n]);
+
+				return Array.AsReadOnly(result);
+			}
+
+			default:
+				throw new InvalidOperationException("Unknown FIX group.");
+		}
+	}
+}
