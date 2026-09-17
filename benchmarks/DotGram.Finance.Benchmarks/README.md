@@ -469,6 +469,9 @@ processes and include parser initialization/JIT, excluding process startup.
 
 ### Initial results (2026-09-17)
 
+These historical measurements used `FixDecimal`, before the field model switched
+to `decimal`. Rerun the commands above when comparing the current implementations.
+
 Two fresh-process quick runs on Windows x64, .NET 10 Release. The table averages
 those two per-process medians; raw runs preserve each result separately.
 

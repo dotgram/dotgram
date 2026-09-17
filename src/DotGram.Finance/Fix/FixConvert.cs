@@ -14,13 +14,20 @@ static class FixConvert
 	public static int Tag(ReadOnlySpan<byte> value)
 	{
 		var result = 0;
-		if (value.IsEmpty) return -1;
+
+		if (value.IsEmpty)
+			return -1;
+
 		foreach (var c in value)
 		{
 			var digit = c - '0';
-			if (digit < 0 || digit > 9 || result > (int.MaxValue - digit) / 10) return -1;
+
+			if (digit < 0 || digit > 9 || result > (int.MaxValue - digit) / 10)
+				return -1;
+
 			result = result * 10 + digit;
 		}
+
 		return result;
 	}
 
@@ -29,167 +36,257 @@ static class FixConvert
 		var valid = Integer(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, BigInteger Value) Integer(ReadOnlySpan<byte> raw)
 	{
 		var valid = Integer(raw, out var value);
 		return (valid, value);
 	}
-	public static (bool Valid, FixDecimal Value) Decimal(ReadOnlySpan<char> raw)
+
+	public static (bool Valid, decimal Value) Decimal(ReadOnlySpan<char> raw)
 	{
 		var valid = Decimal(raw, out var value);
 		return (valid, value);
 	}
-	public static (bool Valid, FixDecimal Value) Decimal(ReadOnlySpan<byte> raw)
+
+	public static (bool Valid, decimal Value) Decimal(ReadOnlySpan<byte> raw)
 	{
 		var valid = Decimal(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, bool Value) Boolean(ReadOnlySpan<char> raw)
 	{
 		var valid = Boolean(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, bool Value) Boolean(ReadOnlySpan<byte> raw)
 	{
 		var valid = Boolean(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, char Value) Character(ReadOnlySpan<char> raw)
 	{
 		var valid = Character(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, char Value) Character(ReadOnlySpan<byte> raw)
 	{
 		var valid = Character(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, ReadOnlyMemory<byte> Value) Data(ReadOnlySpan<char> raw)
 	{
 		var valid = Data(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, ReadOnlyMemory<byte> Value) Data(ReadOnlySpan<byte> raw)
 	{
 		var valid = Data(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixTimestamp Value) Timestamp(ReadOnlySpan<char> raw)
 	{
 		var valid = Timestamp(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixTimestamp Value) Timestamp(ReadOnlySpan<byte> raw)
 	{
 		var valid = Timestamp(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixTime Value) Time(ReadOnlySpan<char> raw)
 	{
 		var valid = Time(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixTime Value) Time(ReadOnlySpan<byte> raw)
 	{
 		var valid = Time(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixDate Value) Date(ReadOnlySpan<char> raw)
 	{
 		var valid = Date(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixDate Value) Date(ReadOnlySpan<byte> raw)
 	{
 		var valid = Date(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixMonthYear Value) MonthYear(ReadOnlySpan<char> raw)
 	{
 		var valid = MonthYear(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, FixMonthYear Value) MonthYear(ReadOnlySpan<byte> raw)
 	{
 		var valid = MonthYear(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, string[] Value) Multiple(ReadOnlySpan<char> raw)
 	{
 		var valid = Multiple(raw, out var value);
 		return (valid, value);
 	}
+
 	public static (bool Valid, string[] Value) Multiple(ReadOnlySpan<byte> raw)
 	{
 		var valid = Multiple(raw, out var value);
 		return (valid, value);
 	}
+
 	public static bool Integer(ReadOnlySpan<char> raw, out BigInteger value)
 	{
 		value = default;
+
 		var start = !raw.IsEmpty && raw[0] == '-' ? 1 : 0;
-		if (start == raw.Length) return false;
-		for (var i = start; i < raw.Length; i++) if (raw[i] < '0' || raw[i] > '9') return false;
+
+		if (start == raw.Length)
+			return false;
+
+		for (var i = start; i < raw.Length; i++) if (raw[i] < '0' || raw[i] > '9')
+			return false;
+
 #if NETSTANDARD2_0
 		return BigInteger.TryParse(raw.ToString(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
 #else
 		return BigInteger.TryParse(raw, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
 #endif
 	}
+
 	public static bool Integer(ReadOnlySpan<byte> raw, out BigInteger value)
 	{
 		value = BigInteger.Zero;
+
 		var negative = !raw.IsEmpty && raw[0] == '-';
-		var start = negative ? 1 : 0;
-		if (start == raw.Length) return false;
+		var start    = negative ? 1 : 0;
+
+		if (start == raw.Length)
+			return false;
+
 		// Nine digits per BigInteger operation; no text decoding or decimal rounding.
-		uint chunk = 0;
-		var digits = 0;
+		uint chunk  = 0;
+		var  digits = 0;
+
 		for (var i = start; i < raw.Length; i++)
 		{
 			var digit = raw[i] - '0';
-			if (digit < 0 || digit > 9) return false;
+
+			if (digit < 0 || digit > 9)
+				return false;
+
 			chunk = chunk * 10 + (uint)digit;
-			if (++digits == 9) { value = value * 1000000000 + chunk; chunk = 0; digits = 0; }
+
+			if (++digits == 9)
+			{
+				value  = value * 1000000000 + chunk;
+				chunk  = 0;
+				digits = 0;
+			}
 		}
+
 		uint factor = 1;
-		for (var i = 0; i < digits; i++) factor *= 10;
+
+		for (var i = 0; i < digits; i++)
+			factor *= 10;
+
 		value = value * factor + chunk;
-		if (negative) value = -value;
+
+		if (negative)
+			value = -value;
+
 		return true;
 	}
-	public static bool Decimal(ReadOnlySpan<char> raw, out FixDecimal value)
+
+	public static bool Decimal(ReadOnlySpan<char> raw, out decimal value)
 	{
 		value = default;
-		var dot = raw.IndexOf('.');
-		if (dot < 0) { var valid = Integer(raw, out var integer); value = new FixDecimal(integer, 0); return valid; }
-		var start = !raw.IsEmpty && raw[0] == '-' ? 1 : 0;
-		if (raw.Length - start < 2 || dot < start || raw.Slice(dot + 1).IndexOf('.') >= 0) return false;
-		for (var i = start; i < raw.Length; i++) if (i != dot && (raw[i] < '0' || raw[i] > '9')) return false;
-		var digits = raw.Slice(0, dot).ToString() + raw.Slice(dot + 1).ToString();
-		if (!Integer(digits.AsSpan(), out var coefficient)) return false;
-		value = new FixDecimal(coefficient, raw.Length - dot - 1);
-		return true;
-	}
-	public static bool Decimal(ReadOnlySpan<byte> raw, out FixDecimal value)
-	{
-		value = default;
-		var dot = raw.IndexOf((byte)'.');
-		if (dot < 0) { var valid = Integer(raw, out var integer); value = new FixDecimal(integer, 0); return valid; }
-		var negative = !raw.IsEmpty && raw[0] == '-';
-		var start = negative ? 1 : 0;
-		if (raw.Length - start < 2 || dot < start) return false;
-		var coefficient = BigInteger.Zero;
+		var start       = !raw.IsEmpty && raw[0] == '-' ? 1 : 0;
+		var dot         = -1;
+		var lastNonzero = -1;
+		var digits      = 0;
+
 		for (var i = start; i < raw.Length; i++)
 		{
-			if (i == dot) continue;
-			var digit = raw[i] - '0';
-			if (digit < 0 || digit > 9) return false;
-			coefficient = coefficient * 10 + digit;
+			if (raw[i] == '.' && dot < 0)
+			{
+				dot = i;
+				continue;
+			}
+			if (raw[i] < '0' || raw[i] > '9')
+				return false;
+			if (raw[i] != '0')
+				lastNonzero = i;
+			digits++;
 		}
-		value = new FixDecimal(negative ? -coefficient : coefficient, raw.Length - dot - 1);
-		return true;
+
+		if (digits == 0 || !decimal.TryParse(raw, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value))
+			return false;
+
+		return ExactDecimal(ref value, dot < 0 ? 0 : Math.Max(0, lastNonzero - dot));
 	}
+
+	public static bool Decimal(ReadOnlySpan<byte> raw, out decimal value)
+	{
+		value = default;
+		var start       = !raw.IsEmpty && raw[0] == '-' ? 1 : 0;
+		var dot         = -1;
+		var lastNonzero = -1;
+		var digits      = 0;
+
+		for (var i = start; i < raw.Length; i++)
+		{
+			if (raw[i] == '.' && dot < 0)
+			{
+				dot = i;
+				continue;
+			}
+			if (raw[i] < '0' || raw[i] > '9')
+				return false;
+			if (raw[i] != '0')
+				lastNonzero = i;
+			digits++;
+		}
+
+		if (digits == 0 || !(System.Buffers.Text.Utf8Parser.TryParse(raw, out value, out var consumed) && consumed == raw.Length))
+			return false;
+
+		return ExactDecimal(ref value, dot < 0 ? 0 : Math.Max(0, lastNonzero - dot));
+	}
+
+	static bool ExactDecimal(ref decimal value, int requiredScale)
+	{
+		// .NET parsing can round fractional digits to fit decimal. Reject that loss.
+#if NETSTANDARD2_0
+		var scale = (decimal.GetBits(value)[3] >> 16) & 255;
+#else
+		Span<int> bits = stackalloc int[4];
+		decimal.GetBits(value, bits);
+		var scale = (bits[3] >> 16) & 255;
+#endif
+		if (scale >= requiredScale)
+			return true;
+
+		value = default;
+		return false;
+	}
+
 	static int Part(ReadOnlySpan<char> raw) => int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : -1;
 	static int Part(ReadOnlySpan<byte> raw) => FixConvert.Tag(raw);
 	public static string Text(ReadOnlySpan<char> raw) => raw.ToString();

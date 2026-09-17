@@ -286,8 +286,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AvgPx, FIX tag 6, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AvgPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(6, value);
+	public sealed class AvgPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(6, value);
 
 	/// <summary>
 	/// Represents BeginSeqNo, FIX tag 7, with wire type <c>SeqNum</c>.
@@ -332,8 +332,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Commission, FIX tag 12, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Commission((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(12, value);
+	public sealed class Commission((bool Valid, decimal Value) value)
+		: Typed<decimal>(12, value);
 
 	/// <summary>
 	/// Represents CommType, FIX tag 13, with wire type <c>char</c>.
@@ -346,8 +346,8 @@ public abstract class FixField : IFixLocation
 	/// Represents CumQty, FIX tag 14, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CumQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(14, value);
+	public sealed class CumQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(14, value);
 
 	/// <summary>
 	/// Represents Currency, FIX tag 15, with wire type <c>Currency</c>.
@@ -451,15 +451,15 @@ public abstract class FixField : IFixLocation
 	/// Represents LastPx, FIX tag 31, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(31, value);
+	public sealed class LastPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(31, value);
 
 	/// <summary>
 	/// Represents LastQty, FIX tag 32, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(32, value);
+	public sealed class LastQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(32, value);
 
 	/// <summary>
 	/// Represents NoLinesOfText, FIX tag 33, with wire type <c>NumInGroup</c>.
@@ -500,8 +500,8 @@ public abstract class FixField : IFixLocation
 	/// Represents OrderQty, FIX tag 38, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrderQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(38, value);
+	public sealed class OrderQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(38, value);
 
 	/// <summary>
 	/// Represents OrdStatus, FIX tag 39, with wire type <c>char</c>.
@@ -542,8 +542,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Price, FIX tag 44, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Price((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(44, value);
+	public sealed class Price((bool Valid, decimal Value) value)
+		: Typed<decimal>(44, value);
 
 	/// <summary>
 	/// Represents RefSeqNum, FIX tag 45, with wire type <c>SeqNum</c>.
@@ -584,8 +584,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Quantity, FIX tag 53, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Quantity((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(53, value);
+	public sealed class Quantity((bool Valid, decimal Value) value)
+		: Typed<decimal>(53, value);
 
 	/// <summary>
 	/// Represents Side, FIX tag 54, with wire type <c>char</c>.
@@ -766,8 +766,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocQty, FIX tag 80, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(80, value);
+	public sealed class AllocQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(80, value);
 
 	/// <summary>
 	/// Represents ProcessCode, FIX tag 81, with wire type <c>char</c>.
@@ -794,8 +794,8 @@ public abstract class FixField : IFixLocation
 	/// Represents CxlQty, FIX tag 84, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CxlQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(84, value);
+	public sealed class CxlQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(84, value);
 
 	/// <summary>
 	/// Represents NoDlvyInst, FIX tag 85, with wire type <c>NumInGroup</c>.
@@ -909,8 +909,8 @@ public abstract class FixField : IFixLocation
 	/// Represents StopPx, FIX tag 99, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class StopPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(99, value);
+	public sealed class StopPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(99, value);
 
 	/// <summary>
 	/// Represents ExDestination, FIX tag 100, with wire type <c>Exchange</c>.
@@ -965,15 +965,15 @@ public abstract class FixField : IFixLocation
 	/// Represents MinQty, FIX tag 110, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MinQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(110, value);
+	public sealed class MinQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(110, value);
 
 	/// <summary>
 	/// Represents MaxFloor, FIX tag 111, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MaxFloor((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(111, value);
+	public sealed class MaxFloor((bool Valid, decimal Value) value)
+		: Typed<decimal>(111, value);
 
 	/// <summary>
 	/// Represents TestReqID, FIX tag 112, with wire type <c>String</c>.
@@ -1021,15 +1021,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NetMoney, FIX tag 118, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NetMoney((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(118, value);
+	public sealed class NetMoney((bool Valid, decimal Value) value)
+		: Typed<decimal>(118, value);
 
 	/// <summary>
 	/// Represents SettlCurrAmt, FIX tag 119, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlCurrAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(119, value);
+	public sealed class SettlCurrAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(119, value);
 
 	/// <summary>
 	/// Represents SettlCurrency, FIX tag 120, with wire type <c>Currency</c>.
@@ -1112,29 +1112,29 @@ public abstract class FixField : IFixLocation
 	/// Represents BidPx, FIX tag 132, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(132, value);
+	public sealed class BidPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(132, value);
 
 	/// <summary>
 	/// Represents OfferPx, FIX tag 133, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OfferPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(133, value);
+	public sealed class OfferPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(133, value);
 
 	/// <summary>
 	/// Represents BidSize, FIX tag 134, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidSize((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(134, value);
+	public sealed class BidSize((bool Valid, decimal Value) value)
+		: Typed<decimal>(134, value);
 
 	/// <summary>
 	/// Represents OfferSize, FIX tag 135, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OfferSize((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(135, value);
+	public sealed class OfferSize((bool Valid, decimal Value) value)
+		: Typed<decimal>(135, value);
 
 	/// <summary>
 	/// Represents NoMiscFees, FIX tag 136, with wire type <c>NumInGroup</c>.
@@ -1147,8 +1147,8 @@ public abstract class FixField : IFixLocation
 	/// Represents MiscFeeAmt, FIX tag 137, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MiscFeeAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(137, value);
+	public sealed class MiscFeeAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(137, value);
 
 	/// <summary>
 	/// Represents MiscFeeCurr, FIX tag 138, with wire type <c>Currency</c>.
@@ -1168,8 +1168,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PrevClosePx, FIX tag 140, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PrevClosePx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(140, value);
+	public sealed class PrevClosePx((bool Valid, decimal Value) value)
+		: Typed<decimal>(140, value);
 
 	/// <summary>
 	/// Represents ResetSeqNumFlag, FIX tag 141, with wire type <c>Boolean</c>.
@@ -1245,36 +1245,36 @@ public abstract class FixField : IFixLocation
 	/// Represents LeavesQty, FIX tag 151, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LeavesQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(151, value);
+	public sealed class LeavesQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(151, value);
 
 	/// <summary>
 	/// Represents CashOrderQty, FIX tag 152, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CashOrderQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(152, value);
+	public sealed class CashOrderQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(152, value);
 
 	/// <summary>
 	/// Represents AllocAvgPx, FIX tag 153, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocAvgPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(153, value);
+	public sealed class AllocAvgPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(153, value);
 
 	/// <summary>
 	/// Represents AllocNetMoney, FIX tag 154, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocNetMoney((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(154, value);
+	public sealed class AllocNetMoney((bool Valid, decimal Value) value)
+		: Typed<decimal>(154, value);
 
 	/// <summary>
 	/// Represents SettlCurrFxRate, FIX tag 155, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlCurrFxRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(155, value);
+	public sealed class SettlCurrFxRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(155, value);
 
 	/// <summary>
 	/// Represents SettlCurrFxRateCalc, FIX tag 156, with wire type <c>char</c>.
@@ -1294,15 +1294,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AccruedInterestRate, FIX tag 158, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AccruedInterestRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(158, value);
+	public sealed class AccruedInterestRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(158, value);
 
 	/// <summary>
 	/// Represents AccruedInterestAmt, FIX tag 159, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(159, value);
+	public sealed class AccruedInterestAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(159, value);
 
 	/// <summary>
 	/// Represents SettlInstMode, FIX tag 160, with wire type <c>char</c>.
@@ -1392,36 +1392,36 @@ public abstract class FixField : IFixLocation
 	/// Represents BidSpotRate, FIX tag 188, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidSpotRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(188, value);
+	public sealed class BidSpotRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(188, value);
 
 	/// <summary>
 	/// Represents BidForwardPoints, FIX tag 189, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidForwardPoints((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(189, value);
+	public sealed class BidForwardPoints((bool Valid, decimal Value) value)
+		: Typed<decimal>(189, value);
 
 	/// <summary>
 	/// Represents OfferSpotRate, FIX tag 190, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OfferSpotRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(190, value);
+	public sealed class OfferSpotRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(190, value);
 
 	/// <summary>
 	/// Represents OfferForwardPoints, FIX tag 191, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OfferForwardPoints((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(191, value);
+	public sealed class OfferForwardPoints((bool Valid, decimal Value) value)
+		: Typed<decimal>(191, value);
 
 	/// <summary>
 	/// Represents OrderQty2, FIX tag 192, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrderQty2((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(192, value);
+	public sealed class OrderQty2((bool Valid, decimal Value) value)
+		: Typed<decimal>(192, value);
 
 	/// <summary>
 	/// Represents SettlDate2, FIX tag 193, with wire type <c>LocalMktDate</c>.
@@ -1434,15 +1434,15 @@ public abstract class FixField : IFixLocation
 	/// Represents LastSpotRate, FIX tag 194, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastSpotRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(194, value);
+	public sealed class LastSpotRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(194, value);
 
 	/// <summary>
 	/// Represents LastForwardPoints, FIX tag 195, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastForwardPoints((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(195, value);
+	public sealed class LastForwardPoints((bool Valid, decimal Value) value)
+		: Typed<decimal>(195, value);
 
 	/// <summary>
 	/// Represents AllocLinkID, FIX tag 196, with wire type <c>String</c>.
@@ -1490,8 +1490,8 @@ public abstract class FixField : IFixLocation
 	/// Represents StrikePrice, FIX tag 202, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class StrikePrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(202, value);
+	public sealed class StrikePrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(202, value);
 
 	/// <summary>
 	/// Represents CoveredOrUncovered, FIX tag 203, with wire type <c>int</c>.
@@ -1532,15 +1532,15 @@ public abstract class FixField : IFixLocation
 	/// Represents MaxShow, FIX tag 210, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MaxShow((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(210, value);
+	public sealed class MaxShow((bool Valid, decimal Value) value)
+		: Typed<decimal>(210, value);
 
 	/// <summary>
 	/// Represents PegOffsetValue, FIX tag 211, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PegOffsetValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(211, value);
+	public sealed class PegOffsetValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(211, value);
 
 	/// <summary>
 	/// Represents XmlDataLen, FIX tag 212, with wire type <c>Length</c>.
@@ -1596,8 +1596,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Spread, FIX tag 218, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Spread((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(218, value);
+	public sealed class Spread((bool Valid, decimal Value) value)
+		: Typed<decimal>(218, value);
 
 	/// <summary>
 	/// Represents BenchmarkCurveCurrency, FIX tag 220, with wire type <c>Currency</c>.
@@ -1624,8 +1624,8 @@ public abstract class FixField : IFixLocation
 	/// Represents CouponRate, FIX tag 223, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CouponRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(223, value);
+	public sealed class CouponRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(223, value);
 
 	/// <summary>
 	/// Represents CouponPaymentDate, FIX tag 224, with wire type <c>LocalMktDate</c>.
@@ -1652,15 +1652,15 @@ public abstract class FixField : IFixLocation
 	/// Represents RepurchaseRate, FIX tag 227, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RepurchaseRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(227, value);
+	public sealed class RepurchaseRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(227, value);
 
 	/// <summary>
 	/// Represents Factor, FIX tag 228, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Factor((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(228, value);
+	public sealed class Factor((bool Valid, decimal Value) value)
+		: Typed<decimal>(228, value);
 
 	/// <summary>
 	/// Represents TradeOriginationDate, FIX tag 229, with wire type <c>LocalMktDate</c>.
@@ -1680,8 +1680,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ContractMultiplier, FIX tag 231, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ContractMultiplier((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(231, value);
+	public sealed class ContractMultiplier((bool Valid, decimal Value) value)
+		: Typed<decimal>(231, value);
 
 	/// <summary>
 	/// Represents NoStipulations, FIX tag 232, with wire type <c>NumInGroup</c>.
@@ -1715,22 +1715,22 @@ public abstract class FixField : IFixLocation
 	/// Represents Yield, FIX tag 236, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Yield((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(236, value);
+	public sealed class Yield((bool Valid, decimal Value) value)
+		: Typed<decimal>(236, value);
 
 	/// <summary>
 	/// Represents TotalTakedown, FIX tag 237, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotalTakedown((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(237, value);
+	public sealed class TotalTakedown((bool Valid, decimal Value) value)
+		: Typed<decimal>(237, value);
 
 	/// <summary>
 	/// Represents Concession, FIX tag 238, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Concession((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(238, value);
+	public sealed class Concession((bool Valid, decimal Value) value)
+		: Typed<decimal>(238, value);
 
 	/// <summary>
 	/// Represents RepoCollateralSecurityType, FIX tag 239, with wire type <c>String</c>.
@@ -1778,15 +1778,15 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingRepurchaseRate, FIX tag 245, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingRepurchaseRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(245, value);
+	public sealed class UnderlyingRepurchaseRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(245, value);
 
 	/// <summary>
 	/// Represents UnderlyingFactor, FIX tag 246, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingFactor((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(246, value);
+	public sealed class UnderlyingFactor((bool Valid, decimal Value) value)
+		: Typed<decimal>(246, value);
 
 	/// <summary>
 	/// Represents UnderlyingRedemptionDate, FIX tag 247, with wire type <c>LocalMktDate</c>.
@@ -1827,15 +1827,15 @@ public abstract class FixField : IFixLocation
 	/// Represents LegRepurchaseRate, FIX tag 252, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegRepurchaseRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(252, value);
+	public sealed class LegRepurchaseRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(252, value);
 
 	/// <summary>
 	/// Represents LegFactor, FIX tag 253, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegFactor((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(253, value);
+	public sealed class LegFactor((bool Valid, decimal Value) value)
+		: Typed<decimal>(253, value);
 
 	/// <summary>
 	/// Represents LegRedemptionDate, FIX tag 254, with wire type <c>LocalMktDate</c>.
@@ -1883,8 +1883,8 @@ public abstract class FixField : IFixLocation
 	/// Represents BasisFeaturePrice, FIX tag 260, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BasisFeaturePrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(260, value);
+	public sealed class BasisFeaturePrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(260, value);
 
 	/// <summary>
 	/// Represents MDReqID, FIX tag 262, with wire type <c>String</c>.
@@ -1946,15 +1946,15 @@ public abstract class FixField : IFixLocation
 	/// Represents MDEntryPx, FIX tag 270, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MDEntryPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(270, value);
+	public sealed class MDEntryPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(270, value);
 
 	/// <summary>
 	/// Represents MDEntrySize, FIX tag 271, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MDEntrySize((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(271, value);
+	public sealed class MDEntrySize((bool Valid, decimal Value) value)
+		: Typed<decimal>(271, value);
 
 	/// <summary>
 	/// Represents MDEntryDate, FIX tag 272, with wire type <c>UTCDateOnly</c>.
@@ -2107,15 +2107,15 @@ public abstract class FixField : IFixLocation
 	/// Represents DefBidSize, FIX tag 293, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DefBidSize((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(293, value);
+	public sealed class DefBidSize((bool Valid, decimal Value) value)
+		: Typed<decimal>(293, value);
 
 	/// <summary>
 	/// Represents DefOfferSize, FIX tag 294, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DefOfferSize((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(294, value);
+	public sealed class DefOfferSize((bool Valid, decimal Value) value)
+		: Typed<decimal>(294, value);
 
 	/// <summary>
 	/// Represents NoQuoteEntries, FIX tag 295, with wire type <c>NumInGroup</c>.
@@ -2261,8 +2261,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingStrikePrice, FIX tag 316, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingStrikePrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(316, value);
+	public sealed class UnderlyingStrikePrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(316, value);
 
 	/// <summary>
 	/// Represents UnderlyingOptAttribute, FIX tag 317, with wire type <c>char</c>.
@@ -2352,29 +2352,29 @@ public abstract class FixField : IFixLocation
 	/// Represents BuyVolume, FIX tag 330, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BuyVolume((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(330, value);
+	public sealed class BuyVolume((bool Valid, decimal Value) value)
+		: Typed<decimal>(330, value);
 
 	/// <summary>
 	/// Represents SellVolume, FIX tag 331, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SellVolume((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(331, value);
+	public sealed class SellVolume((bool Valid, decimal Value) value)
+		: Typed<decimal>(331, value);
 
 	/// <summary>
 	/// Represents HighPx, FIX tag 332, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class HighPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(332, value);
+	public sealed class HighPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(332, value);
 
 	/// <summary>
 	/// Represents LowPx, FIX tag 333, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LowPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(333, value);
+	public sealed class LowPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(333, value);
 
 	/// <summary>
 	/// Represents Adjustment, FIX tag 334, with wire type <c>int</c>.
@@ -2676,8 +2676,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocPrice, FIX tag 366, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(366, value);
+	public sealed class AllocPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(366, value);
 
 	/// <summary>
 	/// Represents QuoteSetValidUntilTime, FIX tag 367, with wire type <c>UTCTimestamp</c>.
@@ -2774,8 +2774,8 @@ public abstract class FixField : IFixLocation
 	/// Represents GrossTradeAmt, FIX tag 381, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class GrossTradeAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(381, value);
+	public sealed class GrossTradeAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(381, value);
 
 	/// <summary>
 	/// Represents NoContraBrokers, FIX tag 382, with wire type <c>NumInGroup</c>.
@@ -2820,8 +2820,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TotalVolumeTraded, FIX tag 387, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotalVolumeTraded((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(387, value);
+	public sealed class TotalVolumeTraded((bool Valid, decimal Value) value)
+		: Typed<decimal>(387, value);
 
 	/// <summary>
 	/// Represents DiscretionInst, FIX tag 388, with wire type <c>char</c>.
@@ -2834,8 +2834,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DiscretionOffsetValue, FIX tag 389, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DiscretionOffsetValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(389, value);
+	public sealed class DiscretionOffsetValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(389, value);
 
 	/// <summary>
 	/// Represents BidID, FIX tag 390, with wire type <c>String</c>.
@@ -2883,15 +2883,15 @@ public abstract class FixField : IFixLocation
 	/// Represents SideValue1, FIX tag 396, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SideValue1((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(396, value);
+	public sealed class SideValue1((bool Valid, decimal Value) value)
+		: Typed<decimal>(396, value);
 
 	/// <summary>
 	/// Represents SideValue2, FIX tag 397, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SideValue2((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(397, value);
+	public sealed class SideValue2((bool Valid, decimal Value) value)
+		: Typed<decimal>(397, value);
 
 	/// <summary>
 	/// Represents NoBidDescriptors, FIX tag 398, with wire type <c>NumInGroup</c>.
@@ -2925,50 +2925,50 @@ public abstract class FixField : IFixLocation
 	/// Represents LiquidityPctLow, FIX tag 402, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LiquidityPctLow((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(402, value);
+	public sealed class LiquidityPctLow((bool Valid, decimal Value) value)
+		: Typed<decimal>(402, value);
 
 	/// <summary>
 	/// Represents LiquidityPctHigh, FIX tag 403, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LiquidityPctHigh((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(403, value);
+	public sealed class LiquidityPctHigh((bool Valid, decimal Value) value)
+		: Typed<decimal>(403, value);
 
 	/// <summary>
 	/// Represents LiquidityValue, FIX tag 404, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LiquidityValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(404, value);
+	public sealed class LiquidityValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(404, value);
 
 	/// <summary>
 	/// Represents EFPTrackingError, FIX tag 405, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EFPTrackingError((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(405, value);
+	public sealed class EFPTrackingError((bool Valid, decimal Value) value)
+		: Typed<decimal>(405, value);
 
 	/// <summary>
 	/// Represents FairValue, FIX tag 406, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class FairValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(406, value);
+	public sealed class FairValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(406, value);
 
 	/// <summary>
 	/// Represents OutsideIndexPct, FIX tag 407, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OutsideIndexPct((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(407, value);
+	public sealed class OutsideIndexPct((bool Valid, decimal Value) value)
+		: Typed<decimal>(407, value);
 
 	/// <summary>
 	/// Represents ValueOfFutures, FIX tag 408, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ValueOfFutures((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(408, value);
+	public sealed class ValueOfFutures((bool Valid, decimal Value) value)
+		: Typed<decimal>(408, value);
 
 	/// <summary>
 	/// Represents LiquidityIndType, FIX tag 409, with wire type <c>int</c>.
@@ -2981,8 +2981,8 @@ public abstract class FixField : IFixLocation
 	/// Represents WtAverageLiquidity, FIX tag 410, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class WtAverageLiquidity((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(410, value);
+	public sealed class WtAverageLiquidity((bool Valid, decimal Value) value)
+		: Typed<decimal>(410, value);
 
 	/// <summary>
 	/// Represents ExchangeForPhysical, FIX tag 411, with wire type <c>Boolean</c>.
@@ -2995,15 +2995,15 @@ public abstract class FixField : IFixLocation
 	/// Represents OutMainCntryUIndex, FIX tag 412, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OutMainCntryUIndex((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(412, value);
+	public sealed class OutMainCntryUIndex((bool Valid, decimal Value) value)
+		: Typed<decimal>(412, value);
 
 	/// <summary>
 	/// Represents CrossPercent, FIX tag 413, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CrossPercent((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(413, value);
+	public sealed class CrossPercent((bool Valid, decimal Value) value)
+		: Typed<decimal>(413, value);
 
 	/// <summary>
 	/// Represents ProgRptReqs, FIX tag 414, with wire type <c>int</c>.
@@ -3079,22 +3079,22 @@ public abstract class FixField : IFixLocation
 	/// Represents DayOrderQty, FIX tag 424, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DayOrderQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(424, value);
+	public sealed class DayOrderQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(424, value);
 
 	/// <summary>
 	/// Represents DayCumQty, FIX tag 425, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DayCumQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(425, value);
+	public sealed class DayCumQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(425, value);
 
 	/// <summary>
 	/// Represents DayAvgPx, FIX tag 426, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DayAvgPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(426, value);
+	public sealed class DayAvgPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(426, value);
 
 	/// <summary>
 	/// Represents GTBookingInst, FIX tag 427, with wire type <c>int</c>.
@@ -3156,22 +3156,22 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingCouponRate, FIX tag 435, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingCouponRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(435, value);
+	public sealed class UnderlyingCouponRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(435, value);
 
 	/// <summary>
 	/// Represents UnderlyingContractMultiplier, FIX tag 436, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingContractMultiplier((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(436, value);
+	public sealed class UnderlyingContractMultiplier((bool Valid, decimal Value) value)
+		: Typed<decimal>(436, value);
 
 	/// <summary>
 	/// Represents ContraTradeQty, FIX tag 437, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ContraTradeQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(437, value);
+	public sealed class ContraTradeQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(437, value);
 
 	/// <summary>
 	/// Represents ContraTradeTime, FIX tag 438, with wire type <c>UTCTimestamp</c>.
@@ -3248,8 +3248,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NetChgPrevDay, FIX tag 451, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NetChgPrevDay((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(451, value);
+	public sealed class NetChgPrevDay((bool Valid, decimal Value) value)
+		: Typed<decimal>(451, value);
 
 	/// <summary>
 	/// Represents PartyRole, FIX tag 452, with wire type <c>int</c>.
@@ -3367,8 +3367,8 @@ public abstract class FixField : IFixLocation
 	/// Represents RoundingModulus, FIX tag 469, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RoundingModulus((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(469, value);
+	public sealed class RoundingModulus((bool Valid, decimal Value) value)
+		: Typed<decimal>(469, value);
 
 	/// <summary>
 	/// Represents CountryOfIssue, FIX tag 470, with wire type <c>Country</c>.
@@ -3479,8 +3479,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ExecPriceAdjustment, FIX tag 485, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ExecPriceAdjustment((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(485, value);
+	public sealed class ExecPriceAdjustment((bool Valid, decimal Value) value)
+		: Typed<decimal>(485, value);
 
 	/// <summary>
 	/// Represents DateOfBirth, FIX tag 486, with wire type <c>LocalMktDate</c>.
@@ -3668,8 +3668,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DistribPercentage, FIX tag 512, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DistribPercentage((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(512, value);
+	public sealed class DistribPercentage((bool Valid, decimal Value) value)
+		: Typed<decimal>(512, value);
 
 	/// <summary>
 	/// Represents RegistID, FIX tag 513, with wire type <c>String</c>.
@@ -3696,8 +3696,8 @@ public abstract class FixField : IFixLocation
 	/// Represents OrderPercent, FIX tag 516, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrderPercent((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(516, value);
+	public sealed class OrderPercent((bool Valid, decimal Value) value)
+		: Typed<decimal>(516, value);
 
 	/// <summary>
 	/// Represents OwnershipType, FIX tag 517, with wire type <c>char</c>.
@@ -3724,8 +3724,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ContAmtValue, FIX tag 520, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ContAmtValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(520, value);
+	public sealed class ContAmtValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(520, value);
 
 	/// <summary>
 	/// Represents ContAmtCurr, FIX tag 521, with wire type <c>Currency</c>.
@@ -3864,8 +3864,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TotalAccruedInterestAmt, FIX tag 540, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotalAccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(540, value);
+	public sealed class TotalAccruedInterestAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(540, value);
 
 	/// <summary>
 	/// Represents MaturityDate, FIX tag 541, with wire type <c>LocalMktDate</c>.
@@ -4011,15 +4011,15 @@ public abstract class FixField : IFixLocation
 	/// Represents RoundLot, FIX tag 561, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RoundLot((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(561, value);
+	public sealed class RoundLot((bool Valid, decimal Value) value)
+		: Typed<decimal>(561, value);
 
 	/// <summary>
 	/// Represents MinTradeVol, FIX tag 562, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MinTradeVol((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(562, value);
+	public sealed class MinTradeVol((bool Valid, decimal Value) value)
+		: Typed<decimal>(562, value);
 
 	/// <summary>
 	/// Represents MultiLegRptTypeReq, FIX tag 563, with wire type <c>int</c>.
@@ -4046,8 +4046,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegPrice, FIX tag 566, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(566, value);
+	public sealed class LegPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(566, value);
 
 	/// <summary>
 	/// Represents TradSesStatusRejReason, FIX tag 567, with wire type <c>int</c>.
@@ -4368,8 +4368,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegStrikePrice, FIX tag 612, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegStrikePrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(612, value);
+	public sealed class LegStrikePrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(612, value);
 
 	/// <summary>
 	/// Represents LegOptAttribute, FIX tag 613, with wire type <c>char</c>.
@@ -4382,15 +4382,15 @@ public abstract class FixField : IFixLocation
 	/// Represents LegContractMultiplier, FIX tag 614, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegContractMultiplier((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(614, value);
+	public sealed class LegContractMultiplier((bool Valid, decimal Value) value)
+		: Typed<decimal>(614, value);
 
 	/// <summary>
 	/// Represents LegCouponRate, FIX tag 615, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegCouponRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(615, value);
+	public sealed class LegCouponRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(615, value);
 
 	/// <summary>
 	/// Represents LegSecurityExchange, FIX tag 616, with wire type <c>Exchange</c>.
@@ -4461,8 +4461,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegRatioQty, FIX tag 623, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegRatioQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(623, value);
+	public sealed class LegRatioQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(623, value);
 
 	/// <summary>
 	/// Represents LegSide, FIX tag 624, with wire type <c>char</c>.
@@ -4517,29 +4517,29 @@ public abstract class FixField : IFixLocation
 	/// Represents MidPx, FIX tag 631, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MidPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(631, value);
+	public sealed class MidPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(631, value);
 
 	/// <summary>
 	/// Represents BidYield, FIX tag 632, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidYield((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(632, value);
+	public sealed class BidYield((bool Valid, decimal Value) value)
+		: Typed<decimal>(632, value);
 
 	/// <summary>
 	/// Represents MidYield, FIX tag 633, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MidYield((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(633, value);
+	public sealed class MidYield((bool Valid, decimal Value) value)
+		: Typed<decimal>(633, value);
 
 	/// <summary>
 	/// Represents OfferYield, FIX tag 634, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OfferYield((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(634, value);
+	public sealed class OfferYield((bool Valid, decimal Value) value)
+		: Typed<decimal>(634, value);
 
 	/// <summary>
 	/// Represents ClearingFeeIndicator, FIX tag 635, with wire type <c>String</c>.
@@ -4559,8 +4559,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegLastPx, FIX tag 637, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegLastPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(637, value);
+	public sealed class LegLastPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(637, value);
 
 	/// <summary>
 	/// Represents PriorityIndicator, FIX tag 638, with wire type <c>int</c>.
@@ -4573,36 +4573,36 @@ public abstract class FixField : IFixLocation
 	/// Represents PriceImprovement, FIX tag 639, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PriceImprovement((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(639, value);
+	public sealed class PriceImprovement((bool Valid, decimal Value) value)
+		: Typed<decimal>(639, value);
 
 	/// <summary>
 	/// Represents Price2, FIX tag 640, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Price2((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(640, value);
+	public sealed class Price2((bool Valid, decimal Value) value)
+		: Typed<decimal>(640, value);
 
 	/// <summary>
 	/// Represents LastForwardPoints2, FIX tag 641, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastForwardPoints2((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(641, value);
+	public sealed class LastForwardPoints2((bool Valid, decimal Value) value)
+		: Typed<decimal>(641, value);
 
 	/// <summary>
 	/// Represents BidForwardPoints2, FIX tag 642, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidForwardPoints2((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(642, value);
+	public sealed class BidForwardPoints2((bool Valid, decimal Value) value)
+		: Typed<decimal>(642, value);
 
 	/// <summary>
 	/// Represents OfferForwardPoints2, FIX tag 643, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OfferForwardPoints2((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(643, value);
+	public sealed class OfferForwardPoints2((bool Valid, decimal Value) value)
+		: Typed<decimal>(643, value);
 
 	/// <summary>
 	/// Represents RFQReqID, FIX tag 644, with wire type <c>String</c>.
@@ -4615,29 +4615,29 @@ public abstract class FixField : IFixLocation
 	/// Represents MktBidPx, FIX tag 645, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MktBidPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(645, value);
+	public sealed class MktBidPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(645, value);
 
 	/// <summary>
 	/// Represents MktOfferPx, FIX tag 646, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MktOfferPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(646, value);
+	public sealed class MktOfferPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(646, value);
 
 	/// <summary>
 	/// Represents MinBidSize, FIX tag 647, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MinBidSize((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(647, value);
+	public sealed class MinBidSize((bool Valid, decimal Value) value)
+		: Typed<decimal>(647, value);
 
 	/// <summary>
 	/// Represents MinOfferSize, FIX tag 648, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MinOfferSize((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(648, value);
+	public sealed class MinOfferSize((bool Valid, decimal Value) value)
+		: Typed<decimal>(648, value);
 
 	/// <summary>
 	/// Represents QuoteStatusReqID, FIX tag 649, with wire type <c>String</c>.
@@ -4657,15 +4657,15 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingLastPx, FIX tag 651, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingLastPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(651, value);
+	public sealed class UnderlyingLastPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(651, value);
 
 	/// <summary>
 	/// Represents UnderlyingLastQty, FIX tag 652, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingLastQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(652, value);
+	public sealed class UnderlyingLastQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(652, value);
 
 	/// <summary>
 	/// Represents LegRefID, FIX tag 654, with wire type <c>String</c>.
@@ -4685,15 +4685,15 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlCurrBidFxRate, FIX tag 656, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlCurrBidFxRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(656, value);
+	public sealed class SettlCurrBidFxRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(656, value);
 
 	/// <summary>
 	/// Represents SettlCurrOfferFxRate, FIX tag 657, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlCurrOfferFxRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(657, value);
+	public sealed class SettlCurrOfferFxRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(657, value);
 
 	/// <summary>
 	/// Represents QuoteRequestRejectReason, FIX tag 658, with wire type <c>int</c>.
@@ -4727,8 +4727,8 @@ public abstract class FixField : IFixLocation
 	/// Represents BenchmarkPrice, FIX tag 662, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BenchmarkPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(662, value);
+	public sealed class BenchmarkPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(662, value);
 
 	/// <summary>
 	/// Represents BenchmarkPriceType, FIX tag 663, with wire type <c>int</c>.
@@ -4776,8 +4776,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LastParPx, FIX tag 669, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastParPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(669, value);
+	public sealed class LastParPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(669, value);
 
 	/// <summary>
 	/// Represents NoLegAllocs, FIX tag 670, with wire type <c>NumInGroup</c>.
@@ -4804,8 +4804,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegAllocQty, FIX tag 673, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegAllocQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(673, value);
+	public sealed class LegAllocQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(673, value);
 
 	/// <summary>
 	/// Represents LegAllocAcctIDSource, FIX tag 674, with wire type <c>int</c>.
@@ -4846,8 +4846,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegBenchmarkPrice, FIX tag 679, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegBenchmarkPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(679, value);
+	public sealed class LegBenchmarkPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(679, value);
 
 	/// <summary>
 	/// Represents LegBenchmarkPriceType, FIX tag 680, with wire type <c>int</c>.
@@ -4860,8 +4860,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegBidPx, FIX tag 681, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegBidPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(681, value);
+	public sealed class LegBidPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(681, value);
 
 	/// <summary>
 	/// Represents LegIOIQty, FIX tag 682, with wire type <c>String</c>.
@@ -4881,8 +4881,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegOfferPx, FIX tag 684, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegOfferPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(684, value);
+	public sealed class LegOfferPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(684, value);
 
 	/// <summary>
 	/// Represents LegPriceType, FIX tag 686, with wire type <c>int</c>.
@@ -4895,8 +4895,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegQty, FIX tag 687, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(687, value);
+	public sealed class LegQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(687, value);
 
 	/// <summary>
 	/// Represents LegStipulationType, FIX tag 688, with wire type <c>String</c>.
@@ -4965,8 +4965,8 @@ public abstract class FixField : IFixLocation
 	/// Represents YieldRedemptionPrice, FIX tag 697, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class YieldRedemptionPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(697, value);
+	public sealed class YieldRedemptionPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(697, value);
 
 	/// <summary>
 	/// Represents YieldRedemptionPriceType, FIX tag 698, with wire type <c>int</c>.
@@ -5014,15 +5014,15 @@ public abstract class FixField : IFixLocation
 	/// Represents LongQty, FIX tag 704, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LongQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(704, value);
+	public sealed class LongQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(704, value);
 
 	/// <summary>
 	/// Represents ShortQty, FIX tag 705, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ShortQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(705, value);
+	public sealed class ShortQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(705, value);
 
 	/// <summary>
 	/// Represents PosQtyStatus, FIX tag 706, with wire type <c>int</c>.
@@ -5042,8 +5042,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PosAmt, FIX tag 708, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(708, value);
+	public sealed class PosAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(708, value);
 
 	/// <summary>
 	/// Represents PosTransType, FIX tag 709, with wire type <c>int</c>.
@@ -5196,8 +5196,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlPrice, FIX tag 730, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(730, value);
+	public sealed class SettlPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(730, value);
 
 	/// <summary>
 	/// Represents SettlPriceType, FIX tag 731, with wire type <c>int</c>.
@@ -5210,8 +5210,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingSettlPrice, FIX tag 732, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingSettlPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(732, value);
+	public sealed class UnderlyingSettlPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(732, value);
 
 	/// <summary>
 	/// Represents UnderlyingSettlPriceType, FIX tag 733, with wire type <c>int</c>.
@@ -5224,8 +5224,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PriorSettlPrice, FIX tag 734, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PriorSettlPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(734, value);
+	public sealed class PriorSettlPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(734, value);
 
 	/// <summary>
 	/// Represents NoQuoteQualifiers, FIX tag 735, with wire type <c>NumInGroup</c>.
@@ -5245,15 +5245,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocSettlCurrAmt, FIX tag 737, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocSettlCurrAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(737, value);
+	public sealed class AllocSettlCurrAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(737, value);
 
 	/// <summary>
 	/// Represents InterestAtMaturity, FIX tag 738, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class InterestAtMaturity((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(738, value);
+	public sealed class InterestAtMaturity((bool Valid, decimal Value) value)
+		: Typed<decimal>(738, value);
 
 	/// <summary>
 	/// Represents LegDatedDate, FIX tag 739, with wire type <c>LocalMktDate</c>.
@@ -5273,15 +5273,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocInterestAtMaturity, FIX tag 741, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocInterestAtMaturity((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(741, value);
+	public sealed class AllocInterestAtMaturity((bool Valid, decimal Value) value)
+		: Typed<decimal>(741, value);
 
 	/// <summary>
 	/// Represents AllocAccruedInterestAmt, FIX tag 742, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocAccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(742, value);
+	public sealed class AllocAccruedInterestAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(742, value);
 
 	/// <summary>
 	/// Represents DeliveryDate, FIX tag 743, with wire type <c>LocalMktDate</c>.
@@ -5301,15 +5301,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AssignmentUnit, FIX tag 745, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AssignmentUnit((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(745, value);
+	public sealed class AssignmentUnit((bool Valid, decimal Value) value)
+		: Typed<decimal>(745, value);
 
 	/// <summary>
 	/// Represents OpenInterest, FIX tag 746, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OpenInterest((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(746, value);
+	public sealed class OpenInterest((bool Valid, decimal Value) value)
+		: Typed<decimal>(746, value);
 
 	/// <summary>
 	/// Represents ExerciseMethod, FIX tag 747, with wire type <c>char</c>.
@@ -5441,15 +5441,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AllowableOneSidednessPct, FIX tag 765, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllowableOneSidednessPct((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(765, value);
+	public sealed class AllowableOneSidednessPct((bool Valid, decimal Value) value)
+		: Typed<decimal>(765, value);
 
 	/// <summary>
 	/// Represents AllowableOneSidednessValue, FIX tag 766, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllowableOneSidednessValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(766, value);
+	public sealed class AllowableOneSidednessValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(766, value);
 
 	/// <summary>
 	/// Represents AllowableOneSidednessCurr, FIX tag 767, with wire type <c>Currency</c>.
@@ -5679,15 +5679,15 @@ public abstract class FixField : IFixLocation
 	/// Represents OrderAvgPx, FIX tag 799, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrderAvgPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(799, value);
+	public sealed class OrderAvgPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(799, value);
 
 	/// <summary>
 	/// Represents OrderBookingQty, FIX tag 800, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrderBookingQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(800, value);
+	public sealed class OrderBookingQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(800, value);
 
 	/// <summary>
 	/// Represents NoSettlPartySubIDs, FIX tag 801, with wire type <c>NumInGroup</c>.
@@ -5749,15 +5749,15 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingPx, FIX tag 810, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(810, value);
+	public sealed class UnderlyingPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(810, value);
 
 	/// <summary>
 	/// Represents PriceDelta, FIX tag 811, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PriceDelta((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(811, value);
+	public sealed class PriceDelta((bool Valid, decimal Value) value)
+		: Typed<decimal>(811, value);
 
 	/// <summary>
 	/// Represents ApplQueueMax, FIX tag 812, with wire type <c>int</c>.
@@ -5910,8 +5910,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ThresholdAmount, FIX tag 834, with wire type <c>PriceOffset</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ThresholdAmount((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(834, value);
+	public sealed class ThresholdAmount((bool Valid, decimal Value) value)
+		: Typed<decimal>(834, value);
 
 	/// <summary>
 	/// Represents PegMoveType, FIX tag 835, with wire type <c>int</c>.
@@ -5945,8 +5945,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PeggedPrice, FIX tag 839, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PeggedPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(839, value);
+	public sealed class PeggedPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(839, value);
 
 	/// <summary>
 	/// Represents PegScope, FIX tag 840, with wire type <c>int</c>.
@@ -5987,8 +5987,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DiscretionPrice, FIX tag 845, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DiscretionPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(845, value);
+	public sealed class DiscretionPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(845, value);
 
 	/// <summary>
 	/// Represents DiscretionScope, FIX tag 846, with wire type <c>int</c>.
@@ -6015,15 +6015,15 @@ public abstract class FixField : IFixLocation
 	/// Represents ParticipationRate, FIX tag 849, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ParticipationRate((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(849, value);
+	public sealed class ParticipationRate((bool Valid, decimal Value) value)
+		: Typed<decimal>(849, value);
 
 	/// <summary>
 	/// Represents TargetStrategyPerformance, FIX tag 850, with wire type <c>float</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TargetStrategyPerformance((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(850, value);
+	public sealed class TargetStrategyPerformance((bool Valid, decimal Value) value)
+		: Typed<decimal>(850, value);
 
 	/// <summary>
 	/// Represents LastLiquidityInd, FIX tag 851, with wire type <c>int</c>.
@@ -6078,8 +6078,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SharedCommission, FIX tag 858, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SharedCommission((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(858, value);
+	public sealed class SharedCommission((bool Valid, decimal Value) value)
+		: Typed<decimal>(858, value);
 
 	/// <summary>
 	/// Represents ConfirmReqID, FIX tag 859, with wire type <c>String</c>.
@@ -6092,15 +6092,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AvgParPx, FIX tag 860, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AvgParPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(860, value);
+	public sealed class AvgParPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(860, value);
 
 	/// <summary>
 	/// Represents ReportedPx, FIX tag 861, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ReportedPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(861, value);
+	public sealed class ReportedPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(861, value);
 
 	/// <summary>
 	/// Represents NoCapacities, FIX tag 862, with wire type <c>NumInGroup</c>.
@@ -6113,8 +6113,8 @@ public abstract class FixField : IFixLocation
 	/// Represents OrderCapacityQty, FIX tag 863, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrderCapacityQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(863, value);
+	public sealed class OrderCapacityQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(863, value);
 
 	/// <summary>
 	/// Represents NoEvents, FIX tag 864, with wire type <c>NumInGroup</c>.
@@ -6141,8 +6141,8 @@ public abstract class FixField : IFixLocation
 	/// Represents EventPx, FIX tag 867, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EventPx((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(867, value);
+	public sealed class EventPx((bool Valid, decimal Value) value)
+		: Typed<decimal>(867, value);
 
 	/// <summary>
 	/// Represents EventText, FIX tag 868, with wire type <c>String</c>.
@@ -6155,8 +6155,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PctAtRisk, FIX tag 869, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PctAtRisk((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(869, value);
+	public sealed class PctAtRisk((bool Valid, decimal Value) value)
+		: Typed<decimal>(869, value);
 
 	/// <summary>
 	/// Represents NoInstrAttrib, FIX tag 870, with wire type <c>NumInGroup</c>.
@@ -6225,8 +6225,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingQty, FIX tag 879, with wire type <c>Qty</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingQty((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(879, value);
+	public sealed class UnderlyingQty((bool Valid, decimal Value) value)
+		: Typed<decimal>(879, value);
 
 	/// <summary>
 	/// Represents TrdMatchID, FIX tag 880, with wire type <c>String</c>.
@@ -6246,36 +6246,36 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingDirtyPrice, FIX tag 882, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingDirtyPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(882, value);
+	public sealed class UnderlyingDirtyPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(882, value);
 
 	/// <summary>
 	/// Represents UnderlyingEndPrice, FIX tag 883, with wire type <c>Price</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingEndPrice((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(883, value);
+	public sealed class UnderlyingEndPrice((bool Valid, decimal Value) value)
+		: Typed<decimal>(883, value);
 
 	/// <summary>
 	/// Represents UnderlyingStartValue, FIX tag 884, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingStartValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(884, value);
+	public sealed class UnderlyingStartValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(884, value);
 
 	/// <summary>
 	/// Represents UnderlyingCurrentValue, FIX tag 885, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingCurrentValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(885, value);
+	public sealed class UnderlyingCurrentValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(885, value);
 
 	/// <summary>
 	/// Represents UnderlyingEndValue, FIX tag 886, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingEndValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(886, value);
+	public sealed class UnderlyingEndValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(886, value);
 
 	/// <summary>
 	/// Represents NoUnderlyingStips, FIX tag 887, with wire type <c>NumInGroup</c>.
@@ -6302,8 +6302,8 @@ public abstract class FixField : IFixLocation
 	/// Represents MaturityNetMoney, FIX tag 890, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MaturityNetMoney((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(890, value);
+	public sealed class MaturityNetMoney((bool Valid, decimal Value) value)
+		: Typed<decimal>(890, value);
 
 	/// <summary>
 	/// Represents MiscFeeBasis, FIX tag 891, with wire type <c>int</c>.
@@ -6358,29 +6358,29 @@ public abstract class FixField : IFixLocation
 	/// Represents MarginRatio, FIX tag 898, with wire type <c>Percentage</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MarginRatio((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(898, value);
+	public sealed class MarginRatio((bool Valid, decimal Value) value)
+		: Typed<decimal>(898, value);
 
 	/// <summary>
 	/// Represents MarginExcess, FIX tag 899, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MarginExcess((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(899, value);
+	public sealed class MarginExcess((bool Valid, decimal Value) value)
+		: Typed<decimal>(899, value);
 
 	/// <summary>
 	/// Represents TotalNetValue, FIX tag 900, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotalNetValue((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(900, value);
+	public sealed class TotalNetValue((bool Valid, decimal Value) value)
+		: Typed<decimal>(900, value);
 
 	/// <summary>
 	/// Represents CashOutstanding, FIX tag 901, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CashOutstanding((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(901, value);
+	public sealed class CashOutstanding((bool Valid, decimal Value) value)
+		: Typed<decimal>(901, value);
 
 	/// <summary>
 	/// Represents CollAsgnID, FIX tag 902, with wire type <c>String</c>.
@@ -6512,22 +6512,22 @@ public abstract class FixField : IFixLocation
 	/// Represents EndAccruedInterestAmt, FIX tag 920, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EndAccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(920, value);
+	public sealed class EndAccruedInterestAmt((bool Valid, decimal Value) value)
+		: Typed<decimal>(920, value);
 
 	/// <summary>
 	/// Represents StartCash, FIX tag 921, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class StartCash((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(921, value);
+	public sealed class StartCash((bool Valid, decimal Value) value)
+		: Typed<decimal>(921, value);
 
 	/// <summary>
 	/// Represents EndCash, FIX tag 922, with wire type <c>Amt</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EndCash((bool Valid, FixDecimal Value) value)
-		: Typed<FixDecimal>(922, value);
+	public sealed class EndCash((bool Valid, decimal Value) value)
+		: Typed<decimal>(922, value);
 
 	/// <summary>
 	/// Represents UserRequestID, FIX tag 923, with wire type <c>String</c>.

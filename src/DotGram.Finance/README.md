@@ -259,14 +259,13 @@ var order = (NewOrderSingle)FixMessages.Parse(wire);
 var symbol = (FixField.Symbol)order.GetField(55)!.Value.TypedValue!;
 var quantity = (FixField.OrderQty)order.GetField(38)!.Value.TypedValue!;
 Console.WriteLine(symbol.Value);             // string
-Console.WriteLine(quantity.Value.Coefficient); // BigInteger
-Console.WriteLine(quantity.Value.Scale);       // decimal scale
+Console.WriteLine(quantity.Value);           // decimal
 ```
 
 | FIX primitive | ADT value |
 | --- | --- |
 | int, Length, NumInGroup, SeqNum, TagNum, DayOfMonth | BigInteger |
-| float, Qty, Price, PriceOffset, Amt, Percentage | FixDecimal: exact coefficient and scale |
+| float, Qty, Price, PriceOffset, Amt, Percentage | decimal |
 | char, Boolean | char, bool |
 | String, Currency, Country, Exchange | string |
 | MultipleValueString | string[] |
@@ -276,9 +275,11 @@ Console.WriteLine(quantity.Value.Scale);       // decimal scale
 
 Code sets are validated against the schema tables in Strict mode; their underlying
 primitive remains the value type. Dates retain year zero and leap-second notation.
-The char numeric hooks use invariant .NET parsing. Byte numeric hooks accumulate
-ASCII digits directly, retaining arbitrary integer and decimal precision.
-`FixDecimal.TryGetDecimal` succeeds only when the value is exactly representable.
+The character numeric hooks use invariant .NET parsing; byte decimal hooks use
+UTF-8 decimal parsing with the same FIX syntax checks. Integer values retain
+arbitrary precision. Decimal values must fit `System.Decimal` exactly: overflow
+and loss of fractional precision set `IsValid` to false rather than rounding.
+Trailing fractional zeros do not cause a loss of precision.
 
 The source-backed semantic model retains malformed primitive text in Lenient mode. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.

@@ -85,10 +85,7 @@ public sealed class FixFieldGrammarTests
 			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(order.GetField(55)!.Value.TypedValue).Value);
 			Assert.Equal('1', Assert.IsType<FixField.Side>(order.GetField(54)!.Value.TypedValue).Value);
 			var price = Assert.IsType<FixField.Price>(order.GetField(44)!.Value.TypedValue).Value;
-			Assert.Equal(new BigInteger(1250), price.Coefficient);
-			Assert.Equal(2, price.Scale);
-			Assert.True(price.TryGetDecimal(out var money));
-			Assert.Equal(12.50m, money);
+			Assert.Equal(12.50m, price);
 			var time = Assert.IsType<FixField.TransactTime>(order.GetField(60)!.Value.TypedValue).Value;
 			Assert.Equal(2026, time.Date.Year);
 			Assert.Equal(12, time.Time.Hour);
@@ -138,17 +135,16 @@ public sealed class FixFieldGrammarTests
 	}
 
 	[Theory]
-	[InlineData("-9999999999999999999999999999999999999999.000001")]
+	[InlineData("-79228162514264337593543950335")]
 	[InlineData(".5")]
 	[InlineData("-.5")]
-	[InlineData("0.0000000000000000000000000000000000000001")]
+	[InlineData("0.0000000000000000000000000001")]
 	[InlineData("1.")]
 	public void Decimal_conversion_is_exact_and_equal_for_both_domains(string text)
 	{
 		Assert.True(FixConvert.Decimal(text.AsSpan(), out var chars));
 		Assert.True(FixConvert.Decimal(Bytes(text), out var bytes));
-		Assert.Equal(chars.Coefficient, bytes.Coefficient);
-		Assert.Equal(chars.Scale, bytes.Scale);
+		Assert.Equal(chars, bytes);
 	}
 
 	[Fact]
