@@ -10,6 +10,6 @@
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
 		<ProjectReference Include="../../examples/DotGram.Examples/DotGram.Examples.csproj" />
 		<None Include="Fixtures.json" CopyToOutputDirectory="PreserveNewest" />
-		<None Include="../../src/DotGram.Finance/Fix/Specification/OrchestraFIX44.xml" Link="OrchestraFIX44.xml" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="FieldCases.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 </Project>

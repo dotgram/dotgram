@@ -11,5 +11,7 @@ are derived from FIX Trading Community's Orchestra repository.
 - License: Apache License, Version 2.0; included as `licenses/FIX-Orchestra/LICENSE`.
 
 DotGram's implementation is licensed under MIT; included as `licenses/DotGram/LICENSE`.
-Generated C# and .gram files are transformations of the pinned source, not files
-published by FIX Trading Community. The unmodified XML remains in the source tree.
+The retained C# and .gram definitions and regression data were extracted from this
+source and are now maintained manually. They are not files published by FIX
+Trading Community. The source XML and dictionary generator have been removed;
+this does not change the licensing or attribution of the retained materials.

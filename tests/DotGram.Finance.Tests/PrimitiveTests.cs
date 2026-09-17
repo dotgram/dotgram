@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Xml.Linq;
+using System.Text.Json;
 
 using DotGram.Finance;
 
@@ -14,15 +13,9 @@ public sealed class PrimitiveTests
 {
 	public static IEnumerable<object[]> OfficialCodes()
 	{
-		XNamespace ns = "http://fixprotocol.io/2020/orchestra/repository";
-		var repository = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "OrchestraFIX44.xml")).Root!;
-		var codeSets = repository.Element(ns + "codeSets")!.Elements().ToDictionary(x => (string)x.Attribute("name")!);
-		foreach (var field in repository.Element(ns + "fields")!.Elements())
-		{
-			if (!codeSets.TryGetValue((string)field.Attribute("type")!, out var codeSet)) continue;
-			foreach (var code in codeSet.Elements(ns + "code"))
-				yield return new object[] { (int)field.Attribute("id")!, (string)code.Attribute("value")! };
-		}
+		using var cases = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "FieldCases.json")));
+		foreach (var code in cases.RootElement.GetProperty("codes").EnumerateArray())
+			yield return new object[] { code.GetProperty("tag").GetInt32(), code.GetProperty("value").GetString()! };
 	}
 
 	[Theory]

@@ -13,8 +13,7 @@
 # of a corpus written elsewhere is that it is the text they wrote and not ours.
 tests/Corpus/ScriptDom/** -text
 
-# Pinned upstream FIX definitions and license: preserve their exact source bytes.
-src/DotGram.Finance/Fix/Specification/OrchestraFIX44.xml -text
+# Retained third-party license: preserve its exact bytes.
 src/DotGram.Finance/Fix/Specification/LICENSE -text
 
 # JSONTestSuite's parsing cases are the bytes a parser is handed: some are UTF-16, some are not

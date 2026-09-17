@@ -28,13 +28,15 @@ Parse complete tag-value messages from strings, character readers or byte stream
 No transport, session engine, persistence or serialization is included. Preserve
 the original wire and frame each message independently on a shared stream.
 
-The source of schema generation is FIX Trading Community's
+The initial schema definitions were extracted from FIX Trading Community's
 [OrchestraFIX44.xml](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
 version `FIX.4.4_EP311`, pinned to commit
-`cd24169a2abd8daba7c360987c7a46ca11873a12`. This is the maintained FIX 4.4
-repository, not FIX Latest with its additional messages. Its Apache 2.0 license
-is retained beside the unmodified XML. The inventory is 93 messages, 912 fields,
-15 components, 92 groups and 247 code sets.
+`cd24169a2abd8daba7c360987c7a46ca11873a12`. The XML and dictionary generator have
+been removed. Definitions and regression fixtures are now maintained manually,
+preserving their existing filenames and contents.
+Historical generation comments describe their origin, not a current build step.
+The original Apache 2.0 license and third-party notices remain included. The inventory
+is 93 messages, 912 fields, 15 components, 92 groups and 247 code sets.
 
 Wire rules follow the official
 [FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).

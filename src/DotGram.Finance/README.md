@@ -298,36 +298,28 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 Unknown tags are read as delimiter-terminated text unless their binary length/data
 pair is configured through `FixOptions` as described above.
 
-## Specification and reproducibility
+## Definition maintenance and provenance
 
-The source is FIX Trading Community's
+Field declarations, model types, schema tables, the example field grammar and test
+fixtures are maintained manually. The existing `.Generated.cs` filenames and
+historical generation comments are retained; they do not imply a regeneration step.
+When changing definitions, update the affected factory cases, schema entries,
+models, example grammar and test cases together.
+
+The initial definitions were extracted from FIX Trading Community's
 [Orchestra FIX 4.4](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
-`FIX.4.4_EP311`, pinned to commit
-`cd24169a2abd8daba7c360987c7a46ca11873a12`.
-It contains 912 fields, 247 code sets, 15 components and 92 group definitions;
-91 groups are reachable from the 93 standard messages. Wire rules follow
-[FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
+version `FIX.4.4_EP311`. The XML and T4 generator are no longer included.
+The retained inventory covers 912 fields, 247 code sets, 15 components and 92 group
+definitions; 91 groups are reachable from the 93 standard messages.
+`FieldCases.json` preserves the field IDs and code-value regression cases previously
+read from the XML; it is maintained manually alongside `Fixtures.json`.
+Wire rules follow [FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
 
-Run from the repository root:
-
-```powershell
-dotnet msbuild src/DotGram.Finance -t:GenerateFix
-```
-
-This reproduces checked-in field declarations, model types, schema tables and test fixtures. The generator owns
-the example `FixField.gram`, production `FixFactory.Generated.cs` and
-`FixField.Generated.cs`; it never rewrites `FixGrammar.gram`,
-`FixField.cs`, `FixConvert.cs` or the parser host. The T4 template uses C# and the
-pinned local XML; package consumers do not run it.
-In Visual Studio, open `Fix/Fix.Generate.tt` in the Finance project and run
-**Run Custom Tool** (or **Transform All T4 Templates**). `Fix.Generate.ttinclude`
-contains shared dictionary and fixture helpers; `Fix.Generate.txt` lists outputs.
-
-For command-line regeneration, the `GenerateFix` target restores the pinned
-`dotnet-t4` tool from `.config/dotnet-tools.json` and transforms the same template.
-Ordinary builds compile the checked-in generated files without running T4.
-The original source and its Apache 2.0 license remain unmodified. See the packaged
-third-party notices for attribution.
+Removing the source and generator does not relicense the retained definitions.
+The package retains its license expression, license texts and third-party attribution.
+See `THIRD-PARTY-NOTICES.md` for the original source revision.
+DotGram still compiles `.gram` files during builds; only dictionary generation has
+been removed.
 
 Tests and BenchmarkDotNet workloads are separate solution projects. The coverage
 and measurement records are in `docs/design/finance-fix44.md` and

@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Xml.Linq;
 
 using DotGram.Examples.Finance;
 using DotGram.Finance;
@@ -229,9 +228,8 @@ public sealed class Fix44Tests
 			Assert.Equal(wire, string.Concat(fields.Select(f => f.Wire.ToString())));
 			foreach (var field in fields) tags.Add(field.Tag);
 		}
-		XNamespace ns = "http://fixprotocol.io/2020/orchestra/repository";
-		var repository = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "OrchestraFIX44.xml"));
-		var expected = repository.Root!.Element(ns + "fields")!.Elements().Select(x => (int)x.Attribute("id")!).Order().ToArray();
+		using var cases = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "FieldCases.json")));
+		var expected = cases.RootElement.GetProperty("tags").EnumerateArray().Select(x => x.GetInt32()).Order().ToArray();
 		Assert.Equal(912, expected.Length);
 		Assert.Equal(expected, tags.Order().ToArray());
 	}
