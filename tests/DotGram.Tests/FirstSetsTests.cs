@@ -201,6 +201,17 @@ public sealed class FirstSetsTests
 		Assert.True(follow.Overlaps(FirstSets.First.Chars([new CharRange(';', ';')])));
 	}
 
+	[Fact]
+	public void Follow_propagates_backwards_through_rule_order_without_a_publication()
+	{
+		var graph = Graph("Leaf = 'a'\nMiddle = Leaf\nOuter = Middle\nStart = Outer & ';'");
+		var expected = FirstSets.First.Chars([new CharRange(';', ';')]);
+		var follow = FollowSets.Of(graph);
+
+		foreach (var name in new[] { "Leaf", "Middle", "Outer" })
+			Assert.True(FirstSets.Same(expected, follow[graph.Rules.Single(rule => rule.Name == name)].Plain));
+	}
+
 	// ── Nullability ───────────────────────────────────────────────────────────────────
 
 	/// <summary>A repetition is nullable when its body is, not only when it may be skipped.</summary>
@@ -239,6 +250,55 @@ public sealed class FirstSetsTests
 			FirstSets.Nullable(
 				new Node.Behind(new Node.Element(false, [new CharRange('a', 'z')], [], [])),
 				_ => false));
+
+	[Fact]
+	public void Contextual_answers_distinguish_continuations_seams_and_graphs()
+	{
+		var graph = Graph("A = 'a'\nB = 'b'\nStart = A & B");
+		var a = graph.Rules.Single(rule => rule.Name == "A");
+		var call = new Node.Call(a, []);
+		var optional = new Node.Repeat(new Node.Literal("a"), 0, 1);
+		var repeat = new Node.Repeat(new Node.Literal("a"), 0, null);
+
+		static FollowSets.Continuation Following(char value) => new(
+			FirstSets.First.Chars([new CharRange(value, value)]), FirstSets.First.End);
+
+		FollowSets.Continuation last = default;
+		for (var i = 0; i < 512; i++)
+		{
+			last = FollowSets.Precedes(optional, Following('z'), graph, null);
+			Assert.True(Determinism.NeverGivesBack(repeat, Following('z'), graph, null));
+			Assert.False(Determinism.NeverGivesBack(repeat, Following('a'), graph, null));
+			Assert.True(Determinism.Possessive(repeat.Body, Following('z'), graph, null));
+			Assert.False(Determinism.Possessive(repeat.Body, Following('a'), graph, null));
+		}
+
+		// Equal contents in newly allocated FIRST objects reuse the answer.
+		Assert.Same(last.Plain, FollowSets.Precedes(optional, Following('z'), graph, null).Plain);
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new CharRange('a', 'a'), new CharRange('z', 'z')]), last.Plain));
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new CharRange('a', 'a'), new CharRange('y', 'y')]),
+			FollowSets.Precedes(optional, Following('y'), graph, null).Plain));
+
+		var plain = FollowSets.Precedes(call, Following('z'), graph, null);
+		var seam = FollowSets.Precedes(call, Following('z'), graph, a);
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new CharRange('a', 'a')]), plain.AfterSeam));
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new CharRange('z', 'z')]), seam.AfterSeam));
+		Assert.True(FollowSets.Precedes(optional, FollowSets.Continuation.End, graph, null).Plain.Ends);
+		Assert.False(last.Plain.Ends);
+
+		// These distinct ranges collide under the content hash; equality must still
+		// compare their contents before assigning an ID.
+		var wide = new FollowSets.Continuation(FirstSets.First.Chars([new CharRange((char)1, (char)40)]), FirstSets.First.End);
+		var narrow = new FollowSets.Continuation(FirstSets.First.Chars([new CharRange((char)2, (char)9)]), FirstSets.First.End);
+		Assert.False(FirstSets.Same(FollowSets.Precedes(optional, wide, graph, null).Plain,
+			FollowSets.Precedes(optional, narrow, graph, null).Plain));
+		Assert.True(FollowSets.Precedes(optional, FollowSets.Continuation.All, graph, null).Plain.Anything);
+
+		var other = Graph("A = 'b'\nStart = A");
+		var otherCall = new Node.Call(other.Rules.Single(rule => rule.Name == "A"), []);
+		Assert.True(FirstSets.Same(FirstSets.First.Chars([new CharRange('b', 'b')]),
+			FollowSets.Precedes(otherCall, Following('z'), other, null).Plain));
+	}
 
 	static RecognitionGraph Graph(string text) =>
 		GrammarNormalizer.Normalize(

@@ -1,0 +1,365 @@
+{
+  "before": [
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 25128.6934,
+      "Allocated": 16995136200,
+      "GC0": 329,
+      "GC1": 218,
+      "GC2": 12,
+      "Sources": 6,
+      "Chars": 58866983,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 22475.4538,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 12320.3968,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 4823.345,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 4419.8082,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 911.9038,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1375.1298000000002,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1198.8293,
+              "Name": null
+            },
+            {
+              "Ms": 100.7954,
+              "Name": null
+            },
+            {
+              "Ms": 40.6466,
+              "Name": null
+            },
+            {
+              "Ms": 34.8585,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 792.7157000000001,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 621.5981,
+              "Name": null
+            },
+            {
+              "Ms": 90.1358,
+              "Name": null
+            },
+            {
+              "Ms": 50.5266,
+              "Name": null
+            },
+            {
+              "Ms": 30.4552,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 28004.7071,
+      "Allocated": 17150566672,
+      "GC0": 333,
+      "GC1": 213,
+      "GC2": 13,
+      "Sources": 6,
+      "Chars": 58866983,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1464.1235999999997,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1277.3299,
+              "Name": null
+            },
+            {
+              "Ms": 104.8111,
+              "Name": null
+            },
+            {
+              "Ms": 43.9206,
+              "Name": null
+            },
+            {
+              "Ms": 38.062,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 25266.44,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 13839.2923,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 5353.7729,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 5064.8731,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 1008.5017,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 790.8411000000001,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 621.3966,
+              "Name": null
+            },
+            {
+              "Ms": 92.3619,
+              "Name": null
+            },
+            {
+              "Ms": 47.4931,
+              "Name": null
+            },
+            {
+              "Ms": 29.5895,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 19140.9484,
+      "Allocated": 11602509432,
+      "GC0": 223,
+      "GC1": 102,
+      "GC2": 11,
+      "Sources": 6,
+      "Chars": 59608778,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Answered",
+          "Ms": 1395.3313000000003,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1211.548,
+              "Name": null
+            },
+            {
+              "Ms": 102.9325,
+              "Name": null
+            },
+            {
+              "Ms": 43.7606,
+              "Name": null
+            },
+            {
+              "Ms": 37.0902,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 789.0953000000001,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 617.4488,
+              "Name": null
+            },
+            {
+              "Ms": 92.9034,
+              "Name": null
+            },
+            {
+              "Ms": 48.7409,
+              "Name": null
+            },
+            {
+              "Ms": 30.0022,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Compiled",
+          "Ms": 16474.942900000002,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 5776.4891,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 5487.5237,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 4167.8267,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 1043.1034,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Project": "DotGram.Sql",
+      "Kind": "fresh-0",
+      "Ms": 18948.3767,
+      "Allocated": 11471768904,
+      "GC0": 220,
+      "GC1": 101,
+      "GC2": 11,
+      "Sources": 6,
+      "Chars": 59608778,
+      "Errors": [],
+      "Stages": [
+        {
+          "Stage": "Compiled",
+          "Ms": 16312.689499999999,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 5648.2392,
+              "Name": "DotGram.Sql.Standard.SqlStandardParser.g.cs"
+            },
+            {
+              "Ms": 5474.0951,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+            },
+            {
+              "Ms": 4206.4599,
+              "Name": "DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs"
+            },
+            {
+              "Ms": 983.8953,
+              "Name": "DotGram.Sql.Standard.Sql92Parser.g.cs"
+            }
+          ]
+        },
+        {
+          "Stage": "Answered",
+          "Ms": 1385.2822999999999,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 1201.2595,
+              "Name": null
+            },
+            {
+              "Ms": 101.9051,
+              "Name": null
+            },
+            {
+              "Ms": 46.3328,
+              "Name": null
+            },
+            {
+              "Ms": 35.7849,
+              "Name": null
+            }
+          ]
+        },
+        {
+          "Stage": "Asked",
+          "Ms": 763.0852000000001,
+          "Reasons": {
+            "New": 4
+          },
+          "Hosts": [
+            {
+              "Ms": 593.666,
+              "Name": null
+            },
+            {
+              "Ms": 91.7483,
+              "Name": null
+            },
+            {
+              "Ms": 47.0746,
+              "Name": null
+            },
+            {
+              "Ms": 30.5963,
+              "Name": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "methodology": "Two fresh processes per variant, ordered before/after/after/before. Source-generator execution only; setup and output dumps outside timer. No overlapping builds or tests.",
+  "beforeGeneratorSHA256": "d8b01f4f0581de34f5ebf473e99128978e94b3ef68cdcfaa3469355682a4905f",
+  "afterGeneratorSHA256": "bb0043c7511f350d1090eed7bf77b816bd6ff3ccc4b1d957000b9c459482c2d1"
+}

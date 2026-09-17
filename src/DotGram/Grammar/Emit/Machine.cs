@@ -300,7 +300,7 @@ sealed partial class Machine
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
-		Dictionary<string, (string Name, string Declaration)>? expectedTables = null)
+		Dictionary<string, (string Name, string Declaration)>? expectedTables = null, bool deferCompilation = false)
 	{
 		_expectedTables = expectedTables;
 		BufferedInput = bufferedInput;
@@ -470,6 +470,28 @@ sealed partial class Machine
 		// and that is only known once every one of them has been looked at.
 		_follow = _follows ??= FollowSets.Of(graph);
 
+		// Strategy checks historically start with the final rule's seam. Keep that
+		// context while postponing state emission until publication groups are final.
+		if (_rules.LastOrDefault() is { } last)
+		{
+			_seam = FollowSets.SeamOf(last, graph);
+			_traceRule = last.Name;
+		}
+
+		if (!deferCompilation)
+			CompileRules();
+	}
+
+	bool _rulesCompiled;
+
+	/// <summary>Emits rule states once, after the emitter has selected the final machines.</summary>
+	internal void CompileRules()
+	{
+		if (_rulesCompiled)
+			return;
+
+		_rulesCompiled = true;
+		var graph = _graph;
 
 		foreach (var rule in _rules)
 		{

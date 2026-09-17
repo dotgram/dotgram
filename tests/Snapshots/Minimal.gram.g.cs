@@ -4125,25 +4125,6 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
-		/// <summary><c>wordboundary</c>, recognized with nothing written down.</summary>
-		static int Scan_Spaced_wordboundary_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p = pos;
-			var c = '\0';
-
-			if ((uint)p >= (uint)text.Length) goto Refuse;
-			c = text[p];
-			if (!(((c >= 'a' && c <= 'z')))) goto Refuse;
-			p++;
-
-			if (p >= text.Length) failure.Starved = true;
-
-			return p;
-
-			Refuse:
-			return -1 - p;
-		}
-
 		/// <summary><c>trivia</c>, recognized with nothing written down.</summary>
 		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
@@ -4176,6 +4157,25 @@ namespace DotGram.Snapshots
 			if (p >= text.Length) failure.Starved = true;
 
 			return p;
+		}
+
+		/// <summary><c>wordboundary</c>, recognized with nothing written down.</summary>
+		static int Scan_Spaced_wordboundary_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var p = pos;
+			var c = '\0';
+
+			if ((uint)p >= (uint)text.Length) goto Refuse;
+			c = text[p];
+			if (!(((c >= 'a' && c <= 'z')))) goto Refuse;
+			p++;
+
+			if (p >= text.Length) failure.Starved = true;
+
+			return p;
+
+			Refuse:
+			return -1 - p;
 		}
 
 		static int Recognize_DotGram_Item(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, int initialPower, bool whole, bool materialize, ref Failure failure, out object? recognized)

@@ -602,6 +602,14 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	internal Dictionary<Node, FirstSets.First>? FirstByNode { get; set; }
 
+	ContinuationCache? _continuations;
+	int _uncachedContinuations = 256;
+
+	// Small grammars finish without allocating contextual dictionaries. Estimates
+	// read while FIRST is still growing must never enter this cache.
+	internal ContinuationCache? Continuations => !FirstSettled ? null :
+		_continuations ?? (_uncachedContinuations-- > 0 ? null : _continuations = new ContinuationCache());
+
 	public string? Context { get; init; }
 
 	/// <summary>

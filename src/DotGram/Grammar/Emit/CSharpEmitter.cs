@@ -223,7 +223,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -280,7 +280,7 @@ public static partial class CSharpEmitter
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
 				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
-				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables);
+				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true);
 			made.Anchor = owner.Machine.Anchor;
 			if (!made.CanDirect(publications)) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
@@ -294,6 +294,9 @@ public static partial class CSharpEmitter
 			(carrier == CarrierKind.Tape || carrier == CarrierKind.Auto && replay is not null &&
 				reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)));
 		HashSet<RuleSymbol> Rules(Compiled compiled) => new(compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule)));
+
+		foreach (var compiled in machines)
+			compiled.Machine.CompileRules();
 
 		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables);
 

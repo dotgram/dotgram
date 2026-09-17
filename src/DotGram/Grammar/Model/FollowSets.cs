@@ -105,100 +105,99 @@ public static class FollowSets
 				follow[publication.Rule] = follow[publication.Rule].Or(after);
 		}
 
-		// Round and round until nothing new is said. Each round can only add — the union of
-		// what a rule was told and what this round tells it — so the sets grow towards a
-		// bound and stop. The count is a guard against a mistake in that argument rather
-		// than against the grammar.
-		for (var round = 0; round <= graph.Rules.Count + 1; round++)
+		// Every body contributes once, even with an empty FOLLOW: its internal call
+		// sites can have constant continuations. Later only changed rules need a walk.
+		var queue = new Queue<RuleSymbol>(graph.Rules);
+		var queued = new HashSet<RuleSymbol>(graph.Rules);
+
+		foreach (var (body, after, seam) in entries)
+			Contribute(body, after, seam);
+
+		while (queue.Count > 0)
 		{
-			var settled = true;
+			var rule = queue.Dequeue();
 
-			foreach (var (body, after, seam) in entries)
-				Contribute(body, after, seam);
+			queued.Remove(rule);
 
-			foreach (var rule in graph.Rules)
-				if (graph.Bodies.TryGetValue(rule, out var body))
-					Contribute(body, follow[rule], SeamOf(rule, graph));
-
-			if (settled)
-				return follow;
-
-			void Contribute(Node node, Continuation after, RuleSymbol? seam)
-			{
-				switch (node)
-				{
-					case Node.Call(var called, _):
-					{
-						// A rule lowered under another namespace peels a different seam, so
-						// what this site knows past its own is no use to it. The plain half
-						// travels regardless.
-						var told = ReferenceEquals(SeamOf(called, graph), seam)
-							? after
-							: new Continuation(after.Plain, FirstSets.First.All);
-
-						if (!follow.TryGetValue(called, out var held) || held.Covers(told))
-							return;
-
-						follow[called] = held.Or(told);
-						settled        = false;
-
-						return;
-					}
-
-					// Each part is followed by the rest of the sequence, and by what follows
-					// the sequence where the rest can match nothing.
-					case Node.Sequence(var parts):
-					{
-						var next = after;
-
-						for (var i = parts.Count - 1; i >= 0; i--)
-						{
-							Contribute(parts[i], next, seam);
-
-							next = Precedes(parts[i], next, graph, seam);
-						}
-
-						return;
-					}
-
-					// Every alternative is followed by whatever the choice is.
-					case Node.Choice(var alternatives):
-					{
-						foreach (var alternative in alternatives)
-							Contribute(alternative, after, seam);
-
-						return;
-					}
-
-					// A turn is followed by another turn or by whatever the repetition is
-					// followed by — except that an optional has no other turn, and telling
-					// it that one might follow poisons everything upstream of its own first
-					// set. `(Argument & …)?` inside a call was telling `Argument` that
-					// anything could follow it, and that "anything" walked back through
-					// every rule a value can name.
-					case Node.Repeat(var body, _, var max):
-						Contribute(
-							body,
-							max == 1 ? after : Precedes(body, after, graph, seam).Or(after),
-							seam);
-
-						return;
-
-					case Node.Capture(_, var captured): Contribute(captured, after, seam); return;
-					case Node.Construct(var built, _):  Contribute(built,    after, seam); return;
-					case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
-					case Node.Marked(var kept, _):      Contribute(kept,     after, seam); return;
-
-					// What is inside is read and given back, so what follows it is read
-					// again by whatever comes next — which this cannot see from here.
-					case Node.Lookahead(_, var seen):
-						Contribute(seen, Continuation.All, seam);
-
-						return;
-				}
-			}
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				Contribute(body, follow[rule], SeamOf(rule, graph));
 		}
 
+		void Contribute(Node node, Continuation after, RuleSymbol? seam)
+		{
+			switch (node)
+			{
+				case Node.Call(var called, _):
+				{
+					// A rule lowered under another namespace peels a different seam, so
+					// what this site knows past its own is no use to it. The plain half
+					// travels regardless.
+					var told = ReferenceEquals(SeamOf(called, graph), seam)
+						? after
+						: new Continuation(after.Plain, FirstSets.First.All);
+
+					if (!follow.TryGetValue(called, out var held) || held.Covers(told))
+						return;
+
+					follow[called] = held.Or(told);
+					if (queued.Add(called))
+						queue.Enqueue(called);
+
+					return;
+				}
+
+				// Each part is followed by the rest of the sequence, and by what follows
+				// the sequence where the rest can match nothing.
+				case Node.Sequence(var parts):
+				{
+					var next = after;
+
+					for (var i = parts.Count - 1; i >= 0; i--)
+					{
+						Contribute(parts[i], next, seam);
+
+						next = Precedes(parts[i], next, graph, seam);
+					}
+
+					return;
+				}
+
+				// Every alternative is followed by whatever the choice is.
+				case Node.Choice(var alternatives):
+				{
+					foreach (var alternative in alternatives)
+						Contribute(alternative, after, seam);
+
+					return;
+				}
+
+				// A turn is followed by another turn or by whatever the repetition is
+				// followed by — except that an optional has no other turn, and telling
+				// it that one might follow poisons everything upstream of its own first
+				// set. `(Argument & …)?` inside a call was telling `Argument` that
+				// anything could follow it, and that "anything" walked back through
+				// every rule a value can name.
+				case Node.Repeat(var body, _, var max):
+					Contribute(
+						body,
+						max == 1 ? after : Precedes(body, after, graph, seam).Or(after),
+						seam);
+
+					return;
+
+				case Node.Capture(_, var captured): Contribute(captured, after, seam); return;
+				case Node.Construct(var built, _):  Contribute(built,    after, seam); return;
+				case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
+				case Node.Marked(var kept, _):      Contribute(kept,     after, seam); return;
+
+				// What is inside is read and given back, so what follows it is read
+				// again by whatever comes next — which this cannot see from here.
+				case Node.Lookahead(_, var seen):
+					Contribute(seen, Continuation.All, seam);
+
+					return;
+			}
+		}
 		return follow;
 	}
 
@@ -217,6 +216,19 @@ public static class FollowSets
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
+		var cache = graph.Continuations;
+		if (cache is null)
+			return ComputePrecedes(node, after, graph, seam);
+
+		var key = cache.Of(node, after, seam);
+		if (!cache.Precedes.TryGetValue(key, out var result))
+			cache.Precedes[key] = result = ComputePrecedes(node, after, graph, seam);
+		return result;
+	}
+
+	static Continuation ComputePrecedes(
+		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam)
+	{
 		switch (node)
 		{
 			// The seam itself, standing first: what follows once it has been read is the
@@ -278,12 +290,11 @@ public static class FollowSets
 			// a run that may be empty, not taken at all.
 			case Node.Repeat(var body, var min, _):
 			{
+				var plain = Plainly(node, after.Plain, graph);
 				var turn = Precedes(
 					body,
-					new Continuation(Plainly(node, after.Plain, graph), FirstSets.First.All),
+					new Continuation(plain, FirstSets.First.All),
 					graph, seam);
-
-				var plain = Plainly(node, after.Plain, graph);
 
 				return new Continuation(
 					plain,

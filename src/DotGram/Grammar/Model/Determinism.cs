@@ -60,8 +60,16 @@ public static class Determinism
 	/// </para>
 	/// </remarks>
 	public static bool Possessive(
-		Node body, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
-		Possessive(body, [], following, graph, seam);
+		Node body, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		var cache = graph.Continuations;
+		if (cache is null)
+			return Possessive(body, [], following, graph, seam);
+		var key = cache.Of(body, following, seam);
+		if (!cache.Possessive.TryGetValue(key, out var result))
+			cache.Possessive[key] = result = Possessive(body, [], following, graph, seam);
+		return result;
+	}
 
 	/// <summary>
 	/// Whether a repetition need never hand a completed turn back.
@@ -85,6 +93,18 @@ public static class Determinism
 	/// </para>
 	/// </remarks>
 	public static bool NeverGivesBack(
+		Node.Repeat repeat, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		var cache = graph.Continuations;
+		if (cache is null)
+			return ComputeNeverGivesBack(repeat, following, graph, seam);
+		var key = cache.Of(repeat, following, seam);
+		if (!cache.NeverGivesBack.TryGetValue(key, out var result))
+			cache.NeverGivesBack[key] = result = ComputeNeverGivesBack(repeat, following, graph, seam);
+		return result;
+	}
+
+	static bool ComputeNeverGivesBack(
 		Node.Repeat repeat, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
 	{
 		var body = repeat.Body;

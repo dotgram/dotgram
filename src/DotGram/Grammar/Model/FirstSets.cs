@@ -895,14 +895,27 @@ public static class FirstSets
 		if (element.References.Count > 0)
 			return First.All;
 
-		var all = new List<CharRange>(element.Ranges);
+		IReadOnlyList<CharRange> known;
 
-		foreach (var category in element.Categories)
-			all.AddRange(CategoryRanges(category));
+		if (element.Categories.Count == 0)
+			known = First.Normalized(element.Ranges);
+		else if (element.Ranges.Count == 0 && element.Categories.Count == 1)
+			known = CategoryRanges(element.Categories[0]);
+		else
+		{
+			var all = new List<CharRange>(element.Ranges);
 
-		var known = First.Normalized(all);
+			foreach (var category in element.Categories)
+				all.AddRange(CategoryRanges(category));
 
-		return First.Chars(element.IsNegated ? Complement(known) : known);
+			known = First.Normalized(all);
+		}
+
+		// Both normalization and its complement produce sorted, maximal ranges.
+		// Chars would normalize and copy the same result a second time.
+		var ranges = element.IsNegated ? Complement(known) : known;
+
+		return ranges.Count == 0 ? First.None : new First(false, false, ranges);
 	}
 
 	static First Of(Node node, RecognitionGraph graph, IReadOnlyDictionary<RuleSymbol, First> byRule)
@@ -926,20 +939,8 @@ public static class FirstSets
 			// `\p{L}` at the head of a rule made everything after that rule unknowable.
 			// A reference is the one honest "anything" left — it is a C# predicate, and
 			// what it accepts is the host's knowledge, not the grammar's.
-			case Node.Element(var negated, var ranges, var categories, var references):
-			{
-				if (references.Count > 0)
-					return First.All;
-
-				var all = new List<CharRange>(ranges);
-
-				foreach (var category in categories)
-					all.AddRange(CategoryRanges(category));
-
-				var known = First.Normalized(all);
-
-				return First.Chars(negated ? Complement(known) : known);
-			}
+			case Node.Element element:
+				return OfElement(element);
 
 			// Consumes nothing, so it begins with nothing — and a lookahead's own first set
 			// is not what the sequence begins with, because the operand after it is.

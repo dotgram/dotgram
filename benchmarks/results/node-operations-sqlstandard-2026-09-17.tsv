@@ -1,0 +1,250 @@
+Operation	Calls	Nodes	NodeScopes	Contexts	ContextsWithFail
+First.request	4182975	18412	32512	32512	32512
+Nullable	3401707	14893	26483	26483	26483
+Compile	1461554	14804	242332	1449469	1455505
+Precedes	1141503	12541	23900	42808	42808
+Plainly	950778	9606	18695	30174	30174
+Inline.call	278666	64	1850	277462	277462
+First.compute.iterating	192518	7915	14059	14059	14059
+Determinism.NeverGivesBack	146422	612	612	2044	2044
+Repeat.unsettled	93132	223	4008	92943	92943
+Follow.contribute	82257	18118	33539	52262	52262
+Determinism.Possessive	81132	266	266	783	783
+Repeat.settled	51058	370	6064	50848	50848
+First.compute.settled	28795	17293	28795	28795	28795
+Element	11658	28	28	28	28
+Determinism.Of	45	45	45	45	45
+PHASES
+Element	Other	11658
+Nullable	Other	2764782
+Nullable	Determinism.Of	171
+Nullable	Determinism.NeverGivesBack	352816
+Nullable	Determinism.Possessive	283938
+Follow.contribute	Other	82257
+Precedes	Other	1094818
+Precedes	Determinism.Of	213
+Precedes	Determinism.Possessive	46472
+Plainly	Other	906951
+Plainly	Determinism.Of	211
+Plainly	Determinism.Possessive	43616
+First.compute.iterating	Other	192518
+First.request	Other	3767226
+First.request	Determinism.Of	469
+First.request	Determinism.NeverGivesBack	148443
+First.request	Determinism.Possessive	266837
+First.compute.settled	Other	26465
+First.compute.settled	Determinism.NeverGivesBack	2050
+First.compute.settled	Determinism.Possessive	280
+Determinism.Of	Determinism.Of	45
+Compile	Other	1461554
+Determinism.NeverGivesBack	Determinism.NeverGivesBack	146422
+Repeat.unsettled	Other	93132
+Inline.call	Other	278666
+Determinism.Possessive	Determinism.Possessive	81132
+Repeat.settled	Other	51058
+HOT NODES
+Element	1	10980	Element
+Element	2110	37	Element
+Element	2118	37	Element
+Element	5848	37	Element
+Element	608	36	Element
+Element	5761	36	Element
+Element	5762	36	Element
+Element	5763	36	Element
+Element	5764	36	Element
+Element	5765	36	Element
+Nullable	6906	299917	Call:any
+Nullable	6302	215062	Literal: 
+Nullable	17148	172019	Call:eol
+Nullable	6300	129038	Literal:  
+Nullable	6301	129030	Literal: 
+Nullable	5796	128939	Call:Whitespace
+Nullable	5795	128931	Call:Comment
+Nullable	6904	127871	Sequence
+Nullable	6905	127871	Lookahead
+Nullable	5801	86288	Literal:--
+Follow.contribute	9697	80	Call:trivia
+Follow.contribute	9559	72	Call:trivia
+Follow.contribute	9895	72	Call:trivia
+Follow.contribute	10026	64	Call:trivia
+Follow.contribute	10198	64	Call:trivia
+Follow.contribute	10401	64	Call:trivia
+Follow.contribute	10066	56	Call:trivia
+Follow.contribute	7070	50	Call:trivia
+Follow.contribute	8947	50	Call:trivia
+Follow.contribute	9247	48	Call:trivia
+Precedes	6906	86022	Call:any
+Precedes	6905	86022	Lookahead
+Precedes	6904	43014	Sequence
+Precedes	17148	43008	Call:eol
+Precedes	17149	43008	Call:eof
+Precedes	17150	43008	Repeat
+Precedes	5801	43008	Literal:--
+Precedes	18459	43004	Choice
+Precedes	6914	18542	Call:Digit
+Precedes	6913	18542	Repeat
+Plainly	6906	86022	Call:any
+Plainly	6905	86022	Lookahead
+Plainly	17148	43008	Call:eol
+Plainly	17149	43008	Call:eof
+Plainly	17150	43008	Repeat
+Plainly	5801	43008	Literal:--
+Plainly	6914	18962	Call:Digit
+Plainly	6913	18962	Repeat
+Plainly	17162	18542	Literal:_
+Plainly	6920	5742	Call:OctalDigit
+First.compute.iterating	2688	90	Call:trivia
+First.compute.iterating	4142	90	Call:trivia
+First.compute.iterating	2479	64	Call:trivia
+First.compute.iterating	3925	64	Call:trivia
+First.compute.iterating	2527	60	Call:trivia
+First.compute.iterating	2978	60	Call:trivia
+First.compute.iterating	3857	60	Call:trivia
+First.compute.iterating	5677	60	Call:trivia
+First.compute.iterating	2821	42	Call:trivia
+First.compute.iterating	806	34	Call:trivia
+First.request	6941	223794	RuleBody:trivia
+First.request	6302	215210	Literal: 
+First.request	6904	213860	Sequence
+First.request	17148	172133	Call:eol
+First.request	17149	172132	Call:eof
+First.request	6906	172046	Call:any
+First.request	18076	171799	Choice
+First.request	6300	129300	Literal:  
+First.request	6301	129186	Literal: 
+First.request	5798	128996	Call:SimpleComment
+First.compute.settled	6946	2	Call:trivia
+First.compute.settled	6941	2	RuleBody:trivia
+First.compute.settled	6942	2	Repeat
+First.compute.settled	6947	2	Call:Separator
+First.compute.settled	7918	2	Call:trivia
+First.compute.settled	7921	2	Call:trivia
+First.compute.settled	7924	2	Call:trivia
+First.compute.settled	7927	2	Call:trivia
+First.compute.settled	7930	2	Call:trivia
+First.compute.settled	7933	2	Call:trivia
+Determinism.Of	17300	1	Sequence
+Determinism.Of	17303	1	Sequence
+Determinism.Of	17306	1	Sequence
+Determinism.Of	17308	1	Sequence
+Determinism.Of	17311	1	Sequence
+Determinism.Of	17313	1	Sequence
+Determinism.Of	17316	1	Sequence
+Determinism.Of	17319	1	Sequence
+Determinism.Of	17322	1	Sequence
+Determinism.Of	17325	1	Sequence
+Compile	18094	86024	RuleBody:eol
+Compile	6302	86024	Literal: 
+Compile	18078	42993	RuleBody:SimpleComment
+Compile	18459	42993	Choice
+Compile	17149	42993	Call:eof
+Compile	17148	42993	Call:eol
+Compile	17150	42993	Repeat
+Compile	6904	42993	Sequence
+Compile	6906	42993	Call:any
+Compile	6905	42993	Lookahead
+Determinism.NeverGivesBack	17150	43001	Repeat
+Determinism.NeverGivesBack	18075	42925	RuleBody:Separator
+Determinism.NeverGivesBack	6942	42335	Repeat
+Determinism.NeverGivesBack	17206	666	Repeat
+Determinism.NeverGivesBack	17208	666	Repeat
+Determinism.NeverGivesBack	17138	484	Repeat
+Determinism.NeverGivesBack	17141	484	Repeat
+Determinism.NeverGivesBack	17163	414	Repeat
+Determinism.NeverGivesBack	5837	378	Repeat
+Determinism.NeverGivesBack	17275	348	Repeat
+Repeat.unsettled	17150	42993	Repeat
+Repeat.unsettled	18075	21446	RuleBody:Separator
+Repeat.unsettled	6942	21408	Repeat
+Repeat.unsettled	17138	476	Repeat
+Repeat.unsettled	17141	476	Repeat
+Repeat.unsettled	17163	408	Repeat
+Repeat.unsettled	5837	372	Repeat
+Repeat.unsettled	17275	342	Repeat
+Repeat.unsettled	17277	342	Repeat
+Repeat.unsettled	17280	342	Repeat
+Inline.call	18094	85986	RuleBody:eol
+Inline.call	18078	42955	RuleBody:SimpleComment
+Inline.call	18077	42917	RuleBody:Comment
+Inline.call	18075	42879	RuleBody:Separator
+Inline.call	6941	42289	RuleBody:trivia
+Inline.call	5821	4437	RuleBody:UnsignedDecimalInteger
+Inline.call	5792	2400	RuleBody:UnicodeEscapeCharacter
+Inline.call	5827	1111	RuleBody:UnsignedBinaryInteger
+Inline.call	5825	1111	RuleBody:UnsignedOctalInteger
+Inline.call	5823	1111	RuleBody:UnsignedHexadecimalInteger
+Determinism.Possessive	6904	42993	Sequence
+Determinism.Possessive	17162	8966	Literal:_
+Determinism.Possessive	6912	4498	Sequence
+Determinism.Possessive	17168	3426	Literal:_
+Determinism.Possessive	17166	3426	Literal:_
+Determinism.Possessive	17164	2610	Literal:_
+Determinism.Possessive	6921	1142	Sequence
+Determinism.Possessive	6918	1142	Sequence
+Determinism.Possessive	6915	1142	Sequence
+Determinism.Possessive	6902	860	Call:Hexit
+Repeat.settled	18075	21471	RuleBody:Separator
+Repeat.settled	6942	20919	Repeat
+Repeat.settled	17206	660	Repeat
+Repeat.settled	17208	660	Repeat
+Repeat.settled	17158	256	Repeat
+Repeat.settled	5830	252	Repeat
+Repeat.settled	17249	120	Repeat
+Repeat.settled	17239	120	Repeat
+Repeat.settled	17241	120	Repeat
+Repeat.settled	17225	120	Repeat
+SCOPES
+Element	1
+Nullable	3
+Follow.contribute	2
+Precedes	2
+Plainly	2
+First.compute.iterating	2
+First.request	2
+First.compute.settled	2
+Determinism.Of	1
+Compile	38
+Determinism.NeverGivesBack	1
+Repeat.unsettled	38
+Inline.call	38
+Determinism.Possessive	1
+Repeat.settled	38
+COMPILE MACHINES
+20388	86076	direct
+19694	86073	not-final-main-machine
+20202	85573	not-final-main-machine
+19581	85570	not-final-main-machine
+20122	56245	not-final-main-machine
+19897	55293	not-final-main-machine
+20045	52655	not-final-main-machine
+19816	52386	not-final-main-machine
+19504	51078	not-final-main-machine
+19972	50866	not-final-main-machine
+20315	50842	direct
+18847	50796	not-final-main-machine
+18993	50796	not-final-main-machine
+19212	50796	not-final-main-machine
+18482	50791	not-final-main-machine
+18555	50791	not-final-main-machine
+18628	50791	not-final-main-machine
+18701	50791	not-final-main-machine
+18774	50791	not-final-main-machine
+18920	50791	not-final-main-machine
+19066	50791	not-final-main-machine
+19139	50791	not-final-main-machine
+19285	50791	not-final-main-machine
+19358	50791	not-final-main-machine
+19431	50788	not-final-main-machine
+18476	6285	not-final-main-machine
+19808	5963	not-final-main-machine
+19893	5591	not-final-main-machine
+19814	5034	not-final-main-machine
+18466	4530	direct
+18467	4498	not-final-main-machine
+19577	1179	not-final-main-machine
+19579	1006	not-final-main-machine
+18471	848	not-final-main-machine
+18473	796	direct
+18469	730	not-final-main-machine
+18475	705	not-final-main-machine
+18468	646	not-final-main-machine

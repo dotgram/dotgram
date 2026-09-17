@@ -1,0 +1,196 @@
+Operation	Calls	Nodes	NodeScopes	Contexts	ContextsWithFail
+First.request	8886259	169918	261906	261906	261906
+Nullable	7037616	128994	201044	201044	201044
+Precedes	2730473	136243	211778	390277	390277
+Plainly	2258842	106939	171755	282580	282580
+Compile	2050947	51598	385239	2020660	2027164
+First.compute.iterating	1311886	73677	105570	105570	105570
+Follow.contribute	814308	188915	286765	508232	508232
+Inline.call	361814	764	4396	356334	356456
+First.compute.settled	225089	146268	225089	225089	225089
+Determinism.NeverGivesBack	169422	2681	2681	4456	4456
+Determinism.Possessive	106514	2510	2510	3401	3401
+Repeat.unsettled	104252	1461	8744	102637	102637
+Element	89518	652	652	652	652
+Repeat.settled	62938	1224	9802	62032	62032
+Determinism.Of	420	420	420	420	420
+PHASES
+Element	Other	89518
+Nullable	Other	6169796
+Nullable	Determinism.Of	1462
+Nullable	Determinism.Possessive	477288
+Nullable	Determinism.NeverGivesBack	389070
+Follow.contribute	Other	814308
+Precedes	Other	2650016
+Precedes	Determinism.Of	1905
+Precedes	Determinism.Possessive	78552
+Plainly	Other	2186061
+Plainly	Determinism.Of	1899
+Plainly	Determinism.Possessive	70882
+First.compute.iterating	Other	1311886
+First.request	Other	8288995
+First.request	Determinism.Of	4246
+First.request	Determinism.Possessive	421571
+First.request	Determinism.NeverGivesBack	171447
+First.compute.settled	Other	222745
+First.compute.settled	Determinism.NeverGivesBack	2054
+First.compute.settled	Determinism.Possessive	282
+First.compute.settled	Determinism.Of	8
+Determinism.Of	Determinism.Of	420
+Compile	Other	2050947
+Determinism.Possessive	Determinism.Possessive	106514
+Determinism.NeverGivesBack	Determinism.NeverGivesBack	169422
+Repeat.unsettled	Other	104252
+Inline.call	Other	361814
+Repeat.settled	Other	62938
+HOT NODES
+Element	24399	34366	Element
+Element	108847	34366	Element
+Element	3487	10980	Element
+Element	1	1565	Element
+Element	24400	1558	Element
+Element	108848	1558	Element
+Element	37410	91	Element
+Element	121858	91	Element
+Element	1015	84	Element
+Element	37440	81	Element
+Nullable	10391	299917	Call:any
+Nullable	9787	215062	Literal: 
+Nullable	20633	172019	Call:eol
+Nullable	9785	129038	Literal:  
+Nullable	9786	129030	Literal: 
+Nullable	9282	128939	Call:Whitespace
+Nullable	9281	128931	Call:Comment
+Nullable	10389	127871	Sequence
+Nullable	10390	127871	Lookahead
+Nullable	9287	86288	Literal:--
+Follow.contribute	1016	310	Empty
+Follow.contribute	13182	80	Call:trivia
+Follow.contribute	13044	72	Call:trivia
+Follow.contribute	13380	72	Call:trivia
+Follow.contribute	13511	64	Call:trivia
+Follow.contribute	13683	64	Call:trivia
+Follow.contribute	13886	64	Call:trivia
+Follow.contribute	59711	60	Call:trivia
+Follow.contribute	144159	60	Call:trivia
+Follow.contribute	13551	56	Call:trivia
+Precedes	10391	86022	Call:any
+Precedes	10390	86022	Lookahead
+Precedes	10389	43014	Sequence
+Precedes	20633	43008	Call:eol
+Precedes	20634	43008	Call:eof
+Precedes	20635	43008	Repeat
+Precedes	9287	43008	Literal:--
+Precedes	21944	43004	Choice
+Precedes	10399	18542	Call:Digit
+Precedes	10398	18542	Repeat
+Plainly	10391	86022	Call:any
+Plainly	10390	86022	Lookahead
+Plainly	20633	43008	Call:eol
+Plainly	20634	43008	Call:eof
+Plainly	20635	43008	Repeat
+Plainly	9287	43008	Literal:--
+Plainly	10399	18962	Call:Digit
+Plainly	10398	18962	Repeat
+Plainly	20647	18542	Literal:_
+Plainly	94125	12585	Element
+First.compute.iterating	1016	196	Empty
+First.compute.iterating	6174	90	Call:trivia
+First.compute.iterating	7628	90	Call:trivia
+First.compute.iterating	5965	64	Call:trivia
+First.compute.iterating	7411	64	Call:trivia
+First.compute.iterating	6013	60	Call:trivia
+First.compute.iterating	6464	60	Call:trivia
+First.compute.iterating	7343	60	Call:trivia
+First.compute.iterating	9163	60	Call:trivia
+First.compute.iterating	29679	53	Call:trivia
+First.request	10426	223794	Atomic
+First.request	9787	215210	Literal: 
+First.request	10389	213860	Sequence
+First.request	20633	172133	Call:eol
+First.request	20634	172132	Call:eof
+First.request	10391	172046	Call:any
+First.request	21561	171799	Choice
+First.request	9785	129300	Literal:  
+First.request	9786	129186	Literal: 
+First.request	9284	128996	Call:SimpleComment
+First.compute.settled	1016	6	Empty
+First.compute.settled	1286	3	Call:BooleanTerm
+First.compute.settled	9	3	Call:BooleanTerm
+First.compute.settled	1290	3	Call:BooleanFactor
+First.compute.settled	13	3	Call:BooleanFactor
+First.compute.settled	19	3	Call:BooleanTest
+First.compute.settled	23	3	Call:BooleanPrimary
+First.compute.settled	1315	3	Call:SearchCondition
+First.compute.settled	1317	3	Call:Subquery
+First.compute.settled	1322	3	Call:Subquery
+Determinism.Of	2427	1	Sequence
+Determinism.Of	20785	1	Sequence
+Determinism.Of	20788	1	Sequence
+Determinism.Of	20791	1	Sequence
+Determinism.Of	20793	1	Sequence
+Determinism.Of	20796	1	Sequence
+Determinism.Of	20798	1	Sequence
+Determinism.Of	20801	1	Sequence
+Determinism.Of	20804	1	Sequence
+Determinism.Of	20807	1	Sequence
+Compile	21579	86024	Choice
+Compile	9787	86024	Literal: 
+Compile	21563	42993	Sequence
+Compile	21944	42993	Choice
+Compile	20634	42993	Call:eof
+Compile	20633	42993	Call:eol
+Compile	20635	42993	Repeat
+Compile	10389	42993	Sequence
+Compile	10391	42993	Call:any
+Compile	10390	42993	Lookahead
+Determinism.Possessive	10389	42993	Sequence
+Determinism.Possessive	20647	8966	Literal:_
+Determinism.Possessive	10397	4498	Sequence
+Determinism.Possessive	20653	3426	Literal:_
+Determinism.Possessive	20651	3426	Literal:_
+Determinism.Possessive	20649	2610	Literal:_
+Determinism.Possessive	37745	1296	Call:NamePart_Dialect
+Determinism.Possessive	122193	1296	Call:NamePart_Dialect
+Determinism.Possessive	46830	1280	Call:NamePart_Dialect
+Determinism.Possessive	46832	1280	Call:NamePart_Dialect
+Determinism.NeverGivesBack	20635	43001	Repeat
+Determinism.NeverGivesBack	21560	42925	Repeat
+Determinism.NeverGivesBack	10427	42335	Repeat
+Determinism.NeverGivesBack	102601	1280	Repeat
+Determinism.NeverGivesBack	102602	1280	Repeat
+Determinism.NeverGivesBack	95865	1280	Repeat
+Determinism.NeverGivesBack	95866	1280	Repeat
+Determinism.NeverGivesBack	187049	1280	Repeat
+Determinism.NeverGivesBack	187050	1280	Repeat
+Determinism.NeverGivesBack	180313	1280	Repeat
+Repeat.unsettled	20635	42993	Repeat
+Repeat.unsettled	21560	21446	Repeat
+Repeat.unsettled	10427	21408	Repeat
+Repeat.unsettled	102601	606	Repeat
+Repeat.unsettled	102602	606	Repeat
+Repeat.unsettled	95865	606	Repeat
+Repeat.unsettled	95866	606	Repeat
+Repeat.unsettled	187049	606	Repeat
+Repeat.unsettled	187050	606	Repeat
+Repeat.unsettled	180313	606	Repeat
+Inline.call	21579	85986	Choice
+Inline.call	21563	42955	Sequence
+Inline.call	21562	42917	Choice
+Inline.call	21560	42879	Repeat
+Inline.call	10426	42289	Atomic
+Inline.call	94123	11620	Choice
+Inline.call	178571	11620	Choice
+Inline.call	94121	6468	Literal:ԙ
+Inline.call	178569	6468	Literal:ԙ
+Inline.call	95867	5153	Choice
+Repeat.settled	21560	21471	Repeat
+Repeat.settled	10427	20919	Repeat
+Repeat.settled	102601	674	Repeat
+Repeat.settled	102602	674	Repeat
+Repeat.settled	95865	674	Repeat
+Repeat.settled	95866	674	Repeat
+Repeat.settled	187049	674	Repeat
+Repeat.settled	187050	674	Repeat
+Repeat.settled	180313	674	Repeat
+Repeat.settled	180314	674	Repeat

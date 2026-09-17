@@ -1,0 +1,122 @@
+Operation	Calls	Nodes	NodeScopes	Contexts	ContextsWithFail
+First.request	179	30	33	33	33
+Nullable	150	42	52	52	52
+First.compute.iterating	66	29	33	33	33
+Precedes	62	24	25	33	33
+Follow.contribute	56	45	49	56	56
+Plainly	56	21	22	27	27
+First.compute.settled	25	24	25	25	25
+Element	22	9	9	9	9
+Compile	10	4	4	8	10
+Determinism.Possessive	3	1	1	1	1
+PHASES
+Nullable	Other	147
+Nullable	Determinism.Possessive	3
+Follow.contribute	Other	56
+Precedes	Other	62
+Plainly	Other	56
+First.compute.iterating	Other	66
+First.request	Other	170
+First.request	Determinism.Possessive	9
+Element	Other	22
+First.compute.settled	Other	25
+Compile	Other	10
+Determinism.Possessive	Determinism.Possessive	3
+HOT NODES
+Nullable	5	9	Element
+Nullable	41	9	Literal:.
+Nullable	47	9	Literal:e
+Nullable	51	9	Literal:.
+Nullable	20	8	Element
+Nullable	27	8	Call:Digits
+Nullable	30	8	Call:Digits
+Nullable	40	8	Call:Digits
+Nullable	44	8	Call:Digits
+Nullable	46	8	Element
+Follow.contribute	6	3	Element
+Follow.contribute	32	2	Construct
+Follow.contribute	34	2	Capture
+Follow.contribute	35	2	Repeat
+Follow.contribute	5	2	Element
+Follow.contribute	7	2	Element
+Follow.contribute	9	2	Element
+Follow.contribute	10	2	Element
+Follow.contribute	11	2	Repeat
+Follow.contribute	12	2	Call:Digit
+Precedes	40	4	Call:Digits
+Precedes	41	4	Literal:.
+Precedes	44	4	Call:Digits
+Precedes	45	4	Repeat
+Precedes	46	4	Element
+Precedes	47	4	Literal:e
+Precedes	50	4	Call:Digits
+Precedes	51	4	Literal:.
+Precedes	31	3	Element
+Precedes	5	2	Element
+Plainly	40	4	Call:Digits
+Plainly	41	4	Literal:.
+Plainly	44	4	Call:Digits
+Plainly	45	4	Repeat
+Plainly	46	4	Element
+Plainly	47	4	Literal:e
+Plainly	50	4	Call:Digits
+Plainly	51	4	Literal:.
+Plainly	31	3	Element
+Plainly	5	2	Element
+First.compute.iterating	32	4	Construct
+First.compute.iterating	34	4	Capture
+First.compute.iterating	35	4	Repeat
+First.compute.iterating	5	4	Element
+First.compute.iterating	6	2	Element
+First.compute.iterating	7	2	Element
+First.compute.iterating	8	2	Element
+First.compute.iterating	9	2	Element
+First.compute.iterating	10	2	Element
+First.compute.iterating	11	2	Repeat
+First.request	5	27	Element
+First.request	46	11	Element
+First.request	31	9	Element
+First.request	41	9	Literal:.
+First.request	47	9	Literal:e
+First.request	51	9	Literal:.
+First.request	12	8	Call:Digit
+First.request	40	8	Call:Digits
+First.request	44	8	Call:Digits
+First.request	50	8	Call:Digits
+Element	5	7	Element
+Element	20	3	Element
+Element	6	2	Element
+Element	7	2	Element
+Element	8	2	Element
+Element	9	2	Element
+Element	10	2	Element
+Element	31	1	Element
+Element	46	1	Element
+First.compute.settled	5	2	Element
+First.compute.settled	12	1	Call:Digit
+First.compute.settled	14	1	Call:HexDigit
+First.compute.settled	16	1	Call:Space
+First.compute.settled	18	1	Call:Whitespace
+First.compute.settled	31	1	Element
+First.compute.settled	37	1	Repeat
+First.compute.settled	20	1	Element
+First.compute.settled	40	1	Call:Digits
+First.compute.settled	41	1	Literal:.
+Compile	5	4	Element
+Compile	32	2	Construct
+Compile	34	2	Capture
+Compile	35	2	Repeat
+Determinism.Possessive	5	3	Element
+SCOPES
+Nullable	3
+Follow.contribute	2
+Precedes	2
+Plainly	2
+First.compute.iterating	2
+First.request	2
+Element	1
+First.compute.settled	2
+Compile	1
+Determinism.Possessive	1
+COMPILE MACHINES
+54	10	flat
