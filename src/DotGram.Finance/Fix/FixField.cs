@@ -25,6 +25,11 @@ public abstract class FixField : IFixLocation
 	internal bool IsBinary     => this is not Invalid && _prefixLength != _tagPrefixLength;
 	internal int  DataPosition => ValuePosition - _tagPrefixLength;
 
+	/// <summary>
+	/// The field tag as an enum; custom tags and invalid fields can have unnamed values.
+	/// </summary>
+	public FixFieldType FieldType => (FixFieldType)Tag;
+
 	public int Tag           { get; }
 	public int Position      { get; private set; }
 	public int Length        { get; private set; }
@@ -91,30 +96,32 @@ public abstract class FixField : IFixLocation
 	public sealed class Unknown : Typed<ReadOnlyMemory<byte>>
 	{
 		internal Unknown(int tag, (bool Valid, ReadOnlyMemory<byte> Value) parsed)
-			: base(tag, parsed) { }
+			: base(tag, parsed)
+		{
+		}
 	}
 
 	public abstract class Typed<T> : FixField
 	{
-		readonly T value;
+		readonly T _value;
 
 		protected Typed(int tag, T value) : base(tag, true)
 		{
-			this.value = value;
+			_value = value;
 		}
 
 		protected Typed(int tag, (bool Valid, T Value) parsed)
 			: base(tag, parsed.Valid)
 		{
-			value = parsed.Value;
+			_value = parsed.Value;
 		}
 
 		/// <summary>The converted value; throws when a Lenient field has invalid primitive syntax.</summary>
-		public T Value => IsValid ? value : throw new InvalidOperationException("The field has no valid typed value; inspect its original wire value.");
+		public T Value => IsValid ? _value : throw new InvalidOperationException("The field has no valid typed value; inspect its original wire value.");
 
 		public bool TryGetValue(out T result)
 		{
-			result = value;
+			result = _value;
 			return IsValid;
 		}
 	}
