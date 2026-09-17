@@ -21,7 +21,7 @@ public sealed class YieldRecoveryTests
 	{
 		var result = GramCompiler.Compile("""
 			End = '|'
-			Row : @string = { ?=any } & 'R' & text: ['a'..'z']+ & ';' => @(Text(text))
+			Row : @string = 'R' & text: ['a'..'z']+ & ';' => @(Text(text))
 			Rows : @string[] = Row* recover End => @(Bad(parserText, parserPosition, parserOrdinal))
 			parse Rows with (End = ';') as All
 			parse Rows with (End = ';') as Read stream bytes yield : @string
@@ -58,7 +58,7 @@ public sealed class YieldRecoveryTests
 	public void Recovery_without_a_factory_drops_bad_elements_and_honors_the_minimum()
 	{
 		var result = GramCompiler.Compile("""
-			Row : @string = { ?=any } & 'R' & text: ['a'..'z']+ & ';' => @(text)
+			Row : @string = 'R' & text: ['a'..'z']+ & ';' => @(text)
 			Rows : @string[] = Row+ recover ';'
 			parse Rows as Read yield : @string
 			""", new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });

@@ -143,12 +143,9 @@ sealed partial class Machine
 			// try each alternative in order through the give-back door, and the first that
 			// matches is final — nothing ever comes back, which is what "atomic" says.
 			// The alternatives may share prefixes freely; what each must be is silent.
-			// Not where the machine recovers: §8.2's discriminator rests on the commit
-			// marking the element owned, and that mark is the engine's.
-			Node.Atomic(var kept)                      => _recoveries.Count == 0 &&
-			                                              (kept is Node.Choice(var options) { Selection: null }
+			Node.Atomic(var kept)                      => kept is Node.Choice(var options) { Selection: null }
 			                                              ? AllSilentWithin(options, following)
-			                                              : SilentWithin(kept, following)),
+			                                              : SilentWithin(kept, following),
 
 			_                                          => false,
 		};

@@ -207,31 +207,20 @@ Recursion uses the same arena frames and is not bounded by the C# call stack. Di
 mutual-recursion stress tests run to tens of thousands of levels; recognition and typed
 materialization are both iterative.
 
-**What `recover` recovers from is an element that started.** A run of `Row*` ends when
-`Row` does not begin, and zero further iterations is a legitimate outcome for `*` —
-nothing tells that apart from a run that simply finished. So a line the element cannot
-start at all ends the run, and what follows is asked to match from there:
+**Recovery is determined by the continuation, not by consumption.** At each element
+boundary, a recovering repetition first tries the complete continuation, provided its
+minimum has been met. When that fails, a failed element with remaining input is an error,
+even when its first token does not match. Both `ab1` and `1bad` are recovered in:
 
 ```dotgram
-Start = rows: Row* recover eol => @(…) & eof
+Start = rows: Row* recover eol => @(...) & eof
 Row   = t: ['a'..'z']+ & eol
 ```
 
-reads `aa
-ab1
-cc
-` — `ab1` begins as a row and breaks part way through, which is what
-a malformed record looks like — and refuses `aa
-1bad
-cc
-`, where `1bad` never began
-one. Both are pinned by tests.
-
-This is worth knowing before writing a feed grammar, and it is why the examples give
-their records a distinguishing prefix: `Row = "R" & '|' & …` cannot be mistaken for the
-end of the run, so anything starting `R|` and failing afterwards is a broken record
-rather than a trailer. A grammar whose records begin with the same characters as whatever
-follows them has told the parser nothing to recover with.
+An invalid final fragment is recovered through EOF. No empty error element is created at
+EOF, so a missing required element or trailer still fails. Atomic groups only close
+internal alternatives; a `{ ?=any }` discriminator is not needed for recovery. Contiguous,
+buffered character/byte, yielded, and line-window inputs follow the same boundary rule.
 
 **A repetition marked `recover` commits each element it actually takes.** Before asking
 for another element, it first tries the complete continuation after the repetition.
@@ -247,8 +236,8 @@ The marked form does not first take `bb` and later hand it back. At the boundary
 `bb`, it tries `tail` together with everything following it; because that complete path
 succeeds, no second Row is attempted. If the continuation failed, Row would be tried.
 Once that Row either matched or was explicitly recovered, it would not be offered back
-to a later path. This keeps *did an element begin here* answerable without stealing a
-trailer or other valid continuation from the surrounding grammar.
+to a later path. This preserves a valid trailer or other continuation
+without using atomic groups to classify a failed element.
 
 ## What a rejection is told
 

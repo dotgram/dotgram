@@ -109,7 +109,8 @@ Conversions return `(Valid, Value)`; plain text returns a string.
 `Field` recognizes the field contents without the final separator. `Fields`
 repeats `Terminated(Field, (Separator | eof))`; the small parameterized wrapper
 preserves field locations and supplies a complete element for streaming `yield`.
-Recovery remains on the collection.
+Recovery remains on the collection and classifies invalid first tokens without an
+atomic lookahead marker; EOF ends the collection.
 
 `Separator` is an elementary rule. The pipe publication uses
 `with (Separator = LogSeparator)`. `Text` tests the rule with negative lookahead;

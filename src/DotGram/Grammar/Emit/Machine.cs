@@ -1164,19 +1164,7 @@ sealed partial class Machine
 
 	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input)
 	{
-		var file = new Writer(0);
-
-		using (file.Block(
-			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos)"))
-		{
-			file.Line($"var failure = new {CSharpEmitter.FailureType}();");
-			file.Line("object? ignored;");
-			file.Line(
-				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				$"false, false{(input ? NoInput : "")}, ref failure, out ignored);");
-		}
-
-		return file.ToString();
+		return RenderProbe(name, engine, entry, powers, input);
 	}
 
 	public string RenderWrapper(RuleSymbol root, string name, string engine, bool whole)
@@ -1278,7 +1266,6 @@ sealed partial class Machine
 				if (_recoveries.Count > 0)
 				{
 					file.Line("var reach   = 0;");
-					file.Line("var owned   = false;");
 					file.Line("var syncFrom = 0;");
 				}
 
@@ -2696,8 +2683,7 @@ sealed partial class Machine
 				// with a refused guard falling to the tail behind it. No choice entry, no
 				// atomic boundary, no commit walk — nothing is written that a commit
 				// would have to put out, which is the whole of what the braces meant.
-				if (_recoveries.Count == 0 &&
-					body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
+				if (body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
 					decided.All(Weightless))
 				{
 					var chosen = Compile(decided[decided.Count - 1], next, following);
@@ -2716,12 +2702,10 @@ sealed partial class Machine
 
 				// First-match-commits held in locals: each alternative is tried through
 				// the give-back door, and the first that matches is final. The same test
-				// `Silent`'s own Atomic case asks — recoveries included, whose owned
-				// mark only the engine's commit writes — so the two agree.
-				if (_recoveries.Count == 0 &&
-					(body is Node.Choice(var options) { Selection: null }
-						? AllSilent(options, following, sequence: false)
-						: Silent(body, following)))
+				// `Silent`'s own Atomic case asks, so the two agree.
+				if (body is Node.Choice(var options) { Selection: null }
+					? AllSilent(options, following, sequence: false)
+					: Silent(body, following))
 				{
 					// No pending site may open inside: the chain's doors are where a
 					// failure goes here, and a way back they jumped past would stand
@@ -2795,8 +2779,6 @@ sealed partial class Machine
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
 				atCommit.Line("var boundary = entries[atomic];");
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);");
-				if (_recoveries.Count > 0)
-					atCommit.Line("owned = true;");
 
 				// The arena holds two unlike things — where the parse could return to, and
 				// what it recognised on the way — and committing is about the first only.

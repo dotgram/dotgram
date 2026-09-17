@@ -1515,13 +1515,10 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_not_from_a_line_that_never_began_one()
+	public void Recovery_also_steps_over_an_element_that_fails_on_its_first_token()
 	{
-		// `1bad` cannot start a row at all, so the repetition ends rather than breaks —
-		// zero further iterations is a legitimate outcome for `*`, and what follows is
-		// asked to match from there. Nothing tells this apart from a run that simply
-		// finished, which is why recovery has nothing to step over.
-		Assert.False(Matches(
+		// EOF cannot match at `1bad`, so a failed Row is an error even without consumption.
+		Assert.True(Matches(
 			"Start = rows: Row* recover eol => @(\"!\") & eof\n"
 			+ "Row : @string = t: ['a'..'z']+ & eol => @(t)",
 			"aa\n1bad\ncc\n"));
@@ -3220,9 +3217,9 @@ public sealed class SemanticTests
 				.Select(row => Read(row, "Name")));
 
 	[Fact]
-	public void What_never_began_still_ends_the_sequence() =>
-		// `Trailer` is not a Row and does not start like one, so the repetition ends
-		// rather than recovering — the difference §8.2 rests on.
+	public void A_valid_continuation_ends_the_recovering_sequence()
+	{
+		// The complete continuation succeeds, so no Row is attempted at the trailer.
 		Assert.Equal(
 			["aa"],
 			((Array)Read(
@@ -3235,19 +3232,24 @@ public sealed class SemanticTests
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
 
+	}
+
 	[Fact]
-	public void An_atomic_discriminator_can_claim_an_element_without_consuming_input() =>
+	public void Recovery_does_not_require_an_atomic_discriminator()
+	{
 		Assert.Equal(
 			["!X"],
 			((Array)Read(
 				Built("""
-					Row   = { ?!"T|" } & "R|" & name: ['a'..'z']+ & eol
+					Row   = "R|" & name: ['a'..'z']+ & eol
 					Start = rows: Row* recover eol => @(new Row("!" + parserText)) & "T|" & eol
 					""",
 					"X\nT|\n"),
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+
+	}
 
 	[Fact]
 	public void A_broken_element_at_the_end_takes_what_is_left() =>

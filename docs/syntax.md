@@ -2650,8 +2650,9 @@ The seam already exists — §7.2: `when` runs **during** the match, `=>` runs *
 it, once the match is final and from the alternative that actually matched.
 
 A recognition failure is a shape the grammar does not describe. It happens during the
-match, and ordered choice may undo it and try something else. Only past a commit point
-(§8.2) does it stop being "try something else" and become an error.
+match, and ordered choice may undo it and try something else. A recovering repetition
+(§8.2) treats a failed element as an error when its complete continuation cannot match
+and input remains. Atomic groups govern backtracking, not this error classification.
 
 Construction runs after recognition. Its C# must produce the rule's declared value;
 compile-time mistakes are C# diagnostics, and an exception thrown while constructing a
@@ -2673,15 +2674,17 @@ Feed : FeedItem[] = Header
 
 `recover` marks a repetition and says three things about it:
 
-1. **Inside it, consuming and then failing is an error, not a non-match.** That is the
-   commit point, and it is what makes "this record is malformed" expressible at all:
-   without it, a bad row is merely a row that did not match, the repetition ends, and
-   the failure surfaces at the top of the file as "the feed does not parse".
+1. **Try the complete continuation first, once the repetition minimum is met.**
+   If it succeeds, the repetition ends. Otherwise try an element. If that fails and
+   input remains, it is a malformed element even if it consumed no characters.
+   Neither an atomic group nor a distinguishing prefix is required.
 2. **On an error the parser skips past the next match of the synchronization
    expression** — `eol` here — and starts the next iteration there. The ordinal
    advances, so a rejected record still occupies its place in the numbering.
-3. **What follows the repetition is not tried on the error path.** An error means the
-   element was there and was broken, not that the repetition ended.
+3. **Resume only after the synchronization match, or at EOF.** The parser does not
+   test the continuation at every character of a rejected element. An invalid final
+   fragment is recovered through EOF; an empty EOF is never invented as an error
+   element. A missing required element or trailer still fails the enclosing parse.
 
 At a boundary between elements, however, the parser first tries the **complete
 continuation after the repetition**. If that continuation succeeds, the repetition is

@@ -22,7 +22,7 @@ namespace DotGram.Finance.Fix;
 	Data = @ReadData
 
 	Field : @FixField =
-		{ ?=any } & wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
+		wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
 			case 0: Text
 			case 1:
 				size: Size & Separator & dataTag: Tag & '='
