@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using DotGram.Sql;
 using DotGram.Sql.Standard;
 
-namespace DotGram.Benchmarks;
+namespace DotGram.Handwritten;
 
 /// <summary>
 /// <c>Sql92Parser</c>'s search condition written by hand, the way the generated parser
@@ -16,7 +16,7 @@ namespace DotGram.Benchmarks;
 /// It is here because it once was not: every "so many times the hand-written parser" in
 /// <c>docs/next.md</c> came from a file in a scratch directory outside the repository, and
 /// the directory was cleared. This one is built by the solution, and
-/// <see cref="SqlAgainst.Agree"/> holds it to the generated parser's language before
+/// the benchmark comparison harness holds it to the generated parser's language before
 /// anything is timed.
 /// </para>
 /// <para>
@@ -47,9 +47,9 @@ namespace DotGram.Benchmarks;
 /// than in the tree. It is a <see cref="Query"/> all the same, so everything above it is
 /// typed exactly as the generated parser's is.
 /// </remarks>
-sealed record TextQuery(string Text) : Query;
+public sealed record TextQuery(string Text) : Query;
 
-static class HandSqlTokens
+public static class HandSqlTokens
 {
 	// ── The alphabet ────────────────────────────────────────────────────────────
 

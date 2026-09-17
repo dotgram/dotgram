@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 
 using DotGram.ExpressionLanguage;
+using DotGram.Handwritten;
 
 namespace DotGram.Benchmarks;
 

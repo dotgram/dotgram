@@ -1,13 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
-		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" />
-		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
-		<ProjectReference Include="../../examples/DotGram.Examples/DotGram.Examples.csproj" />
+		<ProjectReference Include="../../src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
+		<ProjectReference Include="../../src/DotGram.Sql/DotGram.Sql.csproj" />
 	</ItemGroup>
 </Project>

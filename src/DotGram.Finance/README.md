@@ -320,7 +320,7 @@ Field declarations, model types, schema tables, the example field grammar and te
 fixtures are maintained manually. When changing definitions, update the affected
 factory cases, schema entries, models, example grammar and test cases together.
 
-- `Fix/FixField.Cases.cs`: typed field cases.
+- `Fix/FixField.cs`: field base, typed-value access, locations and typed field cases.
 - `Fix/FixFactory.cs`: construction of typed fields.
 - `Fix/FixMessageTypes.cs`: message and group models.
 - `Fix/FixFactories.cs`: construction of message and group models.
@@ -348,10 +348,10 @@ The example `Fix44Grammar` inherits `FixFieldGrammar`, whose
 `FixField.gram` contains one alternative per standard field. Tests compare
 its results with the production parser using the same shared field model.
 
-`FixField.Cases.cs` declares the nested cases of `partial class FixField`.
-The handwritten `FixField.cs` implements locations and typed-value access; the
-case declarations contain no conversion or location logic. `FixFieldView`
-provides access to the original source text.
+`FixField.cs` contains the field base, `FixField.Typed<T>` and all nested field
+cases. The base classes implement locations and typed-value access; case
+declarations contain no conversion or location logic. `FixFieldView` provides
+access to the original source text.
 
 The C# factory constructs field cases, for example
 `new FixField.LegProduct(FixConvert.Integer(value))`. Primitive conversions return

@@ -440,3 +440,63 @@ extents, positions and messages with an unoptimized atomic synchronization rule,
 for string, TextReader and one-byte Stream inputs, including missing separators,
 EOF padding, repeated errors and long internal space runs. Generated test code is
 compiled at the C# 8 floor.
+
+## Handwritten FIX comparison
+
+`HandFixBenchmarks` compares `FixParser` with
+`DotGram.Handwritten.Fix.HandFixParser`. Both use the same typed fields and primitive
+converters; the handwritten implementation performs its own recognition and buffering.
+Setup compares field types, values, locations and recovery raw data before timing.
+Error wording is intentionally independent.
+
+```shell
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --filter "*HandFixBenchmarks*"
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --hand-fix-performance
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --hand-fix-first generated
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --hand-fix-first handwritten
+```
+
+The BenchmarkDotNet class covers one field, an order, 64-byte and 4096-byte binary
+payloads, 64 binary fields, 128 orders and recovery through a long run of spaces.
+Each workload runs on strings, byte arrays, text readers and byte streams. Array
+APIs materialize all fields; reader/stream APIs enumerate them lazily in both parsers.
+
+The quick comparison reports the median of nine 50 ms samples after a 150 ms warmup
+per implementation and alternates which parser runs first within each workload.
+Allocations are averaged across 32 operations. Its output is exploratory, not a
+statistically established performance guarantee. First-call probes must run in fresh
+processes and include parser initialization/JIT, excluding process startup.
+
+### Initial results (2026-09-17)
+
+Two fresh-process quick runs on Windows x64, .NET 10 Release. The table averages
+those two per-process medians; raw runs preserve each result separately.
+
+| Workload / input | Generated, us | Handwritten, us | Generated / handwritten |
+| --- | ---: | ---: | ---: |
+| One field / string | 0.241 | 0.081 | 3.0x |
+| Order / string | 5.900 | 0.986 | 6.0x |
+| Order / byte stream | 3.881 | 0.994 | 3.9x |
+| 64 binary fields / string | 148.904 | 3.216 | 46.3x |
+| 128 orders / string | 53300.800 | 115.415 | 461.8x |
+| Recovery / string | 2.964 | 5.444 | 0.54x |
+
+The large contiguous-input gap is an observed scaling difference, not a claim that
+all APIs improve by that ratio. The reader and stream results are much closer;
+consult all 28 cases in the CSVs. Recovery on strings is faster in the generated
+parser, which has a specialized delimiter scan.
+
+The handwritten reader currently allocates its own reusable input buffer per
+enumeration. For a single order, allocations were 9896 versus 1704 bytes on
+`TextReader`, and 5944 versus 1848 bytes on `Stream`. On strings they were 1568
+versus 1448 bytes. These costs are retained in the results, not hidden by pooling.
+
+Three fresh-process first calls on one string field had median 7.426 ms generated
+and 5.148 ms handwritten. These include JIT and initialization, not process startup.
+No statistically established confidence intervals or speed guarantees are claimed.
+
+- [Warm run 1](results/handwritten-fix-2026-09-17-run1.csv)
+- [Warm run 2](results/handwritten-fix-2026-09-17-run2.csv)
+- [First calls](results/handwritten-fix-first-call-2026-09-17.csv)
+
+Validation: all 6417 Finance tests passed, including 2582 handwritten-parser cases.

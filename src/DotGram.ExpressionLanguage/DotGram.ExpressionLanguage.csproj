@@ -54,6 +54,7 @@
 		     other's. -->
 		<InternalsVisibleTo Include="DotGram.Tests" />
 		<InternalsVisibleTo Include="DotGram.Benchmarks" />
+		<InternalsVisibleTo Include="DotGram.Handwritten" />
 	</ItemGroup>
 
 </Project>

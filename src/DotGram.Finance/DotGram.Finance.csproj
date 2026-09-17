@@ -15,6 +15,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="DotGram.Finance.Tests" />
+		<InternalsVisibleTo Include="DotGram.Handwritten" />
 		<InternalsVisibleTo Include="DotGram.Examples" />
 
 		<ProjectReference Include="../DotGram/DotGram.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

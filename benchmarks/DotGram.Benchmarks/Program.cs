@@ -2,6 +2,7 @@
 
 using BenchmarkDotNet.Running;
 
+using DotGram.Handwritten;
 using DotGram.Sql;
 using DotGram.Sql.Standard;
 

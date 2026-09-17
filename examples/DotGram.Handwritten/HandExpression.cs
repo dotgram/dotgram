@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 using DotGram.ExpressionLanguage;
 
-namespace DotGram.Benchmarks;
+namespace DotGram.Handwritten;
 
 /// <summary>
 /// The expression language of <see cref="ExpressionParser"/>, written by hand: a lexer
@@ -36,7 +36,7 @@ namespace DotGram.Benchmarks;
 /// and not about which of the two was written more cleverly.
 /// </para>
 /// </remarks>
-static class HandExpression
+public static class HandExpression
 {
 	// ── Token kinds ─────────────────────────────────────────────────────────────
 	//
