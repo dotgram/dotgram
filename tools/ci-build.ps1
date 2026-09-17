@@ -24,7 +24,7 @@ try
 {
 	do
 	{
-		$compilers = @(Get-Process -Name dotnet, VBCSCompiler, MSBuild -ErrorAction SilentlyContinue)
+		$compilers = @(Get-Process -Name dotnet, csc, vbc, VBCSCompiler, MSBuild -ErrorAction SilentlyContinue)
 		$workingSet = ($compilers | Measure-Object WorkingSet64 -Sum).Sum
 		$private = ($compilers | Measure-Object PrivateMemorySize64 -Sum).Sum
 		$available = $null

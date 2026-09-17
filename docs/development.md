@@ -231,3 +231,22 @@ is worth reading before measuring the generator.
 - An example owes assertions in `tests/DotGram.Tests/ExampleTests.cs`. Nothing under
   `examples/` may reference a test framework — an example that needs a fixture to make
   sense is not an example.
+## CI build diagnostics
+
+Run `gh workflow run build.yml --ref <branch> -f diagnostics=true` to build with
+one MSBuild node, compiler-server reuse disabled, a binary MSBuild log, and memory
+samples every 15 seconds. Each platform uploads `build-diagnostics-*`, including
+compiler output and `memory.csv`. Ordinary runs retain their usual build settings.
+
+The first experiment, [run 480](https://github.com/dotgram/dotgram/actions/runs/35195664271),
+built commit `456885d7` in 12m16s on Linux and 18m37s on Windows (MSBuild times).
+SQL project builds accounted for about 9m05s and 13m45s respectively. Available
+system memory reached 2,949 MiB on Linux and 1,807 MiB on Windows. The first
+process-memory samples omitted standalone `csc` processes; use the system memory
+column for that run. Later samples include `csc` and `vbc` explicitly.
+
+Both builds succeeded, but this configuration was slower than recent ordinary
+successful builds. It remains a diagnostic option, not a demonstrated speed fix.
+These runs used different commits and runner instances, so they do not isolate
+which compiler option caused the difference or prove the cause of earlier runner
+communication failures.
