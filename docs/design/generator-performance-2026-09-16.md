@@ -1,5 +1,9 @@
 # Generator performance baseline — 2026-09-16
 
+The latest [full solution build profile](solution-build-2026-09-16.md) separates
+compiler task time from generator execution and measures C# and grammar comment edits.
+Its new baseline identifies Finance compilation as the dominant full-build cost.
+
 ## Scope and method
 
 Measured commit `152ad90` in the existing parser-performance-streaming worktree. The initial analysis made no production generator changes. The tables in the baseline sections describe that original state; the final section records the subsequent implementation and before/after comparison.

@@ -1,0 +1,292 @@
+{
+  "baseline": "2b58638",
+  "configuration": "Debug",
+  "node_count": 1,
+  "shared_compilation": false,
+  "runs": {
+    "rebuild": {
+      "seconds": 632.4200676,
+      "csc": [
+        {
+          "project": "src\\DotGram\\DotGram.csproj",
+          "seconds": 1.6979966
+        },
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 71.1037213
+        },
+        {
+          "project": "src\\DotGram.ExpressionLanguage\\DotGram.ExpressionLanguage.csproj",
+          "seconds": 5.4862149
+        },
+        {
+          "project": "benchmarks\\DotGram.Benchmarks\\DotGram.Benchmarks.csproj",
+          "seconds": 4.5219101
+        },
+        {
+          "project": "src\\DotGram.Finance\\DotGram.Finance.csproj",
+          "seconds": 220.6958176
+        },
+        {
+          "project": "benchmarks\\DotGram.Finance.Benchmarks\\DotGram.Finance.Benchmarks.csproj",
+          "seconds": 1.7064935
+        },
+        {
+          "project": "benchmarks\\DotGram.HandDeferred\\DotGram.HandDeferred.csproj",
+          "seconds": 1.6449522
+        },
+        {
+          "project": "examples\\DotGram.Examples\\DotGram.Examples.csproj",
+          "seconds": 3.8864311
+        },
+        {
+          "project": "src\\DotGram.ExpressionLanguage\\DotGram.ExpressionLanguage.csproj",
+          "seconds": 4.1776201
+        },
+        {
+          "project": "src\\DotGram.Finance\\DotGram.Finance.csproj",
+          "seconds": 210.194651
+        },
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 77.7950317
+        },
+        {
+          "project": "src\\DotGram.VisualStudio\\DotGram.VisualStudio.csproj",
+          "seconds": 2.6299943
+        },
+        {
+          "project": "src\\DotGram.Web\\DotGram.Web.csproj",
+          "seconds": 2.8032975
+        },
+        {
+          "project": "src\\DotGram.Web\\DotGram.Web.csproj",
+          "seconds": 3.5488833
+        },
+        {
+          "project": "tests\\DotGram.Compatibility\\DotGram.Compatibility.csproj",
+          "seconds": 2.4950757
+        },
+        {
+          "project": "tests\\DotGram.Compatibility\\DotGram.Compatibility.csproj",
+          "seconds": 1.8072099
+        },
+        {
+          "project": "tests\\DotGram.Compatibility\\DotGram.Compatibility.csproj",
+          "seconds": 1.8852658
+        },
+        {
+          "project": "tests\\DotGram.Finance.Tests\\DotGram.Finance.Tests.csproj",
+          "seconds": 1.6825245
+        },
+        {
+          "project": "tests\\DotGram.Sql.Tests\\DotGram.Sql.Tests.csproj",
+          "seconds": 2.3882761
+        },
+        {
+          "project": "tests\\DotGram.Tests\\DotGram.Tests.csproj",
+          "seconds": 3.3012722
+        },
+        {
+          "project": "tests\\DotGram.VisualStudio.Tests\\DotGram.VisualStudio.Tests.csproj",
+          "seconds": 2.7518851
+        }
+      ],
+      "messages": [
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.678 seconds.",
+        "Total generator execution time: 0.194 seconds.",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 9.907 seconds.",
+        "Total generator execution time: 26.509 seconds.",
+        "  25.854   97      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.721 seconds.",
+        "Total generator execution time: 2.398 seconds.",
+        "   1.747   72      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 1.874 seconds.",
+        "Total generator execution time: 2.339 seconds.",
+        "   1.575   67      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 4.969 seconds.",
+        "Total generator execution time: 4.473 seconds.",
+        "   3.796   84      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.740 seconds.",
+        "Total generator execution time: 0.931 seconds.",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 1.101 seconds.",
+        "Total generator execution time: 0.910 seconds.",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.564 seconds.",
+        "Total generator execution time: 2.152 seconds.",
+        "   1.503   69      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.238 seconds.",
+        "Total generator execution time: 1.798 seconds.",
+        "   1.574   87      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 4.397 seconds.",
+        "Total generator execution time: 3.572 seconds.",
+        "   3.308   92      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 9.211 seconds.",
+        "Total generator execution time: 28.556 seconds.",
+        "  28.305   99      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 5.030 seconds.",
+        "Total generator execution time: 0.316 seconds.",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.171 seconds.",
+        "Total generator execution time: 1.433 seconds.",
+        "   1.202   83      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.832 seconds.",
+        "Total generator execution time: 2.054 seconds.",
+        "   1.301   63      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.209 seconds.",
+        "Total generator execution time: 1.619 seconds.",
+        "   0.974   60      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.059 seconds.",
+        "Total generator execution time: 0.995 seconds.",
+        "   0.946   95      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 0.076 seconds.",
+        "Total generator execution time: 1.008 seconds.",
+        "   0.958   95      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 2.039 seconds.",
+        "Total generator execution time: 0.716 seconds.",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 6.052 seconds.",
+        "Total generator execution time: 0.854 seconds.",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 4.022 seconds.",
+        "Total generator execution time: 1.737 seconds.",
+        "   1.040   59      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 3.859 seconds.",
+        "Total generator execution time: 1.105 seconds.",
+        "   0.736   66      DotGram.Generation.GramGenerator"
+      ]
+    },
+    "noop": {
+      "seconds": 2.5779931,
+      "csc": [],
+      "messages": []
+    },
+    "csharp-edit": {
+      "seconds": 185.2070236,
+      "csc": [
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 95.5122426
+        },
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 86.8592947
+        }
+      ],
+      "messages": [
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 14.510 seconds.",
+        "Total generator execution time: 40.624 seconds.",
+        "  39.787   97      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 9.580 seconds.",
+        "Total generator execution time: 36.156 seconds.",
+        "  35.906   99      DotGram.Generation.GramGenerator"
+      ]
+    },
+    "grammar-edit": {
+      "seconds": 170.8580321,
+      "csc": [
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 88.5934863
+        },
+        {
+          "project": "benchmarks\\DotGram.Benchmarks\\DotGram.Benchmarks.csproj",
+          "seconds": 4.3060578
+        },
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 73.380522
+        },
+        {
+          "project": "tests\\DotGram.Sql.Tests\\DotGram.Sql.Tests.csproj",
+          "seconds": 2.10122
+        }
+      ],
+      "messages": [
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 13.025 seconds.",
+        "Total generator execution time: 36.702 seconds.",
+        "  35.898   97      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 1.782 seconds.",
+        "Total generator execution time: 2.372 seconds.",
+        "   1.600   67      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 7.033 seconds.",
+        "Total generator execution time: 27.147 seconds.",
+        "  26.904   99      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 4.249 seconds.",
+        "Total generator execution time: 0.769 seconds."
+      ]
+    },
+    "restored": {
+      "seconds": 147.8227717,
+      "csc": [
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 63.8480008
+        },
+        {
+          "project": "benchmarks\\DotGram.Benchmarks\\DotGram.Benchmarks.csproj",
+          "seconds": 4.5112362
+        },
+        {
+          "project": "src\\DotGram.Sql\\DotGram.Sql.csproj",
+          "seconds": 74.4817051
+        },
+        {
+          "project": "tests\\DotGram.Sql.Tests\\DotGram.Sql.Tests.csproj",
+          "seconds": 2.244681
+        }
+      ],
+      "messages": [
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 9.173 seconds.",
+        "Total generator execution time: 26.208 seconds.",
+        "  25.547   97      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 1.329 seconds.",
+        "Total generator execution time: 2.378 seconds.",
+        "   1.616   67      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 7.457 seconds.",
+        "Total generator execution time: 27.609 seconds.",
+        "  27.371   99      DotGram.Generation.GramGenerator",
+        "NOTE: Elapsed time may be less than analyzer execution time because analyzers can run concurrently.",
+        "Total analyzer execution time: 5.301 seconds.",
+        "Total generator execution time: 0.783 seconds."
+      ]
+    },
+    "restored-noop": {
+      "seconds": 2.4974632,
+      "csc": [],
+      "messages": []
+    }
+  },
+  "grammar_difference": {
+    "changed": [
+      "src\\DotGram.Sql\\obj\\GeneratedFiles\\DotGram\\DotGram.Generation.GramGenerator\\DotGram.Sql.TransactSql.TransactSqlParser.g.cs"
+    ],
+    "only_embedded_probe": true
+  }
+}
