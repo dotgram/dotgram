@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 
 using DotGram.Examples.Finance;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 using Xunit;
 
@@ -19,19 +16,19 @@ public sealed class FixRecoveryTests
 	public void Recovery_returns_errors_in_order_with_original_input_and_absolute_positions(bool dispatch)
 	{
 		const string input = "55=ABC|bad|38=2|0=X|55=END|tail";
-		var text = dispatch ? Fix.ParseLog(input) : Fix44.ParseLog(input);
+		var text = dispatch ? FixParser.ParseLog(input) : Fix44.ParseLog(input);
 		FixField[]? parsed;
 		FixParseError? error;
 		var success = dispatch
-			? Fix.TryParse(input, out parsed, out error, new FixOptions('|'))
+			? FixParser.TryParse(input, out parsed, out error, new FixOptions('|'))
 			: Fix44.TryParse(input, out parsed, out error, new FixOptions('|'));
 		Assert.False(success);
 		Assert.NotNull(error);
 		Assert.Equal(6, parsed!.Length);
 		using var reader = new StringReader(input);
 		using var stream = new MemoryStream(Encoding.Latin1.GetBytes(input));
-		var chars = dispatch ? Fix.Parse(reader, new FixOptions('|'), 1, 16) : Fix44.Parse(reader, new FixOptions('|'), 1, 16);
-		var bytes = dispatch ? Fix.Parse(stream, new FixOptions('|'), 1, 16) : Fix44.Parse(stream, new FixOptions('|'), 1, 16);
+		var chars = dispatch ? FixParser.Parse(reader, new FixOptions('|'), 1, 16) : Fix44.Parse(reader, new FixOptions('|'), 1, 16);
+		var bytes = dispatch ? FixParser.Parse(stream, new FixOptions('|'), 1, 16) : Fix44.Parse(stream, new FixOptions('|'), 1, 16);
 		Check(text, false);
 		Check(chars, false);
 		Check(bytes, true);
@@ -62,10 +59,10 @@ public sealed class FixRecoveryTests
 	public void Raw_error_data_preserves_high_bytes_and_unicode_text(bool dispatch)
 	{
 		var wire = new byte[] { 255, 0, 124, 53, 53, 61, 88 };
-		var bytes = dispatch ? Fix.Parse(wire, new FixOptions('|')) : Fix44.Parse(wire, new FixOptions('|'));
+		var bytes = dispatch ? FixParser.Parse(wire, new FixOptions('|')) : Fix44.Parse(wire, new FixOptions('|'));
 		Assert.Equal(new byte[] { 255, 0 }, Assert.IsType<FixField.Invalid>(bytes[0]).RawBytes.ToArray());
 		Assert.Equal("X", Assert.IsType<FixField.Symbol>(bytes[1]).Value);
-		var fields = dispatch ? Fix.ParseLog("ошибка|55=X") : Fix44.ParseLog("ошибка|55=X");
+		var fields = dispatch ? FixParser.ParseLog("ошибка|55=X") : Fix44.ParseLog("ошибка|55=X");
 		Assert.Equal("ошибка", Assert.IsType<FixField.Invalid>(fields[0]).RawText);
 	}
 }

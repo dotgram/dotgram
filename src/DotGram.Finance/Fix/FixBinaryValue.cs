@@ -1,10 +1,9 @@
 ﻿using System;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
-readonly struct FixBinaryValue
+readonly struct FixBinaryValue((bool Valid, ReadOnlyMemory<byte> Value) data, int position)
 {
-	public FixBinaryValue((bool Valid, ReadOnlyMemory<byte> Value) data, int position) { Data = data; Position = position; }
-	public (bool Valid, ReadOnlyMemory<byte> Value) Data { get; }
-	public int Position { get; }
+	public (bool Valid, ReadOnlyMemory<byte> Value) Data     { get; } = data;
+	public int                                      Position { get; } = position;
 }

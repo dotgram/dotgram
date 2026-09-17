@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 public abstract partial class FixField
 {

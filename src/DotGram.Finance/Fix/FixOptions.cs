@@ -1,36 +1,46 @@
 ﻿using System;
-using System.Collections.Generic;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
-/// <summary>Delimiter and optional replacement length/data dictionary for Fix.</summary>
+/// <summary>
+/// Delimiter and optional replacement length/data dictionary for Fix.
+/// </summary>
 public sealed class FixOptions
 {
 	internal static readonly FixOptions Default = new();
-	readonly Dictionary<int, int>? pairs;
-	readonly HashSet<int>? dataTags;
+	readonly Dictionary<int, int>?      _pairs;
+	readonly HashSet<int>?              _dataTags;
 
 	/// <param name="lengthDataPairs">Null uses the standard dictionary. A supplied dictionary replaces it and is copied.</param>
 	/// <param name="separator">SOH for wire input or pipe for logs.</param>
 	public FixOptions(char separator = '\u0001', IReadOnlyDictionary<int, int>? lengthDataPairs = null)
 	{
-		if (separator != '\u0001' && separator != '|') throw new ArgumentOutOfRangeException(nameof(separator));
+		if (separator != '\u0001' && separator != '|')
+			throw new ArgumentOutOfRangeException(nameof(separator));
+
 		Separator = separator;
-		if (lengthDataPairs == null) return;
-		pairs = new Dictionary<int, int>();
-		dataTags = new HashSet<int>();
+
+		if (lengthDataPairs == null)
+			return;
+
+		_pairs    = new Dictionary<int, int>();
+		_dataTags = [];
+
 		foreach (var pair in lengthDataPairs)
 		{
 			if (pair.Key <= 0 || pair.Value <= 0 || pair.Key == pair.Value ||
-				(FixSchema.Type(pair.Value) is { } type && type != "data") || !dataTags.Add(pair.Value))
+				(FixSchema.Type(pair.Value) is { } type && type != "data") || !_dataTags.Add(pair.Value))
 				throw new ArgumentException("Pairs require positive, distinct length tags and unique data tags with binary or unknown types.", nameof(lengthDataPairs));
-			pairs.Add(pair.Key, pair.Value);
+
+			_pairs.Add(pair.Key, pair.Value);
 		}
-		foreach (var tag in dataTags)
-			if (pairs.ContainsKey(tag)) throw new ArgumentException("A data tag cannot also be a length tag.", nameof(lengthDataPairs));
+
+		foreach (var tag in _dataTags)
+			if (_pairs.ContainsKey(tag)) throw new ArgumentException("A data tag cannot also be a length tag.", nameof(lengthDataPairs));
 	}
 
 	public char Separator { get; }
-	internal int DataTag(int tag) => pairs == null ? FixSchema.DataTag(tag) : pairs.TryGetValue(tag, out var data) ? data : 0;
-	internal bool IsData(int tag) => FixSchema.Type(tag) == "data" || dataTags?.Contains(tag) == true;
+
+	internal int  DataTag(int tag) => _pairs == null ? FixSchema.DataTag(tag) : _pairs.TryGetValue(tag, out var data) ? data : 0;
+	internal bool IsData (int tag) => FixSchema.Type(tag) == "data" || _dataTags?.Contains(tag) == true;
 }

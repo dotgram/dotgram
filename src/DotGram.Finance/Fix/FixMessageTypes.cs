@@ -1,9 +1,7 @@
 ﻿using System;
-
-#nullable enable
 using System.Collections.Generic;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 /// <summary>FIX 4.4 Heartbeat, MsgType 0.</summary>
 public sealed class Heartbeat : FixMessage

@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 /// <summary>The validation policy applied after wire recognition.</summary>
 public enum FixParseMode
@@ -147,9 +146,11 @@ public abstract class FixMessage : FixFieldSet
 		foreach (var node in scope.Nodes)
 		{
 			yield return node.Field(scope.Source);
+
 			if (node.Entries != null)
 				foreach (var entry in node.Entries)
-					foreach (var field in Walk(entry)) yield return field;
+					foreach (var field in Walk(entry))
+						yield return field;
 		}
 	}
 }
@@ -164,20 +165,29 @@ readonly struct FixNode
 {
 	public FixNode(int tag, int position, int valuePosition, int length, IReadOnlyList<FixFieldSet>? entries = null, FixField? typedValue = null)
 	{
-		Tag = tag;
-		Position = position;
+		Tag           = tag;
+		Position      = position;
 		ValuePosition = valuePosition;
-		Length = length;
-		Entries = entries;
-		TypedValue = typedValue;
+		Length        = length;
+		Entries       = entries;
+		TypedValue    = typedValue;
 	}
 
-	public readonly FixField? TypedValue;
-	public readonly int Tag;
-	public readonly int Position;
-	public readonly int ValuePosition;
-	public readonly int Length;
+	public readonly FixField?                   TypedValue;
+	public readonly int                         Tag;
+	public readonly int                         Position;
+	public readonly int                         ValuePosition;
+	public readonly int                         Length;
 	public readonly IReadOnlyList<FixFieldSet>? Entries;
-	public FixFieldView Field(string source) => new(source, Tag, Position, ValuePosition, Length, TypedValue);
-	public FixNode WithEntries<T>(T[] entries) where T : FixFieldSet => new(Tag, Position, ValuePosition, Length, Array.AsReadOnly(entries), TypedValue);
+
+	public FixFieldView Field(string source)
+	{
+		return new FixFieldView(source, Tag, Position, ValuePosition, Length, TypedValue);
+	}
+
+	public FixNode WithEntries<T>(T[] entries)
+		where T : FixFieldSet
+	{
+		return new FixNode(Tag, Position, ValuePosition, Length, Array.AsReadOnly(entries), TypedValue);
+	}
 }

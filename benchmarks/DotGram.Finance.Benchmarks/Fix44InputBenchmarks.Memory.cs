@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 
-using DotGram.Examples.Finance;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;
 
@@ -18,7 +15,9 @@ public partial class Fix44InputBenchmarks
 	void PrepareMemoryInput(string input)
 	{
 		if (input != "String" && input != "Characters" && input != "Bytes") throw new ArgumentException("Expected String, Characters or Bytes.", nameof(input));
+
 		PrepareMessage();
+
 		if (input == "Characters")
 		{
 			var builder = new StringBuilder(message.Length * count);
@@ -30,6 +29,7 @@ public partial class Fix44InputBenchmarks
 			bytes = new byte[message.Length * count];
 			for (var i = 0; i < bytes.Length; i++) bytes[i] = checked((byte)message[i % message.Length]);
 		}
+
 		// Warm the selected parsing path without processing or retaining a whole batch.
 		for (var i = 0; i < 16; i++)
 		{

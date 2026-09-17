@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Numerics;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 static class FixConvert
 {

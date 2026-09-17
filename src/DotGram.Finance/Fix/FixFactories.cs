@@ -1,9 +1,8 @@
 ﻿using System;
-
+using System;
 #nullable enable
-using System.Collections.Generic;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 static class FixFactories
 {

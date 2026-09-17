@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 /// <summary>Parses one complete FIX 4.4 tag-value message.</summary>
 public static partial class FixMessages
@@ -82,7 +80,7 @@ public static partial class FixMessages
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) return Fail(0, null, null, "Unknown parsing mode.", out error);
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		if (!Fix.TryParse(input, out var fields, out error, options?.FieldOptions)) return false;
+		if (!FixParser.TryParse(input, out var fields, out error, options?.FieldOptions)) return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
 		return FixSemantics.TryBuild(input, type, Nodes(input, fields!), mode, options, out message, out error);
 	}
@@ -127,7 +125,7 @@ public static partial class FixMessages
 		var separator = options?.Separator ?? '\u0001';
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
 		using var stream = new MemoryStream(input, writable: false);
-		if (!Fix.TryParse(stream, out var fields, out error, options?.FieldOptions)) return false;
+		if (!FixParser.TryParse(stream, out var fields, out error, options?.FieldOptions)) return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
 		var wire = FixConvert.Text(input);
 		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields!), mode, options, out message, out error);
@@ -183,45 +181,54 @@ public static partial class FixMessages
 	static FixNode[] Nodes(string source, FixField[] values)
 	{
 		var count = values.Length;
-		foreach (var value in values) if (value.IsBinary) count++;
+
+		foreach (var value in values)
+			if (value.IsBinary)
+				count++;
+
 		var fields = new FixNode[count];
-		var index = 0;
+		var index  = 0;
+
 		foreach (var value in values)
 		{
 			if (value.IsBinary)
 			{
 				var header = source.AsSpan(value.Position, value.DataPosition - value.Position - 1);
 				var equals = header.IndexOf('=');
-				var tag = FixConvert.Tag(header.Slice(0, equals));
+				var tag    = FixConvert.Tag(header.Slice(0, equals));
 				var length = LengthField(tag, header.Slice(equals + 1));
+
 				length.Locate(value.Position, value.DataPosition - value.Position);
+
 				fields[index++] = new FixNode(tag, length.Position, length.ValuePosition, length.Length, typedValue: length);
 			}
+
 			fields[index++] = new FixNode(value.Tag, value.IsBinary ? value.DataPosition : value.Position, value.ValuePosition, value.Length, typedValue: value);
 		}
+
 		return fields;
 	}
 
 	// The optional message model exposes both wire fields; the parser returns only data.
 	static FixField LengthField(int tag, ReadOnlySpan<char> value) => tag switch
 	{
-		90 => new FixField.SecureDataLen(FixConvert.Integer(value)),
-		93 => new FixField.SignatureLength(FixConvert.Integer(value)),
-		95 => new FixField.RawDataLength(FixConvert.Integer(value)),
-		212 => new FixField.XmlDataLen(FixConvert.Integer(value)),
-		348 => new FixField.EncodedIssuerLen(FixConvert.Integer(value)),
-		350 => new FixField.EncodedSecurityDescLen(FixConvert.Integer(value)),
-		352 => new FixField.EncodedListExecInstLen(FixConvert.Integer(value)),
-		354 => new FixField.EncodedTextLen(FixConvert.Integer(value)),
-		356 => new FixField.EncodedSubjectLen(FixConvert.Integer(value)),
-		358 => new FixField.EncodedHeadlineLen(FixConvert.Integer(value)),
-		360 => new FixField.EncodedAllocTextLen(FixConvert.Integer(value)),
-		362 => new FixField.EncodedUnderlyingIssuerLen(FixConvert.Integer(value)),
+		 90 => new FixField.SecureDataLen                   (FixConvert.Integer(value)),
+		 93 => new FixField.SignatureLength                 (FixConvert.Integer(value)),
+		 95 => new FixField.RawDataLength                   (FixConvert.Integer(value)),
+		212 => new FixField.XmlDataLen                      (FixConvert.Integer(value)),
+		348 => new FixField.EncodedIssuerLen                (FixConvert.Integer(value)),
+		350 => new FixField.EncodedSecurityDescLen          (FixConvert.Integer(value)),
+		352 => new FixField.EncodedListExecInstLen          (FixConvert.Integer(value)),
+		354 => new FixField.EncodedTextLen                  (FixConvert.Integer(value)),
+		356 => new FixField.EncodedSubjectLen               (FixConvert.Integer(value)),
+		358 => new FixField.EncodedHeadlineLen              (FixConvert.Integer(value)),
+		360 => new FixField.EncodedAllocTextLen             (FixConvert.Integer(value)),
+		362 => new FixField.EncodedUnderlyingIssuerLen      (FixConvert.Integer(value)),
 		364 => new FixField.EncodedUnderlyingSecurityDescLen(FixConvert.Integer(value)),
-		445 => new FixField.EncodedListStatusTextLen(FixConvert.Integer(value)),
-		618 => new FixField.EncodedLegIssuerLen(FixConvert.Integer(value)),
-		621 => new FixField.EncodedLegSecurityDescLen(FixConvert.Integer(value)),
-		_ => new FixField.Unknown(tag, FixConvert.Data(value)),
+		445 => new FixField.EncodedListStatusTextLen        (FixConvert.Integer(value)),
+		618 => new FixField.EncodedLegIssuerLen             (FixConvert.Integer(value)),
+		621 => new FixField.EncodedLegSecurityDescLen       (FixConvert.Integer(value)),
+		_   => new FixField.Unknown                         (tag, FixConvert.Data(value)),
 	};
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
@@ -231,12 +238,11 @@ public static partial class FixMessages
 	}
 }
 
-readonly struct SchemaRef
+readonly struct SchemaRef(int id, bool required, int kind)
 {
-	public SchemaRef(int id, bool required, int kind) { Id = id; Required = required; Kind = kind; }
-	public readonly int Id;
-	public readonly bool Required;
-	public readonly int Kind;
+	public readonly int  Id       = id;
+	public readonly bool Required = required;
+	public readonly int  Kind     = kind;
 }
 
 static class FixValidation
@@ -267,32 +273,51 @@ static class FixValidation
 	static bool Scope(FixFieldSet scope, SchemaRef[] schema, string type, FixParseMode mode, FixParseOptions? options, out FixParseError? error, bool ordered = false)
 	{
 		error = null;
+
 		Span<ulong> seen = stackalloc ulong[15];
-		seen.Clear();
-		var previousRank = -1;
+		var           previousRank = -1;
 		HashSet<int>? extendedSeen = null;
+
+		seen.Clear();
+
 		for (var i = 0; i < scope.Nodes.Length; i++)
 		{
-			var node = scope.Nodes[i];
+			var node  = scope.Nodes[i];
 			var field = node.Field(scope.Source);
+
 			if (ordered && mode == FixParseMode.Strict)
 			{
 				var ordinal = 0;
-				var rank = Rank(schema, node.Tag, ref ordinal);
-				if (rank >= 0 && rank < previousRank) return Fail(field, type, "Repeating group fields are out of schema order.", out error);
-				if (rank >= 0) previousRank = rank;
+				var rank    = Rank(schema, node.Tag, ref ordinal);
+
+				switch (rank)
+				{
+					case >= 0 when rank < previousRank: return Fail(field, type, "Repeating group fields are out of schema order.", out error);
+					case >= 0                         : previousRank = rank; break;
+				}
 			}
-			if (node.Tag < 957 && node.Tag > 0)
+
+			if (node.Tag is < 957 and > 0)
 			{
 				var bit = 1UL << (node.Tag & 63);
-				if ((seen[node.Tag >> 6] & bit) != 0 && mode == FixParseMode.Strict) return Fail(field, type, "Duplicate field in the same scope.", out error);
+
+				if ((seen[node.Tag >> 6] & bit) != 0 && mode == FixParseMode.Strict)
+					return Fail(field, type, "Duplicate field in the same scope.", out error);
+
 				seen[node.Tag >> 6] |= bit;
 			}
 			else if (mode == FixParseMode.Strict && !(extendedSeen ??= new HashSet<int>()).Add(node.Tag))
+			{
 				return Fail(field, type, "Duplicate extension field in the same scope.", out error);
+			}
+
 			var lengthTag = FixSchema.LengthTag(node.Tag);
-			if (lengthTag != 0 && (i == 0 || scope.Nodes[i - 1].Tag != lengthTag || !scope.Nodes[i - 1].Field(scope.Source).TryGetInt64(out var count) || count != node.Length)) return Fail(field, type, "Data field must immediately follow its matching length field.", out error);
+
+			if (lengthTag != 0 && (i == 0 || scope.Nodes[i - 1].Tag != lengthTag || !scope.Nodes[i - 1].Field(scope.Source).TryGetInt64(out var count) || count != node.Length))
+				return Fail(field, type, "Data field must immediately follow its matching length field.", out error);
+
 			var dataTag = FixSchema.DataTag(node.Tag);
+
 			if (dataTag != 0 && (i + 1 == scope.Nodes.Length || scope.Nodes[i + 1].Tag != dataTag)) return Fail(field, type, "Length field must immediately precede its matching data field.", out error);
 			if (mode == FixParseMode.Strict && !FixPrimitives.Valid(field, FixSchema.Type(node.Tag), FixSchema.Codes(node.Tag))) return Fail(field, type, "Invalid FIX primitive value or code set value.", out error);
 		}

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 /// <summary>An immutable parsing policy, reusable concurrently across messages.</summary>
 public sealed class FixParseOptions

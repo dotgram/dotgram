@@ -1,9 +1,9 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using System.Text;
+
 using DotGram.Examples.Finance;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
+
 using Xunit;
 
 namespace DotGram.Finance.Tests;
@@ -14,7 +14,8 @@ public sealed class FixFlatFieldsTests
 	public void Fields_do_not_require_a_message_or_semantic_validity()
 	{
 		var fields = Fix44.ParseLog("55=ABC|38=bad|54=Z|55=DEF|");
-		Assert.Equal(new[] { 55, 38, 54, 55 }, fields.Select(f => f.Tag));
+
+		Assert.Equal([55, 38, 54, 55], fields.Select(f => f.Tag));
 		Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(fields[0]).Value);
 		Assert.False(fields[1].IsValid);
 		Assert.Equal('Z', Assert.IsType<FixField.Side>(fields[2]).Value);
@@ -140,7 +141,7 @@ public sealed class FixFlatFieldsTests
 	{
 		using var stream = new ShortStream(Encoding.ASCII.GetBytes("bad|55=X|")) { ReadLimit = 4 };
 		var source = dispatch
-			? Fix.Parse(stream, new FixOptions('|'), bufferSize: 1)
+			? FixParser.Parse(stream, new FixOptions('|'), bufferSize: 1)
 			: Fix44.Parse(stream, new FixOptions('|'), bufferSize: 1);
 		using var fields = source.GetEnumerator();
 		Assert.True(fields.MoveNext());

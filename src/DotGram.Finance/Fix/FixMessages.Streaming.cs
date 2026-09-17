@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 
-namespace DotGram.Finance;
+namespace DotGram.Finance.Fix;
 
 public static partial class FixMessages
 {

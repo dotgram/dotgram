@@ -9,7 +9,7 @@ using System.Runtime.Loader;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using DotGram.Examples.Finance;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;
 
@@ -22,7 +22,7 @@ public class FixInitializationBenchmarks
 	Func<int> previous = null!;
 	Func<int> simplified = null!;
 
-	internal static Type TypeOf(bool old) => !old ? typeof(Fix) : oldType ??=
+	internal static Type TypeOf(bool old) => !old ? typeof(FixParser) : oldType ??=
 		Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE") is { } path
 			? FixGrammarComparisonBenchmarks.PreviousType(path) : typeof(Fix44);
 

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text.Json;
 
 using DotGram.Examples.Finance;
-using DotGram.Finance;
+using DotGram.Finance.Fix;
 
 using Xunit;
 
