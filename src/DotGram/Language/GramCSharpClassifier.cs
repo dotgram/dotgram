@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 using DotGram.Grammar.Parsing;
@@ -30,6 +30,10 @@ static class GramCSharpClassifier
 
 				Classify(type, text, result);
 				Classify(body, text, result);
+				break;
+
+			case Decl.Publish publication:
+				Classify(publication.ResultType, text, result);
 				break;
 
 			case Decl.Namespace(_, _, _, var declarations):

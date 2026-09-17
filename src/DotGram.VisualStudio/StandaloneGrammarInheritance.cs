@@ -113,11 +113,24 @@ static class StandaloneGrammarInheritance
 		foreach (var document in project.Documents)
 		{
 			var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-			var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-			if (root is null || model is null)
+			if (root is null)
 				continue;
 
-			foreach (var declaration in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+			var candidates = root.DescendantNodes()
+				.OfType<TypeDeclarationSyntax>()
+				.Where(declaration => MayHost(declaration, grammarPath))
+				.ToArray();
+			if (candidates.Length == 0)
+				continue;
+
+			// Getting a semantic model can force Roslyn to finish the project's compilation.
+			// Large parser projects contain hundreds of unrelated source files, so first use
+			// the attribute syntax to reduce that work to the file which names this grammar.
+			var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+			if (model is null)
+				continue;
+
+			foreach (var declaration in candidates)
 			{
 				var type = model.GetDeclaredSymbol(declaration, cancellationToken) as INamedTypeSymbol;
 				var attribute = type is null ? null : PrimaryGram(type.GetAttributes());
@@ -133,6 +146,28 @@ static class StandaloneGrammarInheritance
 		}
 
 		return null;
+	}
+
+	static bool MayHost(TypeDeclarationSyntax declaration, string grammarPath)
+	{
+		var defaultSource = declaration.Identifier.ValueText + ".gram";
+		foreach (var attribute in declaration.AttributeLists.SelectMany(static list => list.Attributes))
+		{
+			var name = attribute.Name.ToString();
+			if (name != "Gram" && name != "GramAttribute" &&
+				!name.EndsWith(".Gram", StringComparison.Ordinal) &&
+				!name.EndsWith(".GramAttribute", StringComparison.Ordinal))
+				continue;
+
+			var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
+			if (argument?.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.LiteralExpressionSyntax literal &&
+				literal.Token.Value is string source)
+				return IsFile(source) && Matches(grammarPath, source);
+
+			return Matches(grammarPath, defaultSource);
+		}
+
+		return false;
 	}
 
 	static AttributeData? PrimaryGram(IEnumerable<AttributeData> attributes) =>

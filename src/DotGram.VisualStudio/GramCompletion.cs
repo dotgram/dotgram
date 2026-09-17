@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
@@ -71,9 +71,10 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	[
 		"any", "none", "eol", "eof", "trivia", "wordboundary",
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
-		"public", "internal", "private",
+		"on", "fail", "public", "internal", "private",
 		"is", "not", "and", "or",
 		"context", "state", "stream", "bytes", "yield",
+		"switch", "case", "default",
 	];
 
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);
