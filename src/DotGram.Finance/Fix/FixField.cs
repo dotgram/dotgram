@@ -2,59 +2,51 @@
 
 namespace DotGram.Finance.Fix;
 
-/// <summary>Receives source coordinates from the generated parser.</summary>
-public interface IFixLocation
-{
-	void Locate(int position, int length);
-}
-
 /// <summary>One case in the FIX field algebra, with its original source extent.</summary>
 public abstract partial class FixField : IFixLocation
 {
-	int prefixLength;
-	int terminatorLength = 1;
-	internal bool IsBinary => this is not Invalid && prefixLength != TagPrefixLength;
-	internal int DataPosition => ValuePosition - TagPrefixLength;
-	int TagPrefixLength
-	{
-		get
-		{
-			var prefix = 2;
-			for (var digits = Tag; digits >= 10; digits /= 10) prefix++;
-			return prefix;
-		}
-	}
+	int _prefixLength;
+	int _terminatorLength = 1;
+
+	internal bool IsBinary     => this is not Invalid && _prefixLength != _tagPrefixLength;
+	internal int  DataPosition => ValuePosition - _tagPrefixLength;
+
+	readonly int _tagPrefixLength;
 
 	protected FixField(int tag, bool valid)
 	{
-		Tag = tag;
-		prefixLength = 2;
-		for (var digits = tag; digits >= 10; digits /= 10) prefixLength++;
+		Tag           = tag;
+		_prefixLength = 2;
+
+		for (var digits = tag; digits >= 10; digits /= 10)
+			_prefixLength++;
+
+		_tagPrefixLength = _prefixLength;
 		IsValid = valid;
 	}
 
 	public int Tag { get; }
 	public int Position { get; private set; }
-	public int ValuePosition => Position + prefixLength;
+	public int ValuePosition => Position + _prefixLength;
 	public int Length { get; private set; }
 
 	/// <summary>Called by the parser, innermost rule first; Field supplies the complete tag=value extent.</summary>
 	public void Locate(int position, int length)
 	{
 		Position = position;
-		Length = length - prefixLength - terminatorLength;
+		Length = length - _prefixLength - _terminatorLength;
 	}
 
 	internal FixField WithTerminator(int length)
 	{
-		terminatorLength = length;
+		_terminatorLength = length;
 		return this;
 	}
 
 	internal FixField WithBinary(FixBinaryValue value, int start)
 	{
 		// The source extent begins at the length tag; the value begins after both headers.
-		prefixLength = value.Position - start;
+		_prefixLength = value.Position - start;
 		return this;
 	}
 
@@ -68,8 +60,8 @@ public abstract partial class FixField : IFixLocation
 		{
 			RawText = raw ?? throw new ArgumentNullException(nameof(raw));
 			Message = message ?? throw new ArgumentNullException(nameof(message));
-			prefixLength = 0;
-			terminatorLength = 0;
+			_prefixLength = 0;
+			_terminatorLength = 0;
 			Locate(position, raw.Length);
 		}
 
@@ -79,8 +71,8 @@ public abstract partial class FixField : IFixLocation
 		{
 			RawBytes = raw.ToArray();
 			Message = message ?? throw new ArgumentNullException(nameof(message));
-			prefixLength = 0;
-			terminatorLength = 0;
+			_prefixLength = 0;
+			_terminatorLength = 0;
 			Locate(position, raw.Length);
 		}
 

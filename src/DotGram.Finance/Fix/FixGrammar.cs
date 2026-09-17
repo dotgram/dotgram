@@ -19,14 +19,12 @@ namespace DotGram.Finance.Fix;
 	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.Tag(value))
 	Size : @int = value: { ['0'..'9']+ }              => @(FixConvert.Tag(value))
 
-	Data = @ReadData
-
 	Field : @FixField =
 		wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
 			case 0: Text
 			case 1:
 				size: Size & Separator & dataTag: Tag & '='
-				& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & Data
+				& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & @ReadData
 		})
 		=> @(context.Create(tag, wire, parserSpan.Start).WithTerminator(0))
 
