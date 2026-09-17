@@ -62,12 +62,33 @@ public sealed class FixTests
 	[InlineData("01=x|")]
 	[InlineData("2147483648=x|")]
 	[InlineData("95=2147483648|96=x|")]
+	[InlineData("95=2147483647|96=x|")]
+	[InlineData("95=1|2147483648=x|")]
 	public void Malformed_inputs_return_invalid_fields_in_both_parsers(string wire)
 	{
 		Assert.Contains(Fix44.ParseLog(wire), field => field is FixField.Invalid);
 		Assert.Contains(FixParser.ParseLog(wire), field => field is FixField.Invalid);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
 		Assert.Contains(FixParser.Parse(stream, new FixOptions('|'), bufferSize: 1), field => field is FixField.Invalid);
+	}
+
+	[Theory]
+	[InlineData("2147483647=X|", int.MaxValue)]
+	[InlineData("95=0003|96=a|b|", 96)]
+	[InlineData("95=0000|96=", 96)]
+	public void Typed_numbers_preserve_integer_boundaries_and_zero_padded_lengths(string input, int tag)
+	{
+		var expected = FixParser.ParseLog(input);
+
+		Assert.Equal(tag, Assert.Single(expected).Tag);
+		Assert.DoesNotContain(expected, field => field is FixField.Invalid);
+
+		using var reader = new StringReader(input);
+		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
+		var options = new FixOptions('|');
+
+		Equal(expected, FixParser.Parse(reader, options, bufferSize: 1));
+		Equal(expected, FixParser.Parse(stream, options, bufferSize: 1));
 	}
 
 	[Fact]

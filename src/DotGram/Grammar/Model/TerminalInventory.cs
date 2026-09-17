@@ -316,6 +316,9 @@ public sealed class TerminalInventory
 		if (!walker.Applies)
 			return new TerminalInventory(false, [], [], [], []);
 
+		if (graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External { UsesInputView: true })))
+			return new TerminalInventory(true, [], [], [], ["input-view recognizers require character parsing"]);
+
 		foreach (var rule in graph.Rules)
 			if (walker.IsSyntactic(rule) && graph.Bodies.TryGetValue(rule, out var body))
 				walker.Walk(body, rule);

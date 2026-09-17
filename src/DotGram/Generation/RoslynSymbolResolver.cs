@@ -188,18 +188,14 @@ public sealed class RoslynSymbolResolver(
 		foreach (var symbol in _compilation.GetSymbolsWithName(
 			name => string.Equals(name, methodName, StringComparison.Ordinal), SymbolFilter.Member))
 		{
-			if (symbol is not IMethodSymbol
-				{
-					IsStatic: true,
-					ReturnType.SpecialType: SpecialType.System_Boolean,
-					Parameters: [var input, { RefKind: RefKind.Ref } position, { RefKind: RefKind.Out } value],
-				} method ||
-				!IsReadOnlySpanOfChar(input.Type) ||
-				position.Type.SpecialType != SpecialType.System_Int32 ||
+			if (symbol is not IMethodSymbol method || !Recognizes(method) ||
+				method.Parameters.Length < 3 || method.Parameters[2].RefKind != RefKind.Out ||
 				!_compilation.IsSymbolAccessibleWithin(method, host))
 			{
 				continue;
 			}
+
+			var value = method.Parameters[2];
 
 			if (!types.Contains(value.Type, SymbolEqualityComparer.Default))
 				types.Add(value.Type);
@@ -265,7 +261,7 @@ public sealed class RoslynSymbolResolver(
 				named = true;
 
 				if (Callable(method, host, role))
-					return ExternalMethodResolution.Found;
+					return RecognitionForm(method, role);
 			}
 
 		foreach (var symbol in _compilation.GetSymbolsWithName(
@@ -277,7 +273,7 @@ public sealed class RoslynSymbolResolver(
 			named = true;
 
 			if (Callable(method, host, role))
-				return ExternalMethodResolution.Found;
+				return RecognitionForm(method, role);
 		}
 
 		return named ? ExternalMethodResolution.NoOverload : ExternalMethodResolution.NoMethod;
@@ -305,17 +301,45 @@ public sealed class RoslynSymbolResolver(
 		(role == ExternalMethodRole.Predicate ? Tests(method) : Recognizes(method)) &&
 		_compilation.IsSymbolAccessibleWithin(method, host);
 
-	/// <summary>A recognizer: <c>bool M(ReadOnlySpan&lt;char&gt;, ref int)</c>, with or without <c>out T</c> after.</summary>
-	static bool Recognizes(IMethodSymbol method) =>
-		method is
+	static ExternalMethodResolution RecognitionForm(IMethodSymbol method, ExternalMethodRole role)
+	{
+		if (role != ExternalMethodRole.Recognizer || !IsInputView(method.Parameters[0].Type))
+			return ExternalMethodResolution.Found;
+
+		return method.Parameters.Length > 2 && method.Parameters[method.Parameters.Length - 1].RefKind == RefKind.None
+			? ExternalMethodResolution.FoundInputWithContext
+			: ExternalMethodResolution.FoundInput;
+	}
+
+	static bool IsInputView(ITypeSymbol type) => type is INamedTypeSymbol
+	{
+		Name: "ParserInput",
+		TypeArguments: [{ SpecialType: SpecialType.System_Char }],
+	};
+
+	/// <summary>A span recognizer, or an input-view recognizer with an optional trailing context.</summary>
+	static bool Recognizes(IMethodSymbol method)
+	{
+		if (method is not
+			{
+				IsStatic: true,
+				ReturnType.SpecialType: SpecialType.System_Boolean,
+				Parameters: [{ RefKind: RefKind.None } input, { RefKind: RefKind.Ref } position, ..] parameters,
+			} || position.Type.SpecialType != SpecialType.System_Int32)
+			return false;
+
+		var count = parameters.Length;
+
+		if (IsInputView(input.Type))
 		{
-			IsStatic: true,
-			ReturnType.SpecialType: SpecialType.System_Boolean,
-			Parameters: [var input, { RefKind: RefKind.Ref } position, ..] parameters,
-		} &&
-		(parameters.Length == 2 || parameters.Length == 3 && parameters[2].RefKind == RefKind.Out) &&
-		IsReadOnlySpanOfChar(input.Type) &&
-		position.Type.SpecialType == SpecialType.System_Int32;
+			if (count > 2 && parameters[count - 1].RefKind == RefKind.None)
+				count--;
+		}
+		else if (!IsReadOnlySpanOfChar(input.Type))
+			return false;
+
+		return count == 2 || count == 3 && parameters[2].RefKind == RefKind.Out;
+	}
 
 	/// <summary>
 	/// A predicate: a static <c>bool</c> method <c>M(c)</c> binds to with a <c>char</c> — one a

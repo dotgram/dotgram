@@ -98,9 +98,19 @@ FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
 result, so the machine does not need a separate value stack per case. The original
 wire view is called `FixFieldView`.
 
+`Tag` and `Size` return `int` through the character/byte conversion overloads.
+Dispatch, binary-pair checks and field construction receive the parsed numbers;
+overflow keeps the invalid sentinel and is handled by field recovery.
+
 The C# factory constructs each named case from its native value span.
 Conversions return `(Valid, Value)`; plain text returns a string.
 `LocationType = typeof(IFixLocation)` supplies the complete field extent.
+
+`Field` recognizes the field contents without the final separator. `Fields`
+repeats `Terminated(Field, (Separator | eof))`; the small parameterized wrapper
+preserves field locations and supplies a complete element for streaming `yield`.
+Recovery remains on the collection and classifies invalid first tokens without an
+atomic lookahead marker; EOF ends the collection.
 
 `Separator` is an elementary rule. The pipe publication uses
 `with (Separator = LogSeparator)`. `Text` tests the rule with negative lookahead;
@@ -112,11 +122,12 @@ Handwritten conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> over
 Numbers preserve exact precision; FIX calendar values preserve year zero and leap
 seconds. Standard code sets still constrain the underlying primitive in Strict mode.
 
-Raw data uses an atomic grammar rule: a guard computes the end from the immediately
-preceding registered length/data pair, and the grammar consumes blocks of 4096, 256 and 16 octets, then individual
-octets up to that end. Each attempt installs its own bound before consuming input. Guards use the end
-of parserSpan (the current position), which also works when rules are inlined.
-There is no external recognizer and no group-counter stack during recognition.
+Raw data uses `Data = @ReadData`. A guard validates the immediately preceding
+registered length/data pair and computes its end. Character and byte C# recognizer
+overloads consume that exact extent through `ParserInput<T>.TryAdvance`; buffered
+input refills inside the call. Truncated payloads fail without advancing the position,
+and separators inside the payload remain data. Each attempt installs its own bound
+before reading. There is no group-counter stack during recognition.
 
 `FixSemantics` interprets the flat fields using cached schema membership tables,
 constructs typed nested groups, and delegates field/requiredness/order validation

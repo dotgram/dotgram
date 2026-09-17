@@ -1311,8 +1311,8 @@ sealed partial class Machine
 
 				// A recognizer the author wrote, handed the position by reference: it says
 				// yes or no, and where it said no is where it left the position.
-				case Node.External(var method):
-					using (code.Block($"if (!{method}(text, ref p))"))
+				case Node.External external:
+					using (code.Block($"if (!{machine.ExternalCall(external, "p")})"))
 					{
 						code.Line($"{Refusing}(ref failure, p, null, ways);");
 						code.Line("return -1;");

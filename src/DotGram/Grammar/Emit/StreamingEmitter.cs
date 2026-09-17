@@ -319,13 +319,12 @@ public static partial class CSharpEmitter
 
 				if (stage.Repeated && recovery is not null)
 				{
-					// §8.2 in a stream. An element that never began ends the repetition; one
-					// that began and broke is an error to step over, and where to pick up
-					// again is the synchronization expression — looked for in the window,
-					// reading more of it when the search runs out of what is held.
+					// The complete continuation was tried before the element. A failed
+					// element with remaining input is therefore an error, including a
+					// mismatch on its first token. EOF cannot supply another recovery.
 					using (file.Block($"if (end{i} < 0)"))
 					{
-						file.Line($"if (failure{i}.Reach <= start)");
+						file.Line("if (start >= window.Length && window.Ended)");
 						file.Then("break;");
 						file.Line();
 						file.Line("var from = start;");
@@ -337,7 +336,17 @@ public static partial class CSharpEmitter
 						{
 							using (file.Block("while (to <= window.Length)"))
 							{
-								file.Line($"at = {sync}(window.Span(), to);");
+								file.Line($"var syncFailure = new {FailureType}();");
+								file.Line($"at = {sync}(window.Span(), to, ref syncFailure);");
+								file.Line();
+
+								// Retry this candidate after refill: advancing here skips the first
+								// new character or loses a multi-character separator split by a read.
+								using (file.Block("if ((syncFailure.Starved || (at < 0 ? syncFailure.Position : at) >= window.Length) && !window.Ended)"))
+								{
+									file.Line("at = -1;");
+									file.Line("break;");
+								}
 								file.Line();
 								file.Line("if (at > to)");
 								file.Then("break;");

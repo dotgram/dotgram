@@ -454,7 +454,8 @@ sealed partial class Machine
 						(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
 							CSharpEmitter.Uses(graph, asked, "context") ||
 						node is Node.Guard { Text: var condition } &&
-							CSharpEmitter.Uses(graph, condition, "context")))
+							CSharpEmitter.Uses(graph, condition, "context") ||
+						node is Node.External { UsesContext: true }))
 					{
 						UsesContext = true;
 					}
@@ -1100,6 +1101,15 @@ sealed partial class Machine
 
 	bool _spans;
 
+	string ExternalCall(Node.External external, string position, string? value = null)
+	{
+		var input   = external.UsesInputView ? $"new ParserInput<{(BufferedBytes ? "byte" : "char")}>(text)" : "text";
+		var output  = value is null ? "" : $", out {value}";
+		var context = external.UsesContext ? ", context" : "";
+
+		return $"{external.Name}({input}, ref {position}{output}{context})";
+	}
+
 	/// <summary>
 	/// Whether anything in this machine names the grammar's own state (§7.7).
 	/// </summary>
@@ -1184,19 +1194,7 @@ sealed partial class Machine
 
 	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input)
 	{
-		var file = new Writer(0);
-
-		using (file.Block(
-			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos)"))
-		{
-			file.Line($"var failure = new {CSharpEmitter.FailureType}();");
-			file.Line("object? ignored;");
-			file.Line(
-				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				$"false, false{(input ? NoInput : "")}, ref failure, out ignored);");
-		}
-
-		return file.ToString();
+		return RenderProbe(name, engine, entry, powers, input);
 	}
 
 	public string RenderWrapper(RuleSymbol root, string name, string engine, bool whole)
@@ -1304,7 +1302,6 @@ sealed partial class Machine
 				if (_recoveries.Count > 0)
 				{
 					file.Line("var reach   = 0;");
-					file.Line("var owned   = false;");
 					file.Line("var syncFrom = 0;");
 				}
 
@@ -2395,7 +2392,7 @@ sealed partial class Machine
 				return state;
 			}
 
-			case Node.External(var method) { HasValue: var hasValue }:
+			case Node.External external:
 			{
 				var state = Reserve(out var writer);
 
@@ -2403,9 +2400,7 @@ sealed partial class Machine
 				// where there is one, is recovered later by re-invoking the method against
 				// the recorded start position (Machine.Materialization.cs), not trusted from
 				// a call that may run on an abandoned path.
-				writer.Line(hasValue
-					? $"if (!{method}(text, ref p, out _)) {{ expected = null; goto Fail; }}"
-					: $"if (!{method}(text, ref p)) {{ expected = null; goto Fail; }}");
+				writer.Line($"if (!{ExternalCall(external, "p", external.HasValue ? "_" : null)}) {{ expected = null; goto Fail; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
@@ -2729,8 +2724,7 @@ sealed partial class Machine
 				// with a refused guard falling to the tail behind it. No choice entry, no
 				// atomic boundary, no commit walk — nothing is written that a commit
 				// would have to put out, which is the whole of what the braces meant.
-				if (_recoveries.Count == 0 &&
-					body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
+				if (body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
 					decided.All(Weightless))
 				{
 					var chosen = Compile(decided[decided.Count - 1], next, following);
@@ -2749,12 +2743,10 @@ sealed partial class Machine
 
 				// First-match-commits held in locals: each alternative is tried through
 				// the give-back door, and the first that matches is final. The same test
-				// `Silent`'s own Atomic case asks — recoveries included, whose owned
-				// mark only the engine's commit writes — so the two agree.
-				if (_recoveries.Count == 0 &&
-					(body is Node.Choice(var options) { Selection: null }
-						? AllSilent(options, following, sequence: false)
-						: Silent(body, following)))
+				// `Silent`'s own Atomic case asks, so the two agree.
+				if (body is Node.Choice(var options) { Selection: null }
+					? AllSilent(options, following, sequence: false)
+					: Silent(body, following))
 				{
 					// No pending site may open inside: the chain's doors are where a
 					// failure goes here, and a way back they jumped past would stand
@@ -2828,8 +2820,6 @@ sealed partial class Machine
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
 				atCommit.Line("var boundary = entries[atomic];");
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);");
-				if (_recoveries.Count > 0)
-					atCommit.Line("owned = true;");
 
 				// The arena holds two unlike things — where the parse could return to, and
 				// what it recognised on the way — and committing is about the first only.

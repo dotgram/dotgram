@@ -310,6 +310,10 @@ public abstract record Node
 		/// <summary>Whether this is §7.1's third row rather than its second.</summary>
 		public bool HasValue { get; init; }
 
+		public bool UsesInputView { get; init; }
+
+		public bool UsesContext { get; init; }
+
 		public override string ToString() => "@" + Name;
 	}
 

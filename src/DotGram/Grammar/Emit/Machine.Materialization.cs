@@ -511,7 +511,7 @@ sealed partial class Machine
 			using (file.Block($"case {_ruleIds[rule]}:"))
 			{
 				file.Line("var externalPos = completed.Position;");
-				file.Line($"{method}(text, ref externalPos, out var externalValue);");
+				file.Line(ExternalCall((Node.External)_graph.Bodies[rule], "externalPos", "var externalValue") + ";");
 				file.Line($"{ValueInto(type, "completedAt")} = externalValue;");
 				file.Line("break;");
 			}

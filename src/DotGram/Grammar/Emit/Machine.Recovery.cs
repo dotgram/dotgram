@@ -11,7 +11,7 @@ namespace DotGram.Grammar.Emit;
 /// </summary>
 /// <remarks>
 /// A repetition marked <c>recover</c> is a repetition with a second way of finishing a
-/// turn: the element began, failed, and the parse walks to the next place the grammar says
+/// turn: the continuation failed, the element failed, and the parse walks to the next place the grammar says
 /// one can start rather than ending the run there (docs/syntax.md §8.2). That is a
 /// different machine from an ordinary repetition and reads as one, which is why it is here
 /// rather than beside it — along with the entries it leaves behind and the hook they are
@@ -61,12 +61,14 @@ sealed partial class Machine
 		atLoop.Line($"goto {Label(atLoop, attempt)};");
 
 		atAttempt.Line("reach = p;");
-		atAttempt.Line("owned = false;");
 		atAttempt.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atAttempt, asked)}, p, call, atomic, repeat, lookahead, 0));");
 		atAttempt.Line($"goto {Label(atAttempt, inner)};");
 
 		atAsked.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-		atAsked.Line("if (!owned && reach <= p) { expected = null; goto Fail; }");
+		// The continuation has already failed. Any remaining input belongs to a bad
+		// element, even if its first token did not match. Empty EOF cannot recover:
+		// a required element or continuation is missing, and scanning would not advance.
+		atAsked.Line($"if ({Short(1)}) {{ expected = null; goto Fail; }}");
 		atAsked.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(atAsked, scan)};");
