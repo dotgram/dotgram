@@ -145,3 +145,7 @@ passed, followed by all 3,808 Finance tests. The existing largest-tag regression
 updated to the renamed Fix/FixOptions API after the merge. NuGetAudit=false was used
 for validation because the vulnerability service was inaccessible; repository settings
 were unchanged. No full-solution timing is claimed for the merged layout.
+
+A subsequent [file-splitting experiment](file-split-2026-09-16.md) reduced compilation
+time by about 37% in a standalone Roslyn comparison with identical method text.
+That result is not yet an end-to-end improvement measured in this solution setup.

@@ -1,0 +1,139 @@
+{
+  "baseline": "f7249e8",
+  "compiler": "5.9.0-1.26379.115",
+  "runtime": ".NET 10.0.12",
+  "optimization": "Debug",
+  "debug_information": "Embedded",
+  "concurrentBuild": true,
+  "generator_in_timer": false,
+  "inventory": {
+    "originalFiles": 74,
+    "originalBytes": 71779597,
+    "methodCount": 5088,
+    "parts": 28,
+    "partCharacters": [
+      1999464,
+      5202801,
+      3391,
+      5255337,
+      3452,
+      5214883,
+      3107,
+      5267419,
+      3156,
+      5150891,
+      680,
+      5072009,
+      693,
+      5197112,
+      686,
+      5118230,
+      699,
+      5150025,
+      675,
+      5071143,
+      688,
+      5196246,
+      681,
+      5117364,
+      1568756,
+      1543229,
+      1549264,
+      1522890
+    ],
+    "methodTextIdentical": true,
+    "largestMethods": [
+      {
+        "name": "Recognize_DotGram_Fields_With1_YieldStep3",
+        "characters": 5267100
+      },
+      {
+        "name": "Recognize_DotGram_Fields_With1",
+        "characters": 5255018
+      },
+      {
+        "name": "Recognize_DotGram_Fields_YieldStep2",
+        "characters": 5214564
+      },
+      {
+        "name": "Recognize_DotGram_Fields",
+        "characters": 5202482
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ParseLogFields",
+        "characters": 5196793
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ReadLogFields",
+        "characters": 5195927
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ParseFields",
+        "characters": 5150572
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ReadFields",
+        "characters": 5149706
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ParseLogFields_Bytes",
+        "characters": 5117911
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ReadLogFields_Bytes",
+        "characters": 5117045
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ParseFields_Bytes",
+        "characters": 5071690
+      },
+      {
+        "name": "Recognize_DotGram_Buffered_ReadFields_Bytes",
+        "characters": 5070824
+      }
+    ]
+  },
+  "runs": [
+    {
+      "variant": "original",
+      "run": "1",
+      "files": 74,
+      "parseMs": 2630.8572,
+      "totalMs": 199481.6543,
+      "allocatedBytes": 31240146448,
+      "peakWorkingSet": 5899476992,
+      "assemblyBytes": 30517248
+    },
+    {
+      "variant": "split",
+      "run": "1",
+      "files": 102,
+      "parseMs": 1212.0478,
+      "totalMs": 123540.137,
+      "allocatedBytes": 31659224696,
+      "peakWorkingSet": 5493956608,
+      "assemblyBytes": 30518784
+    },
+    {
+      "variant": "split",
+      "run": "2",
+      "files": 102,
+      "parseMs": 1066.6852,
+      "totalMs": 120143.0773,
+      "allocatedBytes": 31606502288,
+      "peakWorkingSet": 5424103424,
+      "assemblyBytes": 30518784
+    },
+    {
+      "variant": "original",
+      "run": "2",
+      "files": 74,
+      "parseMs": 2475.6972,
+      "totalMs": 187637.7829,
+      "allocatedBytes": 31223476304,
+      "peakWorkingSet": 5416132608,
+      "assemblyBytes": 30517248
+    }
+  ],
+  "tests_per_variant": 3808
+}
