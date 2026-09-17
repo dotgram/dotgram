@@ -25,7 +25,16 @@ jobs:
       # solution configuration and not a project one, it still writes to bin/Release,
       # which is why the steps below name Release and mean the same build.
       - name: Build
-        run: dotnet build DotGram.slnx --no-restore --configuration Linux -warnaserror
+        timeout-minutes: 40
+        shell: pwsh
+        run: ./tools/ci-build.ps1 -Configuration Linux
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics-Linux
+          path: artifacts/build-diagnostics/
 
       - name: Test
         run: dotnet test DotGram.slnx --no-build --configuration Linux
@@ -159,7 +168,16 @@ jobs:
       - run: dotnet restore DotGram.slnx
 
       - name: Build
-        run: dotnet build DotGram.slnx --no-restore --configuration Release -warnaserror
+        timeout-minutes: 40
+        shell: pwsh
+        run: ./tools/ci-build.ps1 -Configuration Release
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics-Release
+          path: artifacts/build-diagnostics/
 
       - name: Test
         run: dotnet test DotGram.slnx --no-build --configuration Release
