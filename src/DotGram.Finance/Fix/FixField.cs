@@ -7,10 +7,6 @@ public abstract partial class FixField : IFixLocation
 {
 	int _prefixLength;
 	int _terminatorLength = 1;
-
-	internal bool IsBinary     => this is not Invalid && _prefixLength != _tagPrefixLength;
-	internal int  DataPosition => ValuePosition - _tagPrefixLength;
-
 	readonly int _tagPrefixLength;
 
 	protected FixField(int tag, bool valid)
@@ -22,19 +18,22 @@ public abstract partial class FixField : IFixLocation
 			_prefixLength++;
 
 		_tagPrefixLength = _prefixLength;
-		IsValid = valid;
+		IsValid          = valid;
 	}
 
-	public int Tag { get; }
-	public int Position { get; private set; }
+	internal bool IsBinary     => this is not Invalid && _prefixLength != _tagPrefixLength;
+	internal int  DataPosition => ValuePosition - _tagPrefixLength;
+
+	public int Tag           { get; }
+	public int Position      { get; private set; }
+	public int Length        { get; private set; }
 	public int ValuePosition => Position + _prefixLength;
-	public int Length { get; private set; }
 
 	/// <summary>Called by the parser, innermost rule first; Field supplies the complete tag=value extent.</summary>
 	public void Locate(int position, int length)
 	{
 		Position = position;
-		Length = length - _prefixLength - _terminatorLength;
+		Length   = length - _prefixLength - _terminatorLength;
 	}
 
 	internal FixField WithTerminator(int length)
@@ -60,8 +59,10 @@ public abstract partial class FixField : IFixLocation
 		{
 			RawText = raw ?? throw new ArgumentNullException(nameof(raw));
 			Message = message ?? throw new ArgumentNullException(nameof(message));
-			_prefixLength = 0;
+
+			_prefixLength     = 0;
 			_terminatorLength = 0;
+
 			Locate(position, raw.Length);
 		}
 
@@ -70,42 +71,49 @@ public abstract partial class FixField : IFixLocation
 		public Invalid(ReadOnlySpan<byte> raw, int position, string message) : base(0, false)
 		{
 			RawBytes = raw.ToArray();
-			Message = message ?? throw new ArgumentNullException(nameof(message));
+			Message  = message ?? throw new ArgumentNullException(nameof(message));
+
 			_prefixLength = 0;
 			_terminatorLength = 0;
+
 			Locate(position, raw.Length);
 		}
 
 		/// <summary>The original text for character input; null for byte input.</summary>
-		public string? RawText { get; }
+		public string?              RawText { get; }
 		/// <summary>The original bytes for byte input; empty for character input.</summary>
 		public ReadOnlyMemory<byte> RawBytes { get; }
-		public bool IsByteInput => RawText == null;
-		public string Message { get; }
+		public bool                 IsByteInput => RawText == null;
+		public string               Message { get; }
 	}
 
-	public sealed class Unknown : FixField<ReadOnlyMemory<byte>>
+	public sealed class Unknown : Typed<ReadOnlyMemory<byte>>
 	{
 		internal Unknown(int tag, (bool Valid, ReadOnlyMemory<byte> Value) parsed)
 			: base(tag, parsed) { }
 	}
-}
 
-public abstract class FixField<T> : FixField
-{
-	readonly T value;
-
-	protected FixField(int tag, T value) : base(tag, true) => this.value = value;
-
-	protected FixField(int tag, (bool Valid, T Value) parsed) : base(tag, parsed.Valid)
-		=> value = parsed.Value;
-
-	/// <summary>The converted value; throws when a Lenient field has invalid primitive syntax.</summary>
-	public T Value => IsValid ? value : throw new InvalidOperationException("The field has no valid typed value; inspect its original wire value.");
-
-	public bool TryGetValue(out T result)
+	public abstract class Typed<T> : FixField
 	{
-		result = value;
-		return IsValid;
+		readonly T value;
+
+		protected Typed(int tag, T value) : base(tag, true)
+		{
+			this.value = value;
+		}
+
+		protected Typed(int tag, (bool Valid, T Value) parsed) : base(tag, parsed.Valid)
+		{
+			value = parsed.Value;
+		}
+
+		/// <summary>The converted value; throws when a Lenient field has invalid primitive syntax.</summary>
+		public T Value => IsValid ? value : throw new InvalidOperationException("The field has no valid typed value; inspect its original wire value.");
+
+		public bool TryGetValue(out T result)
+		{
+			result = value;
+			return IsValid;
+		}
 	}
 }

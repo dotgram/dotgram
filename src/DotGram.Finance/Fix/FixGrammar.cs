@@ -98,7 +98,7 @@ sealed partial class FixGrammar
 
 			var second  = equals + 1;
 			var payload = second + wire.Slice(second).IndexOf((byte)'=') + 1;
-			var value   = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
+			var value   = new FixBinaryValue(FixConvert.Data(wire[payload..]), start + payload);
 
 			return FixFactory.Binary(dataTag, value.Data).WithBinary(value, start);
 		}

@@ -7,3649 +7,3649 @@ public abstract partial class FixField
 {
 	/// <summary>FIX 1: Account (String).</summary>
 	public sealed class Account(string value)
-		: FixField<string>(1, value);
+		: Typed<string>(1, value);
 
 	/// <summary>FIX 2: AdvId (String).</summary>
 	public sealed class AdvId(string value)
-		: FixField<string>(2, value);
+		: Typed<string>(2, value);
 
 	/// <summary>FIX 3: AdvRefID (String).</summary>
 	public sealed class AdvRefID(string value)
-		: FixField<string>(3, value);
+		: Typed<string>(3, value);
 
 	/// <summary>FIX 4: AdvSide (char).</summary>
 	public sealed class AdvSide((bool Valid, char Value) value)
-		: FixField<char>(4, value);
+		: Typed<char>(4, value);
 
 	/// <summary>FIX 5: AdvTransType (String).</summary>
 	public sealed class AdvTransType(string value)
-		: FixField<string>(5, value);
+		: Typed<string>(5, value);
 
 	/// <summary>FIX 6: AvgPx (Price).</summary>
 	public sealed class AvgPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(6, value);
+		: Typed<FixDecimal>(6, value);
 
 	/// <summary>FIX 7: BeginSeqNo (SeqNum).</summary>
 	public sealed class BeginSeqNo((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(7, value);
+		: Typed<BigInteger>(7, value);
 
 	/// <summary>FIX 8: BeginString (String).</summary>
 	public sealed class BeginString(string value)
-		: FixField<string>(8, value);
+		: Typed<string>(8, value);
 
 	/// <summary>FIX 9: BodyLength (Length).</summary>
 	public sealed class BodyLength((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(9, value);
+		: Typed<BigInteger>(9, value);
 
 	/// <summary>FIX 10: CheckSum (String).</summary>
 	public sealed class CheckSum(string value)
-		: FixField<string>(10, value);
+		: Typed<string>(10, value);
 
 	/// <summary>FIX 11: ClOrdID (String).</summary>
 	public sealed class ClOrdID(string value)
-		: FixField<string>(11, value);
+		: Typed<string>(11, value);
 
 	/// <summary>FIX 12: Commission (Amt).</summary>
 	public sealed class Commission((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(12, value);
+		: Typed<FixDecimal>(12, value);
 
 	/// <summary>FIX 13: CommType (char).</summary>
 	public sealed class CommType((bool Valid, char Value) value)
-		: FixField<char>(13, value);
+		: Typed<char>(13, value);
 
 	/// <summary>FIX 14: CumQty (Qty).</summary>
 	public sealed class CumQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(14, value);
+		: Typed<FixDecimal>(14, value);
 
 	/// <summary>FIX 15: Currency (Currency).</summary>
 	public sealed class Currency(string value)
-		: FixField<string>(15, value);
+		: Typed<string>(15, value);
 
 	/// <summary>FIX 16: EndSeqNo (SeqNum).</summary>
 	public sealed class EndSeqNo((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(16, value);
+		: Typed<BigInteger>(16, value);
 
 	/// <summary>FIX 17: ExecID (String).</summary>
 	public sealed class ExecID(string value)
-		: FixField<string>(17, value);
+		: Typed<string>(17, value);
 
 	/// <summary>FIX 18: ExecInst (MultipleValueString).</summary>
 	public sealed class ExecInst((bool Valid, string[] Value) value)
-		: FixField<string[]>(18, value);
+		: Typed<string[]>(18, value);
 
 	/// <summary>FIX 19: ExecRefID (String).</summary>
 	public sealed class ExecRefID(string value)
-		: FixField<string>(19, value);
+		: Typed<string>(19, value);
 
 	/// <summary>FIX 21: HandlInst (char).</summary>
 	public sealed class HandlInst((bool Valid, char Value) value)
-		: FixField<char>(21, value);
+		: Typed<char>(21, value);
 
 	/// <summary>FIX 22: SecurityIDSource (String).</summary>
 	public sealed class SecurityIDSource(string value)
-		: FixField<string>(22, value);
+		: Typed<string>(22, value);
 
 	/// <summary>FIX 23: IOIID (String).</summary>
 	public sealed class IOIID(string value)
-		: FixField<string>(23, value);
+		: Typed<string>(23, value);
 
 	/// <summary>FIX 25: IOIQltyInd (char).</summary>
 	public sealed class IOIQltyInd((bool Valid, char Value) value)
-		: FixField<char>(25, value);
+		: Typed<char>(25, value);
 
 	/// <summary>FIX 26: IOIRefID (String).</summary>
 	public sealed class IOIRefID(string value)
-		: FixField<string>(26, value);
+		: Typed<string>(26, value);
 
 	/// <summary>FIX 27: IOIQty (String).</summary>
 	public sealed class IOIQty(string value)
-		: FixField<string>(27, value);
+		: Typed<string>(27, value);
 
 	/// <summary>FIX 28: IOITransType (char).</summary>
 	public sealed class IOITransType((bool Valid, char Value) value)
-		: FixField<char>(28, value);
+		: Typed<char>(28, value);
 
 	/// <summary>FIX 29: LastCapacity (char).</summary>
 	public sealed class LastCapacity((bool Valid, char Value) value)
-		: FixField<char>(29, value);
+		: Typed<char>(29, value);
 
 	/// <summary>FIX 30: LastMkt (Exchange).</summary>
 	public sealed class LastMkt(string value)
-		: FixField<string>(30, value);
+		: Typed<string>(30, value);
 
 	/// <summary>FIX 31: LastPx (Price).</summary>
 	public sealed class LastPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(31, value);
+		: Typed<FixDecimal>(31, value);
 
 	/// <summary>FIX 32: LastQty (Qty).</summary>
 	public sealed class LastQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(32, value);
+		: Typed<FixDecimal>(32, value);
 
 	/// <summary>FIX 33: NoLinesOfText (NumInGroup).</summary>
 	public sealed class NoLinesOfText((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(33, value);
+		: Typed<BigInteger>(33, value);
 
 	/// <summary>FIX 34: MsgSeqNum (SeqNum).</summary>
 	public sealed class MsgSeqNum((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(34, value);
+		: Typed<BigInteger>(34, value);
 
 	/// <summary>FIX 35: MsgType (String).</summary>
 	public sealed class MsgType(string value)
-		: FixField<string>(35, value);
+		: Typed<string>(35, value);
 
 	/// <summary>FIX 36: NewSeqNo (SeqNum).</summary>
 	public sealed class NewSeqNo((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(36, value);
+		: Typed<BigInteger>(36, value);
 
 	/// <summary>FIX 37: OrderID (String).</summary>
 	public sealed class OrderID(string value)
-		: FixField<string>(37, value);
+		: Typed<string>(37, value);
 
 	/// <summary>FIX 38: OrderQty (Qty).</summary>
 	public sealed class OrderQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(38, value);
+		: Typed<FixDecimal>(38, value);
 
 	/// <summary>FIX 39: OrdStatus (char).</summary>
 	public sealed class OrdStatus((bool Valid, char Value) value)
-		: FixField<char>(39, value);
+		: Typed<char>(39, value);
 
 	/// <summary>FIX 40: OrdType (char).</summary>
 	public sealed class OrdType((bool Valid, char Value) value)
-		: FixField<char>(40, value);
+		: Typed<char>(40, value);
 
 	/// <summary>FIX 41: OrigClOrdID (String).</summary>
 	public sealed class OrigClOrdID(string value)
-		: FixField<string>(41, value);
+		: Typed<string>(41, value);
 
 	/// <summary>FIX 42: OrigTime (UTCTimestamp).</summary>
 	public sealed class OrigTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(42, value);
+		: Typed<FixTimestamp>(42, value);
 
 	/// <summary>FIX 43: PossDupFlag (Boolean).</summary>
 	public sealed class PossDupFlag((bool Valid, bool Value) value)
-		: FixField<bool>(43, value);
+		: Typed<bool>(43, value);
 
 	/// <summary>FIX 44: Price (Price).</summary>
 	public sealed class Price((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(44, value);
+		: Typed<FixDecimal>(44, value);
 
 	/// <summary>FIX 45: RefSeqNum (SeqNum).</summary>
 	public sealed class RefSeqNum((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(45, value);
+		: Typed<BigInteger>(45, value);
 
 	/// <summary>FIX 48: SecurityID (String).</summary>
 	public sealed class SecurityID(string value)
-		: FixField<string>(48, value);
+		: Typed<string>(48, value);
 
 	/// <summary>FIX 49: SenderCompID (String).</summary>
 	public sealed class SenderCompID(string value)
-		: FixField<string>(49, value);
+		: Typed<string>(49, value);
 
 	/// <summary>FIX 50: SenderSubID (String).</summary>
 	public sealed class SenderSubID(string value)
-		: FixField<string>(50, value);
+		: Typed<string>(50, value);
 
 	/// <summary>FIX 52: SendingTime (UTCTimestamp).</summary>
 	public sealed class SendingTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(52, value);
+		: Typed<FixTimestamp>(52, value);
 
 	/// <summary>FIX 53: Quantity (Qty).</summary>
 	public sealed class Quantity((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(53, value);
+		: Typed<FixDecimal>(53, value);
 
 	/// <summary>FIX 54: Side (char).</summary>
 	public sealed class Side((bool Valid, char Value) value)
-		: FixField<char>(54, value);
+		: Typed<char>(54, value);
 
 	/// <summary>FIX 55: Symbol (String).</summary>
 	public sealed class Symbol(string value)
-		: FixField<string>(55, value);
+		: Typed<string>(55, value);
 
 	/// <summary>FIX 56: TargetCompID (String).</summary>
 	public sealed class TargetCompID(string value)
-		: FixField<string>(56, value);
+		: Typed<string>(56, value);
 
 	/// <summary>FIX 57: TargetSubID (String).</summary>
 	public sealed class TargetSubID(string value)
-		: FixField<string>(57, value);
+		: Typed<string>(57, value);
 
 	/// <summary>FIX 58: Text (String).</summary>
 	public sealed class Text(string value)
-		: FixField<string>(58, value);
+		: Typed<string>(58, value);
 
 	/// <summary>FIX 59: TimeInForce (char).</summary>
 	public sealed class TimeInForce((bool Valid, char Value) value)
-		: FixField<char>(59, value);
+		: Typed<char>(59, value);
 
 	/// <summary>FIX 60: TransactTime (UTCTimestamp).</summary>
 	public sealed class TransactTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(60, value);
+		: Typed<FixTimestamp>(60, value);
 
 	/// <summary>FIX 61: Urgency (char).</summary>
 	public sealed class Urgency((bool Valid, char Value) value)
-		: FixField<char>(61, value);
+		: Typed<char>(61, value);
 
 	/// <summary>FIX 62: ValidUntilTime (UTCTimestamp).</summary>
 	public sealed class ValidUntilTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(62, value);
+		: Typed<FixTimestamp>(62, value);
 
 	/// <summary>FIX 63: SettlType (char).</summary>
 	public sealed class SettlType((bool Valid, char Value) value)
-		: FixField<char>(63, value);
+		: Typed<char>(63, value);
 
 	/// <summary>FIX 64: SettlDate (LocalMktDate).</summary>
 	public sealed class SettlDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(64, value);
+		: Typed<FixDate>(64, value);
 
 	/// <summary>FIX 65: SymbolSfx (String).</summary>
 	public sealed class SymbolSfx(string value)
-		: FixField<string>(65, value);
+		: Typed<string>(65, value);
 
 	/// <summary>FIX 66: ListID (String).</summary>
 	public sealed class ListID(string value)
-		: FixField<string>(66, value);
+		: Typed<string>(66, value);
 
 	/// <summary>FIX 67: ListSeqNo (int).</summary>
 	public sealed class ListSeqNo((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(67, value);
+		: Typed<BigInteger>(67, value);
 
 	/// <summary>FIX 68: TotNoOrders (int).</summary>
 	public sealed class TotNoOrders((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(68, value);
+		: Typed<BigInteger>(68, value);
 
 	/// <summary>FIX 69: ListExecInst (String).</summary>
 	public sealed class ListExecInst(string value)
-		: FixField<string>(69, value);
+		: Typed<string>(69, value);
 
 	/// <summary>FIX 70: AllocID (String).</summary>
 	public sealed class AllocID(string value)
-		: FixField<string>(70, value);
+		: Typed<string>(70, value);
 
 	/// <summary>FIX 71: AllocTransType (char).</summary>
 	public sealed class AllocTransType((bool Valid, char Value) value)
-		: FixField<char>(71, value);
+		: Typed<char>(71, value);
 
 	/// <summary>FIX 72: RefAllocID (String).</summary>
 	public sealed class RefAllocID(string value)
-		: FixField<string>(72, value);
+		: Typed<string>(72, value);
 
 	/// <summary>FIX 73: NoOrders (NumInGroup).</summary>
 	public sealed class NoOrders((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(73, value);
+		: Typed<BigInteger>(73, value);
 
 	/// <summary>FIX 74: AvgPxPrecision (int).</summary>
 	public sealed class AvgPxPrecision((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(74, value);
+		: Typed<BigInteger>(74, value);
 
 	/// <summary>FIX 75: TradeDate (LocalMktDate).</summary>
 	public sealed class TradeDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(75, value);
+		: Typed<FixDate>(75, value);
 
 	/// <summary>FIX 77: PositionEffect (char).</summary>
 	public sealed class PositionEffect((bool Valid, char Value) value)
-		: FixField<char>(77, value);
+		: Typed<char>(77, value);
 
 	/// <summary>FIX 78: NoAllocs (NumInGroup).</summary>
 	public sealed class NoAllocs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(78, value);
+		: Typed<BigInteger>(78, value);
 
 	/// <summary>FIX 79: AllocAccount (String).</summary>
 	public sealed class AllocAccount(string value)
-		: FixField<string>(79, value);
+		: Typed<string>(79, value);
 
 	/// <summary>FIX 80: AllocQty (Qty).</summary>
 	public sealed class AllocQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(80, value);
+		: Typed<FixDecimal>(80, value);
 
 	/// <summary>FIX 81: ProcessCode (char).</summary>
 	public sealed class ProcessCode((bool Valid, char Value) value)
-		: FixField<char>(81, value);
+		: Typed<char>(81, value);
 
 	/// <summary>FIX 82: NoRpts (int).</summary>
 	public sealed class NoRpts((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(82, value);
+		: Typed<BigInteger>(82, value);
 
 	/// <summary>FIX 83: RptSeq (int).</summary>
 	public sealed class RptSeq((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(83, value);
+		: Typed<BigInteger>(83, value);
 
 	/// <summary>FIX 84: CxlQty (Qty).</summary>
 	public sealed class CxlQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(84, value);
+		: Typed<FixDecimal>(84, value);
 
 	/// <summary>FIX 85: NoDlvyInst (NumInGroup).</summary>
 	public sealed class NoDlvyInst((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(85, value);
+		: Typed<BigInteger>(85, value);
 
 	/// <summary>FIX 87: AllocStatus (int).</summary>
 	public sealed class AllocStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(87, value);
+		: Typed<BigInteger>(87, value);
 
 	/// <summary>FIX 88: AllocRejCode (int).</summary>
 	public sealed class AllocRejCode((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(88, value);
+		: Typed<BigInteger>(88, value);
 
 	/// <summary>FIX 89: Signature (data).</summary>
 	public sealed class Signature((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(89, value);
+		: Typed<ReadOnlyMemory<byte>>(89, value);
 
 	/// <summary>FIX 90: SecureDataLen (Length).</summary>
 	public sealed class SecureDataLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(90, value);
+		: Typed<BigInteger>(90, value);
 
 	/// <summary>FIX 91: SecureData (data).</summary>
 	public sealed class SecureData((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(91, value);
+		: Typed<ReadOnlyMemory<byte>>(91, value);
 
 	/// <summary>FIX 93: SignatureLength (Length).</summary>
 	public sealed class SignatureLength((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(93, value);
+		: Typed<BigInteger>(93, value);
 
 	/// <summary>FIX 94: EmailType (char).</summary>
 	public sealed class EmailType((bool Valid, char Value) value)
-		: FixField<char>(94, value);
+		: Typed<char>(94, value);
 
 	/// <summary>FIX 95: RawDataLength (Length).</summary>
 	public sealed class RawDataLength((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(95, value);
+		: Typed<BigInteger>(95, value);
 
 	/// <summary>FIX 96: RawData (data).</summary>
 	public sealed class RawData((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(96, value);
+		: Typed<ReadOnlyMemory<byte>>(96, value);
 
 	/// <summary>FIX 97: PossResend (Boolean).</summary>
 	public sealed class PossResend((bool Valid, bool Value) value)
-		: FixField<bool>(97, value);
+		: Typed<bool>(97, value);
 
 	/// <summary>FIX 98: EncryptMethod (int).</summary>
 	public sealed class EncryptMethod((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(98, value);
+		: Typed<BigInteger>(98, value);
 
 	/// <summary>FIX 99: StopPx (Price).</summary>
 	public sealed class StopPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(99, value);
+		: Typed<FixDecimal>(99, value);
 
 	/// <summary>FIX 100: ExDestination (Exchange).</summary>
 	public sealed class ExDestination(string value)
-		: FixField<string>(100, value);
+		: Typed<string>(100, value);
 
 	/// <summary>FIX 102: CxlRejReason (int).</summary>
 	public sealed class CxlRejReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(102, value);
+		: Typed<BigInteger>(102, value);
 
 	/// <summary>FIX 103: OrdRejReason (int).</summary>
 	public sealed class OrdRejReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(103, value);
+		: Typed<BigInteger>(103, value);
 
 	/// <summary>FIX 104: IOIQualifier (char).</summary>
 	public sealed class IOIQualifier((bool Valid, char Value) value)
-		: FixField<char>(104, value);
+		: Typed<char>(104, value);
 
 	/// <summary>FIX 106: Issuer (String).</summary>
 	public sealed class Issuer(string value)
-		: FixField<string>(106, value);
+		: Typed<string>(106, value);
 
 	/// <summary>FIX 107: SecurityDesc (String).</summary>
 	public sealed class SecurityDesc(string value)
-		: FixField<string>(107, value);
+		: Typed<string>(107, value);
 
 	/// <summary>FIX 108: HeartBtInt (int).</summary>
 	public sealed class HeartBtInt((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(108, value);
+		: Typed<BigInteger>(108, value);
 
 	/// <summary>FIX 110: MinQty (Qty).</summary>
 	public sealed class MinQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(110, value);
+		: Typed<FixDecimal>(110, value);
 
 	/// <summary>FIX 111: MaxFloor (Qty).</summary>
 	public sealed class MaxFloor((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(111, value);
+		: Typed<FixDecimal>(111, value);
 
 	/// <summary>FIX 112: TestReqID (String).</summary>
 	public sealed class TestReqID(string value)
-		: FixField<string>(112, value);
+		: Typed<string>(112, value);
 
 	/// <summary>FIX 113: ReportToExch (Boolean).</summary>
 	public sealed class ReportToExch((bool Valid, bool Value) value)
-		: FixField<bool>(113, value);
+		: Typed<bool>(113, value);
 
 	/// <summary>FIX 114: LocateReqd (Boolean).</summary>
 	public sealed class LocateReqd((bool Valid, bool Value) value)
-		: FixField<bool>(114, value);
+		: Typed<bool>(114, value);
 
 	/// <summary>FIX 115: OnBehalfOfCompID (String).</summary>
 	public sealed class OnBehalfOfCompID(string value)
-		: FixField<string>(115, value);
+		: Typed<string>(115, value);
 
 	/// <summary>FIX 116: OnBehalfOfSubID (String).</summary>
 	public sealed class OnBehalfOfSubID(string value)
-		: FixField<string>(116, value);
+		: Typed<string>(116, value);
 
 	/// <summary>FIX 117: QuoteID (String).</summary>
 	public sealed class QuoteID(string value)
-		: FixField<string>(117, value);
+		: Typed<string>(117, value);
 
 	/// <summary>FIX 118: NetMoney (Amt).</summary>
 	public sealed class NetMoney((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(118, value);
+		: Typed<FixDecimal>(118, value);
 
 	/// <summary>FIX 119: SettlCurrAmt (Amt).</summary>
 	public sealed class SettlCurrAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(119, value);
+		: Typed<FixDecimal>(119, value);
 
 	/// <summary>FIX 120: SettlCurrency (Currency).</summary>
 	public sealed class SettlCurrency(string value)
-		: FixField<string>(120, value);
+		: Typed<string>(120, value);
 
 	/// <summary>FIX 121: ForexReq (Boolean).</summary>
 	public sealed class ForexReq((bool Valid, bool Value) value)
-		: FixField<bool>(121, value);
+		: Typed<bool>(121, value);
 
 	/// <summary>FIX 122: OrigSendingTime (UTCTimestamp).</summary>
 	public sealed class OrigSendingTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(122, value);
+		: Typed<FixTimestamp>(122, value);
 
 	/// <summary>FIX 123: GapFillFlag (Boolean).</summary>
 	public sealed class GapFillFlag((bool Valid, bool Value) value)
-		: FixField<bool>(123, value);
+		: Typed<bool>(123, value);
 
 	/// <summary>FIX 124: NoExecs (NumInGroup).</summary>
 	public sealed class NoExecs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(124, value);
+		: Typed<BigInteger>(124, value);
 
 	/// <summary>FIX 126: ExpireTime (UTCTimestamp).</summary>
 	public sealed class ExpireTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(126, value);
+		: Typed<FixTimestamp>(126, value);
 
 	/// <summary>FIX 127: DKReason (char).</summary>
 	public sealed class DKReason((bool Valid, char Value) value)
-		: FixField<char>(127, value);
+		: Typed<char>(127, value);
 
 	/// <summary>FIX 128: DeliverToCompID (String).</summary>
 	public sealed class DeliverToCompID(string value)
-		: FixField<string>(128, value);
+		: Typed<string>(128, value);
 
 	/// <summary>FIX 129: DeliverToSubID (String).</summary>
 	public sealed class DeliverToSubID(string value)
-		: FixField<string>(129, value);
+		: Typed<string>(129, value);
 
 	/// <summary>FIX 130: IOINaturalFlag (Boolean).</summary>
 	public sealed class IOINaturalFlag((bool Valid, bool Value) value)
-		: FixField<bool>(130, value);
+		: Typed<bool>(130, value);
 
 	/// <summary>FIX 131: QuoteReqID (String).</summary>
 	public sealed class QuoteReqID(string value)
-		: FixField<string>(131, value);
+		: Typed<string>(131, value);
 
 	/// <summary>FIX 132: BidPx (Price).</summary>
 	public sealed class BidPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(132, value);
+		: Typed<FixDecimal>(132, value);
 
 	/// <summary>FIX 133: OfferPx (Price).</summary>
 	public sealed class OfferPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(133, value);
+		: Typed<FixDecimal>(133, value);
 
 	/// <summary>FIX 134: BidSize (Qty).</summary>
 	public sealed class BidSize((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(134, value);
+		: Typed<FixDecimal>(134, value);
 
 	/// <summary>FIX 135: OfferSize (Qty).</summary>
 	public sealed class OfferSize((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(135, value);
+		: Typed<FixDecimal>(135, value);
 
 	/// <summary>FIX 136: NoMiscFees (NumInGroup).</summary>
 	public sealed class NoMiscFees((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(136, value);
+		: Typed<BigInteger>(136, value);
 
 	/// <summary>FIX 137: MiscFeeAmt (Amt).</summary>
 	public sealed class MiscFeeAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(137, value);
+		: Typed<FixDecimal>(137, value);
 
 	/// <summary>FIX 138: MiscFeeCurr (Currency).</summary>
 	public sealed class MiscFeeCurr(string value)
-		: FixField<string>(138, value);
+		: Typed<string>(138, value);
 
 	/// <summary>FIX 139: MiscFeeType (String).</summary>
 	public sealed class MiscFeeType(string value)
-		: FixField<string>(139, value);
+		: Typed<string>(139, value);
 
 	/// <summary>FIX 140: PrevClosePx (Price).</summary>
 	public sealed class PrevClosePx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(140, value);
+		: Typed<FixDecimal>(140, value);
 
 	/// <summary>FIX 141: ResetSeqNumFlag (Boolean).</summary>
 	public sealed class ResetSeqNumFlag((bool Valid, bool Value) value)
-		: FixField<bool>(141, value);
+		: Typed<bool>(141, value);
 
 	/// <summary>FIX 142: SenderLocationID (String).</summary>
 	public sealed class SenderLocationID(string value)
-		: FixField<string>(142, value);
+		: Typed<string>(142, value);
 
 	/// <summary>FIX 143: TargetLocationID (String).</summary>
 	public sealed class TargetLocationID(string value)
-		: FixField<string>(143, value);
+		: Typed<string>(143, value);
 
 	/// <summary>FIX 144: OnBehalfOfLocationID (String).</summary>
 	public sealed class OnBehalfOfLocationID(string value)
-		: FixField<string>(144, value);
+		: Typed<string>(144, value);
 
 	/// <summary>FIX 145: DeliverToLocationID (String).</summary>
 	public sealed class DeliverToLocationID(string value)
-		: FixField<string>(145, value);
+		: Typed<string>(145, value);
 
 	/// <summary>FIX 146: NoRelatedSym (NumInGroup).</summary>
 	public sealed class NoRelatedSym((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(146, value);
+		: Typed<BigInteger>(146, value);
 
 	/// <summary>FIX 147: Subject (String).</summary>
 	public sealed class Subject(string value)
-		: FixField<string>(147, value);
+		: Typed<string>(147, value);
 
 	/// <summary>FIX 148: Headline (String).</summary>
 	public sealed class Headline(string value)
-		: FixField<string>(148, value);
+		: Typed<string>(148, value);
 
 	/// <summary>FIX 149: URLLink (String).</summary>
 	public sealed class URLLink(string value)
-		: FixField<string>(149, value);
+		: Typed<string>(149, value);
 
 	/// <summary>FIX 150: ExecType (char).</summary>
 	public sealed class ExecType((bool Valid, char Value) value)
-		: FixField<char>(150, value);
+		: Typed<char>(150, value);
 
 	/// <summary>FIX 151: LeavesQty (Qty).</summary>
 	public sealed class LeavesQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(151, value);
+		: Typed<FixDecimal>(151, value);
 
 	/// <summary>FIX 152: CashOrderQty (Qty).</summary>
 	public sealed class CashOrderQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(152, value);
+		: Typed<FixDecimal>(152, value);
 
 	/// <summary>FIX 153: AllocAvgPx (Price).</summary>
 	public sealed class AllocAvgPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(153, value);
+		: Typed<FixDecimal>(153, value);
 
 	/// <summary>FIX 154: AllocNetMoney (Amt).</summary>
 	public sealed class AllocNetMoney((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(154, value);
+		: Typed<FixDecimal>(154, value);
 
 	/// <summary>FIX 155: SettlCurrFxRate (float).</summary>
 	public sealed class SettlCurrFxRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(155, value);
+		: Typed<FixDecimal>(155, value);
 
 	/// <summary>FIX 156: SettlCurrFxRateCalc (char).</summary>
 	public sealed class SettlCurrFxRateCalc((bool Valid, char Value) value)
-		: FixField<char>(156, value);
+		: Typed<char>(156, value);
 
 	/// <summary>FIX 157: NumDaysInterest (int).</summary>
 	public sealed class NumDaysInterest((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(157, value);
+		: Typed<BigInteger>(157, value);
 
 	/// <summary>FIX 158: AccruedInterestRate (Percentage).</summary>
 	public sealed class AccruedInterestRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(158, value);
+		: Typed<FixDecimal>(158, value);
 
 	/// <summary>FIX 159: AccruedInterestAmt (Amt).</summary>
 	public sealed class AccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(159, value);
+		: Typed<FixDecimal>(159, value);
 
 	/// <summary>FIX 160: SettlInstMode (char).</summary>
 	public sealed class SettlInstMode((bool Valid, char Value) value)
-		: FixField<char>(160, value);
+		: Typed<char>(160, value);
 
 	/// <summary>FIX 161: AllocText (String).</summary>
 	public sealed class AllocText(string value)
-		: FixField<string>(161, value);
+		: Typed<string>(161, value);
 
 	/// <summary>FIX 162: SettlInstID (String).</summary>
 	public sealed class SettlInstID(string value)
-		: FixField<string>(162, value);
+		: Typed<string>(162, value);
 
 	/// <summary>FIX 163: SettlInstTransType (char).</summary>
 	public sealed class SettlInstTransType((bool Valid, char Value) value)
-		: FixField<char>(163, value);
+		: Typed<char>(163, value);
 
 	/// <summary>FIX 164: EmailThreadID (String).</summary>
 	public sealed class EmailThreadID(string value)
-		: FixField<string>(164, value);
+		: Typed<string>(164, value);
 
 	/// <summary>FIX 165: SettlInstSource (char).</summary>
 	public sealed class SettlInstSource((bool Valid, char Value) value)
-		: FixField<char>(165, value);
+		: Typed<char>(165, value);
 
 	/// <summary>FIX 167: SecurityType (String).</summary>
 	public sealed class SecurityType(string value)
-		: FixField<string>(167, value);
+		: Typed<string>(167, value);
 
 	/// <summary>FIX 168: EffectiveTime (UTCTimestamp).</summary>
 	public sealed class EffectiveTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(168, value);
+		: Typed<FixTimestamp>(168, value);
 
 	/// <summary>FIX 169: StandInstDbType (int).</summary>
 	public sealed class StandInstDbType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(169, value);
+		: Typed<BigInteger>(169, value);
 
 	/// <summary>FIX 170: StandInstDbName (String).</summary>
 	public sealed class StandInstDbName(string value)
-		: FixField<string>(170, value);
+		: Typed<string>(170, value);
 
 	/// <summary>FIX 171: StandInstDbID (String).</summary>
 	public sealed class StandInstDbID(string value)
-		: FixField<string>(171, value);
+		: Typed<string>(171, value);
 
 	/// <summary>FIX 172: SettlDeliveryType (int).</summary>
 	public sealed class SettlDeliveryType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(172, value);
+		: Typed<BigInteger>(172, value);
 
 	/// <summary>FIX 188: BidSpotRate (Price).</summary>
 	public sealed class BidSpotRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(188, value);
+		: Typed<FixDecimal>(188, value);
 
 	/// <summary>FIX 189: BidForwardPoints (PriceOffset).</summary>
 	public sealed class BidForwardPoints((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(189, value);
+		: Typed<FixDecimal>(189, value);
 
 	/// <summary>FIX 190: OfferSpotRate (Price).</summary>
 	public sealed class OfferSpotRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(190, value);
+		: Typed<FixDecimal>(190, value);
 
 	/// <summary>FIX 191: OfferForwardPoints (PriceOffset).</summary>
 	public sealed class OfferForwardPoints((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(191, value);
+		: Typed<FixDecimal>(191, value);
 
 	/// <summary>FIX 192: OrderQty2 (Qty).</summary>
 	public sealed class OrderQty2((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(192, value);
+		: Typed<FixDecimal>(192, value);
 
 	/// <summary>FIX 193: SettlDate2 (LocalMktDate).</summary>
 	public sealed class SettlDate2((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(193, value);
+		: Typed<FixDate>(193, value);
 
 	/// <summary>FIX 194: LastSpotRate (Price).</summary>
 	public sealed class LastSpotRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(194, value);
+		: Typed<FixDecimal>(194, value);
 
 	/// <summary>FIX 195: LastForwardPoints (PriceOffset).</summary>
 	public sealed class LastForwardPoints((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(195, value);
+		: Typed<FixDecimal>(195, value);
 
 	/// <summary>FIX 196: AllocLinkID (String).</summary>
 	public sealed class AllocLinkID(string value)
-		: FixField<string>(196, value);
+		: Typed<string>(196, value);
 
 	/// <summary>FIX 197: AllocLinkType (int).</summary>
 	public sealed class AllocLinkType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(197, value);
+		: Typed<BigInteger>(197, value);
 
 	/// <summary>FIX 198: SecondaryOrderID (String).</summary>
 	public sealed class SecondaryOrderID(string value)
-		: FixField<string>(198, value);
+		: Typed<string>(198, value);
 
 	/// <summary>FIX 199: NoIOIQualifiers (NumInGroup).</summary>
 	public sealed class NoIOIQualifiers((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(199, value);
+		: Typed<BigInteger>(199, value);
 
 	/// <summary>FIX 200: MaturityMonthYear (MonthYear).</summary>
 	public sealed class MaturityMonthYear((bool Valid, FixMonthYear Value) value)
-		: FixField<FixMonthYear>(200, value);
+		: Typed<FixMonthYear>(200, value);
 
 	/// <summary>FIX 201: PutOrCall (int).</summary>
 	public sealed class PutOrCall((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(201, value);
+		: Typed<BigInteger>(201, value);
 
 	/// <summary>FIX 202: StrikePrice (Price).</summary>
 	public sealed class StrikePrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(202, value);
+		: Typed<FixDecimal>(202, value);
 
 	/// <summary>FIX 203: CoveredOrUncovered (int).</summary>
 	public sealed class CoveredOrUncovered((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(203, value);
+		: Typed<BigInteger>(203, value);
 
 	/// <summary>FIX 206: OptAttribute (char).</summary>
 	public sealed class OptAttribute((bool Valid, char Value) value)
-		: FixField<char>(206, value);
+		: Typed<char>(206, value);
 
 	/// <summary>FIX 207: SecurityExchange (Exchange).</summary>
 	public sealed class SecurityExchange(string value)
-		: FixField<string>(207, value);
+		: Typed<string>(207, value);
 
 	/// <summary>FIX 208: NotifyBrokerOfCredit (Boolean).</summary>
 	public sealed class NotifyBrokerOfCredit((bool Valid, bool Value) value)
-		: FixField<bool>(208, value);
+		: Typed<bool>(208, value);
 
 	/// <summary>FIX 209: AllocHandlInst (int).</summary>
 	public sealed class AllocHandlInst((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(209, value);
+		: Typed<BigInteger>(209, value);
 
 	/// <summary>FIX 210: MaxShow (Qty).</summary>
 	public sealed class MaxShow((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(210, value);
+		: Typed<FixDecimal>(210, value);
 
 	/// <summary>FIX 211: PegOffsetValue (float).</summary>
 	public sealed class PegOffsetValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(211, value);
+		: Typed<FixDecimal>(211, value);
 
 	/// <summary>FIX 212: XmlDataLen (Length).</summary>
 	public sealed class XmlDataLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(212, value);
+		: Typed<BigInteger>(212, value);
 
 	/// <summary>FIX 213: XmlData (data).</summary>
 	public sealed class XmlData((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(213, value);
+		: Typed<ReadOnlyMemory<byte>>(213, value);
 
 	/// <summary>FIX 214: SettlInstRefID (String).</summary>
 	public sealed class SettlInstRefID(string value)
-		: FixField<string>(214, value);
+		: Typed<string>(214, value);
 
 	/// <summary>FIX 215: NoRoutingIDs (NumInGroup).</summary>
 	public sealed class NoRoutingIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(215, value);
+		: Typed<BigInteger>(215, value);
 
 	/// <summary>FIX 216: RoutingType (int).</summary>
 	public sealed class RoutingType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(216, value);
+		: Typed<BigInteger>(216, value);
 
 	/// <summary>FIX 217: RoutingID (String).</summary>
 	public sealed class RoutingID(string value)
-		: FixField<string>(217, value);
+		: Typed<string>(217, value);
 
 	/// <summary>FIX 218: Spread (PriceOffset).</summary>
 	public sealed class Spread((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(218, value);
+		: Typed<FixDecimal>(218, value);
 
 	/// <summary>FIX 220: BenchmarkCurveCurrency (Currency).</summary>
 	public sealed class BenchmarkCurveCurrency(string value)
-		: FixField<string>(220, value);
+		: Typed<string>(220, value);
 
 	/// <summary>FIX 221: BenchmarkCurveName (String).</summary>
 	public sealed class BenchmarkCurveName(string value)
-		: FixField<string>(221, value);
+		: Typed<string>(221, value);
 
 	/// <summary>FIX 222: BenchmarkCurvePoint (String).</summary>
 	public sealed class BenchmarkCurvePoint(string value)
-		: FixField<string>(222, value);
+		: Typed<string>(222, value);
 
 	/// <summary>FIX 223: CouponRate (Percentage).</summary>
 	public sealed class CouponRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(223, value);
+		: Typed<FixDecimal>(223, value);
 
 	/// <summary>FIX 224: CouponPaymentDate (LocalMktDate).</summary>
 	public sealed class CouponPaymentDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(224, value);
+		: Typed<FixDate>(224, value);
 
 	/// <summary>FIX 225: IssueDate (LocalMktDate).</summary>
 	public sealed class IssueDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(225, value);
+		: Typed<FixDate>(225, value);
 
 	/// <summary>FIX 226: RepurchaseTerm (int).</summary>
 	public sealed class RepurchaseTerm((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(226, value);
+		: Typed<BigInteger>(226, value);
 
 	/// <summary>FIX 227: RepurchaseRate (Percentage).</summary>
 	public sealed class RepurchaseRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(227, value);
+		: Typed<FixDecimal>(227, value);
 
 	/// <summary>FIX 228: Factor (float).</summary>
 	public sealed class Factor((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(228, value);
+		: Typed<FixDecimal>(228, value);
 
 	/// <summary>FIX 229: TradeOriginationDate (LocalMktDate).</summary>
 	public sealed class TradeOriginationDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(229, value);
+		: Typed<FixDate>(229, value);
 
 	/// <summary>FIX 230: ExDate (LocalMktDate).</summary>
 	public sealed class ExDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(230, value);
+		: Typed<FixDate>(230, value);
 
 	/// <summary>FIX 231: ContractMultiplier (float).</summary>
 	public sealed class ContractMultiplier((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(231, value);
+		: Typed<FixDecimal>(231, value);
 
 	/// <summary>FIX 232: NoStipulations (NumInGroup).</summary>
 	public sealed class NoStipulations((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(232, value);
+		: Typed<BigInteger>(232, value);
 
 	/// <summary>FIX 233: StipulationType (String).</summary>
 	public sealed class StipulationType(string value)
-		: FixField<string>(233, value);
+		: Typed<string>(233, value);
 
 	/// <summary>FIX 234: StipulationValue (String).</summary>
 	public sealed class StipulationValue(string value)
-		: FixField<string>(234, value);
+		: Typed<string>(234, value);
 
 	/// <summary>FIX 235: YieldType (String).</summary>
 	public sealed class YieldType(string value)
-		: FixField<string>(235, value);
+		: Typed<string>(235, value);
 
 	/// <summary>FIX 236: Yield (Percentage).</summary>
 	public sealed class Yield((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(236, value);
+		: Typed<FixDecimal>(236, value);
 
 	/// <summary>FIX 237: TotalTakedown (Amt).</summary>
 	public sealed class TotalTakedown((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(237, value);
+		: Typed<FixDecimal>(237, value);
 
 	/// <summary>FIX 238: Concession (Amt).</summary>
 	public sealed class Concession((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(238, value);
+		: Typed<FixDecimal>(238, value);
 
 	/// <summary>FIX 239: RepoCollateralSecurityType (String).</summary>
 	public sealed class RepoCollateralSecurityType(string value)
-		: FixField<string>(239, value);
+		: Typed<string>(239, value);
 
 	/// <summary>FIX 240: RedemptionDate (LocalMktDate).</summary>
 	public sealed class RedemptionDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(240, value);
+		: Typed<FixDate>(240, value);
 
 	/// <summary>FIX 241: UnderlyingCouponPaymentDate (LocalMktDate).</summary>
 	public sealed class UnderlyingCouponPaymentDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(241, value);
+		: Typed<FixDate>(241, value);
 
 	/// <summary>FIX 242: UnderlyingIssueDate (LocalMktDate).</summary>
 	public sealed class UnderlyingIssueDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(242, value);
+		: Typed<FixDate>(242, value);
 
 	/// <summary>FIX 243: UnderlyingRepoCollateralSecurityType (String).</summary>
 	public sealed class UnderlyingRepoCollateralSecurityType(string value)
-		: FixField<string>(243, value);
+		: Typed<string>(243, value);
 
 	/// <summary>FIX 244: UnderlyingRepurchaseTerm (int).</summary>
 	public sealed class UnderlyingRepurchaseTerm((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(244, value);
+		: Typed<BigInteger>(244, value);
 
 	/// <summary>FIX 245: UnderlyingRepurchaseRate (Percentage).</summary>
 	public sealed class UnderlyingRepurchaseRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(245, value);
+		: Typed<FixDecimal>(245, value);
 
 	/// <summary>FIX 246: UnderlyingFactor (float).</summary>
 	public sealed class UnderlyingFactor((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(246, value);
+		: Typed<FixDecimal>(246, value);
 
 	/// <summary>FIX 247: UnderlyingRedemptionDate (LocalMktDate).</summary>
 	public sealed class UnderlyingRedemptionDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(247, value);
+		: Typed<FixDate>(247, value);
 
 	/// <summary>FIX 248: LegCouponPaymentDate (LocalMktDate).</summary>
 	public sealed class LegCouponPaymentDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(248, value);
+		: Typed<FixDate>(248, value);
 
 	/// <summary>FIX 249: LegIssueDate (LocalMktDate).</summary>
 	public sealed class LegIssueDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(249, value);
+		: Typed<FixDate>(249, value);
 
 	/// <summary>FIX 250: LegRepoCollateralSecurityType (String).</summary>
 	public sealed class LegRepoCollateralSecurityType(string value)
-		: FixField<string>(250, value);
+		: Typed<string>(250, value);
 
 	/// <summary>FIX 251: LegRepurchaseTerm (int).</summary>
 	public sealed class LegRepurchaseTerm((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(251, value);
+		: Typed<BigInteger>(251, value);
 
 	/// <summary>FIX 252: LegRepurchaseRate (Percentage).</summary>
 	public sealed class LegRepurchaseRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(252, value);
+		: Typed<FixDecimal>(252, value);
 
 	/// <summary>FIX 253: LegFactor (float).</summary>
 	public sealed class LegFactor((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(253, value);
+		: Typed<FixDecimal>(253, value);
 
 	/// <summary>FIX 254: LegRedemptionDate (LocalMktDate).</summary>
 	public sealed class LegRedemptionDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(254, value);
+		: Typed<FixDate>(254, value);
 
 	/// <summary>FIX 255: CreditRating (String).</summary>
 	public sealed class CreditRating(string value)
-		: FixField<string>(255, value);
+		: Typed<string>(255, value);
 
 	/// <summary>FIX 256: UnderlyingCreditRating (String).</summary>
 	public sealed class UnderlyingCreditRating(string value)
-		: FixField<string>(256, value);
+		: Typed<string>(256, value);
 
 	/// <summary>FIX 257: LegCreditRating (String).</summary>
 	public sealed class LegCreditRating(string value)
-		: FixField<string>(257, value);
+		: Typed<string>(257, value);
 
 	/// <summary>FIX 258: TradedFlatSwitch (Boolean).</summary>
 	public sealed class TradedFlatSwitch((bool Valid, bool Value) value)
-		: FixField<bool>(258, value);
+		: Typed<bool>(258, value);
 
 	/// <summary>FIX 259: BasisFeatureDate (LocalMktDate).</summary>
 	public sealed class BasisFeatureDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(259, value);
+		: Typed<FixDate>(259, value);
 
 	/// <summary>FIX 260: BasisFeaturePrice (Price).</summary>
 	public sealed class BasisFeaturePrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(260, value);
+		: Typed<FixDecimal>(260, value);
 
 	/// <summary>FIX 262: MDReqID (String).</summary>
 	public sealed class MDReqID(string value)
-		: FixField<string>(262, value);
+		: Typed<string>(262, value);
 
 	/// <summary>FIX 263: SubscriptionRequestType (char).</summary>
 	public sealed class SubscriptionRequestType((bool Valid, char Value) value)
-		: FixField<char>(263, value);
+		: Typed<char>(263, value);
 
 	/// <summary>FIX 264: MarketDepth (int).</summary>
 	public sealed class MarketDepth((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(264, value);
+		: Typed<BigInteger>(264, value);
 
 	/// <summary>FIX 265: MDUpdateType (int).</summary>
 	public sealed class MDUpdateType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(265, value);
+		: Typed<BigInteger>(265, value);
 
 	/// <summary>FIX 266: AggregatedBook (Boolean).</summary>
 	public sealed class AggregatedBook((bool Valid, bool Value) value)
-		: FixField<bool>(266, value);
+		: Typed<bool>(266, value);
 
 	/// <summary>FIX 267: NoMDEntryTypes (NumInGroup).</summary>
 	public sealed class NoMDEntryTypes((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(267, value);
+		: Typed<BigInteger>(267, value);
 
 	/// <summary>FIX 268: NoMDEntries (NumInGroup).</summary>
 	public sealed class NoMDEntries((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(268, value);
+		: Typed<BigInteger>(268, value);
 
 	/// <summary>FIX 269: MDEntryType (char).</summary>
 	public sealed class MDEntryType((bool Valid, char Value) value)
-		: FixField<char>(269, value);
+		: Typed<char>(269, value);
 
 	/// <summary>FIX 270: MDEntryPx (Price).</summary>
 	public sealed class MDEntryPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(270, value);
+		: Typed<FixDecimal>(270, value);
 
 	/// <summary>FIX 271: MDEntrySize (Qty).</summary>
 	public sealed class MDEntrySize((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(271, value);
+		: Typed<FixDecimal>(271, value);
 
 	/// <summary>FIX 272: MDEntryDate (UTCDateOnly).</summary>
 	public sealed class MDEntryDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(272, value);
+		: Typed<FixDate>(272, value);
 
 	/// <summary>FIX 273: MDEntryTime (UTCTimeOnly).</summary>
 	public sealed class MDEntryTime((bool Valid, FixTime Value) value)
-		: FixField<FixTime>(273, value);
+		: Typed<FixTime>(273, value);
 
 	/// <summary>FIX 274: TickDirection (char).</summary>
 	public sealed class TickDirection((bool Valid, char Value) value)
-		: FixField<char>(274, value);
+		: Typed<char>(274, value);
 
 	/// <summary>FIX 275: MDMkt (Exchange).</summary>
 	public sealed class MDMkt(string value)
-		: FixField<string>(275, value);
+		: Typed<string>(275, value);
 
 	/// <summary>FIX 276: QuoteCondition (MultipleValueString).</summary>
 	public sealed class QuoteCondition((bool Valid, string[] Value) value)
-		: FixField<string[]>(276, value);
+		: Typed<string[]>(276, value);
 
 	/// <summary>FIX 277: TradeCondition (MultipleValueString).</summary>
 	public sealed class TradeCondition((bool Valid, string[] Value) value)
-		: FixField<string[]>(277, value);
+		: Typed<string[]>(277, value);
 
 	/// <summary>FIX 278: MDEntryID (String).</summary>
 	public sealed class MDEntryID(string value)
-		: FixField<string>(278, value);
+		: Typed<string>(278, value);
 
 	/// <summary>FIX 279: MDUpdateAction (char).</summary>
 	public sealed class MDUpdateAction((bool Valid, char Value) value)
-		: FixField<char>(279, value);
+		: Typed<char>(279, value);
 
 	/// <summary>FIX 280: MDEntryRefID (String).</summary>
 	public sealed class MDEntryRefID(string value)
-		: FixField<string>(280, value);
+		: Typed<string>(280, value);
 
 	/// <summary>FIX 281: MDReqRejReason (char).</summary>
 	public sealed class MDReqRejReason((bool Valid, char Value) value)
-		: FixField<char>(281, value);
+		: Typed<char>(281, value);
 
 	/// <summary>FIX 282: MDEntryOriginator (String).</summary>
 	public sealed class MDEntryOriginator(string value)
-		: FixField<string>(282, value);
+		: Typed<string>(282, value);
 
 	/// <summary>FIX 283: LocationID (String).</summary>
 	public sealed class LocationID(string value)
-		: FixField<string>(283, value);
+		: Typed<string>(283, value);
 
 	/// <summary>FIX 284: DeskID (String).</summary>
 	public sealed class DeskID(string value)
-		: FixField<string>(284, value);
+		: Typed<string>(284, value);
 
 	/// <summary>FIX 285: DeleteReason (char).</summary>
 	public sealed class DeleteReason((bool Valid, char Value) value)
-		: FixField<char>(285, value);
+		: Typed<char>(285, value);
 
 	/// <summary>FIX 286: OpenCloseSettlFlag (MultipleValueString).</summary>
 	public sealed class OpenCloseSettlFlag((bool Valid, string[] Value) value)
-		: FixField<string[]>(286, value);
+		: Typed<string[]>(286, value);
 
 	/// <summary>FIX 287: SellerDays (int).</summary>
 	public sealed class SellerDays((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(287, value);
+		: Typed<BigInteger>(287, value);
 
 	/// <summary>FIX 288: MDEntryBuyer (String).</summary>
 	public sealed class MDEntryBuyer(string value)
-		: FixField<string>(288, value);
+		: Typed<string>(288, value);
 
 	/// <summary>FIX 289: MDEntrySeller (String).</summary>
 	public sealed class MDEntrySeller(string value)
-		: FixField<string>(289, value);
+		: Typed<string>(289, value);
 
 	/// <summary>FIX 290: MDEntryPositionNo (int).</summary>
 	public sealed class MDEntryPositionNo((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(290, value);
+		: Typed<BigInteger>(290, value);
 
 	/// <summary>FIX 291: FinancialStatus (MultipleValueString).</summary>
 	public sealed class FinancialStatus((bool Valid, string[] Value) value)
-		: FixField<string[]>(291, value);
+		: Typed<string[]>(291, value);
 
 	/// <summary>FIX 292: CorporateAction (MultipleValueString).</summary>
 	public sealed class CorporateAction((bool Valid, string[] Value) value)
-		: FixField<string[]>(292, value);
+		: Typed<string[]>(292, value);
 
 	/// <summary>FIX 293: DefBidSize (Qty).</summary>
 	public sealed class DefBidSize((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(293, value);
+		: Typed<FixDecimal>(293, value);
 
 	/// <summary>FIX 294: DefOfferSize (Qty).</summary>
 	public sealed class DefOfferSize((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(294, value);
+		: Typed<FixDecimal>(294, value);
 
 	/// <summary>FIX 295: NoQuoteEntries (NumInGroup).</summary>
 	public sealed class NoQuoteEntries((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(295, value);
+		: Typed<BigInteger>(295, value);
 
 	/// <summary>FIX 296: NoQuoteSets (NumInGroup).</summary>
 	public sealed class NoQuoteSets((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(296, value);
+		: Typed<BigInteger>(296, value);
 
 	/// <summary>FIX 297: QuoteStatus (int).</summary>
 	public sealed class QuoteStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(297, value);
+		: Typed<BigInteger>(297, value);
 
 	/// <summary>FIX 298: QuoteCancelType (int).</summary>
 	public sealed class QuoteCancelType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(298, value);
+		: Typed<BigInteger>(298, value);
 
 	/// <summary>FIX 299: QuoteEntryID (String).</summary>
 	public sealed class QuoteEntryID(string value)
-		: FixField<string>(299, value);
+		: Typed<string>(299, value);
 
 	/// <summary>FIX 300: QuoteRejectReason (int).</summary>
 	public sealed class QuoteRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(300, value);
+		: Typed<BigInteger>(300, value);
 
 	/// <summary>FIX 301: QuoteResponseLevel (int).</summary>
 	public sealed class QuoteResponseLevel((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(301, value);
+		: Typed<BigInteger>(301, value);
 
 	/// <summary>FIX 302: QuoteSetID (String).</summary>
 	public sealed class QuoteSetID(string value)
-		: FixField<string>(302, value);
+		: Typed<string>(302, value);
 
 	/// <summary>FIX 303: QuoteRequestType (int).</summary>
 	public sealed class QuoteRequestType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(303, value);
+		: Typed<BigInteger>(303, value);
 
 	/// <summary>FIX 304: TotNoQuoteEntries (int).</summary>
 	public sealed class TotNoQuoteEntries((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(304, value);
+		: Typed<BigInteger>(304, value);
 
 	/// <summary>FIX 305: UnderlyingSecurityIDSource (String).</summary>
 	public sealed class UnderlyingSecurityIDSource(string value)
-		: FixField<string>(305, value);
+		: Typed<string>(305, value);
 
 	/// <summary>FIX 306: UnderlyingIssuer (String).</summary>
 	public sealed class UnderlyingIssuer(string value)
-		: FixField<string>(306, value);
+		: Typed<string>(306, value);
 
 	/// <summary>FIX 307: UnderlyingSecurityDesc (String).</summary>
 	public sealed class UnderlyingSecurityDesc(string value)
-		: FixField<string>(307, value);
+		: Typed<string>(307, value);
 
 	/// <summary>FIX 308: UnderlyingSecurityExchange (Exchange).</summary>
 	public sealed class UnderlyingSecurityExchange(string value)
-		: FixField<string>(308, value);
+		: Typed<string>(308, value);
 
 	/// <summary>FIX 309: UnderlyingSecurityID (String).</summary>
 	public sealed class UnderlyingSecurityID(string value)
-		: FixField<string>(309, value);
+		: Typed<string>(309, value);
 
 	/// <summary>FIX 310: UnderlyingSecurityType (String).</summary>
 	public sealed class UnderlyingSecurityType(string value)
-		: FixField<string>(310, value);
+		: Typed<string>(310, value);
 
 	/// <summary>FIX 311: UnderlyingSymbol (String).</summary>
 	public sealed class UnderlyingSymbol(string value)
-		: FixField<string>(311, value);
+		: Typed<string>(311, value);
 
 	/// <summary>FIX 312: UnderlyingSymbolSfx (String).</summary>
 	public sealed class UnderlyingSymbolSfx(string value)
-		: FixField<string>(312, value);
+		: Typed<string>(312, value);
 
 	/// <summary>FIX 313: UnderlyingMaturityMonthYear (MonthYear).</summary>
 	public sealed class UnderlyingMaturityMonthYear((bool Valid, FixMonthYear Value) value)
-		: FixField<FixMonthYear>(313, value);
+		: Typed<FixMonthYear>(313, value);
 
 	/// <summary>FIX 315: UnderlyingPutOrCall (int).</summary>
 	public sealed class UnderlyingPutOrCall((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(315, value);
+		: Typed<BigInteger>(315, value);
 
 	/// <summary>FIX 316: UnderlyingStrikePrice (Price).</summary>
 	public sealed class UnderlyingStrikePrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(316, value);
+		: Typed<FixDecimal>(316, value);
 
 	/// <summary>FIX 317: UnderlyingOptAttribute (char).</summary>
 	public sealed class UnderlyingOptAttribute((bool Valid, char Value) value)
-		: FixField<char>(317, value);
+		: Typed<char>(317, value);
 
 	/// <summary>FIX 318: UnderlyingCurrency (Currency).</summary>
 	public sealed class UnderlyingCurrency(string value)
-		: FixField<string>(318, value);
+		: Typed<string>(318, value);
 
 	/// <summary>FIX 320: SecurityReqID (String).</summary>
 	public sealed class SecurityReqID(string value)
-		: FixField<string>(320, value);
+		: Typed<string>(320, value);
 
 	/// <summary>FIX 321: SecurityRequestType (int).</summary>
 	public sealed class SecurityRequestType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(321, value);
+		: Typed<BigInteger>(321, value);
 
 	/// <summary>FIX 322: SecurityResponseID (String).</summary>
 	public sealed class SecurityResponseID(string value)
-		: FixField<string>(322, value);
+		: Typed<string>(322, value);
 
 	/// <summary>FIX 323: SecurityResponseType (int).</summary>
 	public sealed class SecurityResponseType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(323, value);
+		: Typed<BigInteger>(323, value);
 
 	/// <summary>FIX 324: SecurityStatusReqID (String).</summary>
 	public sealed class SecurityStatusReqID(string value)
-		: FixField<string>(324, value);
+		: Typed<string>(324, value);
 
 	/// <summary>FIX 325: UnsolicitedIndicator (Boolean).</summary>
 	public sealed class UnsolicitedIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(325, value);
+		: Typed<bool>(325, value);
 
 	/// <summary>FIX 326: SecurityTradingStatus (int).</summary>
 	public sealed class SecurityTradingStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(326, value);
+		: Typed<BigInteger>(326, value);
 
 	/// <summary>FIX 327: HaltReason (char).</summary>
 	public sealed class HaltReason((bool Valid, char Value) value)
-		: FixField<char>(327, value);
+		: Typed<char>(327, value);
 
 	/// <summary>FIX 328: InViewOfCommon (Boolean).</summary>
 	public sealed class InViewOfCommon((bool Valid, bool Value) value)
-		: FixField<bool>(328, value);
+		: Typed<bool>(328, value);
 
 	/// <summary>FIX 329: DueToRelated (Boolean).</summary>
 	public sealed class DueToRelated((bool Valid, bool Value) value)
-		: FixField<bool>(329, value);
+		: Typed<bool>(329, value);
 
 	/// <summary>FIX 330: BuyVolume (Qty).</summary>
 	public sealed class BuyVolume((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(330, value);
+		: Typed<FixDecimal>(330, value);
 
 	/// <summary>FIX 331: SellVolume (Qty).</summary>
 	public sealed class SellVolume((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(331, value);
+		: Typed<FixDecimal>(331, value);
 
 	/// <summary>FIX 332: HighPx (Price).</summary>
 	public sealed class HighPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(332, value);
+		: Typed<FixDecimal>(332, value);
 
 	/// <summary>FIX 333: LowPx (Price).</summary>
 	public sealed class LowPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(333, value);
+		: Typed<FixDecimal>(333, value);
 
 	/// <summary>FIX 334: Adjustment (int).</summary>
 	public sealed class Adjustment((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(334, value);
+		: Typed<BigInteger>(334, value);
 
 	/// <summary>FIX 335: TradSesReqID (String).</summary>
 	public sealed class TradSesReqID(string value)
-		: FixField<string>(335, value);
+		: Typed<string>(335, value);
 
 	/// <summary>FIX 336: TradingSessionID (String).</summary>
 	public sealed class TradingSessionID(string value)
-		: FixField<string>(336, value);
+		: Typed<string>(336, value);
 
 	/// <summary>FIX 337: ContraTrader (String).</summary>
 	public sealed class ContraTrader(string value)
-		: FixField<string>(337, value);
+		: Typed<string>(337, value);
 
 	/// <summary>FIX 338: TradSesMethod (int).</summary>
 	public sealed class TradSesMethod((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(338, value);
+		: Typed<BigInteger>(338, value);
 
 	/// <summary>FIX 339: TradSesMode (int).</summary>
 	public sealed class TradSesMode((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(339, value);
+		: Typed<BigInteger>(339, value);
 
 	/// <summary>FIX 340: TradSesStatus (int).</summary>
 	public sealed class TradSesStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(340, value);
+		: Typed<BigInteger>(340, value);
 
 	/// <summary>FIX 341: TradSesStartTime (UTCTimestamp).</summary>
 	public sealed class TradSesStartTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(341, value);
+		: Typed<FixTimestamp>(341, value);
 
 	/// <summary>FIX 342: TradSesOpenTime (UTCTimestamp).</summary>
 	public sealed class TradSesOpenTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(342, value);
+		: Typed<FixTimestamp>(342, value);
 
 	/// <summary>FIX 343: TradSesPreCloseTime (UTCTimestamp).</summary>
 	public sealed class TradSesPreCloseTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(343, value);
+		: Typed<FixTimestamp>(343, value);
 
 	/// <summary>FIX 344: TradSesCloseTime (UTCTimestamp).</summary>
 	public sealed class TradSesCloseTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(344, value);
+		: Typed<FixTimestamp>(344, value);
 
 	/// <summary>FIX 345: TradSesEndTime (UTCTimestamp).</summary>
 	public sealed class TradSesEndTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(345, value);
+		: Typed<FixTimestamp>(345, value);
 
 	/// <summary>FIX 346: NumberOfOrders (int).</summary>
 	public sealed class NumberOfOrders((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(346, value);
+		: Typed<BigInteger>(346, value);
 
 	/// <summary>FIX 347: MessageEncoding (String).</summary>
 	public sealed class MessageEncoding(string value)
-		: FixField<string>(347, value);
+		: Typed<string>(347, value);
 
 	/// <summary>FIX 348: EncodedIssuerLen (Length).</summary>
 	public sealed class EncodedIssuerLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(348, value);
+		: Typed<BigInteger>(348, value);
 
 	/// <summary>FIX 349: EncodedIssuer (data).</summary>
 	public sealed class EncodedIssuer((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(349, value);
+		: Typed<ReadOnlyMemory<byte>>(349, value);
 
 	/// <summary>FIX 350: EncodedSecurityDescLen (Length).</summary>
 	public sealed class EncodedSecurityDescLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(350, value);
+		: Typed<BigInteger>(350, value);
 
 	/// <summary>FIX 351: EncodedSecurityDesc (data).</summary>
 	public sealed class EncodedSecurityDesc((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(351, value);
+		: Typed<ReadOnlyMemory<byte>>(351, value);
 
 	/// <summary>FIX 352: EncodedListExecInstLen (Length).</summary>
 	public sealed class EncodedListExecInstLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(352, value);
+		: Typed<BigInteger>(352, value);
 
 	/// <summary>FIX 353: EncodedListExecInst (data).</summary>
 	public sealed class EncodedListExecInst((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(353, value);
+		: Typed<ReadOnlyMemory<byte>>(353, value);
 
 	/// <summary>FIX 354: EncodedTextLen (Length).</summary>
 	public sealed class EncodedTextLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(354, value);
+		: Typed<BigInteger>(354, value);
 
 	/// <summary>FIX 355: EncodedText (data).</summary>
 	public sealed class EncodedText((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(355, value);
+		: Typed<ReadOnlyMemory<byte>>(355, value);
 
 	/// <summary>FIX 356: EncodedSubjectLen (Length).</summary>
 	public sealed class EncodedSubjectLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(356, value);
+		: Typed<BigInteger>(356, value);
 
 	/// <summary>FIX 357: EncodedSubject (data).</summary>
 	public sealed class EncodedSubject((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(357, value);
+		: Typed<ReadOnlyMemory<byte>>(357, value);
 
 	/// <summary>FIX 358: EncodedHeadlineLen (Length).</summary>
 	public sealed class EncodedHeadlineLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(358, value);
+		: Typed<BigInteger>(358, value);
 
 	/// <summary>FIX 359: EncodedHeadline (data).</summary>
 	public sealed class EncodedHeadline((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(359, value);
+		: Typed<ReadOnlyMemory<byte>>(359, value);
 
 	/// <summary>FIX 360: EncodedAllocTextLen (Length).</summary>
 	public sealed class EncodedAllocTextLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(360, value);
+		: Typed<BigInteger>(360, value);
 
 	/// <summary>FIX 361: EncodedAllocText (data).</summary>
 	public sealed class EncodedAllocText((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(361, value);
+		: Typed<ReadOnlyMemory<byte>>(361, value);
 
 	/// <summary>FIX 362: EncodedUnderlyingIssuerLen (Length).</summary>
 	public sealed class EncodedUnderlyingIssuerLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(362, value);
+		: Typed<BigInteger>(362, value);
 
 	/// <summary>FIX 363: EncodedUnderlyingIssuer (data).</summary>
 	public sealed class EncodedUnderlyingIssuer((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(363, value);
+		: Typed<ReadOnlyMemory<byte>>(363, value);
 
 	/// <summary>FIX 364: EncodedUnderlyingSecurityDescLen (Length).</summary>
 	public sealed class EncodedUnderlyingSecurityDescLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(364, value);
+		: Typed<BigInteger>(364, value);
 
 	/// <summary>FIX 365: EncodedUnderlyingSecurityDesc (data).</summary>
 	public sealed class EncodedUnderlyingSecurityDesc((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(365, value);
+		: Typed<ReadOnlyMemory<byte>>(365, value);
 
 	/// <summary>FIX 366: AllocPrice (Price).</summary>
 	public sealed class AllocPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(366, value);
+		: Typed<FixDecimal>(366, value);
 
 	/// <summary>FIX 367: QuoteSetValidUntilTime (UTCTimestamp).</summary>
 	public sealed class QuoteSetValidUntilTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(367, value);
+		: Typed<FixTimestamp>(367, value);
 
 	/// <summary>FIX 368: QuoteEntryRejectReason (int).</summary>
 	public sealed class QuoteEntryRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(368, value);
+		: Typed<BigInteger>(368, value);
 
 	/// <summary>FIX 369: LastMsgSeqNumProcessed (SeqNum).</summary>
 	public sealed class LastMsgSeqNumProcessed((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(369, value);
+		: Typed<BigInteger>(369, value);
 
 	/// <summary>FIX 371: RefTagID (int).</summary>
 	public sealed class RefTagID((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(371, value);
+		: Typed<BigInteger>(371, value);
 
 	/// <summary>FIX 372: RefMsgType (String).</summary>
 	public sealed class RefMsgType(string value)
-		: FixField<string>(372, value);
+		: Typed<string>(372, value);
 
 	/// <summary>FIX 373: SessionRejectReason (int).</summary>
 	public sealed class SessionRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(373, value);
+		: Typed<BigInteger>(373, value);
 
 	/// <summary>FIX 374: BidRequestTransType (char).</summary>
 	public sealed class BidRequestTransType((bool Valid, char Value) value)
-		: FixField<char>(374, value);
+		: Typed<char>(374, value);
 
 	/// <summary>FIX 375: ContraBroker (String).</summary>
 	public sealed class ContraBroker(string value)
-		: FixField<string>(375, value);
+		: Typed<string>(375, value);
 
 	/// <summary>FIX 376: ComplianceID (String).</summary>
 	public sealed class ComplianceID(string value)
-		: FixField<string>(376, value);
+		: Typed<string>(376, value);
 
 	/// <summary>FIX 377: SolicitedFlag (Boolean).</summary>
 	public sealed class SolicitedFlag((bool Valid, bool Value) value)
-		: FixField<bool>(377, value);
+		: Typed<bool>(377, value);
 
 	/// <summary>FIX 378: ExecRestatementReason (int).</summary>
 	public sealed class ExecRestatementReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(378, value);
+		: Typed<BigInteger>(378, value);
 
 	/// <summary>FIX 379: BusinessRejectRefID (String).</summary>
 	public sealed class BusinessRejectRefID(string value)
-		: FixField<string>(379, value);
+		: Typed<string>(379, value);
 
 	/// <summary>FIX 380: BusinessRejectReason (int).</summary>
 	public sealed class BusinessRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(380, value);
+		: Typed<BigInteger>(380, value);
 
 	/// <summary>FIX 381: GrossTradeAmt (Amt).</summary>
 	public sealed class GrossTradeAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(381, value);
+		: Typed<FixDecimal>(381, value);
 
 	/// <summary>FIX 382: NoContraBrokers (NumInGroup).</summary>
 	public sealed class NoContraBrokers((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(382, value);
+		: Typed<BigInteger>(382, value);
 
 	/// <summary>FIX 383: MaxMessageSize (Length).</summary>
 	public sealed class MaxMessageSize((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(383, value);
+		: Typed<BigInteger>(383, value);
 
 	/// <summary>FIX 384: NoMsgTypes (NumInGroup).</summary>
 	public sealed class NoMsgTypes((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(384, value);
+		: Typed<BigInteger>(384, value);
 
 	/// <summary>FIX 385: MsgDirection (char).</summary>
 	public sealed class MsgDirection((bool Valid, char Value) value)
-		: FixField<char>(385, value);
+		: Typed<char>(385, value);
 
 	/// <summary>FIX 386: NoTradingSessions (NumInGroup).</summary>
 	public sealed class NoTradingSessions((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(386, value);
+		: Typed<BigInteger>(386, value);
 
 	/// <summary>FIX 387: TotalVolumeTraded (Qty).</summary>
 	public sealed class TotalVolumeTraded((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(387, value);
+		: Typed<FixDecimal>(387, value);
 
 	/// <summary>FIX 388: DiscretionInst (char).</summary>
 	public sealed class DiscretionInst((bool Valid, char Value) value)
-		: FixField<char>(388, value);
+		: Typed<char>(388, value);
 
 	/// <summary>FIX 389: DiscretionOffsetValue (float).</summary>
 	public sealed class DiscretionOffsetValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(389, value);
+		: Typed<FixDecimal>(389, value);
 
 	/// <summary>FIX 390: BidID (String).</summary>
 	public sealed class BidID(string value)
-		: FixField<string>(390, value);
+		: Typed<string>(390, value);
 
 	/// <summary>FIX 391: ClientBidID (String).</summary>
 	public sealed class ClientBidID(string value)
-		: FixField<string>(391, value);
+		: Typed<string>(391, value);
 
 	/// <summary>FIX 392: ListName (String).</summary>
 	public sealed class ListName(string value)
-		: FixField<string>(392, value);
+		: Typed<string>(392, value);
 
 	/// <summary>FIX 393: TotNoRelatedSym (int).</summary>
 	public sealed class TotNoRelatedSym((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(393, value);
+		: Typed<BigInteger>(393, value);
 
 	/// <summary>FIX 394: BidType (int).</summary>
 	public sealed class BidType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(394, value);
+		: Typed<BigInteger>(394, value);
 
 	/// <summary>FIX 395: NumTickets (int).</summary>
 	public sealed class NumTickets((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(395, value);
+		: Typed<BigInteger>(395, value);
 
 	/// <summary>FIX 396: SideValue1 (Amt).</summary>
 	public sealed class SideValue1((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(396, value);
+		: Typed<FixDecimal>(396, value);
 
 	/// <summary>FIX 397: SideValue2 (Amt).</summary>
 	public sealed class SideValue2((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(397, value);
+		: Typed<FixDecimal>(397, value);
 
 	/// <summary>FIX 398: NoBidDescriptors (NumInGroup).</summary>
 	public sealed class NoBidDescriptors((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(398, value);
+		: Typed<BigInteger>(398, value);
 
 	/// <summary>FIX 399: BidDescriptorType (int).</summary>
 	public sealed class BidDescriptorType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(399, value);
+		: Typed<BigInteger>(399, value);
 
 	/// <summary>FIX 400: BidDescriptor (String).</summary>
 	public sealed class BidDescriptor(string value)
-		: FixField<string>(400, value);
+		: Typed<string>(400, value);
 
 	/// <summary>FIX 401: SideValueInd (int).</summary>
 	public sealed class SideValueInd((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(401, value);
+		: Typed<BigInteger>(401, value);
 
 	/// <summary>FIX 402: LiquidityPctLow (Percentage).</summary>
 	public sealed class LiquidityPctLow((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(402, value);
+		: Typed<FixDecimal>(402, value);
 
 	/// <summary>FIX 403: LiquidityPctHigh (Percentage).</summary>
 	public sealed class LiquidityPctHigh((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(403, value);
+		: Typed<FixDecimal>(403, value);
 
 	/// <summary>FIX 404: LiquidityValue (Amt).</summary>
 	public sealed class LiquidityValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(404, value);
+		: Typed<FixDecimal>(404, value);
 
 	/// <summary>FIX 405: EFPTrackingError (Percentage).</summary>
 	public sealed class EFPTrackingError((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(405, value);
+		: Typed<FixDecimal>(405, value);
 
 	/// <summary>FIX 406: FairValue (Amt).</summary>
 	public sealed class FairValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(406, value);
+		: Typed<FixDecimal>(406, value);
 
 	/// <summary>FIX 407: OutsideIndexPct (Percentage).</summary>
 	public sealed class OutsideIndexPct((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(407, value);
+		: Typed<FixDecimal>(407, value);
 
 	/// <summary>FIX 408: ValueOfFutures (Amt).</summary>
 	public sealed class ValueOfFutures((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(408, value);
+		: Typed<FixDecimal>(408, value);
 
 	/// <summary>FIX 409: LiquidityIndType (int).</summary>
 	public sealed class LiquidityIndType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(409, value);
+		: Typed<BigInteger>(409, value);
 
 	/// <summary>FIX 410: WtAverageLiquidity (Percentage).</summary>
 	public sealed class WtAverageLiquidity((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(410, value);
+		: Typed<FixDecimal>(410, value);
 
 	/// <summary>FIX 411: ExchangeForPhysical (Boolean).</summary>
 	public sealed class ExchangeForPhysical((bool Valid, bool Value) value)
-		: FixField<bool>(411, value);
+		: Typed<bool>(411, value);
 
 	/// <summary>FIX 412: OutMainCntryUIndex (Amt).</summary>
 	public sealed class OutMainCntryUIndex((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(412, value);
+		: Typed<FixDecimal>(412, value);
 
 	/// <summary>FIX 413: CrossPercent (Percentage).</summary>
 	public sealed class CrossPercent((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(413, value);
+		: Typed<FixDecimal>(413, value);
 
 	/// <summary>FIX 414: ProgRptReqs (int).</summary>
 	public sealed class ProgRptReqs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(414, value);
+		: Typed<BigInteger>(414, value);
 
 	/// <summary>FIX 415: ProgPeriodInterval (int).</summary>
 	public sealed class ProgPeriodInterval((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(415, value);
+		: Typed<BigInteger>(415, value);
 
 	/// <summary>FIX 416: IncTaxInd (int).</summary>
 	public sealed class IncTaxInd((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(416, value);
+		: Typed<BigInteger>(416, value);
 
 	/// <summary>FIX 417: NumBidders (int).</summary>
 	public sealed class NumBidders((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(417, value);
+		: Typed<BigInteger>(417, value);
 
 	/// <summary>FIX 418: BidTradeType (char).</summary>
 	public sealed class BidTradeType((bool Valid, char Value) value)
-		: FixField<char>(418, value);
+		: Typed<char>(418, value);
 
 	/// <summary>FIX 419: BasisPxType (char).</summary>
 	public sealed class BasisPxType((bool Valid, char Value) value)
-		: FixField<char>(419, value);
+		: Typed<char>(419, value);
 
 	/// <summary>FIX 420: NoBidComponents (NumInGroup).</summary>
 	public sealed class NoBidComponents((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(420, value);
+		: Typed<BigInteger>(420, value);
 
 	/// <summary>FIX 421: Country (Country).</summary>
 	public sealed class Country(string value)
-		: FixField<string>(421, value);
+		: Typed<string>(421, value);
 
 	/// <summary>FIX 422: TotNoStrikes (int).</summary>
 	public sealed class TotNoStrikes((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(422, value);
+		: Typed<BigInteger>(422, value);
 
 	/// <summary>FIX 423: PriceType (int).</summary>
 	public sealed class PriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(423, value);
+		: Typed<BigInteger>(423, value);
 
 	/// <summary>FIX 424: DayOrderQty (Qty).</summary>
 	public sealed class DayOrderQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(424, value);
+		: Typed<FixDecimal>(424, value);
 
 	/// <summary>FIX 425: DayCumQty (Qty).</summary>
 	public sealed class DayCumQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(425, value);
+		: Typed<FixDecimal>(425, value);
 
 	/// <summary>FIX 426: DayAvgPx (Price).</summary>
 	public sealed class DayAvgPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(426, value);
+		: Typed<FixDecimal>(426, value);
 
 	/// <summary>FIX 427: GTBookingInst (int).</summary>
 	public sealed class GTBookingInst((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(427, value);
+		: Typed<BigInteger>(427, value);
 
 	/// <summary>FIX 428: NoStrikes (NumInGroup).</summary>
 	public sealed class NoStrikes((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(428, value);
+		: Typed<BigInteger>(428, value);
 
 	/// <summary>FIX 429: ListStatusType (int).</summary>
 	public sealed class ListStatusType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(429, value);
+		: Typed<BigInteger>(429, value);
 
 	/// <summary>FIX 430: NetGrossInd (int).</summary>
 	public sealed class NetGrossInd((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(430, value);
+		: Typed<BigInteger>(430, value);
 
 	/// <summary>FIX 431: ListOrderStatus (int).</summary>
 	public sealed class ListOrderStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(431, value);
+		: Typed<BigInteger>(431, value);
 
 	/// <summary>FIX 432: ExpireDate (LocalMktDate).</summary>
 	public sealed class ExpireDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(432, value);
+		: Typed<FixDate>(432, value);
 
 	/// <summary>FIX 433: ListExecInstType (char).</summary>
 	public sealed class ListExecInstType((bool Valid, char Value) value)
-		: FixField<char>(433, value);
+		: Typed<char>(433, value);
 
 	/// <summary>FIX 434: CxlRejResponseTo (char).</summary>
 	public sealed class CxlRejResponseTo((bool Valid, char Value) value)
-		: FixField<char>(434, value);
+		: Typed<char>(434, value);
 
 	/// <summary>FIX 435: UnderlyingCouponRate (Percentage).</summary>
 	public sealed class UnderlyingCouponRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(435, value);
+		: Typed<FixDecimal>(435, value);
 
 	/// <summary>FIX 436: UnderlyingContractMultiplier (float).</summary>
 	public sealed class UnderlyingContractMultiplier((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(436, value);
+		: Typed<FixDecimal>(436, value);
 
 	/// <summary>FIX 437: ContraTradeQty (Qty).</summary>
 	public sealed class ContraTradeQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(437, value);
+		: Typed<FixDecimal>(437, value);
 
 	/// <summary>FIX 438: ContraTradeTime (UTCTimestamp).</summary>
 	public sealed class ContraTradeTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(438, value);
+		: Typed<FixTimestamp>(438, value);
 
 	/// <summary>FIX 441: LiquidityNumSecurities (int).</summary>
 	public sealed class LiquidityNumSecurities((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(441, value);
+		: Typed<BigInteger>(441, value);
 
 	/// <summary>FIX 442: MultiLegReportingType (char).</summary>
 	public sealed class MultiLegReportingType((bool Valid, char Value) value)
-		: FixField<char>(442, value);
+		: Typed<char>(442, value);
 
 	/// <summary>FIX 443: StrikeTime (UTCTimestamp).</summary>
 	public sealed class StrikeTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(443, value);
+		: Typed<FixTimestamp>(443, value);
 
 	/// <summary>FIX 444: ListStatusText (String).</summary>
 	public sealed class ListStatusText(string value)
-		: FixField<string>(444, value);
+		: Typed<string>(444, value);
 
 	/// <summary>FIX 445: EncodedListStatusTextLen (Length).</summary>
 	public sealed class EncodedListStatusTextLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(445, value);
+		: Typed<BigInteger>(445, value);
 
 	/// <summary>FIX 446: EncodedListStatusText (data).</summary>
 	public sealed class EncodedListStatusText((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(446, value);
+		: Typed<ReadOnlyMemory<byte>>(446, value);
 
 	/// <summary>FIX 447: PartyIDSource (char).</summary>
 	public sealed class PartyIDSource((bool Valid, char Value) value)
-		: FixField<char>(447, value);
+		: Typed<char>(447, value);
 
 	/// <summary>FIX 448: PartyID (String).</summary>
 	public sealed class PartyID(string value)
-		: FixField<string>(448, value);
+		: Typed<string>(448, value);
 
 	/// <summary>FIX 451: NetChgPrevDay (PriceOffset).</summary>
 	public sealed class NetChgPrevDay((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(451, value);
+		: Typed<FixDecimal>(451, value);
 
 	/// <summary>FIX 452: PartyRole (int).</summary>
 	public sealed class PartyRole((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(452, value);
+		: Typed<BigInteger>(452, value);
 
 	/// <summary>FIX 453: NoPartyIDs (NumInGroup).</summary>
 	public sealed class NoPartyIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(453, value);
+		: Typed<BigInteger>(453, value);
 
 	/// <summary>FIX 454: NoSecurityAltID (NumInGroup).</summary>
 	public sealed class NoSecurityAltID((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(454, value);
+		: Typed<BigInteger>(454, value);
 
 	/// <summary>FIX 455: SecurityAltID (String).</summary>
 	public sealed class SecurityAltID(string value)
-		: FixField<string>(455, value);
+		: Typed<string>(455, value);
 
 	/// <summary>FIX 456: SecurityAltIDSource (String).</summary>
 	public sealed class SecurityAltIDSource(string value)
-		: FixField<string>(456, value);
+		: Typed<string>(456, value);
 
 	/// <summary>FIX 457: NoUnderlyingSecurityAltID (NumInGroup).</summary>
 	public sealed class NoUnderlyingSecurityAltID((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(457, value);
+		: Typed<BigInteger>(457, value);
 
 	/// <summary>FIX 458: UnderlyingSecurityAltID (String).</summary>
 	public sealed class UnderlyingSecurityAltID(string value)
-		: FixField<string>(458, value);
+		: Typed<string>(458, value);
 
 	/// <summary>FIX 459: UnderlyingSecurityAltIDSource (String).</summary>
 	public sealed class UnderlyingSecurityAltIDSource(string value)
-		: FixField<string>(459, value);
+		: Typed<string>(459, value);
 
 	/// <summary>FIX 460: Product (int).</summary>
 	public sealed class Product((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(460, value);
+		: Typed<BigInteger>(460, value);
 
 	/// <summary>FIX 461: CFICode (String).</summary>
 	public sealed class CFICode(string value)
-		: FixField<string>(461, value);
+		: Typed<string>(461, value);
 
 	/// <summary>FIX 462: UnderlyingProduct (int).</summary>
 	public sealed class UnderlyingProduct((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(462, value);
+		: Typed<BigInteger>(462, value);
 
 	/// <summary>FIX 463: UnderlyingCFICode (String).</summary>
 	public sealed class UnderlyingCFICode(string value)
-		: FixField<string>(463, value);
+		: Typed<string>(463, value);
 
 	/// <summary>FIX 464: TestMessageIndicator (Boolean).</summary>
 	public sealed class TestMessageIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(464, value);
+		: Typed<bool>(464, value);
 
 	/// <summary>FIX 466: BookingRefID (String).</summary>
 	public sealed class BookingRefID(string value)
-		: FixField<string>(466, value);
+		: Typed<string>(466, value);
 
 	/// <summary>FIX 467: IndividualAllocID (String).</summary>
 	public sealed class IndividualAllocID(string value)
-		: FixField<string>(467, value);
+		: Typed<string>(467, value);
 
 	/// <summary>FIX 468: RoundingDirection (char).</summary>
 	public sealed class RoundingDirection((bool Valid, char Value) value)
-		: FixField<char>(468, value);
+		: Typed<char>(468, value);
 
 	/// <summary>FIX 469: RoundingModulus (float).</summary>
 	public sealed class RoundingModulus((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(469, value);
+		: Typed<FixDecimal>(469, value);
 
 	/// <summary>FIX 470: CountryOfIssue (Country).</summary>
 	public sealed class CountryOfIssue(string value)
-		: FixField<string>(470, value);
+		: Typed<string>(470, value);
 
 	/// <summary>FIX 471: StateOrProvinceOfIssue (String).</summary>
 	public sealed class StateOrProvinceOfIssue(string value)
-		: FixField<string>(471, value);
+		: Typed<string>(471, value);
 
 	/// <summary>FIX 472: LocaleOfIssue (String).</summary>
 	public sealed class LocaleOfIssue(string value)
-		: FixField<string>(472, value);
+		: Typed<string>(472, value);
 
 	/// <summary>FIX 473: NoRegistDtls (NumInGroup).</summary>
 	public sealed class NoRegistDtls((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(473, value);
+		: Typed<BigInteger>(473, value);
 
 	/// <summary>FIX 474: MailingDtls (String).</summary>
 	public sealed class MailingDtls(string value)
-		: FixField<string>(474, value);
+		: Typed<string>(474, value);
 
 	/// <summary>FIX 475: InvestorCountryOfResidence (Country).</summary>
 	public sealed class InvestorCountryOfResidence(string value)
-		: FixField<string>(475, value);
+		: Typed<string>(475, value);
 
 	/// <summary>FIX 476: PaymentRef (String).</summary>
 	public sealed class PaymentRef(string value)
-		: FixField<string>(476, value);
+		: Typed<string>(476, value);
 
 	/// <summary>FIX 477: DistribPaymentMethod (int).</summary>
 	public sealed class DistribPaymentMethod((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(477, value);
+		: Typed<BigInteger>(477, value);
 
 	/// <summary>FIX 478: CashDistribCurr (Currency).</summary>
 	public sealed class CashDistribCurr(string value)
-		: FixField<string>(478, value);
+		: Typed<string>(478, value);
 
 	/// <summary>FIX 479: CommCurrency (Currency).</summary>
 	public sealed class CommCurrency(string value)
-		: FixField<string>(479, value);
+		: Typed<string>(479, value);
 
 	/// <summary>FIX 480: CancellationRights (char).</summary>
 	public sealed class CancellationRights((bool Valid, char Value) value)
-		: FixField<char>(480, value);
+		: Typed<char>(480, value);
 
 	/// <summary>FIX 481: MoneyLaunderingStatus (char).</summary>
 	public sealed class MoneyLaunderingStatus((bool Valid, char Value) value)
-		: FixField<char>(481, value);
+		: Typed<char>(481, value);
 
 	/// <summary>FIX 482: MailingInst (String).</summary>
 	public sealed class MailingInst(string value)
-		: FixField<string>(482, value);
+		: Typed<string>(482, value);
 
 	/// <summary>FIX 483: TransBkdTime (UTCTimestamp).</summary>
 	public sealed class TransBkdTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(483, value);
+		: Typed<FixTimestamp>(483, value);
 
 	/// <summary>FIX 484: ExecPriceType (char).</summary>
 	public sealed class ExecPriceType((bool Valid, char Value) value)
-		: FixField<char>(484, value);
+		: Typed<char>(484, value);
 
 	/// <summary>FIX 485: ExecPriceAdjustment (float).</summary>
 	public sealed class ExecPriceAdjustment((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(485, value);
+		: Typed<FixDecimal>(485, value);
 
 	/// <summary>FIX 486: DateOfBirth (LocalMktDate).</summary>
 	public sealed class DateOfBirth((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(486, value);
+		: Typed<FixDate>(486, value);
 
 	/// <summary>FIX 487: TradeReportTransType (int).</summary>
 	public sealed class TradeReportTransType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(487, value);
+		: Typed<BigInteger>(487, value);
 
 	/// <summary>FIX 488: CardHolderName (String).</summary>
 	public sealed class CardHolderName(string value)
-		: FixField<string>(488, value);
+		: Typed<string>(488, value);
 
 	/// <summary>FIX 489: CardNumber (String).</summary>
 	public sealed class CardNumber(string value)
-		: FixField<string>(489, value);
+		: Typed<string>(489, value);
 
 	/// <summary>FIX 490: CardExpDate (LocalMktDate).</summary>
 	public sealed class CardExpDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(490, value);
+		: Typed<FixDate>(490, value);
 
 	/// <summary>FIX 491: CardIssNum (String).</summary>
 	public sealed class CardIssNum(string value)
-		: FixField<string>(491, value);
+		: Typed<string>(491, value);
 
 	/// <summary>FIX 492: PaymentMethod (int).</summary>
 	public sealed class PaymentMethod((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(492, value);
+		: Typed<BigInteger>(492, value);
 
 	/// <summary>FIX 493: RegistAcctType (String).</summary>
 	public sealed class RegistAcctType(string value)
-		: FixField<string>(493, value);
+		: Typed<string>(493, value);
 
 	/// <summary>FIX 494: Designation (String).</summary>
 	public sealed class Designation(string value)
-		: FixField<string>(494, value);
+		: Typed<string>(494, value);
 
 	/// <summary>FIX 495: TaxAdvantageType (int).</summary>
 	public sealed class TaxAdvantageType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(495, value);
+		: Typed<BigInteger>(495, value);
 
 	/// <summary>FIX 496: RegistRejReasonText (String).</summary>
 	public sealed class RegistRejReasonText(string value)
-		: FixField<string>(496, value);
+		: Typed<string>(496, value);
 
 	/// <summary>FIX 497: FundRenewWaiv (char).</summary>
 	public sealed class FundRenewWaiv((bool Valid, char Value) value)
-		: FixField<char>(497, value);
+		: Typed<char>(497, value);
 
 	/// <summary>FIX 498: CashDistribAgentName (String).</summary>
 	public sealed class CashDistribAgentName(string value)
-		: FixField<string>(498, value);
+		: Typed<string>(498, value);
 
 	/// <summary>FIX 499: CashDistribAgentCode (String).</summary>
 	public sealed class CashDistribAgentCode(string value)
-		: FixField<string>(499, value);
+		: Typed<string>(499, value);
 
 	/// <summary>FIX 500: CashDistribAgentAcctNumber (String).</summary>
 	public sealed class CashDistribAgentAcctNumber(string value)
-		: FixField<string>(500, value);
+		: Typed<string>(500, value);
 
 	/// <summary>FIX 501: CashDistribPayRef (String).</summary>
 	public sealed class CashDistribPayRef(string value)
-		: FixField<string>(501, value);
+		: Typed<string>(501, value);
 
 	/// <summary>FIX 502: CashDistribAgentAcctName (String).</summary>
 	public sealed class CashDistribAgentAcctName(string value)
-		: FixField<string>(502, value);
+		: Typed<string>(502, value);
 
 	/// <summary>FIX 503: CardStartDate (LocalMktDate).</summary>
 	public sealed class CardStartDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(503, value);
+		: Typed<FixDate>(503, value);
 
 	/// <summary>FIX 504: PaymentDate (LocalMktDate).</summary>
 	public sealed class PaymentDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(504, value);
+		: Typed<FixDate>(504, value);
 
 	/// <summary>FIX 505: PaymentRemitterID (String).</summary>
 	public sealed class PaymentRemitterID(string value)
-		: FixField<string>(505, value);
+		: Typed<string>(505, value);
 
 	/// <summary>FIX 506: RegistStatus (char).</summary>
 	public sealed class RegistStatus((bool Valid, char Value) value)
-		: FixField<char>(506, value);
+		: Typed<char>(506, value);
 
 	/// <summary>FIX 507: RegistRejReasonCode (int).</summary>
 	public sealed class RegistRejReasonCode((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(507, value);
+		: Typed<BigInteger>(507, value);
 
 	/// <summary>FIX 508: RegistRefID (String).</summary>
 	public sealed class RegistRefID(string value)
-		: FixField<string>(508, value);
+		: Typed<string>(508, value);
 
 	/// <summary>FIX 509: RegistDtls (String).</summary>
 	public sealed class RegistDtls(string value)
-		: FixField<string>(509, value);
+		: Typed<string>(509, value);
 
 	/// <summary>FIX 510: NoDistribInsts (NumInGroup).</summary>
 	public sealed class NoDistribInsts((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(510, value);
+		: Typed<BigInteger>(510, value);
 
 	/// <summary>FIX 511: RegistEmail (String).</summary>
 	public sealed class RegistEmail(string value)
-		: FixField<string>(511, value);
+		: Typed<string>(511, value);
 
 	/// <summary>FIX 512: DistribPercentage (Percentage).</summary>
 	public sealed class DistribPercentage((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(512, value);
+		: Typed<FixDecimal>(512, value);
 
 	/// <summary>FIX 513: RegistID (String).</summary>
 	public sealed class RegistID(string value)
-		: FixField<string>(513, value);
+		: Typed<string>(513, value);
 
 	/// <summary>FIX 514: RegistTransType (char).</summary>
 	public sealed class RegistTransType((bool Valid, char Value) value)
-		: FixField<char>(514, value);
+		: Typed<char>(514, value);
 
 	/// <summary>FIX 515: ExecValuationPoint (UTCTimestamp).</summary>
 	public sealed class ExecValuationPoint((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(515, value);
+		: Typed<FixTimestamp>(515, value);
 
 	/// <summary>FIX 516: OrderPercent (Percentage).</summary>
 	public sealed class OrderPercent((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(516, value);
+		: Typed<FixDecimal>(516, value);
 
 	/// <summary>FIX 517: OwnershipType (char).</summary>
 	public sealed class OwnershipType((bool Valid, char Value) value)
-		: FixField<char>(517, value);
+		: Typed<char>(517, value);
 
 	/// <summary>FIX 518: NoContAmts (NumInGroup).</summary>
 	public sealed class NoContAmts((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(518, value);
+		: Typed<BigInteger>(518, value);
 
 	/// <summary>FIX 519: ContAmtType (int).</summary>
 	public sealed class ContAmtType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(519, value);
+		: Typed<BigInteger>(519, value);
 
 	/// <summary>FIX 520: ContAmtValue (float).</summary>
 	public sealed class ContAmtValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(520, value);
+		: Typed<FixDecimal>(520, value);
 
 	/// <summary>FIX 521: ContAmtCurr (Currency).</summary>
 	public sealed class ContAmtCurr(string value)
-		: FixField<string>(521, value);
+		: Typed<string>(521, value);
 
 	/// <summary>FIX 522: OwnerType (int).</summary>
 	public sealed class OwnerType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(522, value);
+		: Typed<BigInteger>(522, value);
 
 	/// <summary>FIX 523: PartySubID (String).</summary>
 	public sealed class PartySubID(string value)
-		: FixField<string>(523, value);
+		: Typed<string>(523, value);
 
 	/// <summary>FIX 524: NestedPartyID (String).</summary>
 	public sealed class NestedPartyID(string value)
-		: FixField<string>(524, value);
+		: Typed<string>(524, value);
 
 	/// <summary>FIX 525: NestedPartyIDSource (char).</summary>
 	public sealed class NestedPartyIDSource((bool Valid, char Value) value)
-		: FixField<char>(525, value);
+		: Typed<char>(525, value);
 
 	/// <summary>FIX 526: SecondaryClOrdID (String).</summary>
 	public sealed class SecondaryClOrdID(string value)
-		: FixField<string>(526, value);
+		: Typed<string>(526, value);
 
 	/// <summary>FIX 527: SecondaryExecID (String).</summary>
 	public sealed class SecondaryExecID(string value)
-		: FixField<string>(527, value);
+		: Typed<string>(527, value);
 
 	/// <summary>FIX 528: OrderCapacity (char).</summary>
 	public sealed class OrderCapacity((bool Valid, char Value) value)
-		: FixField<char>(528, value);
+		: Typed<char>(528, value);
 
 	/// <summary>FIX 529: OrderRestrictions (MultipleValueString).</summary>
 	public sealed class OrderRestrictions((bool Valid, string[] Value) value)
-		: FixField<string[]>(529, value);
+		: Typed<string[]>(529, value);
 
 	/// <summary>FIX 530: MassCancelRequestType (char).</summary>
 	public sealed class MassCancelRequestType((bool Valid, char Value) value)
-		: FixField<char>(530, value);
+		: Typed<char>(530, value);
 
 	/// <summary>FIX 531: MassCancelResponse (char).</summary>
 	public sealed class MassCancelResponse((bool Valid, char Value) value)
-		: FixField<char>(531, value);
+		: Typed<char>(531, value);
 
 	/// <summary>FIX 532: MassCancelRejectReason (int).</summary>
 	public sealed class MassCancelRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(532, value);
+		: Typed<BigInteger>(532, value);
 
 	/// <summary>FIX 533: TotalAffectedOrders (int).</summary>
 	public sealed class TotalAffectedOrders((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(533, value);
+		: Typed<BigInteger>(533, value);
 
 	/// <summary>FIX 534: NoAffectedOrders (NumInGroup).</summary>
 	public sealed class NoAffectedOrders((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(534, value);
+		: Typed<BigInteger>(534, value);
 
 	/// <summary>FIX 535: AffectedOrderID (String).</summary>
 	public sealed class AffectedOrderID(string value)
-		: FixField<string>(535, value);
+		: Typed<string>(535, value);
 
 	/// <summary>FIX 536: AffectedSecondaryOrderID (String).</summary>
 	public sealed class AffectedSecondaryOrderID(string value)
-		: FixField<string>(536, value);
+		: Typed<string>(536, value);
 
 	/// <summary>FIX 537: QuoteType (int).</summary>
 	public sealed class QuoteType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(537, value);
+		: Typed<BigInteger>(537, value);
 
 	/// <summary>FIX 538: NestedPartyRole (int).</summary>
 	public sealed class NestedPartyRole((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(538, value);
+		: Typed<BigInteger>(538, value);
 
 	/// <summary>FIX 539: NoNestedPartyIDs (NumInGroup).</summary>
 	public sealed class NoNestedPartyIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(539, value);
+		: Typed<BigInteger>(539, value);
 
 	/// <summary>FIX 540: TotalAccruedInterestAmt (Amt).</summary>
 	public sealed class TotalAccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(540, value);
+		: Typed<FixDecimal>(540, value);
 
 	/// <summary>FIX 541: MaturityDate (LocalMktDate).</summary>
 	public sealed class MaturityDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(541, value);
+		: Typed<FixDate>(541, value);
 
 	/// <summary>FIX 542: UnderlyingMaturityDate (LocalMktDate).</summary>
 	public sealed class UnderlyingMaturityDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(542, value);
+		: Typed<FixDate>(542, value);
 
 	/// <summary>FIX 543: InstrRegistry (String).</summary>
 	public sealed class InstrRegistry(string value)
-		: FixField<string>(543, value);
+		: Typed<string>(543, value);
 
 	/// <summary>FIX 544: CashMargin (char).</summary>
 	public sealed class CashMargin((bool Valid, char Value) value)
-		: FixField<char>(544, value);
+		: Typed<char>(544, value);
 
 	/// <summary>FIX 545: NestedPartySubID (String).</summary>
 	public sealed class NestedPartySubID(string value)
-		: FixField<string>(545, value);
+		: Typed<string>(545, value);
 
 	/// <summary>FIX 546: Scope (MultipleValueString).</summary>
 	public sealed class Scope((bool Valid, string[] Value) value)
-		: FixField<string[]>(546, value);
+		: Typed<string[]>(546, value);
 
 	/// <summary>FIX 547: MDImplicitDelete (Boolean).</summary>
 	public sealed class MDImplicitDelete((bool Valid, bool Value) value)
-		: FixField<bool>(547, value);
+		: Typed<bool>(547, value);
 
 	/// <summary>FIX 548: CrossID (String).</summary>
 	public sealed class CrossID(string value)
-		: FixField<string>(548, value);
+		: Typed<string>(548, value);
 
 	/// <summary>FIX 549: CrossType (int).</summary>
 	public sealed class CrossType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(549, value);
+		: Typed<BigInteger>(549, value);
 
 	/// <summary>FIX 550: CrossPrioritization (int).</summary>
 	public sealed class CrossPrioritization((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(550, value);
+		: Typed<BigInteger>(550, value);
 
 	/// <summary>FIX 551: OrigCrossID (String).</summary>
 	public sealed class OrigCrossID(string value)
-		: FixField<string>(551, value);
+		: Typed<string>(551, value);
 
 	/// <summary>FIX 552: NoSides (NumInGroup).</summary>
 	public sealed class NoSides((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(552, value);
+		: Typed<BigInteger>(552, value);
 
 	/// <summary>FIX 553: Username (String).</summary>
 	public sealed class Username(string value)
-		: FixField<string>(553, value);
+		: Typed<string>(553, value);
 
 	/// <summary>FIX 554: Password (String).</summary>
 	public sealed class Password(string value)
-		: FixField<string>(554, value);
+		: Typed<string>(554, value);
 
 	/// <summary>FIX 555: NoLegs (NumInGroup).</summary>
 	public sealed class NoLegs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(555, value);
+		: Typed<BigInteger>(555, value);
 
 	/// <summary>FIX 556: LegCurrency (Currency).</summary>
 	public sealed class LegCurrency(string value)
-		: FixField<string>(556, value);
+		: Typed<string>(556, value);
 
 	/// <summary>FIX 557: TotNoSecurityTypes (int).</summary>
 	public sealed class TotNoSecurityTypes((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(557, value);
+		: Typed<BigInteger>(557, value);
 
 	/// <summary>FIX 558: NoSecurityTypes (NumInGroup).</summary>
 	public sealed class NoSecurityTypes((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(558, value);
+		: Typed<BigInteger>(558, value);
 
 	/// <summary>FIX 559: SecurityListRequestType (int).</summary>
 	public sealed class SecurityListRequestType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(559, value);
+		: Typed<BigInteger>(559, value);
 
 	/// <summary>FIX 560: SecurityRequestResult (int).</summary>
 	public sealed class SecurityRequestResult((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(560, value);
+		: Typed<BigInteger>(560, value);
 
 	/// <summary>FIX 561: RoundLot (Qty).</summary>
 	public sealed class RoundLot((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(561, value);
+		: Typed<FixDecimal>(561, value);
 
 	/// <summary>FIX 562: MinTradeVol (Qty).</summary>
 	public sealed class MinTradeVol((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(562, value);
+		: Typed<FixDecimal>(562, value);
 
 	/// <summary>FIX 563: MultiLegRptTypeReq (int).</summary>
 	public sealed class MultiLegRptTypeReq((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(563, value);
+		: Typed<BigInteger>(563, value);
 
 	/// <summary>FIX 564: LegPositionEffect (char).</summary>
 	public sealed class LegPositionEffect((bool Valid, char Value) value)
-		: FixField<char>(564, value);
+		: Typed<char>(564, value);
 
 	/// <summary>FIX 565: LegCoveredOrUncovered (int).</summary>
 	public sealed class LegCoveredOrUncovered((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(565, value);
+		: Typed<BigInteger>(565, value);
 
 	/// <summary>FIX 566: LegPrice (Price).</summary>
 	public sealed class LegPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(566, value);
+		: Typed<FixDecimal>(566, value);
 
 	/// <summary>FIX 567: TradSesStatusRejReason (int).</summary>
 	public sealed class TradSesStatusRejReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(567, value);
+		: Typed<BigInteger>(567, value);
 
 	/// <summary>FIX 568: TradeRequestID (String).</summary>
 	public sealed class TradeRequestID(string value)
-		: FixField<string>(568, value);
+		: Typed<string>(568, value);
 
 	/// <summary>FIX 569: TradeRequestType (int).</summary>
 	public sealed class TradeRequestType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(569, value);
+		: Typed<BigInteger>(569, value);
 
 	/// <summary>FIX 570: PreviouslyReported (Boolean).</summary>
 	public sealed class PreviouslyReported((bool Valid, bool Value) value)
-		: FixField<bool>(570, value);
+		: Typed<bool>(570, value);
 
 	/// <summary>FIX 571: TradeReportID (String).</summary>
 	public sealed class TradeReportID(string value)
-		: FixField<string>(571, value);
+		: Typed<string>(571, value);
 
 	/// <summary>FIX 572: TradeReportRefID (String).</summary>
 	public sealed class TradeReportRefID(string value)
-		: FixField<string>(572, value);
+		: Typed<string>(572, value);
 
 	/// <summary>FIX 573: MatchStatus (char).</summary>
 	public sealed class MatchStatus((bool Valid, char Value) value)
-		: FixField<char>(573, value);
+		: Typed<char>(573, value);
 
 	/// <summary>FIX 574: MatchType (String).</summary>
 	public sealed class MatchType(string value)
-		: FixField<string>(574, value);
+		: Typed<string>(574, value);
 
 	/// <summary>FIX 575: OddLot (Boolean).</summary>
 	public sealed class OddLot((bool Valid, bool Value) value)
-		: FixField<bool>(575, value);
+		: Typed<bool>(575, value);
 
 	/// <summary>FIX 576: NoClearingInstructions (NumInGroup).</summary>
 	public sealed class NoClearingInstructions((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(576, value);
+		: Typed<BigInteger>(576, value);
 
 	/// <summary>FIX 577: ClearingInstruction (int).</summary>
 	public sealed class ClearingInstruction((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(577, value);
+		: Typed<BigInteger>(577, value);
 
 	/// <summary>FIX 578: TradeInputSource (String).</summary>
 	public sealed class TradeInputSource(string value)
-		: FixField<string>(578, value);
+		: Typed<string>(578, value);
 
 	/// <summary>FIX 579: TradeInputDevice (String).</summary>
 	public sealed class TradeInputDevice(string value)
-		: FixField<string>(579, value);
+		: Typed<string>(579, value);
 
 	/// <summary>FIX 580: NoDates (NumInGroup).</summary>
 	public sealed class NoDates((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(580, value);
+		: Typed<BigInteger>(580, value);
 
 	/// <summary>FIX 581: AccountType (int).</summary>
 	public sealed class AccountType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(581, value);
+		: Typed<BigInteger>(581, value);
 
 	/// <summary>FIX 582: CustOrderCapacity (int).</summary>
 	public sealed class CustOrderCapacity((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(582, value);
+		: Typed<BigInteger>(582, value);
 
 	/// <summary>FIX 583: ClOrdLinkID (String).</summary>
 	public sealed class ClOrdLinkID(string value)
-		: FixField<string>(583, value);
+		: Typed<string>(583, value);
 
 	/// <summary>FIX 584: MassStatusReqID (String).</summary>
 	public sealed class MassStatusReqID(string value)
-		: FixField<string>(584, value);
+		: Typed<string>(584, value);
 
 	/// <summary>FIX 585: MassStatusReqType (int).</summary>
 	public sealed class MassStatusReqType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(585, value);
+		: Typed<BigInteger>(585, value);
 
 	/// <summary>FIX 586: OrigOrdModTime (UTCTimestamp).</summary>
 	public sealed class OrigOrdModTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(586, value);
+		: Typed<FixTimestamp>(586, value);
 
 	/// <summary>FIX 587: LegSettlType (char).</summary>
 	public sealed class LegSettlType((bool Valid, char Value) value)
-		: FixField<char>(587, value);
+		: Typed<char>(587, value);
 
 	/// <summary>FIX 588: LegSettlDate (LocalMktDate).</summary>
 	public sealed class LegSettlDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(588, value);
+		: Typed<FixDate>(588, value);
 
 	/// <summary>FIX 589: DayBookingInst (char).</summary>
 	public sealed class DayBookingInst((bool Valid, char Value) value)
-		: FixField<char>(589, value);
+		: Typed<char>(589, value);
 
 	/// <summary>FIX 590: BookingUnit (char).</summary>
 	public sealed class BookingUnit((bool Valid, char Value) value)
-		: FixField<char>(590, value);
+		: Typed<char>(590, value);
 
 	/// <summary>FIX 591: PreallocMethod (char).</summary>
 	public sealed class PreallocMethod((bool Valid, char Value) value)
-		: FixField<char>(591, value);
+		: Typed<char>(591, value);
 
 	/// <summary>FIX 592: UnderlyingCountryOfIssue (Country).</summary>
 	public sealed class UnderlyingCountryOfIssue(string value)
-		: FixField<string>(592, value);
+		: Typed<string>(592, value);
 
 	/// <summary>FIX 593: UnderlyingStateOrProvinceOfIssue (String).</summary>
 	public sealed class UnderlyingStateOrProvinceOfIssue(string value)
-		: FixField<string>(593, value);
+		: Typed<string>(593, value);
 
 	/// <summary>FIX 594: UnderlyingLocaleOfIssue (String).</summary>
 	public sealed class UnderlyingLocaleOfIssue(string value)
-		: FixField<string>(594, value);
+		: Typed<string>(594, value);
 
 	/// <summary>FIX 595: UnderlyingInstrRegistry (String).</summary>
 	public sealed class UnderlyingInstrRegistry(string value)
-		: FixField<string>(595, value);
+		: Typed<string>(595, value);
 
 	/// <summary>FIX 596: LegCountryOfIssue (Country).</summary>
 	public sealed class LegCountryOfIssue(string value)
-		: FixField<string>(596, value);
+		: Typed<string>(596, value);
 
 	/// <summary>FIX 597: LegStateOrProvinceOfIssue (String).</summary>
 	public sealed class LegStateOrProvinceOfIssue(string value)
-		: FixField<string>(597, value);
+		: Typed<string>(597, value);
 
 	/// <summary>FIX 598: LegLocaleOfIssue (String).</summary>
 	public sealed class LegLocaleOfIssue(string value)
-		: FixField<string>(598, value);
+		: Typed<string>(598, value);
 
 	/// <summary>FIX 599: LegInstrRegistry (String).</summary>
 	public sealed class LegInstrRegistry(string value)
-		: FixField<string>(599, value);
+		: Typed<string>(599, value);
 
 	/// <summary>FIX 600: LegSymbol (String).</summary>
 	public sealed class LegSymbol(string value)
-		: FixField<string>(600, value);
+		: Typed<string>(600, value);
 
 	/// <summary>FIX 601: LegSymbolSfx (String).</summary>
 	public sealed class LegSymbolSfx(string value)
-		: FixField<string>(601, value);
+		: Typed<string>(601, value);
 
 	/// <summary>FIX 602: LegSecurityID (String).</summary>
 	public sealed class LegSecurityID(string value)
-		: FixField<string>(602, value);
+		: Typed<string>(602, value);
 
 	/// <summary>FIX 603: LegSecurityIDSource (String).</summary>
 	public sealed class LegSecurityIDSource(string value)
-		: FixField<string>(603, value);
+		: Typed<string>(603, value);
 
 	/// <summary>FIX 604: NoLegSecurityAltID (NumInGroup).</summary>
 	public sealed class NoLegSecurityAltID((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(604, value);
+		: Typed<BigInteger>(604, value);
 
 	/// <summary>FIX 605: LegSecurityAltID (String).</summary>
 	public sealed class LegSecurityAltID(string value)
-		: FixField<string>(605, value);
+		: Typed<string>(605, value);
 
 	/// <summary>FIX 606: LegSecurityAltIDSource (String).</summary>
 	public sealed class LegSecurityAltIDSource(string value)
-		: FixField<string>(606, value);
+		: Typed<string>(606, value);
 
 	/// <summary>FIX 607: LegProduct (int).</summary>
 	public sealed class LegProduct((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(607, value);
+		: Typed<BigInteger>(607, value);
 
 	/// <summary>FIX 608: LegCFICode (String).</summary>
 	public sealed class LegCFICode(string value)
-		: FixField<string>(608, value);
+		: Typed<string>(608, value);
 
 	/// <summary>FIX 609: LegSecurityType (String).</summary>
 	public sealed class LegSecurityType(string value)
-		: FixField<string>(609, value);
+		: Typed<string>(609, value);
 
 	/// <summary>FIX 610: LegMaturityMonthYear (MonthYear).</summary>
 	public sealed class LegMaturityMonthYear((bool Valid, FixMonthYear Value) value)
-		: FixField<FixMonthYear>(610, value);
+		: Typed<FixMonthYear>(610, value);
 
 	/// <summary>FIX 611: LegMaturityDate (LocalMktDate).</summary>
 	public sealed class LegMaturityDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(611, value);
+		: Typed<FixDate>(611, value);
 
 	/// <summary>FIX 612: LegStrikePrice (Price).</summary>
 	public sealed class LegStrikePrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(612, value);
+		: Typed<FixDecimal>(612, value);
 
 	/// <summary>FIX 613: LegOptAttribute (char).</summary>
 	public sealed class LegOptAttribute((bool Valid, char Value) value)
-		: FixField<char>(613, value);
+		: Typed<char>(613, value);
 
 	/// <summary>FIX 614: LegContractMultiplier (float).</summary>
 	public sealed class LegContractMultiplier((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(614, value);
+		: Typed<FixDecimal>(614, value);
 
 	/// <summary>FIX 615: LegCouponRate (Percentage).</summary>
 	public sealed class LegCouponRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(615, value);
+		: Typed<FixDecimal>(615, value);
 
 	/// <summary>FIX 616: LegSecurityExchange (Exchange).</summary>
 	public sealed class LegSecurityExchange(string value)
-		: FixField<string>(616, value);
+		: Typed<string>(616, value);
 
 	/// <summary>FIX 617: LegIssuer (String).</summary>
 	public sealed class LegIssuer(string value)
-		: FixField<string>(617, value);
+		: Typed<string>(617, value);
 
 	/// <summary>FIX 618: EncodedLegIssuerLen (Length).</summary>
 	public sealed class EncodedLegIssuerLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(618, value);
+		: Typed<BigInteger>(618, value);
 
 	/// <summary>FIX 619: EncodedLegIssuer (data).</summary>
 	public sealed class EncodedLegIssuer((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(619, value);
+		: Typed<ReadOnlyMemory<byte>>(619, value);
 
 	/// <summary>FIX 620: LegSecurityDesc (String).</summary>
 	public sealed class LegSecurityDesc(string value)
-		: FixField<string>(620, value);
+		: Typed<string>(620, value);
 
 	/// <summary>FIX 621: EncodedLegSecurityDescLen (Length).</summary>
 	public sealed class EncodedLegSecurityDescLen((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(621, value);
+		: Typed<BigInteger>(621, value);
 
 	/// <summary>FIX 622: EncodedLegSecurityDesc (data).</summary>
 	public sealed class EncodedLegSecurityDesc((bool Valid, ReadOnlyMemory<byte> Value) value)
-		: FixField<ReadOnlyMemory<byte>>(622, value);
+		: Typed<ReadOnlyMemory<byte>>(622, value);
 
 	/// <summary>FIX 623: LegRatioQty (float).</summary>
 	public sealed class LegRatioQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(623, value);
+		: Typed<FixDecimal>(623, value);
 
 	/// <summary>FIX 624: LegSide (char).</summary>
 	public sealed class LegSide((bool Valid, char Value) value)
-		: FixField<char>(624, value);
+		: Typed<char>(624, value);
 
 	/// <summary>FIX 625: TradingSessionSubID (String).</summary>
 	public sealed class TradingSessionSubID(string value)
-		: FixField<string>(625, value);
+		: Typed<string>(625, value);
 
 	/// <summary>FIX 626: AllocType (int).</summary>
 	public sealed class AllocType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(626, value);
+		: Typed<BigInteger>(626, value);
 
 	/// <summary>FIX 627: NoHops (NumInGroup).</summary>
 	public sealed class NoHops((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(627, value);
+		: Typed<BigInteger>(627, value);
 
 	/// <summary>FIX 628: HopCompID (String).</summary>
 	public sealed class HopCompID(string value)
-		: FixField<string>(628, value);
+		: Typed<string>(628, value);
 
 	/// <summary>FIX 629: HopSendingTime (UTCTimestamp).</summary>
 	public sealed class HopSendingTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(629, value);
+		: Typed<FixTimestamp>(629, value);
 
 	/// <summary>FIX 630: HopRefID (SeqNum).</summary>
 	public sealed class HopRefID((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(630, value);
+		: Typed<BigInteger>(630, value);
 
 	/// <summary>FIX 631: MidPx (Price).</summary>
 	public sealed class MidPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(631, value);
+		: Typed<FixDecimal>(631, value);
 
 	/// <summary>FIX 632: BidYield (Percentage).</summary>
 	public sealed class BidYield((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(632, value);
+		: Typed<FixDecimal>(632, value);
 
 	/// <summary>FIX 633: MidYield (Percentage).</summary>
 	public sealed class MidYield((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(633, value);
+		: Typed<FixDecimal>(633, value);
 
 	/// <summary>FIX 634: OfferYield (Percentage).</summary>
 	public sealed class OfferYield((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(634, value);
+		: Typed<FixDecimal>(634, value);
 
 	/// <summary>FIX 635: ClearingFeeIndicator (String).</summary>
 	public sealed class ClearingFeeIndicator(string value)
-		: FixField<string>(635, value);
+		: Typed<string>(635, value);
 
 	/// <summary>FIX 636: WorkingIndicator (Boolean).</summary>
 	public sealed class WorkingIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(636, value);
+		: Typed<bool>(636, value);
 
 	/// <summary>FIX 637: LegLastPx (Price).</summary>
 	public sealed class LegLastPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(637, value);
+		: Typed<FixDecimal>(637, value);
 
 	/// <summary>FIX 638: PriorityIndicator (int).</summary>
 	public sealed class PriorityIndicator((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(638, value);
+		: Typed<BigInteger>(638, value);
 
 	/// <summary>FIX 639: PriceImprovement (PriceOffset).</summary>
 	public sealed class PriceImprovement((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(639, value);
+		: Typed<FixDecimal>(639, value);
 
 	/// <summary>FIX 640: Price2 (Price).</summary>
 	public sealed class Price2((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(640, value);
+		: Typed<FixDecimal>(640, value);
 
 	/// <summary>FIX 641: LastForwardPoints2 (PriceOffset).</summary>
 	public sealed class LastForwardPoints2((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(641, value);
+		: Typed<FixDecimal>(641, value);
 
 	/// <summary>FIX 642: BidForwardPoints2 (PriceOffset).</summary>
 	public sealed class BidForwardPoints2((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(642, value);
+		: Typed<FixDecimal>(642, value);
 
 	/// <summary>FIX 643: OfferForwardPoints2 (PriceOffset).</summary>
 	public sealed class OfferForwardPoints2((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(643, value);
+		: Typed<FixDecimal>(643, value);
 
 	/// <summary>FIX 644: RFQReqID (String).</summary>
 	public sealed class RFQReqID(string value)
-		: FixField<string>(644, value);
+		: Typed<string>(644, value);
 
 	/// <summary>FIX 645: MktBidPx (Price).</summary>
 	public sealed class MktBidPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(645, value);
+		: Typed<FixDecimal>(645, value);
 
 	/// <summary>FIX 646: MktOfferPx (Price).</summary>
 	public sealed class MktOfferPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(646, value);
+		: Typed<FixDecimal>(646, value);
 
 	/// <summary>FIX 647: MinBidSize (Qty).</summary>
 	public sealed class MinBidSize((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(647, value);
+		: Typed<FixDecimal>(647, value);
 
 	/// <summary>FIX 648: MinOfferSize (Qty).</summary>
 	public sealed class MinOfferSize((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(648, value);
+		: Typed<FixDecimal>(648, value);
 
 	/// <summary>FIX 649: QuoteStatusReqID (String).</summary>
 	public sealed class QuoteStatusReqID(string value)
-		: FixField<string>(649, value);
+		: Typed<string>(649, value);
 
 	/// <summary>FIX 650: LegalConfirm (Boolean).</summary>
 	public sealed class LegalConfirm((bool Valid, bool Value) value)
-		: FixField<bool>(650, value);
+		: Typed<bool>(650, value);
 
 	/// <summary>FIX 651: UnderlyingLastPx (Price).</summary>
 	public sealed class UnderlyingLastPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(651, value);
+		: Typed<FixDecimal>(651, value);
 
 	/// <summary>FIX 652: UnderlyingLastQty (Qty).</summary>
 	public sealed class UnderlyingLastQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(652, value);
+		: Typed<FixDecimal>(652, value);
 
 	/// <summary>FIX 654: LegRefID (String).</summary>
 	public sealed class LegRefID(string value)
-		: FixField<string>(654, value);
+		: Typed<string>(654, value);
 
 	/// <summary>FIX 655: ContraLegRefID (String).</summary>
 	public sealed class ContraLegRefID(string value)
-		: FixField<string>(655, value);
+		: Typed<string>(655, value);
 
 	/// <summary>FIX 656: SettlCurrBidFxRate (float).</summary>
 	public sealed class SettlCurrBidFxRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(656, value);
+		: Typed<FixDecimal>(656, value);
 
 	/// <summary>FIX 657: SettlCurrOfferFxRate (float).</summary>
 	public sealed class SettlCurrOfferFxRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(657, value);
+		: Typed<FixDecimal>(657, value);
 
 	/// <summary>FIX 658: QuoteRequestRejectReason (int).</summary>
 	public sealed class QuoteRequestRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(658, value);
+		: Typed<BigInteger>(658, value);
 
 	/// <summary>FIX 659: SideComplianceID (String).</summary>
 	public sealed class SideComplianceID(string value)
-		: FixField<string>(659, value);
+		: Typed<string>(659, value);
 
 	/// <summary>FIX 660: AcctIDSource (int).</summary>
 	public sealed class AcctIDSource((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(660, value);
+		: Typed<BigInteger>(660, value);
 
 	/// <summary>FIX 661: AllocAcctIDSource (int).</summary>
 	public sealed class AllocAcctIDSource((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(661, value);
+		: Typed<BigInteger>(661, value);
 
 	/// <summary>FIX 662: BenchmarkPrice (Price).</summary>
 	public sealed class BenchmarkPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(662, value);
+		: Typed<FixDecimal>(662, value);
 
 	/// <summary>FIX 663: BenchmarkPriceType (int).</summary>
 	public sealed class BenchmarkPriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(663, value);
+		: Typed<BigInteger>(663, value);
 
 	/// <summary>FIX 664: ConfirmID (String).</summary>
 	public sealed class ConfirmID(string value)
-		: FixField<string>(664, value);
+		: Typed<string>(664, value);
 
 	/// <summary>FIX 665: ConfirmStatus (int).</summary>
 	public sealed class ConfirmStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(665, value);
+		: Typed<BigInteger>(665, value);
 
 	/// <summary>FIX 666: ConfirmTransType (int).</summary>
 	public sealed class ConfirmTransType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(666, value);
+		: Typed<BigInteger>(666, value);
 
 	/// <summary>FIX 667: ContractSettlMonth (MonthYear).</summary>
 	public sealed class ContractSettlMonth((bool Valid, FixMonthYear Value) value)
-		: FixField<FixMonthYear>(667, value);
+		: Typed<FixMonthYear>(667, value);
 
 	/// <summary>FIX 668: DeliveryForm (int).</summary>
 	public sealed class DeliveryForm((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(668, value);
+		: Typed<BigInteger>(668, value);
 
 	/// <summary>FIX 669: LastParPx (Price).</summary>
 	public sealed class LastParPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(669, value);
+		: Typed<FixDecimal>(669, value);
 
 	/// <summary>FIX 670: NoLegAllocs (NumInGroup).</summary>
 	public sealed class NoLegAllocs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(670, value);
+		: Typed<BigInteger>(670, value);
 
 	/// <summary>FIX 671: LegAllocAccount (String).</summary>
 	public sealed class LegAllocAccount(string value)
-		: FixField<string>(671, value);
+		: Typed<string>(671, value);
 
 	/// <summary>FIX 672: LegIndividualAllocID (String).</summary>
 	public sealed class LegIndividualAllocID(string value)
-		: FixField<string>(672, value);
+		: Typed<string>(672, value);
 
 	/// <summary>FIX 673: LegAllocQty (Qty).</summary>
 	public sealed class LegAllocQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(673, value);
+		: Typed<FixDecimal>(673, value);
 
 	/// <summary>FIX 674: LegAllocAcctIDSource (int).</summary>
 	public sealed class LegAllocAcctIDSource((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(674, value);
+		: Typed<BigInteger>(674, value);
 
 	/// <summary>FIX 675: LegSettlCurrency (Currency).</summary>
 	public sealed class LegSettlCurrency(string value)
-		: FixField<string>(675, value);
+		: Typed<string>(675, value);
 
 	/// <summary>FIX 676: LegBenchmarkCurveCurrency (Currency).</summary>
 	public sealed class LegBenchmarkCurveCurrency(string value)
-		: FixField<string>(676, value);
+		: Typed<string>(676, value);
 
 	/// <summary>FIX 677: LegBenchmarkCurveName (String).</summary>
 	public sealed class LegBenchmarkCurveName(string value)
-		: FixField<string>(677, value);
+		: Typed<string>(677, value);
 
 	/// <summary>FIX 678: LegBenchmarkCurvePoint (String).</summary>
 	public sealed class LegBenchmarkCurvePoint(string value)
-		: FixField<string>(678, value);
+		: Typed<string>(678, value);
 
 	/// <summary>FIX 679: LegBenchmarkPrice (Price).</summary>
 	public sealed class LegBenchmarkPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(679, value);
+		: Typed<FixDecimal>(679, value);
 
 	/// <summary>FIX 680: LegBenchmarkPriceType (int).</summary>
 	public sealed class LegBenchmarkPriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(680, value);
+		: Typed<BigInteger>(680, value);
 
 	/// <summary>FIX 681: LegBidPx (Price).</summary>
 	public sealed class LegBidPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(681, value);
+		: Typed<FixDecimal>(681, value);
 
 	/// <summary>FIX 682: LegIOIQty (String).</summary>
 	public sealed class LegIOIQty(string value)
-		: FixField<string>(682, value);
+		: Typed<string>(682, value);
 
 	/// <summary>FIX 683: NoLegStipulations (NumInGroup).</summary>
 	public sealed class NoLegStipulations((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(683, value);
+		: Typed<BigInteger>(683, value);
 
 	/// <summary>FIX 684: LegOfferPx (Price).</summary>
 	public sealed class LegOfferPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(684, value);
+		: Typed<FixDecimal>(684, value);
 
 	/// <summary>FIX 686: LegPriceType (int).</summary>
 	public sealed class LegPriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(686, value);
+		: Typed<BigInteger>(686, value);
 
 	/// <summary>FIX 687: LegQty (Qty).</summary>
 	public sealed class LegQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(687, value);
+		: Typed<FixDecimal>(687, value);
 
 	/// <summary>FIX 688: LegStipulationType (String).</summary>
 	public sealed class LegStipulationType(string value)
-		: FixField<string>(688, value);
+		: Typed<string>(688, value);
 
 	/// <summary>FIX 689: LegStipulationValue (String).</summary>
 	public sealed class LegStipulationValue(string value)
-		: FixField<string>(689, value);
+		: Typed<string>(689, value);
 
 	/// <summary>FIX 690: LegSwapType (int).</summary>
 	public sealed class LegSwapType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(690, value);
+		: Typed<BigInteger>(690, value);
 
 	/// <summary>FIX 691: Pool (String).</summary>
 	public sealed class Pool(string value)
-		: FixField<string>(691, value);
+		: Typed<string>(691, value);
 
 	/// <summary>FIX 692: QuotePriceType (int).</summary>
 	public sealed class QuotePriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(692, value);
+		: Typed<BigInteger>(692, value);
 
 	/// <summary>FIX 693: QuoteRespID (String).</summary>
 	public sealed class QuoteRespID(string value)
-		: FixField<string>(693, value);
+		: Typed<string>(693, value);
 
 	/// <summary>FIX 694: QuoteRespType (int).</summary>
 	public sealed class QuoteRespType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(694, value);
+		: Typed<BigInteger>(694, value);
 
 	/// <summary>FIX 695: QuoteQualifier (char).</summary>
 	public sealed class QuoteQualifier((bool Valid, char Value) value)
-		: FixField<char>(695, value);
+		: Typed<char>(695, value);
 
 	/// <summary>FIX 696: YieldRedemptionDate (LocalMktDate).</summary>
 	public sealed class YieldRedemptionDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(696, value);
+		: Typed<FixDate>(696, value);
 
 	/// <summary>FIX 697: YieldRedemptionPrice (Price).</summary>
 	public sealed class YieldRedemptionPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(697, value);
+		: Typed<FixDecimal>(697, value);
 
 	/// <summary>FIX 698: YieldRedemptionPriceType (int).</summary>
 	public sealed class YieldRedemptionPriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(698, value);
+		: Typed<BigInteger>(698, value);
 
 	/// <summary>FIX 699: BenchmarkSecurityID (String).</summary>
 	public sealed class BenchmarkSecurityID(string value)
-		: FixField<string>(699, value);
+		: Typed<string>(699, value);
 
 	/// <summary>FIX 700: ReversalIndicator (Boolean).</summary>
 	public sealed class ReversalIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(700, value);
+		: Typed<bool>(700, value);
 
 	/// <summary>FIX 701: YieldCalcDate (LocalMktDate).</summary>
 	public sealed class YieldCalcDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(701, value);
+		: Typed<FixDate>(701, value);
 
 	/// <summary>FIX 702: NoPositions (NumInGroup).</summary>
 	public sealed class NoPositions((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(702, value);
+		: Typed<BigInteger>(702, value);
 
 	/// <summary>FIX 703: PosType (String).</summary>
 	public sealed class PosType(string value)
-		: FixField<string>(703, value);
+		: Typed<string>(703, value);
 
 	/// <summary>FIX 704: LongQty (Qty).</summary>
 	public sealed class LongQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(704, value);
+		: Typed<FixDecimal>(704, value);
 
 	/// <summary>FIX 705: ShortQty (Qty).</summary>
 	public sealed class ShortQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(705, value);
+		: Typed<FixDecimal>(705, value);
 
 	/// <summary>FIX 706: PosQtyStatus (int).</summary>
 	public sealed class PosQtyStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(706, value);
+		: Typed<BigInteger>(706, value);
 
 	/// <summary>FIX 707: PosAmtType (String).</summary>
 	public sealed class PosAmtType(string value)
-		: FixField<string>(707, value);
+		: Typed<string>(707, value);
 
 	/// <summary>FIX 708: PosAmt (Amt).</summary>
 	public sealed class PosAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(708, value);
+		: Typed<FixDecimal>(708, value);
 
 	/// <summary>FIX 709: PosTransType (int).</summary>
 	public sealed class PosTransType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(709, value);
+		: Typed<BigInteger>(709, value);
 
 	/// <summary>FIX 710: PosReqID (String).</summary>
 	public sealed class PosReqID(string value)
-		: FixField<string>(710, value);
+		: Typed<string>(710, value);
 
 	/// <summary>FIX 711: NoUnderlyings (NumInGroup).</summary>
 	public sealed class NoUnderlyings((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(711, value);
+		: Typed<BigInteger>(711, value);
 
 	/// <summary>FIX 712: PosMaintAction (int).</summary>
 	public sealed class PosMaintAction((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(712, value);
+		: Typed<BigInteger>(712, value);
 
 	/// <summary>FIX 713: OrigPosReqRefID (String).</summary>
 	public sealed class OrigPosReqRefID(string value)
-		: FixField<string>(713, value);
+		: Typed<string>(713, value);
 
 	/// <summary>FIX 714: PosMaintRptRefID (String).</summary>
 	public sealed class PosMaintRptRefID(string value)
-		: FixField<string>(714, value);
+		: Typed<string>(714, value);
 
 	/// <summary>FIX 715: ClearingBusinessDate (LocalMktDate).</summary>
 	public sealed class ClearingBusinessDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(715, value);
+		: Typed<FixDate>(715, value);
 
 	/// <summary>FIX 716: SettlSessID (String).</summary>
 	public sealed class SettlSessID(string value)
-		: FixField<string>(716, value);
+		: Typed<string>(716, value);
 
 	/// <summary>FIX 717: SettlSessSubID (String).</summary>
 	public sealed class SettlSessSubID(string value)
-		: FixField<string>(717, value);
+		: Typed<string>(717, value);
 
 	/// <summary>FIX 718: AdjustmentType (int).</summary>
 	public sealed class AdjustmentType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(718, value);
+		: Typed<BigInteger>(718, value);
 
 	/// <summary>FIX 719: ContraryInstructionIndicator (Boolean).</summary>
 	public sealed class ContraryInstructionIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(719, value);
+		: Typed<bool>(719, value);
 
 	/// <summary>FIX 720: PriorSpreadIndicator (Boolean).</summary>
 	public sealed class PriorSpreadIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(720, value);
+		: Typed<bool>(720, value);
 
 	/// <summary>FIX 721: PosMaintRptID (String).</summary>
 	public sealed class PosMaintRptID(string value)
-		: FixField<string>(721, value);
+		: Typed<string>(721, value);
 
 	/// <summary>FIX 722: PosMaintStatus (int).</summary>
 	public sealed class PosMaintStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(722, value);
+		: Typed<BigInteger>(722, value);
 
 	/// <summary>FIX 723: PosMaintResult (int).</summary>
 	public sealed class PosMaintResult((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(723, value);
+		: Typed<BigInteger>(723, value);
 
 	/// <summary>FIX 724: PosReqType (int).</summary>
 	public sealed class PosReqType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(724, value);
+		: Typed<BigInteger>(724, value);
 
 	/// <summary>FIX 725: ResponseTransportType (int).</summary>
 	public sealed class ResponseTransportType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(725, value);
+		: Typed<BigInteger>(725, value);
 
 	/// <summary>FIX 726: ResponseDestination (String).</summary>
 	public sealed class ResponseDestination(string value)
-		: FixField<string>(726, value);
+		: Typed<string>(726, value);
 
 	/// <summary>FIX 727: TotalNumPosReports (int).</summary>
 	public sealed class TotalNumPosReports((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(727, value);
+		: Typed<BigInteger>(727, value);
 
 	/// <summary>FIX 728: PosReqResult (int).</summary>
 	public sealed class PosReqResult((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(728, value);
+		: Typed<BigInteger>(728, value);
 
 	/// <summary>FIX 729: PosReqStatus (int).</summary>
 	public sealed class PosReqStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(729, value);
+		: Typed<BigInteger>(729, value);
 
 	/// <summary>FIX 730: SettlPrice (Price).</summary>
 	public sealed class SettlPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(730, value);
+		: Typed<FixDecimal>(730, value);
 
 	/// <summary>FIX 731: SettlPriceType (int).</summary>
 	public sealed class SettlPriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(731, value);
+		: Typed<BigInteger>(731, value);
 
 	/// <summary>FIX 732: UnderlyingSettlPrice (Price).</summary>
 	public sealed class UnderlyingSettlPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(732, value);
+		: Typed<FixDecimal>(732, value);
 
 	/// <summary>FIX 733: UnderlyingSettlPriceType (int).</summary>
 	public sealed class UnderlyingSettlPriceType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(733, value);
+		: Typed<BigInteger>(733, value);
 
 	/// <summary>FIX 734: PriorSettlPrice (Price).</summary>
 	public sealed class PriorSettlPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(734, value);
+		: Typed<FixDecimal>(734, value);
 
 	/// <summary>FIX 735: NoQuoteQualifiers (NumInGroup).</summary>
 	public sealed class NoQuoteQualifiers((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(735, value);
+		: Typed<BigInteger>(735, value);
 
 	/// <summary>FIX 736: AllocSettlCurrency (Currency).</summary>
 	public sealed class AllocSettlCurrency(string value)
-		: FixField<string>(736, value);
+		: Typed<string>(736, value);
 
 	/// <summary>FIX 737: AllocSettlCurrAmt (Amt).</summary>
 	public sealed class AllocSettlCurrAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(737, value);
+		: Typed<FixDecimal>(737, value);
 
 	/// <summary>FIX 738: InterestAtMaturity (Amt).</summary>
 	public sealed class InterestAtMaturity((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(738, value);
+		: Typed<FixDecimal>(738, value);
 
 	/// <summary>FIX 739: LegDatedDate (LocalMktDate).</summary>
 	public sealed class LegDatedDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(739, value);
+		: Typed<FixDate>(739, value);
 
 	/// <summary>FIX 740: LegPool (String).</summary>
 	public sealed class LegPool(string value)
-		: FixField<string>(740, value);
+		: Typed<string>(740, value);
 
 	/// <summary>FIX 741: AllocInterestAtMaturity (Amt).</summary>
 	public sealed class AllocInterestAtMaturity((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(741, value);
+		: Typed<FixDecimal>(741, value);
 
 	/// <summary>FIX 742: AllocAccruedInterestAmt (Amt).</summary>
 	public sealed class AllocAccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(742, value);
+		: Typed<FixDecimal>(742, value);
 
 	/// <summary>FIX 743: DeliveryDate (LocalMktDate).</summary>
 	public sealed class DeliveryDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(743, value);
+		: Typed<FixDate>(743, value);
 
 	/// <summary>FIX 744: AssignmentMethod (char).</summary>
 	public sealed class AssignmentMethod((bool Valid, char Value) value)
-		: FixField<char>(744, value);
+		: Typed<char>(744, value);
 
 	/// <summary>FIX 745: AssignmentUnit (Qty).</summary>
 	public sealed class AssignmentUnit((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(745, value);
+		: Typed<FixDecimal>(745, value);
 
 	/// <summary>FIX 746: OpenInterest (Amt).</summary>
 	public sealed class OpenInterest((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(746, value);
+		: Typed<FixDecimal>(746, value);
 
 	/// <summary>FIX 747: ExerciseMethod (char).</summary>
 	public sealed class ExerciseMethod((bool Valid, char Value) value)
-		: FixField<char>(747, value);
+		: Typed<char>(747, value);
 
 	/// <summary>FIX 748: TotNumTradeReports (int).</summary>
 	public sealed class TotNumTradeReports((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(748, value);
+		: Typed<BigInteger>(748, value);
 
 	/// <summary>FIX 749: TradeRequestResult (int).</summary>
 	public sealed class TradeRequestResult((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(749, value);
+		: Typed<BigInteger>(749, value);
 
 	/// <summary>FIX 750: TradeRequestStatus (int).</summary>
 	public sealed class TradeRequestStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(750, value);
+		: Typed<BigInteger>(750, value);
 
 	/// <summary>FIX 751: TradeReportRejectReason (int).</summary>
 	public sealed class TradeReportRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(751, value);
+		: Typed<BigInteger>(751, value);
 
 	/// <summary>FIX 752: SideMultiLegReportingType (int).</summary>
 	public sealed class SideMultiLegReportingType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(752, value);
+		: Typed<BigInteger>(752, value);
 
 	/// <summary>FIX 753: NoPosAmt (NumInGroup).</summary>
 	public sealed class NoPosAmt((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(753, value);
+		: Typed<BigInteger>(753, value);
 
 	/// <summary>FIX 754: AutoAcceptIndicator (Boolean).</summary>
 	public sealed class AutoAcceptIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(754, value);
+		: Typed<bool>(754, value);
 
 	/// <summary>FIX 755: AllocReportID (String).</summary>
 	public sealed class AllocReportID(string value)
-		: FixField<string>(755, value);
+		: Typed<string>(755, value);
 
 	/// <summary>FIX 756: NoNested2PartyIDs (NumInGroup).</summary>
 	public sealed class NoNested2PartyIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(756, value);
+		: Typed<BigInteger>(756, value);
 
 	/// <summary>FIX 757: Nested2PartyID (String).</summary>
 	public sealed class Nested2PartyID(string value)
-		: FixField<string>(757, value);
+		: Typed<string>(757, value);
 
 	/// <summary>FIX 758: Nested2PartyIDSource (char).</summary>
 	public sealed class Nested2PartyIDSource((bool Valid, char Value) value)
-		: FixField<char>(758, value);
+		: Typed<char>(758, value);
 
 	/// <summary>FIX 759: Nested2PartyRole (int).</summary>
 	public sealed class Nested2PartyRole((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(759, value);
+		: Typed<BigInteger>(759, value);
 
 	/// <summary>FIX 760: Nested2PartySubID (String).</summary>
 	public sealed class Nested2PartySubID(string value)
-		: FixField<string>(760, value);
+		: Typed<string>(760, value);
 
 	/// <summary>FIX 761: BenchmarkSecurityIDSource (String).</summary>
 	public sealed class BenchmarkSecurityIDSource(string value)
-		: FixField<string>(761, value);
+		: Typed<string>(761, value);
 
 	/// <summary>FIX 762: SecuritySubType (String).</summary>
 	public sealed class SecuritySubType(string value)
-		: FixField<string>(762, value);
+		: Typed<string>(762, value);
 
 	/// <summary>FIX 763: UnderlyingSecuritySubType (String).</summary>
 	public sealed class UnderlyingSecuritySubType(string value)
-		: FixField<string>(763, value);
+		: Typed<string>(763, value);
 
 	/// <summary>FIX 764: LegSecuritySubType (String).</summary>
 	public sealed class LegSecuritySubType(string value)
-		: FixField<string>(764, value);
+		: Typed<string>(764, value);
 
 	/// <summary>FIX 765: AllowableOneSidednessPct (Percentage).</summary>
 	public sealed class AllowableOneSidednessPct((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(765, value);
+		: Typed<FixDecimal>(765, value);
 
 	/// <summary>FIX 766: AllowableOneSidednessValue (Amt).</summary>
 	public sealed class AllowableOneSidednessValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(766, value);
+		: Typed<FixDecimal>(766, value);
 
 	/// <summary>FIX 767: AllowableOneSidednessCurr (Currency).</summary>
 	public sealed class AllowableOneSidednessCurr(string value)
-		: FixField<string>(767, value);
+		: Typed<string>(767, value);
 
 	/// <summary>FIX 768: NoTrdRegTimestamps (NumInGroup).</summary>
 	public sealed class NoTrdRegTimestamps((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(768, value);
+		: Typed<BigInteger>(768, value);
 
 	/// <summary>FIX 769: TrdRegTimestamp (UTCTimestamp).</summary>
 	public sealed class TrdRegTimestamp((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(769, value);
+		: Typed<FixTimestamp>(769, value);
 
 	/// <summary>FIX 770: TrdRegTimestampType (int).</summary>
 	public sealed class TrdRegTimestampType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(770, value);
+		: Typed<BigInteger>(770, value);
 
 	/// <summary>FIX 771: TrdRegTimestampOrigin (String).</summary>
 	public sealed class TrdRegTimestampOrigin(string value)
-		: FixField<string>(771, value);
+		: Typed<string>(771, value);
 
 	/// <summary>FIX 772: ConfirmRefID (String).</summary>
 	public sealed class ConfirmRefID(string value)
-		: FixField<string>(772, value);
+		: Typed<string>(772, value);
 
 	/// <summary>FIX 773: ConfirmType (int).</summary>
 	public sealed class ConfirmType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(773, value);
+		: Typed<BigInteger>(773, value);
 
 	/// <summary>FIX 774: ConfirmRejReason (int).</summary>
 	public sealed class ConfirmRejReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(774, value);
+		: Typed<BigInteger>(774, value);
 
 	/// <summary>FIX 775: BookingType (int).</summary>
 	public sealed class BookingType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(775, value);
+		: Typed<BigInteger>(775, value);
 
 	/// <summary>FIX 776: IndividualAllocRejCode (int).</summary>
 	public sealed class IndividualAllocRejCode((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(776, value);
+		: Typed<BigInteger>(776, value);
 
 	/// <summary>FIX 777: SettlInstMsgID (String).</summary>
 	public sealed class SettlInstMsgID(string value)
-		: FixField<string>(777, value);
+		: Typed<string>(777, value);
 
 	/// <summary>FIX 778: NoSettlInst (NumInGroup).</summary>
 	public sealed class NoSettlInst((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(778, value);
+		: Typed<BigInteger>(778, value);
 
 	/// <summary>FIX 779: LastUpdateTime (UTCTimestamp).</summary>
 	public sealed class LastUpdateTime((bool Valid, FixTimestamp Value) value)
-		: FixField<FixTimestamp>(779, value);
+		: Typed<FixTimestamp>(779, value);
 
 	/// <summary>FIX 780: AllocSettlInstType (int).</summary>
 	public sealed class AllocSettlInstType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(780, value);
+		: Typed<BigInteger>(780, value);
 
 	/// <summary>FIX 781: NoSettlPartyIDs (NumInGroup).</summary>
 	public sealed class NoSettlPartyIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(781, value);
+		: Typed<BigInteger>(781, value);
 
 	/// <summary>FIX 782: SettlPartyID (String).</summary>
 	public sealed class SettlPartyID(string value)
-		: FixField<string>(782, value);
+		: Typed<string>(782, value);
 
 	/// <summary>FIX 783: SettlPartyIDSource (char).</summary>
 	public sealed class SettlPartyIDSource((bool Valid, char Value) value)
-		: FixField<char>(783, value);
+		: Typed<char>(783, value);
 
 	/// <summary>FIX 784: SettlPartyRole (int).</summary>
 	public sealed class SettlPartyRole((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(784, value);
+		: Typed<BigInteger>(784, value);
 
 	/// <summary>FIX 785: SettlPartySubID (String).</summary>
 	public sealed class SettlPartySubID(string value)
-		: FixField<string>(785, value);
+		: Typed<string>(785, value);
 
 	/// <summary>FIX 786: SettlPartySubIDType (int).</summary>
 	public sealed class SettlPartySubIDType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(786, value);
+		: Typed<BigInteger>(786, value);
 
 	/// <summary>FIX 787: DlvyInstType (char).</summary>
 	public sealed class DlvyInstType((bool Valid, char Value) value)
-		: FixField<char>(787, value);
+		: Typed<char>(787, value);
 
 	/// <summary>FIX 788: TerminationType (int).</summary>
 	public sealed class TerminationType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(788, value);
+		: Typed<BigInteger>(788, value);
 
 	/// <summary>FIX 789: NextExpectedMsgSeqNum (SeqNum).</summary>
 	public sealed class NextExpectedMsgSeqNum((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(789, value);
+		: Typed<BigInteger>(789, value);
 
 	/// <summary>FIX 790: OrdStatusReqID (String).</summary>
 	public sealed class OrdStatusReqID(string value)
-		: FixField<string>(790, value);
+		: Typed<string>(790, value);
 
 	/// <summary>FIX 791: SettlInstReqID (String).</summary>
 	public sealed class SettlInstReqID(string value)
-		: FixField<string>(791, value);
+		: Typed<string>(791, value);
 
 	/// <summary>FIX 792: SettlInstReqRejCode (int).</summary>
 	public sealed class SettlInstReqRejCode((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(792, value);
+		: Typed<BigInteger>(792, value);
 
 	/// <summary>FIX 793: SecondaryAllocID (String).</summary>
 	public sealed class SecondaryAllocID(string value)
-		: FixField<string>(793, value);
+		: Typed<string>(793, value);
 
 	/// <summary>FIX 794: AllocReportType (int).</summary>
 	public sealed class AllocReportType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(794, value);
+		: Typed<BigInteger>(794, value);
 
 	/// <summary>FIX 795: AllocReportRefID (String).</summary>
 	public sealed class AllocReportRefID(string value)
-		: FixField<string>(795, value);
+		: Typed<string>(795, value);
 
 	/// <summary>FIX 796: AllocCancReplaceReason (int).</summary>
 	public sealed class AllocCancReplaceReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(796, value);
+		: Typed<BigInteger>(796, value);
 
 	/// <summary>FIX 797: CopyMsgIndicator (Boolean).</summary>
 	public sealed class CopyMsgIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(797, value);
+		: Typed<bool>(797, value);
 
 	/// <summary>FIX 798: AllocAccountType (int).</summary>
 	public sealed class AllocAccountType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(798, value);
+		: Typed<BigInteger>(798, value);
 
 	/// <summary>FIX 799: OrderAvgPx (Price).</summary>
 	public sealed class OrderAvgPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(799, value);
+		: Typed<FixDecimal>(799, value);
 
 	/// <summary>FIX 800: OrderBookingQty (Qty).</summary>
 	public sealed class OrderBookingQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(800, value);
+		: Typed<FixDecimal>(800, value);
 
 	/// <summary>FIX 801: NoSettlPartySubIDs (NumInGroup).</summary>
 	public sealed class NoSettlPartySubIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(801, value);
+		: Typed<BigInteger>(801, value);
 
 	/// <summary>FIX 802: NoPartySubIDs (NumInGroup).</summary>
 	public sealed class NoPartySubIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(802, value);
+		: Typed<BigInteger>(802, value);
 
 	/// <summary>FIX 803: PartySubIDType (int).</summary>
 	public sealed class PartySubIDType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(803, value);
+		: Typed<BigInteger>(803, value);
 
 	/// <summary>FIX 804: NoNestedPartySubIDs (NumInGroup).</summary>
 	public sealed class NoNestedPartySubIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(804, value);
+		: Typed<BigInteger>(804, value);
 
 	/// <summary>FIX 805: NestedPartySubIDType (int).</summary>
 	public sealed class NestedPartySubIDType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(805, value);
+		: Typed<BigInteger>(805, value);
 
 	/// <summary>FIX 806: NoNested2PartySubIDs (NumInGroup).</summary>
 	public sealed class NoNested2PartySubIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(806, value);
+		: Typed<BigInteger>(806, value);
 
 	/// <summary>FIX 807: Nested2PartySubIDType (int).</summary>
 	public sealed class Nested2PartySubIDType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(807, value);
+		: Typed<BigInteger>(807, value);
 
 	/// <summary>FIX 808: AllocIntermedReqType (int).</summary>
 	public sealed class AllocIntermedReqType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(808, value);
+		: Typed<BigInteger>(808, value);
 
 	/// <summary>FIX 810: UnderlyingPx (Price).</summary>
 	public sealed class UnderlyingPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(810, value);
+		: Typed<FixDecimal>(810, value);
 
 	/// <summary>FIX 811: PriceDelta (float).</summary>
 	public sealed class PriceDelta((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(811, value);
+		: Typed<FixDecimal>(811, value);
 
 	/// <summary>FIX 812: ApplQueueMax (int).</summary>
 	public sealed class ApplQueueMax((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(812, value);
+		: Typed<BigInteger>(812, value);
 
 	/// <summary>FIX 813: ApplQueueDepth (int).</summary>
 	public sealed class ApplQueueDepth((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(813, value);
+		: Typed<BigInteger>(813, value);
 
 	/// <summary>FIX 814: ApplQueueResolution (int).</summary>
 	public sealed class ApplQueueResolution((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(814, value);
+		: Typed<BigInteger>(814, value);
 
 	/// <summary>FIX 815: ApplQueueAction (int).</summary>
 	public sealed class ApplQueueAction((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(815, value);
+		: Typed<BigInteger>(815, value);
 
 	/// <summary>FIX 816: NoAltMDSource (NumInGroup).</summary>
 	public sealed class NoAltMDSource((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(816, value);
+		: Typed<BigInteger>(816, value);
 
 	/// <summary>FIX 817: AltMDSourceID (String).</summary>
 	public sealed class AltMDSourceID(string value)
-		: FixField<string>(817, value);
+		: Typed<string>(817, value);
 
 	/// <summary>FIX 818: SecondaryTradeReportID (String).</summary>
 	public sealed class SecondaryTradeReportID(string value)
-		: FixField<string>(818, value);
+		: Typed<string>(818, value);
 
 	/// <summary>FIX 819: AvgPxIndicator (int).</summary>
 	public sealed class AvgPxIndicator((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(819, value);
+		: Typed<BigInteger>(819, value);
 
 	/// <summary>FIX 820: TradeLinkID (String).</summary>
 	public sealed class TradeLinkID(string value)
-		: FixField<string>(820, value);
+		: Typed<string>(820, value);
 
 	/// <summary>FIX 821: OrderInputDevice (String).</summary>
 	public sealed class OrderInputDevice(string value)
-		: FixField<string>(821, value);
+		: Typed<string>(821, value);
 
 	/// <summary>FIX 822: UnderlyingTradingSessionID (String).</summary>
 	public sealed class UnderlyingTradingSessionID(string value)
-		: FixField<string>(822, value);
+		: Typed<string>(822, value);
 
 	/// <summary>FIX 823: UnderlyingTradingSessionSubID (String).</summary>
 	public sealed class UnderlyingTradingSessionSubID(string value)
-		: FixField<string>(823, value);
+		: Typed<string>(823, value);
 
 	/// <summary>FIX 824: TradeLegRefID (String).</summary>
 	public sealed class TradeLegRefID(string value)
-		: FixField<string>(824, value);
+		: Typed<string>(824, value);
 
 	/// <summary>FIX 825: ExchangeRule (String).</summary>
 	public sealed class ExchangeRule(string value)
-		: FixField<string>(825, value);
+		: Typed<string>(825, value);
 
 	/// <summary>FIX 826: TradeAllocIndicator (int).</summary>
 	public sealed class TradeAllocIndicator((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(826, value);
+		: Typed<BigInteger>(826, value);
 
 	/// <summary>FIX 827: ExpirationCycle (int).</summary>
 	public sealed class ExpirationCycle((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(827, value);
+		: Typed<BigInteger>(827, value);
 
 	/// <summary>FIX 828: TrdType (int).</summary>
 	public sealed class TrdType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(828, value);
+		: Typed<BigInteger>(828, value);
 
 	/// <summary>FIX 829: TrdSubType (int).</summary>
 	public sealed class TrdSubType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(829, value);
+		: Typed<BigInteger>(829, value);
 
 	/// <summary>FIX 830: TransferReason (String).</summary>
 	public sealed class TransferReason(string value)
-		: FixField<string>(830, value);
+		: Typed<string>(830, value);
 
 	/// <summary>FIX 832: TotNumAssignmentReports (int).</summary>
 	public sealed class TotNumAssignmentReports((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(832, value);
+		: Typed<BigInteger>(832, value);
 
 	/// <summary>FIX 833: AsgnRptID (String).</summary>
 	public sealed class AsgnRptID(string value)
-		: FixField<string>(833, value);
+		: Typed<string>(833, value);
 
 	/// <summary>FIX 834: ThresholdAmount (PriceOffset).</summary>
 	public sealed class ThresholdAmount((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(834, value);
+		: Typed<FixDecimal>(834, value);
 
 	/// <summary>FIX 835: PegMoveType (int).</summary>
 	public sealed class PegMoveType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(835, value);
+		: Typed<BigInteger>(835, value);
 
 	/// <summary>FIX 836: PegOffsetType (int).</summary>
 	public sealed class PegOffsetType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(836, value);
+		: Typed<BigInteger>(836, value);
 
 	/// <summary>FIX 837: PegLimitType (int).</summary>
 	public sealed class PegLimitType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(837, value);
+		: Typed<BigInteger>(837, value);
 
 	/// <summary>FIX 838: PegRoundDirection (int).</summary>
 	public sealed class PegRoundDirection((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(838, value);
+		: Typed<BigInteger>(838, value);
 
 	/// <summary>FIX 839: PeggedPrice (Price).</summary>
 	public sealed class PeggedPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(839, value);
+		: Typed<FixDecimal>(839, value);
 
 	/// <summary>FIX 840: PegScope (int).</summary>
 	public sealed class PegScope((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(840, value);
+		: Typed<BigInteger>(840, value);
 
 	/// <summary>FIX 841: DiscretionMoveType (int).</summary>
 	public sealed class DiscretionMoveType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(841, value);
+		: Typed<BigInteger>(841, value);
 
 	/// <summary>FIX 842: DiscretionOffsetType (int).</summary>
 	public sealed class DiscretionOffsetType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(842, value);
+		: Typed<BigInteger>(842, value);
 
 	/// <summary>FIX 843: DiscretionLimitType (int).</summary>
 	public sealed class DiscretionLimitType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(843, value);
+		: Typed<BigInteger>(843, value);
 
 	/// <summary>FIX 844: DiscretionRoundDirection (int).</summary>
 	public sealed class DiscretionRoundDirection((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(844, value);
+		: Typed<BigInteger>(844, value);
 
 	/// <summary>FIX 845: DiscretionPrice (Price).</summary>
 	public sealed class DiscretionPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(845, value);
+		: Typed<FixDecimal>(845, value);
 
 	/// <summary>FIX 846: DiscretionScope (int).</summary>
 	public sealed class DiscretionScope((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(846, value);
+		: Typed<BigInteger>(846, value);
 
 	/// <summary>FIX 847: TargetStrategy (int).</summary>
 	public sealed class TargetStrategy((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(847, value);
+		: Typed<BigInteger>(847, value);
 
 	/// <summary>FIX 848: TargetStrategyParameters (String).</summary>
 	public sealed class TargetStrategyParameters(string value)
-		: FixField<string>(848, value);
+		: Typed<string>(848, value);
 
 	/// <summary>FIX 849: ParticipationRate (Percentage).</summary>
 	public sealed class ParticipationRate((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(849, value);
+		: Typed<FixDecimal>(849, value);
 
 	/// <summary>FIX 850: TargetStrategyPerformance (float).</summary>
 	public sealed class TargetStrategyPerformance((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(850, value);
+		: Typed<FixDecimal>(850, value);
 
 	/// <summary>FIX 851: LastLiquidityInd (int).</summary>
 	public sealed class LastLiquidityInd((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(851, value);
+		: Typed<BigInteger>(851, value);
 
 	/// <summary>FIX 852: PublishTrdIndicator (Boolean).</summary>
 	public sealed class PublishTrdIndicator((bool Valid, bool Value) value)
-		: FixField<bool>(852, value);
+		: Typed<bool>(852, value);
 
 	/// <summary>FIX 853: ShortSaleReason (int).</summary>
 	public sealed class ShortSaleReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(853, value);
+		: Typed<BigInteger>(853, value);
 
 	/// <summary>FIX 854: QtyType (int).</summary>
 	public sealed class QtyType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(854, value);
+		: Typed<BigInteger>(854, value);
 
 	/// <summary>FIX 855: SecondaryTrdType (int).</summary>
 	public sealed class SecondaryTrdType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(855, value);
+		: Typed<BigInteger>(855, value);
 
 	/// <summary>FIX 856: TradeReportType (int).</summary>
 	public sealed class TradeReportType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(856, value);
+		: Typed<BigInteger>(856, value);
 
 	/// <summary>FIX 857: AllocNoOrdersType (int).</summary>
 	public sealed class AllocNoOrdersType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(857, value);
+		: Typed<BigInteger>(857, value);
 
 	/// <summary>FIX 858: SharedCommission (Amt).</summary>
 	public sealed class SharedCommission((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(858, value);
+		: Typed<FixDecimal>(858, value);
 
 	/// <summary>FIX 859: ConfirmReqID (String).</summary>
 	public sealed class ConfirmReqID(string value)
-		: FixField<string>(859, value);
+		: Typed<string>(859, value);
 
 	/// <summary>FIX 860: AvgParPx (Price).</summary>
 	public sealed class AvgParPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(860, value);
+		: Typed<FixDecimal>(860, value);
 
 	/// <summary>FIX 861: ReportedPx (Price).</summary>
 	public sealed class ReportedPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(861, value);
+		: Typed<FixDecimal>(861, value);
 
 	/// <summary>FIX 862: NoCapacities (NumInGroup).</summary>
 	public sealed class NoCapacities((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(862, value);
+		: Typed<BigInteger>(862, value);
 
 	/// <summary>FIX 863: OrderCapacityQty (Qty).</summary>
 	public sealed class OrderCapacityQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(863, value);
+		: Typed<FixDecimal>(863, value);
 
 	/// <summary>FIX 864: NoEvents (NumInGroup).</summary>
 	public sealed class NoEvents((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(864, value);
+		: Typed<BigInteger>(864, value);
 
 	/// <summary>FIX 865: EventType (int).</summary>
 	public sealed class EventType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(865, value);
+		: Typed<BigInteger>(865, value);
 
 	/// <summary>FIX 866: EventDate (LocalMktDate).</summary>
 	public sealed class EventDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(866, value);
+		: Typed<FixDate>(866, value);
 
 	/// <summary>FIX 867: EventPx (Price).</summary>
 	public sealed class EventPx((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(867, value);
+		: Typed<FixDecimal>(867, value);
 
 	/// <summary>FIX 868: EventText (String).</summary>
 	public sealed class EventText(string value)
-		: FixField<string>(868, value);
+		: Typed<string>(868, value);
 
 	/// <summary>FIX 869: PctAtRisk (Percentage).</summary>
 	public sealed class PctAtRisk((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(869, value);
+		: Typed<FixDecimal>(869, value);
 
 	/// <summary>FIX 870: NoInstrAttrib (NumInGroup).</summary>
 	public sealed class NoInstrAttrib((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(870, value);
+		: Typed<BigInteger>(870, value);
 
 	/// <summary>FIX 871: InstrAttribType (int).</summary>
 	public sealed class InstrAttribType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(871, value);
+		: Typed<BigInteger>(871, value);
 
 	/// <summary>FIX 872: InstrAttribValue (String).</summary>
 	public sealed class InstrAttribValue(string value)
-		: FixField<string>(872, value);
+		: Typed<string>(872, value);
 
 	/// <summary>FIX 873: DatedDate (LocalMktDate).</summary>
 	public sealed class DatedDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(873, value);
+		: Typed<FixDate>(873, value);
 
 	/// <summary>FIX 874: InterestAccrualDate (LocalMktDate).</summary>
 	public sealed class InterestAccrualDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(874, value);
+		: Typed<FixDate>(874, value);
 
 	/// <summary>FIX 875: CPProgram (int).</summary>
 	public sealed class CPProgram((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(875, value);
+		: Typed<BigInteger>(875, value);
 
 	/// <summary>FIX 876: CPRegType (String).</summary>
 	public sealed class CPRegType(string value)
-		: FixField<string>(876, value);
+		: Typed<string>(876, value);
 
 	/// <summary>FIX 877: UnderlyingCPProgram (String).</summary>
 	public sealed class UnderlyingCPProgram(string value)
-		: FixField<string>(877, value);
+		: Typed<string>(877, value);
 
 	/// <summary>FIX 878: UnderlyingCPRegType (String).</summary>
 	public sealed class UnderlyingCPRegType(string value)
-		: FixField<string>(878, value);
+		: Typed<string>(878, value);
 
 	/// <summary>FIX 879: UnderlyingQty (Qty).</summary>
 	public sealed class UnderlyingQty((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(879, value);
+		: Typed<FixDecimal>(879, value);
 
 	/// <summary>FIX 880: TrdMatchID (String).</summary>
 	public sealed class TrdMatchID(string value)
-		: FixField<string>(880, value);
+		: Typed<string>(880, value);
 
 	/// <summary>FIX 881: SecondaryTradeReportRefID (String).</summary>
 	public sealed class SecondaryTradeReportRefID(string value)
-		: FixField<string>(881, value);
+		: Typed<string>(881, value);
 
 	/// <summary>FIX 882: UnderlyingDirtyPrice (Price).</summary>
 	public sealed class UnderlyingDirtyPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(882, value);
+		: Typed<FixDecimal>(882, value);
 
 	/// <summary>FIX 883: UnderlyingEndPrice (Price).</summary>
 	public sealed class UnderlyingEndPrice((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(883, value);
+		: Typed<FixDecimal>(883, value);
 
 	/// <summary>FIX 884: UnderlyingStartValue (Amt).</summary>
 	public sealed class UnderlyingStartValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(884, value);
+		: Typed<FixDecimal>(884, value);
 
 	/// <summary>FIX 885: UnderlyingCurrentValue (Amt).</summary>
 	public sealed class UnderlyingCurrentValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(885, value);
+		: Typed<FixDecimal>(885, value);
 
 	/// <summary>FIX 886: UnderlyingEndValue (Amt).</summary>
 	public sealed class UnderlyingEndValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(886, value);
+		: Typed<FixDecimal>(886, value);
 
 	/// <summary>FIX 887: NoUnderlyingStips (NumInGroup).</summary>
 	public sealed class NoUnderlyingStips((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(887, value);
+		: Typed<BigInteger>(887, value);
 
 	/// <summary>FIX 888: UnderlyingStipType (String).</summary>
 	public sealed class UnderlyingStipType(string value)
-		: FixField<string>(888, value);
+		: Typed<string>(888, value);
 
 	/// <summary>FIX 889: UnderlyingStipValue (String).</summary>
 	public sealed class UnderlyingStipValue(string value)
-		: FixField<string>(889, value);
+		: Typed<string>(889, value);
 
 	/// <summary>FIX 890: MaturityNetMoney (Amt).</summary>
 	public sealed class MaturityNetMoney((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(890, value);
+		: Typed<FixDecimal>(890, value);
 
 	/// <summary>FIX 891: MiscFeeBasis (int).</summary>
 	public sealed class MiscFeeBasis((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(891, value);
+		: Typed<BigInteger>(891, value);
 
 	/// <summary>FIX 892: TotNoAllocs (int).</summary>
 	public sealed class TotNoAllocs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(892, value);
+		: Typed<BigInteger>(892, value);
 
 	/// <summary>FIX 893: LastFragment (Boolean).</summary>
 	public sealed class LastFragment((bool Valid, bool Value) value)
-		: FixField<bool>(893, value);
+		: Typed<bool>(893, value);
 
 	/// <summary>FIX 894: CollReqID (String).</summary>
 	public sealed class CollReqID(string value)
-		: FixField<string>(894, value);
+		: Typed<string>(894, value);
 
 	/// <summary>FIX 895: CollAsgnReason (int).</summary>
 	public sealed class CollAsgnReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(895, value);
+		: Typed<BigInteger>(895, value);
 
 	/// <summary>FIX 896: CollInquiryQualifier (int).</summary>
 	public sealed class CollInquiryQualifier((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(896, value);
+		: Typed<BigInteger>(896, value);
 
 	/// <summary>FIX 897: NoTrades (NumInGroup).</summary>
 	public sealed class NoTrades((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(897, value);
+		: Typed<BigInteger>(897, value);
 
 	/// <summary>FIX 898: MarginRatio (Percentage).</summary>
 	public sealed class MarginRatio((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(898, value);
+		: Typed<FixDecimal>(898, value);
 
 	/// <summary>FIX 899: MarginExcess (Amt).</summary>
 	public sealed class MarginExcess((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(899, value);
+		: Typed<FixDecimal>(899, value);
 
 	/// <summary>FIX 900: TotalNetValue (Amt).</summary>
 	public sealed class TotalNetValue((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(900, value);
+		: Typed<FixDecimal>(900, value);
 
 	/// <summary>FIX 901: CashOutstanding (Amt).</summary>
 	public sealed class CashOutstanding((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(901, value);
+		: Typed<FixDecimal>(901, value);
 
 	/// <summary>FIX 902: CollAsgnID (String).</summary>
 	public sealed class CollAsgnID(string value)
-		: FixField<string>(902, value);
+		: Typed<string>(902, value);
 
 	/// <summary>FIX 903: CollAsgnTransType (int).</summary>
 	public sealed class CollAsgnTransType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(903, value);
+		: Typed<BigInteger>(903, value);
 
 	/// <summary>FIX 904: CollRespID (String).</summary>
 	public sealed class CollRespID(string value)
-		: FixField<string>(904, value);
+		: Typed<string>(904, value);
 
 	/// <summary>FIX 905: CollAsgnRespType (int).</summary>
 	public sealed class CollAsgnRespType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(905, value);
+		: Typed<BigInteger>(905, value);
 
 	/// <summary>FIX 906: CollAsgnRejectReason (int).</summary>
 	public sealed class CollAsgnRejectReason((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(906, value);
+		: Typed<BigInteger>(906, value);
 
 	/// <summary>FIX 907: CollAsgnRefID (String).</summary>
 	public sealed class CollAsgnRefID(string value)
-		: FixField<string>(907, value);
+		: Typed<string>(907, value);
 
 	/// <summary>FIX 908: CollRptID (String).</summary>
 	public sealed class CollRptID(string value)
-		: FixField<string>(908, value);
+		: Typed<string>(908, value);
 
 	/// <summary>FIX 909: CollInquiryID (String).</summary>
 	public sealed class CollInquiryID(string value)
-		: FixField<string>(909, value);
+		: Typed<string>(909, value);
 
 	/// <summary>FIX 910: CollStatus (int).</summary>
 	public sealed class CollStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(910, value);
+		: Typed<BigInteger>(910, value);
 
 	/// <summary>FIX 911: TotNumReports (int).</summary>
 	public sealed class TotNumReports((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(911, value);
+		: Typed<BigInteger>(911, value);
 
 	/// <summary>FIX 912: LastRptRequested (Boolean).</summary>
 	public sealed class LastRptRequested((bool Valid, bool Value) value)
-		: FixField<bool>(912, value);
+		: Typed<bool>(912, value);
 
 	/// <summary>FIX 913: AgreementDesc (String).</summary>
 	public sealed class AgreementDesc(string value)
-		: FixField<string>(913, value);
+		: Typed<string>(913, value);
 
 	/// <summary>FIX 914: AgreementID (String).</summary>
 	public sealed class AgreementID(string value)
-		: FixField<string>(914, value);
+		: Typed<string>(914, value);
 
 	/// <summary>FIX 915: AgreementDate (LocalMktDate).</summary>
 	public sealed class AgreementDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(915, value);
+		: Typed<FixDate>(915, value);
 
 	/// <summary>FIX 916: StartDate (LocalMktDate).</summary>
 	public sealed class StartDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(916, value);
+		: Typed<FixDate>(916, value);
 
 	/// <summary>FIX 917: EndDate (LocalMktDate).</summary>
 	public sealed class EndDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(917, value);
+		: Typed<FixDate>(917, value);
 
 	/// <summary>FIX 918: AgreementCurrency (Currency).</summary>
 	public sealed class AgreementCurrency(string value)
-		: FixField<string>(918, value);
+		: Typed<string>(918, value);
 
 	/// <summary>FIX 919: DeliveryType (int).</summary>
 	public sealed class DeliveryType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(919, value);
+		: Typed<BigInteger>(919, value);
 
 	/// <summary>FIX 920: EndAccruedInterestAmt (Amt).</summary>
 	public sealed class EndAccruedInterestAmt((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(920, value);
+		: Typed<FixDecimal>(920, value);
 
 	/// <summary>FIX 921: StartCash (Amt).</summary>
 	public sealed class StartCash((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(921, value);
+		: Typed<FixDecimal>(921, value);
 
 	/// <summary>FIX 922: EndCash (Amt).</summary>
 	public sealed class EndCash((bool Valid, FixDecimal Value) value)
-		: FixField<FixDecimal>(922, value);
+		: Typed<FixDecimal>(922, value);
 
 	/// <summary>FIX 923: UserRequestID (String).</summary>
 	public sealed class UserRequestID(string value)
-		: FixField<string>(923, value);
+		: Typed<string>(923, value);
 
 	/// <summary>FIX 924: UserRequestType (int).</summary>
 	public sealed class UserRequestType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(924, value);
+		: Typed<BigInteger>(924, value);
 
 	/// <summary>FIX 925: NewPassword (String).</summary>
 	public sealed class NewPassword(string value)
-		: FixField<string>(925, value);
+		: Typed<string>(925, value);
 
 	/// <summary>FIX 926: UserStatus (int).</summary>
 	public sealed class UserStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(926, value);
+		: Typed<BigInteger>(926, value);
 
 	/// <summary>FIX 927: UserStatusText (String).</summary>
 	public sealed class UserStatusText(string value)
-		: FixField<string>(927, value);
+		: Typed<string>(927, value);
 
 	/// <summary>FIX 928: StatusValue (int).</summary>
 	public sealed class StatusValue((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(928, value);
+		: Typed<BigInteger>(928, value);
 
 	/// <summary>FIX 929: StatusText (String).</summary>
 	public sealed class StatusText(string value)
-		: FixField<string>(929, value);
+		: Typed<string>(929, value);
 
 	/// <summary>FIX 930: RefCompID (String).</summary>
 	public sealed class RefCompID(string value)
-		: FixField<string>(930, value);
+		: Typed<string>(930, value);
 
 	/// <summary>FIX 931: RefSubID (String).</summary>
 	public sealed class RefSubID(string value)
-		: FixField<string>(931, value);
+		: Typed<string>(931, value);
 
 	/// <summary>FIX 932: NetworkResponseID (String).</summary>
 	public sealed class NetworkResponseID(string value)
-		: FixField<string>(932, value);
+		: Typed<string>(932, value);
 
 	/// <summary>FIX 933: NetworkRequestID (String).</summary>
 	public sealed class NetworkRequestID(string value)
-		: FixField<string>(933, value);
+		: Typed<string>(933, value);
 
 	/// <summary>FIX 934: LastNetworkResponseID (String).</summary>
 	public sealed class LastNetworkResponseID(string value)
-		: FixField<string>(934, value);
+		: Typed<string>(934, value);
 
 	/// <summary>FIX 935: NetworkRequestType (int).</summary>
 	public sealed class NetworkRequestType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(935, value);
+		: Typed<BigInteger>(935, value);
 
 	/// <summary>FIX 936: NoCompIDs (NumInGroup).</summary>
 	public sealed class NoCompIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(936, value);
+		: Typed<BigInteger>(936, value);
 
 	/// <summary>FIX 937: NetworkStatusResponseType (int).</summary>
 	public sealed class NetworkStatusResponseType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(937, value);
+		: Typed<BigInteger>(937, value);
 
 	/// <summary>FIX 938: NoCollInquiryQualifier (NumInGroup).</summary>
 	public sealed class NoCollInquiryQualifier((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(938, value);
+		: Typed<BigInteger>(938, value);
 
 	/// <summary>FIX 939: TrdRptStatus (int).</summary>
 	public sealed class TrdRptStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(939, value);
+		: Typed<BigInteger>(939, value);
 
 	/// <summary>FIX 940: AffirmStatus (int).</summary>
 	public sealed class AffirmStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(940, value);
+		: Typed<BigInteger>(940, value);
 
 	/// <summary>FIX 941: UnderlyingStrikeCurrency (Currency).</summary>
 	public sealed class UnderlyingStrikeCurrency(string value)
-		: FixField<string>(941, value);
+		: Typed<string>(941, value);
 
 	/// <summary>FIX 942: LegStrikeCurrency (Currency).</summary>
 	public sealed class LegStrikeCurrency(string value)
-		: FixField<string>(942, value);
+		: Typed<string>(942, value);
 
 	/// <summary>FIX 943: TimeBracket (String).</summary>
 	public sealed class TimeBracket(string value)
-		: FixField<string>(943, value);
+		: Typed<string>(943, value);
 
 	/// <summary>FIX 944: CollAction (int).</summary>
 	public sealed class CollAction((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(944, value);
+		: Typed<BigInteger>(944, value);
 
 	/// <summary>FIX 945: CollInquiryStatus (int).</summary>
 	public sealed class CollInquiryStatus((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(945, value);
+		: Typed<BigInteger>(945, value);
 
 	/// <summary>FIX 946: CollInquiryResult (int).</summary>
 	public sealed class CollInquiryResult((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(946, value);
+		: Typed<BigInteger>(946, value);
 
 	/// <summary>FIX 947: StrikeCurrency (Currency).</summary>
 	public sealed class StrikeCurrency(string value)
-		: FixField<string>(947, value);
+		: Typed<string>(947, value);
 
 	/// <summary>FIX 948: NoNested3PartyIDs (NumInGroup).</summary>
 	public sealed class NoNested3PartyIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(948, value);
+		: Typed<BigInteger>(948, value);
 
 	/// <summary>FIX 949: Nested3PartyID (String).</summary>
 	public sealed class Nested3PartyID(string value)
-		: FixField<string>(949, value);
+		: Typed<string>(949, value);
 
 	/// <summary>FIX 950: Nested3PartyIDSource (char).</summary>
 	public sealed class Nested3PartyIDSource((bool Valid, char Value) value)
-		: FixField<char>(950, value);
+		: Typed<char>(950, value);
 
 	/// <summary>FIX 951: Nested3PartyRole (int).</summary>
 	public sealed class Nested3PartyRole((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(951, value);
+		: Typed<BigInteger>(951, value);
 
 	/// <summary>FIX 952: NoNested3PartySubIDs (NumInGroup).</summary>
 	public sealed class NoNested3PartySubIDs((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(952, value);
+		: Typed<BigInteger>(952, value);
 
 	/// <summary>FIX 953: Nested3PartySubID (String).</summary>
 	public sealed class Nested3PartySubID(string value)
-		: FixField<string>(953, value);
+		: Typed<string>(953, value);
 
 	/// <summary>FIX 954: Nested3PartySubIDType (int).</summary>
 	public sealed class Nested3PartySubIDType((bool Valid, BigInteger Value) value)
-		: FixField<BigInteger>(954, value);
+		: Typed<BigInteger>(954, value);
 
 	/// <summary>FIX 955: LegContractSettlMonth (MonthYear).</summary>
 	public sealed class LegContractSettlMonth((bool Valid, FixMonthYear Value) value)
-		: FixField<FixMonthYear>(955, value);
+		: Typed<FixMonthYear>(955, value);
 
 	/// <summary>FIX 956: LegInterestAccrualDate (LocalMktDate).</summary>
 	public sealed class LegInterestAccrualDate((bool Valid, FixDate Value) value)
-		: FixField<FixDate>(956, value);
+		: Typed<FixDate>(956, value);
 }
