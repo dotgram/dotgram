@@ -118,13 +118,12 @@ Recovery remains on the collection and classifies invalid first tokens without a
 atomic lookahead marker; EOF ends the collection.
 
 `Separator` is a rule. The pipe publication uses
-`with (Separator = LogSeparator, Text = LogText)`, where
-`LogSeparator = ' '* & '|' & ' '*`. Wire text uses `[^ '\u0001']+`.
-`LogText = @ReadLogText` scans to a pipe once, tracking the last non-space
-position. At a pipe it leaves trailing ASCII spaces for `Separator`; at EOF it
-retains them as text. This avoids repeated separator lookahead through space runs.
-The recognizer has character and byte overloads and preserves source coordinates.
-Binary payloads are still length-delimited and are never trimmed.
+`with (Separator = LogSeparator)`, where `LogSeparator = ' '* & '|' & ' '*`.
+`Text = (?!Separator & any)+` is recognized by the generator as a delimiter scan.
+The SOH case becomes a complemented character test; the padded-pipe case scans
+linearly while tracking the start of trailing spaces. EOF spaces remain text.
+There is no handwritten text recognizer in Finance. Source coordinates and
+length-delimited binary payloads are preserved.
 
 The parser host requests native character spans and buffered byte/character input.
 Handwritten conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> overloads.

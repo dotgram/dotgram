@@ -300,8 +300,8 @@ structural SOH with one pipe without adding formatting spaces, so BodyLength and
 CheckSum can still be verified.
 
 The common grammar declares `Separator` and specializes the log publication with
-`with (Separator = LogSeparator, Text = LogText)`. Text termination is specialized
-separately from separator formatting.
+`with (Separator = LogSeparator)`. The generator recognizes the guarded text run
+`(?!Separator & any)+` and emits a linear scan for these delimiters.
 Only structural SOH separators are rendered as pipes. Raw-data payload octets must
 remain untouched; a log that replaces or escapes payload bytes is not lossless and
 requires its own decoding before this API. Arbitrary log prefixes are not accepted.

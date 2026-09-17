@@ -368,3 +368,34 @@ rule and is not measured by these valid-input workloads.
 frameworks build, the benchmark project builds, and all 3835 Finance tests pass,
 including long internal/padding/EOF space runs, source coordinates, empty values,
 recovery, binary payloads and one-byte input chunks.
+
+## Generated delimiter scan: 2026-09-17
+
+Finance again declares `Text = (?!Separator & any)+`; its handwritten text
+recognizers have been removed. The generator recognizes single-character guards
+and unbounded padded-character delimiters, emitting ordinary run backtracking
+plus a linear scan. See `Machine.Delimiter.cs` and the implementation document
+for eligibility and fallback rules.
+
+The paired probe compares the unchanged padded grammar from `27cd67f2` against
+that grammar with the generator optimization. All rows use identical inputs.
+No builds or tests ran concurrently with this measurement.
+
+| Workload | New / previous time | Approximate improvement |
+| --- | ---: | ---: |
+| Short logs | 0.77-0.84 | 16-23% less time |
+| Order logs | 0.68-0.75 | 25-32% less time |
+| Long text logs | 0.034-0.072 | 14-29 times faster |
+| Logs with 1024 internal spaces | 0.0031-0.0042 | 241-328 times faster |
+
+Allocations remain unchanged. These are diagnostic medians across string,
+TextReader and Stream paths, not confidence intervals. [Full results](results/log-generated-scan-2026-09-17.csv).
+
+Validation: all 3835 Finance tests pass. The generator suite ran 8373 tests;
+15 failures caused by the temporary binary location passed when rerun from the
+repository's usual directory structure (54 tests in those classes, all passing).
+The remaining 12 failures concern pre-existing switch result-type inference:
+all 12 reproduce with the unmodified generator from `4fb923fb`. There are no
+new failures. The 12 delimiter tests compare results, rollback and diagnostics
+with an unoptimized equivalent, including EOF, bounds, publication specialization,
+unsupported patterns and single-byte reads. Their generated code compiles at C# 8.
