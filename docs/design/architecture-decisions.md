@@ -160,7 +160,7 @@ character reading. Each report gives time exclusive of the factories both parser
 that the two causes are sized against each other and not against the work the hand parser
 also does.
 
-### Q2. A contiguous byte input
+### Q2. Contiguous input: characters and bytes
 
 Raised 2026-09-17 by performance-3f. Language and public API: Igor's decision first, then
 the architect's review.
@@ -171,3 +171,15 @@ also offers a `ReadOnlyMemory<byte>` overload, fed to the existing buffered-byte
 The review will ask how much of the Bytes gap is the adapter and copy, which this removes,
 and how much is the buffered machine's own checks, which it keeps; the Text form, read from a
 contiguous span, is the measure of the second.
+
+**Characters too, and the language already promises them.** Raised 2026-09-17 by finance-03:
+`FixParser.Parse(ReadOnlySpan<char>)` copies the input to a string and calls the string form,
+and `HandFixParser` does the same. `syntax.md` §6.3 lists `ReadOnlySpan<char>` beside
+`string` as an input the generated overloads take; no emitted parser offers it. So the
+character half of Q2 is completing the specification, not new API, and is designed with the
+byte half as one question: a span for a whole-result `parse`, a memory for anything that
+outlives the call (`yield`, a lazy context). Owner: performance-3f.
+
+Until then finance-03 documents the copy on both span overloads, as `FixMessages.Parse`
+already does (approved: comments only, no signature or emitted code changes). Removing the
+overloads was refused: it would be a breaking change out and another one back.
