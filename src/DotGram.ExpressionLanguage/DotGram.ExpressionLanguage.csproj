@@ -44,6 +44,11 @@
 
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
+
+		<!-- The skill beside it, so that an agent working in a project that has restored
+		     this package can read how to use it without leaving the machine. The README
+		     says where it is, in a comment nothing renders. -->
+		<None Include="SKILL.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>

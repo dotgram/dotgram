@@ -1,3 +1,9 @@
+<!--
+  Agents: the skill for this package is SKILL.md, beside this file in the package
+  directory — which entry point to use, who is calling, how names are found, what a text
+  may say and where it is not C#. Read it before writing code against the package. In a
+  restored package that is ~/.nuget/packages/dotgram.expressionlanguage/<version>/SKILL.md.
+-->
 # DotGram.ExpressionLanguage
 
 A C#-style expression language written in `.gram`, compiled into `System.Linq.Expressions`
@@ -69,9 +75,12 @@ var count = ExpressionParser.Compile<Func<IList<int>, int>>(
 ```
 
 Conversions, operators and overloads follow C#'s rules: `x + 1.5` over an `int` is a
-`double`, `byte b = 1` fits, and `Math.Sqrt(x)` finds the `double` overload. Where it is
-not C# — no generic or extension method is called, and a constant is folded only across a
-minus — is written down, with the reason for each, at the top of the file below.
+`double`, `byte b = 1` fits, and `Math.Sqrt(x)` finds the `double` overload. A generic
+method takes its type arguments from its arguments, an extension method is found through a
+`using`, and a lambda that says no types takes them from the overload it is handed to, so
+`a.Where(n => n > 1).Sum()` reads as it does in C#. Where it is not C# — a method is never
+called with its type arguments written, and a constant is folded only across a minus — is
+written down, with the reason for each, at the top of the file below.
 
 The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
 AST specific to .Gram that must later be translated into an expression tree — which also
