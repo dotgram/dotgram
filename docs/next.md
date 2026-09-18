@@ -23192,3 +23192,45 @@ two-pass recognize-then-materialize shape, the trivia rule between every pair of
 measures ten times the handwritten skip loop per character, though at 0.066 us a character it is
 small beside an operand. Which of those it is needs a profiler over the generated parser, which is
 the performance session's instrument, and the numbers above went to it.
+
+## The floor of a parse, and what the 24us was
+
+The intercept of the select-item family was read, by the performance session and by me, as a cost
+paid on entry — and from an intercept alone that is a guess, not a measurement. It also holds the
+SELECT, the FROM and a whole table reference. So the floor was measured directly, by publishing
+ever smaller productions and reading a corpus of each: 2,000 lines a point, medians of three
+alternating runs for the small ones, spread under 3 per cent (`.work/sql-perf/floor.py`,
+`floor-repeat.py`).
+
+| production | input | generated | by hand | ratio |
+|---|---|---|---|---|
+| `<literal>` | `1` | 0.90 us | 0.10 | 9.0x |
+| `<table name>` | `t` | 1.53 us | 0.13 | 11.8x |
+| `<identifier>` | `a` | 3.56 us | 0.10 | 35.5x |
+| `<column reference>` | `a` | 4.16 us | 0.15 | 27.7x |
+| `<data type>` | `INT` | 3.16 us | 0.16 | 19.8x |
+| `<query expression>` | `TABLE t` | 5.49 us | 0.38 | 14.4x |
+| `<query expression>` | `VALUES (1)` | 36.71 us | 1.96 | 18.8x |
+| `<query expression>` | `SELECT a FROM t` | 33.19 us | 2.58 | 12.8x |
+| `<query expression>` | `SELECT a, a FROM t` | 41.72 us | 4.08 | 10.2x |
+
+That batch ran about 9 per cent above the earlier calibration and the handwritten side moved with
+it, so it is machine drift; the ladder compares with itself.
+
+**There is no per-parse setup worth the name.** A whole parse of `1` is 0.90 us — the same order as
+FIX's entire one-field parse. Nothing proportional to the grammar's size is built per call. The 24
+us splits into about 1 us of entry, about 5 to reach the smallest query at all, and about 19 that
+the select frame's own rules spend — select list, table expression, from clause, table reference.
+Frame and items are one mechanism at two rule counts, which is the opposite of what an intercept
+invited us to believe.
+
+**A rule costs less than the rule it contains.** `<table name>` reads `t` in 1.53 us; `<identifier>`
+reads `a` in 3.56, published on its own — 2.3x for strictly less work, one token either way. The
+generator writes a way in three times, and the suspect is that a published entry point and an inner
+call do not always get the same one. If that is it, it is a lever on every publication, and
+identifiers are the most-read rule in the grammar.
+
+**`VALUES (1)` costs more than a whole select.** 36.71 us against 33.19, for fewer tokens and a
+smaller tree. The row value constructor path has something in it.
+
+All three went to the performance session, whose profiler can say which of them is machinery.
