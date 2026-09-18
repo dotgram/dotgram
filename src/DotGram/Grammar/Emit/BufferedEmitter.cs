@@ -215,13 +215,38 @@ public static partial class CSharpEmitter
 				Forward(value, method);
 			}
 		}
+		// A buffered lazy overload is not the iterator itself. An iterator keeps each parameter
+		// twice, so int? made its object 16 bytes larger a call (measured, D9), and a check made
+		// inside it waits for the first MoveNext. The overload resolves the defaults and checks
+		// its arguments at the call, then hands plain ints to a private iterator.
+		var lazyConstruct = buffered ? "(input, bufferSize, maxRetained)" : construct;
+
+		string Lazily(string returns)
+		{
+			if (!buffered)
+				return $"{AccessOf(publication)} static {returns} {method}({inputType} input{context})";
+
+			var iterator = "Iterate_DotGram_" + method;
+
+			using (file.Block($"{AccessOf(publication)} static {returns} {method}({inputType} input{context}{parameters})"))
+			{
+				file.Line("if (input == null) throw new global::System.ArgumentNullException(nameof(input));");
+				file.Line("var capacity = bufferSize ?? DefaultBufferSize;");
+				file.Line("var limit = maxRetained ?? DefaultMaxRetained;");
+				file.Line("if (capacity <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(bufferSize));");
+				file.Line("if (limit <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(maxRetained));");
+				file.Line($"return {iterator}(input{(machine.UsesContext ? ", context" : "")}, capacity, limit);");
+			}
+
+			return $"private static {returns} {iterator}({inputType} input{context}, int bufferSize, int maxRetained)";
+		}
+
 		if (publication.Kind == PublishKind.Yield)
 		{
 			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
-			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}> {method}(" +
-				$"{inputType} input{context}{parameters})"))
+			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>")))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{construct};");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{lazyConstruct};");
 				file.Line("var start = 0;");
 				if (publication.YieldRecovery) file.Line("var ordinal = 0;");
 				if (publication.YieldMinimum > 0)
@@ -245,10 +270,9 @@ public static partial class CSharpEmitter
 			var retain = Locating(graph) || Reaches(graph, publication.Rule).Any(rule =>
 				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
-			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
-				$"{inputType} input{context}{parameters})"))
+			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{match}>")))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{construct};");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{lazyConstruct};");
 				file.Line("var start = 0;");
 				using (file.Block("while (true)"))
 				{

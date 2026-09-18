@@ -74,6 +74,36 @@ public sealed class BufferedInputTests
 		Assert.Contains("maxRetained", error.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A lazy overload checks its buffer arguments when it is called, not at the first element.
+	/// </summary>
+	[Theory]
+	[InlineData("Each", false, 0, 8)]
+	[InlineData("Each", true, -1, 8)]
+	[InlineData("Each", false, 4, 0)]
+	[InlineData("Each", true, 4, -1)]
+	[InlineData("Found", false, 0, 8)]
+	[InlineData("Found", true, 4, -1)]
+	public void A_lazy_overload_refuses_a_buffer_of_nothing_at_the_call(string method, bool bytes, int bufferSize, int maxRetained)
+	{
+		var result = GramCompiler.Compile("""
+			Row : @int = t: ['a'..'z']+ & ';' => @(t.Length)
+			Rows : @int[] = Row*
+			parse Rows as Each stream bytes yield : @int
+			find Row as Found stream bytes
+			""", new GramCompilerOptions { BufferedInput = true, CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(result.Diagnostics);
+		var host   = EmittedCode.Compile(Assert.Single(result.Sources).Text).GetType("Grammar")!;
+		var domain = bytes ? typeof(Stream) : typeof(TextReader);
+		var input  = bytes ? (object)new MemoryStream(new byte[] { 97, 59 }) : new StringReader("a;");
+
+		// The call alone, never enumerated: the refusal comes from the overload, not the iterator.
+		var thrown = Assert.Throws<TargetInvocationException>(() =>
+			host.GetMethod(method, [domain, typeof(int?), typeof(int?)])!.Invoke(null, [input, bufferSize, maxRetained]));
+		var refused = Assert.IsType<ArgumentOutOfRangeException>(thrown.InnerException);
+		Assert.Equal(bufferSize <= 0 ? "bufferSize" : "maxRetained", refused.ParamName);
+	}
+
 	/// <summary>Bytes already in memory are read in place, and answer what the stream does.</summary>
 	[Fact]
 	public void Bytes_in_memory_read_as_the_stream_does()
