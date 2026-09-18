@@ -676,3 +676,37 @@ rebuilt; nested brackets at depth 1, 2, 4 and 8 build 54, 67, 93 and 145, drop 2
 every depth; accepted fuzz queries 1.65 rebuilt of 67.5 (2.4%, an upper bound, since the probe's
 key could only be the rule and its factory); accepted DDL 0.3%. A refused parse drops everything
 it built, which is what refusing means. Counted, not timed; the count needs no quiet window.
+
+### Q7. Further improvements, decided 2026-09-18 by Igor
+
+1. **Factoring shared beginnings across rule boundaries** — go. Most rules stay on the tape
+   because of a few causes (SQL-92: 5 direct, 38 under them; T-SQL: 114 and 523); each cause
+   removed moves a whole subtree to one-pass construction. Part of D3's track. sql-ff, after Q1,
+   design first.
+2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
+   a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
+   input is read again with recording on, which gives the same message. Where a second reading is
+   impossible (a stream past its retained window), the case comes back to the architect before
+   anything is weakened. expr-2d, after `parserMarks` (the expression language is where recording
+   costs 15-25 per cent).
+3. **Large literal sets as tables** — go, generator part after finance-03's Fix44 report.
+4. **One measuring stand** — go. One command for the ratios to the hand parsers of FIX, EL and
+   SQL:2023, allocation, peak memory, first call, a control row and the agreement check. Scratch
+   and results on `T:\TEMP` (a fast RAM disk; losing it costs nothing), not in `.work`.
+5. **Specialization by a struct type parameter instead of copies of code** — possible, with one
+   constraint: the generated code's floor is C# 8 on netstandard2.0 and net472
+   (`DotGram.Compatibility`), where a `ref struct` cannot be a type argument, so an input type
+   parameter wraps a string, array or buffer, never a span. The runtime specializes generic code
+   over value types on every target, .NET Framework included. Prototype first: JIT time and first
+   call when several forms are used. It is how D7's one input abstraction is implemented, and Q4.2's
+   locations prototype uses the same technique.
+6. **Generation time and first call as metrics** — lower priority; columns of the stand (4).
+
+**The input forms, generalized (Igor's question).** The forms are two independent axes, the
+symbol (`char` or `byte`) and the source (in memory, or pulled a block at a time), plus what a
+source does at element boundaries (lines insert `
+`). String and `ReadOnlySpan<char>` are text
+in memory; `IEnumerable<string>`, `string[]` and `TextReader` are text pulled; `byte[]` and
+`ReadOnlyMemory<byte>` bytes in memory; `Stream` bytes pulled. So the generalization is one
+machine per symbol type, generic over its source (5), and a source per form, rather than one
+machine per form.
