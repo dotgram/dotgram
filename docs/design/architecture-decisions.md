@@ -488,6 +488,24 @@ or a choice; a `?!` of more than one token at the start of what follows, by a se
 analysis limited to that form; and atomic braces, as before. Repetitions the analysis does not
 see (`*`, sql-ff's `UNIQUE (a, p WITHOUT OVERLAPS)`) are the next refinement.
 
+## D12. Tests are reviewed for what each one proves
+
+Decided 2026-09-18 by Igor: the test suites are reviewed and what is redundant or no longer
+needed goes. The stand measures first (build and run time per project, per class and per test);
+each owner then reviews its area by these rules, each removal named in the commit with why:
+
+- A test goes when it asserts what another test already asserts on the same input, when it
+  tests a feature that was removed (Mixed, the options of Q3), or when it asserts the text of
+  emitted code rather than what the code does.
+- A test stays when it is the only one holding a claim: the snapshots, the agreement tests
+  (`Both`, `RefusalTests`, the hand-parser conformance), the retention and streaming tests,
+  the diagnostics corpus.
+- A slow test is not removed for being slow; it is moved where its cost is paid only when it
+  is asked for. The first candidate: `Finance.Tests` compiles Fix44's 59 MB on every build
+  (about 150 s) because Fix44 is its oracle; the oracle tests move to a project of their own,
+  so that the ordinary Finance tests build in seconds and the oracle runs when the grammar or
+  the parser changes.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
