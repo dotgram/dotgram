@@ -16,6 +16,12 @@ public static class HandFixParser
 		return Read(new Input<char>(input.AsMemory()), false, options).ToArray();
 	}
 
+	/// <summary>
+	/// Reads wire fields separated by SOH from a copy of the input.
+	/// </summary>
+	/// <remarks>
+	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
+	/// </remarks>
 	public static FixField[] Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
 		return Parse(input.ToString(), options);
@@ -45,6 +51,12 @@ public static class HandFixParser
 		return Read(new Input<char>(input.AsMemory()), true, options).ToArray();
 	}
 
+	/// <summary>
+	/// Reads log fields separated by a pipe with optional surrounding spaces from a copy of the input.
+	/// </summary>
+	/// <remarks>
+	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
+	/// </remarks>
 	public static FixField[] ParseLog(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
 		return ParseLog(input.ToString(), options);

@@ -20,6 +20,12 @@ public static class FixParser
 		return FixGrammar.ParseFields(input, context);
 	}
 
+	/// <summary>
+	/// Reads wire fields separated by SOH from a copy of the input.
+	/// </summary>
+	/// <remarks>
+	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
+	/// </remarks>
 	public static FixField[] Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
 		return Parse(input.ToString(), options);
@@ -83,6 +89,12 @@ public static class FixParser
 		return FixGrammar.ParseLogFields(input, context);
 	}
 
+	/// <summary>
+	/// Reads log fields separated by a pipe with optional surrounding spaces from a copy of the input.
+	/// </summary>
+	/// <remarks>
+	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
+	/// </remarks>
 	public static FixField[] ParseLog(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
 		return ParseLog(input.ToString(), options);
