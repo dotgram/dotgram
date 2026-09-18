@@ -32,9 +32,6 @@
 		<Project Path="benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
-		<Project Path="benchmarks/DotGram.HandDeferred/DotGram.HandDeferred.csproj">
-			<BuildType Solution="Linux|*" Project="Release" />
-		</Project>
 	</Folder>
 	<Folder Name="/docs/">
 		<File Path="docs/coding-conventions.md" />

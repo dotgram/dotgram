@@ -73,7 +73,7 @@ failures and logs them with a nonzero exit code. No measurements or test results
 that failed preparation are included.
 
 [Raw observations and method inventory](../../benchmarks/results/file-split-2026-09-16.json).
-The [standalone probe](../../benchmarks/CompilationSplitExperiment/README.md) preserves
+The standalone probe (a probe since removed) preserves
 the experiment. Its local outputs and logs are in `.work/file-split/`.
 
 ## Production follow-up
@@ -166,7 +166,7 @@ neither DLL identity nor unchanged instruction layout is asserted.
 
 [Raw production observations](../../benchmarks/results/source-parts-production-2026-09-16.json)
 include both generator hashes. The `generate` mode of
-[CompilationSplitExperiment](../../benchmarks/CompilationSplitExperiment/README.md)
+CompilationSplitExperiment (a probe since removed)
 preserves the end-to-end procedure. Measurements here used the same procedure in
 an isolated scratch host before promoting it to that checked-in mode.
 

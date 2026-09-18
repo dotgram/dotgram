@@ -94,9 +94,6 @@ tests/
 benchmarks/
 	DotGram.Benchmarks/   BenchmarkDotNet, run by hand and not by CI. Built by the
 	                      solution so that it has to keep compiling
-	DotGram.HandDeferred/ one small grammar (Deferred.gram) read by hand every safe way,
-	                      side by side, to measure deferred construction; no generator
-	                      reference, and the grammar is there to be read, not compiled
 .work/                    scratch, ignored by git
 ```
 
