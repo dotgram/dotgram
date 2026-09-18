@@ -9,7 +9,7 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// One SQL-92 grammar read three ways: the tape, the immediate carrier, and the mixed one.
+/// One SQL-92 grammar read two ways: the tape and the immediate carrier.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -19,7 +19,7 @@ namespace DotGram.Benchmarks;
 /// work at the same cost, because there is only one parser in it.
 /// </para>
 /// <para>
-/// <b>The same answer, checked before anything is timed.</b> Three compilations of one
+/// <b>The same answer, checked before anything is timed.</b> Two compilations of one
 /// grammar ought to agree on every input, and <c>[GlobalSetup]</c> holds them to it: a
 /// carrier that quietly reads less would otherwise look quick for a reason that says
 /// nothing about carrying.
@@ -57,12 +57,11 @@ public class SqlComparisonBenchmarks
 		{
 			var tape      = Sql92Parser.TryParseSearchCondition(input).IsSuccess;
 			var immediate = ImmediateSql.TryParseSearchCondition(input).IsSuccess;
-			var mixed     = MixedSql.TryParseSearchCondition(input).IsSuccess;
 
-			if (tape != immediate || tape != mixed)
+			if (tape != immediate)
 				throw new InvalidOperationException(
 					$"The carriers disagree about \"{input}\": " +
-					$"tape {tape}, immediate {immediate}, mixed {mixed}.");
+					$"tape {tape}, immediate {immediate}.");
 		}
 	}
 
@@ -71,7 +70,4 @@ public class SqlComparisonBenchmarks
 
 	[Benchmark(Description = "immediate")]
 	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Input).IsSuccess;
-
-	[Benchmark(Description = "mixed")]
-	public bool Mixed() => MixedSql.TryParseSearchCondition(Input).IsSuccess;
 }

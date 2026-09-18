@@ -46,7 +46,6 @@ public sealed class ValueStorageTests
 
 	[Theory]
 	[InlineData(CarrierKind.Immediate, true)]
-	[InlineData(CarrierKind.Mixed, true)]
 	[InlineData(CarrierKind.Tape, false)]
 	public void Readers_without_direct_value_tables_ignore_storage(CarrierKind carrier, bool direct)
 	{
@@ -68,16 +67,15 @@ public sealed class ValueStorageTests
 
 	[Theory]
 	[InlineData(ValueStorageKind.Adaptive)]
-	public void Mixed_fallback_keeps_explicit_adaptive_storage_and_spans(ValueStorageKind storage)
+	public void A_refused_carrier_falls_back_keeping_explicit_storage_and_spans(ValueStorageKind storage)
 	{
 		var compiled = GramCompiler.Compile("""
 			Where : @SourceSpan = 'a'
-			Item : @string = w: Where => @(w.Start + ":" + w.Length)
-			Start : @string = items: Item+ => @(string.Join("|", items))
+			Start : @SourceSpan[] = items: Where+ => @(items)
 			parse Start
 			""", new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = CarrierKind.Mixed,
+			ClassName = "Grammar", Carrier = CarrierKind.Immediate,
 			ValueStorage = storage, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(compiled.Diagnostics);
@@ -85,7 +83,9 @@ public sealed class ValueStorageTests
 		var source = Assert.Single(compiled.Sources).Text;
 		Assert.Equal(storage == ValueStorageKind.Adaptive, source.Contains("struct ValueTable<T>"));
 		var assembly = EmittedCode.Compile(source);
-		Assert.Equal(string.Join("|", Enumerable.Range(0, 1025).Select(i => i + ":1")),
-			EmittedCode.Match(assembly, "Grammar", "TryParseStart", new string('a', 1025)).Value);
+		// SourceSpan is emitted into the compiled grammar, so it is read by name.
+		var spans = ((System.Array)EmittedCode.Match(assembly, "Grammar", "TryParseStart", new string('a', 1025)).Value!).Cast<object>();
+		Assert.Equal(Enumerable.Range(0, 1025).Select(i => i + ":1"),
+			spans.Select(one => one.GetType().GetProperty("Start")!.GetValue(one) + ":" + one.GetType().GetProperty("Length")!.GetValue(one)));
 	}
 }

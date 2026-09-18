@@ -634,8 +634,8 @@ sealed partial class Machine
 
 	internal static void ShareAdaptiveStores(IEnumerable<Machine> machines, ValueStorageKind storage)
 	{
-		// Plan storage without resolving carriers: Mixed needs value arms registered
-		// first, and Auto must keep its later choice. A fallback tape reads these flags.
+		// Plan storage without resolving carriers: Auto must keep its later choice. A
+		// fallback tape reads these flags.
 		var all = machines.ToArray();
 		var readers = all.Where(machine => machine._carrierKind is CarrierKind.Tape or CarrierKind.Auto).ToArray();
 		var dense = readers.Any(machine => !machine._directBuilds && machine._valueTypes.Count >= 8);

@@ -2033,7 +2033,7 @@ and costs no runtime dispatch. It is not offered as an option, and no generated 
 promised: a parser is asked what it reads, not how it stores what it read.
 
 Tables are shared by a compilation and its publications, so the choice is the compilation's.
-Immediate and mixed readers, and the non-direct engine, do not use them.
+Immediate readers and the non-direct engine do not use them.
 
 ---
 
@@ -2136,10 +2136,6 @@ A reader holds what it has read until the constructions (§3.7) run, and the car
   read, and one abandoned afterwards has already run. That is once per derivation tried
   rather than once per derivation accepted: invisible to a pure allocation, visible to a
   counter. It is for factories the author knows to be pure.
-- **`Mixed`** — deferral without a tape: what a rule read is kept in a typed shape of its
-  own, and the constructions run over those shapes once the parse is accepted, once per node
-  of the accepted derivation, as on the tape. It does not carry a rule whose value is the
-  extent it matched, a recovery, a mark (§7.8), or a rule read at a strength (§4.3.1).
 
 A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why —
 among the reasons, that no part of the grammar is read by methods, since a carrier is what a

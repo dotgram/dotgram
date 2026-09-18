@@ -360,7 +360,7 @@ it entered.
 ```
 
 `Carrier` is the generator's to choose unless set (`GramCarrier.Auto`), and `GRAM5012` says
-what it chose. `Tape`, `Immediate` and `Mixed` are the author's; a grammar the chosen one
+what it chose. `Tape` and `Immediate` are the author's; a grammar the chosen one
 cannot carry is compiled on the tape.
 
 `[GramOptions]` may be written as many times as there are further readings wanted, each

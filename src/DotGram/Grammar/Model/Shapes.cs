@@ -22,7 +22,7 @@ namespace DotGram.Grammar.Model;
 /// gathered members, climbing.
 /// </para>
 /// <para>
-/// The decision rule is the one <c>benchmarks/DotGram.HandDeferred</c> measured. A value
+/// The decision rule is the one a hand-written experiment, since removed, measured. A value
 /// nested by value inside another has a type whose size is known at compile time, and a
 /// rule that can reach itself has not: a <c>Sum</c> inside a <c>Pair</c> inside a
 /// <c>Sum</c> is a struct that contains itself. Something on the cycle must be a

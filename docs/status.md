@@ -1434,9 +1434,6 @@ GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
   is called once per derivation tried rather than accepted, and **a parse that fails may
   already have run the constructions of what it read**. No walk at the end, which is about
   two fifths of a parse.
-- **`Mixed`**: deferral without a tape, what a rule read kept in a typed shape of its own.
-  It does not carry a rule whose value is its extent, a recovery, a mark (§7.8) or a rule
-  read at a strength; a grammar with one of those is compiled on the tape.
 
 A carrier is what a reader — the rendering by methods — holds. Where the asked carrier
 refuses the grammar, or nothing in it is read by methods, the tape is used and `GRAM5007`

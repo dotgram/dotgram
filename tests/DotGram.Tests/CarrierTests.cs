@@ -18,7 +18,7 @@ namespace DotGram.Tests;
 /// <para>
 /// The carriers differ in when the author's constructions run and where the pieces of a
 /// value wait; they may not differ in what comes out. This is the agreement test the
-/// hand-written readings in <c>benchmarks/DotGram.HandDeferred</c> ran on themselves,
+/// hand-written readings of deferred construction once ran on themselves,
 /// asked of the generator: the tape is the reference, because it is the one that keeps
 /// §7.3, and everything else has to agree with it or it does not ship.
 /// </para>
@@ -154,208 +154,23 @@ public sealed class CarrierTests
 	}
 
 	/// <summary>
-	/// What the mixed carrier carries today, so that the theory above cannot pass by
-	/// carrying nothing.
-	/// </summary>
-	/// <remarks>
-	/// This is the list that grows as the shapes are written, and the one line to change
-	/// when one is. A rule that builds one way, out of runs of text and of other rules'
-	/// values, is the first of them.
-	/// </remarks>
-	[Fact]
-	public void The_mixed_carrier_carries_a_rule_that_builds_one_way()
-	{
-		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a member that may be missing").Grammar, CarrierKind.Mixed);
-
-		Assert.Contains("private readonly struct Shape_Start", source, StringComparison.Ordinal);
-		Assert.Contains("value = reader.shape_Start.Build(text);", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("DirectValues", source, StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// The mixed carrier agrees with the tape on every shape it carries, and leaves the
-	/// rest to the tape.
-	/// </summary>
-	/// <remarks>
-	/// One test for both, because which of the two a shape is changes as the carrier is
-	/// written and the test should not have to be edited when it does. A shape it carries
-	/// is held to the tape's answers; a shape it refuses is held only to being refused,
-	/// which is what the fallback below is about.
-	/// </remarks>
-	[Theory]
-	[MemberData(nameof(Every))]
-	public void Mixed_agrees_with_the_tape_on_what_it_carries(string name)
-	{
-		var (_, grammar, inputs) = Shapes.Single(one => one.Name == name);
-
-		var tape  = Compiled(grammar, CarrierKind.Tape);
-		var mixed = Compiled(grammar, CarrierKind.Mixed);
-
-		if (!mixed.Source.Contains("Shape_", StringComparison.Ordinal))
-		{
-			Assert.Contains("Materialize_DotGram", mixed.Source, StringComparison.Ordinal);
-
-			return;
-		}
-
-		Assert.DoesNotContain("Materialize_DotGram", mixed.Source, StringComparison.Ordinal);
-
-		foreach (var input in inputs)
-		{
-			var expected = EmittedCode.Match(tape.Assembly,  "Carried.Probe", "TryParseStart", input);
-			var actual   = EmittedCode.Match(mixed.Assembly, "Carried.Probe", "TryParseStart", input);
-
-			Assert.True(
-				expected.IsSuccess == actual.IsSuccess,
-				$"{name} on \"{input}\": the tape says {expected.IsSuccess}, mixed says {actual.IsSuccess}.");
-
-			if (expected.IsSuccess)
-				Assert.Equal(ValueOf(expected), ValueOf(actual));
-		}
-	}
-
-	/// <summary>
-	/// A rule that builds several ways is one shape and a byte saying which, rather than a
-	/// shape for each and a virtual call to build it.
-	/// </summary>
-	[Fact]
-	public void A_shape_of_several_constructions_says_which_it_holds()
-	{
-		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a rule that builds two ways").Grammar, CarrierKind.Mixed);
-
-		Assert.Contains("private readonly byte which;", source, StringComparison.Ordinal);
-		Assert.Contains("switch (this.which)",          source, StringComparison.Ordinal);
-		Assert.Contains("Shape_Start.Of0(",             source, StringComparison.Ordinal);
-		Assert.Contains("Shape_Start.Of1(",             source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram",    source, StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// A rule that can be reached from itself is a class, because a value cannot contain
-	/// itself; everything off every cycle stays a value held inside whatever captured it.
-	/// </summary>
-	[Fact]
-	public void A_shape_that_can_reach_itself_is_a_class()
-	{
-		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a rule that reaches itself").Grammar, CarrierKind.Mixed);
-
-		Assert.Contains("private sealed class Shape_Start",   source, StringComparison.Ordinal);
-		Assert.Contains("private readonly struct Shape_Name", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram",          source, StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// A fold is a base and a run of turns threaded through the turns themselves, and what
-	/// it is worth is one loop over that run rather than a frame per turn.
-	/// </summary>
-	/// <remarks>
-	/// A chain built the other way round would read the same language and put a depth limit
-	/// where the tape has none: a thousand terms would be a thousand frames.
-	/// </remarks>
-	[Fact]
-	public void A_fold_is_a_run_threaded_through_its_own_turns()
-	{
-		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a fold").Grammar, CarrierKind.Mixed);
-
-		Assert.Contains("private sealed class Step_Start",  source, StringComparison.Ordinal);
-		Assert.Contains("internal Step_Start? Next;",       source, StringComparison.Ordinal);
-		Assert.Contains("private readonly struct Base_Start", source, StringComparison.Ordinal);
-		Assert.Contains("for (var turn = 0; turn < this._count; turn++)", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram",       source, StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// What a repetition gathers is pushed on a stack as it is read and taken as one array
-	/// where the record is written; a run of text keeps where its pieces stand, not what
-	/// they say.
-	/// </summary>
-	[Fact]
-	public void What_a_repetition_gathers_is_taken_as_one_array()
-	{
-		var (records, _) = Compiled(Shapes.Single(one => one.Name == "records gathered").Grammar, CarrierKind.Mixed);
-		var (pieces,  _) = Compiled(Shapes.Single(one => one.Name == "text gathered").Grammar,   CarrierKind.Mixed);
-
-		Assert.Contains("sealed class MixedValues",       records, StringComparison.Ordinal);
-		Assert.Contains("values.PushShape_Name(",         records, StringComparison.Ordinal);
-		Assert.Contains("private readonly Shape_Name[] _g", records, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram",      records, StringComparison.Ordinal);
-
-		Assert.Contains("values.PushSpans(",              pieces,  StringComparison.Ordinal);
-		Assert.Contains("private readonly long[] _g",       pieces,  StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram",      pieces,  StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// A guard that reads a captured value costs a shape nothing extra: the shape is there,
-	/// and what it is worth is one call away.
-	/// </summary>
-	[Fact]
-	public void A_guard_reads_a_shape_by_building_it()
-	{
-		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a guard over a record").Grammar, CarrierKind.Mixed);
-
-		Assert.Contains(".Build(text)",              source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// One member captured in two places that read two rules is two fields, because a shape
-	/// is per rule and the two are two types.
-	/// </summary>
-	/// <remarks>
-	/// The tape and the immediate carrier never meet this: they hand values about by value
-	/// type, and both places build what the member is declared as.
-	/// </remarks>
-	[Fact]
-	public void A_member_captured_in_two_places_is_two_fields()
-	{
-		const string Twice =
-			"trivia = ' '*\n" +
-			"Start : @string = t: Word & x: Digits? => @(\"w:\" + t + (x ?? \"-\"))\n" +
-			"                | t: Digits & y: Word? => @(\"d:\" + t + (y ?? \"-\"))\n" +
-			"Word : @string = t: ['a'..'z']+ => @(t)\n" +
-			"Digits : @string = t: ['0'..'9']+ => @(t)\n" +
-			"parse Start\n";
-
-		var tape  = Compiled(Twice, CarrierKind.Tape);
-		var mixed = Compiled(Twice, CarrierKind.Mixed);
-
-		Assert.Contains("Shape_Word",   mixed.Source, StringComparison.Ordinal);
-		Assert.Contains("Shape_Digits", mixed.Source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram", mixed.Source, StringComparison.Ordinal);
-
-		foreach (var input in new[] { "abc", "abc12", "123", "123abc", "", "a1b" })
-		{
-			var expected = EmittedCode.Match(tape.Assembly,  "Carried.Probe", "TryParseStart", input);
-			var actual   = EmittedCode.Match(mixed.Assembly, "Carried.Probe", "TryParseStart", input);
-
-			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
-
-			if (expected.IsSuccess)
-				Assert.Equal(ValueOf(expected), ValueOf(actual));
-		}
-	}
-
-	/// <summary>
 	/// A carrier that cannot carry a grammar is not an error: the tape carries it instead,
 	/// and the machine keeps the reason for whoever asks.
 	/// </summary>
 	/// <remarks>
-	/// The mixed carrier carries nothing yet — its shapes are written one at a time — so it
-	/// is the one to ask this of. What the test is really about is the fallback, which every
-	/// carrier after this one will need on the way to being finished.
+	/// The reader has to accept the grammar for the answer to be the carrier's own, so the
+	/// obstacle is one only the immediate carrier has: an extent collected across the turns of
+	/// a repetition, for which it would need a stack of spans and has none.
 	/// </remarks>
 	[Fact]
 	public void A_carrier_that_refuses_a_grammar_leaves_it_to_the_tape()
 	{
-		// A rule whose value is the extent it matched, which no carrier but the tape
-		// carries and none is going to: there is no record for the span to be the span of.
-		const string Extent =
-			"Start : @SourceSpan = ['a'..'z']+\n" +
+		const string Extents =
+			"Where : @SourceSpan = ['a'..'z']\n" +
+			"Start : @SourceSpan[] = items: Where+ => @(items)\n" +
 			"parse Start\n";
 
-		var (source, _) = Compiled(Extent, CarrierKind.Mixed);
+		var (source, _) = Compiled(Extents, CarrierKind.Immediate);
 
 		Assert.Contains("DirectValues",         source, StringComparison.Ordinal);
 		Assert.Contains("Materialize_DotGram",  source, StringComparison.Ordinal);

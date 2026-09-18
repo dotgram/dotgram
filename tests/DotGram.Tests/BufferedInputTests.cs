@@ -354,7 +354,7 @@ public sealed class BufferedInputTests
 	public void Actions_receive_native_spans(string grammar, string input, int expected)
 	{
 		foreach (var partSize in new[] { 1, 500 })
-		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate, CarrierKind.Mixed })
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
 		{
 			var compilation = GramCompiler.Compile(grammar + "\nparse Start stream bytes", new GramCompilerOptions
 			{

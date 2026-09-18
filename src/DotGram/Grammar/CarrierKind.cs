@@ -43,18 +43,4 @@ public enum CarrierKind
 	/// factories are pure; never chosen for them.
 	/// </summary>
 	Immediate,
-
-	/// <summary>
-	/// Deferral without a tape: what a rule read is kept in a typed shape of its own, and
-	/// the author's constructions run over those shapes once the parse is accepted. Keeps
-	/// §7.3 as the tape does, and pays for it in fields of a known type rather than in a
-	/// log and a walk over it.
-	/// </summary>
-	/// <remarks>
-	/// A grammar it cannot carry is compiled on the tape and told why. What it does not
-	/// carry: a recovery, a mark (§7.8), a rule whose value is the extent it matched, a rule
-	/// read at a strength, a terminal built again from its text, and a rule with a guard
-	/// that gathers a member across the turns of a repetition.
-	/// </remarks>
-	Mixed,
 }

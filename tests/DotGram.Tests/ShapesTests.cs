@@ -21,7 +21,7 @@ namespace DotGram.Tests;
 /// <remarks>
 /// The first stage of the redesign in <c>docs/next.md</c> is a report and not an emitter,
 /// and these are its checks: that the decision rule matches what the hand-written readings
-/// in <c>benchmarks/DotGram.HandDeferred</c> did by eye, and that it can be asked of every
+/// in a hand-written experiment, since removed, did by eye, and that it can be asked of every
 /// grammar in the repository at once.
 /// </remarks>
 public sealed class ShapesTests

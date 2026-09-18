@@ -131,7 +131,6 @@ sealed partial class Machine
 			ValueCarrier? Asked() => _carrierKind switch
 			{
 				CarrierKind.Immediate => new ImmediateCarrier(this),
-				CarrierKind.Mixed     => new MixedCarrier(this),
 				_                     => null,
 			};
 		}
@@ -146,7 +145,6 @@ sealed partial class Machine
 	public string? WouldRefuse(CarrierKind kind) => kind switch
 	{
 		CarrierKind.Immediate => new ImmediateCarrier(this).Refuses(),
-		CarrierKind.Mixed     => new MixedCarrier(this).Refuses(),
 		_                     => null,
 	};
 

@@ -236,8 +236,6 @@ Tape        records on a tape, built by a walk once the parse has been accepted.
 Immediate   no deferral: a => runs the moment its alternative has been read
             (Machine.Immediate.cs). A stack per value type for what a rule gathers,
             registers in the reader itself for what a callee hands its caller
-Mixed       deferral without a tape: a typed shape per rule, filled where the tape would
-            write a record, and built over once accepted (Machine.Mixed.cs)
 Auto        the default: the generator chooses between Tape and Immediate
 ```
 
@@ -251,9 +249,7 @@ rendering on the tape. What remains given up is a parse that fails having alread
 some constructions. `GRAM5012` says which carrier was chosen and, where it was the tape,
 which rules kept it there.
 
-Mixed is written a shape at a time: today a rule that builds one way, out of runs of text
-and other rules' values, over characters (`MixedCarrier.Refuses` is the list of what it
-still refuses). A carrier the author named that cannot carry a machine leaves that machine
+A carrier the author named that cannot carry a machine leaves that machine
 on the tape, and `GRAM5007` says so. The engine and the flat path have no carrier to
 choose: the engine builds from its arena, and the flat path's one construction runs at
 accept.
