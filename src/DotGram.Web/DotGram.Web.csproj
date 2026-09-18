@@ -55,6 +55,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- The tests hold the hand parsers to the generated ones, refusals included, and the
+		     position a refusal is at is only in the generated Try methods, which are internal. -->
+		<InternalsVisibleTo Include="DotGram.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- What the package says for itself. The grammars are in the repository and the
 		     README points at them: a parser here is worth reading as much as it is worth
 		     calling. -->

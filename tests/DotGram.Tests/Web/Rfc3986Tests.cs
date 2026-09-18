@@ -16,7 +16,8 @@ namespace DotGram.Tests.Web;
 /// </remarks>
 public sealed class Rfc3986Tests
 {
-	static UriReference Parsed(string text) => UriReference.Parse(text);
+	// Every text read here is read by the hand parser too, which must answer the same (D1).
+	static UriReference Parsed(string text) => Both.Reference(text);
 
 	// ── §1.1.2, the examples the RFC leads with ─────────────────────────────────
 
@@ -155,7 +156,7 @@ public sealed class Rfc3986Tests
 	[InlineData("http://h/%zz")]           // a percent escape is two hex digits
 	[InlineData("1http://h/")]             // a scheme begins with a letter
 	public void A_text_that_is_not_a_reference_is_refused(string text) =>
-		Assert.False(UriReference.TryParse(text, out _));
+		Assert.False(Both.TryReference(text, out _));
 
 	// ── §2.4, decoding, which is the caller's to ask for ────────────────────────
 
