@@ -374,6 +374,13 @@ Decided 2026-09-17 by the architect, on expr-2d's inventory of `HandExpression` 
   Immediate figure is quoted for untyped lambdas. `ExpressionCarrierTests` gains untyped
   lambdas, interpolated and raw strings, the Immediate half skipped with a reason naming it.
 
+**Done 2026-09-18 (expr-2d).** The hand parser conforms (`85372f80`) and allocates less than the
+Immediate reading on every input but one (`b36599bc`). Pinned, over the whole language
+(`f88e3216`): common rows tape/hand 1.36-2.68x, immediate/hand 0.92-1.69x; interpolated and raw
+strings tape/hand 2.91-3.62x, immediate/hand 2.16-2.67x, the cost being a publication entered
+again for every hole (a spare per nesting depth, performance-3f); untyped lambdas about 1.04x,
+both parsers spending 50-66 us in overload resolution and inference, which is the host's.
+
 ## D9. A parser's retention limit: set by its grammar, overridable by whoever uses it
 
 Decided 2026-09-18 by Igor. The limit on what a streamed parse may retain (`maxRetained`), and
