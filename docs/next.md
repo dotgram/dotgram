@@ -23165,15 +23165,19 @@ CREATE SEQUENCE, the seventeenth, 9.09; DROP SEQUENCE, the last, 8.90. Ratios 8x
 trend. The first-character switch the generator emits — `switch (c) { case 'C': case 'c': … }` —
 separates the statements already.
 
-**A flat rate per token.** `SELECT a FROM t` is 30.5 us against the handwritten 2.3: about 7 us a
-token against 0.6, with a fixed 24 us a parse against 2.4. The same multiplier everywhere is why no
-corpus stands out.
+**A fixed cost a parse, and a flat rate on top.** `SELECT a FROM t` is 30.5 us against the
+handwritten 2.3. Taken apart by the select-item family below: about 24 us of it is fixed, paid
+before the statement's own length counts, against 2.0 by hand, and the rest grows at 7.27 us an
+item, which is two tokens — 3.6 us a token, not the 7 an average over the whole statement suggests.
+For a statement this short four fifths of the time is the fixed part; at twenty items it is a
+seventh. Both are targets, and they are different mechanisms.
 
 **The slopes, which name the target.** Per select item +7.27 us against +0.33; per `AND` predicate
-+12.8; per join +13.5; per bracket level +5.7; per chain part +2.5; per space between tokens +0.198
-against +0.020; per `/**/` +0.19. Everything that costs is an operand of a value expression — a
-select item, a predicate, a join condition — so the expression reading is what every corpus pays,
-queries and DDL alike.
++12.8; per join +13.5; per bracket level +5.7; per chain part +2.5; per `/**/` between tokens +0.19;
+per space character +0.066 against +0.0067 (the family grows three gaps at once, so a step of the
+size is three characters). Everything that costs is an operand of a value expression — a select
+item, a predicate, a join condition — so the expression reading is what every corpus pays, queries
+and DDL alike.
 
 **A quarter of an operand is the bucket walk, and it is measurable.** Inside
 `<value expression primary>` the first-character switch cannot tell a name from the key words that
@@ -23185,6 +23189,6 @@ alternative, comes in under every name at 137.9.
 
 The other three quarters are the machinery every rule pays — the choice point opened per rule, the
 two-pass recognize-then-materialize shape, the trivia rule between every pair of tokens, which
-measures ten times the handwritten skip loop per character. Which of those it is needs a profiler
-over the generated parser, which is the performance session's instrument, and the numbers above went
-to it.
+measures ten times the handwritten skip loop per character, though at 0.066 us a character it is
+small beside an operand. Which of those it is needs a profiler over the generated parser, which is
+the performance session's instrument, and the numbers above went to it.
