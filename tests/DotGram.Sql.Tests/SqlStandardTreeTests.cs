@@ -27,7 +27,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("U&\"a\\0041\"", "U&\"a\\0041\"", IdentifierStyle.UnicodeDelimited)]
 	public void An_identifier_keeps_its_spelling_and_its_style(string input, string text, IdentifierStyle style)
 	{
-		var identifier = SqlStandardParser.ParseIdentifier(input);
+		var identifier = Both.ParseIdentifier(input);
 
 		Assert.Equal(text, identifier.Text);
 		Assert.Equal(style, identifier.Style);
@@ -41,7 +41,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_Unicode_identifier_keeps_the_escape_character_it_names()
 	{
-		var identifier = SqlStandardParser.ParseIdentifier("U&\"a\\0041\"UESCAPE'\\'");
+		var identifier = Both.ParseIdentifier("U&\"a\\0041\"UESCAPE'\\'");
 
 		Assert.Equal("U&\"a\\0041\"", identifier.Text);
 		Assert.Equal('\\', identifier.UnicodeEscape);
@@ -52,14 +52,14 @@ public sealed class SqlStandardTreeTests
 	[InlineData("a.b.c.d", new[] { "a", "b", "c", "d" })]
 	[InlineData("a . \"b\"", new[] { "a", "\"b\"" })]
 	public void An_identifier_chain_is_its_parts(string input, string[] parts) =>
-		Assert.Equal(parts, SqlStandardParser.ParseIdentifierChain(input).Parts.Select(one => one.Text));
+		Assert.Equal(parts, Both.ParseIdentifierChain(input).Parts.Select(one => one.Text));
 
 	[Theory]
 	[InlineData("t", new[] { "t" })]
 	[InlineData("c.s.t", new[] { "c", "s", "t" })]
 	[InlineData("MODULE.t", new[] { "MODULE", "t" })]
 	public void A_table_name_is_its_qualifiers_and_its_name(string input, string[] parts) =>
-		Assert.Equal(parts, SqlStandardParser.ParseTableName(input).Parts.Select(one => one.Text));
+		Assert.Equal(parts, Both.ParseTableName(input).Parts.Select(one => one.Text));
 
 	[Theory]
 	[InlineData("a.b", new[] { "a", "b" })]
@@ -67,7 +67,7 @@ public sealed class SqlStandardTreeTests
 	public void A_column_reference_is_a_reference_to_a_name(string input, string[] parts)
 	{
 		// Qualified: inside DotGram.Sql, `Expression` is the tree T-SQL builds.
-		var reference = Assert.IsType<DotGram.Sql.Ast.Expression.Reference>(SqlStandardParser.ParseColumnReference(input));
+		var reference = Assert.IsType<DotGram.Sql.Ast.Expression.Reference>(Both.ParseColumnReference(input));
 
 		Assert.Equal(parts, reference.Name.Parts.Select(one => one.Text));
 	}
@@ -83,7 +83,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("0b101", "0b101", NumericLiteralKind.BinaryInteger)]
 	public void A_number_keeps_its_sign_and_its_kind(string input, string text, NumericLiteralKind kind)
 	{
-		var literal = Assert.IsType<LiteralValue.Numeric>(SqlStandardParser.ParseLiteral(input));
+		var literal = Assert.IsType<LiteralValue.Numeric>(Both.ParseLiteral(input));
 
 		Assert.Equal(text, literal.Text);
 		Assert.Equal(kind, literal.Kind);
@@ -98,7 +98,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("U&'a\\0041'", "'a\\0041'", StringLiteralKind.Unicode, null)]
 	public void A_string_keeps_its_quotes_its_kind_and_its_character_set(string input, string text, StringLiteralKind kind, string? characterSet)
 	{
-		var literal = Assert.IsType<LiteralValue.String>(SqlStandardParser.ParseLiteral(input));
+		var literal = Assert.IsType<LiteralValue.String>(Both.ParseLiteral(input));
 
 		Assert.Equal(text, literal.Text);
 		Assert.Equal(kind, literal.Kind);
@@ -109,7 +109,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_Unicode_string_keeps_its_escape_character()
 	{
-		var literal = Assert.IsType<LiteralValue.String>(SqlStandardParser.ParseLiteral("U&'a\\0041'UESCAPE'\\'"));
+		var literal = Assert.IsType<LiteralValue.String>(Both.ParseLiteral("U&'a\\0041'UESCAPE'\\'"));
 
 		Assert.Equal("'a\\0041'", literal.Text);
 		Assert.Equal('\\', literal.UnicodeEscape);
@@ -117,7 +117,7 @@ public sealed class SqlStandardTreeTests
 
 	[Fact]
 	public void A_binary_string_keeps_its_quotes() =>
-		Assert.Equal("'0A 1B'", Assert.IsType<LiteralValue.Binary>(SqlStandardParser.ParseLiteral("X'0A 1B'")).Text);
+		Assert.Equal("'0A 1B'", Assert.IsType<LiteralValue.Binary>(Both.ParseLiteral("X'0A 1B'")).Text);
 
 	[Theory]
 	[InlineData("DATE '2020-01-01'", DateTimeLiteralKind.Date, "'2020-01-01'")]
@@ -125,7 +125,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("TIMESTAMP '2020-01-01 10:00:00'", DateTimeLiteralKind.Timestamp, "'2020-01-01 10:00:00'")]
 	public void A_datetime_keeps_its_kind_and_its_string(string input, DateTimeLiteralKind kind, string text)
 	{
-		var literal = Assert.IsType<LiteralValue.DateTime>(SqlStandardParser.ParseLiteral(input));
+		var literal = Assert.IsType<LiteralValue.DateTime>(Both.ParseLiteral(input));
 
 		Assert.Equal(kind, literal.Kind);
 		Assert.Equal(text, literal.Text);
@@ -134,12 +134,12 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void An_interval_keeps_its_sign_its_string_and_its_qualifier()
 	{
-		var literal = Assert.IsType<LiteralValue.Interval>(SqlStandardParser.ParseLiteral("INTERVAL -'1:30' HOUR(2) TO MINUTE"));
+		var literal = Assert.IsType<LiteralValue.Interval>(Both.ParseLiteral("INTERVAL -'1:30' HOUR(2) TO MINUTE"));
 
 		Assert.Equal("'1:30'", literal.Text);
 		Assert.Equal(UnaryOperator.Minus, literal.Sign);
 		Assert.Equal(new IntervalQualifier(DateTimeField.Hour, 2, DateTimeField.Minute), literal.Qualifier with { });
-		Assert.Null(SqlStandardParser.ParseLiteral("INTERVAL '1' DAY") is LiteralValue.Interval { Sign: { } } ? "signed" : null);
+		Assert.Null(Both.ParseLiteral("INTERVAL '1' DAY") is LiteralValue.Interval { Sign: { } } ? "signed" : null);
 	}
 
 	[Theory]
@@ -147,14 +147,14 @@ public sealed class SqlStandardTreeTests
 	[InlineData("false", BooleanLiteral.False)]
 	[InlineData("Unknown", BooleanLiteral.Unknown)]
 	public void A_truth_value_is_a_boolean_literal(string input, BooleanLiteral value) =>
-		Assert.Equal(value, Assert.IsType<LiteralValue.Boolean>(SqlStandardParser.ParseLiteral(input)).Value);
+		Assert.Equal(value, Assert.IsType<LiteralValue.Boolean>(Both.ParseLiteral(input)).Value);
 
 	// ── §6.1 Data types ─────────────────────────────────────────────────────────
 
 	[Fact]
 	public void A_character_type_keeps_its_spelling_length_units_character_set_and_collation()
 	{
-		var type = Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType("CHAR VARYING(10 CHARACTERS) CHARACTER SET s.latin1 COLLATE c"));
+		var type = Assert.IsType<DataType.Character>(Both.ParseDataType("CHAR VARYING(10 CHARACTERS) CHARACTER SET s.latin1 COLLATE c"));
 
 		Assert.Equal(CharacterTypeKind.CharVarying, type.Kind);
 		Assert.Equal(10, type.Length);
@@ -171,16 +171,16 @@ public sealed class SqlStandardTreeTests
 	[InlineData("NCHAR LARGE OBJECT", CharacterTypeKind.NcharLargeObject)]
 	[InlineData("national character large object", CharacterTypeKind.NationalCharacterLargeObject)]
 	public void A_character_type_is_the_spelling_written(string input, CharacterTypeKind kind) =>
-		Assert.Equal(kind, Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType(input)).Kind);
+		Assert.Equal(kind, Assert.IsType<DataType.Character>(Both.ParseDataType(input)).Kind);
 
 	[Fact]
 	public void A_large_object_keeps_its_multiplier()
 	{
-		var type = Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType("CHAR LARGE OBJECT(2K OCTETS)"));
+		var type = Assert.IsType<DataType.Character>(Both.ParseDataType("CHAR LARGE OBJECT(2K OCTETS)"));
 
 		Assert.Equal(new LargeObjectSize(2, 'K'), type.LargeObject);
 		Assert.Equal(LengthUnit.Octets, type.Unit);
-		Assert.Equal(new LargeObjectSize(4, 'm'), Assert.IsType<DataType.Binary>(SqlStandardParser.ParseDataType("BLOB(4 m)")).LargeObject);
+		Assert.Equal(new LargeObjectSize(4, 'm'), Assert.IsType<DataType.Binary>(Both.ParseDataType("BLOB(4 m)")).LargeObject);
 	}
 
 	[Theory]
@@ -190,7 +190,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("FLOAT(0x10)", NumericTypeKind.Float, 16, null)]
 	public void A_numeric_type_keeps_its_spelling_precision_and_scale(string input, NumericTypeKind kind, int? precision, int? scale)
 	{
-		var type = Assert.IsType<DataType.Numeric>(SqlStandardParser.ParseDataType(input));
+		var type = Assert.IsType<DataType.Numeric>(Both.ParseDataType(input));
 
 		Assert.Equal(kind, type.Kind);
 		Assert.Equal(precision, type.Precision);
@@ -200,18 +200,18 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_datetime_type_keeps_its_precision_and_its_time_zone()
 	{
-		var type = Assert.IsType<DataType.DateTime>(SqlStandardParser.ParseDataType("TIMESTAMP(3) WITHOUT TIME ZONE"));
+		var type = Assert.IsType<DataType.DateTime>(Both.ParseDataType("TIMESTAMP(3) WITHOUT TIME ZONE"));
 
 		Assert.Equal(DateTimeTypeKind.Timestamp, type.Kind);
 		Assert.Equal(3, type.Precision);
 		Assert.Equal(TimeZoneMode.Without, type.TimeZone);
-		Assert.Null(Assert.IsType<DataType.DateTime>(SqlStandardParser.ParseDataType("TIME")).TimeZone);
+		Assert.Null(Assert.IsType<DataType.DateTime>(Both.ParseDataType("TIME")).TimeZone);
 	}
 
 	[Fact]
 	public void A_collection_type_wraps_what_stands_before_it()
 	{
-		var multiset = Assert.IsType<DataType.Multiset>(SqlStandardParser.ParseDataType("INT ARRAY??(10??) MULTISET"));
+		var multiset = Assert.IsType<DataType.Multiset>(Both.ParseDataType("INT ARRAY??(10??) MULTISET"));
 		var array    = Assert.IsType<DataType.Array>(multiset.ElementType);
 
 		Assert.Equal(10, array.MaximumCardinality);
@@ -222,15 +222,15 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void Row_reference_interval_and_user_defined_types_have_their_parts()
 	{
-		var row = Assert.IsType<DataType.Row>(SqlStandardParser.ParseDataType("ROW(a INT, b s.t)"));
+		var row = Assert.IsType<DataType.Row>(Both.ParseDataType("ROW(a INT, b s.t)"));
 
 		Assert.Equal(new[] { "a", "b" }, row.Fields.Select(one => one.Name.Text));
 		Assert.Equal(new[] { "s", "t" }, Assert.IsType<DataType.UserDefined>(row.Fields[1].Type).Name.Parts.Select(one => one.Text));
 
-		var reference = Assert.IsType<DataType.Reference>(SqlStandardParser.ParseDataType("REF(t) SCOPE s.u"));
+		var reference = Assert.IsType<DataType.Reference>(Both.ParseDataType("REF(t) SCOPE s.u"));
 
 		Assert.Equal(new[] { "s", "u" }, reference.Scope!.Parts.Select(one => one.Text));
-		Assert.Equal(new IntervalQualifier(DateTimeField.Second, 2, null, 3), Assert.IsType<DataType.Interval>(SqlStandardParser.ParseDataType("INTERVAL SECOND(2, 3)")).Qualifier);
+		Assert.Equal(new IntervalQualifier(DateTimeField.Second, 2, null, 3), Assert.IsType<DataType.Interval>(Both.ParseDataType("INTERVAL SECOND(2, 3)")).Qualifier);
 	}
 
 	// ── §6.28 Value expressions ─────────────────────────────────────────────────
@@ -268,7 +268,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("NEXT VALUE FOR s.q", "NextValue(s.q)")]
 	[InlineData("ARRAY[1, 2]", "Array([1, 2], false)")]
 	public void A_value_expression_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseValueExpression(input)));
+		Assert.Equal(tree, Show(Both.ParseValueExpression(input)));
 
 	// ── §8 Predicates ───────────────────────────────────────────────────────────
 
@@ -285,7 +285,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("p IMMEDIATELY PRECEDES q", "PeriodPredicate(Reference(p), ImmediatelyPrecedes, Period(Reference(q)))")]
 	[InlineData("m NOT MEMBER OF n", "MemberOf(m, true, true, n)")]
 	public void A_search_condition_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
+		Assert.Equal(tree, Show(Both.ParseSearchCondition(input)));
 
 	// ── §6.30–6.36 Value functions, §6.10 Windows, §10.9 Aggregates, JSON ───────
 
@@ -314,12 +314,12 @@ public sealed class SqlStandardTreeTests
 	[InlineData("a[$ to last]", "JsonAccessor(a, Array([JsonSubscript(Variable(Context, null), Variable(Last, null))]))")]
 	[InlineData("a.double()", "Member(a, Dot, double, [])")]
 	public void A_function_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseValueExpression(input)));
+		Assert.Equal(tree, Show(Both.ParseValueExpression(input)));
 
 	[Fact]
 	public void A_window_frame_keeps_the_row_pattern_after_it()
 	{
-		var measure = Assert.IsType<DotGram.Sql.Ast.Expression.Invocation>(SqlStandardParser.ParseValueExpression("m OVER (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING PATTERN (A B*) DEFINE A AS a > 1)"));
+		var measure = Assert.IsType<DotGram.Sql.Ast.Expression.Invocation>(Both.ParseValueExpression("m OVER (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING PATTERN (A B*) DEFINE A AS a > 1)"));
 		var frame   = Assert.IsType<WindowReference.Specification>(measure.Over).Value.Frame!;
 
 		Assert.True(measure.WithoutParentheses);
@@ -329,7 +329,7 @@ public sealed class SqlStandardTreeTests
 
 	[Fact]
 	public void A_JSON_exists_predicate_keeps_what_happens_on_error() =>
-		Assert.Equal("JsonExists(JsonApiCommon(a, '$.x', null, [], null), True)", Show(SqlStandardParser.ParseSearchCondition("JSON_EXISTS(a, '$.x' TRUE ON ERROR)")));
+		Assert.Equal("JsonExists(JsonApiCommon(a, '$.x', null, [], null), True)", Show(Both.ParseSearchCondition("JSON_EXISTS(a, '$.x' TRUE ON ERROR)")));
 
 	// ── §7 Query expressions ───────────────────────────────────────────────────
 
@@ -351,7 +351,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("WITH RECURSIVE r (n) AS (VALUES 1) SEARCH DEPTH FIRST BY n SET s SELECT n FROM r",
 		"Select(With: WithClause(true, [CommonTableExpression(r, [n], Select(Body: Values([RowValue([1], false)])), SearchClause(DepthFirst, [n], s), null)]), Items: [ExpressionItem(n, null, false)], From: FromClause([Named(r)]))")]
 	public void A_query_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseQueryExpression(input)));
+		Assert.Equal(tree, Show(Both.ParseQueryExpression(input)));
 
 	[Theory]
 	[InlineData("t AS x (a) LEFT OUTER JOIN u USING (a) CROSS JOIN v TABLESAMPLE BERNOULLI (10)",
@@ -369,14 +369,14 @@ public sealed class SqlStandardTreeTests
 	[InlineData("JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, a INTEGER PATH '$.a' DEFAULT 0 ON EMPTY, NESTED PATH '$.b' COLUMNS (b INTEGER FORMAT JSON)) ERROR ON ERROR) AS jt",
 		"JsonTable(JsonTableDefinition(JsonApiCommon(j, '$', null, [], null), [Ordinality(id), Regular(a, Numeric(Integer, null, null), '$.a', Default(0), null), Nested('$.b', null, [Formatted(b, Numeric(Integer, null, null), JsonRepresentation(null, null), null, null, null, null, null)], true)], null, Error, false), Alias(jt, null, true))")]
 	public void A_table_reference_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseTableReference(input)));
+		Assert.Equal(tree, Show(Both.ParseTableReference(input)));
 
 	[Theory]
 	[InlineData("EXISTS (SELECT 1 FROM t)", "Exists(Select(Items: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])))")]
 	[InlineData("a IN (VALUES 1)", "In(a, false, Query(Select(Body: Values([RowValue([1], false)]))))")]
 	[InlineData("a = ANY (TABLE t)", "QuantifiedComparison(a, Equal, Any, Select(Body: Table(t)))")]
 	public void A_subquery_in_a_predicate_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
+		Assert.Equal(tree, Show(Both.ParseSearchCondition(input)));
 
 	// ── §14 Data change statements ─────────────────────────────────────────────
 
@@ -386,39 +386,39 @@ public sealed class SqlStandardTreeTests
 	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
 	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: Named(t), SourceValue: DefaultValues())")]
 	public void An_insert_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseInsertStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseInsertStatement(input)));
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) FOR PORTION OF p FROM a TO b AS x SET c = DEFAULT, (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE c > 0",
 		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
 	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
 	public void A_searched_update_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseUpdateStatementSearched(input)));
+		Assert.Equal(tree, Show(Both.ParseUpdateStatementSearched(input)));
 
 	[Fact]
 	public void A_positioned_statement_names_its_cursor()
 	{
 		Assert.Equal("Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
-			Show(SqlStandardParser.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
+			Show(Both.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
 		Assert.Equal("Delete(Target: Named(t), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
-			Show(SqlStandardParser.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
+			Show(Both.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
 	}
 
 	[Theory]
 	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: Named(t), Where: Comparison(a, Equal, 1))")]
 	public void A_searched_delete_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseDeleteStatementSearched(input)));
+		Assert.Equal(tree, Show(Both.ParseDeleteStatementSearched(input)));
 
 	[Fact]
 	public void A_merge_keeps_its_clauses_in_order() =>
 		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
-			Show(SqlStandardParser.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
+			Show(Both.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
 
 	[Theory]
 	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", "TruncateTable(Target: Named(t), Identity: Restart)")]
 	[InlineData("TRUNCATE TABLE t", "TruncateTable(Target: Named(t))")]
 	public void A_truncate_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseTruncateTableStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseTruncateTableStatement(input)));
 
 	// ── §11 Schema definition and manipulation, §12 Access control ─────────────
 
@@ -469,7 +469,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("DROP FUNCTION f (INT, DATE) FOR s.t CASCADE",
 		"DropRoutine(Routines: [RoutineDesignator(Function, f, [Numeric(Int, null, null), DateTime(Date, null, null)], s.t, false, null)], Behavior: Cascade)")]
 	public void A_schema_statement_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLSchemaStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseSQLSchemaStatement(input)));
 
 	// ── §14, §16–§23 Statements ────────────────────────────────────────────────
 
@@ -489,7 +489,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("SET NO COLLATION FOR utf8;", "SetCollation(NoCollation: true, ForCharacterSets: [CharacterSetName(utf8)])")]
 	[InlineData("SET SCHEMA 's';", "SetSchema(Value: 's')")]
 	public void A_direct_statement_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseDirectSQLStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseDirectSQLStatement(input)));
 
 	[Theory]
 	[InlineData("FETCH ABSOLUTE 3 FROM c INTO :a, b[1]",
@@ -515,12 +515,12 @@ public sealed class SqlStandardTreeTests
 	[InlineData("COPY d VALUE 1 (NAME, TYPE) TO PTF p VALUE 2",
 		"CopyDescriptor(Body: Item(DescriptorReference(d, null, false, false, false), 1, [Name, Type], DescriptorReference(p, null, true, false, false), 2))")]
 	public void A_procedure_statement_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLProcedureStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseSQLProcedureStatement(input)));
 
 	[Fact]
 	public void A_data_change_delta_table_holds_its_statement() =>
 		Assert.Equal("DataChange(New, Insert(Target: Named(t), SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
-			Show(SqlStandardParser.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
+			Show(Both.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
 
 	// ── The tree written back ──────────────────────────────────────────────────
 
@@ -545,7 +545,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("INTERVAL -'1:30' HOUR(2) TO SECOND(3) + a")]
 	[InlineData("a.SPECIFICTYPE() COLLATE c || b")]
 	public void A_value_expression_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseValueExpression);
+		WrittenBack(input, Both.ParseValueExpression);
 
 	[Theory]
 	[InlineData("WITH RECURSIVE r (n) AS (VALUES 1) SEARCH DEPTH FIRST BY n SET s SELECT DISTINCT t.*, u.* AS (x, y), n AS m FROM r")]
@@ -555,7 +555,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("SELECT a FROM JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, NESTED PATH '$.b' AS p COLUMNS (b INTEGER FORMAT JSON OMIT QUOTES)) PLAN DEFAULT (UNION, INNER) EMPTY ON ERROR) AS jt GROUP BY GROUPING SETS (ROLLUP (a), ()) HAVING COUNT(*) > 1 WINDOW w AS (ORDER BY a)")]
 	[InlineData("SELECT a FROM NEW TABLE (INSERT INTO t (a) OVERRIDING SYSTEM VALUE VALUES (DEFAULT), 1) AS x")]
 	public void A_query_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseQueryExpression);
+		WrittenBack(input, Both.ParseQueryExpression);
 
 	[Theory]
 	[InlineData("CREATE GLOBAL TEMPORARY TABLE t (a INT DEFAULT 1 NOT NULL, CONSTRAINT pk PRIMARY KEY (a) NOT DEFERRABLE, FOREIGN KEY (a) REFERENCES u (b) MATCH FULL ON DELETE CASCADE ON UPDATE SET NULL) ON COMMIT PRESERVE ROWS")]
@@ -567,7 +567,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CREATE TYPE s.t UNDER u AS (a INT DEFAULT 1) NOT FINAL REF IS SYSTEM GENERATED CAST (SOURCE AS DISTINCT) WITH f OVERRIDING METHOD m () RETURNS INT")]
 	[InlineData("ALTER TRANSFORM FOR t g (DROP (TO SQL, FROM SQL RESTRICT))")]
 	public void A_schema_statement_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseSQLSchemaStatement);
+		WrittenBack(input, Both.ParseSQLSchemaStatement);
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) AS x SET (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE CURRENT OF MODULE.c")]
@@ -580,7 +580,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("ALLOCATE GLOBAL :c INSENSITIVE SCROLL CURSOR WITH HOLD FOR s")]
 	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, TRANSACTION ISOLATION LEVEL SERIALIZABLE")]
 	public void A_procedure_statement_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseSQLProcedureStatement);
+		WrittenBack(input, Both.ParseSQLProcedureStatement);
 
 	static void WrittenBack<T>(string input, Func<string, T> parse) where T : ISqlNode
 	{

@@ -19,6 +19,11 @@
 		<!-- The SQL parsers as a consumer takes them: the assembly, with the parsers the
 		     generator put into it when it was built. -->
 		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
+
+		<!-- The same language read by hand (Both.cs): the yardstick the generated parser is
+		     measured against, held to it here so that a difference between the two fails as a
+		     test rather than as a ratio nobody could explain. -->
+		<ProjectReference Include="..\..\examples\DotGram.Handwritten\DotGram.Handwritten.csproj" />
 	</ItemGroup>
 
 </Project>

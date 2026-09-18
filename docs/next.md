@@ -22957,3 +22957,168 @@ and built again, and both the trees — compared as a dump of every property but
 texts written must be one. Over every fuzz family of the standard's grammar, over 60,000 lines, nothing
 differs. A direct SQL statement's semicolon is the production's and no part of the tree, and the harness
 adds it back. `SqlStandardTreeTests` holds a line or two of each chapter to the same, so a build asks it too.
+
+## A yardstick for the standard's parser
+
+The generated parser has had nothing to be measured against since the standard's grammar was
+written: `HandSqlTokens` reads SQL-92's search condition and nothing else. So the standard gets a
+parser written by hand, in `examples/DotGram.Handwritten/Sql`, which is where the manual parsers
+now live — the same language, the same `DotGram.Sql.Ast` tree, the same refusals. It is the
+target the generated parser is optimized towards (Igor, 2026-09-17), which is why it reads the
+whole language chapter by chapter rather than the part a benchmark happens to use.
+
+**The tract is the generated parser's.** `Recognize_X(ReadOnlySpan<char>, int at, …)` reads
+characters where it stands and keeps nothing of what it passed, so the handwritten one does too:
+`SqlCursor` makes one token at a time as the parser asks for it, and going back is a copy of a
+struct. An array of tokens would have been a cost on one side of the ratio only, and the note
+under `HandSqlTokens` — that it tokenizes first *because the generated parser does* — is about
+SQL-92's grammar, which is read through a lexical split; SQL:2023's is not.
+
+**What agreement costs to establish.** `Both` in the SQL tests calls both parsers and compares
+the trees property by property, and every row already written for §5 and §6.1 goes through it.
+Then `--standard "^production" file`: 12,000 random literals, names and types, and as many again
+mutated. Seven differences, every one of them the handwritten parser's:
+
+- a key word glued to what stands before it — `CHAR(198OCTETS)` — which §5.2 refuses, because a
+  key word is guarded by a word boundary on both sides. A name is not: `2K` is a length and its
+  multiplier, and `SELECT 1a` is an alias. So the cursor marks a word glued and refuses to hand
+  it over as a key word.
+- `0X_1`: a radix other than ten lets an underscore stand before its first digit.
+- `0b10E1`: an integer of any radix is an `<exact numeric literal>`, so an exponent may follow
+  one, and it is approximate.
+- `BLOB(9.19)`: a large object's length is an `<unsigned integer>`, which a decimal is not.
+- a bracketed comment that closes nowhere was being swallowed to the end of the text, where the
+  grammar leaves the reading in front of it.
+- `/* a /* b * c */`: the BNF's contents are `(<bracketed comment> | any character)*`, so where
+  reading the inner one as a comment leaves the outer unclosed, the choice takes its other
+  branch. The comment is read by the same recursive descent the BNF describes, which is what
+  makes `/* a /* b *E/ c */ '1'/**/SECOND` close where the grammar closes it — inside the second
+  comment, and not before the literal.
+- a binary literal's runs were being checked over the raw text between the first quote and the
+  last, comments included, so a quote inside a comment made `X'A B' /* a /* b */' c */ '0 A'`
+  look like hexits that are not.
+
+Two differences were left standing and mirrored instead, both in what the generated parser's
+construction makes of an introduced literal whose introducer holds a delimited name with a
+period or a quote inside it — `_u&".s".x'a'`, `_u&"'s".x'a'`. They are `Nodes.cs`'s, not the
+grammar's, and the handwritten parser is written to agree with them; the README says so, and if
+the construction is corrected they go together.
+
+**The first numbers**, Release, nine seeds, 3,000 lines each and nothing differing: literals 4.7x,
+names 10.1x, data types 7.7x the handwritten parser. Small productions read one line at a time,
+so they measure the entry more than the reading — the number to watch is the one a whole
+statement will give, when the chapters that read one are written.
+
+## The yardstick reads the expressions, the queries and the data change statements
+
+§6, §7, §8 and §14 are one slice: the BNF recurses between a value expression, a subquery and a
+query specification, so a handwritten parser cannot have one without the others. With §5 and §6.1
+already there, that is twenty-three of the grammar's forty-two publications, and everything the
+fuzzers of the standard's grammar generate except the schema statements.
+
+**The towers are carried, not tried.** The BNF types its value expressions — numeric, character,
+datetime, interval — as towers that meet only in a primary, and this parser answers it the way the
+generated one does: read the shape they share, and ask `SqlTowers` what the whole can still be.
+That code is the grammar's `Towers` reasoning, ported, because it is a property of the BNF rather
+than of either parser; what differs between the two is how the operands are read, which is what is
+being measured.
+
+**Where the two parted, and why.** Eleven differences, every one of them the handwritten parser's:
+
+- a delimited identifier and a Unicode delimited one were no primaries at all, so `a || U&"b"` was
+  refused — the switch that dispatches a primary read only words.
+- the word literals: `DATE '2020-01-01'`, `INTERVAL '1' DAY` and the truth values are words, and a
+  primary has to ask for a literal before it asks what key word it is.
+- `->` was no token; the lexer read it as a minus and a greater-than.
+- a partitioned join table on the right of a join — `t LEFT JOIN u PARTITION BY (a) ON …` — where
+  the partitioning belongs to the right operand and needs no join after it. The BNF writes two
+  rules, one for the joins after a factor and one for a join's right side, and the two differ in
+  exactly that.
+- `JSON_ARRAY(RETURNING JSON)`: the elements are one optional group, and what was read as an
+  element is the output clause when the bracket does not close after it.
+- `JSON_OBJECTAGG(KEY VALUE v)`: §5.2 does not reserve `KEY`, so a member may be named by a column
+  called that.
+- `PATTERN (PERMUTE)`: nor `PERMUTE`, so a pattern may name a variable called that.
+- `RUNNING SUM(a)`: §5.2 reserves `RUNNING` and not `FINAL`, so one is compared as an integer and
+  the other by spelling. The switch had both as spellings, and the integer never matched.
+- `INSERT INTO t VALUES 1 ORDER BY a`: the rows are a query's table value constructor too, and a
+  query goes on where the constructor stops. The BNF's ordered choice comes back for the query when
+  the insert statement it left behind does not end there.
+- a JSON table's `WITH WRAPPER` was read twice, once by the wrapper and once by the column.
+- `a.double()` and `a.decimal(1, 2)`: an item method keeps its name and its numbers as they were
+  written, and the tree said `DOUBLE` and `10` where the text said `double` and `1_0`.
+
+**Agreement.** `Both` in the SQL tests puts every row of `SqlStandardParserTests` and
+`SqlStandardTreeTests` for those productions to both parsers: 14,701 tests, no failure. Then the
+fuzz families of the standard's grammar, clean and mutated — queries, aggregates, JSON, row pattern
+recognition, lists, the gentle ones, the data change statements, and the lexical corpora again —
+about 70,000 lines, nothing differing.
+
+**And the numbers.** Release, the same file read by both, round-robin, the best of five rounds:
+
+| corpus | generated | by hand | ratio |
+| --- | --- | --- | --- |
+| queries, 5,000 lines | 677 ms | 31 ms | 21.9x |
+| row pattern recognition, 3,000 | 447 | 25 | 18.0x |
+| queries with JSON, 3,000 | 486 | 75 | 6.5x |
+| aggregates, 3,000 | 340 | 42 | 8.0x |
+| insert, 1,000 | 109 | 8 | 13.1x |
+| merge, 1,000 | 170 | 19 | 9.0x |
+| value expressions, 2,009 | 138 | 10 | 14.1x |
+
+The spread — four to twenty-two — is the thing to look at rather than any single number: the
+generated parser is slowest where the BNF's ordered choice makes it read the same text again, and
+the handwritten one is fastest where a key word says which alternative it is before anything is
+read. That is the shape of the work the generator has left to do.
+
+## The yardstick reads the whole standard
+
+The last chapters — §11 and §12's schema statements, §14's cursors and §16 to §23's control,
+transaction, connection, session, dynamic, direct and diagnostics statements — finish the
+handwritten parser. It publishes what the grammar publishes, production for production: all
+forty-two.
+
+**What the last slice cost.** The schema is the widest chapter and the least deep: tables, columns,
+constraints, views, domains, assertions, triggers, routines, user-defined types, casts, orderings,
+transforms, character sets, collations, transliterations, sequences, roles and privileges, and what
+alters and drops each. Almost all of it is a switch on the first two words. Nine differences, all
+the handwritten parser's, and every one of them a place where a list or an alternative has to give
+something back:
+
+- `UNIQUE (a, p WITHOUT OVERLAPS)` and `FOREIGN KEY (a, PERIOD p)`: the column list takes the
+  period's name, because a name is what it reads. The list now gives back the comma it cannot go on
+  from, and the period is taken off its end where `WITHOUT OVERLAPS` follows.
+- `GRANT r, TO PUBLIC` and `FREE LOCATOR :l,`: the same comma, in a list no bracket closes, has to
+  be refused where it stands rather than swallowed.
+- `GRANT USAGE ON SEQUENCE TO v`: `SEQUENCE`, `DOMAIN`, `TYPE` and `COLLATION` name the kind of
+  object a privilege is on, and §5.2 reserves none of them, so a kind that leads nowhere is a
+  table's name.
+- `ALTER TABLE t ALTER COLUMN c SET DEFAULT 1`: the `SET` is the action's and the default a clause
+  of its own, which reads its own `DEFAULT`.
+- `CREATE FUNCTION f (DESCRIPTOR)`: the BNF asks for a data type before it asks for `DESCRIPTOR`, so
+  a parameter of that name is a user-defined type — which is what the generated parser builds.
+- `ALLOCATE c CURSOR FOR INSTANCE METHOD f (INT)`: an extended cursor's prepared statement and a
+  received cursor's routine both follow `FOR`, and only the routine designator tells them apart.
+- `OPEN MODULE.c USING DESCRIPTOR`: `DESCRIPTOR` with no name after it is a column called that, and
+  the using clause's other branch reads it.
+
+**The whole sweep.** Every fuzz corpus of the standard's grammar, clean and mutated, over every
+publication: 112,968 lines, nothing differing. `Both` puts every row of the SQL tests to both
+parsers: 14,701 tests, none failing.
+
+**And the ratios, by chapter.** Release, round-robin, best of five:
+
+| chapter | generated / by hand |
+| --- | --- |
+| queries | 4.6x – 22x |
+| data change statements | 7.3x – 16x |
+| schema statements | 7x – 12.7x |
+| dynamic SQL | 6.9x – 7.5x |
+| transactions, connections, sessions, diagnostics | 4.4x – 7x |
+| literals, names, types | 4.7x – 11x |
+
+The spread is the useful part. The generated parser is furthest behind where the BNF's ordered
+choice makes it read the same text again — a query's select list, an insert's rows, a table
+reference's joins — and closest where a statement is a handful of key words in a fixed order, which
+is what the session and diagnostics statements are. That is the map for the work on the generator:
+the choices that re-read, not the reading itself.

@@ -84,7 +84,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("/* a /* b */ c */ 1")]
 	public void A_literal_reads(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseLiteral(input).IsSuccess, input);
+		Assert.True(Both.TryParseLiteral(input).IsSuccess, input);
 	}
 
 	/// <summary>What the BNF refuses, and why it does.</summary>
@@ -116,7 +116,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("2K")]
 	public void What_is_not_a_literal_is_refused(string input)
 	{
-		Assert.False(SqlStandardParser.TryParseLiteral(input).IsSuccess, input);
+		Assert.False(Both.TryParseLiteral(input).IsSuccess, input);
 	}
 
 	// ── §5.4 Names and identifiers ───────────────────────────────────────────────
@@ -138,7 +138,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("U&\"a\"UESCAPE'\\'")]
 	public void An_identifier_reads(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseIdentifier(input).IsSuccess, input);
+		Assert.True(Both.TryParseIdentifier(input).IsSuccess, input);
 	}
 
 	/// <summary>A reserved word in any case, an empty delimited identifier, and what no identifier begins or holds.</summary>
@@ -155,7 +155,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a.b")]
 	public void What_is_not_an_identifier_is_refused(string input)
 	{
-		Assert.False(SqlStandardParser.TryParseIdentifier(input).IsSuccess, input);
+		Assert.False(Both.TryParseIdentifier(input).IsSuccess, input);
 	}
 
 	[Theory]
@@ -170,7 +170,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MODULE.a.b", false)]
 	public void An_identifier_chain(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseIdentifierChain(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseIdentifierChain(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -183,7 +183,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MODULE.a", false)]
 	public void A_column_reference(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseColumnReference(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseColumnReference(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -199,7 +199,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MODULE.a.b", false)]
 	public void A_table_name(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseTableName(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseTableName(input).IsSuccess);
 	}
 	// ── §6 Scalar expressions, §8 Predicates ─────────────────────────────────────
 
@@ -324,7 +324,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a + 1 AND b", false)]
 	public void A_value_expression(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>A search condition: `x IN (a + 1)` is refused, since an in value list holds row value expressions.</summary>
@@ -355,7 +355,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a <> b", true)]
 	public void A_search_condition(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSearchCondition(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSearchCondition(input).IsSuccess);
 	}
 
 	// ── §7 Query expressions ─────────────────────────────────────────────────────
@@ -488,7 +488,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM t t2 t3", false)]
 	public void A_query_expression(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §6.10 Window functions, §10.9 Aggregates ─────────────────────────────────
@@ -535,7 +535,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("COUNT(DISTINCT *)", false)]
 	public void An_aggregate_or_a_window_function(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -598,7 +598,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM t WHERE a = ANY ((SELECT a FROM t))", true)]
 	public void An_aggregate_in_a_query(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §7.6 Row pattern recognition ─────────────────────────────────────────────
@@ -680,7 +680,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT SUM(a) OVER (w MEASURES x AS y ROWS CURRENT ROW) FROM t", true)]
 	public void Row_pattern_recognition(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── A bracket, read once ─────────────────────────────────────────────────────
@@ -734,7 +734,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("FINAL PREV(a)", false)]
 	public void A_bracket_read_once(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>`TABLE (…)`: a routine's invocation alone needs no correlation name, and any other collection does.</summary>
@@ -757,7 +757,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM t GROUP BY (a, b)", true)]
 	public void A_table_function_or_a_collection(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §6.33–6.39 JSON, §7.11 JSON table ──────────────────────────────────────
@@ -938,7 +938,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a . double ( )", true)]
 	public void A_JSON_value(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
 	/// <summary>`JSON_TABLE` needs a correlation name, and `JSON_TABLE_PRIMITIVE` takes one without `AS`.</summary>
@@ -961,7 +961,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT j.* FROM t", true)]
 	public void A_JSON_table(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -990,7 +990,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM JSON_TABLE (j, '$' COLUMNS (x ORDINALITY)) x", true)]
 	public void A_name_is_read_whole(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §14 Data change statements ─────────────────────────────────────────────
@@ -1024,7 +1024,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("INSERT INTO t VALUES DEFAULT + 1", false)]
 	public void An_insert_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseInsertStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseInsertStatement(input).IsSuccess);
 	}
 
 	/// <summary>A searched `UPDATE`: `FOR PORTION OF` before the correlation name, and set targets that are columns, elements or mutated attributes.</summary>
@@ -1054,7 +1054,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("UPDATE t SET t.a = 1", true)]
 	public void A_searched_update(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseUpdateStatementSearched(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseUpdateStatementSearched(input).IsSuccess);
 	}
 
 	/// <summary>A positioned `UPDATE`: `WHERE CURRENT OF` a cursor, and nothing a searched one says instead.</summary>
@@ -1084,7 +1084,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("UPDATE t SET t.a = 1", false)]
 	public void A_positioned_update(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseUpdateStatementPositioned(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseUpdateStatementPositioned(input).IsSuccess);
 	}
 
 	/// <summary>A searched `DELETE`.</summary>
@@ -1100,7 +1100,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DELETE FROM MODULE.t", true)]
 	public void A_searched_delete(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDeleteStatementSearched(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDeleteStatementSearched(input).IsSuccess);
 	}
 
 	/// <summary>A positioned `DELETE`.</summary>
@@ -1116,7 +1116,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DELETE FROM MODULE.t", false)]
 	public void A_positioned_delete(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDeleteStatementPositioned(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDeleteStatementPositioned(input).IsSuccess);
 	}
 
 	/// <summary>`MERGE`: at least one `WHEN`, and one row to insert.</summary>
@@ -1133,7 +1133,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("MERGE INTO t USING u ON a WHEN NOT MATCHED THEN INSERT OVERRIDING SYSTEM VALUE VALUES (1)", true)]
 	public void A_merge_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseMergeStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseMergeStatement(input).IsSuccess);
 	}
 
 	/// <summary>`TRUNCATE TABLE`.</summary>
@@ -1144,7 +1144,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("TRUNCATE t", false)]
 	public void A_truncate_table_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseTruncateTableStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseTruncateTableStatement(input).IsSuccess);
 	}
 
 	/// <summary>A data change delta table: what a searched data change statement changed, as a table.</summary>
@@ -1158,7 +1158,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM OLD TABLE (UPDATE t SET a = 1 WHERE CURRENT OF c)", false)]
 	public void A_data_change_delta_table(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseQueryExpression(input).IsSuccess);
 	}
 
 	// ── §11, §12 Schema definition and manipulation, access control ───────────────
@@ -1322,7 +1322,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CREATE SCHEMA s CREATE SEQUENCE q", true)]
 	public void A_schema_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSchemaStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSchemaStatement(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -1476,7 +1476,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CREATE SCHEMA s CREATE TRIGGER g AFTER INSERT ON t UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL :c", true)]
 	public void A_routine_or_trigger(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSchemaStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSchemaStatement(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -1632,7 +1632,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CREATE TRIGGER g AFTER INSERT ON t BEGIN ATOMIC CREATE CAST (t AS INT) WITH FUNCTION f; END", true)]
 	public void A_user_defined_type_or_schema_object(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSchemaStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSchemaStatement(input).IsSuccess);
 	}
 
 	// ── §16–§19, §22, §23 Control, transaction, connection, session, direct, diagnostics
@@ -1667,7 +1667,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("ROLLBACK TO sp", false)]
 	public void A_transaction_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLTransactionStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLTransactionStatement(input).IsSuccess);
 	}
 
 	/// <summary>Connection statements: a server, a connection and a user each a simple value, in that order.</summary>
@@ -1686,7 +1686,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DISCONNECT DEFAULT", true)]
 	public void A_connection_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLConnectionStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLConnectionStatement(input).IsSuccess);
 	}
 
 	/// <summary>Session statements: a catalog, a schema, a path and names each given as a value, not written as a name.</summary>
@@ -1722,7 +1722,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SET NO COLLATION FOR latin1", true)]
 	public void A_session_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSessionStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSessionStatement(input).IsSuccess);
 	}
 
 	/// <summary>`GET DIAGNOSTICS`: statement items, a condition's items, or all of it; an item of the other kind is refused.</summary>
@@ -1740,7 +1740,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("GET DIAGNOSTICS", false)]
 	public void A_diagnostics_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLDiagnosticsStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLDiagnosticsStatement(input).IsSuccess);
 	}
 
 	/// <summary>A direct data statement: a cursor specification, a temporary table declared, or a data change.</summary>
@@ -1758,7 +1758,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DECLARE GLOBAL TEMPORARY TABLE t (a INT)", false)]
 	public void A_direct_data_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDirectSQLDataStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDirectSQLDataStatement(input).IsSuccess);
 	}
 
 	/// <summary>`CALL` of a routine with its arguments, and `RETURN` of a value.</summary>
@@ -1773,7 +1773,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("RETURN", false)]
 	public void A_control_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLControlStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLControlStatement(input).IsSuccess);
 	}
 
 	/// <summary>A data statement in a routine: cursors opened, fetched from and closed, a single row selected into targets, locators.</summary>
@@ -1799,7 +1799,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("RETURN 1", false)]
 	public void A_data_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLDataStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLDataStatement(input).IsSuccess);
 	}
 
 	/// <summary>A direct statement ends in its semicolon, and a control statement is none.</summary>
@@ -1812,7 +1812,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CALL p();", false)]
 	public void A_direct_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDirectSQLStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDirectSQLStatement(input).IsSuccess);
 	}
 
 	// ── §20 Dynamic SQL ──────────────────────────────────────────────────────────
@@ -1901,7 +1901,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("UPDATE t SET (a, b) = (1, 2) WHERE CURRENT OF LOCAL 'c'", true)]
 	public void A_dynamic_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLDynamicStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLDynamicStatement(input).IsSuccess);
 	}
 
 	// ── §6.1 Data types ──────────────────────────────────────────────────────────
@@ -1938,6 +1938,6 @@ public sealed class SqlStandardParserTests
 	[InlineData("INTEGER ARRAY[3]  MULTISET", true)]
 	public void A_data_type(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDataType(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDataType(input).IsSuccess);
 	}
 }
