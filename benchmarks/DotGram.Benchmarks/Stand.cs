@@ -55,7 +55,10 @@ static class Stand
 		public string Id => Family + "/" + Name;
 	}
 
-	sealed record Timed(string Reading, double Nanoseconds, double Bytes);
+	/// <summary>One round's time and, beside it, what the collector did during it.</summary>
+	sealed record RoundSample(double Nanoseconds, int Gen0, int Gen1, int Gen2);
+
+	sealed record Timed(string Reading, double Nanoseconds, double Bytes, int Warmup, RoundSample[] Rounds);
 
 	sealed record Row(string Id, Timed[] Readings, double HandSpread);
 
@@ -78,13 +81,12 @@ static class Stand
 		Generated[] Generation,
 		string[]    MissingGeneration);
 
-	// Picked 2026-09-18 against five runs: 7/25 (the original) left most rows at 60-120% spread;
-	// 8/40 (here) keeps the run under 2x and clears most of them; 9/75 came closer to clearing
-	// all of them but cost 4x the run, over budget. Two rows resist every setting tried in
-	// budget: el/interpolation held at 30-46% spread across every run regardless of Rounds or
-	// SampleMs, and sql/arithmetic held at 62-80% at 7/25 and 8/40 alike (one 9/75 run read 10%,
-	// a single sample and not a trend the other four agree with). Neither looks like something
-	// this knob pair dilutes; reported to the architect rather than chased further here.
+	// Picked 2026-09-18 against 7/25 (the original, most rows at 60-120% spread), 9/75 (closer
+	// to clearing every row but 4x the run, over budget) and this one, which keeps the run under
+	// 2x. Two rows resisted every Rounds/SampleMs combination on their own: sql/arithmetic and
+	// el/interpolation, both still mid-JIT-tier-promotion at the fixed three-sample warmup this
+	// used to be — see WarmUntilStable, which fixed most of it (see docs/design/stand-2026-09-18.md,
+	// "sql/arithmetic: open" for what tuning alone could not).
 	const int Rounds   = 8;
 	const int SampleMs = 40;
 
@@ -373,20 +375,24 @@ static class Stand
 	// ── Timing ──────────────────────────────────────────────────────────────────
 
 	/// <summary>
-	/// Every reading of a row, warmed, then timed round-robin with the order turned every round,
-	/// and the control timed between rounds. A round a generation 1 or 2 collection fell inside
-	/// is not a reading of the parser but of the collector, so it is redone rather than kept
-	/// (D4: on a few hundred iterations, one such pause dominates the round's average outright).
+	/// Every reading of a row, warmed until stable, then timed round-robin with the order
+	/// turned every round, and the control timed between rounds. A round a generation 1 or 2
+	/// collection fell inside is not a reading of the parser but of the collector, so it is
+	/// redone rather than kept (D4: on a few hundred iterations, one such pause dominates the
+	/// round's average outright). Every round is kept, not only its median — gen0/1/2 deltas
+	/// beside it — so a row that turns out bimodal (2026-09-18: sql/arithmetic, el/interpolation)
+	/// is visible in the json without a second, diagnostic-only run.
 	/// </summary>
 	static Row Measure(Workload workload, List<double> controls)
 	{
-		foreach (var reading in workload.Readings)
-			for (var i = 0; i < 3; i++)
-				Time(reading.Run, Iterations(reading.Run));
-
 		var iterations = Iterations(workload.Readings[0].Run);
-		var taken      = workload.Readings.Select(_ => new List<double>()).ToArray();
-		var redone     = 0;
+		var warmups    = new int[workload.Readings.Length];
+
+		for (var i = 0; i < workload.Readings.Length; i++)
+			warmups[i] = WarmUntilStable(workload.Readings[i].Run);
+
+		var taken  = workload.Readings.Select(_ => new List<RoundSample>()).ToArray();
+		var redone = 0;
 
 		for (var round = 0; round < Rounds; round++)
 		{
@@ -403,34 +409,69 @@ static class Stand
 		if (redone > 0)
 			Console.WriteLine($"  {workload.Id}: {redone} round(s) redone after a gen1/gen2 collection");
 
-		var hand = taken[0];
+		var hand = taken[0].Select(static one => one.Nanoseconds).ToList();
 
 		return new Row(
 			workload.Id,
-			[.. workload.Readings.Select((reading, i) => new Timed(reading.Name, Median(taken[i]), Allocated(reading.Run)))],
+			[.. workload.Readings.Select((reading, i) => new Timed(
+				reading.Name, Median(taken[i].Select(static one => one.Nanoseconds).ToList()), Allocated(reading.Run),
+				warmups[i], [.. taken[i]]))],
 			(hand.Max() - hand.Min()) / Median(hand));
+	}
+
+	const double WarmupCapSeconds = 2.0;
+
+	/// <summary>
+	/// Warms a reading until two consecutive samples agree within 5%, capped at
+	/// <see cref="WarmupCapSeconds"/> — a fixed three-sample warmup left sql/arithmetic and
+	/// el/interpolation still mid-JIT-tier-promotion in some runs (2026-09-18, architect: the
+	/// stand keeps re-JITting new methods as later rows start, which resets the tiering
+	/// call-counting delay for whichever row is warming up). Returns how many samples that
+	/// took, kept beside the row's timings.
+	/// </summary>
+	static int WarmUntilStable(Func<int> run)
+	{
+		var watch    = Stopwatch.StartNew();
+		var previous = double.NaN;
+		var samples  = 0;
+
+		while (watch.Elapsed.TotalSeconds < WarmupCapSeconds)
+		{
+			var elapsed = Time(run, Iterations(run));
+
+			samples++;
+
+			if (!double.IsNaN(previous) && Math.Abs(elapsed - previous) / ((elapsed + previous) / 2) <= 0.05)
+				return samples;
+
+			previous = elapsed;
+		}
+
+		return samples;
 	}
 
 	const int MaxRetries = 5;
 
 	/// <summary>
-	/// One round's time, redone up to <see cref="MaxRetries"/> times when a generation 1 or 2
-	/// collection ran during it — gen0 is left alone: it is part of ordinary allocation cost,
-	/// not the rare pause this filters out.
+	/// One round's time and what the collector did during it, redone up to
+	/// <see cref="MaxRetries"/> times when a generation 1 or 2 collection ran during it — gen0
+	/// is left alone: it is part of ordinary allocation cost, not the rare pause this filters
+	/// out. The gen0/1/2 counts kept are the winning attempt's, not the discarded ones'.
 	/// </summary>
-	static double TimeSteady(Func<int> run, int iterations, ref int redone)
+	static RoundSample TimeSteady(Func<int> run, int iterations, ref int redone)
 	{
 		for (var attempt = 0; ; attempt++)
 		{
+			var gen0    = GC.CollectionCount(0);
 			var gen1    = GC.CollectionCount(1);
 			var gen2    = GC.CollectionCount(2);
 			var elapsed = Time(run, iterations);
+			var d0      = GC.CollectionCount(0) - gen0;
+			var d1      = GC.CollectionCount(1) - gen1;
+			var d2      = GC.CollectionCount(2) - gen2;
 
-			if (GC.CollectionCount(1) == gen1 && GC.CollectionCount(2) == gen2)
-				return elapsed;
-
-			if (attempt == MaxRetries - 1)
-				return elapsed;
+			if ((d1 == 0 && d2 == 0) || attempt == MaxRetries - 1)
+				return new RoundSample(elapsed, d0, d1, d2);
 
 			redone++;
 		}
