@@ -722,7 +722,7 @@ public static partial class CSharpEmitter
 		// by where it sits in this list, so they must all be looking at the same list.
 		if (machines.Exists(static compiled => compiled.Direct))
 		{
-			file.Write(DirectSupport);
+			file.Write(DirectSupport.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture)));
 			file.Line();
 
 			// Each carrier's own store, where its machines rent one: the tables the tape's
@@ -1791,15 +1791,29 @@ public static partial class CSharpEmitter
 		file.Line("[global::System.ThreadStatic]");
 		file.Line("static Tokens_DotGram? _spareTokens;");
 		file.Line();
+		file.Line("/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static Tokens_DotGram?[]? _deeperTokens;");
+		file.Line();
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static int _deeperTokenCount;");
+		file.Line();
 
 		using (file.Block("static Tokens_DotGram Rented_DotGram()"))
 		{
 			file.Line("var spare = _spareTokens;");
 			file.Line();
-			file.Line("if (spare == null)");
+			file.Line("if (spare != null)");
+			file.Then("_spareTokens = null;");
+
+			using (file.Block("else if (_deeperTokenCount > 0)"))
+			{
+				file.Line("spare = _deeperTokens![--_deeperTokenCount]!;");
+				file.Line("_deeperTokens![_deeperTokenCount] = null;");
+			}
+
+			file.Line("else");
 			file.Then("return new Tokens_DotGram();");
-			file.Line();
-			file.Line("_spareTokens = null;");
 			file.Line();
 			file.Line("return spare;");
 		}
@@ -1811,7 +1825,10 @@ public static partial class CSharpEmitter
 			file.Line("if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length > 1048576)");
 			file.Then("return;");
 			file.Line();
-			file.Line("_spareTokens = tokens;");
+			file.Line("if (_spareTokens == null)");
+			file.Then("_spareTokens = tokens;");
+			file.Line($"else if (_deeperTokenCount < {DeeperSpares})");
+			file.Then($"(_deeperTokens ??= new Tokens_DotGram?[{DeeperSpares}])[_deeperTokenCount++] = tokens;");
 		}
 
 		file.Line();
