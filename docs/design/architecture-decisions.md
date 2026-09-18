@@ -505,6 +505,10 @@ each owner then reviews its area by these rules, each removal named in the commi
   (about 150 s) because Fix44 is its oracle; the oracle tests move to a project of their own,
   so that the ordinary Finance tests build in seconds and the oracle runs when the grammar or
   the parser changes.
+  **Done 2026-09-18 (finance-24, `8698f294`)**: `tests/DotGram.Finance.Fix44.Tests` holds the
+  oracle comparisons and links the shared field-reader tests, which Finance.Tests runs on the
+  generated and hand parsers; the README says when the oracle is run locally, and CI always
+  runs it. Finance.Tests 6,376 tests, Fix44.Tests 614; build times to be confirmed by the stand.
 
 ## D13. FIX first: the gap is to be explained and closed by hand-like code
 
