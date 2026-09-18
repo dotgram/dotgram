@@ -965,16 +965,19 @@ public static class FirstSets
 	/// <remarks>
 	/// A list rule is called from many places, and what follows it is theirs: <c>(a, p
 	/// WITHOUT OVERLAPS)</c>'s period stands in the rule that calls the column list. What
-	/// follows a call is the rest of each sequence around it, innermost first; a call inside
-	/// a repetition or a lookahead goes on in a way this does not follow, and says null. A
-	/// rule that is only published, never called, is followed by the end of the input.
+	/// follows a call is the rest of each sequence around it, innermost first, and inside a
+	/// repetition more turns or none; a call inside a lookahead goes on in a way this does not
+	/// follow, and says null. A rule that is only published, never called, is followed by the
+	/// end of the input.
 	/// </remarks>
 	static First? AfterCalls(
 		RuleSymbol rule, First token, RecognitionGraph graph,
 		IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow, HashSet<RuleSymbol> climbing)
 	{
+		// Every rule is climbed through once for the whole question: what it adds is in the
+		// answer already, wherever else it is reached from, and the answer is only a union.
 		if (!climbing.Add(rule))
-			return null;
+			return First.None;
 
 		First? next = First.None;
 
@@ -1009,7 +1012,8 @@ public static class FirstSets
 
 	/// <summary>
 	/// What follows each call of a rule inside one body, as the parts after it in every
-	/// sequence around it, innermost first; null for a call whose way on is not followed.
+	/// sequence around it, innermost first, a repetition's further turns among them; null for
+	/// a call inside a lookahead, whose way on is not followed.
 	/// </summary>
 	static List<IReadOnlyList<Node>?> Continuations(Node body, RuleSymbol rule)
 	{
@@ -1070,8 +1074,11 @@ public static class FirstSets
 					Visit(repeated);
 					break;
 
-				case Node.Repeat(var repeated, _, _):
-					frames.Add((null, 0));
+				// Past a call inside a turn: the rest of the turn, which the frames inside say,
+				// then more turns or none, then what follows the repetition — written as the
+				// repetition itself with nothing required of it.
+				case Node.Repeat(var repeated, _, var max):
+					frames.Add(([new Node.Repeat(repeated, 0, max)], -1));
 					Visit(repeated);
 					frames.RemoveAt(frames.Count - 1);
 					break;
