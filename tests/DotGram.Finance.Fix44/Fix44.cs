@@ -5,10 +5,10 @@ using System.Linq;
 
 using DotGram.Finance.Fix;
 
-namespace DotGram.Examples.Finance;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>Reads an ordered, flat list of FIX 4.4 fields without message validation.</summary>
-public static class Fix44
+public static class Fix44Parser
 {
 	/// <summary>
 	/// Reads wire fields separated by SOH.

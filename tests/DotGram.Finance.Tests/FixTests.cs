@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.Json;
 
-using DotGram.Examples.Finance;
+using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
 using Xunit;
@@ -20,7 +20,7 @@ public sealed class FixTests
 	public void All_fixtures_match_types_values_and_locations_on_all_inputs(string name, string wire)
 	{
 		Assert.NotEmpty(name);
-		var expected = Fix44.Parse(wire);
+		var expected = Fix44Parser.Parse(wire);
 		Equal(expected, FixParser.Parse(wire));
 		using var reader = new StringReader(wire);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
@@ -66,7 +66,7 @@ public sealed class FixTests
 	[InlineData("95=1|2147483648=x|")]
 	public void Malformed_inputs_return_invalid_fields_in_both_parsers(string wire)
 	{
-		Assert.Contains(Fix44.ParseLog(wire), field => field is FixField.Invalid);
+		Assert.Contains(Fix44Parser.ParseLog(wire), field => field is FixField.Invalid);
 		Assert.Contains(FixParser.ParseLog(wire), field => field is FixField.Invalid);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
 		Assert.Contains(FixParser.ParseLog(stream, bufferSize: 1), field => field is FixField.Invalid);
@@ -120,16 +120,16 @@ public sealed class FixTests
 		{
 			var input = ("55=FIRST|" + last).Replace('|', separator);
 			var log = separator == '|';
-			var expected = log ? Fix44.ParseLog(input + separator) : Fix44.Parse(input + separator);
-			Equal(expected, log ? Fix44.ParseLog(input) : Fix44.Parse(input));
+			var expected = log ? Fix44Parser.ParseLog(input + separator) : Fix44Parser.Parse(input + separator);
+			Equal(expected, log ? Fix44Parser.ParseLog(input) : Fix44Parser.Parse(input));
 			Equal(expected, log ? FixParser.ParseLog(input) : FixParser.Parse(input));
 			using var oldReader = new StringReader(input);
 			using var newReader = new StringReader(input);
 			using var oldStream = new ShortStream(Encoding.Latin1.GetBytes(input));
 			using var newStream = new ShortStream(Encoding.Latin1.GetBytes(input));
-			Equal(expected, log ? Fix44.ParseLog(oldReader, bufferSize: 1) : Fix44.Parse(oldReader, bufferSize: 1));
+			Equal(expected, log ? Fix44Parser.ParseLog(oldReader, bufferSize: 1) : Fix44Parser.Parse(oldReader, bufferSize: 1));
 			Equal(expected, log ? FixParser.ParseLog(newReader, bufferSize: 1) : FixParser.Parse(newReader, bufferSize: 1));
-			Equal(expected, log ? Fix44.ParseLog(oldStream, bufferSize: 1) : Fix44.Parse(oldStream, bufferSize: 1));
+			Equal(expected, log ? Fix44Parser.ParseLog(oldStream, bufferSize: 1) : Fix44Parser.Parse(oldStream, bufferSize: 1));
 			Equal(expected, log ? FixParser.ParseLog(newStream, bufferSize: 1) : FixParser.Parse(newStream, bufferSize: 1));
 		}
 	}
@@ -141,7 +141,7 @@ public sealed class FixTests
 	[InlineData("95=1|96=a55=ABC")]
 	public void Eof_does_not_relax_binary_length_or_intermediate_separators(string input)
 	{
-		Assert.Contains(Fix44.ParseLog(input), field => field is FixField.Invalid);
+		Assert.Contains(Fix44Parser.ParseLog(input), field => field is FixField.Invalid);
 		Assert.Contains(FixParser.ParseLog(input), field => field is FixField.Invalid);
 	}
 

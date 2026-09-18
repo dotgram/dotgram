@@ -1,10 +1,10 @@
 # Current parser layout
 
-The production parser is `DotGram.Finance.Fix`. The large grammar is
-`DotGram.Examples.Finance.Fix44` in the existing examples project.
+The production parser is `DotGram.Finance.Fix.FixParser`. The large grammar is
+`DotGram.Finance.Fix44.Fix44Parser`, in the `tests/DotGram.Finance.Fix44` fixture.
 `FixGrammarComparisonBenchmarks` compares these by default; `DOTGRAM_FIX_BASELINE`
 can still select an older assembly. For `profile`, pass the Finance assembly
-with parser `FixParser`, or the Examples assembly with parser `Fix44`.
+with parser `Fix`, or the Fix44 fixture's assembly with parser `Fix44`.
 Reports below retain the parser names and paths used at measurement time.
 
 # FIX 4.4 parsing benchmarks

@@ -30,7 +30,8 @@ if (count != 2) throw new Exception("Expected two messages on one stream.");
 var fields = FixParser.Parse(wire);
 if (fields.Length != 8 || fields[0] is not FixField.BeginString)
 	throw new Exception("Expected flat typed fields from FixParser.");
-if (typeof(FixParser).Assembly.GetType("DotGram.Examples.Finance.Fix44") != null ||
-	typeof(FixParser).Assembly.GetReferencedAssemblies().Any(name => name.Name == "DotGram.Examples"))
-	throw new Exception("The example parser must not be included in the package.");
+if (typeof(FixParser).Assembly.GetType("DotGram.Finance.Fix44.Fix44Parser") != null ||
+	typeof(FixParser).Assembly.GetType("DotGram.Examples.Finance.Fix44") != null ||
+	typeof(FixParser).Assembly.GetReferencedAssemblies().Any(name => name.Name is "DotGram.Finance.Fix44" or "DotGram.Examples"))
+	throw new Exception("The Fix44 fixture must not be included in the package.");
 Console.WriteLine("DotGram.Finance package smoke: char, byte stream, pipe and typed ADT passed.");

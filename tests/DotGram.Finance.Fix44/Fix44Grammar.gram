@@ -1,5 +1,5 @@
 @using DotGram.Finance.Fix;
-@using DotGram.Examples.Finance;
+@using DotGram.Finance.Fix44;
 using Known;
 
 context : @Fix44Context

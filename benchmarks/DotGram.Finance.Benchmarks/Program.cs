@@ -8,7 +8,7 @@ using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
-using DotGram.Examples.Finance;
+using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;

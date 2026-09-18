@@ -2,7 +2,7 @@
 
 using DotGram.Finance.Fix;
 
-namespace DotGram.Examples.Finance;
+namespace DotGram.Finance.Fix44;
 
 [Gram("Fix44Grammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
 sealed partial class Fix44Grammar : FixFieldGrammar;

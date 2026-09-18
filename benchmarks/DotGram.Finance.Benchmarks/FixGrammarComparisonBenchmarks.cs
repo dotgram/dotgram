@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using BenchmarkDotNet.Attributes;
-using DotGram.Examples.Finance;
+using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;
@@ -29,7 +29,7 @@ public class FixGrammarComparisonBenchmarks
 	public void Setup()
 	{
 		var path = Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE");
-		var old = path is null ? typeof(Fix44) : baseline ??= PreviousType(path);
+		var old = path is null ? typeof(Fix44Parser) : baseline ??= PreviousType(path);
 		var current = typeof(FixParser);
 		var order = Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
 		var raw = Fix44Benchmarks.Wire("A", "98=0|108=30|95=65536|96=" + new string('X', 65536) + "|");
@@ -56,8 +56,10 @@ public class FixGrammarComparisonBenchmarks
 	internal static Type PreviousType(string path)
 	{
 		var assembly = new AssemblyLoadContext("Previous FIX").LoadFromAssemblyPath(Path.GetFullPath(path));
+		// The parser types by every name they have had, oldest first, so that any build compares.
 		return assembly.GetType("DotGram.Finance.Fix") ?? assembly.GetType("DotGram.Examples.Finance.Fix44") ??
-			assembly.GetType("DotGram.Finance.Fix.Fix44", throwOnError: true)!;
+			assembly.GetType("DotGram.Finance.Fix.Fix44") ?? assembly.GetType("DotGram.Finance.Fix.FixParser") ??
+			assembly.GetType("DotGram.Finance.Fix44.Fix44Parser", throwOnError: true)!;
 	}
 
 	internal static Func<object, IEnumerable> Bind(Type type, string input)

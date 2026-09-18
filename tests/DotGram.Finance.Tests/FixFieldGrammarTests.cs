@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 
-using DotGram.Examples.Finance;
+using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
 using Xunit;

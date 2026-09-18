@@ -16,7 +16,11 @@ static class FixProfile
 		if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
 		if (input != "Bytes" && input != "Characters" && input != "String") throw new ArgumentException("Unknown input.");
 		if (parser != "Fix44" && parser != "Fix") throw new ArgumentException("Unknown parser.");
-		var type = new AssemblyLoadContext("Profile target").LoadFromAssemblyPath(Path.GetFullPath(path)).GetType(parser == "Fix44" ? "DotGram.Examples.Finance.Fix44" : "DotGram.Finance.Fix", throwOnError: true)!;
+		// Loaded by path to profile any build; each parser by its current name, then its former one.
+		var assembly = new AssemblyLoadContext("Profile target").LoadFromAssemblyPath(Path.GetFullPath(path));
+		var type     = parser == "Fix44"
+			? assembly.GetType("DotGram.Finance.Fix44.Fix44Parser") ?? assembly.GetType("DotGram.Examples.Finance.Fix44", throwOnError: true)!
+			: assembly.GetType("DotGram.Finance.Fix.FixParser") ?? assembly.GetType("DotGram.Finance.Fix", throwOnError: true)!;
 		var wire = Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
 		var groups = workload == "Groups" ? 1000 : workload.StartsWith("Groups:", StringComparison.Ordinal)
 			? int.Parse(workload.AsSpan(7), System.Globalization.CultureInfo.InvariantCulture) : 0;

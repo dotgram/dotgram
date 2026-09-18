@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-using DotGram.Examples.Finance;
+using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
 using Xunit;
@@ -16,12 +16,12 @@ public sealed class FixRecoveryTests
 	public void Recovery_returns_errors_in_order_with_original_input_and_absolute_positions(bool dispatch)
 	{
 		const string input = "55=ABC|bad|38=2|0=X|55=END|tail";
-		var text = dispatch ? FixParser.ParseLog(input) : Fix44.ParseLog(input);
+		var text = dispatch ? FixParser.ParseLog(input) : Fix44Parser.ParseLog(input);
 		Assert.Equal(6, text.Length);
 		using var reader = new StringReader(input);
 		using var stream = new MemoryStream(Encoding.Latin1.GetBytes(input));
-		var chars = dispatch ? FixParser.ParseLog(reader, null, 1, 16) : Fix44.ParseLog(reader, 1, 16);
-		var bytes = dispatch ? FixParser.ParseLog(stream, null, 1, 16) : Fix44.ParseLog(stream, 1, 16);
+		var chars = dispatch ? FixParser.ParseLog(reader, null, 1, 16) : Fix44Parser.ParseLog(reader, 1, 16);
+		var bytes = dispatch ? FixParser.ParseLog(stream, null, 1, 16) : Fix44Parser.ParseLog(stream, 1, 16);
 		Check(text, false);
 		Check(chars, false);
 		Check(bytes, true);
@@ -84,10 +84,10 @@ public sealed class FixRecoveryTests
 	public void Raw_error_data_preserves_high_bytes_and_unicode_text(bool dispatch)
 	{
 		var wire = new byte[] { 255, 0, 124, 53, 53, 61, 88 };
-		var bytes = dispatch ? FixParser.ParseLog(wire) : Fix44.ParseLog(wire);
+		var bytes = dispatch ? FixParser.ParseLog(wire) : Fix44Parser.ParseLog(wire);
 		Assert.Equal(new byte[] { 255, 0 }, Assert.IsType<FixField.Invalid>(bytes[0]).RawBytes.ToArray());
 		Assert.Equal("X", Assert.IsType<FixField.Symbol>(bytes[1]).Value);
-		var fields = dispatch ? FixParser.ParseLog("ошибка|55=X") : Fix44.ParseLog("ошибка|55=X");
+		var fields = dispatch ? FixParser.ParseLog("ошибка|55=X") : Fix44Parser.ParseLog("ошибка|55=X");
 		Assert.Equal("ошибка", Assert.IsType<FixField.Invalid>(fields[0]).RawText);
 	}
 }

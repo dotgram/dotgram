@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Text;
 using BenchmarkDotNet.Attributes;
-using DotGram.Examples.Finance;
+using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;
@@ -24,7 +24,7 @@ public class FixInitializationBenchmarks
 
 	internal static Type TypeOf(bool old) => !old ? typeof(FixParser) : oldType ??=
 		Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE") is { } path
-			? FixGrammarComparisonBenchmarks.PreviousType(path) : typeof(Fix44);
+			? FixGrammarComparisonBenchmarks.PreviousType(path) : typeof(Fix44Parser);
 
 	[GlobalSetup]
 	public void Setup()
@@ -54,7 +54,7 @@ public class FixInitializationBenchmarks
 	internal static void Probe(bool old)
 	{
 		var type = TypeOf(old);
-		var parser = type.Assembly.GetType(type.Namespace + (type.Name == "Fix44" && type.Namespace == "DotGram.Examples.Finance" ? ".Fix44Grammar" : ".FixGrammar"))!;
+		var parser = type.Assembly.GetType(type.Namespace + (type.Name == "Fix44Parser" || type.Name == "Fix44" && type.Namespace == "DotGram.Examples.Finance" ? ".Fix44Grammar" : ".FixGrammar"))!;
 		var start = Stopwatch.GetTimestamp();
 		RuntimeHelpers.RunClassConstructor(parser.TypeHandle);
 		Console.WriteLine($"Class initialization: {Stopwatch.GetElapsedTime(start).TotalMilliseconds:F3} ms");
