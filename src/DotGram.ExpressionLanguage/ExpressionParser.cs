@@ -456,14 +456,14 @@ namespace DotGram.ExpressionLanguage;
 	// A lookahead refuses without saying what it wanted, so the expression that follows is
 	// not also told it might have been a lambda at every one of those places.
 	Untyped : @Expression
-		= ?=((Word | '(' & Word & (',' & Word)* & ')') & "=>")
+		= ?=((Identifier | '(' & Identifier & (',' & Identifier)* & ')') & "=>")
 		& (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
 		& when @(context.Awaits(Awaited.Of(one, first, rest), parserSpan))
 		& when @(context.Entering(parserSpan)) & body: Held
 		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan) && context.Settles(parserSpan))
 		=> @(context.Deferred(Awaited.Of(one, first, rest), body, parserSpan, TryParseBody))
 
-	Awaiting : @Awaited = name: Word => @(new Awaited(name, parserSpan.Start))
+	Awaiting : @Awaited = name: Identifier => @(new Awaited(name, parserSpan.Start))
 
 	Held : @Held = Body => @(new Held(parserSpan.Start, parserSpan.Length))
 
@@ -479,7 +479,7 @@ namespace DotGram.ExpressionLanguage;
 	// text is read, which is the moment every later guard asks about a name — and refuses
 	// a namespace that is not there, as C# does.
 	Import : @string
-		= "using" & head: Word & ('.' & part: NamePart)* & ';'
+		= "using" & head: Identifier & ('.' & part: Identifier)* & ';'
 		  & when @(context.Imports(ExpressionParser.Dotted(head, part), parserSpan))
 		  => @(ExpressionParser.Dotted(head, part))
 
@@ -536,18 +536,23 @@ namespace DotGram.ExpressionLanguage;
 	// answer by the same means — the repetition hands a turn back where the lexeme handed a
 	// suffix back — and the parts are captured rather than the run, so `System . Text` names
 	// `System.Text` and the spaces the author put in are nowhere in the string.
-	// One word of a dotted name, given a type so that the parts arrive one at a time. A bare
-	// `part: Word` under a repetition captures the run between the first and the last, spaces
-	// and dots and all; a typed part is an array of words, and a name assembled from those
-	// has nothing in it the author did not name.
-	NamePart : @string = w: Word => @(w)
-
 	//
+	// A name somebody gives or reaches — a parameter, a local, what a `catch` or a `foreach`
+	// declares, a member after a dot, a part of a dotted name — is a word that is not a
+	// keyword, which is C#'s definition of an identifier. Written as `Word`, each of those
+	// places took `if` and `return`: `(int if) => 1` read, and so did `s.int`.
+	//
+	// Typed, so that under a repetition the parts arrive one at a time. A bare `part: Word`
+	// there captures the run between the first and the last, spaces and dots and all; a typed
+	// part is an array of words, and a name assembled from those has nothing in it the author
+	// did not name.
+	Identifier : @string on fail "Expected a name." = ?!Keyword & w: Word => @(w)
+
 	// A keyword is no type's name, which C# says by making it one and this says by refusing it
 	// here: read as the head of a dotted name, `return` in `x + return` sent the parse looking
 	// for a `.` after it, and the refusal came back as the end of the input.
 	NamedType? : @Type
-		= ?!Keyword & head: Word & ('.' & part: NamePart)*
+		= ?!Keyword & head: Word & ('.' & part: Identifier)*
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
 		  & when @(args != null || context.Resolves(ExpressionParser.Dotted(head, part)))
 		  => @(args is null
@@ -575,7 +580,7 @@ namespace DotGram.ExpressionLanguage;
 	// two: it wants `Word =` inside, and where that is absent the same brace opens a list.
 	// One token of lookahead settles it.
 	Binding : @Setting
-		= name: Word & '='
+		= name: Identifier & '='
 		& (nested: Bindings | '{' & items: Elements & '}' | value: Expression)
 		=> @(new Setting(name, value, nested, items))
 
@@ -600,7 +605,7 @@ namespace DotGram.ExpressionLanguage;
 	// moment this grammar has in the order it is written — and `parserSpan` is where it
 	// was read, which is the only thing that can say later which block it belongs to.
 	Parameter : @ParameterExpression
-		= type: Type & name: Word & when @(context.Takes(type, name, parserSpan))
+		= type: Type & name: Identifier & when @(context.Takes(type, name, parserSpan))
 		=> @(context.Named(name, parserSpan))
 
 	// ── A block, which is an expression like any other ──────────────────────────
@@ -629,7 +634,7 @@ namespace DotGram.ExpressionLanguage;
 		| s: Expression & ';' => @(s)
 
 	Local : @Expression
-		= type: Type & name: Word & when @(context.Declare(type, name, parserSpan))
+		= type: Type & name: Identifier & when @(context.Declare(type, name, parserSpan))
 		& '=' & value: Value & ';'
 		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
 
@@ -655,7 +660,7 @@ namespace DotGram.ExpressionLanguage;
 	// keyword has ever been.
 	Inferred : @Expression
 		= inferred: Word & when @(inferred == "var")
-		& name: Word & '=' & value: Value & ';'
+		& name: Identifier & '=' & value: Value & ';'
 		& when @(ExpressionParser.Inferable(value) && context.Declare(value.Type, name, parserSpan))
 		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
 
@@ -669,7 +674,7 @@ namespace DotGram.ExpressionLanguage;
 	// `Inferred` is one.
 	InferredUnsettled : @Expression
 		= inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan))
-		& name: Word & '=' & Value & ';'
+		& name: Identifier & '=' & Value & ';'
 		& when @(context.Declare(typeof(object), name, parserSpan))
 		=> @(Expression.Empty())
 
@@ -789,7 +794,7 @@ namespace DotGram.ExpressionLanguage;
 	// for. Two rules rather than two alternatives of one, because a capture only some
 	// alternatives make is nullable in every guard of the rule (§4.2).
 	Foreach : @Expression
-		= "foreach" & '(' & type: Type & name: Word
+		= "foreach" & '(' & type: Type & name: Identifier
 		& when @(context.Declare(type, name, parserSpan))
 		& "in" & source: Expression & ')'
 		& when @(context.Opening(parserSpan)) & body: Statement
@@ -802,7 +807,7 @@ namespace DotGram.ExpressionLanguage;
 
 	ForeachInferred : @Expression
 		= "foreach" & '(' & inferred: Word & when @(inferred == "var")
-		& name: Word & "in" & source: Expression & ')'
+		& name: Identifier & "in" & source: Expression & ')'
 		& when @(ExpressionParser.Yielded(source) is { } item && context.Declare(item, name, parserSpan))
 		& when @(context.Opening(parserSpan)) & body: Statement
 		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
@@ -818,7 +823,7 @@ namespace DotGram.ExpressionLanguage;
 	// extents, since what is declared inside it is looked up by them.
 	ForeachUnsettled : @Expression
 		= "foreach" & '(' & inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan))
-		& name: Word & "in" & Expression & ')'
+		& name: Identifier & "in" & Expression & ')'
 		& when @(context.Declare(typeof(object), name, parserSpan))
 		& when @(context.Opening(parserSpan)) & Statement
 		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
@@ -860,7 +865,7 @@ namespace DotGram.ExpressionLanguage;
 	// `catch` records a scope of its own — the `(` it is declared in stands outside the
 	// handler's block, and without this the block around the `try` would claim it.
 	Catch : @CatchBlock
-		= "catch" & '(' & type: Type & name: Word
+		= "catch" & '(' & type: Type & name: Identifier
 		& when @(context.Declare(type, name, parserSpan)) & ')' & body: Block
 		& when @(context.Scoped(parserSpan))
 		=> @(Expression.Catch(context.Named(name, parserSpan), body))
@@ -928,7 +933,7 @@ namespace DotGram.ExpressionLanguage;
 	// only work because it runs after the parse. What the guard asks is what the
 	// construction is about to do, so the two cannot drift.
 	Target : @Expression
-		= n: Name & ('.' & member: Word)? & when @(ExpressionParser.Has(n, member, context.Caller))
+		= n: Name & ('.' & member: Identifier)? & when @(ExpressionParser.Has(n, member, context.Caller))
 		=> @(member is null ? n : ExpressionParser.Member(n, member, context.Caller))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
@@ -1027,10 +1032,10 @@ namespace DotGram.ExpressionLanguage;
 	// assignable to it by reference: `Math.Sqrt(x)` over an `int` finds nothing there, and
 	// `Console.WriteLine(s)` finds two and refuses both.
 	Postfix : @Expression
-		= target: Postfix & '.' & member: Word & args: Arguments
+		= target: Postfix & '.' & member: Identifier & args: Arguments
 		  => @(context.Calling(target, member, args))
 
-		| target: Postfix & '.' & member: Word => @(ExpressionParser.Member(target, member, context.Caller))
+		| target: Postfix & '.' & member: Identifier => @(ExpressionParser.Member(target, member, context.Caller))
 
 		// An index is a list, so a two-dimensional array and an indexer of two arguments are
 		// both written without another rule.
@@ -1058,10 +1063,10 @@ namespace DotGram.ExpressionLanguage;
 	// the point belongs to the number. Read apart, that reads as C# reads it, and the only
 	// thing the two spellings disagree about — `a ? . b : c` — is no C# at all.
 	Step : @Step
-		= '?' & '.' & member: Word & args: Arguments? => @(new Step(member, args, null, true))
-		| '?' & at: Indices                           => @(new Step(null, null, at, true))
-		| '.' & member: Word & args: Arguments?       => @(new Step(member, args, null))
-		| at: Indices                                 => @(new Step(null, null, at))
+		= '?' & '.' & member: Identifier & args: Arguments? => @(new Step(member, args, null, true))
+		| '?' & at: Indices                                 => @(new Step(null, null, at, true))
+		| '.' & member: Identifier & args: Arguments?       => @(new Step(member, args, null))
+		| at: Indices                                       => @(new Step(null, null, at))
 
 	// A guarded step and every step written after it, which belong to it: the guard protects
 	// all of them, so all of them have to arrive together and unbuilt.
@@ -1071,7 +1076,7 @@ namespace DotGram.ExpressionLanguage;
 	// the loop that reads one suffix per turn — and `steps` comes back as the one step that
 	// turn read rather than as the list of them.
 	Guarded : @Step[]
-		= '?' & '.' & member: Word & args: Arguments? & steps: Step*
+		= '?' & '.' & member: Identifier & args: Arguments? & steps: Step*
 		  => @(ExpressionParser.Chain(new Step(member, args, null, true), steps))
 		| '?' & at: Indices & steps: Step*
 		  => @(ExpressionParser.Chain(new Step(null, null, at, true), steps))
@@ -1117,7 +1122,7 @@ namespace DotGram.ExpressionLanguage;
 		// two, the type and the member are read once for each, and a dotted type name is
 		// not cheap to read. One reading is the same language because arguments begin with
 		// '(', which nothing at the end of a member name can be.
-		| type: Core & '.' & member: Word & args: Arguments?
+		| type: Core & '.' & member: Identifier & args: Arguments?
 		  => @(args is null
 		       ? ExpressionParser.StaticMember(type, member, context.Caller)
 		       : ExpressionParser.Called(type, member, args, context.Caller))
@@ -1143,7 +1148,7 @@ namespace DotGram.ExpressionLanguage;
 		// `nameof(s.Length)` is "Length". Nothing is looked up: C# requires the name to mean
 		// something and refusing here would need a guard that asks what a member is before
 		// the operand it is on is built, which is the one question a guard cannot ask (§8.1).
-		| "nameof" & '(' & head: Word & ('.' & part: NamePart)* & ')'
+		| "nameof" & '(' & head: Identifier & ('.' & part: Identifier)* & ')'
 		  => @(Expression.Constant(ExpressionParser.Last(head, part)))
 
 		| l: Inner => @(l)

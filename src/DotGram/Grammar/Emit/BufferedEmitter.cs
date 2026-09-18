@@ -253,6 +253,18 @@ public static partial class CSharpEmitter
 			private int _count;
 			private bool _ended;
 
+			// A buffer longer than this is let go instead of returned to the shared pool, which
+			// keeps what it is given for the life of the process: one long record would otherwise
+			// hold its buffer, and the halves it grew through, long after the parse ended (D5).
+			// Not returning costs time at every size, because the buffer grows by doubling and
+			// each step past 85,000 bytes is a fresh large-object allocation. Measured on FIX, one
+			// length/data record repeated through the Stream overload, pooled against never
+			// pooled: 4 KB 0.88 against 1.09 us, 64 KB 4.5 against 31, 256 KB 29 against 52,
+			// 1 MB 131 against 422, 4 MB 866 against 1,404. So the line sits high, where the
+			// token and value stores already let go of what is oversized, and a record below it
+			// keeps pooled speed; above it a parse pays the table, and the process keeps none of it.
+			private const int KeptLength = 1048576;
+
 			public BufferedText(global::System.IO.TextReader input, int capacity, int limit)
 			{
 				if (input == null) throw new global::System.ArgumentNullException(nameof(input));
@@ -267,7 +279,8 @@ public static partial class CSharpEmitter
 			public void Dispose()
 			{
 				if (_capacity == 0) return;
-				global::System.Buffers.ArrayPool<char>.Shared.Return(_buffer, clearArray: true);
+				if (_buffer.Length <= KeptLength)
+					global::System.Buffers.ArrayPool<char>.Shared.Return(_buffer, clearArray: true);
 				_buffer = global::System.Array.Empty<char>();
 				_capacity = 0;
 			}
@@ -313,7 +326,8 @@ public static partial class CSharpEmitter
 						var capacity = _capacity <= _limit / 2 ? _capacity * 2 : _limit;
 						var grown = global::System.Buffers.ArrayPool<char>.Shared.Rent(capacity);
 						global::System.Array.Copy(_buffer, 0, grown, 0, _count - _start);
-						global::System.Buffers.ArrayPool<char>.Shared.Return(_buffer, clearArray: true);
+						if (_buffer.Length <= KeptLength)
+							global::System.Buffers.ArrayPool<char>.Shared.Return(_buffer, clearArray: true);
 						_buffer = grown;
 						_capacity = capacity;
 					}
