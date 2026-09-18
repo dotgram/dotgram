@@ -372,7 +372,7 @@ static class Standard
 		return input => read(input, out var value) ? value : null;
 	}
 
-	static string Dump(object? node)
+	internal static string Dump(object? node)
 	{
 		var text = new StringBuilder();
 

@@ -18,6 +18,27 @@ Not run by CI. A number from a shared runner is a number about the runner, and a
 suite that fails when a machine is busy is a test suite people learn to ignore. The
 project is in the solution so that it has to keep compiling.
 
+## The stand: every generated parser against its hand-written one
+
+```console
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-compare before.json after.json
+```
+
+One run over FIX (a string, bytes in memory and a stream), the expression language (by hand,
+on the tape and by the immediate carrier) and SQL:2023: time and allocation per parse against
+the hand-written parser, the first call in a fresh process, what a lazily streamed FIX parse
+holds, and what the generator took to write each parser, from the last build's reports
+(`Stand.cs`). Every row checks that its readings answer the same before it is timed. The
+process pins itself to logical processors 0 to 15 at high priority, and times a row of plain
+arithmetic in every round, so that two runs taken on different days can be told apart from
+two parsers that differ. Results go to `T:\TEMP\dotgram-stand\<time>` (`stand.md`,
+`stand.json`), or to a directory named after `--stand`.
+
+It times; so, under the rule every session here keeps, it runs in an announced window with
+nothing else building. Reports of the generator appear only for projects the last build
+actually compiled: rebuild with `-t:Rebuild` to have all of them.
+
 ## Parser resource baselines
 
 `ParserResourceBenchmarks` measures repeated SQL92 conditions at 1, 1000, 10000,
