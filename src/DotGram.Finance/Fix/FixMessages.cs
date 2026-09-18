@@ -202,18 +202,18 @@ public static partial class FixMessages
 				field.ValuePosition < position || field.ValuePosition > source.Length - 1 ||
 				field.Length >= source.Length - field.ValuePosition)
 				return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
-			var prefix = field.Tag.ToString(CultureInfo.InvariantCulture) + "=";
 			var tagPosition = field.IsBinary ? field.DataPosition : position;
-			if (tagPosition < position || field.ValuePosition - tagPosition != prefix.Length || !source.AsSpan(tagPosition, prefix.Length).SequenceEqual(prefix.AsSpan()) ||
+			if (tagPosition < position || field.ValuePosition - tagPosition < 2 || source[field.ValuePosition - 1] != '=' ||
+				!IsTag(source.AsSpan(tagPosition, field.ValuePosition - 1 - tagPosition), field.Tag) ||
 				source[field.ValuePosition + field.Length] != separator)
 				return Fail(position, field.Tag, type, "Field locations do not match the supplied source.", out error);
 			if (field.IsBinary)
 			{
 				var lengthTag = FixSchema.LengthTag(field.Tag);
-				var lengthPrefix = lengthTag.ToString(CultureInfo.InvariantCulture) + "=";
 				var header = source.AsSpan(position, tagPosition - position);
-				if (header.Length <= lengthPrefix.Length || !header.StartsWith(lengthPrefix.AsSpan()) || header[header.Length - 1] != separator ||
-					FixConvert.Tag(header.Slice(lengthPrefix.Length, header.Length - lengthPrefix.Length - 1)) != field.Length)
+				var equals = header.IndexOf('=');
+				if (equals <= 0 || equals >= header.Length - 2 || !IsTag(header.Slice(0, equals), lengthTag) || header[header.Length - 1] != separator ||
+					FixConvert.Tag(header.Slice(equals + 1, header.Length - equals - 2)) != field.Length)
 					return Fail(position, lengthTag, type, "Binary length does not match the supplied source.", out error);
 			}
 			position = field.ValuePosition + field.Length + 1;
@@ -221,6 +221,24 @@ public static partial class FixMessages
 		if (position != source.Length) return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
 		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error)) return false;
 		return FixSemantics.TryBuild(source, type, Nodes(source, fields), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
+	}
+
+	// Whether text is exactly the decimal digits of tag, as ToString writes them: no sign, and
+	// no leading zero.
+	static bool IsTag(ReadOnlySpan<char> text, int tag)
+	{
+		for (var i = text.Length - 1; i >= 0; i--)
+		{
+			if (text[i] != (char)('0' + tag % 10))
+				return false;
+
+			tag /= 10;
+
+			if (tag == 0)
+				return i == 0;
+		}
+
+		return false;
 	}
 
 	static bool CheckSyntax(FixField[] fields, out FixParseError? error)
@@ -377,10 +395,17 @@ static class FixValidation
 			if (dataTag != 0 && (i + 1 == scope.Nodes.Length || scope.Nodes[i + 1].Tag != dataTag)) return Fail(field, type, "Length field must immediately precede its matching data field.", out error);
 			if (mode == FixParseMode.Strict && !FixPrimitives.Valid(field, FixSchema.Type(node.Tag), FixSchema.Codes(node.Tag))) return Fail(field, type, "Invalid FIX primitive value or code set value.", out error);
 		}
-		return References(scope, schema, type, mode, options, out error);
+		return References(scope, seen, schema, type, mode, options, out error);
 	}
 
-	static bool References(FixFieldSet scope, SchemaRef[] schema, string type, FixParseMode mode, FixParseOptions? options, out FixParseError? error)
+	// Whether a scope holds a tag. Its standard tags are in the mask its fields marked; any
+	// other tag is looked for among the fields themselves.
+	internal static bool Has(FixFieldSet scope, ReadOnlySpan<ulong> seen, int tag)
+	{
+		return tag is > 0 and < 957 ? (seen[tag >> 6] & 1UL << (tag & 63)) != 0 : scope.GetField(tag) != null;
+	}
+
+	static bool References(FixFieldSet scope, ReadOnlySpan<ulong> seen, SchemaRef[] schema, string type, FixParseMode mode, FixParseOptions? options, out FixParseError? error)
 	{
 		error = null;
 		foreach (var reference in schema)
@@ -389,31 +414,31 @@ static class FixValidation
 			{
 				if (reference.Id is 1024 or 1025) continue;
 				var child = FixSchema.Component(reference.Id);
-				var present = Present(scope, child);
+				var present = Present(scope, seen, child);
 				if (mode == FixParseMode.Strict && reference.Required && !present) return Missing(scope, type, null, "Required component is missing.", out error);
-				if (present && !References(scope, child, type, mode, options, out error)) return false;
+				if (present && !References(scope, seen, child, type, mode, options, out error)) return false;
 				continue;
 			}
 			var tag = reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id;
-			var field = scope.GetField(tag);
-			if (field == null)
+			if (!Has(scope, seen, tag))
 			{
 				if (reference.Required && mode == FixParseMode.Strict) return Missing(scope, type, tag, "Required field is missing.", out error);
 				continue;
 			}
 			if (reference.Kind != 2) continue;
+			var field = scope.GetField(tag)!.Value;
 			var entries = scope.GetGroup(tag);
-			if (!field.Value.TryGetInt64(out var count) || count != entries.Count || count < 0 || reference.Required && count == 0 && mode == FixParseMode.Strict) return Fail(field.Value, type, "NumInGroup does not match the number of group entries.", out error);
+			if (!field.TryGetInt64(out var count) || count != entries.Count || count < 0 || reference.Required && count == 0 && mode == FixParseMode.Strict) return Fail(field, type, "NumInGroup does not match the number of group entries.", out error);
 			foreach (var entry in entries)
 				if (!Scope(entry, FixSchema.Group(reference.Id), type, mode, options, out error, ordered: true)) return false;
 		}
 		return true;
 	}
 
-	static bool Present(FixFieldSet scope, SchemaRef[] schema)
+	static bool Present(FixFieldSet scope, ReadOnlySpan<ulong> seen, SchemaRef[] schema)
 	{
 		foreach (var reference in schema)
-			if (reference.Kind == 1 ? Present(scope, FixSchema.Component(reference.Id)) : scope.GetField(reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id) != null) return true;
+			if (reference.Kind == 1 ? Present(scope, seen, FixSchema.Component(reference.Id)) : Has(scope, seen, reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id)) return true;
 		return false;
 	}
 

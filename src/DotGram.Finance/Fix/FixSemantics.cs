@@ -85,6 +85,12 @@ static class FixSemantics
 		readonly FixNode[] fields;
 		readonly FixParseMode mode;
 		readonly FixParseOptions? options;
+
+		// The nodes of every scope still open, innermost last. A scope reads onto the top and
+		// takes its own nodes off as one array, so a group read inside it has come and gone.
+		// One per reader, and a reader per message: nothing is kept between messages.
+		readonly List<FixNode> stack = new();
+
 		public int Position { get; private set; }
 		public FixParseError? Error { get; private set; }
 
@@ -99,14 +105,18 @@ static class FixSemantics
 
 		public void Fail(int tag, int position, string reason) => Error ??= new FixParseError(position, tag, type, reason);
 
-		public FixNode[] Scope(SchemaRef[] schema, bool body = false, bool custom = false, int delimiter = 0)
+		public FixNode[] Scope(SchemaRef[] schema, bool body = false, bool custom = false)
 		{
-			var members = Members(schema);
-			var nodes = new List<FixNode>();
+			return Scope(Members(schema), body, custom, 0);
+		}
+
+		FixNode[] Scope(Dictionary<int, int> members, bool body, bool custom, int delimiter)
+		{
+			var start = stack.Count;
 			while (Position < fields.Length && Error == null)
 			{
 				var field = fields[Position];
-				if (delimiter != 0 && nodes.Count > 0 && field.Tag == delimiter) break;
+				if (delimiter != 0 && stack.Count > start && field.Tag == delimiter) break;
 				if (!members.TryGetValue(field.Tag, out var group))
 				{
 					// Header extensions start the body; unknown group fields remain in
@@ -117,9 +127,15 @@ static class FixSemantics
 				}
 				Position++;
 				if (group != 0) field = Group(field, group);
-				nodes.Add(field);
+				stack.Add(field);
 			}
-			return nodes.ToArray();
+
+			var nodes = new FixNode[stack.Count - start];
+
+			stack.CopyTo(start, nodes, 0, nodes.Length);
+			stack.RemoveRange(start, nodes.Length);
+
+			return nodes;
 		}
 
 		FixNode Group(FixNode counter, int id)
@@ -129,22 +145,28 @@ static class FixSemantics
 				Fail(counter.Tag, counter.ValuePosition, "Invalid or impossible NumInGroup.");
 				return counter;
 			}
-			var schema = FixSchema.Group(id);
+			var schema    = FixSchema.Group(id);
 			var delimiter = First(schema);
-			var entries = new List<FixNode[]>();
-			for (long n = 0; n < count && Error == null; n++)
+			var members   = Members(schema);
+
+			// The count came from the input, but it was held to the fields left above, so the
+			// array is never larger than what remains to fill it.
+			var scopes = new FixFieldSet[count];
+			var filled = 0;
+
+			while (filled < scopes.Length && Error == null)
 			{
 				if (Position == fields.Length || fields[Position].Tag != delimiter)
 				{
 					Fail(counter.Tag, counter.ValuePosition, "Group entry must begin with its schema delimiter; NumInGroup is not satisfied.");
 					break;
 				}
-				entries.Add(Scope(schema, delimiter: delimiter));
-			}
-			var scopes = new FixFieldSet[entries.Count];
 
-			for (var n = 0; n < scopes.Length; n++)
-				scopes[n] = new FixFieldSet(source, entries[n]);
+				scopes[filled++] = new FixFieldSet(source, Scope(members, false, false, delimiter));
+			}
+
+			if (filled < scopes.Length)
+				Array.Resize(ref scopes, filled);
 
 			return new FixNode(counter.Tag, counter.Position, counter.ValuePosition, counter.Length, Array.AsReadOnly(scopes), counter.TypedValue, id);
 		}
