@@ -704,8 +704,7 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
 
 **The input forms, generalized (Igor's question).** The forms are two independent axes, the
 symbol (`char` or `byte`) and the source (in memory, or pulled a block at a time), plus what a
-source does at element boundaries (lines insert `
-`). String and `ReadOnlySpan<char>` are text
+source does at element boundaries (lines insert `\n`). String and `ReadOnlySpan<char>` are text
 in memory; `IEnumerable<string>`, `string[]` and `TextReader` are text pulled; `byte[]` and
 `ReadOnlyMemory<byte>` bytes in memory; `Stream` bytes pulled. So the generalization is one
 machine per symbol type, generic over its source (5), and a source per form, rather than one
