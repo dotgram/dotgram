@@ -50,9 +50,13 @@ time on an unmeasured construct pass unnoticed.
 | `HandSqlTokens` | `Sql92Parser` | no: `SearchCondition` only of four publications; datetime literals not read | `--hand` agreement only, 42 shapes |
 | `HandSqlOriginal` | none | no, by its own description | none |
 
-**Open, for Igor.** Whether `HandSqlTokens` is brought up to `Sql92Parser`'s four
-publications or retired in favour of `HandSqlStandard`, and whether `HandSqlOriginal` is
-removed.
+**Decided 2026-09-17 by Igor: `HandSqlTokens` and `HandSqlOriginal` are removed.** SQL is measured
+against `HandSqlStandard` alone. Carried out by sql-ff, which owns the SQL benchmarks: the two
+files go, and so does every benchmark column and command that compares with them (`--hand`,
+`--lexers`, the hand columns of `--bytes`, `--big` and `--spin`, `SqlComparisonBenchmarks`,
+`SqlCounters`, `SqlSlope`). Each piece is either deleted or pointed at `HandSqlStandard` and
+`SqlStandardParser`; none keeps a comparison with a parser that no longer exists. `docs/next.md`
+keeps the ratios measured against them as history.
 
 ## D2. The value store clears what was written, not what every machine might write
 
