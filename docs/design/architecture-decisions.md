@@ -538,6 +538,41 @@ and which of the generator's parts stand in the way (the engine for `recover`, t
 shape, per-call setup). That design comes to the architect and to Igor as a question about
 the architecture before anything is written.
 
+## D14. The normalizer is two things: building the graph, and optimizing it
+
+Decided 2026-09-18 by Igor, on the architect's account of the generator's steps. Normalization
+(step 3) builds the plan of the parse as a graph that can be optimized; the lexical split (step
+4) then changes that graph — rules are replaced, some disappear — so what was optimized may need
+optimizing again. Today the split re-runs one pass (`FactorCommittedPrefixes`) and the analyses
+run again implicitly over the kinds graph; the other passes do not run again, which is why a
+grammar can carry a `GRAM4016` over characters that would not hold over kinds.
+
+**Decided:** the normalizer is divided into building the graph, run once, and optimizing it,
+a set of passes that are idempotent over a graph and can run any number of times — after the
+split, and after any later rewrite. Step 5 (choosing the rendering and the mechanisms each
+machine gets) is where performance is decided and is kept apart from both.
+
+**First, the inventory** (expr-2d, after Q7.2 step 3; performance-3f stays on FIX): every pass
+of `GrammarNormalizer` classified as building (settles meaning: specialization, conditions,
+left recursion, nullability, types, implicit captures, trivia, results) or optimizing
+(transparent rules, factoring, pruning, whatever else changes shape and not meaning), with
+what each reads and writes, whether it is idempotent today, and what order the optimizers
+need. Then a design: `Optimize(graph) → graph` called after `Build` and after the split, with
+the emitted code of every grammar byte-identical when nothing new is found, and the SQL:2023
+kinds graph as the case where something is.
+
+**Inventory and design landed (expr, `44b03532`, `3857460f`):** thirty-one passes classified,
+five of them optimizers; stages Build → Optimize → Analyze → Check, the same three again over
+kinds after the split; optimizers keep the language, members, types and node facts, return
+bodies by reference when nothing changed, and report nothing — `GRAM4016` is said by Check
+from Factor's declines, after the last Optimize. Two present defects found by the inventory go
+first: `GRAM4007` reported up to three times, `LowerYieldPublications` not idempotent.
+**The architect's answers to the design's two questions** (Igor may override): (1) step 6 changes
+the split grammars' emitted code, and that is D14's purpose — one step, measured on the stand
+and gated by the agreement tests like any emitter change, no flag (a flag would be an option of
+Q3's kind); (2) the four rewrites inside `LowerAll` move into Optimize, as a step of their own
+after 6, byte-identical, since Optimize is meant to be complete.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
