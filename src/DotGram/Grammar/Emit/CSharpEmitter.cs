@@ -686,10 +686,14 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// A buffer's trace hook calls the engine's own, which is written only where an engine is:
+		// a buffer read by methods alone goes without it.
+		var engined = machines.Exists(static compiled => !compiled.Flat && !compiled.Direct) || valuing is not null;
+
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput && !compiled.Machine.BufferedBytes))
-			file.Write(BufferedTextClass);
+			file.Write(engined ? BufferedTextClass : WithoutEngineTrace(BufferedTextClass));
 		if (machines.Exists(static compiled => compiled.Machine.BufferedBytes))
-			file.Write(BufferedByteClass());
+			file.Write(engined ? BufferedByteClass() : WithoutEngineTrace(BufferedByteClass()));
 
 		if (Streaming(graph, overKinds))
 		{
@@ -1055,6 +1059,34 @@ public static partial class CSharpEmitter
 	{
 		var machine = compiled.Machine;
 		var engine  = compiled.Engine;
+
+		if (machine.BufferedInput && compiled.Direct)
+		{
+			// The reader over the buffer, entered under the name the buffered publication calls:
+			// the same parameters in the same order as the engine's wrapper takes them.
+			file.Methods(machine.RenderReader(compiled.Publications));
+
+			foreach (var publication in compiled.Publications)
+			{
+				var whole  = publication.Kind == PublishKind.Parse;
+				var core   = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
+				var type   = results.QualifiedOf(publication.Rule);
+				var climbs = graph.Climbing.ContainsKey(publication.Rule);
+				var reads  = machine.UsesReading ? ", int parserReading" : "";
+				var passes = machine.UsesReading ? ", parserReading" : "";
+				var context = machine.UsesContext ? $", {graph.Context} context" : "";
+
+				file.Line();
+				file.Line(
+					$"static int {BufferedMethod(publication, machine.BufferedBytes)}({machine.InputType} text, int pos{(climbs ? ", int power" : "")}, " +
+					$"ref {FailureType} failure{(type is null ? "" : $", out {type} value")}{context}{reads}) =>");
+				file.Then(
+					$"{core}(text, pos{(climbs ? ", power" : "")}, ref failure{(type is null ? "" : ", out value")}" +
+					$"{(machine.UsesContext ? ", context" : "")}{passes});");
+			}
+
+			return;
+		}
 
 		if (machine.BufferedInput)
 		{
@@ -3403,6 +3435,15 @@ public static partial class CSharpEmitter
 	/// as the body does. A machine built without it would jump to a state nobody wrote.
 	/// </remarks>
 	static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root) => graph.Reaches(root);
+
+	/// <summary>A buffer's class without the trace hook that calls the engine's, for a file with no engine.</summary>
+	static string WithoutEngineTrace(string buffered)
+	{
+		var from = buffered.IndexOf("[global::System.Diagnostics.Conditional(\"DOTGRAM_TRACE\")]", StringComparison.Ordinal);
+		var to   = buffered.IndexOf("static int LineAt(", StringComparison.Ordinal);
+
+		return from < 0 || to < from ? buffered : buffered.Remove(from, to - from);
+	}
 
 	/// <summary>
 	/// Whether a parse of text in memory reads quietly first and records only on reading a

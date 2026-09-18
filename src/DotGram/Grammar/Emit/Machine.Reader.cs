@@ -722,7 +722,7 @@ sealed partial class Machine
 
 		using (header.Indent())
 		{
-			header.Line("readonly global::System.ReadOnlySpan<char> text;");
+			header.Line($"readonly {InputType} text;");
 			header.Line($"internal {CSharpEmitter.FailureType} failure;");
 
 			if (Probes)
@@ -754,7 +754,7 @@ sealed partial class Machine
 			header.Line();
 
 			using (header.Block(
-				$"internal {ReaderStruct}(global::System.ReadOnlySpan<char> text{(_readerWays ? $", {WaysType} ways" : "")}" +
+				$"internal {ReaderStruct}({InputType} text{(_readerWays ? $", {WaysType} ways" : "")}" +
 				string.Concat(state.Select(one => $", {one.Type} {one.Name}")) + WholeParameter + ")"))
 			{
 				header.Line("this.text    = text;");
@@ -820,7 +820,7 @@ sealed partial class Machine
 		// position, then the value, the input, the tokens, the context (CSharpEmitter.EmitPublication).
 		using (file.Block(
 			$"static int {core}(" +
-			$"global::System.ReadOnlySpan<char> text, int pos{(climbs ? ", int power" : "")}, " +
+			$"{InputType} text, int pos{(climbs ? ", int power" : "")}, " +
 			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}{WholeParameter})"))
 		{
 			// The tape is what the records of a parse are written on; the tables are what

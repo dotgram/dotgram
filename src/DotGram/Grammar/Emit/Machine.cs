@@ -38,7 +38,7 @@ sealed partial class Machine
 	// A first conservative release proof: one source-independent, deterministic rule.
 	// Silent proves that its repetitions cannot be shortened by the continuation.
 	// More general graphs keep input until their outstanding obligations are tracked.
-	bool CanReleaseBuffered
+	internal bool CanReleaseBuffered
 	{
 		get
 		{
@@ -61,7 +61,7 @@ sealed partial class Machine
 		}
 	}
 
-	string InputType => BufferedBytes ? "BufferedBytes" : BufferedInput ? "BufferedText" : "global::System.ReadOnlySpan<char>";
+	internal string InputType => BufferedBytes ? "BufferedBytes" : BufferedInput ? "BufferedText" : "global::System.ReadOnlySpan<char>";
 	string ReadAt(string position) => BufferedInput ? $"text.Get({position})" : $"text[{position}]";
 
 	// What the reader asks of its text, spelled for the text it holds: a span, as always, or a

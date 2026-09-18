@@ -99,7 +99,20 @@ public static partial class CSharpEmitter
 					publication.At.Position, publication.At.Length, GramSeverity.Error));
 				continue;
 			}
-			added.Add(new Compiled(machine!, [publication], "Recognize_DotGram" + tag, tag, false));
+			// Read by methods where the string form is, over the buffer instead of a span
+			// (docs/design/fix-reader-buffered-2026-09-18.md): the same reader, asking the buffer
+			// through the machine's helpers. Only there, so that the two forms of one publication
+			// are one rendering and answer alike to the character — a refusal inside a literal is
+			// placed where the literal began by the reader and where it broke off by the engine.
+			// Characters first. Not where the engine proves it can let the buffer go as it reads,
+			// which the reader does not do yet; nor where a reading can reach itself and would
+			// hand its input to another thread, which a buffer does not yet go with; nor where an
+			// external recognizer reads the input through its view, which the engine hands it.
+			var direct = !bytes && publication.Kind == PublishKind.Parse &&
+				!rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External)) &&
+				machines.Exists(one => one.Direct && one.Publications.Contains(publication)) &&
+				machine!.CanDirect([publication]) && !machine.Probes && !machine.CanReleaseBuffered;
+			added.Add(new Compiled(machine!, [publication], "Recognize_DotGram" + tag, tag, false, direct));
 		}
 		// Keep single-rule release proofs and small parsers independent. Large,
 		// substantially overlapping readers may share states within one input form.
@@ -109,7 +122,7 @@ public static partial class CSharpEmitter
 		{
 			var owner = added[host];
 			var rules = new HashSet<RuleSymbol>(reached[owner]);
-			if (!Large(rules))
+			if (owner.Direct || !Large(rules))
 				continue;
 
 			var publications = owner.Publications.ToList();
@@ -118,7 +131,7 @@ public static partial class CSharpEmitter
 			{
 				var candidate = added[guest];
 				var other = reached[candidate];
-				if (candidate.Machine.BufferedBytes != owner.Machine.BufferedBytes ||
+				if (candidate.Direct || candidate.Machine.BufferedBytes != owner.Machine.BufferedBytes ||
 					candidate.Machine.UsesContext != owner.Machine.UsesContext || !Large(other) ||
 					rules.Count(other.Contains) * 10 < Math.Max(rules.Count, other.Count) * 9)
 					continue;
@@ -143,8 +156,9 @@ public static partial class CSharpEmitter
 		foreach (var compiled in added)
 		{
 			compiled.Machine.CompileRules();
-			foreach (var publication in compiled.Publications)
-				compiled.Machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
+			if (!compiled.Direct)
+				foreach (var publication in compiled.Publications)
+					compiled.Machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 			machines.Add(compiled);
 		}
 

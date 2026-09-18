@@ -721,7 +721,7 @@ sealed partial class Machine
 		// captures were recorded since its rule began, and nothing before that reaches them.
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
-			$"{WaysType} ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first" +
+			$"{WaysType} ways, {InputType} text, DirectValues values, int root, int from, int first" +
 			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
@@ -920,7 +920,7 @@ sealed partial class Machine
 
 					using (file.Block(
 						$"void {DirectMaterializer}_Part{part}(" +
-						"global::System.ReadOnlySpan<char> text, int kind, int read, int slot" +
+						$"{InputType} text, int kind, int read, int slot" +
 						(placed ? ", int start, int end" : "") + ")"))
 					{
 						using (file.Block("switch (kind)"))
