@@ -411,6 +411,23 @@ beside it in a package.
 
 Generator: performance-3f. FIX: finance-03, instead of a constant of its own.
 
+## D10. Faster code on newer targets, and unsafe code, by the user's choice
+
+Decided 2026-09-18 by Igor. A feature that makes generated code faster is not given up because
+the default floor cannot have it. Generating on `ref struct` type arguments (`allows ref struct`,
+C# 13 on .NET 9 and later), or with `unsafe` code over `char*` and `byte*`, is offered as an
+option the user turns on; it is never the default, which stays C# 8 on netstandard2.0 and net472.
+
+**What it binds.**
+
+- The default rendering is the reference: an opt-in rendering answers exactly as it does, and the
+  tests compile and run the grammars both ways.
+- An option is added only with a measured gain on a shipping grammar, and names what it
+  requires of the consumer (target framework, `AllowUnsafeBlocks`); a build that cannot have it
+  says so as a diagnostic rather than failing in the compiler.
+- It fits Q3's rule, not against it: Q3 removed options that chose between renderings nobody
+  needed; these choose what the consumer's build allows.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
