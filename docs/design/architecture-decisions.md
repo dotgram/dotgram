@@ -622,6 +622,12 @@ decides. Options, for the discussion with Igor:
 
 Together with marks visible to `when` (above), (b) covers the whole of Q5.
 
+**Decided 2026-09-18 by Igor: (b).** A construction is handed, beside `parserState`, where each mark
+standing over it was placed (`parserMarks`); mark values stay constants of their site. The
+expression language's jumps then move from the context's open/close pairs onto marks. Whether
+guards see marks while reading (for the unsettled `var`) was not part of the decision and stays
+open; until it is decided, `Awaits`/`Settles` stay in the context, where the defect is latent.
+
 **The defect is latent (expr-2d, 2026-09-17).** After every successful tape parse over the corpus
 and all its mutations, no open/close pair was left open; every abandoned reading that could be
 constructed makes the whole parse fail, and overload resolution catches nothing while building a
