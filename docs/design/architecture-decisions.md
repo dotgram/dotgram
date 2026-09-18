@@ -144,6 +144,12 @@ Unpinned paired runs varied up to twice batch to batch; pinned to logical proces
 high priority, FIX Order's spread fell from 28 to 4 per cent. A timing that was not pinned is
 not quoted as a comparison.
 
+**A timing window starts after everyone has stopped, not when it is announced.** 2026-09-17, the
+first window of expr-2d's `--el` ran over two other sessions' builds that were already running
+when the notice arrived (one until 23:53, one until 23:54). The session that measures announces the
+window, waits until every other session has answered that nothing of its own is running, and
+only then starts; a notice received mid-build is answered with when the build will end.
+
 ## D5. A stream is read without holding it
 
 Decided 2026-09-17 by Igor: streaming exists to process volumes larger than memory, so a
