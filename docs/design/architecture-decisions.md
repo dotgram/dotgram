@@ -132,6 +132,20 @@ Decided 2026-09-17 by Igor: streaming exists to process volumes larger than memo
   memory asserted. The benchmark README says this scenario has not been measured; until it is,
   bounded streaming is a design intent, not a property.
 - Any lexical mechanism chosen under Q1 reads tokens lazily over buffered input.
+
+**Measured 2026-09-17 by performance-3f**, at `2f22d5fd`, FIX through `yield`, input made on the
+fly under a 32 MB heap limit, live heap after forced collections every 250,000 fields: Stream
+9 KB above a 263 KB floor at 16 MB, 256 MB and 1 GB of input (111 million fields); TextReader
+29 KB at each size. Flat, and a 1 GB input completed at thirty-two times the heap limit. The
+24 MB at 8,000 fields is total allocation of `Parse(string)` with a whole result, not live
+memory, and not a D5 case. Scratch harness and results: performance-3f's `.work/streammem`.
+
+**Approved as the standing test:** in `tests/DotGram.Tests`, over a small streaming grammar,
+peak live memory at two generated sizes, the larger held to the smaller plus a constant, for
+Stream, TextReader and `IEnumerable<string>`, with and without `yield`, and with a bad record
+recovered every so often so that recovery is inside the bound. A FIX twin in
+`tests/DotGram.Finance.Tests`, agreed with finance-03. The 1 GB heap-limited run stays out of the
+suite until it has a place in `benchmarks/`.
 - A speed change to the buffered machines is measured with peak live memory beside time.
 
 ## D6. One SQL tree for every SQL parser, handwritten ones included
