@@ -173,10 +173,36 @@ ways, no replay, and a choice is a switch on one token. The SQL-92 split measure
 times on accepted conditions and 1.35 to 3.85 on refused ones, which is not a tenth of anything.
 The figures above bound one part of the question and were read as bounding all of it.
 
-What the experiment will say, and this document will then carry, is the whole of it: the same
-grammar over kinds against itself over characters, and both against the hand parser, on the
-corpora — with the inputs the minimal handling changes (nested comments, malformed interval
-strings) left out of the measurement and said so.
+Measured, it is not a tenth. The stand ran the same grammar over kinds against itself over
+characters, seven passes a bucket, tiering off, pinned, accepted and refused apart, and lines the
+two builds disagree on excluded from the timing rather than merely counted:
+
+| corpus | over characters | over kinds | |
+| --- | ---: | ---: | ---: |
+| query expressions, accepted | 27.8 us | 21.3 us | −23% |
+| query expressions, refused | 96.6 us | 61.9 us | −36% |
+| schema statements, accepted | 13.1 us | 8.5 us | −36% |
+| schema statements, refused | 27.9 us | 15.0 us | −46% |
+| twenty select items | 114.2 us | 85.8 us | −25% |
+| value expressions | 131 ms | 36 ms | **−72%** |
+
+The last row was first reported as the split being four times *slower*, and it is worth keeping
+why. The corpus is value expressions and it had been asked for as query expressions, so every
+line was refused at its first token and the comparison was between two ways of refusing. Asked
+for what it is, it reads — 1,735 lines, both builds agreeing — and it is the largest saving in
+the set. The ratio against the hand parser falls from about 20x to about 5x.
+
+**The refusal number is still worth having, relabelled.** Refusing at the first token costs 227 ns
+over characters and 905 over kinds, because the token layer lexes before the grammar can say no
+and the character reader stops at the first character it cannot use. That is the floor
+difference, and it is where the split would lose: a workload of very short inputs refused
+immediately. None of these corpora is that; somebody's might be.
+
+A caution on precision that applies to every figure above. The handwritten side drifted by up to
+30 per cent between processes on identical code — the same asymmetry the diary records, where
+the small parser's number moves and the big one's does not. The generated-side differences are
+23 to 72 per cent and the drift is on the other side, so the direction of every row survives it,
+but no single figure here should be read to two digits.
 
 ## What this does not settle
 
