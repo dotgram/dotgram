@@ -7,5 +7,10 @@ namespace DotGram.Finance.Fix;
 /// </summary>
 public interface IFixLocation
 {
+	/// <summary>
+	/// Receives the extent of the construct just recognized.
+	/// </summary>
+	/// <param name="position">The zero-based offset where it starts.</param>
+	/// <param name="length">How many characters or bytes it covers.</param>
 	void Locate(int position, int length);
 }

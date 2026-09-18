@@ -42,7 +42,7 @@ measurements. Use normal benchmark settings for measurements.
 - `Parse` reads SOH-separated fields; `ParseLog` accepts pipes with optional spaces.
 - Strings, `ReadOnlySpan<char>` and byte arrays return `FixField[]`.
 - `TextReader` and `Stream` return lazy `IEnumerable<FixField>` and leave input open.
-- Standard and custom `FixOptions` length/data pairs return a single binary field.
+- Standard and custom `FixFieldOptions` length/data pairs return a single binary field.
 - Locations, an optional final separator, invalid primitive values and recovery as
   `FixField.Invalid` follow the production field contract.
 - Stream buffers grow as needed up to `maxRetained` input units, retain the current
@@ -50,7 +50,7 @@ measurements. Use normal benchmark settings for measurements.
   `InvalidOperationException`. Positions use `int`, as in the generated parser.
 
 Recognition is handwritten and does not call `FixParser` or the generated grammar.
-The implementation shares `FixFactory`, `FixConvert`, `FixOptions` and `FixField`
+The implementation shares `FixFieldFactory`, `FixConvert`, `FixFieldOptions` and `FixField`
 through a friend assembly reference. This keeps value construction identical while
 comparing recognition independently; it is not an independent test of conversions.
 Recovery diagnostics explain the handwritten parser's failure and need not have the

@@ -471,7 +471,7 @@ difference, with the standard underneath written once.
 [`DotGram.Finance`](src/DotGram.Finance/README.md) provides `FixParser.Parse` in the `DotGram.Finance.Fix` namespace. The parser returns typed fields,
 with lazy enumeration over character and byte streams, length-delimited binary
 data, and recovery through `FixField.Invalid`. `Parse` reads SOH-delimited wire input; `ParseLog` reads pipes with optional
-surrounding spaces. `FixOptions` configures optional custom length/data pairs.
+surrounding spaces. `FixFieldOptions` configures optional custom length/data pairs.
 
 `FixMessages` explicitly assembles messages and nested groups and applies Strict
 or Lenient validation. The field model and schema are maintained manually; the small handwritten grammar uses computed dispatch. The large

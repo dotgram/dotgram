@@ -27,7 +27,16 @@ public sealed class FixParseOptions
 		Mode         = mode;
 	}
 
-	public FixFieldOptions   FieldOptions { get; }
-	public FixFraming   Framing      { get; }
-	public FixParseMode Mode         { get; }
+	/// <summary>
+	/// The length/data dictionary used when reading fields.
+	/// </summary>
+	public FixFieldOptions FieldOptions { get; }
+	/// <summary>
+	/// How the input separates one field from the next.
+	/// </summary>
+	public FixFraming      Framing      { get; }
+	/// <summary>
+	/// The validation policy applied after recognition.
+	/// </summary>
+	public FixParseMode    Mode         { get; }
 }

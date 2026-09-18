@@ -17,6 +17,10 @@ public static partial class FixMessages
 	/// <summary>Copies the contiguous input once so the result owns its source.</summary>
 	public static FixMessage Parse(ReadOnlySpan<char> input, FixParseMode mode = FixParseMode.Strict) => Parse(input.ToString(), mode);
 
+	/// <summary>
+	/// Parses one complete message under the given options.
+	/// </summary>
+	/// <exception cref="FormatException">The input is not a valid message under <paramref name="options"/>.</exception>
 	public static FixMessage Parse(string input, FixParseOptions options)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
@@ -25,9 +29,27 @@ public static partial class FixMessages
 		throw new FormatException(error!.ToString());
 	}
 
+	/// <summary>
+	/// Parses one complete message under the given options from a copy of the input.
+	/// </summary>
+	/// <exception cref="FormatException">The input is not a valid message under <paramref name="options"/>.</exception>
+	/// <remarks>
+	/// The message keeps its source, so the input is copied into a string once.
+	/// </remarks>
 	public static FixMessage Parse(ReadOnlySpan<char> input, FixParseOptions options) => Parse(input.ToString(), options);
+	/// <summary>
+	/// Tries to parse one complete message under the given options from a copy of the input.
+	/// </summary>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	/// <remarks>
+	/// The message keeps its source, so the input is copied into a string once.
+	/// </remarks>
 	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixParseOptions options) => TryParse(input.ToString(), out message, out error, options);
 
+	/// <summary>
+	/// Tries to parse one complete message under the given options.
+	/// </summary>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixParseOptions options)
 	{
 		if (options == null) throw new ArgumentNullException(nameof(options));
@@ -143,6 +165,13 @@ public static partial class FixMessages
 	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
 	public static FixMessage ParseLog(string input, FixParseMode mode = FixParseMode.Strict) => Parse(input, new FixParseOptions(FixFraming.Log, mode));
 
+	/// <summary>
+	/// Tries to parse one complete wire message from a copy of the input.
+	/// </summary>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	/// <remarks>
+	/// The message keeps its source, so the input is copied into a string once.
+	/// </remarks>
 	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict) => TryParse(input.ToString(), out message, out error, mode);
 
 	/// <summary>Validate and build one message from fields already parsed from the supplied source.</summary>
@@ -152,6 +181,10 @@ public static partial class FixMessages
 		throw new FormatException(error!.ToString());
 	}
 
+	/// <summary>
+	/// Tries to validate and build one message from fields already parsed from the supplied source.
+	/// </summary>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	public static bool TryBuild(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixParseOptions? options = null)
 	{
 		if (source == null) throw new ArgumentNullException(nameof(source));

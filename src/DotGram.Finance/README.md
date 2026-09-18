@@ -65,7 +65,7 @@ Concatenated messages are read as one ordered field sequence.
 `FixParser.Parse` reads SOH-delimited wire input. `FixParser.ParseLog` reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
 spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
-`FixOptions` configures only replacement Length/Data pairs, not the delimiter.
+`FixFieldOptions` configures only replacement Length/Data pairs, not the delimiter.
 
 The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
 before or after a pipe belong to that separator. Spaces inside text values are
@@ -98,7 +98,7 @@ It is not included in the Finance package.
 
 ```csharp
 var fields = FixParser.ParseLog("55=ABC|38=100|");
-var options = new FixOptions(new Dictionary<int, int>
+var options = new FixFieldOptions(new Dictionary<int, int>
 {
     [95] = 96,
     [5000] = 5001,
@@ -107,7 +107,8 @@ var custom = FixParser.ParseLog("5000=3 | 5001=a|b | ", options);
 ```
 
 A supplied length/data dictionary **replaces** the standard pairs and is copied
-at construction. Omit it to use the standard dictionary. Each length tag must
+at construction. Omit it to use the standard dictionary. `FixParseOptions` takes the same object for
+message parsing. Each length tag must
 immediately precede its configured data tag. The pair produces one binary field;
 unknown data tags produce `FixField.Unknown` with binary metadata. Standalone data
 tags are rejected. The parser recognizes binary boundaries; message and business
@@ -195,7 +196,7 @@ of subsequent stream reads. See the finance benchmarks for total parsing costs.
 
 The input is a **lossless octet string**: every character represents one octet,
 U+0000 through U+00FF. The default delimiter is SOH (`\u0001`). Use `ParseLog`
-or `new FixParseOptions('|')` for pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
+or `new FixParseOptions(FixFraming.Log)` for pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
 `CheckSum` therefore count exactly the octets present on the wire, including raw
 and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
 payload remains opaque and its declared `MessageEncoding` remains available.
@@ -206,8 +207,9 @@ source. Networking and FIX session state are outside this package.
 
 ## Model
 
-All 93 standard message types have public classes. Header, trailer and repeating
-group entries have named properties, including typed nested group collections.
+All 93 standard message types have public classes. Messages, the header and the
+trailer have named properties. A group property returns the group's entries, each a
+`FixFieldSet` read with `GetField` and `GetGroup`.
 Flattened component fields are properties of their containing scope.
 
 - Missing scalar fields return null; absent groups return an empty read-only list.
@@ -290,7 +292,7 @@ Unknown tags use `FixField.Unknown` with their original value octets.
 
 ```csharp
 var message = FixMessages.ParseLog(logLine);
-var options = new FixParseOptions('|', FixParseMode.Lenient);
+var options = new FixParseOptions(FixFraming.Log, FixParseMode.Lenient);
 foreach (var item in FixMessages.ReadMessages(logReader, options))
     Console.WriteLine(item.MessageType);
 ```
@@ -313,7 +315,7 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 ## Custom fields
 
 Unknown tags are read as delimiter-terminated text unless their binary length/data
-pair is configured through `FixOptions` as described above.
+pair is configured through `FixFieldOptions` as described above.
 
 ## Definition maintenance
 
@@ -322,9 +324,8 @@ fixtures are maintained manually. When changing definitions, update the affected
 factory cases, schema entries, models, example grammar and test cases together.
 
 - `Fix/FixField.cs`: field base, typed-value access, locations and typed field cases.
-- `Fix/FixFactory.cs`: construction of typed fields.
-- `Fix/FixMessageTypes.cs`: message and group models.
-- `Fix/FixFactories.cs`: construction of message and group models.
+- `Fix/FixFieldFactory.cs`: construction of typed fields.
+- `Fix/FixMessageTypes.cs`: message models and the MsgType table that constructs them.
 - `Fix/FixSchema.cs`: field types, code sets and message/group definitions.
 
 The definitions cover 912 fields, 247 code sets, 15 components and 92 group
@@ -340,7 +341,7 @@ and measurement records are in `docs/design/finance-fix44.md` and
 ### Field construction and locations
 
 `FixGrammar` parses the tag and selects one branch through `switch`.
-`FixFactory.cs` constructs the corresponding typed field in C#.
+`FixFieldFactory.cs` constructs the corresponding typed field in C#.
 `Field` reads the field contents. `Fields` repeats a constructing group that adds
 the separator or EOF and records the actual separator length. Publications support
 eager and `yield` parsing.

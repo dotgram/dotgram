@@ -8,8 +8,8 @@ namespace DotGram.Finance.Fix;
 public sealed class FixFieldOptions
 {
 	internal static readonly FixFieldOptions Default = new();
-	readonly Dictionary<int, int>?      _pairs;
-	readonly HashSet<int>?              _dataTags;
+	readonly Dictionary<int, int>?           _pairs;
+	readonly HashSet<int>?                   _dataTags;
 
 	/// <param name="lengthDataPairs">Null uses the standard dictionary. A supplied dictionary replaces it and is copied.</param>
 	public FixFieldOptions(IReadOnlyDictionary<int,int>? lengthDataPairs = null)
