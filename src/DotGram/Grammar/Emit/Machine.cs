@@ -64,6 +64,26 @@ sealed partial class Machine
 	string InputType => BufferedBytes ? "BufferedBytes" : BufferedInput ? "BufferedText" : "global::System.ReadOnlySpan<char>";
 	string ReadAt(string position) => BufferedInput ? $"text.Get({position})" : $"text[{position}]";
 
+	// What the reader asks of its text, spelled for the text it holds: a span, as always, or a
+	// buffer that reads on as it is asked (docs/design/fix-reader-buffered-2026-09-18.md). Over a
+	// span each is exactly what the reader wrote before it asked through these.
+
+	/// <summary>Whether <paramref name="position"/> is past the end of the input.</summary>
+	string Past(string position) =>
+		BufferedInput ? $"!text.Ensure({position}, 1)" : $"(uint){position} >= (uint)text.Length";
+
+	/// <summary>Whether <paramref name="position"/> holds a character of the input.</summary>
+	string Within(string position) =>
+		BufferedInput ? $"text.Ensure({position}, 1)" : $"(uint){position} < (uint)text.Length";
+
+	/// <summary>Whether fewer than <paramref name="count"/> characters remain from <c>p</c>, for a literal.</summary>
+	string LacksRoom(int count) =>
+		BufferedInput ? $"!text.Ensure(p, {count})" : $"(uint)(p + {count}) > (uint)text.Length";
+
+	/// <summary>Whether input remains at <paramref name="position"/>, which a whole reading refuses.</summary>
+	string NotAtEnd(string position) =>
+		BufferedInput ? $"text.Peek({position}, out _)" : $"{position} != text.Length";
+
 	const int Return = 0;
 	const int Accept = 1;
 	const int Fail   = 2;

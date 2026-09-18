@@ -1085,7 +1085,7 @@ sealed partial class Machine
 
 			if (ends)
 			{
-				using (code.Block("if (p != text.Length)"))
+				using (code.Block($"if ({machine.NotAtEnd("p")})"))
 				{
 					code.Line(Refusal("null"));
 					code.Line("return -1;");
@@ -1283,7 +1283,7 @@ sealed partial class Machine
 
 					using (code.Block("if (p > 0)"))
 					{
-						code.Line("c = text[p - 1];");
+						code.Line($"c = {machine.ReadAt("p - 1")};");
 						code.Line();
 
 						using (code.Block($"if ({CSharpEmitter.Test(boundary, machine.Tabulate)})"))
@@ -1292,7 +1292,7 @@ sealed partial class Machine
 						if (loaded)
 						{
 							code.Line();
-							code.Line("c = text[p];");
+							code.Line($"c = {machine.ReadAt("p")};");
 						}
 					}
 
@@ -1507,9 +1507,9 @@ sealed partial class Machine
 
 				var read = loaded
 					? folded ? "global::System.Char.ToUpperInvariant(c)" : "c"
-					: folded ? "global::System.Char.ToUpperInvariant(text[p])" : "text[p]";
+					: folded ? $"global::System.Char.ToUpperInvariant({machine.ReadAt("p")})" : machine.ReadAt("p");
 				var want = CSharpEmitter.Char(folded ? char.ToUpperInvariant(text[0]) : text[0]);
-				var room = loaded ? "" : "(uint)p >= (uint)text.Length || ";
+				var room = loaded ? "" : $"{machine.Past("p")} || ";
 
 				if (loaded)
 					_character = true;
@@ -1527,7 +1527,7 @@ sealed partial class Machine
 					$"{Spanned(text)}, global::System.StringComparison.OrdinalIgnoreCase)"
 				: $"!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {text.Length}), {Spanned(text)})";
 
-			using (code.Block($"if ((uint)(p + {text.Length}) > (uint)text.Length || {comparison})"))
+			using (code.Block($"if ({machine.LacksRoom(text.Length)} || {comparison})"))
 				Refused(code, name);
 
 			code.Line($"p += {text.Length};");
@@ -1549,10 +1549,10 @@ sealed partial class Machine
 
 			if (!loaded)
 			{
-				using (code.Block("if ((uint)p >= (uint)text.Length)"))
+				using (code.Block($"if ({machine.Past("p")})"))
 					Refused(code, name);
 
-				code.Line("c = text[p];");
+				code.Line($"c = {machine.ReadAt("p")};");
 			}
 
 			var test = CSharpEmitter.Test(element, machine.Tabulate);
@@ -1649,10 +1649,10 @@ sealed partial class Machine
 
 				_character = true;
 
-				using (code.Block("if ((uint)p >= (uint)text.Length)"))
+				using (code.Block($"if ({machine.Past("p")})"))
 					Refused(code, name);
 
-				code.Line("c = text[p];");
+				code.Line($"c = {machine.ReadAt("p")};");
 
 				// The widest group is the one the jump table exists for: name its characters
 				// and the compiler builds a table spanning them, an indirect branch the
@@ -1838,10 +1838,10 @@ sealed partial class Machine
 
 				if (!loaded)
 				{
-					using (code.Block("if ((uint)p >= (uint)text.Length)"))
+					using (code.Block($"if ({machine.Past("p")})"))
 						Refused(code, whole);
 
-					code.Line("c = text[p];");
+					code.Line($"c = {machine.ReadAt("p")};");
 					code.Line();
 				}
 
@@ -1882,13 +1882,13 @@ sealed partial class Machine
 
 				if (!loaded)
 				{
-					code.Line("if ((uint)p >= (uint)text.Length)");
+					code.Line($"if ({machine.Past("p")})");
 					code.Then(Noted(wanted));
 					code.Line("else");
 
 					var outer = code.Block("");
 
-					code.Line("c = text[p];");
+					code.Line($"c = {machine.ReadAt("p")};");
 					code.Line();
 					code.Line($"if (!({door}))");
 					code.Then(Noted(wanted));
@@ -2475,10 +2475,10 @@ sealed partial class Machine
 				// allocates. This is the door the rendering beside this one has always had.
 				if (Door([body]) is { } door)
 				{
-					code.Line("if ((uint)p >= (uint)text.Length)");
+					code.Line($"if ({machine.Past("p")})");
 					code.Then("break;");
 					code.Line();
-					code.Line("c = text[p];");
+					code.Line($"c = {machine.ReadAt("p")};");
 					code.Line();
 
 					using (code.Block($"if (!({door}))"))
@@ -2562,8 +2562,8 @@ sealed partial class Machine
 			{
 				_character = true;
 
-				scopes.Push(code.Block("if ((uint)p < (uint)text.Length)"));
-				code.Line("c = text[p];");
+				scopes.Push(code.Block($"if ({machine.Within("p")})"));
+				code.Line($"c = {machine.ReadAt("p")};");
 				code.Line();
 				scopes.Push(code.Block($"if ({door})"));
 			}
@@ -2660,10 +2660,10 @@ sealed partial class Machine
 					code.Line();
 				}
 
-				code.Line("if ((uint)p >= (uint)text.Length)");
+				code.Line($"if ({machine.Past("p")})");
 				code.Then("break;");
 				code.Line();
-				code.Line("c = text[p];");
+				code.Line($"c = {machine.ReadAt("p")};");
 				code.Line();
 
 				if (!string.Equals(test, "true", StringComparison.Ordinal))
@@ -2772,12 +2772,12 @@ sealed partial class Machine
 				{
 					var open = $"o{_ways++}";
 
-					code.Line($"var {open} = (uint)p < (uint)text.Length;");
+					code.Line($"var {open} = {machine.Within("p")};");
 					code.Line();
 
 					using (code.Block($"if ({open})"))
 					{
-						code.Line("c = text[p];");
+						code.Line($"c = {machine.ReadAt("p")};");
 						code.Line($"{open} = {door};");
 					}
 
