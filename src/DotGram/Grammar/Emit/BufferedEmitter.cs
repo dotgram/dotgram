@@ -38,6 +38,7 @@ public static partial class CSharpEmitter
 		.Replace("new char[", "new byte[")
 		.Replace("out char value", "out byte value")
 		.Replace("public char Get", "public byte Get")
+		.Replace(" retained characters;", " retained bytes;")
 		.Replace("ReadOnlySpan<char>", "ReadOnlySpan<byte>")
 		.Replace("public bool Peek(int position, out byte value)", """
 			public bool Matches(int position, string literal)
@@ -321,7 +322,7 @@ public static partial class CSharpEmitter
 							// TextReader.Peek is optional; verify EOF with the block-read contract.
 							var probe = new char[1];
 							if (_input.Read(probe, 0, 1) == 0) { _ended = true; break; }
-							throw new global::System.IO.IOException("Buffered input retention limit exceeded.");
+							throw new global::System.IO.IOException("Buffered input needs more than " + _limit.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + " retained characters; pass a larger maxRetained.");
 						}
 						var capacity = _capacity <= _limit / 2 ? _capacity * 2 : _limit;
 						var grown = global::System.Buffers.ArrayPool<char>.Shared.Rent(capacity);

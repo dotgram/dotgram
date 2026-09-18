@@ -48,6 +48,32 @@ public sealed class BufferedInputTests
 				Assert.Equal(new[] { 130, -1, 131 }, (int[])assembly.GetType("Grammar")!
 					.GetMethod("Read")!.Invoke(null, [bytes, yield])!);
 	}
+	/// <summary>A record longer than the retention limit says what the limit was and what to change.</summary>
+	[Theory]
+	[InlineData(false, "characters")]
+	[InlineData(true, "bytes")]
+	public void Exceeding_the_retention_limit_names_it_and_says_to_raise_it(bool bytes, string unit)
+	{
+		var result = GramCompiler.Compile("""
+			Row : @int = t: ['a'..'z']+ & ';' => @(t.Length)
+			Rows : @int[] = Row*
+			parse Rows as All stream bytes
+			""", new GramCompilerOptions { BufferedInput = true, CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(result.Diagnostics);
+		var host   = EmittedCode.Compile(Assert.Single(result.Sources).Text).GetType("Grammar")!;
+		var domain = bytes ? typeof(Stream) : typeof(TextReader);
+		var input  = bytes
+			? (object)new MemoryStream(System.Text.Encoding.ASCII.GetBytes("abcdefghij;"))
+			: new StringReader("abcdefghij;");
+
+		var thrown = Assert.Throws<System.Reflection.TargetInvocationException>(() =>
+			host.GetMethod("All", [domain, typeof(int), typeof(int)])!.Invoke(null, [input, 1, 4]));
+		var error = Assert.IsType<IOException>(thrown.InnerException);
+
+		Assert.Contains("more than 4 retained " + unit, error.Message, StringComparison.Ordinal);
+		Assert.Contains("maxRetained", error.Message, StringComparison.Ordinal);
+	}
+
 	[Theory]
 	[InlineData(false)]
 	[InlineData(true)]

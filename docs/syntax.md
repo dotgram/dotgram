@@ -1798,10 +1798,14 @@ into retained input; the source need not support seeking.
 elements, not total parser memory; both must be positive. Storage is rented from
 `ArrayPool<T>`; a larger pool bucket does not increase the read size or retention
 limit. Buffers are cleared and returned on completion, failure, or disposal of a
-partially consumed iterator. The caller still owns the input reader or stream. The buffer grows when
+partially consumed iterator, except a buffer longer than 1,048,576 elements, which is let go
+instead: the shared pool keeps what it is given for the life of the process, so a buffer grown
+for one long input would otherwise stay after the parse that needed it. Below that length a
+buffer goes back to the pool, because renting a fresh one costs every parse that grows it. The caller still owns the input reader or stream. The buffer grows when
 needed and reuses a proven-dead prefix, compacting on refill rather than on every
 symbol. Exceeding retention or position capacity throws `IOException`, separately
-from a grammar mismatch. Determining EOF at the retention limit may consume one
+from a grammar mismatch; for retention the message names the limit and says to pass a
+larger `maxRetained`. Determining EOF at the retention limit may consume one
 additional element before reporting that limit.
 
 Release analysis is currently conservative: source-independent, single-rule
