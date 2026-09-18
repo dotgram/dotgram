@@ -144,6 +144,16 @@ is required:
    `SqlCursor` does) rather than a lexer over the whole input first. That choice would also
    bear on streamed input, where the engine now reads characters (FIX).
 
+**How large it is.** performance-3f's profile (SELECT a FROM t and twenty items): reading
+reserved words is about 8 per cent, and the letters family puts bucket crowding at 7 to 20 per
+cent of a line depending on the initial. So the character reading of words is a real cost
+but the smaller part; Q1 is required before per-token work so that nothing is built twice
+over characters and again over kinds, not because it is where most of the time goes.
+
+**A constraint from FIX.** A lexer over the whole input first would break `stream bytes` and
+lazy `yield`, which exist so that a long input is never held whole. Whatever mechanism Q1
+chooses, a lazy cursor over buffered input is a supported form.
+
 Q1 and D3 are not rivals. performance-3f attributes 53 to 62 per cent of SQL's time to
 materializing, of which D2's store bookkeeping is a large part; the rest of a parse is the
 character reading. Each report gives time exclusive of the factories both parsers call, so
