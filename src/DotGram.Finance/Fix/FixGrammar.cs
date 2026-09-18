@@ -21,12 +21,12 @@ namespace DotGram.Finance.Fix;
 
 	Field : @FixField =
 		wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
-			case 0: Text
+			case 0: value: Text
 			case 1:
 				size: Size & Separator & dataTag: Tag & '='
 				& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & @ReadData
 		})
-		=> @(context.Create(tag, wire, parserSpan.Start).WithTerminator(0))
+		=> @((dataTag is int data ? context.Binary(data, wire, parserSpan.Start) : FixFieldFactory.Value(tag, value)).WithTerminator(0))
 
 	Fields : @FixField[] =
 		(value: Field & end: (Separator | eof) => @(value.WithTerminator(end.Length)))*
@@ -73,30 +73,20 @@ sealed partial class FixGrammar
 			return true;
 		}
 
-		public FixField Create(int tag, ReadOnlySpan<char> wire, int start)
+		// A length/data pair, whose data tag the grammar has read: the payload follows the second
+		// '=' of the pair's wire text.
+		public FixField Binary(int dataTag, ReadOnlySpan<char> wire, int start)
 		{
-			var equals  = wire.IndexOf('=');
-			var dataTag = options.DataTag(tag);
-
-			if (dataTag == 0)
-				return FixFieldFactory.Value(tag, wire.Slice(equals + 1));
-
-			var second  = equals + 1;
+			var second  = wire.IndexOf('=') + 1;
 			var payload = second + wire.Slice(second).IndexOf('=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 
 			return FixFieldFactory.Binary(dataTag, value.Data).WithBinary(value, start);
 		}
 
-		public FixField Create(int tag, ReadOnlySpan<byte> wire, int start)
+		public FixField Binary(int dataTag, ReadOnlySpan<byte> wire, int start)
 		{
-			var equals  = wire.IndexOf((byte)'=');
-			var dataTag = options.DataTag(tag);
-
-			if (dataTag == 0)
-				return FixFieldFactory.Value(tag, wire.Slice(equals + 1));
-
-			var second  = equals + 1;
+			var second  = wire.IndexOf((byte)'=') + 1;
 			var payload = second + wire.Slice(second).IndexOf((byte)'=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire[payload..]), start + payload);
 
