@@ -490,7 +490,7 @@ public static class HandExpression
 			{
 				var reader = new Reader(tokens, input, context, ascii, build: true);
 
-				end      = body ? reader.Value(0, out value) : reader.Assignment(0, out value);
+				end      = body ? reader.HeldBody(0, out value) : reader.Assignment(0, out value);
 				furthest = reader.Furthest;
 			}
 			catch (Exception refused) when (IsRefusal(refused))
@@ -499,7 +499,7 @@ public static class HandExpression
 
 				var reader = new Reader(tokens, input, context, ascii, build: false);
 
-				end      = body ? reader.Value(0, out _) : reader.Assignment(0, out _);
+				end      = body ? reader.HeldBody(0, out _) : reader.Assignment(0, out _);
 				furthest = reader.Furthest;
 
 				if (end >= 0)
@@ -1799,9 +1799,11 @@ public static class HandExpression
 		int _values;
 		int _taken;
 
-		// What the text being read stands under (the grammar's `state`): nothing, nearly
-		// always, so the array is made by the first `checked` and not by every reading.
+		// What the text being read stands under (the grammar's `state`), and where each mark
+		// was placed (`parserMarks`): nothing, nearly always, so the arrays are made by the
+		// first mark and not by every reading.
 		ExpressionParser.Reading[]? _marks;
+		int[]? _placed;
 		int _marked;
 
 		/// <summary>The furthest token looked at.</summary>
@@ -1854,6 +1856,9 @@ public static class HandExpression
 
 		readonly ReadOnlySpan<ExpressionParser.Reading> Marks =>
 			_marks is null ? default : new(_marks, 0, _marked);
+
+		readonly ReadOnlySpan<int> Placed =>
+			_placed is null ? default : new(_placed, 0, _marked);
 
 		/// <summary>One more of a list being read, on top of the stack the lists are gathered on.</summary>
 		void Push(Expression value)
@@ -1919,8 +1924,6 @@ public static class HandExpression
 		{
 			node = null;
 
-			var from = i;
-
 			// The `using`s before it, each recorded as it is read — where the grammar's guard
 			// records them, and for the reason it does: every name after asks about them.
 			while (Kind(i) == KwUsing)
@@ -1934,34 +1937,37 @@ public static class HandExpression
 			if (Kind(i) != LeftParen)
 				return -1;
 
+			// The lambda stands under a mark of its own, which is what says which lambda a
+			// `return` written inside it leaves.
+			Mark(ExpressionParser.Reading.Lambda, i);
+
+			var end = Unmark(Function(i, out var function));
+
+			if (end >= 0 && _build)
+				node = _context.Finished((LambdaExpression)function!);
+
+			return end;
+		}
+
+		int Function(int i, out Expression? node)
+		{
+			node = null;
+
 			var kept = _taken;
 			var at   = Parameters(i + 1);
 
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
 				return Untaken(kept);
 
-			// Where this lambda is, recorded before its body and closed after it, which is
-			// what says which lambda a `return` written inside it leaves.
-			_context.Entering(Span(from, at + 2));
-
 			var body = Value(at + 2, out var read);
 
 			if (body < 0)
 				return Untaken(kept);
 
-			var span = Span(from, body);
-
-			if (!_context.Leaves(span))
-			{
-				Refuse(body);
-
-				return Untaken(kept);
-			}
-
 			var parameters = Taken(kept);
 
 			if (_build)
-				node = _context.Finished(Expression.Lambda(_context.Returning(read!, span), parameters!));
+				node = Expression.Lambda(_context.Returning(read!, Marks, Placed), parameters!);
 
 			return body;
 		}
@@ -2078,8 +2084,6 @@ public static class HandExpression
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
 				return Untaken(kept);
 
-			_context.Entering(Span(i, at + 2));
-
 			var body = Value(at + 2, out var read);
 
 			if (body < 0)
@@ -2087,7 +2091,7 @@ public static class HandExpression
 
 			var span = Span(i, body);
 
-			if (!_context.Scoped(span) || !_context.Leaves(span))
+			if (!_context.Scoped(span))
 			{
 				Refuse(body);
 
@@ -2097,7 +2101,7 @@ public static class HandExpression
 			var parameters = Taken(kept);
 
 			if (_build)
-				node = _context.Nested(read!, parameters!, span);
+				node = _context.Nested(read!, parameters!, Marks, Placed);
 
 			return body;
 		}
@@ -2162,12 +2166,12 @@ public static class HandExpression
 
 			var head = Span(i, arrow + 1);
 
-			if (!_context.Awaits(parameters, head) || !_context.Entering(head))
+			if (!_context.Awaits(parameters, head))
 				return Refuse(arrow + 1);
 
 			Quiet(out var was);
 
-			var body = Value(arrow + 1, out _);
+			var body = HeldBody(arrow + 1, out _);
 
 			_build = was;
 
@@ -2176,15 +2180,14 @@ public static class HandExpression
 
 			var span = Span(i, body);
 
-			if (!(_context.Scoped(span) && _context.Leaves(span) && _context.Settles(span)))
+			if (!(_context.Scoped(span) && _context.Settles(span)))
 				return Refuse(body);
 
 			if (_build)
 			{
 				var held = Span(arrow + 1, body);
 
-				node = _context.Deferred(
-					parameters, new ExpressionParser.Held(held.Start, held.Length), span, _ascii ? AsciiBody : Body);
+				node = _context.Deferred(parameters, new ExpressionParser.Held(held.Start, held.Length), _ascii ? AsciiBody : Body);
 			}
 
 			return body;
@@ -2352,6 +2355,19 @@ public static class HandExpression
 		}
 
 		// ── Statements ──────────────────────────────────────────────────────────
+
+		/// <summary>The body of a lambda whose parameters say no types, under that lambda's mark.</summary>
+		/// <remarks>
+		/// Read again once the types are known, it is read over a window of its own, where no
+		/// mark placed around the lambda stands over it — so it places the lambda's mark itself,
+		/// at the body's beginning, which is where the returns inside it look for it.
+		/// </remarks>
+		public int HeldBody(int i, out Expression? node)
+		{
+			Mark(ExpressionParser.Reading.Lambda, i);
+
+			return Unmark(Value(i, out node));
+		}
 
 		/// <summary>Where a value is wanted and a block or an `if` may stand.</summary>
 		public int Value(int i, out Expression? node)
@@ -2584,7 +2600,7 @@ public static class HandExpression
 				return -1;
 
 			if (_build)
-				node = _context.Return(read!, Span(i, value + 1));
+				node = _context.Return(read!, Marks, Placed);
 
 			return value + 1;
 		}
@@ -2640,14 +2656,26 @@ public static class HandExpression
 
 			if (kind == KwTry)    return Try(i, out node);
 			if (kind == KwIf)     return If(i, out node);
-			if (kind == KwWhile)  return While(i, out node);
-			if (kind == KwDo)     return DoWhile(i, out node);
 			if (kind == KwFor)    return For(i, out node);
-			if (kind == KwSwitch) return Switch(i, out node);
 
-			// A `foreach` that writes its element type, one that says `var` in a body read
-			// before its lambda has types, and one that says `var` where the source is worth
-			// something: the order the grammar tries them in.
+			// A loop and a switch stand under a mark of their own, which is what a `break` and a
+			// `continue` inside them find — all but a `for`, which marks only its loop.
+			if (kind == KwWhile)  { Mark(ExpressionParser.Reading.Loop, i);   return Unmark(While(i, out node)); }
+			if (kind == KwDo)     { Mark(ExpressionParser.Reading.Loop, i);   return Unmark(DoWhile(i, out node)); }
+			if (kind == KwSwitch) { Mark(ExpressionParser.Reading.Switch, i); return Unmark(Switch(i, out node)); }
+
+			Mark(ExpressionParser.Reading.Loop, i);
+
+			return Unmark(Foreaches(i, out node));
+		}
+
+		/// <summary>
+		/// A `foreach` that writes its element type, one that says `var` in a body read before
+		/// its lambda has types, and one that says `var` where the source is worth something:
+		/// the order the grammar tries them in.
+		/// </summary>
+		int Foreaches(int i, out Expression? node)
+		{
 			var typed = Foreach(i, out node);
 
 			if (typed >= 0)
@@ -2775,23 +2803,16 @@ public static class HandExpression
 			if (test < 0 || Kind(test) != RightParen)
 				return -1;
 
-			_context.Opening(Span(i, test + 1));
-
 			var body = Statement(test + 1, out var inside);
 
 			if (body < 0)
 				return -1;
 
-			var span = Span(i, body);
-
-			if (!_context.Loops(span))
-				return Refuse(body);
-
 			if (_build)
 				node = Expression.Loop(
-					Expression.Condition(read!, inside!, Expression.Break(_context.Exit(span)), typeof(void)),
-					_context.Exit(span),
-					_context.Again(span));
+					Expression.Condition(read!, inside!, Expression.Break(_context.Exit(Marks, Placed)), typeof(void)),
+					_context.Exit(Marks, Placed),
+					_context.Again(Marks, Placed));
 
 			return body;
 		}
@@ -2799,8 +2820,6 @@ public static class HandExpression
 		int DoWhile(int i, out Expression? node)
 		{
 			node = null;
-
-			_context.Opening(Span(i, i + 1));
 
 			var body = Statement(i + 1, out var inside);
 
@@ -2812,20 +2831,15 @@ public static class HandExpression
 			if (test < 0 || Kind(test) != RightParen || Kind(test + 1) != Semicolon)
 				return -1;
 
-			var span = Span(i, test + 2);
-
-			if (!_context.Loops(span))
-				return Refuse(test + 2);
-
 			// `Expression.Loop`'s own continue label stands at the top of the body, which is
 			// where C# puts it for a `while` and not for a `do`: there it goes to the test.
 			if (_build)
 				node = Expression.Loop(
 					Expression.Block(
 						inside!,
-						Expression.Label(_context.Again(span)),
-						Expression.Condition(read!, Expression.Empty(), Expression.Break(_context.Exit(span)), typeof(void))),
-					_context.Exit(span));
+						Expression.Label(_context.Again(Marks, Placed)),
+						Expression.Condition(read!, Expression.Empty(), Expression.Break(_context.Exit(Marks, Placed)), typeof(void))),
+					_context.Exit(Marks, Placed));
 
 			return test + 2;
 		}
@@ -2842,7 +2856,31 @@ public static class HandExpression
 			if (init < 0)
 				return -1;
 
-			var test = Assignment(init, out var read);
+			// The loop is what follows the initializer, and it alone stands under the mark: an
+			// initializer is no part of what a `break` may leave.
+			Mark(ExpressionParser.Reading.Loop, init);
+
+			var body = Unmark(ForLoop(init, out var loop));
+
+			if (body < 0)
+				return -1;
+
+			var span = Span(i, body);
+
+			if (!_context.Scoped(span))
+				return Refuse(body);
+
+			if (_build)
+				node = _context.Block([start!], span, loop!);
+
+			return body;
+		}
+
+		int ForLoop(int i, out Expression? node)
+		{
+			node = null;
+
+			var test = Assignment(i, out var read);
 
 			if (test < 0 || Kind(test) != Semicolon)
 				return -1;
@@ -2852,28 +2890,19 @@ public static class HandExpression
 			if (step < 0 || Kind(step) != RightParen)
 				return -1;
 
-			_context.Opening(Span(i, step + 1));
-
 			var body = Statement(step + 1, out var inside);
 
 			if (body < 0)
 				return -1;
 
-			var span = Span(i, body);
-
-			if (!_context.Loops(span) || !_context.Scoped(span))
-				return Refuse(body);
-
 			if (_build)
-				node = _context.Block(
-					[start!], span,
-					Expression.Loop(
-						Expression.Condition(
-							read!,
-							Expression.Block(inside!, Expression.Label(_context.Again(span)), next!),
-							Expression.Break(_context.Exit(span)),
-							typeof(void)),
-						_context.Exit(span)));
+				node = Expression.Loop(
+					Expression.Condition(
+						read!,
+						Expression.Block(inside!, Expression.Label(_context.Again(Marks, Placed)), next!),
+						Expression.Break(_context.Exit(Marks, Placed)),
+						typeof(void)),
+					_context.Exit(Marks, Placed));
 
 			return body;
 		}
@@ -2936,7 +2965,7 @@ public static class HandExpression
 
 			var head = Span(i, over + 1);
 
-			if (!_context.Declare(typeof(object), name, head) || !_context.Opening(head))
+			if (!_context.Declare(typeof(object), name, head))
 				return Refuse(over + 1);
 
 			Quiet(out was);
@@ -2948,9 +2977,7 @@ public static class HandExpression
 			if (body < 0)
 				return -1;
 
-			var span = Span(i, body);
-
-			if (!_context.Loops(span) || !_context.Scoped(span))
+			if (!_context.Scoped(Span(i, body)))
 				return Refuse(body);
 
 			if (_build)
@@ -3001,8 +3028,6 @@ public static class HandExpression
 		{
 			node = null;
 
-			_context.Opening(Span(i, over + 1));
-
 			var body = Statement(over + 1, out var inside);
 
 			if (body < 0)
@@ -3010,14 +3035,14 @@ public static class HandExpression
 
 			var span = Span(i, body);
 
-			if (!_context.Loops(span) || !_context.Scoped(span))
+			if (!_context.Scoped(span))
 				return Refuse(body);
 
 			if (_build)
 				node = _context.Block(
 					[], span,
 					ExpressionParser.Iterated(
-						_context.Named(name, span), source!, inside!, _context.Exit(span), _context.Again(span)));
+						_context.Named(name, span), source!, inside!, _context.Exit(Marks, Placed), _context.Again(Marks, Placed)));
 
 			return body;
 		}
@@ -3033,8 +3058,6 @@ public static class HandExpression
 
 			if (value < 0 || Kind(value) != RightParen || Kind(value + 1) != LeftBrace)
 				return -1;
-
-			_context.Breaking(Span(i, value + 2));
 
 			var at    = value + 2;
 			var cases = _build ? new List<SwitchCase>() : null;
@@ -3076,15 +3099,10 @@ public static class HandExpression
 			if (Kind(at) != RightBrace)
 				return -1;
 
-			var span = Span(i, at + 1);
-
-			if (!_context.Breaks(span))
-				return Refuse(at + 1);
-
 			if (_build)
 				node = Expression.Block(
 					Expression.Switch(typeof(void), read!, fallback, null, ExpressionParser.Against(cases!.ToArray(), read!.Type)),
-					Expression.Label(_context.Exit(span)));
+					Expression.Label(_context.Exit(Marks, Placed)));
 
 			return at + 1;
 		}
@@ -3241,8 +3259,8 @@ public static class HandExpression
 
 				if (_build)
 					node = kind == KwBreak
-						? Expression.Break(_context.Exit(Span(i, i + 1)))
-						: Expression.Continue(_context.Again(Span(i, i + 1)));
+						? Expression.Break(_context.Exit(Marks, Placed))
+						: Expression.Continue(_context.Again(Marks, Placed));
 
 				return i + 2;
 			}
@@ -3852,11 +3870,9 @@ public static class HandExpression
 				if (Kind(i + 1) != LeftParen)
 					return -1;
 
-				Mark(kind == KwChecked ? ExpressionParser.Reading.Checked : ExpressionParser.Reading.Unchecked);
+				Mark(kind == KwChecked ? ExpressionParser.Reading.Checked : ExpressionParser.Reading.Unchecked, i + 2);
 
-				var inner = Assignment(i + 2, out node);
-
-				_marked--;
+				var inner = Unmark(Assignment(i + 2, out node));
 
 				if (inner < 0 || Kind(inner) != RightParen)
 					return -1;
@@ -3907,7 +3923,9 @@ public static class HandExpression
 			// like: `(int y) => y * 2` and `(y)` are told apart by what stands after the `)`.
 			if (kind == LeftParen)
 			{
-				var lambda = Inner(i, out node);
+				Mark(ExpressionParser.Reading.Lambda, i);
+
+				var lambda = Unmark(Inner(i, out node));
 
 				if (lambda >= 0)
 					return lambda;
@@ -3958,14 +3976,28 @@ public static class HandExpression
 			return Name(i, out node);
 		}
 
-		void Mark(ExpressionParser.Reading reading)
+		/// <summary>A mark over the reading that begins at token <paramref name="i"/>, placed where that token begins.</summary>
+		void Mark(ExpressionParser.Reading reading, int i)
 		{
-			_marks ??= new ExpressionParser.Reading[4];
+			_marks  ??= new ExpressionParser.Reading[4];
+			_placed ??= new int[4];
 
 			if (_marked == _marks.Length)
+			{
 				Array.Resize(ref _marks, _marked * 2);
+				Array.Resize(ref _placed, _marked * 2);
+			}
 
-			_marks[_marked++] = reading;
+			_marks[_marked]    = reading;
+			_placed[_marked++] = i < _count ? _starts[i] : _text.Length;
+		}
+
+		/// <summary>The mark placed last is taken off, whatever the reading under it came to.</summary>
+		int Unmark(int end)
+		{
+			_marked--;
+
+			return end;
 		}
 
 		int New(int i, out Expression? node)
