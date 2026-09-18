@@ -743,6 +743,24 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    locations prototype uses the same technique.
 6. **Generation time and first call as metrics** — lower priority; columns of the stand (4).
 
+**4 and 6 done 2026-09-18 by the architect**: `--stand` and `--stand-compare` in `DotGram.Benchmarks`
+(`Stand.cs`, `benchmarks/README.md`). First run, `cd707572`, pinned, control 31.5 ns; generated
+time over hand-written:
+
+| family | rows | generated / hand |
+| --- | --- | --- |
+| FIX, string | One, Order, BinaryMany, 128 orders | 2.5-3.7x |
+| FIX, bytes in memory | the same | 4.4-5.3x |
+| FIX, stream | the same | 2.1-4.3x |
+| EL, tape | seven expressions | 1.5-3.4x (interpolation the worst) |
+| EL, immediate | the same | 1.1-2.5x |
+| EL, untyped lambda | one | 1.0x (both in the host) |
+| SQL:2023 | nine productions | 8.3-21.8x |
+
+First call in a fresh process: FIX 10.7 ms against 7.8, EL 28.1 (tape) and 20.0 (immediate) against
+15.2, SQL:2023 26.8 against 4.4 for a literal and 106 against 21 for twenty select items. A lazily
+streamed FIX parse of two million fields holds nothing measurable above the floor on either side.
+
 **The input forms, generalized (Igor's question).** The forms are two independent axes, the
 symbol (`char` or `byte`) and the source (in memory, or pulled a block at a time), plus what a
 source does at element boundaries (lines insert `\n`). String and `ReadOnlySpan<char>` are text

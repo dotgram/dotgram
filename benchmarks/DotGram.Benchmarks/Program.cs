@@ -20,6 +20,31 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		// `--stand [directory]` is where every generated parser stands against the hand-written
+		// one it is measured by, in one run, written down where two runs can be compared with
+		// `--stand-compare before.json after.json`. `--stand-first` is the fresh process a first
+		// call is taken in, and is started by `--stand` itself. See Stand.cs.
+		if (args.Length >= 1 && args[0] == "--stand")
+		{
+			Stand.Run(args.Length > 1 ? args[1] : null);
+
+			return;
+		}
+
+		if (args.Length == 3 && args[0] == "--stand-first")
+		{
+			Stand.First(args[1], args[2]);
+
+			return;
+		}
+
+		if (args.Length == 3 && args[0] == "--stand-compare")
+		{
+			Stand.Compare(args[1], args[2]);
+
+			return;
+		}
+
 		// `--big` is not a benchmark either: it reads one search condition at five sizes,
 		// up to a few megabytes, and prints what each parse took and allocated. What it is
 		// for is the shape of the curve rather than the numbers — a ratio that holds at
