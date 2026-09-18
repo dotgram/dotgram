@@ -117,16 +117,16 @@ public static class FixParser
 	/// Reads wire fields separated by SOH from an array of octets.
 	/// </summary>
 	/// <remarks>
-	/// The parser reads bytes only as a stream, so the array is wrapped in one.
+	/// The array is read where it lies, with no copy; being whole, it is not bounded by <c>maxRetained</c>.
 	/// </remarks>
 	public static FixField[] Parse(byte[] input, FixFieldOptions? options = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		using var stream = new MemoryStream(input, writable: false);
+		var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
 
-		return Parse(stream, options).ToArray();
+		return FixGrammar.ParseFields(input, context);
 	}
 
 	/// <summary>
@@ -227,15 +227,15 @@ public static class FixParser
 	/// Reads log fields separated by a pipe with optional surrounding spaces from an array of octets.
 	/// </summary>
 	/// <remarks>
-	/// The parser reads bytes only as a stream, so the array is wrapped in one.
+	/// The array is read where it lies, with no copy; being whole, it is not bounded by <c>maxRetained</c>.
 	/// </remarks>
 	public static FixField[] ParseLog(byte[] input, FixFieldOptions? options = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		using var stream = new MemoryStream(input, writable: false);
+		var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
 
-		return ParseLog(stream, options).ToArray();
+		return FixGrammar.ParseLogFields(input, context);
 	}
 }
