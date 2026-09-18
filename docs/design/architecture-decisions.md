@@ -583,6 +583,18 @@ and read by every rendering that builds; a guard's side effect in a broken eleme
 does today, and the design says so; recovering grammars keep one recording reading (Q7.2).
 Step 1 starts now. **Igor, 2026-09-18: steps 2-5 agreed, after step 1's number.**
 
+**Step 5 designed (expr, `0cde15a5`, `docs/design/fix-reader-buffered-2026-09-18.md`), accepted.**
+The reader is written once against the machine's helpers (ReadAt, Room, Search, Slice, Cut) and
+emitted twice, over a span and over `BufferedText`/`BufferedBytes`, which gain an `IndexOf` that
+refills; a runtime type parameter was rejected for the reader, since its body is small and the
+engine goes. Q7.5 stays open where a copy is large (T-SQL's located reading, Q4.2). `yield`
+releases per element as now; a whole-result parse releases before each turn once constructions
+run at the turn's commit, which un-skips the D5 whole-result test — that test is the step's gate.
+Order: the reader's access sites onto the helpers, byte-identical; then the buffered branches;
+then release per turn after step 3. expr carries it beside performance-ff's steps 2-3; finance-24
+takes the Finance-side items of the anatomy (the tag parsed twice, `Create` searching `=` again,
+two constructions a field). D14 waits.
+
 **Then the design**, from that table: what the emitted code for `Fields` would have to be to
 match the hand parser line for line — a loop with no arena for a grammar whose only way back
 is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
