@@ -561,6 +561,18 @@ need. Then a design: `Optimize(graph) → graph` called after `Build` and after 
 the emitted code of every grammar byte-identical when nothing new is found, and the SQL:2023
 kinds graph as the case where something is.
 
+**Inventory and design landed (expr, `44b03532`, `3857460f`):** thirty-one passes classified,
+five of them optimizers; stages Build → Optimize → Analyze → Check, the same three again over
+kinds after the split; optimizers keep the language, members, types and node facts, return
+bodies by reference when nothing changed, and report nothing — `GRAM4016` is said by Check
+from Factor's declines, after the last Optimize. Two present defects found by the inventory go
+first: `GRAM4007` reported up to three times, `LowerYieldPublications` not idempotent.
+**The architect's answers to the design's two questions** (Igor may override): (1) step 6 changes
+the split grammars' emitted code, and that is D14's purpose — one step, measured on the stand
+and gated by the agreement tests like any emitter change, no flag (a flag would be an option of
+Q3's kind); (2) the four rewrites inside `LowerAll` move into Optimize, as a step of their own
+after 6, byte-identical, since Optimize is meant to be complete.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
