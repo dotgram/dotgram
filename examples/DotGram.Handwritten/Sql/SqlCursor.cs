@@ -294,7 +294,7 @@ struct SqlCursor
 	/// unclosed and the choice takes its other branch instead. The two branches are tried in that
 	/// order here, which is the order the BNF writes them in.
 	/// </remarks>
-	readonly int Bracketed(int at) => Contents(at + 2);
+	readonly int Bracketed(int at) => Contents(at + 2, 1);
 
 	/// <summary>Past a bracketed comment closed at the first <c>*/</c> in it, or -1.</summary>
 	readonly int Plain(int at)
@@ -308,8 +308,18 @@ struct SqlCursor
 		return -1;
 	}
 
+	/// <summary>How deep one comment may hold another, which the generated parser writes out.</summary>
+	/// <remarks>
+	/// A finite machine does not nest, so the grammar unrolls the depth and stops at six — the same
+	/// limit T-SQL's own comment carries, and deeper than anything the corpus or the standard's
+	/// examples write. A seventh <c>/*</c> inside the sixth leaves the comment unclosed, and this
+	/// reads it the same way: a yardstick that took what the generated parser refuses would flatter
+	/// it (docs/design/architecture-decisions.md, D1).
+	/// </remarks>
+	const int Deepest = 6;
+
 	/// <summary>Past the contents of a comment and its closing <c>*/</c>, or -1.</summary>
-	readonly int Contents(int at)
+	readonly int Contents(int at, int depth)
 	{
 		var text = Text;
 
@@ -318,18 +328,23 @@ struct SqlCursor
 			if (text[at] == '*' && at + 1 < text.Length && text[at + 1] == '/')
 				return at + 2;
 
-			// A comment inside the comment, where reading it as one lets this comment close.
+			// A comment inside the comment, always. The BNF would also let the `/*` be two
+			// characters of this one where the inner comment leaves it unclosed, but the generated
+			// parser skips comments with a scanner that decides at the first character and does not
+			// go back, and this reads what it reads.
 			if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
 			{
-				var inner = Contents(at + 2);
+				// Past the deepest level the opening is neither a comment nor a character the
+				// contents may hold, so this one no longer closes.
+				if (depth == Deepest)
+					return -1;
 
-				if (inner >= 0)
-				{
-					var rest = Contents(inner);
+				at = Contents(at + 2, depth + 1);
 
-					if (rest >= 0)
-						return rest;
-				}
+				if (at < 0)
+					return -1;
+
+				continue;
 			}
 
 			at++;
@@ -803,6 +818,16 @@ struct SqlCursor
 		if (end + 2 < text.Length && (text[end] | 0x20) == 'u' && text[end + 1] == '&' && text[end + 2] == '\'')
 		{
 			StringLiteral(at, end + 2, SqlTokenKind.UnicodeString);
+
+			return;
+		}
+
+		// The name is not the longest run of its letters but whatever lets the token end, which
+		// is how the BNF reads it: in `_latin1U&'a'` the `U` begins the Unicode literal, since a
+		// set named `latin1U` would leave `&'a'` behind it that nothing reads.
+		if (end - name >= 2 && end + 1 < text.Length && (text[end - 1] | 0x20) == 'u' && text[end] == '&' && text[end + 1] == '\'')
+		{
+			StringLiteral(at, end + 1, SqlTokenKind.UnicodeString);
 
 			return;
 		}

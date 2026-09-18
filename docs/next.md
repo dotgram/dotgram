@@ -23552,3 +23552,105 @@ as −2.9 to +7.4 per cent. That run overlapped builds on the machine. The stand
 quiet window (control 30.1 ns on both sides): every row, hand and generated, moved within ±5 per
 cent in both directions, so the change is still an allocation change only. Hand Orders128 leaned
 −3 to −5 per cent, which fits less collection but is inside the band.
+
+## SQL:2023 read over kinds: what changed that a user can see
+
+`SqlStandardParser` is compiled with `Lexical = true` (Q1). Size first, since it needs no window:
+the generated parser is 7.5 MB where it was 13.9. Against the handwritten parser it agrees on every
+test and on every corpus line, 143,000 of them. Four things it answers differently from before, two
+toward the BNF and two away from it:
+
+**An introduced literal reads its introducer's parts where they are written.** `_u&".s".x'a'` names
+a character set of two parts, `u&".s"` and `x`; before, the set was split at every period, the one
+inside the delimited name included, and was three. `_u&"'s".x'a'` is the literal `'a'`; before, the
+literal was taken from the first quote in the token, which was the one inside the name. Both were
+how the construction found the parts in the token's text after reading it. Over kinds a rule reads
+the rest of the literal after the lexer has read the introducer, so the parts are captured, not
+searched for, and `HandSqlStandard` — which mirrored both on purpose — reads them the same way now.
+
+**A comment holds others six deep, where the BNF sets no limit.** A comment is skipped by a scanner
+and a scanner does not recurse, so the depth is written out, the same limit and reasoning as
+T-SQL's `TSql.NestedComment`. A seventh opening inside the sixth leaves the comment unclosed. The
+hand parser stops at six too, so the yardstick does not accept what the parser refuses. The limit
+goes when the scanner learns to count a comment that calls itself.
+
+**A `/*` inside a comment always opens one.** The BNF lets it be two comment characters as well,
+so `/* a /* b */` is one comment there: read as an opening it would leave the outer comment
+unclosed. The recursive rule over characters went back and read it that way, and the hand parser
+mirrored it. A scanner decides at the first character and does not go back, so the split refuses
+the text, and so does the hand parser now. Letting both ways stand at the same `/*` is a choice the
+scanner refuses outright (`GRAM5004`), which is why each level keeps them apart.
+
+**A key word glued to the number before it is refused.** `CHAR(198OCTETS)` is refused where
+`CHAR(198 OCTETS)` is read, as §5.2 says; `2K` is still a length and its multiplier, and `2KB` is
+refused. Over characters this fell out of the automaton; over kinds it is `GluedWord`, a token no
+position accepts.
+
+What it took, briefly, because each step found something that was not the grammar's:
+
+- The grammar compiled over characters without a word said about eight lookaheads the automaton
+  cannot read. Seven were guards the character reading needed and a token reading does not; one,
+  the nesting comment, was real. A guard is not a lookahead: moving `?!ReservedWord` into a `when`
+  inside an atomic group committed readings a lookahead would have refused, and cost 241 lines of
+  one corpus before it was put back where it belonged.
+- `GRAM5009`, which says a reading over kinds takes what the rule after it needed, is information
+  and a build does not print it. It named six places in this grammar and eight in the T-SQL and
+  SQL-92 parsers that ship split already. The tests found one of the six; the other five are shapes
+  nobody wrote. The analysis now knows the cures authors write for it (performance-3f, D11).
+- Four places took what the construct around them needed — the insert source took `VALUES` and left
+  the `ORDER BY` that made it a query, among others. They were cured with assertions over characters
+  first, in a commit of their own that changed no answer, so that what the split changed stayed
+  separable in the history.
+- A string both a character literal and an interval string are written as went to the interval
+  alone: the lexer measured a begun terminal's tail only where the automaton stopped on its
+  beginning (4e366615). A reduced reproduction had passed because its tail was regular — the
+  difference between the reproduction and the original named the cause, as it did twice before.
+- The corpus found the hand parser wrong once, and the BNF said so: in `_latin1U&'a'` it took the
+  character set's name as the longest run of its letters, `latin1U`, and refused the `&'a'` left
+  behind, where the BNF — and the grammar's rule, which reads the rest over characters — lets the
+  `U` begin the Unicode literal. The hand parser gives the letter back now.
+- The last difference was a construction's: `PathSigned` turned every character of the text a
+  repetition of signs covered into a sign, anything but a minus a plus. Over kinds that text holds
+  the space between the signs.
+
+## GRAM5009 over the shipped SQL parsers: a label is what the optionals took
+
+Since the list check (1875588b, c8d44074) `GRAM5009` names 49 places across the three SQL grammars,
+where it named fourteen. Each was put to what answers for its language — the engine for T-SQL, the
+BNF for SQL:2023 — with inputs built to make the optional take what was not its own. The engine
+was asked through `sqlcmd` a batch at a time, since `--engine` cuts a file into statements and the
+question here is what stands between two of them.
+
+**The trap that is real is a label.** A statement may begin with `name:`, T-SQL needs no separator
+between statements, and no word an optional at a statement's end may take is reserved against being
+a label. So `SELECT a FROM t` and then `x: PRINT 1` on the next line is read by the engine and was
+refused here: the table's alias took `x`, the colon came, and over kinds nothing gave `x` back. The
+same with a select item's alias, an `OUTPUT` item's, `RETURN`, `THROW`, `WITH MARK`, `EXEC p @a`
+and then `out:`, a column's tail (`sparse:`), `ENFORCED`, `FOR XML … ELEMENTS` and then `xsinil:`,
+an option's unit (`seconds:`), and a login's password words. The tests held labels only after a
+`;`, which is why none of it showed. One more is not a label: `WHERE CURRENT OF GLOBAL`, a cursor
+named `GLOBAL`, whose optional `GLOBAL` takes the name.
+
+The password words are cured here — `Trailing(word) = ?!(word & ':') & word` — with a row for each
+shape; the engine and the round trip are unchanged over the corpus (8,317 statements: nothing read
+here and refused there, nothing the other way; 7,716 printed back the same). The analysis does not
+yet see a negative lookahead behind a call of a parameterised rule, so those four places are still
+reported; that is the analysis's to learn, not the grammar's to spell out. The other label places
+followed in the next commit, with the same `?!Label` in front of the alias, the value, the unit, the
+column's trait and `ENFORCED`, and a row for each; `CURRENT OF GLOBAL` takes the word only where a
+name follows it (`?=QualifiedName`), which the analysis already reads as a cure.
+
+**Where the greedy reading is the language's**, the optional is right to take the word: a function
+of `JSON_ARRAY` taking `NULL` in `JSON_ARRAY(NULL ON NULL)`, `XML(CONTENT)`, `TRIM(LEADING …)` —
+the engine refuses the other reading of each — a statement list taking the next statement, `;`s
+after an atomic block, and SQL:2023's `ARRAY` and `MULTISET` after a data type, which the BNF
+chains the same way.
+
+**Where nothing can follow with the word**, the report is the analysis's: a lookahead after the item
+inside the turn (`TableConstraint`'s `?!(WITHOUT OVERLAPS)`), a turn that cannot finish and is undone
+(`NamePart*` before `.*`), a trailing `?=(',' | ')')` (`OptionWords`), a word inside a parenthesised
+option list (`MINUTES`, `KB`), a reserved word (`ALL`, `ASC`, `HOLDLOCK`), and a literal, a variable
+or digits, with which no statement begins. SQL:2023's `IntervalPrimary` belongs here too: no
+sentence of the BNF puts a qualifier after a time zone's primary. And one that is neither, found on
+the way: `(a - b AT LOCAL) DAY` is read by the BNF and refused by both parsers, in the towers'
+check and not in any optional.

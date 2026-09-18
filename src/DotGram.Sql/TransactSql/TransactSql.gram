@@ -973,7 +973,7 @@ TSqlAlias    : @string
 	= t: Identifier                                  => @(t)
 	| t: Sql92.Lexical.CharacterStringLiteral         => @(t)
 	| t: Sql92.Lexical.NationalCharacterStringLiteral => @(t)
-TSqlAsClause : @string = "AS"i & t: TSqlAlias => @(t) | t: TSqlAlias => @(t)
+TSqlAsClause : @string = "AS"i & t: TSqlAlias => @(t) | ?!Label & t: TSqlAlias => @(t)
 
 // ── §7.7's group by, widened ────────────────────────────────────────────────
 //
@@ -1209,7 +1209,14 @@ SystemTimeWhen : @Clause
 // `USING` joined them when `MERGE` was written, and it is the fourth word to do so. The
 // shape is always the same: a word that begins a clause, an optional name in the same
 // position, and the name winning. Anything added after a source belongs on this list.
-CorrelationName = ?!SourceClause & Identifier
+CorrelationName = ?!SourceClause & ?!Label & Identifier
+
+// What a statement may end with, where it is not the label the next one begins with. A statement
+// may begin with `name:` and none is needed between two, so `SELECT a FROM t` and `x: PRINT 1` on
+// the next line are two statements; the name is no reserved word, and over kinds an optional that
+// took it — an alias, a value, a unit — would not give it back when the colon came.
+Label          = Identifier & ':' & ?!':'
+Trailing(word) = ?!(word & ':') & word
 SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 
 // **Transcribed from `TSql170.g`'s own `tableHint` and `optimizerHints`, and that makes
@@ -1460,7 +1467,7 @@ XmlMode : @string = t: (("RAW"i | "AUTO"i | "EXPLICIT"i | "PATH"i) & ForName?) =
 
 XmlDirective : @string
 	= t: ("BINARY"i & "BASE64"i | "TYPE"i | "ROOT"i & ForName? | "XMLDATA"i | "XMLSCHEMA"i & ForName?
-		  | "ELEMENTS"i & ("XSINIL"i | "ABSENT"i)?) => @(t)
+		  | "ELEMENTS"i & (Trailing("XSINIL"i) | Trailing("ABSENT"i))?) => @(t)
 
 JsonMode : @string = t: ("AUTO"i | "PATH"i) => @(t)
 
@@ -2059,7 +2066,7 @@ SetValue : @Expression
 
 // A `WHERE` that may name a cursor's current row instead of a condition.
 DmlWhere : @Expression
-	= "WHERE"i & t: ("CURRENT"i & "OF"i & "GLOBAL"i? & QualifiedName)
+	= "WHERE"i & t: ("CURRENT"i & "OF"i & ("GLOBAL"i & ?=QualifiedName)? & QualifiedName)
 		=> @(new Expression.ColumnReference(Syntax.Spaced(t)))
 	| "WHERE"i & c: SearchCondition => @(c)
 
@@ -2350,7 +2357,7 @@ TransactionStatement : @Statement
 
 TranWord : @string = t: ("TRANSACTION"i | "TRAN"i) => @(Syntax.Squared(t))
 WorkWord : @string = t: "WORK"i => @(Syntax.Squared(t))
-TranMark    = "WITH"i & "MARK"i & ValueExpression?
+TranMark    = "WITH"i & "MARK"i & (?!Label & ValueExpression)?
 
 // One option, once, and one of two values: `DELAYED_DURABILITY = 'ON'`, `= 1`, a second one and any
 // other name are `Msg 102`.
@@ -3568,7 +3575,7 @@ ExecArgument : @Expression
 		=> @(Syntax.Hinted(v, back))
 
 // The two spellings of the same word, kept as the author wrote it.
-OutputWord = "OUTPUT"i | "OUT"i
+OutputWord = Trailing("OUTPUT"i) | Trailing("OUT"i)
 
 // What a procedure is passed is a constant, a variable or a name, and not an expression: the
 // engine refuses `1 + 1`, `(1)`, a call, `-@a`, `+1`, `COLLATE` and a name of two parts, and
@@ -3705,13 +3712,13 @@ BulkFormat : @Expression
 // ── A word and some values ──────────────────────────────────────────────────
 SimpleCommand : @Statement
 	= "PRINT"i & v: ValueExpression      => @(Statement.Commanded("PRINT", v))
-	| "RETURN"i & v: ValueExpression?    => @(Statement.Commanded("RETURN", v))
-	| "THROW"i & args: Arguments?        => @(Statement.Commanded("THROW", args))
+	| "RETURN"i & (?!Label & v: ValueExpression)? => @(Statement.Commanded("RETURN", v))
+	| "THROW"i & (?!Label & args: Arguments)?     => @(Statement.Commanded("THROW", args))
 	| "GOTO"i & name: Identifier         => @(Statement.Commanded("GOTO", new Expression.ColumnReference(name)))
 	| name: Identifier & ':' & ?!':'     => @(new Statement.Label(name))
 	| "BREAK"i                           => @(Statement.Commanded("BREAK", (Expression?)null))
 	| "CONTINUE"i                        => @(Statement.Commanded("CONTINUE", (Expression?)null))
-	| "CHECKPOINT"i & v: ValueExpression? => @(Statement.Commanded("CHECKPOINT", v))
+	| "CHECKPOINT"i & (?!Label & v: ValueExpression)? => @(Statement.Commanded("CHECKPOINT", v))
 	// `SHUTDOWN` and `SHUTDOWN WITH NOWAIT`, and nothing else after the word: `WITH X` is
 	// `Msg 102`, `NOWAIT` alone 1018, the option twice 102. `LINENO n`: a whole number and
 	// only that — a variable, `-1`, `1 + 1`, `'a'`, `1.5` and nothing are each `Msg 102`.
@@ -3884,7 +3891,7 @@ OptionValue : @Expression
 // language has for a size or a span, and nothing else may stand after a value. It was any
 // identifier, and then `SET b = 5, c = 10 ACTION (…)` read `ACTION` as the unit of ten and
 // lost the clause behind it — the same trap an optional at the end of a rule always is.
-OptionUnit : @string = t: ("KB"i | "MB"i | "GB"i | "TB"i | "PB"i
+OptionUnit : @string = ?!Label & t: ("KB"i | "MB"i | "GB"i | "TB"i | "PB"i
 		   | "SECOND"i | "SECONDS"i | "MINUTE"i | "MINUTES"i | "HOUR"i | "HOURS"i
 		   | "DAY"i | "DAYS"i | "WEEK"i | "WEEKS"i | "MONTH"i | "MONTHS"i
 		   | "YEAR"i | "YEARS"i
@@ -3951,8 +3958,11 @@ ColumnBody : @Clause.ColumnDefinition
 		=> @(new Clause.ColumnDefinition("", type, null, tail ?? Clause.None))
 
 // What may be said about a column after its type, each kept as what it is: an option, a
-// constraint, or an index, in the order they were written.
-ColumnTail : @Clause
+// constraint, or an index, in the order they were written. Not the label of the statement after
+// a column that ends one: `ALTER TABLE t ADD c INT` and then `sparse: PRINT 1`.
+ColumnTail : @Clause = ?!Label & t: ColumnTrait => @(t)
+
+ColumnTrait : @Clause
 	= t: "FILESTREAM"i                => @(Clause.Optioned(t))
 	| "COLLATE"i & q: QualifiedName   => @(Clause.Optioned("COLLATE", new Expression.ColumnReference(q)))
 	| t: "SPARSE"i                    => @(Clause.Optioned(t))
@@ -4031,7 +4041,7 @@ AddedDefaultTail = ("FOR"i & Identifier)? & ("WITH"i & "VALUES"i)?
 
 // A key a warehouse declares and does not check. Not the box's syntax and refused there,
 // which is where the version chain will put it.
-Enforced : @string = t: ("NOT"i? & "ENFORCED"i) => @(t)
+Enforced : @string = ?!Label & t: ("NOT"i? & "ENFORCED"i) => @(t)
 
 // Which node tables an edge may join, which is the one constraint only a graph has.
 EdgePair : @Clause = f: QualifiedName & "TO"i & t: QualifiedName => @(new Clause.Connection(f, t))
@@ -6188,8 +6198,8 @@ LoginBody = "WITH"i & CreatePassword & (',' & CreateLoginOption)*
 // has to say it is one. `UNLOCK` and `OLD_PASSWORD` are for a login that exists.
 CreatePassword = "PASSWORD"i & '=' & (Quoted & CreateHash? | TSql.BinaryLiteral & CreateHashed)
 
-CreateHash   = "HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i?
-CreateHashed = "HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i
+CreateHash   = Trailing("HASHED"i) & Trailing("MUST_CHANGE"i)? | Trailing("MUST_CHANGE"i) & Trailing("HASHED"i)?
+CreateHashed = "HASHED"i & Trailing("MUST_CHANGE"i)? | "MUST_CHANGE"i & "HASHED"i
 
 CreateLoginOption = "SID"i & '=' & TSql.BinaryLiteral
 				  | LoginPlace
@@ -6234,13 +6244,13 @@ AlterLoginOption = AlterPassword
 AlterPassword = "PASSWORD"i & '=' & Quoted & "OLD_PASSWORD"i & '=' & Quoted
 			  | "PASSWORD"i & '=' & (Quoted & PasswordWords? | TSql.BinaryLiteral & HashedWords)
 
-PasswordWords = "HASHED"i & ("MUST_CHANGE"i & "UNLOCK"i? | "UNLOCK"i & "MUST_CHANGE"i?)?
-			  | "MUST_CHANGE"i & ("HASHED"i & "UNLOCK"i? | "UNLOCK"i & "HASHED"i?)?
-			  | "UNLOCK"i & ("HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i?)?
+PasswordWords = Trailing("HASHED"i) & (Trailing("MUST_CHANGE"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & Trailing("MUST_CHANGE"i)?)?
+			  | Trailing("MUST_CHANGE"i) & (Trailing("HASHED"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & Trailing("HASHED"i)?)?
+			  | Trailing("UNLOCK"i) & (Trailing("HASHED"i) & Trailing("MUST_CHANGE"i)? | Trailing("MUST_CHANGE"i) & Trailing("HASHED"i)?)?
 
-HashedWords = "HASHED"i & ("MUST_CHANGE"i & "UNLOCK"i? | "UNLOCK"i & "MUST_CHANGE"i?)?
-			| "MUST_CHANGE"i & ("HASHED"i & "UNLOCK"i? | "UNLOCK"i & "HASHED"i)
-			| "UNLOCK"i & ("HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i)
+HashedWords = "HASHED"i & (Trailing("MUST_CHANGE"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & Trailing("MUST_CHANGE"i)?)?
+			| "MUST_CHANGE"i & (Trailing("HASHED"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & "HASHED"i)
+			| "UNLOCK"i & (Trailing("HASHED"i) & Trailing("MUST_CHANGE"i)? | Trailing("MUST_CHANGE"i) & "HASHED"i)
 
 // ── A user ──────────────────────────────────────────────────────────────────
 // Where a user comes from, and then one list whatever the source: the blocks give each

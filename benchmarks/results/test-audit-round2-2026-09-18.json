@@ -1,0 +1,1263 @@
+{
+  "DotGram.Tests": {
+    "total": 9014,
+    "passed": 9013,
+    "failed": 0,
+    "skipped": 1,
+    "runTimeSeconds": 180.955,
+    "classCount": 101,
+    "trivialTestCount": 6891,
+    "topClassesByTime": [
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "count": 89,
+        "totalSeconds": 128.603,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.OversizeTests",
+        "count": 14,
+        "totalSeconds": 99.702,
+        "trivialCount": 3
+      },
+      {
+        "class": "DotGram.Tests.BufferedInputTests",
+        "count": 55,
+        "totalSeconds": 77.34,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.SemanticTests",
+        "count": 408,
+        "totalSeconds": 53.662,
+        "trivialCount": 19
+      },
+      {
+        "class": "DotGram.Tests.GeneratorDriverTests",
+        "count": 156,
+        "totalSeconds": 46.265,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.FuzzTests",
+        "count": 12,
+        "totalSeconds": 42.935,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.CSharpEmitterTests",
+        "count": 191,
+        "totalSeconds": 36.555,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.MaterializationPartitionTests",
+        "count": 3,
+        "totalSeconds": 36.484,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.ReferenceDifferentialTests",
+        "count": 4,
+        "totalSeconds": 33.098,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.StreamingRetentionTests",
+        "count": 7,
+        "totalSeconds": 30.92,
+        "trivialCount": 1
+      },
+      {
+        "class": "DotGram.Tests.ReaderCoverageTests",
+        "count": 1,
+        "totalSeconds": 27.437,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.DelimiterScanTests",
+        "count": 15,
+        "totalSeconds": 23.583,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.CarrierTests",
+        "count": 54,
+        "totalSeconds": 22.752,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.GeneratorCostTests",
+        "count": 1,
+        "totalSeconds": 20.739,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.RefusalTests",
+        "count": 3,
+        "totalSeconds": 20.464,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.RecoveryBoundaryTests",
+        "count": 21,
+        "totalSeconds": 19.443,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.PrefixTableTests",
+        "count": 10,
+        "totalSeconds": 16.21,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.GroupValueTests",
+        "count": 16,
+        "totalSeconds": 13.66,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.RereadTests",
+        "count": 15,
+        "totalSeconds": 13.607,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.SwitchTests",
+        "count": 50,
+        "totalSeconds": 13.49,
+        "trivialCount": 2
+      },
+      {
+        "class": "DotGram.Tests.AdaptiveValuesTests",
+        "count": 9,
+        "totalSeconds": 9.674,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc8259Tests",
+        "count": 663,
+        "totalSeconds": 7.764,
+        "trivialCount": 480
+      },
+      {
+        "class": "DotGram.Tests.GuardMaterializationTests",
+        "count": 7,
+        "totalSeconds": 7.468,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.SiblingPublicationTests",
+        "count": 5,
+        "totalSeconds": 7.291,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.ExpressionLanguage.ExpressionParserTests",
+        "count": 316,
+        "totalSeconds": 6.419,
+        "trivialCount": 211
+      },
+      {
+        "class": "DotGram.Tests.LexerEmitterTests",
+        "count": 22,
+        "totalSeconds": 5.926,
+        "trivialCount": 1
+      },
+      {
+        "class": "DotGram.Tests.RegexDifferentialTests",
+        "count": 23,
+        "totalSeconds": 5.465,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.StandardLibraryTests",
+        "count": 15,
+        "totalSeconds": 5.448,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.ExternalInputTests",
+        "count": 8,
+        "totalSeconds": 4.832,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Tests.ProvenanceTests",
+        "count": 7,
+        "totalSeconds": 4.713,
+        "trivialCount": 0
+      }
+    ],
+    "topTestsByTime": [
+      {
+        "class": "DotGram.Tests.BufferedInputTests",
+        "method": "Large_split_dispatch_keeps_char_and_byte_backtracking_correct",
+        "seconds": 46.989
+      },
+      {
+        "class": "DotGram.Tests.OversizeTests",
+        "method": "Any_part_size_generates_a_parser_that_parses",
+        "seconds": 30.413
+      },
+      {
+        "class": "DotGram.Tests.ReaderCoverageTests",
+        "method": "Every_parser_and_example_is_read_by_the_reader",
+        "seconds": 27.437
+      },
+      {
+        "class": "DotGram.Tests.OversizeTests",
+        "method": "Any_part_size_generates_a_parser_that_parses",
+        "seconds": 22.645
+      },
+      {
+        "class": "DotGram.Tests.OversizeTests",
+        "method": "Any_part_size_generates_a_parser_that_parses",
+        "seconds": 22.617
+      },
+      {
+        "class": "DotGram.Tests.GeneratorCostTests",
+        "method": "And_this_is_where_the_generator_spends_it",
+        "seconds": 20.739
+      },
+      {
+        "class": "DotGram.Tests.RefusalTests",
+        "method": "Every_refusal_is_the_one_it_was",
+        "seconds": 20.343
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 17.9
+      },
+      {
+        "class": "DotGram.Tests.MaterializationPartitionTests",
+        "method": "Large_factory_choices_preserve_values_and_spans_across_all_input_forms",
+        "seconds": 16.155
+      },
+      {
+        "class": "DotGram.Tests.OversizeTests",
+        "method": "Any_part_size_generates_a_parser_that_parses",
+        "seconds": 14.043
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 11.859
+      },
+      {
+        "class": "DotGram.Tests.MaterializationPartitionTests",
+        "method": "Large_factory_choices_preserve_values_and_spans_across_all_input_forms",
+        "seconds": 11.593
+      },
+      {
+        "class": "DotGram.Tests.ReferenceDifferentialTests",
+        "method": "The_automaton_agrees_with_the_semantics",
+        "seconds": 11.028
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 8.787
+      },
+      {
+        "class": "DotGram.Tests.MaterializationPartitionTests",
+        "method": "Partitioned_constructions_remain_available_to_typed_guards_and_backtracking",
+        "seconds": 8.736
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 8.449
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 8.258
+      },
+      {
+        "class": "DotGram.Tests.StreamingRetentionTests",
+        "method": "A_lazy_form_holds_the_same_however_much_it_has_read",
+        "seconds": 7.642
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 7.57
+      },
+      {
+        "class": "DotGram.Tests.ReferenceDifferentialTests",
+        "method": "The_automaton_agrees_with_the_semantics",
+        "seconds": 7.397
+      },
+      {
+        "class": "DotGram.Tests.ReferenceDifferentialTests",
+        "method": "The_automaton_agrees_with_the_semantics",
+        "seconds": 7.387
+      },
+      {
+        "class": "DotGram.Tests.ReferenceDifferentialTests",
+        "method": "The_automaton_agrees_with_the_semantics",
+        "seconds": 7.286
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 7.199
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 6.627
+      },
+      {
+        "class": "DotGram.Tests.FuzzTests",
+        "method": "A_mutated_grammar_is_answered_rather_than_survived",
+        "seconds": 6.468
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 5.92
+      },
+      {
+        "class": "DotGram.Tests.StreamingRetentionTests",
+        "method": "A_lazy_form_holds_the_same_however_much_it_has_read",
+        "seconds": 5.302
+      },
+      {
+        "class": "DotGram.Tests.StreamingRetentionTests",
+        "method": "A_lazy_form_holds_the_same_however_much_it_has_read",
+        "seconds": 5.267
+      },
+      {
+        "class": "DotGram.Tests.GuardMaterializationTests",
+        "method": "Repeated_guards_reuse_values_but_rollback_invalidates_reused_record_numbers",
+        "seconds": 5.249
+      },
+      {
+        "class": "DotGram.Tests.ReaderTests",
+        "method": "Every_input_reads_the_same_both_ways",
+        "seconds": 5.123
+      }
+    ],
+    "trivialByClass": [
+      {
+        "class": "DotGram.Tests.Web.Rfc9651Tests",
+        "trivialCount": 3711,
+        "count": 3730
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc8259Tests",
+        "trivialCount": 480,
+        "count": 663
+      },
+      {
+        "class": "DotGram.Tests.ExpressionLanguage.ExpressionHandTests",
+        "trivialCount": 477,
+        "count": 512
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc6570Tests",
+        "trivialCount": 266,
+        "count": 274
+      },
+      {
+        "class": "DotGram.Tests.ExpressionLanguage.ExpressionParserTests",
+        "trivialCount": 211,
+        "count": 316
+      },
+      {
+        "class": "DotGram.Tests.ExampleTests",
+        "trivialCount": 186,
+        "count": 248
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc5322Tests",
+        "trivialCount": 178,
+        "count": 194
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc3339Tests",
+        "trivialCount": 164,
+        "count": 168
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc6902Tests",
+        "trivialCount": 144,
+        "count": 147
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc6265Tests",
+        "trivialCount": 136,
+        "count": 331
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc6266Tests",
+        "trivialCount": 94,
+        "count": 97
+      },
+      {
+        "class": "DotGram.Tests.Calculators.CalculatorFormsTests",
+        "trivialCount": 79,
+        "count": 86
+      },
+      {
+        "class": "DotGram.Tests.UrlTests",
+        "trivialCount": 66,
+        "count": 68
+      },
+      {
+        "class": "DotGram.Tests.ExpressionLanguage.ExpressionCarrierTests",
+        "trivialCount": 63,
+        "count": 73
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc5646Tests",
+        "trivialCount": 56,
+        "count": 60
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc6901Tests",
+        "trivialCount": 50,
+        "count": 51
+      },
+      {
+        "class": "DotGram.Tests.GrammarBinderTests",
+        "trivialCount": 44,
+        "count": 44
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc9110Tests",
+        "trivialCount": 42,
+        "count": 46
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc7239Tests",
+        "trivialCount": 41,
+        "count": 51
+      },
+      {
+        "class": "DotGram.Tests.GrammarNormalizerTests",
+        "trivialCount": 37,
+        "count": 45
+      },
+      {
+        "class": "DotGram.Tests.GramParserTests",
+        "trivialCount": 34,
+        "count": 39
+      },
+      {
+        "class": "DotGram.Tests.RenderingTests",
+        "trivialCount": 34,
+        "count": 37
+      },
+      {
+        "class": "DotGram.Tests.ExpressionLanguage.MemberResolverTests",
+        "trivialCount": 34,
+        "count": 37
+      },
+      {
+        "class": "DotGram.Tests.SelfHostingTests",
+        "trivialCount": 29,
+        "count": 31
+      },
+      {
+        "class": "DotGram.Tests.FirstSetsTests",
+        "trivialCount": 28,
+        "count": 52
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc3986Tests",
+        "trivialCount": 28,
+        "count": 32
+      },
+      {
+        "class": "DotGram.Tests.Web.Rfc8288Tests",
+        "trivialCount": 22,
+        "count": 26
+      },
+      {
+        "class": "DotGram.Tests.SemanticTests",
+        "trivialCount": 19,
+        "count": 408
+      },
+      {
+        "class": "DotGram.Tests.RetentionTests",
+        "trivialCount": 18,
+        "count": 23
+      },
+      {
+        "class": "DotGram.Tests.WriterTests",
+        "trivialCount": 18,
+        "count": 22
+      }
+    ],
+    "buildSeconds": 4.1
+  },
+  "DotGram.Sql.Tests": {
+    "total": 14701,
+    "passed": 14701,
+    "failed": 0,
+    "skipped": 0,
+    "runTimeSeconds": 1.739,
+    "classCount": 8,
+    "trivialTestCount": 14335,
+    "topClassesByTime": [
+      {
+        "class": "DotGram.Sql.Tests.SqlWriterTests",
+        "count": 141,
+        "totalSeconds": 0.897,
+        "trivialCount": 115
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "count": 231,
+        "totalSeconds": 0.68,
+        "trivialCount": 126
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "count": 1574,
+        "totalSeconds": 0.598,
+        "trivialCount": 1416
+      },
+      {
+        "class": "DotGram.Sql.Tests.TransactSqlTests",
+        "count": 12662,
+        "totalSeconds": 0.529,
+        "trivialCount": 12605
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlWalkerTests",
+        "count": 10,
+        "totalSeconds": 0.453,
+        "trivialCount": 5
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardAstMapTests",
+        "count": 4,
+        "totalSeconds": 0.13,
+        "trivialCount": 0
+      },
+      {
+        "class": "DotGram.Sql.Tests.Sql92ParserTests",
+        "count": 75,
+        "totalSeconds": 0.129,
+        "trivialCount": 66
+      },
+      {
+        "class": "DotGram.Sql.Tests.AstReferenceTests",
+        "count": 4,
+        "totalSeconds": 0.111,
+        "trivialCount": 2
+      }
+    ],
+    "topTestsByTime": [
+      {
+        "class": "DotGram.Sql.Tests.SqlWriterTests",
+        "method": "What_the_writer_prints_reads_back_the_same",
+        "seconds": 0.429
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlWalkerTests",
+        "method": "Every_node_is_visited_the_root_first",
+        "seconds": 0.426
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlWriterTests",
+        "method": "Every_node_says_where_it_was_written",
+        "seconds": 0.402
+      },
+      {
+        "class": "DotGram.Sql.Tests.TransactSqlTests",
+        "method": "The_operators_group_as_the_engine_computes",
+        "seconds": 0.4
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_value_expression_is_built_as_written",
+        "seconds": 0.238
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_connection_statement",
+        "seconds": 0.158
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardAstMapTests",
+        "method": "Every_rule_of_the_BNF_has_a_row",
+        "seconds": 0.108
+      },
+      {
+        "class": "DotGram.Sql.Tests.Sql92ParserTests",
+        "method": "Set_operators_group_as_the_standard_says",
+        "seconds": 0.108
+      },
+      {
+        "class": "DotGram.Sql.Tests.AstReferenceTests",
+        "method": "Every_node_of_the_tree_is_in_the_reference",
+        "seconds": 0.108
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_procedure_statement_is_written_back_as_the_tree_it_was",
+        "seconds": 0.043
+      },
+      {
+        "class": "DotGram.Sql.Tests.TransactSqlTests",
+        "method": "A_columns_tail_is_refused_where_the_engine_refuses_it",
+        "seconds": 0.03
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_connection_statement",
+        "seconds": 0.027
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_procedure_statement_is_written_back_as_the_tree_it_was",
+        "seconds": 0.025
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_dynamic_statement",
+        "seconds": 0.023
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_procedure_statement_is_written_back_as_the_tree_it_was",
+        "seconds": 0.02
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_connection_statement",
+        "seconds": 0.015
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_dynamic_statement",
+        "seconds": 0.015
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlWalkerTests",
+        "method": "A_check_is_a_lambda_over_the_nodes_it_is_about",
+        "seconds": 0.015
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_table_reference_is_built_as_written",
+        "seconds": 0.015
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_character_type_keeps_its_spelling_length_units_character_set_and_collation",
+        "seconds": 0.015
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_schema_statement_is_written_back_as_the_tree_it_was",
+        "seconds": 0.015
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlWriterTests",
+        "method": "What_the_writer_prints_reads_back_the_same",
+        "seconds": 0.013
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_user_defined_type_or_schema_object",
+        "seconds": 0.013
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_table_reference_is_built_as_written",
+        "seconds": 0.013
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "An_interval_keeps_its_sign_its_string_and_its_qualifier",
+        "seconds": 0.013
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "method": "A_string_keeps_its_quotes_its_kind_and_its_character_set",
+        "seconds": 0.013
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_schema_statement",
+        "seconds": 0.012
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_table_name",
+        "seconds": 0.011
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_routine_or_trigger",
+        "seconds": 0.011
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "method": "A_JSON_value",
+        "seconds": 0.011
+      }
+    ],
+    "trivialByClass": [
+      {
+        "class": "DotGram.Sql.Tests.TransactSqlTests",
+        "trivialCount": 12605,
+        "count": 12662
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardParserTests",
+        "trivialCount": 1416,
+        "count": 1574
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlStandardTreeTests",
+        "trivialCount": 126,
+        "count": 231
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlWriterTests",
+        "trivialCount": 115,
+        "count": 141
+      },
+      {
+        "class": "DotGram.Sql.Tests.Sql92ParserTests",
+        "trivialCount": 66,
+        "count": 75
+      },
+      {
+        "class": "DotGram.Sql.Tests.SqlWalkerTests",
+        "trivialCount": 5,
+        "count": 10
+      },
+      {
+        "class": "DotGram.Sql.Tests.AstReferenceTests",
+        "trivialCount": 2,
+        "count": 4
+      }
+    ],
+    "buildSeconds": 2.8
+  },
+  "DotGram.Finance.Tests": {
+    "total": 6376,
+    "passed": 6376,
+    "failed": 0,
+    "skipped": 0,
+    "runTimeSeconds": 0.874,
+    "classCount": 14,
+    "trivialTestCount": 5971,
+    "topClassesByTime": [
+      {
+        "class": "DotGram.Finance.Tests.HandFixTests",
+        "count": 2582,
+        "totalSeconds": 0.578,
+        "trivialCount": 2492
+      },
+      {
+        "class": "DotGram.Finance.Tests.ProductFieldReaderTests",
+        "count": 428,
+        "totalSeconds": 0.481,
+        "trivialCount": 320
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44StreamingTests",
+        "count": 189,
+        "totalSeconds": 0.453,
+        "trivialCount": 104
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldGrammarTests",
+        "count": 193,
+        "totalSeconds": 0.426,
+        "trivialCount": 122
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44Tests",
+        "count": 399,
+        "totalSeconds": 0.386,
+        "trivialCount": 379
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRetentionTests",
+        "count": 25,
+        "totalSeconds": 0.322,
+        "trivialCount": 18
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixLogTests",
+        "count": 20,
+        "totalSeconds": 0.199,
+        "trivialCount": 16
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldHeaderTests",
+        "count": 12,
+        "totalSeconds": 0.199,
+        "trivialCount": 6
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixTests",
+        "count": 8,
+        "totalSeconds": 0.153,
+        "trivialCount": 6
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixConvertFastPathTests",
+        "count": 86,
+        "totalSeconds": 0.122,
+        "trivialCount": 80
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixMessageLayerTests",
+        "count": 4,
+        "totalSeconds": 0.116,
+        "trivialCount": 2
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRecoveryTests",
+        "count": 2,
+        "totalSeconds": 0.116,
+        "trivialCount": 1
+      },
+      {
+        "class": "DotGram.Finance.Tests.DecimalTests",
+        "count": 24,
+        "totalSeconds": 0.113,
+        "trivialCount": 22
+      },
+      {
+        "class": "DotGram.Finance.Tests.PrimitiveTests",
+        "count": 2404,
+        "totalSeconds": 0.074,
+        "trivialCount": 2403
+      }
+    ],
+    "topTestsByTime": [
+      {
+        "class": "DotGram.Finance.Tests.FixTests",
+        "method": "Typed_numbers_preserve_integer_boundaries_and_zero_padded_lengths",
+        "seconds": 0.152
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldHeaderTests",
+        "method": "Ordinary_input_sets_no_length_aside",
+        "seconds": 0.127
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldGrammarTests",
+        "method": "All_fields_have_the_same_ADT_in_char_byte_and_pipe_forms",
+        "seconds": 0.126
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44Tests",
+        "method": "Every_reachable_group_rejects_an_excess_declared_count",
+        "seconds": 0.123
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44StreamingTests",
+        "method": "Standard_raw_octets_survive_framing",
+        "seconds": 0.118
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44Tests",
+        "method": "Body_fields_may_be_reordered",
+        "seconds": 0.116
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRecoveryTests",
+        "method": "Message_validation_rejects_recovered_fields_with_the_original_diagnostic",
+        "seconds": 0.116
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixMessageLayerTests",
+        "method": "A_group_count_beyond_the_fields_left_is_refused",
+        "seconds": 0.114
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRetentionTests",
+        "method": "A_field_past_the_limit_names_it",
+        "seconds": 0.114
+      },
+      {
+        "class": "DotGram.Finance.Tests.ProductFieldReaderTests",
+        "method": "Eof_does_not_relax_binary_length_or_intermediate_separators",
+        "seconds": 0.111
+      },
+      {
+        "class": "DotGram.Finance.Tests.DecimalTests",
+        "method": "Unrepresentable_values_remain_typed_invalid_fields",
+        "seconds": 0.111
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixLogTests",
+        "method": "Wire_mode_keeps_pipe_characters_and_spaces_in_values",
+        "seconds": 0.111
+      },
+      {
+        "class": "DotGram.Finance.Tests.HandFixTests",
+        "method": "Concurrent_enumerators_do_not_share_binary_state",
+        "seconds": 0.11
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixConvertFastPathTests",
+        "method": "Standard_data_tags_come_from_the_schema",
+        "seconds": 0.109
+      },
+      {
+        "class": "DotGram.Finance.Tests.PrimitiveTests",
+        "method": "Every_known_code_is_accepted",
+        "seconds": 0.074
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixLogTests",
+        "method": "Long_space_runs_preserve_internal_and_eof_spaces",
+        "seconds": 0.066
+      },
+      {
+        "class": "DotGram.Finance.Tests.HandFixTests",
+        "method": "Deterministic_malformed_inputs_match_recovery_boundaries",
+        "seconds": 0.063
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRetentionTests",
+        "method": "Without_an_argument_the_default_bounds_a_field",
+        "seconds": 0.062
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldHeaderTests",
+        "method": "Ordinary_input_sets_no_length_aside",
+        "seconds": 0.062
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRetentionTests",
+        "method": "Without_an_argument_the_default_bounds_a_field",
+        "seconds": 0.053
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldGrammarTests",
+        "method": "All_fields_have_the_same_ADT_in_char_byte_and_pipe_forms",
+        "seconds": 0.045
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRetentionTests",
+        "method": "Without_an_argument_the_default_bounds_a_field",
+        "seconds": 0.045
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44Tests",
+        "method": "Fixtures_exercise_every_standard_field_and_preserve_every_wire_extent",
+        "seconds": 0.044
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldGrammarTests",
+        "method": "All_fields_have_the_same_ADT_in_char_byte_and_pipe_forms",
+        "seconds": 0.041
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRetentionTests",
+        "method": "Without_an_argument_the_default_bounds_a_field",
+        "seconds": 0.037
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44Tests",
+        "method": "Every_standard_data_pair_accepts_embedded_delimiters",
+        "seconds": 0.036
+      },
+      {
+        "class": "DotGram.Finance.Tests.HandFixTests",
+        "method": "Fixtures_match_fields_and_explicit_message_semantics",
+        "seconds": 0.034
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44Tests",
+        "method": "Adversarial_field_syntax_does_not_throw",
+        "seconds": 0.03
+      },
+      {
+        "class": "DotGram.Finance.Tests.HandFixTests",
+        "method": "Fixtures_match_fields_and_explicit_message_semantics",
+        "seconds": 0.029
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44StreamingTests",
+        "method": "All_messages_match_contiguous_input",
+        "seconds": 0.025
+      }
+    ],
+    "trivialByClass": [
+      {
+        "class": "DotGram.Finance.Tests.HandFixTests",
+        "trivialCount": 2492,
+        "count": 2582
+      },
+      {
+        "class": "DotGram.Finance.Tests.PrimitiveTests",
+        "trivialCount": 2403,
+        "count": 2404
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44Tests",
+        "trivialCount": 379,
+        "count": 399
+      },
+      {
+        "class": "DotGram.Finance.Tests.ProductFieldReaderTests",
+        "trivialCount": 320,
+        "count": 428
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldGrammarTests",
+        "trivialCount": 122,
+        "count": 193
+      },
+      {
+        "class": "DotGram.Finance.Tests.Fix44StreamingTests",
+        "trivialCount": 104,
+        "count": 189
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixConvertFastPathTests",
+        "trivialCount": 80,
+        "count": 86
+      },
+      {
+        "class": "DotGram.Finance.Tests.DecimalTests",
+        "trivialCount": 22,
+        "count": 24
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRetentionTests",
+        "trivialCount": 18,
+        "count": 25
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixLogTests",
+        "trivialCount": 16,
+        "count": 20
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixTests",
+        "trivialCount": 6,
+        "count": 8
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixFieldHeaderTests",
+        "trivialCount": 6,
+        "count": 12
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixMessageLayerTests",
+        "trivialCount": 2,
+        "count": 4
+      },
+      {
+        "class": "DotGram.Finance.Tests.FixRecoveryTests",
+        "trivialCount": 1,
+        "count": 2
+      }
+    ],
+    "buildSeconds": 2.2
+  },
+  "DotGram.Finance.Fix44.Tests": {
+    "total": 614,
+    "passed": 614,
+    "failed": 0,
+    "skipped": 0,
+    "runTimeSeconds": 2.047,
+    "classCount": 2,
+    "trivialTestCount": 355,
+    "topClassesByTime": [
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "count": 428,
+        "totalSeconds": 1.769,
+        "trivialCount": 273
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "count": 186,
+        "totalSeconds": 1.132,
+        "trivialCount": 82
+      }
+    ],
+    "topTestsByTime": [
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Lazy_streams_match_all_standard_message_fixtures",
+        "seconds": 0.329
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.295
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.208
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Streaming_pair_returns_one_binary_field_without_reading_the_next_field",
+        "seconds": 0.201
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Explicit_semantics_reuses_the_parsed_fields",
+        "seconds": 0.19
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Lazy_streams_match_all_standard_message_fixtures",
+        "seconds": 0.091
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Lazy_streams_match_all_standard_message_fixtures",
+        "seconds": 0.083
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.069
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Final_field_can_end_at_eof_without_losing_value_or_location",
+        "seconds": 0.06
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Lazy_streams_match_all_standard_message_fixtures",
+        "seconds": 0.06
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Explicit_semantics_reuses_the_parsed_fields",
+        "seconds": 0.056
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Explicit_semantics_reuses_the_parsed_fields",
+        "seconds": 0.056
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Explicit_semantics_reuses_the_parsed_fields",
+        "seconds": 0.042
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Length_delimited_data_crosses_every_small_buffer_boundary",
+        "seconds": 0.031
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Location_covers_whole_fields_and_conversion_does_not_need_coordinates",
+        "seconds": 0.03
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.024
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.024
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.022
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.022
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.021
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Final_field_can_end_at_eof_without_losing_value_or_location",
+        "seconds": 0.02
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Lazy_streams_match_all_standard_message_fixtures",
+        "seconds": 0.02
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.02
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Recovery_returns_errors_in_order_with_original_input_and_absolute_positions",
+        "seconds": 0.019
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Explicit_semantics_reuses_the_parsed_fields",
+        "seconds": 0.018
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Reader_enumeration_is_lazy_and_stops_at_a_complete_field",
+        "seconds": 0.017
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Lazy_streams_match_all_standard_message_fixtures",
+        "seconds": 0.016
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "method": "All_fixtures_match_types_values_and_locations_on_all_inputs",
+        "seconds": 0.014
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Lazy_streams_match_all_standard_message_fixtures",
+        "seconds": 0.013
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "method": "Explicit_semantics_reuses_the_parsed_fields",
+        "seconds": 0.012
+      }
+    ],
+    "trivialByClass": [
+      {
+        "class": "DotGram.Finance.Fix44.Tests.OracleFieldReaderTests",
+        "trivialCount": 273,
+        "count": 428
+      },
+      {
+        "class": "DotGram.Finance.Fix44.Tests.FixOracleTests",
+        "trivialCount": 82,
+        "count": 186
+      }
+    ],
+    "buildSeconds": 2.2
+  },
+  "_meta": {
+    "date": "2026-09-18",
+    "machine": "IGOR-DESKTOP",
+    "pinned": "0-15, high priority",
+    "trivialThresholdMs": 1,
+    "runner": "xunit.v3 4.0.0 self-hosted on Microsoft.Testing.Platform, -result-xml",
+    "commit": "b2c0c521"
+  }
+}

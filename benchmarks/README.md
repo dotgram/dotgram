@@ -24,13 +24,15 @@ project is in the solution so that it has to keep compiling.
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --rebuild
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-compare before.json after.json
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-check
 ```
 
-One run over FIX (a string, bytes in memory and a stream), the expression language (by hand,
-on the tape and by the immediate carrier) and SQL:2023: time and allocation per parse against
-the hand-written parser, the first call in a fresh process, what a lazily streamed FIX parse
-holds, and what the generator took to write each parser, from the last build's reports
-(`Stand.cs`). Every row checks that its readings answer the same before it is timed, and a
+One run over FIX (a string, bytes in memory and a stream), the web's formats, the expression
+language (by hand, on the tape and by the immediate carrier) and SQL:2023: time and allocation
+per parse against the hand-written parser, the first call in a fresh process, what a lazily
+streamed FIX parse holds, and what the generator took to write each parser, from the last
+build's reports (`Stand.cs`, `StandWeb.cs`). `--stand-check` holds every row's readings to one
+another and times nothing: run it after writing a row, before asking anyone for a quiet machine. Every row checks that its readings answer the same before it is timed, and a
 round a generation 1 or 2 collection fell inside is redone rather than kept. The process pins
 itself to logical processors 0 to 15 at high priority, and times a row of plain arithmetic in
 every round, so that two runs taken on different days can be told apart from two parsers that
@@ -42,6 +44,86 @@ nothing else building. Reports of the generator appear only for projects the las
 actually compiled: `--rebuild` rebuilds every grammar-hosting project first (with `-t:Rebuild`,
 node reuse and the compiler server off) so the table is complete; without it, a project whose
 report is missing is named in its own section, with why.
+
+### Medians, not runs
+
+```console
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --repeat 5
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --only fix/Order.text,el/ladder --repeat 5
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --repeat 5
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --first --only sql/
+```
+
+A before and an after are quoted as medians of at least five runs, even on a quiet machine:
+one run of the stand spreads 4-16% from the next there, and on a machine other people build on
+a single run has been 85% off (2026-09-18: 56 runs under a build, medians within +-4% of the
+quiet ones, single runs to +85%). `--repeat N` takes the run N times, each in a process of its
+own, and reports each reading's median. A run whose control is more than 5% off the median of
+the controls is dropped and named; fewer than three kept and it refuses to say a number. The
+control sees a machine that is busy, not every kind of interference: a run can keep a clean
+control and still have one row 50% off, which is what the other runs are for. The spread
+column of such a report is the base reading's spread between runs, which is the one to hold a
+change against.
+
+`--only a,b` keeps the rows whose id contains any of the pieces, and leaves out the first
+calls, the streamed run and the generator's reports, so that some rows can be looked at in a
+minute. Its absolute numbers are not a full run's: the hand FIX parser reads `fix/Order.text`
+at 940 ns in a first short run and at 670 in every other, so a short run is compared with
+another short run and never with a full one. `--stand-check` times nothing and holds every
+row's readings to one another. `--stand-paired --first` takes the first call of each reading of
+each row in a fresh process each, median of five, before and after.
+
+### The generator's time is a gate
+
+Every full run holds the time the generator took per host to the previous base (`--against
+previous.json`, or the newest `benchmarks/results/stand-*.json`) and names every host that
+moved by more than 20% and by at least 100 ms, on a line of its own, `DEVIATION`, at the end of
+`stand.md`. A commit that took T-SQL from 4 s to 86 s (2026-09-18) went unnoticed for an
+afternoon; this is the line that would have caught it in the first run after it.
+`--stand-gate now.json previous.json` prints it for two results already taken. It needs the
+reports of a complete build, so a run for the record is `--rebuild`.
+
+### The base of a row, and the regular expression
+
+Every ratio in the report is taken against the row's first reading, which is the hand-written
+parser wherever there is one. The web's formats have none — no one wrote RFC 3339 by hand —
+so their rows (`web/*`) name the generated reading first and take their ratios against it; the
+report says so above each table.
+
+`tsql/*` (`StandTsql.cs`) is the other kind of row with no hand-written reading: Microsoft's
+ScriptDom is the first reading and the base, a third party's parser, asked for the whole tree
+of one statement, against the generated T-SQL parser without positions and with them
+(`located`, the one to hold against ScriptDom, which always carries them). Five statements of
+different shapes; agreement is that all three accept, and whether the trees say the same is
+what `--roundtrip` and `--kinds` answer over the corpus. The long select is written in the
+corpus's shape and not cut from it, since every fresh first-call process rebuilds the rows.
+
+Beside the parsers, a regular expression, where one can be written honestly:
+
+| family | regex reading | what the pattern does less |
+| --- | --- | --- |
+| `fix/*.text` (plain rows and `slope-N`) | `regex-lesser`, `regex-compiled-lesser`: `(\d+)=([^\x01]*)\x01` | only the split into tag and value: no typed value, no length/data pair, no recovery. Held to the hand parser by field count, tag and where each value sits; a row with a binary pair or a malformed field has none |
+| `web/url.*` | `regex`, `regex-compiled`: the pattern of `UrlBenchmarks` | three schemes, no relative references; held to RFC 3986's parser part by part |
+| `web/date-time.*` | the ABNF of RFC 3339 §5.6 | no calendar and no leap-second rule (§5.7): it says yes to the thirtieth of February |
+| `web/addr-spec.*` | the dot-atom form of RFC 5322 §3.4.1 | no comments, folding or quoted local part; held to `TryParseStrict` |
+| `web/media-type.*` | RFC 9110 §8.3.1 | no case-folding, no unescaping of a quoted pair |
+| `web/json.*`, `web/sf.*` | N/A | recursive languages: a regular expression cannot read them, so the row has the generated reading alone |
+| `sql/*`, `el/*` | N/A | the same: a grammar of this size is not a pattern |
+
+A pattern is built inside the row's first call, not when the rows are made, so the first-call
+table charges it for its construction the way a user's first call would; and each is timed
+interpreted and compiled. "Lesser" is in the reading's name where it does less work, so that
+nobody reads `regex-lesser` faster than a parser as a win.
+
+### Tiered PGO
+
+The stand's agreement check runs every row's readings on every row's input before anything is
+timed, so the runtime's dynamic profile of a parser is taken over all of them, broken and
+binary inputs among them, and then the timed rows run on that profile. A harness that checked
+agreement on other inputs than it timed measured the generated FIX parser at 185 ns a field
+where the stand had 140, for that reason (performance-ff, 2026-09-18). So a baseline is taken
+twice, as is and under `DOTNET_TieredPGO=0`, and `--stand-compare` between the two shows the
+rows the profile moves.
 
 ### `--stand-paired`: two builds, one process
 

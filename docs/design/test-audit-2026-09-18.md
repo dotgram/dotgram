@@ -24,6 +24,10 @@ Compatibility and PackageSmoke are build-only assertions (D12's own framing) —
 targets net8.0, netstandard2.0 and net472 and asserts nothing beyond compiling; PackageSmoke
 packs the generator and prints `1 + 41 = 42`. Neither has a class or a test to measure.
 
+**Round 1's build column is not what its heading says.** "Build" there is a build that carried
+the project's dependencies with it, not the project's own cost — see round 2 below, where the
+two are told apart. Read the column as "what a build of that project costs from a cold tree".
+
 **DotGram.Tests is the one slow on both axes.** Its own build (217 s) and its own run (221 s)
 are each larger than the other four projects' numbers combined. DotGram.Finance.Tests is slow
 to build (115 s) and fast to run (1.7 s) — this is D12's own example: Fix44's 59 MB compiles on
@@ -128,3 +132,37 @@ inside a `<collection>` per class. No JSON schema needed beyond what the XML alr
 Not UTF-16, despite the note the order carried — that turned out to be a different, unrelated
 `dotnet test` log from an earlier run, not this pipeline (confirmed with architect during
 the run).
+
+## Round 2: the same suites after D12's first moves, and the build told apart
+
+Measured at `b2c0c521`, pinned 0-15 at high priority, in an announced window. Full data:
+[`test-audit-round2-2026-09-18.json`](../../benchmarks/results/test-audit-round2-2026-09-18.json),
+and the raw xunit results, compressed, beside it
+(`test-audit-round2-2026-09-18.<project>.xml.gz`).
+
+| project | own build | run | tests | classes | trivial (<1ms) | round 1 run |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| DotGram.Tests | 4.1 s | 181.0 s | 9,014 (1 skipped) | 101 | 6,891 | 220.8 s |
+| DotGram.Sql.Tests | 2.8 s | 1.7 s | 14,701 | 8 | 14,335 | 1.8 s |
+| DotGram.Finance.Tests | 2.2 s | 0.87 s | 6,376 | 14 | 5,971 | 1.7 s (6,556 tests) |
+| DotGram.Finance.Fix44.Tests | 2.2 s | 2.05 s | 614 | 2 | 355 | — (new) |
+
+"Own build" is the project alone: its `bin` and `obj` removed, its dependencies left as built,
+`dotnet build --no-dependencies`, restore included. The dependencies are what a build costs:
+
+- **The project's own compile is small everywhere: 2-4 s.** Round 1's 217 s for DotGram.Tests
+  and 115.6 s for Finance.Tests were the projects together with the projects they build first,
+  where the generator runs over the grammars — not their test code. The bulk of a cold build is
+  the projects that host grammars.
+- **Fix44 leaving Finance.Tests worked.** Finance.Tests no longer compiles Fix44's 59 MB: its
+  own build is 2.2 s. Fix44 is a project of its own now, and building it from cold before
+  Fix44.Tests took 98.6 s. That cost is paid by the one project that needs the oracle.
+- **DotGram.Tests' run is 40 s shorter** (221 to 181 s), with about the same tests. Every one
+  of its ten heaviest classes got faster by 10-40% at once, which is a quieter machine or a
+  warmer cache rather than anything D12 changed, so the run column is good to about that much.
+  Its heaviest tests are the same ones (`BufferedInputTests.Large_split_dispatch…` 47 s,
+  `OversizeTests.Any_part_size…` 30, 23, 23 s, `ReaderCoverageTests.Every_parser_and_example…`
+  27 s).
+
+The build of the dependencies, per project, and the generator time per SQL host, are in the
+next section once it has been measured in a window nothing else builds in.

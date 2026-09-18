@@ -159,6 +159,31 @@ when the notice arrived (one until 23:53, one until 23:54). The session that mea
 window, waits until every other session has answered that nothing of its own is running, and
 only then starts; a notice received mid-build is answered with when the build will end.
 
+**Sessions do not wait for each other — Igor, 2026-09-18.** The machine has the resources for
+everyone to work at once, and the window rule had grown into every session standing still for
+every build. Amended:
+
+- Only a *timing* run needs the machine to itself, and only from other heavy loads. Builds,
+  tests, profiling for diagnosis and scratch work need no window and wait for nothing; two
+  sessions building at once is fine.
+- Timing runs are batched: the stand collects orders and takes them in one window, kept
+  short (measurements only, builds done beforehand). A build-time measurement is a timing run
+  and goes in a window too, but it is rare.
+- The two CCDs are used: the stand times on logical processors 0-15; during a window the other
+  sessions may build and test pinned to 16-31 (`Process.ProcessorAffinity`, or
+  `start /affinity FFFF0000`) instead of stopping, once the stand has shown with its control row
+  that a build on the other CCD moves a timing by less than the run's own spread. Until then,
+  a window still means "nothing heavy elsewhere", but windows are short and rare.
+
+**Measured the same evening (stand, 56 loaded runs against 8 quiet):** with unpinned builds
+running on all cores, the *medians* of every row stayed within -3..+4% of quiet (the quiet
+run-to-run range itself is 4-16%), while *single* runs went up to +85%, and the control row
+saw only some of those. So: a before/after is quoted as the median of at least five runs
+(`--repeat N`), never a single run, even in a quiet window; runs whose control is more than
+5% off the median are dropped; and the other sessions build during a window pinned to 16-31
+(`[IntPtr]0xFFFF0000L` in PowerShell — `0xFFFF0000` alone is a negative Int32 and applies
+nothing — or `start /affinity FFFF0000`). The pinned case itself is rerun once to confirm.
+
 **A before/after comparison is paired, in one process.** `--stand-paired` (stand, `f39b139f`,
 2026-09-18) loads both builds into two `AssemblyLoadContext`s and alternates hand, before and
 after in every round, so that what moved the machine moved both sides. Two separate processes
@@ -486,7 +511,36 @@ SQL:2023 in flight. A diagnostic about the language a parser accepts cannot be o
 writes them — `?=` on what follows at the end of an optional or repetition, also through a call
 or a choice; a `?!` of more than one token at the start of what follows, by a second-token
 analysis limited to that form; and atomic braces, as before. Repetitions the analysis does not
-see (`*`, sql-ff's `UNIQUE (a, p WITHOUT OVERLAPS)`) are the next refinement.
+see (`*`, sql-ff's `UNIQUE (a, p WITHOUT OVERLAPS)`) are the next refinement. **The repetition
+check landed as `1875588b` and cost generation time — DotGram.Sql 17 to 76 s, T-SQL 4 to 86 s, the
+split SQL:2023 never finished — because it walked every caller in full on every question; found by
+sql-39 and the stand, fixed in `c8d44074` (asked only where the first token overlaps, call sites
+from an index built once, a budget of steps). Rule from it: a change to `FirstSets` or `Committed`
+is measured for generation time on DotGram.Sql before it lands, and the stand's generator-report
+column is read at every base run.**
+
+**The list after the repetition check (sql-39, 2026-09-18): 49 places** — T-SQL 44, SQL-92 2, SQL:2023 3
+— against 7 + 1 + 6 before it; many of the new ones look like over-reporting (an alias taking a hint
+word that could only follow with `WITH`). Order: sql-39 fixes the twelve that are his (the eight
+shipped ones plus the four the check found in his own code), each with a test, and *classifies*
+the other thirty-five in one pass — real, intended, false, one line each — without fixing the
+false ones; performance-ff narrows the analysis by the classes of false ones after the FIX steps;
+the severity goes up after both. Not a week of grammar work on what the analysis over-reports.
+
+**Classified (sql-39, `3dee45c5`, `docs/next.md`).** The one real trap in the shipped parsers is the
+**label**: a T-SQL statement may begin with `name:`, the separator is optional, and every word an
+optional at a statement's end takes is a legal label — `SELECT a FROM t` then `x: PRINT 1` on the
+next line is read by the server and was refused here, the table alias having taken `x`; `--engine`
+cuts at statements and could not see it, the tests kept labels only after `;`. Real: aliases,
+RETURN, THROW, WITH MARK, EXEC's `out:`, column tails, ENFORCED, FOR XML options, option units,
+login password words. Intended (greed is the language): JSON_ARRAY's NULL ON NULL, XML(CONTENT),
+TRIM(LEADING), statement lists, ARRAY/MULTISET. False, five classes for the analysis: a lookahead
+after an element inside a turn; a turn that cannot end and gives back; a closing `?=` behind a
+parametrized call; a word inside a bracketed option list or a reserved word no statement begins
+with; a literal, variable or digits no statement begins with. **Decided:** every real label place
+is cured with `?!(word & ':')` and a test of a label right after the statement; intended greed is
+said with atomic braces, which the analysis already recognizes; the false classes narrow the
+analysis after the FIX steps; then the severity goes up.
 
 ## D12. Tests are reviewed for what each one proves
 
@@ -583,6 +637,25 @@ and read by every rendering that builds; a guard's side effect in a broken eleme
 does today, and the design says so; recovering grammars keep one recording reading (Q7.2).
 Step 1 starts now. **Igor, 2026-09-18: steps 2-5 agreed, after step 1's number.**
 
+**Step 5 designed (expr, `0cde15a5`, `docs/design/fix-reader-buffered-2026-09-18.md`), accepted.**
+The reader is written once against the machine's helpers (ReadAt, Room, Search, Slice, Cut) and
+emitted twice, over a span and over `BufferedText`/`BufferedBytes`, which gain an `IndexOf` that
+refills; a runtime type parameter was rejected for the reader, since its body is small and the
+engine goes. Q7.5 stays open where a copy is large (T-SQL's located reading, Q4.2). `yield`
+releases per element as now; a whole-result parse releases before each turn once constructions
+run at the turn's commit, which un-skips the D5 whole-result test — that test is the step's gate.
+Order: the reader's access sites onto the helpers, byte-identical; then the buffered branches;
+then release per turn after step 3. expr carries it beside performance-ff's steps 2-3; finance-24
+takes the Finance-side items of the anatomy (the tag parsed twice, `Create` searching `=` again,
+two constructions a field). D14 waits.
+
+**Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
+says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
+0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser
+allocates. The design is worth what the anatomy said; steps 2-3 go. One figure to settle before
+any ratio is quoted: performance-ff's harness reads generated/hand at 3.5x where the stand reads
+2.4x on the same main.
+
 **Then the design**, from that table: what the emitted code for `Fields` would have to be to
 match the hand parser line for line — a loop with no arena for a grammar whose only way back
 is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
@@ -648,6 +721,32 @@ correct rendering is the next best thing, and the catalogue of scenarios is a de
 its own (performance-ff, after the FIX steps: the scenarios the generator recognizes today,
 each with trigger, rendering and the grammars in the repository it fires on).
 
+## D16. Three hand parsers for the Web grammars
+
+Decided 2026-09-18 by Igor. The reader over characters — the rendering most users' grammars
+get — has had no hand-written yardstick: FIX measures the recovering loop on the engine, EL and
+SQL the reader over kinds, and a regular expression does less work than a parser and is slow on
+its own. Three hand parsers are written, one per shape the other families do not cover:
+
+- **RFC 8259, JSON** — recursion, strings with escapes, numbers; with `System.Text.Json` as an
+  external reference reading beside it, as ScriptDom is for T-SQL.
+- **RFC 3986, URL** — runs and character classes; the regex transcription and its five inputs
+  already exist.
+- **RFC 3339, date-time** — small, fixed-width fields, the shape of a typical user grammar.
+
+Under D1 each reads exactly its grammar (values, refusals, positions), is held to it by a test
+in the ordinary suite, and allocates no more than the generated parser; the stand's `web/*`
+rows take them as their base. The rest of the Web grammars are variants of these shapes and get
+none. Owner: finance-24, after the Finance-side items of the FIX anatomy.
+
+**Done 2026-09-18 (finance-24): `HandUrl` `88d52428`, `HandDateTime` `3c616435`, `HandJson` `9dbb410a`**, each
+held through `Web/Both` on the package's own tests, a mutation corpus and, for JSON, the whole
+JSONTestSuite and a value nested 100,000 deep. The mutations found two places where the generated
+parser refuses at the start of what it expected rather than at the wrong character (a lone `:` in
+an IPv6 literal, a truncated literal name); the hand parsers follow. Found beside it: `JsonValue.ToString`
+and `Equals` recurse and overflow where the parser reads, to be fixed in the package. The JSON model
+stays as it is (Igor): the number is text, `null`/`true`/`false` are literals, strings are unescaped.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
@@ -697,6 +796,13 @@ lexer begins and a rule finishes; and a key word glued on its left (`198OCTETS`)
 `wordboundary` read as a guard on both sides, a change to the language. Mechanism: a lazy cursor,
 with a lexer over the whole input as an additional form for contiguous input. sql-ff's estimate of
 the gain: about a tenth of what is left.
+
+**Landed 2026-09-18 as `7d3ba2d5` (sql-39): SQL:2023 reads over kinds.** 14,718 tests, 143,291
+corpus lines against `HandSqlStandard` with no difference; generation 4.0 s and 7.6 MB against
+13.9; four visible changes to users, two towards the BNF (an introduced literal's parts) and two
+away from it (comments nest six deep; `/*` inside a comment always opens one, since the trivia
+scanner decides by the first character and does not backtrack — both go when the scanner
+counts nesting). The stand's SQL rows follow.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so

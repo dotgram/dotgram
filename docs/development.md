@@ -23,6 +23,11 @@ runs one test. `DotGram.Tests` runs everything in about two minutes.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 
+A build prints the generator's warnings and errors and not its information: `GRAM5009`, which
+says a grammar cut into kinds reads something other than it is written, is information, and so is
+every other diagnostic about what an author cannot see. `-v:detailed` prints them —
+`dotnet build src/DotGram.Sql -t:Rebuild -v:detailed | grep GRAM` is the list for one project.
+
 ## The same build on Linux
 
 CI builds on Windows and on Linux, and the Linux job has caught what the Windows one
