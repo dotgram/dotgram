@@ -18,6 +18,12 @@ is measured against the hand parser, and how it is undone.
 The architect's refusal stands until Igor overrides it. An experiment in scratch needs no
 approval; landing it does.
 
+**Grammars and the language, Igor 2026-09-17.** The grammar of a concrete parser (SQL, EL,
+FIX, Web and the rest) may be improved by the session that owns it without asking: that is
+work on a parser, not on the generator. A change to the language itself (`syntax.md`: its
+notation, what a construct means, what hooks can see) is discussed with Igor first, before a
+design is written, let alone code.
+
 ## D1. A handwritten parser reads exactly the grammar it is measured against
 
 Decided 2026-09-17 by Igor.
@@ -526,8 +532,11 @@ and Q3.
 
 ### Q5. State that holds while something is read, and that guards read
 
-Raised 2026-09-17 from expr-2d's audit of the expression language's `State`. For Igor: it is
-a question about the language.
+Raised 2026-09-17 from expr-2d's audit of the expression language's `State`. A change to the
+language, so discussed with Igor before any design. It has a twin in the other direction:
+SQL:2023's tower guards need a cheap value that rises from a rule while it is read (the roles),
+and can only have it by building the node beside it; recognition-time values that guards read,
+inherited (this) and synthesized (that), are one subject for that discussion.
 
 The expression language keeps, in its §7.7 `context`, pairs that open before a body and close
 after it: lambdas (`Entering`/`Leaves`), loops and breakables (`Opening`/`Breaking`), and
