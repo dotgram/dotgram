@@ -20,13 +20,20 @@ static class Program
 {
 	static void Main(string[] args)
 	{
-		// `--stand [directory]` is where every generated parser stands against the hand-written
-		// one it is measured by, in one run, written down where two runs can be compared with
-		// `--stand-compare before.json after.json`. `--stand-first` is the fresh process a first
-		// call is taken in, and is started by `--stand` itself. See Stand.cs.
+		// `--stand [directory] [--rebuild]` is where every generated parser stands against the
+		// hand-written one it is measured by, in one run, written down where two runs can be
+		// compared with `--stand-compare before.json after.json`. `--rebuild` rebuilds every
+		// grammar-hosting project first, so the generator's reports are this build's; left out,
+		// a row with no report says so and why instead of the table quietly coming up short.
+		// `--stand-first` is the fresh process a first call is taken in, and is started by
+		// `--stand` itself. See Stand.cs.
 		if (args.Length >= 1 && args[0] == "--stand")
 		{
-			Stand.Run(args.Length > 1 ? args[1] : null);
+			var rest      = args.Skip(1).ToArray();
+			var rebuild   = rest.Contains("--rebuild");
+			var directory = rest.FirstOrDefault(one => one != "--rebuild");
+
+			Stand.Run(directory, rebuild);
 
 			return;
 		}

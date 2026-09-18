@@ -22,6 +22,7 @@ project is in the solution so that it has to keep compiling.
 
 ```console
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --rebuild
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-compare before.json after.json
 ```
 
@@ -29,15 +30,18 @@ One run over FIX (a string, bytes in memory and a stream), the expression langua
 on the tape and by the immediate carrier) and SQL:2023: time and allocation per parse against
 the hand-written parser, the first call in a fresh process, what a lazily streamed FIX parse
 holds, and what the generator took to write each parser, from the last build's reports
-(`Stand.cs`). Every row checks that its readings answer the same before it is timed. The
-process pins itself to logical processors 0 to 15 at high priority, and times a row of plain
-arithmetic in every round, so that two runs taken on different days can be told apart from
-two parsers that differ. Results go to `T:\TEMP\dotgram-stand\<time>` (`stand.md`,
-`stand.json`), or to a directory named after `--stand`.
+(`Stand.cs`). Every row checks that its readings answer the same before it is timed, and a
+round a generation 1 or 2 collection fell inside is redone rather than kept. The process pins
+itself to logical processors 0 to 15 at high priority, and times a row of plain arithmetic in
+every round, so that two runs taken on different days can be told apart from two parsers that
+differ. Results go to `T:\TEMP\dotgram-stand\<time>` (`stand.md`, `stand.json`), or to a
+directory named after `--stand`.
 
 It times; so, under the rule every session here keeps, it runs in an announced window with
 nothing else building. Reports of the generator appear only for projects the last build
-actually compiled: rebuild with `-t:Rebuild` to have all of them.
+actually compiled: `--rebuild` rebuilds every grammar-hosting project first (with `-t:Rebuild`,
+node reuse and the compiler server off) so the table is complete; without it, a project whose
+report is missing is named in its own section, with why.
 
 ## Parser resource baselines
 

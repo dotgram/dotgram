@@ -26,6 +26,9 @@ namespace DotGram.Benchmarks;
 /// <c>--stand [directory]</c> writes <c>stand.md</c> and <c>stand.json</c> there, by default into
 /// a directory of its own under <c>T:\TEMP\dotgram-stand</c>, a RAM disk where losing a result
 /// costs nothing. <c>--stand-compare before.json after.json</c> puts two runs side by side.
+/// <c>--rebuild</c> rebuilds every grammar-hosting project first, so the generator's reports are
+/// this build's rather than whatever an earlier incremental one left; left out, a row missing
+/// its report is named and why, rather than the table silently coming up short.
 /// </para>
 /// <para>
 /// Nothing is timed until both parsers of a row have answered the same (D1). The process pins
@@ -72,22 +75,34 @@ static class Stand
 		Row[]       Rows,
 		FirstCall[] FirstCalls,
 		Held[]      Streamed,
-		Generated[] Generation);
+		Generated[] Generation,
+		string[]    MissingGeneration);
 
-	const int Rounds   = 7;
-	const int SampleMs = 25;
+	// Picked 2026-09-18 against the fast rows, where a round's batch is short enough that one
+	// OS-level jitter or GC pause dominates its average: 7/25 left several under 100 ns at
+	// 60-120% spread; 9/75 brought nearly every row under 15% but cost 4x the run; 8/40 (here)
+	// keeps the run under 2x and clears most rows. A few of the fastest (sql/arithmetic,
+	// el/interpolation) still swing 30-70% run to run at any of these settings — evidence it is
+	// transient machine noise rather than something a bigger sample dilutes, since the same
+	// settings gave one of them both 67% and 10% back to back. Reported to the architect rather
+	// than chased further inside this budget.
+	const int Rounds   = 8;
+	const int SampleMs = 40;
 
 	static int _sink;
 
 	// ── Running ─────────────────────────────────────────────────────────────────
 
-	public static void Run(string? directory)
+	public static void Run(string? directory, bool rebuild)
 	{
 		var pinned = Pin();
 		var root   = Root();
 		var output = directory ?? DefaultDirectory();
 
 		Directory.CreateDirectory(output);
+
+		if (rebuild)
+			Rebuild(root);
 
 		var workloads = Workloads();
 
@@ -116,7 +131,8 @@ static class Stand
 			[.. rows],
 			FirstCalls(workloads),
 			Streamed(),
-			Generation(root));
+			Generation(root),
+			MissingGeneration(root));
 
 		File.WriteAllText(Path.Combine(output, "stand.json"), JsonSerializer.Serialize(result, Json));
 		File.WriteAllText(Path.Combine(output, "stand.md"), Markdown(result));
@@ -359,7 +375,9 @@ static class Stand
 
 	/// <summary>
 	/// Every reading of a row, warmed, then timed round-robin with the order turned every round,
-	/// and the control timed between rounds.
+	/// and the control timed between rounds. A round a generation 1 or 2 collection fell inside
+	/// is not a reading of the parser but of the collector, so it is redone rather than kept
+	/// (D4: on a few hundred iterations, one such pause dominates the round's average outright).
 	/// </summary>
 	static Row Measure(Workload workload, List<double> controls)
 	{
@@ -369,6 +387,7 @@ static class Stand
 
 		var iterations = Iterations(workload.Readings[0].Run);
 		var taken      = workload.Readings.Select(_ => new List<double>()).ToArray();
+		var redone     = 0;
 
 		for (var round = 0; round < Rounds; round++)
 		{
@@ -378,9 +397,12 @@ static class Stand
 			{
 				var i = round % 2 == 0 ? k : workload.Readings.Length - 1 - k;
 
-				taken[i].Add(Time(workload.Readings[i].Run, iterations));
+				taken[i].Add(TimeSteady(workload.Readings[i].Run, iterations, ref redone));
 			}
 		}
+
+		if (redone > 0)
+			Console.WriteLine($"  {workload.Id}: {redone} round(s) redone after a gen1/gen2 collection");
 
 		var hand = taken[0];
 
@@ -388,6 +410,31 @@ static class Stand
 			workload.Id,
 			[.. workload.Readings.Select((reading, i) => new Timed(reading.Name, Median(taken[i]), Allocated(reading.Run)))],
 			(hand.Max() - hand.Min()) / Median(hand));
+	}
+
+	const int MaxRetries = 5;
+
+	/// <summary>
+	/// One round's time, redone up to <see cref="MaxRetries"/> times when a generation 1 or 2
+	/// collection ran during it — gen0 is left alone: it is part of ordinary allocation cost,
+	/// not the rare pause this filters out.
+	/// </summary>
+	static double TimeSteady(Func<int> run, int iterations, ref int redone)
+	{
+		for (var attempt = 0; ; attempt++)
+		{
+			var gen1    = GC.CollectionCount(1);
+			var gen2    = GC.CollectionCount(2);
+			var elapsed = Time(run, iterations);
+
+			if (GC.CollectionCount(1) == gen1 && GC.CollectionCount(2) == gen2)
+				return elapsed;
+
+			if (attempt == MaxRetries - 1)
+				return elapsed;
+
+			redone++;
+		}
 	}
 
 	/// <summary>
@@ -686,6 +733,109 @@ static class Stand
 		return [.. found.Values.OrderByDescending(static one => one.Bytes)];
 	}
 
+	/// <summary>
+	/// Every project under src/ and examples/ that hosts a grammar, found the same way the
+	/// generator's report requires: a reference to <c>DotGram.csproj</c> built as an analyzer.
+	/// A hand-written project (DotGram.Handwritten) or one without a grammar of its own is not
+	/// in this list, and neither is anything under tests/ or benchmarks/ — Generation() never
+	/// looks there either.
+	/// </summary>
+	static string[] ReportProjects(string root)
+	{
+		var projects = new List<string>();
+
+		foreach (var top in new[] { "src", "examples" })
+		{
+			var directory = Path.Combine(root, top);
+
+			if (!Directory.Exists(directory))
+				continue;
+
+			foreach (var project in Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories))
+			{
+				var text = File.ReadAllText(project);
+
+				if (text.Contains("DotGram.csproj", StringComparison.Ordinal) &&
+				    text.Contains("OutputItemType=\"Analyzer\"", StringComparison.Ordinal))
+					projects.Add(project);
+			}
+		}
+
+		return [.. projects];
+	}
+
+	/// <summary>
+	/// Rebuilds every grammar-hosting project, so the reports Generation() reads are this
+	/// build's: DotGram.targets deletes the old ones before CoreCompile runs, and an
+	/// incremental build that found nothing to recompile leaves none behind.
+	/// </summary>
+	/// <remarks>
+	/// Node reuse and the compiler server carry an earlier process's rights into a directory
+	/// this session made, which reads as "access denied" and not as a stale build; both are
+	/// turned off for the same reason the generator's own profiling harness turns them off.
+	/// </remarks>
+	static void Rebuild(string? root)
+	{
+		if (root is null)
+			throw new InvalidOperationException("--rebuild found no repository root (no DotGram.slnx above this process).");
+
+		var projects = ReportProjects(root);
+
+		Console.WriteLine($"Rebuilding {projects.Length} grammar-hosting projects for fresh generator reports...");
+
+		foreach (var project in projects)
+		{
+			Console.WriteLine($"  {Path.GetFileNameWithoutExtension(project)}");
+
+			var start = new ProcessStartInfo("dotnet")
+			{
+				UseShellExecute = false,
+			};
+
+			start.ArgumentList.Add("build");
+			start.ArgumentList.Add(project);
+			start.ArgumentList.Add("-c");
+			start.ArgumentList.Add("Release");
+			start.ArgumentList.Add("-t:Rebuild");
+			start.ArgumentList.Add("-v:quiet");
+			start.ArgumentList.Add("-m:1");
+			start.ArgumentList.Add("-nodeReuse:false");
+			start.ArgumentList.Add("-p:UseSharedCompilation=false");
+
+			start.EnvironmentVariables["MSBUILDDISABLENODEREUSE"] = "1";
+
+			using var process = Process.Start(start)!;
+
+			process.WaitForExit();
+
+			if (process.ExitCode != 0)
+				throw new InvalidOperationException($"Rebuilding {project} exited {process.ExitCode}.");
+		}
+	}
+
+	/// <summary>
+	/// Grammar-hosting projects whose directory holds no report from the last build: either the
+	/// build skipped them (nothing to recompile, incrementally) or it has not run since
+	/// DotGram.targets last deleted their reports. <c>--rebuild</c> is what closes this list.
+	/// </summary>
+	static string[] MissingGeneration(string? root)
+	{
+		if (root is null)
+			return [];
+
+		var missing = new List<string>();
+
+		foreach (var project in ReportProjects(root))
+		{
+			var directory = Path.GetDirectoryName(project)!;
+
+			if (!Directory.EnumerateFiles(directory, "*.DotGramReport.g.cs", SearchOption.AllDirectories).Any())
+				missing.Add(Path.GetFileNameWithoutExtension(project));
+		}
+
+		return [.. missing.Order(StringComparer.Ordinal)];
+	}
+
 	// ── Where and on what ───────────────────────────────────────────────────────
 
 	/// <summary>
@@ -823,18 +973,28 @@ static class Stand
 		// A build that compiled nothing leaves no report: DotGram.targets deletes the old ones before
 		// every compile, so that only this compiler's are printed, and a skipped compile writes none.
 		if (result.Generation.Length == 0)
+			text.AppendLine("None found: the last build compiled no grammar. Rebuild the projects (`-t:Rebuild`, or `--stand --rebuild`) to have them.");
+		else
 		{
-			text.AppendLine("None found: the last build compiled no grammar. Rebuild the projects (`-t:Rebuild`) to have them.");
+			text.AppendLine("| host | rules | MB of C# | ms | mode | written |");
+			text.AppendLine("| --- | ---: | ---: | ---: | --- | --- |");
 
-			return text.ToString();
+			foreach (var one in result.Generation)
+				text.AppendLine(CultureInfo.InvariantCulture,
+					$"| {one.Host} | {one.Rules} | {one.Bytes / 1024.0 / 1024.0:F2} | {one.Milliseconds:F0} | {one.Mode} | {one.Written:yyyy-MM-dd HH:mm} |");
 		}
 
-		text.AppendLine("| host | rules | MB of C# | ms | mode | written |");
-		text.AppendLine("| --- | ---: | ---: | ---: | --- | --- |");
+		if (result.MissingGeneration.Length > 0)
+		{
+			text.AppendLine();
+			text.AppendLine(
+				"No report from the last build (compile skipped it, or nothing has recompiled it since " +
+				"DotGram.targets last deleted the old one) — rebuild with `-t:Rebuild`, or `--stand --rebuild`:");
+			text.AppendLine();
 
-		foreach (var one in result.Generation)
-			text.AppendLine(CultureInfo.InvariantCulture,
-				$"| {one.Host} | {one.Rules} | {one.Bytes / 1024.0 / 1024.0:F2} | {one.Milliseconds:F0} | {one.Mode} | {one.Written:yyyy-MM-dd HH:mm} |");
+			foreach (var project in result.MissingGeneration)
+				text.AppendLine($"- {project}");
+		}
 
 		return text.ToString();
 	}
