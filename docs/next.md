@@ -23521,3 +23521,18 @@ It also gives the split a second axis. Over kinds the parser is 6.77 MB where ov
 is 13.86; if residency is measurable at this scale, the split should look better in a full run
 than in an isolated one, and the difference between those two readings would itself be the
 measurement.
+
+**Tested, and false for that row.** The stand ran the experiment this asked for: 2,000 lines of
+`select-items-20.sql` through `SqlStandardParser` before each round, and the handwritten side
+held to about eleven per cent with no two modes; interleaving arithmetic's own two readings
+round-robin in isolation held to seven. So eviction by a big parse is not what makes that row
+bimodal, and neither is the alternation. It takes the full thirty-six-row run to reproduce.
+
+The pools are not it either, which is worth recording because it was the obvious next guess and
+it is wrong: `Ways.Rent` resets counters and clears nothing, and `DirectValues.Return` clears
+each table to its own mark, which resets per parse. A small parse after a large one pays nothing
+for the large one's buffers.
+
+What remains untested is the pairing this section started from — a 13.9 MB parser against a
+40 KB one over 5,000 lines — which is not the shape the stand tried. Until it is tried, the
+`fuzz-query` row above is an observation and not evidence for anything.
