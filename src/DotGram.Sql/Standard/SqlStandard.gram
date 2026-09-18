@@ -1,4 +1,4 @@
-// ISO/IEC 9075-2:2023, SQL/Foundation: the standard's grammar, written from its BNF
+﻿// ISO/IEC 9075-2:2023, SQL/Foundation: the standard's grammar, written from its BNF
 // (Specification/ISO_IEC_9075-2(E)_Foundation.bnf.txt) and held to it by `--standard`, which
 // puts each line of a file to the BNF itself and to the rule of the same name here.
 //
@@ -965,7 +965,11 @@ JSONConstructorNullClause = ("NULL"i | "ABSENT"i) & "ON"i & "NULL"i
 // <JSON array constructor>, by enumeration and by query. A query begins with a key word a value
 // expression does not, or with a bracket, where the enumeration is asked first.
 JSONArrayConstructor : @Expression
-	= "JSON_ARRAY"i & '(' & (first: JSONInputExpression & (',' & rest: JSONInputExpression)* & n: JSONConstructorNullClause?)? & o: JSONOutputClause? & ')' => @(new Expression.JsonArray(Nodes.ListOrEmpty(first, rest), Nodes.NullHandling(n), o))
+	// An element may not begin with `RETURNING`, which is what the output clause behind it begins
+	// with: `JSON_ARRAY(RETURNING JSON)` is an empty array with an output clause, not an array of
+	// one element named RETURNING. Over characters the element is given back when the clause does
+	// not fit; over kinds the reading that fits is the one that stands.
+	= "JSON_ARRAY"i & '(' & (?!"RETURNING"i & first: JSONInputExpression & (',' & ?!"RETURNING"i & rest: JSONInputExpression)* & n: JSONConstructorNullClause?)? & o: JSONOutputClause? & ')' => @(new Expression.JsonArray(Nodes.ListOrEmpty(first, rest), Nodes.NullHandling(n), o))
 	| "JSON_ARRAY"i & '(' & q: QueryExpression & f: JSONInputClause? & n: JSONConstructorNullClause? & o: JSONOutputClause? & ')' => @(new Expression.JsonArrayQuery(q, f, o, Nodes.NullHandling(n)))
 
 // <JSON exists predicate>.
@@ -1444,7 +1448,12 @@ InsertColumnsAndSource : @Nodes.InsertBody
 	| "DEFAULT"i & "VALUES"i => @(new Nodes.InsertBody(System.Array.Empty<Identifier>(), null, new InsertSource.DefaultValues()))
 
 // Not a production: what an insert's columns are given, rows or a query.
-InsertValues : @InsertSource = r: ContextuallyTypedTableValueConstructor => @(new InsertSource.Values(r))
+// The plain form is taken only where nothing goes on that would make the source a whole query
+// expression — `VALUES (1) ORDER BY 1` and `VALUES (1), (2) UNION SELECT a FROM u` are query
+// expressions, and the constructor alone is not. Over characters the first alternative fails at
+// that word and the second reads it; over kinds the reading that fits is the one that stands, so
+// what may not follow is said here rather than discovered by giving the reading back.
+InsertValues : @InsertSource = r: ContextuallyTypedTableValueConstructor & ?!("UNION"i | "EXCEPT"i | "INTERSECT"i | "ORDER"i | "OFFSET"i | "FETCH"i) => @(new InsertSource.Values(r))
                              | q: QueryExpression => @(new InsertSource.Query(q))
 
 OverrideClause : @OverrideKind = "OVERRIDING"i & w: ("USER"i | "SYSTEM"i) & "VALUE"i => @((w[0] | 0x20) == 'u' ? OverrideKind.UserValue : OverrideKind.SystemValue)
@@ -1702,8 +1711,11 @@ TableConstraintDefinition : @Constraint = n: ConstraintNameDefinition? & c: Tabl
 
 TableConstraint : @Constraint
 	= "UNIQUE"i & '(' & "VALUE"i & ')' => @(new Constraint.Unique(UniqueKind.UniqueValue, null, System.Array.Empty<Identifier>()))
-	| u: ("UNIQUE"i | "PRIMARY"i & "KEY"i) & ("NULLS"i & nn: "NOT"i? & d: "DISTINCT"i)? & '(' & columns: ColumnNameList & (',' & p: Identifier & "WITHOUT"i & "OVERLAPS"i)? & ')'
-	  => @(new Constraint.Unique((u[0] | 0x20) == 'u' ? UniqueKind.Unique : UniqueKind.PrimaryKey, Nodes.Nulls(d, nn), columns, p))
+	// The list is written out rather than called, so that a name followed by `WITHOUT OVERLAPS`
+	// is left to the period it belongs to. Over characters the list gives the name back when the
+	// closing bracket does not come; over kinds the reading that fits is the one that stands.
+	| u: ("UNIQUE"i | "PRIMARY"i & "KEY"i) & ("NULLS"i & nn: "NOT"i? & d: "DISTINCT"i)? & '(' & first: ColumnName & (',' & rest: ColumnName & ?!("WITHOUT"i & "OVERLAPS"i))* & (',' & p: Identifier & "WITHOUT"i & "OVERLAPS"i)? & ')'
+	  => @(new Constraint.Unique((u[0] | 0x20) == 'u' ? UniqueKind.Unique : UniqueKind.PrimaryKey, Nodes.Nulls(d, nn), Nodes.List(first, rest), p))
 	| "FOREIGN"i & "KEY"i & '(' & keys: ColumnNameList & (',' & "PERIOD"i & period: Identifier)? & ')' & r: ReferencesSpecification => @(new Constraint.ForeignKey(keys, period, r))
 	| c: CheckConstraintDefinition => @(c)
 
