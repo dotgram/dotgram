@@ -52,7 +52,7 @@ time on an unmeasured construct pass unnoticed.
 | --- | --- | --- | --- |
 | `Fix.HandFixParser` | `FixParser` | yes, field model and locations | `HandFixTests` |
 | `HandSqlStandard` | `SqlStandardParser`, all 42 publications | yes | `Both` in `DotGram.Sql.Tests`, fuzz corpora |
-| `HandExpression` | `ExpressionParser` | no: no interpolated or raw strings; `ParseHole` not offered | `--el` agreement only, 169 shapes |
+| `HandExpression` | `ExpressionParser` | yes, since `85372f80` (expr-2d) | `Both` over 242 call sites of `ExpressionParserTests`, `ExpressionHandTests` over 239 shapes and 14,332 mutations |
 | `HandSqlTokens` | `Sql92Parser` | no: `SearchCondition` only of four publications; datetime literals not read | `--hand` agreement only, 42 shapes |
 | `HandSqlOriginal` | none | no, by its own description | none |
 
@@ -586,6 +586,12 @@ decides. Options, for the discussion with Igor:
   Recommended by expr-2d and by the architect.
 
 Together with marks visible to `when` (above), (b) covers the whole of Q5.
+
+**The defect is latent (expr-2d, 2026-09-17).** After every successful tape parse over the corpus
+and all its mutations, no open/close pair was left open; every abandoned reading that could be
+constructed makes the whole parse fail, and overload resolution catches nothing while building a
+candidate's lambda. It shows only if the grammar gains an alternative that succeeds after an
+abandoned opening. Q5 is therefore not urgent, and stays a question about the language.
 
 Until decided, the expression language's hand parser uses a checkpoint of its own `State` for
 its second, recognize-only reading (a mark at the start of the publication, or of a hole or
