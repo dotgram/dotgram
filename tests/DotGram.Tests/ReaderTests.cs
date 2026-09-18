@@ -543,6 +543,56 @@ public sealed class ReaderTests
 		Assert.Equal(Built(whole, input, reader: false), Built(whole, input, reader: true));
 	}
 
+	/// <summary>A refusal inside a lookahead: the reader and the engine name the same position.</summary>
+	/// <remarks>
+	/// <para>
+	/// A look is read and given back whatever it says, so what it refuses on the way is not the
+	/// parse's refusal. The engine never recorded it. The reader did: the count meant to keep it
+	/// quiet had not been kept since the direct path went, so on <c>(a)b</c> it named the look's
+	/// refusal at 3, where it wanted <c>=&gt;</c>, instead of the parse's at 1. The shape is
+	/// ExpressionParser's lambda head: the look reads a rule with a guard of its own, whose
+	/// method is what records.
+	/// </para>
+	/// <para>
+	/// <c>Nested</c> calls itself so that the grammar cannot be lowered to one flat method,
+	/// which reads no look and would pass this whatever the reader did; the test checks the
+	/// emitted text for which rendering it got.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("(a)b")]
+	[InlineData("(a) => b")]
+	[InlineData("(1)")]
+	[InlineData("([1])")]
+	[InlineData("(if) => b")]
+	public void Reader_and_engine_agree_on_a_refusal_inside_a_lookahead(string input)
+	{
+		const string Grammar = Lexical +
+			"Id = ?!\"if\" & Lexical.Name\n" +
+			"Nested = Lexical.Digits | '[' & Nested & ']'\n" +
+			"Start = ?=('(' & Id & ')' & \"=>\") & '(' & Id & ')' & \"=>\" & Id\n" +
+			"      | '(' & Nested & ')'\n" +
+			"parse Start";
+
+		(bool IsSuccess, long Position) Refused(bool reader)
+		{
+			var written = Written(Grammar, reader);
+
+			Assert.Equal(reader, written.Contains("ref struct Reader_", StringComparison.Ordinal));
+
+			var match = EmittedCode.Match(EmittedCode.Compile(written), "Grammar", "TryParseStart", input);
+
+			return (match.IsSuccess, match.Position);
+		}
+
+		var engine = Refused(reader: false);
+
+		Assert.Equal(engine, Refused(reader: true));
+
+		if (input == "(a)b")
+			Assert.Equal((false, 1L), engine);
+	}
+
 	static string Built(string grammar, string input, bool reader)
 	{
 		var match = EmittedCode.Match(

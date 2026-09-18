@@ -652,7 +652,9 @@ public static partial class CSharpEmitter
 				// syntax was all flat declared a failure its lexical half could not compile.
 				expectedMore: valuing is not null || machines.Exists(static compiled =>
 					!compiled.Flat || compiled.Machine.Ties),
-				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery)));
+				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery),
+				// A reader's refusals inside a lookahead are counted on the failure (Refuse_DotGram).
+				looking: machines.Exists(static compiled => compiled.Direct)));
 			file.Line();
 		}
 

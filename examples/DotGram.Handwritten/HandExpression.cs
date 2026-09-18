@@ -2123,9 +2123,12 @@ public static class HandExpression
 		{
 			node = null;
 
+			// The grammar asks this with a lookahead, `?=(… & "=>")`, and what a look refuses
+			// on the way is not where the text went wrong: so it peeks, and moves nothing the
+			// failure is reported from. What follows, once it has seen a `=>`, reads for real.
 			int arrow;
 
-			var bare = Kind(i) == Identifier;
+			var bare = Peek(i) == Identifier;
 
 			if (bare)
 			{
@@ -2133,26 +2136,26 @@ public static class HandExpression
 			}
 			else
 			{
-				if (Kind(i + 1) != Identifier)
+				if (Peek(i + 1) != Identifier)
 					return -1;
 
 				arrow = i + 2;
 
-				while (Kind(arrow) == Comma)
+				while (Peek(arrow) == Comma)
 				{
-					if (Kind(arrow + 1) != Identifier)
+					if (Peek(arrow + 1) != Identifier)
 						return -1;
 
 					arrow += 2;
 				}
 
-				if (Kind(arrow) != RightParen)
+				if (Peek(arrow) != RightParen)
 					return -1;
 
 				arrow++;
 			}
 
-			if (Kind(arrow) != Arrow)
+			if (Peek(arrow) != Arrow)
 				return -1;
 
 			var parameters = new ExpressionParser.Awaited[bare ? 1 : (arrow - i - 1) / 2];

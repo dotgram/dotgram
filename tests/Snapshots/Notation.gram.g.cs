@@ -969,7 +969,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0);
 					return -1;
 				}
 
@@ -1031,7 +1031,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				return p;
@@ -1442,7 +1442,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0);
 					return -1;
 				}
 
@@ -1477,13 +1477,13 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1);
 					return -1;
 				}
 				c = text[p];
 				if (!((c == ',' || c == ';')))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1);
 					return -1;
 				}
 				p++;
@@ -1525,7 +1525,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				return p;
@@ -1835,7 +1835,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0);
 					return -1;
 				}
 
@@ -1869,7 +1869,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != ',')
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_Expected0);
 					return -1;
 				}
 				p += 1;
@@ -1911,7 +1911,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				return p;
@@ -2115,7 +2115,7 @@ namespace DotGram.Snapshots
 				var r0 = -1;
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected1);
 					return -1;
 				}
 				c = text[p];
@@ -2210,13 +2210,13 @@ namespace DotGram.Snapshots
 							var q2 = Read_Word_Small(p);
 							if (q2 < 0)
 							{
-								Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected1, ways);
+								Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected1);
 								return -1;
 							}
 							p = q2;
 							if ((uint)p >= (uint)text.Length || text[p] != '!')
 							{
-								Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected0, ways);
+								Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected0);
 								return -1;
 							}
 							p += 1;
@@ -2238,7 +2238,7 @@ namespace DotGram.Snapshots
 				int? g0 = g0At < 0 ? default(int?) : values.V1[g0At].Value;
 				if (!Recognize_DotGram_Small_Guard4(g0))
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				ways.Begin(0);
@@ -2265,7 +2265,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				if (((0x1UL >> parserReading) & 1UL) == 0UL)
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				var g0At = r0;
@@ -2273,7 +2273,7 @@ namespace DotGram.Snapshots
 				int? g0 = g0At < 0 ? default(int?) : values.V1[g0At].Value;
 				if (!Recognize_DotGram_Small_Guard5(g0))
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				ways.Begin(2);
@@ -2307,7 +2307,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2);
 					return -1;
 				}
 
@@ -2371,7 +2371,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0);
 					return -1;
 				}
 
@@ -2436,7 +2436,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				return p;
@@ -2764,14 +2764,14 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1);
 					return -1;
 				}
 				c = text[p];
 
 				if (!((c >= '0' && c <= '9')))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1);
 					return -1;
 				}
 
@@ -2846,7 +2846,7 @@ namespace DotGram.Snapshots
 				r0 = ways.Last;
 				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
 					return -1;
 				}
 				p += 2;
@@ -2866,7 +2866,7 @@ namespace DotGram.Snapshots
 
 					if (!o1)
 					{
-						Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
+						Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2);
 						break;
 					}
 
@@ -2902,7 +2902,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
 					return -1;
 				}
 				p += 2;
@@ -2938,7 +2938,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2);
 					return -1;
 				}
 
@@ -2984,7 +2984,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					Refuse_DotGram(ref failure, p, null, ways);
+					Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				return p;
@@ -3795,6 +3795,16 @@ namespace DotGram.Snapshots
 			/// tends to tie again, and a list per tie was an allocation per operand.
 			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
+
+			/// <summary>
+			/// How many lookaheads the reading is inside. A refusal there is not the parse's —
+			/// the look is read and given back whatever it says — so a reader records none
+			/// while this is above zero, as the engine records none inside its own lookahead.
+			/// </summary>
+			// Never written where a grammar's readers hold no lookahead.
+			#pragma warning disable 0649
+			public int Looking;
+			#pragma warning restore 0649
 		}
 
 		/// <summary>A reader, read through a buffer that is reused.</summary>
@@ -4027,9 +4037,6 @@ namespace DotGram.Snapshots
 			/// <summary>The next way a replay reads; equal to <see cref="Count"/> when nothing is being replayed.</summary>
 			internal int Cursor;
 
-			/// <summary>How many lookaheads are open, during which no refusal is recorded.</summary>
-			internal int Lookahead;
-
 			/// <summary>
 			/// What was recognized, for building values with once the parse has accepted: one
 			/// record per completed valued rule, written after its children, each starting
@@ -4085,7 +4092,6 @@ namespace DotGram.Snapshots
 				_spare = null;
 				spare.Count = 0;
 				spare.Cursor = 0;
-				spare.Lookahead = 0;
 				spare.LogCount  = 0;
 				spare.Records   = 0;
 				spare.RefsCount = 0;
@@ -4316,9 +4322,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
-		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways? ways)
+		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected)
 		{
-			if (ways != null && ways.Lookahead > 0)
+			if (failure.Looking > 0)
 				return;
 
 			if (at > failure.Position)

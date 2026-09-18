@@ -823,9 +823,9 @@ sealed partial class Machine
 			$"global::System.ReadOnlySpan<char> text, int pos{(climbs ? ", int power" : "")}, " +
 			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}{WholeParameter})"))
 		{
-			// The tape is what a refusal inside a lookahead is kept quiet by, and what the
-			// records of a parse are written on; the tables are what the walk at the end
-			// builds into.
+			// The tape is what the records of a parse are written on; the tables are what
+			// the walk at the end builds into. A refusal inside a lookahead is kept quiet by
+			// the failure's own count, not by the tape (EmitLookahead).
 			if (_readerWays)
 				file.Line($"var ways = {WaysType}.Rent();");
 
@@ -1087,7 +1087,7 @@ sealed partial class Machine
 			{
 				using (code.Block("if (p != text.Length)"))
 				{
-					code.Line($"{Refusing}(ref failure, p, null, ways);");
+					code.Line($"{Refusing}(ref failure, p, null);");
 					code.Line("return -1;");
 				}
 			}
@@ -1303,7 +1303,7 @@ sealed partial class Machine
 				case Node.Reading(var readings):
 					using (code.Block($"if (((0x{readings:X}UL >> parserReading) & 1UL) == 0UL)"))
 					{
-						code.Line($"{Refusing}(ref failure, p, null, ways);");
+						code.Line($"{Refusing}(ref failure, p, null);");
 						code.Line("return -1;");
 					}
 
@@ -1314,7 +1314,7 @@ sealed partial class Machine
 				case Node.External external:
 					using (code.Block($"if (!{machine.ExternalCall(external, "p")})"))
 					{
-						code.Line($"{Refusing}(ref failure, p, null, ways);");
+						code.Line($"{Refusing}(ref failure, p, null);");
 						code.Line("return -1;");
 					}
 
@@ -1592,7 +1592,7 @@ sealed partial class Machine
 
 				code.Line(
 					$"if ({result} < 0 && failure.Position <= p) " +
-					$"{Refusing}(ref failure, p, {said}, ways);");
+					$"{Refusing}(ref failure, p, {said});");
 			}
 
 			if (_refuseWith is { } expected)
@@ -3135,7 +3135,7 @@ sealed partial class Machine
 				code.Line("default:");
 				using (code.Indent())
 				{
-					code.Line($"{Refusing}(ref failure, p, null, ways);");
+					code.Line($"{Refusing}(ref failure, p, null);");
 					code.Line("return -1;");
 				}
 			}
@@ -3146,7 +3146,7 @@ sealed partial class Machine
 			var call = EmitGuardCall(code, guard);
 			using (code.Block($"if (!{call})"))
 			{
-				code.Line($"{Refusing}(ref failure, p, null, ways);");
+				code.Line($"{Refusing}(ref failure, p, null);");
 				code.Line("return -1;");
 			}
 		}
@@ -3184,7 +3184,12 @@ sealed partial class Machine
 				code.Line(line);
 			foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{mark}"))
 				code.Line(line);
+			// Whatever the look refuses on the way is not the parse's refusal: it is read and
+			// given back either way. The engine records nothing inside its own lookahead; the
+			// reader says so on the failure it carries, which every reading has, ways or not.
+			code.Line("failure.Looking++;");
 			code.Line($"var {seen} = {call};");
+			code.Line("failure.Looking--;");
 			code.Line();
 			LogBack(code, $"lm{mark}");
 			foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{mark}"))
@@ -3243,7 +3248,7 @@ sealed partial class Machine
 		{
 			machine._expectedUsed.Add(expected);
 
-			return $"{Refusing}(ref failure, p, {expected}, ways);";
+			return $"{Refusing}(ref failure, p, {expected});";
 		}
 
 		void Refused(Writer code, string expected)
@@ -3253,7 +3258,7 @@ sealed partial class Machine
 			// that ever did was the rendering beside it.
 			machine._expectedUsed.Add(expected);
 
-			code.Line($"{Refusing}(ref failure, p, {expected}, ways);");
+			code.Line($"{Refusing}(ref failure, p, {expected});");
 			code.Line("return -1;");
 		}
 	}
