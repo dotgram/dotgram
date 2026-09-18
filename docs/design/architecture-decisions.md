@@ -724,6 +724,14 @@ in the ordinary suite, and allocates no more than the generated parser; the stan
 rows take them as their base. The rest of the Web grammars are variants of these shapes and get
 none. Owner: finance-24, after the Finance-side items of the FIX anatomy.
 
+**Done 2026-09-18 (finance-24): `HandUrl` `88d52428`, `HandDateTime` `3c616435`, `HandJson` `9dbb410a`**, each
+held through `Web/Both` on the package's own tests, a mutation corpus and, for JSON, the whole
+JSONTestSuite and a value nested 100,000 deep. The mutations found two places where the generated
+parser refuses at the start of what it expected rather than at the wrong character (a lone `:` in
+an IPv6 literal, a truncated literal name); the hand parsers follow. Found beside it: `JsonValue.ToString`
+and `Equals` recurse and overflow where the parser reads, to be fixed in the package. The JSON model
+stays as it is (Igor): the number is text, `null`/`true`/`false` are literals, strings are unescaped.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
