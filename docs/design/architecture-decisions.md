@@ -842,7 +842,11 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    finding `Mark()`/`Rollback(mark)` on the context type as §7.3 finds constructors, with an
    Info diagnostic saying what was found; or (3) by an explicit clause on the `context`
    declaration. Without either, a grammar with a context keeps recording on the hot path.
-   The architect recommends (2) with the diagnostic.
+   The architect recommends (2) with the diagnostic. **Decided 2026-09-18 by Igor: (2), the
+   generator does it itself** — it finds `Mark()` and `Rollback(mark)` on the context type through
+   the resolver, marks before the quiet reading and rolls back before the recording one, and says
+   so in an Info diagnostic; a context type without them keeps one recording reading, and the
+   diagnostic says that too.
 
    **Landed 2026-09-18 (expr-2d).** Step 1, `cf16f1cd`: `find` over text and the split lexer's
    re-reads record nothing. Step 2, `d4f9a45c`: in grammars with no context and no `recover`,
