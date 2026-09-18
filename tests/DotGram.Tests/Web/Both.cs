@@ -47,7 +47,7 @@ static class Both
 		var generated = Rfc3986.TryParseReference(text);
 		var hand      = HandUrl.TryParseReference(text, out var value, out var failure);
 
-		Agree(text, "reference", Describe(generated), Describe(hand, value, failure));
+		Agree(text, "reference", Describe(generated), Describe(hand, value, (long)failure));
 
 		return generated;
 	}
@@ -58,19 +58,97 @@ static class Both
 		var generated = Rfc3986.TryParseUri(text);
 		var hand      = HandUrl.TryParseUri(text, out var value, out var failure);
 
-		Agree(text, "URI", Describe(generated), Describe(hand, value, failure));
+		Agree(text, "URI", Describe(generated), Describe(hand, value, (long)failure));
 
 		return generated;
 	}
 
-	static string Describe(Rfc3986.Match<UriReference> match)
+	// ── RFC 3339 ────────────────────────────────────────────────────────────────
+
+	/// <summary>A date-time or false, read by both; the generated parser's answer.</summary>
+	public static bool TryTimestamp(string text, out Timestamp? timestamp)
 	{
-		return match.IsSuccess ? match.Value.ToString() : "refused at " + match.Position;
+		var match = AgreeOnTimestamp(text);
+
+		timestamp = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
 	}
 
-	static string Describe(bool read, UriReference? value, int failure)
+	/// <summary>A full-date or false, read by both; the generated parser's answer.</summary>
+	public static bool TryFullDate(string text, out FullDate? date)
 	{
-		return read ? value!.ToString() : "refused at " + failure;
+		var match = AgreeOnFullDate(text);
+
+		date = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A full-time or false, read by both; the generated parser's answer.</summary>
+	public static bool TryFullTime(string text, out FullTime? time)
+	{
+		var match = AgreeOnFullTime(text);
+
+		time = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	public static Timestamp Timestamp(string text)
+	{
+		var match = AgreeOnTimestamp(text);
+
+		return match.IsSuccess ? match.Value : throw new FormatException(match.Error);
+	}
+
+	public static FullTime FullTime(string text)
+	{
+		var match = AgreeOnFullTime(text);
+
+		return match.IsSuccess ? match.Value : throw new FormatException(match.Error);
+	}
+
+	public static Rfc3339.Match<Timestamp> AgreeOnTimestamp(string text)
+	{
+		var generated = Rfc3339.TryParseTimestamp(text);
+		var hand      = HandDateTime.TryParseTimestamp(text, out var value, out var failure);
+
+		Agree(text, "date-time", Describe(generated.IsSuccess, generated.Value, generated.Position), Describe(hand, value, failure));
+
+		return generated;
+	}
+
+	public static Rfc3339.Match<FullDate> AgreeOnFullDate(string text)
+	{
+		var generated = Rfc3339.TryParseFullDate(text);
+		var hand      = HandDateTime.TryParseFullDate(text, out var value, out var failure);
+
+		Agree(text, "full-date", Describe(generated.IsSuccess, generated.Value, generated.Position), Describe(hand, value, failure));
+
+		return generated;
+	}
+
+	public static Rfc3339.Match<FullTime> AgreeOnFullTime(string text)
+	{
+		var generated = Rfc3339.TryParseFullTime(text);
+		var hand      = HandDateTime.TryParseFullTime(text, out var value, out var failure);
+
+		Agree(text, "full-time", Describe(generated.IsSuccess, generated.Value, generated.Position), Describe(hand, value, failure));
+
+		return generated;
+	}
+
+	// ── Both ────────────────────────────────────────────────────────────────────
+
+	static string Describe(Rfc3986.Match<UriReference> match)
+	{
+		return Describe(match.IsSuccess, match.Value, match.Position);
+	}
+
+	static string Describe<T>(bool read, T? value, long failure)
+	{
+		return read ? value!.ToString()! : "refused at " + failure;
 	}
 
 	static void Agree(string text, string what, string generated, string hand)
