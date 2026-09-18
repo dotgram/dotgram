@@ -544,7 +544,7 @@ public static class FirstSets
 		var shared = only.Overlaps(after)
 			? only.And(after)
 			: max is null or > 1
-				? Turned(body, parts, at, graph, owner, follow)
+				? Turned(body, after, parts, at, graph, owner, follow)
 				: First.None;
 
 		if (shared.Nothing)
@@ -582,17 +582,23 @@ public static class FirstSets
 	/// </para>
 	/// </remarks>
 	static First Turned(
-		Node body, IReadOnlyList<Node> parts, int at, RecognitionGraph graph,
+		Node body, First after, IReadOnlyList<Node> parts, int at, RecognitionGraph graph,
 		RuleSymbol owner, IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow)
 	{
-		if (Shapes(body, TurnLength, graph, []) is not { Count: > 0 } turns)
+		// A turn that cannot begin as the next part does cannot be the beginning of it: the
+		// question is only asked where the first token is shared, which is what keeps it off
+		// nearly every repetition a grammar has.
+		if (!Of(body, graph).Overlaps(after) ||
+			Shapes(body, TurnLength, graph, []) is not { Count: > 0 } turns)
 			return First.None;
 
 		var taken = First.None;
 
+		_budget = Budget;
+
 		foreach (var turn in turns)
 		{
-			if (turn.Length == 0)
+			if (turn.Length == 0 || !turn[0].Overlaps(after))
 				continue;
 
 			foreach (var prefix in Continued(parts, at + 1, turn.Length + 1, graph, owner, follow, []))
@@ -600,8 +606,21 @@ public static class FirstSets
 					taken = taken.Or(prefix is null ? turn[0] : turn[0].And(prefix[0]));
 		}
 
-		return taken;
+		// A question too large to answer is left unasked, where it was before the check was
+		// written: this adds warnings, and it may not cost a build its time to find them.
+		return _budget < 0 ? First.None : taken;
 	}
+
+	/// <summary>How many prefixes one turn's question may look at, and how many are left.</summary>
+	/// <remarks>
+	/// Counted in steps of the prefix walk and in climbs to a caller. Lists of a separator and
+	/// an item need a few dozen; the budget is for the grammar whose callers and choices fan out
+	/// without end, where following every way on is what made generating T-SQL go from 4 s to
+	/// 86 and a split SQL:2023 not finish at all (2026-09-18).
+	/// </remarks>
+	const int Budget = 2048;
+
+	[ThreadStatic] static int _budget;
 
 	/// <summary>
 	/// What is known of a prefix, and anything after it: a way on this cannot follow is taken
@@ -764,6 +783,9 @@ public static class FirstSets
 	{
 		var found = new List<First[]?>();
 
+		if (--_budget < 0)
+			return found;
+
 		foreach (var (shape, open) in Prefixes(parts, from, length, graph, []))
 		{
 			if (shape is null)
@@ -789,30 +811,25 @@ public static class FirstSets
 				continue;
 			}
 
-			var called = false;
-
-			foreach (var caller in graph.Rules)
-				if (graph.Bodies.TryGetValue(caller, out var body))
-					foreach (var continuation in Continuations(body, owner))
-					{
-						called = true;
-
-						if (continuation is null)
-						{
-							found.Add(Unknown(shape, length));
-
-							continue;
-						}
-
-						foreach (var rest in Continued(continuation, 0, length - shape.Length, graph, caller, follow, climbing))
-							found.Add(rest is null ? Unknown(shape, length) : [.. shape, .. rest]);
-					}
-
-			climbing.Remove(owner);
-
 			// Published and never called: the input ends there, and a prefix this short is
 			// no reading at all.
-			_ = called;
+			foreach (var (caller, continuation) in CallsOf(graph, owner))
+			{
+				if (continuation is null)
+				{
+					found.Add(Unknown(shape, length));
+
+					continue;
+				}
+
+				foreach (var rest in Continued(continuation, 0, length - shape.Length, graph, caller, follow, climbing))
+					found.Add(rest is null ? Unknown(shape, length) : [.. shape, .. rest]);
+
+				if (_budget < 0)
+					return found;
+			}
+
+			climbing.Remove(owner);
 		}
 
 		return found;
@@ -857,6 +874,11 @@ public static class FirstSets
 	/// <summary>Readings of one node cut at <paramref name="length"/> tokens, as <see cref="Prefixes"/> says them.</summary>
 	static List<(First[]? Shape, bool Open)> Prefix(Node node, int length, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Every step spends the question's budget: a choice of a hundred alternatives each
+		// calling a rule is where following every way on stops being cheap.
+		if (--_budget < 0)
+			return [(null, false)];
+
 		switch (node)
 		{
 			case Node.Empty:
@@ -978,12 +1000,8 @@ public static class FirstSets
 
 		First? next = First.None;
 
-		foreach (var caller in graph.Rules)
+		foreach (var (caller, continuation) in CallsOf(graph, rule))
 		{
-			if (!graph.Bodies.TryGetValue(caller, out var body))
-				continue;
-
-			foreach (var continuation in Continuations(body, rule))
 			{
 				if (continuation is null)
 					return null;
@@ -1008,12 +1026,40 @@ public static class FirstSets
 	}
 
 	/// <summary>
-	/// What follows each call of a rule inside one body, as the parts after it in every
-	/// sequence around it, innermost first; null for a call whose way on is not followed.
+	/// Every call of a rule in the graph, with the rule it is called from and what follows the
+	/// call there; built once per graph and kept with it.
 	/// </summary>
-	static List<IReadOnlyList<Node>?> Continuations(Node body, RuleSymbol rule)
+	static IReadOnlyList<(RuleSymbol Caller, IReadOnlyList<Node>? Following)> CallsOf(RecognitionGraph graph, RuleSymbol rule)
 	{
-		var found  = new List<IReadOnlyList<Node>?>();
+		var index = _calls.GetValue(graph, static graph =>
+		{
+			var made = new Dictionary<RuleSymbol, List<(RuleSymbol, IReadOnlyList<Node>?)>>();
+
+			foreach (var caller in graph.Rules)
+				if (graph.Bodies.TryGetValue(caller, out var body))
+					foreach (var (called, rest) in CallSites(body))
+					{
+						if (!made.TryGetValue(called, out var list))
+							made[called] = list = [];
+
+						list.Add((caller, rest));
+					}
+
+			return made;
+		});
+
+		return index.TryGetValue(rule, out var calls) ? calls : [];
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, Dictionary<RuleSymbol, List<(RuleSymbol, IReadOnlyList<Node>?)>>> _calls = new();
+
+	/// <summary>
+	/// Every call inside one body, with what follows it: the parts after it in every sequence
+	/// around it, innermost first; null for a call whose way on is not followed.
+	/// </summary>
+	static List<(RuleSymbol Called, IReadOnlyList<Node>? Following)> CallSites(Node body)
+	{
+		var found  = new List<(RuleSymbol, IReadOnlyList<Node>?)>();
 		var frames = new List<(IReadOnlyList<Node>? Parts, int At)>();
 
 		Visit(body);
@@ -1025,7 +1071,6 @@ public static class FirstSets
 			switch (node)
 			{
 				case Node.Call(var called, var arguments):
-					if (ReferenceEquals(called, rule))
 					{
 						List<Node>? rest = [];
 
@@ -1042,7 +1087,7 @@ public static class FirstSets
 								rest.Add(parts[j]);
 						}
 
-						found.Add(rest);
+						found.Add((called, rest));
 					}
 
 					foreach (var argument in arguments)
