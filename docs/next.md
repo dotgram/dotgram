@@ -23327,3 +23327,65 @@ against the hand parser on twenty select items falls from 26.7x to 17.8x.
 Pinning is what makes the small numbers readable. Unpinned, this machine's scheduler moves a thread
 between two CCDs of which only one carries the 3D cache, and the spread that causes is worth more
 than several of the effects above.
+
+## The expression language's yardstick reads its whole grammar
+
+D1 and D8 (docs/design/architecture-decisions.md). `HandExpression` had not changed since
+2026-09-13, and the grammar had thirteen commits since: it did not read interpolated or raw
+strings, lambdas that say no types, or the `var` forms of their bodies, and it read escapes,
+character literals, separators, `byte` and `sbyte` otherwise than the grammar. Every EL ratio
+quoted before `85372f80` was measured against a parser of a smaller language, and none of them is
+comparable with the figures below.
+
+Now the two are held answer for answer in the ordinary run: every text `ExpressionParserTests`
+reads, the shared corpus of 239 shapes in both spellings of a name, and 14,332 texts one
+character short of a shape — the tree by its debug view, a refusal by its outcome, position and
+the name the state refused, a throw by its type.
+
+**What it cost the grammar to be held.** Two defects of the language came out of writing it,
+and both were fixed where they were, not copied: a keyword was a name wherever the grammar wrote
+`Word` (`9b042edb`), and a block declared a variable once for every reading of its declaration
+(`25876d3c`).
+
+**The ratios**, `--el` pinned to logical processors 0-15 at high priority (D4), medians of three
+runs taken with the machine otherwise idle (a fourth, begun seven seconds before a neighbour's
+build stopped, is not counted):
+
+| input | tape | hand | tape/hand | immediate/hand |
+| --- | ---: | ---: | ---: | ---: |
+| `(int x) => x` | 778 ns | 291 ns | 2.57x | 1.26x |
+| `(int x) => x * x - 1` | 1,154 ns | 562 ns | 2.05x | 1.23x |
+| `(int x, int y) => (x + y) * 3 - x / 5` | 1,843 ns | 1,021 ns | 1.79x | 1.17x |
+| `(string s) => s.Length` | 1,204 ns | 540 ns | 2.17x | 1.40x |
+| `using System; (int x) => Math.Max(x, 1)` | 2,923 ns | 2,115 ns | 1.36x | 1.06x |
+| `(int x) => { x += 1; x *= 2; return x; }` | 1,915 ns | 1,066 ns | 1.85x | 1.12x |
+| `for` summing to `n` | 4,060 ns | 2,292 ns | 1.81x | 1.23x |
+| `((((x + 1) + 1) + 1) + 1)` | 1,814 ns | 882 ns | 2.04x | 1.29x |
+| `(int x) => x * x -` (refused) | 692 ns | 463 ns | 1.51x | 1.39x |
+| `(((x)))` | 1,224 ns | 549 ns | 2.20x | 1.29x |
+| `(((((x)))))` | 1,526 ns | 613 ns | 2.50x | 1.48x |
+| `(((((((x)))))))` | 1,776 ns | 693 ns | 2.56x | 1.59x |
+| `(x + 1)` | 1,160 ns | 591 ns | 1.96x | 1.17x |
+| `(((x + 1) + 1) + 1)` | 1,594 ns | 803 ns | 1.99x | 1.19x |
+| `(x + x)` | 1,214 ns | 627 ns | 1.94x | 1.18x |
+| `(((x + x) + x) + x)` | 1,706 ns | 877 ns | 1.97x | 1.29x |
+| `using System; (int x) => x` | 1,005 ns | 411 ns | 2.41x | 1.28x |
+| `using System; (int x) => Environment.NewLine` | 1,427 ns | 1,033 ns | 1.38x | 0.93x |
+| `(int x) => System.Math.Max(x, 1)` | 2,717 ns | 1,928 ns | 1.41x | 1.04x |
+| `(string s) => s.Trim()` | 1,372 ns | 755 ns | 1.81x | 1.15x |
+| `(string s) => s.ToUpperInvariant()` | 1,340 ns | 723 ns | 1.85x | 1.17x |
+
+Tape over hand is 1.4x to 2.6x, immediate over hand 0.93x to 1.59x. The parenthesis rows still
+say the same thing they said before: every level of nesting costs the generated readers more than
+it costs the hand parser, and the slope is steeper for the tape.
+
+**What it does not cover.** No input among these has a lambda that says no types, an interpolated
+or a raw string. The immediate carrier builds the body of an untyped lambda before its types are
+known and throws where the tape reads (D3, D8), so no immediate figure is quoted for one; the tape
+and the hand parser agree on all three forms.
+
+**Allocation** (`--elbytes`, a fact rather than a measurement): the hand parser allocates 90 to 580
+bytes a parse more than the immediate carrier — a list per lambda for its parameters, a mark array
+per reading, the words cut out as strings. It is the yardstick allocating more, which flatters the
+generated parser on the time it takes to allocate; it is written down so that it is not mistaken
+for the generated parser allocating less.
