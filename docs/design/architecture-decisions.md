@@ -327,6 +327,14 @@ a copy of it.
 form: bytes the caller already holds are read where they lie, not wrapped in a `MemoryStream`.
 That retires the `FixParser.Parse(byte[])` adapter above once the variant exists.
 
+**How, decided 2026-09-18 by Igor.** The generator offers `byte[]` (and `ReadOnlyMemory<byte>`) for
+every publication with the byte form, not only for FIX. It is served by the existing buffered byte
+machine over a source already in memory, which hands over the whole array at once and then
+reports its end: no machine of its own, no copy, no `MemoryStream`, and next to no emitted code.
+What remains of the gap between bytes and text afterwards is measured; a contiguous byte machine
+is weighed against its code size only if that remainder is large. `ReadOnlySequence<byte>` and
+`PipeReader`, the networking forms, are candidates for later on the same machine.
+
 **Several forms per parser, and feeds read by line — Igor, 2026-09-17.** A parser offers whichever
 forms its grammar asks for, several at once: FIX needs the byte form, and the same parser must
 also read a string in memory and a text stream. For a feed, streaming may read the stream a
