@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -405,6 +408,352 @@ static class Stand
 				? $"  expected both to refuse; generated {(byGenerated ? "accepted" : "refused")}, hand {(byHand ? "accepted" : "refused")}"
 				: null;
 		}
+	}
+
+	// ── Paired: two builds, one process ─────────────────────────────────────────
+
+	/// <summary>
+	/// One build's generated parsers, loaded from its own directory into an isolated
+	/// <see cref="AssemblyLoadContext"/> so two builds' same-named types can coexist in one
+	/// process and be timed alternating, round-robin (2026-09-18, architect, after this
+	/// caught a real regression a two-process comparison read as noise: Q7.3's Fix44 stream
+	/// form). Reflection touches only the generated side; the hand-written side stays this
+	/// process's own statically-referenced one, since a paired compare targets a generator
+	/// change and the hand parsers do not move with it (D1).
+	/// </summary>
+	sealed class PairedSide
+	{
+		readonly Type _sql;
+		readonly Type _elTape;
+		readonly Type _elImmediate;
+		readonly Type _elState;
+		readonly Type _fix;
+		readonly Type _fixOptions;
+
+		public PairedSide(string name, string directory)
+		{
+			directory = Path.GetFullPath(directory);
+
+			var alc = new AssemblyLoadContext(name, isCollectible: false);
+
+			alc.Resolving += (context, requested) =>
+			{
+				var path = Path.Combine(directory, requested.Name + ".dll");
+
+				return File.Exists(path) ? context.LoadFromAssemblyPath(path) : null;
+			};
+
+			Type Load(string assembly, string type) =>
+				alc.LoadFromAssemblyPath(Path.Combine(directory, assembly + ".dll")).GetType(type)
+					?? throw new InvalidOperationException($"{name}: {type} not found in {assembly}");
+
+			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
+			_elTape      = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
+			_elImmediate = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
+			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
+			_fix         = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser");
+			_fixOptions  = Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
+		}
+
+		public Func<int> Sql(string method, string text)
+		{
+			var call = _sql.GetMethod(method, [typeof(string)])
+				?? throw new InvalidOperationException($"SqlStandardParser.{method}(string) not found");
+
+			return () => IsSuccess(call.Invoke(null, [text])!);
+		}
+
+		public Func<int> El(string method, string text, bool immediate)
+		{
+			var type = immediate ? _elImmediate : _elTape;
+			var call = type.GetMethod(method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
+				null, [typeof(string), _elState], null)
+				?? throw new InvalidOperationException($"{type.Name}.{method}(string, State) not found");
+			var ctor = _elState.GetConstructor([typeof(Assembly)])
+				?? throw new InvalidOperationException("ExpressionParser.State(Assembly) not found");
+			var textProperty = _elState.GetProperty("Text", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+				?? throw new InvalidOperationException("ExpressionParser.State.Text not found");
+
+			return () =>
+			{
+				var state = ctor.Invoke([typeof(Stand).Assembly]);
+
+				textProperty.SetValue(state, text);
+
+				return IsSuccess(call.Invoke(null, [text, state])!);
+			};
+		}
+
+		public Func<int> FixText(string text) => FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, null]));
+		public Func<int> FixBytes(byte[] bytes) => FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null]));
+
+		public Func<int> FixStream(byte[] bytes) => FixCount(() =>
+			FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
+
+		Func<object> FixCall(string method, Type[] parameters, object?[] arguments)
+		{
+			var call = _fix.GetMethod(method, parameters)
+				?? throw new InvalidOperationException($"FixParser.{method} not found for the given parameters");
+
+			return () => call.Invoke(null, arguments)!;
+		}
+
+		/// <summary>
+		/// Sums the fields' tags, the same reading <see cref="FixForm"/> takes — by reflection,
+		/// since the field is this side's own <c>FixField</c>, not the process's.
+		/// </summary>
+		static Func<int> FixCount(Func<object> read)
+		{
+			PropertyInfo? tagProperty = null;
+
+			return () =>
+			{
+				var count = 0;
+
+				foreach (var field in (IEnumerable)read())
+				{
+					tagProperty ??= field.GetType().GetProperty("Tag") ?? throw new InvalidOperationException("FixField.Tag not found");
+					count += (int)tagProperty.GetValue(field)!;
+				}
+
+				return count;
+			};
+		}
+
+		static int IsSuccess(object match)
+		{
+			var property = match.GetType().GetProperty("IsSuccess") ?? throw new InvalidOperationException("Match<T>.IsSuccess not found");
+
+			return (bool)property.GetValue(match)! ? 1 : 0;
+		}
+	}
+
+	static bool HandAccepts(string method, string text)
+	{
+		var call = typeof(HandSqlStandard).GetMethod(method, BindingFlags.Static | BindingFlags.Public)
+			?? throw new InvalidOperationException($"HandSqlStandard.{method} not found");
+
+		return (bool)call.Invoke(null, [text, null])!;
+	}
+
+	/// <summary>
+	/// The same rows <see cref="Workloads"/> times, read from two builds instead of one
+	/// process's own — same texts (kept in both places; update together), same families.
+	/// SQL's agreement drops the tree comparison <see cref="Sql{TGenerated, THand}"/> makes
+	/// (an AST type from one ALC is not the AST type from another): accept/refuse against
+	/// this process's own hand parser is what both sides are held to here, same as
+	/// <see cref="SqlRefused{TGenerated, THand}"/> already settles for a refusal.
+	/// </summary>
+	static Workload[] PairedWorkloads(PairedSide before, PairedSide after)
+	{
+		var order          = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
+		var orderMalformed = order.Replace("\u000140=2\u0001", "\u000140X=2\u0001");
+		var binaryMany     = string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64));
+		var orders128      = string.Concat(Enumerable.Repeat(order, 128));
+
+		return
+		[
+			.. PairedFix("One", "55=ABC\u0001", before, after),
+			.. PairedFix("Order", order, before, after),
+			.. PairedFix("BinaryMany", binaryMany, before, after),
+			.. PairedFix("Orders128", orders128, before, after),
+			.. PairedFix("OrderMalformed", orderMalformed, before, after),
+
+			PairedExpression("floor",         "(int x) => x", before, after),
+			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),
+			PairedExpression("nest7",         "(int x) => (((((((x)))))))", before, after),
+			PairedExpression("block",         "(int x) => { x += 1; x *= 2; return x; }", before, after),
+			PairedExpression("loop",          "(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }", before, after),
+			PairedExpression("overloads",     "(int x) => System.Math.Max(x, 1)", before, after),
+			PairedExpression("interpolation", "(int x) => $\"{x,5:D3} and {x + 1}\"", before, after),
+			PairedExpression("untyped",       "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()", before, after, immediate: false),
+			PairedExpression("refused-early", "(int x) => x +", before, after),
+			PairedExpression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +", before, after),
+
+			PairedSql("literal", "TryParseLiteral", "1", before, after),
+			PairedSql("column", "TryParseColumnReference", "a.b.c", before, after),
+			PairedSql("arithmetic", "TryParseValueExpression", "(a + b) * c - d / 5", before, after),
+			PairedSql("nest8", "TryParseValueExpression", "((((((((a))))))))", before, after),
+			PairedSql("condition", "TryParseSearchCondition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", before, after),
+			PairedSql("select1", "TryParseQueryExpression", "SELECT a FROM t", before, after),
+			PairedSql("select20", "TryParseQueryExpression", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", before, after),
+			PairedSql("values", "TryParseQueryExpression", "VALUES (1)", before, after),
+			PairedSql("create", "TryParseSQLSchemaStatement", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", before, after),
+			PairedSql("refused-late", "TryParseQueryExpression", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", before, after),
+		];
+	}
+
+	static IEnumerable<Workload> PairedFix(string name, string text, PairedSide before, PairedSide after)
+	{
+		var bytes = Encoding.Latin1.GetBytes(text);
+
+		yield return PairedFixForm(name + ".text", () => HandFixParser.Parse(text), before.FixText(text), after.FixText(text));
+		yield return PairedFixForm(name + ".bytes", () => HandFixParser.Parse(bytes), before.FixBytes(bytes), after.FixBytes(bytes));
+		yield return PairedFixForm(name + ".stream", () => HandFixParser.Parse(new MemoryStream(bytes, false)), before.FixStream(bytes), after.FixStream(bytes));
+	}
+
+	/// <summary>
+	/// Agreement here is the fields' tags summed, not the field-by-field comparison
+	/// <see cref="FixForm"/> makes — the same trade as <see cref="PairedSql"/>, for the same
+	/// cross-ALC reason.
+	/// </summary>
+	static Workload PairedFixForm(string name, Func<IEnumerable<FixField>> hand, Func<int> before, Func<int> after)
+	{
+		return new Workload(
+			"fix",
+			name,
+			[new Reading("hand", () => Count(hand())), new Reading("before", before), new Reading("after", after)],
+			Disagreement);
+
+		string? Disagreement()
+		{
+			var h = Count(hand());
+			var b = before();
+			var a = after();
+
+			return h == b && b == a ? null : $"  hand {h}, before {b}, after {a}";
+		}
+
+		static int Count(IEnumerable<FixField> fields)
+		{
+			var count = 0;
+
+			foreach (var field in fields)
+				count += field.Tag;
+
+			return count;
+		}
+	}
+
+	static Workload PairedExpression(string name, string text, PairedSide before, PairedSide after, bool immediate = true)
+	{
+		var readings = new List<Reading>
+		{
+			new("hand",   () => HandExpression.TryParseLambda(text, new ExpressionParser.State(Caller) { Text = text }).IsSuccess ? 1 : 0),
+			new("before", before.El("TryParseLambda", text, immediate: false)),
+			new("after",  after.El("TryParseLambda", text, immediate: false)),
+		};
+
+		if (immediate)
+		{
+			readings.Add(new Reading("before-immediate", before.El("TryParseLambda", text, immediate: true)));
+			readings.Add(new Reading("after-immediate",  after.El("TryParseLambda", text, immediate: true)));
+		}
+
+		return new Workload("el", name, [.. readings], Disagreement);
+
+		string? Disagreement()
+		{
+			var hand = HandExpression.TryParseLambda(text, new ExpressionParser.State(Caller) { Text = text }).IsSuccess;
+			var b    = before.El("TryParseLambda", text, false)() == 1;
+			var a    = after.El("TryParseLambda", text, false)() == 1;
+
+			if (hand != b || b != a)
+				return $"  hand {(hand ? "accepted" : "refused")}, before {(b ? "accepted" : "refused")}, after {(a ? "accepted" : "refused")}";
+
+			if (!immediate)
+				return null;
+
+			var bi = before.El("TryParseLambda", text, true)() == 1;
+			var ai = after.El("TryParseLambda", text, true)() == 1;
+
+			return bi == ai ? null : $"  before-immediate {(bi ? "accepted" : "refused")}, after-immediate {(ai ? "accepted" : "refused")}";
+		}
+	}
+
+	static Workload PairedSql(string name, string method, string text, PairedSide before, PairedSide after)
+	{
+		return new Workload(
+			"sql",
+			name,
+			[
+				new Reading("hand",   () => HandAccepts(method, text) ? 1 : 0),
+				new Reading("before", before.Sql(method, text)),
+				new Reading("after",  after.Sql(method, text)),
+			],
+			Disagreement);
+
+		string? Disagreement()
+		{
+			var hand = HandAccepts(method, text);
+			var b    = before.Sql(method, text)() == 1;
+			var a    = after.Sql(method, text)() == 1;
+
+			return hand == b && b == a
+				? null
+				: $"  hand {(hand ? "accepted" : "refused")}, before {(b ? "accepted" : "refused")}, after {(a ? "accepted" : "refused")}";
+		}
+	}
+
+	/// <summary>
+	/// Runs <see cref="PairedWorkloads"/> and writes <c>paired.md</c>: hand, before and after
+	/// in one table, the same control and pinning as <c>--stand</c>.
+	/// </summary>
+	public static void Paired(string beforeDir, string afterDir, string? directory)
+	{
+		var pinned = Pin();
+		var output = directory ?? DefaultDirectory();
+
+		Directory.CreateDirectory(output);
+
+		var before = new PairedSide("before", beforeDir);
+		var after  = new PairedSide("after", afterDir);
+
+		var workloads = PairedWorkloads(before, after);
+
+		foreach (var workload in workloads)
+			if (workload.Disagreement() is { } disagreement)
+				throw new InvalidOperationException($"{workload.Id}: the readings disagree, so no ratio would mean anything.\n{disagreement}");
+
+		Console.WriteLine($"{workloads.Length} rows, every reading agreeing. Timing {Rounds} rounds.");
+
+		var controls = new List<double>();
+		var rows     = new List<Row>();
+
+		foreach (var workload in workloads)
+		{
+			rows.Add(Measure(workload, controls));
+			Console.WriteLine(Describe(rows[^1]));
+		}
+
+		var text = PairedMarkdown(pinned, Median(controls), [.. rows]);
+
+		File.WriteAllText(Path.Combine(output, "paired.md"), text);
+
+		Console.WriteLine();
+		Console.WriteLine(text);
+		Console.WriteLine($"Written to {output}");
+	}
+
+	static string PairedMarkdown(bool pinned, double control, Row[] rows)
+	{
+		var text = new StringBuilder();
+
+		text.AppendLine(CultureInfo.InvariantCulture, $"# Paired stand, {DateTime.Now:yyyy-MM-dd HH:mm}");
+		text.AppendLine();
+		text.AppendLine(CultureInfo.InvariantCulture,
+			$"{Environment.MachineName}, {(pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {control:F1} ns.");
+		text.AppendLine();
+		text.AppendLine("| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |");
+		text.AppendLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+
+		foreach (var row in rows)
+		{
+			var hand = row.Readings.First(static one => one.Reading == "hand");
+
+			foreach (var reading in row.Readings.Where(static one => one.Reading.StartsWith("before", StringComparison.Ordinal)))
+			{
+				var suffix = reading.Reading["before".Length..];
+				var after  = row.Readings.First(one => one.Reading == "after" + suffix);
+				var name   = suffix.Length == 0 ? "generated" : suffix.TrimStart('-');
+
+				text.AppendLine(CultureInfo.InvariantCulture,
+					$"| {row.Id} | {name} | {hand.Nanoseconds:F1} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / hand.Nanoseconds:F2}x | " +
+					$"{after.Nanoseconds:F1} | {after.Nanoseconds / hand.Nanoseconds:F2}x | {Change(reading.Nanoseconds, after.Nanoseconds)} | {reading.Bytes:F0} | {after.Bytes:F0} |");
+			}
+		}
+
+		return text.ToString();
 	}
 
 	static string? Differ(IEnumerable<string> hand, IEnumerable<string> generated)

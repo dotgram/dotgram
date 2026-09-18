@@ -43,6 +43,37 @@ actually compiled: `--rebuild` rebuilds every grammar-hosting project first (wit
 node reuse and the compiler server off) so the table is complete; without it, a project whose
 report is missing is named in its own section, with why.
 
+### `--stand-paired`: two builds, one process
+
+```console
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir
+```
+
+`--stand-compare` runs `--stand` twice, in two separate processes, and compares the two
+`stand.json` files afterward — which measures the two builds fairly only if nothing else
+about the two runs differed. It caught a real regression as noise once (Q7.3, 2026-09-18:
+Fix44's stream form, +10-13% two-process, +4% and every one of 16 alternating rounds
+agreeing once measured properly) before `--stand-paired` closed that gap.
+
+`beforeDir` and `afterDir` are two Release build output directories — each holding its own
+`DotGram.Sql.dll`, `DotGram.ExpressionLanguage.dll` and `DotGram.Finance.dll` — loaded into
+two isolated `AssemblyLoadContext`s in the one process running `--stand-paired`, so the same
+process can call both builds' same-named types without collision. Every row `Workloads()`
+times is timed here too, alternating round-robin between `before` and `after` exactly as
+`--stand` alternates hand and generated; a row where either side disagrees with this process's
+own hand parser is refused before anything is timed, the same rule as `--stand`. SQL's
+agreement drops the tree comparison `--stand` makes — an AST type loaded into one
+`AssemblyLoadContext` is not the AST type loaded into another — for accept/refuse against
+hand alone, the same trade `--stand` already makes for a row both sides must refuse.
+
+Reflection reaches only the generated side; the hand-written parsers stay this process's own,
+since a paired compare targets a generator change and the hand parsers do not move with it
+(D1). That reflection is a real, if fixed, per-call cost quoted nowhere against `--stand`'s own
+numbers, held constant by construction on both the `before` and `after` reading of a row.
+The comparison the ratio between them carries is exact; the absolute nanoseconds a paired run
+prints are not `--stand`'s and should not be pasted beside them. Results go to `paired.md`,
+same directory rule as `--stand`; it needs the same announced window.
+
 ## Parser resource baselines
 
 `ParserResourceBenchmarks` measures repeated SQL92 conditions at 1, 1000, 10000,

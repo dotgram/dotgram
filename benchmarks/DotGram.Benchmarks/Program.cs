@@ -52,6 +52,19 @@ static class Program
 			return;
 		}
 
+		// `--stand-paired beforeDir afterDir [directory]` times two builds against each
+		// other in one process — each build's generated parsers loaded from its own
+		// directory into an isolated AssemblyLoadContext, alternated round-robin the same
+		// way `--stand` alternates hand and generated. It caught a real regression a
+		// two-process `--stand-compare` read as noise (2026-09-18, Q7.3's Fix44 stream
+		// form). See Stand.Paired.
+		if (args.Length is 3 or 4 && args[0] == "--stand-paired")
+		{
+			Stand.Paired(args[1], args[2], args.Length > 3 ? args[3] : null);
+
+			return;
+		}
+
 		// `--big` is not a benchmark either: it reads one search condition at five sizes,
 		// up to a few megabytes, and prints what each parse took and allocated. What it is
 		// for is the shape of the curve rather than the numbers — a ratio that holds at
