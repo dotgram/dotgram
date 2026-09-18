@@ -35,6 +35,7 @@ namespace DotGram.Finance.Fix;
 	LocationType  = typeof(IFixLocation),
 	SpanCaptures  = true,
 	BufferedInput = true,
+	MaxRetained   = 16 * 1024 * 1024,
 	Portable      = false)]
 sealed partial class FixGrammar
 {

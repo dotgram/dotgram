@@ -8,6 +8,18 @@ namespace DotGram.Finance.Fix;
 public static class FixParser
 {
 	/// <summary>
+	/// The <c>maxRetained</c> a call gets when it gives none: 16 Mi characters from a reader, 16 MiB
+	/// from a stream.
+	/// </summary>
+	/// <remarks>
+	/// It bounds one field, from its tag through the separator that ends it, or a whole length/data
+	/// pair; it does not bound the input, which is read and let go field by field. A reader's
+	/// characters take two bytes each, so a field at the limit holds up to 32 MiB of buffer. A call
+	/// that needs more passes its own <c>maxRetained</c>.
+	/// </remarks>
+	public static int DefaultMaxRetained => FixGrammar.DefaultMaxRetained;
+
+	/// <summary>
 	/// Reads wire fields separated by SOH.
 	/// </summary>
 	public static FixField[] Parse(string input, FixFieldOptions? options = null)
@@ -39,10 +51,10 @@ public static class FixParser
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
 	/// <param name="maxRetained">
 	/// The most characters one field may take, from its tag through the separator that ends it,
-	/// or a whole length/data pair.
+	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
-	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));
 		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -62,10 +74,10 @@ public static class FixParser
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
 	/// <param name="maxRetained">
 	/// The most bytes one field may take, from its tag through the separator that ends it,
-	/// or a whole length/data pair.
+	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
-	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));
 		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -130,10 +142,10 @@ public static class FixParser
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
 	/// <param name="maxRetained">
 	/// The most characters one field may take, from its tag through the separator that ends it,
-	/// or a whole length/data pair.
+	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
-	public static IEnumerable<FixField> ParseLog(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> ParseLog(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));
 		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -153,10 +165,10 @@ public static class FixParser
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
 	/// <param name="maxRetained">
 	/// The most bytes one field may take, from its tag through the separator that ends it,
-	/// or a whole length/data pair.
+	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
-	public static IEnumerable<FixField> ParseLog(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> ParseLog(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));
 		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));

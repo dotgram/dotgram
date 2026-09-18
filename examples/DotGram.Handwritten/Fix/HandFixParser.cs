@@ -33,16 +33,16 @@ public static class HandFixParser
 		return Read(new Input<byte>(input), false, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		Validate(input, bufferSize, maxRetained);
-		return ReadText(input, false, options, bufferSize, maxRetained);
+		var limit = Validate(input, bufferSize, maxRetained);
+		return ReadText(input, false, options, bufferSize, limit);
 	}
 
-	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		Validate(input, bufferSize, maxRetained);
-		return ReadBytes(input, false, options, bufferSize, maxRetained);
+		var limit = Validate(input, bufferSize, maxRetained);
+		return ReadBytes(input, false, options, bufferSize, limit);
 	}
 
 	public static FixField[] ParseLog(string input, FixFieldOptions? options = null)
@@ -68,23 +68,28 @@ public static class HandFixParser
 		return Read(new Input<byte>(input), true, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> ParseLog(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> ParseLog(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		Validate(input, bufferSize, maxRetained);
-		return ReadText(input, true, options, bufferSize, maxRetained);
+		var limit = Validate(input, bufferSize, maxRetained);
+		return ReadText(input, true, options, bufferSize, limit);
 	}
 
-	public static IEnumerable<FixField> ParseLog(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> ParseLog(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		Validate(input, bufferSize, maxRetained);
-		return ReadBytes(input, true, options, bufferSize, maxRetained);
+		var limit = Validate(input, bufferSize, maxRetained);
+		return ReadBytes(input, true, options, bufferSize, limit);
 	}
 
-	static void Validate(object input, int bufferSize, int maxRetained)
+	static int Validate(object input, int bufferSize, int? maxRetained)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
-		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxRetained);
+
+		var limit = maxRetained ?? FixParser.DefaultMaxRetained;
+
+		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit, nameof(maxRetained));
+
+		return limit;
 	}
 
 	static IEnumerable<FixField> ReadText(TextReader input, bool log, FixFieldOptions? options, int bufferSize, int maxRetained)

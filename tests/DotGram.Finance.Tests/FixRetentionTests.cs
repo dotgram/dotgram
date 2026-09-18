@@ -49,27 +49,144 @@ public sealed class FixRetentionTests
 		Assert.Contains("maxRetained", error.Message);
 	}
 
+	[Fact]
+	public void The_default_is_sixteen_mebi()
+	{
+		Assert.Equal(16 * 1024 * 1024, FixParser.DefaultMaxRetained);
+	}
+
+	/// <summary>A call that gives no limit gets the default: a field that never ends is refused at it.</summary>
+	[Theory]
+	[MemberData(nameof(Parsers))]
+	public void Without_an_argument_the_default_bounds_a_field(string parser, bool bytes)
+	{
+		var error = Assert.Throws<IOException>(() => Endless(parser, bytes));
+
+		Assert.Contains(FixParser.DefaultMaxRetained.ToString(), error.Message);
+	}
+
+	/// <summary>An argument replaces the default: a field the default reads is refused under a smaller one.</summary>
+	[Theory]
+	[MemberData(nameof(Parsers))]
+	public void An_argument_overrides_the_default(string parser, bool bytes)
+	{
+		var text = Field(Limit + 1);
+
+		Assert.Single(Read(parser, bytes, 4096, text, null));
+		Assert.Throws<IOException>(() => Read(parser, bytes, 4096, text, Limit));
+	}
+
+	public static TheoryData<string, bool> Parsers()
+	{
+		var data = new TheoryData<string, bool>();
+
+		foreach (var parser in new[] { "generated", "handwritten" })
+		foreach (var bytes in new[] { false, true })
+			data.Add(parser, bytes);
+
+		return data;
+	}
+
+	// A field that never ends: "58=" and then 'x' for as long as it is read.
+	static FixField[] Endless(string parser, bool bytes)
+	{
+		if (bytes)
+		{
+			using var stream = new EndlessStream();
+
+			return parser == "generated" ? FixParser.Parse(stream).ToArray() : HandFixParser.Parse(stream).ToArray();
+		}
+
+		using var reader = new EndlessReader();
+
+		return parser == "generated" ? FixParser.Parse(reader).ToArray() : HandFixParser.Parse(reader).ToArray();
+	}
+
+	sealed class EndlessReader : TextReader
+	{
+		long _read;
+
+		public override int Read(char[] buffer, int index, int count)
+		{
+			for (var i = 0; i < count; i++, _read++)
+				buffer[index + i] = _read < 3 ? "58="[(int)_read] : 'x';
+
+			return count;
+		}
+
+		public override int Read(Span<char> buffer)
+		{
+			for (var i = 0; i < buffer.Length; i++, _read++)
+				buffer[i] = _read < 3 ? "58="[(int)_read] : 'x';
+
+			return buffer.Length;
+		}
+	}
+
+	sealed class EndlessStream : Stream
+	{
+		long _read;
+
+		public override bool CanRead  => true;
+		public override bool CanSeek  => false;
+		public override bool CanWrite => false;
+		public override long Length   => throw new NotSupportedException();
+
+		public override long Position
+		{
+			get => _read;
+			set => throw new NotSupportedException();
+		}
+
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			for (var i = 0; i < count; i++, _read++)
+				buffer[offset + i] = _read < 3 ? (byte)"58="[(int)_read] : (byte)'x';
+
+			return count;
+		}
+
+		public override void Flush()
+		{
+		}
+
+		public override long Seek(long offset, SeekOrigin origin)
+		{
+			throw new NotSupportedException();
+		}
+
+		public override void SetLength(long value)
+		{
+			throw new NotSupportedException();
+		}
+
+		public override void Write(byte[] buffer, int offset, int count)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
 	// A text field, tag and separator included, of exactly the given length.
 	static string Field(int length)
 	{
 		return "58=" + new string('x', length - 4) + (char)1;
 	}
 
-	static FixField[] Read(string parser, bool bytes, int bufferSize, string text)
+	static FixField[] Read(string parser, bool bytes, int bufferSize, string text, int? maxRetained = Limit)
 	{
 		if (bytes)
 		{
 			using var stream = new MemoryStream(Encoding.Latin1.GetBytes(text));
 
 			return parser == "generated"
-				? FixParser.Parse(stream, null, bufferSize, Limit).ToArray()
-				: HandFixParser.Parse(stream, null, bufferSize, Limit).ToArray();
+				? FixParser.Parse(stream, null, bufferSize, maxRetained).ToArray()
+				: HandFixParser.Parse(stream, null, bufferSize, maxRetained).ToArray();
 		}
 
 		using var reader = new StringReader(text);
 
 		return parser == "generated"
-			? FixParser.Parse(reader, null, bufferSize, Limit).ToArray()
-			: HandFixParser.Parse(reader, null, bufferSize, Limit).ToArray();
+			? FixParser.Parse(reader, null, bufferSize, maxRetained).ToArray()
+			: HandFixParser.Parse(reader, null, bufferSize, maxRetained).ToArray();
 	}
 }
