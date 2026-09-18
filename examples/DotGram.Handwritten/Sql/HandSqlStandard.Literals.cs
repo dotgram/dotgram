@@ -138,11 +138,10 @@ partial class HandSqlStandard
 		var token = cursor.Token;
 		var text  = cursor.Text;
 
-		// Where the literal's own text begins: the first quote of the token, which is the quote the
-		// lexer stopped at unless a delimited name inside the introducer held one of its own —
-		// `_u&"'s".x'a'`. The generated parser looks for it the same way, and the two are held to
-		// each other rather than to what either would make of that name alone.
-		var quote = text.IndexOf('\'', token.Start);
+		// Where the literal's own text begins: the quote the lexer stopped at, which is past the
+		// introducer. A quote inside a delimited name in the introducer — `_u&"'s".x'a'` — belongs
+		// to that name, and searching the token for the first one would take it instead.
+		var quote = token.Quote;
 
 		CharacterSetName? characterSet = null;
 
@@ -165,22 +164,54 @@ partial class HandSqlStandard
 		return literal;
 	}
 
-	/// <summary>A character set as an introducer writes it, the periods between its parts.</summary>
+	/// <summary>
+	/// Where one name in an introducer ends and the next begins, or -1 where this is the last.
+	/// </summary>
 	/// <remarks>
-	/// Every period divides two parts, a period inside a delimited name included: <c>_u&amp;".s".x'a'</c>
-	/// is three parts and not two. That is what the generated parser builds, and the two are held to
-	/// each other rather than to what either would build alone.
+	/// A delimited name may hold a period of its own — `_u&"a.b".latin1'x'` names a set of two parts
+	/// and not three — so the periods inside one are passed over. A doubled quote inside a delimited
+	/// name is one character of it and does not end it.
 	/// </remarks>
+	static int Divider(ReadOnlySpan<char> dotted)
+	{
+		for (var at = 0; at < dotted.Length; at++)
+		{
+			if (dotted[at] == '.')
+				return at;
+
+			if (dotted[at] != '\"')
+				continue;
+
+			for (at++; at < dotted.Length; at++)
+				if (dotted[at] == '\"')
+				{
+					if (at + 1 >= dotted.Length || dotted[at + 1] != '\"')
+						break;
+
+					at++;
+				}
+		}
+
+		return -1;
+	}
+
+	/// <summary>How a name in an introducer was written: `"a"`, `U&"a"`, or neither.</summary>
+	static IdentifierStyle Styled(ReadOnlySpan<char> part) =>
+		part.Length > 2 && (part[0] | 0x20) == 'u' && part[1] == '&' && part[2] == '"' ? IdentifierStyle.UnicodeDelimited :
+		part.Length > 0 && part[0] == '"' ? IdentifierStyle.Delimited :
+		IdentifierStyle.Regular;
+
+	/// <summary>A character set as an introducer writes it, divided at the periods between its parts.</summary>
 	static CharacterSetName CharacterSet(ReadOnlySpan<char> dotted)
 	{
 		var names = new List<Identifier>();
 
 		while (true)
 		{
-			var dot  = dotted.IndexOf('.');
+			var dot  = Divider(dotted);
 			var part = dot < 0 ? dotted : dotted[..dot];
 
-			names.Add(new Identifier(part.ToString(), part.Length > 0 && part[0] == '"' ? IdentifierStyle.Delimited : IdentifierStyle.Regular));
+			names.Add(new Identifier(part.ToString(), Styled(part)));
 
 			if (dot < 0)
 				return new CharacterSetName(new QualifiedName(names.ToArray()));

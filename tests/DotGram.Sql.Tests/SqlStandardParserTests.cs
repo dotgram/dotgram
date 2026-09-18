@@ -82,9 +82,50 @@ public sealed class SqlStandardParserTests
 	[InlineData("unknown")]
 	[InlineData("- /* c */ 1")]
 	[InlineData("/* a /* b */ c */ 1")]
+	// A string an interval string is also written as: the token is both kinds, and a literal
+	// takes it. Over kinds the lexer once gave it to the interval alone.
+	[InlineData("'+01:00'")]
+	[InlineData("'1-2'")]
 	public void A_literal_reads(string input)
 	{
 		Assert.True(Both.TryParseLiteral(input).IsSuccess, input);
+	}
+
+	/// <summary>
+	/// How deep a comment may hold another: six, where the BNF sets no limit.
+	/// </summary>
+	/// <remarks>
+	/// Read over kinds, a comment is skipped by a scanner, and a scanner does not recurse, so the
+	/// grammar writes the depth out — the limit T-SQL's own comment has, and deeper than anything
+	/// the corpus or the standard's examples write. A seventh opening inside the sixth leaves the
+	/// comment unclosed, and the hand parser reads it the same way.
+	/// </remarks>
+	[Theory]
+	[InlineData(6, true)]
+	[InlineData(7, false)]
+	public void A_comment_holds_others_six_deep(int depth, bool reads)
+	{
+		var comment = string.Concat(System.Linq.Enumerable.Repeat("/* ", depth)) + string.Concat(System.Linq.Enumerable.Repeat("*/ ", depth));
+
+		Assert.Equal(reads, Both.TryParseLiteral(comment + "1").IsSuccess);
+	}
+
+	/// <summary>
+	/// A `/*` inside a comment always opens one, where the BNF would also let it be two characters.
+	/// </summary>
+	/// <remarks>
+	/// The BNF reads `/* a /* b */` as one comment, the inner `/*` two of its characters, since
+	/// reading it as an opening leaves the outer one unclosed. A comment is skipped by the trivia
+	/// scanner, which decides at the first character and does not go back, so the grammar opens a
+	/// comment there and the text is refused. The hand parser refuses it too.
+	/// </remarks>
+	[Theory]
+	[InlineData("/* a /* b */ c */ 1", true)]
+	[InlineData("/* a /* b */ 1", false)]
+	[InlineData("/* a /* b * c */ 1", false)]
+	public void An_opening_inside_a_comment_opens_one(string input, bool reads)
+	{
+		Assert.Equal(reads, Both.TryParseLiteral(input).IsSuccess);
 	}
 
 	/// <summary>What the BNF refuses, and why it does.</summary>
@@ -322,6 +363,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("-1 IS TRUE", false)]
 	[InlineData("a = 1 OR b", true)]
 	[InlineData("a + 1 AND b", false)]
+	[InlineData("'+01:00'", true)]
 	public void A_value_expression(string input, bool reads)
 	{
 		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
@@ -1936,6 +1978,14 @@ public sealed class SqlStandardParserTests
 	[InlineData("INTEGER MULTISET ARRAY[3]", true)]
 	[InlineData("INTEGER MULTISET MULTISET", true)]
 	[InlineData("INTEGER ARRAY[3]  MULTISET", true)]
+	// §5.2 guards a key word on both sides: a word that runs into the number in front of it is no
+	// key word. A multiplier is one letter and belongs to the number, so `2K` is a length; `2KB`
+	// and `198OCTETS` are words glued to numbers and are read as neither.
+	[InlineData("BLOB(2K)", true)]
+	[InlineData("BLOB(2 K)", true)]
+	[InlineData("BLOB(2KB)", false)]
+	[InlineData("CHAR(198 OCTETS)", true)]
+	[InlineData("CHAR(198OCTETS)", false)]
 	public void A_data_type(string input, bool reads)
 	{
 		Assert.Equal(reads, Both.TryParseDataType(input).IsSuccess);

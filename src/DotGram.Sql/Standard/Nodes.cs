@@ -62,6 +62,12 @@ static class Nodes
 		second is null ? new QualifiedName([first]) : new QualifiedName([first, second]);
 
 	/// <summary>A character set's name: its qualifiers, and the SQL language identifier after them.</summary>
+	/// <summary>What follows a set target's column: an element of it, or the methods that mutate it.</summary>
+	public sealed record TargetTail(Expression? Index, IReadOnlyList<Identifier>? MutationPath, bool Trigraphs);
+
+	public static AssignmentTarget Assigned(Identifier column, TargetTail tail) =>
+		new AssignmentTarget(new QualifiedName([column]), tail.Index, tail.MutationPath, tail.Trigraphs);
+
 	public static CharacterSetName CharacterSet(Identifier[]? qualifiers, string name)
 	{
 		var parts = new Identifier[(qualifiers?.Length ?? 0) + 1];
@@ -589,11 +595,22 @@ static class Nodes
 		return first;
 	}
 
-	/// <summary>Signs before a path accessor, the first written outermost.</summary>
+	/// <summary>The signs in front of a path operand, innermost last.</summary>
+	/// <remarks>
+	/// What the repetition captures is the text it covered, and between two signs that text holds
+	/// whatever separated them — over kinds a space, over characters nothing. So the signs are
+	/// picked out rather than counted: `- - $` is two minuses either way, and never a plus for the
+	/// space between them.
+	/// </remarks>
 	public static JsonPathExpression PathSigned(string? signs, JsonPathExpression operand)
 	{
 		for (var at = (signs?.Length ?? 0) - 1; at >= 0; at--)
-			operand = new JsonPathExpression.Unary(signs![at] == '-' ? JsonPathUnaryOperator.Minus : JsonPathUnaryOperator.Plus, operand);
+		{
+			if (signs![at] != '-' && signs[at] != '+')
+				continue;
+
+			operand = new JsonPathExpression.Unary(signs[at] == '-' ? JsonPathUnaryOperator.Minus : JsonPathUnaryOperator.Plus, operand);
+		}
 
 		return operand;
 	}
@@ -1193,6 +1210,27 @@ static class Nodes
 	/// A character string literal of any kind: its introducer's character set, what was written from
 	/// its first quote to its last, and a Unicode literal's escape character.
 	/// </summary>
+	/// <summary>
+	/// An introduced literal, from the parts the rule read rather than from the token's text.
+	/// </summary>
+	/// <remarks>
+	/// The character set and the literal are captured where they were written, so a period or a
+	/// quote inside a delimited name in the introducer is part of that name and nothing else:
+	/// <c>_u&amp;".s".x'a'</c> names a set of two parts, and <c>_u&amp;"'s".x'a'</c> a literal that
+	/// begins at the quote after the name. Searching the text for the first period or the first
+	/// quote answered otherwise, which is what reading the parts is for.
+	/// </remarks>
+	/// <summary>An introduced literal, once its character set has been read in front of it.</summary>
+	public static LiteralValue IntroducedIn(CharacterSetName characterSet, LiteralValue body) =>
+		body is LiteralValue.String written ? written with { CharacterSet = characterSet } : body;
+
+	public static LiteralValue IntroducedString(string quoted, StringLiteralKind kind, string? escape) =>
+		new LiteralValue.String(
+			quoted,
+			kind,
+			null,
+			escape is { Length: > 0 } written ? written[written.IndexOf('\'') + 1] : null);
+
 	public static LiteralValue StringLiteral(string text, StringLiteralKind kind)
 	{
 		var quote = text.IndexOf('\'');
@@ -1320,6 +1358,10 @@ static class Nodes
 	public static Length LengthOf(string number, string? units) => new(Integer(number), null, Units(units));
 
 	public static Length LengthOf(LargeObjectSize size, string? units) => new(null, size, Units(units));
+
+	/// <summary>A length written as one token with its multiplier: `2K` is two and a `K`.</summary>
+	public static LargeObjectSize Size(string token) =>
+		new(Long(token.Substring(0, token.Length - 1)), token[token.Length - 1]);
 
 	public static LargeObjectSize Size(string number, string? multiplier) =>
 		new(Long(number), multiplier is null ? null : multiplier[0]);

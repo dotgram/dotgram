@@ -94,15 +94,19 @@ public sealed class SqlStandardTreeTests
 	[InlineData("'a' 'b'", "'a' 'b'", StringLiteralKind.Character, null)]
 	[InlineData("N'a'", "'a'", StringLiteralKind.National, null)]
 	[InlineData("_latin1'abc'", "'abc'", StringLiteralKind.Character, "latin1")]
-	[InlineData("_s.utf8'abc'", "'abc'", StringLiteralKind.Character, "s.utf8")]
+	[InlineData("_s.utf8'abc'", "'abc'", StringLiteralKind.Character, "s|utf8")]
 	[InlineData("U&'a\\0041'", "'a\\0041'", StringLiteralKind.Unicode, null)]
+	[InlineData("_u&\".s\".x'a'", "'a'", StringLiteralKind.Character, "u&\".s\"|x")]
+	[InlineData("_u&\"'s\".x'a'", "'a'", StringLiteralKind.Character, "u&\"'s\"|x")]
+	[InlineData("_latin1U&'a'", "'a'", StringLiteralKind.Unicode, "latin1")]
+	[InlineData("_s.xu&'a'", "'a'", StringLiteralKind.Unicode, "s|x")]
 	public void A_string_keeps_its_quotes_its_kind_and_its_character_set(string input, string text, StringLiteralKind kind, string? characterSet)
 	{
 		var literal = Assert.IsType<LiteralValue.String>(Both.ParseLiteral(input));
 
 		Assert.Equal(text, literal.Text);
 		Assert.Equal(kind, literal.Kind);
-		Assert.Equal(characterSet, literal.CharacterSet is null ? null : string.Join(".", literal.CharacterSet.Name.Parts.Select(one => one.Text)));
+		Assert.Equal(characterSet, literal.CharacterSet is null ? null : string.Join("|", literal.CharacterSet.Name.Parts.Select(one => one.Text)));
 		Assert.Null(literal.UnicodeEscape);
 	}
 

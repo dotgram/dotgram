@@ -23552,3 +23552,63 @@ as −2.9 to +7.4 per cent. That run overlapped builds on the machine. The stand
 quiet window (control 30.1 ns on both sides): every row, hand and generated, moved within ±5 per
 cent in both directions, so the change is still an allocation change only. Hand Orders128 leaned
 −3 to −5 per cent, which fits less collection but is inside the band.
+
+## SQL:2023 read over kinds: what changed that a user can see
+
+`SqlStandardParser` is compiled with `Lexical = true` (Q1). Size first, since it needs no window:
+the generated parser is 7.5 MB where it was 13.9. Against the handwritten parser it agrees on every
+test and on every corpus line, 143,000 of them. Four things it answers differently from before, two
+toward the BNF and two away from it:
+
+**An introduced literal reads its introducer's parts where they are written.** `_u&".s".x'a'` names
+a character set of two parts, `u&".s"` and `x`; before, the set was split at every period, the one
+inside the delimited name included, and was three. `_u&"'s".x'a'` is the literal `'a'`; before, the
+literal was taken from the first quote in the token, which was the one inside the name. Both were
+how the construction found the parts in the token's text after reading it. Over kinds a rule reads
+the rest of the literal after the lexer has read the introducer, so the parts are captured, not
+searched for, and `HandSqlStandard` — which mirrored both on purpose — reads them the same way now.
+
+**A comment holds others six deep, where the BNF sets no limit.** A comment is skipped by a scanner
+and a scanner does not recurse, so the depth is written out, the same limit and reasoning as
+T-SQL's `TSql.NestedComment`. A seventh opening inside the sixth leaves the comment unclosed. The
+hand parser stops at six too, so the yardstick does not accept what the parser refuses. The limit
+goes when the scanner learns to count a comment that calls itself.
+
+**A `/*` inside a comment always opens one.** The BNF lets it be two comment characters as well,
+so `/* a /* b */` is one comment there: read as an opening it would leave the outer comment
+unclosed. The recursive rule over characters went back and read it that way, and the hand parser
+mirrored it. A scanner decides at the first character and does not go back, so the split refuses
+the text, and so does the hand parser now. Letting both ways stand at the same `/*` is a choice the
+scanner refuses outright (`GRAM5004`), which is why each level keeps them apart.
+
+**A key word glued to the number before it is refused.** `CHAR(198OCTETS)` is refused where
+`CHAR(198 OCTETS)` is read, as §5.2 says; `2K` is still a length and its multiplier, and `2KB` is
+refused. Over characters this fell out of the automaton; over kinds it is `GluedWord`, a token no
+position accepts.
+
+What it took, briefly, because each step found something that was not the grammar's:
+
+- The grammar compiled over characters without a word said about eight lookaheads the automaton
+  cannot read. Seven were guards the character reading needed and a token reading does not; one,
+  the nesting comment, was real. A guard is not a lookahead: moving `?!ReservedWord` into a `when`
+  inside an atomic group committed readings a lookahead would have refused, and cost 241 lines of
+  one corpus before it was put back where it belonged.
+- `GRAM5009`, which says a reading over kinds takes what the rule after it needed, is information
+  and a build does not print it. It named six places in this grammar and eight in the T-SQL and
+  SQL-92 parsers that ship split already. The tests found one of the six; the other five are shapes
+  nobody wrote. The analysis now knows the cures authors write for it (performance-3f, D11).
+- Four places took what the construct around them needed — the insert source took `VALUES` and left
+  the `ORDER BY` that made it a query, among others. They were cured with assertions over characters
+  first, in a commit of their own that changed no answer, so that what the split changed stayed
+  separable in the history.
+- A string both a character literal and an interval string are written as went to the interval
+  alone: the lexer measured a begun terminal's tail only where the automaton stopped on its
+  beginning (4e366615). A reduced reproduction had passed because its tail was regular — the
+  difference between the reproduction and the original named the cause, as it did twice before.
+- The corpus found the hand parser wrong once, and the BNF said so: in `_latin1U&'a'` it took the
+  character set's name as the longest run of its letters, `latin1U`, and refused the `&'a'` left
+  behind, where the BNF — and the grammar's rule, which reads the rest over characters — lets the
+  `U` begin the Unicode literal. The hand parser gives the letter back now.
+- The last difference was a construction's: `PathSigned` turned every character of the text a
+  repetition of signs covered into a sign, anything but a minus a plus. Over kinds that text holds
+  the space between the signs.

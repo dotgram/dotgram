@@ -105,20 +105,18 @@ would say nothing about the generator.
   check.
 - `--standard "^production" file` in DotGram.Benchmarks puts every line of a corpus to both
   and prints what tells them apart; when nothing does, it times the two round-robin. Every
-  fuzz corpus of the standard's grammar has been put to it — 113,000 lines, clean and
+  fuzz corpus of the standard's grammar has been put to it — 143,000 lines, clean and
   mutated, over every publication — with nothing differing.
 
-### Two places it mirrors the generated parser rather than the BNF
+### Two places it reads less than the BNF
 
-Both are how the generated parser's construction finds the parts of an introduced string
-literal, and both need a delimited name inside the introducer to show at all:
+Both are comments, and both are where the generated parser skips a comment with a scanner, which
+neither nests without limit nor goes back. This parser reads what that one reads, so that a ratio
+is between two readings of one language and not between two languages:
 
-- `_u&".s".x'a'` — the character set is split at every period, the one inside the delimited
-  name included, so it is three parts and not two.
-- `_u&"'s".x'a'` — the literal's text is taken from the first quote in the token, which is
-  the one inside the delimited name.
-
-Where the generated parser is corrected, these go with it.
+- A comment holds others six deep. A seventh `/*` inside the sixth leaves it unclosed.
+- A `/*` inside a comment always opens one. The BNF would also let it be two characters of the
+  comment around it, so that `/* a /* b */` is one comment; here it is unclosed.
 
 ## The expression language
 

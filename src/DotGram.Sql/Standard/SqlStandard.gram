@@ -78,11 +78,21 @@ namespace Lexical
 
 	// <simple comment> runs to the end of its line. §5.2 ends it with a <newline>, and the end
 	// of the text ends the last line as well as a line break would.
-	SimpleComment = "--" & (?!eol & any)* & (eol | eof)
+	SimpleComment = "--" & [^ '\n' | '\r' | '\u0085' | '\u2028' | '\u2029']*
 
 	// <bracketed comment>: its contents are characters and separators, and a separator may be a
 	// bracketed comment, so one holds another: `/* a /* b */ c */` is one comment.
-	BracketedComment = "/*" & (BracketedComment | ?!"*/" & any)* & "*/"
+	//
+	// A comment is skipped by the trivia scanner, which neither nests nor goes back, so two
+	// things are written out that the BNF leaves open. The depth: six comments deep, the same
+	// limit and the same reasoning as T-SQL's `TSql.NestedComment`, and deeper than anything the
+	// corpus or the standard's own examples write; a seventh `/*` inside the sixth leaves the
+	// comment unclosed. And the choice at a `/*`: the BNF lets it be two comment characters as
+	// well as an opening, so `/* a /* b */` is one comment there, but a scanner decides at the
+	// first character and cannot come back when the inner comment leaves the outer unclosed, so
+	// here a `/*` inside a comment always opens one. Each level is, until it closes, the one
+	// inside it or a character that opens none.
+	BracketedComment = "/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ?!"/*" & any)* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/"
 
 	// ── §5.3 Literals ────────────────────────────────────────────────────────
 	//
@@ -108,31 +118,73 @@ namespace Lexical
 	// may divide — `'a' 'b'` is one literal — and in front of them, optionally, the character
 	// set they are written in: `_latin1'abc'`. The introducer's name is a part of the token,
 	// with nothing between it and the quote.
-	CharacterStringLiteral  = (Introducer & IntroducedCharacterSet)? & QuotedParts(CharacterRepresentation)
+	CharacterStringLiteral  = '\'' & CharacterStringRest
+	CharacterStringRest     = QuotedRest(CharacterRepresentation)
 	CharacterRepresentation = [^ '\''] | "''"
-	QuotedParts(part)       = '\'' & part* & '\'' & (Separator & '\'' & part* & '\'')*
+	QuotedParts(part)       = '\'' & QuotedRest(part)
+	QuotedRest(part)        = part* & '\'' & (Separator & '\'' & part* & '\'')*
 	Introducer              = '_'
 
 	// <character set name> as it stands after an introducer: a schema's name, and a catalog's
 	// before it, and then an <SQL language identifier>. Said as a run, since a name the chain
 	// could still go on from is not yet the last. The names are identifiers, so §5.4's Syntax
 	// Rule reaches inside the token: `_select.latin1'a'` is refused.
-	IntroducedCharacterSet = (IntroducedName & '.'){0,2} & SQLLanguageIdentifier
-	IntroducedName         = UnicodeDelimitedIdentifier | ?!ReservedWord & RegularIdentifier | DelimitedIdentifier
+	IntroducedCharacterSet : @CharacterSetName = (q: IntroducedName & '.'){0,2} & l: SQLLanguageIdentifier => @(Nodes.CharacterSet(q, l))
+	IntroducedName : @Identifier
+		= t: UnicodeDelimitedIdentifier => @(Nodes.UnicodeIdentifier(t))
+		| ?!ReservedWordWhole & t: RegularIdentifier => @(new Identifier(t))
+		| t: DelimitedIdentifier => @(new Identifier(t, IdentifierStyle.Delimited))
+
+	// <character string literal> and <Unicode character string literal> with an introducer.
+	// §5.4's Syntax Rule reaches inside this token — a character set name is no reserved word —
+	// and a lexical pattern cannot say so, a lookahead in one not being regular. So the lexer
+	// reads the introducer and the rule reads the rest (docs/syntax.md §7): that rule is a
+	// recognizer over characters, where a lookahead is allowed and its refusal is the token's.
+	// The mechanism asks that nothing else begin the same way, and nothing does: IdentifierStart
+	// is letters and letter numbers, so no name begins with `_`.
+	//
+	// The parts are captured rather than searched for afterwards, which is what `_u&".s".x'a'`
+	// and `_u&"'s".x'a'` needed: a period inside a delimited name divided the character set, and
+	// a quote inside one began the literal.
+	// The terminal is the introducer and one operand the lexer cannot read, which is the shape a
+	// continuation has to have: a sequence whose last part is a rule with no regular reading.
+	IntroducedStringLiteral : @LiteralValue = Introducer & v: IntroducedRest => @(v)
+	// The character set is read once and the body behind it, which is the shared operand written
+	// in front rather than read twice.
+	IntroducedRest : @LiteralValue = s: IntroducedCharacterSet & v: IntroducedBody => @(Nodes.IntroducedIn(s, v))
+	IntroducedBody : @LiteralValue
+		= 'U'i & '&' & t: QuotedParts(UnicodeRepresentation) & e: UnicodeEscapeSpecifier
+			=> @(Nodes.IntroducedString(t, StringLiteralKind.Unicode, e))
+		| t: QuotedParts(CharacterRepresentation)
+			=> @(Nodes.IntroducedString(t, StringLiteralKind.Character, null))
 
 	// <SQL language identifier>: a Latin letter, then Latin letters, digits and underscores.
-	SQLLanguageIdentifier = SimpleLatinLetter & (SimpleLatinLetter | Digit | '_')* & ?!IdentifierPart
+	SQLLanguageIdentifier = SimpleLatinLetter & (SimpleLatinLetter | Digit | '_')*
 
 	// <multiplier>, of a large object's length: `2 K` and the one token `2K` alike. A letter, and a
 	// whole word.
-	Multiplier = ['K' | 'M' | 'G' | 'T' | 'P' | 'k' | 'm' | 'g' | 't' | 'p'] & ?!IdentifierPart
+	Multiplier = ['K' | 'M' | 'G' | 'T' | 'P' | 'k' | 'm' | 'g' | 't' | 'p']
+
+	// §5.2 guards a key word on both sides: a word that runs into the number before it is no key
+	// word, so `CHAR(198OCTETS)` is refused where `CHAR(198 OCTETS)` is read. Over kinds that is a
+	// token of its own, and no position accepts it — `2K` still reads, because a multiplier is one
+	// letter and the longest match there is the length's own token.
+	GluedWord   = UnsignedNumericLiteral & IdentifierStart & IdentifierPart*
+
+	// `2K` is a length and its multiplier written as one token, which is what the comment on
+	// <large object length> means. It matches as far as GluedWord does, so the kind holds both
+	// and a position that wants a length takes it; `2KB` is the glued word alone, and refused.
+	LengthToken = UnsignedInteger & Multiplier
 
 	// <national character string literal>, <Unicode character string literal>, and <binary
 	// string literal>, whose hexits come in pairs that spaces may stand between.
-	NationalCharacterStringLiteral = 'N'i & QuotedParts(CharacterRepresentation)
-	UnicodeCharacterStringLiteral  = (Introducer & IntroducedCharacterSet)? & 'U'i & '&' & QuotedParts(UnicodeRepresentation) & UnicodeEscapeSpecifier
+	NationalCharacterStringLiteral = 'N'i & '\'' & NationalStringRest
+	NationalStringRest             = QuotedRest(CharacterRepresentation)
+	UnicodeCharacterStringLiteral  = 'U'i & '&' & '\'' & UnicodeStringRest
+	UnicodeStringRest              = QuotedRest(UnicodeRepresentation) & UnicodeEscapeSpecifier
 	UnicodeRepresentation          = UnicodeEscapeValue | CharacterRepresentation
-	BinaryStringLiteral            = 'X'i & QuotedParts(BinaryPart)
+	BinaryStringLiteral            = 'X'i & '\'' & BinaryStringRest
+	BinaryStringRest               = QuotedRest(BinaryPart)
 	BinaryPart                     = Space | Hexit & Space* & Hexit
 
 	// <date string>, <time string>, <timestamp string>, <interval string>: a string whose
@@ -150,13 +202,13 @@ namespace Lexical
 	// begin alike — `'5'` is a year, a day, an hour, a minute and a second — so each form is
 	// asked to reach the closing quote before the next is tried: a form that stops short of it
 	// would otherwise be taken, and `'5.5'` read as an hour followed by what no string holds.
-	IntervalString   = '\'' & Sign? & (YearMonthLiteral & ?='\'' | DayTimeLiteral) & '\''
+	IntervalString   = '\'' & Sign? & (YearMonthLiteral | DayTimeLiteral) & '\''
 	YearMonthLiteral = UnsignedDecimalInteger & ('-' & UnsignedDecimalInteger)?
-	DayTimeLiteral   = DayTimeInterval & ?='\''
+	DayTimeLiteral   = DayTimeInterval
 	                 | TimeInterval
 	DayTimeInterval  = UnsignedDecimalInteger & (Space & UnsignedDecimalInteger & (':' & UnsignedDecimalInteger & (':' & SecondsValue)?)?)?
-	TimeInterval     = UnsignedDecimalInteger & (':' & UnsignedDecimalInteger & (':' & SecondsValue)?)? & ?='\''
-	                 | UnsignedDecimalInteger & (':' & SecondsValue)? & ?='\''
+	TimeInterval     = UnsignedDecimalInteger & (':' & UnsignedDecimalInteger & (':' & SecondsValue)?)?
+	                 | UnsignedDecimalInteger & (':' & SecondsValue)?
 	                 | SecondsValue
 
 	// ── §5.2 <reserved word> ─────────────────────────────────────────────────
@@ -224,16 +276,23 @@ namespace Lexical
 		| "VALUES"i | "VALUE_OF"i | "VAR_POP"i | "VAR_SAMP"i | "VARBINARY"i | "VARCHAR"i | "VARYING"i
 		| "VERSIONING"i | "WHEN"i | "WHENEVER"i | "WHERE"i | "WIDTH_BUCKET"i | "WINDOW"i | "WITH"i
 		| "WITHIN"i | "WITHOUT"i | "YEAR"i)
-		& ?!IdentifierPart
+		// No guard on the end: as a kind this has to be regular, and over kinds the lexer takes the
+		// longest word there is, so `ABSOLUTE` is one word and never `ABS` with a tail. Read over
+		// characters, where there is no longest match, the whole word is what is wanted — that is
+		// ReservedWordWhole below, and it is what an introduced name asks.
+
+	ReservedWordWhole = ReservedWord & ?!IdentifierPart
 
 	// A question mark in a <row pattern quantifier>. `??(` and `??)` are the trigraph brackets, each one
 	// token (§5.2), so a question mark that begins one is not a quantifier's: `(A??)` is refused.
 	// Lexical, so that `(A? ?)` — two question marks and a bracket — is not taken for one.
-	PatternQuestionMark = '?' & ?!("?(" | "?)")
+	PatternQuestionMark = '?'
 }
 
 // §5.2: a key word is a whole word, so `ABSOLUTE` is a name and not `ABS` and what follows it.
-wordboundary = IdentifierPart
+// Over kinds a word is the longest one the lexer can take, so nothing has to be said about what
+// may follow a key word; what may precede one is GluedWord, in the lexical namespace above.
+// wordboundary is therefore not written here.
 
 // §5.2: tokens may be separated by a <separator>, and nothing else stands between them.
 trivia       = { Separator? }
@@ -253,6 +312,7 @@ GeneralLiteral : @LiteralValue
 	| t: UnicodeCharacterStringLiteral => @(Nodes.StringLiteral(t, StringLiteralKind.Unicode))
 	| t: BinaryStringLiteral => @(Nodes.BinaryLiteral(t))
 	| t: CharacterStringLiteral => @(Nodes.StringLiteral(t, StringLiteralKind.Character))
+	| v: IntroducedStringLiteral => @(v)
 	| v: DatetimeLiteral => @(v)
 	| v: IntervalLiteral => @(v)
 	| v: BooleanLiteral => @(v)
@@ -291,19 +351,18 @@ IntervalLeadingFieldPrecision      = UnsignedInteger
 
 // ── §5.4 Names and identifiers ──────────────────────────────────────────────
 
-// <identifier>, read whole. Over characters a rule gives back what it read when what follows fails
-// (docs/syntax.md §4), and an identifier would give back its letters: `COLUMNS (xy)` was a column `x`
-// of a type `y`, and `ROW(ab)` a field `a` of a type `b`. §5.2 cuts a text into its longest tokens,
-// so a name is one token, and the braces say so; a refused line no longer tries every place a name
-// could be cut, either.
-Identifier : @Identifier = { i: ActualIdentifier } => @(i)
+// <identifier>. §5.2 cuts a text into its longest tokens, so a name is one token, and reading over
+// kinds is what makes that true here: the lexer hands over a whole name and there is no place to cut
+// it differently. Over characters the same had to be said with braces, which also made the rule
+// lexical — and a lexical rule cannot hold the lookahead below, which is why it is written here.
+Identifier : @Identifier = ?!ReservedWord & i: ActualIdentifier => @(i)
 
 // <actual identifier>. A Unicode one begins `U&`, which a regular identifier would take the
 // `U` of, so it is asked first. §5.4's Syntax Rule is the lookahead: a regular identifier is
 // no reserved word, in any case.
 ActualIdentifier : @Identifier
 	= t: UnicodeDelimitedIdentifier => @(Nodes.UnicodeIdentifier(t))
-	| ?!ReservedWord & t: RegularIdentifier => @(new Identifier(t))
+	| t: RegularIdentifier => @(new Identifier(t))
 	| t: DelimitedIdentifier => @(new Identifier(t, IdentifierStyle.Delimited))
 
 // <table name>, <local or schema qualified name>: a name, a schema's before it and a catalog's
@@ -397,9 +456,11 @@ DatetimeType : @DataType
 	| w: ("TIME"i | "TIMESTAMP"i) & ('(' & p: UnsignedInteger & ')')? & (z: ("WITH"i | "WITHOUT"i) & "TIME"i & "ZONE"i)? => @(Nodes.DateTime(w, p, z))
 
 // <character length>, <large object length>: `2 K` is a length and `2K` one token of it.
-CharacterLength            : @Nodes.Length = n: UnsignedInteger & u: CharLengthUnits? => @(Nodes.LengthOf(n, u))
+CharacterLength            : @Nodes.Length = ?!GluedWord & n: UnsignedInteger & u: CharLengthUnits? => @(Nodes.LengthOf(n, u))
 CharacterLargeObjectLength : @Nodes.Length = s: LargeObjectLength & u: CharLengthUnits? => @(Nodes.LengthOf(s, u))
-LargeObjectLength          : @LargeObjectSize = n: UnsignedInteger & m: Multiplier? => @(Nodes.Size(n, m))
+LargeObjectLength          : @LargeObjectSize
+	= t: LengthToken => @(Nodes.Size(t))
+	| n: UnsignedInteger & m: Multiplier? => @(Nodes.Size(n, m))
 CharLengthUnits            = "CHARACTERS"i | "OCTETS"i
 
 RowType         : @DataType = "ROW"i & '(' & first: FieldDefinition & (',' & rest: FieldDefinition)* & ')' => @(new DataType.Row(Nodes.List(first, rest)))
@@ -521,7 +582,12 @@ UserDefinedTypeSpecification : @TypeTest = o: "ONLY"i? & n: PathResolvedUserDefi
 JSONInputClause             : @JsonInputClause = "FORMAT"i & r: JSONRepresentation => @(new JsonInputClause(r))
 JSONRepresentation          : @JsonRepresentation = "JSON"i & ("ENCODING"i & e: ("UTF8"i | "UTF16"i | "UTF32"i))? => @(new JsonRepresentation(Nodes.Encoding(e)))
 JSONPredicateTypeConstraint = "VALUE"i | "ARRAY"i | "OBJECT"i | "SCALAR"i
-JSONKeyUniquenessConstraint = ("WITH"i | "WITHOUT"i) & "UNIQUE"i & "KEYS"i?
+// The `KEYS` is taken and not given back: in two of the four places this constraint stands, what
+// follows it is an expression, and an expression may begin with a name — `KEYS` is a legal one.
+// Over kinds a reading that fits is the one that stands, so the braces say the same thing over
+// characters and the grammar reads one way in both (GRAM5009). Every engine reads the word as
+// the key word there too.
+JSONKeyUniquenessConstraint = ("WITH"i | "WITHOUT"i) & "UNIQUE"i & { "KEYS"i? }
 
 // <period predicate>: a period, named or constructed, and another, or a point in time it contains.
 // The left side is filled in by `BooleanPrimary` or `Nodes.Predicated`.
@@ -776,7 +842,7 @@ AbsoluteValue : @Towers.Typed = w: "ABS"i & '(' & e: CommonValueExpression & ')'
 NumericValueFunction : @Expression
 	= position: PositionExpression => @(position)
 	| "OCCURRENCES_REGEX"i & '(' & r: RegexSearch & ')' => @(Nodes.Regex(RegexFunction.OccurrencesRegex, r))
-	| "POSITION_REGEX"i & '(' & where: ("START"i | "AFTER"i)? & r: RegexSearch & ("OCCURRENCE"i & occurrence: NumericNode)? & ("GROUP"i & grouping: NumericNode)? & ')' => @(Nodes.Regex(RegexFunction.PositionRegex, r) with { StartOrAfter = Nodes.StartOrAfter(where), Occurrence = occurrence, Group = grouping })
+	| "POSITION_REGEX"i & '(' & (where: ("START"i | "AFTER"i) & ?=RegexSearch)? & r: RegexSearch & ("OCCURRENCE"i & occurrence: NumericNode)? & ("GROUP"i & grouping: NumericNode)? & ')' => @(Nodes.Regex(RegexFunction.PositionRegex, r) with { StartOrAfter = Nodes.StartOrAfter(where), Occurrence = occurrence, Group = grouping })
 	| extract: ExtractExpression => @(extract)
 	| w: ("CHAR_LENGTH"i | "CHARACTER_LENGTH"i) & '(' & v: CharacterValueExpression & ("USING"i & u: CharLengthUnits)? & ')' => @(new Expression.Length(Nodes.LengthFunctionOf(w), v.Node, Nodes.UnitsOf(u)))
 	| "OCTET_LENGTH"i & '(' & v: StringValueExpression & ')' => @(new Expression.Length(LengthFunction.OctetLength, v.Node, null))
@@ -1505,9 +1571,13 @@ SetClause : @Assignment
 
 // <set target>: a column, an element of one, or a column's attribute set by a mutator, as often as
 // there are attributes on the way — <mutated set clause> recurses through <mutated target> on the left.
-SetTarget : @AssignmentTarget
-	= c: ColumnName & l: LeftBracketOrTrigraph & i: SimpleValueSpecification & RightBracketOrTrigraph => @(new AssignmentTarget(new QualifiedName([c]), i, null, l == "??("))
-	| c: ColumnName & ('.' & m: MethodName)* => @(new AssignmentTarget(new QualifiedName([c]), null, m is { Length: > 0 } ? m : null))
+// The column is read once and what follows it behind: an element of it, or the methods that
+// mutate it. Written this way rather than as two alternatives that each begin with the name,
+// which an ordered choice would read twice.
+SetTarget : @AssignmentTarget = c: ColumnName & t: SetTargetTail => @(Nodes.Assigned(c, t))
+SetTargetTail : @Nodes.TargetTail
+	= l: LeftBracketOrTrigraph & i: SimpleValueSpecification & RightBracketOrTrigraph => @(new Nodes.TargetTail(i, null, l == "??("))
+	| ('.' & m: MethodName)* => @(new Nodes.TargetTail(null, m is { Length: > 0 } ? m : null, false))
 
 // ── §7.6 Data change delta table ────────────────────────────────────────────
 
@@ -1883,7 +1953,11 @@ SQLParameterDeclarationList : @IReadOnlyList<ParameterDefinition> = '(' & { firs
 
 // <SQL parameter declaration>. A parameter's name is asked before its type, which a user-defined
 // type's name could be: `(a b)` is a parameter `a` of type `b`, and `(a)` one of type `a`.
-SQLParameterDeclaration : @ParameterDefinition = m: ("IN"i | "OUT"i | "INOUT"i)? & n: Identifier? & t: ParameterType & r: "RESULT"i? & ("DEFAULT"i & d: ParameterDefault)?
+// Over kinds the reading that fits is the one that stands, so the name is taken only where a
+// type follows it — `(DESCRIPTOR)` is a descriptor parameter and not a parameter named so
+// (GRAM5009). The assertion reads the type twice, which is a reason for Replay and recorded
+// as one.
+SQLParameterDeclaration : @ParameterDefinition = m: ("IN"i | "OUT"i | "INOUT"i)? & (n: Identifier & ?=ParameterType)? & t: ParameterType & r: "RESULT"i? & ("DEFAULT"i & d: ParameterDefault)?
 	  => @(new ParameterDefinition(Nodes.ModeOf(m), n, t.Type, r is not null, d, t.Locator))
 
 ParameterType : @Nodes.ParameterTyped
@@ -2519,7 +2593,7 @@ DeallocatePreparedStatement : @Statement.DeallocatePrepare = "DEALLOCATE"i & "PR
 // <describe statement>. `INPUT` and `OUTPUT` are not reserved, and a statement may be named so.
 DescribeStatement : @Statement.Describe
 	= "DESCRIBE"i & "INPUT"i & n: SQLStatementName & u: UsingDescriptor & g: NestingOption? => @(new Statement.Describe { Body = new DescribeBody.Input(n, u.Descriptor, g, u.SqlKeyword) })
-	| "DESCRIBE"i & o: "OUTPUT"i? & w: DescribedObject & u: UsingDescriptor & g: NestingOption? => @(new Statement.Describe { Body = new DescribeBody.Output(w, u.Descriptor, g, o is not null, u.SqlKeyword) })
+	| "DESCRIBE"i & (o: "OUTPUT"i & ?=DescribedObject)? & w: DescribedObject & u: UsingDescriptor & g: NestingOption? => @(new Statement.Describe { Body = new DescribeBody.Output(w, u.Descriptor, g, o is not null, u.SqlKeyword) })
 
 // Not a production: a cursor's structure, or a prepared statement, described.
 DescribedObject : @DescribeObject = "CURSOR"i & c: CursorName & "STRUCTURE"i => @(new DescribeObject.Cursor(new CursorReference(c)))

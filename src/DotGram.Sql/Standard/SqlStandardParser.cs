@@ -35,7 +35,7 @@ namespace DotGram.Sql.Standard;
 /// types; an expression is read once and <see cref="Towers"/> says which towers it still belongs to.
 /// </para>
 /// </remarks>
-[Gram("SqlStandard.gram")]
+[Gram("SqlStandard.gram", Lexical = true)]
 public abstract partial class SqlStandardParser
 {
 }
