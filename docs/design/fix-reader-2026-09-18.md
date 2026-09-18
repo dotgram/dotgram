@@ -218,3 +218,20 @@ Two layers, kept apart:
   tests: each is correct, and which is faster is a heuristic — measured, revisable, and
   never allowed to move a construction ahead of the proved point. The heuristics are where
   measurement decides; the proof is where it does not.
+
+## 8. A scenario, not a grammar (D15, Igor, 2026-09-18)
+
+What the generator chooses it chooses for a shape of grammar, found by a structural test, never
+for a grammar, a host or a rule by name. Steps 2-5 are therefore the scenario **a repetition
+whose only way back is `recover`**: the trigger is a test of the graph (a repetition marked
+`recover`, whose turns do not backtrack inside, whose continuation the proved analysis says
+stands at each turn's commit), and the rendering is the one in §1. FIX is its first instance and
+not its owner: any feed of that shape gets the same code. The tests hold the trigger to a second
+grammar of the scenario — the `Feed` grammar, `Row*` recovering at the end of a line and a
+`Trailer` after it — so that it is not fitted to FIX; and that grammar is also §8.2's "try the
+whole continuation at each boundary first" case (§6, condition 1).
+
+After the FIX steps, a catalog of the scenarios the generator recognizes today (the scanner,
+dispatch by the first character, prefix tables, the delimiter scan, scalar guards, …), each with
+its trigger, its rendering and the grammars of the repository it fires on, goes into
+`implementation.md` §4 as what the generator proves today and what it chooses today.
