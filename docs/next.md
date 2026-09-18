@@ -23486,3 +23486,38 @@ is an upper bound. It also means the question of one value reaching the accepted
 cannot be answered this way at all: twenty identical select items are twenty spans and one arm.
 That one needs a probe at the guard's call site in the reader, where the rule's own bounds are
 known.
+
+## A ratio between parsers of very different size measures the pairing too
+
+Not a result yet — a hypothesis with evidence, and it qualifies every ratio in this diary that
+came out of the round-robin harness, so it is written down before it is settled.
+
+The stand found `sql/arithmetic` spreading 62 to 80 per cent between repeats in a full run and 1
+to 5 per cent when that row runs alone. Tiering was ruled out — the spread survives
+`TieredCompilation=0` — and so was the scheduler: this machine's logical processors 0-15 are one
+CCD, the one carrying the 3D cache, so a run pinned there cannot migrate between CCDs at all.
+What is left is what else ran.
+
+**The signature points at the instruction cache.** `SqlStandardParser` is 13.9 MB of generated
+C# and a parse walks a great deal of it; a handwritten parser is a few tens of kilobytes. In a
+round-robin the two evict each other, and only the small one can tell — for the big one its own
+code is most of what was evicted anyway.
+
+The evidence that makes this more than a story is older than the story. Measuring D2, the
+`fuzz-query` row behaved unlike every other: the generated parser held to 645, 686, 693, 708,
+708 and 709 ms across six runs, four per cent, while the handwritten parser **in the same
+processes** went from 28.88 to 64.49. Both sides steady everywhere else. A machine that drifts
+moves both sides together, and this did not. That row was set aside at the time as unquotable,
+with a guess about a file cache that was probably wrong.
+
+If it holds, it is a property of the instrument rather than of any row. The round-robin was
+built so that two numbers would not be taken a minute apart on a machine that changes in
+between, and it does that. It does not stop two parsers from evicting each other, and the more
+their code sizes differ the less the ratio is about the parsers. The honest forms are isolated
+runs per side, or a turn long enough that each side's own code stays hot within it — 2,000 lines
+is evidently not long enough for the small side.
+
+It also gives the split a second axis. Over kinds the parser is 6.77 MB where over characters it
+is 13.86; if residency is measurable at this scale, the split should look better in a full run
+than in an isolated one, and the difference between those two readings would itself be the
+measurement.
