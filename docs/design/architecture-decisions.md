@@ -168,10 +168,19 @@ it would not pass this test.
 The lazy half of the test lands now. The whole-result half lands with its skip reason naming
 this ruling, and the skip is removed by the change that fixes it.
 
-**To verify before any change:** whether buffers the size of the input, returned to
-`ArrayPool.Shared` after a large whole-result parse, stay live after the parse has finished
-(peaks of 23 and 86 MB for about 4 MB of input suggest it). If they do, that is retention of
-its own under D5: a buffer past a threshold is not returned to the shared pool.
+**Buffers kept by the shared pool: confirmed.** Test `98d54101` landed as ruled. After one large
+whole-result parse, a fresh process keeps about 47 MB (Stream) and 112 MB (TextReader) live when
+idle, after a forced compacting collection, while the last input was about 2 MB. Attribution
+is by elimination and size (the generated spare parser is not kept past 65,536 entries), not by
+a heap dump. The pool trims on its own schedule, so collections do not release it.
+
+**Approved as a change of its own, not folded into D3:** a buffer past a threshold is dropped
+rather than returned to `ArrayPool.Shared`, the shape `KeptEntries` already has for the arena.
+It stays needed after D3, since D5 allows one record to be large and its buffer would then be
+kept the same way. Conditions: the threshold is justified by measurement; the idle figure above
+falls to the floor, which also confirms the attribution; the time of small-record parses (FIX
+One and Order, pinned) does not move; the retention test gains the idle check after a large
+parse.
 
 **For D7:** the test also showed the two mechanisms offering different forms. `IEnumerable<string>`
 exists only on the legacy window mechanism, a `yield` publication gets no reader overload
