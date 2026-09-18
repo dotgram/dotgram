@@ -280,8 +280,9 @@ making a string first. A convenience users will likely want rather than a perfor
 requirement, so it follows the forms above in priority; when it comes it reads the span, not
 a copy of it.
 
-**Open, for Igor.** Whether contiguous bytes (`byte[]`, `ReadOnlyMemory<byte>`) are the same
-kind of variant of the byte form. The architect's reading, by symmetry, is yes.
+**Decided 2026-09-17 by Igor: `byte[]` is a variant of the byte form**, as the span is of the text
+form: bytes the caller already holds are read where they lie, not wrapped in a `MemoryStream`.
+That retires the `FixParser.Parse(byte[])` adapter above once the variant exists.
 
 ## Open questions
 
