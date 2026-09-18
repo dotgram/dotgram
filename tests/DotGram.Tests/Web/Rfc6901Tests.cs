@@ -48,7 +48,7 @@ public sealed class Rfc6901Tests
 	{
 		var parsed = JsonPointer.Parse(pointer);
 
-		Assert.Equal(JsonValue.Parse(value).ToString(), parsed.Resolve(JsonValue.Parse(Document))?.ToString());
+		Assert.Equal(Both.Json(value).ToString(), parsed.Resolve(Both.Json(Document))?.ToString());
 		Assert.Equal(pointer, parsed.ToString());
 	}
 
@@ -70,7 +70,7 @@ public sealed class Rfc6901Tests
 	{
 		var parsed   = JsonPointer.ParseFragment(fragment);
 		var expected = JsonPointer.Parse(pointer);
-		var document = JsonValue.Parse(Document);
+		var document = Both.Json(Document);
 
 		Assert.Equal(expected.Tokens, parsed.Tokens);
 		Assert.Equal(expected.Resolve(document)?.ToString(), parsed.Resolve(document)?.ToString());
@@ -88,7 +88,7 @@ public sealed class Rfc6901Tests
 	[InlineData("/twice")]                // a name that is not unique names an undefined member (§4)
 	public void A_pointer_that_refers_to_nothing_resolves_to_nothing(string pointer)
 	{
-		var document = JsonValue.Parse("""{ "foo": ["bar", "baz"], "twice": 1, "twice": 2, "nothing at all": null }""");
+		var document = Both.Json("""{ "foo": ["bar", "baz"], "twice": 1, "twice": 2, "nothing at all": null }""");
 
 		Assert.Null(JsonPointer.Parse(pointer).Resolve(document));
 	}
@@ -96,7 +96,7 @@ public sealed class Rfc6901Tests
 	[Fact]
 	public void A_member_whose_value_is_null_resolves_to_null_the_value()
 	{
-		var document = JsonValue.Parse("""{ "empty": null }""");
+		var document = Both.Json("""{ "empty": null }""");
 
 		Assert.Same(JsonValue.Null.Instance, JsonPointer.Parse("/empty").Resolve(document));
 	}

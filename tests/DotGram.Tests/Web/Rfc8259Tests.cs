@@ -30,7 +30,7 @@ public sealed class Rfc8259Tests
 	[MemberData(nameof(Cases))]
 	public void Every_case_of_the_suite_is_answered_as_it_says(string file)
 	{
-		var accepted = Read(file) is { } text && JsonValue.TryParse(text, out _);
+		var accepted = Read(file) is { } text && Both.TryJson(text, out _);
 
 		switch (file[0])
 		{
@@ -49,18 +49,18 @@ public sealed class Rfc8259Tests
 	[MemberData(nameof(Cases))]
 	public void What_is_read_writes_back_as_the_same_value(string file)
 	{
-		if (Read(file) is not { } text || !JsonValue.TryParse(text, out var read))
+		if (Read(file) is not { } text || !Both.TryJson(text, out var read))
 			return;
 
 		var written = read.ToString();
 
-		Assert.Equal(written, JsonValue.Parse(written).ToString());
+		Assert.Equal(written, Both.Json(written).ToString());
 	}
 
 	[Fact]
 	public void A_value_comes_apart_as_the_RFC_divides_it()
 	{
-		var value = (JsonValue.Object)JsonValue.Parse("""
+		var value = (JsonValue.Object)Both.Json("""
 			{ "name": "a\u00e9\"b", "list": [1, -0.5e+3, true, false, null], "empty": {}, "name": 2 }
 			""");
 
@@ -80,7 +80,7 @@ public sealed class Rfc8259Tests
 	[Fact]
 	public void A_number_keeps_its_text()
 	{
-		var number = (JsonValue.Number)JsonValue.Parse("3.141592653589793238462643383279");
+		var number = (JsonValue.Number)Both.Json("3.141592653589793238462643383279");
 
 		Assert.Equal("3.141592653589793238462643383279", number.Text);
 		Assert.False(number.TryToDecimal(out _));
@@ -116,7 +116,7 @@ public sealed class Rfc8259Tests
 	[InlineData("1e-99999999999999999999",               false, null)]
 	public void A_decimal_is_given_only_where_it_is_exact(string text, bool exact, string? expected)
 	{
-		var number = (JsonValue.Number)JsonValue.Parse(text);
+		var number = (JsonValue.Number)Both.Json(text);
 
 		Assert.Equal(exact, number.TryToDecimal(out var value));
 
@@ -130,7 +130,7 @@ public sealed class Rfc8259Tests
 	[Fact]
 	public void A_lone_surrogate_survives()
 	{
-		var text = (JsonValue.String)JsonValue.Parse("\"\\uDEAD\"");
+		var text = (JsonValue.String)Both.Json("\"\\uDEAD\"");
 
 		Assert.Equal("\uDEAD", text.Value);
 		Assert.Equal("\"\\udead\"", text.ToString());
@@ -142,7 +142,7 @@ public sealed class Rfc8259Tests
 	{
 		var depth = 100_000;
 		var text  = new string('[', depth) + new string(']', depth);
-		var value = JsonValue.Parse(text);
+		var value = Both.Json(text);
 
 		for (var level = 1; level < depth; level++)
 			value = ((JsonValue.Array)value).Items[0];
@@ -156,13 +156,13 @@ public sealed class Rfc8259Tests
 	{
 		const string Text = """{ "a": [1, { "b": null }, "c"], "a": 2 }""";
 
-		Assert.Equal(JsonValue.Parse(Text), JsonValue.Parse(Text));
-		Assert.Equal(JsonValue.Parse(Text).GetHashCode(), JsonValue.Parse(Text).GetHashCode());
+		Assert.Equal(Both.Json(Text), Both.Json(Text));
+		Assert.Equal(Both.Json(Text).GetHashCode(), Both.Json(Text).GetHashCode());
 
-		Assert.NotEqual(JsonValue.Parse("""{ "a": [1] }"""), JsonValue.Parse("""{ "a": [2] }"""));
-		Assert.NotEqual(JsonValue.Parse("""{ "a": 1, "b": 2 }"""), JsonValue.Parse("""{ "b": 2, "a": 1 }"""));
-		Assert.NotEqual(JsonValue.Parse("""{ "a": 1 }"""), JsonValue.Parse("""{ "a": 1, "a": 1 }"""));
-		Assert.NotEqual(JsonValue.Parse("[1.0]"), JsonValue.Parse("[1]"));
+		Assert.NotEqual(Both.Json("""{ "a": [1] }"""), Both.Json("""{ "a": [2] }"""));
+		Assert.NotEqual(Both.Json("""{ "a": 1, "b": 2 }"""), Both.Json("""{ "b": 2, "a": 1 }"""));
+		Assert.NotEqual(Both.Json("""{ "a": 1 }"""), Both.Json("""{ "a": 1, "a": 1 }"""));
+		Assert.NotEqual(Both.Json("[1.0]"), Both.Json("[1]"));
 	}
 
 	public static TheoryData<string> Cases =>

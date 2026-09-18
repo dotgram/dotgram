@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 using DotGram.Handwritten.Web;
 using DotGram.Web;
@@ -32,7 +35,7 @@ static class Both
 	}
 
 	/// <summary>A URI reference or false, read by both; the generated parser's answer.</summary>
-	public static bool TryReference(string text, out UriReference? reference)
+	public static bool TryReference(string text, [NotNullWhen(true)] out UriReference? reference)
 	{
 		var match = AgreeOnReference(text);
 
@@ -66,7 +69,7 @@ static class Both
 	// ── RFC 3339 ────────────────────────────────────────────────────────────────
 
 	/// <summary>A date-time or false, read by both; the generated parser's answer.</summary>
-	public static bool TryTimestamp(string text, out Timestamp? timestamp)
+	public static bool TryTimestamp(string text, [NotNullWhen(true)] out Timestamp? timestamp)
 	{
 		var match = AgreeOnTimestamp(text);
 
@@ -76,7 +79,7 @@ static class Both
 	}
 
 	/// <summary>A full-date or false, read by both; the generated parser's answer.</summary>
-	public static bool TryFullDate(string text, out FullDate? date)
+	public static bool TryFullDate(string text, [NotNullWhen(true)] out FullDate? date)
 	{
 		var match = AgreeOnFullDate(text);
 
@@ -86,7 +89,7 @@ static class Both
 	}
 
 	/// <summary>A full-time or false, read by both; the generated parser's answer.</summary>
-	public static bool TryFullTime(string text, out FullTime? time)
+	public static bool TryFullTime(string text, [NotNullWhen(true)] out FullTime? time)
 	{
 		var match = AgreeOnFullTime(text);
 
@@ -139,6 +142,95 @@ static class Both
 		return generated;
 	}
 
+	// ── RFC 8259 ────────────────────────────────────────────────────────────────
+
+	/// <summary>A JSON text, read by both; the generated parser's answer.</summary>
+	public static JsonValue Json(string text)
+	{
+		var match = AgreeOnJson(text);
+
+		return match.IsSuccess ? match.Value : throw new FormatException(match.Error);
+	}
+
+	/// <summary>A JSON text or false, read by both; the generated parser's answer.</summary>
+	public static bool TryJson(string text, [NotNullWhen(true)] out JsonValue? value)
+	{
+		var match = AgreeOnJson(text);
+
+		value = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	public static Rfc8259.Match<JsonValue> AgreeOnJson(string text)
+	{
+		var generated = Rfc8259.TryParseJson(text);
+		var hand      = HandJson.TryParse(text, out var value, out var failure);
+
+		Agree(text, "JSON text",
+			generated.IsSuccess ? Describe(generated.Value) : "refused at " + generated.Position,
+			hand ? Describe(value!) : "refused at " + failure);
+
+		return generated;
+	}
+
+	/// <summary>
+	/// A value as JSON text, written with a stack of its own: JsonValue.ToString recurses, and a
+	/// text the suite nests deeper than a thread's stack has to be described all the same.
+	/// </summary>
+	static string Describe(JsonValue value)
+	{
+		var text    = new StringBuilder();
+		var pending = new Stack<object>();
+
+		pending.Push(value);
+
+		while (pending.Count > 0)
+		{
+			switch (pending.Pop())
+			{
+				case string punctuation:
+					text.Append(punctuation);
+					break;
+
+				case JsonValue.Array array:
+					text.Append('[');
+					pending.Push("]");
+
+					for (var index = array.Items.Count - 1; index >= 0; index--)
+					{
+						pending.Push(array.Items[index]);
+
+						if (index > 0)
+							pending.Push(",");
+					}
+
+					break;
+
+				case JsonValue.Object members:
+					text.Append('{');
+					pending.Push("}");
+
+					for (var index = members.Members.Count - 1; index >= 0; index--)
+					{
+						pending.Push(members.Members[index].Value);
+						pending.Push(new JsonValue.String(members.Members[index].Key) + ":");
+
+						if (index > 0)
+							pending.Push(",");
+					}
+
+					break;
+
+				case JsonValue scalar:
+					text.Append(scalar);
+					break;
+			}
+		}
+
+		return text.ToString();
+	}
+
 	// ── Both ────────────────────────────────────────────────────────────────────
 
 	static string Describe(Rfc3986.Match<UriReference> match)
@@ -155,8 +247,14 @@ static class Both
 	{
 		if (generated != hand)
 			Assert.Fail(
-				$"The generated parser and the hand-written one disagree about \"{text}\" read as a {what}.\n" +
-				$"generated: {generated}\n" +
-				$"by hand:   {hand}");
+				$"The generated parser and the hand-written one disagree about \"{Shown(text)}\" read as a {what}.\n" +
+				$"generated: {Shown(generated)}\n" +
+				$"by hand:   {Shown(hand)}");
+	}
+
+	// A JSON text may be long, and a message is for reading.
+	static string Shown(string text)
+	{
+		return text.Length <= 200 ? text : text.Substring(0, 200) + $"... ({text.Length} characters)";
 	}
 }
