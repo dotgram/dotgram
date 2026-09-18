@@ -531,6 +531,13 @@ separator, switches on the tag's kind and builds.
 3. Beside it, the same for `HandFixParser`, so that each line of the generated cost has the
    hand parser's line next to it or a blank where the hand parser does nothing.
 
+**The slope, measured (stand, `4cdd4c59`, `docs/design/fix-slope-2026-09-18.md`).** Six sizes,
+string form, paired, least squares with R² 0.999: hand 27 ns + 51 ns a field, generated 72 ns +
+131 ns a field; 113 B a field on both sides, the generated fixed part smaller (90 B against 203).
+So the 2.6x is not initialization against fields but both alike: about 80 ns of CPU per field
+over the hand parser, and 45 ns per call. Memory is not where it is. The per-field 80 ns is what
+the anatomy has to account for item by item.
+
 **Then the design**, from that table: what the emitted code for `Fields` would have to be to
 match the hand parser line for line — a loop with no arena for a grammar whose only way back
 is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
