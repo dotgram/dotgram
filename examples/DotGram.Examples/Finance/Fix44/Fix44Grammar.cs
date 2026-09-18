@@ -4,7 +4,7 @@ using DotGram.Finance.Fix;
 
 namespace DotGram.Examples.Finance;
 
-[Gram("Fix44Grammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, Direct = false, PartSize = 1000, Portable = false)]
+[Gram("Fix44Grammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
 sealed partial class Fix44Grammar : FixFieldGrammar;
 
 [Gram("FixField.gram", IncludedAs = "Known", Portable = false)]
