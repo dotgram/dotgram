@@ -382,9 +382,12 @@ beside it in a package.
 
 - **The grammar sets the default**, as an option on its attribute (`[Gram(…, MaxRetained = …)]`,
   and `BufferSize`). FIX sets 16 MiB in `FixGrammar`, the same as `FixMessages`' message limit.
-- **The user of a shipped parser can change it**, without rebuilding the package: the generated
-  class carries the default as a settable static, initialized from the attribute, which a
-  package may expose (FIX: `FixParser.DefaultMaxRetained`); it is validated as positive.
+- **The user of a shipped parser changes it per call**, without rebuilding the package: the
+  parameter below. The default is exposed read-only (FIX: `FixParser.DefaultMaxRetained`). No
+  settable static: it would be one value for the whole process, which two libraries using the
+  same package, or parallel tests, would overwrite for each other (finance-03's objection,
+  Igor's choice the same day). An application-wide setting (`AppContext`) is added only if a
+  case appears where the call site is out of the user's reach.
 - **Per call it stays a parameter**, now `int? maxRetained = null`: `null` means the parser's
   current default, a number overrides it for that call. A caller passing a number compiles as
   before.
