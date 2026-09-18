@@ -519,6 +519,14 @@ from an index built once, a budget of steps). Rule from it: a change to `FirstSe
 is measured for generation time on DotGram.Sql before it lands, and the stand's generator-report
 column is read at every base run.**
 
+**The list after the repetition check (sql-39, 2026-09-18): 49 places** — T-SQL 44, SQL-92 2, SQL:2023 3
+— against 7 + 1 + 6 before it; many of the new ones look like over-reporting (an alias taking a hint
+word that could only follow with `WITH`). Order: sql-39 fixes the twelve that are his (the eight
+shipped ones plus the four the check found in his own code), each with a test, and *classifies*
+the other thirty-five in one pass — real, intended, false, one line each — without fixing the
+false ones; performance-ff narrows the analysis by the classes of false ones after the FIX steps;
+the severity goes up after both. Not a week of grammar work on what the analysis over-reports.
+
 ## D12. Tests are reviewed for what each one proves
 
 Decided 2026-09-18 by Igor: the test suites are reviewed and what is redundant or no longer
@@ -765,6 +773,13 @@ lexer begins and a rule finishes; and a key word glued on its left (`198OCTETS`)
 `wordboundary` read as a guard on both sides, a change to the language. Mechanism: a lazy cursor,
 with a lexer over the whole input as an additional form for contiguous input. sql-ff's estimate of
 the gain: about a tenth of what is left.
+
+**Landed 2026-09-18 as `7d3ba2d5` (sql-39): SQL:2023 reads over kinds.** 14,718 tests, 143,291
+corpus lines against `HandSqlStandard` with no difference; generation 4.0 s and 7.6 MB against
+13.9; four visible changes to users, two towards the BNF (an introduced literal's parts) and two
+away from it (comments nest six deep; `/*` inside a comment always opens one, since the trivia
+scanner decides by the first character and does not backtrack — both go when the scanner
+counts nesting). The stand's SQL rows follow.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
