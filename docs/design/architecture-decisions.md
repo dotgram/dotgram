@@ -175,6 +175,15 @@ every build. Amended:
   that a build on the other CCD moves a timing by less than the run's own spread. Until then,
   a window still means "nothing heavy elsewhere", but windows are short and rare.
 
+**Measured the same evening (stand, 56 loaded runs against 8 quiet):** with unpinned builds
+running on all cores, the *medians* of every row stayed within -3..+4% of quiet (the quiet
+run-to-run range itself is 4-16%), while *single* runs went up to +85%, and the control row
+saw only some of those. So: a before/after is quoted as the median of at least five runs
+(`--repeat N`), never a single run, even in a quiet window; runs whose control is more than
+5% off the median are dropped; and the other sessions build during a window pinned to 16-31
+(`[IntPtr]0xFFFF0000L` in PowerShell — `0xFFFF0000` alone is a negative Int32 and applies
+nothing — or `start /affinity FFFF0000`). The pinned case itself is rerun once to confirm.
+
 **A before/after comparison is paired, in one process.** `--stand-paired` (stand, `f39b139f`,
 2026-09-18) loads both builds into two `AssemblyLoadContext`s and alternates hand, before and
 after in every round, so that what moved the machine moved both sides. Two separate processes
