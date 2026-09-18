@@ -136,6 +136,11 @@ a construction runs once per node of the accepted derivation). FIX first.
   where a construction throws (found by expr-2d, 2026-09-17:
   `using System.Linq; (int[] a) => a.Select(n => n * 2)` reads on the tape and throws
   immediately). That is a defect of the Immediate carrier today, and the rule D3 must keep.
+  **Fixed 2026-09-18 (performance-3f, up to `610906e3`)**: `Grammar/Model/Demand.cs` answers, per
+  call site, whether the tape would build its value — never, with its parent, or during the
+  match for a guard — and Immediate builds by that answer. `Demand.Of` is the analysis D3 reads.
+  Auto hands no grammar in the repository to Immediate with an unbuilt site; only the expression
+  language's explicit Immediate reading changed, and its skipped test is skipped no more.
 
 **Parked:** narrowing FIX's follow sets for `yield` (six Run records, correctness of the end of
 a yield step not established) and removing Run/CaptureOpen records that depends on it. The
@@ -476,6 +481,12 @@ SQL:2023 in flight. A diagnostic about the language a parser accepts cannot be o
   input the grammar meant), then performance-3f raises the severity, so that
   `TreatWarningsAsErrors` never meets it red.
 - `docs/development.md` says how to see Info diagnostics (`-v:detailed`).
+
+**`Committed` refined (`610906e3`)**: the cures the diagnostic asks for are recognized when an author
+writes them — `?=` on what follows at the end of an optional or repetition, also through a call
+or a choice; a `?!` of more than one token at the start of what follows, by a second-token
+analysis limited to that form; and atomic braces, as before. Repetitions the analysis does not
+see (`*`, sql-ff's `UNIQUE (a, p WITHOUT OVERLAPS)`) are the next refinement.
 
 ## Open questions
 
