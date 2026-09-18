@@ -163,6 +163,44 @@ construction machinery and nothing else. It is also what D1 needs to hold across
 - The switch is measured for allocation per parse and for the number of value types a machine
   stores (D2's 301 grows with the tree), beside `--engine` and `--roundtrip`.
 
+## D7. The input form is a dimension the generator compiles for
+
+Decided 2026-09-17 by Igor: a string, an array of strings, a stream of strings and a stream
+of bytes are each a form the generator uses as such, not an adapter onto another form.
+
+This confirms the decision in `design/reader-input-forms.md` (a compile-time input form:
+symbol domain, access form, result delivery as independent dimensions, with an emitter-side
+abstraction and no runtime interface per symbol) and makes it binding.
+
+**Adapters in place today, each a debt under D7:**
+
+- `IEnumerable<string>` puts the line terminators back and forwards to the `TextReader` path
+  (`status.md`, "And from a sequence of lines").
+- `FixParser.Parse(byte[])` wraps a `MemoryStream` and runs the buffered byte iterator.
+- `FixParser.Parse(ReadOnlySpan<char>)` copies to a string (Q2).
+
+**What it binds.**
+
+- One input abstraction in the emitter: each form supplies the operations recognition needs
+  (the `Peek`/`Get`/`Position`/`Restore`/`ReleaseBefore`/`Copy` set of
+  `reader-input-forms.md`, and plain indexing for contiguous memory), and every rendering is
+  written against it. Recognition and construction are not written again per form.
+- A form does not choose the rendering. Today the reader refuses any streamed publication,
+  so a stream sends a grammar to the engine; that is where D7 is not yet met, and it is the
+  measure of progress on it.
+- Two streaming mechanisms exist: `StreamingEmitter`'s window-and-retry wrappers around span
+  recognizers, and the buffered machines. D7 converges them into one; a proposal names which
+  survives and how the other's cases (retention analysis, stages, `find` over a reader) are
+  carried over.
+- D5 applies to every streamed form.
+- A parse answers the same whichever form the input came in by; a test holds each form to
+  the string form.
+
+**Open, for Igor.** Whether an array of strings is lines (a terminator between elements, as
+`IEnumerable<string>` is today) or pieces of one text joined as they are; and whether
+contiguous bytes (`byte[]`, `ReadOnlyMemory<byte>`) and `ReadOnlySpan<char>` are forms of
+their own or the memory side of the byte and string forms.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
