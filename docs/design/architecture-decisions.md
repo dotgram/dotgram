@@ -569,9 +569,33 @@ only the accepted reading's marks stand. So loops, breakables and lambdas move f
 context's open/close pairs to `with state` marks, as an improvement of the expression
 language's grammar (expr-2d). What is left for the language discussion is only what a guard
 must see while reading: whether a `var` is read as unsettled. The notation offered for that
-discussion: marks visible to `when` (downward), and a named value a rule carries up while it
-is read (`Rule : @T, roles: @int`, set by `roles = @(...)`, read as `e.roles`), for SQL's towers.
+discussion: marks visible to `when` (downward). A value carried up while reading, for SQL's
+towers, was withdrawn the same day: Igor recalled that whatever a `when` asks for may be built
+while reading, which is the author's choice; the open problem is reusing what was built (Q6).
 
 Until decided, the expression language's hand parser uses a checkpoint of its own `State` for
 its second, recognize-only reading (a mark at the start of the publication, or of a hole or
 body window), which is local to it and changes nothing in the generator.
+
+### Q6. Reusing what a guard built
+
+Raised 2026-09-17 by Igor. Building what a `when` asks for while reading is settled: it is the
+author's choice. The problem is that what is built is not reused.
+
+Today, on the reader: a value a guard built is flagged on its record (`values.Built`) and the
+walk at the end reuses it, so within the accepted derivation nothing is built twice. But a way
+back lowers the watermark (`ways.Built`), because a record's index is its name and the next
+derivation writes other records at the same indices; everything built in the abandoned reading
+is dropped, and when the grammar reads the same rule at the same place again it builds it again.
+That is SQL's case: a `(` read as one thing and then as another, the towers' guards building the
+operand's subtree on each reading.
+
+What reuse would be: a value built for a rule read from one position to another, kept by where it
+was read rather than by record index, and taken again when the same rule, specialised the same
+way and read at the same strength, reads again from that position to the same end. Recognition
+is still repeated; construction is not. It holds only where the reading is the same reading,
+which a guard or a factory that reads the context or the marks can break.
+
+**First, measured:** in SQL:2023, how many guard builds happen per parse against how many values
+the accepted tree holds, on the corpora sql-ff times. If the ratio is near one, there is nothing
+to reuse and Q6 closes; if not, the ratio bounds what reuse can give. sql-ff.
