@@ -421,6 +421,20 @@ overloads was refused: it would be a breaking change out and another one back.
 
 ### Q3. Options and modes left behind by experiments
 
+**Decided 2026-09-17 by Igor: everything listed under "Remove" and "Beside the options" goes.**
+Who and when:
+
+- performance-3f, after the pool threshold lands: `GramCarrier.Mixed` with `Machine.Mixed.cs` and
+  `MixedSql`; `PrefixTables = false`; `Direct` out of the user's attribute; the experiment
+  benchmark projects and classes and their dated reports.
+- sql-ff, with or right after D2, since it changes the same store: `ValueStorage` out of the
+  user's attribute, `Paged` and its code, `ValueStorageBenchmarks`.
+- finance-03: `Direct = false` out of `FixGrammar` and the Fix44 example.
+- performance-3f, with D7's convergence of the two streaming mechanisms: `BufferedInput` and
+  `BufferedBytes` as host options.
+- `PartSize` and the internal `SourceFileSize`, `SharedTypes`, `Own`, `Inherits` are measured
+  first and brought back to the architect.
+
 Raised 2026-09-17 by Igor: the experiments have left options and modes of the generator, some
 of which may no longer earn their place; those go. The architect's inventory, by what an
 option is for. Usage counts are `[Gram]`/`[GramOptions]` sites in `src`, `examples`, `tests`,
