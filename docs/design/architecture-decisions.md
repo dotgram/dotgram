@@ -53,3 +53,56 @@ time on an unmeasured construct pass unnoticed.
 **Open, for Igor.** Whether `HandSqlTokens` is brought up to `Sql92Parser`'s four
 publications or retired in favour of `HandSqlStandard`, and whether `HandSqlOriginal` is
 removed.
+
+## D2. The value store clears what was written, not what every machine might write
+
+Decided 2026-09-17 by the architect, on the diagnosis in `docs/next.md` ("Why the shared
+machine is not dense", `4a41ecc9`).
+
+SQL:2023's big machine is not dense (`_directBuilds`: forty-five tower guards name a built
+value), its `Literal` and `TableName` machines are, and the machines share one
+`DirectValues` store. So every materializer call raises 301 high-water marks and `Return`
+clears 301 arrays: 20 to 27 per cent of a short select, building nothing.
+
+**Approved:** the store records which types were written where a value is stored, and
+`Return` clears only those. The towers stay; the big machine is not forced dense.
+**Not approved as the fix:** one shared mark for all types. It makes `Room` O(1) and keeps
+the 301 clears.
+
+**Conditions.** Emitted output for grammars that are all dense or all non-dense does not
+change, or the difference is shown to cost nothing. The write-site test is timed on a grammar
+that stores many values per parse, not only on SQL. Agreement with `HandSqlStandard` holds.
+
+**What it is not.** A fixed cost of about a fifth of a short statement. The per-operand rate,
+7.27 us against 0.33 an item, is a different mechanism, and Q1 is where it is decided.
+
+## Open questions
+
+### Q1. SQL:2023 through a lexical layer
+
+Raised 2026-09-17. Owner: sql-ff, with performance-3f for the generator.
+
+`SqlStandardParser` is `[Gram("SqlStandard.gram")]`, compiled over characters; `Sql92Parser`
+and `TransactSqlParser` are `Lexical = true`. `HandSqlStandard` reads through a token cursor
+and classifies a word as an integer once (`SqlCursor`, `SqlWords`). Every per-token cost the
+SQL timings name — the reserved-word bucket walk behind a first-letter switch, a word costing
+1.0 us more than a literal even in an empty bucket, trivia at ten times the hand skip loop per
+character, 3.6 us a token overall — is the cost of reading tokens as characters.
+
+The reason recorded for not splitting (`docs/design/sql-parsers.md`): tokens overlap, a date
+string is a character string whose meaning depends on the key word before it, and a choice
+over characters can go back where one over tokens cannot. The same note says it would be
+asked again when the grammar is whole and speed matters. Both are now true.
+
+Before any further per-token optimization of the character reading lands, the answer to Q1
+is required:
+
+1. Which constructs of the standard cannot be read over kinds, listed from the grammar, with
+   what the hand parser does for each. The hand parser already reads the whole language
+   through tokens, which is an existence proof for most of them.
+2. Whether those can be expressed with what the split already has (a kind as a set of
+   patterns, a valued terminal read twice, a terminal the host measures), or need a new
+   mechanism.
+3. If a new mechanism: whether it is a lazy token cursor (tokens made as the reader asks, as
+   `SqlCursor` does) rather than a lexer over the whole input first. That choice would also
+   bear on streamed input, where the engine now reads characters (FIX).
