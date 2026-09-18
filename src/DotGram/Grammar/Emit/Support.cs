@@ -1240,7 +1240,7 @@ public static partial class CSharpEmitter
 
 		if (dense)
 			for (var i = 0; i < valueTypes.Count; i++)
-				text.Append("\tint N").Append(i).Append(";\n");
+				text.Append("\tinternal int N").Append(i).Append(";\n");
 
 		text.Append("\tint _used;\n\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic DirectValues? _spare;\n\n");
@@ -1280,9 +1280,9 @@ public static partial class CSharpEmitter
 
 		if (dense)
 		{
+			// The marks are raised where a value is stored, not here: making room for a record
+			// in every table says nothing about which tables the walk will write.
 			text.Append("\t\tif (dense) return;\n\t\tif (Built.Length < count) global::System.Array.Resize(ref Built, Live.Length);\n");
-			for (var i = 0; i < valueTypes.Count; i++)
-				text.Append("\t\tN").Append(i).Append(" = global::System.Math.Max(N").Append(i).Append(", count);\n");
 		}
 
 		for (var i = 0; i < valueTypes.Count; i++)

@@ -524,6 +524,36 @@ public sealed class ExpressionParserTests
 			ExpressionParser.Compile<Func<int, int>>(
 				"(int x) => { int doubled = x * 2; int more = doubled + 2; return more; }")(5));
 
+	[Theory]
+	// An `if` with no `else` reads its branch as each of its two forms.
+	[InlineData("(int x) => { if (x > 0) { int y = 1; x += y; } x }")]
+	// A body whose lambda says no types is read before they are known and again after.
+	[InlineData("using System.Linq; (int[] a) => a.Select(n => { var m = n * 2; return m; }).Sum()")]
+	[InlineData("using System.Linq; (int[] a) => a.Select(n => { int m = n * 2; return m; }).Sum()")]
+	public void A_declaration_read_twice_is_one_variable(string text)
+	{
+		var declared = new Declared();
+
+		declared.Visit(ExpressionParser.Parse(text));
+
+		var variable = Assert.Single(declared.Variables);
+
+		Assert.Equal(typeof(int), variable.Type);
+	}
+
+	/// <summary>Every variable a block of the tree declares.</summary>
+	sealed class Declared : ExpressionVisitor
+	{
+		public List<ParameterExpression> Variables { get; } = [];
+
+		protected override Expression VisitBlock(BlockExpression node)
+		{
+			Variables.AddRange(node.Variables);
+
+			return base.VisitBlock(node);
+		}
+	}
+
 	[Fact]
 	public void And_a_local_may_say_its_type() =>
 		// `Expression.Variable` wants a type at the declaration, and a written one is there

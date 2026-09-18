@@ -77,6 +77,20 @@ the 301 clears.
 change, or the difference is shown to cost nothing. The write-site test is timed on a grammar
 that stores many values per parse, not only on SQL. Agreement with `HandSqlStandard` holds.
 
+**Landed 2026-09-17 as `7ed58baa` (sql-ff).** The mark goes up beside the write in record-indexed
+machines; `Room` loses its loop; `Return` is unchanged. Only `SqlStandardParser` has
+record-indexed machines, so only it gains marks (+76 KB of 13.9 MB); three dense-only grammars lose
+a loop that was dead for them; every other grammar is byte-identical. Pinned, paired, both
+orders: twenty select items 327 to 220 ms (-32.7%, second run -31.8%), `SELECT a FROM t` -37%, a
+literal (dense, the control) within 1%. Twenty items against the hand parser: 26.7x to 17.8x.
+Condition 2 is met by construction: the write-site comparison runs only in SQL:2023's machines,
+where it was measured.
+
+**Owed:** the change added no test. A missed mark leaves a table uncleared, which is references
+kept across parses. A generator test over a small grammar with both dense and record-indexed
+machines checks that nothing a finished parse built stays reachable from the store (a weak
+reference to a built value, collected after the parse and a collection).
+
 **What it is not.** A fixed cost of about a fifth of a short statement. The per-operand rate,
 7.27 us against 0.33 an item, is a different mechanism, and Q1 is where it is decided.
 
@@ -480,3 +494,32 @@ history.
 Each removal is one change, by the owner of the area (performance-3f for the generator, the
 option's grammar owner for its use), and shows that emitted code for the shipping grammars
 (SQL, EL, Web, FIX) is unchanged or explains each difference.
+
+### Q4. What else in the generator can be simpler
+
+Raised 2026-09-17 by Igor. Three candidates go to measurement first, confirmed by Igor the
+same day; each comes back to the architect as a report, with no code changed.
+
+1. **The machine that builds a token's value.** Over kinds a terminal with a value is read a
+   second time by a `_Value` machine; in the expression language's generated code (snapshot of
+   2026-09-14) that machine is on the engine, seventeen parts. It cannot fail, since the lexer
+   has accepted the extent. Measure its share of parse time and of code size in EL, T-SQL and
+   SQL-92; find why it is on the engine; say whether it can be a reader or be built in the
+   lexer. performance-3f.
+2. **A second reading only for locations.** `TransactSqlParser.Located` is a whole second parser
+   (about 33 MB beside 32 MB, same snapshot) so that a caller who wants no locations does not
+   pay about 14 per cent. Prototype one reading generic over a struct parameter that says
+   whether locations are offered, which the JIT specializes; measure time without locations,
+   time with, JIT and first-call cost when both are used, and the build for netstandard2.0.
+   sql-ff.
+3. **Flat against reader.** Flat writes a publication as one method of states; reader writes a
+   method per rule; flat recompiles the machine to do it, which is a known source of defects.
+   Measure both on the Web grammars and the examples. No difference: flat goes. Flat faster: the
+   reader takes over what makes it so, and flat goes. performance-3f.
+
+The other candidates are conditions on work already decided: the engine's special paths
+(scalar scanners and guards, sites, bounded materializer scans) are reviewed against D3's
+analysis once it exists and removed where it covers them; `Auto`'s second rendering goes when
+D3's analysis decides the carrier; the value store's remaining modes are revisited after D3;
+the legacy `Parse(TextReader)` overload and the diagnostics about removed choices go with D7
+and Q3.

@@ -23282,3 +23282,48 @@ can be raised where a value is actually stored, which is O(1) at the write site 
 clear only the types written; at the least, the 301 maxima can collapse into one shared mark, which
 takes `Room` back to O(1) a call and leaves the clears for later. Either preserves output, which is
 what the handwritten parser is here to prove.
+
+## D2: the marks go where the value is stored
+
+What the store was doing, found by the performance session's profile and confirmed in the emitter:
+`Room` raised a high-water mark for all 301 types whenever room was made for a record, so `Return`
+then cleared all 301 tables however few of them the walk had written. Both loops ran per
+materializer call, which is about once an operand.
+
+The fix architect approved as D2, and it is small: the marks are raised where a value is actually
+stored. A machine that indexes densely already did that in its `Add`; a machine that indexes by
+record now does it beside the write, one comparison per value built. `Room` loses the loop
+entirely and `Return` is left alone — it already clears only the tables whose mark stands.
+
+One thing had to be worked out first. The mark is emitted into the materializer, and materializers
+are rendered before a carrier is chosen, so the carrier's own `DenseStore` flag is not yet on the
+object the machine will end up with — the flag was landing on a provisional tape that rendering then
+replaced. The decision is therefore planned with the storage, in `ShareAdaptiveStores`, from the
+same facts and before any carrier exists.
+
+**What it changes, everywhere.** Only two grammars gain marks: `SqlStandardParser`, where 425
+record-indexed writers raise 1,625 of them, and nothing else — `Sql92Parser`, `Rfc6265` and
+`Rfc9651` have dense stores but no record-indexed writer at all, so for them the loop `Room` loses
+was dead code and the difference is free. FIX, ExpressionLanguage, the Web formats and every
+example are byte-identical path-normalized. SQL's generated file grows 76 KB on 13.9 MB, half a per
+cent, for the marks.
+
+**What it is worth.** Two paired runs, both orders, medians, pinned to the cached CCD at high
+priority on the performance session's advice, with the handwritten parser as the control inside
+each process:
+
+| corpus | base | with D2 | effect |
+| --- | --- | --- | --- |
+| 20 select items | 327 ms | 220 ms | −32.7% (−31.8% on the second run) |
+| `SELECT a FROM t` | 62 ms | 39 ms | −37.2% (−36.7%) |
+| a literal alone | 1.18 ms | 1.17 ms | −0.8% (+0.9%) |
+| the query corpus | 708 ms | 501 ms | −29.3% (−20.9%, noisy) |
+| the DDL corpus | 138 ms | 139 ms | +0.5% (−6.8%, inconclusive) |
+
+The literal is the control: `<literal>` is read by a dense machine, which never raised marks in
+`Room`, so it had nothing to gain and moved less than a per cent in both directions. The ratio
+against the hand parser on twenty select items falls from 26.7x to 17.8x.
+
+Pinning is what makes the small numbers readable. Unpinned, this machine's scheduler moves a thread
+between two CCDs of which only one carries the 3D cache, and the spread that causes is worth more
+than several of the effects above.

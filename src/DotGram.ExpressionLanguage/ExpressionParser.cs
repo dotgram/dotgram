@@ -3327,10 +3327,11 @@ public static partial class ExpressionParser
 				throw new ArgumentNullException(nameof(statements));
 
 			var variables = new List<ParameterExpression>();
+			var declared  = _declared ?? [];
 
-			foreach (var declaration in _declared ?? [])
-				if (Holding(declaration.At) is { } held && held.From == at.Start)
-					variables.Add(declaration.Variable);
+			for (var index = 0; index < declared.Count; index++)
+				if (Holding(declared[index].At) is { } held && held.From == at.Start && !Redeclared(declared, index))
+					variables.Add(declared[index].Variable);
 
 			var body = new List<Expression>(statements);
 
@@ -3345,6 +3346,27 @@ public static partial class ExpressionParser
 				throw new FormatException("a block has to hold something.");
 
 			return Expression.Block(variables, body);
+		}
+
+		/// <summary>Whether the same declaration is written down again after this one.</summary>
+		/// <remarks>
+		/// A declaration is read more than once where the text is: an `if` with no `else` reads
+		/// its branch as each of its two forms, and a body whose lambda had no types is read
+		/// before it has them and again after. That is one variable, not one per reading — the
+		/// one written last, which is the one <see cref="Find"/> hands every use of the name.
+		/// </remarks>
+		static bool Redeclared(List<Declaration> declared, int index)
+		{
+			var declaration = declared[index];
+
+			for (var later = index + 1; later < declared.Count; later++)
+				if (declared[later].At == declaration.At &&
+					string.Equals(declared[later].Name, declaration.Name, StringComparison.Ordinal))
+				{
+					return true;
+				}
+
+			return false;
 		}
 	}
 }

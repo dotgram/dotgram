@@ -608,6 +608,17 @@ sealed partial class Machine
 	ValueStorageKind _valueStorage;
 	bool _adaptiveStore;
 
+	/// <summary>
+	/// Whether the store these machines share holds a mark per type, which is what a machine
+	/// that indexes by record has to raise as it writes.
+	/// </summary>
+	/// <remarks>
+	/// Planned with the storage, before a carrier is chosen, because the materializers are
+	/// rendered before then and they are what raises the marks. The carrier's own
+	/// <c>DenseStore</c> says the same thing later, to the store it writes.
+	/// </remarks>
+	bool _denseStore;
+
 	/// <summary>Many types justify dense indexing when no guard can materialize and rewind records.</summary>
 	/// <remarks>Starts becomes the record-to-value map after the reachability pass has finished.</remarks>
 	bool DenseDirectValues => _valueStorage == ValueStorageKind.Auto &&
@@ -634,6 +645,7 @@ sealed partial class Machine
 			machine._valueStorage = storage;
 			machine._adaptiveStore = storage == ValueStorageKind.Adaptive ||
 				storage == ValueStorageKind.Auto && adaptive && readers.Contains(machine);
+			machine._denseStore = storage == ValueStorageKind.Auto && dense && readers.Contains(machine);
 		}
 	}
 
@@ -646,6 +658,22 @@ sealed partial class Machine
 				: Carrier is TapeCarrier { PagedStore: true }
 					? $"values.V{TableName(type)}[{index}].Value"
 					: ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
+
+	/// <summary>
+	/// What a record-indexed write leaves behind in a store that also holds dense tables:
+	/// the mark <c>Return</c> clears to, raised where the value is actually stored.
+	/// </summary>
+	/// <remarks>
+	/// A dense machine's <c>Add</c> raises its own mark, and a store with no dense machine in
+	/// it has no marks to raise — it is cleared to the records it used. The mixed store is the
+	/// one that needs this: were the marks raised for every type at once, as room is made,
+	/// they would say that every table holds a value at every record, and the store would be
+	/// cleared in full however little of it was written.
+	/// </remarks>
+	string DirectMark(string type, string index) =>
+		!DenseDirectValues && _denseStore && TableFor(type) >= 0
+			? $"if ({index} >= values.N{TableName(type)}) values.N{TableName(type)} = {index} + 1;"
+			: "";
 
 	/// <summary>The materializer for one direct machine: a walk over the log, a switch per rule.</summary>
 	/// <remarks>
@@ -1025,6 +1053,10 @@ sealed partial class Machine
 				// A terminal that builds: the lexer measured it, and the character machine of its
 				// own builds it from the text.
 				file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({TokenOf("start")});");
+
+				if (DirectMark(type, "slot") is { Length: > 0 } marked)
+					file.Line(marked);
+
 				file.Line("break;");
 
 				return;
@@ -1057,6 +1089,9 @@ sealed partial class Machine
 					$"{DirectInto(type, "slot")} = " +
 					$"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))});");
 			}
+
+			if (DirectMark(type, "slot") is { Length: > 0 } mark)
+				file.Line(mark);
 
 			file.Line("break;");
 		}
