@@ -595,6 +595,13 @@ then release per turn after step 3. expr carries it beside performance-ff's step
 takes the Finance-side items of the anatomy (the tag parsed twice, `Create` searching `=` again,
 two constructions a field). D14 waits.
 
+**Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
+says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
+0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser
+allocates. The design is worth what the anatomy said; steps 2-3 go. One figure to settle before
+any ratio is quoted: performance-ff's harness reads generated/hand at 3.5x where the stand reads
+2.4x on the same main.
+
 **Then the design**, from that table: what the emitted code for `Fields` would have to be to
 match the hand parser line for line — a loop with no arena for a grammar whose only way back
 is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
