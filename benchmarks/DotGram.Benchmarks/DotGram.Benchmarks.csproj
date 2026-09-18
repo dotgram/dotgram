@@ -58,6 +58,7 @@
 		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
+		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

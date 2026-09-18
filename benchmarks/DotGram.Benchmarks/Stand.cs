@@ -41,7 +41,7 @@ namespace DotGram.Benchmarks;
 /// hand-written parsers, which a slower machine moves on both sides alike.
 /// </para>
 /// </remarks>
-static class Stand
+static partial class Stand
 {
 	/// <summary>
 	/// One way of reading a row's input, which answers a number so that nothing it does can be
@@ -50,7 +50,9 @@ static class Stand
 	sealed record Reading(string Name, Func<int> Run);
 
 	/// <summary>
-	/// One input, read the hand-written way first and by every generated reading after it.
+	/// One input, read the hand-written way first and by every generated reading after it — or,
+	/// where no hand-written parser of the format exists (the web's), by the generated one first,
+	/// which is then the base every ratio is taken against.
 	/// </summary>
 	/// <param name="Disagreement">Null where every reading answers the same; otherwise what differs.</param>
 	sealed record Workload(string Family, string Name, Reading[] Readings, Func<string?> Disagreement)
@@ -108,11 +110,7 @@ static class Stand
 		if (rebuild)
 			Rebuild(root);
 
-		var workloads = Workloads();
-
-		foreach (var workload in workloads)
-			if (workload.Disagreement() is { } disagreement)
-				throw new InvalidOperationException($"{workload.Id}: the readings disagree, so no ratio would mean anything.\n{disagreement}");
+		var workloads = Agreed();
 
 		Console.WriteLine($"{workloads.Length} rows, every reading agreeing. Timing {Rounds} rounds.");
 
@@ -147,6 +145,23 @@ static class Stand
 	}
 
 	/// <summary>
+	/// Every row, with its readings held to one another. Nothing is timed, so it is the check to
+	/// make after writing a row and before asking anyone for a quiet machine.
+	/// </summary>
+	public static void Check() => Console.WriteLine($"{Agreed().Length} rows, every reading agreeing.");
+
+	static Workload[] Agreed()
+	{
+		var workloads = Workloads();
+
+		foreach (var workload in workloads)
+			if (workload.Disagreement() is { } disagreement)
+				throw new InvalidOperationException($"{workload.Id}: the readings disagree, so no ratio would mean anything.\n{disagreement}");
+
+		return workloads;
+	}
+
+	/// <summary>
 	/// The child a first call is taken in: a fresh process, which reads one row once.
 	/// </summary>
 	public static void First(string id, string reading)
@@ -172,7 +187,7 @@ static class Stand
 		Console.WriteLine($"before {a.Commit}, {a.Taken:yyyy-MM-dd HH:mm}, control {a.Control:F1} ns");
 		Console.WriteLine($"after  {b.Commit}, {b.Taken:yyyy-MM-dd HH:mm}, control {b.Control:F1} ns ({Change(a.Control, b.Control)})");
 		Console.WriteLine();
-		Console.WriteLine("| row | reading | before /hand | after /hand | change | before B | after B |");
+		Console.WriteLine("| row | reading | before /base | after /base | change | before B | after B |");
 		Console.WriteLine("| --- | --- | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var row in b.Rows)
@@ -212,10 +227,10 @@ static class Stand
 
 		return
 		[
-			.. Fix("One",        "55=ABC\u0001"),
-			.. Fix("Order",      order),
+			.. Fix("One",        "55=ABC\u0001", regex: true),
+			.. Fix("Order",      order, regex: true),
 			.. Fix("BinaryMany", string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64))),
-			.. Fix("Orders128",  string.Concat(Enumerable.Repeat(order, 128))),
+			.. Fix("Orders128",  string.Concat(Enumerable.Repeat(order, 128)), regex: true),
 
 			// Q7.2 (expr-2d, 2026-09-18): a malformed field late in the message, not the
 			// first one — the recovery rule catches it mid-message, past what already read.
@@ -229,11 +244,19 @@ static class Stand
 			// reader of plain text fields can do. It is an ideal, not a reference (D1), and it
 			// hands anything but plain text fields to HandFixParser, so it belongs on these rows
 			// alone — never on one with binary fields or errors.
+			//
+			// And a regular expression, twice, as "regex-lesser": the split into tag and value and
+			// nothing else, so much less work than a parse that it is only a floor to look up at.
 			.. FixSlopeCounts.Select(n => FixForm(
 				$"slope-{n}.text",
 				() => HandFixParser.Parse(FixSlopeText(n)),
 				() => FixParser.Parse(FixSlopeText(n)),
-				() => IdealFixParser.Parse(FixSlopeText(n)))),
+				() => IdealFixParser.Parse(FixSlopeText(n)),
+				FixSlopeText(n))),
+
+			// The web's formats (architect for Igor, 2026-09-18): generated, and a regular
+			// expression where one can be written honestly. Their base is the generated reading.
+			.. WebWorkloads(),
 
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
@@ -276,13 +299,14 @@ static class Stand
 	/// <summary>
 	/// One FIX input three ways: a string, bytes already in memory, and a stream read lazily.
 	/// </summary>
-	static IEnumerable<Workload> Fix(string name, string text)
+	static IEnumerable<Workload> Fix(string name, string text, bool regex = false)
 	{
 		var bytes = Encoding.Latin1.GetBytes(text);
 
 		yield return FixForm(name + ".text",
 			() => HandFixParser.Parse(text),
-			() => FixParser.Parse(text));
+			() => FixParser.Parse(text),
+			regexText: regex ? text : null);
 
 		yield return FixForm(name + ".bytes",
 			() => HandFixParser.Parse(bytes),
@@ -297,18 +321,31 @@ static class Stand
 		string name,
 		Func<IEnumerable<FixField>> hand,
 		Func<IEnumerable<FixField>> generated,
-		Func<IEnumerable<FixField>>? ideal = null)
+		Func<IEnumerable<FixField>>? ideal = null,
+		string? regexText = null)
 	{
-		Reading[] readings = ideal is null
-			? [new Reading("hand", () => Count(hand())), new Reading("generated", () => Count(generated()))]
-			: [new Reading("hand", () => Count(hand())), new Reading("generated", () => Count(generated())), new Reading("ideal", () => Count(ideal()))];
+		var readings = new List<Reading>
+		{
+			new("hand", () => Count(hand())),
+			new("generated", () => Count(generated())),
+		};
+
+		if (ideal is not null)
+			readings.Add(new Reading("ideal", () => Count(ideal())));
+
+		if (regexText is not null)
+		{
+			readings.Add(new Reading("regex-lesser", () => FixRegex(FixSplit.Interpreted.Value, regexText)));
+			readings.Add(new Reading("regex-compiled-lesser", () => FixRegex(FixSplit.Compiled.Value, regexText)));
+		}
 
 		return new Workload(
 			"fix",
 			name,
-			readings,
+			[.. readings],
 			() => Differ(hand().Select(Describe), generated().Select(Describe))
-				?? (ideal is null ? null : Differ(hand().Select(Describe), ideal().Select(Describe))?.Replace("generated", "ideal    ")));
+				?? (ideal is null ? null : Differ(hand().Select(Describe), ideal().Select(Describe))?.Replace("generated", "ideal    "))
+				?? (regexText is null ? null : FixRegexDisagreement(regexText, hand(), FixSplit.Compiled.Value)));
 
 		static int Count(IEnumerable<FixField> fields)
 		{
@@ -1401,12 +1438,13 @@ static class Stand
 	{
 		var hand = row.Readings[0].Nanoseconds;
 		var text = new StringBuilder($"{row.Id,-22}");
+		var @base = row.Readings[0].Reading;
 
 		foreach (var reading in row.Readings)
 			text.Append(CultureInfo.InvariantCulture, $" {reading.Reading} {reading.Nanoseconds,10:F1} ns");
 
 		foreach (var reading in row.Readings.Skip(1))
-			text.Append(CultureInfo.InvariantCulture, $"  {reading.Reading}/hand {reading.Nanoseconds / hand:F2}x");
+			text.Append(CultureInfo.InvariantCulture, $"  {reading.Reading}/{@base} {reading.Nanoseconds / hand:F2}x");
 
 		return text.ToString();
 	}
@@ -1420,16 +1458,34 @@ static class Stand
 		text.AppendLine(CultureInfo.InvariantCulture,
 			$"{result.Machine}, {result.Runtime}, {(result.Pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {result.Control:F1} ns.");
 		text.AppendLine();
-		text.AppendLine("| row | hand ns | reading | ns | /hand | hand B | B | hand spread |");
-		text.AppendLine("| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |");
-
-		foreach (var row in result.Rows)
+		// One table per base: the hand-written reading where there is one, and the generated one
+		// on the rows of a format nobody wrote a parser of by hand (the web's).
+		foreach (var group in result.Rows.GroupBy(static row => row.Readings[0].Reading))
 		{
-			var hand = row.Readings[0];
+			var @base = group.Key;
 
-			foreach (var reading in row.Readings.Skip(1))
-				text.AppendLine(CultureInfo.InvariantCulture,
-					$"| {row.Id} | {hand.Nanoseconds:F1} | {reading.Reading} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / hand.Nanoseconds:F2}x | {hand.Bytes:F0} | {reading.Bytes:F0} | {row.HandSpread:P0} |");
+			if (@base != "hand")
+			{
+				text.AppendLine();
+				text.AppendLine($"Rows with no hand-written parser, so the base is the {@base} reading:");
+				text.AppendLine();
+			}
+
+			text.AppendLine($"| row | {@base} ns | reading | ns | /{@base} | {@base} B | B | {@base} spread |");
+			text.AppendLine("| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |");
+
+			foreach (var row in group)
+			{
+				var first = row.Readings[0];
+
+				if (row.Readings.Length == 1)
+					text.AppendLine(CultureInfo.InvariantCulture,
+						$"| {row.Id} | {first.Nanoseconds:F1} | — (N/A) | | | {first.Bytes:F0} | | {row.HandSpread:P0} |");
+
+				foreach (var reading in row.Readings.Skip(1))
+					text.AppendLine(CultureInfo.InvariantCulture,
+						$"| {row.Id} | {first.Nanoseconds:F1} | {reading.Reading} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / first.Nanoseconds:F2}x | {first.Bytes:F0} | {reading.Bytes:F0} | {row.HandSpread:P0} |");
+			}
 		}
 
 		text.AppendLine();

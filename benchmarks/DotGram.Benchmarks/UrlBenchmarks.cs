@@ -50,7 +50,7 @@ public class UrlBenchmarks
 	/// for grouping do not each become a capture the engine has to record — without it the
 	/// regex is doing bookkeeping the grammar is not, and the comparison drifts.
 	/// </remarks>
-	const string Pattern =
+	internal const string Pattern =
 		@"^(?<scheme>https|http|ftp)://" +
 		@"(?:(?<user>(?:[0-9a-zA-Z\-._~!$&'()*+,;=:]|%[0-9a-fA-F]{2})+)@)?" +
 		@"(?<host>(?:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})" +

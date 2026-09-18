@@ -38,6 +38,14 @@ static class Program
 			return;
 		}
 
+		// `--stand-check` holds every row's readings to one another and times nothing.
+		if (args.Length == 1 && args[0] == "--stand-check")
+		{
+			Stand.Check();
+
+			return;
+		}
+
 		if (args.Length == 3 && args[0] == "--stand-first")
 		{
 			Stand.First(args[1], args[2]);
