@@ -8,13 +8,16 @@ library; test frameworks and benchmark runners stay outside it.
 ## Existing parsers
 
 - `Fix.HandFixParser`: independent FIX field parser with eager and lazy input APIs.
-- `HandExpression`: expression-language lexer and recursive-descent parser. Uses
-  the production expression factories and state so comparisons build the same values.
+- `HandExpression`: the expression language read by hand, a lexer and a recursive
+  descent. Calls the production factories and hands the production state the same
+  spans, so the two build the same trees; held to `ExpressionParser` answer for answer.
 - `HandSqlStandard`: ISO/IEC 9075-2:2023 read by hand, in `Sql/`. Builds the production
   `DotGram.Sql.Ast` tree and is held to `SqlStandardParser` answer for answer.
 
-The public entry points retain their existing names: `Parse`, `Build` and
-`LexOnly`, where supported. Their namespace is `DotGram.Handwritten`.
+A hand parser's entry points are named after the generated parser's publications
+(`TryParseLambda`, `TryParseLiteral`, …). Their namespace is `DotGram.Handwritten`. Where
+a publication takes the language's internal state, as the expression language's do, it is
+internal here too and visible to `DotGram.Tests` and `DotGram.Benchmarks`.
 
 The library has no generator analyzer reference. References to production libraries
 provide shared result models and semantic factories, not generated recognition.
@@ -116,3 +119,45 @@ literal, and both need a delimited name inside the introducer to show at all:
   the one inside the delimited name.
 
 Where the generated parser is corrected, these go with it.
+
+## The expression language
+
+`DotGram.Handwritten.HandExpression` reads the language `ExpressionParser` reads, as its
+grammar stands (docs/design/architecture-decisions.md, D1 and D8).
+
+- **The same publications**: `TryParseLambda` and `TryParseAsciiLambda`, answering with the
+  generated parser's own `Match`, and the two it reads again over a window of the text — a
+  hole of an interpolated string and the body of a lambda that says no types.
+- **The same answers**: the tree, down to what the API prints for a debugger; a refusal at the
+  same position, with the same outcome and the same name refused in the state; the same
+  exception where the API refuses what the text asked for. The wording of a message is no
+  part of it.
+- **Built where it is read.** The grammar reads a text whole and builds afterwards, so where
+  building throws, the hand parser reads the text again building nothing, from the state
+  rolled back to where it began, and a text that does not read is answered as refused. That
+  costs a second pass on a text that throws and nothing on one that reads.
+- **The body of a lambda that says no types is read without building** the first time,
+  because its types are not known yet, and read again by the call it is handed to.
+
+### How it is held to the generated parser
+
+- `Both` in `tests/DotGram.Tests/ExpressionLanguage` puts every text `ExpressionParserTests`
+  reads to both parsers, so `dotnet test` is the check.
+- `ExpressionHandTests` reads `ExpressionCorpus.Shapes` — every construct of the language
+  and its refusals, one list shared with the benchmark — in both spellings of a name, and
+  every text one character short of a shape.
+- `--el` agrees the two over the corpus before it times anything.
+
+### Where it follows how the generated parser counts, not the language
+
+Three things decide where a refusal is said, and each is the generator's accounting:
+
+- The whole text is cut into tokens before anything is read, so a character no token
+  begins with is refused wherever it stands.
+- A negative lookahead records nothing, and neither does a turn of a repetition that fails
+  at its first token: `case 1:` with no statement after it is refused at the colon.
+- A positive lookahead does record: `(int x) => y` is refused at the end, where the look
+  for a lambda's `=>` stopped.
+
+If a lexer that makes tokens as they are asked for replaces the first (Q1, D5), where a
+refusal is said is decided in `docs/syntax.md` and not by whichever parser is written second.
