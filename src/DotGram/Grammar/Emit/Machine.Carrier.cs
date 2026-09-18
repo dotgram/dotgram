@@ -625,7 +625,7 @@ sealed partial class Machine
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => machine.RenderDirectMaterializer(rules);
 
 		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-			CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore);
+			CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore, NamesMarks(machine._graph));
 
 		public override string? Refuses() => null;
 	}

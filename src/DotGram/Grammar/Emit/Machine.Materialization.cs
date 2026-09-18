@@ -1255,6 +1255,9 @@ sealed partial class Machine
 
 		file.Line();
 		file.Line($"var markState = new {_graph.State}[markMost];");
+
+		if (ReadsMarks)
+			file.Line("var markPlaced = new int[markMost];");
 	}
 
 	/// <summary>
@@ -1285,6 +1288,31 @@ sealed partial class Machine
 			file.Line($"markState[--{name}Fill] = {MarkValue($"entries[{name}Walk].State")};");
 
 		return $"new global::System.ReadOnlySpan<{_graph.State}>(markState, 0, {name}Count)";
+	}
+
+	/// <summary>Where the marks standing over one arena slot were placed, in the same order: `parserMarks`.</summary>
+	/// <remarks>
+	/// Walked apart from <see cref="MarksIn"/> because a factory may ask for either without the
+	/// other. A position is where the reading under the mark began, in the units of
+	/// <c>parserSpan.Start</c>: a token's first character over kinds, not the token's number.
+	/// </remarks>
+	string MarkPositionsIn(Writer file, string at)
+	{
+		var name = $"markedAt{_markReads++}";
+
+		file.Line($"var {name}Count = 0;");
+
+		using (file.Block($"for (var {name}Walk = marks[{at}]; {name}Walk >= 0; " +
+			$"{name}Walk = marks[{name}Walk])"))
+			file.Line($"{name}Count++;");
+
+		file.Line($"var {name}Fill = {name}Count;");
+
+		using (file.Block($"for (var {name}Walk = marks[{at}]; {name}Walk >= 0; " +
+			$"{name}Walk = marks[{name}Walk])"))
+			file.Line($"markPlaced[--{name}Fill] = {At($"entries[{name}Walk].Position")};");
+
+		return $"new global::System.ReadOnlySpan<int>(markPlaced, 0, {name}Count)";
 	}
 
 	int _markReads;
@@ -1346,6 +1374,9 @@ sealed partial class Machine
 		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserState"))
 			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
 
+		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserMarks"))
+			arguments.Add(UsesMarks ? MarkPositionsIn(file, at) : "default");
+
 		return arguments;
 	}
 
@@ -1382,6 +1413,9 @@ sealed partial class Machine
 		// `with state` hands over nothing, which is what an empty span says.
 		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserState"))
 			arguments.Add(UsesMarks ? MarksIn(file, at) : "default");
+
+		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserMarks"))
+			arguments.Add(UsesMarks ? MarkPositionsIn(file, at) : "default");
 
 		foreach (var member in factory.Members)
 		{

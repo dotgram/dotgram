@@ -437,9 +437,11 @@ sealed partial class Machine
 					// it comes off the arena the flat rendering exists not to have.
 					if (graph.State is not null &&
 						node is Node.Construct { How: Construction.Expression { Text: var reading } } &&
-						CSharpEmitter.Uses(graph, reading, "parserState"))
+						(CSharpEmitter.Uses(graph, reading, "parserState") ||
+						 CSharpEmitter.Uses(graph, reading, "parserMarks")))
 					{
 						ReadsState = true;
+						ReadsMarks |= CSharpEmitter.Uses(graph, reading, "parserMarks");
 					}
 
 					// A `when` may name it as well as a `=>`, which `parserInput` cannot —
@@ -1152,6 +1154,34 @@ sealed partial class Machine
 
 	/// <summary>Whether any factory in it reads the marks standing over it.</summary>
 	public bool ReadsState { get; private set; }
+
+	/// <summary>Whether any factory in it reads where those marks were placed (§7.8's `parserMarks`).</summary>
+	/// <remarks>
+	/// What decides whether the positions are kept beside the values at all: a grammar that
+	/// never names them keeps none, and compiles as it did before there were any to keep.
+	/// </remarks>
+	public bool ReadsMarks { get; private set; }
+
+	/// <summary>Whether any construction of the grammar names `parserMarks`, whichever machine holds it.</summary>
+	/// <remarks>
+	/// Asked of the store the machines share rather than of one machine: the store is written
+	/// once for all of them, and a field one of them writes has to be there for every one.
+	/// </remarks>
+	internal static bool NamesMarks(RecognitionGraph graph)
+	{
+		if (graph.State is null)
+			return false;
+
+		foreach (var body in graph.Bodies.Values)
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Construct { How: Construction.Expression { Text: var text } } &&
+					CSharpEmitter.Uses(graph, text, "parserMarks"))
+				{
+					return true;
+				}
+
+		return false;
+	}
 
 	int MarkSite(string text)
 	{

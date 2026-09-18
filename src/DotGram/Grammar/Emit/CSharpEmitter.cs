@@ -2316,6 +2316,11 @@ public static partial class CSharpEmitter
 		if (graph.State is not null && Asks(graph, factory, "parserState"))
 			parameters.Add($"global::System.ReadOnlySpan<{graph.State}> parserState");
 
+		// And where each of them was placed, in the same order: what tells one mark from
+		// another of the same value, which a jump needs to say which loop it leaves.
+		if (graph.State is not null && Asks(graph, factory, "parserMarks"))
+			parameters.Add("global::System.ReadOnlySpan<int> parserMarks");
+
 		// A fold step is handed the value built so far under the name it captured the
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
 		// away — so it is written in here rather than found among the members.
@@ -3050,7 +3055,7 @@ public static partial class CSharpEmitter
 		// Anything supplied is something the token does not say.
 		if (WantsText(graph, factory) || Asks(graph, factory, "parserSpan") ||
 			Asks(graph, factory, "parserInput") || Asks(graph, factory, "context") ||
-			Asks(graph, factory, "parserState"))
+			Asks(graph, factory, "parserState") || Asks(graph, factory, "parserMarks"))
 		{
 			return null;
 		}

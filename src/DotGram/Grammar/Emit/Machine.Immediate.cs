@@ -36,7 +36,7 @@ sealed partial class Machine
 	/// the collector's write barrier — a fifth of the parse, measured on the SQL yardstick.
 	/// </para>
 	/// </remarks>
-	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes, IReadOnlyCollection<string> stacks, string? stateType = null)
+	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes, IReadOnlyCollection<string> stacks, string? stateType = null, bool markPositions = false)
 	{
 		var text = new StringBuilder();
 
@@ -55,6 +55,10 @@ sealed partial class Machine
 			text.Append("\tinternal ").Append(stateType).Append("[] MarkState = new ")
 				.Append(stateType).Append("[8];\n\n");
 
+		// And where each was placed, for a factory that names `parserMarks`.
+		if (stateType is not null && markPositions)
+			text.Append("\tinternal int[] MarkAt = new int[8];\n\n");
+
 		for (var i = 0; i < valueTypes.Count; i++)
 			Stack(text, valueTypes[i], TableName(valueTypes[i]));
 
@@ -70,6 +74,8 @@ sealed partial class Machine
 				.Select(stack => "values.Stack" + stack + ".Length").ToList();
 			if (stateType is not null)
 				capacities.Add("values.MarkState.Length");
+			if (stateType is not null && markPositions)
+				capacities.Add("values.MarkAt.Length");
 			text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
 			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
 			Emptied(text, "Text");
@@ -512,11 +518,24 @@ sealed partial class Machine
 		/// and the walk at the end replays it into a stack to know what stood over a value;
 		/// here the value is built while the mark stands, so the stack is the answer as it is.
 		/// </remarks>
-		public override string Mark(int kind, int site) =>
-			kind == -1
-				? $"if (marked == values.MarkState.Length) global::System.Array.Resize(ref values.MarkState, marked * 2); " +
-					$"values.MarkState[marked++] = {machine._marks[site]};"
-				: "marked--;";
+		public override string Mark(int kind, int site)
+		{
+			if (kind != -1)
+				return "marked--;";
+
+			// Where the mark is placed is where the reading under it begins, which is the
+			// reader's position now: a factory built under it is handed that (`parserMarks`).
+			if (NamesMarks(machine._graph))
+				return
+					$"if (marked == values.MarkState.Length) {{ global::System.Array.Resize(ref values.MarkState, marked * 2); " +
+					$"global::System.Array.Resize(ref values.MarkAt, marked * 2); }} " +
+					$"values.MarkAt[marked] = {machine.At("p")}; " +
+					$"values.MarkState[marked++] = {machine._marks[site]};";
+
+			return
+				$"if (marked == values.MarkState.Length) global::System.Array.Resize(ref values.MarkState, marked * 2); " +
+				$"values.MarkState[marked++] = {machine._marks[site]};";
+		}
 
 		public override string Materialize(string record, string sinceMark) => "";
 
@@ -551,7 +570,7 @@ sealed partial class Machine
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => "";
 
 		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-			ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType);
+			ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType, NamesMarks(machine._graph));
 
 		public override string? Refuses()
 		{
