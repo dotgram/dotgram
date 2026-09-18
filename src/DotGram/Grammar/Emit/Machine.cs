@@ -87,6 +87,45 @@ sealed partial class Machine
 	string NotAtEnd(string position) =>
 		BufferedInput ? $"text.Peek({position}, out _)" : $"{position} != text.Length";
 
+	/// <summary>
+	/// Writes <c>var <paramref name="into"/> = …;</c>: the position of the first of
+	/// <paramref name="stops"/> at or after <paramref name="from"/>, or -1 where the input ends
+	/// before one.
+	/// </summary>
+	/// <remarks>
+	/// A search, where the runtime has a vectorized one, for what would otherwise be read a
+	/// character at a time: a field's value up to its separator, a broken element up to the
+	/// sync. One to five stops; more is a class, and a class is read.
+	/// </remarks>
+	void EmitSearch(Writer writer, string into, string from, IReadOnlyList<char> stops)
+	{
+		if (BufferedInput)
+			throw new InvalidOperationException("A search over buffered input is not written yet (fix-reader-buffered, step 5).");
+
+		var span = $"text.Slice({from})";
+		var call = stops.Count switch
+		{
+			1     => $"global::System.MemoryExtensions.IndexOf({span}, {CSharpEmitter.Char(stops[0])})",
+			<= 3  => $"global::System.MemoryExtensions.IndexOfAny({span}, {string.Join(", ", stops.Select(CSharpEmitter.Char))})",
+			_     => $"global::System.MemoryExtensions.IndexOfAny({span}, global::System.MemoryExtensions.AsSpan({Quoted(new string([.. stops]))}))",
+		};
+
+		writer.Line($"var {into}Found = {call};");
+		writer.Line($"var {into} = {into}Found < 0 ? -1 : {from} + {into}Found;");
+	}
+
+	/// <summary>Where the input ended, once a search or a bounds test has found that it did.</summary>
+	string EndOfInput =>
+		BufferedInput
+			? throw new InvalidOperationException("The end of buffered input is not written yet (fix-reader-buffered, step 5).")
+			: "text.Length";
+
+	/// <summary>The text between two positions, for use at once: over a buffer it lives until the next read.</summary>
+	string Slice(string from, string to) =>
+		BufferedInput
+			? throw new InvalidOperationException("A slice of buffered input is not written yet (fix-reader-buffered, step 5).")
+			: $"text.Slice({from}, {to} - {from})";
+
 	const int Return = 0;
 	const int Accept = 1;
 	const int Fail   = 2;
@@ -4043,6 +4082,20 @@ sealed partial class Machine
 
 		writer.Line("var runStart = p;");
 
+		// A run that stops only at a few characters is a search for them, with the answer the
+		// loop would give: `(?!Separator & any)+` before a one-character separator is a FIX
+		// field's value.
+		if (!BufferedInput && !_starves && max is null && StopCharacters(repeatNode.Body) is { } stops)
+		{
+			EmitSearch(writer, "stop", "p", stops);
+			writer.Line($"p = stop < 0 ? {EndOfInput} : stop;");
+
+			FinishScan(writer, repeatNode, next,
+				min > 0 && GuardedCharacterTest(repeatNode.Body) != null ? CompileRepeat(repeatNode, next, following) : null);
+
+			return state;
+		}
+
 		using (writer.Block("while (true)"))
 		{
 			if (max is { } limit)
@@ -4075,6 +4128,53 @@ sealed partial class Machine
 		FinishScan(writer, repeatNode, next, retry);
 
 		return state;
+	}
+
+	/// <summary>
+	/// The characters a run of this body stops at, where it stops at nothing else and they are
+	/// few: <c>[^ ',' | ';']</c>, or <c>?!Stop &amp; any</c> with a stop of one to five
+	/// characters. Null otherwise.
+	/// </summary>
+	char[]? StopCharacters(Node body)
+	{
+		var stop = body switch
+		{
+			Node.Element { IsNegated: true } negated => negated,
+			Node.Sequence({ Count: 2 } parts) when parts[0] is Node.Lookahead(false, var guard) &&
+				RunTest(parts[1]) == "true" => DelimiterBody(guard),
+			_ => null,
+		};
+
+		IReadOnlyList<CharRange> ranges;
+
+		switch (stop)
+		{
+			case Node.Literal(var text) when text.Length == 1:
+				return [text[0]];
+
+			// The body's own negated class, or a class the lookahead refuses: never a negated
+			// one there, which would stop at nearly everything.
+			case Node.Element { Categories.Count: 0, References.Count: 0 } element
+				when element.IsNegated == ReferenceEquals(stop, body):
+				ranges = element.Ranges;
+				break;
+
+			default:
+				return null;
+		}
+
+		var made = new List<char>();
+
+		foreach (var range in ranges)
+			for (int c = range.From; c <= range.To; c++)
+			{
+				if (made.Count == 5)
+					return null;
+
+				made.Add((char)c);
+			}
+
+		return made.Count == 0 ? null : [.. made];
 	}
 
 	void FinishScan(Writer writer, Node.Repeat repeatNode, int next, int? retry = null)

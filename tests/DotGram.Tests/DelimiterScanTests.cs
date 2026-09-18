@@ -43,6 +43,32 @@ public sealed class DelimiterScanTests
 		}
 	}
 
+	/// <summary>
+	/// A run searched for its stops (Machine.EmitSearch) — one, a few, and more than three, the
+	/// last written as a string — with stops C# takes for the end of a line inside a literal:
+	/// U+0085, U+2028 and U+2029, which SQL:2023's comments stop at. <c>Start</c> calls itself
+	/// so that the grammar is not lowered to one flat method, which reads a run otherwise.
+	/// </summary>
+	[Theory]
+	[InlineData("'\\u2028'")]
+	[InlineData("['\\u0085' | '\\u2029']")]
+	[InlineData("['\\n' | '\\r' | '\\u0085' | '\\u2028' | '\\u2029']")]
+	public void A_run_searched_for_line_ends_matches_the_general_machine(string stops)
+	{
+		var grammar = "Stop = " + stops + "\n" +
+			"Text = (?!Stop & any)+\n" +
+			"Start : @int = value: Text & (Stop | eof) => @(value.Length)\n" +
+			"      | '(' & inner: Start & ')' => @(inner)\n" +
+			"parse Start";
+		var fast = Searched(grammar, searches: true);
+		var slow = Searched(grammar.Replace("& any)", "& when @(true) & any)"), searches: false);
+
+		foreach (var input in new[] { "", "abc", "abc\u2028", "ab\u0085", "a\u2029", "a\nb", "a\rb", "\u2028" })
+			Assert.Equal(
+				EmittedCode.Match(slow, "Grammar", "TryParseStart", input),
+				EmittedCode.Match(fast, "Grammar", "TryParseStart", input));
+	}
+
 	[Theory]
 	[InlineData("+")]
 	[InlineData("{2,}")]
@@ -152,6 +178,21 @@ public sealed class DelimiterScanTests
 			Direct = false, BufferedInput = true, BufferedBytes = true,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		};
+	}
+
+	/// <summary>Over a string, where a run may be searched for its stops.</summary>
+	static Assembly Searched(string grammar, bool searches)
+	{
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName = "Grammar", Direct = false, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+
+		Assert.Equal(searches, source.Contains("global::System.MemoryExtensions.IndexOf", StringComparison.Ordinal));
+
+		return EmittedCode.Compile(source);
 	}
 
 	static Assembly Compile(string grammar, bool padded = false)
