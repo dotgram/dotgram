@@ -418,3 +418,51 @@ outlives the call (`yield`, a lazy context). Owner: performance-3f.
 Until then finance-03 documents the copy on both span overloads, as `FixMessages.Parse`
 already does (approved: comments only, no signature or emitted code changes). Removing the
 overloads was refused: it would be a breaking change out and another one back.
+
+### Q3. Options and modes left behind by experiments
+
+Raised 2026-09-17 by Igor: the experiments have left options and modes of the generator, some
+of which may no longer earn their place; those go. The architect's inventory, by what an
+option is for. Usage counts are `[Gram]`/`[GramOptions]` sites in `src`, `examples`, `tests`,
+`benchmarks`.
+
+**Keep: they are API a user chooses by, and each changes what the user gets.**
+`Suffix` (a second reading), `LocationType`, `Portable`, `Stacks`, `SpanCaptures` (changes the
+type a factory receives), `Lexical` (a request, and over kinds a rule's answer stands, which
+changes what the grammar means), `Carrier = Tape | Immediate | Auto` (Immediate is the
+author's statement that the factories are pure).
+
+**Remove, recommended.**
+
+1. `GramCarrier.Mixed` and `Machine.Mixed.cs` (about 1,170 lines). Measured slower than the
+   tape on SQL and recorded as not to be expected to beat a log on a grammar whose rules are
+   mostly on cycles. Used by one benchmark (`MixedSql`) and nothing else. D3's design replaces
+   the question it asked.
+2. `PrefixTables = false` ("use the previous strategy"). Used by tests only. The fallback to
+   the ordinary alternative chain inside the prefix tables stays; the switch back to the old
+   emission goes.
+3. `ValueStorage` as an option: `Flat`, `Adaptive`, `Paged` as author choices. Used by tests and
+   `ValueStorageBenchmarks` only; `Auto` already chooses (dense, adaptive). `Paged`, which `Auto`
+   never chooses, goes with its code; the rest becomes the generator's choice, not API. After
+   D2 lands, since D2 changes the same store.
+4. `Direct = false` in `FixGrammar` and the Fix44 example: moot, since the reader refuses a
+   recovering grammar anyway (performance-3f). The option stays only if a test of the engine
+   needs it, and then it is not offered in the user's attribute.
+5. `BufferedInput` / `BufferedBytes` as host options beside `stream` / `stream bytes` on a
+   publication: two ways to ask for one thing. Under D7 some forms are declared by the grammar,
+   so the publication syntax stays and the host options go. With D7's convergence of the two
+   streaming mechanisms, not before.
+
+**Open, measured before deciding.** `PartSize` (a wish; measured flat from 60 to 250, set only
+by the Fix44 example at 1,000); the compiler's internal `SourceFileSize` (file split),
+`SharedTypes`, `Own`, `Inherits`.
+
+**Beside the options.** Benchmark projects and classes that exist only for a rejected or
+finished experiment (`CompilationSplitExperiment`, `DotGram.HandDeferred`,
+`DotGram.PrefixBenchmarks`, `MixedSql`, `ValueStorageBenchmarks`, `DeferredShape`), and the dated
+reports in `docs/design` whose subject was removed, go with it; `docs/next.md` keeps the
+history.
+
+Each removal is one change, by the owner of the area (performance-3f for the generator, the
+option's grammar owner for its use), and shows that emitted code for the shipping grammars
+(SQL, EL, Web, FIX) is unchanged or explains each difference.
