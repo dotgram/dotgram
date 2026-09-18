@@ -81,7 +81,7 @@ They come one at a time, each a `GRAM5004`:
 
 | what refuses | what it really is |
 | --- | --- |
-| `?!ReservedWord` in `ActualIdentifier`, `IntroducedName` | over kinds the lexer hands over a word and the parser says whether it is reserved; a guard after the word says the same thing |
+| `?!ReservedWord` in `ActualIdentifier`, `IntroducedName` | over kinds the lexer hands over a word and the parser says whether it is reserved — but a guard is **not** the same thing, see below |
 | `?!IdentifierPart` in `wordboundary` | the right-hand word boundary, which a maximal token keeps by itself |
 | `?!IdentifierPart` in `SQLLanguageIdentifier`, `Multiplier` | the same again — and the second is the `2K` of the section above |
 | `?!eol` in `SimpleComment` | a lookahead written where a negated class says it |
@@ -101,6 +101,36 @@ follows it both begin with a star. The original shape, `"/*" & (?!"*/" & any)* &
 one a scanner understands: `Machine.Scan.cs` has a branch for exactly a repetition guarded by
 the literal that follows it. So `?!"*/"` was never an obstacle — it is the idiom. Only the
 recursion was.
+
+### A guard is not a lookahead, and the difference cost 241 lines
+
+The workaround for the first obstacle — reading the word and rejecting it with
+`when @(!Reserved.Is(t))` instead of refusing it with `?!ReservedWord` — is not equivalent, and
+the experiment proved it by accident. Read the same grammar four ways over one DDL corpus:
+
+| build | lines differing from the hand parser |
+| --- | ---: |
+| `main`, no edits, over characters | 0 |
+| the edits with the guard, over characters | 271 |
+| the edits with the lookahead restored, over characters | 30 |
+| the edits with the guard, over kinds | 27 |
+
+`Identifier` is written `{ i: ActualIdentifier }`, and an atomic group commits to its first
+reading. A lookahead refuses before anything is consumed, so the reading never happens and the
+parse backtracks as it should: in `UNIQUE (a, p WITHOUT OVERLAPS)` the column list gives `p`
+back and the optional period part takes `, p WITHOUT OVERLAPS`. A guard refuses after
+consuming, by which time the group has committed, the failure is hard, and the backtrack never
+comes. Twenty-one of those statements are lost over characters and twenty-seven over kinds.
+
+**So over kinds a reserved word wants to be a kind, not a guard.** The lexer knows which words
+§5.2 reserves; if it says so in the token, the alternative simply does not match and nothing has
+to be taken back. A parser-side guard puts the decision after the commit, which is the one place
+it cannot be made.
+
+The table says something else worth keeping. The edits cost 271 lines read over characters and
+27 read over kinds: **the token layer repairs what the edits break.** Reading over kinds is not
+losing constructs here — it is covering for guards the character automaton needed and the token
+layer does not.
 
 ## One number the experiment gives without timing anything
 
