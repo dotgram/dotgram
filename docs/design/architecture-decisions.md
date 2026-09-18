@@ -18,6 +18,10 @@ is measured against the hand parser, and how it is undone.
 The architect's refusal stands until Igor overrides it. An experiment in scratch needs no
 approval; landing it does.
 
+**The architect does not measure or write, Igor 2026-09-18.** Its work is plan, delegate, review,
+reconcile and decide. Everything about the measuring stand — `Stand.cs`, baseline runs, the
+before/after runs a session asks for — belongs to the `stand` session.
+
 **Grammars and the language, Igor 2026-09-17.** The grammar of a concrete parser (SQL, EL,
 FIX, Web and the rest) may be improved by the session that owns it without asking: that is
 work on a parser, not on the generator. A change to the language itself (`syntax.md`: its
