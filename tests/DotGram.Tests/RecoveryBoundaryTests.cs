@@ -137,6 +137,58 @@ public sealed class RecoveryBoundaryTests
 		Assert.Equal(new[] { "!bad" }, Read(assembly, "bad", true, false));
 	}
 
+	[Theory]
+	[InlineData("*", "!")]
+	[InlineData("*", "?")]
+	[InlineData("+", "!")]
+	[InlineData("+", "?")]
+	public void Committed_turns_preserve_run_backtracking_recovery_and_outer_alternatives(string repetition, string ending)
+	{
+		var assembly = Compile("""
+			Row : @string = text: ['a']+ & 'a' & ';' => @(Text(text))
+			""" + "\nRows : @string[] = Row" + repetition + " recover ';' => @(Bad(parserText))\n" + """
+			Start : @string[] = rows: Rows & '!' => @(rows)
+				| rows: Rows & '?' => @(rows)
+			parse Start
+			""", true);
+		var input = string.Concat(Enumerable.Repeat("aaa;", 12)) + "bad;aaaa;" + ending;
+		var expected = Enumerable.Repeat("aa", 12).Concat(new[] { "!bad", "aaa" }).ToArray();
+
+		Assert.Equal(expected, (string[])EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).Value!);
+		Assert.Equal(expected, Read(assembly, input, true, false));
+		Assert.Equal(expected, Read(assembly, input, true, true));
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", input[..^1]).IsSuccess);
+	}
+
+	[Theory]
+	[InlineData(false, "!")]
+	[InlineData(false, "?")]
+	[InlineData(true, "!")]
+	[InlineData(true, "?")]
+	public void Switch_materializes_direct_and_owned_recoveries_after_prior_fields(bool throughOwner, string ending)
+	{
+		var capture = throughOwner ? "rows: Group" : "'[' & rows: Row* recover ';' => @(Bad(parserText)) & ']'";
+		var assembly = Compile("""
+			Row : @string = 'R' & text: ['a'..'z']+ & ';' => @(Text(text))
+			""" + (throughOwner ? "\nGroup : @string[] = '[' & Row* recover ';' => @(Bad(parserText)) & ']'" : "") +
+			"\nEntry : @string = " + capture + " & " + """
+			switch @(rows.Length) {
+				case 2: ':' & when @(rows[1].StartsWith("!")) => @(string.Join(",", rows))
+				default: '.' => @(string.Join(",", rows))
+			}
+			Start : @string[] = entries: Entry* & '!' => @(entries)
+				| entries: Entry* & '?' => @(entries)
+			parse Start
+			""", true);
+		var input = string.Concat(Enumerable.Repeat("[Ra;bad;]:", 12)) + "[bad;]." + ending;
+		var expected = Enumerable.Repeat("a,!bad", 12).Append("!bad").ToArray();
+
+		Assert.Equal(expected, (string[])EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).Value!);
+		Assert.Equal(expected, Read(assembly, input, true, false));
+		Assert.Equal(expected, Read(assembly, input, true, true));
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "[Ra;Rb;]:!").IsSuccess);
+	}
+
 	static Assembly Compile(string grammar, bool buffered)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions

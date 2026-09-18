@@ -113,7 +113,7 @@ sealed partial class Machine
 				atRecovered.Line("recoveryBoundary = true;");
 			}
 		}
-		DeactivateChoices(atRecovered, "repeat");
+		DeactivateChoices(atRecovered, asked);
 		atRecovered.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
 			"repeat, lookahead, recoveryTo, entries[repeat].Value" +
@@ -125,7 +125,7 @@ sealed partial class Machine
 			"recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);");
 		atRecovered.Line($"goto {Label(atRecovered, loop)};");
 
-		DeactivateChoices(atAfter, "repeat");
+		DeactivateChoices(atAfter, asked);
 		atAfter.Line("var acceptedRepeat = entries[repeat];");
 		atAfter.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
@@ -138,16 +138,23 @@ sealed partial class Machine
 		return entry;
 	}
 
-	static void DeactivateChoices(Writer writer, string from)
+	static void DeactivateChoices(Writer writer, int attempt)
 	{
-		using (writer.Block($"for (var choiceAt = entries.Count - 1; choiceAt > {from}; choiceAt--)"))
+		using (writer.Block("for (var choiceAt = entries.Count - 1; choiceAt > repeat; choiceAt--)"))
 		{
 			writer.Line("var choice = entries[choiceAt];");
-			writer.Line("if (choice.Kind != ParserEntry.Choice) continue;");
-			writer.Line(
+			writer.Line("if (choice.Kind == ParserEntry.Choice)");
+			writer.Then(
 				"entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, " +
 				"choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, " +
 				"choice.Value, choice.RuleIndex);");
+			// Earlier turns already committed their choices. The attempt marker remains
+			// as Dead after success, or becomes PendingRecovery when its choice unwinds.
+			// Unlike a cached arena offset, the marker follows rollback and nested loops.
+			writer.Line(
+				$"if (choice.RepeatIndex == repeat && choice.State == {Mark(Lands, attempt)} && " +
+				"(choice.Kind == ParserEntry.Choice || choice.Kind == ParserEntry.Dead || " +
+				"choice.Kind == ParserEntry.PendingRecovery)) break;");
 		}
 	}
 

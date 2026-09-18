@@ -167,7 +167,11 @@ sealed partial class Machine
 		{
 			file.Line();
 
-			using (file.Block("for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
+			// A requested recovery is itself a root; an indirectly requested one follows
+			// its owning call. Neither can precede the earliest root of this walk.
+			using (file.Block(cached
+				? "for (var recoveryAt = materializeFrom; recoveryAt < entries.Count; recoveryAt++)"
+				: "for (var recoveryAt = 0; recoveryAt < entries.Count; recoveryAt++)"))
 			{
 				file.Line("var recovered = entries[recoveryAt];");
 				file.Line(
@@ -464,12 +468,87 @@ sealed partial class Machine
 			writer.Line($"var values{TableName(type)} = parser.Materialization{TableName(type)}();");
 	}
 
+	// A guard over scalar leaves has no dependency tree to walk. Build just the
+	// requested values, at the same demand point and in descending arena order as
+	// Materialize. Keep the ordinary cache so rollback invalidation and final
+	// construction agree with guards that still use the general materializer.
+	void MaterializeScalarGuard(Writer file, IReadOnlyList<(ResultMember Member, IReadOnlyList<int> Slots)> visible)
+	{
+		var requested = new List<int>();
+
+		for (var i = 0; i < visible.Count; i++)
+			if (visible[i].Member.Rule is not null)
+				requested.Add(i);
+
+		if (requested.Count == 1)
+		{
+			var index = requested[0];
+			using (file.Block($"if (guardCaptured{index}At >= 0 && !guardBuilt[guardCaptured{index}At])"))
+				Build(index, $"guardCaptured{index}At");
+			return;
+		}
+
+		foreach (var index in requested)
+			file.Line($"var guardPending{index} = guardCaptured{index}At >= 0 && " +
+				$"!guardBuilt[guardCaptured{index}At] ? guardCaptured{index}At : -1;");
+
+		using (file.Block("while (true)"))
+		{
+			var greatest = $"guardPending{requested[0]}";
+
+			for (var i = 1; i < requested.Count; i++)
+				greatest = $"global::System.Math.Max({greatest}, guardPending{requested[i]})";
+
+			file.Line($"var guardAt = {greatest};");
+			file.Line("if (guardAt < 0) break;");
+
+			foreach (var index in requested)
+				using (file.Block($"if (guardAt == guardPending{index})"))
+				{
+					// Two captures can name one completed call. Construct it once.
+					using (file.Block("if (!guardBuilt[guardAt])"))
+						Build(index, "guardAt");
+					file.Line($"guardPending{index} = -1;");
+				}
+		}
+
+		void Build(int index, string at)
+		{
+			var rule    = visible[index].Member.Rule!;
+			var type    = _results.QualifiedOf(rule)!;
+			var factory = _factories[rule][0];
+			var target  = TableFor(type) >= 0 ? ValueInto(type, at) : $"guardValues[{at}]";
+
+			file.Line($"var completed = entries[{at}];");
+			file.Line($"var captured0 = {Cut("completed.Position", "completed.Value - completed.Position")};");
+			file.Line($"{target} = {factory.Method}(" +
+				$"{string.Join(", ", FactoryArguments(file, factory, _graph.Results[rule], at))});");
+			file.Line($"guardBuilt[{at}] = true;");
+		}
+	}
+
 	void MaterializeRule(Writer file, RuleSymbol rule, int firstFactory = -1)
 	{
 		var offset    = _captureOffsets[rule];
 		var members   = _graph.Results[rule];
 		var type      = _results.QualifiedOf(rule)!;
 		var factories = _factories[rule];
+
+		// The only capture covers the completed call exactly. Its two positions are
+		// already in Completed, including when recognition took the diagnostic path.
+		// Keep construction in this demand-driven pass; only the capture walk disappears.
+		if (ScalarScanner(rule) is not null)
+		{
+			using (file.Block($"case {_ruleIds[rule]}:"))
+			{
+				file.Line($"var captured0 = {Cut("completed.Position", "completed.Value - completed.Position")};");
+				file.Line(
+					$"{ValueInto(type, "completedAt")} = " +
+					$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))});");
+				file.Line("break;");
+			}
+			return;
+		}
 
 		// Its value is the entry it left, so the walk has nothing to run here. The case is
 		// still written: the switch is over every rule that has a value, and this one has.

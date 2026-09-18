@@ -3517,8 +3517,9 @@ namespace DotGram.Snapshots
 					for (var choiceAt = entries.Count - 1; choiceAt > repeat; choiceAt--)
 					{
 						var choice = entries[choiceAt];
-						if (choice.Kind != ParserEntry.Choice) continue;
-						entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
+						if (choice.Kind == ParserEntry.Choice)
+							entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
+						if (choice.RepeatIndex == repeat && choice.State == 15 && (choice.Kind == ParserEntry.Choice || choice.Kind == ParserEntry.Dead || choice.Kind == ParserEntry.PendingRecovery)) break;
 					}
 					var acceptedRepeat = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1);
@@ -3584,8 +3585,9 @@ namespace DotGram.Snapshots
 					for (var choiceAt = entries.Count - 1; choiceAt > repeat; choiceAt--)
 					{
 						var choice = entries[choiceAt];
-						if (choice.Kind != ParserEntry.Choice) continue;
-						entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
+						if (choice.Kind == ParserEntry.Choice)
+							entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
+						if (choice.RepeatIndex == repeat && choice.State == 15 && (choice.Kind == ParserEntry.Choice || choice.Kind == ParserEntry.Dead || choice.Kind == ParserEntry.PendingRecovery)) break;
 					}
 					entries.Add(new ParserEntry(ParserEntry.Recovery, 0, recoveryFrom, call, recoveryReach, repeat, lookahead, recoveryTo, entries[repeat].Value));
 					var recoveredRepeat = entries[repeat];
