@@ -272,8 +272,7 @@ abstraction and no runtime interface per symbol) and makes it binding.
 
 **Decided 2026-09-17 by Igor: an array of strings is lines.** The elements are one text with a
 line break between them, which is what a feed is, as `IEnumerable<string>` reads today. The
-break is `
-`, the one `eol` matches (`status.md`, "And from a sequence of lines"). As a form of
+break is `\n`, the one `eol` matches (`status.md`, "And from a sequence of lines"). As a form of
 its own it reads the break where an element ends, without copying the elements into a
 `TextReader` stream; an element boundary is also a point a feed can release input at.
 
