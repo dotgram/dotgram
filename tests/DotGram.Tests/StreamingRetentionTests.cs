@@ -32,7 +32,12 @@ namespace DotGram.Tests;
 /// Every hundredth record is broken, and the recovery drops it and answers -1 in its place,
 /// so the bound is held through recovery and not only along the clean path.
 /// </para>
+/// <para>
+/// <b>Run alone.</b> What is live is the whole process's heap, not this test's: a neighbour
+/// running beside it would be measured with it, and would pass or fail it at random.
+/// </para>
 /// </remarks>
+[Collection(typeof(GeneratorCostTests.Alone))]
 public sealed class StreamingRetentionTests
 {
 	const string Grammar = """
