@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Model;
 
 namespace DotGram.Grammar.Emit;
 
@@ -176,6 +177,11 @@ sealed partial class Machine
 		int _factory;
 		string? _start, _end;
 		readonly List<(DirectMember Member, string Value)> _puts = [];
+
+		// What the record would have taken off the stacks, for a reading that does not build:
+		// the stacks go back to the rule's marks all the same, or what it pushed is taken by
+		// whichever rule collects next.
+		readonly List<string> _drops = [];
 		internal readonly HashSet<string> GatheredRequirements = new(StringComparer.Ordinal);
 		internal IReadOnlyCollection<string>? SharedRequirements;
 
@@ -238,7 +244,61 @@ sealed partial class Machine
 				// grammar puts one — which in a language with `checked(...)` is a hot path.
 				if (Marks)
 					yield return ("int", "marked");
+
+				// How many calls whose value nobody asks for the reading is inside. Nothing is
+				// built while this is above zero (AroundCall). A field for the reason the
+				// marks are, and carried where a reading deepens as the registers are.
+				if (Unbuilding)
+					yield return ("int", "unbuilt");
 			}
+		}
+
+		/// <summary>
+		/// Whether some rule of this machine is read where its value is not asked for, so that
+		/// the reader has to know whether it is building (<see cref="Demand"/>).
+		/// </summary>
+		/// <remarks>
+		/// The tape builds nothing while it reads, and afterwards only what the answer is made
+		/// of and what a guard named. Building as it reads, this carrier has to leave out the
+		/// same things, or it runs a construction the tape never would: the expression
+		/// language reads an untyped lambda's body only to find its end, and a construction
+		/// in that body, run before the lambda's parameters have types, throws.
+		/// </remarks>
+		bool Unbuilding => _unbuilding ??= machine._rules.Any(machine.Demands.ReadUnbuilt);
+
+		bool? _unbuilding;
+
+		/// <summary>
+		/// <summary>
+		/// A call nobody asks the value of is read with the count raised; one a guard or a
+		/// <c>with state</c> asks for is read with it at zero, where the rule it stands in
+		/// can be read unbuilt.
+		/// </summary>
+		/// <remarks>
+		/// Neither needs a <c>finally</c>, for the reasons the lookahead count does not
+		/// (<c>LookingField</c>): a throw ends the parse, and the count lives in that parse's
+		/// reader.
+		/// </remarks>
+		public override (string Before, string After)? AroundCall(RuleSymbol owner, Node.Call call, string local)
+		{
+			if (!Unbuilding)
+				return null;
+
+			var demands = machine.Demands;
+			var kind    = demands.Of(call);
+
+			if (kind == Demand.Kind.Never)
+				return ("unbuilt++;", "unbuilt--;");
+
+			if (!demands.ReadUnbuilt(owner))
+				return null;
+
+			// A call the report does not know is built as it always was: asking again for
+			// what is under it is what every reading did before demand was asked at all.
+			if (kind == Demand.Kind.Always || !demands.Knows(call))
+				return ($"var {local}u = unbuilt; unbuilt = 0;", $"unbuilt = {local}u;");
+
+			return null;
 		}
 
 		/// <remarks>
@@ -346,6 +406,7 @@ sealed partial class Machine
 			_start   = start;
 			_end     = end;
 			_puts.Clear();
+			_drops.Clear();
 			_accumulated = false;
 
 			return "";
@@ -384,14 +445,30 @@ sealed partial class Machine
 			var taken = $"values.Take{stack}({from}_{stack})";
 
 			_puts.Add((member, pairs ? $"Joined_DotGram({taken}, {(member.Member.IsOptional ? "true" : "false")})" : taken));
+			_drops.Add($"values.Count{stack} = {from}_{stack};");
 
 			return "";
 		}
 
-		/// <summary>The construction, called now, its result in the register of the rule's type.</summary>
+		/// <summary>
+		/// The construction, called now, its result in the register of the rule's type — where
+		/// the reading is building; a rule some reading of which is not asks first.
+		/// </summary>
 		public override string End(string gatheredFrom)
 		{
-			var rule = _rule ?? throw new InvalidOperationException("A record ended that never began.");
+			var rule  = _rule ?? throw new InvalidOperationException("A record ended that never began.");
+			var built = Built(rule);
+
+			if (!Unbuilding || !machine.Demands.ReadUnbuilt(rule) || built.Length == 0)
+				return built;
+
+			return _drops.Count == 0
+				? "if (unbuilt == 0) " + built
+				: "if (unbuilt == 0) " + built + " else { " + string.Join(" ", _drops) + " }";
+		}
+
+		string Built(RuleSymbol rule)
+		{
 			var type = machine._results.QualifiedOf(rule)!;
 			var into = Register(type);
 

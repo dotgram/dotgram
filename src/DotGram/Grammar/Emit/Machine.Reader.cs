@@ -1577,8 +1577,19 @@ sealed partial class Machine
 				? ", power"
 				: machine.DirectStrengthOf(call, called);
 
+			// Where the value this call reads is built otherwise than the reading around it
+			// is — nobody asks for it, or a guard asks for it inside a reading nobody asks the
+			// value of — the carrier says so around the call (Demand).
+			var around = call is Node.Call asked ? machine.Carrier.AroundCall(owner, asked, result) : null;
+
+			if (around is { } before)
+				code.Line(before.Before);
+
 			code.Line(
 				$"var {result} = {machine.ReaderOf(called)}(p{strength});");
+
+			if (around is { } after)
+				code.Line(after.After);
 
 			// What the rule says about its own refusal (§4's `on fail`), where the refusal is
 			// the rule's own: it was entered here and read nothing, which is what the furthest
@@ -2152,7 +2163,8 @@ sealed partial class Machine
 			// them a clause. Not for a back edge, which the call as a statement guards, and
 			// not in a rule read at a strength, whose alternatives refuse below theirs.
 			if (taken.Count == 0 && !_climbs && Bare(part) is { } bare &&
-				!machine._backEdges.Contains((owner, bare.Rule)))
+				!machine._backEdges.Contains((owner, bare.Rule)) &&
+				machine.Carrier.AroundCall(owner, bare, "q") is null)
 			{
 				return (
 					$"{machine.ReaderOf(bare.Rule)}(p{machine.DirectStrengthOf(bare, bare.Rule)})",
