@@ -9,7 +9,7 @@ namespace DotGram.Finance.Tests;
 public sealed class Fix44StreamingTests
 {
 	[Theory]
-	[MemberData(nameof(Fix44Tests.Messages), MemberType = typeof(Fix44Tests))]
+	[MemberData(nameof(FixFixtures.Messages), MemberType = typeof(FixFixtures))]
 	public void All_messages_match_contiguous_input(string name, string wire)
 	{
 		using var chars = new ShortReader(wire + wire);
@@ -27,7 +27,7 @@ public sealed class Fix44StreamingTests
 	[Fact]
 	public void Single_reads_leave_next_message_and_input_open()
 	{
-		var wire = (string)Fix44Tests.Messages().First()[1];
+		var wire = (string)FixFixtures.Messages().First()[1];
 		using var input = new MemoryStream(ToBytes(wire + wire));
 		Assert.Equal(wire, FixMessages.Parse(input).OriginalWire);
 		Assert.Equal(wire.Length, input.Position);
@@ -41,7 +41,7 @@ public sealed class Fix44StreamingTests
 	[Fact]
 	public void Truncation_limits_and_checksum_are_rejected()
 	{
-		var wire = (string)Fix44Tests.Messages().First()[1];
+		var wire = (string)FixFixtures.Messages().First()[1];
 		for (var i = 0; i < wire.Length; i++)
 		{
 			Assert.False(FixMessages.TryParse(new StringReader(wire.Substring(0, i)), out _, out var error));

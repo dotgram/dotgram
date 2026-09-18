@@ -12,7 +12,7 @@ namespace DotGram.Finance.Tests;
 public sealed class HandFixTests
 {
 	[Theory]
-	[MemberData(nameof(Fix44Tests.Messages), MemberType = typeof(Fix44Tests))]
+	[MemberData(nameof(FixFixtures.Messages), MemberType = typeof(FixFixtures))]
 	public void Fixtures_match_fields_and_explicit_message_semantics(string name, string wire)
 	{
 		Compare(wire, false);

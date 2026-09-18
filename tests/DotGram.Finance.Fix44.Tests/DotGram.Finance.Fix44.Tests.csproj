@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
+		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
+		<ProjectReference Include="../DotGram.Finance.Fix44/DotGram.Finance.Fix44.csproj" />
+	</ItemGroup>
+
+	<!-- What every field parser must do is written once, in DotGram.Finance.Tests, and run
+	     here over the oracle; the fixtures come from there too. -->
+	<ItemGroup>
+		<Compile Include="../DotGram.Finance.Tests/FieldParser.cs"         Link="Shared/FieldParser.cs" />
+		<Compile Include="../DotGram.Finance.Tests/FixFieldReaderTests.cs" Link="Shared/FixFieldReaderTests.cs" />
+		<Compile Include="../DotGram.Finance.Tests/FixFixtures.cs"         Link="Shared/FixFixtures.cs" />
+		<None    Include="../DotGram.Finance.Tests/Fixtures.json"          Link="Fixtures.json" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>

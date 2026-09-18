@@ -17,7 +17,7 @@
 	<ItemGroup>
 		<!-- The field model and conversions are Finance's; the grammar is written against them. -->
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
-		<InternalsVisibleTo Include="DotGram.Finance.Tests" />
+		<InternalsVisibleTo Include="DotGram.Finance.Fix44.Tests" />
 		<AdditionalFiles Include="*.gram" />
 		<ProjectReference Include="../../src/DotGram/DotGram.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

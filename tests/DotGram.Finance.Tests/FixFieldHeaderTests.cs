@@ -22,8 +22,8 @@ public sealed class FixFieldHeaderTests
 
 	public static TheoryData<string, bool> Ordinary()
 	{
-		var order  = Fix44Tests.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
-		var groups = Fix44Tests.Wire("D", "11=ORDER|453=2|448=P1|447=D|452=1|802=2|523=S1|803=1|523=S2|803=2|448=P2|447=D|452=3|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
+		var order  = FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
+		var groups = FixFixtures.Wire("D", "11=ORDER|453=2|448=P1|447=D|452=1|802=2|523=S1|803=1|523=S2|803=2|448=P2|447=D|452=3|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
 		var binary = "95=5" + Soh + "96=a" + Soh + "b|c" + Soh + "58=x" + Soh;
 
 		return new TheoryData<string, bool>

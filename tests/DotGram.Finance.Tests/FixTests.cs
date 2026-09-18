@@ -2,7 +2,6 @@
 using System.Text;
 using System.Text.Json;
 
-using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
 using Xunit;
@@ -14,20 +13,6 @@ public sealed class FixTests
 	static string Describe(FixField field) => field.GetType().Name + JsonSerializer.Serialize(field, field.GetType());
 	static void Equal(IEnumerable<FixField> expected, IEnumerable<FixField> actual) =>
 		Assert.Equal(expected.Select(Describe), actual.Select(Describe));
-
-	[Theory]
-	[MemberData(nameof(Fix44Tests.Messages), MemberType = typeof(Fix44Tests))]
-	public void All_fixtures_match_types_values_and_locations_on_all_inputs(string name, string wire)
-	{
-		Assert.NotEmpty(name);
-		var expected = Fix44Parser.Parse(wire);
-		Equal(expected, FixParser.Parse(wire));
-		using var reader = new StringReader(wire);
-		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
-		Equal(expected, FixParser.Parse(reader, bufferSize: 3));
-		Equal(expected, FixParser.Parse(stream, bufferSize: 3));
-		Equal(expected, FixParser.Parse(Encoding.Latin1.GetBytes(wire)));
-	}
 
 	[Theory]
 	[InlineData(0)]
@@ -52,24 +37,6 @@ public sealed class FixTests
 		Equal(fields, FixParser.ParseLog(input, options));
 		Assert.Contains(FixParser.ParseLog("5000=1|5002=X|", options), field => field is FixField.Invalid);
 		Assert.Contains(FixParser.ParseLog("5001=X|", options), field => field is FixField.Invalid);
-	}
-
-	[Theory]
-	[InlineData("95=3|55=X|96=abc|")]
-	[InlineData("95=5|96=abc|")]
-	[InlineData("96=abc|")]
-	[InlineData("0=x|")]
-	[InlineData("01=x|")]
-	[InlineData("2147483648=x|")]
-	[InlineData("95=2147483648|96=x|")]
-	[InlineData("95=2147483647|96=x|")]
-	[InlineData("95=1|2147483648=x|")]
-	public void Malformed_inputs_return_invalid_fields_in_both_parsers(string wire)
-	{
-		Assert.Contains(Fix44Parser.ParseLog(wire), field => field is FixField.Invalid);
-		Assert.Contains(FixParser.ParseLog(wire), field => field is FixField.Invalid);
-		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
-		Assert.Contains(FixParser.ParseLog(stream, bufferSize: 1), field => field is FixField.Invalid);
 	}
 
 	[Theory]
@@ -106,43 +73,6 @@ public sealed class FixTests
 		Assert.NotEqual(-1, reader.Read());
 		first.Dispose();
 		Assert.True(input.CanRead);
-	}
-
-	[Theory]
-	[InlineData("55=ABC")]
-	[InlineData("9000=ABC")]
-	[InlineData("95=0|96=")]
-	[InlineData("95=3|96=a|b")]
-	[InlineData("95=4|96=abc|")]
-	public void Final_field_can_end_at_eof_without_losing_value_or_location(string last)
-	{
-		foreach (var separator in new[] { '|', '\u0001' })
-		{
-			var input = ("55=FIRST|" + last).Replace('|', separator);
-			var log = separator == '|';
-			var expected = log ? Fix44Parser.ParseLog(input + separator) : Fix44Parser.Parse(input + separator);
-			Equal(expected, log ? Fix44Parser.ParseLog(input) : Fix44Parser.Parse(input));
-			Equal(expected, log ? FixParser.ParseLog(input) : FixParser.Parse(input));
-			using var oldReader = new StringReader(input);
-			using var newReader = new StringReader(input);
-			using var oldStream = new ShortStream(Encoding.Latin1.GetBytes(input));
-			using var newStream = new ShortStream(Encoding.Latin1.GetBytes(input));
-			Equal(expected, log ? Fix44Parser.ParseLog(oldReader, bufferSize: 1) : Fix44Parser.Parse(oldReader, bufferSize: 1));
-			Equal(expected, log ? FixParser.ParseLog(newReader, bufferSize: 1) : FixParser.Parse(newReader, bufferSize: 1));
-			Equal(expected, log ? Fix44Parser.ParseLog(oldStream, bufferSize: 1) : Fix44Parser.Parse(oldStream, bufferSize: 1));
-			Equal(expected, log ? FixParser.ParseLog(newStream, bufferSize: 1) : FixParser.Parse(newStream, bufferSize: 1));
-		}
-	}
-
-	[Theory]
-	[InlineData("95=4|96=abc")]
-	[InlineData("95=0|96=X")]
-	[InlineData("95=1|96=ab")]
-	[InlineData("95=1|96=a55=ABC")]
-	public void Eof_does_not_relax_binary_length_or_intermediate_separators(string input)
-	{
-		Assert.Contains(Fix44Parser.ParseLog(input), field => field is FixField.Invalid);
-		Assert.Contains(FixParser.ParseLog(input), field => field is FixField.Invalid);
 	}
 
 	[Fact]

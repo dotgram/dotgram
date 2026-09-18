@@ -20,7 +20,7 @@ public sealed class FixMessageLayerTests
 	[InlineData("5")]
 	public void A_group_count_beyond_the_fields_left_is_refused(string count)
 	{
-		var wire = Fix44Tests.Wire("W", "55=ABC|262=REQ|268=" + count + "|269=0|270=1|271=1|");
+		var wire = FixFixtures.Wire("W", "55=ABC|262=REQ|268=" + count + "|269=0|270=1|271=1|");
 
 		foreach (var mode in new[] { FixParseMode.Strict, FixParseMode.Lenient })
 		{
