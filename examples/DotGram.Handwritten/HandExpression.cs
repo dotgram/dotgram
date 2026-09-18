@@ -13,7 +13,7 @@ namespace DotGram.Handwritten;
 /// </summary>
 /// <remarks>
 /// <para>
-/// What <see cref="HandSqlTokens"/> is to <c>Sql92Parser</c>, this is to
+/// What <c>HandSqlStandard</c> is to <c>SqlStandardParser</c>, this is to
 /// <c>ExpressionParser</c> — the mark a generated parser is measured against, and the
 /// answer to "how fast would a person have written this". It has to keep <em>looking</em>
 /// hand-written: what is here is what someone would write who knew the language and cared
@@ -24,7 +24,7 @@ namespace DotGram.Handwritten;
 /// <see cref="ExpressionParser.State"/> the same spans. That is deliberate: what is
 /// being compared is the reading, not the building, and a second implementation of scopes
 /// and names would be a second thing to be wrong. The same reason
-/// <see cref="HandSqlTokens"/> builds the shipped tree rather than one of its own.
+/// <c>HandSqlStandard</c> builds the shipped tree rather than one of its own.
 /// </para>
 /// <para>
 /// Two shapes here are a person's rather than a grammar's, and both are where the two

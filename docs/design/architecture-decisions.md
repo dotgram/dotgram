@@ -18,6 +18,12 @@ is measured against the hand parser, and how it is undone.
 The architect's refusal stands until Igor overrides it. An experiment in scratch needs no
 approval; landing it does.
 
+**Grammars and the language, Igor 2026-09-17.** The grammar of a concrete parser (SQL, EL,
+FIX, Web and the rest) may be improved by the session that owns it without asking: that is
+work on a parser, not on the generator. A change to the language itself (`syntax.md`: its
+notation, what a construct means, what hooks can see) is discussed with Igor first, before a
+design is written, let alone code.
+
 ## D1. A handwritten parser reads exactly the grammar it is measured against
 
 Decided 2026-09-17 by Igor.
@@ -523,3 +529,40 @@ analysis once it exists and removed where it covers them; `Auto`'s second render
 D3's analysis decides the carrier; the value store's remaining modes are revisited after D3;
 the legacy `Parse(TextReader)` overload and the diagnostics about removed choices go with D7
 and Q3.
+
+### Q5. State that holds while something is read, and that guards read
+
+Raised 2026-09-17 from expr-2d's audit of the expression language's `State`. A change to the
+language, so discussed with Igor before any design. It has a twin in the other direction:
+SQL:2023's tower guards need a cheap value that rises from a rule while it is read (the roles),
+and can only have it by building the node beside it; recognition-time values that guards read,
+inherited (this) and synthesized (that), are one subject for that discussion.
+
+The expression language keeps, in its §7.7 `context`, pairs that open before a body and close
+after it: lambdas (`Entering`/`Leaves`), loops and breakables (`Opening`/`Breaking`), and
+variables whose type is not yet settled (`Awaits`/`Settles`). A reading abandoned between the
+open and the close leaves an open extent, and every later position is attributed to it: a
+`return`, `break` or `continue` after it can go to the wrong target, and a `var` after it can
+read as unsettled (`object`) instead of inferred. The tape is exposed wherever the grammar
+abandons a lambda, loop or switch after its opening guard. No minimal reproduction yet.
+
+`syntax.md` says why: §7.7's context is for what can be written more than once without harm,
+and nothing in it unwinds; "this holds while that is being read" is §7.8's mark, which is
+abandoned with an abandoned reading. But a §7.8 mark is read by constructions after the parse,
+and these pairs are read by guards during it: which alternative reads a `var` depends on them.
+The language has no state that both holds while something is read and is visible to a `when`.
+
+Options:
+
+1. **Marks readable by guards.** A `when` may name `parserState`, the marks standing over the
+   place it runs. The generator already keeps marks in order and drops an abandoned reading's
+   (`StateSet`/`StateEnd` on the engine); the reader keeps them on a stack its calls unwind.
+   Nothing is undone by the host. The architect's recommendation.
+2. **The host undoes.** The generated parser calls the context's mark and rollback at every
+   way back. Couples every choice point to a host interface and costs on every backtrack.
+3. **Keep the context and make each entry answer for itself**, by position. Not sound: after a
+   reading is abandoned the parse can move past the stale opening without opening again.
+
+Until decided, the expression language's hand parser uses a checkpoint of its own `State` for
+its second, recognize-only reading (a mark at the start of the publication, or of a hole or
+body window), which is local to it and changes nothing in the generator.

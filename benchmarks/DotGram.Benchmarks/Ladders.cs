@@ -15,7 +15,7 @@ namespace DotGram.Benchmarks;
 /// <para>
 /// Nesting is where the reading over kinds is furthest from the hand-written parser:
 /// `--slope` puts `((((a + 1) * 2) - 3) / 4) > 0` at 1.59 of it where a list of eight is
-/// at 0.97. `HandSqlTokens` says why in its own first line — it climbs a precedence where
+/// at 0.97. A parser written by hand says why: it climbs a precedence where
 /// `SqlStandard92.gram` descends a ladder, and a bracket that re-enters the ladder pays
 /// every level of it whether anything at that level is there or not.
 /// </para>

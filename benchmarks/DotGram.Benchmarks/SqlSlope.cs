@@ -9,8 +9,8 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// What one more term of a given shape costs a reading over kinds, by hand and generated,
-/// and how much of that is reading the tokens rather than the grammar.
+/// What one more term of a given shape costs a reading over kinds, on each carrier, and
+/// how much of that is reading the tokens rather than the grammar.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,19 +20,17 @@ namespace DotGram.Benchmarks;
 /// the three does; a slope is one shape and says what it is worth.
 /// </para>
 /// <para>
-/// The lexer is measured by <see cref="SqlAgainst.Lexers"/>' trick: a `)` in front is
-/// refused at the first token, so the parse is the entry and one refusal — but the input
-/// was tokenized all the same. Over a slope the entry cancels, so what is left is the
-/// generated lexer against the hand-written one, per term.
+/// The lexer is measured by a trick: a `)` in front is refused at the first token, so the
+/// parse is the entry and one refusal — but the input was tokenized all the same. Over a
+/// slope the entry cancels, so what is left is the generated lexer, per term, and taking it
+/// off the whole leaves what reading the grammar costs.
 /// </para>
 /// <para>
 /// <b>The steadiest reading here is the generated lexer against itself.</b> The two
 /// shapes that differ only in the length of one name, and the two that differ only in
 /// the spaces between three tokens, say what the token machine costs a character and
-/// what the seam costs one — both inside the same file, so nothing about the other
-/// parser enters into it. The hand-written lexer is the noisiest column, being the
-/// cheapest thing measured: it moves by a fifth between runs where the generated
-/// columns hold to a per cent.
+/// what the seam costs one — both inside the same file, so nothing about any other
+/// parser enters into it.
 /// </para>
 /// <para>
 /// Each reading is timed in a loop of its own and the whole thing wants
@@ -87,8 +85,6 @@ static class SqlSlope
 
 				for (var i = 0; i < 200; i++)
 				{
-					HandSqlTokens.Build(input);
-					HandSqlTokens.LexOnly(input);
 					Sql92Parser.TryParseSearchCondition(input);
 					ImmediateSql.TryParseSearchCondition(input);
 					Sql92Parser.TryParseSearchCondition(")" + input);
@@ -99,13 +95,12 @@ static class SqlSlope
 		{
 			var input = Input(term, Few);
 
-			if (HandSqlTokens.Build(input) is null || !Sql92Parser.TryParseSearchCondition(input).IsSuccess)
+			if (!Sql92Parser.TryParseSearchCondition(input).IsSuccess)
 				Console.WriteLine($"!! {name} is not read");
 		}
 
 		Console.WriteLine(
-			$"{"shape",-21} {"whole",9} {"by hand",9} | {"lexing",9} {"by hand",9} | " +
-			$"{"parsing",9} {"by hand",9}   whole   lex   parse");
+			$"{"shape",-21} {"immediate",9} {"tape",9} | {"lexing",9} | {"parsing",9}   tape   parse");
 
 		foreach (var (name, term) in Shapes)
 		{
@@ -113,33 +108,27 @@ static class SqlSlope
 			var two = Cost(term, Many, parses);
 
 			var over  = (double)(Many - Few);
-			var hand  = (two.Hand  - one.Hand ) / over * 1000;
-			var tape  = (two.Tape  - one.Tape ) / over * 1000;
-			var now   = (two.Now   - one.Now  ) / over * 1000;
-			var lexed = (two.Lexed - one.Lexed) / over * 1000;
-			var mine  = (two.Mine  - one.Mine ) / over * 1000;
+			var tape  = (two.Tape - one.Tape) / over * 1000;
+			var now   = (two.Now  - one.Now ) / over * 1000;
+			var mine  = (two.Mine - one.Mine) / over * 1000;
 
-			// What is left when the tokenizing is taken off each side, which is the half the
-			// scanner is not answerable for.
-			var read = now  - mine;
-			var theirs = hand - lexed;
+			// What is left when the tokenizing is taken off, which is the half the scanner is
+			// not answerable for.
+			var read = now - mine;
 
 			Console.WriteLine(
-				$"{name,-21} {now,7:F3} us {hand,7:F3} us | {mine,7:F3} us {lexed,7:F3} us | " +
-				$"{read,7:F3} us {theirs,7:F3} us  {now / hand,5:F2}x {mine / lexed,5:F2}x {read / theirs,5:F2}x");
+				$"{name,-21} {now,7:F3} us {tape,7:F3} us | {mine,7:F3} us | " +
+				$"{read,7:F3} us  {tape / now,5:F2}x {read / mine,5:F2}x");
 		}
 	}
 
-	static (double Hand, double Tape, double Now, double Lexed, double Mine) Cost(
-		string term, int terms, int parses)
+	static (double Tape, double Now, double Mine) Cost(string term, int terms, int parses)
 	{
 		var input   = Input(term, terms);
 		var refused = ")" + input;
 
-		return (Median(parses, () => HandSqlTokens.Build(input)),
-		        Median(parses, () => Sql92Parser.TryParseSearchCondition(input)),
+		return (Median(parses, () => Sql92Parser.TryParseSearchCondition(input)),
 		        Median(parses, () => ImmediateSql.TryParseSearchCondition(input)),
-		        Median(parses, () => HandSqlTokens.LexOnly(input)),
 		        Median(parses, () => Sql92Parser.TryParseSearchCondition(refused)));
 	}
 

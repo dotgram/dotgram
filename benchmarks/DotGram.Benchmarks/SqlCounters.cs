@@ -10,17 +10,17 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// The three SQL parsers on the long condition, counted rather than timed: instructions
+/// The two carriers on the long condition, counted rather than timed: instructions
 /// retired, branches mispredicted, cache misses, per parse.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Timing says the immediate parser is half again the hand-written one and not where. A
-/// sampling profile charges half of everything to native code it cannot attribute, and a
-/// tracing profile charges by the call, which the hand-written parser makes fewer and
-/// smaller of. The counters divide the question instead: a parser that retires more
-/// instructions is doing more work, and one that retires the same and takes longer is
-/// stalling — on a branch it guessed wrong, or on memory it did not have.
+/// Timing says one carrier is quicker than the other and not why. A sampling profile
+/// charges half of everything to native code it cannot attribute, and a tracing profile
+/// charges by the call, which the two make different numbers of. The counters divide the
+/// question instead: a parser that retires more instructions is doing more work, and one
+/// that retires the same and takes longer is stalling — on a branch it guessed wrong, or
+/// on memory it did not have.
 /// </para>
 /// <para>
 /// Needs ETW, which means an elevated console; without it the counters come back empty
@@ -41,15 +41,8 @@ public class SqlCounters
 		"a56 = 1 AND a57 = 1 AND a58 = 1 AND a59 = 1 AND a60 = 1 AND a61 = 1 AND a62 = 1 AND a63 = 1";
 
 	[Benchmark(Baseline = true)]
-	public bool Hand() => HandSqlTokens.Parse(Long);
-
-	[Benchmark]
 	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Long).IsSuccess;
 
 	[Benchmark]
 	public bool Tape() => Sql92Parser.TryParseSearchCondition(Long).IsSuccess;
-
-	/// <summary>The lexer alone, to take it off all three.</summary>
-	[Benchmark]
-	public int Lexer() => HandSqlTokens.LexOnly(Long);
 }
