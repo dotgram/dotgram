@@ -23227,8 +23227,17 @@ invited us to believe.
 **A rule costs less than the rule it contains.** `<table name>` reads `t` in 1.53 us; `<identifier>`
 reads `a` in 3.56, published on its own — 2.3x for strictly less work, one token either way. The
 generator writes a way in three times, and the suspect is that a published entry point and an inner
-call do not always get the same one. If that is it, it is a lever on every publication, and
-identifiers are the most-read rule in the grammar.
+call do not always get the same one.
+
+Sorted, the eight one-token publications do not spread, they cluster: 0.90 and 1.53, then nothing,
+then 3.16, 3.56, 4.12, 4.16. Work does not distribute like that; a choice made per publication
+does. And the second cluster's own spacing says the same — `<column reference>` contains
+`<identifier chain>` contains `<identifier>`, three nested levels 0.3 us apart on a 3.5 us plateau,
+so the plateau is a flat surcharge and not accumulation. What it is worth, though, is bounded: a
+publication is entered once a parse, so the surcharge is about 2.5 us a parse, a tenth of the frame
+and nothing of an item — unless the same choice governs inner invocations, in which case it is paid
+per rule and it is most of everything. Whether the difference is per entry or per call is the
+question to put to the emitted code, and it needs no timing to answer.
 
 **`VALUES (1)` costs more than a whole select.** 36.71 us against 33.19, for fewer tokens and a
 smaller tree. The row value constructor path has something in it.
