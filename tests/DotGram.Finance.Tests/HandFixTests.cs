@@ -102,7 +102,7 @@ public sealed class HandFixTests
 		using var many = new StringReader(string.Concat(Enumerable.Repeat("55=ABC|", 10000)));
 		Assert.Equal(10000, HandFixParser.ParseLog(many, bufferSize: 3, maxRetained: 32).Count());
 		using var large = new StringReader("55=" + new string('X', 100));
-		Assert.Throws<InvalidOperationException>(() => HandFixParser.ParseLog(large, bufferSize: 3, maxRetained: 16).ToArray());
+		Assert.Throws<IOException>(() => HandFixParser.ParseLog(large, bufferSize: 3, maxRetained: 16).ToArray());
 	}
 
 	[Fact]

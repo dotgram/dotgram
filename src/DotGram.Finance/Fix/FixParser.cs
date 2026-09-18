@@ -37,7 +37,11 @@ public static class FixParser
 	/// <param name="input">The reader to consume; it is left open.</param>
 	/// <param name="options">Null uses the standard length/data dictionary.</param>
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
-	/// <param name="maxRetained">The most input the buffer may hold at once; a whole length/data pair must fit.</param>
+	/// <param name="maxRetained">
+	/// The most characters one field may take, from its tag through the separator that ends it,
+	/// or a whole length/data pair.
+	/// </param>
+	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
 	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));
@@ -56,7 +60,11 @@ public static class FixParser
 	/// <param name="input">The stream to consume; it is left open.</param>
 	/// <param name="options">Null uses the standard length/data dictionary.</param>
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
-	/// <param name="maxRetained">The most input the buffer may hold at once; a whole length/data pair must fit.</param>
+	/// <param name="maxRetained">
+	/// The most bytes one field may take, from its tag through the separator that ends it,
+	/// or a whole length/data pair.
+	/// </param>
+	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
 	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));
@@ -120,7 +128,11 @@ public static class FixParser
 	/// <param name="input">The reader to consume; it is left open.</param>
 	/// <param name="options">Null uses the standard length/data dictionary.</param>
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
-	/// <param name="maxRetained">The most input the buffer may hold at once; a whole length/data pair must fit.</param>
+	/// <param name="maxRetained">
+	/// The most characters one field may take, from its tag through the separator that ends it,
+	/// or a whole length/data pair.
+	/// </param>
+	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
 	public static IEnumerable<FixField> ParseLog(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));
@@ -139,7 +151,11 @@ public static class FixParser
 	/// <param name="input">The stream to consume; it is left open.</param>
 	/// <param name="options">Null uses the standard length/data dictionary.</param>
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
-	/// <param name="maxRetained">The most input the buffer may hold at once; a whole length/data pair must fit.</param>
+	/// <param name="maxRetained">
+	/// The most bytes one field may take, from its tag through the separator that ends it,
+	/// or a whole length/data pair.
+	/// </param>
+	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
 	public static IEnumerable<FixField> ParseLog(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null)     throw new ArgumentNullException(nameof(input));

@@ -151,7 +151,9 @@ var options = new FixParseOptions(FixFraming.Wire, fieldOptions: pairs);
 
 The dictionary **replaces** the standard pairs rather than adding to them, so list the
 standard ones still needed. Pass the same object to `FixParseOptions` for messages. When
-reading a stream, `maxRetained` must be large enough to hold a whole pair.
+reading a stream, `maxRetained` bounds one field, from its tag through the separator that
+ends it, or a whole pair; a field that needs more throws `IOException`, so pass a larger
+`maxRetained` for large binary data.
 
 ## Streams
 

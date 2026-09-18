@@ -39,7 +39,9 @@ a binary length/data pair produces one typed data field after its payload is rea
 For example, `95=3|96=a|b|` produces one `FixField.RawData`, without a separate
 `RawDataLength` result. Its `Position` points to the start of the pair and
 `ValuePosition`/`Length` describe the payload. Native char/byte buffers release each
-completed field; `maxRetained` must accommodate the whole binary pair.
+completed field. `maxRetained` bounds one field, from its tag through the separator that
+ends it, or a whole binary pair, in characters from a reader or bytes from a stream. A
+field that needs more throws `IOException`; pass a larger `maxRetained` to read it.
 Locations remain relative to the complete input. The input stays open on completion,
 error or early disposal. Keep one enumeration per input: buffering can read ahead,
 so restarting after an early stop can lose unread buffered data.

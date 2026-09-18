@@ -312,7 +312,7 @@ public static class HandFixParser
 				if (_count == _buffer!.Length)
 				{
 					if (_count == _maxRetained)
-						throw new InvalidOperationException("The retained FIX field exceeds maxRetained.");
+						throw new IOException($"A FIX field needs more than {_maxRetained} retained characters or bytes; pass a larger maxRetained.");
 
 					var capacity = (int)Math.Min(_maxRetained, Math.Max((long)_count + 1, (long)_count * 2));
 					Array.Resize(ref _buffer, capacity);
