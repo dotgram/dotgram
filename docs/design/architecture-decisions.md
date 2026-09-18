@@ -353,6 +353,18 @@ call). Found by the compatibility build with warnings as errors: an emitted CS06
 consumer building strictly would have failed on; the verification now stops at the first failed
 build, since a stale assembly once let tests "pass".
 
+**The remainder, and no separate byte machine (finance-03's report, 2026-09-18).** With bytes
+read in place, the generated FIX parser still reads bytes 12-20% slower than text, the hand
+parser reads both alike. The remainder is in the buffered rendering, not the input: the scalar
+guard is off for buffered input (`Machine.cs`, `!BufferedInput &&`, decided on the stream form
+before bytes were in place) and costs 40-45% of the gap, measured with the line removed; text
+conversion allocated twice (fixed, `e7d17ceb`); what is left, some 3-6%, is a bounds check through
+the buffer object per character and the missing `Scan_*` helpers on the buffered side. A
+contiguous byte machine would be a third copy of the recognizer, about +39% source in Finance, for
+those last percent. **Decided: no separate byte machine.** The scalar guard for buffered input is
+performance-3f's next small proposal, with the stream rows measured before it lands; the rest
+comes with Q7.5, where "in memory, never refills" becomes a constant the JIT folds.
+
 **Several forms per parser, and feeds read by line — Igor, 2026-09-17.** A parser offers whichever
 forms its grammar asks for, several at once: FIX needs the byte form, and the same parser must
 also read a string in memory and a text stream. For a feed, streaming may read the stream a
