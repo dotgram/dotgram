@@ -263,7 +263,7 @@ ValueFunction : @Expression
     | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
     | name: "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
     | name: "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
-    | name: "TRIM"i      & '(' & how: TrimSpecification? & what: ValueExpression?
+    | name: "TRIM"i      & '(' & { how: TrimSpecification? } & what: ValueExpression?
                    & "FROM"i & v: ValueExpression & ')'
         => @(new Expression.RoutineInvocation(
             name,

@@ -495,7 +495,7 @@ TSqlValueFunction : @Expression
 		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(args ?? Expression.None, returning)), tail))
 	| name: "JSON_QUERY"i & '(' & first: ValueExpression & (',' & second: ValueExpression)? & wrapped: JsonWrapper? & ')' & tail: CallTail?
 		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(second is null ? new[] { first } : new[] { first, second }, wrapped)), tail))
-	| name: "JSON_ARRAYAGG"i & '(' & items: Arguments? & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturningJson? & ')'
+	| name: "JSON_ARRAYAGG"i & '(' & { items: Arguments? } & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturningJson? & ')'
 	  & tail: CallTail? & when @(Syntax.Aggregated(items, order, nulls, returning, tail))
 		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(items ?? Expression.None, order, nulls, returning)), tail))
 
@@ -737,7 +737,7 @@ TSqlDataType
 
 	// `xml` takes the collection its block gives it, or a length like any other type, and
 	// never two numbers: `xml(10)` and `xml(max)` are read and `xml(10, 2)` is `Msg 102`.
-	| "XML"i & ('(' & XmlContent? & QualifiedName & ')' | TSqlLength)?
+	| "XML"i & ('(' & { XmlContent? } & QualifiedName & ')' | TSqlLength)?
 	| DottedType
 
 // One or two whole numbers, or `MAX`. Never a second bracket after the first, which is why
@@ -765,7 +765,7 @@ ExactMax   = ("NUMERIC"i | "DECIMAL"i | "DEC"i) & '(' & "MAX"i & ')'
 // once; what tells them apart is the text, which is what the condition reads.
 DottedTail
 	= "VARYING"i & TSqlLength?
-	| '(' & XmlContent? & QualifiedName & ')'
+	| '(' & { XmlContent? } & QualifiedName & ')'
 	| '(' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & ')'
 	| TSqlLength
 
@@ -2233,7 +2233,7 @@ SqlPiece : @Statement
 // and a block's first statement is none of this: `BEGIN ENABLE TRIGGER t1 ON o1 END` is read.
 Unseparated = "ENABLE"i | "DISABLE"i | "RECEIVE"i | "THROW"i | "MOVE"i | "GET"i | "SEND"i
 
-StatementList : @Statement[] = ';'* & s: SqlPiece+ => @(s)
+StatementList : @Statement[] = ';'* & { s: SqlPiece+ } => @(s)
 
 // ── A script ────────────────────────────────────────────────────────────────
 //
@@ -2275,7 +2275,7 @@ StatementBlock : @Statement
 // 10782` — and a natively compiled module has no other body (`Msg 10783`, `Syntax.Natively`). A
 // plain block inside it is read.
 AtomicBody : @Statement[]
-	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i & ';'* & ?!SqlPiece
+	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i & { ';'* } & ?!SqlPiece
 		=> @(new Statement[] { new Statement.Compound(body, atomic) })
 
 // ── A natively compiled block's options ─────────────────────────────────────

@@ -23644,7 +23644,12 @@ name follows it (`?=QualifiedName`), which the analysis already reads as a cure.
 of `JSON_ARRAY` taking `NULL` in `JSON_ARRAY(NULL ON NULL)`, `XML(CONTENT)`, `TRIM(LEADING …)` —
 the engine refuses the other reading of each — a statement list taking the next statement, `;`s
 after an atomic block, and SQL:2023's `ARRAY` and `MULTISET` after a data type, which the BNF
-chains the same way.
+chains the same way. Each of those six now says so the way the analysis already reads: an atomic
+group, `{ items: Arguments? }`, `{ XmlContent? }`, `{ how: TrimSpecification? }`, `{ s: SqlPiece+ }`,
+`{ ';'* }` and `{ (trivia & s: CollectionTypeSuffix)* }`, as `{ "KEYS"i? }` did. The three grammars
+are read over kinds, where a reading that fits already stands, so no answer changes: the tests, the
+engine and the round trip over the corpus, and the standard's corpora against the hand parser, are
+as they were.
 
 **Where nothing can follow with the word**, the report is the analysis's: a lookahead after the item
 inside the turn (`TableConstraint`'s `?!(WITHOUT OVERLAPS)`), a turn that cannot finish and is undone
