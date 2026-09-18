@@ -542,12 +542,25 @@ public static class HandExpression
 	// ── The lexer ───────────────────────────────────────────────────────────────
 
 	/// <summary>One text's tokens, kept between readings the way the generated lexer keeps its own.</summary>
+	/// <remarks>
+	/// And what a reading of them keeps as it goes, which lives as long as they do: each word
+	/// cut out of the text once, however many times it is asked about; and one stack the lists
+	/// a reading builds — a block's statements, a call's arguments — are gathered on and copied
+	/// off at their exact length, rather than a list of their own grown and copied again.
+	/// </remarks>
 	sealed class Tokens
 	{
-		public byte[] Kinds   = new byte[64];
-		public int[]  Starts  = new int[64];
-		public int[]  Lengths = new int[64];
-		public int    Count;
+		public byte[]    Kinds   = new byte[64];
+		public int[]     Starts  = new int[64];
+		public int[]     Lengths = new int[64];
+		public string?[] Words   = new string?[64];
+		public int       Count;
+
+		public Expression[] Values = new Expression[32];
+		public int[]        Taken  = new int[16];
+
+		/// <summary>How far up <see cref="Values"/> a reading went, which is what is cleared when it is done.</summary>
+		public int Reached;
 
 		[ThreadStatic]
 		static Tokens? _spare;
@@ -565,9 +578,14 @@ public static class HandExpression
 			return spare;
 		}
 
+		/// <summary>Kept for the next reading, holding on to nothing of this one's.</summary>
 		public static void Return(Tokens tokens)
 		{
-			_spare = tokens;
+			Array.Clear(tokens.Words, 0, tokens.Count);
+			Array.Clear(tokens.Values, 0, tokens.Reached);
+
+			tokens.Reached = 0;
+			_spare         = tokens;
 		}
 
 		public void Room(int length)
@@ -578,6 +596,7 @@ public static class HandExpression
 			Kinds   = new byte[length];
 			Starts  = new int[length];
 			Lengths = new int[length];
+			Words   = new string?[length];
 		}
 
 		public void Grow(int count)
@@ -590,6 +609,7 @@ public static class HandExpression
 			Array.Resize(ref Kinds,   size);
 			Array.Resize(ref Starts,  size);
 			Array.Resize(ref Lengths, size);
+			Array.Resize(ref Words,   size);
 		}
 	}
 
@@ -1764,16 +1784,22 @@ public static class HandExpression
 		readonly int[]  _starts  = tokens.Starts;
 		readonly int[]  _lengths = tokens.Lengths;
 		readonly int    _count   = tokens.Count;
-		readonly string _text    = text;
-		readonly State  _context = context;
-		readonly bool   _ascii   = ascii;
+		readonly string?[] _words  = tokens.Words;
+		readonly Tokens   _tokens  = tokens;
+		readonly string   _text    = text;
+		readonly State    _context = context;
+		readonly bool     _ascii   = ascii;
 
 		bool _build = build;
 		int  _furthest;
 
-		// What the text being read stands under (the grammar's `state`). Two of these is
-		// already more than any expression written by a person, and it grows if it has to.
-		ExpressionParser.Reading[] _marks = new ExpressionParser.Reading[8];
+		// The tops of the two stacks a reading gathers on (Tokens.Values and Tokens.Taken).
+		int _values;
+		int _taken;
+
+		// What the text being read stands under (the grammar's `state`): nothing, nearly
+		// always, so the array is made by the first `checked` and not by every reading.
+		ExpressionParser.Reading[]? _marks;
 		int _marked;
 
 		/// <summary>The furthest token looked at.</summary>
@@ -1814,12 +1840,53 @@ public static class HandExpression
 			return new(_starts[from], _starts[to - 1] + _lengths[to - 1] - _starts[from]);
 		}
 
+		/// <summary>A token's text, cut out of the input the first time it is asked for.</summary>
+		/// <remarks>
+		/// A name is asked about where it might be a target, where it might be called, and where
+		/// it is an operand at last — the same word each time, and one string.
+		/// </remarks>
 		readonly string Cut(int i)
 		{
-			return _text.Substring(_starts[i], _lengths[i]);
+			return _words[i] ??= _text.Substring(_starts[i], _lengths[i]);
 		}
 
-		readonly ReadOnlySpan<ExpressionParser.Reading> Marks => new(_marks, 0, _marked);
+		readonly ReadOnlySpan<ExpressionParser.Reading> Marks =>
+			_marks is null ? default : new(_marks, 0, _marked);
+
+		/// <summary>One more of a list being read, on top of the stack the lists are gathered on.</summary>
+		void Push(Expression value)
+		{
+			var values = _tokens.Values;
+
+			if (_values == values.Length)
+				Array.Resize(ref _tokens.Values, values.Length * 2);
+
+			_tokens.Values[_values++] = value;
+
+			if (_values > _tokens.Reached)
+				_tokens.Reached = _values;
+		}
+
+		/// <summary>The list gathered since <paramref name="from"/>, taken off the stack at its own length.</summary>
+		Expression[] Popped(int from)
+		{
+			var count = _values - from;
+			var made  = count == 0 ? [] : new Expression[count];
+
+			Array.Copy(_tokens.Values, from, made, 0, count);
+
+			_values = from;
+
+			return made;
+		}
+
+		/// <summary>A list that turned out not to be one: what was gathered for it is let go.</summary>
+		int Dropped(int from)
+		{
+			_values = from;
+
+			return -1;
+		}
 
 		/// <summary>A word, which is a name or a keyword: what `var` is read as before it is asked whether it is `var`.</summary>
 		static bool IsWord(byte kind)
@@ -1865,11 +1932,11 @@ public static class HandExpression
 			if (Kind(i) != LeftParen)
 				return -1;
 
-			var taken = new List<(string Name, SourceSpan At)>();
-			var at    = Parameters(i + 1, taken);
+			var kept = _taken;
+			var at   = Parameters(i + 1);
 
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
-				return -1;
+				return Untaken(kept);
 
 			// Where this lambda is, recorded before its body and closed after it, which is
 			// what says which lambda a `return` written inside it leaves.
@@ -1878,15 +1945,21 @@ public static class HandExpression
 			var body = Value(at + 2, out var read);
 
 			if (body < 0)
-				return -1;
+				return Untaken(kept);
 
 			var span = Span(from, body);
 
 			if (!_context.Leaves(span))
-				return Refuse(body);
+			{
+				Refuse(body);
+
+				return Untaken(kept);
+			}
+
+			var parameters = Taken(kept);
 
 			if (_build)
-				node = _context.Finished(Expression.Lambda(_context.Returning(read!, span), Taken(taken)));
+				node = _context.Finished(Expression.Lambda(_context.Returning(read!, span), parameters!));
 
 			return body;
 		}
@@ -1901,7 +1974,7 @@ public static class HandExpression
 
 			while (Kind(at) == Dot && Kind(at + 1) == Identifier)
 			{
-				name += "." + Cut(at + 1);
+				name  = string.Concat(name, ".", Cut(at + 1));
 				at   += 2;
 			}
 
@@ -1912,16 +1985,21 @@ public static class HandExpression
 		}
 
 		/// <summary>The parameters inside the brackets, each declared where it is read; where the list ends.</summary>
-		int Parameters(int i, List<(string Name, SourceSpan At)> taken)
+		/// <remarks>
+		/// What is kept of each is where it begins and which token is its name, on a stack of their
+		/// own: a lambda's parameters are read before its body and made after it, and the body may
+		/// hold lambdas of its own that are read and made in between.
+		/// </remarks>
+		int Parameters(int i)
 		{
-			var at = Parameter(i, taken);
+			var at = Parameter(i);
 
 			if (at < 0)
 				return i;
 
 			while (Kind(at) == Comma)
 			{
-				var more = Parameter(at + 1, taken);
+				var more = Parameter(at + 1);
 
 				if (more < 0)
 					break;
@@ -1933,7 +2011,7 @@ public static class HandExpression
 		}
 
 		/// <summary>A parameter, declared by the guard while the text is read: the declaration is the one thing here that has to happen then.</summary>
-		int Parameter(int i, List<(string Name, SourceSpan At)> taken)
+		int Parameter(int i)
 		{
 			var at = Type(i, out _, build: false);
 
@@ -1942,26 +2020,44 @@ public static class HandExpression
 
 			Type(i, out var type, build: true);
 
-			var name = Cut(at);
-			var span = Span(i, at + 1);
-
-			if (!_context.Takes(type!, name, span))
+			if (!_context.Takes(type!, Cut(at), Span(i, at + 1)))
 				return Refuse(at + 1);
 
-			taken.Add((name, span));
+			var taken = _tokens.Taken;
+
+			if (_taken + 2 > taken.Length)
+				Array.Resize(ref _tokens.Taken, taken.Length * 2);
+
+			_tokens.Taken[_taken++] = i;
+			_tokens.Taken[_taken++] = at;
 
 			return at + 1;
 		}
 
-		/// <summary>The parameters as the lambda takes them, made once it is known there is a lambda.</summary>
-		readonly ParameterExpression[] Taken(List<(string Name, SourceSpan At)> taken)
+		/// <summary>The parameters read since <paramref name="from"/>, made once it is known there is a lambda, and taken off their stack.</summary>
+		ParameterExpression[]? Taken(int from)
 		{
-			var made = new ParameterExpression[taken.Count];
+			var made = _build ? new ParameterExpression[(_taken - from) / 2] : null;
 
-			for (var one = 0; one < made.Length; one++)
-				made[one] = _context.Named(taken[one].Name, taken[one].At);
+			for (var one = 0; made is not null && one < made.Length; one++)
+			{
+				var start = _tokens.Taken[from + 2 * one];
+				var name  = _tokens.Taken[from + 2 * one + 1];
+
+				made[one] = _context.Named(Cut(name), Span(start, name + 1));
+			}
+
+			_taken = from;
 
 			return made;
+		}
+
+		/// <summary>Parameters that turned out to be no lambda's: taken off their stack.</summary>
+		int Untaken(int from)
+		{
+			_taken = from;
+
+			return -1;
 		}
 
 		/// <summary>A lambda written inside an expression, its parameters' types said.</summary>
@@ -1974,26 +2070,32 @@ public static class HandExpression
 		{
 			node = null;
 
-			var taken = new List<(string Name, SourceSpan At)>();
-			var at    = Parameters(i + 1, taken);
+			var kept = _taken;
+			var at   = Parameters(i + 1);
 
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
-				return -1;
+				return Untaken(kept);
 
 			_context.Entering(Span(i, at + 2));
 
 			var body = Value(at + 2, out var read);
 
 			if (body < 0)
-				return -1;
+				return Untaken(kept);
 
 			var span = Span(i, body);
 
 			if (!_context.Scoped(span) || !_context.Leaves(span))
-				return Refuse(body);
+			{
+				Refuse(body);
+
+				return Untaken(kept);
+			}
+
+			var parameters = Taken(kept);
 
 			if (_build)
-				node = _context.Nested(read!, Taken(taken), span);
+				node = _context.Nested(read!, parameters!, span);
 
 			return body;
 		}
@@ -2211,7 +2313,7 @@ public static class HandExpression
 			var name = Cut(first);
 
 			for (var part = first + 2; part <= last; part += 2)
-				name += "." + Cut(part);
+				name = string.Concat(name, ".", Cut(part));
 
 			return name;
 		}
@@ -2489,8 +2591,8 @@ public static class HandExpression
 		{
 			node = null;
 
-			var at         = i + 1;
-			var statements = _build ? new List<Expression>() : null;
+			var at   = i + 1;
+			var from = _values;
 
 			while (true)
 			{
@@ -2499,7 +2601,9 @@ public static class HandExpression
 				if (one < 0)
 					break;
 
-				statements?.Add(read!);
+				if (_build)
+					Push(read!);
+
 				at = one;
 			}
 
@@ -2511,15 +2615,19 @@ public static class HandExpression
 				last = null;
 
 			if (Kind(at) != RightBrace)
-				return -1;
+				return Dropped(from);
 
 			var span = Span(i, at + 1);
 
 			if (!_context.Scoped(span))
-				return Refuse(at + 1);
+			{
+				Refuse(at + 1);
+
+				return Dropped(from);
+			}
 
 			if (_build)
-				node = _context.Block(statements!.ToArray(), span, last);
+				node = _context.Block(Popped(from), span, last);
 
 			return at + 1;
 		}
@@ -2992,7 +3100,7 @@ public static class HandExpression
 			statements = null;
 
 			var at   = i;
-			var read = _build ? new List<Expression>() : null;
+			var from = _values;
 			var some = false;
 
 			while (true)
@@ -3008,7 +3116,9 @@ public static class HandExpression
 					break;
 				}
 
-				read?.Add(statement!);
+				if (_build)
+					Push(statement!);
+
 				at   = one;
 				some = true;
 			}
@@ -3016,7 +3126,8 @@ public static class HandExpression
 			if (!some)
 				return -1;
 
-			statements = read?.ToArray();
+			if (_build)
+				statements = Popped(from);
 
 			return at;
 		}
@@ -3847,6 +3958,8 @@ public static class HandExpression
 
 		void Mark(ExpressionParser.Reading reading)
 		{
+			_marks ??= new ExpressionParser.Reading[4];
+
 			if (_marked == _marks.Length)
 				Array.Resize(ref _marks, _marked * 2);
 
@@ -3884,37 +3997,15 @@ public static class HandExpression
 
 			if (type!.IsArray && Kind(at) == LeftBrace)
 			{
-				var items = _build ? new List<Expression>() : null;
-				var read  = at + 1;
+				var from = _values;
+				var read = Expressions(at + 1);
 
 				if (Kind(read) != RightBrace)
-				{
-					var first = Assignment(read, out var one);
-
-					if (first < 0)
-						return -1;
-
-					items?.Add(one!);
-					read = first;
-
-					while (Kind(read) == Comma)
-					{
-						var more = Assignment(read + 1, out var next);
-
-						if (more < 0)
-							return -1;
-
-						items?.Add(next!);
-						read = more;
-					}
-				}
-
-				if (Kind(read) != RightBrace)
-					return -1;
+					return Dropped(from);
 
 				if (_build)
 					node = Expression.NewArrayInit(
-						type.GetElementType()!, ExpressionParser.Converted(items!.ToArray(), type.GetElementType()!));
+						type.GetElementType()!, ExpressionParser.Converted(Popped(from), type.GetElementType()!));
 
 				return read + 1;
 			}
@@ -4089,30 +4180,14 @@ public static class HandExpression
 
 			if (Kind(i) == LeftBrace)
 			{
-				var arguments = _build ? new List<Expression>() : null;
-				var at        = Assignment(i + 1, out var first);
+				var from = _values;
+				var at   = Expressions(i + 1);
 
-				if (at < 0)
-					return -1;
-
-				arguments?.Add(first!);
-
-				while (Kind(at) == Comma)
-				{
-					var more = Assignment(at + 1, out var next);
-
-					if (more < 0)
-						break;
-
-					arguments?.Add(next!);
-					at = more;
-				}
-
-				if (Kind(at) != RightBrace)
-					return -1;
+				if (at == i + 1 || Kind(at) != RightBrace)
+					return Dropped(from);
 
 				if (_build)
-					element = new ExpressionParser.Element(arguments!.ToArray());
+					element = new ExpressionParser.Element(Popped(from));
 
 				return at + 1;
 			}
@@ -4135,32 +4210,13 @@ public static class HandExpression
 			if (Kind(i) != LeftParen)
 				return -1;
 
-			var read = _build ? new List<Expression>() : null;
-			var at   = i + 1;
-
-			var first = Assignment(at, out var one);
-
-			if (first >= 0)
-			{
-				read?.Add(one!);
-				at = first;
-
-				while (Kind(at) == Comma)
-				{
-					var more = Assignment(at + 1, out var next);
-
-					if (more < 0)
-						break;
-
-					read?.Add(next!);
-					at = more;
-				}
-			}
+			var from = _values;
+			var at   = Expressions(i + 1);
 
 			if (Kind(at) != RightParen)
-				return -1;
+				return Dropped(from);
 
-			arguments = read?.ToArray() ?? [];
+			arguments = _build ? Popped(from) : [];
 
 			return at + 1;
 		}
@@ -4172,13 +4228,28 @@ public static class HandExpression
 			if (Kind(i) != LeftBracket)
 				return -1;
 
-			var read = _build ? new List<Expression>() : null;
-			var at   = Assignment(i + 1, out var first);
+			var from = _values;
+			var at   = Expressions(i + 1);
+
+			if (at == i + 1 || Kind(at) != RightBracket)
+				return Dropped(from);
+
+			if (_build)
+				indices = Popped(from);
+
+			return at + 1;
+		}
+
+		/// <summary>Expressions with commas between them, gathered on the stack: where they end, or where they would have begun if there is none.</summary>
+		int Expressions(int i)
+		{
+			var at = Assignment(i, out var first);
 
 			if (at < 0)
-				return -1;
+				return i;
 
-			read?.Add(first!);
+			if (_build)
+				Push(first!);
 
 			while (Kind(at) == Comma)
 			{
@@ -4187,16 +4258,13 @@ public static class HandExpression
 				if (more < 0)
 					break;
 
-				read?.Add(next!);
+				if (_build)
+					Push(next!);
+
 				at = more;
 			}
 
-			if (Kind(at) != RightBracket)
-				return -1;
-
-			indices = read?.ToArray();
-
-			return at + 1;
+			return at;
 		}
 
 		/// <summary>A word that names a variable, which is what makes it a name at all.</summary>

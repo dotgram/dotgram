@@ -89,7 +89,33 @@ static class ExpressionAgainst
 		// applies rather than in weighing every pair against every other — and `Trim`, which
 		// pays it with no arguments to convert at all, said the asking was reading metadata.
 		"(string s) => s.ToUpperInvariant()",
+
+		// The strings that read part of themselves again: holes, each over its own window of
+		// the text, and a raw string's lines, which are cut and unindented.
+		"(int x) => $\"a{x}b\"",
+		"(int x) => $\"{x,5:D3} and {x + 1}\"",
+		"(int x) => \"\"\"a\"b\"\"\"",
+		"(int x) => $$\"\"\"{{x}} {x}\"\"\"",
+
+		// Lambdas that say no types, whose bodies are read to find where they end and read
+		// again once the call they are handed to has chosen their types.
+		UntypedSelect,
+		UntypedWhere,
 	];
+
+	const string UntypedSelect = "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()";
+	const string UntypedWhere  = "using System.Linq; (int[] a) => a.Where(n => n > 1).Count()";
+
+	/// <summary>Whether a reading is timed on an input: every one is, but the immediate carrier on an untyped lambda.</summary>
+	/// <remarks>
+	/// That carrier builds the body of a lambda that says no types before the types are known,
+	/// and throws where the tape reads (docs/design/architecture-decisions.md, D3 and D8): a time
+	/// for it there would be the time it takes to fail.
+	/// </remarks>
+	static bool Timed(string input, int method)
+	{
+		return Methods[method].Name != "immediate" || input is not (UntypedSelect or UntypedWhere);
+	}
 
 	public static void Run(int rounds, int iterations)
 	{
@@ -108,8 +134,9 @@ static class ExpressionAgainst
 		// it read a third slower than the same input read again at the end, which is a
 		// third of the difference this table is about.
 		foreach (var input in Inputs)
-			foreach (var (_, measure) in Methods)
-				Time(input, measure, iterations);
+			for (var i = 0; i < Methods.Length; i++)
+				if (Timed(input, i))
+					Time(input, Methods[i].Measure, iterations);
 
 		foreach (var input in Inputs)
 		{
@@ -124,8 +151,9 @@ static class ExpressionAgainst
 			{
 				Time(input, Nothing, iterations);
 
-				foreach (var (_, measure) in Methods)
-					Time(input, measure, iterations);
+				for (var i = 0; i < Methods.Length; i++)
+					if (Timed(input, i))
+						Time(input, Methods[i].Measure, iterations);
 			}
 
 			for (var round = 0; round < rounds; round++)
@@ -133,7 +161,7 @@ static class ExpressionAgainst
 				costs.Add(Time(input, Nothing, iterations));
 
 				for (var i = 0; i < Methods.Length; i++)
-					taken[i].Add(Time(input, Methods[i].Measure, iterations));
+					taken[i].Add(Timed(input, i) ? Time(input, Methods[i].Measure, iterations) : double.NaN);
 			}
 
 			var overhead = Median(costs);
@@ -168,6 +196,13 @@ static class ExpressionAgainst
 
 			for (var i = 0; i < Methods.Length; i++)
 			{
+				if (!Timed(input, i))
+				{
+					taken[i] = double.NaN;
+
+					continue;
+				}
+
 				_input = input;
 
 				Methods[i].Measure(input);
@@ -187,9 +222,9 @@ static class ExpressionAgainst
 			Console.Write($"{shown,-40}");
 
 			foreach (var one in taken)
-				Console.Write($" {one,8:N0} b ");
+				Console.Write(double.IsNaN(one) ? $" {"-",8}   " : $" {one,8:N0} b ");
 
-			Console.WriteLine($"    {taken[1] - taken[2],+8:N0} b");
+			Console.WriteLine(double.IsNaN(taken[1]) ? "" : $"    {taken[1] - taken[2],+8:N0} b");
 		}
 	}
 
@@ -287,7 +322,7 @@ static class ExpressionAgainst
 					$"  by hand   {handed}");
 		}
 
-		foreach (var text in Inputs)
+		foreach (var text in Inputs.Where(text => Timed(text, 1)))
 		{
 			var tape      = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
 			var immediate = ExpressionCorpus.Answer(text, ExpressionParser.Immediate.TryParseLambda, Fresh(text));
@@ -301,7 +336,7 @@ static class ExpressionAgainst
 
 		Console.WriteLine(
 			$"The hand-written parser answers as the tape over {ExpressionCorpus.Shapes.Length + Inputs.Length} shapes, " +
-			$"and the immediate carrier over the {Inputs.Length} timed.");
+			$"and the immediate carrier over the {Inputs.Count(text => Timed(text, 1))} it is timed on.");
 	}
 
 	enum Reading { Tape, Immediate, Hand }
@@ -339,9 +374,11 @@ static class ExpressionAgainst
 		Console.Write($"{shown,-40}");
 
 		foreach (var median in medians)
-			Console.Write($" {median,8:N1} ns");
+			Console.Write(double.IsNaN(median) ? $" {"-",8}   " : $" {median,8:N1} ns");
 
-		Console.WriteLine($"   {medians[0] / medians[2],8:N2}x {medians[1] / medians[2],9:N2}x");
+		Console.WriteLine(
+			$"   {medians[0] / medians[2],8:N2}x " +
+			(double.IsNaN(medians[1]) ? $"{"-",10}" : $"{medians[1] / medians[2],9:N2}x"));
 	}
 
 	static double Median(List<double> times)
