@@ -490,6 +490,27 @@ public static class FirstSets
 	/// after one token and that token is the one the next clause needed — a run of words, a
 	/// bare identifier, an option's name — and that is what this asks about.
 	/// </para>
+	/// <para>
+	/// <b>What a cure proves.</b> The failure this names is one token long: the optional
+	/// finished on a token the next part needed, and the next part cannot begin. A cure is an
+	/// assertion by the author that proves that failure cannot happen — not that the grammar
+	/// is unambiguous, only that the reading the optional commits to always leaves the next
+	/// part able to begin. Two are recognized. A body every way through which ends with a
+	/// positive lookahead, directly or inside the rules it calls, whose first set is inside
+	/// what can come next (<see cref="Looked"/>): a turn finishes only where the next token
+	/// is one the next part can begin with. And a body that begins with a negative lookahead
+	/// longer than one token (<see cref="Barred"/>).
+	/// </para>
+	/// <para>
+	/// <b>The one place this looks past one token.</b> A negative lookahead of one token
+	/// narrows what the body may begin with, and <see cref="Only"/> reads it. One of two
+	/// tokens — <c>?!("GENERATED" &amp; ("ALWAYS" | "BY")) &amp; DataType</c> — says nothing
+	/// about the first token alone, and what it proves is about the second: for each token
+	/// the body and the next part share, every way the next part can go on from it is one the
+	/// refused pattern goes on by, so the body never begins where the next part does. That
+	/// is asked of the second token only (<see cref="Second"/>), only here, and where the
+	/// answer is not known the token stays shared and is reported.
+	/// </para>
 	/// </remarks>
 	static First? Takes(
 		IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond)
@@ -505,8 +526,300 @@ public static class FirstSets
 		// five this was written for did their damage.
 		var after = rest.Nothing ? beyond : rest;
 
-		return after.Nothing || !only.Overlaps(after) ? null : only.And(after);
+		if (after.Nothing || !only.Overlaps(after))
+			return null;
+
+		// What can begin once the optional is done: the rest of this sequence, and past it,
+		// where the rest may read nothing, what follows the rule.
+		var next = rest.Nothing ? beyond : RestNullable(parts, at + 1, graph) ? rest.Or(beyond) : rest;
+
+		if (Looked(body, graph, []) is { IsKnown: true } looked && next.IsKnown && next.Covers(looked))
+			return null;
+
+		var taken = Barred(body, only.And(after), parts, at, graph, beyond);
+
+		return taken.Nothing ? null : taken;
 	}
+
+	/// <summary>Whether every part from here on may read nothing.</summary>
+	static bool RestNullable(IReadOnlyList<Node> parts, int from, RecognitionGraph graph)
+	{
+		for (var i = from; i < parts.Count; i++)
+			if (!Nullable(parts[i], graph))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// What the positive lookahead every way through a node ends with says may come next,
+	/// or null where some way does not end with one.
+	/// </summary>
+	/// <remarks>
+	/// Read through calls, captures, constructions and marks, since a lookahead inside the
+	/// rule an optional calls ends the optional's reading just the same
+	/// (<c>ExistingWindowName?</c>). A choice ends with one where each of its alternatives
+	/// does, and what it says is theirs together. Anything that reads after the lookahead,
+	/// even what may read nothing, means it does not end the reading, and the answer is null.
+	/// </remarks>
+	static First? Looked(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Lookahead(true, var ahead):
+				return Nullable(ahead, graph) ? null : Of(ahead, graph);
+
+			case Node.Sequence(var parts):
+			{
+				First? found = null;
+
+				for (var i = parts.Count - 1; i >= 0; i--)
+				{
+					var part = parts[i];
+
+					if (part is Node.Lookahead(true, _))
+					{
+						if (Looked(part, graph, seen) is not { } one)
+							return null;
+
+						found = found is { } held ? held.And(one) : one;
+
+						continue;
+					}
+
+					if (Silent(part))
+						continue;
+
+					return found ?? Looked(part, graph, seen);
+				}
+
+				return found;
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				First? made = null;
+
+				foreach (var one in alternatives)
+				{
+					if (Looked(one, graph, seen) is not { } looked)
+						return null;
+
+					made = made is { } held ? held.Or(looked) : looked;
+				}
+
+				return made;
+			}
+
+			case Node.Capture(_, var held):    return Looked(held, graph, seen);
+			case Node.Atomic(var kept):        return Looked(kept, graph, seen);
+			case Node.Marked(var kept, _):     return Looked(kept, graph, seen);
+			case Node.Construct(var built, _): return Looked(built, graph, seen);
+
+			case Node.Call(var rule, _):
+				return seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var called)
+					? Looked(called, graph, seen)
+					: null;
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>
+	/// The shared tokens left once a negative lookahead longer than one token, in front of the
+	/// body, is known to refuse every way the next part goes on from them.
+	/// </summary>
+	/// <remarks>
+	/// For a shared token <c>t</c> the refused pattern begins with: where every token the next
+	/// part can have after <c>t</c> is one the pattern can have after <c>t</c>, every reading
+	/// of the next part from <c>t</c> is one the lookahead refuses, so the body does not begin
+	/// there and <c>t</c> is not taken. A pattern done after <c>t</c> refuses <c>t</c> whatever
+	/// comes after it. A second token that is not known leaves <c>t</c> shared. Asked token by
+	/// token, so only of a set small enough to be asked that way: the syntactic half's kinds.
+	/// </remarks>
+	static First Barred(
+		Node body, First shared, IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond)
+	{
+		if (Leading(body) is not Node.Lookahead(false, var refused) ||
+			OneCharacter(refused, graph, []) ||
+			shared.Anything ||
+			shared.Ranges.Sum(static range => range.To - range.From + 1) > 256)
+		{
+			return shared;
+		}
+
+		var rest = new Node.Sequence([.. parts.Skip(at + 1)]);
+		var left = new List<CharRange>();
+
+		foreach (var range in shared.Ranges)
+			for (int kind = range.From; kind <= range.To; kind++)
+			{
+				var token = First.Chars([new CharRange((char)kind, (char)kind)]);
+
+				if (!Refuses(token))
+					left.Add(new CharRange((char)kind, (char)kind));
+			}
+
+		return First.Chars(left, shared.Ends);
+
+		bool Refuses(First token)
+		{
+			if (!Of(refused, graph).Overlaps(token))
+				return false;
+
+			var (pattern, done) = Second(refused, token, graph, []);
+
+			// The pattern is done after the token on some reading of it, so the lookahead
+			// refuses the token whatever follows.
+			if (done)
+				return true;
+
+			if (pattern is null)
+				return false;
+
+			// The token read by what follows the rule, past a next part that read nothing,
+			// goes on in a way this cannot see.
+			if (RestNullable(parts, at + 1, graph) && beyond.Overlaps(token))
+				return false;
+
+			var (following, ended) = Second(rest, token, graph, []);
+
+			// Where the next part may be done after the token, what comes then is the rule's
+			// follow, and that is a second token too.
+			if (ended)
+				following = Or(following, beyond);
+
+			return following is { IsKnown: true } known && pattern.Covers(known);
+		}
+	}
+
+	/// <summary>The first part of a body that is not a capture, construction or mark around it.</summary>
+	static Node? Leading(Node node) => node switch
+	{
+		Node.Sequence(var parts) when parts.Count > 0 => parts[0],
+		Node.Capture(_, var held)                     => Leading(held),
+		Node.Construct(var built, _)                  => Leading(built),
+		Node.Marked(var kept, _)                      => Leading(kept),
+		Node.Atomic(var kept)                         => Leading(kept),
+		_                                             => node,
+	};
+
+	/// <summary>
+	/// What a node can read right after a first token from <paramref name="first"/>, and
+	/// whether it can be done after that one token.
+	/// </summary>
+	/// <remarks>
+	/// Only <see cref="Barred"/> asks it. Conservative the way the rest of this file is: a
+	/// shape it does not follow — a repetition that may read nothing in front, an external,
+	/// a rule it is already inside — answers null, not known, which proves nothing on either
+	/// side: neither what the pattern refuses nor what the next part may read.
+	/// </remarks>
+	static (First? Next, bool Done) Second(Node node, First first, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Literal(var text):
+				return text.Length == 0 || !First.Chars([new CharRange(text[0], text[0])]).Overlaps(first)
+					? (First.None, false)
+					: text.Length == 1
+						? (First.None, true)
+						: (First.Chars([new CharRange(text[1], text[1])]), false);
+
+			case Node.Element(var negated, var ranges, _, var references):
+				return negated || references.Count > 0
+					? (null, false)
+					: First.Chars(ranges).Overlaps(first) ? (First.None, true) : (First.None, false);
+
+			case Node.Choice(var alternatives):
+			{
+				First? next = First.None;
+				var done = false;
+
+				foreach (var one in alternatives)
+				{
+					var (after, ended) = Second(one, first, graph, seen);
+
+					next  = Or(next, after);
+					done |= ended;
+				}
+
+				return (next, done);
+			}
+
+			case Node.Sequence(var parts):
+				return Second(parts, 0, first, graph, seen);
+
+			// A turn that began with the token; whether the repetition may also be skipped is
+			// the sequence around it's question (Second over parts).
+			case Node.Repeat(var body, var min, var max):
+			{
+				var (after, ended) = Second(body, first, graph, seen);
+
+				if (ended && max is not 1)
+					after = Or(after, Of(body, graph));
+
+				return (after, ended && min <= 1);
+			}
+
+			case Node.Capture(_, var held):    return Second(held, first, graph, seen);
+			case Node.Atomic(var kept):        return Second(kept, first, graph, seen);
+			case Node.Marked(var kept, _):     return Second(kept, first, graph, seen);
+			case Node.Construct(var built, _): return Second(built, first, graph, seen);
+
+			case Node.Call(var rule, _):
+				return seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var called)
+					? Second(called, first, graph, seen)
+					: (null, false);
+
+			default:
+				return (null, false);
+		}
+	}
+
+	/// <summary>
+	/// <see cref="Second"/> of a sequence from one part on: every part that may read nothing
+	/// is tried with the token and passed over, until one that has to read something.
+	/// </summary>
+	/// <remarks>
+	/// Where every part may read nothing the token may belong to what follows the sequence,
+	/// which this cannot see; <see cref="Barred"/> asks that of the rule's follow itself.
+	/// </remarks>
+	static (First? Next, bool Done) Second(
+		IReadOnlyList<Node> parts, int from, First first, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		First? next = First.None;
+		var done = false;
+
+		for (var i = from; i < parts.Count; i++)
+		{
+			if (Silent(parts[i]))
+				continue;
+
+			if (Of(parts[i], graph).Overlaps(first))
+			{
+				var (after, ended) = Second(parts[i], first, graph, [.. seen]);
+
+				if (ended)
+				{
+					after = Or(after, Following(parts, i + 1, graph));
+					ended = RestNullable(parts, i + 1, graph);
+				}
+
+				next  = Or(next, after);
+				done |= ended;
+			}
+
+			if (!Nullable(parts[i], graph))
+				break;
+		}
+
+		return (next, done);
+	}
+
+	/// <summary>Both, where both are known; not known where either is not.</summary>
+	static First? Or(First? one, First? other) =>
+		one is null || other is null || one.Anything || other.Anything ? null : one.Or(other);
 
 	/// <summary>What a node can match when it matches exactly one token, or nothing.</summary>
 	/// <remarks>
