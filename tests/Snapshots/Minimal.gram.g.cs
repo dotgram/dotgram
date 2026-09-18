@@ -5662,14 +5662,27 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static Ways? _spare;
 
+			/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
+			[global::System.ThreadStatic]
+			static Ways?[]? _deeper;
+
+			[global::System.ThreadStatic]
+			static int _deeperCount;
+
 			internal static Ways Rent()
 			{
 				var spare = _spare;
 
-				if (spare == null)
+				if (spare != null)
+					_spare = null;
+				else if (_deeperCount > 0)
+				{
+					spare = _deeper![--_deeperCount]!;
+					_deeper![_deeperCount] = null;
+				}
+				else
 					return new Ways();
 
-				_spare = null;
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.LogCount  = 0;
@@ -5687,7 +5700,10 @@ namespace DotGram.Snapshots
 				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
 					return;
 
-				_spare = ways;
+				if (_spare == null)
+					_spare = ways;
+				else if (_deeperCount < 3)
+					(_deeper ??= new Ways?[3])[_deeperCount++] = ways;
 			}
 
 			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
@@ -5960,14 +5976,26 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static DirectValues? _spare;
 
+			/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
+			[global::System.ThreadStatic]
+			static DirectValues?[]? _deeper;
+
+			[global::System.ThreadStatic]
+			static int _deeperCount;
+
 			internal static DirectValues Rent()
 			{
 				var spare = _spare;
 
-				if (spare == null)
+				if (spare != null)
+					_spare = null;
+				else if (_deeperCount > 0)
+				{
+					spare = _deeper![--_deeperCount]!;
+					_deeper![_deeperCount] = null;
+				}
+				else
 					return new DirectValues();
-
-				_spare = null;
 
 				return spare;
 			}
@@ -5982,7 +6010,10 @@ namespace DotGram.Snapshots
 				global::System.Array.Clear(values.V2, 0, global::System.Math.Min(values._used, values.V2.Length));
 				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
 				values._used = 0;
-				_spare = values;
+				if (_spare == null)
+					_spare = values;
+				else if (_deeperCount < 3)
+					(_deeper ??= new DirectValues?[3])[_deeperCount++] = values;
 			}
 
 			/// <summary>Room for a value at every index below the count; what was built stays built.</summary>
@@ -6302,24 +6333,41 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static Parser? _spareParser;
 
+		/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
+		[global::System.ThreadStatic]
+		static Parser?[]? _deeperParsers;
+
+		[global::System.ThreadStatic]
+		static int _deeperParserCount;
+
 		const int KeptEntries = 65536;
 
 		static Parser Recycled()
 		{
 			var spare = _spareParser;
 
-			if (spare == null)
+			if (spare != null)
+				_spareParser = null;
+			else if (_deeperParserCount > 0)
+			{
+				spare = _deeperParsers![--_deeperParserCount]!;
+				_deeperParsers![_deeperParserCount] = null;
+			}
+			else
 				return new Parser();
-
-			_spareParser = null;
 
 			return spare;
 		}
 
 		static void Recycle(Parser parser)
 		{
-			if (parser.Entries.Capacity <= KeptEntries)
+			if (parser.Entries.Capacity > KeptEntries)
+				return;
+
+			if (_spareParser == null)
 				_spareParser = parser;
+			else if (_deeperParserCount < 3)
+				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
 		}
 
 		/// <summary>

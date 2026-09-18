@@ -144,8 +144,9 @@ public sealed class GramCompilerOptions
 
 	/// <summary>
 	/// Whether a publication that needs none of the automaton may be compiled as methods
-	/// (<c>Machine.Direct.cs</c>). On by default; off keeps the engine for every publication,
-	/// which is what a test of the engine, or a comparison against it, asks for.
+	/// (<c>Machine.Direct.cs</c>). On by default and not offered in the attribute; off keeps
+	/// the engine for every publication, which is what a test of the engine, or a comparison
+	/// against it, asks for.
 	/// </summary>
 	public bool Direct { get; set; } = true;
 

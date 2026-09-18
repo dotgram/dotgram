@@ -354,7 +354,6 @@ it entered.
 	Carrier      = GramCarrier.Tape,     // run no construction for a parse that fails (§3.7)
 	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
 	PartSize     = 60_000,               // how large a generated method may grow
-	Direct       = false,                // keep the automaton even where methods would do
 	IncludedAs   = "Lex",                // the name an including grammar gets without `As`
 	Portable     = false)]               // do not carry the grammar text in the assembly
 ```

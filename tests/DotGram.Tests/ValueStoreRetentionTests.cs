@@ -112,6 +112,66 @@ public sealed class ValueStoreRetentionTests
 			$"the walk did not raise where it wrote.");
 	}
 
+	/// <summary>A grammar whose factory parses again, from inside the parse that called it.</summary>
+	const string Nesting = """
+		Outer : @int = rows: Row+ => @(rows.Length)
+		Row : @string = '[' & text: Letters & ']' => @(Keep(Nested(text.ToString())))
+		Letters = ['a'..'z']+
+		Inner : @string = parts: Part+ => @(Keep(string.Concat(parts)))
+		Part : @string = c: ['a'..'z'] => @(Keep(c.ToString()))
+		parse Outer
+		parse Inner
+		""";
+
+	const string NestingMembers = Members + "\n" + """
+		static string Nested(string text) => TryParseInner(text).Value!;
+		""";
+
+	/// <summary>
+	/// A parse reached from inside another rents a store of its own and gives it back while the
+	/// outer one still holds its; the outer's then goes below the one slot. Whichever level a
+	/// store goes back to, it holds nothing of the parse that filled it.
+	/// </summary>
+	[Fact]
+	public void A_parse_inside_a_parse_leaves_neither_holding_what_it_built()
+	{
+		var compiled = GramCompiler.Compile(Nesting, new GramCompilerOptions
+		{
+			ClassName = "Grammar", Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+
+		var source = Assert.Single(compiled.Sources).Text;
+
+		Assert.True(source.Contains("static DirectValues?[]? _deeper;"),
+			"The grammar is not read through the direct value store this test is about.");
+
+		var assembly = EmittedCode.Compile(source, declarationMembers: NestingMembers);
+		var host     = assembly.GetType("Grammar")!;
+		var rows     = (IList)host.GetField("Rows", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+
+		rows.Clear();
+
+		Assert.True(Read(host, "TryParseOuter", "[ab][cde]"), "TryParseOuter did not read its input.");
+		// Two parts and an inner value per row, and the row: 2+1+1 and 3+1+1.
+		Assert.Equal(9, rows.Count);
+
+		var store = Array.Find(assembly.GetTypes(), type => type.Name == "DirectValues")!;
+
+		Assert.NotNull(store.GetField("_deeper", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
+
+		Collect();
+
+		var held = 0;
+
+		foreach (WeakReference row in rows)
+			if (row.IsAlive)
+				held++;
+
+		Assert.True(held == 0, $"{held} of {rows.Count} values are still reachable after a nested parse.");
+	}
+
 	/// <summary>
 	/// The parse, in a frame of its own: a local holding the result would keep the rows alive
 	/// past the collection, and the jit is free to keep one as long as the method runs.

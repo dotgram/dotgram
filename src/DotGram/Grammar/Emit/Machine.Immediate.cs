@@ -64,8 +64,8 @@ sealed partial class Machine
 
 		if (stacks.Count != 0 || stateType is not null)
 		{
-			text.Append("\n\t[global::System.ThreadStatic]\n\tstatic ImmediateValues? _spare;\n\n");
-			text.Append("\tinternal static ImmediateValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new ImmediateValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
+			text.Append('\n');
+			CSharpEmitter.Spares(text, "ImmediateValues");
 			// A required stack can still be unused by this particular parse. Its high-water
 			// mark includes values discarded by backtracking, so every retained reference
 			// is cleared before the store is made available to another parse.
@@ -84,7 +84,8 @@ sealed partial class Machine
 			for (var i = 0; i < valueTypes.Count; i++)
 				Emptied(text, TableName(valueTypes[i]));
 
-			text.Append("\t\t_spare = values;\n\t}\n\n");
+			CSharpEmitter.Spared(text, "ImmediateValues", "values");
+			text.Append("\t}\n\n");
 		}
 
 		text.Append("\t/// <summary>Whether a local a record would have been kept in was never written.</summary>\n");

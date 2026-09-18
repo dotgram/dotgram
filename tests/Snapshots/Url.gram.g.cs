@@ -4544,24 +4544,41 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static Parser? _spareParser;
 
+		/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
+		[global::System.ThreadStatic]
+		static Parser?[]? _deeperParsers;
+
+		[global::System.ThreadStatic]
+		static int _deeperParserCount;
+
 		const int KeptEntries = 65536;
 
 		static Parser Recycled()
 		{
 			var spare = _spareParser;
 
-			if (spare == null)
+			if (spare != null)
+				_spareParser = null;
+			else if (_deeperParserCount > 0)
+			{
+				spare = _deeperParsers![--_deeperParserCount]!;
+				_deeperParsers![_deeperParserCount] = null;
+			}
+			else
 				return new Parser();
-
-			_spareParser = null;
 
 			return spare;
 		}
 
 		static void Recycle(Parser parser)
 		{
-			if (parser.Entries.Capacity <= KeptEntries)
+			if (parser.Entries.Capacity > KeptEntries)
+				return;
+
+			if (_spareParser == null)
 				_spareParser = parser;
+			else if (_deeperParserCount < 3)
+				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
 		}
 
 		/// <summary>

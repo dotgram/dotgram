@@ -1064,24 +1064,41 @@ public static partial class CSharpEmitter
 		[global::System.ThreadStatic]
 		static Parser? _spareParser;
 
+		/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
+		[global::System.ThreadStatic]
+		static Parser?[]? _deeperParsers;
+
+		[global::System.ThreadStatic]
+		static int _deeperParserCount;
+
 		const int KeptEntries = 65536;
 
 		static Parser Recycled()
 		{
 			var spare = _spareParser;
 
-			if (spare == null)
+			if (spare != null)
+				_spareParser = null;
+			else if (_deeperParserCount > 0)
+			{
+				spare = _deeperParsers![--_deeperParserCount]!;
+				_deeperParsers![_deeperParserCount] = null;
+			}
+			else
 				return new Parser();
-
-			_spareParser = null;
 
 			return spare;
 		}
 
 		static void Recycle(Parser parser)
 		{
-			if (parser.Entries.Capacity <= KeptEntries)
+			if (parser.Entries.Capacity > KeptEntries)
+				return;
+
+			if (_spareParser == null)
 				_spareParser = parser;
+			else if (_deeperParserCount < /*DEEPER*/)
+				(_deeperParsers ??= new Parser?[/*DEEPER*/])[_deeperParserCount++] = parser;
 		}
 
 		/// <summary>
@@ -1175,6 +1192,7 @@ public static partial class CSharpEmitter
 		}
 
 		var runtime = ParserRuntimeTemplate
+			.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 			.Replace("/*POWER_PARAMETER*/", powers ? ", int power = 0" : "")
 			.Replace("\t\t/*POWER_ASSIGNMENT*/\r\n", powers ? "\t\tPower       = power;\r\n" : "")
 			.Replace("\t\t/*POWER_ASSIGNMENT*/\n", powers ? "\t\tPower       = power;\n" : "")
@@ -1241,6 +1259,43 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
+	/// How many spares a pool keeps below its one slot: one for each parse that can be reached
+	/// from inside another — a hole of an interpolated string, a guard or a value that parses —
+	/// before a deeper one allocates its own.
+	/// </summary>
+	/// <remarks>
+	/// The slot is the pool as it always was, and a grammar nothing re-enters never touches
+	/// more: a spare comes back to an empty slot, so the array below it is never made. What
+	/// each pool keeps is bounded as before, per spare, so a thread holds at most one more
+	/// than this many of each.
+	/// </remarks>
+	internal const int DeeperSpares = 3;
+
+	/// <summary>
+	/// A pool of one type's spares for a class written with a <see cref="StringBuilder"/>:
+	/// its fields and <c>Rent</c>, at one tab of indent. <see cref="Spared"/> puts one back.
+	/// </summary>
+	internal static void Spares(StringBuilder text, string type)
+	{
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic ").Append(type).Append("? _spare;\n\n");
+		text.Append("\t/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>\n");
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic ").Append(type).Append("?[]? _deeper;\n\n");
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _deeperCount;\n\n");
+		text.Append("\tinternal static ").Append(type).Append(" Rent()\n\t{\n\t\tvar spare = _spare;\n\n");
+		text.Append("\t\tif (spare != null)\n\t\t\t_spare = null;\n");
+		text.Append("\t\telse if (_deeperCount > 0)\n\t\t{\n\t\t\tspare = _deeper![--_deeperCount]!;\n\t\t\t_deeper![_deeperCount] = null;\n\t\t}\n");
+		text.Append("\t\telse\n\t\t\treturn new ").Append(type).Append("();\n\n\t\treturn spare;\n\t}\n\n");
+	}
+
+	/// <summary>The last lines of a <c>Return</c> written by <see cref="Spares"/>: the store goes back.</summary>
+	internal static void Spared(StringBuilder text, string type, string store)
+	{
+		text.Append("\t\tif (_spare == null)\n\t\t\t_spare = ").Append(store).Append(";\n");
+		text.Append("\t\telse if (_deeperCount < ").Append(DeeperSpares).Append(")\n");
+		text.Append("\t\t\t(_deeper ??= new ").Append(type).Append("?[").Append(DeeperSpares).Append("])[_deeperCount++] = ").Append(store).Append(";\n");
+	}
+
+	/// <summary>
 	/// The typed value tables a direct materialization writes into, one per type a rule
 	/// can produce, indexed by record or by a dense per-type index for final walks.
 	/// Unlike the engine's <c>Parser</c>, these need no arena. Rented per parse and kept
@@ -1286,8 +1341,7 @@ public static partial class CSharpEmitter
 				text.Append("\tinternal int N").Append(i).Append(";\n");
 
 		text.Append("\tint _used;\n\n");
-		text.Append("\t[global::System.ThreadStatic]\n\tstatic DirectValues? _spare;\n\n");
-		text.Append("\tinternal static DirectValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new DirectValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
+		Spares(text, "DirectValues");
 		text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 
 		var capacities = Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
@@ -1315,7 +1369,9 @@ public static partial class CSharpEmitter
 			text.Append("\t\tif (values._used > 0)\n\t");
 		text.Append("\t\tglobal::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));\n");
 
-		text.Append("\t\tvalues._used = 0;\n\t\t_spare = values;\n\t}\n\n");
+		text.Append("\t\tvalues._used = 0;\n");
+		Spared(text, "DirectValues", "values");
+		text.Append("\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
 		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(")\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");
 		if (dense)
@@ -1514,14 +1570,27 @@ public static partial class CSharpEmitter
 			[global::System.ThreadStatic]
 			static Ways? _spare;
 
+			/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
+			[global::System.ThreadStatic]
+			static Ways?[]? _deeper;
+
+			[global::System.ThreadStatic]
+			static int _deeperCount;
+
 			internal static Ways Rent()
 			{
 				var spare = _spare;
 
-				if (spare == null)
+				if (spare != null)
+					_spare = null;
+				else if (_deeperCount > 0)
+				{
+					spare = _deeper![--_deeperCount]!;
+					_deeper![_deeperCount] = null;
+				}
+				else
 					return new Ways();
 
-				_spare = null;
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.LogCount  = 0;
@@ -1539,7 +1608,10 @@ public static partial class CSharpEmitter
 				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
 					return;
 
-				_spare = ways;
+				if (_spare == null)
+					_spare = ways;
+				else if (_deeperCount < /*DEEPER*/)
+					(_deeper ??= new Ways?[/*DEEPER*/])[_deeperCount++] = ways;
 			}
 
 			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>

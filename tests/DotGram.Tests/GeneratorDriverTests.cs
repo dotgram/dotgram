@@ -2269,7 +2269,7 @@ public sealed class GeneratorDriverTests
 					| "198=" & 'X'+ => @(198)
 					| "900=" & 'X'+ => @(900)
 				parse Start
-				""", Direct = false)]
+				""")]
 			[GramOptions(Suffix = "Inherited")]
 			public static partial class PrefixDefaults { }
 			"""");
@@ -2387,7 +2387,7 @@ public sealed class GeneratorDriverTests
 				Start = 'a'+
 				parse Start
 				""")]
-			[GramOptions(Direct = false)]
+			[GramOptions(Carrier = GramCarrier.Tape)]
 			public static partial class Crowded;
 			"""");
 

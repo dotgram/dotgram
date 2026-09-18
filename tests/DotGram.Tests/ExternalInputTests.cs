@@ -13,13 +13,11 @@ namespace DotGram.Tests;
 public sealed class ExternalInputTests
 {
 	[Theory]
-	[InlineData(false, false)]
-	[InlineData(true,  false)]
-	[InlineData(false, true)]
-	[InlineData(true,  true)]
-	public void Recognizers_read_exact_extents_across_refills(bool direct, bool typed)
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Recognizers_read_exact_extents_across_refills(bool typed)
 	{
-		var assembly = Build(direct, typed);
+		var assembly = Build(typed);
 		var type     = assembly.GetType("Probe")!;
 
 		foreach (var input in new[] { "ab|cd!", "ab|cd", "!", "" })
@@ -44,14 +42,12 @@ public sealed class ExternalInputTests
 		}
 	}
 
-	[Theory]
-	[InlineData(false)]
-	[InlineData(true)]
-	public void Failed_alternative_keeps_input_available_for_backtracking(bool direct)
+	[Fact]
+	public void Failed_alternative_keeps_input_available_for_backtracking()
 	{
-		var assembly = GeneratorDriverTests.Build($$"""
+		var assembly = GeneratorDriverTests.Build("""
 			using System;
-			[DotGram.Gram("Start = (@Read & 'x') | (@Read & '!')\nparse Start stream bytes", BufferedInput = true, SpanCaptures = true, Direct = {{direct.ToString().ToLowerInvariant()}})]
+			[DotGram.Gram("Start = (@Read & 'x') | (@Read & '!')\nparse Start stream bytes", BufferedInput = true, SpanCaptures = true)]
 			public partial class Probe
 			{
 				static bool Read(ParserInput<char> input, ref int p) { return input.TryAdvance(ref p, 5); }
@@ -76,7 +72,7 @@ public sealed class ExternalInputTests
 	[InlineData(true)]
 	public void Input_view_cannot_bypass_buffer_retention_limits(bool bytes)
 	{
-		var assembly = Build(false, false);
+		var assembly = Build(false);
 		var type     = assembly.GetType("Probe")!;
 		var context  = Activator.CreateInstance(type.GetNestedType("Context")!)!;
 
@@ -118,7 +114,7 @@ public sealed class ExternalInputTests
 				parse Items as ReadItems stream bytes yield : @int
 				parse Items with (Separator = CopySeparator) as ReadCopy stream bytes yield : @int
 				""", BufferedInput = true)]
-			[DotGram.GramOptions(Suffix = "Other", Direct = false)]
+			[DotGram.GramOptions(Suffix = "Other")]
 			public partial class Probe
 			{
 				static bool Read(ParserInput<char> input, ref int p)
@@ -170,7 +166,7 @@ public sealed class ExternalInputTests
 		Assert.True(EmittedCode.Match(assembly, "Probe", "TryParseStart", "ab!").IsSuccess);
 	}
 
-	static Assembly Build(bool direct, bool typed)
+	static Assembly Build(bool typed)
 	{
 		var body = typed ? "v: @Read & '!' => @(v)" : "v: { @Read } & '!' => @(Text(v))";
 		var output = typed ? ", out string value" : "";
@@ -179,7 +175,7 @@ public sealed class ExternalInputTests
 
 		return GeneratorDriverTests.Build($$"""
 			using System;
-			[DotGram.Gram("context : @Context\nStart : @string = {{body}}\nparse Start stream bytes", BufferedInput = true, SpanCaptures = true, Direct = {{direct.ToString().ToLowerInvariant()}})]
+			[DotGram.Gram("context : @Context\nStart : @string = {{body}}\nparse Start stream bytes", BufferedInput = true, SpanCaptures = true)]
 			public partial class Probe
 			{
 				public sealed class Context { public int Size; public int Calls; }

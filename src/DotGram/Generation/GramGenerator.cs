@@ -471,7 +471,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// setting it to nought means: take the measured default either way.
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
-			Direct         = host.Direct,
 			LocationType   = host.LocationType,
 
 			// The host of every grammar this one is built on: what a rule from there calls
@@ -506,11 +505,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 			timer is not null && result.Sources.Count > 0
 				? string.Format(CultureInfo.InvariantCulture,
 					"DotGram: {0}, {1} normalized rules, {2} bytes UTF-8 C#, {3:F2} ms generation, " +
-					"mode={4}, options: Lexical={5}, Direct={6}, " +
-					"Carrier={7}, BufferedInput={8}, BufferedBytes={9}, SpanCaptures={10}",
+					"mode={4}, options: Lexical={5}, " +
+					"Carrier={6}, BufferedInput={7}, BufferedBytes={8}, SpanCaptures={9}",
 					host.HintName, result.NormalizedRuleCount,
 					Encoding.UTF8.GetByteCount(result.Sources[0].Text), timer.Elapsed.TotalMilliseconds,
-					result.UsesLexical ? "lexical" : "characters", host.Lexical, host.Direct,
+					result.UsesLexical ? "lexical" : "characters", host.Lexical,
 					(CarrierKind)host.Carrier,
 					host.BufferedInput, host.BufferedBytes, host.SpanCaptures)
 				: null);
@@ -781,7 +780,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
-		bool      Direct     = true,
 		int       Carrier    = 0,
 		bool      BufferedInput = false,
 		bool      BufferedBytes = false,
@@ -943,10 +941,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
 				.Value.Value as bool? ?? first?.Lexical ?? false;
 
-			var direct = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
-				.Value.Value as bool? ?? first?.Direct ?? true;
-
 			// A `typeof(…)` argument arrives as the symbol it named, and what the compiler
 			// needs of it is a name it can ask the resolver about — the same currency every
 			// other type in a grammar is written in.
@@ -1041,7 +1035,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
 				Lexical:    lexical,
-				Direct:     direct,
 				Carrier:    carrier,
 				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,
 				BufferedBytes: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedBytes)).Value.Value as bool? ?? first?.BufferedBytes ?? false,
