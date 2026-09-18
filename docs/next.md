@@ -23636,7 +23636,9 @@ shape; the engine and the round trip are unchanged over the corpus (8,317 statem
 here and refused there, nothing the other way; 7,716 printed back the same). The analysis does not
 yet see a negative lookahead behind a call of a parameterised rule, so those four places are still
 reported; that is the analysis's to learn, not the grammar's to spell out. The other label places
-are listed for a decision and not changed.
+followed in the next commit, with the same `?!Label` in front of the alias, the value, the unit, the
+column's trait and `ENFORCED`, and a row for each; `CURRENT OF GLOBAL` takes the word only where a
+name follows it (`?=QualifiedName`), which the analysis already reads as a cure.
 
 **Where the greedy reading is the language's**, the optional is right to take the word: a function
 of `JSON_ARRAY` taking `NULL` in `JSON_ARRAY(NULL ON NULL)`, `XML(CONTENT)`, `TRIM(LEADING …)` —
