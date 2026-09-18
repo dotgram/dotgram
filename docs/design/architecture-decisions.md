@@ -502,7 +502,13 @@ SQL:2023 in flight. A diagnostic about the language a parser accepts cannot be o
 writes them — `?=` on what follows at the end of an optional or repetition, also through a call
 or a choice; a `?!` of more than one token at the start of what follows, by a second-token
 analysis limited to that form; and atomic braces, as before. Repetitions the analysis does not
-see (`*`, sql-ff's `UNIQUE (a, p WITHOUT OVERLAPS)`) are the next refinement.
+see (`*`, sql-ff's `UNIQUE (a, p WITHOUT OVERLAPS)`) are the next refinement. **The repetition
+check landed as `1875588b` and cost generation time — DotGram.Sql 17 to 76 s, T-SQL 4 to 86 s, the
+split SQL:2023 never finished — because it walked every caller in full on every question; found by
+sql-39 and the stand, fixed in `c8d44074` (asked only where the first token overlaps, call sites
+from an index built once, a budget of steps). Rule from it: a change to `FirstSets` or `Committed`
+is measured for generation time on DotGram.Sql before it lands, and the stand's generator-report
+column is read at every base run.**
 
 ## D12. Tests are reviewed for what each one proves
 
