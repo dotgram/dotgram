@@ -274,8 +274,14 @@ break is `
 its own it reads the break where an element ends, without copying the elements into a
 `TextReader` stream; an element boundary is also a point a feed can release input at.
 
-**Open, for Igor.** Whether contiguous bytes (`byte[]`, `ReadOnlyMemory<byte>`) and
-`ReadOnlySpan<char>` are forms of their own or the memory side of the byte and string forms.
+**Decided 2026-09-17 by Igor: `ReadOnlySpan<char>` is a variant of the text form**, not a form
+of its own and nothing to do with bytes: a caller who holds text in a span reads it without
+making a string first. A convenience users will likely want rather than a performance
+requirement, so it follows the forms above in priority; when it comes it reads the span, not
+a copy of it.
+
+**Open, for Igor.** Whether contiguous bytes (`byte[]`, `ReadOnlyMemory<byte>`) are the same
+kind of variant of the byte form. The architect's reading, by symmetry, is yes.
 
 ## Open questions
 
