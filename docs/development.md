@@ -146,6 +146,101 @@ Two things make a difference appear that is not one:
 - **Ignore the report files' contents.** They carry the generation time in milliseconds,
   which differs between any two runs.
 
+### Verifying an emitter change
+
+Three things have each let a broken change look finished, and the check below is built
+against all three.
+
+- **The parent moves.** A snapshot taken on an older `main` charges another session's change
+  to yours, or hides yours under it. Take the "before" on the commit your change lands on —
+  after the rebase, in a worktree of its own — and compare each commit of a series with its
+  immediate parent.
+- **A test run can outlive a failed build.** When a project fails to build, its previous
+  assembly is still on disk and the tests run against it and pass. Stop at the first build
+  that does not succeed, before any test is read.
+- **A warning in emitted code is an error at the consumer.** Code the generator writes is
+  compiled in someone else's project, often with warnings as errors. `DotGram.Compatibility`
+  builds that way (it is what caught a field never assigned in one of two emitted classes);
+  count the CS warnings of every build and treat any as a failure of the change.
+
+The scripts live in `.work/gencheck/` (ignored by git) and are recreated from here. `snap.sh`
+rebuilds every project that hosts a grammar and records a path-normalized hash of each
+emitted file; `cmp.sh` compares two snapshots; `verify.sh` runs a snapshot and then every
+build a result depends on, stopping at the first that fails.
+
+`snap.sh`:
+
+```bash
+#!/usr/bin/env bash
+# snap.sh <name>: rebuild every project that hosts a grammar and record a sha256 of each emitted
+# .g.cs (generation reports excluded: they carry timings). Compare two with cmp.sh.
+set -e
+cd "$(dirname "$0")/../.."
+name="$1"
+out=".work/gencheck/$name"
+rm -rf "$out"; mkdir -p "$out"
+dotnet build src/DotGram/DotGram.csproj -c Release -p:UseSharedCompilation=false -m:1 -nr:false -v:q 2>&1 | grep -E " error |Build succeeded" | head -2
+for p in src/DotGram.Sql/DotGram.Sql.csproj src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj \
+         src/DotGram.Web/DotGram.Web.csproj src/DotGram.Finance/DotGram.Finance.csproj \
+         examples/DotGram.Examples/DotGram.Examples.csproj; do
+	dotnet build "$p" -c Release -t:Rebuild -p:UseSharedCompilation=false -m:1 -nr:false -p:BuildProjectReferences=false -v:q 2>&1 \
+		| grep -E " error |Build succeeded" | head -2 | sed "s#^#  $(basename $p .csproj): #"
+done
+root_win="$(pwd -W | sed 's#/#\\#g')"
+for d in src/DotGram.Sql src/DotGram.ExpressionLanguage src/DotGram.Web src/DotGram.Finance examples/DotGram.Examples; do
+	find "$d/obj/GeneratedFiles" -name '*.g.cs' ! -name '*DotGramReport*' 2>/dev/null | while read f; do
+		rel="${f#./}"
+		mkdir -p "$out/$(dirname "$rel")"
+		# #line directives carry the worktree's absolute path; normalize it away.
+		python -c "import sys; d=open(sys.argv[1],'rb').read(); r=sys.argv[3].encode(); open(sys.argv[2],'wb').write(d.replace(r, b'<ROOT>'))" "$f" "$out/$rel" "$root_win"
+	done
+done
+(cd "$out" && find . -name '*.g.cs' | sort | xargs sha256sum) > "$out.sha256"
+echo "$(wc -l < "$out.sha256") files recorded in $out.sha256"
+```
+
+`cmp.sh`:
+
+```bash
+#!/usr/bin/env bash
+# cmp.sh <before> <after>: which emitted files differ, which appeared, which went away.
+cd "$(dirname "$0")"
+join -j 2 -a1 -a2 -e MISSING -o 0,1.1,2.1 <(sort -k2 "$1.sha256") <(sort -k2 "$2.sha256") \
+	| awk '{ s = ($2 == $3) ? "same   " : ($2 == "MISSING" ? "added  " : ($3 == "MISSING" ? "removed" : "DIFF   ")); print s, $1 }' \
+	| sort | awk '{c[$1]++} $1 != "same" {print} END {for (k in c) print "  total", k, c[k]}'
+```
+
+`verify.sh`:
+
+```bash
+#!/usr/bin/env bash
+# verify.sh <snapshot-name> <parent-snapshot>: emitted-code compare, then every build that must
+# succeed before a test result means anything, stopping at the first that does not.
+cd "$(dirname "$0")/../.."
+name="$1"; parent="$2"
+build() {
+	local out; out=$(dotnet build "$1" -c Release -p:UseSharedCompilation=false -m:1 -nr:false 2>&1)
+	if ! grep -q "Build succeeded" <<<"$out" || grep -qE " error " <<<"$out"; then
+		echo "BUILD FAILED: $1"; grep -E " (error|warning) " <<<"$out" | sort -u | head -15; exit 1
+	fi
+	local w; w=$(grep -cE "warning CS" <<<"$out"); echo "built $(basename "$1" .csproj) (CS warnings: $w)"
+}
+.work/gencheck/snap.sh "$name" 2>&1 | grep -E " error |recorded" | head -5
+.work/gencheck/cmp.sh "$parent" "$name" | tail -12
+build tests/DotGram.Tests/DotGram.Tests.csproj
+dotnet tests/DotGram.Tests/bin/Release/net10.0/DotGram.Tests.dll 2>&1 | grep -E "Total:|\[FAIL\]" | head -15
+build tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj
+dotnet tests/DotGram.Finance.Tests/bin/Release/net10.0/DotGram.Finance.Tests.dll 2>&1 | grep -E "Total:|\[FAIL\]" | head -8
+build tests/DotGram.Compatibility/DotGram.Compatibility.csproj
+build benchmarks/DotGram.Finance.Benchmarks/DotGram.Finance.Benchmarks.csproj
+build benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj
+echo "ALL BUILDS SUCCEEDED"
+```
+
+A series of two commits is checked as: a worktree at the new parent, `snap.sh parent`;
+check out the first commit there, `snap.sh first` and `cmp.sh parent first`; then, at the
+second commit in your own tree, `verify.sh second first`.
+
 ## Measuring
 
 Benchmarks are a project of their own and are not run by CI — a number from a shared
