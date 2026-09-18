@@ -60,6 +60,15 @@ public static partial class ExpressionParser
 
 	static readonly ConcurrentDictionary<(Type, string, bool, Assembly), Overload[]> _methods = new();
 
+	// An extension method is looked for in every static class an imported namespace holds, on
+	// every call that finds nothing of its own: `Enumerable` alone is two hundred methods, and
+	// each was asked its name, whether it is generic, whether it extends and whether the caller
+	// may reach it, every time. Kept by the class that holds it, which no assembly loaded later
+	// changes — what a load changes is which classes a namespace holds, and that is kept apart
+	// and forgotten on a load. Like every cache here it holds the types it is keyed by, as
+	// `_methods` does, and a collectible assembly's are kept alive by it no more and no less.
+	static readonly ConcurrentDictionary<(Type, string, Assembly), Overload[]> _extensions = new();
+
 	static readonly ConcurrentDictionary<(Type, Assembly), Overload[]> _constructors = new();
 
 	static readonly ConcurrentDictionary<(Type, Assembly), Overload[]> _indexers = new();

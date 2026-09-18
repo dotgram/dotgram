@@ -709,6 +709,21 @@ public sealed class ExpressionParserTests
 				"using DotGram.Tests.ExpressionLanguage; () => new Held().Twice()")());
 
 	[Fact]
+	public void An_internal_extension_is_found_for_its_own_assembly_and_for_no_other()
+	{
+		const string Text = "using DotGram.Tests.ExpressionLanguage; (int x) => x.Doubled()";
+
+		// Asked first for the assembly that declares it, so that what is kept about it is kept
+		// for that assembly, and then for one that may not see it: what the first found is no
+		// answer to the second.
+		Assert.Equal(10, Both.Compile<Func<int, int>>(Text, typeof(Extras).Assembly)(5));
+
+		Assert.False(Both.TryParse(Text, typeof(object).Assembly).IsSuccess);
+
+		Assert.Equal(10, Both.Compile<Func<int, int>>(Text, typeof(Extras).Assembly)(5));
+	}
+
+	[Fact]
 	public void And_without_the_using_there_is_no_such_method() =>
 		Assert.Contains(
 			"has no method 'Doubled'",

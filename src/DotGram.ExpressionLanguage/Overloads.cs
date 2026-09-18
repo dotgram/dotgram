@@ -208,17 +208,29 @@ public static partial class ExpressionParser
 		void Consider(Type[] holders)
 		{
 			foreach (var holder in holders)
-				foreach (var method in holder.GetMethods(
-					BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
-					if ((!method.ContainsGenericParameters || method.IsGenericMethodDefinition) &&
-						string.Equals(method.Name, name, StringComparison.Ordinal) &&
-						Reachable(method, caller) &&
-						method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false) &&
-						method.GetParameters() is { Length: > 0 } parameters &&
-						seen.Add(method) &&
-						Fitting(Overload.Of(method, parameters), extended) is { } candidate)
+				foreach (var one in Cached(_extensions, (holder, name, caller), static key => Extending(key)))
+					if (seen.Add((MethodInfo)one.Member) && Fitting(one, extended) is { } candidate)
 						found.Add(candidate);
 		}
+	}
+
+	/// <summary>
+	/// The extension methods by that name a static class holds that the calling assembly could
+	/// reach, with their parameters, before any argument is asked.
+	/// </summary>
+	static Overload[] Extending((Type Holder, string Name, Assembly Caller) key)
+	{
+		var extending = new List<Overload>();
+
+		foreach (var method in key.Holder.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+			if (string.Equals(method.Name, key.Name, StringComparison.Ordinal) &&
+				(!method.ContainsGenericParameters || method.IsGenericMethodDefinition) &&
+				Reachable(method, key.Caller) &&
+				method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false) &&
+				method.GetParameters() is { Length: > 0 } parameters)
+				extending.Add(Overload.Of(method, parameters));
+
+		return [.. extending];
 	}
 
 	/// <summary>
