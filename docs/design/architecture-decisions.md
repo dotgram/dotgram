@@ -563,6 +563,15 @@ Options:
 3. **Keep the context and make each entry answer for itself**, by position. Not sound: after a
    reading is abandoned the parse can move past the stale opening without opening again.
 
+**Most of it needs no change to the language — Igor agreed 2026-09-17.** `break`, `continue` and
+`return` find their target in `=>`, after the parse, where §7.8's marks are already visible and
+only the accepted reading's marks stand. So loops, breakables and lambdas move from the
+context's open/close pairs to `with state` marks, as an improvement of the expression
+language's grammar (expr-2d). What is left for the language discussion is only what a guard
+must see while reading: whether a `var` is read as unsettled. The notation offered for that
+discussion: marks visible to `when` (downward), and a named value a rule carries up while it
+is read (`Rule : @T, roles: @int`, set by `roles = @(...)`, read as `e.roles`), for SQL's towers.
+
 Until decided, the expression language's hand parser uses a checkpoint of its own `State` for
 its second, recognize-only reading (a mark at the start of the publication, or of a hole or
 body window), which is local to it and changes nothing in the generator.
