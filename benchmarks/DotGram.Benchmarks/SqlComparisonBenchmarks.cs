@@ -3,74 +3,75 @@ using System.Linq;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Handwritten;
 using DotGram.Sql;
 using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// The generated SQL recognizer against the hand-written one reading the same language,
-/// with the first day's parser beside them.
+/// One SQL-92 grammar read three ways: the tape, the immediate carrier, and the mixed one.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Equal footing is the whole point, and it took three attempts to get.</b> The
-/// generated parser tokenizes and then reads kinds; a scannerless hand-written parser
-/// measured the lexical split instead of either parser's shape, and was retired.
-/// <see cref="HandSqlTokens"/> is the comparison: it lexes into kinds first and reads them
-/// by precedence climbing, so what stands between it and the generated parser is the
-/// reader. <see cref="HandSqlOriginal"/> is what the first day's ratios were divided by
-/// and reads a fraction of the language; it is measured so that a reader can see that.
+/// The same rules, the same tree, the same input — the only difference is how a reader
+/// carries what it read, which is what the carriers are. A ratio here is about that choice
+/// and about nothing else, and it needs no assumption about two parsers doing the same
+/// work at the same cost, because there is only one parser in it.
 /// </para>
 /// <para>
-/// The other three things held equal, none of them free:
+/// <b>The same answer, checked before anything is timed.</b> Three compilations of one
+/// grammar ought to agree on every input, and <c>[GlobalSetup]</c> holds them to it: a
+/// carrier that quietly reads less would otherwise look quick for a reason that says
+/// nothing about carrying.
 /// </para>
-/// <list type="bullet">
-/// <item>
-/// <b>The same language.</b> <see cref="SqlAgainst.Agree"/> runs in
-/// <c>[GlobalSetup]</c> and throws where the two disagree about any of forty-two shapes
-/// — the test suite's corpus, comments, delimited identifiers, exponent and leading-point
-/// numerals, and nine inputs that must be refused. A hand-written parser that quietly
-/// reads less is faster for a reason that says nothing about the generator, and refusals
-/// are half of reading the same language.
-/// </item>
-/// <item>
-/// <b>The same answer.</b> Both build the same tree, and <c>Agree</c> holds them to it:
-/// over all forty-two shapes the two render identically (<c>SqlTree.cs</c>), so what is
-/// between them is two ways of making one tree and nothing else.
-/// </item>
-/// <item>
-/// <b>The same input.</b> A string in, a bool out, each doing its own lexing inside. The
-/// generated parser's tokenizer is not reachable from here, so the reader's own share
-/// cannot be measured directly; <c>--hand</c> prints the hand-written lexer beside the
-/// totals, and what that licenses is a subtraction under the assumption that two lexers
-/// doing the same work cost about the same. The totals need no assumption, and they are
-/// the number to quote.
-/// </item>
-/// </list>
+/// <para>
+/// The comparison against a parser written by hand is not here. It is
+/// <c>HandSqlStandard</c> against <c>SqlStandardParser</c>, over the whole of SQL:2023
+/// rather than the four publications SQL-92 offers, and it is run by
+/// <c>--standard "^production"</c> (<see cref="Standard"/>) with the tests holding the two
+/// to the same language the rest of the time.
+/// </para>
 /// </remarks>
 [MemoryDiagnoser]
 public class SqlComparisonBenchmarks
 {
-	public static string[] Inputs => SqlAgainst.Inputs;
+	/// <summary>Search conditions of a few shapes and one refusal, which the carriers are read on.</summary>
+	public static readonly string[] Inputs =
+	[
+		"a = 1",
+		"(a + b) * c > d",
+		"((((a + 1) * 2) - 3) / 4) + b > 0",
+		"x = 1 AND y IS NOT NULL",
+		string.Join(" AND ", Enumerable.Range(0, 64).Select(i => "a" + i + " = 1")),
+		string.Join(" + ", Enumerable.Range(0, 64).Select(i => "a" + i)) + " > 0",
+		"(a + b) * c >",
+	];
 
 	[ParamsSource(nameof(Inputs))]
 	public string Input { get; set; } = "";
 
 	[GlobalSetup]
-	public void CheckTheyReadTheSameLanguage() => SqlAgainst.Agree();
+	public void CheckTheCarriersAgree()
+	{
+		foreach (var input in Inputs)
+		{
+			var tape      = Sql92Parser.TryParseSearchCondition(input).IsSuccess;
+			var immediate = ImmediateSql.TryParseSearchCondition(input).IsSuccess;
+			var mixed     = MixedSql.TryParseSearchCondition(input).IsSuccess;
 
-	[Benchmark(Baseline = true, Description = "generated")]
-	public bool Generated() => Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
+			if (tape != immediate || tape != mixed)
+				throw new InvalidOperationException(
+					$"The carriers disagree about \"{input}\": " +
+					$"tape {tape}, immediate {immediate}, mixed {mixed}.");
+		}
+	}
 
-	[Benchmark(Description = "by hand, over tokens")]
-	public bool Hand() => HandSqlTokens.Parse(Input);
+	[Benchmark(Baseline = true, Description = "tape")]
+	public bool Tape() => Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
 
-	[Benchmark(Description = "the hand-written lexer alone")]
-	public int Lexer() => HandSqlTokens.LexOnly(Input);
+	[Benchmark(Description = "immediate")]
+	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Input).IsSuccess;
 
-	/// <summary>What the first day's ratio was divided by; it reads a fraction of the language.</summary>
-	[Benchmark(Description = "day one, recovered")]
-	public bool DayOne() => HandSqlOriginal.Parse(Input);
+	[Benchmark(Description = "mixed")]
+	public bool Mixed() => MixedSql.TryParseSearchCondition(Input).IsSuccess;
 }

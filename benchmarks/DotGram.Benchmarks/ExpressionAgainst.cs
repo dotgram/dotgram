@@ -15,7 +15,8 @@ namespace DotGram.Benchmarks;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="SqlAgainst"/>'s twin, and for the same reason: a ratio is only worth printing
+/// The same shape as <see cref="Standard"/>'s handwritten comparison, and for the same reason:
+/// a ratio is only worth printing
 /// after the two have been shown to read the same language and build the same tree, and
 /// only round-robin, so that a machine that grows warm or busy moves both numbers together.
 /// </para>

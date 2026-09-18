@@ -1,4 +1,4 @@
-# Handwritten parsers
+﻿# Handwritten parsers
 
 A shared library of manually implemented parsers for differential testing and
 performance comparisons with DotGram parsers. The project is built by the solution
@@ -12,10 +12,6 @@ library; test frameworks and benchmark runners stay outside it.
   the production expression factories and state so comparisons build the same values.
 - `HandSqlStandard`: ISO/IEC 9075-2:2023 read by hand, in `Sql/`. Builds the production
   `DotGram.Sql.Ast` tree and is held to `SqlStandardParser` answer for answer.
-- `HandSqlTokens`: SQL search-condition lexer and parser. Builds the production SQL
-  tree and is checked by the SQL comparison harness before timing.
-- `HandSqlOriginal`: historical, deliberately limited SQL baseline. It does not
-  implement the full language and must not be used as a correctness oracle.
 
 The public entry points retain their existing names: `Parse`, `Build` and
 `LexOnly`, where supported. Their namespace is `DotGram.Handwritten`.
@@ -28,7 +24,7 @@ provide shared result models and semantic factories, not generated recognition.
 The existing comparison harnesses remain in `DotGram.Benchmarks`:
 
 ```shell
-dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --hand 1 1
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --standard "^query expression" file.sql
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --el 1 1
 ```
 

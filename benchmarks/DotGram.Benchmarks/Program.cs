@@ -77,8 +77,8 @@ static class Program
 
 				foreach (var (name, what) in new (string Name, Func<string, bool> What)[]
 				{
-					("generated", static one => Sql92Parser.TryParseSearchCondition(one).IsSuccess),
-					("by hand",   static one => HandSqlTokens.Parse(one)),
+					("tape",      static one => Sql92Parser.TryParseSearchCondition(one).IsSuccess),
+					("immediate", static one => ImmediateSql.TryParseSearchCondition(one).IsSuccess),
 				})
 				{
 					// Warmed, because the first parse on a thread builds the buffers it will
@@ -119,47 +119,24 @@ static class Program
 			return;
 		}
 
-		// `--bytes [iterations]` is what each parse allocates, which a ratio of times
-		// cannot say. See SqlAgainst.Bytes.
-		if (args.Length > 0 && args[0] == "--bytes")
-		{
-			SqlAgainst.Bytes(args.Length > 1 && int.TryParse(args[1], out var runs0) ? runs0 : 2000);
-
-			return;
-		}
-
-		// `--lexers [rounds] [iterations]` is the two lexers alone, the generated one
-		// measured by refusing the parse at its first token. See SqlAgainst.Lexers.
-		if (args.Length > 0 && args[0] == "--lexers")
-		{
-			SqlAgainst.Lexers(
-				args.Length > 1 && int.TryParse(args[1], out var rounds) ? rounds : 7,
-				args.Length > 2 && int.TryParse(args[2], out var runs) ? runs : 300_000);
-
-			return;
-		}
-
-		// `--spin [seconds] [input] [hand]` is not a benchmark either: it reads one SQL
-		// input over and over, long enough for a profiler to attach and sample. Which
-		// input is an index into SqlAgainst.Inputs, and `hand` runs the hand-written
-		// parser instead of the generated one, so the two profiles can be read against
-		// each other — where the generated one spends time the other has no line for is
-		// where the generator's own machinery is.
+		// `--spin [seconds] [input] [immediate]` is not a benchmark either: it reads one SQL
+		// input over and over, long enough for a profiler to attach and sample. Which input
+		// is an index into SqlComparisonBenchmarks.Inputs, and `immediate` reads it on the
+		// immediate carrier instead of the tape, so the two profiles can be read against
+		// each other.
 		if (args.Length > 0 && args[0] == "--spin")
 		{
 			var seconds = args.Length > 1 && int.TryParse(args[1], out var given) ? given : 20;
 			var which   = args.Length > 2 && int.TryParse(args[2], out var index) ? index : 4;
-			var byHand  = args.Length > 3 && args[3] == "hand";
 			var immediately = args.Length > 3 && args[3] == "immediate";
-			var text    = SqlAgainst.Inputs[which];
+			var text    = SqlComparisonBenchmarks.Inputs[which];
 			var until   = DateTime.UtcNow.AddSeconds(seconds);
 			var read    = 0;
 
 			while (DateTime.UtcNow < until)
 				for (var i = 0; i < 2000; i++)
-					read += byHand  ? HandSqlTokens.Parse(text) ? 1 : 0 :
-					        immediately ? ImmediateSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
-					                  Sql92Parser.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
+					read += immediately ? ImmediateSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
+					                      Sql92Parser.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
 
 			Console.WriteLine($"{read:N0} parses of \"{text}\"");
 
@@ -416,19 +393,6 @@ static class Program
 		if (args.Length >= 1 && args[0] == "--slope")
 		{
 			SqlSlope.Run(args.Length >= 2 && int.TryParse(args[1], out var reads) ? reads : 201);
-
-			return;
-		}
-
-		// `--hand [rounds] [iterations]` is not a benchmark either: it measures the SQL
-		// recognizer against the hand-written one in HandSqlTokens.cs, round-robin, after
-		// checking that the two read the same language. See SqlAgainst.cs.
-		if (args.Length >= 1 && args[0] == "--hand")
-		{
-			var rounds     = args.Length >= 2 && int.TryParse(args[1], out var turns) ? turns : 7;
-			var iterations = args.Length >= 3 && int.TryParse(args[2], out var runs)  ? runs  : 20_000;
-
-			SqlAgainst.Run(rounds, iterations);
 
 			return;
 		}

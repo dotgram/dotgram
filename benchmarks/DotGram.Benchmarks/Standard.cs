@@ -251,7 +251,7 @@ static class Standard
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// Agreement comes first for the reason <c>SqlAgainst.Agree</c> gives: a parser that quietly
+	/// Agreement comes first, and for the reason D1 gives: a parser that quietly
 	/// reads a smaller language is faster for a reason that says nothing about how the other one is
 	/// built. Nothing is timed until the two have answered the same on every line of the file.
 	/// </para>
