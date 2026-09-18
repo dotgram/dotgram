@@ -154,6 +154,13 @@ when the notice arrived (one until 23:53, one until 23:54). The session that mea
 window, waits until every other session has answered that nothing of its own is running, and
 only then starts; a notice received mid-build is answered with when the build will end.
 
+**A before/after comparison is paired, in one process.** `--stand-paired` (stand, `f39b139f`,
+2026-09-18) loads both builds into two `AssemblyLoadContext`s and alternates hand, before and
+after in every round, so that what moved the machine moved both sides. Two separate processes
+had shown +10-13% where the paired run showed +4% steady, and once the cause was fixed, noise;
+the paired form is what a before/after is quoted from. Over SQL it compares acceptance and not
+trees, since types from two contexts are never equal.
+
 ## D5. A stream is read without holding it
 
 Decided 2026-09-17 by Igor: streaming exists to process volumes larger than memory, so a
