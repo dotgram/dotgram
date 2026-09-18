@@ -201,3 +201,20 @@ Steps 2-5 wait for step 1's number and Igor's word. Then:
 3. A guard's side effect in a broken element (`BeginData`) runs as it does today, on the
    engine and on the tape: guards run while reading, whatever the element turns out to be.
 4. For a grammar that recovers, Q7.2's quiet first reading stays off, as it is now.
+
+## 7. What is proved and what is chosen (Igor, 2026-09-18)
+
+Two layers, kept apart:
+
+- **Proved: where a construction may run.** §7.3 says a factory runs once for each node of
+  the accepted derivation. The point past which a reading stands is what makes that true
+  for a carrier that builds as it reads: before it, the reading may still be taken back,
+  and a factory run there may run for a derivation that is not accepted, or run twice. So
+  that point is a proof, D3's analysis, and nothing builds earlier than it — whatever any
+  heuristic prefers. A grammar where the analysis cannot find such a point builds after the
+  parse, as the tape does now; that is correct and only slower.
+- **Chosen: which of the correct renderings is written.** The reader or the engine, the tape
+  or building at the commit point, a search or a loop for a value, the order of a choice's
+  tests: each is correct, and which is faster is a heuristic — measured, revisable, and
+  never allowed to move a construction ahead of the proved point. The heuristics are where
+  measurement decides; the proof is where it does not.
