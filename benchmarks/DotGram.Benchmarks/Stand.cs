@@ -224,10 +224,16 @@ static class Stand
 			// D13 (Igor, 2026-09-18): the same field repeated N times, string form only, so a
 			// least-squares fit over these six points separates a parse's fixed cost from what
 			// one more field adds — "initialization against a field" (performance-3f).
+			//
+			// A third reading, "ideal" (performance-ff, 2026-09-18): IdealFixParser, the least a
+			// reader of plain text fields can do. It is an ideal, not a reference (D1), and it
+			// hands anything but plain text fields to HandFixParser, so it belongs on these rows
+			// alone — never on one with binary fields or errors.
 			.. FixSlopeCounts.Select(n => FixForm(
 				$"slope-{n}.text",
 				() => HandFixParser.Parse(FixSlopeText(n)),
-				() => FixParser.Parse(FixSlopeText(n)))),
+				() => FixParser.Parse(FixSlopeText(n)),
+				() => IdealFixParser.Parse(FixSlopeText(n)))),
 
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
@@ -287,13 +293,22 @@ static class Stand
 			() => FixParser.Parse(new MemoryStream(bytes, false)));
 	}
 
-	static Workload FixForm(string name, Func<IEnumerable<FixField>> hand, Func<IEnumerable<FixField>> generated)
+	static Workload FixForm(
+		string name,
+		Func<IEnumerable<FixField>> hand,
+		Func<IEnumerable<FixField>> generated,
+		Func<IEnumerable<FixField>>? ideal = null)
 	{
+		Reading[] readings = ideal is null
+			? [new Reading("hand", () => Count(hand())), new Reading("generated", () => Count(generated()))]
+			: [new Reading("hand", () => Count(hand())), new Reading("generated", () => Count(generated())), new Reading("ideal", () => Count(ideal()))];
+
 		return new Workload(
 			"fix",
 			name,
-			[new Reading("hand", () => Count(hand())), new Reading("generated", () => Count(generated()))],
-			() => Differ(hand().Select(Describe), generated().Select(Describe)));
+			readings,
+			() => Differ(hand().Select(Describe), generated().Select(Describe))
+				?? (ideal is null ? null : Differ(hand().Select(Describe), ideal().Select(Describe))?.Replace("generated", "ideal    ")));
 
 		static int Count(IEnumerable<FixField> fields)
 		{
