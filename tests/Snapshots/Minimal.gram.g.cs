@@ -969,7 +969,7 @@ namespace DotGram.Snapshots
 		{
 			for (var start = 0; start <= input.Length; )
 			{
-				var failure = new Failure();
+				var failure = new Failure { Quiet = true };
 
 				var end = Recognize_Item(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
 
@@ -1356,13 +1356,13 @@ namespace DotGram.Snapshots
 			return p;
 
 			Fail:
-			if (p > failure.Position)
+			if (!failure.Quiet && p > failure.Position)
 			{
 				failure.Position = p;
 				failure.Expected = expected;
 				failure.ExpectedMore?.Clear();
 			}
-			else if (p == failure.Position && expected != null)
+			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
 				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 			}
@@ -1515,13 +1515,13 @@ namespace DotGram.Snapshots
 			return p;
 
 			Fail:
-			if (p > failure.Position)
+			if (!failure.Quiet && p > failure.Position)
 			{
 				failure.Position = p;
 				failure.Expected = expected;
 				failure.ExpectedMore?.Clear();
 			}
-			else if (p == failure.Position && expected != null)
+			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
 				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 			}
@@ -1637,13 +1637,13 @@ namespace DotGram.Snapshots
 			return p;
 
 			Fail:
-			if (p > failure.Position)
+			if (!failure.Quiet && p > failure.Position)
 			{
 				failure.Position = p;
 				failure.Expected = expected;
 				failure.ExpectedMore?.Clear();
 			}
-			else if (p == failure.Position && expected != null)
+			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
 				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 			}
@@ -2616,13 +2616,13 @@ namespace DotGram.Snapshots
 				a0 = p;
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Number_Expected0);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Number_Expected0);
 					return -1;
 				}
 				c = text[p];
 				if (!(((c >= '0' && c <= '9'))))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Number_Expected0);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Number_Expected0);
 					return -1;
 				}
 				p++;
@@ -2643,7 +2643,7 @@ namespace DotGram.Snapshots
 
 					if (!o1)
 					{
-						Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1);
+						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1); }
 						break;
 					}
 
@@ -2710,7 +2710,7 @@ namespace DotGram.Snapshots
 
 				if ((uint)p >= (uint)text.Length || text[p] != '+')
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected0);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected0);
 					return -1;
 				}
 				p += 1;
@@ -2762,7 +2762,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					Refuse_DotGram(ref failure, p, null);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				return p;
@@ -3733,13 +3733,13 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && p > failure.Position)
+				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
 				{
 					failure.Position = p;
 					failure.Expected = expected;
 					failure.ExpectedMore?.Clear();
 				}
-				else if (lookahead < 0 && p == failure.Position && expected != null)
+				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 				}
@@ -4357,13 +4357,13 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && p > failure.Position)
+				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
 				{
 					failure.Position = p;
 					failure.Expected = expected;
 					failure.ExpectedMore?.Clear();
 				}
-				else if (lookahead < 0 && p == failure.Position && expected != null)
+				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 				}
@@ -5336,6 +5336,16 @@ namespace DotGram.Snapshots
 			// Never written where a grammar's readers hold no lookahead.
 			#pragma warning disable 0649
 			public int Looking;
+			#pragma warning restore 0649
+
+			/// <summary>
+			/// Whether nothing reads what this failure would record, so nothing is recorded: a
+			/// `find` trying each start, the lexer measuring or valuing a token again.
+			/// </summary>
+			// Declared for the machines that ask it, and never set where no such reading is
+			// emitted — a lexer that measures nothing again, say.
+			#pragma warning disable 0649
+			public bool Quiet;
 			#pragma warning restore 0649
 		}
 

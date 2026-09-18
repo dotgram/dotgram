@@ -215,6 +215,10 @@ public static partial class CSharpEmitter
 		// left to choose its own carrier, and not at all where the author chose.
 		var replay = carrier == CarrierKind.Auto ? Replay.Of(graph) : null;
 
+		// A `find` over text tries every start and throws each failure away, so its machines are
+		// written to ask before they record (Q7.2).
+		var quiets = graph.Publications.Any(publication => publication.Kind == PublishKind.Find);
+
 		foreach (var group in groups)
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
@@ -224,7 +228,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -281,7 +285,7 @@ public static partial class CSharpEmitter
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
 				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
-				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true);
+				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets);
 			made.Anchor = owner.Machine.Anchor;
 			if (!made.CanDirect(publications)) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
@@ -320,7 +324,8 @@ public static partial class CSharpEmitter
 				new ResultTypes(lexical.Source, scoped, @namespace),
 				lines,
 				only: Rereads(lexical),
-				tag: "_Value")
+				tag: "_Value",
+				quiets: true)
 			: null;
 
 		// Each terminal that builds is a root of its own, and a whole one: the text handed to
@@ -654,7 +659,10 @@ public static partial class CSharpEmitter
 					!compiled.Flat || compiled.Machine.Ties),
 				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery),
 				// A reader's refusals inside a lookahead are counted on the failure (Refuse_DotGram).
-				looking: machines.Exists(static compiled => compiled.Direct)));
+				looking: machines.Exists(static compiled => compiled.Direct),
+				// A reading whose failure nothing reads records none (Q7.2): a `find` over text, and the
+				// lexer measuring or valuing a token again.
+				quiet: quiets || valuing is not null));
 			file.Line();
 		}
 
@@ -1909,7 +1917,7 @@ public static partial class CSharpEmitter
 						{
 							var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
 
-							file.Line($"var failure  = new {FailureType}();");
+							file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
 							// The whole input where a construction in that machine asks for it: a
 							// terminal's value may be a piece of the text it has to read again later.
 							file.Line(
@@ -1995,7 +2003,7 @@ public static partial class CSharpEmitter
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
-				file.Line($"var failure = new {FailureType}();");
+				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
 				file.Line();
 				file.Line(
 					$"var end = {MethodOf(publication.Rule)}(" +
@@ -3185,7 +3193,7 @@ public static partial class CSharpEmitter
 			// the end of the span says it was the token that was read.
 			using (file.Block($"static {type} Value_{IdentifierOf(rule)}_DotGram(string source, int at, int length)"))
 			{
-				file.Line($"var failure = new {FailureType}();");
+				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
 				file.Line();
 				file.Line(
 					$"return {read}(global::System.MemoryExtensions.AsSpan(source, 0, at + length), at, " +

@@ -140,14 +140,16 @@ sealed partial class Machine
 				// RenderEngine makes, ties added rather than replaced — and then the
 				// innermost open site resumes its next alternative, or closes and hands
 				// the failure to the site it opened over, until none is open.
-				file.Line("if (p > failure.Position)");
+				var quiet = Quiets ? "!failure.Quiet && " : "";
+
+				file.Line($"if ({quiet}p > failure.Position)");
 				using (file.Block(""))
 				{
 					file.Line("failure.Position = p;");
 					file.Line("failure.Expected = expected;");
 					file.Line("failure.ExpectedMore?.Clear();");
 				}
-				using (file.Block("else if (p == failure.Position && expected != null)"))
+				using (file.Block($"else if ({quiet}p == failure.Position && expected != null)"))
 				{
 					file.Line(
 						"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +

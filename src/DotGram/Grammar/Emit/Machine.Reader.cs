@@ -1087,7 +1087,7 @@ sealed partial class Machine
 			{
 				using (code.Block("if (p != text.Length)"))
 				{
-					code.Line($"{Refusing}(ref failure, p, null);");
+					code.Line(Refusal("null"));
 					code.Line("return -1;");
 				}
 			}
@@ -1303,7 +1303,7 @@ sealed partial class Machine
 				case Node.Reading(var readings):
 					using (code.Block($"if (((0x{readings:X}UL >> parserReading) & 1UL) == 0UL)"))
 					{
-						code.Line($"{Refusing}(ref failure, p, null);");
+						code.Line(Refusal("null"));
 						code.Line("return -1;");
 					}
 
@@ -1314,7 +1314,7 @@ sealed partial class Machine
 				case Node.External external:
 					using (code.Block($"if (!{machine.ExternalCall(external, "p")})"))
 					{
-						code.Line($"{Refusing}(ref failure, p, null);");
+						code.Line(Refusal("null"));
 						code.Line("return -1;");
 					}
 
@@ -1591,7 +1591,7 @@ sealed partial class Machine
 				machine._expectedUsed.Add(said);
 
 				code.Line(
-					$"if ({result} < 0 && failure.Position <= p) " +
+					$"if ({result} < 0 && failure.Position <= p{(machine.Quiets ? " && !failure.Quiet" : "")}) " +
 					$"{Refusing}(ref failure, p, {said});");
 			}
 
@@ -3135,7 +3135,7 @@ sealed partial class Machine
 				code.Line("default:");
 				using (code.Indent())
 				{
-					code.Line($"{Refusing}(ref failure, p, null);");
+					code.Line(Refusal("null"));
 					code.Line("return -1;");
 				}
 			}
@@ -3146,7 +3146,7 @@ sealed partial class Machine
 			var call = EmitGuardCall(code, guard);
 			using (code.Block($"if (!{call})"))
 			{
-				code.Line($"{Refusing}(ref failure, p, null);");
+				code.Line(Refusal("null"));
 				code.Line("return -1;");
 			}
 		}
@@ -3248,7 +3248,9 @@ sealed partial class Machine
 		{
 			machine._expectedUsed.Add(expected);
 
-			return $"{Refusing}(ref failure, p, {expected});";
+			// Braced where it asks first: a note stands between an `if` and its `else`, and an
+			// `if` of its own there would take the `else` for itself.
+			return machine.Quiets ? "{ " + Refusal(expected) + " }" : Refusal(expected);
 		}
 
 		void Refused(Writer code, string expected)
@@ -3258,8 +3260,14 @@ sealed partial class Machine
 			// that ever did was the rendering beside it.
 			machine._expectedUsed.Add(expected);
 
-			code.Line($"{Refusing}(ref failure, p, {expected});");
+			code.Line(Refusal(expected));
 			code.Line("return -1;");
 		}
+
+		/// <summary>The statement that records a refusal here, asking first where a reading may be quiet.</summary>
+		string Refusal(string expected) =>
+			machine.Quiets
+				? $"if (!failure.Quiet) {Refusing}(ref failure, p, {expected});"
+				: $"{Refusing}(ref failure, p, {expected});";
 	}
 }

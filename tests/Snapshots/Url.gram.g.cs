@@ -110,7 +110,7 @@ namespace DotGram.Snapshots
 		{
 			for (var start = 0; start <= input.Length; )
 			{
-				var failure = new Failure();
+				var failure = new Failure { Quiet = true };
 
 				var end = Recognize_Url(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
 
@@ -3072,13 +3072,13 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && p > failure.Position)
+				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
 				{
 					failure.Position = p;
 					failure.Expected = expected;
 					failure.ExpectedMore?.Clear();
 				}
-				else if (lookahead < 0 && p == failure.Position && expected != null)
+				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
 					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
 				}
@@ -4039,6 +4039,16 @@ namespace DotGram.Snapshots
 			/// tends to tie again, and a list per tie was an allocation per operand.
 			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
+
+			/// <summary>
+			/// Whether nothing reads what this failure would record, so nothing is recorded: a
+			/// `find` trying each start, the lexer measuring or valuing a token again.
+			/// </summary>
+			// Declared for the machines that ask it, and never set where no such reading is
+			// emitted — a lexer that measures nothing again, say.
+			#pragma warning disable 0649
+			public bool Quiet;
+			#pragma warning restore 0649
 		}
 
 		/// <summary>A reader, read through a buffer that is reused.</summary>

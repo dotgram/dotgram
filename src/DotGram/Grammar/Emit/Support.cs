@@ -59,6 +59,19 @@ public static partial class CSharpEmitter
 			#pragma warning restore 0649
 		""";
 
+	const string QuietField = """
+
+			/// <summary>
+			/// Whether nothing reads what this failure would record, so nothing is recorded: a
+			/// `find` trying each start, the lexer measuring or valuing a token again.
+			/// </summary>
+			// Declared for the machines that ask it, and never set where no such reading is
+			// emitted — a lexer that measures nothing again, say.
+			#pragma warning disable 0649
+			public bool Quiet;
+			#pragma warning restore 0649
+		""";
+
 	const string StarvedField = """
 
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
@@ -636,7 +649,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false) =>
+		bool looking = false, bool quiet = false) =>
 		Lines.Normalize(FailureStruct)
 			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
@@ -653,7 +666,10 @@ public static partial class CSharpEmitter
 				expectedMore ? Lines.Normalize(ExpectedMoreField) + Lines.Ending : "")
 			.Replace(
 				"\t{{looking}}" + Lines.Ending,
-				looking ? Lines.Normalize(LookingField) + Lines.Ending : "");
+				looking ? Lines.Normalize(LookingField) + Lines.Ending : "")
+			.Replace(
+				"\t{{quiet}}" + Lines.Ending,
+				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "");
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -700,6 +716,7 @@ public static partial class CSharpEmitter
 			{{expected}}
 			{{expectedMore}}
 			{{looking}}
+			{{quiet}}
 		}
 		""";
 

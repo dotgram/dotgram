@@ -22,6 +22,16 @@ sealed partial class Machine
 	readonly bool _prefixTables;
 	public bool BufferedBytes { get; }
 	public bool BorrowedCaptures { get; }
+
+	/// <summary>Whether some reading of this machine records no failure, so every place that records asks first.</summary>
+	/// <remarks>
+	/// A reading whose failure nothing reads — a `find` trying each start, the lexer measuring
+	/// or valuing a token again — is handed a quiet <c>Failure</c>, and recording is skipped
+	/// rather than done and thrown away. A machine no such reading reaches is written as it
+	/// always was.
+	/// </remarks>
+	public bool Quiets { get; }
+
 	string CaptureSpanType => $"global::System.ReadOnlySpan<{(BufferedBytes ? "byte" : "char")}>";
 	string EmptyCapture => BorrowedCaptures ? $"default({CaptureSpanType})" : "string.Empty";
 
@@ -300,9 +310,11 @@ sealed partial class Machine
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
-		Dictionary<string, (string Name, string Declaration)>? expectedTables = null, bool deferCompilation = false)
+		Dictionary<string, (string Name, string Declaration)>? expectedTables = null, bool deferCompilation = false,
+		bool quiets = false)
 	{
 		_expectedTables = expectedTables;
+		Quiets = quiets;
 		BufferedInput = bufferedInput;
 		_bufferedFind = bufferedFind;
 		_prefixTables = prefixTables;
@@ -1540,14 +1552,18 @@ sealed partial class Machine
 
 				file.Line();
 				file.Line("Fail:");
-				file.Line("if (lookahead < 0 && p > failure.Position)");
+
+				// A lookahead records nothing, and neither does a quiet reading.
+				var recording = Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0";
+
+				file.Line($"if ({recording} && p > failure.Position)");
 				using (file.Block(""))
 				{
 					file.Line("failure.Position = p;");
 					file.Line("failure.Expected = expected;");
 					file.Line("failure.ExpectedMore?.Clear();");
 				}
-				file.Line("else if (lookahead < 0 && p == failure.Position && expected != null)");
+				file.Line($"else if ({recording} && p == failure.Position && expected != null)");
 				using (file.Block(""))
 				{
 					file.Line(
