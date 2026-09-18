@@ -527,6 +527,21 @@ the other thirty-five in one pass — real, intended, false, one line each — w
 false ones; performance-ff narrows the analysis by the classes of false ones after the FIX steps;
 the severity goes up after both. Not a week of grammar work on what the analysis over-reports.
 
+**Classified (sql-39, `3dee45c5`, `docs/next.md`).** The one real trap in the shipped parsers is the
+**label**: a T-SQL statement may begin with `name:`, the separator is optional, and every word an
+optional at a statement's end takes is a legal label — `SELECT a FROM t` then `x: PRINT 1` on the
+next line is read by the server and was refused here, the table alias having taken `x`; `--engine`
+cuts at statements and could not see it, the tests kept labels only after `;`. Real: aliases,
+RETURN, THROW, WITH MARK, EXEC's `out:`, column tails, ENFORCED, FOR XML options, option units,
+login password words. Intended (greed is the language): JSON_ARRAY's NULL ON NULL, XML(CONTENT),
+TRIM(LEADING), statement lists, ARRAY/MULTISET. False, five classes for the analysis: a lookahead
+after an element inside a turn; a turn that cannot end and gives back; a closing `?=` behind a
+parametrized call; a word inside a bracketed option list or a reserved word no statement begins
+with; a literal, variable or digits no statement begins with. **Decided:** every real label place
+is cured with `?!(word & ':')` and a test of a label right after the statement; intended greed is
+said with atomic braces, which the analysis already recognizes; the false classes narrow the
+analysis after the FIX steps; then the severity goes up.
+
 ## D12. Tests are reviewed for what each one proves
 
 Decided 2026-09-18 by Igor: the test suites are reviewed and what is redundant or no longer
