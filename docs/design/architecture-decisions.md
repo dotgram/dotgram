@@ -105,6 +105,13 @@ a construction runs once per node of the accepted derivation). FIX first.
   (Tape, Immediate, Mixed, Auto) remain four or become a per-rule choice of two.
 - It keeps the factories' order and count, the typed caches and rollback invalidation, and
   string, TextReader and Stream input.
+- It builds only what is demanded. A value the grammar reads and discards is never built:
+  the expression language's `Held` reads a lambda body only to find its end and keeps a span,
+  and the body is built later, once its parameters have types. The tape honours this because
+  its walk builds on demand; the Immediate carrier does not, and builds the body early,
+  where a construction throws (found by expr-2d, 2026-09-17:
+  `using System.Linq; (int[] a) => a.Select(n => n * 2)` reads on the tape and throws
+  immediately). That is a defect of the Immediate carrier today, and the rule D3 must keep.
 
 **Parked:** narrowing FIX's follow sets for `yield` (six Run records, correctness of the end of
 a yield step not established) and removing Run/CaptureOpen records that depends on it. The
@@ -304,6 +311,34 @@ What the architect adds to reading by line:
   held whole, which D5 allows.
 - Reading by line is a strategy of the text-stream form for grammars whose records end at `eol`,
   chosen by the generator; the form's answers do not change with it.
+
+## D8. The expression language's hand parser, from expr-2d's inventory
+
+Decided 2026-09-17 by the architect, on expr-2d's inventory of `HandExpression` against
+`ExpressionParser` (thirteen grammar commits since the hand parser last changed).
+
+- **A grammar defect is fixed in the grammar first, not copied into the hand parser.** The
+  grammar accepts key words where it writes `Word` without `?!Keyword` (`(int if) => 1`,
+  `{ var if = 1; x }`, `nameof(if)`, member names after a dot, a foreach variable), which C#
+  refuses. expr-2d owns the grammar; the fix (an identifier rule refusing key words at the
+  declaration and member sites, keeping `@if` if the grammar reads verbatim identifiers) lands
+  before the hand parser is brought up to it. D1 then holds against the corrected grammar.
+- **What the hand parser gets wrong is fixed in the hand parser**: escapes, character literals,
+  number forms, building on paths the grammar abandons, the order of calls into `State`.
+- **Error positions follow the generated parser as it stands**, including two consequences of
+  its implementation rather than of the language: a lexer error anywhere in the input wins,
+  because the whole input is tokenized first, and a failure counts the positions lookaheads
+  reached. Both are recorded as such. If Q1 or D7 makes tokenizing lazy, which D5 requires for
+  streams, the first changes, and which position is right is then decided in `syntax.md`, not
+  by whichever parser is written second.
+- **One corpus.** `ExpressionAgainst`'s corpus moves to `examples/DotGram.Handwritten` as plain
+  data, read by the benchmark and by the conformance test alike.
+- **The conformance test** compares outcome, position on failure, `State` refusals, exception
+  type and the tree by its debug view, over `ExpressionParserTests`, the shared corpus and a
+  mutated corpus. It holds the hand parser to the tape, which is what ships.
+- The Immediate carrier's defect (D3) goes to the generator's owner; until it is fixed no
+  Immediate figure is quoted for untyped lambdas. `ExpressionCarrierTests` gains untyped
+  lambdas, interpolated and raw strings, the Immediate half skipped with a reason naming it.
 
 ## Open questions
 
