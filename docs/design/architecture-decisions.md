@@ -374,6 +374,25 @@ Decided 2026-09-17 by the architect, on expr-2d's inventory of `HandExpression` 
   Immediate figure is quoted for untyped lambdas. `ExpressionCarrierTests` gains untyped
   lambdas, interpolated and raw strings, the Immediate half skipped with a reason naming it.
 
+## D9. A parser's retention limit: set by its grammar, overridable by whoever uses it
+
+Decided 2026-09-18 by Igor. The limit on what a streamed parse may retain (`maxRetained`), and
+likewise the initial `bufferSize`, is an option of the generated parser, not a constant written
+beside it in a package.
+
+- **The grammar sets the default**, as an option on its attribute (`[Gram(…, MaxRetained = …)]`,
+  and `BufferSize`). FIX sets 16 MiB in `FixGrammar`, the same as `FixMessages`' message limit.
+- **The user of a shipped parser can change it**, without rebuilding the package: the generated
+  class carries the default as a settable static, initialized from the attribute, which a
+  package may expose (FIX: `FixParser.DefaultMaxRetained`); it is validated as positive.
+- **Per call it stays a parameter**, now `int? maxRetained = null`: `null` means the parser's
+  current default, a number overrides it for that call. A caller passing a number compiles as
+  before.
+- What a grammar gets when its attribute says nothing is decided with D7 (a finite default or
+  `int.MaxValue`).
+
+Generator: performance-3f. FIX: finance-03, instead of a constant of its own.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
