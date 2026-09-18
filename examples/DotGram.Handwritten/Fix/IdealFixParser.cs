@@ -63,7 +63,7 @@ public static class IdealFixParser
 				return HandFixParser.Parse(input, options);
 
 			var value = ++p;
-			var found = text.Slice(p).IndexOf('');
+			var found = text.Slice(p).IndexOf('\u0001');
 			var end   = found < 0 ? text.Length : p + found;
 
 			if (end == value)
