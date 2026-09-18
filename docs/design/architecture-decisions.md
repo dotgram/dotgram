@@ -338,6 +338,13 @@ reports its end: no machine of its own, no copy, no `MemoryStream`, and next to 
 What remains of the gap between bytes and text afterwards is measured; a contiguous byte machine
 is weighed against its code size only if that remainder is large. `ReadOnlySequence<byte>` and
 `PipeReader`, the networking forms, are candidates for later on the same machine.
+**Landed 2026-09-18 as `737376e5` (performance-3f)**: a `BufferedBytes` constructor over memory, one
+fill that is the whole input, no copy, no buffer parameters; only FixGrammar and Fix44 differ.
+`96d86795` makes the lazy buffered overloads plain methods that validate at the call and call a
+private iterator over `int`s, so D9's `int?` costs no allocation (the stand had found +16 bytes a
+call). Found by the compatibility build with warnings as errors: an emitted CS0649, which a
+consumer building strictly would have failed on; the verification now stops at the first failed
+build, since a stale assembly once let tests "pass".
 
 **Several forms per parser, and feeds read by line — Igor, 2026-09-17.** A parser offers whichever
 forms its grammar asks for, several at once: FIX needs the byte form, and the same parser must
