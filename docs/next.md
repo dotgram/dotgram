@@ -23544,3 +23544,11 @@ input or a `bufferSize` or `maxRetained` that is not positive threw at the first
 the call. They now check at the call, as the `Stream` overloads and the generated `ReadFields` do.
 The same change resolves `maxRetained` to an `int` before the iterator, which returns the 8 bytes
 a streamed call gained in 2fc54930 when its closure captured an `int?`.
+
+## A FIX field's header, timed again
+
+ff50ef43 narrowed the lengths a `FixField` keeps before its value, and its message gives the time
+as −2.9 to +7.4 per cent. That run overlapped builds on the machine. The stand ran it again in a
+quiet window (control 30.1 ns on both sides): every row, hand and generated, moved within ±5 per
+cent in both directions, so the change is still an allocation change only. Hand Orders128 leaned
+−3 to −5 per cent, which fits less collection but is inside the band.
