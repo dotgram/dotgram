@@ -196,9 +196,12 @@ as a follow-up proposal:** the next parse on a thread rents at the capacity the 
 remembered as one integer, which removes the doubling ladder that is most of both the time and
 the idle retention.
 
-The idle figure is not yet explained: with every buffer dropped, 4 MB records still leave about
-16 MB live beyond the harness's input. It is attributed before the idle check is added to the
-test, and the check's slack is measured, not guessed.
+The idle figure is explained: measured against a reading taken before the first parse, a parse
+with no pool retention holds 4 KB after it, at 1 MB and 4 MB records alike; the rest was the
+harness's own input. Returned to the pool, 4 MB records leave 16,385 KB, the doubling ladder.
+The idle check runs live, not skipped (it is not blocked by the whole-result defect), with a
+slack of the pool's legitimate keep, about two thresholds of elements, and it runs where no
+other test shares the process's heap at the same time.
 
 **For D7:** the test also showed the two mechanisms offering different forms. `IEnumerable<string>`
 exists only on the legacy window mechanism, a `yield` publication gets no reader overload
