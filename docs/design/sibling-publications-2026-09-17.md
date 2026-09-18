@@ -50,7 +50,7 @@ for those parsers is claimed.
 
 [Raw observations](../../benchmarks/results/sibling-publications-2026-09-17.json)
 include the generator hashes. The `generate` mode of
-[CompilationSplitExperiment](../../benchmarks/CompilationSplitExperiment/README.md)
+CompilationSplitExperiment (a probe since removed)
 preserves the measurement procedure.
 
 ## Validation

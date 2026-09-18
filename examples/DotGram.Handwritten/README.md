@@ -65,9 +65,6 @@ lazy consumption, independent enumerations and bounded retention.
 `HandFixBenchmarks` compares the same work in both implementations and validates
 field output before timing. See the Finance benchmark README for commands.
 
-`benchmarks/DotGram.HandDeferred` remains a separate experiment comparing deferred
-construction strategies, with its own benchmark runner.
-
 ## SQL:2023
 
 `DotGram.Handwritten.HandSqlStandard` is the yardstick `SqlStandardParser` is measured
