@@ -287,6 +287,25 @@ a copy of it.
 form: bytes the caller already holds are read where they lie, not wrapped in a `MemoryStream`.
 That retires the `FixParser.Parse(byte[])` adapter above once the variant exists.
 
+**Several forms per parser, and feeds read by line — Igor, 2026-09-17.** A parser offers whichever
+forms its grammar asks for, several at once: FIX needs the byte form, and the same parser must
+also read a string in memory and a text stream. For a feed, streaming may read the stream a
+line at a time, up to `eol`.
+
+What the architect adds to reading by line:
+
+- A line is read by the parser's own buffering and keeps its terminator. `TextReader.ReadLine`
+  is not used: it drops `\r\n` and `\n` alike and cannot say whether the last line had one, so
+  positions in diagnostics and locations would drift by a character a line on a CRLF file, and
+  a grammar that tells the two apart would read something else than was sent (§0: diagnostics
+  before speed).
+- A line boundary is a release point: what a feed holds is the record being read, which is
+  the D5 bound.
+- A record that spans lines still reads, since the lines are one text; a single long line is
+  held whole, which D5 allows.
+- Reading by line is a strategy of the text-stream form for grammars whose records end at `eol`,
+  chosen by the generator; the form's answers do not change with it.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
