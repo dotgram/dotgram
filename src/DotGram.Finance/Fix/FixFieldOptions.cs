@@ -41,6 +41,20 @@ public sealed class FixFieldOptions
 
 	internal bool IsData (int tag)
 	{
-		return FixSchema.Type(tag) == "data" || _dataTags?.Contains(tag) == true;
+		return (uint)tag < (uint)SchemaData.Length && SchemaData[tag] || _dataTags?.Contains(tag) == true;
+	}
+
+	// Which standard tags are raw data, looked up once rather than as a string on every field.
+	// The highest standard tag is 956; a custom data tag is answered by the options' own set.
+	static readonly bool[] SchemaData = CreateSchemaData();
+
+	static bool[] CreateSchemaData()
+	{
+		var data = new bool[957];
+
+		for (var tag = 1; tag < data.Length; tag++)
+			data[tag] = FixSchema.Type(tag) == "data";
+
+		return data;
 	}
 }

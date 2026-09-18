@@ -8,7 +8,22 @@ static class FixConvert
 {
 	public static int Tag(ReadOnlySpan<char> value)
 	{
-		return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
+		var result = 0;
+
+		if (value.IsEmpty)
+			return -1;
+
+		foreach (var c in value)
+		{
+			var digit = c - '0';
+
+			if (digit < 0 || digit > 9 || result > (int.MaxValue - digit) / 10)
+				return -1;
+
+			result = result * 10 + digit;
+		}
+
+		return result;
 	}
 
 	public static int Tag(ReadOnlySpan<byte> value)
@@ -160,6 +175,28 @@ static class FixConvert
 		if (start == raw.Length)
 			return false;
 
+		// Eighteen characters of digits always fit a long, which a BigInteger takes without
+		// allocating. The criterion is the length of the text, so a value with more leading
+		// zeros than that takes the general path below.
+		if (raw.Length - start <= 18)
+		{
+			long number = 0;
+
+			for (var i = start; i < raw.Length; i++)
+			{
+				var digit = raw[i] - '0';
+
+				if (digit < 0 || digit > 9)
+					return false;
+
+				number = number * 10 + digit;
+			}
+
+			value = start == 1 ? -number : number;
+
+			return true;
+		}
+
 		for (var i = start; i < raw.Length; i++) if (raw[i] < '0' || raw[i] > '9')
 			return false;
 
@@ -179,6 +216,28 @@ static class FixConvert
 
 		if (start == raw.Length)
 			return false;
+
+		// Eighteen characters of digits always fit a long, which a BigInteger takes without
+		// allocating. The criterion is the length of the text, so a value with more leading
+		// zeros than that takes the general path below.
+		if (raw.Length - start <= 18)
+		{
+			long number = 0;
+
+			for (var i = start; i < raw.Length; i++)
+			{
+				var digit = raw[i] - '0';
+
+				if (digit < 0 || digit > 9)
+					return false;
+
+				number = number * 10 + digit;
+			}
+
+			value = start == 1 ? -number : number;
+
+			return true;
+		}
 
 		// Nine digits per BigInteger operation; no text decoding or decimal rounding.
 		uint chunk  = 0;
@@ -240,7 +299,31 @@ static class FixConvert
 			digits++;
 		}
 
-		if (digits == 0 || !decimal.TryParse(raw, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value))
+		if (digits == 0)
+			return false;
+
+		// Up to eighteen digits the mantissa fits a long exactly, so the decimal is built from
+		// it and its scale, trailing zeros included, with nothing to round. A zero takes the
+		// general path, which decides the sign it keeps.
+		if (digits <= 18)
+		{
+			ulong mantissa = 0;
+
+			for (var i = start; i < raw.Length; i++)
+				if (i != dot)
+					mantissa = mantissa * 10 + (ulong)(raw[i] - '0');
+
+			if (mantissa != 0)
+			{
+				var scale = dot < 0 ? 0 : raw.Length - dot - 1;
+
+				value = new decimal(unchecked((int)mantissa), (int)(mantissa >> 32), 0, start == 1, (byte)scale);
+
+				return true;
+			}
+		}
+
+		if (!decimal.TryParse(raw, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value))
 			return false;
 
 		return ExactDecimal(ref value, dot < 0 ? 0 : Math.Max(0, lastNonzero - dot));
@@ -272,7 +355,31 @@ static class FixConvert
 			digits++;
 		}
 
-		if (digits == 0 || !(System.Buffers.Text.Utf8Parser.TryParse(raw, out value, out var consumed) && consumed == raw.Length))
+		if (digits == 0)
+			return false;
+
+		// Up to eighteen digits the mantissa fits a long exactly, so the decimal is built from
+		// it and its scale, trailing zeros included, with nothing to round. A zero takes the
+		// general path, which decides the sign it keeps.
+		if (digits <= 18)
+		{
+			ulong mantissa = 0;
+
+			for (var i = start; i < raw.Length; i++)
+				if (i != dot)
+					mantissa = mantissa * 10 + (ulong)(raw[i] - '0');
+
+			if (mantissa != 0)
+			{
+				var scale = dot < 0 ? 0 : raw.Length - dot - 1;
+
+				value = new decimal(unchecked((int)mantissa), (int)(mantissa >> 32), 0, start == 1, (byte)scale);
+
+				return true;
+			}
+		}
+
+		if (!(System.Buffers.Text.Utf8Parser.TryParse(raw, out value, out var consumed) && consumed == raw.Length))
 			return false;
 
 		return ExactDecimal(ref value, dot < 0 ? 0 : Math.Max(0, lastNonzero - dot));
@@ -300,7 +407,7 @@ static class FixConvert
 
 	static int Part(ReadOnlySpan<char> raw)
 	{
-		return int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : -1;
+		return Tag(raw);
 	}
 
 	static int Part(ReadOnlySpan<byte> raw)
