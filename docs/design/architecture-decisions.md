@@ -573,6 +573,20 @@ discussion: marks visible to `when` (downward). A value carried up while reading
 towers, was withdrawn the same day: Igor recalled that whatever a `when` asks for may be built
 while reading, which is the author's choice; the open problem is reusing what was built (Q6).
 
+**Correction the same day (expr-2d).** A mark's value is a constant of its site: the arena keeps the
+site number and the value is written as `site == 0 ? … : …`, with no span, capture or context. So a
+mark says "inside a loop" but not which loop; two loops side by side are one `[Loop]` to a `break`
+in each. The jumps cannot move onto today's marks after all; the pairs stay until the language
+decides. Options, for the discussion with Igor:
+
+- (a) A mark's value may name `parserSpan` and is computed where the mark is placed; the arena
+  keeps the value.
+- (b) Values stay constants, and a construction is handed where each mark standing over it was
+  placed: `parserMarks`, positions parallel to `parserState`. Narrower, and the key a jump needs.
+  Recommended by expr-2d and by the architect.
+
+Together with marks visible to `when` (above), (b) covers the whole of Q5.
+
 Until decided, the expression language's hand parser uses a checkpoint of its own `State` for
 its second, recognize-only reading (a mark at the start of the publication, or of a hole or
 body window), which is local to it and changes nothing in the generator.
