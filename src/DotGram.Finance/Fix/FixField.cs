@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 // ReSharper disable InconsistentNaming
 
@@ -10,9 +11,17 @@ namespace DotGram.Finance.Fix;
 /// </summary>
 public abstract class FixField : IFixLocation
 {
-	int _prefixLength;
-	int _terminatorLength = 1;
-	readonly int _tagPrefixLength;
+	// The two header lengths sit in narrow fields beside IsValid, so the state before the value
+	// is four words: Tag, Position, Length and these. A length too wide for its field, which
+	// takes a data length written with tens of thousands of leading zeros or a log separator
+	// padded past 254 spaces, leaves the field's maximum as a mark and is kept in Wide.
+	// Not in a field of its own: four more bytes are eight with alignment, every field would
+	// carry them, and that is the whole saving (a character field 40 bytes against 48) spent
+	// on input nobody sends. Only such input writes to the table or reads from it.
+	static readonly ConditionalWeakTable<FixField, WideLengths> Wide = new();
+
+	ushort _prefixLength;
+	byte   _terminatorLength = 1;
 
 	/// <summary>
 	/// Initializes the tag, conversion status and default tag-prefix length.
@@ -22,17 +31,26 @@ public abstract class FixField : IFixLocation
 	protected FixField(int tag, bool valid)
 	{
 		Tag           = tag;
-		_prefixLength = 2;
-
-		for (var digits = tag; digits >= 10; digits /= 10)
-			_prefixLength++;
-
-		_tagPrefixLength = _prefixLength;
-		IsValid          = valid;
+		_prefixLength = (ushort)TagPrefixLength(tag);
+		IsValid       = valid;
 	}
 
-	internal bool IsBinary     => this is not Invalid && _prefixLength != _tagPrefixLength;
-	internal int  DataPosition => ValuePosition - _tagPrefixLength;
+	internal bool IsBinary     => this is not Invalid && PrefixLength != TagPrefixLength(Tag);
+	internal int  DataPosition => ValuePosition - TagPrefixLength(Tag);
+
+	int PrefixLength     => _prefixLength     == ushort.MaxValue ? Wide.GetValue(this, NewWide).Prefix     : _prefixLength;
+	int TerminatorLength => _terminatorLength == byte.MaxValue   ? Wide.GetValue(this, NewWide).Terminator : _terminatorLength;
+
+	// The tag, its digits and the equals sign after them.
+	static int TagPrefixLength(int tag)
+	{
+		var length = 2;
+
+		for (var digits = tag; digits >= 10; digits /= 10)
+			length++;
+
+		return length;
+	}
 
 	/// <summary>
 	/// Gets the numeric tag as a <see cref="FixFieldType"/> value.
@@ -63,7 +81,7 @@ public abstract class FixField : IFixLocation
 	/// Gets the zero-based start of the value or binary payload in the original input.
 	/// For recovery fields this equals <see cref="Position"/>.
 	/// </summary>
-	public int ValuePosition => Position + _prefixLength;
+	public int ValuePosition => Position + PrefixLength;
 
 	/// <summary>
 	/// Records source coordinates supplied by the parser and derives the value length.
@@ -78,20 +96,49 @@ public abstract class FixField : IFixLocation
 	public void Locate(int position, int length)
 	{
 		Position = position;
-		Length   = length - _prefixLength - _terminatorLength;
+		Length   = length - PrefixLength - TerminatorLength;
 	}
 
 	internal FixField WithTerminator(int length)
 	{
-		_terminatorLength = length;
+		if (length < byte.MaxValue)
+			_terminatorLength = (byte)length;
+		else
+		{
+			_terminatorLength = byte.MaxValue;
+			Wide.GetValue(this, NewWide).Terminator = length;
+		}
+
 		return this;
 	}
 
 	internal FixField WithBinary(FixBinaryValue value, int start)
 	{
 		// The source extent begins at the length tag; the value begins after both headers.
-		_prefixLength = value.Position - start;
+		var length = value.Position - start;
+
+		if (length < ushort.MaxValue)
+			_prefixLength = (ushort)length;
+		else
+		{
+			_prefixLength = ushort.MaxValue;
+			Wide.GetValue(this, NewWide).Prefix = length;
+		}
+
 		return this;
+	}
+
+	internal bool HasWideLengths => Wide.TryGetValue(this, out _);
+
+	static WideLengths NewWide(FixField field)
+	{
+		return new WideLengths();
+	}
+
+	sealed class WideLengths
+	{
+		public int Prefix;
+		public int Terminator;
 	}
 
 	/// <summary>
