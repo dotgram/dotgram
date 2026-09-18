@@ -23183,9 +23183,15 @@ and DDL alike.
 `<value expression primary>` the first-character switch cannot tell a name from the key words that
 share its initial. Twenty select items, only the item's spelling changed: `z`, which no reserved
 word begins with, 155.7 us; `q` 151.8; `a`, 22 reserved words, 175.8; `s`, 38, 177.6; `c`, 52,
-189.7. About +0.6 us per ten reserved words in the bucket, +1.7 us an operand — a quarter of what an
-item costs, and the part a token-level dispatch would take away. A literal, the BNF's first
-alternative, comes in under every name at 137.9.
+189.7. A literal, the BNF's first alternative, comes in under every name.
+
+Those were single runs, and the family turned out to carry two or three per cent of noise — `q` came
+in under `z`, which no reserved word begins with at all. Repeated three times a spelling
+(`.work/sql-perf/letters-repeat.py`): `1` 132.9 us, `q` 148.7, `z` 152.9, `a` 165.2, `c` 192.0.
+Against `z`, the crowding costs 0.62 us an item for `a` and 1.95 for `c` — 7.4 and 20.3 per cent of
+the line. So the quarter of an item quoted above is the fullest bucket in the grammar, not a typical
+name; a typical name pays about a fourteenth. And a name in an empty bucket still costs 1.0 us an
+item more than a literal, so the word layer is wider than the crowding within it.
 
 The other three quarters are the machinery every rule pays — the choice point opened per rule, the
 two-pass recognize-then-materialize shape, the trivia rule between every pair of tokens, which
@@ -23243,3 +23249,36 @@ question to put to the emitted code, and it needs no timing to answer.
 smaller tree. The row value constructor path has something in it.
 
 All three went to the performance session, whose profiler can say which of them is machinery.
+
+## Why the shared machine is not dense, and what that costs
+
+The performance session profiled the two workloads and found where materialization's time goes: a
+`DirectValues` store of 301 typed arrays, one per value type in the grammar, whose `Room` is called
+once per materializer call and, on the path SQL's big machine takes, raises a high-water mark for
+all 301 types and checks all 301 lengths — then `Return`, once a parse, clears every array with a
+mark above zero, which by then is all of them. Room is 10 per cent of `SELECT a FROM t` and 18 of
+select-items-20; with the clears it is 20 and 27. It builds nothing.
+
+Which path a machine takes is `DenseDirectValues`, and it asks four things
+(`Machine.Direct.Values.cs:613`); the one SQL fails is `!_directBuilds`. That is set when a guard
+names a rule-valued capture (`Machine.Direct.cs:246`), because such a guard must have the value in
+hand before the guard runs, and a rewind must then unbuild it — so the record-to-value map dense
+indexing depends on cannot be laid down.
+
+**That is the towers, and it is not an accident.** `BooleanValueExpression = e: Disjunction & when
+@((Towers.RolesOf(e) & Towers.Truth) != 0)` is the shape of forty-five rules in this grammar: read
+the expression once, then ask which towers it still belongs to. Every one of them names a built
+value in a guard. There is no stray guard to rewrite; carrying the towers instead of trying them is
+why this grammar is the size it is, and `_directBuilds` is the price of it.
+
+**But the waste is not the towers' price.** It appears only where machines of both kinds share one
+store, which is SQL's case: `Literal` and `TableName` qualify as dense, so the store is emitted with
+the marks, and the machines that do not qualify must then raise every mark conservatively, because
+`Return` trusts them. A grammar whose machines are all dense pays nothing; one whose machines are
+none dense pays nothing either, since `Return` clears to `_used`. SQL pays for being mixed.
+
+So the fix does not need the towers changed and does not need the big machine made dense. The marks
+can be raised where a value is actually stored, which is O(1) at the write site and lets `Return`
+clear only the types written; at the least, the 301 maxima can collapse into one shared mark, which
+takes `Room` back to O(1) a call and leaves the clears for later. Either preserves output, which is
+what the handwritten parser is here to prove.
