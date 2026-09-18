@@ -106,6 +106,51 @@ public sealed class StreamingRetentionTests
 			$"a record is {Payload} characters long, so the parse is holding input (peaks {small.Peak} and {large.Peak}).");
 	}
 
+	/// <remarks>
+	/// <para>
+	/// What a parse has finished with, it lets go of. The buffer is rented from the shared pool,
+	/// which keeps what it is given for the life of the process, so a buffer grown to hold a long
+	/// input stayed live after the parse: 47 MB of bytes and 112 MB of characters, once, before
+	/// the generated input class stopped returning a buffer longer than its kept length.
+	/// </para>
+	/// <para>
+	/// Run over a whole-result form because that is the one whose buffer grows with the input;
+	/// how much it holds while it runs is the other test's business, and not this one's.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("reader whole")]
+	[InlineData("stream whole")]
+	public void A_finished_parse_leaves_none_of_its_buffer_behind(string form)
+	{
+		var host = Compile(buffered: true);
+
+		// The small run settles the JIT and fills the pool's buckets up to the kept length,
+		// which is what the pool may legitimately go on keeping.
+		Run(host, form, Small);
+
+		var before = GC.GetTotalMemory(forceFullCollection: true);
+
+		Run(host, form, Large);
+
+		var after = GC.GetTotalMemory(forceFullCollection: true);
+
+		Assert.True(after <= before + Kept,
+			$"{form}: {before} bytes live before a parse of {Large} records and {after} after it; " +
+			$"a finished parse may leave behind only what the pool keeps below the kept length.");
+	}
+
+	/// <summary>What the pool may keep of a buffer's growth once a parse is over.</summary>
+	/// <remarks>
+	/// The generated input class returns a buffer to the shared pool only up to its kept length,
+	/// 1,048,576 elements (BufferedEmitter). Doubling from 4,096 up to that passes through buckets
+	/// that together hold under two kept lengths, at two bytes an element for characters. The
+	/// small run has already filled those buckets, so the large one should add nothing to them;
+	/// this is the most it could add if the pool kept one more array a bucket, plus the slack the
+	/// lazy forms are allowed.
+	/// </remarks>
+	const long Kept = 2L * 1048576 * sizeof(char) + Slack;
+
 	static (Outcome Small, Outcome Large) Measure(string form, bool buffered)
 	{
 		var host = Compile(buffered);
