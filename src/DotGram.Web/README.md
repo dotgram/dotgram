@@ -1,3 +1,10 @@
+<!--
+  Agents: the skill for this package is SKILL.md, beside this file in the package
+  directory — when to use it, the contract every parser shares, and what is easy to
+  get wrong. Read it before writing code against the package. In a restored package
+  that is ~/.nuget/packages/dotgram.web/<version>/SKILL.md.
+-->
+
 # DotGram.Web
 
 [![NuGet](https://img.shields.io/nuget/v/DotGram.Web?logo=nuget)](https://www.nuget.org/packages/DotGram.Web)
