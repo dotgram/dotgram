@@ -75,6 +75,7 @@ static class Renderings
 		[(Rendering.Engine, "parserSpan")]     = null,
 		[(Rendering.Engine, "parserInput")]    = null,
 		[(Rendering.Engine, "parserState")]    = null,
+		[(Rendering.Engine, "parserMarks")]    = null,
 		[(Rendering.Engine, "context")]        = null,
 		[(Rendering.Engine, "parserPosition")] = null,
 		[(Rendering.Engine, "parserOrdinal")]  = null,
@@ -90,8 +91,10 @@ static class Renderings
 		[(Rendering.Flat, "parserSpan")]  = "a flat rendering keeps no record of where the rule began",
 		[(Rendering.Flat, "parserInput")] = "the whole input is refused a flat rendering before this is asked",
 
-		// The marks stand in the arena, which is the thing this rendering exists not to have.
+		// The marks stand in the arena, which is the thing this rendering exists not to have,
+		// and where each was placed is read off the same entries.
 		[(Rendering.Flat, "parserState")] = "a mark is an arena entry and a flat rendering has no arena",
+		[(Rendering.Flat, "parserMarks")] = "a mark is an arena entry and a flat rendering has no arena",
 
 		// And the one that is simply a parameter. It says nothing about how much input is
 		// held or how the states are written, so there was never a reason to refuse it —
@@ -104,6 +107,7 @@ static class Renderings
 		[(Rendering.Site, "parserSpan")]  = "a site's call is built from the spans it recorded",
 		[(Rendering.Site, "parserInput")] = "a site's call is built from the spans it recorded",
 		[(Rendering.Site, "parserState")] = "a site's call is built from the spans it recorded",
+		[(Rendering.Site, "parserMarks")] = "a site's call is built from the spans it recorded",
 		[(Rendering.Site, "context")]     = "a site's call is built from the spans it recorded",
 
 		// The five a `recover` factory is handed. Recovery keeps the engine outright —
@@ -157,7 +161,7 @@ static class Renderings
 			if (name == "context" && graph.Context is null)
 				continue;
 
-			if (name == "parserState" && graph.State is null)
+			if ((name == "parserState" || name == "parserMarks") && graph.State is null)
 				continue;
 
 			if (CSharpEmitter.Asks(graph, factory, name))
