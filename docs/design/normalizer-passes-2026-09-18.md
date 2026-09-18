@@ -45,7 +45,7 @@ is the line in `GrammarNormalizer.cs` that calls the pass.
 | 17 | `UnweaveTrivia` (L:187) | **optimizes** | bodies | yes | trivia-bound: meaningful over characters only |
 | 18 | `HoistTextCaptures` (L:192) | **optimizes** | bodies | yes | character-bound: "turns are contiguous" is not true over tokens with trivia between them |
 | 19 | `CollapseTransparent` (L:196) | **optimizes**, but also moves `on fail` to sources (`_says`) | bodies, says | yes | neutral |
-| 20 | `ComputeResults` (L:198, and inside `Factor` and `LowerYieldPublications`) | builds | results; GRAM4007 | values yes — **but GRAM4007 is added on every run, and it already runs up to three times** | neutral |
+| 20 | `ComputeResults` (L:198, and inside `Factor` and `LowerYieldPublications`) | builds | results; GRAM4007 | values yes — GRAM4007 is raised on every run (it runs up to three times) and the compiler keeps one error per position, so it is said once | neutral |
 | 21 | `CheckRebindingReplacements` (L:202) | builds (check) | GRAM4014 | reports again | neutral |
 | 22 | `BuildByConstructor` (L:206) | builds (§7.3) | bodies | yes | neutral |
 | 23 | `Check` (L:208) | builds (checks) | GRAM4001/4002/4003/4006/4008/4010/4012 | reports again | neutral |
@@ -102,16 +102,25 @@ code has not required that since `SharedPrefixTests.cs:57`.)
   (`CollapseTransparent`, `HoistTextCaptures`, `SpaceLists`, `Factor`, `FactorCommittedPrefixes`,
   `Unfolded`). That is the natural test of a fixpoint — a pass that returns every body by
   reference changed nothing.
-- De-duplicated reports: only `DecideIntersections` (`_said`), `Factor` (`_declined`) and the
-  readings threshold. Every other check reports again on a second run.
+- De-duplicated reports: inside the normalizer only `DecideIntersections` (`_said`), `Factor`
+  (`_declined`) and the readings threshold, and every other check reports again on a second run.
+  **Outside it, `GramCompiler.OnePerPosition` (GramCompiler.cs:291) keeps one *error* per
+  position** — the first raised — and leaves warnings and information alone. So an error a pass
+  says twice about the same place reaches the author once; a warning said twice reaches them
+  twice.
 
 ## Found on the way
 
-Two present defects, independent of D14:
-
-1. **GRAM4007 can be reported more than once today.** `ComputeResults` reports without
-   de-duplication and runs again inside `Factor` (when anything folded) and inside
-   `LowerYieldPublications` (with recovery). A grammar with a mismatched capture type and a
-   fold would say it twice. Not yet confirmed by a test.
-2. **A dead computation in `Check`**: `Doors.ByRule` is computed and never used (GN.Checks.cs:245),
+1. **GRAM4007 is not reported twice, though it is raised twice.** `ComputeResults` reports without
+   de-duplication and runs again inside `Factor` whenever anything in the grammar folded, so a
+   mismatched capture is raised once per run. The second is an error at the same position as the
+   first and `OnePerPosition` drops it: a grammar with `v: Item | v: 'y'` and a rule `Factor`
+   folds compiles with one GRAM4007, before and after (the test
+   `SemanticTests.And_says_so_once_where_the_grammar_is_folded` holds it there). Not a present
+   defect; a reason the Optimize design says Check reports once rather than relying on the
+   compiler to drop what a re-run repeats, which would not cover a warning.
+2. **`LowerYieldPublications` is not idempotent, and is run once.** A second run would raise a
+   spurious GRAM4027, but nothing runs it twice today, and under the Optimize design it is a
+   builder, which is never re-run. Not a present defect either: a constraint on where it may stand.
+3. **A dead computation in `Check`**: `Doors.ByRule` is computed and never used (GN.Checks.cs:245),
    and `Reaches(Node, RuleSymbol)` and `Leading` are unused.
