@@ -186,6 +186,20 @@ falls to the floor, which also confirms the attribution; the time of small-recor
 One and Order, pinned) does not move; the retention test gains the idle check after a large
 parse.
 
+**Threshold, 2026-09-17.** Not returning buffers costs time at every size, because the buffer
+grows by doubling from 4,096 and every step past 85,000 bytes is a large-object allocation: one
+FIX record through `Parse(Stream)`, pinned, kept against dropped, 4 KB +24%, 64 KB 6.9x, 1 MB
+3.2x, 4 MB +62%. FIX One and Order never leave the first 4,096 buffer, so any threshold of 8K
+or more leaves them alone. **Approved:** 1,048,576 elements, the bound the generated token and
+value stores already use, justified by this table where it is written. **Approved in principle
+as a follow-up proposal:** the next parse on a thread rents at the capacity the last one needed,
+remembered as one integer, which removes the doubling ladder that is most of both the time and
+the idle retention.
+
+The idle figure is not yet explained: with every buffer dropped, 4 MB records still leave about
+16 MB live beyond the harness's input. It is attributed before the idle check is added to the
+test, and the check's slack is measured, not guessed.
+
 **For D7:** the test also showed the two mechanisms offering different forms. `IEnumerable<string>`
 exists only on the legacy window mechanism, a `yield` publication gets no reader overload
 there, and the buffered machines offer TextReader and Stream.
