@@ -3,6 +3,16 @@
 Snapshot: 2026-09-17. This is a handoff, not a specification or a claim that the
 experiments below are enabled. Recheck Git and source before continuing.
 
+## Integration update
+
+The retained implementation and all reports below were committed as `613d3629`
+(`Optimize scalar rule recognition and guard materialization`) and fast-forwarded
+into local `main`. The uncommitted-source and archive instructions below describe
+the earlier export snapshot. Once this commit is available in the destination
+repository, use `main` containing it; do not reapply `working-tree.patch`.
+The archive is still useful for the ignored scratch benchmark source projects.
+Verify the remote branch before assuming a local merge has been published.
+
 ## Start here
 
 Continue optimizing generated Fix parsing toward handwritten-parser performance,
