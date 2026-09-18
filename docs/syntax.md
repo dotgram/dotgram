@@ -2635,6 +2635,31 @@ so does the other half: **an abandoned reading's marks are abandoned with it.** 
 unwinds them, because being gone is the whole of what unwinding owes them, and the walk
 that reads them runs over what was accepted.
 
+**And where each one was placed.** A mark's value is what the grammar wrote at the site, the
+same every time the site is reached, so it says *what* stands over a construction and never
+*which*: two loops side by side both stand under `Loop`. A construction that has to tell them
+apart — a `break`, and the loop it leaves — names `parserMarks`:
+
+```dotgram
+Loop  : @Expression = "while" & '(' & test: Expression & ')' & body: Statement
+                    => @(Looping.While(test, body, parserMarks))
+Break : @Expression = "break" & ';' => @(Looping.Break(parserState, parserMarks))
+
+Control : @Expression = c: Loop with state @(Scope.Loop) => @(c)
+```
+
+`parserMarks` is a `ReadOnlySpan<int>` parallel to `parserState`, outermost first: for each
+mark standing over the construction, where in the input the reading under it began, in the
+units of `parserSpan.Start`. Where the reading is over tokens (§4.5), that is where the token
+begins in the text and not which token it is. The loop above stands under its own mark, so it
+finds the same position the `break` inside it finds, and that position is what both say. Only
+the beginning is given: a construction built under a mark may run before the reading under it
+ends, and so may not be told where it will end. It is handed like `parserState`, to a hook that
+names it and to no other; a grammar that names it nowhere is compiled exactly as if it did not
+exist. A `when` is handed neither — a guard runs while the text is read, and what stands over
+a reading is not settled until it is accepted. What an abandoned reading placed is abandoned with
+it, positions and all.
+
 `with state` and §5.1's `with (...)` share a word and no mechanism, which is why this one is
 qualified. A rebinding replaces rules before anything runs and is visible to the grammar; a
 mark leaves the grammar alone and is visible only to hooks. A rule named `state` stays
