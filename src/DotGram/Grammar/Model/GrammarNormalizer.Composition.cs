@@ -230,6 +230,42 @@ public sealed partial class GrammarNormalizer
 			free is not null ? free.Contains(name) : text.Contains(name);
 	}
 
+	/// <summary>
+	/// Whether the context this parse is handed can be put back as it was, and what the grammar
+	/// gets from that (§7.7).
+	/// </summary>
+	/// <remarks>
+	/// A refused input is read a second time to say what was expected, the first reading having
+	/// recorded nothing (Q7.2); over a context the first reading wrote into, that second reading
+	/// has to begin from where the first began. The context says how, if it can: a
+	/// <c>Mark()</c>, and a <c>Rollback</c> of what it returns. Said either way, as information:
+	/// neither is a mistake, and the author is the one who can add the pair. A recovering grammar
+	/// is not asked — it records while it reads whatever its context can do.
+	/// </remarks>
+	void DecideRewind()
+	{
+		var context = _context ?? _model.Context;
+
+		if (context is null || _recoveries.Count > 0)
+			return;
+
+		_rewinds = _resolver.Rewinds(context.Name);
+
+		_diagnostics.Add(new GramDiagnostic(
+			ContextRestored,
+			_rewinds
+				? $"The context '{context.Name}' is put back with its Mark() and Rollback() before a refused " +
+					"input is read again to say what was expected, so input is read first without recording."
+				: $"The context '{context.Name}' has no Mark() with a Rollback() of what it returns, so every " +
+					"input is read once, recording what it would say if refused. Adding the pair lets an " +
+					"accepted input be read without recording (§7.7).",
+			context.At.Position,
+			context.At.Length,
+			GramSeverity.Info));
+	}
+
+	bool _rewinds;
+
 	TypeRef? _context;
 	TypeRef? _state;
 }

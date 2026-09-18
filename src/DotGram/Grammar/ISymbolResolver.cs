@@ -92,6 +92,17 @@ public interface ISymbolResolver
 	/// <see cref="ExternalMethodResolution.Found"/>.
 	/// </remarks>
 	ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role);
+
+	/// <summary>
+	/// Whether a context of this type can be put back as it was: it has an instance
+	/// <c>Mark()</c> returning something, and an instance <c>Rollback</c> taking exactly that,
+	/// both callable from the generated parser (§7.7).
+	/// </summary>
+	/// <remarks>
+	/// What lets a refused input be read a second time, recording what it says, over the state
+	/// the first reading began with. A type without the pair keeps the one recording reading.
+	/// </remarks>
+	bool Rewinds(string qualifiedName);
 }
 
 /// <summary>What asking about an external recognizer's value overload found.</summary>
@@ -200,4 +211,8 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	/// </remarks>
 	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
 		ExternalMethodResolution.Found;
+
+	// Permissive about names and not about this: saying yes would have a parser call two
+	// methods nobody said exist, where saying no costs only the quiet first reading.
+	public bool Rewinds(string qualifiedName) => false;
 }

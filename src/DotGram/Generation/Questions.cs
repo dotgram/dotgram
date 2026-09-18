@@ -41,6 +41,12 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </summary>
 	public const int ExternalMethod = -6;
 
+	/// <summary>
+	/// And whether a context can be put back as it was for a second reading: an instance
+	/// <c>Mark()</c> and a <c>Rollback</c> taking what it returns (Q7.2, §7.7).
+	/// </summary>
+	public const int Rewinds = -7;
+
 	public static Question Fits(string from, string to) => new(from, Assignability, to);
 
 	public static Question Builds(string type) => new(type, Constructors);
@@ -56,6 +62,8 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	public static Question Recognizes(string method) => new(method, ExternalMethod);
 
 	public static Question Tests(string method) => new(method, ExternalMethod, "char");
+
+	public static Question Restores(string context) => new(context, Rewinds);
 
 	/// <summary>The role an <see cref="ExternalMethod"/> question asks about.</summary>
 	public ExternalMethodRole Role => Against is null ? ExternalMethodRole.Recognizer : ExternalMethodRole.Predicate;
@@ -169,6 +177,11 @@ static class Questions
 			foreach (var other in contexts)
 				if (one != other)
 					questions.Add(Question.Fits(one, other));
+
+		// And whether each can be put back as it was, which is what lets a refused input be
+		// read a second time over a context the first reading wrote into (§7.7).
+		foreach (var one in contexts)
+			questions.Add(Question.Restores(one));
 
 		// §7.3: a rule declaring a type may have it built from its captures, so what every
 		// declared type can be built with is asked for. The same superset as the rest of
@@ -417,6 +430,8 @@ static class Questions
 				Question.ExternalMethod =>
 					new Answer(question, true, Method: resolver.ResolveExternalMethod(question.Name, question.Role)),
 
+				Question.Rewinds => new Answer(question, resolver.Rewinds(question.Name)),
+
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
 
@@ -463,6 +478,8 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 
 	public bool IsAssignable(string from, string to) =>
 		string.Equals(from, to, StringComparison.Ordinal) || Look(Question.Fits(from, to)).Yes;
+
+	public bool Rewinds(string qualifiedName) => Look(Question.Restores(qualifiedName)).Yes;
 
 	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
 	{

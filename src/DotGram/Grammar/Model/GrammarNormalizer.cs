@@ -80,6 +80,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A mark placed, or the marks asked for, in a grammar that declares no <c>state</c>.</summary>
 	public const string MarkWithoutState = "GRAM4029";
 
+	/// <summary>Whether a refused input is read again over a context put back as it was, or read once.</summary>
+	public const string ContextRestored = "GRAM5013";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
@@ -213,6 +216,7 @@ public sealed partial class GrammarNormalizer
 		// composition declared, and whether one type can be seen through all of them.
 		normalizer.ReconcileContexts();
 		normalizer.ReconcileState();
+		normalizer.DecideRewind();
 
 		// Last of all, because what it drops is what nothing else left a way to.
 		normalizer.CheckPublicationTypes();
@@ -243,6 +247,7 @@ public sealed partial class GrammarNormalizer
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
 			Context    = (normalizer._context ?? model.Context)?.Name,
 			State      = (normalizer._state ?? model.State)?.Name,
+			ContextRewinds = normalizer._rewinds,
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 			WhenSound  = normalizer._whenSound,
 			Located    = Locating(normalizer, resolver, locationType, Imports(model.Root)),

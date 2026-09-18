@@ -617,6 +617,12 @@ public sealed class RecognitionGraph(
 	public string? Context { get; init; }
 
 	/// <summary>
+	/// Whether the context can be put back as it was — a <c>Mark()</c> and a <c>Rollback</c> of
+	/// what it returns — so that a refused input can be read a second time over it (§7.7).
+	/// </summary>
+	public bool ContextRewinds { get; init; }
+
+	/// <summary>
 	/// The <c>context</c> contract a rule's own code was written against, or null.
 	/// </summary>
 	/// <remarks>

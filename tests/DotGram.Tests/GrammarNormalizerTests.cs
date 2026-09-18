@@ -763,6 +763,8 @@ public sealed class GrammarNormalizerTests
 
 		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
 			ExternalMethodResolution.Found;
+
+		public bool Rewinds(string qualifiedName) => false;
 	}
 
 	// ── External recognizers with a value of their own — §7.1's third row ────────
@@ -811,6 +813,8 @@ public sealed class GrammarNormalizerTests
 
 		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
 			ExternalMethodResolution.Found;
+
+		public bool Rewinds(string qualifiedName) => false;
 	}
 
 	[Fact]
@@ -884,6 +888,8 @@ public sealed class GrammarNormalizerTests
 
 		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
 			ExternalMethodResolution.Found;
+
+		public bool Rewinds(string qualifiedName) => false;
 	}
 
 	/// <summary>A recognizer the host cannot call is said about the grammar, in the words of what is wrong with it.</summary>
@@ -948,5 +954,7 @@ public sealed class GrammarNormalizerTests
 			methodName == "Nowhere"
 				? ExternalMethodResolution.NoMethod
 				: ExternalMethodResolution.NoOverload;
+
+		public bool Rewinds(string qualifiedName) => false;
 	}
 }

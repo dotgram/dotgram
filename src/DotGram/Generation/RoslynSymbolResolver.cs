@@ -162,6 +162,42 @@ public sealed class RoslynSymbolResolver(
 		return found.Count > 0;
 	}
 
+	/// <summary>Whether a context of this type has a <c>Mark()</c> and a <c>Rollback</c> of what it returns.</summary>
+	/// <remarks>
+	/// Instance methods, searched through the base types, and callable from the assembly the
+	/// parser is generated into — which is the reach every other member this resolver finds is
+	/// held to. What <c>Mark</c> returns is the author's: an index, a record, a struct of
+	/// counts; only <c>Rollback</c> taking exactly that type is asked.
+	/// </remarks>
+	public bool Rewinds(string qualifiedName)
+	{
+		if (TypeNamed(qualifiedName) is not { } type)
+			return false;
+
+		for (var at = type; at is not null; at = at.BaseType)
+			foreach (var mark in at.GetMembers("Mark").OfType<IMethodSymbol>())
+			{
+				if (mark.IsStatic || mark.Parameters.Length != 0 || mark.ReturnsVoid || mark.IsGenericMethod ||
+					!_compilation.IsSymbolAccessibleWithin(mark, _compilation.Assembly))
+				{
+					continue;
+				}
+
+				for (var on = type; on is not null; on = on.BaseType)
+					foreach (var rollback in on.GetMembers("Rollback").OfType<IMethodSymbol>())
+						if (!rollback.IsStatic && !rollback.IsGenericMethod &&
+							rollback.Parameters.Length == 1 &&
+							rollback.Parameters[0].RefKind == RefKind.None &&
+							SymbolEqualityComparer.Default.Equals(rollback.Parameters[0].Type, mark.ReturnType) &&
+							_compilation.IsSymbolAccessibleWithin(rollback, _compilation.Assembly))
+						{
+							return true;
+						}
+			}
+
+		return false;
+	}
+
 	/// <summary>
 	/// What an external recognizer named this hands back, when it hands back anything of
 	/// its own — §7.1's third row.

@@ -567,6 +567,70 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("IReading context", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A context with a <c>Mark()</c> and a <c>Rollback</c> of what it returns is put back
+	/// before a refused input is read again, so input is read quietly first (§7.7, Q7.2).
+	/// </summary>
+	[Fact]
+	public void A_context_that_can_be_put_back_is_read_quietly_first()
+	{
+		var result = RunGenerator(
+			"""
+			public sealed class Words
+			{
+				public int Count;
+				internal int Mark() => Count;
+				internal void Rollback(int at) => Count = at;
+				public bool Add() { Count++; return true; }
+			}
+
+			[DotGram.Gram("context : @Words\nStart = ['a'..'z'] & when @(context.Add()) & '!'\nparse Start")]
+			public partial class Rewound { }
+			""");
+
+		var told = Assert.Single(result.Diagnostics, one => one.Id == GrammarNormalizer.ContextRestored);
+
+		Assert.Equal(DiagnosticSeverity.Info, told.Severity);
+		Assert.Contains("is put back", told.GetMessage(), StringComparison.Ordinal);
+
+		var source = Generated(result, "Rewound");
+
+		Assert.Contains("var mark    = context.Mark();", source, StringComparison.Ordinal);
+		Assert.Contains("context.Rollback(mark);", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>And one without the pair is read once, recording, and told why.</summary>
+	[Theory]
+	[InlineData("internal int Mark() => Count;")]
+	[InlineData("internal int Mark() => Count; internal void Rollback(long at) { }")]
+	[InlineData("internal static int Mark() => 0; internal void Rollback(int at) { }")]
+	[InlineData("")]
+	public void A_context_that_cannot_be_put_back_is_read_once(string members)
+	{
+		var result = RunGenerator(
+			"public sealed class Words { public int Count; " + members + " public bool Add() { Count++; return true; } }\n" +
+			"[DotGram.Gram(\"context : @Words\\nStart = ['a'..'z'] & when @(context.Add()) & '!'\\nparse Start\")]\n" +
+			"public partial class Rewound { }\n");
+
+		var told = Assert.Single(result.Diagnostics, one => one.Id == GrammarNormalizer.ContextRestored);
+
+		Assert.Contains("has no Mark()", told.GetMessage(), StringComparison.Ordinal);
+
+		var source = Generated(result, "Rewound");
+
+		Assert.DoesNotContain("context.Mark()", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Quiet = true", source, StringComparison.Ordinal);
+	}
+
+	static string Generated(GeneratorDriverRunResult result, string host) =>
+		result
+			.Results
+			.SelectMany(one => one.GeneratedSources)
+			.Single(one => one.HintName.StartsWith(host + ".", StringComparison.Ordinal) &&
+				!one.HintName.Contains("DotGramReport", StringComparison.Ordinal))
+			.SourceText
+			.ToString();
+
 	/// <summary>And may not replace it.</summary>
 	[Fact]
 	public void And_may_not_replace_it() =>

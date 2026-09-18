@@ -2555,6 +2555,18 @@ That is why what belongs here is what can be written down more than once without
 position, a declaration keyed by where it was read — and why a grammar that needs "this
 holds while that is being matched" is asking for something this is not.
 
+**Where it can be put back, a refused input is read twice** (`GRAM5013`). A parse reads first
+without recording what it would say if the input were refused, and reads a refused input a
+second time to say it; the answer is the one a single recording reading gives. Over an object
+the first reading wrote into, the second has to begin where the first began, and the generator
+cannot know how to rewind a type it did not write. So it asks the type: an instance `Mark()`
+returning anything, and an instance `Rollback` taking exactly that, both callable from the
+generated parser. Where they are there, the parser calls `Mark()` before the first reading and
+`Rollback` with what it returned before the second, and says so; where they are not, every
+input is read once, recording, and the message says the pair is what would change that. The
+two are the only place anything here is undone, and only between the two readings of one
+refused input — what a `when` writes during either of them stays written as before.
+
 ### 7.8 What holds while something is being read
 
 §7.7's context is state a parse *accumulates*: written once, still written at the end. The

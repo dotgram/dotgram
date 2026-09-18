@@ -501,5 +501,7 @@ public sealed class GrammarBinderTests
 
 		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
 			ExternalMethodResolution.Found;
+
+		public bool Rewinds(string qualifiedName) => false;
 	}
 }

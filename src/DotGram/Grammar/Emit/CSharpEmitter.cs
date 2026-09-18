@@ -491,7 +491,8 @@ public static partial class CSharpEmitter
 					compiled.Direct,
 					diagnostics,
 					compiled.Tag,
-					ReadsQuietlyFirst(graph));
+					ReadsQuietlyFirst(graph),
+					compiled.Machine.UsesContext && graph.ContextRewinds);
 
 				file.Line();
 			}
@@ -1349,7 +1350,7 @@ public static partial class CSharpEmitter
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
-		string tag = "", bool quietFirst = false)
+		string tag = "", bool quietFirst = false, bool rewinds = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1624,6 +1625,11 @@ public static partial class CSharpEmitter
 
 				// Carried through every recognizer this call reaches, so that what comes back
 				// is the furthest the input was followed and not merely "no".
+				// Over a context the reading writes into, where it was when the reading began: the
+				// second reading begins there too (§7.7).
+				if (quietFirst && rewinds)
+					file.Line("var mark    = context.Mark();");
+
 				file.Line(quietFirst
 					? $"var failure = new {FailureType} {{ Quiet = true }};"
 					: $"var failure = new {FailureType}();");
@@ -1639,6 +1645,9 @@ public static partial class CSharpEmitter
 				{
 					using (file.Block("if (end < 0)"))
 					{
+						if (rewinds)
+							file.Line("context.Rollback(mark);");
+
 						file.Line($"failure = new {FailureType}();");
 						file.Line(
 							$"end     = {reader}(text, {begins}" +
@@ -3402,9 +3411,9 @@ public static partial class CSharpEmitter
 	/// <remarks>
 	/// <para>
 	/// A second reading has to begin where the first began. A grammar with a context hands the
-	/// reading an object its guards and constructions write into, which the generator cannot
-	/// rewind, so it keeps one recording reading until a way to rewind one is decided
-	/// (docs/design/diagnostics-off-the-hot-path-2026-09-18.md, §4).
+	/// reading an object its guards and constructions write into, so it reads quietly first only
+	/// where that object can be put back — a <c>Mark()</c> and a <c>Rollback</c> of what it
+	/// returns, found on its type (GRAM5013, §7.7) — and keeps one recording reading otherwise.
 	/// </para>
 	/// <para>
 	/// A recovering grammar hands its <c>recover</c> factories what the failure recorded
@@ -3414,7 +3423,7 @@ public static partial class CSharpEmitter
 	/// </para>
 	/// </remarks>
 	static bool ReadsQuietlyFirst(RecognitionGraph graph) =>
-		graph.Context is null && graph.Recoveries.Count == 0;
+		(graph.Context is null || graph.ContextRewinds) && graph.Recoveries.Count == 0;
 
 	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>
 	/// <remarks>

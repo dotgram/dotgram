@@ -248,6 +248,7 @@ public sealed class LexicalSplit
 				Externals  = graph.Externals,
 				FreeNames  = graph.FreeNames,
 				Context    = graph.Context,
+				ContextRewinds = graph.ContextRewinds,
 				State      = graph.State,
 
 				// A rule that is told where it was written goes on being told: the split
