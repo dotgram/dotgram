@@ -113,6 +113,27 @@ Unpinned paired runs varied up to twice batch to batch; pinned to logical proces
 high priority, FIX Order's spread fell from 28 to 4 per cent. A timing that was not pinned is
 not quoted as a comparison.
 
+## D5. A stream is read without holding it
+
+Decided 2026-09-17 by Igor: streaming exists to process volumes larger than memory, so a
+`Stream` or `TextReader` is read through the parser's own buffering and never loaded whole.
+
+**What it binds.**
+
+- No path reaches a contiguous form by reading a stream to its end (`ReadToEnd`, copying into a
+  `MemoryStream` or an array). A contiguous overload (Q2) is for data the caller already holds,
+  never a shortcut for a stream.
+- What a streamed `yield` holds is bounded by the record being read and what the grammar
+  cannot yet let go of, not by the input read so far. Arena, value tables, capture buffers and
+  input buffers all count. A limit that throws (`IOException` on capacity) is a bound; growth
+  proportional to the input is a defect.
+- The claim is tested, not argued: a streamed input several times larger than the process is
+  allowed to hold, produced on the fly and never resident, read through `yield` with peak live
+  memory asserted. The benchmark README says this scenario has not been measured; until it is,
+  bounded streaming is a design intent, not a property.
+- Any lexical mechanism chosen under Q1 reads tokens lazily over buffered input.
+- A speed change to the buffered machines is measured with peak live memory beside time.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
