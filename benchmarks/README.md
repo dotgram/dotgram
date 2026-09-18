@@ -45,6 +45,44 @@ actually compiled: `--rebuild` rebuilds every grammar-hosting project first (wit
 node reuse and the compiler server off) so the table is complete; without it, a project whose
 report is missing is named in its own section, with why.
 
+### Medians, not runs
+
+```console
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --repeat 5
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --only fix/Order.text,el/ladder --repeat 5
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --repeat 5
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --first --only sql/
+```
+
+A before and an after are quoted as medians of at least five runs, even on a quiet machine:
+one run of the stand spreads 4-16% from the next there, and on a machine other people build on
+a single run has been 85% off (2026-09-18: 56 runs under a build, medians within +-4% of the
+quiet ones, single runs to +85%). `--repeat N` takes the run N times, each in a process of its
+own, and reports each reading's median. A run whose control is more than 5% off the median of
+the controls is dropped and named; fewer than three kept and it refuses to say a number. The
+control sees a machine that is busy, not every kind of interference: a run can keep a clean
+control and still have one row 50% off, which is what the other runs are for. The spread
+column of such a report is the base reading's spread between runs, which is the one to hold a
+change against.
+
+`--only a,b` keeps the rows whose id contains any of the pieces, and leaves out the first
+calls, the streamed run and the generator's reports, so that some rows can be looked at in a
+minute. Its absolute numbers are not a full run's: the hand FIX parser reads `fix/Order.text`
+at 940 ns in a first short run and at 670 in every other, so a short run is compared with
+another short run and never with a full one. `--stand-check` times nothing and holds every
+row's readings to one another. `--stand-paired --first` takes the first call of each reading of
+each row in a fresh process each, median of five, before and after.
+
+### The generator's time is a gate
+
+Every full run holds the time the generator took per host to the previous base (`--against
+previous.json`, or the newest `benchmarks/results/stand-*.json`) and names every host that
+moved by more than 20% and by at least 100 ms, on a line of its own, `DEVIATION`, at the end of
+`stand.md`. A commit that took T-SQL from 4 s to 86 s (2026-09-18) went unnoticed for an
+afternoon; this is the line that would have caught it in the first run after it.
+`--stand-gate now.json previous.json` prints it for two results already taken. It needs the
+reports of a complete build, so a run for the record is `--rebuild`.
+
 ### The base of a row, and the regular expression
 
 Every ratio in the report is taken against the row's first reading, which is the hand-written

@@ -99,7 +99,7 @@ static partial class Stand
 
 	// ── Running ─────────────────────────────────────────────────────────────────
 
-	public static void Run(string? directory, bool rebuild)
+	public static void Run(string? directory, bool rebuild, string? only = null, string? against = null)
 	{
 		var pinned = Pin();
 		var root   = Root();
@@ -111,6 +111,16 @@ static partial class Stand
 			Rebuild(root);
 
 		var workloads = Agreed();
+
+		if (only is not null)
+		{
+			var pieces = only.Split(',');
+
+			workloads = [.. workloads.Where(one => pieces.Any(piece => one.Id.Contains(piece, StringComparison.Ordinal)))];
+
+			if (workloads.Length == 0)
+				throw new ArgumentException($"No row has an id containing '{only}'.");
+		}
 
 		Console.WriteLine($"{workloads.Length} rows, every reading agreeing. Timing {Rounds} rounds.");
 
@@ -131,16 +141,18 @@ static partial class Stand
 			pinned,
 			Median(controls),
 			[.. rows],
-			FirstCalls(workloads),
-			Streamed(),
-			Generation(root),
-			MissingGeneration(root));
+			only is null ? FirstCalls(workloads) : [],
+			only is null ? Streamed() : [],
+			only is null ? Generation(root) : [],
+			only is null ? MissingGeneration(root) : []);
+
+		var report = Markdown(result) + (only is null ? GenerationGate(result, root, against) : "");
 
 		File.WriteAllText(Path.Combine(output, "stand.json"), JsonSerializer.Serialize(result, Json));
-		File.WriteAllText(Path.Combine(output, "stand.md"), Markdown(result));
+		File.WriteAllText(Path.Combine(output, "stand.md"), report);
 
 		Console.WriteLine();
-		Console.WriteLine(Markdown(result));
+		Console.WriteLine(report);
 		Console.WriteLine($"Written to {output}");
 	}
 
@@ -149,6 +161,10 @@ static partial class Stand
 	/// make after writing a row and before asking anyone for a quiet machine.
 	/// </summary>
 	public static void Check() => Console.WriteLine($"{Agreed().Length} rows, every reading agreeing.");
+
+	/// <summary>What <see cref="GenerationGate"/> says of a result already taken, against another.</summary>
+	public static void Gate(string now, string against) =>
+		Console.WriteLine(GenerationGate(JsonSerializer.Deserialize<Result>(File.ReadAllText(now), Json)!, null, against));
 
 	static Workload[] Agreed()
 	{
@@ -800,6 +816,7 @@ static partial class Stand
 		var text = PairedMarkdown(pinned, Median(controls), [.. rows]);
 
 		File.WriteAllText(Path.Combine(output, "paired.md"), text);
+		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(Median(controls), [.. rows]), Json));
 
 		Console.WriteLine();
 		Console.WriteLine(text);
@@ -1206,6 +1223,97 @@ static partial class Stand
 
 	// ── What the generator took ─────────────────────────────────────────────────
 
+	/// <summary>How far a host's generation time may move from the previous base before it is named.</summary>
+	const double GenerationTolerance = 0.20;
+
+	/// <summary>
+	/// A host that moved by less than this is not named however large the ratio: a grammar that
+	/// takes 4 ms and then 6 is not news.
+	/// </summary>
+	const double GenerationFloorMilliseconds = 100;
+
+	/// <summary>
+	/// The generator's time per host, held to the previous base's: every host that moved by more
+	/// than <see cref="GenerationTolerance"/> is named on a line of its own, and a run with
+	/// nothing to name says that it compared. A commit that made the generator 20 times slower on
+	/// T-SQL (2026-09-18, 4 s to 86 s) was not noticed for an afternoon; this is the line that
+	/// would have caught it in the first run after it.
+	/// </summary>
+	static string GenerationGate(Result now, string? root, string? against)
+	{
+		var text = new StringBuilder();
+
+		text.AppendLine();
+		text.AppendLine("Generator time against the previous base:");
+		text.AppendLine();
+
+		var path = against ?? PreviousBase(root);
+
+		if (path is null || !File.Exists(path))
+		{
+			text.AppendLine("Nothing to compare with: no `--against`, and no benchmarks/results/stand-*.json.");
+
+			return text.ToString();
+		}
+
+		var was = JsonSerializer.Deserialize<Result>(File.ReadAllText(path), Json)!;
+
+		if (now.Generation.Length == 0 || was.Generation.Length == 0)
+		{
+			text.AppendLine(CultureInfo.InvariantCulture, $"Nothing to compare: {(now.Generation.Length == 0 ? "this run" : $"the base {Path.GetFileName(path)}")} has no generator report. Use `--rebuild`.");
+
+			return text.ToString();
+		}
+
+		var named    = new List<string>();
+		var compared = 0;
+
+		foreach (var one in now.Generation)
+		{
+			var before = Array.Find(was.Generation, other => other.Host == one.Host);
+
+			if (before is null)
+			{
+				named.Add($"{one.Host}: new, {one.Milliseconds:F0} ms");
+
+				continue;
+			}
+
+			compared++;
+
+			var change = one.Milliseconds / before.Milliseconds - 1;
+
+			if (Math.Abs(change) > GenerationTolerance && Math.Abs(one.Milliseconds - before.Milliseconds) >= GenerationFloorMilliseconds)
+				named.Add(string.Create(CultureInfo.InvariantCulture, $"{one.Host}: {before.Milliseconds:F0} ms to {one.Milliseconds:F0} ms ({change:+0%;-0%})"));
+		}
+
+		foreach (var gone in was.Generation)
+			if (Array.Find(now.Generation, other => other.Host == gone.Host) is null)
+				named.Add($"{gone.Host}: was {gone.Milliseconds:F0} ms, no report now");
+
+		text.AppendLine(CultureInfo.InvariantCulture,
+			$"Base {Path.GetFileName(path)} ({was.Commit}, {was.Taken:yyyy-MM-dd HH:mm}); {compared} hosts compared, tolerance {GenerationTolerance:P0} and {GenerationFloorMilliseconds:F0} ms.");
+		text.AppendLine();
+
+		if (named.Count == 0)
+			text.AppendLine("None moved by more than that.");
+
+		foreach (var line in named)
+			text.AppendLine("- DEVIATION " + line);
+
+		return text.ToString();
+	}
+
+	/// <summary>The newest result kept in the repository, by name, which carries its date.</summary>
+	static string? PreviousBase(string? root)
+	{
+		var directory = root is null ? null : Path.Combine(root, "benchmarks", "results");
+
+		return directory is not null && Directory.Exists(directory)
+			? Directory.GetFiles(directory, "stand-*.json").OrderBy(static one => one, StringComparer.Ordinal).LastOrDefault()
+			: null;
+	}
+
 	static readonly Regex Summary = new(
 		@"DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation, mode=(?<mode>\w+)",
 		RegexOptions.CultureInvariant);
@@ -1490,6 +1598,10 @@ static partial class Stand
 						$"| {row.Id} | {first.Nanoseconds:F1} | {reading.Reading} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / first.Nanoseconds:F2}x | {first.Bytes:F0} | {reading.Bytes:F0} | {row.HandSpread:P0} |");
 			}
 		}
+
+		// A run of some rows (`--only`) has no first calls, no streamed run and no reports to show.
+		if (result.FirstCalls.Length == 0 && result.Streamed.Length == 0 && result.Generation.Length == 0 && result.MissingGeneration.Length == 0)
+			return text.ToString();
 
 		text.AppendLine();
 		text.AppendLine("First call in a fresh process, median of three:");

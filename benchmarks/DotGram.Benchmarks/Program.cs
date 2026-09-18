@@ -29,11 +29,59 @@ static class Program
 		// `--stand` itself. See Stand.cs.
 		if (args.Length >= 1 && args[0] == "--stand")
 		{
-			var rest      = args.Skip(1).ToArray();
-			var rebuild   = rest.Contains("--rebuild");
-			var directory = rest.FirstOrDefault(one => one != "--rebuild");
+			var rest      = args.Skip(1).ToList();
+			var rebuild   = rest.Remove("--rebuild");
+			var only      = (string?)null;
+			var against   = (string?)null;
+			var flag      = rest.IndexOf("--only");
 
-			Stand.Run(directory, rebuild);
+			// `--only a,b` keeps the rows whose id contains any of the pieces, and takes neither
+			// first calls, nor the streamed run, nor the generator's reports: a short look at some
+			// rows, for an experiment or a second look at what a full run flagged.
+			if (flag >= 0)
+			{
+				only = rest[flag + 1];
+
+				rest.RemoveRange(flag, 2);
+			}
+
+			// `--against previous.json` is the base the generator's time is held to; without it,
+			// the newest benchmarks/results/stand-*.json is.
+			flag = rest.IndexOf("--against");
+
+			if (flag >= 0)
+			{
+				against = rest[flag + 1];
+
+				rest.RemoveRange(flag, 2);
+			}
+
+			// `--repeat N` takes the run N times, each in a process of its own, and reports the
+			// median of those whose control held.
+			var repeat = 1;
+
+			flag = rest.IndexOf("--repeat");
+
+			if (flag >= 0)
+			{
+				repeat = int.Parse(rest[flag + 1]);
+
+				rest.RemoveRange(flag, 2);
+			}
+
+			if (repeat > 1)
+				Stand.Repeat(rest.FirstOrDefault(), rebuild, only, against, repeat);
+			else
+				Stand.Run(rest.FirstOrDefault(), rebuild, only, against);
+
+			return;
+		}
+
+		// `--stand-gate now.json previous.json` prints what the gate would say of two results
+		// already taken, without a run.
+		if (args.Length == 3 && args[0] == "--stand-gate")
+		{
+			Stand.Gate(args[1], args[2]);
 
 			return;
 		}
@@ -67,11 +115,14 @@ static class Program
 		// the substring, for a second, cheaper look at one row a full run already flagged.
 		// It caught a real regression a two-process `--stand-compare` read as noise
 		// (2026-09-18, Q7.3's Fix44 stream form). See Stand.Paired.
-		if (args.Length is >= 3 and <= 6 && args[0] == "--stand-paired")
+		// `--repeat N` takes it N times in processes of their own and reports medians; `--first`
+		// takes the first call of each reading in a fresh process instead, and nothing else.
+		if (args.Length is >= 3 and <= 9 && args[0] == "--stand-paired")
 		{
-			var rest = args.Skip(1).ToList();
-			var only = (string?)null;
-			var flag = rest.IndexOf("--only");
+			var rest  = args.Skip(1).ToList();
+			var only  = (string?)null;
+			var flag  = rest.IndexOf("--only");
+			var first = rest.Remove("--first");
 
 			if (flag >= 0)
 			{
@@ -80,7 +131,32 @@ static class Program
 				rest.RemoveRange(flag, 2);
 			}
 
-			Stand.Paired(rest[0], rest[1], rest.Count > 2 ? rest[2] : null, only);
+			var repeat = 1;
+
+			flag = rest.IndexOf("--repeat");
+
+			if (flag >= 0)
+			{
+				repeat = int.Parse(rest[flag + 1]);
+
+				rest.RemoveRange(flag, 2);
+			}
+
+			var directory = rest.Count > 2 ? rest[2] : null;
+
+			if (first)
+				Stand.PairedFirstCalls(rest[0], rest[1], directory, only);
+			else if (repeat > 1)
+				Stand.RepeatPaired(rest[0], rest[1], directory, only, repeat);
+			else
+				Stand.Paired(rest[0], rest[1], directory, only);
+
+			return;
+		}
+
+		if (args.Length == 5 && args[0] == "--stand-paired-first")
+		{
+			Stand.PairedFirst(args[1], args[2], args[3], args[4]);
 
 			return;
 		}
