@@ -159,6 +159,22 @@ when the notice arrived (one until 23:53, one until 23:54). The session that mea
 window, waits until every other session has answered that nothing of its own is running, and
 only then starts; a notice received mid-build is answered with when the build will end.
 
+**Sessions do not wait for each other — Igor, 2026-09-18.** The machine has the resources for
+everyone to work at once, and the window rule had grown into every session standing still for
+every build. Amended:
+
+- Only a *timing* run needs the machine to itself, and only from other heavy loads. Builds,
+  tests, profiling for diagnosis and scratch work need no window and wait for nothing; two
+  sessions building at once is fine.
+- Timing runs are batched: the stand collects orders and takes them in one window, kept
+  short (measurements only, builds done beforehand). A build-time measurement is a timing run
+  and goes in a window too, but it is rare.
+- The two CCDs are used: the stand times on logical processors 0-15; during a window the other
+  sessions may build and test pinned to 16-31 (`Process.ProcessorAffinity`, or
+  `start /affinity FFFF0000`) instead of stopping, once the stand has shown with its control row
+  that a build on the other CCD moves a timing by less than the run's own spread. Until then,
+  a window still means "nothing heavy elsewhere", but windows are short and rare.
+
 **A before/after comparison is paired, in one process.** `--stand-paired` (stand, `f39b139f`,
 2026-09-18) loads both builds into two `AssemblyLoadContext`s and alternates hand, before and
 after in every round, so that what moved the machine moved both sides. Two separate processes
