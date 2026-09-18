@@ -581,7 +581,7 @@ is not the whole parse (a `Feed` with a `Trailer` is the test), not only FIX's e
 case; the commit-point answer is the one analysis of D3, published beside `Demand` and `Replay`
 and read by every rendering that builds; a guard's side effect in a broken element runs as it
 does today, and the design says so; recovering grammars keep one recording reading (Q7.2).
-Step 1 starts now.
+Step 1 starts now. **Igor, 2026-09-18: steps 2-5 agreed, after step 1's number.**
 
 **Then the design**, from that table: what the emitted code for `Fields` would have to be to
 match the hand parser line for line — a loop with no arena for a grammar whose only way back
