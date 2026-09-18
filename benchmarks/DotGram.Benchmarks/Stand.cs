@@ -221,6 +221,14 @@ static class Stand
 			// first one — the recovery rule catches it mid-message, past what already read.
 			.. Fix("OrderMalformed", orderMalformed),
 
+			// D13 (Igor, 2026-09-18): the same field repeated N times, string form only, so a
+			// least-squares fit over these six points separates a parse's fixed cost from what
+			// one more field adds — "initialization against a field" (performance-3f).
+			.. FixSlopeCounts.Select(n => FixForm(
+				$"slope-{n}.text",
+				() => HandFixParser.Parse(FixSlopeText(n)),
+				() => FixParser.Parse(FixSlopeText(n)))),
+
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
 			Expression("nest7",         "(int x) => (((((((x)))))))"),
@@ -253,6 +261,11 @@ static class Stand
 				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 		];
 	}
+
+	/// <summary>The field counts D13's slope rows fit a line over.</summary>
+	static readonly int[] FixSlopeCounts = [0, 1, 2, 4, 8, 16];
+
+	static string FixSlopeText(int fields) => string.Concat(Enumerable.Repeat("55=ABC", fields));
 
 	/// <summary>
 	/// One FIX input three ways: a string, bytes already in memory, and a stream read lazily.
@@ -560,6 +573,13 @@ static class Stand
 			.. PairedFix("BinaryMany", binaryMany, before, after),
 			.. PairedFix("Orders128", orders128, before, after),
 			.. PairedFix("OrderMalformed", orderMalformed, before, after),
+
+			// D13: same rows as Workloads(), text form only.
+			.. FixSlopeCounts.Select(n => PairedFixForm(
+				$"slope-{n}.text",
+				() => HandFixParser.Parse(FixSlopeText(n)),
+				before.FixText(FixSlopeText(n)),
+				after.FixText(FixSlopeText(n)))),
 
 			PairedExpression("floor",         "(int x) => x", before, after),
 			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),
