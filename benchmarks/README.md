@@ -68,8 +68,12 @@ hand alone, the same trade `--stand` already makes for a row both sides must ref
 
 Reflection reaches only the generated side; the hand-written parsers stay this process's own,
 since a paired compare targets a generator change and the hand parsers do not move with it
-(D1). That reflection is a real, if fixed, per-call cost quoted nowhere against `--stand`'s own
-numbers, held constant by construction on both the `before` and `after` reading of a row.
+(D1). **That does not hold for a change to a type both sides construct** — FIX's own field
+class, for one (2026-09-18: FixField's compact header). There, hand needs its own before/after
+build too, so use two full `--stand` runs and `--stand-compare` instead of `--stand-paired`.
+The reflection a paired run does use is a real, if fixed, per-call cost quoted nowhere against
+`--stand`'s own numbers, held constant by construction on both the `before` and `after` reading
+of a row.
 The comparison the ratio between them carries is exact; the absolute nanoseconds a paired run
 prints are not `--stand`'s and should not be pasted beside them. Results go to `paired.md`,
 same directory rule as `--stand`; it needs the same announced window.
