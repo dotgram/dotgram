@@ -1,0 +1,214 @@
+diff --git a/src/DotGram/Grammar/Emit/Machine.cs b/src/DotGram/Grammar/Emit/Machine.cs
+index 34b91cd8..876e595b 100644
+--- a/src/DotGram/Grammar/Emit/Machine.cs
++++ b/src/DotGram/Grammar/Emit/Machine.cs
+@@ -2164,6 +2164,7 @@ sealed partial class Machine
+ 				var inner = Compile(body, close, following);
+ 				var state = Reserve(out var writer);
+ 
++				CompileSelectedCapture(writer, (Node.Capture)node, next, close, following);
+ 
+ 				if (body is Node.Call(var capturedRule, _) && ValueRule(capturedRule) >= 0)
+ 				{
+@@ -2533,6 +2534,14 @@ sealed partial class Machine
+ 				}
+ 				_extra.Add(helper.ToString());
+ 
++				if (dispatch && visible.Count == 1 && visible[0].Member is
++					{ Rule: { } scalarRule, IsSequence: false, IsOptional: false } &&
++					visible[0].Slots.Count == 1 && ScalarScanner(scalarRule) is not null &&
++					(arguments.SequenceEqual(new[] { "guardCaptured0" }) ||
++					 arguments.SequenceEqual(new[] { "context", "guardCaptured0" })))
++					_scalarSelections[node] = (method, scalarRule,
++						_captureOffsets[rule] + visible[0].Slots[0], arguments.Count == 2);
++
+ 				var state = Reserve(out var writer);
+ 
+ 				writer.Line("global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);");
+diff --git a/tests/DotGram.Tests/SwitchTests.cs b/tests/DotGram.Tests/SwitchTests.cs
+index 355ccfe5..d4f15743 100644
+--- a/tests/DotGram.Tests/SwitchTests.cs
++++ b/tests/DotGram.Tests/SwitchTests.cs
+@@ -13,6 +13,44 @@ namespace DotGram.Tests;
+ 
+ public sealed class SwitchTests
+ {
++	[Theory]
++	[InlineData("1=abc;", false, true, "1=abc", 1)]
++	[InlineData("11=!;", false, true, "11=!", 1)]
++	[InlineData("1=;", false, false, null, 1)]
++	[InlineData("111=z;", false, false, null, 1)]
++	[InlineData("1?abc;", false, false, null, 0)]
++	[InlineData("1=abcx;", true, true, "1=abc", 1)]
++	public void Selected_field_method_preserves_factories_and_arm_backtracking(
++		string input, bool backtracks, bool success, string? expected, int calls)
++	{
++		var result = GramCompiler.Compile("""
++			Tag : @int = digits: { ['1'..'9']+ } => @(Number(digits.Length))
++			Text = (?!';' & any)+
++			Field : @string = wire: (tag: Tag & '=' & switch @(Pick(tag)) {
++				case 1: Text
++				case 2: '!'
++			}) => @(Made(wire))
++			Start : @string = value: Field &
++			""" + (backtracks ? "'x' & " : "") + "';' & eof => @(value)\nparse Start",
++			new GramCompilerOptions { Direct = false, CSharpScanner = RoslynCSharpScanner.Instance });
++		EmittedCode.Quiet(result.Diagnostics);
++		var source = Assert.Single(result.Sources).Text;
++		Assert.Contains("Read_Selected", source);
++		var assembly = EmittedCode.Compile(source, declarationMembers: """
++			public static int Numbers, Selections, Fields;
++			static int Number(int n) { Numbers++; return n; }
++			static int Pick(int n) { Selections++; return n; }
++			static string Made(string text) { Fields++; return text; }
++			""");
++		var match = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
++		Assert.Equal(success, match.IsSuccess);
++		if (success) Assert.Equal(expected, match.Value);
++		var host = assembly.GetType("Grammar")!;
++		Assert.Equal(calls, host.GetField("Numbers")!.GetValue(null));
++		Assert.Equal(calls, host.GetField("Selections")!.GetValue(null));
++		Assert.Equal(success ? 1 : 0, host.GetField("Fields")!.GetValue(null));
++	}
++
+ 	[Theory]
+ 	[InlineData("1/22/333", "CBA", 6)]
+ 	[InlineData("1//333", "CA", 4)]
+diff --git a/src/DotGram/Grammar/Emit/Machine.Selected.cs b/src/DotGram/Grammar/Emit/Machine.Selected.cs
+new file mode 100644
+index 00000000..886fbb33
+--- /dev/null
++++ b/src/DotGram/Grammar/Emit/Machine.Selected.cs
+@@ -0,0 +1,132 @@
++﻿using System;
++using System.Collections.Generic;
++
++using DotGram.Grammar.Binding;
++using DotGram.Grammar.Model;
++
++namespace DotGram.Grammar.Emit;
++
++sealed partial class Machine
++{
++	readonly Dictionary<Node, (string Method, RuleSymbol Rule, int Slot, bool Context)> _scalarSelections = new(NodeIdentity.Instance);
++	int _selectedReaders;
++
++	// Read a deterministic selected field in a method, keeping construction deferred.
++	// Other selected arms resume their existing states after the selector: restarting
++	// the rule there would repeat both the scalar factory and arbitrary selector code.
++	void CompileSelectedCapture(Writer entry, Node.Capture capture, int next, int close, FollowSets.Continuation following)
++	{
++		if (BufferedInput || OverKinds || _starves || _valuesInLocals || _graph.Climbing.Count > 0 ||
++			!_owners.TryGetValue(capture, out var owner) || _graph.Recursive.Contains(owner) ||
++			_graph.Bodies[owner] is not Node.Construct(var built, _) || !ReferenceEquals(built, capture) ||
++			capture.Body is not Node.Sequence({ Count: 3 } parts) ||
++			parts[0] is not Node.Capture(_, Node.Call(var scalar, { Count: 0 })) ||
++			parts[1] is not Node.Literal { Text.Length: 1, IgnoreCase: false } literal ||
++			parts[2] is not Node.Choice(var arms) { Selection: { } selection } ||
++			!_scalarSelections.TryGetValue(selection.Selector, out var selector) ||
++			!ReferenceEquals(selector.Rule, scalar) || selector.Slot != _captureSlots[parts[0]] ||
++			ScalarScanner(scalar) is not { } scan)
++			return;
++
++		var after = following.Plain;
++		var runs  = new List<(int Arm, char Stop, bool Backtracks)>();
++
++		for (var i = 0; i < arms.Count; i++)
++		{
++			if (DelimiterBody(arms[i]) is not Node.Repeat { Min: 1, Max: null,
++				Body: Node.Sequence({ Count: 2 } turn) } ||
++				turn[0] is not Node.Lookahead(false, var delimiter) ||
++				RunTest(turn[1]) != "true")
++				continue;
++
++			var stop = DelimiterBody(delimiter) switch
++			{
++				Node.Literal { Text.Length: 1, IgnoreCase: false } one => (char?)one.Text[0],
++				Node.Element { IsNegated: false, Ranges.Count: 1, Categories.Count: 0, References.Count: 0 } one
++					when one.Ranges[0].IsSingle => one.Ranges[0].From,
++				_ => null,
++			};
++
++			// Omitting the run's backtracking record is sound only when a shorter run
++			// cannot satisfy the caller. An unknown or overlapping follow keeps it.
++			if (stop is { } value)
++			{
++				var backtracks = !FirstSets.First.Chars([new CharRange(value, value)], ends: true).Covers(after);
++				if (!backtracks || _nestedCaptures.Contains(_captureSlots[capture]))
++					runs.Add((i, value, backtracks));
++			}
++		}
++
++		if (runs.Count == 0)
++			return;
++
++		var name    = $"Read_Selected{_tag}_{_selectedReaders++}";
++		var slot    = _captureSlots[capture];
++		var type    = _results.QualifiedOf(scalar)!;
++		var factory = _factories[scalar][0];
++		var helper  = new Writer(0);
++
++		using (helper.Block($"static int {name}({InputType} text, ref int p, Parser parser, " +
++			$"ParserArena entries, int call, int atomic, int repeat, int lookahead, int resume{ContextParameter})"))
++		{
++			helper.Line("var start = p;");
++			helper.Line($"var scalarEnd = {scan.Name}(text, p);");
++			helper.Line($"if (scalarEnd < 0 || (uint)scalarEnd >= (uint)text.Length || " +
++				$"text[scalarEnd] != {CSharpEmitter.Char(literal.Text[0])}) return -3;");
++			helper.Line("var scalarAt = entries.Count;");
++			// This completed leaf has no internal continuation to resume.
++			helper.Line($"entries.Add(new ParserEntry(ParserEntry.Completed, 0, start, call, atomic, repeat, lookahead, scalarEnd, {ValueRule(scalar)}));");
++			helper.Line($"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {selector.Slot}, scalarAt, call, atomic, repeat, lookahead, scalarEnd));");
++			helper.Line("p = scalarEnd + 1;");
++			helper.Line("var values = parser.Materialization(entries.Count);");
++			helper.Line("var completed = entries[scalarAt];");
++			helper.Line($"var captured0 = {Cut("start", "scalarEnd - start")};");
++			helper.Line($"var guardCaptured0 = {factory.Method}(" +
++				$"{string.Join(", ", FactoryArguments(helper, factory, _graph.Results[scalar], "scalarAt"))});");
++			helper.Line(TableFor(type) >= 0
++				? $"parser.Materialization{TableName(type)}()[scalarAt] = guardCaptured0;"
++				: "values[scalarAt] = guardCaptured0;");
++			helper.Line("parser.Materialized()[scalarAt] = true;");
++			helper.Line($"var selected = {selector.Method}({(selector.Context ? "context, " : "")}guardCaptured0);");
++
++			foreach (var (arm, stop, backtracks) in runs)
++				using (helper.Block($"if (selected == {arm})"))
++				{
++					helper.Line("var valueStart = p;");
++					helper.Line($"while ((uint)p < (uint)text.Length && text[p] != {CSharpEmitter.Char(stop)}) p++;");
++					using (helper.Block("if (p > valueStart)"))
++					{
++						if (backtracks)
++						{
++							helper.Line($"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, start, call, atomic, repeat, lookahead, 0));");
++							helper.Line("if (p > valueStart + 1)");
++							helper.Then($"entries.Add(new ParserEntry(ParserEntry.Run, resume, valueStart + 1, call, atomic, repeat, lookahead, p));");
++						}
++						helper.Line($"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, start, call, atomic, repeat, lookahead, p));");
++						helper.Line("return -2;");
++					}
++				}
++
++			helper.Line("return selected;");
++		}
++		_extra.Add(helper.ToString());
++
++		entry.Line($"var selectedField = {name}(text, ref p, parser, entries, call, atomic, repeat, lookahead, {Resuming(entry, close)}{ContextArgument});");
++		entry.Line($"if (selectedField == -2) goto {Label(entry, next)};");
++		using (entry.Block("if (selectedField != -3)"))
++		{
++			entry.Line($"if (selectedField < 0) {{ expected = null; goto {Label(entry, _fail)}; }}");
++			if (_nestedCaptures.Contains(slot))
++				entry.Line($"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, entries[call].Position, call, atomic, repeat, lookahead, 0));");
++			else
++				entry.Line($"capture{slot} = entries[call].Position;");
++
++			using (entry.Block("switch (selectedField)"))
++			{
++				var targets = _switches[selection.Selector].Targets;
++				for (var i = 0; i < targets.Length; i++)
++					entry.Line($"case {i}: goto {Label(entry, targets[i])};");
++			}
++		}
++	}
++}

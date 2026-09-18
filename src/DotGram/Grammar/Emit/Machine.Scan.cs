@@ -54,6 +54,96 @@ sealed partial class Machine
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
 
+	sealed record ScalarScan(string Name, Node.Element Head, Node.Element Tail);
+
+	readonly Dictionary<RuleSymbol, ScalarScan?> _scalarScans = [];
+
+	// A single full-span capture can keep the ordinary deferred-value protocol while
+	// recognizing its character run in a method. Failure takes the original path, so
+	// diagnostics and recovery still see precisely the terminals that refused.
+	ScalarScan? ScalarScanner(RuleSymbol rule)
+	{
+		if (!Caches || _valuesInLocals || OverKinds)
+			return null;
+
+		if (_scalarScans.TryGetValue(rule, out var known))
+			return known;
+
+		_scalarScans[rule] = null;
+
+		if (!SitedValued(rule) ||
+			_graph.Bodies[rule] is not Node.Construct { Body: Node.Capture capture })
+			return null;
+
+		var body = capture.Body;
+		var atomic = body is Node.Atomic;
+
+		if (body is Node.Atomic kept)
+			body = kept.Body;
+
+		Node.Element head;
+		Node.Element tail;
+
+		if (body is Node.Repeat { Body: Node.Element element, Min: 1, Max: null })
+		{
+			head = tail = element;
+		}
+		else if (body is Node.Sequence { Nodes.Count: 2 } sequence &&
+			sequence.Nodes[0] is Node.Element first &&
+			sequence.Nodes[1] is Node.Repeat { Body: Node.Element rest, Min: 0, Max: null })
+		{
+			head = first;
+			tail = rest;
+		}
+		else
+			return null;
+
+		// Start with concrete character ranges. In particular, no user predicate may
+		// run twice when the first character sends us back to the ordinary recognizer.
+		if (head is not { Ranges.Count: > 0, Categories.Count: 0, References.Count: 0 } ||
+			tail is not { Ranges.Count: > 0, Categories.Count: 0, References.Count: 0 })
+			return null;
+
+		var following = Follows(rule);
+		if (!atomic && !Scannable(body, following.Plain.Or(following.AfterSeam)))
+			return null;
+
+		var plan = new ScalarScan("Read_" + CSharpEmitter.IdentifierOf(rule) + _tag, head, tail);
+		_scalarScans[rule] = plan;
+		return plan;
+	}
+
+	void RenderScalarScanners(Writer file)
+	{
+		foreach (var plan in _scalarScans.Values)
+		{
+			if (plan is null)
+				continue;
+
+			using (file.Block($"static int {plan.Name}({InputType} text, int p{ScannerParameters})"))
+			{
+				file.Line($"if ({Short(1)}) return -1;");
+				file.Line($"var c = {ReadAt("p")};");
+				file.Line($"if (!({CSharpEmitter.Test(plan.Head, Tabulate)})) return -1;");
+				file.Line("p++;");
+				using (file.Block("while (true)"))
+				{
+					using (file.Block($"if ({Short(1)})"))
+					{
+						if (_starves)
+							file.Line("failure.Starved = true;");
+						file.Line("break;");
+					}
+					file.Line($"c = {ReadAt("p")};");
+					file.Line($"if (!({CSharpEmitter.Test(plan.Tail, Tabulate)})) break;");
+					file.Line("p++;");
+				}
+				file.Line("return p;");
+			}
+			file.Line();
+		}
+	}
+
 	/// <summary>
 	/// Whether a rule may be read by committing, and so compiled with nothing written down.
 	/// </summary>
@@ -192,6 +282,8 @@ sealed partial class Machine
 	{
 		var file    = new Writer(0);
 		var reaches = false;
+
+		RenderScalarScanners(file);
 
 		foreach (var pair in _scanners)
 		{

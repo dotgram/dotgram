@@ -1034,6 +1034,7 @@ public static partial class CSharpEmitter
 			foreach (var publication in compiled.Publications)
 				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 			EmitEngine(file, machine, engine);
+			file.Write(machine.RenderScanners());
 			foreach (var publication in compiled.Publications)
 				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes), engine, whole: publication.Kind == PublishKind.Parse));
 			return;

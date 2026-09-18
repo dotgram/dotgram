@@ -1,0 +1,1958 @@
+{
+  "revision": "3e9709de",
+  "method": "Current Release net10.0. Main table: two fresh-process HandFixBenchmarks quick runs, 150 ms warmup and nine alternating 50 ms samples, averaged medians. Three-parser check: two fresh processes, reversed warmup order, rotating measurement order, 300 ms warmup and nine 40 ms samples. Experiment: two fresh paired processes, reversed order, 1.5 s warmup and nine alternating batches. No builds/tests ran concurrently. These are exploratory timings, not confidence intervals.",
+  "main": [
+    {
+      "Workload": "One",
+      "Input": "Text",
+      "Generated_us": 0.2355,
+      "Handwritten_us": 0.082,
+      "Generated_B": 184.0,
+      "Handwritten_B": 304.0
+    },
+    {
+      "Workload": "One",
+      "Input": "Bytes",
+      "Generated_us": 0.312,
+      "Handwritten_us": 0.081,
+      "Generated_B": 520.0,
+      "Handwritten_B": 336.0
+    },
+    {
+      "Workload": "One",
+      "Input": "Reader",
+      "Generated_us": 0.3715,
+      "Handwritten_us": 0.3625,
+      "Generated_B": 552.0,
+      "Handwritten_B": 8744.0
+    },
+    {
+      "Workload": "One",
+      "Input": "Stream",
+      "Generated_us": 0.3625,
+      "Handwritten_us": 0.2405,
+      "Generated_B": 584.0,
+      "Handwritten_B": 4680.0
+    },
+    {
+      "Workload": "Order",
+      "Input": "Text",
+      "Generated_us": 2.967,
+      "Handwritten_us": 1.095,
+      "Generated_B": 1448.0,
+      "Handwritten_B": 1568.0
+    },
+    {
+      "Workload": "Order",
+      "Input": "Bytes",
+      "Generated_us": 3.8,
+      "Handwritten_us": 0.8325,
+      "Generated_B": 1896.0,
+      "Handwritten_B": 1712.0
+    },
+    {
+      "Workload": "Order",
+      "Input": "Reader",
+      "Generated_us": 4.2035,
+      "Handwritten_us": 1.4495,
+      "Generated_B": 1704.0,
+      "Handwritten_B": 9896.0
+    },
+    {
+      "Workload": "Order",
+      "Input": "Stream",
+      "Generated_us": 3.883,
+      "Handwritten_us": 1.127,
+      "Generated_B": 1848.0,
+      "Handwritten_B": 5944.0
+    },
+    {
+      "Workload": "Binary64",
+      "Input": "Text",
+      "Generated_us": 0.381,
+      "Handwritten_us": 0.11649999999999999,
+      "Generated_B": 248.0,
+      "Handwritten_B": 368.0
+    },
+    {
+      "Workload": "Binary64",
+      "Input": "Bytes",
+      "Generated_us": 0.48,
+      "Handwritten_us": 0.104,
+      "Generated_B": 552.0,
+      "Handwritten_B": 368.0
+    },
+    {
+      "Workload": "Binary64",
+      "Input": "Reader",
+      "Generated_us": 0.546,
+      "Handwritten_us": 0.391,
+      "Generated_B": 616.0,
+      "Handwritten_B": 8808.0
+    },
+    {
+      "Workload": "Binary64",
+      "Input": "Stream",
+      "Generated_us": 0.5045,
+      "Handwritten_us": 0.26,
+      "Generated_B": 616.0,
+      "Handwritten_B": 4712.0
+    },
+    {
+      "Workload": "Binary4096",
+      "Input": "Text",
+      "Generated_us": 1.5619999999999998,
+      "Handwritten_us": 1.1955,
+      "Generated_B": 4280.0,
+      "Handwritten_B": 4400.0
+    },
+    {
+      "Workload": "Binary4096",
+      "Input": "Bytes",
+      "Generated_us": 0.9059999999999999,
+      "Handwritten_us": 0.3295,
+      "Generated_B": 4584.0,
+      "Handwritten_B": 4400.0
+    },
+    {
+      "Workload": "Binary4096",
+      "Input": "Reader",
+      "Generated_us": 1.823,
+      "Handwritten_us": 2.1704999999999997,
+      "Generated_B": 4648.0,
+      "Handwritten_B": 29248.0
+    },
+    {
+      "Workload": "Binary4096",
+      "Input": "Stream",
+      "Generated_us": 0.8414999999999999,
+      "Handwritten_us": 0.8875,
+      "Generated_B": 4648.0,
+      "Handwritten_B": 16960.0
+    },
+    {
+      "Workload": "BinaryMany",
+      "Input": "Text",
+      "Generated_us": 16.548000000000002,
+      "Handwritten_us": 3.2925,
+      "Generated_B": 6744.0,
+      "Handwritten_B": 6864.0
+    },
+    {
+      "Workload": "BinaryMany",
+      "Input": "Bytes",
+      "Generated_us": 21.9615,
+      "Handwritten_us": 3.4445,
+      "Generated_B": 7048.0,
+      "Handwritten_B": 6864.0
+    },
+    {
+      "Workload": "BinaryMany",
+      "Input": "Reader",
+      "Generated_us": 22.432499999999997,
+      "Handwritten_us": 4.9505,
+      "Generated_B": 6608.0,
+      "Handwritten_B": 14800.0
+    },
+    {
+      "Workload": "BinaryMany",
+      "Input": "Stream",
+      "Generated_us": 22.197000000000003,
+      "Handwritten_us": 4.4765,
+      "Generated_B": 6608.0,
+      "Handwritten_B": 10704.0
+    },
+    {
+      "Workload": "Orders128",
+      "Input": "Text",
+      "Generated_us": 362.601,
+      "Handwritten_us": 121.8,
+      "Generated_B": 174168.0,
+      "Handwritten_B": 174288.0
+    },
+    {
+      "Workload": "Orders128",
+      "Input": "Bytes",
+      "Generated_us": 458.1545,
+      "Handwritten_us": 96.7065,
+      "Generated_B": 192904.0,
+      "Handwritten_B": 192720.0
+    },
+    {
+      "Workload": "Orders128",
+      "Input": "Reader",
+      "Generated_us": 501.6675,
+      "Handwritten_us": 206.87349999999998,
+      "Generated_B": 159184.0,
+      "Handwritten_B": 167376.0
+    },
+    {
+      "Workload": "Orders128",
+      "Input": "Stream",
+      "Generated_us": 458.843,
+      "Handwritten_us": 154.821,
+      "Generated_B": 177616.0,
+      "Handwritten_B": 181712.0
+    },
+    {
+      "Workload": "Recovery",
+      "Input": "Text",
+      "Generated_us": 2.951,
+      "Handwritten_us": 5.455,
+      "Generated_B": 8712.0,
+      "Handwritten_B": 8624.0
+    },
+    {
+      "Workload": "Recovery",
+      "Input": "Bytes",
+      "Generated_us": 8.555,
+      "Handwritten_us": 5.8995,
+      "Generated_B": 4944.0,
+      "Handwritten_B": 4552.0
+    },
+    {
+      "Workload": "Recovery",
+      "Input": "Reader",
+      "Generated_us": 12.868500000000001,
+      "Handwritten_us": 7.901,
+      "Generated_B": 9072.0,
+      "Handwritten_B": 33464.0
+    },
+    {
+      "Workload": "Recovery",
+      "Input": "Stream",
+      "Generated_us": 7.9725,
+      "Handwritten_us": 6.292999999999999,
+      "Generated_B": 5000.0,
+      "Handwritten_B": 17104.0
+    }
+  ],
+  "mainRuns": [
+    [
+      {
+        "Workload": "One",
+        "Input": "Text",
+        "Generated_us": "0.238",
+        "Handwritten_us": "0.083",
+        "Generated_B": "184",
+        "Handwritten_B": "304"
+      },
+      {
+        "Workload": "One",
+        "Input": "Bytes",
+        "Generated_us": "0.307",
+        "Handwritten_us": "0.081",
+        "Generated_B": "520",
+        "Handwritten_B": "336"
+      },
+      {
+        "Workload": "One",
+        "Input": "Reader",
+        "Generated_us": "0.389",
+        "Handwritten_us": "0.369",
+        "Generated_B": "552",
+        "Handwritten_B": "8744"
+      },
+      {
+        "Workload": "One",
+        "Input": "Stream",
+        "Generated_us": "0.379",
+        "Handwritten_us": "0.244",
+        "Generated_B": "584",
+        "Handwritten_B": "4680"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Text",
+        "Generated_us": "3.035",
+        "Handwritten_us": "1.123",
+        "Generated_B": "1448",
+        "Handwritten_B": "1568"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Bytes",
+        "Generated_us": "3.825",
+        "Handwritten_us": "0.861",
+        "Generated_B": "1896",
+        "Handwritten_B": "1712"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Reader",
+        "Generated_us": "4.248",
+        "Handwritten_us": "1.444",
+        "Generated_B": "1704",
+        "Handwritten_B": "9896"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Stream",
+        "Generated_us": "3.966",
+        "Handwritten_us": "1.161",
+        "Generated_B": "1848",
+        "Handwritten_B": "5944"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Text",
+        "Generated_us": "0.380",
+        "Handwritten_us": "0.118",
+        "Generated_B": "248",
+        "Handwritten_B": "368"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Bytes",
+        "Generated_us": "0.477",
+        "Handwritten_us": "0.106",
+        "Generated_B": "552",
+        "Handwritten_B": "368"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Reader",
+        "Generated_us": "0.561",
+        "Handwritten_us": "0.391",
+        "Generated_B": "616",
+        "Handwritten_B": "8808"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Stream",
+        "Generated_us": "0.511",
+        "Handwritten_us": "0.273",
+        "Generated_B": "616",
+        "Handwritten_B": "4712"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Text",
+        "Generated_us": "1.418",
+        "Handwritten_us": "1.134",
+        "Generated_B": "4280",
+        "Handwritten_B": "4400"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Bytes",
+        "Generated_us": "0.851",
+        "Handwritten_us": "0.322",
+        "Generated_B": "4584",
+        "Handwritten_B": "4400"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Reader",
+        "Generated_us": "1.821",
+        "Handwritten_us": "2.155",
+        "Generated_B": "4648",
+        "Handwritten_B": "29248"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Stream",
+        "Generated_us": "0.850",
+        "Handwritten_us": "0.911",
+        "Generated_B": "4648",
+        "Handwritten_B": "16960"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Text",
+        "Generated_us": "16.388",
+        "Handwritten_us": "3.362",
+        "Generated_B": "6744",
+        "Handwritten_B": "6864"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Bytes",
+        "Generated_us": "22.163",
+        "Handwritten_us": "3.603",
+        "Generated_B": "7048",
+        "Handwritten_B": "6864"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Reader",
+        "Generated_us": "22.798",
+        "Handwritten_us": "4.936",
+        "Generated_B": "6608",
+        "Handwritten_B": "14800"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Stream",
+        "Generated_us": "21.951",
+        "Handwritten_us": "4.477",
+        "Generated_B": "6608",
+        "Handwritten_B": "10704"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Text",
+        "Generated_us": "362.076",
+        "Handwritten_us": "124.368",
+        "Generated_B": "174168",
+        "Handwritten_B": "174288"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Bytes",
+        "Generated_us": "463.919",
+        "Handwritten_us": "100.033",
+        "Generated_B": "192904",
+        "Handwritten_B": "192720"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Reader",
+        "Generated_us": "489.701",
+        "Handwritten_us": "205.172",
+        "Generated_B": "159184",
+        "Handwritten_B": "167376"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Stream",
+        "Generated_us": "453.434",
+        "Handwritten_us": "156.933",
+        "Generated_B": "177616",
+        "Handwritten_B": "181712"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Text",
+        "Generated_us": "2.982",
+        "Handwritten_us": "5.334",
+        "Generated_B": "8712",
+        "Handwritten_B": "8624"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Bytes",
+        "Generated_us": "8.184",
+        "Handwritten_us": "5.630",
+        "Generated_B": "4944",
+        "Handwritten_B": "4552"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Reader",
+        "Generated_us": "11.945",
+        "Handwritten_us": "7.520",
+        "Generated_B": "9072",
+        "Handwritten_B": "33464"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Stream",
+        "Generated_us": "7.925",
+        "Handwritten_us": "6.257",
+        "Generated_B": "5000",
+        "Handwritten_B": "17104"
+      }
+    ],
+    [
+      {
+        "Workload": "One",
+        "Input": "Text",
+        "Generated_us": "0.233",
+        "Handwritten_us": "0.081",
+        "Generated_B": "184",
+        "Handwritten_B": "304"
+      },
+      {
+        "Workload": "One",
+        "Input": "Bytes",
+        "Generated_us": "0.317",
+        "Handwritten_us": "0.081",
+        "Generated_B": "520",
+        "Handwritten_B": "336"
+      },
+      {
+        "Workload": "One",
+        "Input": "Reader",
+        "Generated_us": "0.354",
+        "Handwritten_us": "0.356",
+        "Generated_B": "552",
+        "Handwritten_B": "8744"
+      },
+      {
+        "Workload": "One",
+        "Input": "Stream",
+        "Generated_us": "0.346",
+        "Handwritten_us": "0.237",
+        "Generated_B": "584",
+        "Handwritten_B": "4680"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Text",
+        "Generated_us": "2.899",
+        "Handwritten_us": "1.067",
+        "Generated_B": "1448",
+        "Handwritten_B": "1568"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Bytes",
+        "Generated_us": "3.775",
+        "Handwritten_us": "0.804",
+        "Generated_B": "1896",
+        "Handwritten_B": "1712"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Reader",
+        "Generated_us": "4.159",
+        "Handwritten_us": "1.455",
+        "Generated_B": "1704",
+        "Handwritten_B": "9896"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Stream",
+        "Generated_us": "3.800",
+        "Handwritten_us": "1.093",
+        "Generated_B": "1848",
+        "Handwritten_B": "5944"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Text",
+        "Generated_us": "0.382",
+        "Handwritten_us": "0.115",
+        "Generated_B": "248",
+        "Handwritten_B": "368"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Bytes",
+        "Generated_us": "0.483",
+        "Handwritten_us": "0.102",
+        "Generated_B": "552",
+        "Handwritten_B": "368"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Reader",
+        "Generated_us": "0.531",
+        "Handwritten_us": "0.391",
+        "Generated_B": "616",
+        "Handwritten_B": "8808"
+      },
+      {
+        "Workload": "Binary64",
+        "Input": "Stream",
+        "Generated_us": "0.498",
+        "Handwritten_us": "0.247",
+        "Generated_B": "616",
+        "Handwritten_B": "4712"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Text",
+        "Generated_us": "1.706",
+        "Handwritten_us": "1.257",
+        "Generated_B": "4280",
+        "Handwritten_B": "4400"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Bytes",
+        "Generated_us": "0.961",
+        "Handwritten_us": "0.337",
+        "Generated_B": "4584",
+        "Handwritten_B": "4400"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Reader",
+        "Generated_us": "1.825",
+        "Handwritten_us": "2.186",
+        "Generated_B": "4648",
+        "Handwritten_B": "29248"
+      },
+      {
+        "Workload": "Binary4096",
+        "Input": "Stream",
+        "Generated_us": "0.833",
+        "Handwritten_us": "0.864",
+        "Generated_B": "4648",
+        "Handwritten_B": "16960"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Text",
+        "Generated_us": "16.708",
+        "Handwritten_us": "3.223",
+        "Generated_B": "6744",
+        "Handwritten_B": "6864"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Bytes",
+        "Generated_us": "21.760",
+        "Handwritten_us": "3.286",
+        "Generated_B": "7048",
+        "Handwritten_B": "6864"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Reader",
+        "Generated_us": "22.067",
+        "Handwritten_us": "4.965",
+        "Generated_B": "6608",
+        "Handwritten_B": "14800"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Stream",
+        "Generated_us": "22.443",
+        "Handwritten_us": "4.476",
+        "Generated_B": "6608",
+        "Handwritten_B": "10704"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Text",
+        "Generated_us": "363.126",
+        "Handwritten_us": "119.232",
+        "Generated_B": "174168",
+        "Handwritten_B": "174288"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Bytes",
+        "Generated_us": "452.390",
+        "Handwritten_us": "93.380",
+        "Generated_B": "192904",
+        "Handwritten_B": "192720"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Reader",
+        "Generated_us": "513.634",
+        "Handwritten_us": "208.575",
+        "Generated_B": "159184",
+        "Handwritten_B": "167376"
+      },
+      {
+        "Workload": "Orders128",
+        "Input": "Stream",
+        "Generated_us": "464.252",
+        "Handwritten_us": "152.709",
+        "Generated_B": "177616",
+        "Handwritten_B": "181712"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Text",
+        "Generated_us": "2.920",
+        "Handwritten_us": "5.576",
+        "Generated_B": "8712",
+        "Handwritten_B": "8624"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Bytes",
+        "Generated_us": "8.926",
+        "Handwritten_us": "6.169",
+        "Generated_B": "4944",
+        "Handwritten_B": "4552"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Reader",
+        "Generated_us": "13.792",
+        "Handwritten_us": "8.282",
+        "Generated_B": "9072",
+        "Handwritten_B": "33464"
+      },
+      {
+        "Workload": "Recovery",
+        "Input": "Stream",
+        "Generated_us": "8.020",
+        "Handwritten_us": "6.329",
+        "Generated_B": "5000",
+        "Handwritten_B": "17104"
+      }
+    ]
+  ],
+  "threeParsers": [
+    {
+      "Workload": "One",
+      "Input": "Text",
+      "Fix_us": 0.255,
+      "Hand_us": 0.092,
+      "Fix44_us": 0.6925
+    },
+    {
+      "Workload": "One",
+      "Input": "Stream",
+      "Fix_us": 0.3665,
+      "Hand_us": 0.23049999999999998,
+      "Fix44_us": 0.4975
+    },
+    {
+      "Workload": "Order",
+      "Input": "Text",
+      "Fix_us": 2.9085,
+      "Hand_us": 1.0585,
+      "Fix44_us": 9.299
+    },
+    {
+      "Workload": "Order",
+      "Input": "Stream",
+      "Fix_us": 3.858,
+      "Hand_us": 1.0905,
+      "Fix44_us": 5.852
+    },
+    {
+      "Workload": "BinaryMany",
+      "Input": "Text",
+      "Fix_us": 16.631,
+      "Hand_us": 3.4690000000000003,
+      "Fix44_us": 517.3285000000001
+    },
+    {
+      "Workload": "BinaryMany",
+      "Input": "Stream",
+      "Fix_us": 21.503,
+      "Hand_us": 4.667999999999999,
+      "Fix44_us": 238.261
+    }
+  ],
+  "threeParserRuns": [
+    [
+      {
+        "Workload": "One",
+        "Input": "Text",
+        "Fix_us": "0.256",
+        "Hand_us": "0.092",
+        "Fix44_us": "0.703"
+      },
+      {
+        "Workload": "One",
+        "Input": "Stream",
+        "Fix_us": "0.361",
+        "Hand_us": "0.236",
+        "Fix44_us": "0.496"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Text",
+        "Fix_us": "2.947",
+        "Hand_us": "1.053",
+        "Fix44_us": "9.345"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Stream",
+        "Fix_us": "3.749",
+        "Hand_us": "1.098",
+        "Fix44_us": "5.723"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Text",
+        "Fix_us": "16.683",
+        "Hand_us": "3.484",
+        "Fix44_us": "522.019"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Stream",
+        "Fix_us": "21.191",
+        "Hand_us": "4.736",
+        "Fix44_us": "236.453"
+      }
+    ],
+    [
+      {
+        "Workload": "One",
+        "Input": "Text",
+        "Fix_us": "0.254",
+        "Hand_us": "0.092",
+        "Fix44_us": "0.682"
+      },
+      {
+        "Workload": "One",
+        "Input": "Stream",
+        "Fix_us": "0.372",
+        "Hand_us": "0.225",
+        "Fix44_us": "0.499"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Text",
+        "Fix_us": "2.870",
+        "Hand_us": "1.064",
+        "Fix44_us": "9.253"
+      },
+      {
+        "Workload": "Order",
+        "Input": "Stream",
+        "Fix_us": "3.967",
+        "Hand_us": "1.083",
+        "Fix44_us": "5.981"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Text",
+        "Fix_us": "16.579",
+        "Hand_us": "3.454",
+        "Fix44_us": "512.638"
+      },
+      {
+        "Workload": "BinaryMany",
+        "Input": "Stream",
+        "Fix_us": "21.815",
+        "Hand_us": "4.600",
+        "Fix44_us": "240.069"
+      }
+    ]
+  ],
+  "experiment": [
+    {
+      "Name": "One",
+      "Form": "String",
+      "CurrentUs": 0.23483500000000002,
+      "ExperimentalUs": 0.18174400000000002,
+      "CurrentBytes": 184,
+      "ExperimentalBytes": 184
+    },
+    {
+      "Name": "One",
+      "Form": "TextReader",
+      "CurrentUs": 0.32306999999999997,
+      "ExperimentalUs": 0.280014,
+      "CurrentBytes": 392,
+      "ExperimentalBytes": 392
+    },
+    {
+      "Name": "One",
+      "Form": "Stream",
+      "CurrentUs": 0.31404,
+      "ExperimentalUs": 0.27602799999999994,
+      "CurrentBytes": 456,
+      "ExperimentalBytes": 456
+    },
+    {
+      "Name": "Order",
+      "Form": "String",
+      "CurrentUs": 2.8665017223765195,
+      "ExperimentalUs": 2.252703194654031,
+      "CurrentBytes": 1448,
+      "ExperimentalBytes": 1448
+    },
+    {
+      "Name": "Order",
+      "Form": "TextReader",
+      "CurrentUs": 4.028207053502946,
+      "ExperimentalUs": 3.3098349962235574,
+      "CurrentBytes": 1544,
+      "ExperimentalBytes": 1544
+    },
+    {
+      "Name": "Order",
+      "Form": "Stream",
+      "CurrentUs": 3.749920959328688,
+      "ExperimentalUs": 3.049567036540229,
+      "CurrentBytes": 1720,
+      "ExperimentalBytes": 1720
+    },
+    {
+      "Name": "BinaryMany",
+      "Form": "String",
+      "CurrentUs": 16.512907436848934,
+      "ExperimentalUs": 10.475324533610591,
+      "CurrentBytes": 6744,
+      "ExperimentalBytes": 6744
+    },
+    {
+      "Name": "BinaryMany",
+      "Form": "TextReader",
+      "CurrentUs": 22.348322334874997,
+      "ExperimentalUs": 16.814751295201482,
+      "CurrentBytes": 6448,
+      "ExperimentalBytes": 6448
+    },
+    {
+      "Name": "BinaryMany",
+      "Form": "Stream",
+      "CurrentUs": 20.880667930113717,
+      "ExperimentalUs": 15.26774925922815,
+      "CurrentBytes": 6480,
+      "ExperimentalBytes": 6480
+    }
+  ],
+  "experimentRuns": [
+    [
+      {
+        "Name": "One",
+        "Form": "String",
+        "Length": 7,
+        "FixUs": 0.22883799999999999,
+        "Fix44Us": 0.180792,
+        "FixBytes": 184,
+        "Fix44Bytes": 184,
+        "Samples": [
+          [
+            0.236566,
+            0.22687200000000002,
+            0.230582,
+            0.23041799999999998,
+            0.22819799999999998,
+            0.22883799999999999,
+            0.22509200000000001,
+            0.239246,
+            0.226296
+          ],
+          [
+            0.182,
+            0.179182,
+            0.181814,
+            0.180136,
+            0.180792,
+            0.178788,
+            0.17869400000000002,
+            0.18193,
+            0.181074
+          ]
+        ]
+      },
+      {
+        "Name": "One",
+        "Form": "TextReader",
+        "Length": 7,
+        "FixUs": 0.31596,
+        "Fix44Us": 0.278026,
+        "FixBytes": 392,
+        "Fix44Bytes": 392,
+        "Samples": [
+          [
+            0.32295,
+            0.31335599999999997,
+            0.314256,
+            0.306818,
+            0.31691400000000003,
+            0.31596,
+            0.31607599999999997,
+            0.314242,
+            0.317608
+          ],
+          [
+            0.280366,
+            0.281946,
+            0.284516,
+            0.278026,
+            0.274764,
+            0.278006,
+            0.275814,
+            0.28042,
+            0.27561
+          ]
+        ]
+      },
+      {
+        "Name": "One",
+        "Form": "Stream",
+        "Length": 7,
+        "FixUs": 0.32148,
+        "Fix44Us": 0.27899799999999997,
+        "FixBytes": 456,
+        "Fix44Bytes": 456,
+        "Samples": [
+          [
+            0.32028599999999996,
+            0.322056,
+            0.32148,
+            0.323186,
+            0.320606,
+            0.31847,
+            0.324716,
+            0.320464,
+            0.32385
+          ],
+          [
+            0.278412,
+            0.277222,
+            0.295746,
+            0.277724,
+            0.279662,
+            0.282382,
+            0.27547,
+            0.281736,
+            0.27899799999999997
+          ]
+        ]
+      },
+      {
+        "Name": "Order",
+        "Form": "String",
+        "Length": 127,
+        "FixUs": 2.8380560029736093,
+        "Fix44Us": 2.2392207910843154,
+        "FixBytes": 1448,
+        "Fix44Bytes": 1448,
+        "Samples": [
+          [
+            2.8245942262421013,
+            2.844957254367489,
+            2.8380560029736093,
+            2.8294759013752944,
+            2.8232003469210754,
+            2.8424111014744144,
+            2.834326601412464,
+            2.8577437740056992,
+            2.86089703878082
+          ],
+          [
+            2.2392207910843154,
+            2.238508267105143,
+            2.2490362656435554,
+            2.2332511190280444,
+            2.3563167991230474,
+            2.2330547181876312,
+            2.241723759934229,
+            2.234009317621266,
+            2.2528409609938795
+          ]
+        ]
+      },
+      {
+        "Name": "Order",
+        "Form": "TextReader",
+        "Length": 127,
+        "FixUs": 3.9694279762858518,
+        "Fix44Us": 3.3270149253731343,
+        "FixBytes": 1544,
+        "Fix44Bytes": 1544,
+        "Samples": [
+          [
+            4.031212946643166,
+            4.067465149815734,
+            4.036853068418523,
+            3.975028040378145,
+            3.9401778561128027,
+            3.9616087165518348,
+            3.9694279762858518,
+            3.8989585002403464,
+            3.9048389681140843
+          ],
+          [
+            3.5757666214382633,
+            3.4294436906377204,
+            3.3338466757123473,
+            3.324715061058345,
+            3.3270149253731343,
+            3.323188602442334,
+            3.317571234735414,
+            3.310237449118046,
+            3.3314450474898236
+          ]
+        ]
+      },
+      {
+        "Name": "Order",
+        "Form": "Stream",
+        "Length": 127,
+        "FixUs": 3.7171075019334876,
+        "Fix44Us": 3.0926963853927707,
+        "FixBytes": 1720,
+        "Fix44Bytes": 1720,
+        "Samples": [
+          [
+            3.705614849187935,
+            3.709651972157773,
+            3.7053364269141533,
+            3.7171075019334876,
+            3.712985305491106,
+            3.7331631863882446,
+            3.8028383604021654,
+            3.7331477184841453,
+            3.720858468677494
+          ],
+          [
+            3.086812573625147,
+            3.0854361708723417,
+            3.0926963853927707,
+            3.103757207514415,
+            3.073048546097092,
+            3.4129146258292518,
+            3.099745799491599,
+            3.0806249612499226,
+            3.095932791865584
+          ]
+        ]
+      },
+      {
+        "Name": "BinaryMany",
+        "Form": "String",
+        "Length": 768,
+        "FixUs": 16.511852861035422,
+        "Fix44Us": 10.600256739409499,
+        "FixBytes": 6744,
+        "Fix44Bytes": 6744,
+        "Samples": [
+          [
+            16.303099455040872,
+            16.47408038147139,
+            16.588453678474114,
+            16.79972752043597,
+            16.296559945504086,
+            16.511852861035422,
+            16.546049046321524,
+            16.492268392370573,
+            16.535762942779293
+          ],
+          [
+            10.475673940949937,
+            10.544736842105262,
+            10.614356011981172,
+            10.626722293538725,
+            10.451497646555413,
+            10.763564398801883,
+            10.600256739409499,
+            10.679888746255884,
+            10.594009413778348
+          ]
+        ]
+      },
+      {
+        "Name": "BinaryMany",
+        "Form": "TextReader",
+        "Length": 768,
+        "FixUs": 22.685257873117298,
+        "Fix44Us": 16.91151054268925,
+        "FixBytes": 6448,
+        "Fix44Bytes": 6448,
+        "Samples": [
+          [
+            22.688270196257417,
+            22.850981287083524,
+            22.789593792788683,
+            22.53482428115016,
+            22.685257873117298,
+            22.332359653126424,
+            22.700912825193974,
+            22.401643085349157,
+            22.65221360109539
+          ],
+          [
+            16.993225025924644,
+            16.92630487383339,
+            16.91151054268925,
+            16.691773245765642,
+            16.930625648116145,
+            16.776011061182164,
+            16.91648807466298,
+            16.87767023850674,
+            16.897649498790184
+          ]
+        ]
+      },
+      {
+        "Name": "BinaryMany",
+        "Form": "Stream",
+        "Length": 768,
+        "FixUs": 21.021150519031142,
+        "Fix44Us": 15.296807857581339,
+        "FixBytes": 6480,
+        "Fix44Bytes": 6480,
+        "Samples": [
+          [
+            21.021150519031142,
+            20.88166089965398,
+            20.86159169550173,
+            20.803806228373702,
+            20.85190311418685,
+            21.252465397923874,
+            21.04385813148789,
+            21.05051903114187,
+            21.20627162629758
+          ],
+          [
+            15.236525475751995,
+            15.219490484960097,
+            15.296807857581339,
+            15.174923265807244,
+            15.243339472068755,
+            15.40659914057704,
+            15.373173726212402,
+            15.39303253529773,
+            15.701565377532228
+          ]
+        ]
+      }
+    ],
+    [
+      {
+        "Name": "One",
+        "Form": "String",
+        "Length": 7,
+        "FixUs": 0.24083200000000002,
+        "Fix44Us": 0.182696,
+        "FixBytes": 184,
+        "Fix44Bytes": 184,
+        "Samples": [
+          [
+            0.248204,
+            0.24639,
+            0.240666,
+            0.23898599999999998,
+            0.23840799999999998,
+            0.246062,
+            0.24083200000000002,
+            0.24128400000000003,
+            0.239498
+          ],
+          [
+            0.17969200000000002,
+            0.186082,
+            0.18399400000000002,
+            0.18135,
+            0.183692,
+            0.182696,
+            0.17987,
+            0.18249,
+            0.18355
+          ]
+        ]
+      },
+      {
+        "Name": "One",
+        "Form": "TextReader",
+        "Length": 7,
+        "FixUs": 0.33018,
+        "Fix44Us": 0.28200200000000003,
+        "FixBytes": 392,
+        "Fix44Bytes": 392,
+        "Samples": [
+          [
+            0.34326,
+            0.33018,
+            0.33794,
+            0.319426,
+            0.335108,
+            0.328866,
+            0.327028,
+            0.332976,
+            0.326416
+          ],
+          [
+            0.284544,
+            0.28461400000000003,
+            0.28199,
+            0.283686,
+            0.281418,
+            0.28343,
+            0.278164,
+            0.27758,
+            0.28200200000000003
+          ]
+        ]
+      },
+      {
+        "Name": "One",
+        "Form": "Stream",
+        "Length": 7,
+        "FixUs": 0.3066,
+        "Fix44Us": 0.27305799999999997,
+        "FixBytes": 456,
+        "Fix44Bytes": 456,
+        "Samples": [
+          [
+            0.308496,
+            0.304208,
+            0.30788,
+            0.306822,
+            0.3066,
+            0.30324599999999996,
+            0.306038,
+            0.30879599999999996,
+            0.302666
+          ],
+          [
+            0.26519400000000004,
+            0.273384,
+            0.27193,
+            0.282808,
+            0.27612,
+            0.272554,
+            0.27305799999999997,
+            0.268954,
+            0.273258
+          ]
+        ]
+      },
+      {
+        "Name": "Order",
+        "Form": "String",
+        "Length": 127,
+        "FixUs": 2.8949474417794296,
+        "Fix44Us": 2.266185598223747,
+        "FixBytes": 1448,
+        "Fix44Bytes": 1448,
+        "Samples": [
+          [
+            2.8528195597886055,
+            2.850467506823857,
+            2.8515302863116325,
+            2.848626517219351,
+            2.9173703467100296,
+            2.922178988326848,
+            2.905029328067832,
+            2.910993669783379,
+            2.8949474417794296
+          ],
+          [
+            2.216324367966897,
+            2.2272493313821466,
+            2.2299944492102743,
+            2.266185598223747,
+            2.2606802240500583,
+            2.2839834485542716,
+            2.275001261543119,
+            2.295125397386083,
+            2.292430741282737
+          ]
+        ]
+      },
+      {
+        "Name": "Order",
+        "Form": "TextReader",
+        "Length": 127,
+        "FixUs": 4.08698613072004,
+        "Fix44Us": 3.292655067073981,
+        "FixBytes": 1544,
+        "Fix44Bytes": 1544,
+        "Samples": [
+          [
+            4.177352379370484,
+            4.172543808653766,
+            4.004941450045678,
+            4.080666057636409,
+            4.08698613072004,
+            4.10862054646624,
+            4.024923179137946,
+            4.000166099161199,
+            4.120529856324226
+          ],
+          [
+            3.407730110240404,
+            3.416350112896799,
+            3.2871961747908087,
+            3.291087793863727,
+            3.2823084074910347,
+            3.292655067073981,
+            3.2740403772081286,
+            3.331704077566742,
+            3.353400185947669
+          ]
+        ]
+      },
+      {
+        "Name": "Order",
+        "Form": "Stream",
+        "Length": 127,
+        "FixUs": 3.7827344167238883,
+        "Fix44Us": 3.0064376876876877,
+        "FixBytes": 1720,
+        "Fix44Bytes": 1720,
+        "Samples": [
+          [
+            3.7827344167238883,
+            3.7934538796063175,
+            3.752346074616617,
+            3.7886396581979094,
+            3.7685282673380636,
+            3.7998016327153428,
+            3.7676737621118486,
+            3.790119783321889,
+            3.7811093308918897
+          ],
+          [
+            3.02291041041041,
+            3.0186061061061062,
+            3.005586836836837,
+            3.01392017017017,
+            3.000594344344344,
+            3.001870620620621,
+            3.021333833833834,
+            3.003290790790791,
+            3.0064376876876877
+          ]
+        ]
+      },
+      {
+        "Name": "BinaryMany",
+        "Form": "String",
+        "Length": 768,
+        "FixUs": 16.513962012662446,
+        "Fix44Us": 10.350392327811683,
+        "FixBytes": 6744,
+        "Fix44Bytes": 6744,
+        "Samples": [
+          [
+            16.61436187937354,
+            16.456647784071976,
+            16.541452849050316,
+            16.590469843385538,
+            16.513962012662446,
+            16.476041319560146,
+            16.56314561812729,
+            16.51236254581806,
+            16.502232589136952
+          ],
+          [
+            10.31848299912816,
+            10.426133391455972,
+            10.31523539668701,
+            10.402114210985179,
+            10.350392327811683,
+            10.334829991281604,
+            10.361573670444638,
+            10.35924149956408,
+            10.319049694856147
+          ]
+        ]
+      },
+      {
+        "Name": "BinaryMany",
+        "Form": "TextReader",
+        "Length": 768,
+        "FixUs": 22.011386796632696,
+        "Fix44Us": 16.717992047713718,
+        "FixBytes": 6448,
+        "Fix44Bytes": 6448,
+        "Samples": [
+          [
+            21.937970757642887,
+            21.917058041648207,
+            22.103588834736378,
+            22.17718210013292,
+            22.115551617190963,
+            21.979530350022156,
+            22.03907842268498,
+            21.939211342490033,
+            22.011386796632696
+          ],
+          [
+            16.632140490390988,
+            16.766335321404906,
+            16.717992047713718,
+            17.00563286944997,
+            16.726375082836313,
+            16.670775347912524,
+            16.794797879390323,
+            16.697813121272365,
+            16.606726308813784
+          ]
+        ]
+      },
+      {
+        "Name": "BinaryMany",
+        "Form": "Stream",
+        "Length": 768,
+        "FixUs": 20.74018534119629,
+        "Fix44Us": 15.238690660874962,
+        "FixBytes": 6480,
+        "Fix44Bytes": 6480,
+        "Samples": [
+          [
+            20.51238416175232,
+            20.21836562763269,
+            20.835720303285594,
+            20.669966301600674,
+            20.768955349620892,
+            20.726158382476832,
+            20.74018534119629,
+            20.836857624262848,
+            21.03614153327717
+          ],
+          [
+            15.407725721377599,
+            15.046447409246044,
+            14.952187403040647,
+            15.238690660874962,
+            15.349270865653118,
+            15.187092770710517,
+            15.192863791498603,
+            15.264412038473472,
+            15.259013341607199
+          ]
+        ]
+      }
+    ]
+  ],
+  "firstCallsCsv": "generated,7.248,1\nhandwritten,5.086,1\ngenerated,7.216,1\nhandwritten,4.978,1\ngenerated,7.348,1\nhandwritten,5.045,1\n",
+  "profiles": {
+    "generated-order": [
+      {
+        "Name": "DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Fields",
+        "OwnMs": 3172,
+        "TotalMs": 9609
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Fields",
+        "OwnMs": 2656,
+        "TotalMs": 5641
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixFactory.Part0",
+        "OwnMs": 1250,
+        "TotalMs": 2266
+      },
+      {
+        "Name": "System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper",
+        "OwnMs": 328,
+        "TotalMs": 328
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixGrammar+Parser.Reset",
+        "OwnMs": 297,
+        "TotalMs": 563
+      },
+      {
+        "Name": "System.SpanHelpers.ClearWithReferences",
+        "OwnMs": 250,
+        "TotalMs": 250
+      },
+      {
+        "Name": "System.Number.TryParseBinaryIntegerStyle",
+        "OwnMs": 234,
+        "TotalMs": 234
+      },
+      {
+        "Name": "System.Number.NumberToBigInteger",
+        "OwnMs": 156,
+        "TotalMs": 250
+      },
+      {
+        "Name": "System.String.Ctor",
+        "OwnMs": 141,
+        "TotalMs": 203
+      },
+      {
+        "Name": "Program.<Main>$",
+        "OwnMs": 125,
+        "TotalMs": 9813
+      },
+      {
+        "Name": "System.Number.TryParseNumber",
+        "OwnMs": 125,
+        "TotalMs": 125
+      },
+      {
+        "Name": "System.Runtime.CompilerServices.CastHelpers.StelemRef",
+        "OwnMs": 109,
+        "TotalMs": 109
+      },
+      {
+        "Name": "[Native or optimized code]",
+        "OwnMs": 94,
+        "TotalMs": 94
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixFactory.Value",
+        "OwnMs": 94,
+        "TotalMs": 2359
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixSchema.Type",
+        "OwnMs": 94,
+        "TotalMs": 94
+      },
+      {
+        "Name": "System.PackedSpanHelpers.IndexOf",
+        "OwnMs": 78,
+        "TotalMs": 78
+      },
+      {
+        "Name": "System.ReadOnlySpan`1.ToString",
+        "OwnMs": 78,
+        "TotalMs": 266
+      },
+      {
+        "Name": "System.SpanHelpers.Memmove",
+        "OwnMs": 63,
+        "TotalMs": 63
+      },
+      {
+        "Name": "[Unsafe stack walking]",
+        "OwnMs": 47,
+        "TotalMs": 47
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixConvert.Decimal",
+        "OwnMs": 47,
+        "TotalMs": 344
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixConvert.Timestamp",
+        "OwnMs": 47,
+        "TotalMs": 156
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Kind",
+        "OwnMs": 47,
+        "TotalMs": 47
+      },
+      {
+        "Name": "System.Number.TryParseBigIntegerNumber",
+        "OwnMs": 47,
+        "TotalMs": 422
+      },
+      {
+        "Name": "[Garbage collection]",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixGrammar.TryParseFields",
+        "OwnMs": 31,
+        "TotalMs": 9641
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixGrammar+Parser.Truncate",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixGrammar+ParserEntry.get_CallIndex",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "DotGram.Finance.Benchmarks.HandFixBenchmarks.Count",
+        "OwnMs": 16,
+        "TotalMs": 234
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixField..ctor",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixField+Typed`1..ctor",
+        "OwnMs": 16,
+        "TotalMs": 16
+      }
+    ],
+    "hand-order": [
+      {
+        "Name": "DotGram.Finance.Fix.FixFactory.Part0",
+        "OwnMs": 2781,
+        "TotalMs": 4891
+      },
+      {
+        "Name": "DotGram.Handwritten.Fix.HandFixParser+<Read>d__13`1.MoveNext",
+        "OwnMs": 2688,
+        "TotalMs": 8563
+      },
+      {
+        "Name": "System.Linq.Enumerable.<ToArray>g__EnumerableToArray|324_0",
+        "OwnMs": 578,
+        "TotalMs": 9328
+      },
+      {
+        "Name": "Program.<Main>$",
+        "OwnMs": 547,
+        "TotalMs": 9938
+      },
+      {
+        "Name": "System.Number.NumberToBigInteger",
+        "OwnMs": 406,
+        "TotalMs": 594
+      },
+      {
+        "Name": "DotGram.Handwritten.Fix.HandFixParser+Input`1.Peek",
+        "OwnMs": 375,
+        "TotalMs": 422
+      },
+      {
+        "Name": "System.Number.TryParseNumber",
+        "OwnMs": 359,
+        "TotalMs": 359
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixFactory.Value",
+        "OwnMs": 281,
+        "TotalMs": 5172
+      },
+      {
+        "Name": "System.Number.TryParseBinaryIntegerStyle",
+        "OwnMs": 281,
+        "TotalMs": 281
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixConvert.Decimal",
+        "OwnMs": 188,
+        "TotalMs": 938
+      },
+      {
+        "Name": "System.String.Ctor",
+        "OwnMs": 188,
+        "TotalMs": 234
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixSchema.Type",
+        "OwnMs": 156,
+        "TotalMs": 156
+      },
+      {
+        "Name": "System.Number.TryParseBigIntegerNumber",
+        "OwnMs": 156,
+        "TotalMs": 1109
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixSchema.DataTag",
+        "OwnMs": 141,
+        "TotalMs": 141
+      },
+      {
+        "Name": "[Native or optimized code]",
+        "OwnMs": 94,
+        "TotalMs": 94
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixField..ctor",
+        "OwnMs": 94,
+        "TotalMs": 94
+      },
+      {
+        "Name": "System.Collections.Generic.SegmentedArrayBuilder`1.ReturnArrays",
+        "OwnMs": 94,
+        "TotalMs": 94
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixConvert.Integer",
+        "OwnMs": 78,
+        "TotalMs": 609
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixConvert.Timestamp",
+        "OwnMs": 78,
+        "TotalMs": 297
+      },
+      {
+        "Name": "System.Numerics.BigInteger..ctor",
+        "OwnMs": 78,
+        "TotalMs": 78
+      },
+      {
+        "Name": "System.PackedSpanHelpers.IndexOf",
+        "OwnMs": 63,
+        "TotalMs": 63
+      },
+      {
+        "Name": "System.SpanHelpers.Memmove",
+        "OwnMs": 47,
+        "TotalMs": 47
+      },
+      {
+        "Name": "[Unsafe stack walking]",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixConvert.Part",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "DotGram.Handwritten.Fix.HandFixParser+<Read>d__13`1.GetEnumerator",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "System.Buffer.BulkMoveWithWriteBarrier",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "System.ReadOnlyMemory`1.get_Span",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "System.Runtime.CompilerServices.StaticsHelpers.GetGCStaticBase",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "[Garbage collection]",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "DotGram.Finance.Fix.FixConvert.Character",
+        "OwnMs": 16,
+        "TotalMs": 16
+      }
+    ],
+    "fix44-binary": [
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part1|3695_1",
+        "OwnMs": 2234,
+        "TotalMs": 2453
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part3|3695_3",
+        "OwnMs": 1750,
+        "TotalMs": 1953
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part2|3695_2",
+        "OwnMs": 1656,
+        "TotalMs": 1828
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part4|3695_4",
+        "OwnMs": 1359,
+        "TotalMs": 1500
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.Recognize_DotGram_Fields",
+        "OwnMs": 578,
+        "TotalMs": 9719
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar+ParserArena.Add",
+        "OwnMs": 422,
+        "TotalMs": 422
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part57|3695_57",
+        "OwnMs": 328,
+        "TotalMs": 516
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part59|3695_59",
+        "OwnMs": 313,
+        "TotalMs": 391
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar+ParserEntry..ctor",
+        "OwnMs": 297,
+        "TotalMs": 297
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part56|3695_56",
+        "OwnMs": 281,
+        "TotalMs": 297
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.Materialize_DotGram_Fields",
+        "OwnMs": 266,
+        "TotalMs": 281
+      },
+      {
+        "Name": "[Native or optimized code]",
+        "OwnMs": 203,
+        "TotalMs": 203
+      },
+      {
+        "Name": "System.ReadOnlySpan`1.Slice",
+        "OwnMs": 63,
+        "TotalMs": 63
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.<Recognize_DotGram_Fields>g__Recognize_DotGram_Fields_Part0|3695_0",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar+ParserEntry.get_RepeatIndex",
+        "OwnMs": 31,
+        "TotalMs": 31
+      },
+      {
+        "Name": "[Unsafe stack walking]",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar.Construct_KnownBinary_2",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar+ParserArena.get_Count",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar+ParserEntry.get_Kind",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44Grammar+ParserEntry.get_State",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "System.Globalization.CultureData.GetLocaleInfoCore",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "System.Guid.ToString",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "System.MemoryExtensions.SequenceEqual",
+        "OwnMs": 16,
+        "TotalMs": 31
+      },
+      {
+        "Name": "System.Runtime.CompilerServices.StaticsHelpers.GetGCThreadStaticsByIndexSlow",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "System.SpanHelpers.SequenceEqual",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "System.Text.Json.Serialization.Converters.JsonPrimitiveConverter`1..ctor",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "System.Text.Json.Serialization.Metadata.JsonTypeInfo.CreateJsonTypeInfo",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "System.Text.ValueStringBuilder.Grow",
+        "OwnMs": 16,
+        "TotalMs": 16
+      },
+      {
+        "Name": "[Native code]",
+        "OwnMs": 0,
+        "TotalMs": 16
+      },
+      {
+        "Name": "DotGram.Examples.Finance.Fix44.Parse",
+        "OwnMs": 0,
+        "TotalMs": 500
+      }
+    ]
+  },
+  "hashes": {
+    "src/DotGram.Finance/bin/Release/net10.0/DotGram.Finance.dll": "707940e4fd89386589c7cb8560816c9ff9c55d1b08431dad3e0f97eb3f445871",
+    "examples/DotGram.Handwritten/bin/Release/net10.0/DotGram.Handwritten.dll": "b3e44fbb4a1cee2ec409e782d29c5418b2d5758299f95db57b59fdf1d7389f7d",
+    "examples/DotGram.Examples/bin/Release/net10.0/DotGram.Examples.dll": "3dff902df2ede6d8c3e58d3ef60bf9526d195f3462e8c8244f0c0f94a0b74603",
+    ".work/hand-fix-analysis/raw-captures/bin/Release/net10.0/DotGram.Finance.dll": "e4c3e6229e56b158598f10f493a84c03130c1936f43a187723f9f01033cca68e"
+  },
+  "experimentValidation": "6417 Finance tests passed; experiment only in scratch, not applied to production sources."
+}

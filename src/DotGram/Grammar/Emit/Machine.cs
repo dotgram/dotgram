@@ -2164,6 +2164,7 @@ sealed partial class Machine
 				var inner = Compile(body, close, following);
 				var state = Reserve(out var writer);
 
+
 				if (body is Node.Call(var capturedRule, _) && ValueRule(capturedRule) >= 0)
 				{
 					_usesCompleted = true;
@@ -2376,6 +2377,23 @@ sealed partial class Machine
 					? (_graph.Powers.TryGetValue(node, out var requested) ? requested : 0)
 					: 0;
 
+				if (node is Node.Call(_, { Count: 0 }) && ScalarScanner(rule) is { } scalar)
+				{
+					_usesCompleted = true;
+					writer.Line($"var scalarEnd = {scalar.Name}(text, p{ScannerArguments});");
+					using (writer.Block("if (scalarEnd >= 0)"))
+					{
+						writer.Line("completedCall = entries.Count;");
+						writer.Line(
+							$"entries.Add(new ParserEntry(ParserEntry.Completed, {Resuming(writer, next)}, p, " +
+							$"call, atomic, repeat, lookahead, scalarEnd, {ValueRule(rule)}" +
+							(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
+						writer.Line("p = scalarEnd;");
+						writer.Line($"Trace(\"read {Escape(rule.Name)}\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+						writer.Line($"goto {Label(writer, next)};");
+					}
+				}
+
 				writer.Line("var callIndex = entries.Count;");
 				writer.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
@@ -2525,15 +2543,26 @@ sealed partial class Machine
 				foreach (var item in visible)
 					hasTyped |= item.Member.Rule is not null;
 
+				// Selecting the next demanded leaf costs one comparison per member.
+				// Keep wide guards on the linear dependency walk, and never infer a
+				// factory from the value type shared by different captured rules.
+				// Buffered FIX measurements did not show a stable benefit from this path.
+				var scalarGuard = !BufferedInput && hasTyped && visible.Count(item => item.Member.Rule is not null) <= 4 &&
+					visible.All(item => item.Member.Rule is null ||
+						!item.Member.IsSequence && ScalarScanner(item.Member.Rule) is not null &&
+						item.Slots.All(slot => ReferenceEquals(layout.Slots[slot].Rule, item.Member.Rule)));
+
 				if (hasTyped)
 				{
 					writer.Line("var guardValues = parser.Materialization(entries.Count);");
 					DeclareTables(writer);
 					writer.Line("var guardBuilt  = parser.Materialized();");
-					writer.Line("var guardNeedsMaterialization = false;");
+					if (!scalarGuard)
+						writer.Line("var guardNeedsMaterialization = false;");
 					// Both captured calls and directly requested recovery entries contribute
 					// their arena index below. Their dependencies are written after them.
-					writer.Line("var guardFrom = entries.Count;");
+					if (!scalarGuard)
+						writer.Line("var guardFrom = entries.Count;");
 				}
 
 				for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
@@ -2592,7 +2621,7 @@ sealed partial class Machine
 								$"entries[guardCaptured{memberIndex}At].Position",
 								$"entries[guardCaptured{memberIndex}At].Value - " +
 								$"entries[guardCaptured{memberIndex}At].Position") + ";");
-					else
+					else if (!scalarGuard)
 						using (writer.Block(
 							$"if (guardCaptured{memberIndex}At >= 0 && !guardBuilt[guardCaptured{memberIndex}At])"))
 						{
@@ -2604,9 +2633,12 @@ sealed partial class Machine
 
 				if (hasTyped)
 				{
-					writer.Line(
-						$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
-						$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, guardFrom);");
+					if (scalarGuard)
+						MaterializeScalarGuard(writer, visible);
+					else
+						writer.Line(
+							$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
+							$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, guardFrom);");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{

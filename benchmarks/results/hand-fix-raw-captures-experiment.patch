@@ -1,0 +1,25 @@
+--- a/src/DotGram.Finance/Fix/FixGrammar.cs
++++ b/src/DotGram.Finance/Fix/FixGrammar.cs
+@@ -16,17 +16,17 @@
+ 	LogSeparator = ' '* & '|' & ' '*
+ 	Text         = (?!Separator & any)+
+ 
+-	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.Tag(value))
+-	Size : @int = value: { ['0'..'9']+ }              => @(FixConvert.Tag(value))
++	Tag = { ['1'..'9'] & ['0'..'9']* }
++	Size = { ['0'..'9']+ }
+ 
+ 	Field : @FixField =
+-		wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
++		wire: (tag: Tag & '=' & switch @(context.Kind(FixConvert.Tag(tag))) {
+ 			case 0: Text
+ 			case 1:
+ 				size: Size & Separator & dataTag: Tag & '='
+-				& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & @ReadData
++				& when @(context.BeginData(FixConvert.Tag(tag), FixConvert.Tag(size), FixConvert.Tag(dataTag), parserSpan.Start + parserSpan.Length)) & @ReadData
+ 		})
+-		=> @(context.Create(tag, wire, parserSpan.Start).WithTerminator(0))
++		=> @(context.Create(FixConvert.Tag(tag), wire, parserSpan.Start).WithTerminator(0))
+ 
+ 	Fields : @FixField[] =
+ 		(value: Field & end: (Separator | eof) => @(value.WithTerminator(end.Length)))*

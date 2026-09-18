@@ -13,11 +13,121 @@ namespace DotGram.Tests;
 
 public sealed class SwitchTests
 {
-	static Assembly Compile(string grammar, string members = "", bool lexical = false)
+	[Theory]
+	[InlineData("1/22/333", "CBA", 6)]
+	[InlineData("1//333", "CA", 4)]
+	public void Scalar_guard_preserves_reverse_construction_order_and_reuses_values(string input, string order, int value)
+	{
+		var result = GramCompiler.Compile("""
+			A : @int = digits: { ['1'..'9']+ } => @(Made("A", digits.Length))
+			B : @int = digits: { ['1'..'9']+ } => @(Made("B", digits.Length))
+			C : @int = digits: { ['1'..'9']+ } => @(Made("C", digits.Length))
+			Start : @int = a: A & '/' & b: B? & '/' & c: C
+				& when @(a + b.GetValueOrDefault() + c > 0)
+				& when @(c > 0 && a > 0)
+				=> @(a + b.GetValueOrDefault() + c)
+			parse Start
+			""", new GramCompilerOptions
+		{
+			BufferedInput = true, BufferedBytes = true, Direct = false, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Contains("var guardPending", source);
+		var assembly = EmittedCode.Compile(source, declarationMembers:
+			"public static string Order = string.Empty; static int Made(string name, int value) { Order += name; return value; }");
+		var host = assembly.GetType("Grammar")!;
+		var trace = host.GetField("Order")!;
+		Assert.Equal(value, EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).Value);
+		Assert.Equal(order, trace.GetValue(null));
+		foreach (var bytes in new[] { false, true })
+		{
+			trace.SetValue(null, "");
+			using var reader = new StringReader(input);
+			using var stream = new MemoryStream(Encoding.ASCII.GetBytes(input));
+			Assert.Equal(value, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!
+				.Invoke(null, [bytes ? stream : reader, 1, 32]));
+			Assert.Equal(order, trace.GetValue(null));
+		}
+	}
+
+	[Theory]
+	[InlineData("11", 12)]
+	[InlineData("22", 22)]
+	public void Scalar_guard_with_different_rules_in_one_member_uses_the_matched_factory(string input, int expected)
+	{
+		var assembly = Compile("""
+			A : @int = digits: { ['1']+ } => @(digits.Length + 10)
+			B : @int = digits: { ['2']+ } => @(digits.Length + 20)
+			Start : @int = (n: A | n: B) & when @(n > 0) => @(n)
+			parse Start
+			""", direct: false);
+		Assert.Equal(expected, EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).Value);
+	}
+
+	[Theory]
+	[InlineData("12=x", 1)]
+	[InlineData("12=a", 1)]
+	[InlineData("12=b", 2)]
+	public void Scalar_run_methods_preserve_factory_demand_across_backtracking(string input, int calls)
+	{
+		var result = GramCompiler.Compile("""
+			Number : @int = digits: { ['1'..'9'] & ['0'..'9']* } => @(Make(digits))
+			First : @int = n: Number & "=x" => @(n)
+			Selected : @int = n: Number & '=' & switch @(n) { case 12: 'a' => @(n) }
+			Last : @int = n: Number & "=b" => @(n)
+			Start : @int = v: First => @(v) | v: Selected => @(v) | v: Last => @(v)
+			parse Start
+			""", new GramCompilerOptions
+		{
+			BufferedInput = true, BufferedBytes = true, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Contains("static int Read_Number", source);
+		var assembly = EmittedCode.Compile(source, declarationMembers: """
+			public static int Calls;
+			static int Make(string text) { Calls++; return 12; }
+			static int Make(global::System.ReadOnlySpan<byte> text) { Calls++; return 12; }
+			""");
+		var host = assembly.GetType("Grammar")!;
+		var counter = host.GetField("Calls")!;
+		Assert.Equal(12, EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).Value);
+		Assert.Equal(calls, counter.GetValue(null));
+		foreach (var bytes in new[] { false, true })
+		{
+			counter.SetValue(null, 0);
+			using var reader = new StringReader(input);
+			using var stream = new MemoryStream(Encoding.ASCII.GetBytes(input));
+			Assert.Equal(12, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!
+				.Invoke(null, [bytes ? stream : reader, 1, 32]));
+			Assert.Equal(calls, counter.GetValue(null));
+		}
+	}
+
+	[Fact]
+	public void Scalar_run_with_overlapping_follow_keeps_backtracking()
+	{
+		var result = GramCompiler.Compile("""
+			Number : @int = digits: ['0'..'9']+ => @(digits.Length)
+			Start : @int = n: Number & '2' & when @(n == 2) => @(n)
+			parse Start
+			""", new GramCompilerOptions
+		{
+			BufferedInput = true, BufferedBytes = true, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.DoesNotContain("static int Read_Number", source);
+		var assembly = EmittedCode.Compile(source);
+		Assert.Equal(2, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "122").Value);
+	}
+
+	static Assembly Compile(string grammar, string members = "", bool lexical = false, bool direct = true)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			BufferedInput = !lexical, BufferedBytes = !lexical, Lexical = lexical, CSharpScanner = RoslynCSharpScanner.Instance,
+			BufferedInput = !lexical, BufferedBytes = !lexical, Lexical = lexical, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(result.Diagnostics);
 		return EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: members);
