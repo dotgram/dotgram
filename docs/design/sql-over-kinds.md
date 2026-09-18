@@ -102,6 +102,23 @@ one a scanner understands: `Machine.Scan.cs` has a branch for exactly a repetiti
 the literal that follows it. So `?!"*/"` was never an obstacle — it is the idiom. Only the
 recursion was.
 
+## One number the experiment gives without timing anything
+
+With the eight obstacles handled, the grammar compiles over kinds, and the first thing to look
+at needs no window and no corpus:
+
+| | normalized rules | generated | generation |
+| --- | ---: | ---: | ---: |
+| over characters | 654 | 13,863,417 bytes | 5,309 ms |
+| over kinds | 646 | 6,771,203 bytes | 4,621 ms |
+
+**The parser is half the size.** Not a tenth smaller, not a third — 48.8 per cent of what it
+was, from the same grammar with the same options, and the generator spends 13 per cent less time
+producing it. Code size is not speed, and this says nothing about either yet. But a parser of
+6.8 MB where there was 13.9 is a different object to compile, to load and to keep in an
+instruction cache, and it is the kind of difference that shows up in places a ratio on one
+corpus does not reach.
+
 ## What it is worth, measured rather than assumed
 
 This is the part that should decide the order of work, and it argues against doing it first.
