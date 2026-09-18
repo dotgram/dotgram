@@ -758,6 +758,30 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    impossible (a stream past its retained window), the case comes back to the architect before
    anything is weakened. expr-2d, after `parserMarks` (the expression language is where recording
    costs 15-25 per cent).
+   **Design 2026-09-18 (expr-2d, `docs/design/diagnostics-off-the-hot-path-2026-09-18.md`).**
+   Recording is a fifth to a quarter of an EL parse (880 sites) and nothing on SQL. Two places
+   record for nobody and go first: `find` over a string, and the lexer's value and measure
+   re-reads. Then the in-memory `Parse`/`TryParse` forms: a held `bool` gating every
+   recording site (one body, C# 8 floor), a refused input read again with recording on; a
+   generic-flag reader only if the stand shows the bool costing more than noise. Streams,
+   recovery and `yield` keep recording as today. Refused input then reads twice, up to 2x where
+   recording was nearly free (FIX, web headers): the stand gets refused-input rows per family.
+   Under Immediate a refused input runs constructions up to twice; the carrier's contract says
+   so. Implementer: expr-2d, in the generator, coordinating files with performance-3f.
+
+   **For Igor: the context on the second reading.** The generator cannot rewind a type it did
+   not write, so a grammar declaring a `context` (the expression language) gets a second reading
+   only if the language says how the context is restored: (2) by duck typing, the resolver
+   finding `Mark()`/`Rollback(mark)` on the context type as §7.3 finds constructors, with an
+   Info diagnostic saying what was found; or (3) by an explicit clause on the `context`
+   declaration. Without either, a grammar with a context keeps recording on the hot path.
+   The architect recommends (2) with the diagnostic.
+
+   **Found beside it (performance-3f):** `Ways.Lookahead` is read by `Refuse_DotGram` and never
+   incremented since `487362c5`, so a refusal inside a lookahead is recorded on the reader and
+   not on the engine, and the two renderings can report different positions. A defect with a
+   test to write: reader and engine agree on the position of a refusal inside a lookahead.
+
 3. **Large literal sets as tables** — go, generator part after finance-03's Fix44 report.
 4. **One measuring stand** — go. One command for the ratios to the hand parsers of FIX, EL and
    SQL:2023, allocation, peak memory, first call, a control row and the agreement check. Scratch
