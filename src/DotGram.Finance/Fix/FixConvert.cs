@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Numerics;
+using System.Text;
 
 namespace DotGram.Finance.Fix;
 
@@ -420,14 +421,20 @@ static class FixConvert
 		return raw.ToString();
 	}
 
+	// Each byte becomes the character with the same code, which is what Latin-1 decodes to.
+	// Only the string is allocated: a character array beside it doubled every text field.
 	public static string Text(ReadOnlySpan<byte> raw)
 	{
-		var chars = new char[raw.Length];
+#if NETSTANDARD2_0
+		Span<char> chars = raw.Length <= 256 ? stackalloc char[raw.Length] : new char[raw.Length];
 
 		for (var i = 0; i < raw.Length; i++)
 			chars[i] = (char)raw[i];
 
-		return new string(chars);
+		return chars.ToString();
+#else
+		return Encoding.Latin1.GetString(raw);
+#endif
 	}
 
 	public static bool Data(ReadOnlySpan<char> raw, out ReadOnlyMemory<byte> value)

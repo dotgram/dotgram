@@ -188,4 +188,29 @@ public sealed class FixConvertFastPathTests
 		Assert.False(options.IsData(5000));
 		Assert.True(options.IsData(96));
 	}
+
+	/// <summary>
+	/// Text read from bytes is each byte as the character of the same code, the upper half
+	/// included, on either side of the length where the conversion stops using the stack.
+	/// </summary>
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(256)]
+	[InlineData(257)]
+	[InlineData(1000)]
+	public void Text_from_bytes_keeps_every_byte_as_its_character(int length)
+	{
+		var bytes = new byte[length];
+
+		for (var i = 0; i < length; i++)
+			bytes[i] = (byte)(i * 7 + 3);
+
+		var text = FixConvert.Text(bytes);
+
+		Assert.Equal(length, text.Length);
+
+		for (var i = 0; i < length; i++)
+			Assert.Equal((char)bytes[i], text[i]);
+	}
 }
