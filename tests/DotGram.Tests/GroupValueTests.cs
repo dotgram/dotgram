@@ -109,7 +109,7 @@ public sealed class GroupValueTests
 		using var reader = new StringReader(string.Concat(Enumerable.Repeat("a;", 100)));
 		using var stream = new MemoryStream(Encoding.ASCII.GetBytes(string.Concat(Enumerable.Repeat("a;", 100))));
 		var source = mode == "text" ? (object)"a;a;a;" : mode == "chars" ? reader : stream;
-		var signature = mode == "text" ? new[] { typeof(string) } : new[] { mode == "chars" ? typeof(TextReader) : typeof(Stream), typeof(int), typeof(int) };
+		var signature = mode == "text" ? new[] { typeof(string) } : new[] { mode == "chars" ? typeof(TextReader) : typeof(Stream), typeof(int?), typeof(int?) };
 		var arguments = mode == "text" ? new[] { source } : new[] { source, 1, 16 };
 		var values = (IEnumerable<int>)host.GetMethod("Items", signature)!.Invoke(null, arguments)!;
 
@@ -203,7 +203,7 @@ public sealed class GroupValueTests
 	{
 		using var reader = new StringReader(input);
 		using var stream = new MemoryStream(Encoding.ASCII.GetBytes(input));
-		var signature = mode == "text" ? new[] { typeof(string) } : new[] { mode == "chars" ? typeof(TextReader) : typeof(Stream), typeof(int), typeof(int) };
+		var signature = mode == "text" ? new[] { typeof(string) } : new[] { mode == "chars" ? typeof(TextReader) : typeof(Stream), typeof(int?), typeof(int?) };
 		object source = mode == "text" ? input : mode == "chars" ? reader : stream;
 		var arguments = mode == "text" ? new[] { source } : new[] { source, 1, 32 };
 		var values = (IEnumerable<int>)host.GetMethod(method, signature)!.Invoke(null, arguments)!;

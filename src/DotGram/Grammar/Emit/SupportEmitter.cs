@@ -181,6 +181,22 @@ public static class SupportEmitter
 				public bool SpanCaptures { get; set; }
 
 				/// <summary>
+				/// The most input a buffered parse may hold at once, in characters or bytes, where a
+				/// call does not say.
+				/// </summary>
+				/// <remarks>
+				/// A streaming overload's own <c>maxRetained</c> overrides it for that call. Past the
+				/// limit the parse throws <c>IOException</c> naming it. The default is no limit.
+				/// </remarks>
+				public int MaxRetained { get; set; } = int.MaxValue;
+
+				/// <summary>
+				/// The initial capacity of a buffered parse's buffer, where a call does not say.
+				/// </summary>
+				/// <remarks>A streaming overload's own <c>bufferSize</c> overrides it for that call.</remarks>
+				public int BufferSize { get; set; } = 4096;
+
+				/// <summary>
 				/// How many stacks one parse may take beyond the one it began on.
 				/// </summary>
 				/// <remarks>

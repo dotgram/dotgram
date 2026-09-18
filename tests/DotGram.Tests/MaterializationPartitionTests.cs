@@ -44,7 +44,7 @@ public sealed class MaterializationPartitionTests
 		{
 			using var reader = new StringReader(input);
 			using var stream = new OneByteStream(Encoding.ASCII.GetBytes(input));
-			var method = parser.GetType("Grammar")!.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!;
+			var method = parser.GetType("Grammar")!.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
 			Assert.Equal(expected, (int[])method.Invoke(null, [bytes ? stream : reader, 1, 65536])!);
 		}
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", input + "128=").IsSuccess);

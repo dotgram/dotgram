@@ -64,7 +64,7 @@ public sealed class ExternalInputTests
 			using var reader = new ShortReader("ab|cd!");
 			using var stream = new ShortStream(Encoding.ASCII.GetBytes("ab|cd!"));
 			var source = kind == typeof(Stream) ? (object)stream : reader;
-			var method = assembly.GetType("Probe")!.GetMethod("TryParseStart", [kind, typeof(int), typeof(int)])!;
+			var method = assembly.GetType("Probe")!.GetMethod("TryParseStart", [kind, typeof(int?), typeof(int?)])!;
 			var match  = method.Invoke(null, [source, 1, 64])!;
 
 			Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
@@ -84,7 +84,7 @@ public sealed class ExternalInputTests
 
 		using var reader = new ShortReader("abcde!");
 		using var stream = new ShortStream(Encoding.ASCII.GetBytes("abcde!"));
-		var method = type.GetMethod("TryParseStart", [bytes ? typeof(Stream) : typeof(TextReader), context.GetType(), typeof(int), typeof(int)])!;
+		var method = type.GetMethod("TryParseStart", [bytes ? typeof(Stream) : typeof(TextReader), context.GetType(), typeof(int?), typeof(int?)])!;
 		var error  = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [bytes ? (object)stream : reader, context, 1, 4]));
 
 		Assert.IsType<IOException>(error.InnerException);
@@ -140,7 +140,7 @@ public sealed class ExternalInputTests
 			using var reader = new ShortReader(input);
 			using var stream = new ShortStream(Encoding.ASCII.GetBytes(input));
 			var source = kind == typeof(Stream) ? (object)stream : reader;
-			var method = assembly.GetType(name)!.GetMethod(publication, [kind, typeof(int), typeof(int)])!;
+			var method = assembly.GetType(name)!.GetMethod(publication, [kind, typeof(int?), typeof(int?)])!;
 			var values = (System.Collections.Generic.IEnumerable<int>)method.Invoke(null, [source, 1, 8])!;
 
 			Assert.Equal(Enumerable.Range(0, 100).Select(i => i * 3), values);

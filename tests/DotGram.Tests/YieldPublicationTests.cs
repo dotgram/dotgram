@@ -35,15 +35,15 @@ public sealed class YieldPublicationTests
 		var host = assembly.GetType("Grammar")!;
 		Assert.Equal(new[] { 1, 2 }, (int[])host.GetMethod("All", [typeof(string)])!.Invoke(null, ["a;b;"])!);
 		using var reader = new StringReader("a;b;");
-		Assert.Equal(new[] { 1, 2 }, (int[])host.GetMethod("Buffered", [typeof(TextReader), typeof(int), typeof(int)])!.Invoke(null, [reader, 1, 32])!);
+		Assert.Equal(new[] { 1, 2 }, (int[])host.GetMethod("Buffered", [typeof(TextReader), typeof(int?), typeof(int?)])!.Invoke(null, [reader, 1, 32])!);
 		using var eagerBytes = new MemoryStream("a;b;"u8.ToArray());
-		Assert.Equal(new[] { 1, 2 }, (int[])host.GetMethod("ByteArray", [typeof(Stream), typeof(int), typeof(int)])!.Invoke(null, [eagerBytes, 1, 32])!);
+		Assert.Equal(new[] { 1, 2 }, (int[])host.GetMethod("ByteArray", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [eagerBytes, 1, 32])!);
 		foreach (var method in new[] { "Lazy", "Chars", "Bytes" })
 		{
 			using var chars = new StringReader("a;b;");
 			using var bytes = new MemoryStream("a;b;"u8.ToArray());
 			var parameter = method == "Lazy" ? typeof(string) : method == "Chars" ? typeof(TextReader) : typeof(Stream);
-			var target = host.GetMethod(method, method == "Lazy" ? [parameter] : [parameter, typeof(int), typeof(int)])!;
+			var target = host.GetMethod(method, method == "Lazy" ? [parameter] : [parameter, typeof(int?), typeof(int?)])!;
 			Assert.Equal(typeof(System.Collections.Generic.IEnumerable<int>), target.ReturnType);
 			var sequence = (IEnumerable)target.Invoke(null, method == "Lazy" ? ["a;b;"] : [method == "Chars" ? chars : bytes, 1, 32])!;
 			Assert.Equal(new[] { 1, 2 }, sequence.Cast<int>());
@@ -63,7 +63,7 @@ public sealed class YieldPublicationTests
 			""");
 		using var reader = new StringReader("a;broken;a;");
 		using var stream = new MemoryStream(Encoding.ASCII.GetBytes("a;broken;a;"));
-		var method = assembly.GetType("Grammar")!.GetMethod(bytes ? "Bytes" : "Items", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!;
+		var method = assembly.GetType("Grammar")!.GetMethod(bytes ? "Bytes" : "Items", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
 		var result = (System.Collections.Generic.IEnumerable<int>)method.Invoke(null, [bytes ? stream : reader, 1, 16])!;
 		Assert.Equal(0, stream.Position);
 		using var iterator = result.GetEnumerator();

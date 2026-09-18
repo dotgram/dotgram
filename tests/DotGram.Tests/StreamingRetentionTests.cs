@@ -211,7 +211,7 @@ public sealed class StreamingRetentionTests
 			_          => typeof(IEnumerable<string>),
 		};
 
-		var types  = new[] { domain }.Concat(rest.Select(one => one.GetType())).ToArray();
+		var types  = new[] { domain }.Concat(rest.Select(_ => typeof(int?))).ToArray();
 		var method = host.GetMethod(name, types)
 			?? throw new InvalidOperationException($"{host.Name} has no {name}({string.Join(", ", types.Select(one => one.Name))}).");
 

@@ -171,9 +171,9 @@ public static partial class CSharpEmitter
 		{
 			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
 			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}> {method}(" +
-				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+				$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);");
 				file.Line("var start = 0;");
 				if (publication.YieldRecovery) file.Line("var ordinal = 0;");
 				if (publication.YieldMinimum > 0)
@@ -198,9 +198,9 @@ public static partial class CSharpEmitter
 				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
 			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
-				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+				$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);");
 				file.Line("var start = 0;");
 				using (file.Block("while (true)"))
 				{
@@ -218,9 +218,9 @@ public static partial class CSharpEmitter
 		file.Line("/// <summary>Parses buffered input synchronously without retrying at refill boundaries.</summary>");
 		file.Line("/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>");
 		using (file.Block($"{AccessOf(publication)} static {match} Try{method}(" +
-			$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+			$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
 		{
-			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);");
 			file.Line($"var failure = new {FailureType}();");
 			file.Line($"var end = {BufferedMethod(publication, bytes)}(text, 0{hands});");
 			using (file.Block("if (end < 0)"))
@@ -233,7 +233,7 @@ public static partial class CSharpEmitter
 			file.Line($"return {match}.Success({(type is null ? bytes ? "text.Slice(0, end).ToArray()" : "text.Slice(0, end).ToString()" : "value")}, 0, end);");
 		}
 		using (file.Block($"{AccessOf(publication)} static {value} {method}(" +
-			$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+			$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
 		{
 			file.Line($"var match = Try{method}(input{(machine.UsesContext ? ", context" : "")}, bufferSize, maxRetained);");
 			file.Line("if (!match.IsSuccess) throw new global::System.FormatException(match.Error);");

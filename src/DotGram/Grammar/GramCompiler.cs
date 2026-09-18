@@ -158,7 +158,7 @@ public static class GramCompiler
 					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
 					options.LanguageRecognitionContract, options.StaticImports,
-					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables, sourceParts, options.SourceFileSize)));
+					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables, sourceParts, options.SourceFileSize, options.MaxRetained, options.BufferSize)));
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));

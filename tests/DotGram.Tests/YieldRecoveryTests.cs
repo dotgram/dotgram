@@ -45,12 +45,12 @@ public sealed class YieldRecoveryTests
 		foreach (var source in new object[] { reader, stream })
 		{
 			var domain = source is Stream ? typeof(Stream) : typeof(TextReader);
-			var values = (IEnumerable<string>)host.GetMethod("Read", new[] { domain, typeof(int), typeof(int) })!.Invoke(null, new object[] { source, 1, 16 })!;
+			var values = (IEnumerable<string>)host.GetMethod("Read", new[] { domain, typeof(int?), typeof(int?) })!.Invoke(null, new object[] { source, 1, 16 })!;
 			Assert.Equal(expected, values.ToArray());
 		}
 		Assert.True(stream.CanRead);
 		using var many = new MemoryStream(Encoding.ASCII.GetBytes(string.Concat(Enumerable.Repeat(input + ";", 100))));
-		var bounded = (IEnumerable<string>)host.GetMethod("Read", new[] { typeof(Stream), typeof(int), typeof(int) })!
+		var bounded = (IEnumerable<string>)host.GetMethod("Read", new[] { typeof(Stream), typeof(int?), typeof(int?) })!
 			.Invoke(null, new object[] { many, 1, 16 })!;
 		Assert.Equal(500, bounded.Count());
 	}

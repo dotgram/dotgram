@@ -134,7 +134,7 @@ public sealed class DelimiterScanTests
 	{
 		using var reader = new StringReader(input);
 		using var stream = new OneByteStream(Encoding.ASCII.GetBytes(input));
-		var parameters = mode == typeof(string) ? new[] { mode } : new[] { mode, typeof(int), typeof(int) };
+		var parameters = mode == typeof(string) ? new[] { mode } : new[] { mode, typeof(int?), typeof(int?) };
 		object?[] arguments = mode == typeof(string) ? [input] : [mode == typeof(Stream) ? stream : reader, 1, int.MaxValue];
 		var result = assembly.GetType("Grammar")!.GetMethod("TryParseStart", parameters)!.Invoke(null, arguments)!;
 		var type = result.GetType();
@@ -170,7 +170,7 @@ public sealed class DelimiterScanTests
 		using var reader = new StringReader(input);
 		using var stream = new OneByteStream(Encoding.Latin1.GetBytes(input));
 		var result = assembly.GetType("Grammar")!.GetMethod("TryParseStart",
-			[bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!
+			[bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!
 			.Invoke(null, [bytes ? stream : reader, 1, int.MaxValue])!;
 		var type = result.GetType();
 		var value = type.GetProperty("Value")!.GetValue(result);

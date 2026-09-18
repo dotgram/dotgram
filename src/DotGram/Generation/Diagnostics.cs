@@ -88,6 +88,15 @@ static class Diagnostics
 		isEnabledByDefault: true,
 		description:        "Suffix names a nested class, and a class is named by an identifier.");
 
+	public static readonly DiagnosticDescriptor BufferOptionNotPositive = new(
+		id:                 "GRAM0009",
+		title:              "A buffer option is not positive",
+		messageFormat:      "{0} = {1} reads no input; it has to be at least 1",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		description:        "MaxRetained is the most a buffered parse may hold and BufferSize the capacity it starts with; neither can be zero or negative.");
+
 	/// <summary>
 	/// The descriptor for an id, made once and kept.
 	/// </summary>

@@ -320,6 +320,18 @@ public sealed class GramGenerator : IIncrementalGenerator
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
+		// A limit or a capacity of nothing is no reading of any input: say so where it is
+		// written, rather than let every call throw ArgumentOutOfRangeException.
+		foreach (var (option, value) in new[] { (nameof(Host.MaxRetained), host.MaxRetained), (nameof(Host.BufferSize), host.BufferSize) })
+		{
+			if (value > 0)
+				continue;
+
+			reports.Add(Report.Of(Diagnostics.BufferOptionNotPositive, host.Location, option, value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+
+			return new Grammar(host, null, null, default, default, Values(reports));
+		}
+
 		if (!TryResolveGrammar(reports, host, files, out var own, out var path))
 			return new Grammar(host, null, null, default, default, Values(reports));
 
@@ -472,6 +484,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			BufferedInput  = host.BufferedInput,
 			BufferedBytes  = host.BufferedBytes,
 			SpanCaptures   = host.SpanCaptures,
+			MaxRetained    = host.MaxRetained,
+			BufferSize     = host.BufferSize,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
 			SuffixDeclared = host.SuffixDeclared,
@@ -774,6 +788,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      BufferedInput = false,
 		bool      BufferedBytes = false,
 		bool      SpanCaptures = false,
+		int       MaxRetained = int.MaxValue,
+		int       BufferSize = 4096,
 		int       Stacks     = 0,
 		string?   Suffix     = null,
 		bool      SuffixDeclared = false,
@@ -1037,6 +1053,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,
 				BufferedBytes: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedBytes)).Value.Value as bool? ?? first?.BufferedBytes ?? false,
 				BufferedInput: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedInput)).Value.Value as bool? ?? first?.BufferedInput ?? false,
+				MaxRetained: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.MaxRetained)).Value.Value as int? ?? first?.MaxRetained ?? int.MaxValue,
+				BufferSize: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferSize)).Value.Value as int? ?? first?.BufferSize ?? 4096,
 				Stacks:     stacks,
 				Suffix:     suffix,
 				SuffixDeclared: suffixDeclared,

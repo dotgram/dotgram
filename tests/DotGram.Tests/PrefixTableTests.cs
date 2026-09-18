@@ -78,7 +78,7 @@ public sealed class PrefixTableTests
 	{
 		using var reader = new OneCharReader(input);
 		using var stream = new OneByteStream(Encoding.ASCII.GetBytes(input));
-		var method = parser.GetType("Grammar")!.GetMethod("TryParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!;
+		var method = parser.GetType("Grammar")!.GetMethod("TryParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
 		var match = method.Invoke(null, [bytes ? stream : reader, 1, 1024])!;
 		object? Get(string name) => match.GetType().GetProperty(name)!.GetValue(match);
 		return ((bool)Get("IsSuccess")!, Get("Value"), Get("Error"), Get("Position"));

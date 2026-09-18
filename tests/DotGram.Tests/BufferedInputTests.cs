@@ -67,11 +67,79 @@ public sealed class BufferedInputTests
 			: new StringReader("abcdefghij;");
 
 		var thrown = Assert.Throws<System.Reflection.TargetInvocationException>(() =>
-			host.GetMethod("All", [domain, typeof(int), typeof(int)])!.Invoke(null, [input, 1, 4]));
+			host.GetMethod("All", [domain, typeof(int?), typeof(int?)])!.Invoke(null, [input, 1, 4]));
 		var error = Assert.IsType<IOException>(thrown.InnerException);
 
 		Assert.Contains("more than 4 retained " + unit, error.Message, StringComparison.Ordinal);
 		Assert.Contains("maxRetained", error.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>A buffer parameter left null takes the grammar's default; a number is that call's own.</summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_null_buffer_parameter_takes_the_grammars_default(bool bytes)
+	{
+		var result = GramCompiler.Compile("""
+			Row : @int = t: ['a'..'z']+ & ';' => @(t.Length)
+			Rows : @int[] = Row*
+			parse Rows as All stream bytes
+			""", new GramCompilerOptions
+		{
+			BufferedInput = true, MaxRetained = 4, BufferSize = 2, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Contains("internal const int DefaultMaxRetained = 4;", source, StringComparison.Ordinal);
+		Assert.Contains("internal const int DefaultBufferSize = 2;", source, StringComparison.Ordinal);
+
+		var method = EmittedCode.Compile(source).GetType("Grammar")!
+			.GetMethod("All", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
+		object Input() => bytes
+			? new MemoryStream(System.Text.Encoding.ASCII.GetBytes("abcdefghij;"))
+			: new StringReader("abcdefghij;");
+
+		// Null: the grammar's limit of four, which a record of ten exceeds.
+		var thrown = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [Input(), null, null]));
+		Assert.Contains("more than 4 retained", Assert.IsType<IOException>(thrown.InnerException).Message, StringComparison.Ordinal);
+
+		// A number: this call's own, and the record fits.
+		Assert.Equal(new[] { 10 }, (int[])method.Invoke(null, [Input(), null, 64])!);
+	}
+
+	/// <summary>Where the grammar says nothing, there is no limit.</summary>
+	[Fact]
+	public void Without_the_option_a_buffered_parse_has_no_limit()
+	{
+		var result = GramCompiler.Compile("Row = 'a'\nparse Row as All stream bytes",
+			new GramCompilerOptions { BufferedInput = true, CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Contains("internal const int DefaultMaxRetained = 2147483647;", source, StringComparison.Ordinal);
+		Assert.Contains("internal const int DefaultBufferSize = 4096;", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>The attribute sets the defaults the generated class holds.</summary>
+	[Fact]
+	public void The_attribute_sets_the_defaults_the_generated_class_holds()
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedInput = true, MaxRetained = 16, BufferSize = 8)]\npublic partial class Limits;");
+		var source = string.Join("\n", run.Results.SelectMany(one => one.GeneratedSources).Select(one => one.SourceText.ToString()));
+		Assert.Contains("internal const int DefaultMaxRetained = 16;", source, StringComparison.Ordinal);
+		Assert.Contains("internal const int DefaultBufferSize = 8;", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>A limit or a capacity of nothing is refused where it is written.</summary>
+	[Theory]
+	[InlineData("MaxRetained = 0")]
+	[InlineData("BufferSize = -1")]
+	public void A_buffer_option_of_nothing_is_refused_where_it_is_written(string option)
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedInput = true, " + option + ")]\npublic partial class Limits;");
+		var diagnostic = Assert.Single(run.Diagnostics, one => one.Id == "GRAM0009");
+		Assert.Contains(option, diagnostic.GetMessage(), StringComparison.Ordinal);
 	}
 
 	[Theory]
@@ -88,7 +156,7 @@ public sealed class BufferedInputTests
 		var text = string.Concat(Enumerable.Repeat("x12345;", 100));
 		using var reader = new ShortReader(text, 1);
 		using var stream = new ShortStream(System.Text.Encoding.ASCII.GetBytes(text));
-		var method = assembly.GetType("Grammar")!.GetMethod("FindItem", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!;
+		var method = assembly.GetType("Grammar")!.GetMethod("FindItem", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
 		var result = (System.Collections.IEnumerable)method.Invoke(null, [bytes ? stream : reader, 2, 16])!;
 		var matches = result.Cast<object>().ToArray();
 		Assert.Equal(100, matches.Length);
@@ -115,7 +183,7 @@ public sealed class BufferedInputTests
 		{
 			using var reader = new ShortReader(input, 1);
 			using var stream = new ShortStream(System.Text.Encoding.ASCII.GetBytes(input));
-			var method = assembly.GetType("Grammar")!.GetMethod("FindItem", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!;
+			var method = assembly.GetType("Grammar")!.GetMethod("FindItem", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
 			var result = (System.Collections.IEnumerable)method.Invoke(null, [bytes ? stream : reader, 1, 100])!;
 			Assert.Equal(count, result.Cast<object>().Count());
 		}
@@ -149,7 +217,7 @@ public sealed class BufferedInputTests
 		Assert.Equal(expected, Assert.IsType<int[]>(EmittedCode.Match(assembly, "Grammar", "TryParseStart", text).Value));
 		Assert.Equal(expected, Assert.IsType<int[]>(Read(assembly, new ShortReader(text, 3), 2).Value));
 		using var bytes = new ShortStream(text.Select(c => (byte)c).ToArray());
-		var method = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int), typeof(int)])!;
+		var method = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!;
 		var result = method.Invoke(null, [bytes, 2, text.Length + 1])!;
 		Assert.True((bool)result.GetType().GetProperty("IsSuccess")!.GetValue(result)!);
 		Assert.Equal(expected, Assert.IsType<int[]>(result.GetType().GetProperty("Value")!.GetValue(result)));
@@ -233,7 +301,7 @@ public sealed class BufferedInputTests
 		var assembly = EmittedCode.Compile(compilation.Sources.Single().Text);
 		var input = new byte[] { 65, 66, 67 }.Concat(Enumerable.Range(0, 256).Select(i => (byte)i)).ToArray();
 		using var stream = new ShortStream(input);
-		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int), typeof(int)])!.Invoke(null, [stream, 2, int.MaxValue])!;
+		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [stream, 2, int.MaxValue])!;
 		Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
 		Assert.Equal(input, (byte[])match.GetType().GetProperty("Value")!.GetValue(match)!);
 	}
@@ -265,7 +333,7 @@ public sealed class BufferedInputTests
 			var expected = EmittedCode.Match(assembly, "Grammar", "TryParseStart", text);
 			using var input = bytes ? (IDisposable)new ShortStream(System.Text.Encoding.ASCII.GetBytes(text)) : new ShortReader(text, 1);
 			var inputType = bytes ? typeof(Stream) : typeof(TextReader);
-			var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [inputType, typeof(int), typeof(int)])!.Invoke(null, [input, 7, 7])!;
+			var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [inputType, typeof(int?), typeof(int?)])!.Invoke(null, [input, 7, 7])!;
 			Assert.Equal(expected.IsSuccess, match.GetType().GetProperty("IsSuccess")!.GetValue(match));
 			Assert.Equal(expected.Position, match.GetType().GetProperty("Position")!.GetValue(match));
 			if (expected.IsSuccess) Assert.Equal(42, match.GetType().GetProperty("Value")!.GetValue(match));
@@ -283,10 +351,10 @@ public sealed class BufferedInputTests
 			public partial class Grammar { }
 			"""";
 		var assembly = GeneratorDriverTests.Build(host);
-		Assert.NotNull(assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int), typeof(int)]));
-		Assert.NotNull(assembly.GetType("Grammar+Inherited")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int), typeof(int)]));
-		Assert.Null(assembly.GetType("Grammar+Plain")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int), typeof(int)]));
-		Assert.Null(assembly.GetType("Grammar+Plain")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int), typeof(int)]));
+		Assert.NotNull(assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int?), typeof(int?)]));
+		Assert.NotNull(assembly.GetType("Grammar+Inherited")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)]));
+		Assert.Null(assembly.GetType("Grammar+Plain")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int?), typeof(int?)]));
+		Assert.Null(assembly.GetType("Grammar+Plain")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)]));
 	}
 
 	[Fact]
@@ -361,7 +429,7 @@ public sealed class BufferedInputTests
 		var source = compilation.Sources.Single().Text;
 		var assembly = EmittedCode.Compile(source);
 		using var input = new ShortStream(System.Text.Encoding.ASCII.GetBytes("abcdab"));
-		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int), typeof(int)])!.Invoke(null, [input, 1, 100])!;
+		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [input, 1, 100])!;
 		Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
 		Assert.Equal(new[] { 1, 2, 1 }, (int[])match.GetType().GetProperty("Value")!.GetValue(match)!);
 	}
@@ -407,7 +475,7 @@ public sealed class BufferedInputTests
 			Assert.Equal(expected, EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).Value);
 			Assert.Equal(expected, Read(assembly, new ShortReader(input, 1), 1).Value);
 			using var bytes = new ShortStream(input.Select(c => checked((byte)c)).ToArray());
-			var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int), typeof(int)])!.Invoke(null, [bytes, 1, 100])!;
+			var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [bytes, 1, 100])!;
 			Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
 			Assert.Equal(expected + 1000, match.GetType().GetProperty("Value")!.GetValue(match));
 		}
@@ -443,7 +511,7 @@ public sealed class BufferedInputTests
 
 	static (bool Success, object? Value, long Position) Read(Assembly assembly, TextReader reader, int capacity, int limit = int.MaxValue)
 	{
-		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int), typeof(int)])!.Invoke(null, [reader, capacity, limit])!;
+		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int?), typeof(int?)])!.Invoke(null, [reader, capacity, limit])!;
 		object? Get(string property) => match.GetType().GetProperty(property)!.GetValue(match);
 		return ((bool)Get("IsSuccess")!, Get("Value"), (long)Get("Position")!);
 	}

@@ -208,7 +208,7 @@ public sealed class RecoveryBoundaryTests
 		using var reader = new ShortReader(input);
 		using var stream = new ShortStream(Encoding.ASCII.GetBytes(input));
 		var domain = bytes ? typeof(Stream) : typeof(TextReader);
-		var method = assembly.GetType("Grammar")!.GetMethod("ParseStart", buffered ? [domain, typeof(int), typeof(int)] : [domain])!;
+		var method = assembly.GetType("Grammar")!.GetMethod("ParseStart", buffered ? [domain, typeof(int?), typeof(int?)] : [domain])!;
 		object source = bytes ? stream : reader;
 
 		try

@@ -173,7 +173,8 @@ public static partial class CSharpEmitter
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
-		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0)
+		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
+		int maxRetained = int.MaxValue, int bufferSize = 4096)
 	{
 		statics ??= [];
 
@@ -658,6 +659,17 @@ public static partial class CSharpEmitter
 		if (shared is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
 			graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External { UsesInputView: true }))))
 			file.Write(ParserInputTypes);
+
+		if (machines.Exists(static compiled => compiled.Machine.BufferedInput))
+		{
+			// What a streaming overload takes where its caller passes null: the grammar's own
+			// [Gram(MaxRetained, BufferSize)], read-only here, overridden per call.
+			file.Line("/// <summary>What a buffered parse retains at most where a call does not say ([Gram(MaxRetained)]).</summary>");
+			file.Line($"internal const int DefaultMaxRetained = {maxRetained.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+			file.Line("/// <summary>A buffered parse's initial capacity where a call does not say ([Gram(BufferSize)]).</summary>");
+			file.Line($"internal const int DefaultBufferSize = {bufferSize.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+			file.Line();
+		}
 
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput && !compiled.Machine.BufferedBytes))
 			file.Write(BufferedTextClass);

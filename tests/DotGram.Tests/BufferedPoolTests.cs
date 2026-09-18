@@ -44,7 +44,7 @@ public sealed class BufferedPoolTests
 			inputs.Add(reader);
 			try
 			{
-				return assembly.GetType("Grammar")!.GetMethod(method, [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!
+				return assembly.GetType("Grammar")!.GetMethod(method, [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!
 					.Invoke(null, [reader, 2, limit])!;
 			}
 			finally

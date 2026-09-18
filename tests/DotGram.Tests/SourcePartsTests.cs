@@ -49,8 +49,8 @@ public sealed class SourcePartsTests
 		var host = assembly.GetType("Grammar")!;
 		using var reader = new StringReader("a?");
 		using var bytes = new MemoryStream(Encoding.ASCII.GetBytes("a?"));
-		Assert.Equal(11, host.GetMethod("ParseStart", [typeof(TextReader), typeof(int), typeof(int)])!.Invoke(null, [reader, 1, 100]));
-		Assert.Equal(11, host.GetMethod("ParseStart", [typeof(Stream), typeof(int), typeof(int)])!.Invoke(null, [bytes, 1, 100]));
+		Assert.Equal(11, host.GetMethod("ParseStart", [typeof(TextReader), typeof(int?), typeof(int?)])!.Invoke(null, [reader, 1, 100]));
+		Assert.Equal(11, host.GetMethod("ParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [bytes, 1, 100]));
 	}
 
 	[Fact]

@@ -196,6 +196,15 @@ public sealed class GramCompilerOptions
 	public bool SpanCaptures { get; set; }
 
 	/// <summary>
+	/// What a buffered overload retains at most where the call does not say; see
+	/// <c>[Gram(MaxRetained = …)]</c>.
+	/// </summary>
+	public int MaxRetained { get; set; } = int.MaxValue;
+
+	/// <summary>A buffered overload's initial capacity where the call does not say.</summary>
+	public int BufferSize { get; set; } = 4096;
+
+	/// <summary>
 	/// How many stacks one parse may take beyond the one it began on, or nought for as
 	/// many as there is memory for.
 	/// </summary>

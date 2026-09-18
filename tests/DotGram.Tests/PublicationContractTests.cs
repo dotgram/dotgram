@@ -97,7 +97,7 @@ public sealed class PublicationContractTests
 		var host = assembly.GetType("Grammar")!;
 		Assert.Equal("a", host.GetMethod("ParseItem", [typeof(string)])!.Invoke(null, ["a"]));
 		using var bytes = new MemoryStream(new byte[] { 97 });
-		Assert.Equal(new byte[] { 97 }, (byte[])host.GetMethod("ParseItem", [typeof(Stream), typeof(int), typeof(int)])!.Invoke(null, [bytes, 1, 16])!);
+		Assert.Equal(new byte[] { 97 }, (byte[])host.GetMethod("ParseItem", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [bytes, 1, 16])!);
 		Assert.Contains(Compile("Item = 'a'\nparse Item : @string stream bytes").Diagnostics,
 			d => d.Id == GrammarNormalizer.PublicationTypeMismatch);
 	}

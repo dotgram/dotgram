@@ -45,7 +45,7 @@ public sealed class SwitchTests
 			trace.SetValue(null, "");
 			using var reader = new StringReader(input);
 			using var stream = new MemoryStream(Encoding.ASCII.GetBytes(input));
-			Assert.Equal(value, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!
+			Assert.Equal(value, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!
 				.Invoke(null, [bytes ? stream : reader, 1, 32]));
 			Assert.Equal(order, trace.GetValue(null));
 		}
@@ -99,7 +99,7 @@ public sealed class SwitchTests
 			counter.SetValue(null, 0);
 			using var reader = new StringReader(input);
 			using var stream = new MemoryStream(Encoding.ASCII.GetBytes(input));
-			Assert.Equal(12, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!
+			Assert.Equal(12, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!
 				.Invoke(null, [bytes ? stream : reader, 1, 32]));
 			Assert.Equal(calls, counter.GetValue(null));
 		}
@@ -150,7 +150,7 @@ public sealed class SwitchTests
 		{
 			using var reader = new StringReader("xa");
 			using var stream = new MemoryStream(Encoding.ASCII.GetBytes("xa"));
-			Assert.Equal(expected, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int), typeof(int)])!
+			Assert.Equal(expected, host.GetMethod("ParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!
 				.Invoke(null, [bytes ? stream : reader, 1, 10]));
 		}
 		Assert.Equal(3, host.GetField("Calls")!.GetValue(null));
@@ -217,7 +217,7 @@ public sealed class SwitchTests
 			parse Feed with (End = '!') as Items stream bytes yield : @int
 			""");
 		using var input = new MemoryStream(Encoding.ASCII.GetBytes("1!1!"));
-		var items = (System.Collections.Generic.IEnumerable<int>)assembly.GetType("Grammar")!.GetMethod("Items", [typeof(Stream), typeof(int), typeof(int)])!
+		var items = (System.Collections.Generic.IEnumerable<int>)assembly.GetType("Grammar")!.GetMethod("Items", [typeof(Stream), typeof(int?), typeof(int?)])!
 			.Invoke(null, [input, 1, 16])!;
 		Assert.Equal(new[] { 1, 1 }, items.ToArray());
 	}

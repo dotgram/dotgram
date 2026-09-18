@@ -1761,10 +1761,17 @@ reader overload for that publication. The added methods use the same names, over
 
 ```csharp
 Match<Document> TryParseDocument(TextReader input,
-    int bufferSize = 4096, int maxRetained = int.MaxValue);
+    int? bufferSize = null, int? maxRetained = null);
 Document ParseDocument(TextReader input,
-    int bufferSize = 4096, int maxRetained = int.MaxValue);
+    int? bufferSize = null, int? maxRetained = null);
 ```
+
+A null buffer parameter takes the grammar's own default, and a number takes precedence for
+that call. The defaults are `[Gram(..., BufferSize = 4096, MaxRetained = int.MaxValue)]`,
+the values shown being what applies where the attribute does not say; a `[GramOptions]`
+inherits them and may set its own. The generated class holds them as the read-only
+`DefaultBufferSize` and `DefaultMaxRetained`, internal to the assembly, for a package that
+wants to tell its own callers what the limit is. Either set to zero or less is `GRAM0009`.
 
 The byte form uses `Stream` under the same method names. Explicit buffered input
 does not imply a lazy result: `parse` returns its declared result unless `yield`
