@@ -593,6 +593,17 @@ Who and when:
 - `PartSize` and the internal `SourceFileSize`, `SharedTypes`, `Own`, `Inherits` are measured
   first and brought back to the architect.
 
+**Done 2026-09-18:** Mixed and `MixedSql` (`03445198`), Shapes (`fd054645`), the experiment
+benchmarks (`ceda9b7a`), `ValueStorage`/`Paged` (`2af82772`, sql-ff), `Direct = false` out of the
+FIX grammars (finance-03), `PrefixTables` (`5c6d1bc6`) and `Direct` (`0f3ef41a`) out of the
+attribute with an internal lever kept for tests. Emitted parsers byte-identical in every case.
+Left: `BufferedInput`/`BufferedBytes` with D7, and the report on `PartSize` and the internals.
+
+**The spare stack by nesting depth landed as `fdea50f1`**: a lazy stack of at most four spares a
+pool, bounded by the existing thresholds, depth three by measurement. Paired: EL interpolation
+-36% time, -70% allocation, tape/hand 4.25x to 2.71x; untyped lambdas -14%; SQL and FIX
+byte-identical.
+
 Raised 2026-09-17 by Igor: the experiments have left options and modes of the generator, some
 of which may no longer earn their place; those go. The architect's inventory, by what an
 option is for. Usage counts are `[Gram]`/`[GramOptions]` sites in `src`, `examples`, `tests`,
