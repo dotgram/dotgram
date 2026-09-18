@@ -134,6 +134,35 @@ Decided 2026-09-17 by Igor: streaming exists to process volumes larger than memo
 - Any lexical mechanism chosen under Q1 reads tokens lazily over buffered input.
 - A speed change to the buffered machines is measured with peak live memory beside time.
 
+## D6. One SQL tree for every SQL parser, handwritten ones included
+
+Decided 2026-09-17 by Igor. It extends what `design/sql-parsers.md` and
+`design/sql-tsql-tree.md` decided on 2026-09-15 (T-SQL and `Sql92Parser` move onto the
+SQL:2023 tree in `DotGram.Sql.Ast`) to the handwritten parsers.
+
+Today there are two trees: `DotGram.Sql` (`SqlSyntax.cs`), built by `Sql92Parser`,
+`TransactSqlParser` and `HandSqlTokens`; and `DotGram.Sql.Ast` (`Sql2023Ast.cs`), built by
+`SqlStandardParser` and `HandSqlStandard`.
+
+**Why it matters for performance.** With one tree, the generated and handwritten parsers
+make the same allocations for the same text, so the ratio between them is recognition and
+construction machinery and nothing else. It is also what D1 needs to hold across dialects.
+
+**What it binds.**
+
+- The public tree holds only the final nodes. A grammar's intermediate carriers (`Nodes.*`,
+  `Towers.Typed`) are construction details of that grammar. A hand parser may share what is a
+  property of the language, such as the towers' role bits, but not a generated parser's
+  intermediate records. A hand parser that allocates the generator's intermediates would
+  flatter the generator.
+- When `Sql92Parser` and `TransactSqlParser` switch, a handwritten parser measured against
+  them builds the new tree in the same change, or is retired in it (see D1's open question on
+  `HandSqlTokens`).
+- `Both` excludes `Span` from its comparison (`Both.cs:514`). D1 includes locations, so under a
+  location-bearing reading both parsers are compared on spans too.
+- The switch is measured for allocation per parse and for the number of value types a machine
+  stores (D2's 301 grows with the tree), beside `--engine` and `--roundtrip`.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
