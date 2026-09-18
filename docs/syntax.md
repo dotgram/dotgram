@@ -2107,12 +2107,11 @@ parser — which machine reads it, how it carries what it read until it builds, 
 methods are divided, what a value is told about where it was written — and not what the
 grammar means. Under every setting a grammar accepts the same texts and builds the same
 values, except where an entry below says otherwise: `Lexical` reads over tokens, where a
-rule's answer stands (§4); `Direct` off reads such a grammar on the automaton, where it does
-not; `Carrier` decides whether a construction may run for a reading that is abandoned or
+rule's answer stands (§4); `Carrier` decides whether a construction may run for a reading that is abandoned or
 refused; `LocationType` hands values their positions; `Stacks` fails a reading deeper than
 it allows.
 
-`Lexical`, `Carrier` and `Direct` are requests rather than settings. Where a grammar cannot
+`Lexical` and `Carrier` are requests rather than settings. Where a grammar cannot
 be compiled the way one asks, the parser is compiled the way it would have been without the
 request, and a diagnostic says why: `GRAM5004`, `GRAM5007`, and `GRAM5005` for a rule of a
 grammar cut into tokens that the methods refuse. `PartSize` is a wish (§6.4), and no value
@@ -2128,7 +2127,6 @@ of it fails a build.
 | `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
-| `Direct` | `true` | compile as methods where the automaton is not needed; below. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
 
 `[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
@@ -2152,17 +2150,6 @@ A reader holds what it has read until the constructions (§3.7) run, and the car
 A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why —
 among the reasons, that no part of the grammar is read by methods, since a carrier is what a
 reader holds.
-
-#### `Direct`
-
-On, a publication is compiled as methods wherever the automaton is not needed, and the
-automaton keeps what the methods refuse: a stream, a `find`, a recovery, a captured
-lookahead, a rule called with arguments. Off keeps the automaton for every publication.
-
-Over characters the two read alike. Over a grammar cut into tokens they do not: it is the
-methods that make a rule's answer stand (§4), and on the automaton a choice that has matched
-can be revisited when something later fails. Where the methods refuse a rule of such a
-grammar, `GRAM5005` names it; `Direct = false` asks for that reading and is not reported.
 
 #### `LocationType`
 
