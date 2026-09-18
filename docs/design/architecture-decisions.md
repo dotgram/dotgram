@@ -704,6 +704,13 @@ constructed makes the whole parse fail, and overload resolution catches nothing 
 candidate's lambda. It shows only if the grammar gains an alternative that succeeds after an
 abandoned opening. Q5 is therefore not urgent, and stays a question about the language.
 
+**Landed 2026-09-18 (expr-2d, `c4a79af9`..`f81ad6d2`).** `parserMarks` in the generator with tests over
+the three carriers and both symbol domains; §7.8 says what it is; the expression language's jumps
+go by marks and its context loses the open/close pairs (the unsettled `var` stays); the hand parser
+in the same change. Every grammar but EL emits byte for byte what it did; EL emits 2-3% less.
+`GRAM4029` refuses `with state` or a hook naming `parserState`/`parserMarks` where no `state` is
+declared, which used to surface as CS0103 in the consumer.
+
 Until decided, the expression language's hand parser uses a checkpoint of its own `State` for
 its second, recognize-only reading (a mark at the start of the publication, or of a hole or
 body window), which is local to it and changes nothing in the generator.
