@@ -10,6 +10,22 @@ public enum FixParseMode
 	Lenient,
 }
 
+/// <summary>
+/// How the input separates one field from the next.
+/// </summary>
+public enum FixFraming
+{
+	/// <summary>
+	/// Wire framing: every field ends with SOH, U+0001.
+	/// </summary>
+	Wire,
+
+	/// <summary>
+	/// Log framing: every field ends with a vertical bar, which may carry surrounding spaces.
+	/// </summary>
+	Log,
+}
+
 /// <summary>A malformed message, identified by its zero-based character offset.</summary>
 public sealed class FixParseError
 {
@@ -106,12 +122,6 @@ public class FixFieldSet
 
 	protected string? GetText(int tag) => GetField(tag)?.ToString();
 	protected FixNumber? GetNumber(int tag) => GetField(tag) is { } field ? new FixNumber(field) : null;
-	protected IReadOnlyList<T> GetTypedGroup<T>(int counterTag) where T : FixFieldSet
-	{
-		foreach (var node in Nodes)
-			if (node.Tag == counterTag && node.Entries is IReadOnlyList<T> entries) return entries;
-		return Array.Empty<T>();
-	}
 }
 
 /// <summary>A complete FIX message with its exact original wire representation.</summary>
@@ -163,7 +173,7 @@ public sealed class CustomFixMessage : FixMessage
 
 readonly struct FixNode
 {
-	public FixNode(int tag, int position, int valuePosition, int length, IReadOnlyList<FixFieldSet>? entries = null, FixField? typedValue = null)
+	public FixNode(int tag, int position, int valuePosition, int length, IReadOnlyList<FixFieldSet>? entries = null, FixField? typedValue = null, int groupId = 0)
 	{
 		Tag           = tag;
 		Position      = position;
@@ -171,6 +181,7 @@ readonly struct FixNode
 		Length        = length;
 		Entries       = entries;
 		TypedValue    = typedValue;
+		GroupId       = groupId;
 	}
 
 	public readonly FixField?                   TypedValue;
@@ -180,14 +191,13 @@ readonly struct FixNode
 	public readonly int                         Length;
 	public readonly IReadOnlyList<FixFieldSet>? Entries;
 
+	/// <summary>
+	/// The schema group these entries were cut from; zero when the node is not a group counter.
+	/// </summary>
+	public readonly int                         GroupId;
+
 	public FixFieldView Field(string source)
 	{
 		return new FixFieldView(source, Tag, Position, ValuePosition, Length, TypedValue);
-	}
-
-	public FixNode WithEntries<T>(T[] entries)
-		where T : FixFieldSet
-	{
-		return new FixNode(Tag, Position, ValuePosition, Length, Array.AsReadOnly(entries), TypedValue);
 	}
 }

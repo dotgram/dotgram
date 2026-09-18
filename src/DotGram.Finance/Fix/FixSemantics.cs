@@ -9,28 +9,45 @@ static class FixSemantics
 	public static bool TryBuild(string source, string type, FixNode[] fields, FixParseMode mode, FixParseOptions? options, out FixMessage? message, out FixParseError? error)
 	{
 		message = null;
+
 		var reader = new Reader(source, type, fields, mode, options);
 		var header = reader.Scope(FixSchema.Component(1024));
 		var schema = FixSchema.Message(type);
+
 		if (schema.Length == 0 && mode == FixParseMode.Strict)
 			reader.Fail(35, 0, "Unknown FIX 4.4 message type.");
-		var body = reader.Scope(schema, body: true, custom: schema.Length == 0);
+
+		var body    = reader.Scope(schema, body: true, custom: schema.Length == 0);
 		var trailer = reader.Scope(FixSchema.Component(1025));
+
 		if (reader.Position != fields.Length && reader.Error == null)
 		{
 			var field = fields[reader.Position];
 			reader.Fail(field.Tag, field.Position, "Field is not permitted in this message scope.");
 		}
+
 		error = reader.Error;
-		if (error != null) return false;
+
+		if (error != null)
+			return false;
+
 		var result = FixFactories.Message(type, source, header, body, trailer);
-		if (!FixValidation.Validate(result, mode, options, out error)) return false;
+
+		if (!FixValidation.Validate(result, mode, options, out error))
+			return false;
+
 		message = result;
+
 		return true;
 	}
 
 	static readonly ConditionalWeakTable<SchemaRef[], Dictionary<int, int>> scopes = new();
-	static Dictionary<int, int> Members(SchemaRef[] schema) => scopes.GetValue(schema, CreateMembers);
+
+	static Dictionary<int, int> Members(SchemaRef[] schema)
+	{
+		return scopes.GetValue(schema, CreateMembers);
+	}
+
 	static Dictionary<int, int> CreateMembers(SchemaRef[] schema)
 	{
 		var members = new Dictionary<int, int>();
@@ -46,6 +63,7 @@ static class FixSemantics
 			{
 				if (reference.Id is not (1024 or 1025)) Add(FixSchema.Component(reference.Id), members);
 			}
+
 			else members[reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id] = reference.Kind == 2 ? reference.Id : 0;
 		}
 	}
@@ -124,7 +142,12 @@ static class FixSemantics
 				}
 				entries.Add(Scope(schema, delimiter: delimiter));
 			}
-			return new FixNode(counter.Tag, counter.Position, counter.ValuePosition, counter.Length, FixFactories.Group(id, source, entries), counter.TypedValue);
+			var scopes = new FixFieldSet[entries.Count];
+
+			for (var n = 0; n < scopes.Length; n++)
+				scopes[n] = new FixFieldSet(source, entries[n]);
+
+			return new FixNode(counter.Tag, counter.Position, counter.ValuePosition, counter.Length, Array.AsReadOnly(scopes), counter.TypedValue, id);
 		}
 	}
 }

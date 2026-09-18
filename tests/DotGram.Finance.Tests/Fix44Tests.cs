@@ -82,8 +82,8 @@ public sealed class Fix44Tests
 		Assert.Equal("P2", parties[1].GetField(448)!.Value.ToString());
 		Assert.Equal(2, parties[0].GetGroup(802).Count);
 		var order = Assert.IsType<NewOrderSingle>(message);
-		Assert.Equal("P1", order.Parties[0].PartyID);
-		Assert.Equal("S2", order.Parties[0].PtysSubGrp[1].PartySubID);
+		Assert.Equal("P1", order.Parties[0].GetField(448)!.Value.ToString());
+		Assert.Equal("S2", order.Parties[0].GetGroup(802)[1].GetField(523)!.Value.ToString());
 	}
 
 	[Fact]
@@ -261,7 +261,7 @@ public sealed class Fix44Tests
 	[Fact]
 	public void Every_reachable_group_rejects_an_excess_declared_count()
 	{
-		var covered = new HashSet<string>();
+		var covered = new HashSet<int>();
 		foreach (var data in Messages())
 		{
 			var wire = (string)data[1];
@@ -269,9 +269,9 @@ public sealed class Fix44Tests
 			foreach (var scope in new FixFieldSet[] { message.Header, message })
 				foreach (var node in GroupNodes(scope))
 				{
-					if (node.Entries!.Count == 0 || !covered.Add(node.Entries[0].GetType().Name)) continue;
+					if (node.Entries!.Count == 0 || !covered.Add(node.GroupId)) continue;
 					var changed = wire[..node.ValuePosition] + "2" + wire[(node.ValuePosition + node.Length)..];
-					Assert.False(FixMessages.TryParse(Reframe(changed), out _, out _), node.Entries[0].GetType().Name);
+					Assert.False(FixMessages.TryParse(Reframe(changed), out _, out _), node.GroupId.ToString());
 				}
 		}
 		Assert.Equal(91, covered.Count);

@@ -21,7 +21,7 @@ public sealed class FixFieldGrammarTests
 		var log = Log(expected);
 		using var bytes = new MemoryStream(Bytes(wire));
 		using var logBytes = new MemoryStream(Bytes(log));
-		foreach (var message in new[] { FixMessages.Parse(bytes), FixMessages.ParseLog(log), FixMessages.Parse(logBytes, new FixParseOptions('|')) })
+		foreach (var message in new[] { FixMessages.Parse(bytes), FixMessages.ParseLog(log), FixMessages.Parse(logBytes, new FixParseOptions(FixFraming.Log)) })
 		{
 			Assert.Equal(name, message.GetType().Name);
 			Assert.Equal(expected.AllFields.Select(f => f.Value.ToString()), message.AllFields.Select(f => f.Value.ToString()));

@@ -94,7 +94,7 @@ public sealed class IOI : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -130,7 +130,7 @@ public sealed class IOI : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -142,7 +142,7 @@ public sealed class IOI : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
 	public FixNumber? QtyType => GetNumber(854);
 	public FixNumber? OrderQty => GetNumber(38);
@@ -152,20 +152,20 @@ public sealed class IOI : FixMessage
 	public FixNumber? RoundingModulus => GetNumber(469);
 	public string? IOIQty => GetText(27);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
-	public IReadOnlyList<InstrmtLegIOIGrpEntry> InstrmtLegIOIGrp => GetTypedGroup<InstrmtLegIOIGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
+	public IReadOnlyList<FixFieldSet> InstrmtLegIOIGrp => GetGroup(555);
 	public FixNumber? PriceType => GetNumber(423);
 	public FixNumber? Price => GetNumber(44);
 	public string? ValidUntilTime => GetText(62);
 	public string? IOIQltyInd => GetText(25);
 	public string? IOINaturalFlag => GetText(130);
-	public IReadOnlyList<IOIQualGrpEntry> IOIQualGrp => GetTypedGroup<IOIQualGrpEntry>(199);
+	public IReadOnlyList<FixFieldSet> IOIQualGrp => GetGroup(199);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
 	public string? TransactTime => GetText(60);
 	public string? URLLink => GetText(149);
-	public IReadOnlyList<RoutingGrpEntry> RoutingGrp => GetTypedGroup<RoutingGrpEntry>(215);
+	public IReadOnlyList<FixFieldSet> RoutingGrp => GetGroup(215);
 	public FixNumber? Spread => GetNumber(218);
 	public string? BenchmarkCurveCurrency => GetText(220);
 	public string? BenchmarkCurveName => GetText(221);
@@ -197,7 +197,7 @@ public sealed class Advertisement : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -233,11 +233,11 @@ public sealed class Advertisement : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? AdvSide => GetText(4);
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
@@ -274,9 +274,9 @@ public sealed class ExecutionReport : FixMessage
 	public string? MassStatusReqID => GetText(584);
 	public FixNumber? TotNumReports => GetNumber(911);
 	public string? LastRptRequested => GetText(912);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradeOriginationDate => GetText(229);
-	public IReadOnlyList<ContraGrpEntry> ContraGrp => GetTypedGroup<ContraGrpEntry>(382);
+	public IReadOnlyList<FixFieldSet> ContraGrp => GetGroup(382);
 	public string? ListID => GetText(66);
 	public string? CrossID => GetText(548);
 	public string? OrigCrossID => GetText(551);
@@ -302,7 +302,7 @@ public sealed class ExecutionReport : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -338,7 +338,7 @@ public sealed class ExecutionReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -350,9 +350,9 @@ public sealed class ExecutionReport : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public FixNumber? QtyType => GetNumber(854);
 	public FixNumber? OrderQty => GetNumber(38);
 	public FixNumber? CashOrderQty => GetNumber(152);
@@ -476,10 +476,10 @@ public sealed class ExecutionReport : FixMessage
 	public FixNumber? PriorityIndicator => GetNumber(638);
 	public FixNumber? PriceImprovement => GetNumber(639);
 	public FixNumber? LastLiquidityInd => GetNumber(851);
-	public IReadOnlyList<ContAmtGrpEntry> ContAmtGrp => GetTypedGroup<ContAmtGrpEntry>(518);
-	public IReadOnlyList<InstrmtLegExecGrpEntry> InstrmtLegExecGrp => GetTypedGroup<InstrmtLegExecGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> ContAmtGrp => GetGroup(518);
+	public IReadOnlyList<FixFieldSet> InstrmtLegExecGrp => GetGroup(555);
 	public string? CopyMsgIndicator => GetText(797);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
+	public IReadOnlyList<FixFieldSet> MiscFeesGrp => GetGroup(136);
 }
 
 /// <summary>FIX 4.4 OrderCancelReject, MsgType 9.</summary>
@@ -528,7 +528,7 @@ public sealed class Logon : FixMessage
 	public string? ResetSeqNumFlag => GetText(141);
 	public FixNumber? NextExpectedMsgSeqNum => GetNumber(789);
 	public FixNumber? MaxMessageSize => GetNumber(383);
-	public IReadOnlyList<MsgTypeGrpEntry> MsgTypeGrp => GetTypedGroup<MsgTypeGrpEntry>(384);
+	public IReadOnlyList<FixFieldSet> MsgTypeGrp => GetGroup(384);
 	public string? TestMessageIndicator => GetText(464);
 	public string? Username => GetText(553);
 	public string? Password => GetText(554);
@@ -547,11 +547,11 @@ public sealed class News : FixMessage
 	public string? Headline => GetText(148);
 	public FixNumber? EncodedHeadlineLen => GetNumber(358);
 	public string? EncodedHeadline => GetText(359);
-	public IReadOnlyList<RoutingGrpEntry> RoutingGrp => GetTypedGroup<RoutingGrpEntry>(215);
-	public IReadOnlyList<InstrmtGrpEntry> InstrmtGrp => GetTypedGroup<InstrmtGrpEntry>(146);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<LinesOfTextGrpEntry> LinesOfTextGrp => GetTypedGroup<LinesOfTextGrpEntry>(33);
+	public IReadOnlyList<FixFieldSet> RoutingGrp => GetGroup(215);
+	public IReadOnlyList<FixFieldSet> InstrmtGrp => GetGroup(146);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> LinesOfTextGrp => GetGroup(33);
 	public string? URLLink => GetText(149);
 	public FixNumber? RawDataLength => GetNumber(95);
 	public string? RawData => GetText(96);
@@ -571,13 +571,13 @@ public sealed class Email : FixMessage
 	public string? Subject => GetText(147);
 	public FixNumber? EncodedSubjectLen => GetNumber(356);
 	public string? EncodedSubject => GetText(357);
-	public IReadOnlyList<RoutingGrpEntry> RoutingGrp => GetTypedGroup<RoutingGrpEntry>(215);
-	public IReadOnlyList<InstrmtGrpEntry> InstrmtGrp => GetTypedGroup<InstrmtGrpEntry>(146);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> RoutingGrp => GetGroup(215);
+	public IReadOnlyList<FixFieldSet> InstrmtGrp => GetGroup(146);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? OrderID => GetText(37);
 	public string? ClOrdID => GetText(11);
-	public IReadOnlyList<LinesOfTextGrpEntry> LinesOfTextGrp => GetTypedGroup<LinesOfTextGrpEntry>(33);
+	public IReadOnlyList<FixFieldSet> LinesOfTextGrp => GetGroup(33);
 	public FixNumber? RawDataLength => GetNumber(95);
 	public string? RawData => GetText(96);
 }
@@ -593,7 +593,7 @@ public sealed class NewOrderSingle : FixMessage
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public string? ClOrdLinkID => GetText(583);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradeOriginationDate => GetText(229);
 	public string? TradeDate => GetText(75);
 	public string? Account => GetText(1);
@@ -603,7 +603,7 @@ public sealed class NewOrderSingle : FixMessage
 	public string? BookingUnit => GetText(590);
 	public string? PreallocMethod => GetText(591);
 	public string? AllocID => GetText(70);
-	public IReadOnlyList<PreAllocGrpEntry> PreAllocGrp => GetTypedGroup<PreAllocGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> PreAllocGrp => GetGroup(78);
 	public string? SettlType => GetText(63);
 	public string? SettlDate => GetText(64);
 	public string? CashMargin => GetText(544);
@@ -613,13 +613,13 @@ public sealed class NewOrderSingle : FixMessage
 	public FixNumber? MinQty => GetNumber(110);
 	public FixNumber? MaxFloor => GetNumber(111);
 	public string? ExDestination => GetText(100);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? ProcessCode => GetText(81);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -655,7 +655,7 @@ public sealed class NewOrderSingle : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -667,12 +667,12 @@ public sealed class NewOrderSingle : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public FixNumber? PrevClosePx => GetNumber(140);
 	public string? Side => GetText(54);
 	public string? LocateReqd => GetText(114);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public FixNumber? QtyType => GetNumber(854);
 	public FixNumber? OrderQty => GetNumber(38);
 	public FixNumber? CashOrderQty => GetNumber(152);
@@ -774,7 +774,7 @@ public sealed class NewOrderList : FixMessage
 	public string? AllowableOneSidednessCurr => GetText(767);
 	public FixNumber? TotNoOrders => GetNumber(68);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<ListOrdGrpEntry> ListOrdGrp => GetTypedGroup<ListOrdGrpEntry>(73);
+	public IReadOnlyList<FixFieldSet> ListOrdGrp => GetGroup(73);
 }
 
 /// <summary>FIX 4.4 OrderCancelRequest, MsgType F.</summary>
@@ -795,12 +795,12 @@ public sealed class OrderCancelRequest : FixMessage
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -836,7 +836,7 @@ public sealed class OrderCancelRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -848,7 +848,7 @@ public sealed class OrderCancelRequest : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
 	public string? TransactTime => GetText(60);
 	public FixNumber? OrderQty => GetNumber(38);
@@ -871,7 +871,7 @@ public sealed class OrderCancelReplaceRequest : FixMessage
 	}
 
 	public string? OrderID => GetText(37);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradeOriginationDate => GetText(229);
 	public string? TradeDate => GetText(75);
 	public string? OrigClOrdID => GetText(41);
@@ -887,7 +887,7 @@ public sealed class OrderCancelReplaceRequest : FixMessage
 	public string? BookingUnit => GetText(590);
 	public string? PreallocMethod => GetText(591);
 	public string? AllocID => GetText(70);
-	public IReadOnlyList<PreAllocGrpEntry> PreAllocGrp => GetTypedGroup<PreAllocGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> PreAllocGrp => GetGroup(78);
 	public string? SettlType => GetText(63);
 	public string? SettlDate => GetText(64);
 	public string? CashMargin => GetText(544);
@@ -897,12 +897,12 @@ public sealed class OrderCancelReplaceRequest : FixMessage
 	public FixNumber? MinQty => GetNumber(110);
 	public FixNumber? MaxFloor => GetNumber(111);
 	public string? ExDestination => GetText(100);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -938,7 +938,7 @@ public sealed class OrderCancelReplaceRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -950,7 +950,7 @@ public sealed class OrderCancelReplaceRequest : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
 	public string? TransactTime => GetText(60);
 	public FixNumber? QtyType => GetNumber(854);
@@ -1039,7 +1039,7 @@ public sealed class OrderStatusRequest : FixMessage
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public string? ClOrdLinkID => GetText(583);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? OrdStatusReqID => GetText(790);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
@@ -1047,7 +1047,7 @@ public sealed class OrderStatusRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1083,7 +1083,7 @@ public sealed class OrderStatusRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -1095,7 +1095,7 @@ public sealed class OrderStatusRequest : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
 }
 
@@ -1118,8 +1118,8 @@ public sealed class AllocationInstruction : FixMessage
 	public FixNumber? AllocLinkType => GetNumber(197);
 	public string? BookingRefID => GetText(466);
 	public FixNumber? AllocNoOrdersType => GetNumber(857);
-	public IReadOnlyList<OrdAllocGrpEntry> OrdAllocGrp => GetTypedGroup<OrdAllocGrpEntry>(73);
-	public IReadOnlyList<ExecAllocGrpEntry> ExecAllocGrp => GetTypedGroup<ExecAllocGrpEntry>(124);
+	public IReadOnlyList<FixFieldSet> OrdAllocGrp => GetGroup(73);
+	public IReadOnlyList<FixFieldSet> ExecAllocGrp => GetGroup(124);
 	public string? PreviouslyReported => GetText(570);
 	public string? ReversalIndicator => GetText(700);
 	public string? MatchType => GetText(574);
@@ -1128,7 +1128,7 @@ public sealed class AllocationInstruction : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1164,12 +1164,12 @@ public sealed class AllocationInstruction : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
 	public string? AgreementDesc => GetText(913);
 	public string? AgreementID => GetText(914);
 	public string? AgreementDate => GetText(915);
@@ -1179,8 +1179,8 @@ public sealed class AllocationInstruction : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? LastMkt => GetText(30);
@@ -1200,7 +1200,7 @@ public sealed class AllocationInstruction : FixMessage
 	public string? BenchmarkSecurityIDSource => GetText(761);
 	public string? Currency => GetText(15);
 	public FixNumber? AvgPxPrecision => GetNumber(74);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradeDate => GetText(75);
 	public string? TransactTime => GetText(60);
 	public string? SettlType => GetText(63);
@@ -1224,7 +1224,7 @@ public sealed class AllocationInstruction : FixMessage
 	public FixNumber? StartCash => GetNumber(921);
 	public FixNumber? EndCash => GetNumber(922);
 	public string? LegalConfirm => GetText(650);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? YieldType => GetText(235);
 	public FixNumber? Yield => GetNumber(236);
 	public string? YieldCalcDate => GetText(701);
@@ -1233,7 +1233,7 @@ public sealed class AllocationInstruction : FixMessage
 	public FixNumber? YieldRedemptionPriceType => GetNumber(698);
 	public FixNumber? TotNoAllocs => GetNumber(892);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<AllocGrpEntry> AllocGrp => GetTypedGroup<AllocGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> AllocGrp => GetGroup(78);
 }
 
 /// <summary>FIX 4.4 ListCancelRequest, MsgType K.</summary>
@@ -1303,7 +1303,7 @@ public sealed class ListStatus : FixMessage
 	public string? TransactTime => GetText(60);
 	public FixNumber? TotNoOrders => GetNumber(68);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<OrdListStatGrpEntry> OrdListStatGrp => GetTypedGroup<OrdListStatGrpEntry>(73);
+	public IReadOnlyList<FixFieldSet> OrdListStatGrp => GetGroup(73);
 }
 
 /// <summary>FIX 4.4 AllocationInstructionAck, MsgType P.</summary>
@@ -1315,7 +1315,7 @@ public sealed class AllocationInstructionAck : FixMessage
 	}
 
 	public string? AllocID => GetText(70);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? SecondaryAllocID => GetText(793);
 	public string? TradeDate => GetText(75);
 	public string? TransactTime => GetText(60);
@@ -1329,7 +1329,7 @@ public sealed class AllocationInstructionAck : FixMessage
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
-	public IReadOnlyList<AllocAckGrpEntry> AllocAckGrp => GetTypedGroup<AllocAckGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> AllocAckGrp => GetGroup(78);
 }
 
 /// <summary>FIX 4.4 DontKnowTrade, MsgType Q.</summary>
@@ -1348,7 +1348,7 @@ public sealed class DontKnowTrade : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1384,11 +1384,11 @@ public sealed class DontKnowTrade : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? Side => GetText(54);
 	public FixNumber? OrderQty => GetNumber(38);
 	public FixNumber? CashOrderQty => GetNumber(152);
@@ -1414,7 +1414,7 @@ public sealed class QuoteRequest : FixMessage
 	public string? RFQReqID => GetText(644);
 	public string? ClOrdID => GetText(11);
 	public string? OrderCapacity => GetText(528);
-	public IReadOnlyList<QuotReqGrpEntry> QuotReqGrp => GetTypedGroup<QuotReqGrpEntry>(146);
+	public IReadOnlyList<FixFieldSet> QuotReqGrp => GetGroup(146);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
@@ -1432,16 +1432,16 @@ public sealed class Quote : FixMessage
 	public string? QuoteID => GetText(117);
 	public string? QuoteRespID => GetText(693);
 	public FixNumber? QuoteType => GetNumber(537);
-	public IReadOnlyList<QuotQualGrpEntry> QuotQualGrp => GetTypedGroup<QuotQualGrpEntry>(735);
+	public IReadOnlyList<FixFieldSet> QuotQualGrp => GetGroup(735);
 	public FixNumber? QuoteResponseLevel => GetNumber(301);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1477,7 +1477,7 @@ public sealed class Quote : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -1489,7 +1489,7 @@ public sealed class Quote : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
 	public FixNumber? OrderQty => GetNumber(38);
 	public FixNumber? CashOrderQty => GetNumber(152);
@@ -1501,11 +1501,11 @@ public sealed class Quote : FixMessage
 	public string? SettlDate2 => GetText(193);
 	public FixNumber? OrderQty2 => GetNumber(192);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
-	public IReadOnlyList<LegQuotGrpEntry> LegQuotGrp => GetTypedGroup<LegQuotGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> LegQuotGrp => GetGroup(555);
 	public FixNumber? BidPx => GetNumber(132);
 	public FixNumber? OfferPx => GetNumber(133);
 	public FixNumber? MktBidPx => GetNumber(645);
@@ -1572,7 +1572,7 @@ public sealed class SettlementInstructions : FixMessage
 	public string? EncodedText => GetText(355);
 	public string? ClOrdID => GetText(11);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<SettlInstGrpEntry> SettlInstGrp => GetTypedGroup<SettlInstGrpEntry>(778);
+	public IReadOnlyList<FixFieldSet> SettlInstGrp => GetGroup(778);
 }
 
 /// <summary>FIX 4.4 MarketDataRequest, MsgType V.</summary>
@@ -1591,9 +1591,9 @@ public sealed class MarketDataRequest : FixMessage
 	public string? OpenCloseSettlFlag => GetText(286);
 	public string? Scope => GetText(546);
 	public string? MDImplicitDelete => GetText(547);
-	public IReadOnlyList<MDReqGrpEntry> MDReqGrp => GetTypedGroup<MDReqGrpEntry>(267);
-	public IReadOnlyList<InstrmtMDReqGrpEntry> InstrmtMDReqGrp => GetTypedGroup<InstrmtMDReqGrpEntry>(146);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> MDReqGrp => GetGroup(267);
+	public IReadOnlyList<FixFieldSet> InstrmtMDReqGrp => GetGroup(146);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public FixNumber? ApplQueueAction => GetNumber(815);
 	public FixNumber? ApplQueueMax => GetNumber(812);
 }
@@ -1611,7 +1611,7 @@ public sealed class MarketDataSnapshotFullRefresh : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1647,15 +1647,15 @@ public sealed class MarketDataSnapshotFullRefresh : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? FinancialStatus => GetText(291);
 	public string? CorporateAction => GetText(292);
 	public FixNumber? NetChgPrevDay => GetNumber(451);
-	public IReadOnlyList<MDFullGrpEntry> MDFullGrp => GetTypedGroup<MDFullGrpEntry>(268);
+	public IReadOnlyList<FixFieldSet> MDFullGrp => GetGroup(268);
 	public FixNumber? ApplQueueDepth => GetNumber(813);
 	public FixNumber? ApplQueueResolution => GetNumber(814);
 }
@@ -1669,7 +1669,7 @@ public sealed class MarketDataIncrementalRefresh : FixMessage
 	}
 
 	public string? MDReqID => GetText(262);
-	public IReadOnlyList<MDIncGrpEntry> MDIncGrp => GetTypedGroup<MDIncGrpEntry>(268);
+	public IReadOnlyList<FixFieldSet> MDIncGrp => GetGroup(268);
 	public FixNumber? ApplQueueDepth => GetNumber(813);
 	public FixNumber? ApplQueueResolution => GetNumber(814);
 }
@@ -1684,7 +1684,7 @@ public sealed class MarketDataRequestReject : FixMessage
 
 	public string? MDReqID => GetText(262);
 	public string? MDReqRejReason => GetText(281);
-	public IReadOnlyList<MDRjctGrpEntry> MDRjctGrp => GetTypedGroup<MDRjctGrpEntry>(816);
+	public IReadOnlyList<FixFieldSet> MDRjctGrp => GetGroup(816);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
@@ -1702,13 +1702,13 @@ public sealed class QuoteCancel : FixMessage
 	public string? QuoteID => GetText(117);
 	public FixNumber? QuoteCancelType => GetNumber(298);
 	public FixNumber? QuoteResponseLevel => GetNumber(301);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
-	public IReadOnlyList<QuotCxlEntriesGrpEntry> QuotCxlEntriesGrp => GetTypedGroup<QuotCxlEntriesGrpEntry>(295);
+	public IReadOnlyList<FixFieldSet> QuotCxlEntriesGrp => GetGroup(295);
 }
 
 /// <summary>FIX 4.4 QuoteStatusRequest, MsgType a.</summary>
@@ -1725,7 +1725,7 @@ public sealed class QuoteStatusRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1761,7 +1761,7 @@ public sealed class QuoteStatusRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -1773,9 +1773,9 @@ public sealed class QuoteStatusRequest : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
@@ -1798,14 +1798,14 @@ public sealed class MassQuoteAcknowledgement : FixMessage
 	public FixNumber? QuoteRejectReason => GetNumber(300);
 	public FixNumber? QuoteResponseLevel => GetNumber(301);
 	public FixNumber? QuoteType => GetNumber(537);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
-	public IReadOnlyList<QuotSetAckGrpEntry> QuotSetAckGrp => GetTypedGroup<QuotSetAckGrpEntry>(296);
+	public IReadOnlyList<FixFieldSet> QuotSetAckGrp => GetGroup(296);
 }
 
 /// <summary>FIX 4.4 SecurityDefinitionRequest, MsgType c.</summary>
@@ -1822,7 +1822,7 @@ public sealed class SecurityDefinitionRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1858,20 +1858,20 @@ public sealed class SecurityDefinitionRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Currency => GetText(15);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public FixNumber? ExpirationCycle => GetNumber(827);
 	public string? SubscriptionRequestType => GetText(263);
 }
@@ -1891,7 +1891,7 @@ public sealed class SecurityDefinition : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1927,20 +1927,20 @@ public sealed class SecurityDefinition : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Currency => GetText(15);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public FixNumber? ExpirationCycle => GetNumber(827);
 	public FixNumber? RoundLot => GetNumber(561);
 	public FixNumber? MinTradeVol => GetNumber(562);
@@ -1959,7 +1959,7 @@ public sealed class SecurityStatusRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -1995,14 +1995,14 @@ public sealed class SecurityStatusRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? Currency => GetText(15);
 	public string? SubscriptionRequestType => GetText(263);
 	public string? TradingSessionID => GetText(336);
@@ -2022,7 +2022,7 @@ public sealed class SecurityStatus : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -2058,14 +2058,14 @@ public sealed class SecurityStatus : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? Currency => GetText(15);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
@@ -2143,13 +2143,13 @@ public sealed class MassQuote : FixMessage
 	public string? QuoteID => GetText(117);
 	public FixNumber? QuoteType => GetNumber(537);
 	public FixNumber? QuoteResponseLevel => GetNumber(301);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
 	public FixNumber? DefBidSize => GetNumber(293);
 	public FixNumber? DefOfferSize => GetNumber(294);
-	public IReadOnlyList<QuotSetGrpEntry> QuotSetGrp => GetTypedGroup<QuotSetGrpEntry>(296);
+	public IReadOnlyList<FixFieldSet> QuotSetGrp => GetGroup(296);
 }
 
 /// <summary>FIX 4.4 BusinessMessageReject, MsgType j.</summary>
@@ -2187,8 +2187,8 @@ public sealed class BidRequest : FixMessage
 	public string? Currency => GetText(15);
 	public FixNumber? SideValue1 => GetNumber(396);
 	public FixNumber? SideValue2 => GetNumber(397);
-	public IReadOnlyList<BidDescReqGrpEntry> BidDescReqGrp => GetTypedGroup<BidDescReqGrpEntry>(398);
-	public IReadOnlyList<BidCompReqGrpEntry> BidCompReqGrp => GetTypedGroup<BidCompReqGrpEntry>(420);
+	public IReadOnlyList<FixFieldSet> BidDescReqGrp => GetGroup(398);
+	public IReadOnlyList<FixFieldSet> BidCompReqGrp => GetGroup(420);
 	public FixNumber? LiquidityIndType => GetNumber(409);
 	public FixNumber? WtAverageLiquidity => GetNumber(410);
 	public string? ExchangeForPhysical => GetText(411);
@@ -2218,7 +2218,7 @@ public sealed class BidResponse : FixMessage
 
 	public string? BidID => GetText(390);
 	public string? ClientBidID => GetText(391);
-	public IReadOnlyList<BidCompRspGrpEntry> BidCompRspGrp => GetTypedGroup<BidCompRspGrpEntry>(420);
+	public IReadOnlyList<FixFieldSet> BidCompRspGrp => GetGroup(420);
 }
 
 /// <summary>FIX 4.4 ListStrikePrice, MsgType m.</summary>
@@ -2232,8 +2232,8 @@ public sealed class ListStrikePrice : FixMessage
 	public string? ListID => GetText(66);
 	public FixNumber? TotNoStrikes => GetNumber(422);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<InstrmtStrkPxGrpEntry> InstrmtStrkPxGrp => GetTypedGroup<InstrmtStrkPxGrpEntry>(428);
-	public IReadOnlyList<UndInstrmtStrkPxGrpEntry> UndInstrmtStrkPxGrp => GetTypedGroup<UndInstrmtStrkPxGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtStrkPxGrp => GetGroup(428);
+	public IReadOnlyList<FixFieldSet> UndInstrmtStrkPxGrp => GetGroup(711);
 }
 
 /// <summary>FIX 4.4 XMLnonFIX, MsgType n.</summary>
@@ -2258,14 +2258,14 @@ public sealed class RegistrationInstructions : FixMessage
 	public string? RegistTransType => GetText(514);
 	public string? RegistRefID => GetText(508);
 	public string? ClOrdID => GetText(11);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public string? RegistAcctType => GetText(493);
 	public FixNumber? TaxAdvantageType => GetNumber(495);
 	public string? OwnershipType => GetText(517);
-	public IReadOnlyList<RgstDtlsGrpEntry> RgstDtlsGrp => GetTypedGroup<RgstDtlsGrpEntry>(473);
-	public IReadOnlyList<RgstDistInstGrpEntry> RgstDistInstGrp => GetTypedGroup<RgstDistInstGrpEntry>(510);
+	public IReadOnlyList<FixFieldSet> RgstDtlsGrp => GetGroup(473);
+	public IReadOnlyList<FixFieldSet> RgstDistInstGrp => GetGroup(510);
 }
 
 /// <summary>FIX 4.4 RegistrationInstructionsResponse, MsgType p.</summary>
@@ -2280,7 +2280,7 @@ public sealed class RegistrationInstructionsResponse : FixMessage
 	public string? RegistTransType => GetText(514);
 	public string? RegistRefID => GetText(508);
 	public string? ClOrdID => GetText(11);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public string? RegistStatus => GetText(506);
@@ -2305,7 +2305,7 @@ public sealed class OrderMassCancelRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -2341,14 +2341,14 @@ public sealed class OrderMassCancelRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
 	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
+	public IReadOnlyList<FixFieldSet> UndSecAltIDGrp => GetGroup(457);
 	public FixNumber? UnderlyingProduct => GetNumber(462);
 	public string? UnderlyingCFICode => GetText(463);
 	public string? UnderlyingSecurityType => GetText(310);
@@ -2390,7 +2390,7 @@ public sealed class OrderMassCancelRequest : FixMessage
 	public FixNumber? UnderlyingStartValue => GetNumber(884);
 	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
 	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
+	public IReadOnlyList<FixFieldSet> UnderlyingStipulations => GetGroup(887);
 	public string? Side => GetText(54);
 	public string? TransactTime => GetText(60);
 	public string? Text => GetText(58);
@@ -2414,14 +2414,14 @@ public sealed class OrderMassCancelReport : FixMessage
 	public string? MassCancelResponse => GetText(531);
 	public FixNumber? MassCancelRejectReason => GetNumber(532);
 	public FixNumber? TotalAffectedOrders => GetNumber(533);
-	public IReadOnlyList<AffectedOrdGrpEntry> AffectedOrdGrp => GetTypedGroup<AffectedOrdGrpEntry>(534);
+	public IReadOnlyList<FixFieldSet> AffectedOrdGrp => GetGroup(534);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -2457,14 +2457,14 @@ public sealed class OrderMassCancelReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
 	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
+	public IReadOnlyList<FixFieldSet> UndSecAltIDGrp => GetGroup(457);
 	public FixNumber? UnderlyingProduct => GetNumber(462);
 	public string? UnderlyingCFICode => GetText(463);
 	public string? UnderlyingSecurityType => GetText(310);
@@ -2506,7 +2506,7 @@ public sealed class OrderMassCancelReport : FixMessage
 	public FixNumber? UnderlyingStartValue => GetNumber(884);
 	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
 	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
+	public IReadOnlyList<FixFieldSet> UnderlyingStipulations => GetGroup(887);
 	public string? Side => GetText(54);
 	public string? TransactTime => GetText(60);
 	public string? Text => GetText(58);
@@ -2525,12 +2525,12 @@ public sealed class NewOrderCross : FixMessage
 	public string? CrossID => GetText(548);
 	public FixNumber? CrossType => GetNumber(549);
 	public FixNumber? CrossPrioritization => GetNumber(550);
-	public IReadOnlyList<SideCrossOrdModGrpEntry> SideCrossOrdModGrp => GetTypedGroup<SideCrossOrdModGrpEntry>(552);
+	public IReadOnlyList<FixFieldSet> SideCrossOrdModGrp => GetGroup(552);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -2566,11 +2566,11 @@ public sealed class NewOrderCross : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? SettlType => GetText(63);
 	public string? SettlDate => GetText(64);
 	public string? HandlInst => GetText(21);
@@ -2578,12 +2578,12 @@ public sealed class NewOrderCross : FixMessage
 	public FixNumber? MinQty => GetNumber(110);
 	public FixNumber? MaxFloor => GetNumber(111);
 	public string? ExDestination => GetText(100);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? ProcessCode => GetText(81);
 	public FixNumber? PrevClosePx => GetNumber(140);
 	public string? LocateReqd => GetText(114);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? OrdType => GetText(40);
 	public FixNumber? PriceType => GetNumber(423);
 	public FixNumber? Price => GetNumber(44);
@@ -2647,12 +2647,12 @@ public sealed class CrossOrderCancelReplaceRequest : FixMessage
 	public string? OrigCrossID => GetText(551);
 	public FixNumber? CrossType => GetNumber(549);
 	public FixNumber? CrossPrioritization => GetNumber(550);
-	public IReadOnlyList<SideCrossOrdModGrpEntry> SideCrossOrdModGrp => GetTypedGroup<SideCrossOrdModGrpEntry>(552);
+	public IReadOnlyList<FixFieldSet> SideCrossOrdModGrp => GetGroup(552);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -2688,11 +2688,11 @@ public sealed class CrossOrderCancelReplaceRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? SettlType => GetText(63);
 	public string? SettlDate => GetText(64);
 	public string? HandlInst => GetText(21);
@@ -2700,12 +2700,12 @@ public sealed class CrossOrderCancelReplaceRequest : FixMessage
 	public FixNumber? MinQty => GetNumber(110);
 	public FixNumber? MaxFloor => GetNumber(111);
 	public string? ExDestination => GetText(100);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? ProcessCode => GetText(81);
 	public FixNumber? PrevClosePx => GetNumber(140);
 	public string? LocateReqd => GetText(114);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? OrdType => GetText(40);
 	public FixNumber? PriceType => GetNumber(423);
 	public FixNumber? Price => GetNumber(44);
@@ -2769,12 +2769,12 @@ public sealed class CrossOrderCancelRequest : FixMessage
 	public string? OrigCrossID => GetText(551);
 	public FixNumber? CrossType => GetNumber(549);
 	public FixNumber? CrossPrioritization => GetNumber(550);
-	public IReadOnlyList<SideCrossOrdCxlGrpEntry> SideCrossOrdCxlGrp => GetTypedGroup<SideCrossOrdCxlGrpEntry>(552);
+	public IReadOnlyList<FixFieldSet> SideCrossOrdCxlGrp => GetGroup(552);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -2810,11 +2810,11 @@ public sealed class CrossOrderCancelRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? TransactTime => GetText(60);
 }
 
@@ -2850,7 +2850,7 @@ public sealed class SecurityTypes : FixMessage
 	public FixNumber? SecurityResponseType => GetNumber(323);
 	public FixNumber? TotNoSecurityTypes => GetNumber(557);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<SecTypesGrpEntry> SecTypesGrp => GetTypedGroup<SecTypesGrpEntry>(558);
+	public IReadOnlyList<FixFieldSet> SecTypesGrp => GetGroup(558);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
@@ -2873,7 +2873,7 @@ public sealed class SecurityListRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -2909,12 +2909,12 @@ public sealed class SecurityListRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
 	public string? AgreementDesc => GetText(913);
 	public string? AgreementID => GetText(914);
 	public string? AgreementDate => GetText(915);
@@ -2924,8 +2924,8 @@ public sealed class SecurityListRequest : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? Currency => GetText(15);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
@@ -2948,7 +2948,7 @@ public sealed class SecurityList : FixMessage
 	public FixNumber? SecurityRequestResult => GetNumber(560);
 	public FixNumber? TotNoRelatedSym => GetNumber(393);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<SecListGrpEntry> SecListGrp => GetTypedGroup<SecListGrpEntry>(146);
+	public IReadOnlyList<FixFieldSet> SecListGrp => GetGroup(146);
 }
 
 /// <summary>FIX 4.4 DerivativeSecurityListRequest, MsgType z.</summary>
@@ -2965,7 +2965,7 @@ public sealed class DerivativeSecurityListRequest : FixMessage
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
 	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
+	public IReadOnlyList<FixFieldSet> UndSecAltIDGrp => GetGroup(457);
 	public FixNumber? UnderlyingProduct => GetNumber(462);
 	public string? UnderlyingCFICode => GetText(463);
 	public string? UnderlyingSecurityType => GetText(310);
@@ -3007,7 +3007,7 @@ public sealed class DerivativeSecurityListRequest : FixMessage
 	public FixNumber? UnderlyingStartValue => GetNumber(884);
 	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
 	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
+	public IReadOnlyList<FixFieldSet> UnderlyingStipulations => GetGroup(887);
 	public string? SecuritySubType => GetText(762);
 	public string? Currency => GetText(15);
 	public string? Text => GetText(58);
@@ -3033,7 +3033,7 @@ public sealed class DerivativeSecurityList : FixMessage
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
 	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
+	public IReadOnlyList<FixFieldSet> UndSecAltIDGrp => GetGroup(457);
 	public FixNumber? UnderlyingProduct => GetNumber(462);
 	public string? UnderlyingCFICode => GetText(463);
 	public string? UnderlyingSecurityType => GetText(310);
@@ -3075,10 +3075,10 @@ public sealed class DerivativeSecurityList : FixMessage
 	public FixNumber? UnderlyingStartValue => GetNumber(884);
 	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
 	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
+	public IReadOnlyList<FixFieldSet> UnderlyingStipulations => GetGroup(887);
 	public FixNumber? TotNoRelatedSym => GetNumber(393);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<RelSymDerivSecGrpEntry> RelSymDerivSecGrp => GetTypedGroup<RelSymDerivSecGrpEntry>(146);
+	public IReadOnlyList<FixFieldSet> RelSymDerivSecGrp => GetGroup(146);
 }
 
 /// <summary>FIX 4.4 NewOrderMultileg, MsgType AB.</summary>
@@ -3092,7 +3092,7 @@ public sealed class NewOrderMultileg : FixMessage
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public string? ClOrdLinkID => GetText(583);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradeOriginationDate => GetText(229);
 	public string? TradeDate => GetText(75);
 	public string? Account => GetText(1);
@@ -3102,7 +3102,7 @@ public sealed class NewOrderMultileg : FixMessage
 	public string? BookingUnit => GetText(590);
 	public string? PreallocMethod => GetText(591);
 	public string? AllocID => GetText(70);
-	public IReadOnlyList<PreAllocMlegGrpEntry> PreAllocMlegGrp => GetTypedGroup<PreAllocMlegGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> PreAllocMlegGrp => GetGroup(78);
 	public string? SettlType => GetText(63);
 	public string? SettlDate => GetText(64);
 	public string? CashMargin => GetText(544);
@@ -3112,14 +3112,14 @@ public sealed class NewOrderMultileg : FixMessage
 	public FixNumber? MinQty => GetNumber(110);
 	public FixNumber? MaxFloor => GetNumber(111);
 	public string? ExDestination => GetText(100);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? ProcessCode => GetText(81);
 	public string? Side => GetText(54);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -3155,12 +3155,12 @@ public sealed class NewOrderMultileg : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public FixNumber? PrevClosePx => GetNumber(140);
-	public IReadOnlyList<LegOrdGrpEntry> LegOrdGrp => GetTypedGroup<LegOrdGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> LegOrdGrp => GetGroup(555);
 	public string? LocateReqd => GetText(114);
 	public string? TransactTime => GetText(60);
 	public FixNumber? QtyType => GetNumber(854);
@@ -3236,7 +3236,7 @@ public sealed class MultilegOrderCancelReplace : FixMessage
 	public string? SecondaryClOrdID => GetText(526);
 	public string? ClOrdLinkID => GetText(583);
 	public string? OrigOrdModTime => GetText(586);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradeOriginationDate => GetText(229);
 	public string? TradeDate => GetText(75);
 	public string? Account => GetText(1);
@@ -3246,7 +3246,7 @@ public sealed class MultilegOrderCancelReplace : FixMessage
 	public string? BookingUnit => GetText(590);
 	public string? PreallocMethod => GetText(591);
 	public string? AllocID => GetText(70);
-	public IReadOnlyList<PreAllocMlegGrpEntry> PreAllocMlegGrp => GetTypedGroup<PreAllocMlegGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> PreAllocMlegGrp => GetGroup(78);
 	public string? SettlType => GetText(63);
 	public string? SettlDate => GetText(64);
 	public string? CashMargin => GetText(544);
@@ -3256,14 +3256,14 @@ public sealed class MultilegOrderCancelReplace : FixMessage
 	public FixNumber? MinQty => GetNumber(110);
 	public FixNumber? MaxFloor => GetNumber(111);
 	public string? ExDestination => GetText(100);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? ProcessCode => GetText(81);
 	public string? Side => GetText(54);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -3299,12 +3299,12 @@ public sealed class MultilegOrderCancelReplace : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public FixNumber? PrevClosePx => GetNumber(140);
-	public IReadOnlyList<LegOrdGrpEntry> LegOrdGrp => GetTypedGroup<LegOrdGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> LegOrdGrp => GetGroup(555);
 	public string? LocateReqd => GetText(114);
 	public string? TransactTime => GetText(60);
 	public FixNumber? QtyType => GetNumber(854);
@@ -3390,12 +3390,12 @@ public sealed class TradeCaptureReportRequest : FixMessage
 	public FixNumber? SecondaryTrdType => GetNumber(855);
 	public string? TradeLinkID => GetText(820);
 	public string? TrdMatchID => GetText(880);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -3431,12 +3431,12 @@ public sealed class TradeCaptureReportRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
 	public string? AgreementDesc => GetText(913);
 	public string? AgreementID => GetText(914);
 	public string? AgreementDate => GetText(915);
@@ -3446,9 +3446,9 @@ public sealed class TradeCaptureReportRequest : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<TrdCapDtGrpEntry> TrdCapDtGrp => GetTypedGroup<TrdCapDtGrpEntry>(580);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> TrdCapDtGrp => GetGroup(580);
 	public string? ClearingBusinessDate => GetText(715);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
@@ -3500,7 +3500,7 @@ public sealed class TradeCaptureReport : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -3536,7 +3536,7 @@ public sealed class TradeCaptureReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -3560,7 +3560,7 @@ public sealed class TradeCaptureReport : FixMessage
 	public string? YieldRedemptionDate => GetText(696);
 	public FixNumber? YieldRedemptionPrice => GetNumber(697);
 	public FixNumber? YieldRedemptionPriceType => GetNumber(698);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? UnderlyingTradingSessionID => GetText(822);
 	public string? UnderlyingTradingSessionSubID => GetText(823);
 	public FixNumber? LastQty => GetNumber(32);
@@ -3581,17 +3581,17 @@ public sealed class TradeCaptureReport : FixMessage
 	public string? BenchmarkSecurityID => GetText(699);
 	public string? BenchmarkSecurityIDSource => GetText(761);
 	public FixNumber? AvgPxIndicator => GetNumber(819);
-	public IReadOnlyList<PositionAmountDataEntry> PositionAmountData => GetTypedGroup<PositionAmountDataEntry>(753);
+	public IReadOnlyList<FixFieldSet> PositionAmountData => GetGroup(753);
 	public string? MultiLegReportingType => GetText(442);
 	public string? TradeLegRefID => GetText(824);
-	public IReadOnlyList<TrdInstrmtLegGrpEntry> TrdInstrmtLegGrp => GetTypedGroup<TrdInstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> TrdInstrmtLegGrp => GetGroup(555);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public string? SettlType => GetText(63);
 	public string? SettlDate => GetText(64);
 	public string? MatchStatus => GetText(573);
 	public string? MatchType => GetText(574);
-	public IReadOnlyList<TrdCapRptSideGrpEntry> TrdCapRptSideGrp => GetTypedGroup<TrdCapRptSideGrpEntry>(552);
+	public IReadOnlyList<FixFieldSet> TrdCapRptSideGrp => GetGroup(552);
 	public string? CopyMsgIndicator => GetText(797);
 	public string? PublishTrdIndicator => GetText(852);
 	public FixNumber? ShortSaleReason => GetNumber(853);
@@ -3607,7 +3607,7 @@ public sealed class OrderMassStatusRequest : FixMessage
 
 	public string? MassStatusReqID => GetText(584);
 	public FixNumber? MassStatusReqType => GetNumber(585);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public string? TradingSessionID => GetText(336);
@@ -3616,7 +3616,7 @@ public sealed class OrderMassStatusRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -3652,14 +3652,14 @@ public sealed class OrderMassStatusRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
 	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
+	public IReadOnlyList<FixFieldSet> UndSecAltIDGrp => GetGroup(457);
 	public FixNumber? UnderlyingProduct => GetNumber(462);
 	public string? UnderlyingCFICode => GetText(463);
 	public string? UnderlyingSecurityType => GetText(310);
@@ -3701,7 +3701,7 @@ public sealed class OrderMassStatusRequest : FixMessage
 	public FixNumber? UnderlyingStartValue => GetNumber(884);
 	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
 	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
+	public IReadOnlyList<FixFieldSet> UnderlyingStipulations => GetGroup(887);
 	public string? Side => GetText(54);
 }
 
@@ -3716,7 +3716,7 @@ public sealed class QuoteRequestReject : FixMessage
 	public string? QuoteReqID => GetText(131);
 	public string? RFQReqID => GetText(644);
 	public FixNumber? QuoteRequestRejectReason => GetNumber(658);
-	public IReadOnlyList<QuotReqRjctGrpEntry> QuotReqRjctGrp => GetTypedGroup<QuotReqRjctGrpEntry>(146);
+	public IReadOnlyList<FixFieldSet> QuotReqRjctGrp => GetGroup(146);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
@@ -3731,7 +3731,7 @@ public sealed class RFQRequest : FixMessage
 	}
 
 	public string? RFQReqID => GetText(644);
-	public IReadOnlyList<RFQReqGrpEntry> RFQReqGrp => GetTypedGroup<RFQReqGrpEntry>(146);
+	public IReadOnlyList<FixFieldSet> RFQReqGrp => GetGroup(146);
 	public string? SubscriptionRequestType => GetText(263);
 }
 
@@ -3748,14 +3748,14 @@ public sealed class QuoteStatusReport : FixMessage
 	public string? QuoteID => GetText(117);
 	public string? QuoteRespID => GetText(693);
 	public FixNumber? QuoteType => GetNumber(537);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -3791,7 +3791,7 @@ public sealed class QuoteStatusReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -3803,7 +3803,7 @@ public sealed class QuoteStatusReport : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
 	public FixNumber? OrderQty => GetNumber(38);
 	public FixNumber? CashOrderQty => GetNumber(152);
@@ -3815,12 +3815,12 @@ public sealed class QuoteStatusReport : FixMessage
 	public string? SettlDate2 => GetText(193);
 	public FixNumber? OrderQty2 => GetNumber(192);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
-	public IReadOnlyList<LegQuotStatGrpEntry> LegQuotStatGrp => GetTypedGroup<LegQuotStatGrpEntry>(555);
-	public IReadOnlyList<QuotQualGrpEntry> QuotQualGrp => GetTypedGroup<QuotQualGrpEntry>(735);
+	public IReadOnlyList<FixFieldSet> LegQuotStatGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> QuotQualGrp => GetGroup(735);
 	public string? ExpireTime => GetText(126);
 	public FixNumber? Price => GetNumber(44);
 	public FixNumber? PriceType => GetNumber(423);
@@ -3887,15 +3887,15 @@ public sealed class QuoteResponse : FixMessage
 	public string? OrderCapacity => GetText(528);
 	public string? IOIID => GetText(23);
 	public FixNumber? QuoteType => GetNumber(537);
-	public IReadOnlyList<QuotQualGrpEntry> QuotQualGrp => GetTypedGroup<QuotQualGrpEntry>(735);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> QuotQualGrp => GetGroup(735);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -3931,7 +3931,7 @@ public sealed class QuoteResponse : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -3943,7 +3943,7 @@ public sealed class QuoteResponse : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? Side => GetText(54);
 	public FixNumber? OrderQty => GetNumber(38);
 	public FixNumber? CashOrderQty => GetNumber(152);
@@ -3955,11 +3955,11 @@ public sealed class QuoteResponse : FixMessage
 	public string? SettlDate2 => GetText(193);
 	public FixNumber? OrderQty2 => GetNumber(192);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
-	public IReadOnlyList<LegQuotGrpEntry> LegQuotGrp => GetTypedGroup<LegQuotGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> LegQuotGrp => GetGroup(555);
 	public FixNumber? BidPx => GetNumber(132);
 	public FixNumber? OfferPx => GetNumber(133);
 	public FixNumber? MktBidPx => GetNumber(645);
@@ -4025,19 +4025,19 @@ public sealed class Confirmation : FixMessage
 	public string? CopyMsgIndicator => GetText(797);
 	public string? LegalConfirm => GetText(650);
 	public FixNumber? ConfirmStatus => GetNumber(665);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-	public IReadOnlyList<OrdAllocGrpEntry> OrdAllocGrp => GetTypedGroup<OrdAllocGrpEntry>(73);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
+	public IReadOnlyList<FixFieldSet> OrdAllocGrp => GetGroup(73);
 	public string? AllocID => GetText(70);
 	public string? SecondaryAllocID => GetText(793);
 	public string? IndividualAllocID => GetText(467);
 	public string? TransactTime => GetText(60);
 	public string? TradeDate => GetText(75);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4073,12 +4073,12 @@ public sealed class Confirmation : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
 	public string? AgreementDesc => GetText(913);
 	public string? AgreementID => GetText(914);
 	public string? AgreementDate => GetText(915);
@@ -4088,8 +4088,8 @@ public sealed class Confirmation : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? YieldType => GetText(235);
 	public FixNumber? Yield => GetNumber(236);
 	public string? YieldCalcDate => GetText(701);
@@ -4101,7 +4101,7 @@ public sealed class Confirmation : FixMessage
 	public string? Side => GetText(54);
 	public string? Currency => GetText(15);
 	public string? LastMkt => GetText(30);
-	public IReadOnlyList<CpctyConfGrpEntry> CpctyConfGrp => GetTypedGroup<CpctyConfGrpEntry>(862);
+	public IReadOnlyList<FixFieldSet> CpctyConfGrp => GetGroup(862);
 	public string? AllocAccount => GetText(79);
 	public FixNumber? AllocAcctIDSource => GetNumber(661);
 	public FixNumber? AllocAccountType => GetNumber(798);
@@ -4145,14 +4145,14 @@ public sealed class Confirmation : FixMessage
 	public FixNumber? StandInstDbType => GetNumber(169);
 	public string? StandInstDbName => GetText(170);
 	public string? StandInstDbID => GetText(171);
-	public IReadOnlyList<DlvyInstGrpEntry> DlvyInstGrp => GetTypedGroup<DlvyInstGrpEntry>(85);
+	public IReadOnlyList<FixFieldSet> DlvyInstGrp => GetGroup(85);
 	public FixNumber? Commission => GetNumber(12);
 	public string? CommType => GetText(13);
 	public string? CommCurrency => GetText(479);
 	public string? FundRenewWaiv => GetText(497);
 	public FixNumber? SharedCommission => GetNumber(858);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
+	public IReadOnlyList<FixFieldSet> MiscFeesGrp => GetGroup(136);
 }
 
 /// <summary>FIX 4.4 PositionMaintenanceRequest, MsgType AL.</summary>
@@ -4171,7 +4171,7 @@ public sealed class PositionMaintenanceRequest : FixMessage
 	public string? ClearingBusinessDate => GetText(715);
 	public string? SettlSessID => GetText(716);
 	public string? SettlSessSubID => GetText(717);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
@@ -4179,7 +4179,7 @@ public sealed class PositionMaintenanceRequest : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4215,15 +4215,15 @@ public sealed class PositionMaintenanceRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<PositionQtyEntry> PositionQty => GetTypedGroup<PositionQtyEntry>(702);
+	public IReadOnlyList<FixFieldSet> PositionQty => GetGroup(702);
 	public FixNumber? AdjustmentType => GetNumber(718);
 	public string? ContraryInstructionIndicator => GetText(719);
 	public string? PriorSpreadIndicator => GetText(720);
@@ -4251,7 +4251,7 @@ public sealed class PositionMaintenanceReport : FixMessage
 	public string? ClearingBusinessDate => GetText(715);
 	public string? SettlSessID => GetText(716);
 	public string? SettlSessSubID => GetText(717);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
@@ -4259,7 +4259,7 @@ public sealed class PositionMaintenanceReport : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4295,16 +4295,16 @@ public sealed class PositionMaintenanceReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<PositionQtyEntry> PositionQty => GetTypedGroup<PositionQtyEntry>(702);
-	public IReadOnlyList<PositionAmountDataEntry> PositionAmountData => GetTypedGroup<PositionAmountDataEntry>(753);
+	public IReadOnlyList<FixFieldSet> PositionQty => GetGroup(702);
+	public IReadOnlyList<FixFieldSet> PositionAmountData => GetGroup(753);
 	public FixNumber? AdjustmentType => GetNumber(718);
 	public FixNumber? ThresholdAmount => GetNumber(834);
 	public string? Text => GetText(58);
@@ -4324,7 +4324,7 @@ public sealed class RequestForPositions : FixMessage
 	public FixNumber? PosReqType => GetNumber(724);
 	public string? MatchStatus => GetText(573);
 	public string? SubscriptionRequestType => GetText(263);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
@@ -4332,7 +4332,7 @@ public sealed class RequestForPositions : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4368,16 +4368,16 @@ public sealed class RequestForPositions : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? ClearingBusinessDate => GetText(715);
 	public string? SettlSessID => GetText(716);
 	public string? SettlSessSubID => GetText(717);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
+	public IReadOnlyList<FixFieldSet> TrdgSesGrp => GetGroup(386);
 	public string? TransactTime => GetText(60);
 	public FixNumber? ResponseTransportType => GetNumber(725);
 	public string? ResponseDestination => GetText(726);
@@ -4400,7 +4400,7 @@ public sealed class RequestForPositionsAck : FixMessage
 	public string? UnsolicitedIndicator => GetText(325);
 	public FixNumber? PosReqResult => GetNumber(728);
 	public FixNumber? PosReqStatus => GetNumber(729);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
@@ -4408,7 +4408,7 @@ public sealed class RequestForPositionsAck : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4444,12 +4444,12 @@ public sealed class RequestForPositionsAck : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public FixNumber? ResponseTransportType => GetNumber(725);
 	public string? ResponseDestination => GetText(726);
 	public string? Text => GetText(58);
@@ -4475,7 +4475,7 @@ public sealed class PositionReport : FixMessage
 	public string? ClearingBusinessDate => GetText(715);
 	public string? SettlSessID => GetText(716);
 	public string? SettlSessSubID => GetText(717);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AcctIDSource => GetNumber(660);
 	public FixNumber? AccountType => GetNumber(581);
@@ -4483,7 +4483,7 @@ public sealed class PositionReport : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4519,17 +4519,17 @@ public sealed class PositionReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? Currency => GetText(15);
 	public FixNumber? SettlPrice => GetNumber(730);
 	public FixNumber? SettlPriceType => GetNumber(731);
 	public FixNumber? PriorSettlPrice => GetNumber(734);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<PosUndInstrmtGrpEntry> PosUndInstrmtGrp => GetTypedGroup<PosUndInstrmtGrpEntry>(711);
-	public IReadOnlyList<PositionQtyEntry> PositionQty => GetTypedGroup<PositionQtyEntry>(702);
-	public IReadOnlyList<PositionAmountDataEntry> PositionAmountData => GetTypedGroup<PositionAmountDataEntry>(753);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> PosUndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> PositionQty => GetGroup(702);
+	public IReadOnlyList<FixFieldSet> PositionAmountData => GetGroup(753);
 	public string? RegistStatus => GetText(506);
 	public string? DeliveryDate => GetText(743);
 	public string? Text => GetText(58);
@@ -4555,7 +4555,7 @@ public sealed class TradeCaptureReportRequestAck : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4591,11 +4591,11 @@ public sealed class TradeCaptureReportRequestAck : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public string? MultiLegReportingType => GetText(442);
 	public FixNumber? ResponseTransportType => GetNumber(725);
 	public string? ResponseDestination => GetText(726);
@@ -4634,7 +4634,7 @@ public sealed class TradeCaptureReportAck : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4670,17 +4670,17 @@ public sealed class TradeCaptureReportAck : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public FixNumber? ResponseTransportType => GetNumber(725);
 	public string? ResponseDestination => GetText(726);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
-	public IReadOnlyList<TrdInstrmtLegGrpEntry> TrdInstrmtLegGrp => GetTypedGroup<TrdInstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> TrdInstrmtLegGrp => GetGroup(555);
 	public string? ClearingFeeIndicator => GetText(635);
 	public string? OrderCapacity => GetText(528);
 	public string? OrderRestrictions => GetText(529);
@@ -4690,7 +4690,7 @@ public sealed class TradeCaptureReportAck : FixMessage
 	public FixNumber? AccountType => GetNumber(581);
 	public string? PositionEffect => GetText(77);
 	public string? PreallocMethod => GetText(591);
-	public IReadOnlyList<TrdAllocGrpEntry> TrdAllocGrp => GetTypedGroup<TrdAllocGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> TrdAllocGrp => GetGroup(78);
 }
 
 /// <summary>FIX 4.4 AllocationReport, MsgType AS.</summary>
@@ -4716,8 +4716,8 @@ public sealed class AllocationReport : FixMessage
 	public FixNumber? AllocLinkType => GetNumber(197);
 	public string? BookingRefID => GetText(466);
 	public FixNumber? AllocNoOrdersType => GetNumber(857);
-	public IReadOnlyList<OrdAllocGrpEntry> OrdAllocGrp => GetTypedGroup<OrdAllocGrpEntry>(73);
-	public IReadOnlyList<ExecAllocGrpEntry> ExecAllocGrp => GetTypedGroup<ExecAllocGrpEntry>(124);
+	public IReadOnlyList<FixFieldSet> OrdAllocGrp => GetGroup(73);
+	public IReadOnlyList<FixFieldSet> ExecAllocGrp => GetGroup(124);
 	public string? PreviouslyReported => GetText(570);
 	public string? ReversalIndicator => GetText(700);
 	public string? MatchType => GetText(574);
@@ -4726,7 +4726,7 @@ public sealed class AllocationReport : FixMessage
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4762,12 +4762,12 @@ public sealed class AllocationReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public FixNumber? DeliveryForm => GetNumber(668);
 	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
+	public IReadOnlyList<FixFieldSet> AttrbGrp => GetGroup(870);
 	public string? AgreementDesc => GetText(913);
 	public string? AgreementID => GetText(914);
 	public string? AgreementDate => GetText(915);
@@ -4777,8 +4777,8 @@ public sealed class AllocationReport : FixMessage
 	public string? EndDate => GetText(917);
 	public FixNumber? DeliveryType => GetNumber(919);
 	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? LastMkt => GetText(30);
@@ -4798,7 +4798,7 @@ public sealed class AllocationReport : FixMessage
 	public string? BenchmarkSecurityIDSource => GetText(761);
 	public string? Currency => GetText(15);
 	public FixNumber? AvgPxPrecision => GetNumber(74);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? TradeDate => GetText(75);
 	public string? TransactTime => GetText(60);
 	public string? SettlType => GetText(63);
@@ -4822,7 +4822,7 @@ public sealed class AllocationReport : FixMessage
 	public FixNumber? StartCash => GetNumber(921);
 	public FixNumber? EndCash => GetNumber(922);
 	public string? LegalConfirm => GetText(650);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? YieldType => GetText(235);
 	public FixNumber? Yield => GetNumber(236);
 	public string? YieldCalcDate => GetText(701);
@@ -4831,7 +4831,7 @@ public sealed class AllocationReport : FixMessage
 	public FixNumber? YieldRedemptionPriceType => GetNumber(698);
 	public FixNumber? TotNoAllocs => GetNumber(892);
 	public string? LastFragment => GetText(893);
-	public IReadOnlyList<AllocGrpEntry> AllocGrp => GetTypedGroup<AllocGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> AllocGrp => GetGroup(78);
 }
 
 /// <summary>FIX 4.4 AllocationReportAck, MsgType AT.</summary>
@@ -4844,7 +4844,7 @@ public sealed class AllocationReportAck : FixMessage
 
 	public string? AllocReportID => GetText(755);
 	public string? AllocID => GetText(70);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? SecondaryAllocID => GetText(793);
 	public string? TradeDate => GetText(75);
 	public string? TransactTime => GetText(60);
@@ -4858,7 +4858,7 @@ public sealed class AllocationReportAck : FixMessage
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
-	public IReadOnlyList<AllocAckGrpEntry> AllocAckGrp => GetTypedGroup<AllocAckGrpEntry>(78);
+	public IReadOnlyList<FixFieldSet> AllocAckGrp => GetGroup(78);
 }
 
 /// <summary>FIX 4.4 ConfirmationAck, MsgType AU.</summary>
@@ -4890,7 +4890,7 @@ public sealed class SettlementInstructionRequest : FixMessage
 
 	public string? SettlInstReqID => GetText(791);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? AllocAccount => GetText(79);
 	public FixNumber? AllocAcctIDSource => GetNumber(661);
 	public string? Side => GetText(54);
@@ -4916,14 +4916,14 @@ public sealed class AssignmentReport : FixMessage
 	public string? AsgnRptID => GetText(833);
 	public FixNumber? TotNumAssignmentReports => GetNumber(832);
 	public string? LastRptRequested => GetText(912);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -4959,14 +4959,14 @@ public sealed class AssignmentReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<PositionQtyEntry> PositionQty => GetTypedGroup<PositionQtyEntry>(702);
-	public IReadOnlyList<PositionAmountDataEntry> PositionAmountData => GetTypedGroup<PositionAmountDataEntry>(753);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
+	public IReadOnlyList<FixFieldSet> PositionQty => GetGroup(702);
+	public IReadOnlyList<FixFieldSet> PositionAmountData => GetGroup(753);
 	public FixNumber? ThresholdAmount => GetNumber(834);
 	public FixNumber? SettlPrice => GetNumber(730);
 	public FixNumber? SettlPriceType => GetNumber(731);
@@ -4996,20 +4996,20 @@ public sealed class CollateralRequest : FixMessage
 	public FixNumber? CollAsgnReason => GetNumber(895);
 	public string? TransactTime => GetText(60);
 	public string? ExpireTime => GetText(126);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? ClOrdID => GetText(11);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
-	public IReadOnlyList<ExecCollGrpEntry> ExecCollGrp => GetTypedGroup<ExecCollGrpEntry>(124);
-	public IReadOnlyList<TrdCollGrpEntry> TrdCollGrp => GetTypedGroup<TrdCollGrpEntry>(897);
+	public IReadOnlyList<FixFieldSet> ExecCollGrp => GetGroup(124);
+	public IReadOnlyList<FixFieldSet> TrdCollGrp => GetGroup(897);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -5045,7 +5045,7 @@ public sealed class CollateralRequest : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -5061,14 +5061,14 @@ public sealed class CollateralRequest : FixMessage
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtCollGrpEntry> UndInstrmtCollGrp => GetTypedGroup<UndInstrmtCollGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtCollGrp => GetGroup(711);
 	public FixNumber? MarginExcess => GetNumber(899);
 	public FixNumber? TotalNetValue => GetNumber(900);
 	public FixNumber? CashOutstanding => GetNumber(901);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public string? Side => GetText(54);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
+	public IReadOnlyList<FixFieldSet> MiscFeesGrp => GetGroup(136);
 	public FixNumber? Price => GetNumber(44);
 	public FixNumber? PriceType => GetNumber(423);
 	public FixNumber? AccruedInterestAmt => GetNumber(159);
@@ -5083,7 +5083,7 @@ public sealed class CollateralRequest : FixMessage
 	public FixNumber? BenchmarkPriceType => GetNumber(663);
 	public string? BenchmarkSecurityID => GetText(699);
 	public string? BenchmarkSecurityIDSource => GetText(761);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? SettlSessID => GetText(716);
@@ -5109,20 +5109,20 @@ public sealed class CollateralAssignment : FixMessage
 	public string? CollAsgnRefID => GetText(907);
 	public string? TransactTime => GetText(60);
 	public string? ExpireTime => GetText(126);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? ClOrdID => GetText(11);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
-	public IReadOnlyList<ExecCollGrpEntry> ExecCollGrp => GetTypedGroup<ExecCollGrpEntry>(124);
-	public IReadOnlyList<TrdCollGrpEntry> TrdCollGrp => GetTypedGroup<TrdCollGrpEntry>(897);
+	public IReadOnlyList<FixFieldSet> ExecCollGrp => GetGroup(124);
+	public IReadOnlyList<FixFieldSet> TrdCollGrp => GetGroup(897);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -5158,7 +5158,7 @@ public sealed class CollateralAssignment : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -5174,14 +5174,14 @@ public sealed class CollateralAssignment : FixMessage
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtCollGrpEntry> UndInstrmtCollGrp => GetTypedGroup<UndInstrmtCollGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtCollGrp => GetGroup(711);
 	public FixNumber? MarginExcess => GetNumber(899);
 	public FixNumber? TotalNetValue => GetNumber(900);
 	public FixNumber? CashOutstanding => GetNumber(901);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public string? Side => GetText(54);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
+	public IReadOnlyList<FixFieldSet> MiscFeesGrp => GetGroup(136);
 	public FixNumber? Price => GetNumber(44);
 	public FixNumber? PriceType => GetNumber(423);
 	public FixNumber? AccruedInterestAmt => GetNumber(159);
@@ -5196,12 +5196,12 @@ public sealed class CollateralAssignment : FixMessage
 	public FixNumber? BenchmarkPriceType => GetNumber(663);
 	public string? BenchmarkSecurityID => GetText(699);
 	public string? BenchmarkSecurityIDSource => GetText(761);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public FixNumber? SettlDeliveryType => GetNumber(172);
 	public FixNumber? StandInstDbType => GetNumber(169);
 	public string? StandInstDbName => GetText(170);
 	public string? StandInstDbID => GetText(171);
-	public IReadOnlyList<DlvyInstGrpEntry> DlvyInstGrp => GetTypedGroup<DlvyInstGrpEntry>(85);
+	public IReadOnlyList<FixFieldSet> DlvyInstGrp => GetGroup(85);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? SettlSessID => GetText(716);
@@ -5228,20 +5228,20 @@ public sealed class CollateralResponse : FixMessage
 	public FixNumber? CollAsgnRespType => GetNumber(905);
 	public FixNumber? CollAsgnRejectReason => GetNumber(906);
 	public string? TransactTime => GetText(60);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? ClOrdID => GetText(11);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
-	public IReadOnlyList<ExecCollGrpEntry> ExecCollGrp => GetTypedGroup<ExecCollGrpEntry>(124);
-	public IReadOnlyList<TrdCollGrpEntry> TrdCollGrp => GetTypedGroup<TrdCollGrpEntry>(897);
+	public IReadOnlyList<FixFieldSet> ExecCollGrp => GetGroup(124);
+	public IReadOnlyList<FixFieldSet> TrdCollGrp => GetGroup(897);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -5277,7 +5277,7 @@ public sealed class CollateralResponse : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -5293,14 +5293,14 @@ public sealed class CollateralResponse : FixMessage
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtCollGrpEntry> UndInstrmtCollGrp => GetTypedGroup<UndInstrmtCollGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtCollGrp => GetGroup(711);
 	public FixNumber? MarginExcess => GetNumber(899);
 	public FixNumber? TotalNetValue => GetNumber(900);
 	public FixNumber? CashOutstanding => GetNumber(901);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public string? Side => GetText(54);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
+	public IReadOnlyList<FixFieldSet> MiscFeesGrp => GetGroup(136);
 	public FixNumber? Price => GetNumber(44);
 	public FixNumber? PriceType => GetNumber(423);
 	public FixNumber? AccruedInterestAmt => GetNumber(159);
@@ -5315,7 +5315,7 @@ public sealed class CollateralResponse : FixMessage
 	public FixNumber? BenchmarkPriceType => GetNumber(663);
 	public string? BenchmarkSecurityID => GetText(699);
 	public string? BenchmarkSecurityIDSource => GetText(761);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
@@ -5334,20 +5334,20 @@ public sealed class CollateralReport : FixMessage
 	public FixNumber? CollStatus => GetNumber(910);
 	public FixNumber? TotNumReports => GetNumber(911);
 	public string? LastRptRequested => GetText(912);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? ClOrdID => GetText(11);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
-	public IReadOnlyList<ExecCollGrpEntry> ExecCollGrp => GetTypedGroup<ExecCollGrpEntry>(124);
-	public IReadOnlyList<TrdCollGrpEntry> TrdCollGrp => GetTypedGroup<TrdCollGrpEntry>(897);
+	public IReadOnlyList<FixFieldSet> ExecCollGrp => GetGroup(124);
+	public IReadOnlyList<FixFieldSet> TrdCollGrp => GetGroup(897);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -5383,7 +5383,7 @@ public sealed class CollateralReport : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -5399,14 +5399,14 @@ public sealed class CollateralReport : FixMessage
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public FixNumber? MarginExcess => GetNumber(899);
 	public FixNumber? TotalNetValue => GetNumber(900);
 	public FixNumber? CashOutstanding => GetNumber(901);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public string? Side => GetText(54);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
+	public IReadOnlyList<FixFieldSet> MiscFeesGrp => GetGroup(136);
 	public FixNumber? Price => GetNumber(44);
 	public FixNumber? PriceType => GetNumber(423);
 	public FixNumber? AccruedInterestAmt => GetNumber(159);
@@ -5421,12 +5421,12 @@ public sealed class CollateralReport : FixMessage
 	public FixNumber? BenchmarkPriceType => GetNumber(663);
 	public string? BenchmarkSecurityID => GetText(699);
 	public string? BenchmarkSecurityIDSource => GetText(761);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public FixNumber? SettlDeliveryType => GetNumber(172);
 	public FixNumber? StandInstDbType => GetNumber(169);
 	public string? StandInstDbName => GetText(170);
 	public string? StandInstDbID => GetText(171);
-	public IReadOnlyList<DlvyInstGrpEntry> DlvyInstGrp => GetTypedGroup<DlvyInstGrpEntry>(85);
+	public IReadOnlyList<FixFieldSet> DlvyInstGrp => GetGroup(85);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? SettlSessID => GetText(716);
@@ -5446,24 +5446,24 @@ public sealed class CollateralInquiry : FixMessage
 	}
 
 	public string? CollInquiryID => GetText(909);
-	public IReadOnlyList<CollInqQualGrpEntry> CollInqQualGrp => GetTypedGroup<CollInqQualGrpEntry>(938);
+	public IReadOnlyList<FixFieldSet> CollInqQualGrp => GetGroup(938);
 	public string? SubscriptionRequestType => GetText(263);
 	public FixNumber? ResponseTransportType => GetNumber(725);
 	public string? ResponseDestination => GetText(726);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? ClOrdID => GetText(11);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
-	public IReadOnlyList<ExecCollGrpEntry> ExecCollGrp => GetTypedGroup<ExecCollGrpEntry>(124);
-	public IReadOnlyList<TrdCollGrpEntry> TrdCollGrp => GetTypedGroup<TrdCollGrpEntry>(897);
+	public IReadOnlyList<FixFieldSet> ExecCollGrp => GetGroup(124);
+	public IReadOnlyList<FixFieldSet> TrdCollGrp => GetGroup(897);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -5499,7 +5499,7 @@ public sealed class CollateralInquiry : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -5515,12 +5515,12 @@ public sealed class CollateralInquiry : FixMessage
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public FixNumber? MarginExcess => GetNumber(899);
 	public FixNumber? TotalNetValue => GetNumber(900);
 	public FixNumber? CashOutstanding => GetNumber(901);
-	public IReadOnlyList<TrdRegTimestampsEntry> TrdRegTimestamps => GetTypedGroup<TrdRegTimestampsEntry>(768);
+	public IReadOnlyList<FixFieldSet> TrdRegTimestamps => GetGroup(768);
 	public string? Side => GetText(54);
 	public FixNumber? Price => GetNumber(44);
 	public FixNumber? PriceType => GetNumber(423);
@@ -5536,12 +5536,12 @@ public sealed class CollateralInquiry : FixMessage
 	public FixNumber? BenchmarkPriceType => GetNumber(663);
 	public string? BenchmarkSecurityID => GetText(699);
 	public string? BenchmarkSecurityIDSource => GetText(761);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
+	public IReadOnlyList<FixFieldSet> Stipulations => GetGroup(232);
 	public FixNumber? SettlDeliveryType => GetNumber(172);
 	public FixNumber? StandInstDbType => GetNumber(169);
 	public string? StandInstDbName => GetText(170);
 	public string? StandInstDbID => GetText(171);
-	public IReadOnlyList<DlvyInstGrpEntry> DlvyInstGrp => GetTypedGroup<DlvyInstGrpEntry>(85);
+	public IReadOnlyList<FixFieldSet> DlvyInstGrp => GetGroup(85);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? SettlSessID => GetText(716);
@@ -5562,7 +5562,7 @@ public sealed class NetworkCounterpartySystemStatusRequest : FixMessage
 
 	public FixNumber? NetworkRequestType => GetNumber(935);
 	public string? NetworkRequestID => GetText(933);
-	public IReadOnlyList<CompIDReqGrpEntry> CompIDReqGrp => GetTypedGroup<CompIDReqGrpEntry>(936);
+	public IReadOnlyList<FixFieldSet> CompIDReqGrp => GetGroup(936);
 }
 
 /// <summary>FIX 4.4 NetworkCounterpartySystemStatusResponse, MsgType BD.</summary>
@@ -5577,7 +5577,7 @@ public sealed class NetworkCounterpartySystemStatusResponse : FixMessage
 	public string? NetworkRequestID => GetText(933);
 	public string? NetworkResponseID => GetText(932);
 	public string? LastNetworkResponseID => GetText(934);
-	public IReadOnlyList<CompIDStatGrpEntry> CompIDStatGrp => GetTypedGroup<CompIDStatGrpEntry>(936);
+	public IReadOnlyList<FixFieldSet> CompIDStatGrp => GetGroup(936);
 }
 
 /// <summary>FIX 4.4 UserRequest, MsgType BE.</summary>
@@ -5622,22 +5622,22 @@ public sealed class CollateralInquiryAck : FixMessage
 	public string? CollInquiryID => GetText(909);
 	public FixNumber? CollInquiryStatus => GetNumber(945);
 	public FixNumber? CollInquiryResult => GetNumber(946);
-	public IReadOnlyList<CollInqQualGrpEntry> CollInqQualGrp => GetTypedGroup<CollInqQualGrpEntry>(938);
+	public IReadOnlyList<FixFieldSet> CollInqQualGrp => GetGroup(938);
 	public FixNumber? TotNumReports => GetNumber(911);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
+	public IReadOnlyList<FixFieldSet> Parties => GetGroup(453);
 	public string? Account => GetText(1);
 	public FixNumber? AccountType => GetNumber(581);
 	public string? ClOrdID => GetText(11);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
-	public IReadOnlyList<ExecCollGrpEntry> ExecCollGrp => GetTypedGroup<ExecCollGrpEntry>(124);
-	public IReadOnlyList<TrdCollGrpEntry> TrdCollGrp => GetTypedGroup<TrdCollGrpEntry>(897);
+	public IReadOnlyList<FixFieldSet> ExecCollGrp => GetGroup(124);
+	public IReadOnlyList<FixFieldSet> TrdCollGrp => GetGroup(897);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
 	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
+	public IReadOnlyList<FixFieldSet> SecAltIDGrp => GetGroup(454);
 	public FixNumber? Product => GetNumber(460);
 	public string? CFICode => GetText(461);
 	public string? SecurityType => GetText(167);
@@ -5673,7 +5673,7 @@ public sealed class CollateralInquiryAck : FixMessage
 	public string? ContractSettlMonth => GetText(667);
 	public FixNumber? CPProgram => GetNumber(875);
 	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
+	public IReadOnlyList<FixFieldSet> EvntGrp => GetGroup(864);
 	public string? DatedDate => GetText(873);
 	public string? InterestAccrualDate => GetText(874);
 	public string? AgreementDesc => GetText(913);
@@ -5689,8 +5689,8 @@ public sealed class CollateralInquiryAck : FixMessage
 	public FixNumber? Quantity => GetNumber(53);
 	public FixNumber? QtyType => GetNumber(854);
 	public string? Currency => GetText(15);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
+	public IReadOnlyList<FixFieldSet> InstrmtLegGrp => GetGroup(555);
+	public IReadOnlyList<FixFieldSet> UndInstrmtGrp => GetGroup(711);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 	public string? SettlSessID => GetText(716);
@@ -5713,7 +5713,7 @@ public sealed class ConfirmationRequest : FixMessage
 
 	public string? ConfirmReqID => GetText(859);
 	public FixNumber? ConfirmType => GetNumber(773);
-	public IReadOnlyList<OrdAllocGrpEntry> OrdAllocGrp => GetTypedGroup<OrdAllocGrpEntry>(73);
+	public IReadOnlyList<FixFieldSet> OrdAllocGrp => GetGroup(73);
 	public string? AllocID => GetText(70);
 	public string? SecondaryAllocID => GetText(793);
 	public string? IndividualAllocID => GetText(467);
@@ -5724,3063 +5724,6 @@ public sealed class ConfirmationRequest : FixMessage
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 LegStipulationsEntry field scope.</summary>
-public sealed class LegStipulationsEntry : FixFieldSet
-{
-	internal LegStipulationsEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegStipulationType => GetText(688);
-	public string? LegStipulationValue => GetText(689);
-}
-
-/// <summary>FIX 4.4 NestedPartiesEntry field scope.</summary>
-public sealed class NestedPartiesEntry : FixFieldSet
-{
-	internal NestedPartiesEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? NestedPartyID => GetText(524);
-	public string? NestedPartyIDSource => GetText(525);
-	public FixNumber? NestedPartyRole => GetNumber(538);
-	public IReadOnlyList<NstdPtysSubGrpEntry> NstdPtysSubGrp => GetTypedGroup<NstdPtysSubGrpEntry>(804);
-}
-
-/// <summary>FIX 4.4 NestedParties2Entry field scope.</summary>
-public sealed class NestedParties2Entry : FixFieldSet
-{
-	internal NestedParties2Entry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Nested2PartyID => GetText(757);
-	public string? Nested2PartyIDSource => GetText(758);
-	public FixNumber? Nested2PartyRole => GetNumber(759);
-	public IReadOnlyList<NstdPtys2SubGrpEntry> NstdPtys2SubGrp => GetTypedGroup<NstdPtys2SubGrpEntry>(806);
-}
-
-/// <summary>FIX 4.4 NestedParties3Entry field scope.</summary>
-public sealed class NestedParties3Entry : FixFieldSet
-{
-	internal NestedParties3Entry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Nested3PartyID => GetText(949);
-	public string? Nested3PartyIDSource => GetText(950);
-	public FixNumber? Nested3PartyRole => GetNumber(951);
-	public IReadOnlyList<NstdPtys3SubGrpEntry> NstdPtys3SubGrp => GetTypedGroup<NstdPtys3SubGrpEntry>(952);
-}
-
-/// <summary>FIX 4.4 PartiesEntry field scope.</summary>
-public sealed class PartiesEntry : FixFieldSet
-{
-	internal PartiesEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? PartyID => GetText(448);
-	public string? PartyIDSource => GetText(447);
-	public FixNumber? PartyRole => GetNumber(452);
-	public IReadOnlyList<PtysSubGrpEntry> PtysSubGrp => GetTypedGroup<PtysSubGrpEntry>(802);
-}
-
-/// <summary>FIX 4.4 PositionAmountDataEntry field scope.</summary>
-public sealed class PositionAmountDataEntry : FixFieldSet
-{
-	internal PositionAmountDataEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? PosAmtType => GetText(707);
-	public FixNumber? PosAmt => GetNumber(708);
-}
-
-/// <summary>FIX 4.4 PositionQtyEntry field scope.</summary>
-public sealed class PositionQtyEntry : FixFieldSet
-{
-	internal PositionQtyEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? PosType => GetText(703);
-	public FixNumber? LongQty => GetNumber(704);
-	public FixNumber? ShortQty => GetNumber(705);
-	public FixNumber? PosQtyStatus => GetNumber(706);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-}
-
-/// <summary>FIX 4.4 SettlPartiesEntry field scope.</summary>
-public sealed class SettlPartiesEntry : FixFieldSet
-{
-	internal SettlPartiesEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? SettlPartyID => GetText(782);
-	public string? SettlPartyIDSource => GetText(783);
-	public FixNumber? SettlPartyRole => GetNumber(784);
-	public IReadOnlyList<SettlPtysSubGrpEntry> SettlPtysSubGrp => GetTypedGroup<SettlPtysSubGrpEntry>(801);
-}
-
-/// <summary>FIX 4.4 StipulationsEntry field scope.</summary>
-public sealed class StipulationsEntry : FixFieldSet
-{
-	internal StipulationsEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? StipulationType => GetText(233);
-	public string? StipulationValue => GetText(234);
-}
-
-/// <summary>FIX 4.4 TrdRegTimestampsEntry field scope.</summary>
-public sealed class TrdRegTimestampsEntry : FixFieldSet
-{
-	internal TrdRegTimestampsEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? TrdRegTimestamp => GetText(769);
-	public FixNumber? TrdRegTimestampType => GetNumber(770);
-	public string? TrdRegTimestampOrigin => GetText(771);
-}
-
-/// <summary>FIX 4.4 UnderlyingStipulationsEntry field scope.</summary>
-public sealed class UnderlyingStipulationsEntry : FixFieldSet
-{
-	internal UnderlyingStipulationsEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? UnderlyingStipType => GetText(888);
-	public string? UnderlyingStipValue => GetText(889);
-}
-
-/// <summary>FIX 4.4 AffectedOrdGrpEntry field scope.</summary>
-public sealed class AffectedOrdGrpEntry : FixFieldSet
-{
-	internal AffectedOrdGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? OrigClOrdID => GetText(41);
-	public string? AffectedOrderID => GetText(535);
-	public string? AffectedSecondaryOrderID => GetText(536);
-}
-
-/// <summary>FIX 4.4 AllocAckGrpEntry field scope.</summary>
-public sealed class AllocAckGrpEntry : FixFieldSet
-{
-	internal AllocAckGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? AllocAccount => GetText(79);
-	public FixNumber? AllocAcctIDSource => GetNumber(661);
-	public FixNumber? AllocPrice => GetNumber(366);
-	public string? IndividualAllocID => GetText(467);
-	public FixNumber? IndividualAllocRejCode => GetNumber(776);
-	public string? AllocText => GetText(161);
-	public FixNumber? EncodedAllocTextLen => GetNumber(360);
-	public string? EncodedAllocText => GetText(361);
-}
-
-/// <summary>FIX 4.4 AllocGrpEntry field scope.</summary>
-public sealed class AllocGrpEntry : FixFieldSet
-{
-	internal AllocGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? AllocAccount => GetText(79);
-	public FixNumber? AllocAcctIDSource => GetNumber(661);
-	public string? MatchStatus => GetText(573);
-	public FixNumber? AllocPrice => GetNumber(366);
-	public FixNumber? AllocQty => GetNumber(80);
-	public string? IndividualAllocID => GetText(467);
-	public string? ProcessCode => GetText(81);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public string? NotifyBrokerOfCredit => GetText(208);
-	public FixNumber? AllocHandlInst => GetNumber(209);
-	public string? AllocText => GetText(161);
-	public FixNumber? EncodedAllocTextLen => GetNumber(360);
-	public string? EncodedAllocText => GetText(361);
-	public FixNumber? Commission => GetNumber(12);
-	public string? CommType => GetText(13);
-	public string? CommCurrency => GetText(479);
-	public string? FundRenewWaiv => GetText(497);
-	public FixNumber? AllocAvgPx => GetNumber(153);
-	public FixNumber? AllocNetMoney => GetNumber(154);
-	public FixNumber? SettlCurrAmt => GetNumber(119);
-	public FixNumber? AllocSettlCurrAmt => GetNumber(737);
-	public string? SettlCurrency => GetText(120);
-	public string? AllocSettlCurrency => GetText(736);
-	public FixNumber? SettlCurrFxRate => GetNumber(155);
-	public string? SettlCurrFxRateCalc => GetText(156);
-	public FixNumber? AllocAccruedInterestAmt => GetNumber(742);
-	public FixNumber? AllocInterestAtMaturity => GetNumber(741);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
-	public IReadOnlyList<ClrInstGrpEntry> ClrInstGrp => GetTypedGroup<ClrInstGrpEntry>(576);
-	public FixNumber? AllocSettlInstType => GetNumber(780);
-	public FixNumber? SettlDeliveryType => GetNumber(172);
-	public FixNumber? StandInstDbType => GetNumber(169);
-	public string? StandInstDbName => GetText(170);
-	public string? StandInstDbID => GetText(171);
-	public IReadOnlyList<DlvyInstGrpEntry> DlvyInstGrp => GetTypedGroup<DlvyInstGrpEntry>(85);
-}
-
-/// <summary>FIX 4.4 BidCompReqGrpEntry field scope.</summary>
-public sealed class BidCompReqGrpEntry : FixFieldSet
-{
-	internal BidCompReqGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? ListID => GetText(66);
-	public string? Side => GetText(54);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public FixNumber? NetGrossInd => GetNumber(430);
-	public string? SettlType => GetText(63);
-	public string? SettlDate => GetText(64);
-	public string? Account => GetText(1);
-	public FixNumber? AcctIDSource => GetNumber(660);
-}
-
-/// <summary>FIX 4.4 BidCompRspGrpEntry field scope.</summary>
-public sealed class BidCompRspGrpEntry : FixFieldSet
-{
-	internal BidCompRspGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? Commission => GetNumber(12);
-	public string? CommType => GetText(13);
-	public string? CommCurrency => GetText(479);
-	public string? FundRenewWaiv => GetText(497);
-	public string? ListID => GetText(66);
-	public string? Country => GetText(421);
-	public string? Side => GetText(54);
-	public FixNumber? Price => GetNumber(44);
-	public FixNumber? PriceType => GetNumber(423);
-	public FixNumber? FairValue => GetNumber(406);
-	public FixNumber? NetGrossInd => GetNumber(430);
-	public string? SettlType => GetText(63);
-	public string? SettlDate => GetText(64);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 BidDescReqGrpEntry field scope.</summary>
-public sealed class BidDescReqGrpEntry : FixFieldSet
-{
-	internal BidDescReqGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? BidDescriptorType => GetNumber(399);
-	public string? BidDescriptor => GetText(400);
-	public FixNumber? SideValueInd => GetNumber(401);
-	public FixNumber? LiquidityValue => GetNumber(404);
-	public FixNumber? LiquidityNumSecurities => GetNumber(441);
-	public FixNumber? LiquidityPctLow => GetNumber(402);
-	public FixNumber? LiquidityPctHigh => GetNumber(403);
-	public FixNumber? EFPTrackingError => GetNumber(405);
-	public FixNumber? FairValue => GetNumber(406);
-	public FixNumber? OutsideIndexPct => GetNumber(407);
-	public FixNumber? ValueOfFutures => GetNumber(408);
-}
-
-/// <summary>FIX 4.4 ClrInstGrpEntry field scope.</summary>
-public sealed class ClrInstGrpEntry : FixFieldSet
-{
-	internal ClrInstGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? ClearingInstruction => GetNumber(577);
-}
-
-/// <summary>FIX 4.4 CollInqQualGrpEntry field scope.</summary>
-public sealed class CollInqQualGrpEntry : FixFieldSet
-{
-	internal CollInqQualGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? CollInquiryQualifier => GetNumber(896);
-}
-
-/// <summary>FIX 4.4 CompIDReqGrpEntry field scope.</summary>
-public sealed class CompIDReqGrpEntry : FixFieldSet
-{
-	internal CompIDReqGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? RefCompID => GetText(930);
-	public string? RefSubID => GetText(931);
-	public string? LocationID => GetText(283);
-	public string? DeskID => GetText(284);
-}
-
-/// <summary>FIX 4.4 CompIDStatGrpEntry field scope.</summary>
-public sealed class CompIDStatGrpEntry : FixFieldSet
-{
-	internal CompIDStatGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? RefCompID => GetText(930);
-	public string? RefSubID => GetText(931);
-	public string? LocationID => GetText(283);
-	public string? DeskID => GetText(284);
-	public FixNumber? StatusValue => GetNumber(928);
-	public string? StatusText => GetText(929);
-}
-
-/// <summary>FIX 4.4 ContAmtGrpEntry field scope.</summary>
-public sealed class ContAmtGrpEntry : FixFieldSet
-{
-	internal ContAmtGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? ContAmtType => GetNumber(519);
-	public FixNumber? ContAmtValue => GetNumber(520);
-	public string? ContAmtCurr => GetText(521);
-}
-
-/// <summary>FIX 4.4 ContraGrpEntry field scope.</summary>
-public sealed class ContraGrpEntry : FixFieldSet
-{
-	internal ContraGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? ContraBroker => GetText(375);
-	public string? ContraTrader => GetText(337);
-	public FixNumber? ContraTradeQty => GetNumber(437);
-	public string? ContraTradeTime => GetText(438);
-	public string? ContraLegRefID => GetText(655);
-}
-
-/// <summary>FIX 4.4 CpctyConfGrpEntry field scope.</summary>
-public sealed class CpctyConfGrpEntry : FixFieldSet
-{
-	internal CpctyConfGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? OrderCapacity => GetText(528);
-	public string? OrderRestrictions => GetText(529);
-	public FixNumber? OrderCapacityQty => GetNumber(863);
-}
-
-/// <summary>FIX 4.4 ExecAllocGrpEntry field scope.</summary>
-public sealed class ExecAllocGrpEntry : FixFieldSet
-{
-	internal ExecAllocGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? LastQty => GetNumber(32);
-	public string? ExecID => GetText(17);
-	public string? SecondaryExecID => GetText(527);
-	public FixNumber? LastPx => GetNumber(31);
-	public FixNumber? LastParPx => GetNumber(669);
-	public string? LastCapacity => GetText(29);
-}
-
-/// <summary>FIX 4.4 ExecCollGrpEntry field scope.</summary>
-public sealed class ExecCollGrpEntry : FixFieldSet
-{
-	internal ExecCollGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? ExecID => GetText(17);
-}
-
-/// <summary>FIX 4.4 ExecsGrpEntry field scope.</summary>
-public sealed class ExecsGrpEntry : FixFieldSet
-{
-	internal ExecsGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? ExecID => GetText(17);
-}
-
-/// <summary>FIX 4.4 InstrmtGrpEntry field scope.</summary>
-public sealed class InstrmtGrpEntry : FixFieldSet
-{
-	internal InstrmtGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-}
-
-/// <summary>FIX 4.4 InstrmtLegExecGrpEntry field scope.</summary>
-public sealed class InstrmtLegExecGrpEntry : FixFieldSet
-{
-	internal InstrmtLegExecGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public FixNumber? LegQty => GetNumber(687);
-	public FixNumber? LegSwapType => GetNumber(690);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-	public string? LegPositionEffect => GetText(564);
-	public FixNumber? LegCoveredOrUncovered => GetNumber(565);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public string? LegRefID => GetText(654);
-	public FixNumber? LegPrice => GetNumber(566);
-	public string? LegSettlType => GetText(587);
-	public string? LegSettlDate => GetText(588);
-	public FixNumber? LegLastPx => GetNumber(637);
-}
-
-/// <summary>FIX 4.4 InstrmtLegGrpEntry field scope.</summary>
-public sealed class InstrmtLegGrpEntry : FixFieldSet
-{
-	internal InstrmtLegGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-}
-
-/// <summary>FIX 4.4 InstrmtLegIOIGrpEntry field scope.</summary>
-public sealed class InstrmtLegIOIGrpEntry : FixFieldSet
-{
-	internal InstrmtLegIOIGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public string? LegIOIQty => GetText(682);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-}
-
-/// <summary>FIX 4.4 InstrmtLegSecListGrpEntry field scope.</summary>
-public sealed class InstrmtLegSecListGrpEntry : FixFieldSet
-{
-	internal InstrmtLegSecListGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public FixNumber? LegSwapType => GetNumber(690);
-	public string? LegSettlType => GetText(587);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-	public string? LegBenchmarkCurveCurrency => GetText(676);
-	public string? LegBenchmarkCurveName => GetText(677);
-	public string? LegBenchmarkCurvePoint => GetText(678);
-	public FixNumber? LegBenchmarkPrice => GetNumber(679);
-	public FixNumber? LegBenchmarkPriceType => GetNumber(680);
-}
-
-/// <summary>FIX 4.4 InstrmtMDReqGrpEntry field scope.</summary>
-public sealed class InstrmtMDReqGrpEntry : FixFieldSet
-{
-	internal InstrmtMDReqGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-}
-
-/// <summary>FIX 4.4 InstrmtStrkPxGrpEntry field scope.</summary>
-public sealed class InstrmtStrkPxGrpEntry : FixFieldSet
-{
-	internal InstrmtStrkPxGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-}
-
-/// <summary>FIX 4.4 IOIQualGrpEntry field scope.</summary>
-public sealed class IOIQualGrpEntry : FixFieldSet
-{
-	internal IOIQualGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? IOIQualifier => GetText(104);
-}
-
-/// <summary>FIX 4.4 LegOrdGrpEntry field scope.</summary>
-public sealed class LegOrdGrpEntry : FixFieldSet
-{
-	internal LegOrdGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public FixNumber? LegQty => GetNumber(687);
-	public FixNumber? LegSwapType => GetNumber(690);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-	public IReadOnlyList<LegPreAllocGrpEntry> LegPreAllocGrp => GetTypedGroup<LegPreAllocGrpEntry>(670);
-	public string? LegPositionEffect => GetText(564);
-	public FixNumber? LegCoveredOrUncovered => GetNumber(565);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public string? LegRefID => GetText(654);
-	public FixNumber? LegPrice => GetNumber(566);
-	public string? LegSettlType => GetText(587);
-	public string? LegSettlDate => GetText(588);
-}
-
-/// <summary>FIX 4.4 LegPreAllocGrpEntry field scope.</summary>
-public sealed class LegPreAllocGrpEntry : FixFieldSet
-{
-	internal LegPreAllocGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegAllocAccount => GetText(671);
-	public string? LegIndividualAllocID => GetText(672);
-	public IReadOnlyList<NestedParties2Entry> NestedParties2 => GetTypedGroup<NestedParties2Entry>(756);
-	public FixNumber? LegAllocQty => GetNumber(673);
-	public FixNumber? LegAllocAcctIDSource => GetNumber(674);
-	public string? LegSettlCurrency => GetText(675);
-}
-
-/// <summary>FIX 4.4 LegQuotGrpEntry field scope.</summary>
-public sealed class LegQuotGrpEntry : FixFieldSet
-{
-	internal LegQuotGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public FixNumber? LegQty => GetNumber(687);
-	public FixNumber? LegSwapType => GetNumber(690);
-	public string? LegSettlType => GetText(587);
-	public string? LegSettlDate => GetText(588);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public FixNumber? LegPriceType => GetNumber(686);
-	public FixNumber? LegBidPx => GetNumber(681);
-	public FixNumber? LegOfferPx => GetNumber(684);
-	public string? LegBenchmarkCurveCurrency => GetText(676);
-	public string? LegBenchmarkCurveName => GetText(677);
-	public string? LegBenchmarkCurvePoint => GetText(678);
-	public FixNumber? LegBenchmarkPrice => GetNumber(679);
-	public FixNumber? LegBenchmarkPriceType => GetNumber(680);
-}
-
-/// <summary>FIX 4.4 LegQuotStatGrpEntry field scope.</summary>
-public sealed class LegQuotStatGrpEntry : FixFieldSet
-{
-	internal LegQuotStatGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public FixNumber? LegQty => GetNumber(687);
-	public FixNumber? LegSwapType => GetNumber(690);
-	public string? LegSettlType => GetText(587);
-	public string? LegSettlDate => GetText(588);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-}
-
-/// <summary>FIX 4.4 LinesOfTextGrpEntry field scope.</summary>
-public sealed class LinesOfTextGrpEntry : FixFieldSet
-{
-	internal LinesOfTextGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 ListOrdGrpEntry field scope.</summary>
-public sealed class ListOrdGrpEntry : FixFieldSet
-{
-	internal ListOrdGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? ClOrdID => GetText(11);
-	public string? SecondaryClOrdID => GetText(526);
-	public FixNumber? ListSeqNo => GetNumber(67);
-	public string? ClOrdLinkID => GetText(583);
-	public string? SettlInstMode => GetText(160);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-	public string? TradeOriginationDate => GetText(229);
-	public string? TradeDate => GetText(75);
-	public string? Account => GetText(1);
-	public FixNumber? AcctIDSource => GetNumber(660);
-	public FixNumber? AccountType => GetNumber(581);
-	public string? DayBookingInst => GetText(589);
-	public string? BookingUnit => GetText(590);
-	public string? AllocID => GetText(70);
-	public string? PreallocMethod => GetText(591);
-	public IReadOnlyList<PreAllocGrpEntry> PreAllocGrp => GetTypedGroup<PreAllocGrpEntry>(78);
-	public string? SettlType => GetText(63);
-	public string? SettlDate => GetText(64);
-	public string? CashMargin => GetText(544);
-	public string? ClearingFeeIndicator => GetText(635);
-	public string? HandlInst => GetText(21);
-	public string? ExecInst => GetText(18);
-	public FixNumber? MinQty => GetNumber(110);
-	public FixNumber? MaxFloor => GetNumber(111);
-	public string? ExDestination => GetText(100);
-	public IReadOnlyList<TrdgSesGrpEntry> TrdgSesGrp => GetTypedGroup<TrdgSesGrpEntry>(386);
-	public string? ProcessCode => GetText(81);
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public FixNumber? PrevClosePx => GetNumber(140);
-	public string? Side => GetText(54);
-	public FixNumber? SideValueInd => GetNumber(401);
-	public string? LocateReqd => GetText(114);
-	public string? TransactTime => GetText(60);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
-	public FixNumber? QtyType => GetNumber(854);
-	public FixNumber? OrderQty => GetNumber(38);
-	public FixNumber? CashOrderQty => GetNumber(152);
-	public FixNumber? OrderPercent => GetNumber(516);
-	public string? RoundingDirection => GetText(468);
-	public FixNumber? RoundingModulus => GetNumber(469);
-	public string? OrdType => GetText(40);
-	public FixNumber? PriceType => GetNumber(423);
-	public FixNumber? Price => GetNumber(44);
-	public FixNumber? StopPx => GetNumber(99);
-	public FixNumber? Spread => GetNumber(218);
-	public string? BenchmarkCurveCurrency => GetText(220);
-	public string? BenchmarkCurveName => GetText(221);
-	public string? BenchmarkCurvePoint => GetText(222);
-	public FixNumber? BenchmarkPrice => GetNumber(662);
-	public FixNumber? BenchmarkPriceType => GetNumber(663);
-	public string? BenchmarkSecurityID => GetText(699);
-	public string? BenchmarkSecurityIDSource => GetText(761);
-	public string? YieldType => GetText(235);
-	public FixNumber? Yield => GetNumber(236);
-	public string? YieldCalcDate => GetText(701);
-	public string? YieldRedemptionDate => GetText(696);
-	public FixNumber? YieldRedemptionPrice => GetNumber(697);
-	public FixNumber? YieldRedemptionPriceType => GetNumber(698);
-	public string? Currency => GetText(15);
-	public string? ComplianceID => GetText(376);
-	public string? SolicitedFlag => GetText(377);
-	public string? IOIID => GetText(23);
-	public string? QuoteID => GetText(117);
-	public string? TimeInForce => GetText(59);
-	public string? EffectiveTime => GetText(168);
-	public string? ExpireDate => GetText(432);
-	public string? ExpireTime => GetText(126);
-	public FixNumber? GTBookingInst => GetNumber(427);
-	public FixNumber? Commission => GetNumber(12);
-	public string? CommType => GetText(13);
-	public string? CommCurrency => GetText(479);
-	public string? FundRenewWaiv => GetText(497);
-	public string? OrderCapacity => GetText(528);
-	public string? OrderRestrictions => GetText(529);
-	public FixNumber? CustOrderCapacity => GetNumber(582);
-	public string? ForexReq => GetText(121);
-	public string? SettlCurrency => GetText(120);
-	public FixNumber? BookingType => GetNumber(775);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-	public string? SettlDate2 => GetText(193);
-	public FixNumber? OrderQty2 => GetNumber(192);
-	public FixNumber? Price2 => GetNumber(640);
-	public string? PositionEffect => GetText(77);
-	public FixNumber? CoveredOrUncovered => GetNumber(203);
-	public FixNumber? MaxShow => GetNumber(210);
-	public FixNumber? PegOffsetValue => GetNumber(211);
-	public FixNumber? PegMoveType => GetNumber(835);
-	public FixNumber? PegOffsetType => GetNumber(836);
-	public FixNumber? PegLimitType => GetNumber(837);
-	public FixNumber? PegRoundDirection => GetNumber(838);
-	public FixNumber? PegScope => GetNumber(840);
-	public string? DiscretionInst => GetText(388);
-	public FixNumber? DiscretionOffsetValue => GetNumber(389);
-	public FixNumber? DiscretionMoveType => GetNumber(841);
-	public FixNumber? DiscretionOffsetType => GetNumber(842);
-	public FixNumber? DiscretionLimitType => GetNumber(843);
-	public FixNumber? DiscretionRoundDirection => GetNumber(844);
-	public FixNumber? DiscretionScope => GetNumber(846);
-	public FixNumber? TargetStrategy => GetNumber(847);
-	public string? TargetStrategyParameters => GetText(848);
-	public FixNumber? ParticipationRate => GetNumber(849);
-	public string? Designation => GetText(494);
-}
-
-/// <summary>FIX 4.4 MDFullGrpEntry field scope.</summary>
-public sealed class MDFullGrpEntry : FixFieldSet
-{
-	internal MDFullGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? MDEntryType => GetText(269);
-	public FixNumber? MDEntryPx => GetNumber(270);
-	public string? Currency => GetText(15);
-	public FixNumber? MDEntrySize => GetNumber(271);
-	public string? MDEntryDate => GetText(272);
-	public string? MDEntryTime => GetText(273);
-	public string? TickDirection => GetText(274);
-	public string? MDMkt => GetText(275);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? QuoteCondition => GetText(276);
-	public string? TradeCondition => GetText(277);
-	public string? MDEntryOriginator => GetText(282);
-	public string? LocationID => GetText(283);
-	public string? DeskID => GetText(284);
-	public string? OpenCloseSettlFlag => GetText(286);
-	public string? TimeInForce => GetText(59);
-	public string? ExpireDate => GetText(432);
-	public string? ExpireTime => GetText(126);
-	public FixNumber? MinQty => GetNumber(110);
-	public string? ExecInst => GetText(18);
-	public FixNumber? SellerDays => GetNumber(287);
-	public string? OrderID => GetText(37);
-	public string? QuoteEntryID => GetText(299);
-	public string? MDEntryBuyer => GetText(288);
-	public string? MDEntrySeller => GetText(289);
-	public FixNumber? NumberOfOrders => GetNumber(346);
-	public FixNumber? MDEntryPositionNo => GetNumber(290);
-	public string? Scope => GetText(546);
-	public FixNumber? PriceDelta => GetNumber(811);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 MDIncGrpEntry field scope.</summary>
-public sealed class MDIncGrpEntry : FixFieldSet
-{
-	internal MDIncGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? MDUpdateAction => GetText(279);
-	public string? DeleteReason => GetText(285);
-	public string? MDEntryType => GetText(269);
-	public string? MDEntryID => GetText(278);
-	public string? MDEntryRefID => GetText(280);
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public string? FinancialStatus => GetText(291);
-	public string? CorporateAction => GetText(292);
-	public FixNumber? MDEntryPx => GetNumber(270);
-	public string? Currency => GetText(15);
-	public FixNumber? MDEntrySize => GetNumber(271);
-	public string? MDEntryDate => GetText(272);
-	public string? MDEntryTime => GetText(273);
-	public string? TickDirection => GetText(274);
-	public string? MDMkt => GetText(275);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? QuoteCondition => GetText(276);
-	public string? TradeCondition => GetText(277);
-	public string? MDEntryOriginator => GetText(282);
-	public string? LocationID => GetText(283);
-	public string? DeskID => GetText(284);
-	public string? OpenCloseSettlFlag => GetText(286);
-	public string? TimeInForce => GetText(59);
-	public string? ExpireDate => GetText(432);
-	public string? ExpireTime => GetText(126);
-	public FixNumber? MinQty => GetNumber(110);
-	public string? ExecInst => GetText(18);
-	public FixNumber? SellerDays => GetNumber(287);
-	public string? OrderID => GetText(37);
-	public string? QuoteEntryID => GetText(299);
-	public string? MDEntryBuyer => GetText(288);
-	public string? MDEntrySeller => GetText(289);
-	public FixNumber? NumberOfOrders => GetNumber(346);
-	public FixNumber? MDEntryPositionNo => GetNumber(290);
-	public string? Scope => GetText(546);
-	public FixNumber? PriceDelta => GetNumber(811);
-	public FixNumber? NetChgPrevDay => GetNumber(451);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 MDReqGrpEntry field scope.</summary>
-public sealed class MDReqGrpEntry : FixFieldSet
-{
-	internal MDReqGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? MDEntryType => GetText(269);
-}
-
-/// <summary>FIX 4.4 MDRjctGrpEntry field scope.</summary>
-public sealed class MDRjctGrpEntry : FixFieldSet
-{
-	internal MDRjctGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? AltMDSourceID => GetText(817);
-}
-
-/// <summary>FIX 4.4 MiscFeesGrpEntry field scope.</summary>
-public sealed class MiscFeesGrpEntry : FixFieldSet
-{
-	internal MiscFeesGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? MiscFeeAmt => GetNumber(137);
-	public string? MiscFeeCurr => GetText(138);
-	public string? MiscFeeType => GetText(139);
-	public FixNumber? MiscFeeBasis => GetNumber(891);
-}
-
-/// <summary>FIX 4.4 OrdAllocGrpEntry field scope.</summary>
-public sealed class OrdAllocGrpEntry : FixFieldSet
-{
-	internal OrdAllocGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? ClOrdID => GetText(11);
-	public string? OrderID => GetText(37);
-	public string? SecondaryOrderID => GetText(198);
-	public string? SecondaryClOrdID => GetText(526);
-	public string? ListID => GetText(66);
-	public IReadOnlyList<NestedParties2Entry> NestedParties2 => GetTypedGroup<NestedParties2Entry>(756);
-	public FixNumber? OrderQty => GetNumber(38);
-	public FixNumber? OrderAvgPx => GetNumber(799);
-	public FixNumber? OrderBookingQty => GetNumber(800);
-}
-
-/// <summary>FIX 4.4 OrdListStatGrpEntry field scope.</summary>
-public sealed class OrdListStatGrpEntry : FixFieldSet
-{
-	internal OrdListStatGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? ClOrdID => GetText(11);
-	public string? SecondaryClOrdID => GetText(526);
-	public FixNumber? CumQty => GetNumber(14);
-	public string? OrdStatus => GetText(39);
-	public string? WorkingIndicator => GetText(636);
-	public FixNumber? LeavesQty => GetNumber(151);
-	public FixNumber? CxlQty => GetNumber(84);
-	public FixNumber? AvgPx => GetNumber(6);
-	public FixNumber? OrdRejReason => GetNumber(103);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 PosUndInstrmtGrpEntry field scope.</summary>
-public sealed class PosUndInstrmtGrpEntry : FixFieldSet
-{
-	internal PosUndInstrmtGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? UnderlyingSymbol => GetText(311);
-	public string? UnderlyingSymbolSfx => GetText(312);
-	public string? UnderlyingSecurityID => GetText(309);
-	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
-	public FixNumber? UnderlyingProduct => GetNumber(462);
-	public string? UnderlyingCFICode => GetText(463);
-	public string? UnderlyingSecurityType => GetText(310);
-	public string? UnderlyingSecuritySubType => GetText(763);
-	public string? UnderlyingMaturityMonthYear => GetText(313);
-	public string? UnderlyingMaturityDate => GetText(542);
-	public FixNumber? UnderlyingPutOrCall => GetNumber(315);
-	public string? UnderlyingCouponPaymentDate => GetText(241);
-	public string? UnderlyingIssueDate => GetText(242);
-	public string? UnderlyingRepoCollateralSecurityType => GetText(243);
-	public FixNumber? UnderlyingRepurchaseTerm => GetNumber(244);
-	public FixNumber? UnderlyingRepurchaseRate => GetNumber(245);
-	public FixNumber? UnderlyingFactor => GetNumber(246);
-	public string? UnderlyingCreditRating => GetText(256);
-	public string? UnderlyingInstrRegistry => GetText(595);
-	public string? UnderlyingCountryOfIssue => GetText(592);
-	public string? UnderlyingStateOrProvinceOfIssue => GetText(593);
-	public string? UnderlyingLocaleOfIssue => GetText(594);
-	public string? UnderlyingRedemptionDate => GetText(247);
-	public FixNumber? UnderlyingStrikePrice => GetNumber(316);
-	public string? UnderlyingStrikeCurrency => GetText(941);
-	public string? UnderlyingOptAttribute => GetText(317);
-	public FixNumber? UnderlyingContractMultiplier => GetNumber(436);
-	public FixNumber? UnderlyingCouponRate => GetNumber(435);
-	public string? UnderlyingSecurityExchange => GetText(308);
-	public string? UnderlyingIssuer => GetText(306);
-	public FixNumber? EncodedUnderlyingIssuerLen => GetNumber(362);
-	public string? EncodedUnderlyingIssuer => GetText(363);
-	public string? UnderlyingSecurityDesc => GetText(307);
-	public FixNumber? EncodedUnderlyingSecurityDescLen => GetNumber(364);
-	public string? EncodedUnderlyingSecurityDesc => GetText(365);
-	public string? UnderlyingCPProgram => GetText(877);
-	public string? UnderlyingCPRegType => GetText(878);
-	public string? UnderlyingCurrency => GetText(318);
-	public FixNumber? UnderlyingQty => GetNumber(879);
-	public FixNumber? UnderlyingPx => GetNumber(810);
-	public FixNumber? UnderlyingDirtyPrice => GetNumber(882);
-	public FixNumber? UnderlyingEndPrice => GetNumber(883);
-	public FixNumber? UnderlyingStartValue => GetNumber(884);
-	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
-	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
-	public FixNumber? UnderlyingSettlPrice => GetNumber(732);
-	public FixNumber? UnderlyingSettlPriceType => GetNumber(733);
-}
-
-/// <summary>FIX 4.4 PreAllocGrpEntry field scope.</summary>
-public sealed class PreAllocGrpEntry : FixFieldSet
-{
-	internal PreAllocGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? AllocAccount => GetText(79);
-	public FixNumber? AllocAcctIDSource => GetNumber(661);
-	public string? AllocSettlCurrency => GetText(736);
-	public string? IndividualAllocID => GetText(467);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public FixNumber? AllocQty => GetNumber(80);
-}
-
-/// <summary>FIX 4.4 PreAllocMlegGrpEntry field scope.</summary>
-public sealed class PreAllocMlegGrpEntry : FixFieldSet
-{
-	internal PreAllocMlegGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? AllocAccount => GetText(79);
-	public FixNumber? AllocAcctIDSource => GetNumber(661);
-	public string? AllocSettlCurrency => GetText(736);
-	public string? IndividualAllocID => GetText(467);
-	public IReadOnlyList<NestedParties3Entry> NestedParties3 => GetTypedGroup<NestedParties3Entry>(948);
-	public FixNumber? AllocQty => GetNumber(80);
-}
-
-/// <summary>FIX 4.4 QuotCxlEntriesGrpEntry field scope.</summary>
-public sealed class QuotCxlEntriesGrpEntry : FixFieldSet
-{
-	internal QuotCxlEntriesGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public string? AgreementDesc => GetText(913);
-	public string? AgreementID => GetText(914);
-	public string? AgreementDate => GetText(915);
-	public string? AgreementCurrency => GetText(918);
-	public FixNumber? TerminationType => GetNumber(788);
-	public string? StartDate => GetText(916);
-	public string? EndDate => GetText(917);
-	public FixNumber? DeliveryType => GetNumber(919);
-	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-}
-
-/// <summary>FIX 4.4 QuotEntryAckGrpEntry field scope.</summary>
-public sealed class QuotEntryAckGrpEntry : FixFieldSet
-{
-	internal QuotEntryAckGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? QuoteEntryID => GetText(299);
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public FixNumber? BidPx => GetNumber(132);
-	public FixNumber? OfferPx => GetNumber(133);
-	public FixNumber? BidSize => GetNumber(134);
-	public FixNumber? OfferSize => GetNumber(135);
-	public string? ValidUntilTime => GetText(62);
-	public FixNumber? BidSpotRate => GetNumber(188);
-	public FixNumber? OfferSpotRate => GetNumber(190);
-	public FixNumber? BidForwardPoints => GetNumber(189);
-	public FixNumber? OfferForwardPoints => GetNumber(191);
-	public FixNumber? MidPx => GetNumber(631);
-	public FixNumber? BidYield => GetNumber(632);
-	public FixNumber? MidYield => GetNumber(633);
-	public FixNumber? OfferYield => GetNumber(634);
-	public string? TransactTime => GetText(60);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? SettlDate => GetText(64);
-	public string? OrdType => GetText(40);
-	public string? SettlDate2 => GetText(193);
-	public FixNumber? OrderQty2 => GetNumber(192);
-	public FixNumber? BidForwardPoints2 => GetNumber(642);
-	public FixNumber? OfferForwardPoints2 => GetNumber(643);
-	public string? Currency => GetText(15);
-	public FixNumber? QuoteEntryRejectReason => GetNumber(368);
-}
-
-/// <summary>FIX 4.4 QuotEntryGrpEntry field scope.</summary>
-public sealed class QuotEntryGrpEntry : FixFieldSet
-{
-	internal QuotEntryGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? QuoteEntryID => GetText(299);
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public FixNumber? BidPx => GetNumber(132);
-	public FixNumber? OfferPx => GetNumber(133);
-	public FixNumber? BidSize => GetNumber(134);
-	public FixNumber? OfferSize => GetNumber(135);
-	public string? ValidUntilTime => GetText(62);
-	public FixNumber? BidSpotRate => GetNumber(188);
-	public FixNumber? OfferSpotRate => GetNumber(190);
-	public FixNumber? BidForwardPoints => GetNumber(189);
-	public FixNumber? OfferForwardPoints => GetNumber(191);
-	public FixNumber? MidPx => GetNumber(631);
-	public FixNumber? BidYield => GetNumber(632);
-	public FixNumber? MidYield => GetNumber(633);
-	public FixNumber? OfferYield => GetNumber(634);
-	public string? TransactTime => GetText(60);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? SettlDate => GetText(64);
-	public string? OrdType => GetText(40);
-	public string? SettlDate2 => GetText(193);
-	public FixNumber? OrderQty2 => GetNumber(192);
-	public FixNumber? BidForwardPoints2 => GetNumber(642);
-	public FixNumber? OfferForwardPoints2 => GetNumber(643);
-	public string? Currency => GetText(15);
-}
-
-/// <summary>FIX 4.4 QuotQualGrpEntry field scope.</summary>
-public sealed class QuotQualGrpEntry : FixFieldSet
-{
-	internal QuotQualGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? QuoteQualifier => GetText(695);
-}
-
-/// <summary>FIX 4.4 QuotReqGrpEntry field scope.</summary>
-public sealed class QuotReqGrpEntry : FixFieldSet
-{
-	internal QuotReqGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public string? AgreementDesc => GetText(913);
-	public string? AgreementID => GetText(914);
-	public string? AgreementDate => GetText(915);
-	public string? AgreementCurrency => GetText(918);
-	public FixNumber? TerminationType => GetNumber(788);
-	public string? StartDate => GetText(916);
-	public string? EndDate => GetText(917);
-	public FixNumber? DeliveryType => GetNumber(919);
-	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public FixNumber? PrevClosePx => GetNumber(140);
-	public FixNumber? QuoteRequestType => GetNumber(303);
-	public FixNumber? QuoteType => GetNumber(537);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? TradeOriginationDate => GetText(229);
-	public string? Side => GetText(54);
-	public FixNumber? QtyType => GetNumber(854);
-	public FixNumber? OrderQty => GetNumber(38);
-	public FixNumber? CashOrderQty => GetNumber(152);
-	public FixNumber? OrderPercent => GetNumber(516);
-	public string? RoundingDirection => GetText(468);
-	public FixNumber? RoundingModulus => GetNumber(469);
-	public string? SettlType => GetText(63);
-	public string? SettlDate => GetText(64);
-	public string? SettlDate2 => GetText(193);
-	public FixNumber? OrderQty2 => GetNumber(192);
-	public string? Currency => GetText(15);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
-	public string? Account => GetText(1);
-	public FixNumber? AcctIDSource => GetNumber(660);
-	public FixNumber? AccountType => GetNumber(581);
-	public IReadOnlyList<QuotReqLegsGrpEntry> QuotReqLegsGrp => GetTypedGroup<QuotReqLegsGrpEntry>(555);
-	public IReadOnlyList<QuotQualGrpEntry> QuotQualGrp => GetTypedGroup<QuotQualGrpEntry>(735);
-	public FixNumber? QuotePriceType => GetNumber(692);
-	public string? OrdType => GetText(40);
-	public string? ValidUntilTime => GetText(62);
-	public string? ExpireTime => GetText(126);
-	public string? TransactTime => GetText(60);
-	public FixNumber? Spread => GetNumber(218);
-	public string? BenchmarkCurveCurrency => GetText(220);
-	public string? BenchmarkCurveName => GetText(221);
-	public string? BenchmarkCurvePoint => GetText(222);
-	public FixNumber? BenchmarkPrice => GetNumber(662);
-	public FixNumber? BenchmarkPriceType => GetNumber(663);
-	public string? BenchmarkSecurityID => GetText(699);
-	public string? BenchmarkSecurityIDSource => GetText(761);
-	public FixNumber? PriceType => GetNumber(423);
-	public FixNumber? Price => GetNumber(44);
-	public FixNumber? Price2 => GetNumber(640);
-	public string? YieldType => GetText(235);
-	public FixNumber? Yield => GetNumber(236);
-	public string? YieldCalcDate => GetText(701);
-	public string? YieldRedemptionDate => GetText(696);
-	public FixNumber? YieldRedemptionPrice => GetNumber(697);
-	public FixNumber? YieldRedemptionPriceType => GetNumber(698);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-}
-
-/// <summary>FIX 4.4 QuotReqLegsGrpEntry field scope.</summary>
-public sealed class QuotReqLegsGrpEntry : FixFieldSet
-{
-	internal QuotReqLegsGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public FixNumber? LegQty => GetNumber(687);
-	public FixNumber? LegSwapType => GetNumber(690);
-	public string? LegSettlType => GetText(587);
-	public string? LegSettlDate => GetText(588);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public string? LegBenchmarkCurveCurrency => GetText(676);
-	public string? LegBenchmarkCurveName => GetText(677);
-	public string? LegBenchmarkCurvePoint => GetText(678);
-	public FixNumber? LegBenchmarkPrice => GetNumber(679);
-	public FixNumber? LegBenchmarkPriceType => GetNumber(680);
-}
-
-/// <summary>FIX 4.4 QuotReqRjctGrpEntry field scope.</summary>
-public sealed class QuotReqRjctGrpEntry : FixFieldSet
-{
-	internal QuotReqRjctGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public string? AgreementDesc => GetText(913);
-	public string? AgreementID => GetText(914);
-	public string? AgreementDate => GetText(915);
-	public string? AgreementCurrency => GetText(918);
-	public FixNumber? TerminationType => GetNumber(788);
-	public string? StartDate => GetText(916);
-	public string? EndDate => GetText(917);
-	public FixNumber? DeliveryType => GetNumber(919);
-	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public FixNumber? PrevClosePx => GetNumber(140);
-	public FixNumber? QuoteRequestType => GetNumber(303);
-	public FixNumber? QuoteType => GetNumber(537);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? TradeOriginationDate => GetText(229);
-	public string? Side => GetText(54);
-	public FixNumber? QtyType => GetNumber(854);
-	public FixNumber? OrderQty => GetNumber(38);
-	public FixNumber? CashOrderQty => GetNumber(152);
-	public FixNumber? OrderPercent => GetNumber(516);
-	public string? RoundingDirection => GetText(468);
-	public FixNumber? RoundingModulus => GetNumber(469);
-	public string? SettlType => GetText(63);
-	public string? SettlDate => GetText(64);
-	public string? SettlDate2 => GetText(193);
-	public FixNumber? OrderQty2 => GetNumber(192);
-	public string? Currency => GetText(15);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
-	public string? Account => GetText(1);
-	public FixNumber? AcctIDSource => GetNumber(660);
-	public FixNumber? AccountType => GetNumber(581);
-	public IReadOnlyList<QuotReqLegsGrpEntry> QuotReqLegsGrp => GetTypedGroup<QuotReqLegsGrpEntry>(555);
-	public IReadOnlyList<QuotQualGrpEntry> QuotQualGrp => GetTypedGroup<QuotQualGrpEntry>(735);
-	public FixNumber? QuotePriceType => GetNumber(692);
-	public string? OrdType => GetText(40);
-	public string? ExpireTime => GetText(126);
-	public string? TransactTime => GetText(60);
-	public FixNumber? Spread => GetNumber(218);
-	public string? BenchmarkCurveCurrency => GetText(220);
-	public string? BenchmarkCurveName => GetText(221);
-	public string? BenchmarkCurvePoint => GetText(222);
-	public FixNumber? BenchmarkPrice => GetNumber(662);
-	public FixNumber? BenchmarkPriceType => GetNumber(663);
-	public string? BenchmarkSecurityID => GetText(699);
-	public string? BenchmarkSecurityIDSource => GetText(761);
-	public FixNumber? PriceType => GetNumber(423);
-	public FixNumber? Price => GetNumber(44);
-	public FixNumber? Price2 => GetNumber(640);
-	public string? YieldType => GetText(235);
-	public FixNumber? Yield => GetNumber(236);
-	public string? YieldCalcDate => GetText(701);
-	public string? YieldRedemptionDate => GetText(696);
-	public FixNumber? YieldRedemptionPrice => GetNumber(697);
-	public FixNumber? YieldRedemptionPriceType => GetNumber(698);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-}
-
-/// <summary>FIX 4.4 QuotSetAckGrpEntry field scope.</summary>
-public sealed class QuotSetAckGrpEntry : FixFieldSet
-{
-	internal QuotSetAckGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? QuoteSetID => GetText(302);
-	public string? UnderlyingSymbol => GetText(311);
-	public string? UnderlyingSymbolSfx => GetText(312);
-	public string? UnderlyingSecurityID => GetText(309);
-	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
-	public FixNumber? UnderlyingProduct => GetNumber(462);
-	public string? UnderlyingCFICode => GetText(463);
-	public string? UnderlyingSecurityType => GetText(310);
-	public string? UnderlyingSecuritySubType => GetText(763);
-	public string? UnderlyingMaturityMonthYear => GetText(313);
-	public string? UnderlyingMaturityDate => GetText(542);
-	public FixNumber? UnderlyingPutOrCall => GetNumber(315);
-	public string? UnderlyingCouponPaymentDate => GetText(241);
-	public string? UnderlyingIssueDate => GetText(242);
-	public string? UnderlyingRepoCollateralSecurityType => GetText(243);
-	public FixNumber? UnderlyingRepurchaseTerm => GetNumber(244);
-	public FixNumber? UnderlyingRepurchaseRate => GetNumber(245);
-	public FixNumber? UnderlyingFactor => GetNumber(246);
-	public string? UnderlyingCreditRating => GetText(256);
-	public string? UnderlyingInstrRegistry => GetText(595);
-	public string? UnderlyingCountryOfIssue => GetText(592);
-	public string? UnderlyingStateOrProvinceOfIssue => GetText(593);
-	public string? UnderlyingLocaleOfIssue => GetText(594);
-	public string? UnderlyingRedemptionDate => GetText(247);
-	public FixNumber? UnderlyingStrikePrice => GetNumber(316);
-	public string? UnderlyingStrikeCurrency => GetText(941);
-	public string? UnderlyingOptAttribute => GetText(317);
-	public FixNumber? UnderlyingContractMultiplier => GetNumber(436);
-	public FixNumber? UnderlyingCouponRate => GetNumber(435);
-	public string? UnderlyingSecurityExchange => GetText(308);
-	public string? UnderlyingIssuer => GetText(306);
-	public FixNumber? EncodedUnderlyingIssuerLen => GetNumber(362);
-	public string? EncodedUnderlyingIssuer => GetText(363);
-	public string? UnderlyingSecurityDesc => GetText(307);
-	public FixNumber? EncodedUnderlyingSecurityDescLen => GetNumber(364);
-	public string? EncodedUnderlyingSecurityDesc => GetText(365);
-	public string? UnderlyingCPProgram => GetText(877);
-	public string? UnderlyingCPRegType => GetText(878);
-	public string? UnderlyingCurrency => GetText(318);
-	public FixNumber? UnderlyingQty => GetNumber(879);
-	public FixNumber? UnderlyingPx => GetNumber(810);
-	public FixNumber? UnderlyingDirtyPrice => GetNumber(882);
-	public FixNumber? UnderlyingEndPrice => GetNumber(883);
-	public FixNumber? UnderlyingStartValue => GetNumber(884);
-	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
-	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
-	public FixNumber? TotNoQuoteEntries => GetNumber(304);
-	public string? LastFragment => GetText(893);
-	public IReadOnlyList<QuotEntryAckGrpEntry> QuotEntryAckGrp => GetTypedGroup<QuotEntryAckGrpEntry>(295);
-}
-
-/// <summary>FIX 4.4 QuotSetGrpEntry field scope.</summary>
-public sealed class QuotSetGrpEntry : FixFieldSet
-{
-	internal QuotSetGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? QuoteSetID => GetText(302);
-	public string? UnderlyingSymbol => GetText(311);
-	public string? UnderlyingSymbolSfx => GetText(312);
-	public string? UnderlyingSecurityID => GetText(309);
-	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
-	public FixNumber? UnderlyingProduct => GetNumber(462);
-	public string? UnderlyingCFICode => GetText(463);
-	public string? UnderlyingSecurityType => GetText(310);
-	public string? UnderlyingSecuritySubType => GetText(763);
-	public string? UnderlyingMaturityMonthYear => GetText(313);
-	public string? UnderlyingMaturityDate => GetText(542);
-	public FixNumber? UnderlyingPutOrCall => GetNumber(315);
-	public string? UnderlyingCouponPaymentDate => GetText(241);
-	public string? UnderlyingIssueDate => GetText(242);
-	public string? UnderlyingRepoCollateralSecurityType => GetText(243);
-	public FixNumber? UnderlyingRepurchaseTerm => GetNumber(244);
-	public FixNumber? UnderlyingRepurchaseRate => GetNumber(245);
-	public FixNumber? UnderlyingFactor => GetNumber(246);
-	public string? UnderlyingCreditRating => GetText(256);
-	public string? UnderlyingInstrRegistry => GetText(595);
-	public string? UnderlyingCountryOfIssue => GetText(592);
-	public string? UnderlyingStateOrProvinceOfIssue => GetText(593);
-	public string? UnderlyingLocaleOfIssue => GetText(594);
-	public string? UnderlyingRedemptionDate => GetText(247);
-	public FixNumber? UnderlyingStrikePrice => GetNumber(316);
-	public string? UnderlyingStrikeCurrency => GetText(941);
-	public string? UnderlyingOptAttribute => GetText(317);
-	public FixNumber? UnderlyingContractMultiplier => GetNumber(436);
-	public FixNumber? UnderlyingCouponRate => GetNumber(435);
-	public string? UnderlyingSecurityExchange => GetText(308);
-	public string? UnderlyingIssuer => GetText(306);
-	public FixNumber? EncodedUnderlyingIssuerLen => GetNumber(362);
-	public string? EncodedUnderlyingIssuer => GetText(363);
-	public string? UnderlyingSecurityDesc => GetText(307);
-	public FixNumber? EncodedUnderlyingSecurityDescLen => GetNumber(364);
-	public string? EncodedUnderlyingSecurityDesc => GetText(365);
-	public string? UnderlyingCPProgram => GetText(877);
-	public string? UnderlyingCPRegType => GetText(878);
-	public string? UnderlyingCurrency => GetText(318);
-	public FixNumber? UnderlyingQty => GetNumber(879);
-	public FixNumber? UnderlyingPx => GetNumber(810);
-	public FixNumber? UnderlyingDirtyPrice => GetNumber(882);
-	public FixNumber? UnderlyingEndPrice => GetNumber(883);
-	public FixNumber? UnderlyingStartValue => GetNumber(884);
-	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
-	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
-	public string? QuoteSetValidUntilTime => GetText(367);
-	public FixNumber? TotNoQuoteEntries => GetNumber(304);
-	public string? LastFragment => GetText(893);
-	public IReadOnlyList<QuotEntryGrpEntry> QuotEntryGrp => GetTypedGroup<QuotEntryGrpEntry>(295);
-}
-
-/// <summary>FIX 4.4 RelSymDerivSecGrpEntry field scope.</summary>
-public sealed class RelSymDerivSecGrpEntry : FixFieldSet
-{
-	internal RelSymDerivSecGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public string? Currency => GetText(15);
-	public FixNumber? ExpirationCycle => GetNumber(827);
-	public FixNumber? DeliveryForm => GetNumber(668);
-	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 RFQReqGrpEntry field scope.</summary>
-public sealed class RFQReqGrpEntry : FixFieldSet
-{
-	internal RFQReqGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public IReadOnlyList<InstrmtLegGrpEntry> InstrmtLegGrp => GetTypedGroup<InstrmtLegGrpEntry>(555);
-	public FixNumber? PrevClosePx => GetNumber(140);
-	public FixNumber? QuoteRequestType => GetNumber(303);
-	public FixNumber? QuoteType => GetNumber(537);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-}
-
-/// <summary>FIX 4.4 RgstDistInstGrpEntry field scope.</summary>
-public sealed class RgstDistInstGrpEntry : FixFieldSet
-{
-	internal RgstDistInstGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? DistribPaymentMethod => GetNumber(477);
-	public FixNumber? DistribPercentage => GetNumber(512);
-	public string? CashDistribCurr => GetText(478);
-	public string? CashDistribAgentName => GetText(498);
-	public string? CashDistribAgentCode => GetText(499);
-	public string? CashDistribAgentAcctNumber => GetText(500);
-	public string? CashDistribPayRef => GetText(501);
-	public string? CashDistribAgentAcctName => GetText(502);
-}
-
-/// <summary>FIX 4.4 RgstDtlsGrpEntry field scope.</summary>
-public sealed class RgstDtlsGrpEntry : FixFieldSet
-{
-	internal RgstDtlsGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? RegistDtls => GetText(509);
-	public string? RegistEmail => GetText(511);
-	public string? MailingDtls => GetText(474);
-	public string? MailingInst => GetText(482);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public FixNumber? OwnerType => GetNumber(522);
-	public string? DateOfBirth => GetText(486);
-	public string? InvestorCountryOfResidence => GetText(475);
-}
-
-/// <summary>FIX 4.4 RoutingGrpEntry field scope.</summary>
-public sealed class RoutingGrpEntry : FixFieldSet
-{
-	internal RoutingGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? RoutingType => GetNumber(216);
-	public string? RoutingID => GetText(217);
-}
-
-/// <summary>FIX 4.4 SecListGrpEntry field scope.</summary>
-public sealed class SecListGrpEntry : FixFieldSet
-{
-	internal SecListGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Symbol => GetText(55);
-	public string? SymbolSfx => GetText(65);
-	public string? SecurityID => GetText(48);
-	public string? SecurityIDSource => GetText(22);
-	public IReadOnlyList<SecAltIDGrpEntry> SecAltIDGrp => GetTypedGroup<SecAltIDGrpEntry>(454);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public string? MaturityMonthYear => GetText(200);
-	public string? MaturityDate => GetText(541);
-	public FixNumber? PutOrCall => GetNumber(201);
-	public string? CouponPaymentDate => GetText(224);
-	public string? IssueDate => GetText(225);
-	public string? RepoCollateralSecurityType => GetText(239);
-	public FixNumber? RepurchaseTerm => GetNumber(226);
-	public FixNumber? RepurchaseRate => GetNumber(227);
-	public FixNumber? Factor => GetNumber(228);
-	public string? CreditRating => GetText(255);
-	public string? InstrRegistry => GetText(543);
-	public string? CountryOfIssue => GetText(470);
-	public string? StateOrProvinceOfIssue => GetText(471);
-	public string? LocaleOfIssue => GetText(472);
-	public string? RedemptionDate => GetText(240);
-	public FixNumber? StrikePrice => GetNumber(202);
-	public string? StrikeCurrency => GetText(947);
-	public string? OptAttribute => GetText(206);
-	public FixNumber? ContractMultiplier => GetNumber(231);
-	public FixNumber? CouponRate => GetNumber(223);
-	public string? SecurityExchange => GetText(207);
-	public string? Issuer => GetText(106);
-	public FixNumber? EncodedIssuerLen => GetNumber(348);
-	public string? EncodedIssuer => GetText(349);
-	public string? SecurityDesc => GetText(107);
-	public FixNumber? EncodedSecurityDescLen => GetNumber(350);
-	public string? EncodedSecurityDesc => GetText(351);
-	public string? Pool => GetText(691);
-	public string? ContractSettlMonth => GetText(667);
-	public FixNumber? CPProgram => GetNumber(875);
-	public string? CPRegType => GetText(876);
-	public IReadOnlyList<EvntGrpEntry> EvntGrp => GetTypedGroup<EvntGrpEntry>(864);
-	public string? DatedDate => GetText(873);
-	public string? InterestAccrualDate => GetText(874);
-	public FixNumber? DeliveryForm => GetNumber(668);
-	public FixNumber? PctAtRisk => GetNumber(869);
-	public IReadOnlyList<AttrbGrpEntry> AttrbGrp => GetTypedGroup<AttrbGrpEntry>(870);
-	public string? AgreementDesc => GetText(913);
-	public string? AgreementID => GetText(914);
-	public string? AgreementDate => GetText(915);
-	public string? AgreementCurrency => GetText(918);
-	public FixNumber? TerminationType => GetNumber(788);
-	public string? StartDate => GetText(916);
-	public string? EndDate => GetText(917);
-	public FixNumber? DeliveryType => GetNumber(919);
-	public FixNumber? MarginRatio => GetNumber(898);
-	public IReadOnlyList<UndInstrmtGrpEntry> UndInstrmtGrp => GetTypedGroup<UndInstrmtGrpEntry>(711);
-	public string? Currency => GetText(15);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
-	public IReadOnlyList<InstrmtLegSecListGrpEntry> InstrmtLegSecListGrp => GetTypedGroup<InstrmtLegSecListGrpEntry>(555);
-	public FixNumber? Spread => GetNumber(218);
-	public string? BenchmarkCurveCurrency => GetText(220);
-	public string? BenchmarkCurveName => GetText(221);
-	public string? BenchmarkCurvePoint => GetText(222);
-	public FixNumber? BenchmarkPrice => GetNumber(662);
-	public FixNumber? BenchmarkPriceType => GetNumber(663);
-	public string? BenchmarkSecurityID => GetText(699);
-	public string? BenchmarkSecurityIDSource => GetText(761);
-	public string? YieldType => GetText(235);
-	public FixNumber? Yield => GetNumber(236);
-	public string? YieldCalcDate => GetText(701);
-	public string? YieldRedemptionDate => GetText(696);
-	public FixNumber? YieldRedemptionPrice => GetNumber(697);
-	public FixNumber? YieldRedemptionPriceType => GetNumber(698);
-	public FixNumber? RoundLot => GetNumber(561);
-	public FixNumber? MinTradeVol => GetNumber(562);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public FixNumber? ExpirationCycle => GetNumber(827);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 SecTypesGrpEntry field scope.</summary>
-public sealed class SecTypesGrpEntry : FixFieldSet
-{
-	internal SecTypesGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? SecurityType => GetText(167);
-	public string? SecuritySubType => GetText(762);
-	public FixNumber? Product => GetNumber(460);
-	public string? CFICode => GetText(461);
-}
-
-/// <summary>FIX 4.4 SettlInstGrpEntry field scope.</summary>
-public sealed class SettlInstGrpEntry : FixFieldSet
-{
-	internal SettlInstGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? SettlInstID => GetText(162);
-	public string? SettlInstTransType => GetText(163);
-	public string? SettlInstRefID => GetText(214);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-	public string? Side => GetText(54);
-	public FixNumber? Product => GetNumber(460);
-	public string? SecurityType => GetText(167);
-	public string? CFICode => GetText(461);
-	public string? EffectiveTime => GetText(168);
-	public string? ExpireTime => GetText(126);
-	public string? LastUpdateTime => GetText(779);
-	public FixNumber? SettlDeliveryType => GetNumber(172);
-	public FixNumber? StandInstDbType => GetNumber(169);
-	public string? StandInstDbName => GetText(170);
-	public string? StandInstDbID => GetText(171);
-	public IReadOnlyList<DlvyInstGrpEntry> DlvyInstGrp => GetTypedGroup<DlvyInstGrpEntry>(85);
-	public FixNumber? PaymentMethod => GetNumber(492);
-	public string? PaymentRef => GetText(476);
-	public string? CardHolderName => GetText(488);
-	public string? CardNumber => GetText(489);
-	public string? CardStartDate => GetText(503);
-	public string? CardExpDate => GetText(490);
-	public string? CardIssNum => GetText(491);
-	public string? PaymentDate => GetText(504);
-	public string? PaymentRemitterID => GetText(505);
-}
-
-/// <summary>FIX 4.4 SideCrossOrdCxlGrpEntry field scope.</summary>
-public sealed class SideCrossOrdCxlGrpEntry : FixFieldSet
-{
-	internal SideCrossOrdCxlGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Side => GetText(54);
-	public string? OrigClOrdID => GetText(41);
-	public string? ClOrdID => GetText(11);
-	public string? SecondaryClOrdID => GetText(526);
-	public string? ClOrdLinkID => GetText(583);
-	public string? OrigOrdModTime => GetText(586);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-	public string? TradeOriginationDate => GetText(229);
-	public string? TradeDate => GetText(75);
-	public FixNumber? OrderQty => GetNumber(38);
-	public FixNumber? CashOrderQty => GetNumber(152);
-	public FixNumber? OrderPercent => GetNumber(516);
-	public string? RoundingDirection => GetText(468);
-	public FixNumber? RoundingModulus => GetNumber(469);
-	public string? ComplianceID => GetText(376);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 SideCrossOrdModGrpEntry field scope.</summary>
-public sealed class SideCrossOrdModGrpEntry : FixFieldSet
-{
-	internal SideCrossOrdModGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Side => GetText(54);
-	public string? ClOrdID => GetText(11);
-	public string? SecondaryClOrdID => GetText(526);
-	public string? ClOrdLinkID => GetText(583);
-	public string? OrigOrdModTime => GetText(586);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-	public string? TradeOriginationDate => GetText(229);
-	public string? TradeDate => GetText(75);
-	public string? Account => GetText(1);
-	public FixNumber? AcctIDSource => GetNumber(660);
-	public FixNumber? AccountType => GetNumber(581);
-	public string? DayBookingInst => GetText(589);
-	public string? BookingUnit => GetText(590);
-	public string? PreallocMethod => GetText(591);
-	public string? AllocID => GetText(70);
-	public IReadOnlyList<PreAllocGrpEntry> PreAllocGrp => GetTypedGroup<PreAllocGrpEntry>(78);
-	public FixNumber? QtyType => GetNumber(854);
-	public FixNumber? OrderQty => GetNumber(38);
-	public FixNumber? CashOrderQty => GetNumber(152);
-	public FixNumber? OrderPercent => GetNumber(516);
-	public string? RoundingDirection => GetText(468);
-	public FixNumber? RoundingModulus => GetNumber(469);
-	public FixNumber? Commission => GetNumber(12);
-	public string? CommType => GetText(13);
-	public string? CommCurrency => GetText(479);
-	public string? FundRenewWaiv => GetText(497);
-	public string? OrderCapacity => GetText(528);
-	public string? OrderRestrictions => GetText(529);
-	public FixNumber? CustOrderCapacity => GetNumber(582);
-	public string? ForexReq => GetText(121);
-	public string? SettlCurrency => GetText(120);
-	public FixNumber? BookingType => GetNumber(775);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-	public string? PositionEffect => GetText(77);
-	public FixNumber? CoveredOrUncovered => GetNumber(203);
-	public string? CashMargin => GetText(544);
-	public string? ClearingFeeIndicator => GetText(635);
-	public string? SolicitedFlag => GetText(377);
-	public string? SideComplianceID => GetText(659);
-}
-
-/// <summary>FIX 4.4 TrdAllocGrpEntry field scope.</summary>
-public sealed class TrdAllocGrpEntry : FixFieldSet
-{
-	internal TrdAllocGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? AllocAccount => GetText(79);
-	public FixNumber? AllocAcctIDSource => GetNumber(661);
-	public string? AllocSettlCurrency => GetText(736);
-	public string? IndividualAllocID => GetText(467);
-	public IReadOnlyList<NestedParties2Entry> NestedParties2 => GetTypedGroup<NestedParties2Entry>(756);
-	public FixNumber? AllocQty => GetNumber(80);
-}
-
-/// <summary>FIX 4.4 TrdCapRptSideGrpEntry field scope.</summary>
-public sealed class TrdCapRptSideGrpEntry : FixFieldSet
-{
-	internal TrdCapRptSideGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Side => GetText(54);
-	public string? OrderID => GetText(37);
-	public string? SecondaryOrderID => GetText(198);
-	public string? ClOrdID => GetText(11);
-	public string? SecondaryClOrdID => GetText(526);
-	public string? ListID => GetText(66);
-	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
-	public string? Account => GetText(1);
-	public FixNumber? AcctIDSource => GetNumber(660);
-	public FixNumber? AccountType => GetNumber(581);
-	public string? ProcessCode => GetText(81);
-	public string? OddLot => GetText(575);
-	public IReadOnlyList<ClrInstGrpEntry> ClrInstGrp => GetTypedGroup<ClrInstGrpEntry>(576);
-	public string? ClearingFeeIndicator => GetText(635);
-	public string? TradeInputSource => GetText(578);
-	public string? TradeInputDevice => GetText(579);
-	public string? OrderInputDevice => GetText(821);
-	public string? Currency => GetText(15);
-	public string? ComplianceID => GetText(376);
-	public string? SolicitedFlag => GetText(377);
-	public string? OrderCapacity => GetText(528);
-	public string? OrderRestrictions => GetText(529);
-	public FixNumber? CustOrderCapacity => GetNumber(582);
-	public string? OrdType => GetText(40);
-	public string? ExecInst => GetText(18);
-	public string? TransBkdTime => GetText(483);
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-	public string? TimeBracket => GetText(943);
-	public FixNumber? Commission => GetNumber(12);
-	public string? CommType => GetText(13);
-	public string? CommCurrency => GetText(479);
-	public string? FundRenewWaiv => GetText(497);
-	public FixNumber? GrossTradeAmt => GetNumber(381);
-	public FixNumber? NumDaysInterest => GetNumber(157);
-	public string? ExDate => GetText(230);
-	public FixNumber? AccruedInterestRate => GetNumber(158);
-	public FixNumber? AccruedInterestAmt => GetNumber(159);
-	public FixNumber? InterestAtMaturity => GetNumber(738);
-	public FixNumber? EndAccruedInterestAmt => GetNumber(920);
-	public FixNumber? StartCash => GetNumber(921);
-	public FixNumber? EndCash => GetNumber(922);
-	public FixNumber? Concession => GetNumber(238);
-	public FixNumber? TotalTakedown => GetNumber(237);
-	public FixNumber? NetMoney => GetNumber(118);
-	public FixNumber? SettlCurrAmt => GetNumber(119);
-	public string? SettlCurrency => GetText(120);
-	public FixNumber? SettlCurrFxRate => GetNumber(155);
-	public string? SettlCurrFxRateCalc => GetText(156);
-	public string? PositionEffect => GetText(77);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-	public FixNumber? SideMultiLegReportingType => GetNumber(752);
-	public IReadOnlyList<ContAmtGrpEntry> ContAmtGrp => GetTypedGroup<ContAmtGrpEntry>(518);
-	public IReadOnlyList<StipulationsEntry> Stipulations => GetTypedGroup<StipulationsEntry>(232);
-	public IReadOnlyList<MiscFeesGrpEntry> MiscFeesGrp => GetTypedGroup<MiscFeesGrpEntry>(136);
-	public string? ExchangeRule => GetText(825);
-	public FixNumber? TradeAllocIndicator => GetNumber(826);
-	public string? PreallocMethod => GetText(591);
-	public string? AllocID => GetText(70);
-	public IReadOnlyList<TrdAllocGrpEntry> TrdAllocGrp => GetTypedGroup<TrdAllocGrpEntry>(78);
-}
-
-/// <summary>FIX 4.4 TrdCollGrpEntry field scope.</summary>
-public sealed class TrdCollGrpEntry : FixFieldSet
-{
-	internal TrdCollGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? TradeReportID => GetText(571);
-	public string? SecondaryTradeReportID => GetText(818);
-}
-
-/// <summary>FIX 4.4 TrdInstrmtLegGrpEntry field scope.</summary>
-public sealed class TrdInstrmtLegGrpEntry : FixFieldSet
-{
-	internal TrdInstrmtLegGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSymbol => GetText(600);
-	public string? LegSymbolSfx => GetText(601);
-	public string? LegSecurityID => GetText(602);
-	public string? LegSecurityIDSource => GetText(603);
-	public IReadOnlyList<LegSecAltIDGrpEntry> LegSecAltIDGrp => GetTypedGroup<LegSecAltIDGrpEntry>(604);
-	public FixNumber? LegProduct => GetNumber(607);
-	public string? LegCFICode => GetText(608);
-	public string? LegSecurityType => GetText(609);
-	public string? LegSecuritySubType => GetText(764);
-	public string? LegMaturityMonthYear => GetText(610);
-	public string? LegMaturityDate => GetText(611);
-	public string? LegCouponPaymentDate => GetText(248);
-	public string? LegIssueDate => GetText(249);
-	public string? LegRepoCollateralSecurityType => GetText(250);
-	public FixNumber? LegRepurchaseTerm => GetNumber(251);
-	public FixNumber? LegRepurchaseRate => GetNumber(252);
-	public FixNumber? LegFactor => GetNumber(253);
-	public string? LegCreditRating => GetText(257);
-	public string? LegInstrRegistry => GetText(599);
-	public string? LegCountryOfIssue => GetText(596);
-	public string? LegStateOrProvinceOfIssue => GetText(597);
-	public string? LegLocaleOfIssue => GetText(598);
-	public string? LegRedemptionDate => GetText(254);
-	public FixNumber? LegStrikePrice => GetNumber(612);
-	public string? LegStrikeCurrency => GetText(942);
-	public string? LegOptAttribute => GetText(613);
-	public FixNumber? LegContractMultiplier => GetNumber(614);
-	public FixNumber? LegCouponRate => GetNumber(615);
-	public string? LegSecurityExchange => GetText(616);
-	public string? LegIssuer => GetText(617);
-	public FixNumber? EncodedLegIssuerLen => GetNumber(618);
-	public string? EncodedLegIssuer => GetText(619);
-	public string? LegSecurityDesc => GetText(620);
-	public FixNumber? EncodedLegSecurityDescLen => GetNumber(621);
-	public string? EncodedLegSecurityDesc => GetText(622);
-	public FixNumber? LegRatioQty => GetNumber(623);
-	public string? LegSide => GetText(624);
-	public string? LegCurrency => GetText(556);
-	public string? LegPool => GetText(740);
-	public string? LegDatedDate => GetText(739);
-	public string? LegContractSettlMonth => GetText(955);
-	public string? LegInterestAccrualDate => GetText(956);
-	public FixNumber? LegQty => GetNumber(687);
-	public FixNumber? LegSwapType => GetNumber(690);
-	public IReadOnlyList<LegStipulationsEntry> LegStipulations => GetTypedGroup<LegStipulationsEntry>(683);
-	public string? LegPositionEffect => GetText(564);
-	public FixNumber? LegCoveredOrUncovered => GetNumber(565);
-	public IReadOnlyList<NestedPartiesEntry> NestedParties => GetTypedGroup<NestedPartiesEntry>(539);
-	public string? LegRefID => GetText(654);
-	public FixNumber? LegPrice => GetNumber(566);
-	public string? LegSettlType => GetText(587);
-	public string? LegSettlDate => GetText(588);
-	public FixNumber? LegLastPx => GetNumber(637);
-}
-
-/// <summary>FIX 4.4 TrdgSesGrpEntry field scope.</summary>
-public sealed class TrdgSesGrpEntry : FixFieldSet
-{
-	internal TrdgSesGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? TradingSessionID => GetText(336);
-	public string? TradingSessionSubID => GetText(625);
-}
-
-/// <summary>FIX 4.4 UndInstrmtCollGrpEntry field scope.</summary>
-public sealed class UndInstrmtCollGrpEntry : FixFieldSet
-{
-	internal UndInstrmtCollGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? UnderlyingSymbol => GetText(311);
-	public string? UnderlyingSymbolSfx => GetText(312);
-	public string? UnderlyingSecurityID => GetText(309);
-	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
-	public FixNumber? UnderlyingProduct => GetNumber(462);
-	public string? UnderlyingCFICode => GetText(463);
-	public string? UnderlyingSecurityType => GetText(310);
-	public string? UnderlyingSecuritySubType => GetText(763);
-	public string? UnderlyingMaturityMonthYear => GetText(313);
-	public string? UnderlyingMaturityDate => GetText(542);
-	public FixNumber? UnderlyingPutOrCall => GetNumber(315);
-	public string? UnderlyingCouponPaymentDate => GetText(241);
-	public string? UnderlyingIssueDate => GetText(242);
-	public string? UnderlyingRepoCollateralSecurityType => GetText(243);
-	public FixNumber? UnderlyingRepurchaseTerm => GetNumber(244);
-	public FixNumber? UnderlyingRepurchaseRate => GetNumber(245);
-	public FixNumber? UnderlyingFactor => GetNumber(246);
-	public string? UnderlyingCreditRating => GetText(256);
-	public string? UnderlyingInstrRegistry => GetText(595);
-	public string? UnderlyingCountryOfIssue => GetText(592);
-	public string? UnderlyingStateOrProvinceOfIssue => GetText(593);
-	public string? UnderlyingLocaleOfIssue => GetText(594);
-	public string? UnderlyingRedemptionDate => GetText(247);
-	public FixNumber? UnderlyingStrikePrice => GetNumber(316);
-	public string? UnderlyingStrikeCurrency => GetText(941);
-	public string? UnderlyingOptAttribute => GetText(317);
-	public FixNumber? UnderlyingContractMultiplier => GetNumber(436);
-	public FixNumber? UnderlyingCouponRate => GetNumber(435);
-	public string? UnderlyingSecurityExchange => GetText(308);
-	public string? UnderlyingIssuer => GetText(306);
-	public FixNumber? EncodedUnderlyingIssuerLen => GetNumber(362);
-	public string? EncodedUnderlyingIssuer => GetText(363);
-	public string? UnderlyingSecurityDesc => GetText(307);
-	public FixNumber? EncodedUnderlyingSecurityDescLen => GetNumber(364);
-	public string? EncodedUnderlyingSecurityDesc => GetText(365);
-	public string? UnderlyingCPProgram => GetText(877);
-	public string? UnderlyingCPRegType => GetText(878);
-	public string? UnderlyingCurrency => GetText(318);
-	public FixNumber? UnderlyingQty => GetNumber(879);
-	public FixNumber? UnderlyingPx => GetNumber(810);
-	public FixNumber? UnderlyingDirtyPrice => GetNumber(882);
-	public FixNumber? UnderlyingEndPrice => GetNumber(883);
-	public FixNumber? UnderlyingStartValue => GetNumber(884);
-	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
-	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
-	public FixNumber? CollAction => GetNumber(944);
-}
-
-/// <summary>FIX 4.4 UndInstrmtGrpEntry field scope.</summary>
-public sealed class UndInstrmtGrpEntry : FixFieldSet
-{
-	internal UndInstrmtGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? UnderlyingSymbol => GetText(311);
-	public string? UnderlyingSymbolSfx => GetText(312);
-	public string? UnderlyingSecurityID => GetText(309);
-	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
-	public FixNumber? UnderlyingProduct => GetNumber(462);
-	public string? UnderlyingCFICode => GetText(463);
-	public string? UnderlyingSecurityType => GetText(310);
-	public string? UnderlyingSecuritySubType => GetText(763);
-	public string? UnderlyingMaturityMonthYear => GetText(313);
-	public string? UnderlyingMaturityDate => GetText(542);
-	public FixNumber? UnderlyingPutOrCall => GetNumber(315);
-	public string? UnderlyingCouponPaymentDate => GetText(241);
-	public string? UnderlyingIssueDate => GetText(242);
-	public string? UnderlyingRepoCollateralSecurityType => GetText(243);
-	public FixNumber? UnderlyingRepurchaseTerm => GetNumber(244);
-	public FixNumber? UnderlyingRepurchaseRate => GetNumber(245);
-	public FixNumber? UnderlyingFactor => GetNumber(246);
-	public string? UnderlyingCreditRating => GetText(256);
-	public string? UnderlyingInstrRegistry => GetText(595);
-	public string? UnderlyingCountryOfIssue => GetText(592);
-	public string? UnderlyingStateOrProvinceOfIssue => GetText(593);
-	public string? UnderlyingLocaleOfIssue => GetText(594);
-	public string? UnderlyingRedemptionDate => GetText(247);
-	public FixNumber? UnderlyingStrikePrice => GetNumber(316);
-	public string? UnderlyingStrikeCurrency => GetText(941);
-	public string? UnderlyingOptAttribute => GetText(317);
-	public FixNumber? UnderlyingContractMultiplier => GetNumber(436);
-	public FixNumber? UnderlyingCouponRate => GetNumber(435);
-	public string? UnderlyingSecurityExchange => GetText(308);
-	public string? UnderlyingIssuer => GetText(306);
-	public FixNumber? EncodedUnderlyingIssuerLen => GetNumber(362);
-	public string? EncodedUnderlyingIssuer => GetText(363);
-	public string? UnderlyingSecurityDesc => GetText(307);
-	public FixNumber? EncodedUnderlyingSecurityDescLen => GetNumber(364);
-	public string? EncodedUnderlyingSecurityDesc => GetText(365);
-	public string? UnderlyingCPProgram => GetText(877);
-	public string? UnderlyingCPRegType => GetText(878);
-	public string? UnderlyingCurrency => GetText(318);
-	public FixNumber? UnderlyingQty => GetNumber(879);
-	public FixNumber? UnderlyingPx => GetNumber(810);
-	public FixNumber? UnderlyingDirtyPrice => GetNumber(882);
-	public FixNumber? UnderlyingEndPrice => GetNumber(883);
-	public FixNumber? UnderlyingStartValue => GetNumber(884);
-	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
-	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
-}
-
-/// <summary>FIX 4.4 UndInstrmtStrkPxGrpEntry field scope.</summary>
-public sealed class UndInstrmtStrkPxGrpEntry : FixFieldSet
-{
-	internal UndInstrmtStrkPxGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? UnderlyingSymbol => GetText(311);
-	public string? UnderlyingSymbolSfx => GetText(312);
-	public string? UnderlyingSecurityID => GetText(309);
-	public string? UnderlyingSecurityIDSource => GetText(305);
-	public IReadOnlyList<UndSecAltIDGrpEntry> UndSecAltIDGrp => GetTypedGroup<UndSecAltIDGrpEntry>(457);
-	public FixNumber? UnderlyingProduct => GetNumber(462);
-	public string? UnderlyingCFICode => GetText(463);
-	public string? UnderlyingSecurityType => GetText(310);
-	public string? UnderlyingSecuritySubType => GetText(763);
-	public string? UnderlyingMaturityMonthYear => GetText(313);
-	public string? UnderlyingMaturityDate => GetText(542);
-	public FixNumber? UnderlyingPutOrCall => GetNumber(315);
-	public string? UnderlyingCouponPaymentDate => GetText(241);
-	public string? UnderlyingIssueDate => GetText(242);
-	public string? UnderlyingRepoCollateralSecurityType => GetText(243);
-	public FixNumber? UnderlyingRepurchaseTerm => GetNumber(244);
-	public FixNumber? UnderlyingRepurchaseRate => GetNumber(245);
-	public FixNumber? UnderlyingFactor => GetNumber(246);
-	public string? UnderlyingCreditRating => GetText(256);
-	public string? UnderlyingInstrRegistry => GetText(595);
-	public string? UnderlyingCountryOfIssue => GetText(592);
-	public string? UnderlyingStateOrProvinceOfIssue => GetText(593);
-	public string? UnderlyingLocaleOfIssue => GetText(594);
-	public string? UnderlyingRedemptionDate => GetText(247);
-	public FixNumber? UnderlyingStrikePrice => GetNumber(316);
-	public string? UnderlyingStrikeCurrency => GetText(941);
-	public string? UnderlyingOptAttribute => GetText(317);
-	public FixNumber? UnderlyingContractMultiplier => GetNumber(436);
-	public FixNumber? UnderlyingCouponRate => GetNumber(435);
-	public string? UnderlyingSecurityExchange => GetText(308);
-	public string? UnderlyingIssuer => GetText(306);
-	public FixNumber? EncodedUnderlyingIssuerLen => GetNumber(362);
-	public string? EncodedUnderlyingIssuer => GetText(363);
-	public string? UnderlyingSecurityDesc => GetText(307);
-	public FixNumber? EncodedUnderlyingSecurityDescLen => GetNumber(364);
-	public string? EncodedUnderlyingSecurityDesc => GetText(365);
-	public string? UnderlyingCPProgram => GetText(877);
-	public string? UnderlyingCPRegType => GetText(878);
-	public string? UnderlyingCurrency => GetText(318);
-	public FixNumber? UnderlyingQty => GetNumber(879);
-	public FixNumber? UnderlyingPx => GetNumber(810);
-	public FixNumber? UnderlyingDirtyPrice => GetNumber(882);
-	public FixNumber? UnderlyingEndPrice => GetNumber(883);
-	public FixNumber? UnderlyingStartValue => GetNumber(884);
-	public FixNumber? UnderlyingCurrentValue => GetNumber(885);
-	public FixNumber? UnderlyingEndValue => GetNumber(886);
-	public IReadOnlyList<UnderlyingStipulationsEntry> UnderlyingStipulations => GetTypedGroup<UnderlyingStipulationsEntry>(887);
-	public FixNumber? PrevClosePx => GetNumber(140);
-	public string? ClOrdID => GetText(11);
-	public string? SecondaryClOrdID => GetText(526);
-	public string? Side => GetText(54);
-	public FixNumber? Price => GetNumber(44);
-	public string? Currency => GetText(15);
-	public string? Text => GetText(58);
-	public FixNumber? EncodedTextLen => GetNumber(354);
-	public string? EncodedText => GetText(355);
-}
-
-/// <summary>FIX 4.4 TrdCapDtGrpEntry field scope.</summary>
-public sealed class TrdCapDtGrpEntry : FixFieldSet
-{
-	internal TrdCapDtGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? TradeDate => GetText(75);
-	public string? TransactTime => GetText(60);
-}
-
-/// <summary>FIX 4.4 EvntGrpEntry field scope.</summary>
-public sealed class EvntGrpEntry : FixFieldSet
-{
-	internal EvntGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? EventType => GetNumber(865);
-	public string? EventDate => GetText(866);
-	public FixNumber? EventPx => GetNumber(867);
-	public string? EventText => GetText(868);
-}
-
-/// <summary>FIX 4.4 SecAltIDGrpEntry field scope.</summary>
-public sealed class SecAltIDGrpEntry : FixFieldSet
-{
-	internal SecAltIDGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? SecurityAltID => GetText(455);
-	public string? SecurityAltIDSource => GetText(456);
-}
-
-/// <summary>FIX 4.4 LegSecAltIDGrpEntry field scope.</summary>
-public sealed class LegSecAltIDGrpEntry : FixFieldSet
-{
-	internal LegSecAltIDGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? LegSecurityAltID => GetText(605);
-	public string? LegSecurityAltIDSource => GetText(606);
-}
-
-/// <summary>FIX 4.4 UndSecAltIDGrpEntry field scope.</summary>
-public sealed class UndSecAltIDGrpEntry : FixFieldSet
-{
-	internal UndSecAltIDGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? UnderlyingSecurityAltID => GetText(458);
-	public string? UnderlyingSecurityAltIDSource => GetText(459);
-}
-
-/// <summary>FIX 4.4 AttrbGrpEntry field scope.</summary>
-public sealed class AttrbGrpEntry : FixFieldSet
-{
-	internal AttrbGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public FixNumber? InstrAttribType => GetNumber(871);
-	public string? InstrAttribValue => GetText(872);
-}
-
-/// <summary>FIX 4.4 DlvyInstGrpEntry field scope.</summary>
-public sealed class DlvyInstGrpEntry : FixFieldSet
-{
-	internal DlvyInstGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? SettlInstSource => GetText(165);
-	public string? DlvyInstType => GetText(787);
-	public IReadOnlyList<SettlPartiesEntry> SettlParties => GetTypedGroup<SettlPartiesEntry>(781);
-}
-
-/// <summary>FIX 4.4 SettlPtysSubGrpEntry field scope.</summary>
-public sealed class SettlPtysSubGrpEntry : FixFieldSet
-{
-	internal SettlPtysSubGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? SettlPartySubID => GetText(785);
-	public FixNumber? SettlPartySubIDType => GetNumber(786);
-}
-
-/// <summary>FIX 4.4 PtysSubGrpEntry field scope.</summary>
-public sealed class PtysSubGrpEntry : FixFieldSet
-{
-	internal PtysSubGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? PartySubID => GetText(523);
-	public FixNumber? PartySubIDType => GetNumber(803);
-}
-
-/// <summary>FIX 4.4 NstdPtysSubGrpEntry field scope.</summary>
-public sealed class NstdPtysSubGrpEntry : FixFieldSet
-{
-	internal NstdPtysSubGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? NestedPartySubID => GetText(545);
-	public FixNumber? NestedPartySubIDType => GetNumber(805);
-}
-
-/// <summary>FIX 4.4 NstdPtys2SubGrpEntry field scope.</summary>
-public sealed class NstdPtys2SubGrpEntry : FixFieldSet
-{
-	internal NstdPtys2SubGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Nested2PartySubID => GetText(760);
-	public FixNumber? Nested2PartySubIDType => GetNumber(807);
-}
-
-/// <summary>FIX 4.4 NstdPtys3SubGrpEntry field scope.</summary>
-public sealed class NstdPtys3SubGrpEntry : FixFieldSet
-{
-	internal NstdPtys3SubGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? Nested3PartySubID => GetText(953);
-	public FixNumber? Nested3PartySubIDType => GetNumber(954);
-}
-
-/// <summary>FIX 4.4 HopGrpEntry field scope.</summary>
-public sealed class HopGrpEntry : FixFieldSet
-{
-	internal HopGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? HopCompID => GetText(628);
-	public string? HopSendingTime => GetText(629);
-	public FixNumber? HopRefID => GetNumber(630);
-}
-
-/// <summary>FIX 4.4 MsgTypeGrpEntry field scope.</summary>
-public sealed class MsgTypeGrpEntry : FixFieldSet
-{
-	internal MsgTypeGrpEntry(string source, FixNode[] fields)
-		: base(source, fields)
-	{
-	}
-
-	public string? RefMsgType => GetText(372);
-	public string? MsgDirection => GetText(385);
 }
 
 /// <summary>FIX 4.4 StandardHeader field scope.</summary>
@@ -8817,7 +5760,7 @@ public sealed class StandardHeader : FixFieldSet
 	public string? XmlData => GetText(213);
 	public string? MessageEncoding => GetText(347);
 	public FixNumber? LastMsgSeqNumProcessed => GetNumber(369);
-	public IReadOnlyList<HopGrpEntry> HopGrp => GetTypedGroup<HopGrpEntry>(627);
+	public IReadOnlyList<FixFieldSet> HopGrp => GetGroup(627);
 }
 
 /// <summary>FIX 4.4 StandardTrailer field scope.</summary>
