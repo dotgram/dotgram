@@ -262,7 +262,7 @@ reproduction commands. No parser optimization is included in this investigation.
 strategy with `PrefixTables = true`, using identical FIX grammars. It records
 three-run timings, allocations, table/assembly size, scope and validation. The
 report describes the original opt-in experiment. Prefix tables are now enabled by
-default, including in Finance; set `PrefixTables = false` for the previous strategy.
+default, including in Finance.
 
 ## Partitioned materialization: 2026-09-16
 
