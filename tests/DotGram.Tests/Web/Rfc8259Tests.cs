@@ -150,6 +150,26 @@ public sealed class Rfc8259Tests
 		Assert.Empty(((JsonValue.Array)value).Items);
 	}
 
+	/// <summary>
+	/// What is read that deep also writes back, compares and hashes: none of them may need more
+	/// stack than the reading did.
+	/// </summary>
+	[Fact]
+	public void Deep_nesting_writes_back_compares_and_hashes()
+	{
+		const int depth = 100_000;
+
+		var text  = new string('[', depth) + "{\"a\":1}" + new string(']', depth);
+		var one   = Both.Json(text);
+		var other = Both.Json(text);
+		var apart = Both.Json(text.Replace("1", "2"));
+
+		Assert.Equal(text, one.ToString());
+		Assert.Equal(one, other);
+		Assert.Equal(one.GetHashCode(), other.GetHashCode());
+		Assert.NotEqual(one, apart);
+	}
+
 	/// <summary>A value is equal to another read from the same text, as a value and not as an object.</summary>
 	[Fact]
 	public void Values_are_equal_by_what_they_hold()

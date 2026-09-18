@@ -46,27 +46,12 @@ public abstract record JsonValue
 	{
 		public bool Equals(Object? other)
 		{
-			if (other is null || Members.Count != other.Members.Count)
-				return false;
-
-			for (var index = 0; index < Members.Count; index++)
-				if (!string.Equals(Members[index].Key, other.Members[index].Key, StringComparison.Ordinal) ||
-					!Members[index].Value.Equals(other.Members[index].Value))
-				{
-					return false;
-				}
-
-			return true;
+			return other is not null && Same(this, other);
 		}
 
 		public override int GetHashCode()
 		{
-			var hash = Members.Count;
-
-			foreach (var member in Members)
-				hash = Structural.Combine(Structural.Combine(hash, StringComparer.Ordinal.GetHashCode(member.Key)), member.Value.GetHashCode());
-
-			return hash;
+			return Hash(this);
 		}
 	}
 
@@ -74,9 +59,15 @@ public abstract record JsonValue
 	/// <remarks>Equal to another with equal elements in the same order.</remarks>
 	public sealed record Array(IReadOnlyList<JsonValue> Items) : JsonValue
 	{
-		public bool Equals(Array? other) => other is not null && Structural.Same(Items, other.Items);
+		public bool Equals(Array? other)
+		{
+			return other is not null && Same(this, other);
+		}
 
-		public override int GetHashCode() => Structural.Hash(Items);
+		public override int GetHashCode()
+		{
+			return Hash(this);
+		}
 	}
 
 	/// <summary>§7: the string with its escapes undone. An escaped lone surrogate stays one (§8.2).</summary>
@@ -214,63 +205,190 @@ public abstract record JsonValue
 	/// <remarks>Sealed, or each case would print itself the way a record does instead.</remarks>
 	public sealed override string ToString()
 	{
-		var output = new StringBuilder();
+		var output  = new StringBuilder();
+		var pending = new Stack<Written>();
 
-		Write(output, this);
+		pending.Push(new Written(this, null));
+
+		// With a stack of its own rather than the thread's: a text the parser reads may nest
+		// deeper than a thread's stack goes, and what it reads has to write back.
+		while (pending.Count > 0)
+		{
+			var next = pending.Pop();
+
+			if (next.Value is null)
+			{
+				output.Append(next.Text);
+
+				continue;
+			}
+
+			switch (next.Value)
+			{
+				case Object members:
+					output.Append('{');
+					pending.Push(new Written(null, "}"));
+
+					for (var index = members.Members.Count - 1; index >= 0; index--)
+					{
+						pending.Push(new Written(members.Members[index].Value, null));
+						pending.Push(new Written(null, Quoted(members.Members[index].Key) + ":"));
+
+						if (index > 0)
+							pending.Push(new Written(null, ","));
+					}
+
+					break;
+
+				case Array items:
+					output.Append('[');
+					pending.Push(new Written(null, "]"));
+
+					for (var index = items.Items.Count - 1; index >= 0; index--)
+					{
+						pending.Push(new Written(items.Items[index], null));
+
+						if (index > 0)
+							pending.Push(new Written(null, ","));
+					}
+
+					break;
+
+				case String text:
+					Quoted(output, text.Value);
+					break;
+
+				case Number number:
+					output.Append(number.Text);
+					break;
+
+				case Boolean truth:
+					output.Append(truth.Value ? "true" : "false");
+					break;
+
+				default:
+					output.Append("null");
+					break;
+			}
+		}
 
 		return output.ToString();
 	}
 
-	static void Write(StringBuilder output, JsonValue value)
+	/// <summary>What is still to be written: a value, or text as it stands.</summary>
+	readonly struct Written(JsonValue? value, string? text)
 	{
-		switch (value)
+		public readonly JsonValue? Value = value;
+		public readonly string?    Text  = text;
+	}
+
+	/// <summary>
+	/// Two objects or arrays alike, member by member and element by element, walked with a stack
+	/// of its own for the reason <see cref="ToString"/> is.
+	/// </summary>
+	static bool Same(JsonValue left, JsonValue right)
+	{
+		var pending = new Stack<KeyValuePair<JsonValue, JsonValue>>();
+
+		pending.Push(new KeyValuePair<JsonValue, JsonValue>(left, right));
+
+		while (pending.Count > 0)
 		{
-			case Object members:
-				output.Append('{');
+			var pair = pending.Pop();
 
-				for (var index = 0; index < members.Members.Count; index++)
-				{
-					if (index > 0)
-						output.Append(',');
+			if (ReferenceEquals(pair.Key, pair.Value))
+				continue;
 
-					Quoted(output, members.Members[index].Key);
-					output.Append(':');
-					Write(output, members.Members[index].Value);
-				}
+			switch (pair.Key)
+			{
+				case Array items when pair.Value is Array others:
+					if (items.Items.Count != others.Items.Count)
+						return false;
 
-				output.Append('}');
-				break;
+					for (var index = 0; index < items.Items.Count; index++)
+						pending.Push(new KeyValuePair<JsonValue, JsonValue>(items.Items[index], others.Items[index]));
 
-			case Array items:
-				output.Append('[');
+					break;
 
-				for (var index = 0; index < items.Items.Count; index++)
-				{
-					if (index > 0)
-						output.Append(',');
+				case Object members when pair.Value is Object others:
+					if (members.Members.Count != others.Members.Count)
+						return false;
 
-					Write(output, items.Items[index]);
-				}
+					for (var index = 0; index < members.Members.Count; index++)
+					{
+						if (!string.Equals(members.Members[index].Key, others.Members[index].Key, StringComparison.Ordinal))
+							return false;
 
-				output.Append(']');
-				break;
+						pending.Push(new KeyValuePair<JsonValue, JsonValue>(members.Members[index].Value, others.Members[index].Value));
+					}
 
-			case String text:
-				Quoted(output, text.Value);
-				break;
+					break;
 
-			case Number number:
-				output.Append(number.Text);
-				break;
+				case Array or Object:
+					return false;
 
-			case Boolean truth:
-				output.Append(truth.Value ? "true" : "false");
-				break;
+				// A number, a string or a literal name holds nothing nested, and compares as a record.
+				default:
+					if (!pair.Key.Equals(pair.Value))
+						return false;
 
-			default:
-				output.Append("null");
-				break;
+					break;
+			}
 		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// A hash of everything an object or array holds, taken in the order a walk meets it, so that
+	/// values <see cref="Same"/> calls alike hash alike.
+	/// </summary>
+	static int Hash(JsonValue value)
+	{
+		var hash    = 0;
+		var pending = new Stack<JsonValue>();
+
+		pending.Push(value);
+
+		while (pending.Count > 0)
+		{
+			switch (pending.Pop())
+			{
+				case Array items:
+					hash = Structural.Combine(hash, items.Items.Count * 2);
+
+					for (var index = items.Items.Count - 1; index >= 0; index--)
+						pending.Push(items.Items[index]);
+
+					break;
+
+				case Object members:
+					hash = Structural.Combine(hash, members.Members.Count * 2 + 1);
+
+					foreach (var member in members.Members)
+						hash = Structural.Combine(hash, StringComparer.Ordinal.GetHashCode(member.Key));
+
+					for (var index = members.Members.Count - 1; index >= 0; index--)
+						pending.Push(members.Members[index].Value);
+
+					break;
+
+				case var scalar:
+					hash = Structural.Combine(hash, scalar.GetHashCode());
+					break;
+			}
+		}
+
+		return hash;
+	}
+
+	static string Quoted(string text)
+	{
+		var output = new StringBuilder(text.Length + 2);
+
+		Quoted(output, text);
+
+		return output.ToString();
 	}
 
 	// §7: a quotation mark, a reverse solidus and the controls are the characters that must be escaped.
