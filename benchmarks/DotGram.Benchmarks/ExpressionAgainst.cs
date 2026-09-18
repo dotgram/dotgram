@@ -99,23 +99,9 @@ static class ExpressionAgainst
 
 		// Lambdas that say no types, whose bodies are read to find where they end and read
 		// again once the call they are handed to has chosen their types.
-		UntypedSelect,
-		UntypedWhere,
+		"using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()",
+		"using System.Linq; (int[] a) => a.Where(n => n > 1).Count()",
 	];
-
-	const string UntypedSelect = "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()";
-	const string UntypedWhere  = "using System.Linq; (int[] a) => a.Where(n => n > 1).Count()";
-
-	/// <summary>Whether a reading is timed on an input: every one is, but the immediate carrier on an untyped lambda.</summary>
-	/// <remarks>
-	/// That carrier builds the body of a lambda that says no types before the types are known,
-	/// and throws where the tape reads (docs/design/architecture-decisions.md, D3 and D8): a time
-	/// for it there would be the time it takes to fail.
-	/// </remarks>
-	static bool Timed(string input, int method)
-	{
-		return Methods[method].Name != "immediate" || input is not (UntypedSelect or UntypedWhere);
-	}
 
 	public static void Run(int rounds, int iterations)
 	{
@@ -135,8 +121,7 @@ static class ExpressionAgainst
 		// third of the difference this table is about.
 		foreach (var input in Inputs)
 			for (var i = 0; i < Methods.Length; i++)
-				if (Timed(input, i))
-					Time(input, Methods[i].Measure, iterations);
+				Time(input, Methods[i].Measure, iterations);
 
 		foreach (var input in Inputs)
 		{
@@ -152,8 +137,7 @@ static class ExpressionAgainst
 				Time(input, Nothing, iterations);
 
 				for (var i = 0; i < Methods.Length; i++)
-					if (Timed(input, i))
-						Time(input, Methods[i].Measure, iterations);
+					Time(input, Methods[i].Measure, iterations);
 			}
 
 			for (var round = 0; round < rounds; round++)
@@ -161,7 +145,7 @@ static class ExpressionAgainst
 				costs.Add(Time(input, Nothing, iterations));
 
 				for (var i = 0; i < Methods.Length; i++)
-					taken[i].Add(Timed(input, i) ? Time(input, Methods[i].Measure, iterations) : double.NaN);
+					taken[i].Add(Time(input, Methods[i].Measure, iterations));
 			}
 
 			var overhead = Median(costs);
@@ -196,13 +180,6 @@ static class ExpressionAgainst
 
 			for (var i = 0; i < Methods.Length; i++)
 			{
-				if (!Timed(input, i))
-				{
-					taken[i] = double.NaN;
-
-					continue;
-				}
-
 				_input = input;
 
 				Methods[i].Measure(input);
@@ -303,10 +280,10 @@ static class ExpressionAgainst
 	/// <remarks>
 	/// The hand-written parser is held to the tape over the whole shared corpus and over what
 	/// is timed, answer for answer — the tree, or where and how the text was refused
-	/// (<see cref="ExpressionCorpus.Answer"/>). The immediate carrier is held to the tape over
-	/// what is timed only: it builds the body of a lambda that says no types before the types
-	/// are known (docs/design/architecture-decisions.md, D8), so no figure of it is quoted for
-	/// one, and none stands among the inputs.
+	/// (<see cref="ExpressionCorpus.Answer"/>). The immediate carrier is held to the tape over the
+	/// same, with one allowance its contract makes: it runs the constructions of a derivation it
+	/// then abandons, so on text the tape refuses it may throw one of the refusals the host
+	/// throws instead of refusing (<see cref="Agrees"/>).
 	/// </remarks>
 	public static void Agree()
 	{
@@ -322,12 +299,12 @@ static class ExpressionAgainst
 					$"  by hand   {handed}");
 		}
 
-		foreach (var text in Inputs.Where(text => Timed(text, 1)))
+		foreach (var text in ExpressionCorpus.Shapes.Concat(Inputs))
 		{
 			var tape      = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
 			var immediate = ExpressionCorpus.Answer(text, ExpressionParser.Immediate.TryParseLambda, Fresh(text));
 
-			if (tape != immediate)
+			if (!Agrees(tape, immediate))
 				throw new InvalidOperationException(
 					$"About \"{text}\": the tape and the immediate carrier read one grammar differently.\n" +
 					$"  tape      {tape}\n" +
@@ -336,8 +313,19 @@ static class ExpressionAgainst
 
 		Console.WriteLine(
 			$"The hand-written parser answers as the tape over {ExpressionCorpus.Shapes.Length + Inputs.Length} shapes, " +
-			$"and the immediate carrier over the {Inputs.Count(text => Timed(text, 1))} it is timed on.");
+			"and so does the immediate carrier.");
 	}
+
+	/// <summary>Whether the immediate carrier answers as the tape does.</summary>
+	/// <remarks>
+	/// The same tree where the tape builds one, and the same refusal where it refuses — or a
+	/// refusal thrown instead: the carrier runs the constructions of a derivation it then
+	/// abandons, and one of them may throw what the host throws for text it refuses
+	/// (CarrierKind.Immediate; the architect's ruling of 2026-09-18).
+	/// </remarks>
+	static bool Agrees(string tape, string immediate) =>
+		tape == immediate ||
+		tape.StartsWith("refused ", StringComparison.Ordinal) && immediate.StartsWith("threw ", StringComparison.Ordinal);
 
 	enum Reading { Tape, Immediate, Hand }
 
