@@ -23389,3 +23389,60 @@ bytes a parse more than the immediate carrier — a list per lambda for its para
 per reading, the words cut out as strings. It is the yardstick allocating more, which flatters the
 generated parser on the time it takes to allocate; it is written down so that it is not mistaken
 for the generated parser allocating less.
+
+## The expression language timed over the whole of it
+
+Since the table above, three things changed the comparison, all on the hand parser's side or the
+inputs' (`b36599bc`, `0ef3bb8c`): the hand parser stopped allocating more than a careful reader
+would — it now allocates 64 to 1,320 bytes a parse *less* than the immediate carrier on every
+input but `Environment.NewLine` (32 more) — a hole read in the middle of a reading stopped making
+a set of token arrays of its own, and the timed inputs gained interpolated strings, raw strings
+and lambdas that say no types, so that what is timed is the whole language.
+
+`--el` pinned to 0-15 at high priority, medians of three runs in a window every other session
+had confirmed idle (D4), at `0ef3bb8c`:
+
+| input | tape | hand | tape/hand | immediate/hand |
+| --- | ---: | ---: | ---: | ---: |
+| `(int x) => x` | 819 ns | 326 ns | 2.42x | 1.35x |
+| `(int x) => x * x - 1` | 1,175 ns | 572 ns | 2.06x | 1.29x |
+| `(int x, int y) => (x + y) * 3 - x / 5` | 1,833 ns | 980 ns | 1.87x | 1.22x |
+| `(string s) => s.Length` | 1,251 ns | 573 ns | 2.18x | 1.42x |
+| `using System; (int x) => Math.Max(x, 1)` | 2,894 ns | 2,177 ns | 1.36x | 1.04x |
+| `(int x) => { x += 1; x *= 2; return x; }` | 1,957 ns | 1,033 ns | 1.84x | 1.16x |
+| `for` summing to `n` | 4,150 ns | 2,193 ns | 1.89x | 1.29x |
+| `((((x + 1) + 1) + 1) + 1)` | 1,817 ns | 850 ns | 2.10x | 1.37x |
+| `(int x) => x * x -` (refused) | 733 ns | 494 ns | 1.55x | 1.35x |
+| `(((x)))` | 1,213 ns | 549 ns | 2.30x | 1.36x |
+| `(((((x)))))` | 1,513 ns | 601 ns | 2.67x | 1.59x |
+| `(((((((x)))))))` | 1,763 ns | 674 ns | 2.68x | 1.69x |
+| `(x + 1)` | 1,179 ns | 575 ns | 2.04x | 1.24x |
+| `(((x + 1) + 1) + 1)` | 1,628 ns | 789 ns | 2.06x | 1.26x |
+| `(x + x)` | 1,204 ns | 597 ns | 2.05x | 1.24x |
+| `(((x + x) + x) + x)` | 1,725 ns | 854 ns | 2.02x | 1.34x |
+| `using System; (int x) => x` | 988 ns | 431 ns | 2.23x | 1.24x |
+| `using System; (int x) => Environment.NewLine` | 1,489 ns | 1,062 ns | 1.39x | 0.92x |
+| `(int x) => System.Math.Max(x, 1)` | 2,723 ns | 1,848 ns | 1.46x | 1.09x |
+| `(string s) => s.Trim()` | 1,347 ns | 746 ns | 1.83x | 1.19x |
+| `(string s) => s.ToUpperInvariant()` | 1,346 ns | 735 ns | 1.82x | 1.17x |
+| `(int x) => $"a{x}b"` | 2,906 ns | 827 ns | 3.62x | 2.67x |
+| `(int x) => $"{x,5:D3} and {x + 1}"` | 4,635 ns | 1,564 ns | 2.99x | 2.20x |
+| `(int x) => """a"b"""` | 995 ns | 358 ns | 2.91x | 2.16x |
+| `(int x) => $$"""{{x}} {x}"""` | 4,402 ns | 1,369 ns | 3.21x | 2.45x |
+| `a.Select(n => n * 2).Sum()` | 66,219 ns | 64,261 ns | 1.03x | — |
+| `a.Where(n => n > 1).Count()` | 50,781 ns | 48,261 ns | 1.05x | — |
+
+**The strings are where the generator is furthest behind**, 2.2x to 2.7x for the immediate
+carrier where every other row is 0.9x to 1.7x. A profile of `$"a{x}b"` (dotTrace, thread time)
+says why, and it is not the reading of a hole: read on its own, a hole costs the tape 0.42 us and
+the hand parser 0.22. Read in the middle of a reading, it costs the tape about ten times that,
+because the reading holds the one spare value store and every hole rents a new one
+(`DirectValues..ctor`), resets a parser and cuts its window into tokens; and the lexer reads the
+`$"…"` token twice, once to find its end and once for its value. The hand parser had the first of
+these too, and `0ef3bb8c` is its fix. The generator's is a proposal the architect has passed to
+performance-3f: spares by depth. The token read twice is part of Q4.1.
+
+**The lambdas that say no types cost what their overloads cost.** Both parsers spend nearly all
+of 50 to 66 us in the same place, the factories that choose among `Enumerable`'s overloads and
+infer their type arguments, building the body once for each candidate; the parsers differ by 3 to
+5 per cent. The immediate carrier is not timed there (D3, D8).
