@@ -228,7 +228,7 @@ static class Stand
 			Expression("loop",          "(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }"),
 			Expression("overloads",     "(int x) => System.Math.Max(x, 1)"),
 			Expression("interpolation", "(int x) => $\"{x,5:D3} and {x + 1}\""),
-			Expression("untyped",       "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()", immediate: false),
+			Expression("untyped",       "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()"),
 
 			// Q7.2: refused, not merely a construct not yet handled — an incomplete
 			// expression, early and late, so the fast/quiet path's cost on a refusal is on
@@ -307,8 +307,10 @@ static class Stand
 	/// </summary>
 	/// <remarks>
 	/// Every reading gets a state of its own, as a caller's parse would, and pays for it alike.
-	/// The immediate carrier is left out of an untyped lambda: it builds the body before its
-	/// types are known and throws where the tape reads (D3, D8).
+	/// Since performance-3f's item c (140f07e4, 2026-09-18), the immediate carrier reads an
+	/// untyped lambda the way the tape does; before that it built the body ahead of its types
+	/// and threw where the tape read (D3, D8), which is why <paramref name="immediate"/> still
+	/// exists for a row that needs to leave it out again.
 	/// </remarks>
 	static Workload Expression(string name, string text, bool immediate = true)
 	{
@@ -687,9 +689,10 @@ static class Stand
 
 	/// <summary>
 	/// Runs <see cref="PairedWorkloads"/> and writes <c>paired.md</c>: hand, before and after
-	/// in one table, the same control and pinning as <c>--stand</c>.
+	/// in one table, the same control and pinning as <c>--stand</c>. <paramref name="only"/>
+	/// keeps rows whose id contains it, for a cheaper rerun of one row a full run flagged.
 	/// </summary>
-	public static void Paired(string beforeDir, string afterDir, string? directory)
+	public static void Paired(string beforeDir, string afterDir, string? directory, string? only = null)
 	{
 		var pinned = Pin();
 		var output = directory ?? DefaultDirectory();
@@ -700,6 +703,9 @@ static class Stand
 		var after  = new PairedSide("after", afterDir);
 
 		var workloads = PairedWorkloads(before, after);
+
+		if (only is not null)
+			workloads = [.. workloads.Where(one => one.Id.Contains(only, StringComparison.Ordinal))];
 
 		foreach (var workload in workloads)
 			if (workload.Disagreement() is { } disagreement)

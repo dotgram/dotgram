@@ -18,6 +18,9 @@ sealed partial class Machine
 	/// </summary>
 	readonly Replay.Report? _replay;
 
+	/// <summary>Whose value is ever built, asked of the graph the first time a carrier needs it (<see cref="Demand"/>).</summary>
+	Demand.Report Demands => field ??= Demand.Of(_graph);
+
 	/// <summary>Why the carrier asked for was not the one used, or null.</summary>
 	public string? CarrierRefusal { get; private set; }
 
@@ -403,6 +406,14 @@ sealed partial class Machine
 
 		/// <summary>Why this carrier cannot carry the machine's rules, or null where it can.</summary>
 		public abstract string? Refuses();
+
+		/// <summary>
+		/// What a call is wrapped in, where the carrier builds as it reads and the value the
+		/// call reads is not built the way the reading around it is (<see cref="Demand"/>);
+		/// null where it is written as it always was. <paramref name="local"/> is a name the
+		/// call may take for itself.
+		/// </summary>
+		public virtual (string Before, string After)? AroundCall(RuleSymbol owner, Node.Call call, string local) => null;
 
 		/// <summary>The slots of a member, as a mask the tape collects by.</summary>
 		protected static long MaskOf(IReadOnlyList<int> slots)

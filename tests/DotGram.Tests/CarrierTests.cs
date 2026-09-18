@@ -30,7 +30,7 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class CarrierTests
 {
-	static readonly (string Name, string Grammar, string[] Inputs)[] Shapes =
+	internal static readonly (string Name, string Grammar, string[] Inputs)[] Shapes =
 	[
 		("a fold",
 			"trivia = ' '*\n" +

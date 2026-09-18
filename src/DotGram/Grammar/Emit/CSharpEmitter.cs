@@ -215,9 +215,12 @@ public static partial class CSharpEmitter
 		// left to choose its own carrier, and not at all where the author chose.
 		var replay = carrier == CarrierKind.Auto ? Replay.Of(graph) : null;
 
-		// A `find` over text tries every start and throws each failure away, so its machines are
-		// written to ask before they record (Q7.2).
-		var quiets = graph.Publications.Any(publication => publication.Kind == PublishKind.Find);
+		// A `find` over text tries every start and throws each failure away, and a parse of text in
+		// memory reads quietly first where it may; so their machines are written to ask before they
+		// record (Q7.2).
+		var quiets = graph.Publications.Any(publication =>
+			publication.Kind == PublishKind.Find ||
+			publication.Kind == PublishKind.Parse && ReadsQuietlyFirst(graph));
 
 		foreach (var group in groups)
 		{
@@ -487,7 +490,8 @@ public static partial class CSharpEmitter
 					compiled.Machine.UsesReading ? publication.Reading : null,
 					compiled.Direct,
 					diagnostics,
-					compiled.Tag);
+					compiled.Tag,
+					ReadsQuietlyFirst(graph));
 
 				file.Line();
 			}
@@ -1345,7 +1349,7 @@ public static partial class CSharpEmitter
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
-		string tag = "")
+		string tag = "", bool quietFirst = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1620,10 +1624,30 @@ public static partial class CSharpEmitter
 
 				// Carried through every recognizer this call reaches, so that what comes back
 				// is the furthest the input was followed and not merely "no".
-				file.Line($"var failure = new {FailureType}();");
+				file.Line(quietFirst
+					? $"var failure = new {FailureType} {{ Quiet = true }};"
+					: $"var failure = new {FailureType}();");
 				file.Line();
 				file.Line($"var end = {reader}(text, {begins}{hands});");
 				file.Line();
+
+				// A reading that records nothing is the fast one, and most input is accepted by
+				// it. Where it refused, the same reading is run again recording, and what that one
+				// says is the refusal — the one a single recording reading would have given, as
+				// nothing the first did depended on what it did not record (Q7.2).
+				if (quietFirst)
+				{
+					using (file.Block("if (end < 0)"))
+					{
+						file.Line($"failure = new {FailureType}();");
+						file.Line(
+							$"end     = {reader}(text, {begins}" +
+							$"{hands.Replace("out var recognized", "out recognized")});");
+					}
+
+					file.Line();
+				}
+
 				file.Line("if (end < 0)");
 				using (file.Block(""))
 				{
@@ -1954,6 +1978,51 @@ public static partial class CSharpEmitter
 							file.Then("end = measured;");
 							file.Line("else");
 							file.Then("kind = 0;");
+						}
+					}
+
+					// A longer token that starts with the beginning: the automaton stopped on
+					// it and never read this terminal past its beginning, so the rest is
+					// measured here too. Longer wins; as long, the token is both; shorter, or
+					// refused, it is what the automaton said (TerminalInventory.Continuation).
+					foreach (var (longer, union) in continuation.Extended)
+					{
+						var beginning = continuation.Beginning!;
+						var begins    = beginning.Length == 1
+							? $"text[p] == {Character(beginning[0])}"
+							: $"global::System.MemoryExtensions.StartsWith(text.Slice(p), global::System.MemoryExtensions.AsSpan({Quoted(beginning)}))";
+
+						using (file.Block($"else if (kind == {longer} && {begins})"))
+						{
+							var from = $"p + {beginning.Length}";
+
+							if (MeasuredBy(lexical, continuation.Tail) is { } rule)
+							{
+								var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
+
+								file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
+								file.Line(
+									$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref failure{output}" +
+									$"{(valuing!.UsesInput ? ", input" : "")});");
+							}
+							else
+							{
+								file.Line($"var measured = {from};");
+								file.Line();
+								file.Line($"if (!{HostMeasure(lexical, continuation.Tail)})");
+								file.Then("measured = -1;");
+							}
+
+							file.Line();
+
+							using (file.Block("if (measured > end)"))
+							{
+								file.Line($"kind = {continuation.Kind};");
+								file.Line("end  = measured;");
+							}
+
+							file.Line("else if (measured == end)");
+							file.Then($"kind = {union};");
 						}
 					}
 				}
@@ -3280,6 +3349,15 @@ public static partial class CSharpEmitter
 	/// has an overload with a value — which the normalizer made a rule of. The value is not
 	/// wanted here: the lexer asks how far, and a terminal that builds reads its value again.
 	/// </remarks>
+	/// <summary>A character as C# spells it between single quotes.</summary>
+	static string Character(char c) => c switch
+	{
+		'\'' => @"'\''",
+		'\\' => @"'\\'",
+		< ' ' => @"'\u" + ((int)c).ToString("x4", System.Globalization.CultureInfo.InvariantCulture) + "'",
+		_    => "'" + c + "'",
+	};
+
 	static string HostMeasure(LexicalSplit lexical, Node tail) =>
 		tail switch
 		{
@@ -3316,6 +3394,27 @@ public static partial class CSharpEmitter
 	/// as the body does. A machine built without it would jump to a state nobody wrote.
 	/// </remarks>
 	static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root) => graph.Reaches(root);
+
+	/// <summary>
+	/// Whether a parse of text in memory reads quietly first and records only on reading a
+	/// refusal again (Q7.2).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A second reading has to begin where the first began. A grammar with a context hands the
+	/// reading an object its guards and constructions write into, which the generator cannot
+	/// rewind, so it keeps one recording reading until a way to rewind one is decided
+	/// (docs/design/diagnostics-off-the-hot-path-2026-09-18.md, §4).
+	/// </para>
+	/// <para>
+	/// A recovering grammar hands its <c>recover</c> factories what the failure recorded
+	/// while the parse goes on, so a quiet reading would hand them nothing. A stream, a buffer
+	/// and a <c>yield</c> are not asked: their publications are written elsewhere and keep
+	/// recording.
+	/// </para>
+	/// </remarks>
+	static bool ReadsQuietlyFirst(RecognitionGraph graph) =>
+		graph.Context is null && graph.Recoveries.Count == 0;
 
 	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>
 	/// <remarks>

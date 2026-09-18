@@ -136,6 +136,11 @@ a construction runs once per node of the accepted derivation). FIX first.
   where a construction throws (found by expr-2d, 2026-09-17:
   `using System.Linq; (int[] a) => a.Select(n => n * 2)` reads on the tape and throws
   immediately). That is a defect of the Immediate carrier today, and the rule D3 must keep.
+  **Fixed 2026-09-18 (performance-3f, up to `610906e3`)**: `Grammar/Model/Demand.cs` answers, per
+  call site, whether the tape would build its value — never, with its parent, or during the
+  match for a guard — and Immediate builds by that answer. `Demand.Of` is the analysis D3 reads.
+  Auto hands no grammar in the repository to Immediate with an unbuilt site; only the expression
+  language's explicit Immediate reading changed, and its skipped test is skipped no more.
 
 **Parked:** narrowing FIX's follow sets for `yield` (six Run records, correctness of the end of
 a yield step not established) and removing Run/CaptureOpen records that depends on it. The
@@ -353,6 +358,18 @@ call). Found by the compatibility build with warnings as errors: an emitted CS06
 consumer building strictly would have failed on; the verification now stops at the first failed
 build, since a stale assembly once let tests "pass".
 
+**The remainder, and no separate byte machine (finance-03's report, 2026-09-18).** With bytes
+read in place, the generated FIX parser still reads bytes 12-20% slower than text, the hand
+parser reads both alike. The remainder is in the buffered rendering, not the input: the scalar
+guard is off for buffered input (`Machine.cs`, `!BufferedInput &&`, decided on the stream form
+before bytes were in place) and costs 40-45% of the gap, measured with the line removed; text
+conversion allocated twice (fixed, `e7d17ceb`); what is left, some 3-6%, is a bounds check through
+the buffer object per character and the missing `Scan_*` helpers on the buffered side. A
+contiguous byte machine would be a third copy of the recognizer, about +39% source in Finance, for
+those last percent. **Decided: no separate byte machine.** The scalar guard for buffered input is
+performance-3f's next small proposal, with the stream rows measured before it lands; the rest
+comes with Q7.5, where "in memory, never refills" becomes a constant the JIT folds.
+
 **Several forms per parser, and feeds read by line — Igor, 2026-09-17.** A parser offers whichever
 forms its grammar asks for, several at once: FIX needs the byte form, and the same parser must
 also read a string in memory and a text stream. For a feed, streaming may read the stream a
@@ -464,6 +481,62 @@ SQL:2023 in flight. A diagnostic about the language a parser accepts cannot be o
   input the grammar meant), then performance-3f raises the severity, so that
   `TreatWarningsAsErrors` never meets it red.
 - `docs/development.md` says how to see Info diagnostics (`-v:detailed`).
+
+**`Committed` refined (`610906e3`)**: the cures the diagnostic asks for are recognized when an author
+writes them — `?=` on what follows at the end of an optional or repetition, also through a call
+or a choice; a `?!` of more than one token at the start of what follows, by a second-token
+analysis limited to that form; and atomic braces, as before. Repetitions the analysis does not
+see (`*`, sql-ff's `UNIQUE (a, p WITHOUT OVERLAPS)`) are the next refinement.
+
+## D12. Tests are reviewed for what each one proves
+
+Decided 2026-09-18 by Igor: the test suites are reviewed and what is redundant or no longer
+needed goes. The stand measures first (build and run time per project, per class and per test);
+each owner then reviews its area by these rules, each removal named in the commit with why:
+
+- A test goes when it asserts what another test already asserts on the same input, when it
+  tests a feature that was removed (Mixed, the options of Q3), or when it asserts the text of
+  emitted code rather than what the code does.
+- A test stays when it is the only one holding a claim: the snapshots, the agreement tests
+  (`Both`, `RefusalTests`, the hand-parser conformance), the retention and streaming tests,
+  the diagnostics corpus.
+- A slow test is not removed for being slow; it is moved where its cost is paid only when it
+  is asked for. The first candidate: `Finance.Tests` compiles Fix44's 59 MB on every build
+  (about 150 s) because Fix44 is its oracle; the oracle tests move to a project of their own,
+  so that the ordinary Finance tests build in seconds and the oracle runs when the grammar or
+  the parser changes.
+
+## D13. FIX first: the gap is to be explained and closed by hand-like code
+
+Decided 2026-09-18 by Igor. FIX is the priority; SQL and the rest go on beside it. The
+generated FIX parser is about 2.6x the hand-written one on a string and the reason is to be
+found, not assumed: first the parser's own initialization on small inputs, which can dominate
+a one-field parse; then the generator is to write code like the hand parser's. If that needs
+the architecture revisited, it is discussed with Igor.
+
+**What is known.** One field: 196 ns generated against 72 by hand — 124 ns over a parse that
+reads six characters, so most of a small parse is not reading. Order: recognizer 32%,
+materializer 27%, `Parser.Reset` 6%, factories 24% (shared with the hand parser). FIX is on the
+engine because it recovers; the hand parser is a loop that reads a tag into an int, finds the
+separator, switches on the tag's kind and builds.
+
+**First, the anatomy (performance-3f, with stand):**
+
+1. A slope over 0, 1, 2, 4, 8 fields, string form, generated against hand: the intercept is
+   what a call costs before it reads, the slope is a field. Each side's intercept is broken
+   down from the emitted code: renting the spare parser, `Reset`, the arena and value tables,
+   the context, the result array.
+2. A field's cost broken down: recognition (tag digits, `=`, the value to the separator),
+   the records written for it, materialization, the factory.
+3. Beside it, the same for `HandFixParser`, so that each line of the generated cost has the
+   hand parser's line next to it or a blank where the hand parser does nothing.
+
+**Then the design**, from that table: what the emitted code for `Fields` would have to be to
+match the hand parser line for line — a loop with no arena for a grammar whose only way back
+is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
+and which of the generator's parts stand in the way (the engine for `recover`, the two-pass
+shape, per-call setup). That design comes to the architect and to Igor as a question about
+the architecture before anything is written.
 
 ## Open questions
 
@@ -819,7 +892,19 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    finding `Mark()`/`Rollback(mark)` on the context type as §7.3 finds constructors, with an
    Info diagnostic saying what was found; or (3) by an explicit clause on the `context`
    declaration. Without either, a grammar with a context keeps recording on the hot path.
-   The architect recommends (2) with the diagnostic.
+   The architect recommends (2) with the diagnostic. **Decided 2026-09-18 by Igor: (2), the
+   generator does it itself** — it finds `Mark()` and `Rollback(mark)` on the context type through
+   the resolver, marks before the quiet reading and rolls back before the recording one, and says
+   so in an Info diagnostic; a context type without them keeps one recording reading, and the
+   diagnostic says that too.
+
+   **Landed 2026-09-18 (expr-2d).** Step 1, `cf16f1cd`: `find` over text and the split lexer's
+   re-reads record nothing. Step 2, `d4f9a45c`: in grammars with no context and no `recover`,
+   an in-memory `Parse`/`TryParse` reads quietly and reads again with recording only if it
+   refused; equivalent field by field on 2,466 recorded refusals (`RefusalTests.txt`,
+   `385f935d`) over engine, tape and immediate. Paired: SQL:2023 accepted -1..-6% time and
+   less allocated on every row (the quiet reading makes no tie list); a late refusal +98%
+   time; EL and FIX byte-identical, since EL has a context and waits for the decision above.
 
    **Found beside it (performance-3f):** `Ways.Lookahead` is read by `Refuse_DotGram` and never
    incremented since `487362c5`, so a refusal inside a lookahead is recorded on the reader and

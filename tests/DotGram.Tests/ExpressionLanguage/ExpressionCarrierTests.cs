@@ -159,9 +159,7 @@ public sealed class ExpressionCarrierTests
 		Agree(input);
 	}
 
-	[Theory(Skip =
-		"The immediate carrier builds the body of a lambda that says no types before the types are known, " +
-		"and throws where the tape reads (docs/design/architecture-decisions.md, D3 and D8).")]
+	[Theory]
 	[MemberData(nameof(Untyped))]
 	public void And_where_a_lambda_says_no_types(string input)
 	{

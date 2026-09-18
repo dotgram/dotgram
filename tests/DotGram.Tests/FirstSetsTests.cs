@@ -557,4 +557,170 @@ public sealed class FirstSetsTests
 		Assert.Contains(Split(grammar), one => one.Id == FirstSets.Swallows);
 	}
 
+	// ── Cures that prove the optional leaves the next part able to begin (D11) ─────
+
+	/// <summary>The lexical half every case below reads: names, and words that are names too.</summary>
+	const string Words =
+		"""
+		wordboundary = ['a'..'z' | '_']
+		trivia = { ' '* }
+		namespace Lexical
+		{
+			trivia = none
+			Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+		}
+		Type = Lexical.Name | "int"
+
+		""";
+
+	/// <summary>
+	/// An optional every way through which ends with a look at what follows it: a name is
+	/// taken only where a type comes after it, and a type is what the next part begins with,
+	/// so the next part can always begin (form 1).
+	/// </summary>
+	[Fact]
+	public void A_lookahead_at_the_end_of_the_optional_on_what_follows_settles_it()
+	{
+		const string grammar = Words +
+			"""
+			Start = "declare" & (Lexical.Name & ?=Type)? & Type & ";"
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>
+	/// The same look at the end of the rule the optional calls, and of each of its
+	/// alternatives; what follows includes the rule's own follow, the closing bracket
+	/// (form 2).
+	/// </summary>
+	[Theory]
+	[InlineData("""Named = Lexical.Name & ?=("order" | ')')""")]
+	[InlineData("""Named = Lexical.Name & ?="order" | Lexical.Name & ?=')'""")]
+	public void And_a_lookahead_at_the_end_of_the_rule_it_calls(string named)
+	{
+		var grammar = Words + named + "\n" +
+			"""
+			Details = Named? & ("order" & Lexical.Name)?
+			Start = '(' & Details & ')'
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>
+	/// A refusal of two words in front of the optional: the next part begins with `gen` and
+	/// goes on only by `always` or `by`, which is what the refusal names, so the optional
+	/// never begins where the next part does (form 3).
+	/// </summary>
+	[Fact]
+	public void A_refusal_of_what_the_next_part_begins_with_settles_it()
+	{
+		const string grammar = Words +
+			"""
+			Start = "col" & Lexical.Name & (?!("gen" & ("always" | "by")) & Type)? & ("gen" & ("always" | "by") & Lexical.Name)? & ";"
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>An atomic optional says what it takes by being atomic (a control: settled already).</summary>
+	[Fact]
+	public void An_atomic_optional_is_settled_by_definition()
+	{
+		const string grammar = Words +
+			"""
+			Start = "select" & Lexical.Name & { Lexical.Name? } & "into" & Lexical.Name
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>And none of them settles what it does not prove.</summary>
+	/// <remarks>
+	/// A look at something the next part cannot begin with; a look with something read after
+	/// it; a choice only one alternative of which looks; a refusal that leaves the next part
+	/// a way on; and a token the rule's follow may read, whose way on this cannot see.
+	/// </remarks>
+	[Theory]
+	[InlineData("""Start = "declare" & (Lexical.Name & ?=';')? & Type & ";" """)]
+	[InlineData("""Start = "declare" & (Lexical.Name & ?=Type & "z"?)? & Type & ";" """)]
+	[InlineData("""
+		Alias = Lexical.Name & ?=Type | Lexical.Name
+		Start = "declare" & Alias? & Type & ";"
+		""")]
+	[InlineData("""Start = "col" & Lexical.Name & (?!("gen" & "always") & Type)? & ("gen" & ("always" | "by") & Lexical.Name)? & ";" """)]
+	[InlineData("""
+		Column = "col" & Lexical.Name & (?!("gen" & "always") & Type)? & "x"?
+		Start = Column & "gen" & "always"
+		""")]
+	public void And_a_cure_that_does_not_prove_it_is_still_reported(string rules)
+	{
+		var grammar = Words + rules + "\nparse Start\n";
+
+		Assert.Contains(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>
+	/// A list whose turns take what the clause after it begins with: `UNIQUE (a, p WITHOUT
+	/// OVERLAPS)` — a turn takes `, p` and stands, and the period's comma and name are gone.
+	/// No turn is done in one token, so the question is asked of two.
+	/// </summary>
+	[Fact]
+	public void A_repetition_whose_turn_goes_on_like_the_next_part_is_said_out_loud()
+	{
+		const string grammar = Words +
+			"""
+			Columns = Lexical.Name & (',' & Lexical.Name)*
+			Start = '(' & Columns & (',' & Lexical.Name & "without" & "overlaps")? & ')'
+			parse Start
+			""";
+
+		Assert.Contains(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>And not where the next part begins otherwise, or is refused in front of each turn.</summary>
+	[Theory]
+	[InlineData("""
+		Columns = Lexical.Name & (',' & Lexical.Name)*
+		Start = '(' & Columns & ')'
+		""")]
+	[InlineData("""
+		Columns = Lexical.Name & (?!(',' & Lexical.Name & "without") & ',' & Lexical.Name)*
+		Start = '(' & Columns & (',' & Lexical.Name & "without" & "overlaps")? & ')'
+		""")]
+	public void And_not_where_the_turn_cannot_take_it(string rules)
+	{
+		var grammar = Words + rules + "\nparse Start\n";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>
+	/// What follows a rule reaches the optional at its end through the rule's construction:
+	/// a rule with `=>` is its alternative wrapped, and the wrapping stood between the
+	/// optional and the rule's follow — so a cure naming `)` was not recognized, and a real
+	/// case there was not reported.
+	/// </summary>
+	[Theory]
+	[InlineData("""Details : @string = n: Named? & ("order" & Lexical.Name)? => @("d")""", false)]
+	[InlineData("""Details : @string = n: Lexical.Name? & ("order" & Lexical.Name)? => @("d")""", true)]
+	public void What_follows_a_rule_that_builds_is_what_follows_its_last_optional(string details, bool reported)
+	{
+		var grammar = Words +
+			"""
+			Named = Lexical.Name & ?=("order" | ')')
+
+			""" + details + "\n" +
+			"""
+			Start = '(' & Details & ')'
+			parse Start
+			""";
+
+		Assert.Equal(reported, Split(grammar).Any(one => one.Id == FirstSets.Swallows));
+	}
 }

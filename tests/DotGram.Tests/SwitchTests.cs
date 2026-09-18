@@ -184,7 +184,9 @@ public sealed class SwitchTests
 			""", "public static int Calls; static int Pick() { Calls++; return 1; }");
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseSelected", "a").IsSuccess);
 		Assert.Equal(3, EmittedCode.Match(assembly, "Grammar", "TryParseOuter", "a").Value);
-		Assert.Equal(2, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+		// The refused `Selected` is read twice, quietly and then recording (Q7.2), and `Outer`
+		// once: three selections, where one reading would have made two.
+		Assert.Equal(3, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
 	}
 
 	[Fact]
@@ -306,7 +308,9 @@ public sealed class SwitchTests
 			""", "public static int Calls; static int Pick() { Calls++; return 1; }", lexical);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseSelected", "a").IsSuccess);
 		Assert.Equal(3, EmittedCode.Match(assembly, "Grammar", "TryParseOuter", "a").Value);
-		Assert.Equal(2, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+		// The refused `Selected` is read twice, quietly and then recording (Q7.2), and `Outer`
+		// once: three selections, where one reading would have made two.
+		Assert.Equal(3, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
 	}
 
 	[Theory]

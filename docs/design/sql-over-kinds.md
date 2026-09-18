@@ -213,3 +213,48 @@ construction finds the parts of an introduced literal by the first period and th
 the token rather than by the BNF. A token layer under the generator would have to keep those, or
 they would be corrected on one side only, and the first thing to notice would be the yardstick
 disagreeing.
+
+## Moving the product over, and what it costs
+
+Decided: `SqlStandardParser` reads over kinds. Nothing worked around — every guard the experiment
+removed has to come back as something, or be shown redundant.
+
+**Done.** `Identifier` loses its atomic braces, and `?!ReservedWord` moves into it. Removing the
+braces is not enough on its own: a rule of single-element alternatives carries no trivia and stays
+lexical, so the lookahead has to sit where a sequence does. Over kinds it is safe in front of all
+three alternatives, since a delimited name is its own kind and no reserved word's. `GluedWord`
+carries §5.2's left-hand guard, named once so the rule is reachable — an unreached lexical rule is
+`GRAM4018`, an error, and the automaton would not hold the pattern. The guards on the multiplier,
+the SQL language identifier, the quantifier's question mark and the simple comment's end are gone,
+each because the longest match does their work.
+
+**The introduced literal is the hard one, and it is where two known defects live.** The character
+set name sits *inside* the literal's token, so §5.4's rule that a name is no reserved word has to
+be applied inside the token — which a lexical pattern cannot do, since `?!` there is not regular.
+The mechanism for it is the terminal the lexer begins and a rule ends (`syntax.md` §7): the rule is
+a recognizer over characters, lookahead is allowed in it, and its refusal is the token's. It needs
+the beginning to belong to that terminal alone, and `_` does: `IdentifierStart` is
+`[\p{L} | \p{Nl}]`, so no name begins with one, and every other `_` in the lexical namespace is
+inside a token — a digit separator, or the tail of an SQL language identifier.
+
+So the literal splits: a plain one beginning at its quote, and an introduced one beginning at `_`
+whose rest a rule reads. The rest **captures its parts** rather than handing the whole text over,
+and that is what removes the defects:
+
+- `Nodes.StringLiteral` finds the literal by `text.IndexOf(''')` — the first quote anywhere in the
+  token, which for `_u&"'s".x'a'` is the one inside the delimited name;
+- `Nodes.CharacterSet` splits the introducer at every period, including the one inside `".s"`.
+
+Both are the same mistake: the parts were searched for in the text after the fact instead of being
+read. A rule that captures `set` and `body` has them already, and neither search survives. That is
+a change to what `SqlStandardParser` answers, so `HandSqlStandard` — which mirrors both on purpose
+— changes in the same commit, and the two shapes get tests asserting the tree the BNF asks for
+rather than the one the construction happened to make.
+
+**What it touches, and why it is not a grammar edit.** Thirteen places name the character string
+literal, and the value they receive today is the token's text. Splitting the terminal and capturing
+the parts changes that shape, so the value model of the introduced literal changes with it —
+`Nodes.CharacterSet`, `Nodes.StringLiteral`, and the call sites. Keeping the old construction and
+splitting only the terminal would be half the work and would preserve both defects; it is not
+worth having.
+
