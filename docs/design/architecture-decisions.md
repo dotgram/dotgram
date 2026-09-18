@@ -668,3 +668,11 @@ which a guard or a factory that reads the context or the marks can break.
 **First, measured:** in SQL:2023, how many guard builds happen per parse against how many values
 the accepted tree holds, on the corpora sql-ff times. If the ratio is near one, there is nothing
 to reuse and Q6 closes; if not, the ratio bounds what reuse can give. sql-ff.
+
+**Closed 2026-09-18: nothing to reuse (sql-ff).** No guard or factory in SQL:2023 reads the context
+or the marks, so reuse would have been safe; but on accepted parses nothing dropped by a way back
+is built again. Per parse, 2,000 parses a corpus: twenty select items 322 builds, 2 dropped, 0
+rebuilt; nested brackets at depth 1, 2, 4 and 8 build 54, 67, 93 and 145, drop 2 and rebuild 0 at
+every depth; accepted fuzz queries 1.65 rebuilt of 67.5 (2.4%, an upper bound, since the probe's
+key could only be the rule and its factory); accepted DDL 0.3%. A refused parse drops everything
+it built, which is what refusing means. Counted, not timed; the count needs no quiet window.
