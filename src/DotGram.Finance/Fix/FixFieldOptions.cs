@@ -5,14 +5,14 @@ namespace DotGram.Finance.Fix;
 /// <summary>
 /// Optional replacement length/data dictionary for FIX fields.
 /// </summary>
-public sealed class FixOptions
+public sealed class FixFieldOptions
 {
-	internal static readonly FixOptions Default = new();
+	internal static readonly FixFieldOptions Default = new();
 	readonly Dictionary<int, int>?      _pairs;
 	readonly HashSet<int>?              _dataTags;
 
 	/// <param name="lengthDataPairs">Null uses the standard dictionary. A supplied dictionary replaces it and is copied.</param>
-	public FixOptions(IReadOnlyDictionary<int,int>? lengthDataPairs = null)
+	public FixFieldOptions(IReadOnlyDictionary<int,int>? lengthDataPairs = null)
 	{
 		if (lengthDataPairs == null)
 			return;

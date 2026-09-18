@@ -31,7 +31,7 @@ static class FixSemantics
 		if (error != null)
 			return false;
 
-		var result = FixFactories.Message(type, source, header, body, trailer);
+		var result = FixMessageFactory.Message(type, source, header, body, trailer);
 
 		if (!FixValidation.Validate(result, mode, options, out error))
 			return false;

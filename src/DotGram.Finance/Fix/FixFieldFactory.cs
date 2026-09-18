@@ -2,7 +2,7 @@
 
 namespace DotGram.Finance.Fix;
 
-static class FixFactory
+static class FixFieldFactory
 {
 	public static FixField Value(int tag, ReadOnlySpan<char> value) => (tag / 64) switch
 	{

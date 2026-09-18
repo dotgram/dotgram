@@ -10,59 +10,59 @@ namespace DotGram.Handwritten.Fix;
 /// </summary>
 public static class HandFixParser
 {
-	public static FixField[] Parse(string input, FixOptions? options = null)
+	public static FixField[] Parse(string input, FixFieldOptions? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<char>(input.AsMemory()), false, options).ToArray();
 	}
 
-	public static FixField[] Parse(ReadOnlySpan<char> input, FixOptions? options = null)
+	public static FixField[] Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
 		return Parse(input.ToString(), options);
 	}
 
-	public static FixField[] Parse(byte[] input, FixOptions? options = null)
+	public static FixField[] Parse(byte[] input, FixFieldOptions? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<byte>(input), false, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> Parse(TextReader input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		Validate(input, bufferSize, maxRetained);
 		return ReadText(input, false, options, bufferSize, maxRetained);
 	}
 
-	public static IEnumerable<FixField> Parse(Stream input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		Validate(input, bufferSize, maxRetained);
 		return ReadBytes(input, false, options, bufferSize, maxRetained);
 	}
 
-	public static FixField[] ParseLog(string input, FixOptions? options = null)
+	public static FixField[] ParseLog(string input, FixFieldOptions? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<char>(input.AsMemory()), true, options).ToArray();
 	}
 
-	public static FixField[] ParseLog(ReadOnlySpan<char> input, FixOptions? options = null)
+	public static FixField[] ParseLog(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
 		return ParseLog(input.ToString(), options);
 	}
 
-	public static FixField[] ParseLog(byte[] input, FixOptions? options = null)
+	public static FixField[] ParseLog(byte[] input, FixFieldOptions? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<byte>(input), true, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> ParseLog(TextReader input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> ParseLog(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		Validate(input, bufferSize, maxRetained);
 		return ReadText(input, true, options, bufferSize, maxRetained);
 	}
 
-	public static IEnumerable<FixField> ParseLog(Stream input, FixOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
+	public static IEnumerable<FixField> ParseLog(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		Validate(input, bufferSize, maxRetained);
 		return ReadBytes(input, true, options, bufferSize, maxRetained);
@@ -75,22 +75,22 @@ public static class HandFixParser
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxRetained);
 	}
 
-	static IEnumerable<FixField> ReadText(TextReader input, bool log, FixOptions? options, int bufferSize, int maxRetained)
+	static IEnumerable<FixField> ReadText(TextReader input, bool log, FixFieldOptions? options, int bufferSize, int maxRetained)
 	{
 		foreach (var field in Read(new Input<char>(input, null, bufferSize, maxRetained), log, options))
 			yield return field;
 	}
 
-	static IEnumerable<FixField> ReadBytes(Stream input, bool log, FixOptions? options, int bufferSize, int maxRetained)
+	static IEnumerable<FixField> ReadBytes(Stream input, bool log, FixFieldOptions? options, int bufferSize, int maxRetained)
 	{
 		foreach (var field in Read(new Input<byte>(null, input, bufferSize, maxRetained), log, options))
 			yield return field;
 	}
 
-	static IEnumerable<FixField> Read<T>(Input<T> input, bool log, FixOptions? options)
+	static IEnumerable<FixField> Read<T>(Input<T> input, bool log, FixFieldOptions? options)
 		where T : unmanaged
 	{
-		options ??= FixOptions.Default;
+		options ??= FixFieldOptions.Default;
 		var position = 0;
 
 		while (input.Peek(position) >= 0)
@@ -112,7 +112,7 @@ public static class HandFixParser
 		}
 	}
 
-	static FixField? Field<T>(Input<T> input, bool log, FixOptions options, ref int position, out string? error)
+	static FixField? Field<T>(Input<T> input, bool log, FixFieldOptions options, ref int position, out string? error)
 		where T : unmanaged
 	{
 		var start = position;
@@ -237,19 +237,19 @@ public static class HandFixParser
 		{
 			var chars = MemoryMarshal.Cast<T, char>(value);
 			if (!binary)
-				return FixFactory.Value(tag, chars);
+				return FixFieldFactory.Value(tag, chars);
 
 			var data = new FixBinaryValue(FixConvert.Data(chars), valueStart);
-			return FixFactory.Binary(tag, data.Data).WithBinary(data, start);
+			return FixFieldFactory.Binary(tag, data.Data).WithBinary(data, start);
 		}
 		else
 		{
 			var bytes = MemoryMarshal.Cast<T, byte>(value);
 			if (!binary)
-				return FixFactory.Value(tag, bytes);
+				return FixFieldFactory.Value(tag, bytes);
 
 			var data = new FixBinaryValue(FixConvert.Data(bytes), valueStart);
-			return FixFactory.Binary(tag, data.Data).WithBinary(data, start);
+			return FixFieldFactory.Binary(tag, data.Data).WithBinary(data, start);
 		}
 	}
 

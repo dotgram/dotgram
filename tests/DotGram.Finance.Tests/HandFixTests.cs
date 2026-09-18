@@ -60,7 +60,7 @@ public sealed class HandFixTests
 		var payload = new string(Enumerable.Range(0, length).Select(i => " |=\0ÿ"[i % 5]).ToArray());
 		Compare("55=A | 95=" + length + " | 96=" + payload + " | 55=Z", true);
 		Compare("55=A\u000195=" + length + "\u000196=" + payload + "\u000155=Z", false);
-		var options = new FixOptions(new Dictionary<int, int> { [5000] = 5001 });
+		var options = new FixFieldOptions(new Dictionary<int, int> { [5000] = 5001 });
 		Compare("5000=" + length + " | 5001=" + payload + " | 55=Z", true, options);
 		Compare("5000=2|5002=ab|5001=X|55=Z", true, options);
 	}
@@ -120,7 +120,7 @@ public sealed class HandFixTests
 		Assert.Equal("B", Assert.IsType<FixField.Symbol>(b.Current).Value);
 	}
 
-	static void Compare(string input, bool log, FixOptions? options = null)
+	static void Compare(string input, bool log, FixFieldOptions? options = null)
 	{
 		var expected = log ? FixParser.ParseLog(input, options) : FixParser.Parse(input, options);
 		Equal(expected, log ? HandFixParser.ParseLog(input, options) : HandFixParser.Parse(input, options));

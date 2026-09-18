@@ -55,7 +55,7 @@ public sealed class FixLogTests
 	[Fact]
 	public void Custom_binary_pairs_also_accept_padded_separators()
 	{
-		var options = new FixOptions(new Dictionary<int, int> { [5000] = 5001 });
+		var options = new FixFieldOptions(new Dictionary<int, int> { [5000] = 5001 });
 		const string input = "5000=3 | 5001= |  | 55=END";
 
 		foreach (var fields in ReadLog(input, options))
@@ -146,7 +146,7 @@ public sealed class FixLogTests
 		}
 	}
 
-	static IEnumerable<FixField[]> ReadLog(string input, FixOptions? options = null)
+	static IEnumerable<FixField[]> ReadLog(string input, FixFieldOptions? options = null)
 	{
 		yield return FixParser.ParseLog(input, options);
 		yield return FixParser.ParseLog(input.AsSpan(), options);

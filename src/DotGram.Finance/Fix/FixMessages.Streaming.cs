@@ -51,7 +51,7 @@ public static partial class FixMessages
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
 		message = null;
-		var reader = new FrameReader(input, maxMessageLength, options.Separator);
+		var reader = new FrameReader(input, maxMessageLength, options.Framing.Separator());
 		if (!reader.TryRead(out var wire, out error))
 		{
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
@@ -66,7 +66,7 @@ public static partial class FixMessages
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
-		return ReadFrames(new FrameReader(input, maxMessageLength, options.Separator), options.Mode, options);
+		return ReadFrames(new FrameReader(input, maxMessageLength, options.Framing.Separator()), options.Mode, options);
 	}
 
 	/// <summary>Read exactly one message without closing or reading beyond it.</summary>
@@ -113,7 +113,7 @@ public static partial class FixMessages
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
 		message = null;
-		var reader = new FrameReader(input, maxMessageLength, options.Separator);
+		var reader = new FrameReader(input, maxMessageLength, options.Framing.Separator());
 		if (!reader.TryRead(out var wire, out error))
 		{
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
@@ -128,7 +128,7 @@ public static partial class FixMessages
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
-		return ReadFrames(new FrameReader(input, maxMessageLength, options.Separator), options.Mode, options);
+		return ReadFrames(new FrameReader(input, maxMessageLength, options.Framing.Separator()), options.Mode, options);
 	}
 
 	static void ValidateStreamArguments(FixParseMode mode, int maxMessageLength)

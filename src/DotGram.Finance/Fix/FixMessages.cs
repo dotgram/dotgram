@@ -38,10 +38,11 @@ public static partial class FixMessages
 	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict)
 		=> TryParseCore(input, out message, out error, mode, null);
 
-	static bool Envelope(string input, char separator, FixField[]? fields, out string type, out FixParseError? error)
+	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
 	{
 		type = "";
 		error = null;
+		var separator = framing.Separator();
 		for (var i = 0; i < input.Length; i++)
 			if (input[i] > 255) return Fail(i, null, null, "Input must preserve octets as characters U+0000 through U+00FF.", out error);
 		if (!input.StartsWith("8=FIX.4.4" + separator + "9=", StringComparison.Ordinal)) return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
@@ -59,7 +60,7 @@ public static partial class FixMessages
 		if (!int.TryParse(input.AsSpan(checksumStart + 3, 3), NumberStyles.None, CultureInfo.InvariantCulture, out var expected)) return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
 		var checksum = 0;
 		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
-		if (separator != '\u0001')
+		if (framing == FixFraming.Log)
 		{
 			if (fields == null) return true;
 			foreach (var field in fields)
@@ -78,21 +79,22 @@ public static partial class FixMessages
 		error = null;
 		if (input == null) return Fail(0, null, null, "Input is null.", out error);
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) return Fail(0, null, null, "Unknown parsing mode.", out error);
-		var separator = options?.Separator ?? '\u0001';
-		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		var fields = separator == '|'
+		var framing = options?.Framing ?? FixFraming.Wire;
+		if (!Envelope(input, framing, null, out var type, out error)) return false;
+		var fields = framing == FixFraming.Log
 			? FixParser.ParseLog(input, options?.FieldOptions)
 			: FixParser.Parse(input, options?.FieldOptions);
 		if (!CheckSyntax(fields, out error))
 			return false;
-		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
+		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
 		return FixSemantics.TryBuild(input, type, Nodes(input, fields), mode, options, out message, out error);
 	}
 
-	static bool Envelope(ReadOnlySpan<byte> input, char separator, FixField[]? fields, out string type, out FixParseError? error)
+	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
 	{
 		type = "";
 		error = null;
+		var separator = framing.Separator();
 		if (input.Length < 12 || !input.Slice(0, 9).SequenceEqual("8=FIX.4.4"u8) || input[9] != separator || input[10] != '9' || input[11] != '=') return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
 		var lengthEnd = input.Slice(12).IndexOf((byte)separator);
 		if (lengthEnd < 0) return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
@@ -111,7 +113,7 @@ public static partial class FixMessages
 		if (expected < 0) return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
 		var checksum = 0;
 		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
-		if (separator != '\u0001')
+		if (framing == FixFraming.Log)
 		{
 			if (fields == null) return true;
 			foreach (var field in fields)
@@ -126,14 +128,14 @@ public static partial class FixMessages
 	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixParseMode mode, FixParseOptions? options)
 	{
 		message = null;
-		var separator = options?.Separator ?? '\u0001';
-		if (!Envelope(input, separator, null, out var type, out error)) return false;
-		var fields = separator == '|'
+		var framing = options?.Framing ?? FixFraming.Wire;
+		if (!Envelope(input, framing, null, out var type, out error)) return false;
+		var fields = framing == FixFraming.Log
 			? FixParser.ParseLog(input, options?.FieldOptions)
 			: FixParser.Parse(input, options?.FieldOptions);
 		if (!CheckSyntax(fields, out error))
 			return false;
-		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
+		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
 		var wire = FixConvert.Text(input);
 		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields), mode, options, out message, out error);
 	}
@@ -155,8 +157,9 @@ public static partial class FixMessages
 		if (source == null) throw new ArgumentNullException(nameof(source));
 		if (fields == null) throw new ArgumentNullException(nameof(fields));
 		message = null;
-		var separator = options?.Separator ?? '\u0001';
-		if (!Envelope(source, separator, null, out var type, out error)) return false;
+		var framing   = options?.Framing ?? FixFraming.Wire;
+		var separator = framing.Separator();
+		if (!Envelope(source, framing, null, out var type, out error)) return false;
 		if (!CheckSyntax(fields, out error))
 			return false;
 		var position = 0;
@@ -183,7 +186,7 @@ public static partial class FixMessages
 			position = field.ValuePosition + field.Length + 1;
 		}
 		if (position != source.Length) return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
-		if (separator == '|' && !Envelope(source, separator, fields, out _, out error)) return false;
+		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error)) return false;
 		return FixSemantics.TryBuild(source, type, Nodes(source, fields), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
 	}
 

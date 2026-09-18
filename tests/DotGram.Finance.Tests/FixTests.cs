@@ -36,7 +36,7 @@ public sealed class FixTests
 	public void Configured_binary_pairs_preserve_raw_bytes_and_global_locations(int size)
 	{
 		var pairs = new Dictionary<int, int> { [5000] = 5001 };
-		var options = new FixOptions(pairs);
+		var options = new FixFieldOptions(pairs);
 		pairs.Clear(); // Configuration owns a snapshot.
 		var payload = new string(Enumerable.Range(0, size).Select(i => "|=\0ÿ"[i % 4]).ToArray());
 		var input = "55=ABC|5000=" + size + "|5001=" + payload + "|55=END|";
@@ -150,7 +150,7 @@ public sealed class FixTests
 	{
 		var text = "2147483647=X";
 		Assert.Equal(int.MaxValue, Assert.Single(FixParser.Parse(text)).Tag);
-		var options = new FixOptions(new Dictionary<int, int> { [int.MaxValue - 1] = int.MaxValue });
+		var options = new FixFieldOptions(new Dictionary<int, int> { [int.MaxValue - 1] = int.MaxValue });
 		var wire = "2147483646=3|2147483647=a|b|55=END";
 		var expected = FixParser.ParseLog(wire, options);
 		var binary = Assert.IsType<FixField.Unknown>(expected[0]);

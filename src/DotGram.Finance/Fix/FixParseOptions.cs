@@ -15,23 +15,19 @@ public sealed class FixParseOptions
 	/// </summary>
 	/// <param name="framing">Wire framing for SOH-separated input, log framing for a lossless pipe rendering.</param>
 	/// <param name="mode">The validation policy applied after wire recognition.</param>
-	public FixParseOptions(FixFraming framing, FixParseMode mode = FixParseMode.Strict)
+	/// <param name="fieldOptions">Null uses the standard length/data dictionary.</param>
+	public FixParseOptions(FixFraming framing, FixParseMode mode = FixParseMode.Strict, FixFieldOptions? fieldOptions = null)
 	{
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) throw new ArgumentOutOfRangeException(nameof(mode));
 		if (framing != FixFraming.Wire && framing != FixFraming.Log)
 			throw new ArgumentOutOfRangeException(nameof(framing));
 
 		Framing      = framing;
-		FieldOptions = new FixOptions();
+		FieldOptions = fieldOptions ?? FixFieldOptions.Default;
 		Mode         = mode;
 	}
 
-	public FixOptions   FieldOptions { get; }
+	public FixFieldOptions   FieldOptions { get; }
 	public FixFraming   Framing      { get; }
 	public FixParseMode Mode         { get; }
-
-	/// <summary>
-	/// The character the chosen framing ends a field with.
-	/// </summary>
-	internal char Separator => Framing == FixFraming.Log ? '|' : '\u0001';
 }

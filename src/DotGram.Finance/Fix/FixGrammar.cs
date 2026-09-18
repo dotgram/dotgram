@@ -53,7 +53,7 @@ sealed partial class FixGrammar
 		return length is >= 0 and <= int.MaxValue && input.TryAdvance(ref position, (int)length);
 	}
 
-	public sealed class FixContext(FixOptions options)
+	public sealed class FixContext(FixFieldOptions options)
 	{
 		public long DataLimit { get; private set; }
 
@@ -79,13 +79,13 @@ sealed partial class FixGrammar
 			var dataTag = options.DataTag(tag);
 
 			if (dataTag == 0)
-				return FixFactory.Value(tag, wire.Slice(equals + 1));
+				return FixFieldFactory.Value(tag, wire.Slice(equals + 1));
 
 			var second  = equals + 1;
 			var payload = second + wire.Slice(second).IndexOf('=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 
-			return FixFactory.Binary(dataTag, value.Data).WithBinary(value, start);
+			return FixFieldFactory.Binary(dataTag, value.Data).WithBinary(value, start);
 		}
 
 		public FixField Create(int tag, ReadOnlySpan<byte> wire, int start)
@@ -94,13 +94,13 @@ sealed partial class FixGrammar
 			var dataTag = options.DataTag(tag);
 
 			if (dataTag == 0)
-				return FixFactory.Value(tag, wire.Slice(equals + 1));
+				return FixFieldFactory.Value(tag, wire.Slice(equals + 1));
 
 			var second  = equals + 1;
 			var payload = second + wire.Slice(second).IndexOf((byte)'=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire[payload..]), start + payload);
 
-			return FixFactory.Binary(dataTag, value.Data).WithBinary(value, start);
+			return FixFieldFactory.Binary(dataTag, value.Data).WithBinary(value, start);
 		}
 	}
 }

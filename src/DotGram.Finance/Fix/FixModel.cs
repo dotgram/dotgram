@@ -26,6 +26,17 @@ public enum FixFraming
 	Log,
 }
 
+static class FixFramings
+{
+	/// <summary>
+	/// The character the framing ends a field with.
+	/// </summary>
+	public static char Separator(this FixFraming framing)
+	{
+		return framing == FixFraming.Log ? '|' : '\u0001';
+	}
+}
+
 /// <summary>A malformed message, identified by its zero-based character offset.</summary>
 public sealed class FixParseError
 {
