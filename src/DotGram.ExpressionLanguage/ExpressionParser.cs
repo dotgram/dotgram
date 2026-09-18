@@ -716,9 +716,16 @@ namespace DotGram.ExpressionLanguage;
 		| c: ForeachInferred  => @(c)
 		| c: Switch          => @(c)
 
+	// The branch is read once. Written as two alternatives — one with an `else`, one without —
+	// the test and the branch were read again whenever the `else` was not there, and every
+	// declaration in the branch was written down twice. What tells the two apart is whether an
+	// `else` follows, and a branch that is an expression has to have one: without it the `if`
+	// stands alone, which it can only as a statement.
 	If : @Expression
-		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionParser.Branched(test, then, otherwise))
-		| "if" & '(' & test: Expression & ')' & then: Statement => @(Expression.IfThen(test, then))
+		= "if" & '(' & test: Expression & ')'
+		& ( then: Statement & ("else" & otherwise: Branch)?
+		  | then: Expression & "else" & otherwise: Branch)
+		=> @(otherwise is null ? Expression.IfThen(test, then) : ExpressionParser.Branched(test, then, otherwise))
 
 	// The same `if` where a value is wanted: its branches are values, so the `;` after
 	// `else 0` is the declaration's and not the branch's. Over kinds a rule's answer stands
