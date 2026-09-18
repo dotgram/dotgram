@@ -391,7 +391,7 @@ public static class FirstSets
 				// that called it, and nothing inside `RoutineOption` says so.
 				var after = follow.TryGetValue(rule, out var beyond) ? beyond.Plain : First.None;
 
-				Swallowed(body, rule, declaration, reported, graph, inventory, after);
+				Swallowed(body, rule, declaration, reported, graph, inventory, after, follow);
 			}
 
 		return reported;
@@ -400,13 +400,13 @@ public static class FirstSets
 	static void Swallowed(
 		Node node, RuleSymbol rule, Decl.Rule declaration,
 		List<GramDiagnostic> reported, RecognitionGraph graph, TerminalInventory? inventory,
-		First after)
+		First after, IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow)
 	{
 		if (node is Node.Sequence(var parts))
 		{
 			for (var i = 0; i < parts.Count; i++)
 			{
-				if (Takes(parts, i, graph, after) is not { } taken)
+				if (Takes(parts, i, graph, after, rule, follow) is not { } taken)
 					continue;
 
 				reported.Add(new GramDiagnostic(
@@ -422,13 +422,18 @@ public static class FirstSets
 			}
 		}
 
-		// Only the body's own alternatives are followed by what follows the rule. Anything
-		// nested is followed by the rest of the shape around it, which is a question this
-		// does not ask and would answer wrongly by borrowing the rule's.
-		var inside = node is Node.Choice ? after : First.None;
+		// Only the body's own alternatives are followed by what follows the rule, and what
+		// stands for the whole of one — the construction a rule with `=>` wraps its
+		// alternative in, a capture, a mark, an atomic group. Anything nested deeper is
+		// followed by the rest of the shape around it, which is a question this does not
+		// ask and would answer wrongly by borrowing the rule's. Stopped at the construction,
+		// a rule that builds never had its last optional held to what follows it.
+		var inside = node is Node.Choice or Node.Construct or Node.Capture or Node.Marked or Node.Atomic
+			? after
+			: First.None;
 
 		foreach (var child in Children(node))
-			Swallowed(child, rule, declaration, reported, graph, inventory, inside);
+			Swallowed(child, rule, declaration, reported, graph, inventory, inside, follow);
 	}
 
 	/// <summary>The overlap said as the words it stands for, where they can be looked up.</summary>
@@ -513,7 +518,8 @@ public static class FirstSets
 	/// </para>
 	/// </remarks>
 	static First? Takes(
-		IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond)
+		IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond,
+		RuleSymbol owner, IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow)
 	{
 		if (parts[at] is not Node.Repeat(var body, var min, var max) || max is int most && most <= min)
 			return null;
@@ -526,19 +532,562 @@ public static class FirstSets
 		// five this was written for did their damage.
 		var after = rest.Nothing ? beyond : rest;
 
-		if (after.Nothing || !only.Overlaps(after))
+		if (after.Nothing)
 			return null;
 
 		// What can begin once the optional is done: the rest of this sequence, and past it,
 		// where the rest may read nothing, what follows the rule.
 		var next = rest.Nothing ? beyond : RestNullable(parts, at + 1, graph) ? rest.Or(beyond) : rest;
 
+		// A turn done in one token, or — for a repetition, whose turns are how a list goes on
+		// — a turn of two that begins and goes on the way the next part does.
+		var shared = only.Overlaps(after)
+			? only.And(after)
+			: max is null or > 1
+				? Turned(body, parts, at, graph, owner, follow)
+				: First.None;
+
+		if (shared.Nothing)
+			return null;
+
 		if (Looked(body, graph, []) is { IsKnown: true } looked && next.IsKnown && next.Covers(looked))
 			return null;
 
-		var taken = Barred(body, only.And(after), parts, at, graph, beyond);
+		var taken = Barred(body, shared, parts, at, graph, beyond, owner, follow);
 
 		return taken.Nothing ? null : taken;
+	}
+
+	/// <summary>
+	/// The tokens a turn of a repetition begins with where a whole reading of the turn is the
+	/// beginning of a longer reading of the next part.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>(',' &amp; ColumnName)*</c> before <c>(',' &amp; Identifier &amp; "WITHOUT"
+	/// &amp; "OVERLAPS")?</c>: a turn reads <c>, p</c>, stands, and the period's comma and
+	/// name are gone. No turn is done in one token, so the one-token question cannot see it.
+	/// What is asked instead is the same failure said at the turn's own length: the turn is
+	/// done, and what it read is how the next part would have begun.
+	/// </para>
+	/// <para>
+	/// Asked only of a turn every reading of which is at most <see cref="TurnLength"/>
+	/// tokens — a list's separator and its item, which is where this bites. A turn with no
+	/// such bound (<c>'|' &amp; Binary</c>, a statement) is left to the one-token question:
+	/// telling where two unbounded readings part is not something first sets can do, and
+	/// asking it by a fixed number of tokens reported every list whose items begin alike,
+	/// which is nearly every one. A prefix of the next part this cannot see past — a
+	/// repetition, a lookahead, a rule it is inside — is taken as matching, the direction
+	/// that reports.
+	/// </para>
+	/// </remarks>
+	static First Turned(
+		Node body, IReadOnlyList<Node> parts, int at, RecognitionGraph graph,
+		RuleSymbol owner, IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow)
+	{
+		if (Shapes(body, TurnLength, graph, []) is not { Count: > 0 } turns)
+			return First.None;
+
+		var taken = First.None;
+
+		foreach (var turn in turns)
+		{
+			if (turn.Length == 0)
+				continue;
+
+			foreach (var prefix in Continued(parts, at + 1, turn.Length + 1, graph, owner, follow, []))
+				if (prefix is null || Begins(turn, prefix))
+					taken = taken.Or(prefix is null ? turn[0] : turn[0].And(prefix[0]));
+		}
+
+		return taken;
+	}
+
+	/// <summary>
+	/// What is known of a prefix, and anything after it: a way on this cannot follow is taken
+	/// as matching from where it begins, and not before, so a prefix that already parted from
+	/// the turn stays parted.
+	/// </summary>
+	static First[] Unknown(First[] known, int length)
+	{
+		var filled = new First[length];
+
+		for (var i = 0; i < length; i++)
+			filled[i] = i < known.Length ? known[i] : First.All;
+
+		return filled;
+	}
+
+	/// <summary>The longest turn <see cref="Turned"/> asks about, in tokens.</summary>
+	const int TurnLength = 3;
+
+	/// <summary>Whether a turn could be read as the beginning of this prefix: each token of it could be the prefix's.</summary>
+	static bool Begins(First[] turn, First[] prefix)
+	{
+		for (var i = 0; i < turn.Length; i++)
+			if (!turn[i].Overlaps(prefix[i]))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// Every reading of a node as its tokens, one set per token; null where some reading may
+	/// be longer than <paramref name="most"/>, or is not known.
+	/// </summary>
+	static List<First[]>? Shapes(Node node, int most, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Empty:
+				return [[]];
+
+			case Node.Literal(var text):
+				return text.Length <= most
+					? [[.. text.Select(static one => First.Chars([new CharRange(one, one)]))]]
+					: null;
+
+			case Node.Element(var negated, var ranges, _, var references):
+				return negated || references.Count > 0 || most < 1 ? null : [[First.Chars(ranges)]];
+
+			case Node.Sequence(var parts):
+			{
+				List<First[]> made = [[]];
+
+				foreach (var part in parts)
+				{
+					if (Silent(part))
+						continue;
+
+					if (Shapes(part, most, graph, seen) is not { } each)
+						return null;
+
+					var next = new List<First[]>();
+
+					foreach (var before in made)
+						foreach (var one in each)
+						{
+							if (before.Length + one.Length > most)
+								return null;
+
+							next.Add([.. before, .. one]);
+						}
+
+					if (next.Count > 64)
+						return null;
+
+					made = next;
+				}
+
+				return made;
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				var made = new List<First[]>();
+
+				foreach (var one in alternatives)
+				{
+					if (Shapes(one, most, graph, seen) is not { } each)
+						return null;
+
+					made.AddRange(each);
+				}
+
+				return made.Count > 64 ? null : made;
+			}
+
+			case Node.Repeat(var body, var min, var max) when max is int bound && bound <= most:
+			{
+				var one  = Shapes(body, most, graph, seen);
+				var made = new List<First[]>();
+
+				if (one is null)
+					return null;
+
+				List<First[]> turns = [[]];
+
+				for (var count = 0; count <= bound; count++)
+				{
+					if (count >= min)
+						made.AddRange(turns);
+
+					if (count == bound)
+						break;
+
+					var next = new List<First[]>();
+
+					foreach (var before in turns)
+						foreach (var each in one)
+							if (before.Length + each.Length <= most)
+								next.Add([.. before, .. each]);
+							else
+								return null;
+
+					turns = next;
+				}
+
+				return made.Count > 64 ? null : made;
+			}
+
+			case Node.Capture(_, var held):    return Shapes(held, most, graph, seen);
+			case Node.Atomic(var kept):        return Shapes(kept, most, graph, seen);
+			case Node.Marked(var kept, _):     return Shapes(kept, most, graph, seen);
+			case Node.Construct(var built, _): return Shapes(built, most, graph, seen);
+
+			case Node.Call(var rule, _):
+			{
+				if (!seen.Add(rule) || !graph.Bodies.TryGetValue(rule, out var called))
+					return null;
+
+				var made = Shapes(called, most, graph, seen);
+
+				seen.Remove(rule);
+
+				return made;
+			}
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>
+	/// The first <paramref name="length"/> tokens of every reading of what follows a part —
+	/// the rest of its sequence, then where the rule is called from — as sets; a null entry
+	/// for a way on this cannot see.
+	/// </summary>
+	static List<First[]?> Continued(
+		IReadOnlyList<Node> parts, int from, int length, RecognitionGraph graph,
+		RuleSymbol owner, IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow,
+		HashSet<RuleSymbol> climbing)
+	{
+		var found = new List<First[]?>();
+
+		foreach (var (shape, open) in Prefixes(parts, from, length, graph, []))
+		{
+			if (shape is null)
+			{
+				found.Add(Unknown([], length));
+
+				continue;
+			}
+
+			if (!open || shape.Length == length)
+			{
+				if (shape.Length == length)
+					found.Add(shape);
+
+				continue;
+			}
+
+			// Short of the length and done: what follows the rule goes on from here.
+			if (!climbing.Add(owner))
+			{
+				found.Add(Unknown(shape, length));
+
+				continue;
+			}
+
+			var called = false;
+
+			foreach (var caller in graph.Rules)
+				if (graph.Bodies.TryGetValue(caller, out var body))
+					foreach (var continuation in Continuations(body, owner))
+					{
+						called = true;
+
+						if (continuation is null)
+						{
+							found.Add(Unknown(shape, length));
+
+							continue;
+						}
+
+						foreach (var rest in Continued(continuation, 0, length - shape.Length, graph, caller, follow, climbing))
+							found.Add(rest is null ? Unknown(shape, length) : [.. shape, .. rest]);
+					}
+
+			climbing.Remove(owner);
+
+			// Published and never called: the input ends there, and a prefix this short is
+			// no reading at all.
+			_ = called;
+		}
+
+		return found;
+	}
+
+	/// <summary>
+	/// Readings of a sequence from one part on, cut at <paramref name="length"/> tokens:
+	/// each with whether it is done short of that (open), so what follows the sequence may
+	/// go on from it; null for a reading this cannot follow.
+	/// </summary>
+	static List<(First[]? Shape, bool Open)> Prefixes(
+		IReadOnlyList<Node> parts, int from, int length, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		List<(First[]? Shape, bool Open)> made = [([], true)];
+
+		for (var i = from; i < parts.Count; i++)
+		{
+			var next = new List<(First[]? Shape, bool Open)>();
+
+			foreach (var (shape, open) in made)
+			{
+				if (shape is null || !open || shape.Length == length)
+				{
+					next.Add((shape, open));
+
+					continue;
+				}
+
+				foreach (var (more, ended) in Prefix(parts[i], length - shape.Length, graph, seen))
+					next.Add(more is null ? (Unknown(shape, length), false) : ([.. shape, .. more], ended));
+			}
+
+			if (next.Count > 256)
+				return [(Unknown([], length), false)];
+
+			made = next;
+		}
+
+		return made;
+	}
+
+	/// <summary>Readings of one node cut at <paramref name="length"/> tokens, as <see cref="Prefixes"/> says them.</summary>
+	static List<(First[]? Shape, bool Open)> Prefix(Node node, int length, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Empty:
+			case Node.Guard:
+			case Node.Glue:
+			case Node.Reading:
+			case Node.Behind:
+				return [([], true)];
+
+			// What a look allows is narrower than what follows it; not narrowing is the
+			// direction that reports.
+			case Node.Lookahead:
+				return [([], true)];
+
+			case Node.Literal(var text):
+			{
+				var taken = Math.Min(text.Length, length);
+
+				return [([.. text.Take(taken).Select(static one => First.Chars([new CharRange(one, one)]))], taken == text.Length)];
+			}
+
+			case Node.Element(var negated, var ranges, _, var references):
+				return negated || references.Count > 0 ? [(null, false)] : [([First.Chars(ranges)], true)];
+
+			case Node.Sequence(var parts):
+				return Prefixes(parts, 0, length, graph, seen);
+
+			case Node.Choice(var alternatives):
+			{
+				var made = new List<(First[]? Shape, bool Open)>();
+
+				foreach (var one in alternatives)
+					made.AddRange(Prefix(one, length, graph, seen));
+
+				return made;
+			}
+
+			case Node.Repeat(var body, var min, var max):
+			{
+				// Turn after turn until the length is reached: each is the body again.
+				var turns = new List<Node>();
+				var made  = new List<(First[]? Shape, bool Open)>();
+
+				for (var count = 0; count <= length && (max is null || count <= max); count++)
+				{
+					if (count >= min)
+						made.AddRange(Prefixes(turns, 0, length, graph, seen));
+
+					turns.Add(body);
+				}
+
+				return made;
+			}
+
+			case Node.Capture(_, var held):    return Prefix(held, length, graph, seen);
+			case Node.Atomic(var kept):        return Prefix(kept, length, graph, seen);
+			case Node.Marked(var kept, _):     return Prefix(kept, length, graph, seen);
+			case Node.Construct(var built, _): return Prefix(built, length, graph, seen);
+
+			case Node.Call(var rule, _):
+			{
+				if (!seen.Add(rule) || !graph.Bodies.TryGetValue(rule, out var called))
+					return [(null, false)];
+
+				var made = Prefix(called, length, graph, seen);
+
+				seen.Remove(rule);
+
+				return made;
+			}
+
+			default:
+				return [(null, false)];
+		}
+	}
+
+	/// <summary>
+	/// What can come right after <paramref name="token"/> where the next part begins with
+	/// it: read by the rest of the sequence, and, where that may read nothing, by the places
+	/// the rule is called from; null where some way on is not known.
+	/// </summary>
+	static First? Next(
+		Node rest, First token, IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond,
+		RuleSymbol owner, IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow)
+	{
+		var (following, ended) = Second(rest, token, graph, []);
+
+		// Where the next part may be done after the token, what comes then is the rule's
+		// follow, and that is a second token too.
+		if (ended)
+			following = Or(following, beyond);
+
+		// The token read by what follows the rule, past a next part that read nothing: the
+		// callers say how it goes on.
+		if (RestNullable(parts, at + 1, graph) && beyond.Overlaps(token))
+			following = Or(following, AfterCalls(owner, token, graph, follow, []));
+
+		return following;
+	}
+
+	/// <summary>
+	/// What can come right after <paramref name="token"/> where it is the first thing read
+	/// after a call of <paramref name="rule"/>, over every place the rule is called from;
+	/// null where some place does not say.
+	/// </summary>
+	/// <remarks>
+	/// A list rule is called from many places, and what follows it is theirs: <c>(a, p
+	/// WITHOUT OVERLAPS)</c>'s period stands in the rule that calls the column list. What
+	/// follows a call is the rest of each sequence around it, innermost first; a call inside
+	/// a repetition or a lookahead goes on in a way this does not follow, and says null. A
+	/// rule that is only published, never called, is followed by the end of the input.
+	/// </remarks>
+	static First? AfterCalls(
+		RuleSymbol rule, First token, RecognitionGraph graph,
+		IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow, HashSet<RuleSymbol> climbing)
+	{
+		if (!climbing.Add(rule))
+			return null;
+
+		First? next = First.None;
+
+		foreach (var caller in graph.Rules)
+		{
+			if (!graph.Bodies.TryGetValue(caller, out var body))
+				continue;
+
+			foreach (var continuation in Continuations(body, rule))
+			{
+				if (continuation is null)
+					return null;
+
+				var (after, ended) = Second(continuation, 0, token, graph, []);
+
+				if (ended)
+					after = Or(after, follow.TryGetValue(caller, out var beyond) ? beyond.Plain : First.None);
+
+				if (RestNullable(continuation, 0, graph) &&
+					(follow.TryGetValue(caller, out var outer) ? outer.Plain : First.None).Overlaps(token))
+					after = Or(after, AfterCalls(caller, token, graph, follow, climbing));
+
+				next = Or(next, after);
+
+				if (next is null)
+					return null;
+			}
+		}
+
+		return next;
+	}
+
+	/// <summary>
+	/// What follows each call of a rule inside one body, as the parts after it in every
+	/// sequence around it, innermost first; null for a call whose way on is not followed.
+	/// </summary>
+	static List<IReadOnlyList<Node>?> Continuations(Node body, RuleSymbol rule)
+	{
+		var found  = new List<IReadOnlyList<Node>?>();
+		var frames = new List<(IReadOnlyList<Node>? Parts, int At)>();
+
+		Visit(body);
+
+		return found;
+
+		void Visit(Node node)
+		{
+			switch (node)
+			{
+				case Node.Call(var called, var arguments):
+					if (ReferenceEquals(called, rule))
+					{
+						List<Node>? rest = [];
+
+						for (var i = frames.Count - 1; i >= 0; i--)
+						{
+							if (frames[i].Parts is not { } parts)
+							{
+								rest = null;
+
+								break;
+							}
+
+							for (var j = frames[i].At + 1; j < parts.Count; j++)
+								rest.Add(parts[j]);
+						}
+
+						found.Add(rest);
+					}
+
+					foreach (var argument in arguments)
+						Visit(argument);
+
+					break;
+
+				case Node.Sequence(var parts):
+					for (var i = 0; i < parts.Count; i++)
+					{
+						frames.Add((parts, i));
+						Visit(parts[i]);
+						frames.RemoveAt(frames.Count - 1);
+					}
+
+					break;
+
+				case Node.Choice(var alternatives):
+					foreach (var one in alternatives)
+						Visit(one);
+
+					break;
+
+				case Node.Repeat(var repeated, _, var max) when max is 1:
+					Visit(repeated);
+					break;
+
+				case Node.Repeat(var repeated, _, _):
+					frames.Add((null, 0));
+					Visit(repeated);
+					frames.RemoveAt(frames.Count - 1);
+					break;
+
+				case Node.Lookahead(_, var inside):
+					frames.Add((null, 0));
+					Visit(inside);
+					frames.RemoveAt(frames.Count - 1);
+					break;
+
+				case Node.Capture(_, var held):    Visit(held);  break;
+				case Node.Atomic(var kept):        Visit(kept);  break;
+				case Node.Marked(var kept, _):     Visit(kept);  break;
+				case Node.Construct(var built, _): Visit(built); break;
+			}
+		}
 	}
 
 	/// <summary>Whether every part from here on may read nothing.</summary>
@@ -639,7 +1188,8 @@ public static class FirstSets
 	/// token, so only of a set small enough to be asked that way: the syntactic half's kinds.
 	/// </remarks>
 	static First Barred(
-		Node body, First shared, IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond)
+		Node body, First shared, IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond,
+		RuleSymbol owner, IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow)
 	{
 		if (Leading(body) is not Node.Lookahead(false, var refused) ||
 			OneCharacter(refused, graph, []) ||
@@ -678,17 +1228,7 @@ public static class FirstSets
 			if (pattern is null)
 				return false;
 
-			// The token read by what follows the rule, past a next part that read nothing,
-			// goes on in a way this cannot see.
-			if (RestNullable(parts, at + 1, graph) && beyond.Overlaps(token))
-				return false;
-
-			var (following, ended) = Second(rest, token, graph, []);
-
-			// Where the next part may be done after the token, what comes then is the rule's
-			// follow, and that is a second token too.
-			if (ended)
-				following = Or(following, beyond);
+			var following = Next(rest, token, parts, at, graph, beyond, owner, follow);
 
 			return following is { IsKnown: true } known && pattern.Covers(known);
 		}

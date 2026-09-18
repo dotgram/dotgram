@@ -664,4 +664,63 @@ public sealed class FirstSetsTests
 
 		Assert.Contains(Split(grammar), one => one.Id == FirstSets.Swallows);
 	}
+
+	/// <summary>
+	/// A list whose turns take what the clause after it begins with: `UNIQUE (a, p WITHOUT
+	/// OVERLAPS)` — a turn takes `, p` and stands, and the period's comma and name are gone.
+	/// No turn is done in one token, so the question is asked of two.
+	/// </summary>
+	[Fact]
+	public void A_repetition_whose_turn_goes_on_like_the_next_part_is_said_out_loud()
+	{
+		const string grammar = Words +
+			"""
+			Columns = Lexical.Name & (',' & Lexical.Name)*
+			Start = '(' & Columns & (',' & Lexical.Name & "without" & "overlaps")? & ')'
+			parse Start
+			""";
+
+		Assert.Contains(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>And not where the next part begins otherwise, or is refused in front of each turn.</summary>
+	[Theory]
+	[InlineData("""
+		Columns = Lexical.Name & (',' & Lexical.Name)*
+		Start = '(' & Columns & ')'
+		""")]
+	[InlineData("""
+		Columns = Lexical.Name & (?!(',' & Lexical.Name & "without") & ',' & Lexical.Name)*
+		Start = '(' & Columns & (',' & Lexical.Name & "without" & "overlaps")? & ')'
+		""")]
+	public void And_not_where_the_turn_cannot_take_it(string rules)
+	{
+		var grammar = Words + rules + "\nparse Start\n";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>
+	/// What follows a rule reaches the optional at its end through the rule's construction:
+	/// a rule with `=>` is its alternative wrapped, and the wrapping stood between the
+	/// optional and the rule's follow — so a cure naming `)` was not recognized, and a real
+	/// case there was not reported.
+	/// </summary>
+	[Theory]
+	[InlineData("""Details : @string = n: Named? & ("order" & Lexical.Name)? => @("d")""", false)]
+	[InlineData("""Details : @string = n: Lexical.Name? & ("order" & Lexical.Name)? => @("d")""", true)]
+	public void What_follows_a_rule_that_builds_is_what_follows_its_last_optional(string details, bool reported)
+	{
+		var grammar = Words +
+			"""
+			Named = Lexical.Name & ?=("order" | ')')
+
+			""" + details + "\n" +
+			"""
+			Start = '(' & Details & ')'
+			parse Start
+			""";
+
+		Assert.Equal(reported, Split(grammar).Any(one => one.Id == FirstSets.Swallows));
+	}
 }
