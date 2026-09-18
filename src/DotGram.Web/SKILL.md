@@ -52,7 +52,7 @@ var price    = (JsonValue.Number)document.Members[0].Value;
 
 string exact = price.Text;                          // 19.999999999999999999, as written
 double close = price.ToDouble();                    // 20
-bool fits    = price.TryToDecimal(out var amount);  // true: twenty digits fit a decimal
+bool fits    = price.TryToDecimal(out var amount);  // true: a decimal holds it exactly
 
 if (!JsonValue.TryParse(untrusted, out var value))
     return;                                         // malformed JSON, no exception
@@ -69,10 +69,10 @@ if (!JsonValue.TryParse(untrusted, out var value))
 
 **JSON.**
 
-- A number keeps its text. `ToDouble` gives the nearest double. `TryToDecimal` **rounds**
-  past decimal's 28 or so significant digits and still returns true, rather than refusing.
-  `TryToInt64` takes only an integer with no fraction or exponent. When every digit
-  matters, keep `Text`.
+- A number keeps its text. `ToDouble` gives the nearest double, rounding as a double must.
+  `TryToDecimal` returns false rather than round: past a decimal's precision or range it
+  refuses, and only a trailing zero after the point may be dropped. `TryToInt64` takes only
+  an integer with no fraction or exponent.
 - An object keeps its members in order, a name written twice included. Decide which one you
   mean when you look one up.
 - `JsonPointer.Resolve` answers C# `null` when the pointer refers to nothing — which is not

@@ -83,9 +83,47 @@ public sealed class Rfc8259Tests
 		var number = (JsonValue.Number)JsonValue.Parse("3.141592653589793238462643383279");
 
 		Assert.Equal("3.141592653589793238462643383279", number.Text);
-		Assert.True(number.TryToDecimal(out var exact));
-		Assert.Equal(3.1415926535897932384626433833m, exact);
+		Assert.False(number.TryToDecimal(out _));
 		Assert.False(number.TryToInt64(out _));
+	}
+
+	/// <summary>
+	/// A decimal is given only where it holds the number exactly: a digit lost to its precision or its
+	/// range is a refusal, and a trailing zero after the point is not a lost digit.
+	/// </summary>
+	[Theory]
+	[InlineData("1234567890123456789012345678",          true,  "1234567890123456789012345678")]
+	[InlineData("12345678901234567890123456789",         true,  "12345678901234567890123456789")]
+	[InlineData("1.2345678901234567890123456789",        true,  "1.2345678901234567890123456789")]
+	[InlineData("9.9999999999999999999999999999",        false, null)]
+	[InlineData("12345678901234567890123456789012345",   false, null)]
+	[InlineData("0.12345678901234567890123456789012345", false, null)]
+	[InlineData("79228162514264337593543950335",         true,  "79228162514264337593543950335")]
+	[InlineData("-79228162514264337593543950335",        true,  "-79228162514264337593543950335")]
+	[InlineData("79228162514264337593543950336",         false, null)]
+	[InlineData("1e28",                                  true,  "10000000000000000000000000000")]
+	[InlineData("1e29",                                  false, null)]
+	[InlineData("1E+2",                                  true,  "100")]
+	[InlineData("1e-28",                                 true,  "0.0000000000000000000000000001")]
+	[InlineData("1e-30",                                 false, null)]
+	[InlineData("1.5000000000000000000000000000000000",  true,  "1.5")]
+	[InlineData("1.500",                                 true,  "1.5")]
+	[InlineData("1500e-3",                               true,  "1.5")]
+	[InlineData("-0.5e+3",                               true,  "-500")]
+	[InlineData("-1.25",                                 true,  "-1.25")]
+	[InlineData("-0",                                    true,  "0")]
+	[InlineData("0e-99999999999999999999",               true,  "0")]
+	[InlineData("1e-99999999999999999999",               false, null)]
+	public void A_decimal_is_given_only_where_it_is_exact(string text, bool exact, string? expected)
+	{
+		var number = (JsonValue.Number)JsonValue.Parse(text);
+
+		Assert.Equal(exact, number.TryToDecimal(out var value));
+
+		if (exact)
+			Assert.Equal(decimal.Parse(expected!, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture), value);
+		else
+			Assert.Equal(0m, value);
 	}
 
 	/// <summary>An escaped lone surrogate is kept and written back escaped (§8.2).</summary>

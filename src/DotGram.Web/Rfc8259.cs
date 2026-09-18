@@ -88,9 +88,108 @@ public abstract record JsonValue
 		/// <summary>The nearest double, as IEEE 754 binary64 reads it; an exponent past its range is infinity.</summary>
 		public double ToDouble() => double.Parse(Text, NumberStyles.Float, CultureInfo.InvariantCulture);
 
-		/// <summary>The number as a decimal, where one holds it exactly enough and it is in range.</summary>
-		public bool TryToDecimal(out decimal value) =>
-			decimal.TryParse(Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+		/// <summary>The number as a decimal, where one holds it exactly.</summary>
+		/// <returns>
+		/// False when the number is out of a decimal's range, or would lose a digit that is not a
+		/// trailing zero after the point: <c>1e-30</c> and a thirty-five digit fraction are refused,
+		/// <c>1.500</c> is 1.5.
+		/// </returns>
+		public bool TryToDecimal(out decimal value)
+		{
+			if (decimal.TryParse(Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+				Reduce(Text, out var negative, out var digits, out var exponent) &&
+				Reduce(value.ToString(CultureInfo.InvariantCulture), out var writtenNegative, out var writtenDigits, out var writtenExponent) &&
+				digits == writtenDigits &&
+				(digits.Length == 0 || negative == writtenNegative && exponent == writtenExponent))
+				return true;
+
+			value = default;
+
+			return false;
+		}
+
+		// A number as its significant digits, without leading or trailing zeros, and the power of
+		// ten of the last of them; zero has no digits. Both a JSON number and a decimal written
+		// back are read this way, so that equal values reduce to equal parts.
+		static bool Reduce(string text, out bool negative, out string digits, out long exponent)
+		{
+			var position = 0;
+
+			negative = text.Length > 0 && text[0] == '-';
+
+			if (text.Length > 0 && (text[0] == '-' || text[0] == '+'))
+				position++;
+
+			var significand = new StringBuilder();
+			var fraction    = 0;
+
+			while (position < text.Length && text[position] is >= '0' and <= '9')
+				significand.Append(text[position++]);
+
+			if (position < text.Length && text[position] == '.')
+			{
+				position++;
+
+				while (position < text.Length && text[position] is >= '0' and <= '9')
+				{
+					significand.Append(text[position++]);
+					fraction++;
+				}
+			}
+
+			exponent = 0;
+
+			var huge = false;
+
+			if (position < text.Length && text[position] is 'e' or 'E')
+			{
+				position++;
+
+				var sign = position < text.Length && text[position] == '-' ? -1 : 1;
+
+				if (position < text.Length && text[position] is '-' or '+')
+					position++;
+
+				var start = position;
+
+				while (position < text.Length && text[position] is >= '0' and <= '9')
+				{
+					// Past eighteen digits an exponent is beyond any decimal, and only zero survives it.
+					if (position - start < 18)
+						exponent = exponent * 10 + (text[position] - '0');
+					else
+						huge = true;
+
+					position++;
+				}
+
+				exponent *= sign;
+			}
+
+			if (position != text.Length)
+			{
+				digits = "";
+				return false;
+			}
+
+			var first = 0;
+
+			while (first < significand.Length && significand[first] == '0')
+				first++;
+
+			var last = significand.Length;
+
+			while (last > first && significand[last - 1] == '0')
+				last--;
+
+			digits   = significand.ToString(first, last - first);
+			exponent = digits.Length == 0 ? 0 : exponent - fraction + (significand.Length - last);
+
+			if (huge && digits.Length != 0)
+				return false;
+
+			return true;
+		}
 
 		/// <summary>The number as a long, where it is an integer written without a fraction or exponent.</summary>
 		public bool TryToInt64(out long value) =>

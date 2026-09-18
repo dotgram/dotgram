@@ -66,7 +66,8 @@ value.ToString();         // {"pi":3.14159265358979323846,"tags":["a","b"]}
 ```
 
 A number keeps the text it was written with, and `ToDouble`, `TryToDecimal` and `TryToInt64`
-read it at the precision wanted. An object keeps its members in order, a name written twice
+read it at the precision wanted; `TryToDecimal` refuses a number a decimal cannot hold exactly
+rather than round it. An object keeps its members in order, a name written twice
 included. Nesting is read as deep as the input goes. The text is characters: decoding bytes,
 as UTF-8, is the caller's, and a byte order mark is refused rather than skipped.
 
