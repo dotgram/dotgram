@@ -52,6 +52,14 @@ parser wherever there is one. The web's formats have none — no one wrote RFC 3
 so their rows (`web/*`) name the generated reading first and take their ratios against it; the
 report says so above each table.
 
+`tsql/*` (`StandTsql.cs`) is the other kind of row with no hand-written reading: Microsoft's
+ScriptDom is the first reading and the base, a third party's parser, asked for the whole tree
+of one statement, against the generated T-SQL parser without positions and with them
+(`located`, the one to hold against ScriptDom, which always carries them). Five statements of
+different shapes; agreement is that all three accept, and whether the trees say the same is
+what `--roundtrip` and `--kinds` answer over the corpus. The long select is written in the
+corpus's shape and not cut from it, since every fresh first-call process rebuilds the rows.
+
 Beside the parsers, a regular expression, where one can be written honestly:
 
 | family | regex reading | what the pattern does less |

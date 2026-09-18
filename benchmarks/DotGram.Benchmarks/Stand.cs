@@ -258,6 +258,9 @@ static partial class Stand
 			// expression where one can be written honestly. Their base is the generated reading.
 			.. WebWorkloads(),
 
+			// T-SQL against ScriptDom, which is the base of these rows (architect for Igor, 2026-09-18).
+			.. TsqlWorkloads(),
+
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
 			Expression("nest7",         "(int x) => (((((((x)))))))"),
