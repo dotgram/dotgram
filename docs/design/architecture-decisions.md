@@ -795,6 +795,14 @@ texts, and `HandExpression` followed in the same commit. A lookahead keeps a gra
 path, so the test covers the reader and the engine.
 
 3. **Large literal sets as tables** — go, generator part after finance-03's Fix44 report.
+   **First step landed 2026-09-18 (finance-03, `9a80c42c`): a fast refusal on a prefix-table
+   miss.** Where a choice of literals has a prefix table (only Fix44 in this repository, 16
+   tables), a miss inside the table no longer replays the whole alternative chain: it records
+   the same expected literals at the same position and goes to `Fail`, proven equivalent by a
+   test compiling the grammar with and without tables over every short input. Fix44 BinaryMany
+   -93% (string) and -85% (stream); Order unchanged once the cold miss block was hoisted out of
+   the hot method (in it, +4% on stream). Fix44 itself is not an example but an oracle and the
+   stress fixture for literal sets, and moved to `tests/DotGram.Finance.Fix44` as `Fix44Parser`.
 4. **One measuring stand** — go. One command for the ratios to the hand parsers of FIX, EL and
    SQL:2023, allocation, peak memory, first call, a control row and the agreement check. Scratch
    and results on `T:\TEMP` (a fast RAM disk; losing it costs nothing), not in `.work`.
