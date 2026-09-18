@@ -667,6 +667,24 @@ correct rendering is the next best thing, and the catalogue of scenarios is a de
 its own (performance-ff, after the FIX steps: the scenarios the generator recognizes today,
 each with trigger, rendering and the grammars in the repository it fires on).
 
+## D16. Three hand parsers for the Web grammars
+
+Decided 2026-09-18 by Igor. The reader over characters — the rendering most users' grammars
+get — has had no hand-written yardstick: FIX measures the recovering loop on the engine, EL and
+SQL the reader over kinds, and a regular expression does less work than a parser and is slow on
+its own. Three hand parsers are written, one per shape the other families do not cover:
+
+- **RFC 8259, JSON** — recursion, strings with escapes, numbers; with `System.Text.Json` as an
+  external reference reading beside it, as ScriptDom is for T-SQL.
+- **RFC 3986, URL** — runs and character classes; the regex transcription and its five inputs
+  already exist.
+- **RFC 3339, date-time** — small, fixed-width fields, the shape of a typical user grammar.
+
+Under D1 each reads exactly its grammar (values, refusals, positions), is held to it by a test
+in the ordinary suite, and allocates no more than the generated parser; the stand's `web/*`
+rows take them as their base. The rest of the Web grammars are variants of these shapes and get
+none. Owner: finance-24, after the Finance-side items of the FIX anatomy.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
