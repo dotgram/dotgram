@@ -787,7 +787,12 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    **Found beside it (performance-3f):** `Ways.Lookahead` is read by `Refuse_DotGram` and never
    incremented since `487362c5`, so a refusal inside a lookahead is recorded on the reader and
    not on the engine, and the two renderings can report different positions. A defect with a
-   test to write: reader and engine agree on the position of a refusal inside a lookahead.
+   test to write: reader and engine agree on the position of a refusal inside a lookahead. **Fixed
+2026-09-18 (`c4587e05`, performance-3f)**: the depth is counted on `Failure`, which every reading
+carries. The ruling it needed: a refusal's position is where the parse refused, not where a look
+got to, as the language says; the expression language's positions moved by one or two on 32
+texts, and `HandExpression` followed in the same commit. A lookahead keeps a grammar off the flat
+path, so the test covers the reader and the engine.
 
 3. **Large literal sets as tables** — go, generator part after finance-03's Fix44 report.
 4. **One measuring stand** — go. One command for the ratios to the hand parsers of FIX, EL and

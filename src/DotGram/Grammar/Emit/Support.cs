@@ -39,6 +39,26 @@ public static partial class CSharpEmitter
 	/// window is before the end of what is held — indistinguishable, without this, from an
 	/// element that genuinely broke there.
 	/// </remarks>
+	// Why EmitLookahead's `failure.Looking++` ... `--` needs no finally, checked once:
+	// - a refusal inside the look is an ordinary return of -1, so the `--` runs;
+	// - an exception skips it and ends the parse: the one catch of a reading's exception
+	//   (Deep_DotGram.Run) only stores it, and Deepen rethrows it after the join;
+	// - a Failure is a local of each entry and lives in that parse's reader, never in a
+	//   spare or a field that outlives the call;
+	// - deepening carries `failure` to the new thread and back, count included.
+	const string LookingField = """
+
+			/// <summary>
+			/// How many lookaheads the reading is inside. A refusal there is not the parse's —
+			/// the look is read and given back whatever it says — so a reader records none
+			/// while this is above zero, as the engine records none inside its own lookahead.
+			/// </summary>
+			// Never written where a grammar's readers hold no lookahead.
+			#pragma warning disable 0649
+			public int Looking;
+			#pragma warning restore 0649
+		""";
+
 	const string StarvedField = """
 
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
@@ -615,7 +635,8 @@ public static partial class CSharpEmitter
 	/// site.
 	/// </remarks>
 	internal static string FailureStructWith(
-		bool reach, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false) =>
+		bool reach, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
+		bool looking = false) =>
 		Lines.Normalize(FailureStruct)
 			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
@@ -629,7 +650,10 @@ public static partial class CSharpEmitter
 				expected ? Lines.Normalize(ExpectedField) + Lines.Ending : "")
 			.Replace(
 				"\t{{expectedMore}}" + Lines.Ending,
-				expectedMore ? Lines.Normalize(ExpectedMoreField) + Lines.Ending : "");
+				expectedMore ? Lines.Normalize(ExpectedMoreField) + Lines.Ending : "")
+			.Replace(
+				"\t{{looking}}" + Lines.Ending,
+				looking ? Lines.Normalize(LookingField) + Lines.Ending : "");
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -675,6 +699,7 @@ public static partial class CSharpEmitter
 			{{starved}}
 			{{expected}}
 			{{expectedMore}}
+			{{looking}}
 		}
 		""";
 
@@ -1427,9 +1452,6 @@ public static partial class CSharpEmitter
 			/// <summary>The next way a replay reads; equal to <see cref="Count"/> when nothing is being replayed.</summary>
 			internal int Cursor;
 
-			/// <summary>How many lookaheads are open, during which no refusal is recorded.</summary>
-			internal int Lookahead;
-
 			/// <summary>
 			/// What was recognized, for building values with once the parse has accepted: one
 			/// record per completed valued rule, written after its children, each starting
@@ -1485,7 +1507,6 @@ public static partial class CSharpEmitter
 				_spare = null;
 				spare.Count = 0;
 				spare.Cursor = 0;
-				spare.Lookahead = 0;
 				spare.LogCount  = 0;
 				spare.Records   = 0;
 				spare.RefsCount = 0;
@@ -1716,9 +1737,9 @@ public static partial class CSharpEmitter
 		}
 
 		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
-		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways? ways)
+		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected)
 		{
-			if (ways != null && ways.Lookahead > 0)
+			if (failure.Looking > 0)
 				return;
 
 			if (at > failure.Position)
