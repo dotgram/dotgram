@@ -625,6 +625,29 @@ and gated by the agreement tests like any emitter change, no flag (a flag would 
 Q3's kind); (2) the four rewrites inside `LowerAll` move into Optimize, as a step of their own
 after 6, byte-identical, since Optimize is meant to be complete.
 
+## D15. A heuristic is for a scenario, never for a grammar
+
+Decided 2026-09-18 by Igor, on the FIX reader design. Two layers are kept apart in the
+generator's choices (step 5 of its work: which rendering and which mechanisms a machine gets):
+
+- **What is proved** decides correctness and is never overridden: where a reading stands
+  (§7.3, a construction once per node of the accepted derivation), what a repetition may not
+  give back, what a lookahead settles. An analysis that cannot prove answers "no", and the
+  general machinery stays.
+- **What is chosen** among correct renderings is a heuristic, and a heuristic applies to a
+  *typical scenario* recognized in the grammar's shape — a repetition whose only way back is
+  `recover`, a run to a stop set of a few characters, a choice of many literals, a rule that is
+  a token — never to a named grammar. FIX is the first instance of the recovering-loop
+  scenario, not its owner: any feed grammar of that shape gets the same code.
+
+**What it binds.** Every heuristic in the generator names its scenario and its trigger (the
+structural test that recognizes it), in the code and in `implementation.md` §4's list; a
+change that would key on a grammar, a host or a rule name is refused. Such scenarios are to
+be sought deliberately: where a proof is out of reach, a recognizable shape with a cheaper
+correct rendering is the next best thing, and the catalogue of scenarios is a deliverable of
+its own (performance-ff, after the FIX steps: the scenarios the generator recognizes today,
+each with trigger, rendering and the grammars in the repository it fires on).
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
