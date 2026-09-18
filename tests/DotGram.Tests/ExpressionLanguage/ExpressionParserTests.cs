@@ -1743,6 +1743,58 @@ public sealed class ExpressionParserTests
 			Both.Compile<Func<int, int>>(
 				"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { switch (i) { case 2: break; default: sum += i; } } sum }")(5));
 
+	/// <summary>A `continue` passes a switch by, since a switch is nothing a `continue` may name.</summary>
+	[Fact]
+	public void A_continue_inside_a_switch_names_the_loop_around_it() =>
+		Assert.Equal(
+			5,
+			Both.Compile<Func<int, int>>(
+				"(int n) => { int s = 0; for (int i = 0; i < n; i++) { switch (i) { case 1: continue; } s += i; } s }")(4));
+
+	/// <summary>And a `break` in a loop inside a case leaves the loop and not the switch.</summary>
+	[Fact]
+	public void A_break_inside_a_loop_inside_a_case_leaves_the_loop() =>
+		Assert.Equal(
+			5,
+			Both.Compile<Func<int, int>>(
+				"(int n) => { switch (n) { case 1: while (true) { break; } n = 5; break; } n }")(1));
+
+	/// <summary>A lambda is where a jump's reach ends: one written inside a loop is inside no loop.</summary>
+	[Fact]
+	public void A_break_inside_a_lambda_inside_a_loop_is_refused() =>
+		Assert.Contains(
+			"inside no loop and no switch",
+			Assert.Throws<FormatException>(
+				() => Both.Parse("(int n) => { while (n > 0) { var f = (int y) => { break; }; n--; } n }")).Message);
+
+	/// <summary>The initializer of a `for` is no part of the loop, so a jump there leaves nothing.</summary>
+	[Fact]
+	public void A_break_in_the_initializer_of_a_for_is_refused() =>
+		Assert.Contains(
+			"inside no loop and no switch",
+			Assert.Throws<FormatException>(
+				() => Both.Parse("(int n) => { for (break; n < 1; n++) { } n }")).Message);
+
+	/// <summary>A `return` in a lambda written in a loop leaves that lambda, and one after the loop the outer.</summary>
+	[Fact]
+	public void A_return_inside_a_lambda_inside_a_loop_leaves_that_lambda() =>
+		Assert.Equal(
+			6,
+			Both.Compile<Func<int, int>>(
+				"(int n) => { int s = 0; for (int i = 0; i < n; i++) { var f = (int y) => { return y * 2; }; s += f(i); } return s; }")(3));
+
+	/// <summary>
+	/// And one in a lambda that says no types, whose body is read again once it has them — under
+	/// the mark the body places itself, and not the one the lambda around it placed.
+	/// </summary>
+	[Fact]
+	public void A_return_inside_an_untyped_lambda_inside_a_loop_leaves_that_lambda() =>
+		Assert.Equal(
+			3,
+			Both.Compile<Func<int[], int>>(
+				"using System.Linq; (int[] a) => { int s = 0; foreach (var n in a) " +
+				"{ s += a.Select(m => { if (m > n) return 1; return 0; }).Sum(); } return s; }")([1, 2, 3]));
+
 	// ── Assignment, which is where a statement gets its work done ───────────────
 
 	[Theory]

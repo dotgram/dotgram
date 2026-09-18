@@ -413,15 +413,16 @@ namespace DotGram.ExpressionLanguage;
 
 	// ── A lambda: what it takes, and what it does ───────────────────────────────
 
-	// The guards record where the lambda is, which is what says which lambda a `return`
-	// written inside it leaves — the same shape a loop uses for `break`, and for the same
-	// reason: the jump is built before the thing it leaves.
+	// The lambda stands under a mark of its own (§7.8), which is what says which lambda a
+	// `return` written inside it leaves — the same shape a loop uses for `break`, and for the
+	// same reason: the jump is built before the thing it leaves, and the mark stands over both.
 	Lambda : @LambdaExpression
-		= Import* & '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>"
-		& when @(context.Entering(parserSpan)) & body: Body
-		& when @(context.Leaves(parserSpan))
-		=> @(context.Finished(Expression.Lambda(
-			context.Returning(body, parserSpan), ExpressionParser.Taking(first, rest))))
+		= Import* & f: Function with state @(Reading.Lambda) => @(context.Finished(f))
+
+	Function : @LambdaExpression
+		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Body
+		=> @(Expression.Lambda(
+			context.Returning(body, parserState, parserMarks), ExpressionParser.Taking(first, rest)))
 
 	// The same thing written inside an expression, where it is an operand like any other.
 	//
@@ -434,10 +435,9 @@ namespace DotGram.ExpressionLanguage;
 	// every block, which is right for the outer lambda's parameters, written as they are
 	// outside every block, and wrong for these.
 	Inner : @Expression
-		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>"
-		& when @(context.Entering(parserSpan)) & body: Body
-		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan))
-		=> @(context.Nested(body, ExpressionParser.Taking(first, rest), parserSpan))
+		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Body
+		& when @(context.Scoped(parserSpan))
+		=> @(context.Nested(body, ExpressionParser.Taking(first, rest), parserState, parserMarks))
 
 	// A lambda whose parameters say no types — `n => n * 2`, `(a, b) => a + b` — as C# writes
 	// the one it hands to LINQ. Their types are the delegate's the chosen overload takes, and
@@ -459,13 +459,21 @@ namespace DotGram.ExpressionLanguage;
 		= ?=((Identifier | '(' & Identifier & (',' & Identifier)* & ')') & "=>")
 		& (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
 		& when @(context.Awaits(Awaited.Of(one, first, rest), parserSpan))
-		& when @(context.Entering(parserSpan)) & body: Held
-		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan) && context.Settles(parserSpan))
-		=> @(context.Deferred(Awaited.Of(one, first, rest), body, parserSpan, TryParseBody))
+		& body: Held
+		& when @(context.Scoped(parserSpan) && context.Settles(parserSpan))
+		=> @(context.Deferred(Awaited.Of(one, first, rest), body, TryParseBody))
 
 	Awaiting : @Awaited = name: Identifier => @(new Awaited(name, parserSpan.Start))
 
-	Held : @Held = Body => @(new Held(parserSpan.Start, parserSpan.Length))
+	Held : @Held = HeldBody => @(new Held(parserSpan.Start, parserSpan.Length))
+
+	// The body under the lambda's own mark. Read again once the types are known, it is read as
+	// a publication of its own (ParseBody below), where no mark placed around the lambda stands
+	// over it — so it places the lambda's mark itself, at the body's beginning, which is where
+	// the returns inside it look for it. Read through here the first time as well, so that the
+	// machine reading the lambda holds this rule and the publication is read by that machine;
+	// nothing is built then, and a mark over nothing built is no mark at all.
+	HeldBody : @Expression = b: Body with state @(Reading.Lambda) => @(ExpressionParser.Body(b))
 
 	// What a lambda is worth: a value, a block, a statement. A rule of its own and not `Value`
 	// written in place, because `Value` only hands on what each of its ways built, and a rule
@@ -679,7 +687,7 @@ namespace DotGram.ExpressionLanguage;
 		=> @(Expression.Empty())
 
 	Return : @Expression = "return" & value: Value & ';'
-	                     => @(context.Return(value, parserSpan))
+	                     => @(context.Return(value, parserState, parserMarks))
 
 	// ── The statements that carry a body, and so end without a semicolon ────────
 	//
@@ -705,16 +713,19 @@ namespace DotGram.ExpressionLanguage;
 	Value : @Expression on fail "Expected an expression."
 		= b: Block => @(b) | c: IfValue => @(c) | c: Control => @(c) | e: Expression => @(e)
 
+	// A loop and a switch stand under a mark of their own (§7.8), and so does everything read
+	// inside them: that is how a `break` finds what it leaves, and the construct finds the same
+	// label, since it is built under the same mark. `for` places its own, after its initializer.
 	Control : @Expression
-		= c: Try             => @(c)
-		| c: If              => @(c)
-		| c: While           => @(c)
-		| c: DoWhile         => @(c)
-		| c: For             => @(c)
-		| c: Foreach          => @(c)
-		| c: ForeachUnsettled => @(c)
-		| c: ForeachInferred  => @(c)
-		| c: Switch          => @(c)
+		= c: Try                                          => @(c)
+		| c: If                                           => @(c)
+		| c: While            with state @(Reading.Loop)   => @(c)
+		| c: DoWhile          with state @(Reading.Loop)   => @(c)
+		| c: For                                          => @(c)
+		| c: Foreach          with state @(Reading.Loop)   => @(c)
+		| c: ForeachUnsettled with state @(Reading.Loop)   => @(c)
+		| c: ForeachInferred  with state @(Reading.Loop)   => @(c)
+		| c: Switch           with state @(Reading.Switch) => @(c)
 
 	// The branch is read once. Written as two alternatives — one with an `else`, one without —
 	// the test and the branch were read again whenever the `else` was not there, and every
@@ -746,50 +757,49 @@ namespace DotGram.ExpressionLanguage;
 	// text is read, and the jump looks it up when it is built. It has to be that way round
 	// here too, because a `break` is built before the loop that holds it.
 	While : @Expression
-		= "while" & '(' & test: Expression & ')'
-		& when @(context.Opening(parserSpan)) & body: Statement
-		& when @(context.Loops(parserSpan))
+		= "while" & '(' & test: Expression & ')' & body: Statement
 		=> @(Expression.Loop(
 			Expression.Condition(
-				test, body, Expression.Break(context.Exit(parserSpan)), typeof(void)),
-			context.Exit(parserSpan),
-			context.Again(parserSpan)))
+				test, body, Expression.Break(context.Exit(parserState, parserMarks)), typeof(void)),
+			context.Exit(parserState, parserMarks),
+			context.Again(parserState, parserMarks)))
 
 	// `Expression.Loop`'s own continue label stands at the top of the body, which is where
 	// C# puts it for a `while` and not where it puts it for a `do`: there it goes to the
 	// test. So this one places the label itself, with `Expression.Label`, and leaves the
 	// loop's own continue unused.
 	DoWhile : @Expression
-		= "do" & when @(context.Opening(parserSpan)) & body: Statement
-		& "while" & '(' & test: Expression & ')' & ';'
-		& when @(context.Loops(parserSpan))
+		= "do" & body: Statement & "while" & '(' & test: Expression & ')' & ';'
 		=> @(Expression.Loop(
 			Expression.Block(
 				body,
-				Expression.Label(context.Again(parserSpan)),
+				Expression.Label(context.Again(parserState, parserMarks)),
 				Expression.Condition(
 					test,
 					Expression.Empty(),
-					Expression.Break(context.Exit(parserSpan)),
+					Expression.Break(context.Exit(parserState, parserMarks)),
 					typeof(void))),
-			context.Exit(parserSpan)))
+			context.Exit(parserState, parserMarks)))
 
 	// A `for` is a scope as well as a loop — `int i = 0` belongs to it and not to what is
-	// around it — so it records both, and the block that holds the initializer is what
-	// declares the variable the initializer assigns.
+	// around it — so it records the scope, and the block that holds the initializer is what
+	// declares the variable the initializer assigns. The loop is what follows the
+	// initializer, and it alone stands under the mark: an initializer is no part of what a
+	// `break` may leave, as it is not in C#.
 	For : @Expression
-		= "for" & '(' & init: Statement & test: Expression & ';' & step: Expression & ')'
-		& when @(context.Opening(parserSpan)) & body: Statement
-		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
-		=> @(context.Block(
-			new[] { init }, parserSpan,
-			Expression.Loop(
-				Expression.Condition(
-					test,
-					Expression.Block(body, Expression.Label(context.Again(parserSpan)), step),
-					Expression.Break(context.Exit(parserSpan)),
-					typeof(void)),
-				context.Exit(parserSpan))))
+		= "for" & '(' & init: Statement & loop: ForLoop with state @(Reading.Loop)
+		& when @(context.Scoped(parserSpan))
+		=> @(context.Block(new[] { init }, parserSpan, loop))
+
+	ForLoop : @Expression
+		= test: Expression & ';' & step: Expression & ')' & body: Statement
+		=> @(Expression.Loop(
+			Expression.Condition(
+				test,
+				Expression.Block(body, Expression.Label(context.Again(parserState, parserMarks)), step),
+				Expression.Break(context.Exit(parserState, parserMarks)),
+				typeof(void)),
+			context.Exit(parserState, parserMarks)))
 
 	// A `foreach` is a scope and a loop like a `for`, and what it declares belongs to it. The
 	// API has no node for one, so the host writes out what C# lowers it to — the enumerator,
@@ -803,50 +813,46 @@ namespace DotGram.ExpressionLanguage;
 	Foreach : @Expression
 		= "foreach" & '(' & type: Type & name: Identifier
 		& when @(context.Declare(type, name, parserSpan))
-		& "in" & source: Expression & ')'
-		& when @(context.Opening(parserSpan)) & body: Statement
-		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
+		& "in" & source: Expression & ')' & body: Statement
+		& when @(context.Scoped(parserSpan))
 		=> @(context.Block(
 			[], parserSpan,
 			ExpressionParser.Iterated(
 				context.Named(name, parserSpan), source, body,
-				context.Exit(parserSpan), context.Again(parserSpan))))
+				context.Exit(parserState, parserMarks), context.Again(parserState, parserMarks))))
 
 	ForeachInferred : @Expression
 		= "foreach" & '(' & inferred: Word & when @(inferred == "var")
 		& name: Identifier & "in" & source: Expression & ')'
 		& when @(ExpressionParser.Yielded(source) is { } item && context.Declare(item, name, parserSpan))
-		& when @(context.Opening(parserSpan)) & body: Statement
-		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
+		& body: Statement
+		& when @(context.Scoped(parserSpan))
 		=> @(context.Block(
 			[], parserSpan,
 			ExpressionParser.Iterated(
 				context.Named(name, parserSpan), source, body,
-				context.Exit(parserSpan), context.Again(parserSpan))))
+				context.Exit(parserState, parserMarks), context.Again(parserState, parserMarks))))
 
 	// The same where the source is not worth anything yet, for the reason `InferredUnsettled`
 	// is: the element type is asked of a source built over parameters that have no type, so
 	// the name stands as an `object` until the body is read again. The loop still records its
-	// extents, since what is declared inside it is looked up by them.
+	// scope, since what is declared inside it is looked up by it.
 	ForeachUnsettled : @Expression
 		= "foreach" & '(' & inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan))
 		& name: Identifier & "in" & Expression & ')'
 		& when @(context.Declare(typeof(object), name, parserSpan))
-		& when @(context.Opening(parserSpan)) & Statement
-		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
+		& Statement
+		& when @(context.Scoped(parserSpan))
 		=> @(Expression.Empty())
 
 	// A `switch` is what a `break` may name besides a loop, and C# says so — a `break` in a
-	// case leaves the switch and not the loop around it. So it records an extent of its own
+	// case leaves the switch and not the loop around it. So it stands under a mark of its own
 	// and puts the label the jumps go to after itself.
 	Switch : @Expression
-		= "switch" & '(' & value: Expression & ')' & '{'
-		& when @(context.Breaking(parserSpan))
-		& cases: Case* & fallback: Fallback? & '}'
-		& when @(context.Breaks(parserSpan))
+		= "switch" & '(' & value: Expression & ')' & '{' & cases: Case* & fallback: Fallback? & '}'
 		=> @(Expression.Block(
 			Expression.Switch(typeof(void), value, fallback, null, ExpressionParser.Against(cases, value.Type)),
-			Expression.Label(context.Exit(parserSpan))))
+			Expression.Label(context.Exit(parserState, parserMarks))))
 
 	Case : @SwitchCase
 		= "case" & test: Expression & ':' & body: Statement+
@@ -855,8 +861,8 @@ namespace DotGram.ExpressionLanguage;
 	Fallback : @Expression = "default" & ':' & body: Statement+ => @(Expression.Block(body))
 
 	Jump : @Expression
-		= "break"                     => @(Expression.Break(context.Exit(parserSpan)))
-		| "continue"                  => @(Expression.Continue(context.Again(parserSpan)))
+		= "break"                     => @(Expression.Break(context.Exit(parserState, parserMarks)))
+		| "continue"                  => @(Expression.Continue(context.Again(parserState, parserMarks)))
 		| "throw" & value: Expression => @(Expression.Throw(value))
 		| "throw"                     => @(Expression.Rethrow())
 
@@ -1158,7 +1164,7 @@ namespace DotGram.ExpressionLanguage;
 		| "nameof" & '(' & head: Identifier & ('.' & part: Identifier)* & ')'
 		  => @(Expression.Constant(ExpressionParser.Last(head, part)))
 
-		| l: Inner => @(l)
+		| l: Inner with state @(Reading.Lambda) => @(l)
 
 		| u: Untyped => @(u)
 
@@ -1235,7 +1241,7 @@ namespace DotGram.ExpressionLanguage;
 	private parse Assignment as ParseHole
 
 	// And the body of a lambda whose parameters say no types, read again once they have one.
-	private parse Body as ParseBody
+	private parse HeldBody as ParseBody
 
 	// The same language with its identifiers spelled in ASCII, and one line to say so
 	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
@@ -1410,11 +1416,19 @@ public static partial class ExpressionParser
 	/// asks for the arithmetic that throws on overflow; <see cref="Unchecked"/> asks for
 	/// the arithmetic that wraps, and exists so that it can be asked for again inside a
 	/// `checked` that already stands over it.
+	///
+	/// The second concern is where a jump goes: <see cref="Loop"/>, <see cref="Switch"/> and
+	/// <see cref="Lambda"/> stand over what is read inside each, and a <c>break</c>, a
+	/// <c>continue</c> or a <c>return</c> leaves the nearest it may, told apart from others of
+	/// its kind by where each was placed (`parserMarks`).
 	/// </remarks>
 	internal enum Reading
 	{
 		Checked,
 		Unchecked,
+		Loop,
+		Switch,
+		Lambda,
 	}
 
 	/// <summary>Whether the nearest mark that speaks about overflow says to check it.</summary>
@@ -2659,23 +2673,6 @@ public static partial class ExpressionParser
 		/// </remarks>
 		List<Declaration>? _declared;
 
-		/// <summary>The extent of each lambda being read, the way a loop's is recorded.</summary>
-		/// <remarks>
-		/// Opened before the body and closed after it, for the reason a loop's is: a reading
-		/// that builds as it goes runs a <c>return</c>'s construction before the lambda holding
-		/// it has said where it ends, and an extent open to the end of the text is right until
-		/// the closed one replaces it.
-		/// </remarks>
-		List<Scope>? _lambdas;
-
-		/// <summary>Where a <c>return</c> goes, one label per lambda, made by the first one in it.</summary>
-		/// <remarks>
-		/// Keyed by where the lambda begins, as a loop's <c>break</c> is: which lambda a
-		/// <c>return</c> leaves is where it is written, and nothing else can say it — the jump
-		/// is built before the lambda that holds it.
-		/// </remarks>
-		Dictionary<int, LabelTarget>? _returns;
-
 		/// <summary>A block, recorded while the text is read (§8.1).</summary>
 		/// <remarks>
 		/// It has to be read rather than built: <c>=&gt;</c> runs children before parents, so
@@ -2854,7 +2851,7 @@ public static partial class ExpressionParser
 
 		/// <summary>How much a reading had written down, to go back to.</summary>
 		internal readonly record struct Checkpoint(
-			int Scopes, int Declared, int Lambdas, int Loops, int Breakables, int Unsettled, int Imports,
+			int Scopes, int Declared, int Unsettled, int Imports,
 			int RefusedAt, string? Refusal, bool Deferred);
 
 		/// <summary>Where this reading stands now.</summary>
@@ -2862,15 +2859,15 @@ public static partial class ExpressionParser
 		/// For a reader that builds where it reads and has to read the same text again without
 		/// building, because a construction refused it: the answer the text owes is what reading
 		/// alone would say, from the state it began in (§7.3). Most of what a guard writes is a
-		/// fact about a position and is the same written twice; a loop, a lambda or a body read
-		/// before its types are known is opened by one guard and closed by another, and a reading
-		/// cut off between the two leaves an extent open that would claim everything after it.
+		/// fact about a position and is the same written twice; a body read before its types
+		/// are known is opened by one guard and closed by another, and a reading cut off between
+		/// the two leaves an extent open that would claim everything after it.
 		/// </remarks>
 		internal Checkpoint Mark()
 		{
 			return new Checkpoint(
-				_scopes?.Count ?? 0, _declared?.Count ?? 0, _lambdas?.Count ?? 0, _loops?.Count ?? 0,
-				_breakables?.Count ?? 0, _unsettled?.Count ?? 0, _imports.Count, _refusedAt, _refusal, _deferred);
+				_scopes?.Count ?? 0, _declared?.Count ?? 0, _unsettled?.Count ?? 0, _imports.Count,
+				_refusedAt, _refusal, _deferred);
 		}
 
 		/// <summary>Everything written since <paramref name="at"/> taken back.</summary>
@@ -2878,9 +2875,6 @@ public static partial class ExpressionParser
 		{
 			Truncate(_scopes,     at.Scopes);
 			Truncate(_declared,   at.Declared);
-			Truncate(_lambdas,    at.Lambdas);
-			Truncate(_loops,      at.Loops);
-			Truncate(_breakables, at.Breakables);
 			Truncate(_unsettled,  at.Unsettled);
 			Truncate(_imports,    at.Imports);
 
@@ -3074,124 +3068,69 @@ public static partial class ExpressionParser
 			return innermost;
 		}
 
-		// ── Where a break and a continue go ─────────────────────────────────────────
+		// ── Where a jump goes ───────────────────────────────────────────────────────
 		//
-		// The same question as a name's, and the same answer: which one a jump belongs to is
-		// where it is written. A `break` may name a loop or a switch and a `continue` only a
-		// loop, which is C#'s rule and the reason these are two lists. Both are read while the
-		// text is; the labels themselves are made where they are first asked for, because a
-		// jump is built before the thing it jumps out of.
+		// A loop, a switch and a lambda each stand over what is read inside them as a mark
+		// (§7.8): `Reading.Loop`, `Reading.Switch`, `Reading.Lambda`. A jump is built under the
+		// marks of everything it is written in, and what it leaves is the nearest one of the
+		// kind it may leave — a `break` a loop or a switch, a `continue` a loop, a `return` a
+		// lambda — and never one outside the lambda it is in. Which one that is, is where it
+		// was placed (`parserMarks`): the construct stands under its own mark, so it finds the
+		// same place its jumps find, and the label is made by whichever of them asks first.
+		//
+		// Nothing here is written while the text is read, so nothing is left behind by a
+		// reading that is given up: the marks of an abandoned reading are abandoned with it.
 
-		List<Scope>? _loops;
+		/// <summary>Every label made, by what it is for, what the mark it belongs to says, and where that mark was placed.</summary>
+		Dictionary<(string Label, Reading Kind, int At), LabelTarget>? _labels;
 
-		List<Scope>? _breakables;
-
-		Dictionary<int, LabelTarget>? _exits;
-
-		Dictionary<int, LabelTarget>? _agains;
-
-		/// <summary>A loop, which a <c>break</c> and a <c>continue</c> may both name.</summary>
-		internal bool Loops(SourceSpan span)
+		/// <summary>Where a <c>break</c> written under these marks goes.</summary>
+		internal LabelTarget Exit(ReadOnlySpan<Reading> state, ReadOnlySpan<int> marks)
 		{
-			Close(_loops ??= [], span);
+			var of = Nearest(state, marks, Reading.Loop, Reading.Switch) ??
+				throw new FormatException("a 'break' here is inside no loop and no switch.");
 
-			return Breaks(span);
+			return Labelled("break", of, null);
 		}
 
-		/// <summary>A switch, which only a <c>break</c> may name.</summary>
-		internal bool Breaks(SourceSpan span)
+		/// <summary>Where a <c>continue</c> written under these marks goes.</summary>
+		internal LabelTarget Again(ReadOnlySpan<Reading> state, ReadOnlySpan<int> marks)
 		{
-			Close(_breakables ??= [], span);
+			var of = Nearest(state, marks, Reading.Loop, Reading.Loop) ??
+				throw new FormatException("a 'continue' here is inside no loop.");
 
-			return true;
+			return Labelled("continue", of, null);
 		}
 
-		/// <summary>
-		/// A loop begun: everything from here on is inside it until it says where it ends.
-		/// </summary>
+		/// <summary>The nearest mark of either kind, or none where a lambda stands nearer.</summary>
 		/// <remarks>
-		/// A jump names the loop it is written in, and a loop knows how far it reaches only
-		/// once its body has been read — so a reading that builds the jump where it stands
-		/// would ask about a loop nothing has recorded yet. Written down twice instead:
-		/// once where the loop begins, reaching to the end of the text, and once where it
-		/// ends, with the extent it turned out to have. The label is keyed by where the
-		/// loop begins, which is the same before and after, so a jump built under the open
-		/// extent and one built under the closed one name the same label.
-		///
-		/// Nothing is lost where a reading defers instead. The open extent is replaced by
-		/// the closed one, and until it is, the only positions inside it are the ones being
-		/// read — which are the loop's own body.
+		/// A lambda is where a jump's reach ends: a <c>break</c> in a lambda written inside a
+		/// loop leaves nothing, as in C#, and a <c>return</c> leaves that lambda and not the
+		/// one around it. A mark of another concern — <c>checked</c> — is walked past.
 		/// </remarks>
-		internal bool Opening(SourceSpan span)
+		static (Reading Kind, int At)? Nearest(ReadOnlySpan<Reading> state, ReadOnlySpan<int> marks, Reading one, Reading other)
 		{
-			(_loops ??= []).Add(new Scope(span.Start, int.MaxValue));
+			for (var at = state.Length - 1; at >= 0; at--)
+			{
+				if (state[at] == one || state[at] == other)
+					return (state[at], marks[at]);
 
-			return Breaking(span);
+				if (state[at] == Reading.Lambda)
+					return null;
+			}
+
+			return null;
 		}
 
-		/// <summary>The same for a switch, which only a <c>break</c> may name.</summary>
-		internal bool Breaking(SourceSpan span)
+		/// <summary>One label per purpose and mark, made the first time anything asks for it.</summary>
+		LabelTarget Labelled(string label, (Reading Kind, int At) of, Type? type)
 		{
-			(_breakables ??= []).Add(new Scope(span.Start, int.MaxValue));
+			var key = (label, of.Kind, of.At);
 
-			return true;
-		}
-
-		/// <summary>The extent an <see cref="Opening"/> left open, given the one it has.</summary>
-		static void Close(List<Scope> among, SourceSpan span)
-		{
-			for (var i = among.Count - 1; i >= 0; i--)
-				if (among[i].From == span.Start && among[i].To == int.MaxValue)
-				{
-					among[i] = new Scope(span.Start, span.Start + span.Length);
-
-					return;
-				}
-
-			among.Add(new Scope(span.Start, span.Start + span.Length));
-		}
-
-		/// <summary>Where a <c>break</c> written here goes.</summary>
-		internal LabelTarget Exit(SourceSpan at) =>
-			Labelled(
-				_exits ??= [],
-				Innermost(_breakables, at.Start) ??
-					throw new FormatException("a 'break' here is inside no loop and no switch."),
-				"break");
-
-		/// <summary>Where a <c>continue</c> written here goes.</summary>
-		internal LabelTarget Again(SourceSpan at) =>
-			Labelled(
-				_agains ??= [],
-				Innermost(_loops, at.Start) ??
-					throw new FormatException("a 'continue' here is inside no loop."),
-				"continue");
-
-		/// <summary>One label per extent, made the first time anything asks for it.</summary>
-		LabelTarget Labelled(Dictionary<int, LabelTarget> labels, Scope? of, string name)
-		{
-			var at = of!.Value.From;
-
-			if (!labels.TryGetValue(at, out var target))
-				labels[at] = target = Expression.Label(name);
+			if (!(_labels ??= []).TryGetValue(key, out var target))
+				_labels[key] = target = type is null ? Expression.Label(label) : Expression.Label(type, label);
 
 			return target;
-		}
-
-		/// <summary>A lambda begun: everything from here on is inside it until it says where it ends.</summary>
-		internal bool Entering(SourceSpan span)
-		{
-			(_lambdas ??= []).Add(new Scope(span.Start, int.MaxValue));
-
-			return true;
-		}
-
-		/// <summary>And the extent it turned out to have.</summary>
-		internal bool Leaves(SourceSpan span)
-		{
-			Close(_lambdas ??= [], span);
-
-			return true;
 		}
 
 		/// <summary>A jump to the label of the lambda this is written in.</summary>
@@ -3200,26 +3139,17 @@ public static partial class ExpressionParser
 		/// what the label carries — so a later one converts to that, as every later one already
 		/// did when there was a single label for the text.
 		/// </remarks>
-		internal Expression Return(Expression value, SourceSpan at)
+		internal Expression Return(Expression value, ReadOnlySpan<Reading> state, ReadOnlySpan<int> marks)
 		{
 			if (value is null)
 				throw new ArgumentNullException(nameof(value));
 
-			var target = Returns(at.Start, value.Type);
-
-			return Expression.Return(target, Converted(value, target.Type));
-		}
-
-		/// <summary>The label of the innermost lambda a position stands in.</summary>
-		LabelTarget Returns(int position, Type type)
-		{
-			var of = Innermost(_lambdas, position) ??
+			var of = Nearest(state, marks, Reading.Lambda, Reading.Lambda) ??
 				throw new FormatException("a 'return' here is inside no lambda.");
 
-			if (!(_returns ??= []).TryGetValue(of.From, out var target))
-				_returns[of.From] = target = Expression.Label(type, "return");
+			var target = Labelled("return", of, value.Type);
 
-			return target;
+			return Expression.Return(target, Converted(value, target.Type));
 		}
 
 		/// <summary>A call on a value: its own method, or an extension where it has none.</summary>
@@ -3255,8 +3185,13 @@ public static partial class ExpressionParser
 		/// ended read a different body, and says so.
 		/// </para>
 		/// </remarks>
+		/// <remarks>
+		/// The body is read again as a publication of its own, so no mark placed around the
+		/// lambda stands over it there: the publication places the lambda's own, at the body's
+		/// beginning, and that is where the label its returns go to is kept.
+		/// </remarks>
 		internal Expression Deferred(
-			Awaited[] parameters, Held body, SourceSpan at, Func<string, int, int, State, Match<Expression>> read)
+			Awaited[] parameters, Held body, Func<string, int, int, State, Match<Expression>> read)
 		{
 			if (parameters is null)
 				throw new ArgumentNullException(nameof(parameters));
@@ -3277,7 +3212,9 @@ public static partial class ExpressionParser
 				for (var index = 0; index < types.Length; index++)
 					Rebind(parameters[index], taken[index] = Expression.Parameter(types[index], parameters[index].Name));
 
-				_returns?.Remove(at.Start);
+				var own = (Reading.Lambda, body.At);
+
+				_labels?.Remove(("return", own.Lambda, own.At));
 
 				var match = read(text, body.At, body.Length, this);
 
@@ -3289,7 +3226,7 @@ public static partial class ExpressionParser
 						"Expected the end of the lambda at " +
 						(body.At + match.Length).ToString(CultureInfo.InvariantCulture));
 
-				return Expression.Lambda(Returning(match.Value!, at), taken);
+				return Expression.Lambda(Returned(match.Value!, own), taken);
 			});
 		}
 
@@ -3320,12 +3257,13 @@ public static partial class ExpressionParser
 		/// belongs to an extent rather than to the reading — the same answer a `break` gets,
 		/// and for the same reason, since both are built before the thing they leave.
 		/// </remarks>
-		internal Expression Nested(Expression body, ParameterExpression[] parameters, SourceSpan at)
+		internal Expression Nested(
+			Expression body, ParameterExpression[] parameters, ReadOnlySpan<Reading> state, ReadOnlySpan<int> marks)
 		{
 			if (body is null)
 				throw new ArgumentNullException(nameof(body));
 
-			return Expression.Lambda(Returning(body, at), parameters);
+			return Expression.Lambda(Returning(body, state, marks), parameters);
 		}
 
 		/// <summary>The body with the place its returns go to, where any of them do.</summary>
@@ -3335,14 +3273,24 @@ public static partial class ExpressionParser
 		/// lambda is also the only place that can hold it — a block is built before the blocks
 		/// around it, so no block knows whether it is the outermost.
 		/// </remarks>
-		internal Expression Returning(Expression body, SourceSpan at)
+		internal Expression Returning(Expression body, ReadOnlySpan<Reading> state, ReadOnlySpan<int> marks)
 		{
 			if (body is null)
 				throw new ArgumentNullException(nameof(body));
 
+			// The lambda stands under its own mark, which is the nearest one of its kind.
+			var own = Nearest(state, marks, Reading.Lambda, Reading.Lambda) ??
+				throw new InvalidOperationException("A lambda is built under the mark of its own.");
+
+			return Returned(body, own);
+		}
+
+		/// <summary>The same, for the lambda whose mark is that one.</summary>
+		Expression Returned(Expression body, (Reading Kind, int At) own)
+		{
 			// The label of this lambda and of no other: one written inside it made it, and one
 			// written inside a lambda nested in it made that one's instead.
-			var returns = _returns is not null && _returns.TryGetValue(at.Start, out var made)
+			var returns = _labels is not null && _labels.TryGetValue(("return", own.Kind, own.At), out var made)
 				? made
 				: null;
 

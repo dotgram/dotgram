@@ -338,6 +338,13 @@ reports its end: no machine of its own, no copy, no `MemoryStream`, and next to 
 What remains of the gap between bytes and text afterwards is measured; a contiguous byte machine
 is weighed against its code size only if that remainder is large. `ReadOnlySequence<byte>` and
 `PipeReader`, the networking forms, are candidates for later on the same machine.
+**Landed 2026-09-18 as `737376e5` (performance-3f)**: a `BufferedBytes` constructor over memory, one
+fill that is the whole input, no copy, no buffer parameters; only FixGrammar and Fix44 differ.
+`96d86795` makes the lazy buffered overloads plain methods that validate at the call and call a
+private iterator over `int`s, so D9's `int?` costs no allocation (the stand had found +16 bytes a
+call). Found by the compatibility build with warnings as errors: an emitted CS0649, which a
+consumer building strictly would have failed on; the verification now stops at the first failed
+build, since a stale assembly once let tests "pass".
 
 **Several forms per parser, and feeds read by line — Igor, 2026-09-17.** A parser offers whichever
 forms its grammar asks for, several at once: FIX needs the byte form, and the same parser must
@@ -492,6 +499,27 @@ split grammar streams. It also changes Q7.1: over kinds, `Replay`'s causes and t
 beginnings are other ones. So, before Q7.1's design: SQL:2023 compiled with `Lexical = true` in
 scratch, the three cases handled minimally or kept out of the measured corpora, timed against the
 character reading and the hand parser. Its result decides the order.
+
+**Measured 2026-09-18 (sql-ff, stand; `036d247e`).** SQL:2023 compiled over kinds against the same
+grammar over characters, pinned, tiering off, accepted and refused apart: queries -23% / -36%,
+DDL -36% / -46%, twenty select items -25%, value expressions -72%; generated code 6.77 MB against
+13.86; generation 13% faster. The one loss is a refusal at the first token: 905 ns over kinds
+against 227, the floor a lexer over the whole input pays on very short refused input. Of eight
+obstacles to the split, seven were guards the character automaton needed and one is the language
+(nesting comments), served by a terminal the lexer begins. **Decided by the architect: SQL:2023
+ships over kinds.** sql-ff carries it out, with Q7.1 designed over kinds afterwards, under:
+
+- No divergence from `HandSqlStandard` (D1): every corpus and `Both` agree before the switch lands.
+- A reserved word is a token kind, not a guard: `?!ReservedWord` placed where the split already
+  reads a lookahead as a range test over kinds (the syntactic rule), never a `when` after an atomic
+  identifier, which fixes the first reading and cannot be taken back (271 DDL lines broke that way).
+- Nesting comments and the interval string's body are read by a terminal the lexer begins and a rule
+  finishes; nothing is left unchecked.
+- The glued key word (`198OCTETS`, `2K`) is a question about the language for Igor: `wordboundary`
+  guarding both sides, or the split reading a number glued to a word as the standard does not.
+  Until answered the grammar refuses what the standard refuses by whatever the notation has, and
+  says how.
+- The stand's first-call row for SQL is quoted before and after: half the code should show there.
 
 Q1 and D3 are not rivals. performance-3f attributes 53 to 62 per cent of SQL's time to
 materializing, of which D2's store bookkeeping is a large part; the rest of a parse is the
@@ -683,6 +711,13 @@ constructed makes the whole parse fail, and overload resolution catches nothing 
 candidate's lambda. It shows only if the grammar gains an alternative that succeeds after an
 abandoned opening. Q5 is therefore not urgent, and stays a question about the language.
 
+**Landed 2026-09-18 (expr-2d, `c4a79af9`..`f81ad6d2`).** `parserMarks` in the generator with tests over
+the three carriers and both symbol domains; §7.8 says what it is; the expression language's jumps
+go by marks and its context loses the open/close pairs (the unsettled `var` stays); the hand parser
+in the same change. Every grammar but EL emits byte for byte what it did; EL emits 2-3% less.
+`GRAM4029` refuses `with state` or a hook naming `parserState`/`parserMarks` where no `state` is
+declared, which used to surface as CS0103 in the consumer.
+
 Until decided, the expression language's hand parser uses a checkpoint of its own `State` for
 its second, recognize-only reading (a mark at the start of the publication, or of a hole or
 body window), which is local to it and changes nothing in the generator.
@@ -730,6 +765,30 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    impossible (a stream past its retained window), the case comes back to the architect before
    anything is weakened. expr-2d, after `parserMarks` (the expression language is where recording
    costs 15-25 per cent).
+   **Design 2026-09-18 (expr-2d, `docs/design/diagnostics-off-the-hot-path-2026-09-18.md`).**
+   Recording is a fifth to a quarter of an EL parse (880 sites) and nothing on SQL. Two places
+   record for nobody and go first: `find` over a string, and the lexer's value and measure
+   re-reads. Then the in-memory `Parse`/`TryParse` forms: a held `bool` gating every
+   recording site (one body, C# 8 floor), a refused input read again with recording on; a
+   generic-flag reader only if the stand shows the bool costing more than noise. Streams,
+   recovery and `yield` keep recording as today. Refused input then reads twice, up to 2x where
+   recording was nearly free (FIX, web headers): the stand gets refused-input rows per family.
+   Under Immediate a refused input runs constructions up to twice; the carrier's contract says
+   so. Implementer: expr-2d, in the generator, coordinating files with performance-3f.
+
+   **For Igor: the context on the second reading.** The generator cannot rewind a type it did
+   not write, so a grammar declaring a `context` (the expression language) gets a second reading
+   only if the language says how the context is restored: (2) by duck typing, the resolver
+   finding `Mark()`/`Rollback(mark)` on the context type as §7.3 finds constructors, with an
+   Info diagnostic saying what was found; or (3) by an explicit clause on the `context`
+   declaration. Without either, a grammar with a context keeps recording on the hot path.
+   The architect recommends (2) with the diagnostic.
+
+   **Found beside it (performance-3f):** `Ways.Lookahead` is read by `Refuse_DotGram` and never
+   incremented since `487362c5`, so a refusal inside a lookahead is recorded on the reader and
+   not on the engine, and the two renderings can report different positions. A defect with a
+   test to write: reader and engine agree on the position of a refusal inside a lookahead.
+
 3. **Large literal sets as tables** — go, generator part after finance-03's Fix44 report.
 4. **One measuring stand** — go. One command for the ratios to the hand parsers of FIX, EL and
    SQL:2023, allocation, peak memory, first call, a control row and the agreement check. Scratch

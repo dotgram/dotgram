@@ -1015,9 +1015,26 @@ sealed partial class Machine
 	{
 		using (file.Block("if (log[at + 1] == -1)"))
 		{
-			file.Line("if (marked == values.MarkState.Length)");
-			file.Then("global::System.Array.Resize(ref values.MarkState, marked * 2);");
-			file.Line();
+			if (NamesMarks(_graph))
+			{
+				// Where it was placed, which the record keeps beside the site, for a factory
+				// that names `parserMarks`.
+				using (file.Block("if (marked == values.MarkState.Length)"))
+				{
+					file.Line("global::System.Array.Resize(ref values.MarkState, marked * 2);");
+					file.Line("global::System.Array.Resize(ref values.MarkAt, marked * 2);");
+				}
+
+				file.Line();
+				file.Line($"values.MarkAt[marked] = {At("log[at + 3]")};");
+			}
+			else
+			{
+				file.Line("if (marked == values.MarkState.Length)");
+				file.Then("global::System.Array.Resize(ref values.MarkState, marked * 2);");
+				file.Line();
+			}
+
 			file.Line($"values.MarkState[marked++] = {MarkValue("log[at + 2]")};");
 		}
 
@@ -1350,6 +1367,11 @@ sealed partial class Machine
 		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserState"))
 			arguments.Add(UsesMarks || CarriesImmediately
 				? $"new global::System.ReadOnlySpan<{_graph.State}>(values.MarkState, 0, marked)"
+				: "default");
+
+		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserMarks"))
+			arguments.Add(UsesMarks || CarriesImmediately
+				? "new global::System.ReadOnlySpan<int>(values.MarkAt, 0, marked)"
 				: "default");
 
 		if (factory.Accumulator is not null)

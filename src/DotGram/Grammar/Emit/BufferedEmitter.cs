@@ -39,6 +39,9 @@ public static partial class CSharpEmitter
 		.Replace("out char value", "out byte value")
 		.Replace("public char Get", "public byte Get")
 		.Replace(" retained characters;", " retained bytes;")
+		.Replace("private bool _ended;", "private bool _ended;\n\t// The caller's own array, read in place (D7): never given to the pool.\n\tprivate bool _borrowed;")
+		.Replace("if (_buffer.Length <= KeptLength)", "if (!_borrowed && _buffer.Length <= KeptLength)")
+		.Replace("public void Dispose()", "public BufferedBytes(global::System.ReadOnlyMemory<byte> input)\n\t{\n\t\t_input = null!;\n\t\t_limit = int.MaxValue;\n\t\tif (global::System.Runtime.InteropServices.MemoryMarshal.TryGetArray(input, out global::System.ArraySegment<byte> held) && held.Array != null)\n\t\t{\n\t\t\t// Positions count from the segment's start; the array is indexed from its own.\n\t\t\t_buffer = held.Array;\n\t\t\t_start = -held.Offset;\n\t\t}\n\t\telse\n\t\t{\n\t\t\t// Memory that is not an array is copied once, and that copy is still the caller's to keep.\n\t\t\t_buffer = input.ToArray();\n\t\t}\n\t\t_count = input.Length;\n\t\t_capacity = input.Length;\n\t\t_ended = true;\n\t\t_borrowed = true;\n\t}\n\n\tpublic void Dispose()")
 		.Replace("ReadOnlySpan<char>", "ReadOnlySpan<byte>")
 		.Replace("public bool Peek(int position, out byte value)", """
 			public bool Matches(int position, string literal)
@@ -155,10 +158,31 @@ public static partial class CSharpEmitter
 	static void EmitBufferedPublication(
 		Writer file, RecognitionGraph graph, ResultTypes results, Compiled compiled, Publication publication)
 	{
+		if (!compiled.Machine.BufferedBytes)
+		{
+			EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.TextReader", buffered: true);
+
+			return;
+		}
+
+		EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.Stream", buffered: true);
+
+		// Bytes the caller already holds are read by the same machine over the array itself:
+		// one fill that is the whole input, and the end known at once (D7). No buffer to size,
+		// so no buffer parameters.
+		EmitBufferedForm(file, graph, results, compiled, publication, "global::System.ReadOnlyMemory<byte>", buffered: false);
+	}
+
+	static void EmitBufferedForm(
+		Writer file, RecognitionGraph graph, ResultTypes results, Compiled compiled, Publication publication,
+		string inputType, bool buffered)
+	{
 		var machine = compiled.Machine;
 		var type = results.QualifiedOf(publication.Rule);
 		var bytes = machine.BufferedBytes;
-		var inputType = bytes ? "global::System.IO.Stream" : "global::System.IO.TextReader";
+		var parameters = buffered ? ", int? bufferSize = null, int? maxRetained = null" : "";
+		var construct = buffered ? "(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained)" : "(input)";
+		var forward = buffered ? ", bufferSize, maxRetained" : "";
 		var value = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : type ?? (bytes ? "byte[]" : "string");
 		var match = $"{MatchType}<{value}>";
 		var method = publication.MethodName;
@@ -167,13 +191,62 @@ public static partial class CSharpEmitter
 			", ref failure" + (type is null ? "" : ", out var value") +
 			(machine.UsesContext ? ", context" : "") +
 			(machine.UsesReading ? $", {publication.Reading}" : "");
+
+		if (!buffered)
+		{
+			// A byte[] is the same bytes, handed over; checked for null here, because the
+			// conversion to memory would quietly make an empty input of it.
+			var passed = "new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input)))" +
+				(machine.UsesContext ? ", context" : "");
+
+			void Forward(string returns, string name)
+			{
+				file.Line("/// <summary>The same, over bytes the caller already holds.</summary>");
+				file.Line($"{AccessOf(publication)} static {returns} {name}(byte[] input{context}) => {name}({passed});");
+			}
+
+			if (publication.Kind == PublishKind.Yield)
+				Forward($"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>", method);
+			else if (publication.Kind == PublishKind.Find)
+				Forward($"global::System.Collections.Generic.IEnumerable<{match}>", method);
+			else
+			{
+				Forward(match, "Try" + method);
+				Forward(value, method);
+			}
+		}
+		// A buffered lazy overload is not the iterator itself. An iterator keeps each parameter
+		// twice, so int? made its object 16 bytes larger a call (measured, D9), and a check made
+		// inside it waits for the first MoveNext. The overload resolves the defaults and checks
+		// its arguments at the call, then hands plain ints to a private iterator.
+		var lazyConstruct = buffered ? "(input, bufferSize, maxRetained)" : construct;
+
+		string Lazily(string returns)
+		{
+			if (!buffered)
+				return $"{AccessOf(publication)} static {returns} {method}({inputType} input{context})";
+
+			var iterator = "Iterate_DotGram_" + method;
+
+			using (file.Block($"{AccessOf(publication)} static {returns} {method}({inputType} input{context}{parameters})"))
+			{
+				file.Line("if (input == null) throw new global::System.ArgumentNullException(nameof(input));");
+				file.Line("var capacity = bufferSize ?? DefaultBufferSize;");
+				file.Line("var limit = maxRetained ?? DefaultMaxRetained;");
+				file.Line("if (capacity <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(bufferSize));");
+				file.Line("if (limit <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(maxRetained));");
+				file.Line($"return {iterator}(input{(machine.UsesContext ? ", context" : "")}, capacity, limit);");
+			}
+
+			return $"private static {returns} {iterator}({inputType} input{context}, int bufferSize, int maxRetained)";
+		}
+
 		if (publication.Kind == PublishKind.Yield)
 		{
 			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
-			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}> {method}(" +
-				$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
+			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>")))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{lazyConstruct};");
 				file.Line("var start = 0;");
 				if (publication.YieldRecovery) file.Line("var ordinal = 0;");
 				if (publication.YieldMinimum > 0)
@@ -197,10 +270,9 @@ public static partial class CSharpEmitter
 			var retain = Locating(graph) || Reaches(graph, publication.Rule).Any(rule =>
 				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
-			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
-				$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
+			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{match}>")))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{lazyConstruct};");
 				file.Line("var start = 0;");
 				using (file.Block("while (true)"))
 				{
@@ -218,9 +290,9 @@ public static partial class CSharpEmitter
 		file.Line("/// <summary>Parses buffered input synchronously without retrying at refill boundaries.</summary>");
 		file.Line("/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>");
 		using (file.Block($"{AccessOf(publication)} static {match} Try{method}(" +
-			$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
+			$"{inputType} input{context}{parameters})"))
 		{
-			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);");
+			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{construct};");
 			file.Line($"var failure = new {FailureType}();");
 			file.Line($"var end = {BufferedMethod(publication, bytes)}(text, 0{hands});");
 			using (file.Block("if (end < 0)"))
@@ -233,9 +305,9 @@ public static partial class CSharpEmitter
 			file.Line($"return {match}.Success({(type is null ? bytes ? "text.Slice(0, end).ToArray()" : "text.Slice(0, end).ToString()" : "value")}, 0, end);");
 		}
 		using (file.Block($"{AccessOf(publication)} static {value} {method}(" +
-			$"{inputType} input{context}, int? bufferSize = null, int? maxRetained = null)"))
+			$"{inputType} input{context}{parameters})"))
 		{
-			file.Line($"var match = Try{method}(input{(machine.UsesContext ? ", context" : "")}, bufferSize, maxRetained);");
+			file.Line($"var match = Try{method}(input{(machine.UsesContext ? ", context" : "")}{forward});");
 			file.Line("if (!match.IsSuccess) throw new global::System.FormatException(match.Error);");
 			file.Line("return match.Value;");
 		}

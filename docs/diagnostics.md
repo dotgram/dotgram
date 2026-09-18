@@ -115,6 +115,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM4026` | An explicitly requested buffered input form is unsupported. | The diagnostic names the unsupported construct or input domain. Existing text and legacy reader forms are not replacements for this explicit request. See syntax §6.3 for the current supported subset. |
 | `GRAM4027` | A `yield` publication cannot safely produce the requested element sequence. | Publish a complete non-nullable `Rule*` or `Rule+` sequence, optionally through transparent wrappers. Collection factories, outer choices, suffixes, recovery and implicit collection trivia are not supported yet. Use a compatible C# element type after `yield : @T`. |
 | `GRAM4028` | A publication result does not fit its explicit C# contract. | Choose a compatible base type, interface or array type. The contract changes the public API, not construction. Byte extent publications must also accept `byte[]`. |
+| `GRAM4029` | A mark is placed, or `parserState`/`parserMarks` asked for, in a grammar that declares no `state`. | A mark is a value of the type `state : @T` declares, so without one there is nothing to write it in. Declare the type the marks are written in (§7.8). |
 
 ## GRAM5xxx — what a grammar gets
 

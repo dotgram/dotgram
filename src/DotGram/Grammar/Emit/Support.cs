@@ -1212,7 +1212,7 @@ public static partial class CSharpEmitter
 	/// The check was a tenth of what building a tree cost. An array of structs is not
 	/// covariant, and a store into a field of one asks nothing.
 	/// </remarks>
-	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false)
+	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false, bool markPositions = false)
 	{
 		var text = new StringBuilder();
 
@@ -1233,6 +1233,10 @@ public static partial class CSharpEmitter
 		if (stateType is not null)
 		{
 			text.Append("\tinternal ").Append(stateType).Append("[] MarkState = new ").Append(stateType).Append("[8];\n");
+
+			// Where each of them was placed, for a factory that names `parserMarks` (§7.8).
+			if (markPositions)
+				text.Append("\tinternal int[] MarkAt = new int[8];\n");
 		}
 
 		if (dense)
@@ -1248,6 +1252,8 @@ public static partial class CSharpEmitter
 			.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
 		if (stateType is not null)
 			capacities.Add("values.MarkState.Length");
+		if (stateType is not null && markPositions)
+			capacities.Add("values.MarkAt.Length");
 		text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
 		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
 

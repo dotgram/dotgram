@@ -204,7 +204,8 @@ static class Stand
 
 	static Workload[] Workloads()
 	{
-		var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
+		var order          = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
+		var orderMalformed = order.Replace("\u000140=2\u0001", "\u000140X=2\u0001");
 
 		return
 		[
@@ -212,6 +213,10 @@ static class Stand
 			.. Fix("Order",      order),
 			.. Fix("BinaryMany", string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64))),
 			.. Fix("Orders128",  string.Concat(Enumerable.Repeat(order, 128))),
+
+			// Q7.2 (expr-2d, 2026-09-18): a malformed field late in the message, not the
+			// first one — the recovery rule catches it mid-message, past what already read.
+			.. Fix("OrderMalformed", orderMalformed),
 
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
@@ -222,6 +227,12 @@ static class Stand
 			Expression("interpolation", "(int x) => $\"{x,5:D3} and {x + 1}\""),
 			Expression("untyped",       "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()", immediate: false),
 
+			// Q7.2: refused, not merely a construct not yet handled — an incomplete
+			// expression, early and late, so the fast/quiet path's cost on a refusal is on
+			// the record before and after it starts skipping what an accepted reading needs.
+			Expression("refused-early", "(int x) => x +"),
+			Expression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +"),
+
 			Sql<Ast.LiteralValue, Ast.LiteralValue>("literal", "1", SqlStandardParser.TryParseLiteral, HandSqlStandard.TryParseLiteral),
 			Sql<Ast.Expression, Ast.Expression>("column", "a.b.c", SqlStandardParser.TryParseColumnReference, HandSqlStandard.TryParseColumnReference),
 			Sql<Ast.Expression, Ast.Expression>("arithmetic", "(a + b) * c - d / 5", SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression),
@@ -231,6 +242,12 @@ static class Stand
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("values", "VALUES (1)", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 			Sql<Ast.Statement, Ast.Statement>("create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", SqlStandardParser.TryParseSQLSchemaStatement, HandSqlStandard.TryParseSQLSchemaStatement),
+
+			// Q7.2: a select refused near its end, not at the first token — HandSqlStandard's
+			// TryParse exposes no position, so agreement here is accept/refuse only (expr-2d,
+			// 2026-09-18); a row where either side accepts is still a disagreement.
+			SqlRefused<Ast.Statement.Select, Ast.Statement.Select>(
+				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 		];
 	}
 
@@ -357,6 +374,36 @@ static class Stand
 			var actual   = Standard.Dump(value);
 
 			return expected == actual ? null : $"  generated {expected}\n  by hand   {actual}";
+		}
+	}
+
+	/// <summary>
+	/// One SQL:2023 production over an input both sides must refuse. HandSqlStandard's
+	/// <c>TryParse</c> exposes no position or diagnostic to check against (Q7.2, expr-2d,
+	/// 2026-09-18), so agreement here is accept/refuse alone — a row where either side
+	/// accepts is a disagreement, the same as <see cref="Sql{TGenerated, THand}"/> the other
+	/// way around.
+	/// </summary>
+	static Workload SqlRefused<TGenerated, THand>(
+		string name, string text, Func<string, SqlStandardParser.Match<TGenerated>> generated, HandRead<THand> hand)
+	{
+		return new Workload(
+			"sql",
+			name,
+			[
+				new Reading("hand",      () => hand(text, out _) ? 1 : 0),
+				new Reading("generated", () => generated(text).IsSuccess ? 1 : 0),
+			],
+			Disagreement);
+
+		string? Disagreement()
+		{
+			var byGenerated = generated(text).IsSuccess;
+			var byHand      = hand(text, out _);
+
+			return byGenerated || byHand
+				? $"  expected both to refuse; generated {(byGenerated ? "accepted" : "refused")}, hand {(byHand ? "accepted" : "refused")}"
+				: null;
 		}
 	}
 
