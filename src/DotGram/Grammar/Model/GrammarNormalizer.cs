@@ -77,6 +77,9 @@ public sealed partial class GrammarNormalizer
 	public const string UnsafeYield = "GRAM4027";
 	public const string PublicationTypeMismatch = "GRAM4028";
 
+	/// <summary>A mark placed, or the marks asked for, in a grammar that declares no <c>state</c>.</summary>
+	public const string MarkWithoutState = "GRAM4029";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
@@ -216,6 +219,10 @@ public sealed partial class GrammarNormalizer
 		normalizer.LowerYieldPublications();
 
 		normalizer.Prune();
+
+		// After pruning, because a rule nothing reaches is never emitted, and a mark in one
+		// breaks nothing.
+		normalizer.CheckMarksHaveState(scanner);
 
 		return new RecognitionGraph(
 			normalizer._rules,

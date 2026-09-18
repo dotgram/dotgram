@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -165,6 +166,68 @@ public sealed partial class GrammarNormalizer
 			foreach (var nested in ns.Nested)
 				Collect(nested);
 		}
+	}
+
+	/// <summary>
+	/// A mark placed, or the marks asked for, in a grammar that declares no <c>state</c> (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// A mark is a value of the declared type, and without one there is nothing to write it in:
+	/// the parser carries no marks, a <c>with state</c> places none, and <c>parserState</c> and
+	/// <c>parserMarks</c> are no parameters of the constructions that name them. Left to the C#
+	/// compiler, that is a CS0103 in the consumer's build about code they did not write.
+	/// Asked once per rule the parser keeps, after pruning, because a rule nothing reaches is
+	/// never emitted.
+	/// </remarks>
+	void CheckMarksHaveState(ICSharpScanner? scanner)
+	{
+		if (_state is not null || _model.State is not null)
+			return;
+
+		foreach (var rule in _rules)
+		{
+			if (rule.Declaration is null || !_bodies.TryGetValue(rule, out var body))
+				continue;
+
+			string? what = null;
+
+			foreach (var node in NodeWalk.Descendants(body))
+			{
+				what = node switch
+				{
+					Node.Marked                                                => "places a mark with 'with state'",
+					Node.Guard(var text, _)                                    => AsksForMarks(text, scanner),
+					Node.Construct(_, Construction.Expression(var text, _))    => AsksForMarks(text, scanner),
+					_                                                          => null,
+				};
+
+				if (what is not null)
+					break;
+			}
+
+			if (what is not null)
+				Report(
+					MarkWithoutState,
+					$"'{rule.Name}' {what}, and the grammar declares no 'state'. Every mark is a " +
+					"value of the type 'state : @T' declares, so declare the one its marks are " +
+					"written in (§7.8).",
+					rule.Declaration.At);
+		}
+	}
+
+	/// <summary>How a guard or a construction asks for the marks, or null where it does not.</summary>
+	static string? AsksForMarks(string text, ICSharpScanner? scanner)
+	{
+		var free = scanner?.FreeNames(text);
+
+		return Names(text, free, "parserState") ? "asks for 'parserState'"
+			: Names(text, free, "parserMarks") ? "asks for 'parserMarks'"
+			: null;
+
+		// Every supplied name begins with `parser`, so where the expression would not parse
+		// the spelling is enough to go on (CSharpEmitter.Uses answers the same way).
+		static bool Names(string text, IReadOnlyCollection<string>? free, string name) =>
+			free is not null ? free.Contains(name) : text.Contains(name);
 	}
 
 	TypeRef? _context;

@@ -1036,6 +1036,37 @@ public sealed class SemanticTests
 			Start = 'x'
 			""");
 
+	/// <summary>
+	/// A mark with no type to be written in is the grammar's mistake, and said as one — not a
+	/// CS0103 in the consumer's build about a parameter the generator never wrote.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @int = a: A with state @(1) => @(1)\nA = 'x'")]
+	[InlineData("Start : @int = 'x' => @(parserState.Length)")]
+	[InlineData("Start : @int = 'x' => @(parserMarks.Length)")]
+	[InlineData("Start = 'x' & when @(parserState.IsEmpty)")]
+	public void A_mark_in_a_grammar_that_declares_no_state_is_refused(string grammar) =>
+		Refused(GrammarNormalizer.MarkWithoutState, grammar);
+
+	/// <summary>And the same grammar with one declared is what §7.8 describes.</summary>
+	[Fact]
+	public void And_the_same_marks_are_read_once_one_is_declared() =>
+		Assert.DoesNotContain(
+			Compile(
+				"""
+				state : @int
+				Start : @int = a: A with state @(1) => @(1)
+				A : @int = 'x' => @(parserState.Length + parserMarks.Length)
+				""").Diagnostics,
+			one => one.Id == GrammarNormalizer.MarkWithoutState);
+
+	/// <summary>A name that only looks like one is not asking for anything.</summary>
+	[Fact]
+	public void And_a_string_that_spells_one_is_not_asking_for_it() =>
+		Assert.DoesNotContain(
+			Compile("Start : @string = 'x' => @(\"parserState\")").Diagnostics,
+			one => one.Id == GrammarNormalizer.MarkWithoutState);
+
 	[Fact]
 	public void And_state_is_still_an_ordinary_name_for_a_rule() =>
 		// The body is what tells the two apart, the same as `context` — and `with (state =
