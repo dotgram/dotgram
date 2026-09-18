@@ -1006,7 +1006,11 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    generator does it itself** — it finds `Mark()` and `Rollback(mark)` on the context type through
    the resolver, marks before the quiet reading and rolls back before the recording one, and says
    so in an Info diagnostic; a context type without them keeps one recording reading, and the
-   diagnostic says that too.
+   diagnostic says that too. **Landed 2026-09-18 (expr, `1630f936`)**: the resolver answers
+   `Rewinds`, `GRAM5013` says it either way, the emitter marks and rolls back around the quiet
+   reading; gated by `ExpressionRefusalTests` (1,933 recorded refusals with the state after each).
+   Paired: EL accepted -2..-11% with less allocated on every row, refused +61..88%, FIX and SQL
+   identical. Q7.2 is complete.
 
    **Landed 2026-09-18 (expr-2d).** Step 1, `cf16f1cd`: `find` over text and the split lexer's
    re-reads record nothing. Step 2, `d4f9a45c`: in grammars with no context and no `recover`,
