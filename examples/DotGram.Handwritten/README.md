@@ -82,12 +82,11 @@ would say nothing about the generator.
 - **Publications keep the generated names**: `ParseLiteral`, `TryParseDataType` and the
   rest, one pair per publication of the grammar. `TryParseX(string, out T)` answers rather
   than throwing, and `ParseX` throws `FormatException`.
-- **Written chapter by chapter**, in the order the grammar was. Read today: §5's tokens,
-  separators, literals and names; §6.1's data types; §6's value expressions with the
-  towers the BNF types them by, its value functions, window functions, aggregates and JSON
-  functions; §7's query expressions, table references, joins and row pattern recognition;
-  §8's predicates; and §14's data change statements. What is left is §11 and §12's schema
-  statements and §16 to §23's, which are the last of the forty-two publications.
+- **The whole language**: all forty-two publications of the grammar, from §5's tokens to
+  §23's diagnostics, with §6's value expressions and their functions, §7's queries, §8's
+  predicates, §11 and §12's schema statements, §14's data change statements and cursors,
+  and §16 to §23's control, transaction, connection, session, dynamic and direct
+  statements. Written chapter by chapter, in the order the grammar was.
 - **No array of tokens.** `SqlCursor` makes one token at a time as the parser asks for it,
   because the generated parser reads characters where it stands and keeps nothing of what
   it passed. A parser that built an array would be paying a cost on one side of the
@@ -109,8 +108,9 @@ would say nothing about the generator.
   `SqlStandardTreeTests` for a production it reads goes through it, so `dotnet test` is the
   check.
 - `--standard "^production" file` in DotGram.Benchmarks puts every line of a corpus to both
-  and prints what tells them apart; when nothing does, it times the two round-robin. The
-  corpora are `.work/fuzz_lexical.py`'s, clean and mutated.
+  and prints what tells them apart; when nothing does, it times the two round-robin. Every
+  fuzz corpus of the standard's grammar has been put to it — 113,000 lines, clean and
+  mutated, over every publication — with nothing differing.
 
 ### Two places it mirrors the generated parser rather than the BNF
 

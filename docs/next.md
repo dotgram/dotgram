@@ -23070,3 +23070,55 @@ The spread — four to twenty-two — is the thing to look at rather than any si
 generated parser is slowest where the BNF's ordered choice makes it read the same text again, and
 the handwritten one is fastest where a key word says which alternative it is before anything is
 read. That is the shape of the work the generator has left to do.
+
+## The yardstick reads the whole standard
+
+The last chapters — §11 and §12's schema statements, §14's cursors and §16 to §23's control,
+transaction, connection, session, dynamic, direct and diagnostics statements — finish the
+handwritten parser. It publishes what the grammar publishes, production for production: all
+forty-two.
+
+**What the last slice cost.** The schema is the widest chapter and the least deep: tables, columns,
+constraints, views, domains, assertions, triggers, routines, user-defined types, casts, orderings,
+transforms, character sets, collations, transliterations, sequences, roles and privileges, and what
+alters and drops each. Almost all of it is a switch on the first two words. Nine differences, all
+the handwritten parser's, and every one of them a place where a list or an alternative has to give
+something back:
+
+- `UNIQUE (a, p WITHOUT OVERLAPS)` and `FOREIGN KEY (a, PERIOD p)`: the column list takes the
+  period's name, because a name is what it reads. The list now gives back the comma it cannot go on
+  from, and the period is taken off its end where `WITHOUT OVERLAPS` follows.
+- `GRANT r, TO PUBLIC` and `FREE LOCATOR :l,`: the same comma, in a list no bracket closes, has to
+  be refused where it stands rather than swallowed.
+- `GRANT USAGE ON SEQUENCE TO v`: `SEQUENCE`, `DOMAIN`, `TYPE` and `COLLATION` name the kind of
+  object a privilege is on, and §5.2 reserves none of them, so a kind that leads nowhere is a
+  table's name.
+- `ALTER TABLE t ALTER COLUMN c SET DEFAULT 1`: the `SET` is the action's and the default a clause
+  of its own, which reads its own `DEFAULT`.
+- `CREATE FUNCTION f (DESCRIPTOR)`: the BNF asks for a data type before it asks for `DESCRIPTOR`, so
+  a parameter of that name is a user-defined type — which is what the generated parser builds.
+- `ALLOCATE c CURSOR FOR INSTANCE METHOD f (INT)`: an extended cursor's prepared statement and a
+  received cursor's routine both follow `FOR`, and only the routine designator tells them apart.
+- `OPEN MODULE.c USING DESCRIPTOR`: `DESCRIPTOR` with no name after it is a column called that, and
+  the using clause's other branch reads it.
+
+**The whole sweep.** Every fuzz corpus of the standard's grammar, clean and mutated, over every
+publication: 112,968 lines, nothing differing. `Both` puts every row of the SQL tests to both
+parsers: 14,701 tests, none failing.
+
+**And the ratios, by chapter.** Release, round-robin, best of five:
+
+| chapter | generated / by hand |
+| --- | --- |
+| queries | 4.6x – 22x |
+| data change statements | 7.3x – 16x |
+| schema statements | 7x – 12.7x |
+| dynamic SQL | 6.9x – 7.5x |
+| transactions, connections, sessions, diagnostics | 4.4x – 7x |
+| literals, names, types | 4.7x – 11x |
+
+The spread is the useful part. The generated parser is furthest behind where the BNF's ordered
+choice makes it read the same text again — a query's select list, an insert's rows, a table
+reference's joins — and closest where a statement is a handful of key words in a fixed order, which
+is what the session and diagnostics statements are. That is the map for the work on the generator:
+the choices that re-read, not the reading itself.

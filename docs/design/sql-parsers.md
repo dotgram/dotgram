@@ -95,12 +95,12 @@ is open until it is built, and `status.md` is what will say when it has been.
   `--standard "~production" file`, which writes each tree the grammar builds, reads the text back and
   asks for the same tree and the same text — every fuzz family of the standard's grammar, over 60,000
   lines, with no difference. The first step of moving T-SQL onto the tree.
-- **The handwritten SQL:2023 parser, chapter by chapter** (`examples/DotGram.Handwritten/Sql`).
-  Written: §5, §6.1, §6's value expressions with their functions, §7's query expressions and
-  table references, §8's predicates and §14's data change statements — twenty-three of the forty-two
-  publications, all going through `Both` in the tests. What is left is §11 and §12's schema
-  statements and §16 to §23's. Two places where it mirrors the generated parser rather than the
-  BNF are written down in the project's README.
+- ~~**The handwritten SQL:2023 parser, chapter by chapter**~~ Done, 2026-09-17
+  (`examples/DotGram.Handwritten/Sql`): all forty-two publications, every one of them going through
+  `Both` in the tests, and every fuzz corpus of the standard's grammar — 113,000 lines — put to the
+  two with nothing differing. Two places where it mirrors the generated parser rather than the BNF
+  are written down in the project's README. It is the yardstick the generated parser is now
+  optimized against.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before

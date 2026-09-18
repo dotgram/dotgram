@@ -289,6 +289,151 @@ static class Both
 		? SqlStandardParser.ParseTruncateTableStatement(input)
 		: throw Refused(input, "truncate table statement");
 
+	// ── §11, §12 and §14 to §23: the statements ────────────────────────────────
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLSchemaStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLSchemaStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLSchemaStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLSchemaStatement(string input) => TryParseSQLSchemaStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLSchemaStatement(input)
+		: throw Refused(input, "SQL schema statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseDirectSQLStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseDirectSQLStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDirectSQLStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseDirectSQLStatement(string input) => TryParseDirectSQLStatement(input).IsSuccess
+		? SqlStandardParser.ParseDirectSQLStatement(input)
+		: throw Refused(input, "direct SQL statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseDirectSQLDataStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseDirectSQLDataStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDirectSQLDataStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseDirectSQLDataStatement(string input) => TryParseDirectSQLDataStatement(input).IsSuccess
+		? SqlStandardParser.ParseDirectSQLDataStatement(input)
+		: throw Refused(input, "direct SQL data statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLDataStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLDataStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLDataStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLDataStatement(string input) => TryParseSQLDataStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLDataStatement(input)
+		: throw Refused(input, "SQL data statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLControlStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLControlStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLControlStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLControlStatement(string input) => TryParseSQLControlStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLControlStatement(input)
+		: throw Refused(input, "SQL control statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLTransactionStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLTransactionStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLTransactionStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLTransactionStatement(string input) => TryParseSQLTransactionStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLTransactionStatement(input)
+		: throw Refused(input, "SQL transaction statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLConnectionStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLConnectionStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLConnectionStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLConnectionStatement(string input) => TryParseSQLConnectionStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLConnectionStatement(input)
+		: throw Refused(input, "SQL connection statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLSessionStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLSessionStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLSessionStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLSessionStatement(string input) => TryParseSQLSessionStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLSessionStatement(input)
+		: throw Refused(input, "SQL session statement");
+
+	public static SqlStandardParser.Match<Statement.GetDiagnostics> TryParseSQLDiagnosticsStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLDiagnosticsStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLDiagnosticsStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement.GetDiagnostics ParseSQLDiagnosticsStatement(string input) => TryParseSQLDiagnosticsStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLDiagnosticsStatement(input)
+		: throw Refused(input, "SQL diagnostics statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLDynamicStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLDynamicStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLDynamicStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLDynamicStatement(string input) => TryParseSQLDynamicStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLDynamicStatement(input)
+		: throw Refused(input, "SQL dynamic statement");
+
+	public static SqlStandardParser.Match<Statement> TryParseSQLProcedureStatement(string input)
+	{
+		var read = SqlStandardParser.TryParseSQLProcedureStatement(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLProcedureStatement(input, out var hand), hand);
+
+		return read;
+	}
+
+	public static Statement ParseSQLProcedureStatement(string input) => TryParseSQLProcedureStatement(input).IsSuccess
+		? SqlStandardParser.ParseSQLProcedureStatement(input)
+		: throw Refused(input, "SQL procedure statement");
+
 	// ── Holding one to the other ───────────────────────────────────────────────
 
 	/// <summary>
