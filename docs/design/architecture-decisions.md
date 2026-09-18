@@ -76,6 +76,43 @@ that stores many values per parse, not only on SQL. Agreement with `HandSqlStand
 **What it is not.** A fixed cost of about a fifth of a short statement. The per-operand rate,
 7.27 us against 0.33 an item, is a different mechanism, and Q1 is where it is decided.
 
+## D3. FIX stays on the engine; the next direction is one-pass construction
+
+Decided 2026-09-17 by the architect, on performance-3f's profiles.
+
+The reader refuses FIX because it recovers (`Machine.Direct.cs:122`). Moving it there
+would mean the reader learning recovery and streaming, and nothing measured says that pays:
+FIX spends 56 per cent (Order) and 73 per cent (BinaryMany) in recognize plus materialize,
+and SQL, on the reader already, spends 53 to 62 per cent in materializing. The two-pass shape
+costs on both renderings, so it is not fixed by choosing a rendering.
+
+**Direction approved for design, not for code:** building a value where the recognizer has
+committed to it, in regions where that is proved not to change what runs (`syntax.md` §7.3:
+a construction runs once per node of the accepted derivation). FIX first.
+
+**Conditions on the design.**
+
+- The proof is one analysis, beside `Replay`, answering per rule or per site; every rendering
+  that builds reads its answer. No rendering gets a proof of its own. The generator already
+  writes a way in three times; a fourth kind of special case per rendering is refused.
+- It says how a construction relates to `recover`: whether the unit that recovery throws away
+  can hold an eager construction, and what happens to one already run.
+- It says what is left of the tape in a mixed machine, and whether the existing carriers
+  (Tape, Immediate, Mixed, Auto) remain four or become a per-rule choice of two.
+- It keeps the factories' order and count, the typed caches and rollback invalidation, and
+  string, TextReader and Stream input.
+
+**Parked:** narrowing FIX's follow sets for `yield` (six Run records, correctness of the end of
+a yield step not established) and removing Run/CaptureOpen records that depends on it. The
+whole-field helper stays rejected.
+
+## D4. Timings on the Ryzen machine are pinned
+
+Recorded 2026-09-17 from performance-3f. The machine has two CCDs with the V-cache on one.
+Unpinned paired runs varied up to twice batch to batch; pinned to logical processors 0-15 at
+high priority, FIX Order's spread fell from 28 to 4 per cent. A timing that was not pinned is
+not quoted as a comparison.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
@@ -106,3 +143,21 @@ is required:
 3. If a new mechanism: whether it is a lazy token cursor (tokens made as the reader asks, as
    `SqlCursor` does) rather than a lexer over the whole input first. That choice would also
    bear on streamed input, where the engine now reads characters (FIX).
+
+Q1 and D3 are not rivals. performance-3f attributes 53 to 62 per cent of SQL's time to
+materializing, of which D2's store bookkeeping is a large part; the rest of a parse is the
+character reading. Each report gives time exclusive of the factories both parsers call, so
+that the two causes are sized against each other and not against the work the hand parser
+also does.
+
+### Q2. A contiguous byte input
+
+Raised 2026-09-17 by performance-3f. Language and public API: Igor's decision first, then
+the architect's review.
+
+`FixParser.Parse(byte[])` wraps a `MemoryStream` and runs the buffered iterator; the Bytes
+form has the worst ratio to the hand parser in every FIX workload. Proposed: `stream bytes`
+also offers a `ReadOnlyMemory<byte>` overload, fed to the existing buffered-byte machine.
+The review will ask how much of the Bytes gap is the adapter and copy, which this removes,
+and how much is the buffered machine's own checks, which it keeps; the Text form, read from a
+contiguous span, is the measure of the second.
