@@ -8,6 +8,10 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>fix;finance;trading;parser;dotgram</PackageTags>
 
+		<!-- The package ships its XML documentation, and every public member has some:
+		     under TreatWarningsAsErrors a member left undocumented fails the build. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+
 		<DebugType>embedded</DebugType>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
