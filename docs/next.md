@@ -23536,3 +23536,11 @@ for the large one's buffers.
 What remains untested is the pairing this section started from — a 13.9 MB parser against a
 40 KB one over 5,000 lines — which is not the shape the stand tried. Until it is tried, the
 `fuzz-query` row above is an observation and not evidence for anything.
+
+## FixParser's lazy overloads check their arguments at the call
+
+`FixParser.Parse` and `ParseLog` over a `TextReader` were iterator methods themselves, so a null
+input or a `bufferSize` or `maxRetained` that is not positive threw at the first `MoveNext`, not at
+the call. They now check at the call, as the `Stream` overloads and the generated `ReadFields` do.
+The same change resolves `maxRetained` to an `int` before the iterator, which returns the 8 bytes
+a streamed call gained in 2fc54930 when its closure captured an `int?`.

@@ -54,16 +54,28 @@ public static class FixParser
 	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
 	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		if (input == null)     throw new ArgumentNullException(nameof(input));
-		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
-		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		if (input == null)   throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
 
-		var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
+		var limit = maxRetained ?? DefaultMaxRetained;
 
-		foreach (var field in FixGrammar.ReadFields(input, context, bufferSize, maxRetained))
-			yield return field;
+		if (limit <= 0)
+			throw new ArgumentOutOfRangeException(nameof(maxRetained));
+
+		return Read();
+
+		// A context per enumeration, since it holds a binary pair's state.
+		IEnumerable<FixField> Read()
+		{
+			var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
+
+			foreach (var field in FixGrammar.ReadFields(input, context, bufferSize, limit))
+				yield return field;
+		}
 	}
 
 	/// <summary>
@@ -77,19 +89,26 @@ public static class FixParser
 	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
 	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		if (input == null)     throw new ArgumentNullException(nameof(input));
-		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
-		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		if (input == null)   throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+
+		var limit = maxRetained ?? DefaultMaxRetained;
+
+		if (limit <= 0)
+			throw new ArgumentOutOfRangeException(nameof(maxRetained));
 
 		return Read();
 
+		// A context per enumeration, since it holds a binary pair's state.
 		IEnumerable<FixField> Read()
 		{
 			var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
 
-			foreach (var field in FixGrammar.ReadFields(input, context, bufferSize, maxRetained))
+			foreach (var field in FixGrammar.ReadFields(input, context, bufferSize, limit))
 				yield return field;
 		}
 	}
@@ -145,16 +164,28 @@ public static class FixParser
 	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
 	public static IEnumerable<FixField> ParseLog(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		if (input == null)     throw new ArgumentNullException(nameof(input));
-		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
-		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		if (input == null)   throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
 
-		var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
+		var limit = maxRetained ?? DefaultMaxRetained;
 
-		foreach (var field in FixGrammar.ReadLogFields(input, context, bufferSize, maxRetained))
-			yield return field;
+		if (limit <= 0)
+			throw new ArgumentOutOfRangeException(nameof(maxRetained));
+
+		return Read();
+
+		// A context per enumeration, since it holds a binary pair's state.
+		IEnumerable<FixField> Read()
+		{
+			var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
+
+			foreach (var field in FixGrammar.ReadLogFields(input, context, bufferSize, limit))
+				yield return field;
+		}
 	}
 
 	/// <summary>
@@ -168,19 +199,26 @@ public static class FixParser
 	/// or a whole length/data pair; <see cref="DefaultMaxRetained"/> when not given.
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
+	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
 	public static IEnumerable<FixField> ParseLog(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		if (input == null)     throw new ArgumentNullException(nameof(input));
-		if (bufferSize <= 0)   throw new ArgumentOutOfRangeException(nameof(bufferSize));
-		if (maxRetained <= 0)  throw new ArgumentOutOfRangeException(nameof(maxRetained));
+		if (input == null)   throw new ArgumentNullException(nameof(input));
+		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+
+		var limit = maxRetained ?? DefaultMaxRetained;
+
+		if (limit <= 0)
+			throw new ArgumentOutOfRangeException(nameof(maxRetained));
 
 		return Read();
 
+		// A context per enumeration, since it holds a binary pair's state.
 		IEnumerable<FixField> Read()
 		{
 			var context = new FixGrammar.FixContext(options ?? FixFieldOptions.Default);
 
-			foreach (var field in FixGrammar.ReadLogFields(input, context, bufferSize, maxRetained))
+			foreach (var field in FixGrammar.ReadLogFields(input, context, bufferSize, limit))
 				yield return field;
 		}
 	}
