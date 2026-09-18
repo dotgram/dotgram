@@ -1557,7 +1557,9 @@ parse Feed as ByteNodes stream bytes yield : @FeedNode
 
 The first two publications return `FeedNode[]`. The last two return
 `IEnumerable<FeedNode>`; `Nodes(string)` is lazy even with contiguous input.
-`stream` adds a `TextReader` input; `stream bytes` adds a native byte `Stream` input.
+`stream` adds a `TextReader` input; `stream bytes` adds a native byte `Stream` input, and
+the same over bytes the caller already holds, `byte[]` and `ReadOnlyMemory<byte>`, read in
+place: no copy and no buffer parameters, since the whole input is there.
 Both forms also keep their string overload. An explicitly buffered publication
 without `yield` materializes its declared result.
 

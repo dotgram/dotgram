@@ -74,6 +74,36 @@ public sealed class BufferedInputTests
 		Assert.Contains("maxRetained", error.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>Bytes already in memory are read in place, and answer what the stream does.</summary>
+	[Fact]
+	public void Bytes_in_memory_read_as_the_stream_does()
+	{
+		var result = GramCompiler.Compile("""
+			Row : @int = t: ['a'..'z']+ & ';' => @(t.Length)
+			Rows : @int[] = Row*
+			parse Rows as All stream bytes
+			parse Rows as Each stream bytes yield : @int
+			""", new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(result.Diagnostics);
+		var host  = EmittedCode.Compile(Assert.Single(result.Sources).Text).GetType("Grammar")!;
+		var input = System.Text.Encoding.ASCII.GetBytes("ab;cde;f;");
+
+		var streamed = (int[])host.GetMethod("All", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [new MemoryStream(input), null, null])!;
+		Assert.Equal(new[] { 2, 3, 1 }, streamed);
+
+		Assert.Equal(streamed, (int[])host.GetMethod("All", [typeof(byte[])])!.Invoke(null, [input])!);
+
+		// A slice of a larger array: positions count from the slice, not from the array.
+		var padded = System.Text.Encoding.ASCII.GetBytes("!!!ab;cde;f;!!");
+		Assert.Equal(streamed, (int[])host.GetMethod("All", [typeof(ReadOnlyMemory<byte>)])!.Invoke(null, [new ReadOnlyMemory<byte>(padded, 3, input.Length)])!);
+
+		var each = (System.Collections.Generic.IEnumerable<int>)host.GetMethod("Each", [typeof(byte[])])!.Invoke(null, [input])!;
+		Assert.Equal(streamed, each.ToArray());
+
+		var refused = Assert.Throws<TargetInvocationException>(() => host.GetMethod("All", [typeof(byte[])])!.Invoke(null, [null]));
+		Assert.IsType<ArgumentNullException>(refused.InnerException);
+	}
+
 	/// <summary>A buffer parameter left null takes the grammar's default; a number is that call's own.</summary>
 	[Theory]
 	[InlineData(false)]
