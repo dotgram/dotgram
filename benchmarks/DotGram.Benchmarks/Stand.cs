@@ -283,6 +283,7 @@ static partial class Stand
 			Expression("block",         "(int x) => { x += 1; x *= 2; return x; }"),
 			Expression("loop",          "(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }"),
 			Expression("overloads",     "(int x) => System.Math.Max(x, 1)"),
+			Expression("string",        "(int x) => \"a plain string literal, with no escape in it\""),
 			Expression("interpolation", "(int x) => $\"{x,5:D3} and {x + 1}\""),
 			Expression("untyped",       "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()"),
 
@@ -658,6 +659,7 @@ static partial class Stand
 			PairedExpression("block",         "(int x) => { x += 1; x *= 2; return x; }", before, after),
 			PairedExpression("loop",          "(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }", before, after),
 			PairedExpression("overloads",     "(int x) => System.Math.Max(x, 1)", before, after),
+			PairedExpression("string",        "(int x) => \"a plain string literal, with no escape in it\"", before, after),
 			PairedExpression("interpolation", "(int x) => $\"{x,5:D3} and {x + 1}\"", before, after),
 			PairedExpression("untyped",       "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()", before, after, immediate: false),
 			PairedExpression("refused-early", "(int x) => x +", before, after),
