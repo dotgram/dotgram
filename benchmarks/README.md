@@ -787,14 +787,3 @@ method headers, exception tables and native JIT code. The JSON-lines output can 
 beside throughput and allocation reports for each optimization.
 
 See [the September 15 comparison](../docs/design/parser-comparison-2026-09-15.md#generated-code-size).
-
-### Tiny parser value storage
-
-`ValueStorageBenchmarks` compares explicit Flat, Adaptive, and Paged storage on a
-valued two-character tape parser. All methods return the same integer. The measured
-steady-state calls reuse thread-local stores; fresh-store allocation needs a separate
-probe and must not be inferred from the MemoryDiagnoser result.
-
-```powershell
-dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter '*ValueStorageBenchmarks*'
-```

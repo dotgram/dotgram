@@ -53,8 +53,6 @@ public sealed class DenseValuesTests
 	[InlineData(true, ValueStorageKind.Flat)]
 	[InlineData(false, ValueStorageKind.Adaptive)]
 	[InlineData(true, ValueStorageKind.Adaptive)]
-	[InlineData(false, ValueStorageKind.Paged)]
-	[InlineData(true, ValueStorageKind.Paged)]
 	public void Dense_values_survive_growth_strays_and_alternating_guarded_publications(bool lexical, ValueStorageKind storage)
 	{
 		var (assembly, source) = Compile(lexical, storage: storage);

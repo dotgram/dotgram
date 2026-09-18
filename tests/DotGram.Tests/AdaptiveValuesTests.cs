@@ -55,8 +55,6 @@ public sealed class AdaptiveValuesTests
 	[InlineData(true, ValueStorageKind.Flat)]
 	[InlineData(false, ValueStorageKind.Adaptive)]
 	[InlineData(true, ValueStorageKind.Adaptive)]
-	[InlineData(false, ValueStorageKind.Paged)]
-	[InlineData(true, ValueStorageKind.Paged)]
 	public void Adaptive_values_preserve_guard_results_across_page_growth_and_reuse(bool lexical, ValueStorageKind storage)
 	{
 		var (assembly, source) = Compile(lexical, storage: storage);
@@ -81,7 +79,6 @@ public sealed class AdaptiveValuesTests
 
 	[Theory]
 	[InlineData(ValueStorageKind.Adaptive)]
-	[InlineData(ValueStorageKind.Paged)]
 	public void Adaptive_tables_clear_references_after_failure_and_reentrant_parsing(ValueStorageKind storage)
 	{
 		var (assembly, _) = Compile(false, storage: storage);
@@ -128,8 +125,6 @@ public sealed class AdaptiveValuesTests
 	[Theory]
 	[InlineData(false, ValueStorageKind.Adaptive)]
 	[InlineData(true, ValueStorageKind.Adaptive)]
-	[InlineData(false, ValueStorageKind.Paged)]
-	[InlineData(true, ValueStorageKind.Paged)]
 	public void Guard_rollback_reuses_records_for_different_types(bool lexical, ValueStorageKind storage)
 	{
 		var grammar = Grammar + """

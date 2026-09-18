@@ -171,13 +171,6 @@ public static class SupportEmitter
 				/// </remarks>
 				public GramCarrier Carrier { get; set; }
 
-				/// <summary>
-				/// Typed value storage shared by this compilation's direct tape readers.
-				/// Auto chooses at generation time. Other carriers and the non-direct engine
-				/// do not use these tables. A GramOptions compilation may override this choice.
-				/// </summary>
-				public GramValueStorage ValueStorage { get; set; }
-
 				/// <summary>Add buffered pull-input publications beside existing forms.</summary>
 				public bool BufferedInput { get; set; }
 
@@ -243,20 +236,6 @@ public static class SupportEmitter
 				/// them, whose bulk is the parsers they generated.
 				/// </remarks>
 				public bool Portable { get; set; } = true;
-			}
-
-			/// <summary>Typed value storage for direct tape readers.</summary>
-			[global::Microsoft.CodeAnalysis.Embedded]
-			internal enum GramValueStorage
-			{
-				/// <summary>Conservative grammar-based selection at generation time.</summary>
-				Auto,
-				/// <summary>One flat array per value type, indexed by record.</summary>
-				Flat,
-				/// <summary>A flat prefix and lazy pages, including for small grammars.</summary>
-				Adaptive,
-				/// <summary>Lazy pages from the first value, without a flat prefix.</summary>
-				Paged,
 			}
 
 			/// <summary>How a generated reader carries what it has read.</summary>

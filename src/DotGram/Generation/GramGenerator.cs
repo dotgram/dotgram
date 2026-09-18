@@ -469,7 +469,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
 			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
-			ValueStorage   = (ValueStorageKind)host.ValueStorage,
 			BufferedInput  = host.BufferedInput,
 			BufferedBytes  = host.BufferedBytes,
 			SpanCaptures   = host.SpanCaptures,
@@ -495,11 +494,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 				? string.Format(CultureInfo.InvariantCulture,
 					"DotGram: {0}, {1} normalized rules, {2} bytes UTF-8 C#, {3:F2} ms generation, " +
 					"mode={4}, options: Lexical={5}, PrefixTables={6}, Direct={7}, " +
-					"Carrier={8}, ValueStorage={9}, BufferedInput={10}, BufferedBytes={11}, SpanCaptures={12}",
+					"Carrier={8}, BufferedInput={9}, BufferedBytes={10}, SpanCaptures={11}",
 					host.HintName, result.NormalizedRuleCount,
 					Encoding.UTF8.GetByteCount(result.Sources[0].Text), timer.Elapsed.TotalMilliseconds,
 					result.UsesLexical ? "lexical" : "characters", host.Lexical, host.PrefixTables, host.Direct,
-					(CarrierKind)host.Carrier, (ValueStorageKind)host.ValueStorage,
+					(CarrierKind)host.Carrier,
 					host.BufferedInput, host.BufferedBytes, host.SpanCaptures)
 				: null);
 	}
@@ -772,7 +771,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      PrefixTables = true,
 		bool      Direct     = true,
 		int       Carrier    = 0,
-		int       ValueStorage = 0,
 		bool      BufferedInput = false,
 		bool      BufferedBytes = false,
 		bool      SpanCaptures = false,
@@ -960,11 +958,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
 				.Value.Value as int? ?? first?.Carrier ?? 0;
 
-			// A named compilation inherits storage unless it explicitly overrides it.
-			var valueStorage = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.ValueStorage))
-				.Value.Value as int? ?? first?.ValueStorage ?? 0;
-
 			// How many stacks a parse may take past the one it began on. Nought is as many
 			// as there is memory for, which is the default.
 			var stacks = attribute.NamedArguments
@@ -1041,7 +1034,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				PrefixTables: prefixTables,
 				Direct:     direct,
 				Carrier:    carrier,
-				ValueStorage: valueStorage,
 				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,
 				BufferedBytes: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedBytes)).Value.Value as bool? ?? first?.BufferedBytes ?? false,
 				BufferedInput: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedInput)).Value.Value as bool? ?? first?.BufferedInput ?? false,

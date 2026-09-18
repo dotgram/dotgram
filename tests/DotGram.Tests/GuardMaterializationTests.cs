@@ -13,7 +13,6 @@ public sealed class GuardMaterializationTests
 	[InlineData(ValueStorageKind.Auto, true)]
 	[InlineData(ValueStorageKind.Flat, false)]
 	[InlineData(ValueStorageKind.Adaptive, false)]
-	[InlineData(ValueStorageKind.Paged, false)]
 	public void Repeated_guards_reuse_values_but_rollback_invalidates_reused_record_numbers(ValueStorageKind storage, bool large)
 	{
 		var grammar = """
@@ -60,7 +59,6 @@ public sealed class GuardMaterializationTests
 	[Theory]
 	[InlineData(ValueStorageKind.Flat)]
 	[InlineData(ValueStorageKind.Adaptive)]
-	[InlineData(ValueStorageKind.Paged)]
 	public void Engine_switch_builds_only_requested_values_in_repeated_records(ValueStorageKind storage)
 	{
 		var compilation = GramCompiler.Compile("""

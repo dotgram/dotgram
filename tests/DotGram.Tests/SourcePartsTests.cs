@@ -27,8 +27,6 @@ public sealed class SourcePartsTests
 	[InlineData(ValueStorageKind.Flat, true)]
 	[InlineData(ValueStorageKind.Adaptive, false)]
 	[InlineData(ValueStorageKind.Adaptive, true)]
-	[InlineData(ValueStorageKind.Paged, false)]
-	[InlineData(ValueStorageKind.Paged, true)]
 	public void Separated_engines_keep_bodies_and_parse_all_input_forms(ValueStorageKind storage, bool direct)
 	{
 		GramCompilation Compile(int size) => GramCompiler.Compile(Grammar, new GramCompilerOptions

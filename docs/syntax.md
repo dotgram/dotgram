@@ -1,4 +1,4 @@
-# .Gram — the language and its bond with C#
+﻿# .Gram — the language and its bond with C#
 
 The engine plan lives in [`implementation.md`](implementation.md). Nothing decided
 there is a decision about the language.
@@ -2023,44 +2023,17 @@ grammar that builds its own types build two families of them. Where the types ar
 written by hand and named with `@`, both build the same ones, which is what makes two
 carriers over one grammar comparable at all.
 
-#### Choosing value-table storage
+#### Value-table storage
 
-`ValueStorage` controls typed value tables in direct tape readers. It applies to the
-whole compilation, including its publications, because those readers share tables.
-It does not change the carrier or factory semantics. Immediate/Mixed readers and the
-non-direct engine do not use these tables; if a requested carrier falls back to a
-direct tape reader, that reader uses the selected storage.
+A direct tape reader keeps what it builds in a table per value type, and how those tables
+are held is the generator's to choose: flat arrays indexed by record, dense indexing where a
+machine's materializer runs once at the end, and arrays that grow into lazy pages where a
+grammar has many types. The choice is made from the grammar's structure at generation time
+and costs no runtime dispatch. It is not offered as an option, and no generated layout is
+promised: a parser is asked what it reads, not how it stores what it read.
 
-```csharp
-[Gram("Sql.gram", Carrier = GramCarrier.Tape, ValueStorage = GramValueStorage.Auto)]
-[GramOptions(Suffix = "Flat", ValueStorage = GramValueStorage.Flat)]
-[GramOptions(Suffix = "Adaptive", ValueStorage = GramValueStorage.Adaptive)]
-public static partial class Sql { }
-```
-
-| Strategy | Generated storage |
-| --- | --- |
-| `Auto` (default) | Conservative selection from grammar structure at generation time. |
-| `Flat` | One array per value type, indexed by record; disables dense and paged selection. |
-| `Adaptive` | Arrays growing to 256 slots, then lazy 64-slot pages per type; disables dense selection. |
-| `Paged` | Lazy 64-slot pages from the first value, without a flat prefix or eager per-type arrays. |
-
-`Auto` adds no runtime policy dispatch. Its current policy keeps small grammars flat,
-uses dense indexing for final-only materializers with at least eight value types, and
-uses adaptive tables for eligible guarded grammars with at least 32 types when the
-shared store does not need dense indexing. Other cases retain flat tables. These
-thresholds are implementation heuristics, not a promise of optimal performance or a
-stable generated layout. The compiler cannot infer future input sizes or call frequency.
-
-Keep `Auto` for a general default. For a performance-critical parser, compare explicit
-variants on representative short, long, and refused inputs, including fresh-store and
-warm-pool allocations. `Adaptive` can reduce allocation on large sparse tables while
-increasing generated code and retained pool memory. Select `Flat`, `Adaptive`, or `Paged` to fix
-that design choice. A per-rule override is not offered because rules can share the same
-value table; use separate compilations when storage choices must differ.
-
-The compiler API exposes the same choice as
-`GramCompilerOptions.ValueStorage = ValueStorageKind.Adaptive`.
+Tables are shared by a compilation and its publications, so the choice is the compilation's.
+Immediate and mixed readers, and the non-direct engine, do not use them.
 
 ---
 

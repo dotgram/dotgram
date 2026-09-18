@@ -11,7 +11,4 @@ public enum ValueStorageKind
 
 	/// <summary>A flat prefix followed by lazily allocated pages per value type.</summary>
 	Adaptive,
-
-	/// <summary>Lazy pages from the first value, without a flat prefix.</summary>
-	Paged,
 }

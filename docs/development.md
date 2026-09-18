@@ -1,4 +1,4 @@
-# Working on this
+﻿# Working on this
 
 How the project is built, checked and measured. Standing process rather than plans —
 [`next.md`](next.md) says what to do next, this says what to do every time.
@@ -59,7 +59,8 @@ dotnet test    DotGram.slnx --no-build   --configuration Linux
 ```
 
 The excludes are unanchored so that a name is dropped wherever it sits, and the script is
-written with Unix line endings — a stray `` reaches the shell as part of a path.
+written with Unix line endings — a stray `
+` reaches the shell as part of a path.
 
 A run is then one command, naming a tree under `/src`: `main`, or a worktree as
 `worktrees/<name>`. Name one every time: the default the script falls back to,
@@ -127,6 +128,23 @@ and it is the only place the whole generated file is looked at.
 Five grammars are covered: `Url` and `Feed` are the frozen subset and hand no C# across,
 `Csv` carries a `=>`, a `when` and the `#line` directives of §7.6, `Minimal` is the
 smallest thing that still recurses, and `Notation` is the notation's own grammar.
+
+### Comparing the whole of a change's emission
+
+Where a change reaches further than the snapshots — anything in the emitters — the check is
+every generated file of every project, before and against after. Build with
+`-p:EmitCompilerGeneratedFiles=true` and compare
+`obj/GeneratedFiles/DotGram/DotGram.Generation.GramGenerator/` between a worktree at the
+commit being changed and this one, after replacing each worktree's path with a constant:
+`#line` directives carry the grammar's absolute path, so nothing travels between worktrees
+until that is normalized.
+
+Two things make a difference appear that is not one:
+
+- **Build both sides with `-t:Rebuild`.** An incremental build does not rewrite
+  `*.DotGramReport.g.cs`, so those files look as though the change stopped emitting them.
+- **Ignore the report files' contents.** They carry the generation time in milliseconds,
+  which differs between any two runs.
 
 ## Measuring
 

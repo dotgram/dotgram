@@ -432,7 +432,6 @@ sealed partial class Machine
 	{
 		internal bool DenseStore;
 		internal bool AdaptiveStore => machine._adaptiveStore;
-		internal bool PagedStore => machine._valueStorage == ValueStorageKind.Paged;
 
 		/// <remarks>
 		/// The tables where a guard builds; the tokens where a guard or a glue asks about
@@ -571,9 +570,7 @@ sealed partial class Machine
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
 				: machine.DenseDirectValues
 					? $"values.V{TableName(type)}[values.Starts[{record}]].Value"
-					: PagedStore
-						? $"values.V{TableName(type)}.Read({record}).Value"
-						: $"values.V{TableName(type)}[{record}].Value";
+					: $"values.V{TableName(type)}[{record}].Value";
 
 		/// <remarks>
 		/// Gathered turn by turn on the tape, and collected here the way the rule's end would
@@ -630,7 +627,7 @@ sealed partial class Machine
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => machine.RenderDirectMaterializer(rules);
 
 		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-			CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore, PagedStore);
+			CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore);
 
 		public override string? Refuses() => null;
 	}

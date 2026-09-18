@@ -655,9 +655,7 @@ sealed partial class Machine
 			? $"values.V{TableName(type)}[valueSlot].Value"
 			: Carrier is TapeCarrier { AdaptiveStore: true }
 				? $"((uint){index} < (uint)values{TableName(type)}.Length ? ref values{TableName(type)}[{index}] : ref values.V{TableName(type)}[{index}]).Value"
-				: Carrier is TapeCarrier { PagedStore: true }
-					? $"values.V{TableName(type)}[{index}].Value"
-					: ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
+				: ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
 
 	/// <summary>
 	/// What a record-indexed write leaves behind in a store that also holds dense tables:
@@ -805,7 +803,7 @@ sealed partial class Machine
 				}
 			}
 
-			if (!DenseDirectValues && Carrier is not TapeCarrier { PagedStore: true })
+			if (!DenseDirectValues)
 				foreach (var type in MaterializationTypes)
 					file.Line($"var values{TableName(type)} = values.V{TableName(type)}{(Carrier is TapeCarrier { AdaptiveStore: true } ? ".First" : "")};");
 
@@ -1305,9 +1303,7 @@ sealed partial class Machine
 					? $"values.V{TableName(type)}[values.Starts[{record}]].Value"
 					: Carrier is TapeCarrier { AdaptiveStore: true }
 						? $"((uint){record} < (uint)values{TableName(type)}.Length ? values{TableName(type)}[{record}].Value : values.V{TableName(type)}[{record}].Value)"
-						: Carrier is TapeCarrier { PagedStore: true }
-							? $"values.V{TableName(type)}.Read({record}).Value"
-							: $"values{TableName(type)}[{record}].Value"
+						: $"values{TableName(type)}[{record}].Value"
 				: throw new InvalidOperationException($"No value table for '{type}'.");
 
 	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>

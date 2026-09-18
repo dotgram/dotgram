@@ -1212,17 +1212,14 @@ public static partial class CSharpEmitter
 	/// The check was a tenth of what building a tree cost. An array of structs is not
 	/// covariant, and a store into a field of one asks nothing.
 	/// </remarks>
-	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false, bool paged = false)
+	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false)
 	{
 		var text = new StringBuilder();
 
 		text.Append("sealed class DirectValues\n{\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
-			if (paged)
-				text.Append("\tinternal PagedValueTable<").Append(valueTypes[i]).Append("> V").Append(i)
-					.Append(" = new PagedValueTable<").Append(valueTypes[i]).Append(">();\n");
-			else if (adaptive)
+			if (adaptive)
 				text.Append("\tinternal ValueTable<").Append(valueTypes[i]).Append("> V").Append(i)
 					.Append(" = new ValueTable<").Append(valueTypes[i]).Append(">(16);\n");
 			else
@@ -1261,7 +1258,7 @@ public static partial class CSharpEmitter
 				text.Append("\t\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values.N").Append(i).Append(", values.V").Append(i).Append(".Length));\n");
 				text.Append("\t\t\tvalues.N").Append(i).Append(" = 0;\n\t\t}\n");
 			}
-			else if (adaptive || paged)
+			else if (adaptive)
 				text.Append("\t\tvalues.V").Append(i).Append(".Clear(values._used);\n");
 			else
 				text.Append("\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values._used, values.V").Append(i).Append(".Length));\n");
@@ -1288,7 +1285,7 @@ public static partial class CSharpEmitter
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (adaptive)
 				text.Append("\t\tif (V").Append(i).Append(".First.Length < count && V").Append(i).Append(".First.Length < 256) V").Append(i).Append(".Room(count);\n");
-			else if (!paged)
+			else
 				text.Append("\t\tif (V").Append(i).Append(".Length < count)\n\t\t\tglobal::System.Array.Resize(ref V").Append(i)
 					.Append(", global::System.Math.Max(count, V").Append(i).Append(".Length * 2));\n");
 
@@ -1309,7 +1306,6 @@ public static partial class CSharpEmitter
 		text.Append("struct Held<T>\n{\n\tinternal T Value;\n}\n");
 		text.Append("#pragma warning restore CS0649\n");
 		if (adaptive) text.Append(AdaptiveValuesSupport);
-		if (paged) text.Append(PagedValuesSupport);
 
 		return text.ToString().Replace("\n", Lines.Ending);
 	}
