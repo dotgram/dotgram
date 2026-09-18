@@ -471,6 +471,43 @@ public sealed class ExpressionParserTests
 			ExpressionParser.Compile<Func<int, int>>(
 				"(int x) => { int checkedTotal = x + 2; return checkedTotal; }")(5));
 
+	[Theory]
+	[InlineData("(int if) => 1")]
+	[InlineData("(int x, int return) => x")]
+	[InlineData("(int x) => { var f = (int new) => 1; x }")]
+	[InlineData("using System.Linq; (int[] a) => a.Select(if => 1).ToArray()")]
+	[InlineData("using System.Linq; (int[] a) => a.Select((x, if) => 1).ToArray()")]
+	[InlineData("(int x) => { int return = 1; x }")]
+	[InlineData("(int x) => { var if = 1; x }")]
+	[InlineData("(int x) => { foreach (int return in new int[0]) { x += 1; } x }")]
+	[InlineData("(int x) => { foreach (var return in new int[0]) { x += 1; } x }")]
+	[InlineData("using System; (int x) => { try { x += 1; } catch (Exception do) { x = 0; } x }")]
+	[InlineData("(int x) => new System.Text.StringBuilder() { int = 1 }")]
+	[InlineData("(string s) => s.int")]
+	[InlineData("(string s) => s.if()")]
+	[InlineData("(string s) => s?.int")]
+	[InlineData("(string s) => s?.Trim().int")]
+	[InlineData("(int x) => int.int")]
+	[InlineData("(int x) => nameof(if)")]
+	[InlineData("(int x) => nameof(x.int)")]
+	[InlineData("using System.if; (int x) => x")]
+	[InlineData("using if; (int x) => x")]
+	[InlineData("(int x) => System.int.MaxValue")]
+	public void And_no_keyword_is_a_name_anywhere_a_name_is_given(string text) =>
+		// C#'s identifier is a word that is not a keyword, wherever a name is declared or
+		// reached: a parameter, a local, a `catch` or `foreach` variable, a member after a
+		// dot, the name an initializer sets, the parts of `nameof` and of a `using`. The
+		// publication itself is asked, so that a refusal is the grammar's and not an API's
+		// throw that the public `TryParse` would answer for.
+		Assert.False(ExpressionParser.TryParseLambda(text, new ExpressionParser.State { Text = text }).IsSuccess);
+
+	[Fact]
+	public void But_a_word_that_merely_begins_with_one_is_a_name_everywhere() =>
+		Assert.Equal(
+			7,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int iff) => { int returned = iff + 2; foreach (var news in new int[0]) { returned += news; } returned }")(5));
+
 	// ── Blocks: locals, and a return that is a jump ─────────────────────────────
 
 	[Fact]
