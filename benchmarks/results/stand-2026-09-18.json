@@ -1,0 +1,1029 @@
+{
+  "Commit": "d4c58dfd",
+  "Machine": "IGOR-DESKTOP",
+  "Runtime": ".NET 10.0.12",
+  "Taken": "2026-09-18T01:54:05.0672804-04:00",
+  "Pinned": true,
+  "Control": 30.8785,
+  "Rows": [
+    {
+      "Id": "fix/One.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 67.7164077758789,
+          "Bytes": 272
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 190.1458740234375,
+          "Bytes": 152
+        }
+      ],
+      "HandSpread": 0.1387323289083427
+    },
+    {
+      "Id": "fix/One.bytes",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 69.82002258300781,
+          "Bytes": 304
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 285.68458557128906,
+          "Bytes": 504
+        }
+      ],
+      "HandSpread": 0.047590818941260674
+    },
+    {
+      "Id": "fix/One.stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 130.88111877441406,
+          "Bytes": 4552
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 276.16682052612305,
+          "Bytes": 472
+        }
+      ],
+      "HandSpread": 0.14000705339889302
+    },
+    {
+      "Id": "fix/Order.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 753.6659240722656,
+          "Bytes": 1080
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1804.6188354492188,
+          "Bytes": 960
+        }
+      ],
+      "HandSpread": 0.09758008594465731
+    },
+    {
+      "Id": "fix/Order.bytes",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 639.2555236816406,
+          "Bytes": 1256
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 2646.9223022460938,
+          "Bytes": 1456
+        }
+      ],
+      "HandSpread": 0.1323618396319304
+    },
+    {
+      "Id": "fix/Order.stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 740.3305053710938,
+          "Bytes": 5424
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 2464.752960205078,
+          "Bytes": 1344
+        }
+      ],
+      "HandSpread": 0.08400747759092961
+    },
+    {
+      "Id": "fix/BinaryMany.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 3241.204833984375,
+          "Bytes": 6832
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 12911.453247070312,
+          "Bytes": 6712
+        }
+      ],
+      "HandSpread": 0.2202926715363655
+    },
+    {
+      "Id": "fix/BinaryMany.bytes",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 3296.9146728515625,
+          "Bytes": 6832
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 18776.67236328125,
+          "Bytes": 7032
+        }
+      ],
+      "HandSpread": 0.11001052453271352
+    },
+    {
+      "Id": "fix/BinaryMany.stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 4107.3699951171875,
+          "Bytes": 10576
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 18682.574462890625,
+          "Bytes": 6496
+        }
+      ],
+      "HandSpread": 0.05388204053338179
+    },
+    {
+      "Id": "fix/Orders128.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 86641.40625,
+          "Bytes": 115888
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 222587.40234375,
+          "Bytes": 115768
+        }
+      ],
+      "HandSpread": 0.14191936952777703
+    },
+    {
+      "Id": "fix/Orders128.bytes",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 75259.619140625,
+          "Bytes": 138416
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 324730.224609375,
+          "Bytes": 138616
+        }
+      ],
+      "HandSpread": 0.24472707431372
+    },
+    {
+      "Id": "fix/Orders128.stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 112035.3515625,
+          "Bytes": 131408
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 311557.8125,
+          "Bytes": 127328
+        }
+      ],
+      "HandSpread": 0.02789995484823603
+    },
+    {
+      "Id": "el/floor",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 313.09814453125,
+          "Bytes": 1072
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 781.0169219970703,
+          "Bytes": 1160
+        },
+        {
+          "Reading": "immediate",
+          "Nanoseconds": 393.6988830566406,
+          "Bytes": 1176
+        }
+      ],
+      "HandSpread": 0.11318911068657647
+    },
+    {
+      "Id": "el/ladder",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 980.6320190429688,
+          "Bytes": 1760
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 1758.6898803710938,
+          "Bytes": 1920
+        },
+        {
+          "Reading": "immediate",
+          "Nanoseconds": 1150.1701354980469,
+          "Bytes": 1928
+        }
+      ],
+      "HandSpread": 0.18128206365038194
+    },
+    {
+      "Id": "el/nest7",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 652.6336669921875,
+          "Bytes": 1072
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 1748.4855651855469,
+          "Bytes": 1296
+        },
+        {
+          "Reading": "immediate",
+          "Nanoseconds": 1066.8373107910156,
+          "Bytes": 1264
+        }
+      ],
+      "HandSpread": 0.2416941385518225
+    },
+    {
+      "Id": "el/block",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 989.5591735839844,
+          "Bytes": 2288
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 1838.0958557128906,
+          "Bytes": 2464
+        },
+        {
+          "Reading": "immediate",
+          "Nanoseconds": 1131.5086364746094,
+          "Bytes": 2560
+        }
+      ],
+      "HandSpread": 0.08773086308387977
+    },
+    {
+      "Id": "el/loop",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2101.6616821289062,
+          "Bytes": 4608
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 3960.1547241210933,
+          "Bytes": 5440
+        },
+        {
+          "Reading": "immediate",
+          "Nanoseconds": 2669.1314697265625,
+          "Bytes": 5928
+        }
+      ],
+      "HandSpread": 0.031984724233942836
+    },
+    {
+      "Id": "el/overloads",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1808.7905883789062,
+          "Bytes": 4008
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 2574.8977661132812,
+          "Bytes": 4392
+        },
+        {
+          "Reading": "immediate",
+          "Nanoseconds": 1966.7190551757812,
+          "Bytes": 4384
+        }
+      ],
+      "HandSpread": 0.2424125344079554
+    },
+    {
+      "Id": "el/interpolation",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1337.9570007324219,
+          "Bytes": 2352
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 4550.551605224609,
+          "Bytes": 8712
+        },
+        {
+          "Reading": "immediate",
+          "Nanoseconds": 3518.0984497070312,
+          "Bytes": 5736
+        }
+      ],
+      "HandSpread": 0.3958152167405016
+    },
+    {
+      "Id": "el/untyped",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 18505.126953125,
+          "Bytes": 16176
+        },
+        {
+          "Reading": "tape",
+          "Nanoseconds": 21283.85009765625,
+          "Bytes": 22456
+        }
+      ],
+      "HandSpread": 0.06659762259720042
+    },
+    {
+      "Id": "sql/literal",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 19.332218170166016,
+          "Bytes": 40
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 198.66106510162354,
+          "Bytes": 152
+        }
+      ],
+      "HandSpread": 0.13282818566150173
+    },
+    {
+      "Id": "sql/column",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 124.43675994873047,
+          "Bytes": 392
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 2926.1067390441895,
+          "Bytes": 1488
+        }
+      ],
+      "HandSpread": 0.09659307763405359
+    },
+    {
+      "Id": "sql/arithmetic",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1625.1922607421875,
+          "Bytes": 4208
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 25280.340576171875,
+          "Bytes": 5664
+        }
+      ],
+      "HandSpread": 0.7952559699404556
+    },
+    {
+      "Id": "sql/nest8",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2864.288330078125,
+          "Bytes": 5976
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 46031.32019042969,
+          "Bytes": 7552
+        }
+      ],
+      "HandSpread": 0.1436461851540109
+    },
+    {
+      "Id": "sql/condition",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2118.0633544921875,
+          "Bytes": 5696
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 20398.97918701172,
+          "Bytes": 5584
+        }
+      ],
+      "HandSpread": 0.10227261266167842
+    },
+    {
+      "Id": "sql/select1",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 709.2437744140625,
+          "Bytes": 1576
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 9374.381256103516,
+          "Bytes": 2760
+        }
+      ],
+      "HandSpread": 0.1323809728706353
+    },
+    {
+      "Id": "sql/select20",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 9198.223876953125,
+          "Bytes": 23976
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 134993.63403320312,
+          "Bytes": 22544
+        }
+      ],
+      "HandSpread": 0.06351668870770924
+    },
+    {
+      "Id": "sql/values",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 531.9358825683594,
+          "Bytes": 1648
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 8449.81803894043,
+          "Bytes": 2136
+        }
+      ],
+      "HandSpread": 0.08839403401226874
+    },
+    {
+      "Id": "sql/create",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 782.3013305664062,
+          "Bytes": 1584
+        },
+        {
+          "Reading": "generated",
+          "Nanoseconds": 7431.943511962891,
+          "Bytes": 2152
+        }
+      ],
+      "HandSpread": 0.2798831260276698
+    }
+  ],
+  "FirstCalls": [
+    {
+      "Id": "fix/One.text",
+      "Reading": "hand",
+      "Milliseconds": 7.2015
+    },
+    {
+      "Id": "fix/One.text",
+      "Reading": "generated",
+      "Milliseconds": 10.0616
+    },
+    {
+      "Id": "fix/One.bytes",
+      "Reading": "hand",
+      "Milliseconds": 7.3458
+    },
+    {
+      "Id": "fix/One.bytes",
+      "Reading": "generated",
+      "Milliseconds": 10.8267
+    },
+    {
+      "Id": "el/floor",
+      "Reading": "hand",
+      "Milliseconds": 14.6764
+    },
+    {
+      "Id": "el/floor",
+      "Reading": "tape",
+      "Milliseconds": 27.6812
+    },
+    {
+      "Id": "el/floor",
+      "Reading": "immediate",
+      "Milliseconds": 19.3306
+    },
+    {
+      "Id": "sql/literal",
+      "Reading": "hand",
+      "Milliseconds": 4.0903
+    },
+    {
+      "Id": "sql/literal",
+      "Reading": "generated",
+      "Milliseconds": 25.4446
+    },
+    {
+      "Id": "sql/select20",
+      "Reading": "hand",
+      "Milliseconds": 19.4335
+    },
+    {
+      "Id": "sql/select20",
+      "Reading": "generated",
+      "Milliseconds": 103.1024
+    }
+  ],
+  "Streamed": [
+    {
+      "Reading": "hand",
+      "Kilobytes": 4.4296875,
+      "Fields": 2000000
+    },
+    {
+      "Reading": "generated",
+      "Kilobytes": 4.40625,
+      "Fields": 2000000
+    }
+  ],
+  "Generation": [
+    {
+      "Host": "DotGram.Examples.Finance.Fix44Grammar",
+      "Rules": 60,
+      "Bytes": 59438455,
+      "Milliseconds": 3001.43,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8861759-04:00"
+    },
+    {
+      "Host": "DotGram.Sql.Standard.SqlStandardParser",
+      "Rules": 654,
+      "Bytes": 13866223,
+      "Milliseconds": 4139.99,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:20.3003506-04:00"
+    },
+    {
+      "Host": "DotGram.Sql.TransactSql.TransactSqlParser.Located",
+      "Rules": 1127,
+      "Bytes": 12672994,
+      "Milliseconds": 2405.76,
+      "Mode": "lexical",
+      "Written": "2026-09-18T01:49:20.4523299-04:00"
+    },
+    {
+      "Host": "DotGram.Sql.TransactSql.TransactSqlParser",
+      "Rules": 1127,
+      "Bytes": 12447054,
+      "Milliseconds": 4091.07,
+      "Mode": "lexical",
+      "Written": "2026-09-18T01:49:20.372688-04:00"
+    },
+    {
+      "Host": "DotGram.ExpressionLanguage.ExpressionParser",
+      "Rules": 175,
+      "Bytes": 1754273,
+      "Milliseconds": 783.7,
+      "Mode": "lexical",
+      "Written": "2026-09-18T01:48:17.9336016-04:00"
+    },
+    {
+      "Host": "DotGram.ExpressionLanguage.ExpressionParser.Immediate",
+      "Rules": 175,
+      "Bytes": 1522318,
+      "Milliseconds": 500.7,
+      "Mode": "lexical",
+      "Written": "2026-09-18T01:48:17.9416042-04:00"
+    },
+    {
+      "Host": "DotGram.Sql.Standard.Sql92Parser",
+      "Rules": 95,
+      "Bytes": 780112,
+      "Milliseconds": 713.27,
+      "Mode": "lexical",
+      "Written": "2026-09-18T01:49:20.2260276-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc5322",
+      "Rules": 126,
+      "Bytes": 708304,
+      "Milliseconds": 156.6,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5243442-04:00"
+    },
+    {
+      "Host": "DotGram.Finance.Fix.FixGrammar",
+      "Rules": 16,
+      "Bytes": 578047,
+      "Milliseconds": 204.34,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:54.4073774-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.GramGrammar",
+      "Rules": 62,
+      "Bytes": 462914,
+      "Milliseconds": 67.36,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9076826-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc9651",
+      "Rules": 30,
+      "Bytes": 232655,
+      "Milliseconds": 13.5,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5353458-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc6265",
+      "Rules": 30,
+      "Bytes": 197584,
+      "Milliseconds": 36.93,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5273426-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc3986",
+      "Rules": 36,
+      "Bytes": 190914,
+      "Milliseconds": 41.5,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5193678-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc7239",
+      "Rules": 23,
+      "Bytes": 166829,
+      "Milliseconds": 15.32,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5303426-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Expressions.Calculator",
+      "Rules": 12,
+      "Bytes": 159246,
+      "Milliseconds": 159.6,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.6552828-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc9110",
+      "Rules": 15,
+      "Bytes": 135853,
+      "Milliseconds": 8.19,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5333426-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.TokenizedQuery",
+      "Rules": 16,
+      "Bytes": 129739,
+      "Milliseconds": 92.94,
+      "Mode": "lexical",
+      "Written": "2026-09-18T01:50:00.9166824-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc5646",
+      "Rules": 26,
+      "Bytes": 114192,
+      "Milliseconds": 17.87,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5253424-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.Filter",
+      "Rules": 12,
+      "Bytes": 112466,
+      "Milliseconds": 8.1,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9056824-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Feeds.FeedReader",
+      "Rules": 9,
+      "Bytes": 104730,
+      "Milliseconds": 29.4,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.6602815-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.SqlReadOnly",
+      "Rules": 37,
+      "Bytes": 101311,
+      "Milliseconds": 17.28,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9146824-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.Links",
+      "Rules": 16,
+      "Bytes": 100487,
+      "Milliseconds": 11.09,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9006823-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.Scoped",
+      "Rules": 11,
+      "Bytes": 96034,
+      "Milliseconds": 5.72,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9116828-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Feeds.StreamingFeedReader",
+      "Rules": 9,
+      "Bytes": 95825,
+      "Milliseconds": 12,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.663701-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.SettingsFile",
+      "Rules": 10,
+      "Bytes": 85035,
+      "Milliseconds": 6.97,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9096825-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.Config",
+      "Rules": 10,
+      "Bytes": 83081,
+      "Milliseconds": 12.29,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8941754-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Feeds.LoggingFeedReader",
+      "Rules": 9,
+      "Bytes": 81684,
+      "Milliseconds": 19.94,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.6606949-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.JsonParser",
+      "Rules": 18,
+      "Bytes": 80852,
+      "Milliseconds": 6.2,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8931756-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Feeds.RecoveringFeedReader",
+      "Rules": 9,
+      "Bytes": 80759,
+      "Milliseconds": 4.59,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.6616979-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc8259",
+      "Rules": 16,
+      "Bytes": 79230,
+      "Milliseconds": 5.39,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5313413-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.Filters",
+      "Rules": 9,
+      "Bytes": 79214,
+      "Milliseconds": 6.87,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9036823-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.Selectors",
+      "Rules": 12,
+      "Bytes": 77878,
+      "Milliseconds": 5.92,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9126826-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.Config.Located",
+      "Rules": 10,
+      "Bytes": 75004,
+      "Milliseconds": 9.21,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8951755-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.MetricsLine",
+      "Rules": 15,
+      "Bytes": 74919,
+      "Milliseconds": 9.88,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8971754-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.XmlParser",
+      "Rules": 15,
+      "Bytes": 74094,
+      "Milliseconds": 4.41,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9016827-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Expressions.ArithmeticTree",
+      "Rules": 9,
+      "Bytes": 72948,
+      "Milliseconds": 11.22,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.6572815-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.TypedCsv",
+      "Rules": 10,
+      "Bytes": 70308,
+      "Milliseconds": 12.1,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8981757-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.IniParser",
+      "Rules": 15,
+      "Bytes": 69729,
+      "Milliseconds": 3.82,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8911753-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc8288",
+      "Rules": 14,
+      "Bytes": 65331,
+      "Milliseconds": 5.56,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5323424-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc6570",
+      "Rules": 16,
+      "Bytes": 65207,
+      "Milliseconds": 5.75,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.528342-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.MarkdownParser",
+      "Rules": 14,
+      "Bytes": 64384,
+      "Milliseconds": 7.44,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8951755-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.FixedWidth",
+      "Rules": 16,
+      "Bytes": 61647,
+      "Milliseconds": 5.71,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8891756-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.YamlLite",
+      "Rules": 13,
+      "Bytes": 58016,
+      "Milliseconds": 3.55,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9026828-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc6901",
+      "Rules": 10,
+      "Bytes": 57237,
+      "Milliseconds": 2.99,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5293444-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc6266",
+      "Rules": 10,
+      "Bytes": 55453,
+      "Milliseconds": 3.93,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5273426-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.HttpParser",
+      "Rules": 10,
+      "Bytes": 55265,
+      "Milliseconds": 2.27,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8901756-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Expressions.LocaleNumber",
+      "Rules": 5,
+      "Bytes": 53913,
+      "Milliseconds": 4.13,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.6582814-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.FilterFile",
+      "Rules": 10,
+      "Bytes": 52296,
+      "Milliseconds": 6.27,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9106825-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Expressions.ClampedExample",
+      "Rules": 4,
+      "Bytes": 52295,
+      "Milliseconds": 6.29,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.6582814-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.SqlDialect",
+      "Rules": 4,
+      "Bytes": 51640,
+      "Milliseconds": 6.4,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9136823-04:00"
+    },
+    {
+      "Host": "DotGram.Web.Rfc3339",
+      "Rules": 10,
+      "Bytes": 50552,
+      "Milliseconds": 147.16,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:49:49.5183694-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.FileNames",
+      "Rules": 5,
+      "Bytes": 46763,
+      "Milliseconds": 4.61,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8881757-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Languages.Lexemes",
+      "Rules": 5,
+      "Bytes": 40409,
+      "Milliseconds": 3.18,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.9086825-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.FixParser",
+      "Rules": 9,
+      "Bytes": 36962,
+      "Milliseconds": 6.81,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8891756-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Formats.Netstrings",
+      "Rules": 5,
+      "Bytes": 36322,
+      "Milliseconds": 2.69,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8971754-04:00"
+    },
+    {
+      "Host": "DotGram.Examples.Finance.FixFieldGrammar",
+      "Rules": 0,
+      "Bytes": 155,
+      "Milliseconds": 7.08,
+      "Mode": "characters",
+      "Written": "2026-09-18T01:50:00.8871755-04:00"
+    }
+  ],
+  "MissingGeneration": []
+}
