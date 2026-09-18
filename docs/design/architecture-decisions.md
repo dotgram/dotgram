@@ -253,7 +253,15 @@ This confirms the decision in `design/reader-input-forms.md` (a compile-time inp
 symbol domain, access form, result delivery as independent dimensions, with an emitter-side
 abstraction and no runtime interface per symbol) and makes it binding.
 
-**Adapters in place today, each a debt under D7:**
+**What D7 is about, Igor 2026-09-17.** The forms are already offered, and what matters is that
+they are the API the user is given: the caller decides which one to read by, by the type of
+what it passes (`syntax.md` §6.3), and some forms are declared by the grammar (`stream`,
+`stream bytes` on a publication). How a form is served inside is the generator's business. So
+the adapters below are performance debts, paid where a measurement shows the form costs more
+than the one it is adapted onto (FIX bytes against FIX text), not a mandate to rewrite every
+form natively; and the conditions below bind the generator's inside, not the API.
+
+**Adapters in place today:**
 
 - `IEnumerable<string>` puts the line terminators back and forwards to the `TextReader` path
   (`status.md`, "And from a sequence of lines").
