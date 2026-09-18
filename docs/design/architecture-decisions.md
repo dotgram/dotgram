@@ -493,6 +493,27 @@ beginnings are other ones. So, before Q7.1's design: SQL:2023 compiled with `Lex
 scratch, the three cases handled minimally or kept out of the measured corpora, timed against the
 character reading and the hand parser. Its result decides the order.
 
+**Measured 2026-09-18 (sql-ff, stand; `036d247e`).** SQL:2023 compiled over kinds against the same
+grammar over characters, pinned, tiering off, accepted and refused apart: queries -23% / -36%,
+DDL -36% / -46%, twenty select items -25%, value expressions -72%; generated code 6.77 MB against
+13.86; generation 13% faster. The one loss is a refusal at the first token: 905 ns over kinds
+against 227, the floor a lexer over the whole input pays on very short refused input. Of eight
+obstacles to the split, seven were guards the character automaton needed and one is the language
+(nesting comments), served by a terminal the lexer begins. **Decided by the architect: SQL:2023
+ships over kinds.** sql-ff carries it out, with Q7.1 designed over kinds afterwards, under:
+
+- No divergence from `HandSqlStandard` (D1): every corpus and `Both` agree before the switch lands.
+- A reserved word is a token kind, not a guard: `?!ReservedWord` placed where the split already
+  reads a lookahead as a range test over kinds (the syntactic rule), never a `when` after an atomic
+  identifier, which fixes the first reading and cannot be taken back (271 DDL lines broke that way).
+- Nesting comments and the interval string's body are read by a terminal the lexer begins and a rule
+  finishes; nothing is left unchecked.
+- The glued key word (`198OCTETS`, `2K`) is a question about the language for Igor: `wordboundary`
+  guarding both sides, or the split reading a number glued to a word as the standard does not.
+  Until answered the grammar refuses what the standard refuses by whatever the notation has, and
+  says how.
+- The stand's first-call row for SQL is quoted before and after: half the code should show there.
+
 Q1 and D3 are not rivals. performance-3f attributes 53 to 62 per cent of SQL's time to
 materializing, of which D2's store bookkeeping is a large part; the rest of a parse is the
 character reading. Each report gives time exclusive of the factories both parsers call, so
