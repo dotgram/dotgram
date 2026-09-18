@@ -452,6 +452,26 @@ over characters and again over kinds, not because it is where most of the time g
 lazy `yield`, which exist so that a long input is never held whole. Whatever mechanism Q1
 chooses, a lazy cursor over buffered input is a supported form.
 
+**Answered 2026-09-18 by sql-ff** (`docs/design/sql-over-kinds.md`, `030e882a`): nothing in the
+standard is unreadable over kinds, since `HandSqlStandard` reads all of it through a token cursor.
+Three things the token layer must allow: a literal of several quoted runs with separators between
+them, and a token whose body is narrower than itself (`UESCAPE`), both covered by a terminal the
+lexer begins and a rule finishes; and a key word glued on its left (`198OCTETS`), which needs
+`wordboundary` read as a guard on both sides, a change to the language. Mechanism: a lazy cursor,
+with a lexer over the whole input as an additional form for contiguous input. sql-ff's estimate of
+the gain: about a tenth of what is left.
+
+**The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
+trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
+there is no tape of ways and no replay, and each choice is a switch on one token. On SQL-92 the
+split measured 1.05-2.45x on accepted conditions and 1.35-3.85x on refused ones, far above a
+tenth. And D5 does not stand in the way now: SQL:2023 publishes no stream, so the existing split,
+a lexer over the whole input, serves its string input today; the lazy cursor is needed when a
+split grammar streams. It also changes Q7.1: over kinds, `Replay`'s causes and the shared
+beginnings are other ones. So, before Q7.1's design: SQL:2023 compiled with `Lexical = true` in
+scratch, the three cases handled minimally or kept out of the measured corpora, timed against the
+character reading and the hand parser. Its result decides the order.
+
 Q1 and D3 are not rivals. performance-3f attributes 53 to 62 per cent of SQL's time to
 materializing, of which D2's store bookkeeping is a large part; the rest of a parse is the
 character reading. Each report gives time exclusive of the factories both parsers call, so
@@ -695,8 +715,12 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    and results on `T:\TEMP` (a fast RAM disk; losing it costs nothing), not in `.work`.
 5. **Specialization by a struct type parameter instead of copies of code** — possible, with one
    constraint: the generated code's floor is C# 8 on netstandard2.0 and net472
-   (`DotGram.Compatibility`), where a `ref struct` cannot be a type argument, so an input type
-   parameter wraps a string, array or buffer, never a span. The runtime specializes generic code
+   (`DotGram.Compatibility`), where a `ref struct` cannot be a type argument. That
+   is a runtime limit (byref-like generic arguments arrive with .NET 9 and C# 13's
+   `allows ref struct`, and the compiler refuses them on older targets), not a compiler one. It
+   costs less than it sounds: the reader may itself be a `ref struct` holding the span and be
+   generic over a plain struct that says how its source behaves; only the type argument may not
+   hold a span. The runtime specializes generic code
    over value types on every target, .NET Framework included. Prototype first: JIT time and first
    call when several forms are used. It is how D7's one input abstraction is implemented, and Q4.2's
    locations prototype uses the same technique.
