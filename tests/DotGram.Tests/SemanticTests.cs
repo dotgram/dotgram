@@ -3000,6 +3000,19 @@ public sealed class SemanticTests
 			GrammarNormalizer.CaptureTypeMismatch,
 			"Item = a: 'x'\nStart = (v: Item | v: 'y')");
 
+	/// <summary>
+	/// And says so once, where a fold anywhere in the grammar has the members worked out again.
+	/// </summary>
+	[Fact]
+	public void And_says_so_once_where_the_grammar_is_folded() =>
+		Assert.Single(
+			Compile(
+				"Item = a: 'x'\n" +
+				"Start = (v: Item | v: 'y') & Other\n" +
+				"Other = D & 'a' | D & 'b'\n" +
+				"D = ['0'..'9']").Diagnostics,
+			one => one.Id == GrammarNormalizer.CaptureTypeMismatch);
+
 	// ── A rule that declares its own type and builds it (§7.3) ──────────────────
 
 	[Fact]
