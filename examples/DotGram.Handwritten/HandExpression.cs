@@ -562,20 +562,18 @@ public static class HandExpression
 		/// <summary>How far up <see cref="Values"/> a reading went, which is what is cleared when it is done.</summary>
 		public int Reached;
 
+		// A few spare sets, one for each reading that can be under way at once: a text, a hole
+		// read while it is built, a hole inside that hole. One spare would do for a text with no
+		// holes and be held by it while every hole it has makes a set of its own.
 		[ThreadStatic]
-		static Tokens? _spare;
+		static Tokens[]? _spares;
 
-		/// <summary>The spare set, or a new one where a reading already holds it — a hole read inside a reading.</summary>
+		[ThreadStatic]
+		static int _kept;
+
 		public static Tokens Rent()
 		{
-			var spare = _spare;
-
-			if (spare is null)
-				return new Tokens();
-
-			_spare = null;
-
-			return spare;
+			return _kept > 0 ? _spares![--_kept] : new Tokens();
 		}
 
 		/// <summary>Kept for the next reading, holding on to nothing of this one's.</summary>
@@ -585,7 +583,11 @@ public static class HandExpression
 			Array.Clear(tokens.Values, 0, tokens.Reached);
 
 			tokens.Reached = 0;
-			_spare         = tokens;
+
+			_spares ??= new Tokens[4];
+
+			if (_kept < _spares.Length)
+				_spares[_kept++] = tokens;
 		}
 
 		public void Room(int length)
