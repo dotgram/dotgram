@@ -554,6 +554,35 @@ most of it. **So 85 of the 131 ns are the arena and the pass over it** — what 
 `recover` building as it reads removes — and the items that need no architecture (`IndexOf` for
 the value, the tag and `=` read twice) are a few nanoseconds. The design comes next.
 
+**The design (performance-ff, `.work/d13/DESIGN.md`, to be committed as
+`docs/design/fix-reader-2026-09-18.md`), accepted by the architect and put to Igor.** The
+generated `Fields` becomes a loop whose turn is a method: a turn that returns -1 is the broken
+element, the sync is found by `IndexOf` from the turn's start and the recovery value built
+there; `Field` scans the digits, builds `tag` at once (Demand: a guard names it), switches on
+`context.Kind(tag)`, finds the value by `IndexOf`; the turn's constructions run where the turn
+commits, once `end` is read. Against the ideal only `Construct_Tag` and Finance's second `=`
+remain. What the generator needs: (1) the reader accepts `recover` — a recovering repetition is
+this loop, §8.2 as it stands; (2) a new answer from Replay/Demand per site, *the innermost point
+past which the reading stands* — for FIX the turn, not the rule — and the reader keeps captures
+in locals until that point and builds there: the tape's semantics without an author's promise;
+(3) a guard's value as a local argument, no table; (4) the reader over buffered input (D7/Q7.5)
+for the stream and `yield` forms, `yield` being the turn method called once a step. The engine
+stays for `find`, captured lookahead, arguments and what climbing cannot do; for FixGrammar it is
+then not emitted at all: 588 KB today, 120-150 KB estimated.
+
+**Steps, each with a number and the gates** (HandFixParser, the Fix44 oracle, RefusalTests,
+snapshots, Compatibility, the stand with hand and ideal): 1) the target code written by hand as
+the generator would emit it, timed — no generator change; 2) reader with `recover`, string and
+`byte[]` leave the engine (most of the 47 ns); 3) construction at the commit point (most of the
+38 ns), gated by factory counts against the tape; 4) value runs by search; 5) the reader over
+buffered input. **Conditions the architect adds:** the reader's recovering loop keeps all of
+§8.2, including "try the complete continuation first at every boundary" for a repetition that
+is not the whole parse (a `Feed` with a `Trailer` is the test), not only FIX's end-of-input
+case; the commit-point answer is the one analysis of D3, published beside `Demand` and `Replay`
+and read by every rendering that builds; a guard's side effect in a broken element runs as it
+does today, and the design says so; recovering grammars keep one recording reading (Q7.2).
+Step 1 starts now.
+
 **Then the design**, from that table: what the emitted code for `Fields` would have to be to
 match the hand parser line for line — a loop with no arena for a grammar whose only way back
 is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
