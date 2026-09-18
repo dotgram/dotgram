@@ -542,6 +542,18 @@ So the 2.6x is not initialization against fields but both alike: about 80 ns of 
 over the hand parser, and 45 ns per call. Memory is not where it is. The per-field 80 ns is what
 the anatomy has to account for item by item.
 
+**The anatomy, with numbers (performance-ff, sampling over the stand's times).** A generated field,
+131 ns: recognition with the arena writes 47, the second pass over the arena (four passes and
+the link walks) 38, the factory 23 (the same code the hand parser calls), `Reset` and clearing
+8, covariant stores into `object?[]` tables 7, the rest table checks. A call, 72 ns: recognition's
+fixed part 23, `Reset` 8, rent and return 8, construction's fixed part 8, entry and `Match` 5.
+The hand parser's field, 51 ns: a `Peek` per character through its `Input` class 14, the
+iterator 12, the factory 19, `ToArray` 5. An ideal reader (`IdealFixParser`, `fe3b6ff5`: a loop
+over the span, `IndexOf`, the same factory) is estimated at 33 ns a field, the factory being
+most of it. **So 85 of the 131 ns are the arena and the pass over it** — what a reader with
+`recover` building as it reads removes — and the items that need no architecture (`IndexOf` for
+the value, the tag and `=` read twice) are a few nanoseconds. The design comes next.
+
 **Then the design**, from that table: what the emitted code for `Fields` would have to be to
 match the hand parser line for line — a loop with no arena for a grammar whose only way back
 is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
