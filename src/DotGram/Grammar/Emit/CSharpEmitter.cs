@@ -1980,6 +1980,51 @@ public static partial class CSharpEmitter
 							file.Then("kind = 0;");
 						}
 					}
+
+					// A longer token that starts with the beginning: the automaton stopped on
+					// it and never read this terminal past its beginning, so the rest is
+					// measured here too. Longer wins; as long, the token is both; shorter, or
+					// refused, it is what the automaton said (TerminalInventory.Continuation).
+					foreach (var (longer, union) in continuation.Extended)
+					{
+						var beginning = continuation.Beginning!;
+						var begins    = beginning.Length == 1
+							? $"text[p] == {Character(beginning[0])}"
+							: $"global::System.MemoryExtensions.StartsWith(text.Slice(p), global::System.MemoryExtensions.AsSpan({Quoted(beginning)}))";
+
+						using (file.Block($"else if (kind == {longer} && {begins})"))
+						{
+							var from = $"p + {beginning.Length}";
+
+							if (MeasuredBy(lexical, continuation.Tail) is { } rule)
+							{
+								var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
+
+								file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
+								file.Line(
+									$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref failure{output}" +
+									$"{(valuing!.UsesInput ? ", input" : "")});");
+							}
+							else
+							{
+								file.Line($"var measured = {from};");
+								file.Line();
+								file.Line($"if (!{HostMeasure(lexical, continuation.Tail)})");
+								file.Then("measured = -1;");
+							}
+
+							file.Line();
+
+							using (file.Block("if (measured > end)"))
+							{
+								file.Line($"kind = {continuation.Kind};");
+								file.Line("end  = measured;");
+							}
+
+							file.Line("else if (measured == end)");
+							file.Then($"kind = {union};");
+						}
+					}
 				}
 
 				if (continued > 0)
@@ -3304,6 +3349,15 @@ public static partial class CSharpEmitter
 	/// has an overload with a value — which the normalizer made a rule of. The value is not
 	/// wanted here: the lexer asks how far, and a terminal that builds reads its value again.
 	/// </remarks>
+	/// <summary>A character as C# spells it between single quotes.</summary>
+	static string Character(char c) => c switch
+	{
+		'\'' => @"'\''",
+		'\\' => @"'\\'",
+		< ' ' => @"'\u" + ((int)c).ToString("x4", System.Globalization.CultureInfo.InvariantCulture) + "'",
+		_    => "'" + c + "'",
+	};
+
 	static string HostMeasure(LexicalSplit lexical, Node tail) =>
 		tail switch
 		{

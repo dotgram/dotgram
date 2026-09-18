@@ -200,7 +200,24 @@ public sealed class TerminalInventory
 	/// A <see cref="Node.External"/>, or a <see cref="Node.Call"/> to a rule: a synthesized one
 	/// whose body is an external with a value, or one the grammar wrote.
 	/// </param>
-	public sealed record Continuation(Pattern.Class Pattern, int Kind, Node Tail);
+	public sealed record Continuation(Pattern.Class Pattern, int Kind, Node Tail)
+	{
+		/// <summary>The beginning, where it is one fixed spelling; what a longer token is asked to start with.</summary>
+		public string? Beginning { get; init; }
+
+		/// <summary>
+		/// The kinds a longer token than the beginning can be, where it starts with the
+		/// beginning, each with the kind that is both it and this terminal.
+		/// </summary>
+		/// <remarks>
+		/// <c>'+01:00'</c> is an interval string by the automaton and a character string by
+		/// its rule, eight characters either way; a kind is every pattern that accepted the
+		/// longest string, so it is both. The automaton stops on the interval string's kind
+		/// and never saw the character string past its quote, so the lexer measures the rest
+		/// there too and takes the union where the lengths agree (Tokenize_DotGram).
+		/// </remarks>
+		public IReadOnlyList<(int Kind, int Union)> Extended { get; init; } = [];
+	}
 
 	static Text Spelling(Pattern pattern) =>
 		pattern switch
@@ -868,7 +885,31 @@ public sealed class TerminalInventory
 					continue;
 				}
 
-				continued.Add(new Continuation(pattern, holding[0].Number, tail));
+				// What a longer token that starts with this beginning can be: the kinds the
+				// automaton reaches past the states that accept the beginning alone. Each of
+				// those tokens is one this terminal may also be, of the same length or not, and
+				// only measuring says which. As many as there are longer patterns that begin
+				// alike — for SQL's quote, the few quoted patterns that are not character
+				// strings — so the unions below number the pairs, not the kinds squared.
+				// Only ordinary patterns: where a longer token is itself one the lexer begins
+				// — `$""""` past `$"""` — the longer beginning decides, and that
+				// terminal is measured by its own rule, as before.
+				var extended = Beyond(machine, holding[0].Number - 1)
+					.Where(kind => !kinds[kind - 1].Matched.Any(one => one is Pattern.Class begun && Continuation(begun.Rule) is not null))
+					.ToList();
+
+				if (extended.Count > 0 && prefix is not Node.Literal { Text.Length: > 0 })
+				{
+					Refuse($"what begins {pattern.Rule.Name} begins longer tokens too, and only a beginning of one fixed spelling can be looked for under them: {prefix}");
+
+					continue;
+				}
+
+				continued.Add(new Continuation(pattern, holding[0].Number, tail)
+				{
+					Beginning = (prefix as Node.Literal)?.Text,
+					Extended  = [.. extended.Select(static one => (one, 0))],
+				});
 			}
 
 			if (continued.Count < patterns.OfType<Pattern.Class>().Count(one => Continuation(one.Rule) is not null))
@@ -886,6 +927,25 @@ public sealed class TerminalInventory
 
 				patterns.Add(pattern);
 				kinds.Add(new Kind(kinds.Count + 1, [pattern]));
+			}
+
+			// And the kinds a token is when a terminal the lexer begins measures as long as a
+			// longer pattern that starts the same way: after everything else, for the same
+			// reason, and none at all where no beginning is also the start of a longer token.
+			for (var i = 0; i < continued.Count; i++)
+			{
+				if (continued[i].Extended.Count == 0)
+					continue;
+
+				var unions = new List<(int Kind, int Union)>();
+
+				foreach (var (kind, _) in continued[i].Extended)
+				{
+					kinds.Add(new Kind(kinds.Count + 1, [.. kinds[kind - 1].Matched, continued[i].Pattern]));
+					unions.Add((kind, kinds.Count));
+				}
+
+				continued[i] = continued[i] with { Extended = unions };
 			}
 
 			var counted = new TerminalInventory(true, patterns, kinds, [], _reasons);
@@ -1090,6 +1150,39 @@ public sealed class TerminalInventory
 		}
 
 		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail)?> _tails = [];
+
+		/// <summary>
+		/// The kinds the automaton can accept further on from a state that accepts only
+		/// <paramref name="set"/>: the tokens longer than a beginning that start with it.
+		/// </summary>
+		static List<int> Beyond(LexicalAutomaton machine, int set)
+		{
+			var found   = new SortedSet<int>();
+			var seen    = new HashSet<int>();
+			var pending = new Stack<int>();
+
+			for (var state = 0; state < machine.Accepts.Count; state++)
+				if (machine.Accepts[state] == set)
+					pending.Push(state);
+
+			while (pending.Count > 0)
+			{
+				var state = pending.Pop();
+
+				foreach (var next in machine.Next[state])
+				{
+					if (next < 0 || !seen.Add(next))
+						continue;
+
+					if (machine.Accepts[next] >= 0 && machine.Accepts[next] != set)
+						found.Add(machine.Accepts[next] + 1);
+
+					pending.Push(next);
+				}
+			}
+
+			return [.. found];
+		}
 
 		/// <summary>Whether no automaton can read this operand, so something else has to.</summary>
 		/// <remarks>
