@@ -78,14 +78,13 @@ static class Stand
 		Generated[] Generation,
 		string[]    MissingGeneration);
 
-	// Picked 2026-09-18 against the fast rows, where a round's batch is short enough that one
-	// OS-level jitter or GC pause dominates its average: 7/25 left several under 100 ns at
-	// 60-120% spread; 9/75 brought nearly every row under 15% but cost 4x the run; 8/40 (here)
-	// keeps the run under 2x and clears most rows. A few of the fastest (sql/arithmetic,
-	// el/interpolation) still swing 30-70% run to run at any of these settings — evidence it is
-	// transient machine noise rather than something a bigger sample dilutes, since the same
-	// settings gave one of them both 67% and 10% back to back. Reported to the architect rather
-	// than chased further inside this budget.
+	// Picked 2026-09-18 against five runs: 7/25 (the original) left most rows at 60-120% spread;
+	// 8/40 (here) keeps the run under 2x and clears most of them; 9/75 came closer to clearing
+	// all of them but cost 4x the run, over budget. Two rows resist every setting tried in
+	// budget: el/interpolation held at 30-46% spread across every run regardless of Rounds or
+	// SampleMs, and sql/arithmetic held at 62-80% at 7/25 and 8/40 alike (one 9/75 run read 10%,
+	// a single sample and not a trend the other four agree with). Neither looks like something
+	// this knob pair dilutes; reported to the architect rather than chased further here.
 	const int Rounds   = 8;
 	const int SampleMs = 40;
 
