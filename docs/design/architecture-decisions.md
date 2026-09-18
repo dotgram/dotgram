@@ -146,6 +146,36 @@ Stream, TextReader and `IEnumerable<string>`, with and without `yield`, and with
 recovered every so often so that recovery is inside the bound. A FIX twin in
 `tests/DotGram.Finance.Tests`, agreed with finance-03. The 1 GB heap-limited run stays out of the
 suite until it has a place in `benchmarks/`.
+
+**Ruling 2026-09-17, on a whole-result parse of a stream.** performance-3f's test found that a
+buffered `parse` without `yield` keeps its whole input to the end: 4,092 bytes a record over
+TextReader and 2,016 over Stream, for records of about 1,001 characters and a result of one
+`int` each. `syntax.md` §6.3 describes this as the current, conservative release analysis.
+
+Under D5 it is a defect. What a parse may hold grows with its **result**, which the caller asked
+for, and not with its **input**: bounded working set plus the result. A root whose value is the
+whole matched text holds the input because the input is its result, and that is allowed; a
+root of one `int` a record is not. `maxRetained` turning the growth into an `IOException` is a
+limit, not a release. The sentence in §6.3 goes when the defect is fixed, not before.
+
+The cause is deferred construction: a capture is built after acceptance from the input it points
+into, so the input cannot be let go first. D3's one-pass construction removes exactly that
+dependency, so the whole-result memory test is one of D3's acceptance checks. The D3 proposal
+compares it with the other way out, copying committed captures into owned storage at release
+points: that keeps §7.3's deferral but holds captured text, which here is the whole record, so
+it would not pass this test.
+
+The lazy half of the test lands now. The whole-result half lands with its skip reason naming
+this ruling, and the skip is removed by the change that fixes it.
+
+**To verify before any change:** whether buffers the size of the input, returned to
+`ArrayPool.Shared` after a large whole-result parse, stay live after the parse has finished
+(peaks of 23 and 86 MB for about 4 MB of input suggest it). If they do, that is retention of
+its own under D5: a buffer past a threshold is not returned to the shared pool.
+
+**For D7:** the test also showed the two mechanisms offering different forms. `IEnumerable<string>`
+exists only on the legacy window mechanism, a `yield` publication gets no reader overload
+there, and the buffered machines offer TextReader and Stream.
 - A speed change to the buffered machines is measured with peak live memory beside time.
 
 ## D6. One SQL tree for every SQL parser, handwritten ones included
