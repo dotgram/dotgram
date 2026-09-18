@@ -825,6 +825,11 @@ static class Stand
 		var iterations = Iterations(workload.Readings[0].Run);
 		var warmups    = new int[workload.Readings.Length];
 
+		// The control is a yardstick for the machine, so it is read after the tiered JIT has
+		// settled: in a run of one row the first samples were tier 0 code (138 ns against 30).
+		if (controls.Count == 0)
+			WarmUntilStable(Control, ControlIterations);
+
 		for (var i = 0; i < workload.Readings.Length; i++)
 			warmups[i] = WarmUntilStable(workload.Readings[i].Run);
 
@@ -866,7 +871,7 @@ static class Stand
 	/// call-counting delay for whichever row is warming up). Returns how many samples that
 	/// took, kept beside the row's timings.
 	/// </summary>
-	static int WarmUntilStable(Func<int> run)
+	static int WarmUntilStable(Func<int> run, int iterations = 0)
 	{
 		var watch    = Stopwatch.StartNew();
 		var previous = double.NaN;
@@ -874,7 +879,7 @@ static class Stand
 
 		while (watch.Elapsed.TotalSeconds < WarmupCapSeconds)
 		{
-			var elapsed = Time(run, Iterations(run));
+			var elapsed = Time(run, iterations > 0 ? iterations : Iterations(run));
 
 			samples++;
 
