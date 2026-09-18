@@ -833,6 +833,14 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    declaration. Without either, a grammar with a context keeps recording on the hot path.
    The architect recommends (2) with the diagnostic.
 
+   **Landed 2026-09-18 (expr-2d).** Step 1, `cf16f1cd`: `find` over text and the split lexer's
+   re-reads record nothing. Step 2, `d4f9a45c`: in grammars with no context and no `recover`,
+   an in-memory `Parse`/`TryParse` reads quietly and reads again with recording only if it
+   refused; equivalent field by field on 2,466 recorded refusals (`RefusalTests.txt`,
+   `385f935d`) over engine, tape and immediate. Paired: SQL:2023 accepted -1..-6% time and
+   less allocated on every row (the quiet reading makes no tie list); a late refusal +98%
+   time; EL and FIX byte-identical, since EL has a context and waits for the decision above.
+
    **Found beside it (performance-3f):** `Ways.Lookahead` is read by `Refuse_DotGram` and never
    incremented since `487362c5`, so a refusal inside a lookahead is recorded on the reader and
    not on the engine, and the two renderings can report different positions. A defect with a
