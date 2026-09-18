@@ -23446,3 +23446,43 @@ performance-3f: spares by depth. The token read twice is part of Q4.1.
 of 50 to 66 us in the same place, the factories that choose among `Enumerable`'s overloads and
 infer their type arguments, building the body once for each candidate; the parsers differ by 3 to
 5 per cent. The immediate carrier is not timed there (D3, D8).
+## Q6: what a guard builds, and whether any of it is built twice
+
+A guard that names a built value makes the reader build it while the text is read, and a
+rollback throws that away; read the same rule at the same place again and it is built again.
+Whether that is worth a mechanism is a counting question, so it was counted — a generator
+patched in a worktree of its own, a flag on the materializer saying which phase the walk is,
+a probe at each write and at each rollback. Nothing of it is in the tree.
+
+Per parse, on the corpora:
+
+| corpus | accepted | guard builds | discarded | built again |
+| --- | --- | --- | --- | --- |
+| select items, twenty | 2,000 | 322.0 | 2.0 | 0.00 |
+| brackets, one deep | 2,000 | 54.0 | 2.0 | 0.00 |
+| brackets, two deep | 2,000 | 67.0 | 2.0 | 0.00 |
+| brackets, four deep | 2,000 | 93.0 | 2.0 | 0.00 |
+| brackets, eight deep | 2,000 | 145.0 | 2.0 | 0.00 |
+| fuzz queries | 745 | 67.5 | 0.8 | 1.65 |
+| fuzz DDL | 1,960 | 14.8 | 0.04 | 0.05 |
+| fuzz values | 225 | 38.3 | 0.0 | 0.00 |
+
+**Nothing is built twice.** Guard builds grow with nesting — thirteen a level, 54 at one
+bracket to 145 at eight — and the rollback still discards two a parse and rebuilds none of
+them at any depth. That was the shape the question was asked about, and it is not there. On
+accepted fuzz queries it is 1.65 a parse, 2.4 per cent of what the guards build; on DDL, 0.3.
+
+**Splitting accepted from refused is what makes the numbers mean anything.** Counted over whole
+corpora the first run said 62 rebuilds a parse on the queries, which looks like a finding. But
+four of five lines in that corpus are refusals, and a refused parse throws away everything it
+built by definition — its discarded count equals its built count exactly, which is also the
+check that the bookkeeping is right. None of it is about reading SQL that parses.
+
+**What the key could not carry.** The machine records no positions, so every one of the 1,648
+probe calls goes out without a span and the key is the arm alone — the rule and its factory.
+Forcing positions on was tried and the parse reads slots the log does not hold. A coarser key
+finds more matches than the exact one, never fewer, so a zero here is a zero there; a non-zero
+is an upper bound. It also means the question of one value reaching the accepted tree twice
+cannot be answered this way at all: twenty identical select items are twenty spans and one arm.
+That one needs a probe at the guard's call site in the reader, where the rule's own bounds are
+known.
