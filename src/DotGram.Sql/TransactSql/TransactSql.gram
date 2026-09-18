@@ -6188,8 +6188,13 @@ LoginBody = "WITH"i & CreatePassword & (',' & CreateLoginOption)*
 // has to say it is one. `UNLOCK` and `OLD_PASSWORD` are for a login that exists.
 CreatePassword = "PASSWORD"i & '=' & (Quoted & CreateHash? | TSql.BinaryLiteral & CreateHashed)
 
-CreateHash   = "HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i?
-CreateHashed = "HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i
+// A word a statement may end with, where it is not the label the next one begins with: the words
+// are no reserved words, so `MUST_CHANGE: PRINT 1` on the next line is a label, and over kinds an
+// optional that took the word would not give it back when the colon came.
+Trailing(word) = ?!(word & ':') & word
+
+CreateHash   = Trailing("HASHED"i) & Trailing("MUST_CHANGE"i)? | Trailing("MUST_CHANGE"i) & Trailing("HASHED"i)?
+CreateHashed = "HASHED"i & Trailing("MUST_CHANGE"i)? | "MUST_CHANGE"i & "HASHED"i
 
 CreateLoginOption = "SID"i & '=' & TSql.BinaryLiteral
 				  | LoginPlace
@@ -6234,13 +6239,13 @@ AlterLoginOption = AlterPassword
 AlterPassword = "PASSWORD"i & '=' & Quoted & "OLD_PASSWORD"i & '=' & Quoted
 			  | "PASSWORD"i & '=' & (Quoted & PasswordWords? | TSql.BinaryLiteral & HashedWords)
 
-PasswordWords = "HASHED"i & ("MUST_CHANGE"i & "UNLOCK"i? | "UNLOCK"i & "MUST_CHANGE"i?)?
-			  | "MUST_CHANGE"i & ("HASHED"i & "UNLOCK"i? | "UNLOCK"i & "HASHED"i?)?
-			  | "UNLOCK"i & ("HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i?)?
+PasswordWords = Trailing("HASHED"i) & (Trailing("MUST_CHANGE"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & Trailing("MUST_CHANGE"i)?)?
+			  | Trailing("MUST_CHANGE"i) & (Trailing("HASHED"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & Trailing("HASHED"i)?)?
+			  | Trailing("UNLOCK"i) & (Trailing("HASHED"i) & Trailing("MUST_CHANGE"i)? | Trailing("MUST_CHANGE"i) & Trailing("HASHED"i)?)?
 
-HashedWords = "HASHED"i & ("MUST_CHANGE"i & "UNLOCK"i? | "UNLOCK"i & "MUST_CHANGE"i?)?
-			| "MUST_CHANGE"i & ("HASHED"i & "UNLOCK"i? | "UNLOCK"i & "HASHED"i)
-			| "UNLOCK"i & ("HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i)
+HashedWords = "HASHED"i & (Trailing("MUST_CHANGE"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & Trailing("MUST_CHANGE"i)?)?
+			| "MUST_CHANGE"i & (Trailing("HASHED"i) & Trailing("UNLOCK"i)? | Trailing("UNLOCK"i) & "HASHED"i)
+			| "UNLOCK"i & (Trailing("HASHED"i) & Trailing("MUST_CHANGE"i)? | Trailing("MUST_CHANGE"i) & "HASHED"i)
 
 // ── A user ──────────────────────────────────────────────────────────────────
 // Where a user comes from, and then one list whatever the source: the blocks give each

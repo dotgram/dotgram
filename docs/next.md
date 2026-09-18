@@ -23612,3 +23612,43 @@ What it took, briefly, because each step found something that was not the gramma
 - The last difference was a construction's: `PathSigned` turned every character of the text a
   repetition of signs covered into a sign, anything but a minus a plus. Over kinds that text holds
   the space between the signs.
+
+## GRAM5009 over the shipped SQL parsers: a label is what the optionals took
+
+Since the list check (1875588b, c8d44074) `GRAM5009` names 49 places across the three SQL grammars,
+where it named fourteen. Each was put to what answers for its language — the engine for T-SQL, the
+BNF for SQL:2023 — with inputs built to make the optional take what was not its own. The engine
+was asked through `sqlcmd` a batch at a time, since `--engine` cuts a file into statements and the
+question here is what stands between two of them.
+
+**The trap that is real is a label.** A statement may begin with `name:`, T-SQL needs no separator
+between statements, and no word an optional at a statement's end may take is reserved against being
+a label. So `SELECT a FROM t` and then `x: PRINT 1` on the next line is read by the engine and was
+refused here: the table's alias took `x`, the colon came, and over kinds nothing gave `x` back. The
+same with a select item's alias, an `OUTPUT` item's, `RETURN`, `THROW`, `WITH MARK`, `EXEC p @a`
+and then `out:`, a column's tail (`sparse:`), `ENFORCED`, `FOR XML … ELEMENTS` and then `xsinil:`,
+an option's unit (`seconds:`), and a login's password words. The tests held labels only after a
+`;`, which is why none of it showed. One more is not a label: `WHERE CURRENT OF GLOBAL`, a cursor
+named `GLOBAL`, whose optional `GLOBAL` takes the name.
+
+The password words are cured here — `Trailing(word) = ?!(word & ':') & word` — with a row for each
+shape; the engine and the round trip are unchanged over the corpus (8,317 statements: nothing read
+here and refused there, nothing the other way; 7,716 printed back the same). The analysis does not
+yet see a negative lookahead behind a call of a parameterised rule, so those four places are still
+reported; that is the analysis's to learn, not the grammar's to spell out. The other label places
+are listed for a decision and not changed.
+
+**Where the greedy reading is the language's**, the optional is right to take the word: a function
+of `JSON_ARRAY` taking `NULL` in `JSON_ARRAY(NULL ON NULL)`, `XML(CONTENT)`, `TRIM(LEADING …)` —
+the engine refuses the other reading of each — a statement list taking the next statement, `;`s
+after an atomic block, and SQL:2023's `ARRAY` and `MULTISET` after a data type, which the BNF
+chains the same way.
+
+**Where nothing can follow with the word**, the report is the analysis's: a lookahead after the item
+inside the turn (`TableConstraint`'s `?!(WITHOUT OVERLAPS)`), a turn that cannot finish and is undone
+(`NamePart*` before `.*`), a trailing `?=(',' | ')')` (`OptionWords`), a word inside a parenthesised
+option list (`MINUTES`, `KB`), a reserved word (`ALL`, `ASC`, `HOLDLOCK`), and a literal, a variable
+or digits, with which no statement begins. SQL:2023's `IntervalPrimary` belongs here too: no
+sentence of the BNF puts a qualifier after a time zone's primary. And one that is neither, found on
+the way: `(a - b AT LOCAL) DAY` is read by the BNF and refused by both parsers, in the towers'
+check and not in any optional.
