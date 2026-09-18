@@ -2254,12 +2254,14 @@ public sealed class GeneratorDriverTests
 		Assert.Equal("ab|12", parse.Invoke(null, ["ab/12"]));
 	}
 
-	[Theory]
-	[InlineData("", true)]
-	[InlineData(", PrefixTables = false", false)]
-	public void Prefix_tables_default_and_named_reading_overrides_are_honored(string hostOptions, bool expected)
+	/// <summary>
+	/// Prefix tables are the generator's own choice, made for every reading: nothing in the
+	/// attribute turns them off (Q3, docs/design/architecture-decisions.md).
+	/// </summary>
+	[Fact]
+	public void Prefix_tables_are_built_for_every_reading_and_are_not_an_option()
 	{
-		var source = """"
+		var built = Build(""""
 			using DotGram;
 			[Gram("""
 				Start : @int = "1=" & 'X'+ => @(1)
@@ -2267,23 +2269,20 @@ public sealed class GeneratorDriverTests
 					| "198=" & 'X'+ => @(198)
 					| "900=" & 'X'+ => @(900)
 				parse Start
-				""", Direct = false HOST_OPTIONS)]
+				""", Direct = false)]
 			[GramOptions(Suffix = "Inherited")]
-			[GramOptions(Suffix = "Override", PrefixTables = OVERRIDE)]
 			public static partial class PrefixDefaults { }
-			"""";
-		source = source.Replace("HOST_OPTIONS", hostOptions, StringComparison.Ordinal)
-			.Replace("OVERRIDE", expected ? "false" : "true", StringComparison.Ordinal);
-		var built = Build(source);
-		foreach (var (name, tables) in new[] { ("PrefixDefaults", expected), ("PrefixDefaults+Inherited", expected), ("PrefixDefaults+Override", !expected) })
+			"""");
+
+		foreach (var name in new[] { "PrefixDefaults", "PrefixDefaults+Inherited" })
 		{
 			var type = built.GetType(name)!;
-			Assert.Equal(tables, type.GetFields(BindingFlags.NonPublic | BindingFlags.Static)
-				.Any(field => field.Name.StartsWith("Prefix_DotGram", StringComparison.Ordinal)));
+			Assert.Contains(type.GetFields(BindingFlags.NonPublic | BindingFlags.Static),
+				field => field.Name.StartsWith("Prefix_DotGram", StringComparison.Ordinal));
 			Assert.Equal(198, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["198=XX"]));
 		}
-		var attribute = built.GetType("DotGram.GramOptionsAttribute")!;
-		Assert.Equal(true, attribute.GetProperty("PrefixTables")!.GetValue(Activator.CreateInstance(attribute)));
+
+		Assert.Null(built.GetType("DotGram.GramOptionsAttribute")!.GetProperty("PrefixTables"));
 	}
 
 	// ── Two readings of one grammar ─────────────────────────────────────────

@@ -471,7 +471,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// setting it to nought means: take the measured default either way.
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
-			PrefixTables   = host.PrefixTables,
 			Direct         = host.Direct,
 			LocationType   = host.LocationType,
 
@@ -507,11 +506,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 			timer is not null && result.Sources.Count > 0
 				? string.Format(CultureInfo.InvariantCulture,
 					"DotGram: {0}, {1} normalized rules, {2} bytes UTF-8 C#, {3:F2} ms generation, " +
-					"mode={4}, options: Lexical={5}, PrefixTables={6}, Direct={7}, " +
-					"Carrier={8}, BufferedInput={9}, BufferedBytes={10}, SpanCaptures={11}",
+					"mode={4}, options: Lexical={5}, Direct={6}, " +
+					"Carrier={7}, BufferedInput={8}, BufferedBytes={9}, SpanCaptures={10}",
 					host.HintName, result.NormalizedRuleCount,
 					Encoding.UTF8.GetByteCount(result.Sources[0].Text), timer.Elapsed.TotalMilliseconds,
-					result.UsesLexical ? "lexical" : "characters", host.Lexical, host.PrefixTables, host.Direct,
+					result.UsesLexical ? "lexical" : "characters", host.Lexical, host.Direct,
 					(CarrierKind)host.Carrier,
 					host.BufferedInput, host.BufferedBytes, host.SpanCaptures)
 				: null);
@@ -782,7 +781,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
-		bool      PrefixTables = true,
 		bool      Direct     = true,
 		int       Carrier    = 0,
 		bool      BufferedInput = false,
@@ -945,10 +943,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
 				.Value.Value as bool? ?? first?.Lexical ?? false;
 
-			var prefixTables = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.PrefixTables))
-				.Value.Value as bool? ?? first?.PrefixTables ?? true;
-
 			var direct = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
 				.Value.Value as bool? ?? first?.Direct ?? true;
@@ -1047,7 +1041,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
 				Lexical:    lexical,
-				PrefixTables: prefixTables,
 				Direct:     direct,
 				Carrier:    carrier,
 				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,

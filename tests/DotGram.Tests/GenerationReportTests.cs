@@ -38,7 +38,6 @@ public sealed class GenerationReportTests
 		Assert.Contains("DotGram: Parser, 1 normalized rules, " + Encoding.UTF8.GetByteCount(parser) + " bytes UTF-8 C#", report, StringComparison.Ordinal);
 		Assert.Matches(@"[0-9]+\.[0-9]{2} ms generation", report);
 		Assert.Contains("mode=characters", report, StringComparison.Ordinal);
-		Assert.Contains("PrefixTables=True", report, StringComparison.Ordinal);
 		Assert.DoesNotContain(enabled.Diagnostics, diagnostic => diagnostic.Id.StartsWith("CS878", StringComparison.Ordinal));
 	}
 
@@ -53,21 +52,21 @@ public sealed class GenerationReportTests
 	[Fact]
 	public void Requested_lexical_mode_is_distinguished_from_character_fallback()
 	{
-		var run = Run(Source.Replace(")]", ", Lexical = true, PrefixTables = false)]", StringComparison.Ordinal), true);
+		var run = Run(Source.Replace(")]", ", Lexical = true)]", StringComparison.Ordinal), true);
 		Assert.Contains(run.Diagnostics, diagnostic => diagnostic.Id == "GRAM5004");
 		var report = Report(run);
 		Assert.Contains("mode=characters", report, StringComparison.Ordinal);
-		Assert.Contains("Lexical=True, PrefixTables=False", report, StringComparison.Ordinal);
+		Assert.Contains("options: Lexical=True,", report, StringComparison.Ordinal);
 	}
 
 	[Fact]
 	public void Named_variants_get_separate_reports()
 	{
-		var run = Run(Source.Replace("public partial", "[DotGram.GramOptions(Suffix = \"Alternate\", PrefixTables = false)] public partial", StringComparison.Ordinal), true);
+		var run = Run(Source.Replace("public partial", "[DotGram.GramOptions(Suffix = \"Alternate\", Carrier = DotGram.GramCarrier.Tape)] public partial", StringComparison.Ordinal), true);
 		var reports = run.GeneratedTrees.Where(tree => tree.FilePath.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal)).Select(tree => tree.ToString()).ToArray();
 		Assert.Equal(2, reports.Length);
 		Assert.Contains(reports, report => report.Contains("DotGram: Parser,", StringComparison.Ordinal));
-		Assert.Contains(reports, report => report.Contains("DotGram: Parser.Alternate,", StringComparison.Ordinal) && report.Contains("PrefixTables=False", StringComparison.Ordinal));
+		Assert.Contains(reports, report => report.Contains("DotGram: Parser.Alternate,", StringComparison.Ordinal) && report.Contains("Carrier=Tape", StringComparison.Ordinal));
 	}
 
 	static string Report(GeneratorDriverRunResult run) => run.GeneratedTrees.Single(tree => tree.FilePath.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal)).ToString();

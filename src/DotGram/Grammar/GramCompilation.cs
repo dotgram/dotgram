@@ -132,7 +132,11 @@ public sealed class GramCompilerOptions
 	/// </remarks>
 	public bool Lexical { get; set; }
 
-	/// <summary>Dispatch disjoint literal prefixes through transition tables. Set false to use the previous strategy.</summary>
+	/// <summary>
+	/// Whether disjoint literal prefixes dispatch through transition tables. On by default and
+	/// not offered in the attribute; off is for a test that holds the tables to the chain of
+	/// alternatives they replace.
+	/// </summary>
 	public bool PrefixTables { get; set; } = true;
 
 	/// <summary>Separate complete engine/reader groups at this character count; zero (the default) keeps one source file.</summary>
