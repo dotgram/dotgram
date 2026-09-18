@@ -53,7 +53,9 @@ public sealed class GuardMaterializationTests
 		}
 		calls.SetValue(null, 0);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ax").IsSuccess);
-		Assert.Equal(2, calls.GetValue(null));
+		// Twice per reading, and a refusal is read twice: quietly, then recording what it
+		// says (Q7.2). Each reading still builds each value once.
+		Assert.Equal(4, calls.GetValue(null));
 	}
 
 	[Theory]

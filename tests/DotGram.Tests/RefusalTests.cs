@@ -115,6 +115,74 @@ public sealed class RefusalTests
 		Assert.Fail($"A refusal is not the one it was; what it is now is in {Expected}.actual.");
 	}
 
+	/// <summary>
+	/// A refusal is read twice, and on the immediate carrier what the first reading ran the
+	/// second runs again — once more, and only where the parse refused.
+	/// </summary>
+	[Fact]
+	public void A_refusal_runs_a_construction_once_more_and_an_acceptance_does_not()
+	{
+		// Recursive, so that it is read by methods and not lowered to a flat rendering, which
+		// runs its constructions only once it has accepted.
+		const string Counting =
+			"Start : @string = n: Name & '=' => @(n)\n" +
+			"                | '(' & s: Start & ')' => @(s)\n" +
+			"Name : @string = t: ['a'..'z']+ => @(Hit(t))\n" +
+			"parse Start\n";
+
+		var result = GramCompiler.Compile(Counting, new GramCompilerOptions
+		{
+			ClassName     = "Probe",
+			Namespace     = "Refused",
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Carrier       = CarrierKind.Immediate,
+		});
+
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
+
+		var source = Assert.Single(result.Sources).Text;
+
+		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+
+		var probe = EmittedCode.Compile(
+			source, "Probe", "Refused",
+			"public static int Hits; static string Hit(string t) { Hits++; return t; }");
+
+		var hits = probe.GetType("Refused.Probe")!.GetField("Hits")!;
+
+		Assert.True(EmittedCode.Match(probe, "Refused.Probe", "TryParseStart", "ab=").IsSuccess);
+		Assert.Equal(1, (int)hits.GetValue(null)!);
+
+		hits.SetValue(null, 0);
+
+		Assert.False(EmittedCode.Match(probe, "Refused.Probe", "TryParseStart", "ab").IsSuccess);
+		Assert.Equal(2, (int)hits.GetValue(null)!);
+	}
+
+	/// <summary>
+	/// A grammar with a context keeps the one recording reading: what its guards write into
+	/// the context would still be there for a second one.
+	/// </summary>
+	[Fact]
+	public void A_grammar_with_a_context_reads_once_and_records()
+	{
+		var result = GramCompiler.Compile(
+			"context : @System.Text.StringBuilder\n" +
+			"Start = t: ['a'..'z']+ & when @(context.Append(t) != null) & '='\n" +
+			"parse Start\n",
+			new GramCompilerOptions
+			{
+				ClassName     = "Probe",
+				Namespace     = "Refused",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		var source = Assert.Single(result.Sources).Text;
+
+		Assert.DoesNotContain("Quiet = true", source, StringComparison.Ordinal);
+		Assert.Contains("var failure = new Failure();", source, StringComparison.Ordinal);
+	}
+
 	/// <summary>Every input made from the accepted ones, refused or not, each once and in order.</summary>
 	static IEnumerable<string> Refused(string[] inputs)
 	{

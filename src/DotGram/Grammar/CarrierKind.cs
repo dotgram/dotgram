@@ -39,7 +39,9 @@ public enum CarrierKind
 	/// alternative abandoned afterwards has already run it. One input and one grammar give
 	/// one sequence of calls every time, so nothing is nondeterministic — but a factory is
 	/// called once per derivation <em>tried</em> rather than once per derivation accepted,
-	/// which a pure allocation never notices and a counter does. For authors who know their
+	/// which a pure allocation never notices and a counter does. On input the parse refuses,
+	/// up to twice per derivation tried: a refusal is read a second time to say what was
+	/// expected, and that reading runs what the first ran. For authors who know their
 	/// factories are pure; never chosen for them.
 	/// </summary>
 	Immediate,

@@ -2144,8 +2144,9 @@ A reader holds what it has read until the constructions (§3.7) run, and the car
   construction runs for input that is refused (§3.7).
 - **`Immediate`** — no deferral: a construction runs the moment its alternative has been
   read, and one abandoned afterwards has already run. That is once per derivation tried
-  rather than once per derivation accepted: invisible to a pure allocation, visible to a
-  counter. It is for factories the author knows to be pure.
+  rather than once per derivation accepted — and on input the parse refuses, up to twice,
+  since a refusal is read a second time to say what was expected: invisible to a pure
+  allocation, visible to a counter. It is for factories the author knows to be pure.
 
 A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why —
 among the reasons, that no part of the grammar is read by methods, since a carrier is what a

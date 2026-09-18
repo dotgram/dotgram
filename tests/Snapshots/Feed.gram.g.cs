@@ -23,9 +23,15 @@ namespace DotGram.Snapshots
 		public static Match<global::DotGram.Snapshots.Feed.FeedValue> TryParseFeed(string input)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure();
+			var failure = new Failure { Quiet = true };
 
 			var end = Recognize_Feed_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				failure = new Failure();
+				end     = Recognize_Feed_Whole(text, 0, ref failure, out recognized);
+			}
 
 			if (end < 0)
 			{
@@ -55,9 +61,15 @@ namespace DotGram.Snapshots
 			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure();
+			var failure = new Failure { Quiet = true };
 
 			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				failure = new Failure();
+				end     = Recognize_Feed(text, at, ref failure, out recognized);
+			}
 
 			if (end < 0)
 			{
@@ -87,9 +99,15 @@ namespace DotGram.Snapshots
 			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure();
+			var failure = new Failure { Quiet = true };
 
 			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				failure = new Failure();
+				end     = Recognize_Feed(text, at, ref failure, out recognized);
+			}
 
 			if (end < 0)
 			{
