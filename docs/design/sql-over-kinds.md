@@ -1,4 +1,4 @@
-# Reading SQL:2023 over kinds
+﻿# Reading SQL:2023 over kinds
 
 Q1: whether the standard's grammar can be read over tokens rather than characters, what it
 would cost to say so, and what it would be worth. Written from the two parsers that exist.
@@ -71,6 +71,37 @@ backtrack costs a struct copy rather than a re-lex. A lexer over the whole input
 as an additional form for input that is already contiguous — the same way the buffered forms sit
 beside the streaming ones — but not as the only one.
 
+## What the compiler says when it is actually asked
+
+The section above was written from the two parsers. Then the grammar was compiled with
+`Lexical = true` in a worktree of its own, and the compiler's refusals turned out to be a
+better list than the one reasoned out — shorter, and pointing somewhere else.
+
+They come one at a time, each a `GRAM5004`:
+
+| what refuses | what it really is |
+| --- | --- |
+| `?!ReservedWord` in `ActualIdentifier`, `IntroducedName` | over kinds the lexer hands over a word and the parser says whether it is reserved; a guard after the word says the same thing |
+| `?!IdentifierPart` in `wordboundary` | the right-hand word boundary, which a maximal token keeps by itself |
+| `?!IdentifierPart` in `SQLLanguageIdentifier`, `Multiplier` | the same again — and the second is the `2K` of the section above |
+| `?!eol` in `SimpleComment` | a lookahead written where a negated class says it |
+| `?!("?(" | "?)")` in `PatternQuestionMark` | the trigraph brackets, which over kinds are tokens of their own |
+| `eof` at the end of a comment | expands to a lookahead for "nothing follows" |
+| `BracketedComment` reaches itself | comments nest, and nesting is not regular |
+
+**Seven of the eight are the price of reading over characters, not properties of SQL.** They
+are guards the automaton needed because nothing had told it where the last token ended. Only
+the last is about the language, and it is the one the notation already has a mechanism for.
+
+The eighth is not a pattern at all: `trivia` must be readable by a scanner that commits to its
+first reading. That one cost a wrong turn worth writing down. The nested comment was rewritten
+"regularly" as `"/*" & ([^ '*'] | '*'+ & [^ '*' | '/'])* & '*'+ & '/'`, and the scanner refused
+it — the language is regular but the reading is not committable, because the repetition and what
+follows it both begin with a star. The original shape, `"/*" & (?!"*/" & any)* & "*/"`, is the
+one a scanner understands: `Machine.Scan.cs` has a branch for exactly a repetition guarded by
+the literal that follows it. So `?!"*/"` was never an obstacle — it is the idiom. Only the
+recursion was.
+
 ## What it is worth, measured rather than assumed
 
 This is the part that should decide the order of work, and it argues against doing it first.
@@ -88,8 +119,17 @@ the time, of which the value store's bookkeeping was 20 to 27 — and removing t
 (D2) took twenty select items from 327 to 220 ms, a third, without touching a character of the
 lexical question.
 
-So reading over kinds is worth something like a tenth of what is left, and the machinery of
-building is worth several times that. It is a real improvement and it is not the frontier.
+That comparison is wrong, and it is worth saying why rather than quietly fixing the number.
+What it measures is the word layer's own cost — the buckets, the trivia rule — and that is not
+what reading over kinds changes. Over kinds the machine itself is different: there is no tape of
+ways, no replay, and a choice is a switch on one token. The SQL-92 split measured 1.05 to 2.45
+times on accepted conditions and 1.35 to 3.85 on refused ones, which is not a tenth of anything.
+The figures above bound one part of the question and were read as bounding all of it.
+
+What the experiment will say, and this document will then carry, is the whole of it: the same
+grammar over kinds against itself over characters, and both against the hand parser, on the
+corpora — with the inputs the minimal handling changes (nested comments, malformed interval
+strings) left out of the measurement and said so.
 
 ## What this does not settle
 
