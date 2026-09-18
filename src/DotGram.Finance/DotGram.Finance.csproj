@@ -20,7 +20,7 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="DotGram.Finance.Tests" />
 		<InternalsVisibleTo Include="DotGram.Handwritten" />
-		<InternalsVisibleTo Include="DotGram.Examples" />
+		<InternalsVisibleTo Include="DotGram.Finance.Fix44" />
 
 		<ProjectReference Include="../DotGram/DotGram.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 

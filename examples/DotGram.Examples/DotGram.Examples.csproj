@@ -12,10 +12,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- FIX examples reuse the field model and converters from Finance. -->
-		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
-		<InternalsVisibleTo Include="DotGram.Finance.Tests" />
-		<AdditionalFiles Include="Finance/Fix44/*.gram" />
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>

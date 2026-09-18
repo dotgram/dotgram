@@ -475,8 +475,8 @@ surrounding spaces. `FixFieldOptions` configures optional custom length/data pai
 
 `FixMessages` explicitly assembles messages and nested groups and applies Strict
 or Lenient validation. The field model and schema are maintained manually; the small handwritten grammar uses computed dispatch. The large
-[`Fix44` example](examples/DotGram.Examples/Finance/Fix44/Fix44Grammar.gram)
-remains available for grammar regression tests and benchmarks.
+[`Fix44` grammar](tests/DotGram.Finance.Fix44/Fix44Grammar.gram), one literal alternative
+per tag, remains as the oracle the parser is tested against and for benchmarks.
 
 ## DotGram.Web
 

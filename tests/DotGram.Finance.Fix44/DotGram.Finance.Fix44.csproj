@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Finance.Fix44</RootNamespace>
+		<IsPackable>false</IsPackable>
+
+		<!-- One literal alternative per standard tag is what this grammar is for, and its
+		     methods pass the size the JIT optimizes: GRAM5003 says so, and stays a warning. -->
+		<WarningsNotAsErrors>$(WarningsNotAsErrors);GRAM5003</WarningsNotAsErrors>
+
+		<!-- Generated files land on disk so a reader can open what the grammar became. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The field model and conversions are Finance's; the grammar is written against them. -->
+		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
+		<InternalsVisibleTo Include="DotGram.Finance.Tests" />
+		<AdditionalFiles Include="*.gram" />
+		<ProjectReference Include="../../src/DotGram/DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>

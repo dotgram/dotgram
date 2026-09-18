@@ -103,7 +103,7 @@ numeric tag and uses `switch` to select text or a length/data pair. C# supplies
 classification and typed field construction.
 
 The large `Fix44` grammar is retained in
-`examples/DotGram.Examples/Finance/Fix44` for regression tests and benchmarks.
+`tests/DotGram.Finance.Fix44` for regression tests and benchmarks.
 It is not included in the Finance package.
 
 ```csharp
@@ -329,9 +329,9 @@ pair is configured through `FixFieldOptions` as described above.
 
 ## Definition maintenance
 
-Field declarations, model types, schema tables, the example field grammar and test
+Field declarations, model types, schema tables, the Fix44 field grammar and test
 fixtures are maintained manually. When changing definitions, update the affected
-factory cases, schema entries, models, example grammar and test cases together.
+factory cases, schema entries, models, Fix44 grammar and test cases together.
 
 - `Fix/FixField.cs`: field base, typed-value access, locations and typed field cases.
 - `Fix/FixFieldFactory.cs`: construction of typed fields.
@@ -356,7 +356,7 @@ and measurement records are in `docs/design/finance-fix44.md` and
 the separator or EOF and records the actual separator length. Publications support
 eager and `yield` parsing.
 
-The example `Fix44Grammar` inherits `FixFieldGrammar`, whose
+The `Fix44Grammar` fixture inherits `FixFieldGrammar`, whose
 `FixField.gram` contains one alternative per standard field. Tests compare
 its results with the production parser using the same shared field model.
 
