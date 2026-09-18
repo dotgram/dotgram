@@ -469,7 +469,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("DROP FUNCTION f (INT, DATE) FOR s.t CASCADE",
 		"DropRoutine(Routines: [RoutineDesignator(Function, f, [Numeric(Int, null, null), DateTime(Date, null, null)], s.t, false, null)], Behavior: Cascade)")]
 	public void A_schema_statement_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLSchemaStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseSQLSchemaStatement(input)));
 
 	// ── §14, §16–§23 Statements ────────────────────────────────────────────────
 
@@ -489,7 +489,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("SET NO COLLATION FOR utf8;", "SetCollation(NoCollation: true, ForCharacterSets: [CharacterSetName(utf8)])")]
 	[InlineData("SET SCHEMA 's';", "SetSchema(Value: 's')")]
 	public void A_direct_statement_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseDirectSQLStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseDirectSQLStatement(input)));
 
 	[Theory]
 	[InlineData("FETCH ABSOLUTE 3 FROM c INTO :a, b[1]",
@@ -515,7 +515,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("COPY d VALUE 1 (NAME, TYPE) TO PTF p VALUE 2",
 		"CopyDescriptor(Body: Item(DescriptorReference(d, null, false, false, false), 1, [Name, Type], DescriptorReference(p, null, true, false, false), 2))")]
 	public void A_procedure_statement_is_built_as_written(string input, string tree) =>
-		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLProcedureStatement(input)));
+		Assert.Equal(tree, Show(Both.ParseSQLProcedureStatement(input)));
 
 	[Fact]
 	public void A_data_change_delta_table_holds_its_statement() =>
@@ -567,7 +567,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CREATE TYPE s.t UNDER u AS (a INT DEFAULT 1) NOT FINAL REF IS SYSTEM GENERATED CAST (SOURCE AS DISTINCT) WITH f OVERRIDING METHOD m () RETURNS INT")]
 	[InlineData("ALTER TRANSFORM FOR t g (DROP (TO SQL, FROM SQL RESTRICT))")]
 	public void A_schema_statement_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseSQLSchemaStatement);
+		WrittenBack(input, Both.ParseSQLSchemaStatement);
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) AS x SET (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE CURRENT OF MODULE.c")]
@@ -580,7 +580,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("ALLOCATE GLOBAL :c INSENSITIVE SCROLL CURSOR WITH HOLD FOR s")]
 	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, TRANSACTION ISOLATION LEVEL SERIALIZABLE")]
 	public void A_procedure_statement_is_written_back_as_the_tree_it_was(string input) =>
-		WrittenBack(input, SqlStandardParser.ParseSQLProcedureStatement);
+		WrittenBack(input, Both.ParseSQLProcedureStatement);
 
 	static void WrittenBack<T>(string input, Func<string, T> parse) where T : ISqlNode
 	{

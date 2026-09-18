@@ -929,19 +929,25 @@ partial class HandSqlStandard
 
 		columns = names;
 
+		if (!Identifier(ref cursor, out var first))
+			return false;
+
+		names.Add(first);
+
 		while (true)
 		{
-			if (!Identifier(ref cursor, out var name))
-			{
-				cursor = save;
+			// The comma the list cannot go on from is given back: what follows it is a period's
+			// name, or nothing of the list's.
+			var comma = cursor;
 
-				return false;
+			if (!cursor.Take(SqlTokenKind.Comma) || !Identifier(ref cursor, out var name))
+			{
+				cursor = comma;
+
+				break;
 			}
 
 			names.Add(name);
-
-			if (!cursor.Take(SqlTokenKind.Comma))
-				break;
 		}
 
 		return true;

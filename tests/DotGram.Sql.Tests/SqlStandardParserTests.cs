@@ -1322,7 +1322,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CREATE SCHEMA s CREATE SEQUENCE q", true)]
 	public void A_schema_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSchemaStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSchemaStatement(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -1476,7 +1476,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CREATE SCHEMA s CREATE TRIGGER g AFTER INSERT ON t UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL :c", true)]
 	public void A_routine_or_trigger(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSchemaStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSchemaStatement(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -1632,7 +1632,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CREATE TRIGGER g AFTER INSERT ON t BEGIN ATOMIC CREATE CAST (t AS INT) WITH FUNCTION f; END", true)]
 	public void A_user_defined_type_or_schema_object(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSchemaStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSchemaStatement(input).IsSuccess);
 	}
 
 	// ── §16–§19, §22, §23 Control, transaction, connection, session, direct, diagnostics
@@ -1667,7 +1667,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("ROLLBACK TO sp", false)]
 	public void A_transaction_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLTransactionStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLTransactionStatement(input).IsSuccess);
 	}
 
 	/// <summary>Connection statements: a server, a connection and a user each a simple value, in that order.</summary>
@@ -1686,7 +1686,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DISCONNECT DEFAULT", true)]
 	public void A_connection_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLConnectionStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLConnectionStatement(input).IsSuccess);
 	}
 
 	/// <summary>Session statements: a catalog, a schema, a path and names each given as a value, not written as a name.</summary>
@@ -1722,7 +1722,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SET NO COLLATION FOR latin1", true)]
 	public void A_session_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLSessionStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLSessionStatement(input).IsSuccess);
 	}
 
 	/// <summary>`GET DIAGNOSTICS`: statement items, a condition's items, or all of it; an item of the other kind is refused.</summary>
@@ -1740,7 +1740,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("GET DIAGNOSTICS", false)]
 	public void A_diagnostics_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLDiagnosticsStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLDiagnosticsStatement(input).IsSuccess);
 	}
 
 	/// <summary>A direct data statement: a cursor specification, a temporary table declared, or a data change.</summary>
@@ -1758,7 +1758,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("DECLARE GLOBAL TEMPORARY TABLE t (a INT)", false)]
 	public void A_direct_data_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDirectSQLDataStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDirectSQLDataStatement(input).IsSuccess);
 	}
 
 	/// <summary>`CALL` of a routine with its arguments, and `RETURN` of a value.</summary>
@@ -1773,7 +1773,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("RETURN", false)]
 	public void A_control_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLControlStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLControlStatement(input).IsSuccess);
 	}
 
 	/// <summary>A data statement in a routine: cursors opened, fetched from and closed, a single row selected into targets, locators.</summary>
@@ -1799,7 +1799,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("RETURN 1", false)]
 	public void A_data_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLDataStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLDataStatement(input).IsSuccess);
 	}
 
 	/// <summary>A direct statement ends in its semicolon, and a control statement is none.</summary>
@@ -1812,7 +1812,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CALL p();", false)]
 	public void A_direct_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseDirectSQLStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseDirectSQLStatement(input).IsSuccess);
 	}
 
 	// ── §20 Dynamic SQL ──────────────────────────────────────────────────────────
@@ -1901,7 +1901,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("UPDATE t SET (a, b) = (1, 2) WHERE CURRENT OF LOCAL 'c'", true)]
 	public void A_dynamic_statement(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSQLDynamicStatement(input).IsSuccess);
+		Assert.Equal(reads, Both.TryParseSQLDynamicStatement(input).IsSuccess);
 	}
 
 	// ── §6.1 Data types ──────────────────────────────────────────────────────────
