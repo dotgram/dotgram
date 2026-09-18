@@ -8,4 +8,11 @@
 		<ProjectReference Include="../../src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
 		<ProjectReference Include="../../src/DotGram.Sql/DotGram.Sql.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+		<!-- A hand parser's publications take the state its grammar reads with, which is internal
+		     to the language's own assembly, so they are internal too: read by the tests that hold
+		     them to the grammar and by the benchmarks that time them. -->
+		<InternalsVisibleTo Include="DotGram.Tests" />
+		<InternalsVisibleTo Include="DotGram.Benchmarks" />
+	</ItemGroup>
 </Project>

@@ -28,7 +28,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => (x + 1) * 2",       3, 8)]
 	[InlineData("(int x) => x % 2",             3, 1)]
 	public void An_expression_body_reads_and_runs(string text, int argument, int expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<int, int>>(text)(argument));
 
 	/// <summary>A `return` inside a lambda written in an expression leaves that lambda.</summary>
 	/// <remarks>
@@ -41,7 +41,7 @@ public sealed class ExpressionParserTests
 	public void A_return_inside_a_nested_lambda_leaves_that_lambda() =>
 		Assert.Equal(
 			4,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { var f = (int y) => { return y + 1; }; f(x) }")(3));
 
 	/// <summary>And two of them in one text are two labels, each its own lambda's.</summary>
@@ -49,7 +49,7 @@ public sealed class ExpressionParserTests
 	public void And_two_returns_in_one_text_leave_two_different_lambdas() =>
 		Assert.Equal(
 			7,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { var f = (int y) => { return y * 2; }; return f(x) + 1; }")(3));
 
 	/// <summary>`foreach`, which this API has no node for and the host writes out.</summary>
@@ -61,14 +61,14 @@ public sealed class ExpressionParserTests
 	[InlineData("(int[] a) => { int sum = 0; foreach (int n in a) sum += n; sum }")]
 	[InlineData("(int[] a) => { int sum = 0; foreach (var n in a) { sum += n; } sum }")]
 	public void A_foreach_reads_and_runs(string text) =>
-		Assert.Equal(6, ExpressionParser.Compile<Func<int[], int>>(text)([1, 2, 3]));
+		Assert.Equal(6, Both.Compile<Func<int[], int>>(text)([1, 2, 3]));
 
 	/// <summary>And a `break` and a `continue` in it name the loop it makes.</summary>
 	[Fact]
 	public void A_jump_inside_a_foreach_names_the_loop_it_makes() =>
 		Assert.Equal(
 			4,
-			ExpressionParser.Compile<Func<int[], int>>(
+			Both.Compile<Func<int[], int>>(
 				"(int[] a) => { int sum = 0; foreach (var n in a) " +
 				"{ if (n < 0) continue; if (n > 3) break; sum += n; } sum }")([1, -5, 3, 9, 2]));
 
@@ -77,7 +77,7 @@ public sealed class ExpressionParserTests
 	public void A_string_is_iterated_as_its_characters() =>
 		Assert.Equal(
 			3,
-			ExpressionParser.Compile<Func<string, int>>(
+			Both.Compile<Func<string, int>>(
 				"(string s) => { int n = 0; foreach (char c in s) n += 1; n }")("abc"));
 
 	/// <summary>And a list through the struct enumerator it declares, which is disposed.</summary>
@@ -85,7 +85,7 @@ public sealed class ExpressionParserTests
 	public void A_list_is_iterated_through_the_enumerator_it_declares() =>
 		Assert.Equal(
 			6,
-			ExpressionParser.Compile<Func<List<int>, int>>(
+			Both.Compile<Func<List<int>, int>>(
 				"using System.Collections.Generic; " +
 				"(List<int> l) => { int sum = 0; foreach (var n in l) sum += n; sum }")([1, 2, 3]));
 
@@ -103,10 +103,10 @@ public sealed class ExpressionParserTests
 	public void A_caller_may_name_its_assembly_instead_of_being_asked(string text)
 	{
 		var here  = typeof(ExpressionParserTests).Assembly;
-		var asked = ExpressionParser.Parse(text).ToString();
+		var asked = Both.Parse(text).ToString();
 
-		Assert.Equal(asked, ExpressionParser.Parse(text, here).ToString());
-		Assert.Equal(asked, ExpressionParser.TryParse(text, here).Value!.ToString());
+		Assert.Equal(asked, Both.Parse(text, here).ToString());
+		Assert.Equal(asked, Both.TryParse(text, here).Value!.ToString());
 	}
 
 	/// <summary>And which assembly it names is what the text may reach into.</summary>
@@ -124,9 +124,9 @@ public sealed class ExpressionParserTests
 
 		Assert.Equal(
 			2,
-			ExpressionParser.Compile<Func<int, int>>(Text, typeof(ExpressionParserTests).Assembly)(0));
+			Both.Compile<Func<int, int>>(Text, typeof(ExpressionParserTests).Assembly)(0));
 
-		Assert.False(ExpressionParser.TryParse(Text, typeof(object).Assembly).IsSuccess);
+		Assert.False(Both.TryParse(Text, typeof(object).Assembly).IsSuccess);
 	}
 
 	/// <summary>
@@ -152,11 +152,11 @@ public sealed class ExpressionParserTests
 		// Every one of them is this language; only some of them are this language written
 		// in ASCII.
 		Assert.True(
-			ExpressionParser.TryParseLambda(text, new ExpressionParser.State()).IsSuccess);
+			Both.TryParseLambda(text, new ExpressionParser.State()).IsSuccess);
 
 		Assert.Equal(
 			ascii,
-			ExpressionParser.TryParseAsciiLambda(text, new ExpressionParser.State()).IsSuccess);
+			Both.TryParseAsciiLambda(text, new ExpressionParser.State()).IsSuccess);
 	}
 
 	/// <summary>And what it reads it builds, which is the half a refusal cannot show.</summary>
@@ -165,8 +165,8 @@ public sealed class ExpressionParserTests
 	{
 		const string Text = "(int x) => (x + 1) * 2";
 
-		var wide   = ExpressionParser.TryParseLambda     (Text, new ExpressionParser.State()).Value!;
-		var narrow = ExpressionParser.TryParseAsciiLambda(Text, new ExpressionParser.State()).Value!;
+		var wide   = Both.TryParseLambda     (Text, new ExpressionParser.State()).Value!;
+		var narrow = Both.TryParseAsciiLambda(Text, new ExpressionParser.State()).Value!;
 
 		Assert.Equal(wide.ToString(), narrow.ToString());
 		Assert.Equal(8, narrow.Compile().DynamicInvoke(3));
@@ -191,8 +191,8 @@ public sealed class ExpressionParserTests
 		// directly does not: a lambda with no types is read again from it.
 		var input = "using System; using System.Linq; " + text;
 
-		Assert.True(Reads(() => ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
-		Assert.Equal(ascii, Reads(() => ExpressionParser.TryParseAsciiLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
+		Assert.True(Reads(() => Both.TryParseLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
+		Assert.Equal(ascii, Reads(() => Both.TryParseAsciiLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
 
 		// A reading called directly refuses what it cannot build by throwing, which `TryParse`
 		// turns into an answer: `l.Select` left without the lambda the hole could not read is a
@@ -214,13 +214,13 @@ public sealed class ExpressionParserTests
 	public void Precedence_is_C_sharp_precedence() =>
 		// One rule per level (§4.3's default), so `*` binds tighter than `+` and the
 		// grammar says which by which rule calls which.
-		Assert.Equal(7, ExpressionParser.Compile<Func<int, int>>("(int x) => 1 + x * 2")(3));
+		Assert.Equal(7, Both.Compile<Func<int, int>>("(int x) => 1 + x * 2")(3));
 
 	[Fact]
 	public void And_the_same_operator_groups_to_the_left() =>
 		// Left recursion is where the associativity is: `10 - 3 - 2` is `(10 - 3) - 2`,
 		// which is 5 and not 9.
-		Assert.Equal(5, ExpressionParser.Compile<Func<int, int>>("(int x) => 10 - 3 - x")(2));
+		Assert.Equal(5, Both.Compile<Func<int, int>>("(int x) => 10 - 3 - x")(2));
 
 	/// <summary>What could have stood here, each thing named once.</summary>
 	/// <remarks>
@@ -235,7 +235,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void What_could_have_stood_here_is_named_once_each()
 	{
-		var error = ExpressionParser.TryParseLambda(
+		var error = Both.TryParseLambda(
 			"(int x) => x + return", new ExpressionParser.State()).Error!;
 
 		Assert.StartsWith("Expected ", error, StringComparison.Ordinal);
@@ -270,7 +270,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => { int y = ; y }",    "Expected an expression.")]
 	[InlineData("(int x) => x.",                 "Expected a name.")]
 	public void A_refusal_says_what_the_grammar_wrote(string text, string said) =>
-		Assert.Equal(said, ExpressionParser.TryParse(text).Error);
+		Assert.Equal(said, Both.TryParse(text).Error);
 
 	[Theory]
 	[InlineData("(int x) => x +")]
@@ -281,7 +281,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => x + return")]
 	public void And_nothing_it_says_is_a_character_nobody_wrote(string text)
 	{
-		var error = ExpressionParser.TryParse(text).Error!;
+		var error = Both.TryParse(text).Error!;
 
 		Assert.DoesNotContain(error, char.IsControl);
 
@@ -296,7 +296,7 @@ public sealed class ExpressionParserTests
 		// The operator ladder is one left-recursive rule, and a loop of its tails is what that
 		// became: the loop ending is not a failure and recorded nothing, so the operators were
 		// the one thing missing from a message about the token that ended it.
-		var error = ExpressionParser.TryParse("(int x) => { return x }").Error!;
+		var error = Both.TryParse("(int x) => { return x }").Error!;
 
 		foreach (var written in new[] { "'+'", "'*'", "\"&&\"", "\"==\"", "';'" })
 			Assert.Contains(written, error, StringComparison.Ordinal);
@@ -314,7 +314,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void A_collection_initializer_may_call_Add_with_more_than_one_thing()
 	{
-		var made = ExpressionParser.Compile<Func<Dictionary<int, string>>>(
+		var made = Both.Compile<Func<Dictionary<int, string>>>(
 			"using System.Collections.Generic; " +
 			"() => new Dictionary<int, string>() { { 1, \"one\" }, { 2, \"two\" } }")();
 
@@ -326,7 +326,7 @@ public sealed class ExpressionParserTests
 	{
 		Assert.Equal(
 			[10, 20],
-			ExpressionParser.Compile<Func<List<int>>>(
+			Both.Compile<Func<List<int>>>(
 				"using System.Collections.Generic; () => new List<int>() { 10, 20 }")());
 	}
 
@@ -341,7 +341,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void A_member_initializer_may_nest()
 	{
-		var made = ExpressionParser.Compile<Func<Holder>>(
+		var made = Both.Compile<Func<Holder>>(
 			"using DotGram.Tests.ExpressionLanguage; () => new Holder() { Inner = { Count = 7 } }")();
 
 		Assert.Equal(7, made.Inner.Count);
@@ -353,14 +353,14 @@ public sealed class ExpressionParserTests
 		// `ListBind`: the list the member already holds is added to, not replaced.
 		Assert.Equal(
 			[3, 4],
-			ExpressionParser.Compile<Func<Holder>>(
+			Both.Compile<Func<Holder>>(
 				"using DotGram.Tests.ExpressionLanguage; () => new Holder() { Items = { 3, 4 } }")().Items);
 	}
 
 	[Fact]
 	public void And_the_three_forms_stand_side_by_side()
 	{
-		var made = ExpressionParser.Compile<Func<Holder>>(
+		var made = Both.Compile<Func<Holder>>(
 			"using DotGram.Tests.ExpressionLanguage; " +
 			"() => new Holder() { Name = \"a\", Inner = { Count = 1 }, Items = { 5 } }")();
 
@@ -375,7 +375,7 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"no method 'Add' taking",
 			Assert.Throws<InvalidOperationException>(
-				() => ExpressionParser.Compile<Func<List<int>>>(
+				() => Both.Compile<Func<List<int>>>(
 					"using System.Collections.Generic; () => new List<int>() { { 1, 2 } }")).Message);
 	}
 
@@ -394,12 +394,12 @@ public sealed class ExpressionParserTests
 	public void Overflow_wraps_where_nothing_says_otherwise() =>
 		Assert.Equal(
 			int.MinValue,
-			ExpressionParser.Compile<Func<int, int>>("(int x) => x + 1")(int.MaxValue));
+			Both.Compile<Func<int, int>>("(int x) => x + 1")(int.MaxValue));
 
 	[Fact]
 	public void And_throws_inside_checked() =>
 		Assert.Throws<OverflowException>(
-			() => ExpressionParser.Compile<Func<int, int>>("(int x) => checked(x + 1)")(int.MaxValue));
+			() => Both.Compile<Func<int, int>>("(int x) => checked(x + 1)")(int.MaxValue));
 
 	[Theory]
 	[InlineData("(int x) => checked(x - 1)",  "Subtract")]
@@ -407,24 +407,24 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => checked(-x)",     "Negate")]
 	public void And_every_arithmetic_node_that_has_a_checked_form_uses_it(string text, string _) =>
 		Assert.Throws<OverflowException>(
-			() => ExpressionParser.Compile<Func<int, int>>(text)(int.MinValue));
+			() => Both.Compile<Func<int, int>>(text)(int.MinValue));
 
 	[Fact]
 	public void And_a_cast_is_where_the_difference_shows_most() =>
 		// `(byte)300` is 44 unchecked and throws checked, and neither is something the C#
 		// compiler could have said anything about here: the value is not a constant until
 		// the tree is compiled.
-		Assert.Equal(44, ExpressionParser.Compile<Func<int, byte>>("(int x) => (byte)x")(300));
+		Assert.Equal(44, Both.Compile<Func<int, byte>>("(int x) => (byte)x")(300));
 
 	[Fact]
 	public void And_the_same_cast_throws_inside_checked() =>
 		Assert.Throws<OverflowException>(
-			() => ExpressionParser.Compile<Func<int, byte>>("(int x) => checked((byte)x)")(300));
+			() => Both.Compile<Func<int, byte>>("(int x) => checked((byte)x)")(300));
 
 	[Fact]
 	public void And_a_compound_assignment_is_marked_like_the_operator_it_stands_for() =>
 		Assert.Throws<OverflowException>(
-			() => ExpressionParser.Compile<Func<int, int>>(
+			() => Both.Compile<Func<int, int>>(
 				"(int x) => { int a = x; return checked(a += 1); }")(int.MaxValue));
 
 	/// <summary>The shape a pair of flags cancelling each other cannot express.</summary>
@@ -436,11 +436,11 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void A_mark_nests_rather_than_cancelling()
 	{
-		var wraps = ExpressionParser.Compile<Func<int, int>>("(int x) => unchecked(x + 1)");
+		var wraps = Both.Compile<Func<int, int>>("(int x) => unchecked(x + 1)");
 
 		Assert.Equal(int.MinValue, wraps(int.MaxValue));
 
-		var outer = ExpressionParser.Compile<Func<int, int>>(
+		var outer = Both.Compile<Func<int, int>>(
 			"(int x) => checked(unchecked(x + 1) + 1)");
 
 		// The inner `x + 1` wrapped to int.MinValue without complaint; the outer `+ 1` is
@@ -449,7 +449,7 @@ public sealed class ExpressionParserTests
 		Assert.Equal(int.MinValue + 1, outer(int.MaxValue));
 
 		Assert.Throws<OverflowException>(
-			() => ExpressionParser.Compile<Func<int, int>>(
+			() => Both.Compile<Func<int, int>>(
 				"(int x) => checked(unchecked(x + 0) + 1)")(int.MaxValue));
 	}
 
@@ -459,7 +459,7 @@ public sealed class ExpressionParserTests
 		// a whole other level of the ladder — is inside. Nothing about that is written at
 		// the sites: they say what they are, and the extent does the rest.
 		Assert.Throws<OverflowException>(
-			() => ExpressionParser.Compile<Func<int, int>>("(int x) => checked((x + 0) * 2 + x)")(
+			() => Both.Compile<Func<int, int>>("(int x) => checked((x + 0) * 2 + x)")(
 				int.MaxValue));
 
 	[Fact]
@@ -468,7 +468,7 @@ public sealed class ExpressionParserTests
 		// `checkedTotal` without the reading stopping after seven characters.
 		Assert.Equal(
 			7,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { int checkedTotal = x + 2; return checkedTotal; }")(5));
 
 	[Theory]
@@ -499,13 +499,13 @@ public sealed class ExpressionParserTests
 		// dot, the name an initializer sets, the parts of `nameof` and of a `using`. The
 		// publication itself is asked, so that a refusal is the grammar's and not an API's
 		// throw that the public `TryParse` would answer for.
-		Assert.False(ExpressionParser.TryParseLambda(text, new ExpressionParser.State { Text = text }).IsSuccess);
+		Assert.False(Both.TryParseLambda(text, new ExpressionParser.State { Text = text }).IsSuccess);
 
 	[Fact]
 	public void But_a_word_that_merely_begins_with_one_is_a_name_everywhere() =>
 		Assert.Equal(
 			7,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int iff) => { int returned = iff + 2; foreach (var news in new int[0]) { returned += news; } returned }")(5));
 
 	// ── Blocks: locals, and a return that is a jump ─────────────────────────────
@@ -514,14 +514,14 @@ public sealed class ExpressionParserTests
 	public void A_block_declares_locals_and_returns() =>
 		Assert.Equal(
 			25,
-			ExpressionParser.Compile<Func<int, int, int>>(
+			Both.Compile<Func<int, int, int>>(
 				"(int x, int y) => { int sum = x + y; return sum * sum; }")(2, 3));
 
 	[Fact]
 	public void And_a_local_may_be_read_by_the_next_one() =>
 		Assert.Equal(
 			12,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { int doubled = x * 2; int more = doubled + 2; return more; }")(5));
 
 	[Theory]
@@ -534,7 +534,7 @@ public sealed class ExpressionParserTests
 	{
 		var declared = new Declared();
 
-		declared.Visit(ExpressionParser.Parse(text));
+		declared.Visit(Both.Parse(text));
 
 		var variable = Assert.Single(declared.Variables);
 
@@ -560,7 +560,7 @@ public sealed class ExpressionParserTests
 		// to be handed over before anything else is read.
 		Assert.Equal(
 			2.5,
-			ExpressionParser.Compile<Func<double, double>>(
+			Both.Compile<Func<double, double>>(
 				"(double x) => { double half = x / 2.0; return half; }")(5));
 
 	[Fact]
@@ -569,7 +569,7 @@ public sealed class ExpressionParserTests
 		// carries its type, so the declaration is made after it is read rather than before.
 		Assert.Equal(
 			2.5,
-			ExpressionParser.Compile<Func<double, double>>(
+			Both.Compile<Func<double, double>>(
 				"(double x) => { var half = x / 2.0; return half; }")(5));
 
 	[Fact]
@@ -578,14 +578,14 @@ public sealed class ExpressionParserTests
 		// integer division, and `half` is an `int` holding 2 before the return widens it.
 		Assert.Equal(
 			2.0,
-			ExpressionParser.Compile<Func<int, double>>(
+			Both.Compile<Func<int, double>>(
 				"(int x) => { var half = x / 2; return half; }")(5));
 
 	[Fact]
 	public void And_a_for_may_declare_its_counter_that_way_too() =>
 		Assert.Equal(
 			10,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int n) => { int sum = 0; for (var i = 0; i < n; i++) { sum += i; } sum }")(5));
 
 	[Fact]
@@ -598,7 +598,7 @@ public sealed class ExpressionParserTests
 				"(int x) => { var nothing = null; x }",
 				"(int x) => { var done = while (x > 0) { x -= 1; }; x }",
 			},
-			text => Assert.False(ExpressionParser.TryParse(text).IsSuccess));
+			text => Assert.False(Both.TryParse(text).IsSuccess));
 
 	[Fact]
 	public void And_var_is_a_word_before_it_is_anything_else() =>
@@ -606,7 +606,7 @@ public sealed class ExpressionParserTests
 		// everywhere else it is a name like any other.
 		Assert.Equal(
 			7,
-			ExpressionParser.Compile<Func<int, int>>("(int var) => { var += 2; var }")(5));
+			Both.Compile<Func<int, int>>("(int var) => { var += 2; var }")(5));
 
 	// ── `?.`, and how far its guard reaches ─────────────────────────────────────
 
@@ -614,7 +614,7 @@ public sealed class ExpressionParserTests
 	public void A_guarded_chain_is_null_where_its_receiver_is()
 	{
 		// And worth the nullable of what it would be worth: `s?.Length` is an `int?`.
-		var read = ExpressionParser.Compile<Func<string, int?>>("(string s) => s?.Length");
+		var read = Both.Compile<Func<string, int?>>("(string s) => s?.Length");
 
 		Assert.Equal(new int?[] { null, 3 }, new[] { read(null!), read("abc") });
 	}
@@ -626,7 +626,7 @@ public sealed class ExpressionParserTests
 		// `s == null ? null : s.Trim().Length`, so a null receiver never reaches `Trim`.
 		// Folded the other way — the guard over its own step only — `.Trim()` would be called
 		// on the null the first step handed back, and this would throw instead of answering.
-		var read = ExpressionParser.Compile<Func<string, int?>>("(string s) => s?.Trim().Length");
+		var read = Both.Compile<Func<string, int?>>("(string s) => s?.Trim().Length");
 
 		Assert.Equal(new int?[] { null, 1 }, new[] { read(null!), read(" x ") });
 	}
@@ -634,7 +634,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void And_an_index_may_be_guarded_as_a_member_is()
 	{
-		var read = ExpressionParser.Compile<Func<int[], int?>>("(int[] a) => a?[0]");
+		var read = Both.Compile<Func<int[], int?>>("(int[] a) => a?[0]");
 
 		Assert.Equal(new int?[] { null, 7 }, new[] { read(null!), read([7]) });
 	}
@@ -644,7 +644,7 @@ public sealed class ExpressionParserTests
 	{
 		// C# looks the member up on the underlying type, so this is `int.ToString()` and not
 		// anything of `Nullable<int>`'s — reached past the test, where the value is there.
-		var read = ExpressionParser.Compile<Func<string, string>>(
+		var read = Both.Compile<Func<string, string>>(
 			"(string s) => (s?.Length)?.ToString()");
 
 		Assert.Equal(new string?[] { null, "3" }, new[] { read(null!), read("abc") });
@@ -653,7 +653,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void And_a_guarded_call_worth_nothing_is_a_statement_that_runs_or_does_not()
 	{
-		var read = ExpressionParser.Compile<Func<System.Collections.Generic.List<int>, int>>(
+		var read = Both.Compile<Func<System.Collections.Generic.List<int>, int>>(
 			"using System.Collections.Generic; (List<int> l) => { l?.Add(7); l == null ? 0 : l.Count }");
 
 		Assert.Equal([0, 1], new[] { read(null!), read([]) });
@@ -672,7 +672,7 @@ public sealed class ExpressionParserTests
 		foreach (var text in new[] { "(int x) => x?.ToString()", "(string s) => s?.Length?.ToString()" })
 			Assert.Contains(
 				"never null",
-				Assert.Throws<FormatException>(() => ExpressionParser.Parse(text)).Message);
+				Assert.Throws<FormatException>(() => Both.Parse(text)).Message);
 	}
 
 	[Fact]
@@ -681,7 +681,7 @@ public sealed class ExpressionParserTests
 		// its own would take the `?` and the point of `.5` with it.
 		Assert.Equal(
 			0.5,
-			ExpressionParser.Compile<Func<int, double>>("(int x) => x > 0 ? .5 : 1.5")(1));
+			Both.Compile<Func<int, double>>("(int x) => x > 0 ? .5 : 1.5")(1));
 
 	// ── Extension methods, found through the text's `using`s ────────────────────
 
@@ -689,14 +689,14 @@ public sealed class ExpressionParserTests
 	public void A_method_a_using_brings_is_found_where_the_type_has_none() =>
 		Assert.Equal(
 			10,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"using DotGram.Tests.ExpressionLanguage; (int x) => x.Doubled()")(5));
 
 	[Fact]
 	public void And_it_takes_its_arguments_as_any_other_call_does() =>
 		Assert.Equal(
 			"hi!",
-			ExpressionParser.Compile<Func<string, string>>(
+			Both.Compile<Func<string, string>>(
 				"using DotGram.Tests.ExpressionLanguage; (string s) => s.Shout(\"!\")")("hi"));
 
 	[Fact]
@@ -705,7 +705,7 @@ public sealed class ExpressionParserTests
 		// fits, so a `using` can change what names mean and never what a type does.
 		Assert.Equal(
 			2,
-			ExpressionParser.Compile<Func<int>>(
+			Both.Compile<Func<int>>(
 				"using DotGram.Tests.ExpressionLanguage; () => new Held().Twice()")());
 
 	[Fact]
@@ -713,7 +713,7 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"has no method 'Doubled'",
 			Assert.Throws<InvalidOperationException>(
-				() => ExpressionParser.Parse("(int x) => x.Doubled()")).Message);
+				() => Both.Parse("(int x) => x.Doubled()")).Message);
 
 	[Fact]
 	public void And_a_guarded_chain_finds_one_too() =>
@@ -721,7 +721,7 @@ public sealed class ExpressionParserTests
 		// reached one and not the other.
 		Assert.Equal(
 			"hi!",
-			ExpressionParser.Compile<Func<string, string>>(
+			Both.Compile<Func<string, string>>(
 				"using DotGram.Tests.ExpressionLanguage; (string s) => s?.Shout(\"!\")")("hi"));
 
 	// ── A generic method's type arguments, taken from what it is handed ─────────
@@ -733,7 +733,7 @@ public sealed class ExpressionParserTests
 		// where a value is wanted.
 		Assert.Equal(
 			[4, 6],
-			ExpressionParser.Compile<Func<System.Collections.Generic.List<int>, int[]>>(
+			Both.Compile<Func<System.Collections.Generic.List<int>, int[]>>(
 				"using System.Collections.Generic; using System.Linq; " +
 				"(List<int> l) => l.Where((int n) => n > 1).Select((int n) => n * 2).ToArray()")(
 				new System.Collections.Generic.List<int> { 1, 2, 3 }));
@@ -778,7 +778,7 @@ public sealed class ExpressionParserTests
 
 		var wrong = cases
 			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
-				ExpressionParser.Compile<Func<List<int>, int, object>>($"{Imports}(List<int> l, int k) => (object)({one.Text})")(l, k))))
+				Both.Compile<Func<List<int>, int, object>>($"{Imports}(List<int> l, int k) => (object)({one.Text})")(l, k))))
 			.Where(one => !Same(one.Actual, one.Expected))
 			.ToArray();
 
@@ -804,7 +804,7 @@ public sealed class ExpressionParserTests
 
 	[Fact]
 	public void A_lambda_that_says_no_types_and_is_handed_to_nothing_is_refused() =>
-		Assert.False(ExpressionParser.TryParse("(int x) => { var f = n => n; return x; }").IsSuccess);
+		Assert.False(Both.TryParse("(int x) => { var f = n => n; return x; }").IsSuccess);
 
 	[Fact]
 	public void And_from_what_the_lambda_gives_back_as_well() =>
@@ -812,7 +812,7 @@ public sealed class ExpressionParserTests
 		// handed, which is what a built lambda is able to say.
 		Assert.Equal(
 			["1", "2"],
-			ExpressionParser.Compile<Func<System.Collections.Generic.List<int>, string[]>>(
+			Both.Compile<Func<System.Collections.Generic.List<int>, string[]>>(
 				"using System.Collections.Generic; using System.Linq; " +
 				"(List<int> l) => l.Select((int n) => n.ToString()).ToArray()")(
 				new System.Collections.Generic.List<int> { 1, 2 }));
@@ -825,9 +825,9 @@ public sealed class ExpressionParserTests
 			["int", "any"],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int, string>>(
+				Both.Compile<Func<int, string>>(
 					"using DotGram.Tests.ExpressionLanguage; (int x) => x.Kind()")(1),
-				ExpressionParser.Compile<Func<string, string>>(
+				Both.Compile<Func<string, string>>(
 					"using DotGram.Tests.ExpressionLanguage; (string s) => s.Kind()")("a"),
 			});
 
@@ -838,7 +838,7 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"has no method 'Sized'",
 			Assert.Throws<InvalidOperationException>(
-				() => ExpressionParser.Parse(
+				() => Both.Parse(
 					"using DotGram.Tests.ExpressionLanguage; (string s) => s.Sized()")).Message);
 
 	// ── A lambda written inside an expression ───────────────────────────────────
@@ -847,7 +847,7 @@ public sealed class ExpressionParserTests
 	public void A_lambda_may_be_written_where_a_value_is_wanted() =>
 		Assert.Equal(
 			10,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { var f = (int y) => y * 2; f(x) }")(5));
 
 	[Fact]
@@ -856,8 +856,8 @@ public sealed class ExpressionParserTests
 			[7, 6],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int, int>>("(int x) => { var f = () => 7; f() }")(5),
-				ExpressionParser.Compile<Func<int, int>>("(int x) => { var f = (int y) => y + x; f(1) }")(5),
+				Both.Compile<Func<int, int>>("(int x) => { var f = () => 7; f() }")(5),
+				Both.Compile<Func<int, int>>("(int x) => { var f = (int y) => y + x; f(1) }")(5),
 			});
 
 	[Fact]
@@ -867,7 +867,7 @@ public sealed class ExpressionParserTests
 		// block that holds them.
 		Assert.Equal(
 			6,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { var f = (int y) => y + 1; var g = (int y) => y * 2; f(1) + g(2) }")(0));
 
 	[Fact]
@@ -875,7 +875,7 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"nothing named 'y'",
 			Assert.Throws<FormatException>(
-				() => ExpressionParser.Parse("(int x) => { var f = (int y) => y * 2; y }")).Message);
+				() => Both.Parse("(int x) => { var f = (int y) => y * 2; y }")).Message);
 
 	[Fact]
 	public void And_a_return_inside_one_leaves_it_carrying_its_own_type() =>
@@ -885,7 +885,7 @@ public sealed class ExpressionParserTests
 		// refused outright until the label moved onto the lambda's extent.
 		Assert.Equal(
 			2,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { var f = (int y) => { return \"n\" + y; }; return f(x).Length; }")(3));
 
 	// ── A block is an expression, and it holds a scope ──────────────────────────
@@ -896,14 +896,14 @@ public sealed class ExpressionParserTests
 		// `return`, no label, just the value the block ends on.
 		Assert.Equal(
 			25,
-			ExpressionParser.Compile<Func<int, int, int>>(
+			Both.Compile<Func<int, int, int>>(
 				"(int x, int y) => { int sum = x + y; sum * sum }")(2, 3));
 
 	[Fact]
 	public void And_being_an_expression_it_stands_wherever_one_does() =>
 		Assert.Equal(
 			10,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { int doubled = { int half = x; half * 2 }; doubled }")(5));
 
 	[Fact]
@@ -916,8 +916,8 @@ public sealed class ExpressionParserTests
 			[7, 7],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int, int>>("(int x) => { int t = { x * 2 }; t + 1 }")(3),
-				ExpressionParser.Compile<Func<int, int>>("(int x) => { return { x * 2 + 1 }; }")(3),
+				Both.Compile<Func<int, int>>("(int x) => { int t = { x * 2 }; t + 1 }")(3),
+				Both.Compile<Func<int, int>>("(int x) => { return { x * 2 + 1 }; }")(3),
 			});
 
 	[Fact]
@@ -927,7 +927,7 @@ public sealed class ExpressionParserTests
 		// an answer of 200 would mean the first block's `t` had been overwritten.
 		Assert.Equal(
 			101,
-			ExpressionParser.Compile<Func<int>>(
+			Both.Compile<Func<int>>(
 				"() => { int a = { int t = 1; t }; int b = { int t = 100; t }; a + b }")());
 
 	[Fact]
@@ -936,14 +936,14 @@ public sealed class ExpressionParserTests
 		// of the two answers and turns no valid C# into something else.
 		Assert.Equal(
 			2,
-			ExpressionParser.Compile<Func<int>>("() => { int t = 1; { int t = 2; t } }")());
+			Both.Compile<Func<int>>("() => { int t = 1; { int t = 2; t } }")());
 
 	[Fact]
 	public void And_a_name_the_block_beside_it_declared_is_not_in_scope() =>
 		Assert.Contains(
 			"nothing named 't'",
 			Assert.Throws<FormatException>(
-				() => ExpressionParser.Parse("() => { int a = { int t = 1; t }; t }")).Message);
+				() => Both.Parse("() => { int a = { int t = 1; t }; t }")).Message);
 
 	[Fact]
 	public void And_a_block_with_nothing_in_it_says_so() =>
@@ -954,7 +954,7 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"has to hold something",
 			Assert.Throws<FormatException>(
-				() => ExpressionParser.Parse("(int x) => { }")).Message);
+				() => Both.Parse("(int x) => { }")).Message);
 
 	[Fact]
 	public void A_return_still_leaves_the_whole_lambda() =>
@@ -962,7 +962,7 @@ public sealed class ExpressionParserTests
 		// on the lambda rather than on a block is for.
 		Assert.Equal(
 			9,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { int t = x; { return t * 3; } }")(3));
 
 	[Fact]
@@ -972,14 +972,14 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"nothing named 'y'",
 			Assert.Throws<FormatException>(
-				() => ExpressionParser.Parse("(int x) => x + y")).Message);
+				() => Both.Parse("(int x) => x + y")).Message);
 
 	[Fact]
 	public void And_a_type_the_language_does_not_have_is_not_a_declaration() =>
 		// The guard answers rather than throws — it runs during the match, on readings
 		// the parse may abandon — so a word that is not a type simply does not read as a
 		// declaration, and the text is refused as text.
-		Assert.False(ExpressionParser.TryParse("(Widget w) => w").IsSuccess);
+		Assert.False(Both.TryParse("(Widget w) => w").IsSuccess);
 
 	// ── Types, and what mixing them means ───────────────────────────────────────
 
@@ -1004,49 +1004,49 @@ public sealed class ExpressionParserTests
 				"(uint x) => x + 1",
 				"(decimal m) => m * 2",
 			}
-			.Select(text => ExpressionParser.Parse(text).Body.Type));
+			.Select(text => Both.Parse(text).Body.Type));
 
 	[Fact]
 	public void And_computes_what_C_sharp_computes() =>
-		Assert.Equal(4.5, ExpressionParser.Compile<Func<int, double>>("(int x) => x + 1.5")(3));
+		Assert.Equal(4.5, Both.Compile<Func<int, double>>("(int x) => x + 1.5")(3));
 
 	[Theory]
 	[InlineData("(long x, ulong y) => x + y")]   // CS0034: no one type both convert to
 	[InlineData("(decimal m) => m + 1.5")]       // CS0019: a double does not widen to a decimal
 	[InlineData("(ulong x) => -x")]              // CS0023: no minus over an unsigned type
 	public void And_where_C_sharp_finds_no_operator_neither_does_this(string text) =>
-		Assert.False(ExpressionParser.TryParse(text).IsSuccess);
+		Assert.False(Both.TryParse(text).IsSuccess);
 
 	[Fact]
 	public void A_uint_is_negated_as_the_long_C_sharp_makes_of_it() =>
-		Assert.Equal(-3000000000L, ExpressionParser.Compile<Func<long>>("() => -3000000000")());
+		Assert.Equal(-3000000000L, Both.Compile<Func<long>>("() => -3000000000")());
 
 	[Fact]
 	public void An_assignment_converts_what_it_assigns() =>
 		Assert.Equal(
 			201.0,
-			ExpressionParser.Compile<Func<double>>("() => { long a = 1; byte b = 200; double d = a; d + b }")());
+			Both.Compile<Func<double>>("() => { long a = 1; byte b = 200; double d = a; d + b }")());
 
 	[Fact]
 	public void And_a_constant_with_a_minus_is_still_a_constant_that_fits() =>
-		Assert.Equal((sbyte)-1, ExpressionParser.Compile<Func<sbyte>>("() => { sbyte s = -1; s }")());
+		Assert.Equal((sbyte)-1, Both.Compile<Func<sbyte>>("() => { sbyte s = -1; s }")());
 
 	[Theory]
 	[InlineData("() => { int a = 1.5; a }")]    // CS0266: a double does not narrow on its own
 	[InlineData("() => { byte b = 300; b }")]   // CS0031: a constant that does not fit
 	[InlineData("() => { sbyte s = 1u; s }")]   // only an int constant narrows
 	public void But_nothing_narrows_on_its_own(string text) =>
-		Assert.False(ExpressionParser.TryParse(text).IsSuccess);
+		Assert.False(Both.TryParse(text).IsSuccess);
 
 	[Fact]
 	public void A_compound_assignment_narrows_back_to_its_target() =>
 		// C#'s `b += 10` is `b = (byte)(b + 10)`: the sum is an `int`, and it is cast back.
-		Assert.Equal((byte)4, ExpressionParser.Compile<Func<byte>>("() => { byte b = 250; b += 10; b }")());
+		Assert.Equal((byte)4, Both.Compile<Func<byte>>("() => { byte b = 250; b += 10; b }")());
 
 	[Fact]
 	public void And_the_cast_back_is_checked_inside_checked() =>
 		Assert.Throws<OverflowException>(
-			() => ExpressionParser.Compile<Func<byte>>("() => { byte b = 250; checked(b += 10); b }")());
+			() => Both.Compile<Func<byte>>("() => { byte b = 250; checked(b += 10); b }")());
 
 	[Fact]
 	public void A_plus_beside_text_is_concatenation() =>
@@ -1054,10 +1054,10 @@ public sealed class ExpressionParserTests
 			["a1", "a", "1a", "ab"],
 			new[]
 			{
-				ExpressionParser.Compile<Func<string, int, string>>("(string s, int n) => s + n")("a", 1),
-				ExpressionParser.Compile<Func<string, string>>("(string s) => s + null")("a"),
-				ExpressionParser.Compile<Func<string, string>>("(string s) => 1 + s")("a"),
-				ExpressionParser.Compile<Func<string, string>>("(string s) => { s += \"b\"; s }")("a"),
+				Both.Compile<Func<string, int, string>>("(string s, int n) => s + n")("a", 1),
+				Both.Compile<Func<string, string>>("(string s) => s + null")("a"),
+				Both.Compile<Func<string, string>>("(string s) => 1 + s")("a"),
+				Both.Compile<Func<string, string>>("(string s) => { s += \"b\"; s }")("a"),
 			});
 
 	[Fact]
@@ -1065,13 +1065,13 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[typeof(long), typeof(string), typeof(int)],
 			new[] { "(bool c) => c ? 1 : 2L", "(bool c) => c ? \"a\" : null", "(bool c) => c ? (byte)1 : 1" }
-				.Select(text => ExpressionParser.Parse(text).Body.Type));
+				.Select(text => Both.Parse(text).Body.Type));
 
 	[Fact]
 	public void And_where_they_meet_in_none_it_is_refused_as_C_sharp_refuses_it() =>
 		Assert.Contains(
 			"no implicit conversion between 'Int32' and 'String'",
-			ExpressionParser.TryParse("(bool c) => c ? 1 : \"a\"").Error,
+			Both.TryParse("(bool c) => c ? 1 : \"a\"").Error,
 			StringComparison.Ordinal);
 
 	[Fact]
@@ -1080,10 +1080,10 @@ public sealed class ExpressionParserTests
 			[true, false, true, 3L],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<int?, bool>>("using System; (Nullable<int> n) => n == null")(null),
-				ExpressionParser.Compile<Func<int?, bool>>("using System; (Nullable<int> n) => n == 3")(4),
-				ExpressionParser.Compile<Func<int?, bool>>("using System; (Nullable<int> n) => n + 1 == 4")(3),
-				ExpressionParser.Compile<Func<int?, long>>("using System; (Nullable<int> n) => n ?? 3L")(null),
+				Both.Compile<Func<int?, bool>>("using System; (Nullable<int> n) => n == null")(null),
+				Both.Compile<Func<int?, bool>>("using System; (Nullable<int> n) => n == 3")(4),
+				Both.Compile<Func<int?, bool>>("using System; (Nullable<int> n) => n + 1 == 4")(3),
+				Both.Compile<Func<int?, long>>("using System; (Nullable<int> n) => n ?? 3L")(null),
 			});
 
 	[Fact]
@@ -1093,11 +1093,11 @@ public sealed class ExpressionParserTests
 			[BindingFlags.Public | BindingFlags.Static, true, true],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<BindingFlags>>(
+				Both.Compile<Func<BindingFlags>>(
 					"using System.Reflection; () => BindingFlags.Public | BindingFlags.Static")(),
-				ExpressionParser.Compile<Func<DayOfWeek, bool>>(
+				Both.Compile<Func<DayOfWeek, bool>>(
 					"using System; (DayOfWeek d) => d > DayOfWeek.Monday")(DayOfWeek.Friday),
-				ExpressionParser.Compile<Func<DayOfWeek, bool>>(
+				Both.Compile<Func<DayOfWeek, bool>>(
 					"using System; (DayOfWeek d) => d == 0")(DayOfWeek.Sunday),
 			});
 	}
@@ -1110,9 +1110,9 @@ public sealed class ExpressionParserTests
 		// there is an answer saying so. Past the bound they are forgotten whole and worked out
 		// again, which is the only thing a caller can tell from outside.
 		for (var at = 0; at < 5000; at++)
-			Assert.False(ExpressionParser.TryParse($"(string s) => s.Nothing{at}").IsSuccess);
+			Assert.False(Both.TryParse($"(string s) => s.Nothing{at}").IsSuccess);
 
-		Assert.Equal(3, ExpressionParser.Compile<Func<string, int>>("(string s) => s.Length")("abc"));
+		Assert.Equal(3, Both.Compile<Func<string, int>>("(string s) => s.Length")("abc"));
 	}
 
 	// ── typeof, default and nameof ──────────────────────────────────────────────
@@ -1130,7 +1130,7 @@ public sealed class ExpressionParserTests
 				"() => typeof(string)",
 				"using System.Collections.Generic; () => typeof(List<int>)",
 			}
-			.Select(text => ExpressionParser.Compile<Func<Type>>(text)()));
+			.Select(text => Both.Compile<Func<Type>>(text)()));
 
 	[Fact]
 	public void And_a_type_says_what_it_defaults_to() =>
@@ -1138,16 +1138,16 @@ public sealed class ExpressionParserTests
 			[0, 0.0, false, null!],
 			new object?[]
 			{
-				ExpressionParser.Compile<Func<int>>("() => default(int)")(),
-				ExpressionParser.Compile<Func<double>>("() => default(double)")(),
-				ExpressionParser.Compile<Func<bool>>("() => default(bool)")(),
-				ExpressionParser.Compile<Func<string>>("() => default(string)")(),
+				Both.Compile<Func<int>>("() => default(int)")(),
+				Both.Compile<Func<double>>("() => default(double)")(),
+				Both.Compile<Func<bool>>("() => default(bool)")(),
+				Both.Compile<Func<string>>("() => default(string)")(),
 			});
 
 	[Fact]
 	public void And_a_bare_default_is_not_written_here() =>
 		// C# types it by what it stands against, which is the pass this language does not make.
-		Assert.False(ExpressionParser.TryParse("() => { int a = default; a }").IsSuccess);
+		Assert.False(Both.TryParse("() => { int a = default; a }").IsSuccess);
 
 	[Fact]
 	public void A_name_may_be_asked_for_as_it_was_written() =>
@@ -1156,7 +1156,7 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			["x", "Length", "Nothing"],
 			new[] { "(int x) => nameof(x)", "(string s) => nameof(s.Length)", "(string s) => nameof(s.Nothing)" }
-				.Select(text => ExpressionParser.Parse(text).Body)
+				.Select(text => Both.Parse(text).Body)
 				.Select(body => (string)((ConstantExpression)body).Value!));
 
 	[Fact]
@@ -1164,7 +1164,7 @@ public sealed class ExpressionParserTests
 		// §4.6: a keyword is a whole word, so `typeofSomething` is a name like any other.
 		Assert.Equal(
 			7,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { int nameofTotal = x + 2; nameofTotal }")(5));
 
 	// ── using: what a name written as a type may mean ───────────────────────────
@@ -1176,14 +1176,14 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[false, true, true],
 			new[] { "() => Math.PI", "using System; () => Math.PI", "() => System.Math.PI" }
-				.Select(text => ExpressionParser.TryParse(text).IsSuccess));
+				.Select(text => Both.TryParse(text).IsSuccess));
 
 	[Fact]
 	public void A_using_lasts_as_long_as_its_text()
 	{
 		// Read by one parse and gone for the next: nothing about it outlives the reading.
-		Assert.True(ExpressionParser.TryParse("using System; () => Math.PI").IsSuccess);
-		Assert.False(ExpressionParser.TryParse("() => Math.PI").IsSuccess);
+		Assert.True(Both.TryParse("using System; () => Math.PI").IsSuccess);
+		Assert.False(Both.TryParse("() => Math.PI").IsSuccess);
 	}
 
 	[Fact]
@@ -1191,7 +1191,7 @@ public sealed class ExpressionParserTests
 		// C#'s CS0104, and not whichever namespace happened to be named first.
 		Assert.Contains(
 			"'Twin' is an ambiguous reference",
-			ExpressionParser.TryParse(
+			Both.TryParse(
 				"using DotGram.Tests.ExpressionLanguage.Left; using DotGram.Tests.ExpressionLanguage.Right; " +
 				"() => Twin.Value").Error,
 			StringComparison.Ordinal);
@@ -1201,7 +1201,7 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[1, 2],
 			new[] { "Left", "Right" }.Select(
-				side => ExpressionParser.Compile<Func<int>>(
+				side => Both.Compile<Func<int>>(
 					$"using DotGram.Tests.ExpressionLanguage.{side}; () => Twin.Value")()));
 
 	[Fact]
@@ -1210,7 +1210,7 @@ public sealed class ExpressionParserTests
 		// dots reaches: `Environment` is found first, and `SpecialFolder` inside it.
 		Assert.Equal(
 			Environment.SpecialFolder.Desktop,
-			ExpressionParser.Compile<Func<Environment.SpecialFolder>>(
+			Both.Compile<Func<Environment.SpecialFolder>>(
 				"using System; () => Environment.SpecialFolder.Desktop")());
 
 	[Fact]
@@ -1221,14 +1221,14 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[42, 3, 7],
 			new[] { "() => new Hidden(21).Twice()", "() => new Hidden(3).Value", "() => Hidden.Seven" }.Select(
-				text => ExpressionParser.Compile<Func<int>>("using DotGram.Tests.ExpressionLanguage; " + text)()));
+				text => Both.Compile<Func<int>>("using DotGram.Tests.ExpressionLanguage; " + text)()));
 
 	[Fact]
 	public void But_not_another_assembly_s()
 	{
 		// `System.SR` is internal to the runtime's own library: nameable there, and not here.
 		Assert.NotNull(typeof(object).Assembly.GetType("System.SR"));
-		Assert.False(ExpressionParser.TryParse("() => System.SR.ArgumentNull_Generic").IsSuccess);
+		Assert.False(Both.TryParse("() => System.SR.ArgumentNull_Generic").IsSuccess);
 	}
 
 	// ── Calls: the overload C# would choose ─────────────────────────────────────
@@ -1239,9 +1239,9 @@ public sealed class ExpressionParserTests
 			[2.0, "a1", true],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<int, double>>("using System; (int x) => Math.Sqrt(x)")(4),
-				ExpressionParser.Compile<Func<int, string>>("using System; (int x) => String.Concat(\"a\", x)")(1),
-				ExpressionParser.Compile<Func<object, bool>>("(object o) => o.Equals(1)")(1),
+				Both.Compile<Func<int, double>>("using System; (int x) => Math.Sqrt(x)")(4),
+				Both.Compile<Func<int, string>>("using System; (int x) => String.Concat(\"a\", x)")(1),
+				Both.Compile<Func<object, bool>>("(object o) => o.Equals(1)")(1),
 			});
 
 	[Fact]
@@ -1252,7 +1252,7 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[typeof(int), typeof(long), typeof(string)],
 			new[] { "() => Math.Abs(-3)", "() => Math.Max(2, 3L)", "(string s) => String.Concat(s, s)" }
-				.Select(text => ExpressionParser.Parse("using System; " + text).Body.Type));
+				.Select(text => Both.Parse("using System; " + text).Body.Type));
 
 	[Fact]
 	public void A_params_array_may_be_written_out_and_a_default_left_out()
@@ -1261,10 +1261,10 @@ public sealed class ExpressionParserTests
 			["1-2-3", "30", "7"],
 			new[]
 			{
-				ExpressionParser.Compile<Func<string>>("using System; () => String.Join(\"-\", 1, 2, 3)")(),
-				ExpressionParser.Compile<Func<string>>(
+				Both.Compile<Func<string>>("using System; () => String.Join(\"-\", 1, 2, 3)")(),
+				Both.Compile<Func<string>>(
 					"using DotGram.Tests.ExpressionLanguage; () => Tools.Scaled(3).ToString()")(),
-				ExpressionParser.Compile<Func<string>>(
+				Both.Compile<Func<string>>(
 					"using DotGram.Tests.ExpressionLanguage; () => Tools.Scaled(7, 1).ToString()")(),
 			});
 	}
@@ -1275,7 +1275,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(string s) => s.length",                                         "no property or field named 'length'")]
 	public void And_where_C_sharp_would_refuse_the_call_so_does_this(string text, string said)
 	{
-		var match = ExpressionParser.TryParse(text);
+		var match = Both.TryParse(text);
 
 		Assert.False(match.IsSuccess);
 		Assert.Contains(said, match.Error, StringComparison.Ordinal);
@@ -1288,20 +1288,20 @@ public sealed class ExpressionParserTests
 			[4L, 3.5, 3L, 10, 5L],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<Func<long, long>, long>>(
+				Both.Compile<Func<Func<long, long>, long>>(
 					"using System; (Func<long, long> f) => f(1)")(n => n + 3),
-				ExpressionParser.Compile<Func<double>>("() => new double[] { 1, 2.5 }[0] + 2.5")(),
-				ExpressionParser.Compile<Func<long>>(
+				Both.Compile<Func<double>>("() => new double[] { 1, 2.5 }[0] + 2.5")(),
+				Both.Compile<Func<long>>(
 					"using System.Collections.Generic; () => new List<long>() { 1, 2 }[1] + 1")(),
-				ExpressionParser.Compile<Func<byte, int>>(
+				Both.Compile<Func<byte, int>>(
 					"(byte b) => { int r = 0; switch (b) { case 1: r = 10; break; } r }")(1),
-				ExpressionParser.Compile<Func<int, long>>("(int x) => x")(5),
+				Both.Compile<Func<int, long>>("(int x) => x")(5),
 			});
 	}
 
 	[Fact]
 	public void And_two_doubles_add_as_doubles() =>
-		Assert.Equal(3.5, ExpressionParser.Compile<Func<double, double>>("(double x) => x + 1.5")(2));
+		Assert.Equal(3.5, Both.Compile<Func<double, double>>("(double x) => x + 1.5")(2));
 
 	// ── Constants say their type the way C# does ────────────────────────────────
 
@@ -1310,31 +1310,31 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[typeof(int), typeof(long), typeof(decimal), typeof(double), typeof(double), typeof(decimal)],
 			new[] { "1", "1L", "1m", "1d", "1.5", "1.5m" }
-				.Select(text => ExpressionParser.Parse($"() => {text}").Body.Type));
+				.Select(text => Both.Parse($"() => {text}").Body.Type));
 
 	[Theory]
 	[InlineData("(long x) => x + 1L",        3L,    4L)]
 	[InlineData("(long x) => x * 2L",        3L,    6L)]
 	public void And_a_suffixed_constant_computes_in_its_own_type(string text, long argument, long expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<long, long>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<long, long>>(text)(argument));
 
 	[Fact]
 	public void And_a_decimal_stays_a_decimal() =>
 		Assert.Equal(
 			7.5m,
-			ExpressionParser.Compile<Func<decimal, decimal>>("(decimal x) => x * 1.5m")(5m));
+			Both.Compile<Func<decimal, decimal>>("(decimal x) => x * 1.5m")(5m));
 
 	[Fact]
 	public void And_the_suffix_belongs_to_the_number_rather_than_standing_beside_it() =>
 		// Lexical, so nothing may come between: `1 L` is a constant and then a name, and
 		// a lambda made of those two is not this language.
-		Assert.False(ExpressionParser.TryParse("() => 1 L").IsSuccess);
+		Assert.False(Both.TryParse("() => 1 L").IsSuccess);
 
 	[Fact]
 	public void And_a_name_may_still_begin_with_a_suffix_letter() =>
 		// The suffix is a character set rather than a word literal, so it carries no
 		// §4.6 boundary of its own — and `m` and `L` remain perfectly good names.
-		Assert.Equal(4, ExpressionParser.Compile<Func<int, int>>("(int m) => m + 1")(3));
+		Assert.Equal(4, Both.Compile<Func<int, int>>("(int m) => m + 1")(3));
 
 	// ── Bases, text and characters ──────────────────────────────────────────────
 
@@ -1344,11 +1344,11 @@ public sealed class ExpressionParserTests
 	[InlineData("0B1010", 10)]
 	[InlineData("0b1",    1)]
 	public void A_base_is_a_prefix_and_the_digits_are_its_own(string text, int expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int>>($"() => {text}")());
+		Assert.Equal(expected, Both.Compile<Func<int>>($"() => {text}")());
 
 	[Fact]
 	public void And_a_base_takes_the_long_suffix_too() =>
-		Assert.Equal(255L, ExpressionParser.Compile<Func<long>>("() => 0xFFL")());
+		Assert.Equal(255L, Both.Compile<Func<long>>("() => 0xFFL")());
 
 	[Theory]
 	[InlineData("\"\"",          "")]
@@ -1362,7 +1362,7 @@ public sealed class ExpressionParserTests
 		// An escape is an alternative of the grammar naming the character it stands for,
 		// and a run that needs none is one part — so the decoding is the grammar's, and
 		// `string.Concat` is what puts them back together.
-		Assert.Equal(expected, ExpressionParser.Compile<Func<string>>($"() => {text}")());
+		Assert.Equal(expected, Both.Compile<Func<string>>($"() => {text}")());
 
 	[Theory]
 	[InlineData("'a'",      'a')]
@@ -1371,25 +1371,25 @@ public sealed class ExpressionParserTests
 	[InlineData("'\\\\'",   '\\')]
 	[InlineData("'\\u0041'", 'A')]
 	public void A_character_is_one_part_of_the_same_kind(string text, char expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<char>>($"() => {text}")());
+		Assert.Equal(expected, Both.Compile<Func<char>>($"() => {text}")());
 
 	[Fact]
 	public void And_text_compares_as_text() =>
-		Assert.True(ExpressionParser.Compile<Func<string, bool>>("(string s) => s == \"yes\"")("yes"));
+		Assert.True(Both.Compile<Func<string, bool>>("(string s) => s == \"yes\"")("yes"));
 
 	[Fact]
 	public void And_an_unterminated_string_is_not_this_language() =>
-		Assert.False(ExpressionParser.TryParse("() => \"abc").IsSuccess);
+		Assert.False(Both.TryParse("() => \"abc").IsSuccess);
 
 	[Fact]
 	public void A_comparison_answers_bool() =>
-		Assert.True(ExpressionParser.Compile<Func<int, bool>>("(int x) => x > 2 && x < 10")(5));
+		Assert.True(Both.Compile<Func<int, bool>>("(int x) => x > 2 && x < 10")(5));
 
 	[Fact]
 	public void And_the_word_true_is_a_value_rather_than_a_name() =>
 		// §4.6 weaves a boundary round a keyword, so `trueish` would be a name — which is
 		// the whole reason this grammar declares a `wordboundary`.
-		Assert.True(ExpressionParser.Compile<Func<int, bool>>("(int x) => true")(0));
+		Assert.True(Both.Compile<Func<int, bool>>("(int x) => true")(0));
 
 	// ── Types by name, and everything a name in metadata unlocks ────────────────
 
@@ -1401,7 +1401,7 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[typeof(Exception), typeof(string), typeof(long)],
 			new[] { "(object o) => o as Exception", "(object o) => o as String", "(int x) => (long)x" }
-				.Select(text => ExpressionParser.Parse("using System; " + text).Body.Type));
+				.Select(text => Both.Parse("using System; " + text).Body.Type));
 
 	[Fact]
 	public void And_a_name_that_is_no_type_leaves_the_parenthesis_a_parenthesis() =>
@@ -1412,8 +1412,8 @@ public sealed class ExpressionParserTests
 			[6L, 8],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<int, long>>("(int x) => (long)x * 2L")(3),
-				ExpressionParser.Compile<Func<int, int>>("(int x) => (x + 1) * 2")(3),
+				Both.Compile<Func<int, long>>("(int x) => (long)x * 2L")(3),
+				Both.Compile<Func<int, int>>("(int x) => (x + 1) * 2")(3),
 			});
 
 	[Fact]
@@ -1423,9 +1423,9 @@ public sealed class ExpressionParserTests
 			[3, 2, "ABC"],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<string, int>>("(string s) => s.Length")("abc"),
-				ExpressionParser.Compile<Func<string, int>>("(string s) => s.IndexOf(\"c\")")("abc"),
-				ExpressionParser.Compile<Func<string, string>>("(string s) => s.ToUpperInvariant()")("abc"),
+				Both.Compile<Func<string, int>>("(string s) => s.Length")("abc"),
+				Both.Compile<Func<string, int>>("(string s) => s.IndexOf(\"c\")")("abc"),
+				Both.Compile<Func<string, string>>("(string s) => s.ToUpperInvariant()")("abc"),
 			});
 
 	[Fact]
@@ -1435,7 +1435,7 @@ public sealed class ExpressionParserTests
 		// interfaces, which are not its base type, so a search up `BaseType` never meets it.
 		Assert.Equal(
 			3,
-			ExpressionParser.Compile<Func<IList<int>, int>>(
+			Both.Compile<Func<IList<int>, int>>(
 				"using System.Collections.Generic; (IList<int> l) => l.Count")([1, 2, 3]));
 	}
 
@@ -1445,7 +1445,7 @@ public sealed class ExpressionParserTests
 	public void And_a_member_C_sharp_could_not_reach_from_here_is_not_one(string text) =>
 		// A private field, and a static one read through a value: C# reads neither, and the
 		// API's own `PropertyOrField` reached the first.
-		Assert.False(ExpressionParser.TryParse(text).IsSuccess);
+		Assert.False(Both.TryParse(text).IsSuccess);
 
 	[Fact]
 	public void A_static_member_names_its_type_first() =>
@@ -1453,22 +1453,22 @@ public sealed class ExpressionParserTests
 			[7, 3.0, ""],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<int, int>>("using System; (int x) => Math.Max(x, 7)")(3),
-				ExpressionParser.Compile<Func<double>>("using System; () => Math.Floor(3.7)")(),
-				ExpressionParser.Compile<Func<string>>("using System; () => String.Empty")(),
+				Both.Compile<Func<int, int>>("using System; (int x) => Math.Max(x, 7)")(3),
+				Both.Compile<Func<double>>("using System; () => Math.Floor(3.7)")(),
+				Both.Compile<Func<string>>("using System; () => String.Empty")(),
 			});
 
 	[Fact]
 	public void And_a_dotted_name_is_a_type_only_as_far_as_it_resolves() =>
 		// `System.Math.Max` resolves whole; `s.Length` does not resolve at all and is read
 		// as a name and a member of it. The greedy name gives back a part at a time.
-		Assert.Equal(7, ExpressionParser.Compile<Func<int, int>>("(int x) => System.Math.Max(x, 7)")(3));
+		Assert.Equal(7, Both.Compile<Func<int, int>>("(int x) => System.Math.Max(x, 7)")(3));
 
 	[Fact]
 	public void A_constructor_is_chosen_by_what_fits_its_arguments() =>
 		Assert.Equal(
 			"boom",
-			ExpressionParser.Compile<Func<string, string>>(
+			Both.Compile<Func<string, string>>(
 				"using System; (string s) => new Exception(s).Message")("boom"));
 
 	[Fact]
@@ -1477,9 +1477,9 @@ public sealed class ExpressionParserTests
 			[4, 3, 20],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int>>("() => new int[4].Length")(),
-				ExpressionParser.Compile<Func<int>>("() => new int[] { 10, 20, 30 }.Length")(),
-				ExpressionParser.Compile<Func<int>>("() => new int[] { 10, 20, 30 }[1]")(),
+				Both.Compile<Func<int>>("() => new int[4].Length")(),
+				Both.Compile<Func<int>>("() => new int[] { 10, 20, 30 }.Length")(),
+				Both.Compile<Func<int>>("() => new int[] { 10, 20, 30 }[1]")(),
 			});
 
 	[Fact]
@@ -1490,19 +1490,19 @@ public sealed class ExpressionParserTests
 			['b', 20],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<string, char>>("(string s) => s[1]")("abc"),
-				ExpressionParser.Compile<Func<int>>("() => new int[] { 10, 20 }[1]")(),
+				Both.Compile<Func<string, char>>("(string s) => s[1]")("abc"),
+				Both.Compile<Func<int>>("() => new int[] { 10, 20 }[1]")(),
 			});
 
 	[Theory]
 	[InlineData("(object o) => o is string",  "abc", true)]
 	[InlineData("(object o) => o is string",  42,    false)]
 	public void Is_asks_the_type_and_as_answers_null(string text, object argument, bool expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<object, bool>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<object, bool>>(text)(argument));
 
 	[Fact]
 	public void And_as_answers_null_where_it_is_not_that() =>
-		Assert.Null(ExpressionParser.Compile<Func<object, string>>("(object o) => o as string")(42));
+		Assert.Null(Both.Compile<Func<object, string>>("(object o) => o as string")(42));
 
 	[Fact]
 	public void A_generic_type_is_named_with_what_it_is_over() =>
@@ -1511,7 +1511,7 @@ public sealed class ExpressionParserTests
 		// `<`, some types and a `>`, which is what every language calls a generic type.
 		Assert.Equal(
 			8,
-			ExpressionParser.Compile<Func<Func<int, int>, int, int>>(
+			Both.Compile<Func<Func<int, int>, int, int>>(
 				"using System; (Func<int, int> f, int x) => f(x) * 2")(n => n + 3, 1));
 
 	[Fact]
@@ -1520,8 +1520,8 @@ public sealed class ExpressionParserTests
 			[3, 20],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int[], int>>("(int[] a) => a.Length")([1, 2, 3]),
-				ExpressionParser.Compile<Func<int[], int>>("(int[] a) => a[1] * 10")([1, 2, 3]),
+				Both.Compile<Func<int[], int>>("(int[] a) => a.Length")([1, 2, 3]),
+				Both.Compile<Func<int[], int>>("(int[] a) => a[1] * 10")([1, 2, 3]),
 			});
 
 	[Fact]
@@ -1531,7 +1531,7 @@ public sealed class ExpressionParserTests
 		// text and a value, and the member is found where the type is in hand.
 		Assert.Equal(
 			"boom",
-			ExpressionParser.Compile<Func<string, string>>(
+			Both.Compile<Func<string, string>>(
 				"using System; (string s) => new Exception() { Source = s }.Source")("boom"));
 
 	[Fact]
@@ -1540,7 +1540,7 @@ public sealed class ExpressionParserTests
 		// `List` is in a namespace the text has to name, which is what a `using` is for.
 		Assert.Equal(
 			3,
-			ExpressionParser.Compile<Func<int>>(
+			Both.Compile<Func<int>>(
 				"using System.Collections.Generic; () => new List<int>() { 10, 20, 30 }.Count")());
 	}
 
@@ -1553,8 +1553,8 @@ public sealed class ExpressionParserTests
 			[7, "set"],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<int[], int>>("(int[] a) => { a[1] = 7; a[1] }")([1, 2, 3]),
-				ExpressionParser.Compile<Func<string>>(
+				Both.Compile<Func<int[], int>>("(int[] a) => { a[1] = 7; a[1] }")([1, 2, 3]),
+				Both.Compile<Func<string>>(
 					"using System; () => { Exception e = new Exception(); e.Source = \"set\"; e.Source }")(),
 			});
 
@@ -1563,7 +1563,7 @@ public sealed class ExpressionParserTests
 		// Not to an element, and that is a measurement rather than a taste: an index is an
 		// expression, and eleven alternatives reading it eleven times before finding out
 		// which operator they are made `a[a[a[a[0]]]] = 1` take most of a second.
-		Assert.False(ExpressionParser.TryParse("(int[] a) => { a[1] += 7; a[1] }").IsSuccess);
+		Assert.False(Both.TryParse("(int[] a) => { a[1] += 7; a[1] }").IsSuccess);
 
 	// ── try, catch, finally, throw ──────────────────────────────────────────────
 
@@ -1573,7 +1573,7 @@ public sealed class ExpressionParserTests
 	public void A_try_catches_what_the_runtime_throws(int argument, int expected) =>
 		Assert.Equal(
 			expected,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"using System; " +
 				"(int n) => { int r = 0; try { r = 10 / n; } catch (DivideByZeroException e) { r = -1; } r }")
 				(argument));
@@ -1587,13 +1587,13 @@ public sealed class ExpressionParserTests
 			[11, 0, 6],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int, int>>(
+				Both.Compile<Func<int, int>>(
 					"using System; " +
 					"(int n) => { int r = 0; try { r = 10 / n; } catch (Exception e) { r = -1; } finally { r += 1; } r }")(1),
-				ExpressionParser.Compile<Func<int, int>>(
+				Both.Compile<Func<int, int>>(
 					"using System; " +
 					"(int n) => { int r = 0; try { r = 10 / n; } catch (Exception e) { r = -1; } finally { r += 1; } r }")(0),
-				ExpressionParser.Compile<Func<int, int>>(
+				Both.Compile<Func<int, int>>(
 					"(int n) => { int r = 0; try { r = 10 / n; } finally { r += 1; } r }")(2),
 			});
 
@@ -1601,7 +1601,7 @@ public sealed class ExpressionParserTests
 	public void And_the_caught_variable_belongs_to_its_handler() =>
 		Assert.Equal(
 			"Attempted to divide by zero.",
-			ExpressionParser.Compile<Func<string>>(
+			Both.Compile<Func<string>>(
 				"using System; " +
 				"() => { string m = \"\"; int z = 0; try { m = (10 / z).ToString(); } catch (Exception e) { m = e.Message; } m }")());
 
@@ -1610,7 +1610,7 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			"no",
 			Assert.Throws<InvalidOperationException>(
-				() => ExpressionParser.Compile<Func<int, int>>(
+				() => Both.Compile<Func<int, int>>(
 					"using System; (int n) => { if (n < 0) throw new InvalidOperationException(\"no\"); n }")(-1))
 				.Message);
 
@@ -1621,7 +1621,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => { int a = 0; if (x > 0) a = 1; else a = 2; a }", -3, 2)]
 	[InlineData("(int x) => { int a = 5; if (x > 0) a = 1; a }",             -3, 5)]
 	public void An_if_reads_as_a_statement(string text, int argument, int expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<int, int>>(text)(argument));
 
 	[Fact]
 	public void And_with_an_else_it_is_worth_what_its_branches_are() =>
@@ -1632,8 +1632,8 @@ public sealed class ExpressionParserTests
 			[1, 12],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int, int>>("(int x) => if (x > 0) 1 else -1")(3),
-				ExpressionParser.Compile<Func<int, int>>(
+				Both.Compile<Func<int, int>>("(int x) => if (x > 0) 1 else -1")(3),
+				Both.Compile<Func<int, int>>(
 					"(int x) => { int n = if (x > 0) { int t = x; t * 4 } else 0; n }")(3),
 			});
 
@@ -1648,14 +1648,14 @@ public sealed class ExpressionParserTests
 		// the block is worth what follows it.
 		Assert.Equal(
 			expected,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int x) => { int a = 0; if (x > 0) a = 1; else { return 0; } a }")(argument));
 
 	[Fact]
 	public void A_while_loop_runs_until_its_test_says_otherwise() =>
 		Assert.Equal(
 			120,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int n) => { int i = 0; int f = 1; while (i < n) { i++; f *= i; } f }")(5));
 
 	[Fact]
@@ -1664,9 +1664,9 @@ public sealed class ExpressionParserTests
 			[6, 1],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int, int>>(
+				Both.Compile<Func<int, int>>(
 					"(int n) => { int i = 0; int c = 0; do { i++; c += i; } while (i < n); c }")(3),
-				ExpressionParser.Compile<Func<int, int>>(
+				Both.Compile<Func<int, int>>(
 					"(int n) => { int i = 0; int c = 0; do { i++; c += i; } while (i < n); c }")(0),
 			});
 
@@ -1676,7 +1676,7 @@ public sealed class ExpressionParserTests
 		// the same scope machinery a block uses — a `for` records an extent of its own.
 		Assert.Equal(
 			10,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }")(5));
 
 	[Fact]
@@ -1684,21 +1684,21 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"nothing named 'i'",
 			Assert.Throws<FormatException>(
-				() => ExpressionParser.Parse("(int n) => { for (int i = 0; i < n; i++) { n += 1; } i }"))
+				() => Both.Parse("(int n) => { for (int i = 0; i < n; i++) { n += 1; } i }"))
 				.Message);
 
 	[Fact]
 	public void Break_and_continue_name_the_loop_they_are_written_in() =>
 		Assert.Equal(
 			25,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { if (i % 2 == 0) continue; sum += i; } sum }")(10));
 
 	[Fact]
 	public void And_a_break_leaves_the_innermost_one() =>
 		Assert.Equal(
 			3,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int n) => { int c = 0; for (int i = 0; i < n; i++) { for (int j = 0; j < n; j++) { if (j == 1) break; c++; } } c }")(3));
 
 	[Fact]
@@ -1706,7 +1706,7 @@ public sealed class ExpressionParserTests
 		Assert.Contains(
 			"inside no loop and no switch",
 			Assert.Throws<FormatException>(
-				() => ExpressionParser.Parse("(int x) => { break; x }")).Message);
+				() => Both.Parse("(int x) => { break; x }")).Message);
 
 	[Theory]
 	[InlineData(1, 10)]
@@ -1715,7 +1715,7 @@ public sealed class ExpressionParserTests
 	public void A_switch_chooses_by_value(int argument, int expected) =>
 		Assert.Equal(
 			expected,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int n) => { int r = 0; switch (n) { case 1: r = 10; break; case 2: r = 20; break; default: r = -1; } r }")
 				(argument));
 
@@ -1725,7 +1725,7 @@ public sealed class ExpressionParserTests
 		// name the loop, this would stop at 2 and answer 1 rather than 8.
 		Assert.Equal(
 			8,
-			ExpressionParser.Compile<Func<int, int>>(
+			Both.Compile<Func<int, int>>(
 				"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { switch (i) { case 2: break; default: sum += i; } } sum }")(5));
 
 	// ── Assignment, which is where a statement gets its work done ───────────────
@@ -1741,14 +1741,14 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => { int a = x; a |= 4; a }",          3,  7)]
 	[InlineData("(int x) => { int a = x; a ^= 1; a }",          3,  2)]
 	public void Every_compound_assignment_C_sharp_writes_is_here(string text, int argument, int expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<int, int>>(text)(argument));
 
 	[Fact]
 	public void And_an_assignment_is_worth_what_it_assigned() =>
 		// Which is C#'s rule and the API's both, and is what makes `a = b = c` read.
 		Assert.Equal(
 			7,
-			ExpressionParser.Compile<Func<int>>("() => { int a = 0; int b = 0; a = b = 7; a }")());
+			Both.Compile<Func<int>>("() => { int a = 0; int b = 0; a = b = 7; a }")());
 
 	[Theory]
 	[InlineData("(int x) => { int a = x; int b = a++; b * 10 + a }", 1, 12)]
@@ -1757,7 +1757,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => { int a = x; int b = --a; b * 10 + a }", 1,  0)]
 	public void And_increment_says_which_value_it_is_worth_by_where_it_stands(
 		string text, int argument, int expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<int, int>>(text)(argument));
 
 	// ── The rest of C#'s ladder ─────────────────────────────────────────────────
 
@@ -1770,7 +1770,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(int x) => x >> 1",  6,  3)]
 	[InlineData("(int x) => +x",      3,  3)]
 	public void The_bitwise_operators_and_the_shifts_are_there(string text, int argument, int expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<int, int>>(text)(argument));
 
 	[Theory]
 	[InlineData("() => 1 | 2 ^ 3 & 4",  3)]    // 1 | (2 ^ (3 & 4))
@@ -1780,7 +1780,7 @@ public sealed class ExpressionParserTests
 	public void And_they_sit_where_C_sharp_puts_them(string text, int expected) =>
 		// The ladder is the point, not the operators: each level is a rule that calls the
 		// next, so the order in the file is the order in the spec and reads as one.
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int>>(text)());
+		Assert.Equal(expected, Both.Compile<Func<int>>(text)());
 
 	[Fact]
 	public void And_a_single_character_operator_does_not_eat_half_of_a_double_one() =>
@@ -1790,31 +1790,31 @@ public sealed class ExpressionParserTests
 			[false, true, 1],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<bool>>("() => false || false")(),
-				ExpressionParser.Compile<Func<bool>>("() => false || true")(),
-				ExpressionParser.Compile<Func<int>>("() => 1 | 0")(),
+				Both.Compile<Func<bool>>("() => false || false")(),
+				Both.Compile<Func<bool>>("() => false || true")(),
+				Both.Compile<Func<int>>("() => 1 | 0")(),
 			});
 
 	[Fact]
 	public void And_a_shift_is_told_from_a_comparison_the_same_way() =>
-		Assert.True(ExpressionParser.Compile<Func<int, bool>>("(int x) => x >> 1 > 2")(6));
+		Assert.True(Both.Compile<Func<int, bool>>("(int x) => x >> 1 > 2")(6));
 
 	[Theory]
 	[InlineData("(int x) => x > 2 ? 1 : 0",           3, 1)]
 	[InlineData("(int x) => x > 2 ? 1 : 0",           1, 0)]
 	[InlineData("(int x) => x > 2 ? 1 : x > 0 ? 2 : 3", 1, 2)]   // groups to the right
 	public void A_conditional_chooses_and_groups_to_the_right(string text, int argument, int expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
+		Assert.Equal(expected, Both.Compile<Func<int, int>>(text)(argument));
 
 	[Theory]
 	[InlineData("yes",  "yes")]
 	[InlineData(null,   "none")]
 	public void And_a_coalesce_answers_the_left_where_it_has_one(string? argument, string expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<string?, string>>("(string s) => s ?? \"none\"")(argument));
+		Assert.Equal(expected, Both.Compile<Func<string?, string>>("(string s) => s ?? \"none\"")(argument));
 
 	[Fact]
 	public void And_null_is_a_word_like_any_other() =>
-		Assert.True(ExpressionParser.Compile<Func<string?, bool>>("(string s) => s == null")(null));
+		Assert.True(Both.Compile<Func<string?, bool>>("(string s) => s == null")(null));
 
 	[Fact]
 	public void A_cast_is_a_type_in_parentheses_and_a_parenthesis_is_still_a_parenthesis() =>
@@ -1824,15 +1824,15 @@ public sealed class ExpressionParserTests
 			[6L, 8],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<int, long>>("(int x) => (long)x * 2L")(3),
-				ExpressionParser.Compile<Func<int, int>>("(int x) => (x + 1) * 2")(3),
+				Both.Compile<Func<int, long>>("(int x) => (long)x * 2L")(3),
+				Both.Compile<Func<int, int>>("(int x) => (x + 1) * 2")(3),
 			});
 
 	[Fact]
 	public void And_a_cast_is_still_how_a_narrowing_is_asked_for() =>
 		// A widening is made unasked, as C# makes it; a narrowing is not, and the cast is how
 		// the author says they meant it.
-		Assert.Equal(4, ExpressionParser.Compile<Func<double, int>>("(double x) => (int)x + 1")(3.7));
+		Assert.Equal(4, Both.Compile<Func<double, int>>("(double x) => (int)x + 1")(3.7));
 
 	// ── The literal forms, down to the ones that are easy to forget ─────────────
 
@@ -1842,9 +1842,9 @@ public sealed class ExpressionParserTests
 			[1000000, 0xFFFF, 0b1010],
 			new[]
 			{
-				ExpressionParser.Compile<Func<int>>("() => 1_000_000")(),
-				ExpressionParser.Compile<Func<int>>("() => 0xFF_FF")(),
-				ExpressionParser.Compile<Func<int>>("() => 0b1_010")(),
+				Both.Compile<Func<int>>("() => 1_000_000")(),
+				Both.Compile<Func<int>>("() => 0xFF_FF")(),
+				Both.Compile<Func<int>>("() => 0b1_010")(),
 			});
 
 	[Fact]
@@ -1853,9 +1853,9 @@ public sealed class ExpressionParserTests
 			[1500.0, 0.5, 0.0015],
 			new[]
 			{
-				ExpressionParser.Compile<Func<double>>("() => 1.5e3")(),
-				ExpressionParser.Compile<Func<double>>("() => .5")(),
-				ExpressionParser.Compile<Func<double>>("() => 1.5E-3")(),
+				Both.Compile<Func<double>>("() => 1.5e3")(),
+				Both.Compile<Func<double>>("() => .5")(),
+				Both.Compile<Func<double>>("() => 1.5E-3")(),
 			});
 
 	[Fact]
@@ -1866,7 +1866,7 @@ public sealed class ExpressionParserTests
 				typeof(float), typeof(double), typeof(decimal), typeof(long),
 			],
 			new[] { "1", "1u", "1L", "1UL", "1lu", "1f", "1d", "1m", "0xFFL" }
-				.Select(text => ExpressionParser.Parse($"() => {text}").Body.Type));
+				.Select(text => Both.Parse($"() => {text}").Body.Type));
 
 	[Fact]
 	public void And_an_integer_is_the_first_type_that_holds_it_as_it_is_in_C_sharp() =>
@@ -1884,7 +1884,7 @@ public sealed class ExpressionParserTests
 				"0xFFFFFFFF", "0x80000000", "0x1FFFFFFFF", "0xFFFFFFFFFFFFFFFF",
 				"0b11111111111111111111111111111111",
 			}
-			.Select(text => ((ConstantExpression)ExpressionParser.Parse($"() => {text}").Body).Value));
+			.Select(text => ((ConstantExpression)Both.Parse($"() => {text}").Body).Value));
 
 	[Fact]
 	public void And_a_suffix_strikes_types_off_the_list_rather_than_naming_one() =>
@@ -1893,7 +1893,7 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			[4294967296ul, 9223372036854775808ul, 18446744073709551615ul, 1ul],
 			new[] { "4294967296u", "9223372036854775808L", "0xFFFFFFFFFFFFFFFFL", "0b1UL" }
-				.Select(text => ((ConstantExpression)ExpressionParser.Parse($"() => {text}").Body).Value));
+				.Select(text => ((ConstantExpression)Both.Parse($"() => {text}").Body).Value));
 
 	[Fact]
 	public void And_the_two_minimums_are_read_whole_after_a_minus() =>
@@ -1903,13 +1903,13 @@ public sealed class ExpressionParserTests
 			[int.MinValue, long.MinValue],
 			new object[]
 			{
-				ExpressionParser.Compile<Func<int>>("() => -2147483648")(),
-				ExpressionParser.Compile<Func<long>>("() => -9223372036854775808")(),
+				Both.Compile<Func<int>>("() => -2147483648")(),
+				Both.Compile<Func<long>>("() => -9223372036854775808")(),
 			});
 
 	[Fact]
 	public void And_an_integer_no_type_holds_is_refused() =>
-		Assert.False(ExpressionParser.TryParse("() => 18446744073709551616").IsSuccess);
+		Assert.False(Both.TryParse("() => 18446744073709551616").IsSuccess);
 
 	[Theory]
 	[InlineData("\"\\x41\"",         "A")]
@@ -1918,7 +1918,7 @@ public sealed class ExpressionParserTests
 	[InlineData("@\"a\\b\"",         "a\\b")]
 	[InlineData("@\"say \"\"x\"\"\"", "say \"x\"")]
 	public void And_the_escapes_and_the_verbatim_form_read_as_C_sharp_reads_them(string text, string expected) =>
-		Assert.Equal(expected, ExpressionParser.Compile<Func<string>>($"() => {text}")());
+		Assert.Equal(expected, Both.Compile<Func<string>>($"() => {text}")());
 
 	// ── An interpolated string ──────────────────────────────────────────────────
 
@@ -1960,7 +1960,7 @@ public sealed class ExpressionParserTests
 		// Every disagreement at once, each with its text: one case failing hides the rest.
 		var wrong = cases
 			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
-				ExpressionParser.Compile<Func<int, string>>($"(int x) => {one.Text}")(x))))
+				Both.Compile<Func<int, string>>($"(int x) => {one.Text}")(x))))
 			.Where(one => one.Actual != one.Expected)
 			.ToArray();
 
@@ -2001,7 +2001,7 @@ public sealed class ExpressionParserTests
 
 		var wrong = cases
 			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
-				ExpressionParser.Compile<Func<string, object>>($"(string s) => (object)({one.Text})")(s))))
+				Both.Compile<Func<string, object>>($"(string s) => (object)({one.Text})")(s))))
 			.Where(one => !Equals(one.Actual, one.Expected))
 			.ToArray();
 
@@ -2024,7 +2024,7 @@ public sealed class ExpressionParserTests
 	public void A_conditional_in_a_hole_needs_its_brackets_as_in_C_sharp() =>
 		Assert.Contains(
 			"Parenthesize the conditional expression",
-			ExpressionParser.TryParse("(bool c) => $\"{c ? 1 : 2}\"").Error,
+			Both.TryParse("(bool c) => $\"{c ? 1 : 2}\"").Error,
 			StringComparison.Ordinal);
 
 	/// <summary>A raw string, held against C# itself: each text is also written as the C# it is.</summary>
@@ -2062,7 +2062,7 @@ public sealed class ExpressionParserTests
 
 		var wrong = cases
 			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
-				ExpressionParser.Compile<Func<int, string>>($"(int x) => {one.Text}")(x))))
+				Both.Compile<Func<int, string>>($"(int x) => {one.Text}")(x))))
 			.Where(one => one.Actual != one.Expected)
 			.ToArray();
 
@@ -2092,7 +2092,7 @@ public sealed class ExpressionParserTests
 	public void A_raw_string_C_sharp_refuses_is_refused(string text, string why)
 	{
 		Assert.NotNull(why);
-		Assert.False(ExpressionParser.TryParse($"(int x) => {text}").IsSuccess);
+		Assert.False(Both.TryParse($"(int x) => {text}").IsSuccess);
 	}
 
 	/// <summary>
@@ -2120,7 +2120,7 @@ public sealed class ExpressionParserTests
 
 		var wrong = cases
 			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
-				ExpressionParser.Compile<Func<int, string>>($"{Imports}(int x) => {one.Text}")(x))))
+				Both.Compile<Func<int, string>>($"{Imports}(int x) => {one.Text}")(x))))
 			.Where(one => one.Actual != one.Expected)
 			.ToArray();
 
@@ -2129,7 +2129,7 @@ public sealed class ExpressionParserTests
 		// And held where it is declared rather than handed over.
 		Assert.Equal(
 			"{0}|1",
-			ExpressionParser.Compile<Func<int, string>>(
+			Both.Compile<Func<int, string>>(
 				$"{Imports}(int x) => {{ FormattableString f = $\"{{x}}\"; return Formats.Shape(f); }}")(x));
 
 		static string Answered(Func<string> run)
@@ -2151,12 +2151,12 @@ public sealed class ExpressionParserTests
 	[InlineData("Formats.Shape($\"a{x}\" + \"b\")")]
 	[InlineData("(FormattableString)\"a\"")]
 	public void But_a_string_that_was_not_interpolated_is_not_formattable(string text) =>
-		Assert.False(ExpressionParser.TryParse($"using System; using DotGram.Tests.ExpressionLanguage; (int x) => {text}").IsSuccess);
+		Assert.False(Both.TryParse($"using System; using DotGram.Tests.ExpressionLanguage; (int x) => {text}").IsSuccess);
 
 	[Fact]
 	public void A_hole_is_read_by_both_carriers_alike() =>
 		Assert.Equal(
-			ExpressionParser.Compile<Func<int, string>>("(int x) => $\"<{x,3}>\"")(7),
+			Both.Compile<Func<int, string>>("(int x) => $\"<{x,3}>\"")(7),
 			ExpressionParser.Immediate.TryParseLambda("(int x) => $\"<{x,3}>\"", new ExpressionParser.State(typeof(ExpressionParserTests).Assembly)).Value!
 				.Compile().DynamicInvoke(7));
 
@@ -2170,7 +2170,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(int using) => using")]
 	public void A_text_that_is_not_this_language_is_refused_with_a_position(string text)
 	{
-		var match = ExpressionParser.TryParse(text);
+		var match = Both.TryParse(text);
 
 		Assert.False(match.IsSuccess);
 		Assert.NotNull(match.Error);
@@ -2191,7 +2191,7 @@ public sealed class ExpressionParserTests
 	[InlineData("using System.Nowhere; () => 1",              "'System.Nowhere' could not be found")]
 	public void TryParse_answers_where_Parse_would_throw(string text, string said)
 	{
-		var match = ExpressionParser.TryParse(text);
+		var match = Both.TryParse(text);
 
 		Assert.False(match.IsSuccess);
 		Assert.Contains(said, match.Error, StringComparison.Ordinal);

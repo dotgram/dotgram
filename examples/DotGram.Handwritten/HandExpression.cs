@@ -2,10 +2,16 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Text;
 
 using DotGram.ExpressionLanguage;
 
 namespace DotGram.Handwritten;
+
+using Match      = ExpressionParser.Match<Expression>;
+using Segment    = ExpressionParser.Segment;
+using SourceSpan = ExpressionParser.SourceSpan;
+using State      = ExpressionParser.State;
 
 /// <summary>
 /// The expression language of <see cref="ExpressionParser"/>, written by hand: a lexer
@@ -13,27 +19,38 @@ namespace DotGram.Handwritten;
 /// </summary>
 /// <remarks>
 /// <para>
-/// What <c>HandSqlStandard</c> is to <c>SqlStandardParser</c>, this is to
-/// <c>ExpressionParser</c> — the mark a generated parser is measured against, and the
-/// answer to "how fast would a person have written this". It has to keep <em>looking</em>
-/// hand-written: what is here is what someone would write who knew the language and cared
-/// about the result, and nothing is shaped by how the generator happens to work.
+/// The mark the generated parser is measured against, and the answer to "how fast would a
+/// person have written this". It has to keep <em>looking</em> hand-written: what is here is
+/// what someone would write who knew the language and cared about the result, and nothing is
+/// shaped by how the generator happens to work.
+/// </para>
+/// <para>
+/// It reads exactly the language the grammar does (docs/design/architecture-decisions.md, D1):
+/// the same publications, the same accepted and refused input, the same trees, and a refusal
+/// at the same position. <c>ExpressionHandTests</c> holds it to that on every run of the suite.
 /// </para>
 /// <para>
 /// It calls the same factories the grammar's <c>=&gt;</c> calls, and hands the same
-/// <see cref="ExpressionParser.State"/> the same spans. That is deliberate: what is
-/// being compared is the reading, not the building, and a second implementation of scopes
-/// and names would be a second thing to be wrong. The same reason
-/// <c>HandSqlStandard</c> builds the shipped tree rather than one of its own.
+/// <see cref="ExpressionParser.State"/> the same spans. That is deliberate: what is being
+/// compared is the reading, not the building, and a second implementation of scopes and names
+/// would be a second thing to be wrong.
 /// </para>
 /// <para>
-/// Two shapes here are a person's rather than a grammar's, and both are where the two
-/// differ most. The operator ladder is one loop over a precedence rather than ten rules —
-/// C#'s table, read out of an array — because that is how a person writes ten levels that
-/// differ only in a number. And the suffixes of a postfix chain are a loop rather than a
-/// left recursion, which is the same saving by the same argument. Everything else follows
-/// the grammar rule for rule, so that a disagreement is a disagreement about the language
-/// and not about which of the two was written more cleverly.
+/// Two shapes here are a person's rather than a grammar's, and both are where the two differ
+/// most. The operator ladder is one loop over a precedence rather than ten rules — C#'s table,
+/// read out of an array — because that is how a person writes ten levels that differ only in a
+/// number. And the suffixes of a postfix chain are a loop rather than a left recursion, which
+/// is the same saving by the same argument.
+/// </para>
+/// <para>
+/// It builds where it reads, which the grammar's own contract does not (§7.3: a text is read
+/// whole and built afterwards). The two part only where building refuses — an operator its
+/// operands do not have, a member that is not there — in a text that is refused later anyway:
+/// read whole first, it is refused where it stops; built as it is read, it throws first. So a
+/// refusal thrown while building sends the reader over the text once more, building nothing,
+/// from the state it began in, and a text that does not read is answered as one. That second
+/// pass is the price of the contract, not of how the generator is written, and it is paid only
+/// by a text that throws.
 /// </para>
 /// </remarks>
 public static class HandExpression
@@ -99,32 +116,43 @@ public static class HandExpression
 	// pass nobody needs. `Number` is the unsuffixed decimal, which is an `int` where it
 	// fits and a `long` where it does not — C#'s rule, and the one thing here the parser
 	// decides rather than the lexer.
-	const byte Number     = 46;
-	const byte NumberU    = 47;
-	const byte NumberL    = 48;
-	const byte NumberUL   = 49;
-	const byte Hex        = 50;
-	const byte HexU       = 51;
-	const byte HexL       = 52;
-	const byte HexUL      = 53;
+	const byte Number   = 46;
+	const byte NumberU  = 47;
+	const byte NumberL  = 48;
+	const byte NumberUL = 49;
+	const byte Hex      = 50;
+	const byte HexU     = 51;
+	const byte HexL     = 52;
+	const byte HexUL    = 53;
 	const byte Bits     = 54;
 	const byte BitsU    = 55;
 	const byte BitsL    = 56;
 	const byte BitsUL   = 57;
-	const byte Real       = 58;
-	const byte RealD      = 59;
-	const byte RealF      = 60;
-	const byte RealM      = 61;
+	const byte Real     = 58;
+	const byte RealD    = 59;
+	const byte RealF    = 60;
+	const byte RealM    = 61;
 
-	const byte Text     = 62;
-	const byte Verbatim = 63;
+	const byte Text      = 62;
+	const byte Verbatim  = 63;
 	const byte Character = 64;
 
-	const byte Identifier = 65;
+	// The strings with holes, and the raw ones. The lexer only finds where each ends; what
+	// one is made of is cut out of it again where it is built, which is where it is wanted.
+	const byte Interpolated = 65;   // `$"…"`, `$@"…"` and `@$"…"`
+	const byte RawText      = 66;   // three to five quotes, no dollar
+	const byte RawHoles     = 67;   // three to five quotes after one dollar or two
+	const byte RawLong      = 68;   // six quotes or more, or three dollars or more
 
-	// The keywords, in the order the language reserves them (§5 of the grammar). A word
+	const byte Identifier = 69;
+
+	// A word the ASCII reading does not take: it is one token all the same, since the letters
+	// that end it are what C# would read as one, and it is no name and no keyword.
+	const byte Foreign = 70;
+
+	// The keywords, in the order the language reserves them (the grammar's `Keyword`). A word
 	// that is one of these is never a name, which is the whole of what makes it a keyword.
-	const byte FirstWord = 66;
+	const byte FirstWord = 71;
 
 	static readonly string[] Words =
 	[
@@ -138,14 +166,18 @@ public static class HandExpression
 		"while",
 	];
 
-	// A word that is not in the list would be `FirstWord - 1`, which is `Identifier`, and a
-	// parser that reads every name as a keyword refuses everything. Said here, where the word
-	// is known, rather than found later as a parser that reads nothing.
-	static byte Of(string word) =>
-		Array.IndexOf(Words, word) is var at && at >= 0
-			? (byte)(FirstWord + at)
-			: throw new ArgumentOutOfRangeException(
-				nameof(word), word, "Not a word this language reserves.");
+	// A word that is not in the list would be `FirstWord - 1`, which is `Foreign`, and a
+	// parser that reads every keyword as a foreign word refuses everything. Said here, where
+	// the word is known, rather than found later as a parser that reads nothing.
+	static byte Of(string word)
+	{
+		var at = Array.IndexOf(Words, word);
+
+		if (at < 0)
+			throw new ArgumentOutOfRangeException(nameof(word), word, "Not a word this language reserves.");
+
+		return (byte)(FirstWord + at);
+	}
 
 	static readonly byte KwAs        = Of("as");
 	static readonly byte KwBool      = Of("bool");
@@ -219,7 +251,7 @@ public static class HandExpression
 			case 4:
 				switch (w[0])
 				{
-					case 'b': if (Same(w, "bool")) return KwBool; break;
+					case 'b': if (Same(w, "bool")) return KwBool; if (Same(w, "byte")) return KwByte; break;
 					case 'c': if (Same(w, "case")) return KwCase; if (Same(w, "char")) return KwChar; break;
 					case 'e': if (Same(w, "else")) return KwElse; break;
 					case 'l': if (Same(w, "long")) return KwLong; break;
@@ -236,7 +268,7 @@ public static class HandExpression
 					case 'b': if (Same(w, "break")) return KwBreak;  break;
 					case 'c': if (Same(w, "catch")) return KwCatch;  break;
 					case 'f': if (Same(w, "false")) return KwFalse;  if (Same(w, "float")) return KwFloat; break;
-					case 's': if (Same(w, "short")) return KwShort;  break;
+					case 's': if (Same(w, "short")) return KwShort;  if (Same(w, "sbyte")) return KwSbyte; break;
 					case 't': if (Same(w, "throw")) return KwThrow;  break;
 					case 'u': if (Same(w, "ulong")) return KwUlong;  if (Same(w, "using")) return KwUsing; break;
 					case 'w': if (Same(w, "while")) return KwWhile;  break;
@@ -287,15 +319,256 @@ public static class HandExpression
 		return true;
 	}
 
+	// ── The publications ────────────────────────────────────────────────────────
+
+	/// <summary>The whole text as a lambda, answering as the grammar's <c>TryParseLambda</c> does.</summary>
+	internal static ExpressionParser.Match<LambdaExpression> TryParseLambda(string text, State context)
+	{
+		return Whole(text, context, ascii: false);
+	}
+
+	/// <summary>The same, with a name spelled in ASCII alone, as <c>TryParseAsciiLambda</c> reads one.</summary>
+	internal static ExpressionParser.Match<LambdaExpression> TryParseAsciiLambda(string text, State context)
+	{
+		return Whole(text, context, ascii: true);
+	}
+
+	/// <summary>Whether the whole text reads as a lambda, building nothing of it.</summary>
+	/// <remarks>
+	/// What the reader does where it reads again after building threw, and the first time
+	/// through the body of a lambda that says no types: the test that holds it to building
+	/// nothing hands it texts every construction of which would throw.
+	/// </remarks>
+	internal static bool Recognizes(string text, State context)
+	{
+		var tokens = Tokens.Rent();
+
+		try
+		{
+			if (Lex(text, 0, text.Length, tokens, ascii: false) >= 0)
+				return false;
+
+			var reader = new Reader(tokens, text, context, ascii: false, build: false);
+
+			return reader.Lambda(0, out _) == tokens.Count;
+		}
+		finally
+		{
+			Tokens.Return(tokens);
+		}
+	}
+
+	/// <summary>The tokens of the text, or -1 where the lexer stops short of its end: the lexer alone, timed.</summary>
+	public static int LexOnly(string text)
+	{
+		var tokens = Tokens.Rent();
+
+		try
+		{
+			return Lex(text, 0, text.Length, tokens, ascii: false) < 0 ? tokens.Count : -1;
+		}
+		finally
+		{
+			Tokens.Return(tokens);
+		}
+	}
+
+	// What a hole of an interpolated string and the body of a lambda that said no types are
+	// read with, over a window of the text: the grammar's `ParseHole` and `ParseBody`, and the
+	// same two under the ASCII reading.
+	static Match Hole(string input, int at, int length, State context)
+	{
+		return Window(input, at, length, context, ascii: false, body: false);
+	}
+
+	static Match AsciiHole(string input, int at, int length, State context)
+	{
+		return Window(input, at, length, context, ascii: true, body: false);
+	}
+
+	static Match Body(string input, int at, int length, State context)
+	{
+		return Window(input, at, length, context, ascii: false, body: true);
+	}
+
+	static Match AsciiBody(string input, int at, int length, State context)
+	{
+		return Window(input, at, length, context, ascii: true, body: true);
+	}
+
+	static ExpressionParser.Match<LambdaExpression> Whole(string text, State context, bool ascii)
+	{
+		if (text is null)
+			throw new ArgumentNullException(nameof(text));
+
+		var tokens = Tokens.Rent();
+
+		try
+		{
+			// A character no token begins with is refused before anything is read, wherever it
+			// stands, because the generated lexer cuts the whole text into tokens first. That is
+			// how the generator reads, not what the language says: a lexer that made tokens as
+			// they were asked for would stop at the first mistake the reading met instead.
+			var stopped = Lex(text, 0, text.Length, tokens, ascii);
+
+			if (stopped >= 0)
+				return ExpressionParser.Match<LambdaExpression>.Failed(
+					ExpressionParser.Outcome.NoMatch, Unexpected(text, stopped), stopped, null, null);
+
+			var from = context.Mark();
+
+			LambdaExpression? lambda;
+			int               end;
+			int               furthest;
+
+			try
+			{
+				var reader = new Reader(tokens, text, context, ascii, build: true);
+
+				end      = reader.Lambda(0, out lambda);
+				furthest = reader.Furthest;
+			}
+			catch (Exception refused) when (IsRefusal(refused))
+			{
+				// Built where it was read and refused by what it built: the grammar reads the whole
+				// text before building any of it, so what the text owes is what reading alone says.
+				context.Rollback(from);
+
+				var reader = new Reader(tokens, text, context, ascii, build: false);
+
+				end      = reader.Lambda(0, out _);
+				furthest = reader.Furthest;
+
+				if (end == tokens.Count)
+					throw;
+
+				lambda = null;
+			}
+
+			if (end == tokens.Count)
+				return ExpressionParser.Match<LambdaExpression>.Success(lambda!, 0, Over(tokens, end));
+
+			// A lambda that ends before the text does is refused where it ends.
+			if (end > furthest)
+				furthest = end;
+
+			return furthest < tokens.Count
+				? ExpressionParser.Match<LambdaExpression>.Failed(
+					ExpressionParser.Outcome.NoMatch, "Input does not match 'Lambda'.", tokens.Starts[furthest], null, null)
+				: ExpressionParser.Match<LambdaExpression>.Failed(
+					ExpressionParser.Outcome.Starved, "Expected more input.", text.Length, null, null);
+		}
+		finally
+		{
+			Tokens.Return(tokens);
+		}
+	}
+
+	/// <summary>An expression, or a lambda's body, read over a window of the text and not required to fill it.</summary>
+	/// <remarks>
+	/// The window's tokens are its own, and a character no token begins with ends them there
+	/// rather than refusing the reading. The state is the reading's that asked, so the names the
+	/// text around the window declared are names here — which is what a hole and a body are for.
+	/// </remarks>
+	static Match Window(string input, int at, int length, State context, bool ascii, bool body)
+	{
+		if (at < 0 || length < 0 || at > input.Length - length)
+			return Match.Failed(ExpressionParser.Outcome.NoMatch, "The window is outside the input.", at, null, null);
+
+		var tokens = Tokens.Rent();
+
+		try
+		{
+			var stopped = Lex(input, at, at + length, tokens, ascii);
+			var from    = context.Mark();
+
+			Expression? value;
+			int         end;
+			int         furthest;
+
+			try
+			{
+				var reader = new Reader(tokens, input, context, ascii, build: true);
+
+				end      = body ? reader.Value(0, out value) : reader.Assignment(0, out value);
+				furthest = reader.Furthest;
+			}
+			catch (Exception refused) when (IsRefusal(refused))
+			{
+				context.Rollback(from);
+
+				var reader = new Reader(tokens, input, context, ascii, build: false);
+
+				end      = body ? reader.Value(0, out _) : reader.Assignment(0, out _);
+				furthest = reader.Furthest;
+
+				if (end >= 0)
+					throw;
+
+				value = null;
+			}
+
+			if (end >= 0)
+				return Match.Success(value!, at, end == 0 ? -at : Over(tokens, end) - at);
+
+			return furthest < tokens.Count
+				? Match.Failed(ExpressionParser.Outcome.NoMatch, "Input does not match.", tokens.Starts[furthest], null, null)
+				: Match.Failed(ExpressionParser.Outcome.Starved, "Expected more input.", stopped >= 0 ? stopped : at + length, null, null);
+		}
+		finally
+		{
+			Tokens.Return(tokens);
+		}
+	}
+
+	/// <summary>Where the last token read ends.</summary>
+	static int Over(Tokens tokens, int end)
+	{
+		return end == 0 ? 0 : tokens.Starts[end - 1] + tokens.Lengths[end - 1];
+	}
+
+	static string Unexpected(string text, int at)
+	{
+		return at >= text.Length ? "Expected more input." : $"Unexpected character '{text[at]}'.";
+	}
+
+	/// <summary>Whether an exception is the text being refused, as the language's own <c>TryParse</c> tells one.</summary>
+	static bool IsRefusal(Exception thrown)
+	{
+		return thrown is FormatException or InvalidOperationException or OverflowException ||
+			thrown is ArgumentException and not ArgumentNullException;
+	}
+
 	// ── The lexer ───────────────────────────────────────────────────────────────
 
-	/// <summary>One input's tokens, kept between parses the way the generated lexer keeps its own.</summary>
-	public sealed class Tokens
+	/// <summary>One text's tokens, kept between readings the way the generated lexer keeps its own.</summary>
+	sealed class Tokens
 	{
 		public byte[] Kinds   = new byte[64];
 		public int[]  Starts  = new int[64];
 		public int[]  Lengths = new int[64];
 		public int    Count;
+
+		[ThreadStatic]
+		static Tokens? _spare;
+
+		/// <summary>The spare set, or a new one where a reading already holds it — a hole read inside a reading.</summary>
+		public static Tokens Rent()
+		{
+			var spare = _spare;
+
+			if (spare is null)
+				return new Tokens();
+
+			_spare = null;
+
+			return spare;
+		}
+
+		public static void Return(Tokens tokens)
+		{
+			_spare = tokens;
+		}
 
 		public void Room(int length)
 		{
@@ -320,24 +593,27 @@ public static class HandExpression
 		}
 	}
 
-	[ThreadStatic]
-	static Tokens? _tokens;
-
-	public static Tokens Rented() => _tokens ??= new Tokens();
-
-	/// <summary>The whole input as tokens, whitespace skipped. False where a character fits nothing.</summary>
-	public static bool Lex(string text, Tokens into)
+	/// <summary>
+	/// The text from one offset to another as tokens, whitespace skipped. Where a character
+	/// fits no token the tokens end there, and where that is answers; -1 where none does.
+	/// </summary>
+	/// <remarks>
+	/// Nothing past <paramref name="to"/> is looked at, so a token that would run over the end
+	/// of a window is no token. Positions are offsets into the whole text all the same.
+	/// </remarks>
+	static int Lex(string text, int from, int to, Tokens into, bool ascii)
 	{
-		var s = text.AsSpan();
+		var s = text.AsSpan(0, to);
 
-		into.Room(s.Length / 3 + 16);
+		into.Room((to - from) / 3 + 16);
 		into.Count = 0;
 
 		var kinds   = into.Kinds;
 		var starts  = into.Starts;
 		var lengths = into.Lengths;
 		var count   = 0;
-		var p       = 0;
+		var p       = from;
+		var stopped = -1;
 
 		while (true)
 		{
@@ -347,8 +623,8 @@ public static class HandExpression
 			if (p >= s.Length)
 				break;
 
-			var from = p;
-			var c    = s[p];
+			var start = p;
+			var c     = s[p];
 			byte kind;
 
 			switch (c)
@@ -361,30 +637,26 @@ public static class HandExpression
 				case ';': kind = Semicolon;    p++; break;
 				case ':': kind = Colon;        p++; break;
 				case '~': kind = Tilde;        p++; break;
-				case '^': kind = p + 1 < s.Length && s[p + 1] == '=' ? Take(ref p, 2, CaretAssign) : Take(ref p, 1, Caret); break;
-
-				// `[]` is a type's own and is one token, the way the generated lexer takes
-				// the longest match. `a[0]` is three, because what follows the bracket is
-				// not the other one.
-				case '[':
-					kind = p + 1 < s.Length && s[p + 1] == ']' ? Take(ref p, 2, Brackets) : Take(ref p, 1, LeftBracket);
-					break;
-
 				case ']': kind = RightBracket; p++; break;
 
-				case '?':
-					kind = p + 1 < s.Length && s[p + 1] == '?' ? Take(ref p, 2, Coalesce) : Take(ref p, 1, Question);
-					break;
+				case '^': kind = Next(s, p) == '=' ? Take(ref p, 2, CaretAssign) : Take(ref p, 1, Caret); break;
+
+				// `[]` is a type's own and is one token, the way a lexer takes the longest match.
+				// `a[0]` is three, because what follows the bracket is not the other one.
+				case '[': kind = Next(s, p) == ']' ? Take(ref p, 2, Brackets) : Take(ref p, 1, LeftBracket); break;
+				case '?': kind = Next(s, p) == '?' ? Take(ref p, 2, Coalesce) : Take(ref p, 1, Question);    break;
+				case '!': kind = Next(s, p) == '=' ? Take(ref p, 2, NotEqual) : Take(ref p, 1, Not);         break;
+				case '*': kind = Next(s, p) == '=' ? Take(ref p, 2, StarAssign)    : Take(ref p, 1, Star);    break;
+				case '/': kind = Next(s, p) == '=' ? Take(ref p, 2, SlashAssign)   : Take(ref p, 1, Slash);   break;
+				case '%': kind = Next(s, p) == '=' ? Take(ref p, 2, PercentAssign) : Take(ref p, 1, Percent); break;
 
 				case '=':
-					kind = p + 1 >= s.Length ? Take(ref p, 1, Assign)
-						: s[p + 1] == '=' ? Take(ref p, 2, Equal)
-						: s[p + 1] == '>' ? Take(ref p, 2, Arrow)
-						: Take(ref p, 1, Assign);
-					break;
-
-				case '!':
-					kind = p + 1 < s.Length && s[p + 1] == '=' ? Take(ref p, 2, NotEqual) : Take(ref p, 1, Not);
+					kind = Next(s, p) switch
+					{
+						'=' => Take(ref p, 2, Equal),
+						'>' => Take(ref p, 2, Arrow),
+						_   => Take(ref p, 1, Assign),
+					};
 					break;
 
 				// `<<` and `>>` are not tokens, and that is the language rather than an
@@ -393,122 +665,84 @@ public static class HandExpression
 				// characters C# closes them with. `<<=` and `>>=` are, being written as
 				// one thing and never as two.
 				case '<':
-					kind = p + 2 < s.Length && s[p + 1] == '<' && s[p + 2] == '=' ? Take(ref p, 3, LeftAssign)
-						: p + 1 < s.Length && s[p + 1] == '=' ? Take(ref p, 2, LessEq)
+					kind = Next(s, p) == '<' && p + 2 < s.Length && s[p + 2] == '=' ? Take(ref p, 3, LeftAssign)
+						: Next(s, p) == '=' ? Take(ref p, 2, LessEq)
 						: Take(ref p, 1, Less);
 					break;
 
 				case '>':
-					kind = p + 2 < s.Length && s[p + 1] == '>' && s[p + 2] == '=' ? Take(ref p, 3, RightAssign)
-						: p + 1 < s.Length && s[p + 1] == '=' ? Take(ref p, 2, GreaterEq)
+					kind = Next(s, p) == '>' && p + 2 < s.Length && s[p + 2] == '=' ? Take(ref p, 3, RightAssign)
+						: Next(s, p) == '=' ? Take(ref p, 2, GreaterEq)
 						: Take(ref p, 1, Greater);
 					break;
 
 				case '&':
-					kind = p + 1 >= s.Length ? Take(ref p, 1, Amp)
-						: s[p + 1] == '&' ? Take(ref p, 2, AndAlso)
-						: s[p + 1] == '=' ? Take(ref p, 2, AmpAssign)
-						: Take(ref p, 1, Amp);
+					kind = Next(s, p) switch
+					{
+						'&' => Take(ref p, 2, AndAlso),
+						'=' => Take(ref p, 2, AmpAssign),
+						_   => Take(ref p, 1, Amp),
+					};
 					break;
 
 				case '|':
-					kind = p + 1 >= s.Length ? Take(ref p, 1, Pipe)
-						: s[p + 1] == '|' ? Take(ref p, 2, OrElse)
-						: s[p + 1] == '=' ? Take(ref p, 2, PipeAssign)
-						: Take(ref p, 1, Pipe);
+					kind = Next(s, p) switch
+					{
+						'|' => Take(ref p, 2, OrElse),
+						'=' => Take(ref p, 2, PipeAssign),
+						_   => Take(ref p, 1, Pipe),
+					};
 					break;
 
 				case '+':
-					kind = p + 1 >= s.Length ? Take(ref p, 1, Plus)
-						: s[p + 1] == '+' ? Take(ref p, 2, Increment)
-						: s[p + 1] == '=' ? Take(ref p, 2, PlusAssign)
-						: Take(ref p, 1, Plus);
+					kind = Next(s, p) switch
+					{
+						'+' => Take(ref p, 2, Increment),
+						'=' => Take(ref p, 2, PlusAssign),
+						_   => Take(ref p, 1, Plus),
+					};
 					break;
 
 				case '-':
-					kind = p + 1 >= s.Length ? Take(ref p, 1, Minus)
-						: s[p + 1] == '-' ? Take(ref p, 2, Decrement)
-						: s[p + 1] == '=' ? Take(ref p, 2, MinusAssign)
-						: Take(ref p, 1, Minus);
-					break;
-
-				case '*':
-					kind = p + 1 < s.Length && s[p + 1] == '=' ? Take(ref p, 2, StarAssign) : Take(ref p, 1, Star);
-					break;
-
-				case '/':
-					kind = p + 1 < s.Length && s[p + 1] == '=' ? Take(ref p, 2, SlashAssign) : Take(ref p, 1, Slash);
-					break;
-
-				case '%':
-					kind = p + 1 < s.Length && s[p + 1] == '=' ? Take(ref p, 2, PercentAssign) : Take(ref p, 1, Percent);
+					kind = Next(s, p) switch
+					{
+						'-' => Take(ref p, 2, Decrement),
+						'=' => Take(ref p, 2, MinusAssign),
+						_   => Take(ref p, 1, Minus),
+					};
 					break;
 
 				// A point begins a real where a digit follows it — `.5` is one — and is a
 				// member access where anything else does.
 				case '.':
-					if (p + 1 < s.Length && s[p + 1] >= '0' && s[p + 1] <= '9')
-					{
-						p    = Numeric(s, p, out kind);
-						break;
-					}
-
-					kind = Take(ref p, 1, Dot);
+					if (IsDigit(Next(s, p)))
+						p = Numeric(s, p, out kind);
+					else
+						kind = Take(ref p, 1, Dot);
 					break;
 
 				case '"':
-					p = Quoted(s, p, '"');
-
-					if (p < 0)
-						return false;
-
-					kind = Text;
+					p = Quoted(s, p, out kind);
 					break;
 
 				case '\'':
-					p = Quoted(s, p, '\'');
-
-					if (p < 0)
-						return false;
-
 					kind = Character;
+					p    = CharacterEnd(s, p);
 					break;
 
 				case '@':
-					if (p + 1 >= s.Length || s[p + 1] != '"')
-						return false;
+					kind = Next(s, p) == '"' ? Verbatim : Interpolated;
+					p    = Next(s, p) == '"' ? VerbatimEnd(s, p + 2)
+						: Next(s, p) == '$' && p + 2 < s.Length && s[p + 2] == '"' ? InterpolatedEnd(s, p + 3, verbatim: true, null)
+						: -1;
+					break;
 
-					p = p + 2;
-
-					while (true)
-					{
-						if (p >= s.Length)
-							return false;
-
-						if (s[p] != '"')
-						{
-							p++;
-
-							continue;
-						}
-
-						if (p + 1 < s.Length && s[p + 1] == '"')
-						{
-							p += 2;
-
-							continue;
-						}
-
-						p++;
-
-						break;
-					}
-
-					kind = Verbatim;
+				case '$':
+					p = Dollars(s, p, out kind);
 					break;
 
 				default:
-					if (c >= '0' && c <= '9')
+					if (IsDigit(c))
 					{
 						p = Numeric(s, p, out kind);
 
@@ -516,15 +750,32 @@ public static class HandExpression
 					}
 
 					if (!IsStart(c))
-						return false;
+					{
+						kind = End;
+						p    = -1;
+
+						break;
+					}
+
+					var plain = c < 128;
 
 					p++;
 
 					while (p < s.Length && IsPart(s[p]))
+					{
+						plain &= s[p] < 128;
 						p++;
+					}
 
-					kind = Keyword(s.Slice(from, p - from));
+					kind = ascii && !plain ? Foreign : Keyword(s.Slice(start, p - start));
 					break;
+			}
+
+			if (p < 0)
+			{
+				stopped = start;
+
+				break;
 			}
 
 			if (count == kinds.Length)
@@ -537,23 +788,19 @@ public static class HandExpression
 			}
 
 			kinds  [count] = kind;
-			starts [count] = from;
-			lengths[count] = p - from;
+			starts [count] = start;
+			lengths[count] = p - start;
 			count++;
 		}
 
-		into.Grow(count);
+		into.Count = count;
 
-		kinds   = into.Kinds;
-		starts  = into.Starts;
-		lengths = into.Lengths;
+		return stopped;
+	}
 
-		kinds  [count] = End;
-		starts [count] = s.Length;
-		lengths[count] = 0;
-		into.Count     = count;
-
-		return true;
+	static char Next(ReadOnlySpan<char> s, int p)
+	{
+		return p + 1 < s.Length ? s[p + 1] : '\0';
 	}
 
 	static byte Take(ref int p, int width, byte kind)
@@ -564,86 +811,115 @@ public static class HandExpression
 	}
 
 	/// <summary>
-	/// One number, whichever of the eight forms it is, with its base and its suffix in the
-	/// kind it comes back as.
+	/// One number, whichever of the forms it is, with its base and its suffix in the kind it
+	/// comes back as.
 	/// </summary>
+	/// <remarks>
+	/// A separator stands between two digits and nowhere else: `1_` is the number `1` and
+	/// then the word `_`, and `0x` with no digit after it is a `0` and then a word. A base
+	/// whose digits are missing was no base.
+	/// </remarks>
 	static int Numeric(ReadOnlySpan<char> s, int p, out byte kind)
 	{
-		if (s[p] == '0' && p + 1 < s.Length && (s[p + 1] == 'x' || s[p + 1] == 'X'))
+		if (s[p] == '0' && (Next(s, p) | 0x20) is 'x' or 'b')
 		{
-			p += 2;
+			var hex    = (Next(s, p) | 0x20) == 'x';
+			var digits = p + 2;
 
-			while (p < s.Length && (s[p] == '_' || IsHex(s[p])))
-				p++;
+			while (digits < s.Length && s[digits] == '_')
+				digits++;
 
-			kind = Suffixed(s, ref p, Hex, HexU, HexL, HexUL);
+			var end = hex ? Run(s, digits, IsHex) : Run(s, digits, IsBit);
 
-			return p;
+			if (end > digits)
+			{
+				kind = hex
+					? Suffixed(s, ref end, Hex,  HexU,  HexL,  HexUL)
+					: Suffixed(s, ref end, Bits, BitsU, BitsL, BitsUL);
+
+				return end;
+			}
 		}
 
-		if (s[p] == '0' && p + 1 < s.Length && (s[p + 1] == 'b' || s[p + 1] == 'B'))
-		{
-			p += 2;
-
-			while (p < s.Length && (s[p] == '_' || s[p] == '0' || s[p] == '1'))
-				p++;
-
-			kind = Suffixed(s, ref p, Bits, BitsU, BitsL, BitsUL);
-
-			return p;
-		}
-
+		var at   = Run(s, p, IsDigit);
 		var real = false;
 
-		while (p < s.Length && (s[p] == '_' || IsDigit(s[p])))
-			p++;
-
-		if (p < s.Length && s[p] == '.' && p + 1 < s.Length && IsDigit(s[p + 1]))
+		// The three ways C# writes a real: a point with digits on both sides of it, a point
+		// with nothing before it, and an exponent standing in for the point.
+		if (at == p)
 		{
+			at   = Run(s, p + 1, IsDigit);
 			real = true;
-			p++;
+		}
+		else if (at < s.Length && s[at] == '.')
+		{
+			var fraction = Run(s, at + 1, IsDigit);
 
-			while (p < s.Length && (s[p] == '_' || IsDigit(s[p])))
-				p++;
+			if (fraction > at + 1)
+			{
+				at   = fraction;
+				real = true;
+			}
 		}
 
-		if (p < s.Length && (s[p] == 'e' || s[p] == 'E'))
+		if (at < s.Length && (s[at] | 0x20) == 'e')
 		{
-			var after = p + 1;
+			var digits = at + 1;
 
-			if (after < s.Length && (s[after] == '+' || s[after] == '-'))
-				after++;
+			if (digits < s.Length && (s[digits] == '+' || s[digits] == '-'))
+				digits++;
 
-			if (after < s.Length && IsDigit(s[after]))
+			var exponent = Run(s, digits, IsDigit);
+
+			if (exponent > digits)
 			{
+				at   = exponent;
 				real = true;
-				p    = after;
-
-				while (p < s.Length && (s[p] == '_' || IsDigit(s[p])))
-					p++;
 			}
 		}
 
 		// The three real suffixes take a decimal as readily as a real — `1m` is a decimal
 		// and `1f` a float — so they are asked about before the integer suffixes are.
-		if (p < s.Length)
-			switch (s[p])
+		if (at < s.Length)
+			switch (s[at] | 0x20)
 			{
-				case 'm': case 'M': p++; kind = RealM; return p;
-				case 'd': case 'D': p++; kind = RealD; return p;
-				case 'f': case 'F': p++; kind = RealF; return p;
+				case 'm': kind = RealM; return at + 1;
+				case 'd': kind = RealD; return at + 1;
+				case 'f': kind = RealF; return at + 1;
 			}
 
 		if (real)
 		{
 			kind = Real;
 
-			return p;
+			return at;
 		}
 
-		kind = Suffixed(s, ref p, Number, NumberU, NumberL, NumberUL);
+		kind = Suffixed(s, ref at, Number, NumberU, NumberL, NumberUL);
 
-		return p;
+		return at;
+	}
+
+	/// <summary>Past a run of digits with separators between them, or where it began if no digit is there.</summary>
+	static int Run(ReadOnlySpan<char> s, int p, Func<char, bool> digit)
+	{
+		if (p >= s.Length || !digit(s[p]))
+			return p;
+
+		p++;
+
+		while (true)
+		{
+			var next = p;
+
+			while (next < s.Length && s[next] == '_')
+				next++;
+
+			if (next >= s.Length || !digit(s[next]))
+				return p;
+
+			p = next + 1;
+		}
 	}
 
 	static byte Suffixed(ReadOnlySpan<char> s, ref int p, byte plain, byte unsigned, byte signedLong, byte both)
@@ -653,148 +929,919 @@ public static class HandExpression
 
 		var one = s[p] | 0x20;
 
-		if (one == 'u')
-		{
-			p++;
+		if (one != 'u' && one != 'l')
+			return plain;
 
-			if (p < s.Length && (s[p] | 0x20) == 'l')
-			{
-				p++;
-
-				return both;
-			}
-
-			return unsigned;
-		}
-
-		if (one == 'l')
-		{
-			p++;
-
-			if (p < s.Length && (s[p] | 0x20) == 'u')
-			{
-				p++;
-
-				return both;
-			}
-
-			return signedLong;
-		}
-
-		return plain;
-	}
-
-	/// <summary>Past the closing quote, or -1 where the text runs out first.</summary>
-	static int Quoted(ReadOnlySpan<char> s, int p, char quote)
-	{
 		p++;
 
-		while (true)
-		{
-			if (p >= s.Length)
-				return -1;
+		var two = p < s.Length ? s[p] | 0x20 : 0;
 
-			if (s[p] == '\\')
+		if (one == 'u' && two == 'l' || one == 'l' && two == 'u')
+		{
+			p++;
+
+			return both;
+		}
+
+		return one == 'u' ? unsigned : signedLong;
+	}
+
+	/// <summary>A string at a quote: a plain one, or a raw one where three quotes or more begin it.</summary>
+	/// <remarks>
+	/// A raw string of three to five quotes that finds no end is not refused on the spot: its
+	/// first two quotes are an empty string as well, and the longest token that ends is the one
+	/// taken. Six quotes or more are only ever a raw string, and one with no end is none.
+	/// </remarks>
+	static int Quoted(ReadOnlySpan<char> s, int p, out byte kind)
+	{
+		var quotes = Count(s, p, '"');
+
+		if (quotes >= 6)
+		{
+			kind = RawLong;
+
+			return LongRawEnd(s, p + quotes, 0, quotes);
+		}
+
+		if (quotes >= 3 && RawTextEnd(s, p, quotes) is var raw && raw >= 0)
+		{
+			kind = RawText;
+
+			return raw;
+		}
+
+		kind = Text;
+
+		return TextEnd(s, p);
+	}
+
+	/// <summary>A string that begins with dollars: interpolated, raw, or both.</summary>
+	static int Dollars(ReadOnlySpan<char> s, int p, out byte kind)
+	{
+		var dollars = Count(s, p, '$');
+		var after   = p + dollars;
+		var quotes  = Count(s, after, '"');
+
+		if (dollars == 1 && quotes == 0 && after + 1 < s.Length && s[after] == '@' && s[after + 1] == '"')
+		{
+			kind = Interpolated;
+
+			return InterpolatedEnd(s, after + 2, verbatim: true, null);
+		}
+
+		if (dollars >= 3 && quotes >= 3 || dollars <= 2 && quotes >= 6)
+		{
+			kind = RawLong;
+
+			return LongRawEnd(s, after + quotes, dollars, quotes);
+		}
+
+		if (quotes >= 3)
+		{
+			kind = RawHoles;
+
+			return RawHolesEnd(s, after + quotes, dollars, quotes, null);
+		}
+
+		kind = Interpolated;
+
+		return dollars == 1 && quotes >= 1 ? InterpolatedEnd(s, after + 1, verbatim: false, null) : -1;
+	}
+
+	static int Count(ReadOnlySpan<char> s, int p, char what)
+	{
+		var at = p;
+
+		while (at < s.Length && s[at] == what)
+			at++;
+
+		return at - p;
+	}
+
+	/// <summary>Past the closing quote of a plain string, or -1 where the text runs out or an escape is none.</summary>
+	static int TextEnd(ReadOnlySpan<char> s, int p)
+	{
+		for (var at = p + 1; at < s.Length;)
+		{
+			if (s[at] == '"')
+				return at + 1;
+
+			if (s[at] != '\\')
 			{
-				p += 2;
+				at++;
 
 				continue;
 			}
 
-			if (s[p] == quote)
-				return p + 1;
+			at = EscapeEnd(s, at);
 
-			p++;
+			if (at < 0)
+				return -1;
 		}
+
+		return -1;
 	}
 
-	static bool IsDigit(char c) => c >= '0' && c <= '9';
-
-	static bool IsHex(char c) =>
-		c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
-
-	static bool IsStart(char c) => c == '_' || char.IsLetter(c);
-
-	static bool IsPart(char c) => c == '_' || char.IsLetterOrDigit(c);
-
-	// ── The parser ──────────────────────────────────────────────────────────────
-
-	/// <summary>The lambda the text is, or null where it is not one.</summary>
-	public static LambdaExpression? Build(string text)
+	/// <summary>Past a character literal: one character or one escape between two quotes.</summary>
+	static int CharacterEnd(ReadOnlySpan<char> s, int p)
 	{
-		var tokens = Rented();
+		var at = p + 1;
 
-		if (!Lex(text, tokens))
-			return null;
+		if (at >= s.Length || s[at] == '\'')
+			return -1;
 
-		var reader = new Reader(tokens, text, new ExpressionParser.State());
-		var end    = reader.Lambda(0, out var node);
+		at = s[at] == '\\' ? EscapeEnd(s, at) : at + 1;
 
-		return end == tokens.Count ? node : null;
+		return at >= 0 && at < s.Length && s[at] == '\'' ? at + 1 : -1;
 	}
 
-	/// <summary>Whether the whole input is a lambda, tree and all.</summary>
-	public static bool Parse(string text)
+	/// <summary>Past a verbatim string, where a doubled quote is a quote and nothing else is special.</summary>
+	/// <remarks>
+	/// Two quotes are a quote only where the string goes on to end: where it does not, the first
+	/// of them was its end, and the longest string that ends is the one there is.
+	/// </remarks>
+	static int VerbatimEnd(ReadOnlySpan<char> s, int at)
 	{
-		try
+		var ended = -1;
+
+		while (at < s.Length)
 		{
-			return Build(text) is not null;
+			if (s[at] != '"')
+			{
+				at++;
+
+				continue;
+			}
+
+			if (Next(s, at) != '"')
+				return at + 1;
+
+			ended = at + 1;
+			at   += 2;
 		}
-		catch (Exception exception) when (exception is FormatException or ArgumentException or InvalidOperationException)
+
+		return ended;
+	}
+
+	/// <summary>Past an escape, or -1 where what follows the backslash is none C# has.</summary>
+	/// <remarks>
+	/// `\u` takes four hexadecimal digits exactly and `\U` eight; `\x` takes one to four, as
+	/// many as there are.
+	/// </remarks>
+	static int EscapeEnd(ReadOnlySpan<char> s, int at)
+	{
+		if (at + 1 >= s.Length)
+			return -1;
+
+		switch (s[at + 1])
 		{
-			// The API refuses what this language cannot type — `1 + "a"`, a member no type
-			// has — in its own words and by throwing, and so does the generated parser.
-			// A verdict is what is being compared, so a refusal by exception is a refusal.
-			return false;
+			case 'a' or 'b' or 'f' or 'n' or 'r' or 't' or 'v' or '0' or '\\' or '\'' or '"':
+				return at + 2;
+
+			case 'u':
+				return HexDigits(s, at + 2, 4) == 4 ? at + 6 : -1;
+
+			case 'U':
+				return HexDigits(s, at + 2, 8) == 8 ? at + 10 : -1;
+
+			case 'x':
+				var width = HexDigits(s, at + 2, 4);
+
+				return width > 0 ? at + 2 + width : -1;
+
+			default:
+				return -1;
 		}
 	}
 
-	public static int LexOnly(string text)
+	static int HexDigits(ReadOnlySpan<char> s, int at, int most)
 	{
-		var tokens = Rented();
+		var width = 0;
 
-		return Lex(text, tokens) ? tokens.Count : -1;
+		while (width < most && at + width < s.Length && IsHex(s[at + width]))
+			width++;
+
+		return width;
+	}
+
+	/// <summary>What an escape stands for, the one ending at <paramref name="end"/>.</summary>
+	static string Escaped(ReadOnlySpan<char> s, int at, int end)
+	{
+		return s[at + 1] switch
+		{
+			'a' => "\a",
+			'b' => "\b",
+			'f' => "\f",
+			'n' => "\n",
+			'r' => "\r",
+			't' => "\t",
+			'v' => "\v",
+			'0' => "\0",
+			'u' => ((char)Convert.ToInt32(s.Slice(at + 2, 4).ToString(), 16)).ToString(),
+			'U' => char.ConvertFromUtf32(Convert.ToInt32(s.Slice(at + 2, 8).ToString(), 16)),
+			'x' => ((char)Convert.ToInt32(s.Slice(at + 2, end - at - 2).ToString(), 16)).ToString(),
+			var c => c.ToString(),
+		};
+	}
+
+	// ── Interpolated and raw strings ────────────────────────────────────────────
+	//
+	// Each of these is measured twice: once by the lexer, which only wants the end, and once
+	// where the string is built, which wants its pieces — text as it reads and a hole where
+	// one stands. The same code does both, handed a list or not.
+
+	/// <summary>
+	/// Past the closing quote of an interpolated string's body, from just inside its opening
+	/// quote, or -1; its pieces added to <paramref name="parts"/> where there is a list.
+	/// </summary>
+	/// <remarks>
+	/// `{{` and `}}` are a brace each, a hole is everything between one brace and its match, and
+	/// a brace standing alone is refused. The plain form reads escapes and the verbatim one a
+	/// doubled quote.
+	/// </remarks>
+	static int InterpolatedEnd(ReadOnlySpan<char> s, int at, bool verbatim, List<Segment>? parts)
+	{
+		// In the verbatim form two quotes are a quote only where the string goes on to end, as
+		// in a verbatim string: where it does not, the first of them was its end.
+		var ended = -1;
+
+		while (at < s.Length)
+		{
+			var c = s[at];
+
+			if (c == '{' || c == '}')
+			{
+				if (Next(s, at) == c)
+				{
+					parts?.Add(Segment.Of(c == '{' ? "{" : "}"));
+					at += 2;
+
+					continue;
+				}
+
+				if (c == '}')
+					return ended;
+
+				var close = HoleEnd(s, at + 1, parts);
+
+				if (close < 0)
+					return ended;
+
+				at = close + 1;
+
+				continue;
+			}
+
+			if (c == '"')
+			{
+				if (!verbatim || Next(s, at) != '"')
+					return at + 1;
+
+				ended = at + 1;
+
+				parts?.Add(Segment.Of("\""));
+				at += 2;
+
+				continue;
+			}
+
+			if (c == '\\' && !verbatim)
+			{
+				var end = EscapeEnd(s, at);
+
+				if (end < 0)
+					return ended;
+
+				parts?.Add(Segment.Of(Escaped(s, at, end)));
+				at = end;
+
+				continue;
+			}
+
+			var from = at;
+
+			while (at < s.Length && s[at] is not ('"' or '{' or '}') && (verbatim || s[at] != '\\'))
+				at++;
+
+			parts?.Add(Segment.Of(s.Slice(from, at - from).ToString()));
+		}
+
+		return ended;
 	}
 
 	/// <summary>
-	/// The reader, over kinds, building the same tree the generated parser builds.
+	/// A hole, from just inside its brace: the index of the brace that closes it, or -1; the
+	/// hole added to <paramref name="parts"/> as the window its expression is read over.
 	/// </summary>
 	/// <remarks>
-	/// Every method hands back the token it stopped at, or -1, and writes what it read
-	/// into an <c>out</c> parameter — the position is the return value because every
-	/// caller needs it, the node an argument because only some do.
+	/// What ends a hole is what C#'s lexer says ends one, without reading the expression:
+	/// brackets balanced, strings stepped over, and a colon standing at the top the start of
+	/// its format. The expression is read afterwards, over exactly that window.
 	/// </remarks>
-	ref struct Reader(Tokens tokens, string text, ExpressionParser.State context)
+	static int HoleEnd(ReadOnlySpan<char> s, int at, List<Segment>? parts)
+	{
+		var run   = HoleRunEnd(s, at, inside: false);
+		var close = run;
+
+		string? format = null;
+
+		if (close < s.Length && s[close] == ':')
+		{
+			close++;
+
+			while (close < s.Length && s[close] is not ('{' or '}' or '"' or '\\'))
+				close++;
+
+			format = s.Slice(run + 1, close - run - 1).ToString();
+		}
+
+		if (close >= s.Length || s[close] != '}')
+			return -1;
+
+		parts?.Add(Segment.Hole(at, run - at).Formatted(format));
+
+		return close;
+	}
+
+	/// <summary>
+	/// As far as a hole's expression may reach: past brackets that close and strings that end,
+	/// up to a closing bracket of the hole's own, or a colon at its top.
+	/// </summary>
+	static int HoleRunEnd(ReadOnlySpan<char> s, int at, bool inside)
+	{
+		while (at < s.Length)
+		{
+			var c = s[at];
+
+			switch (c)
+			{
+				case '(' or '[' or '{':
+					var close  = c == '(' ? ')' : c == '[' ? ']' : '}';
+					var nested = HoleRunEnd(s, at + 1, inside: true);
+
+					if (nested >= s.Length || s[nested] != close)
+						return at;
+
+					at = nested + 1;
+					continue;
+
+				case ')' or ']' or '}':
+					return at;
+
+				case ':':
+					if (!inside)
+						return at;
+
+					at++;
+					continue;
+
+				case '"' or '\'' or '@' or '$':
+					var quoted = QuotedEnd(s, at);
+
+					if (quoted >= 0)
+					{
+						at = quoted;
+
+						continue;
+					}
+
+					// A `$` or an `@` is a character like any other where no quote follows it.
+					if ((c == '@' || c == '$') && Next(s, at) != '"')
+					{
+						at++;
+
+						continue;
+					}
+
+					return at;
+
+				default:
+					at++;
+					continue;
+			}
+		}
+
+		return at;
+	}
+
+	/// <summary>Past a string or a character written inside a hole, or -1 where none stands there.</summary>
+	/// <remarks>
+	/// Every form a string may take, tried in the order the grammar tries them: the raw ones,
+	/// longest first, then the interpolated, the verbatim, the plain string and the character.
+	/// </remarks>
+	static int QuotedEnd(ReadOnlySpan<char> s, int at)
+	{
+		var dollars = Count(s, at, '$');
+		var quotes  = Count(s, at + dollars, '"');
+
+		if (dollars >= 3 && quotes >= 3 || dollars <= 2 && quotes >= 6)
+		{
+			var end = LongRawEnd(s, at + dollars + quotes, dollars, quotes);
+
+			if (end >= 0)
+				return end;
+		}
+
+		for (var width = 5; width >= 3; width--)
+		{
+			if (quotes < width)
+				continue;
+
+			var end = dollars is 1 or 2
+				? RawHolesEnd(s, at + dollars + width, dollars, width, null)
+				: dollars == 0 ? RawTextEnd(s, at, width) : -1;
+
+			if (end >= 0)
+				return end;
+		}
+
+		if (dollars == 1 && quotes >= 1 && InterpolatedEnd(s, at + 2, verbatim: false, null) is var interpolated && interpolated >= 0)
+			return interpolated;
+
+		if (dollars == 1 && quotes == 0 && at + 2 < s.Length && s[at + 1] == '@' && s[at + 2] == '"' ||
+			s[at] == '@' && at + 2 < s.Length && s[at + 1] == '$' && s[at + 2] == '"')
+		{
+			var end = InterpolatedEnd(s, at + 3, verbatim: true, null);
+
+			if (end >= 0)
+				return end;
+		}
+
+		return s[at] switch
+		{
+			'@'  => Next(s, at) == '"' ? VerbatimEnd(s, at + 2) : -1,
+			'"'  => TextEnd(s, at),
+			'\'' => CharacterEnd(s, at),
+			_    => -1,
+		};
+	}
+
+	/// <summary>Past a raw string of <paramref name="quotes"/> quotes with no holes, from its first quote, or -1.</summary>
+	/// <remarks>
+	/// Its text never begins with a quote — every quote at the beginning belongs to the
+	/// beginning — and holds no run of quotes as long as the ones that close it; the first
+	/// such run does close it.
+	/// </remarks>
+	static int RawTextEnd(ReadOnlySpan<char> s, int p, int quotes)
+	{
+		var at = p + quotes;
+
+		if (at >= s.Length || s[at] == '"')
+			return -1;
+
+		at++;
+
+		while (at < s.Length)
+		{
+			if (s[at] != '"')
+			{
+				at++;
+
+				continue;
+			}
+
+			var run = Count(s, at, '"');
+
+			if (run >= quotes)
+				return at + quotes;
+
+			at += run;
+		}
+
+		return -1;
+	}
+
+	/// <summary>
+	/// Past a raw interpolated string of one or two dollars, from the end of its quotes, or -1;
+	/// its pieces added to <paramref name="parts"/> where there is a list.
+	/// </summary>
+	/// <remarks>
+	/// With one dollar a brace always opens a hole, and a closing one outside a hole is
+	/// refused. With two, a single brace is text, a run of three is one of text and a hole's
+	/// two, and a hole is closed by two.
+	/// </remarks>
+	static int RawHolesEnd(ReadOnlySpan<char> s, int at, int dollars, int quotes, List<Segment>? parts)
+	{
+		while (at < s.Length)
+		{
+			var c = s[at];
+
+			if (c == '"')
+			{
+				if (Count(s, at, '"') >= quotes)
+					return at + quotes;
+
+				parts?.Add(Segment.Of("\""));
+				at++;
+
+				continue;
+			}
+
+			if (c == '{')
+			{
+				if (dollars == 2 && (Next(s, at) != '{' || at + 2 < s.Length && s[at + 2] == '{' && Next(s, at + 2) != '{'))
+				{
+					parts?.Add(Segment.Of("{"));
+					at++;
+
+					continue;
+				}
+
+				var width = dollars;
+				var close = HoleEnd(s, at + width, parts);
+
+				if (close < 0 || Count(s, close, '}') < width)
+					return -1;
+
+				at = close + width;
+
+				continue;
+			}
+
+			if (c == '}')
+			{
+				if (dollars == 2 && Next(s, at) != '}')
+				{
+					parts?.Add(Segment.Of("}"));
+					at++;
+
+					continue;
+				}
+
+				return -1;
+			}
+
+			var from = at;
+
+			while (at < s.Length && s[at] is not ('"' or '{' or '}'))
+				at++;
+
+			parts?.Add(Segment.Of(s.Slice(from, at - from).ToString()));
+		}
+
+		return -1;
+	}
+
+	/// <summary>
+	/// Past a raw string of more quotes or dollars than the grammar writes out, from the end of
+	/// its quotes, or -1 where C# refuses it: measured the way the language's own host measures
+	/// one, since that is what decides where one ends.
+	/// </summary>
+	/// <remarks>
+	/// A run of quotes as long as the opening one closes it, and a longer run is refused. With
+	/// dollars, a run of braces shorter than them is text; one as long opens a hole, the braces
+	/// past that count being text before it; and one twice as long is refused.
+	/// </remarks>
+	static int LongRawEnd(ReadOnlySpan<char> s, int at, int dollars, int quotes)
+	{
+		while (at < s.Length)
+		{
+			var c = s[at];
+
+			if (c == '"')
+			{
+				var run = Count(s, at, '"');
+
+				if (run >= quotes)
+					return run > quotes ? -1 : at + run;
+
+				at += run;
+
+				continue;
+			}
+
+			if (dollars > 0 && c == '{')
+			{
+				var run = Count(s, at, '{');
+
+				if (run < dollars)
+				{
+					at += run;
+
+					continue;
+				}
+
+				if (run >= 2 * dollars)
+					return -1;
+
+				at = LongHoleEnd(s, at + run, dollars);
+
+				if (at < 0)
+					return -1;
+
+				continue;
+			}
+
+			if (dollars > 0 && c == '}')
+			{
+				var run = Count(s, at, '}');
+
+				if (run >= dollars)
+					return -1;
+
+				at += run;
+
+				continue;
+			}
+
+			at++;
+		}
+
+		return -1;
+	}
+
+	/// <summary>Past the closing braces of a hole in a long raw string, or -1 where it has none.</summary>
+	static int LongHoleEnd(ReadOnlySpan<char> s, int at, int dollars)
+	{
+		var depth = 0;
+		var colon = false;
+
+		while (at < s.Length)
+		{
+			var c = s[at];
+
+			if (colon && c != '}')
+			{
+				at++;
+
+				continue;
+			}
+
+			if (!colon)
+			{
+				if (c is '(' or '[' or '{')
+				{
+					depth++;
+					at++;
+
+					continue;
+				}
+
+				if (c is ')' or ']' || c == '}' && depth > 0)
+				{
+					depth--;
+					at++;
+
+					continue;
+				}
+
+				if (c == ':' && depth == 0)
+				{
+					colon = true;
+					at++;
+
+					continue;
+				}
+
+				if (c is '"' or '\'' or '@' or '$')
+				{
+					var skipped = LongSkipped(s, at);
+
+					if (skipped < 0)
+						return -1;
+
+					at = skipped > at ? skipped : at + 1;
+
+					continue;
+				}
+
+				if (c != '}')
+				{
+					at++;
+
+					continue;
+				}
+			}
+
+			return Count(s, at, '}') < dollars ? -1 : at + dollars;
+		}
+
+		return -1;
+	}
+
+	/// <summary>Past a string or a character inside such a hole, the position itself where none begins, or -1.</summary>
+	static int LongSkipped(ReadOnlySpan<char> s, int p)
+	{
+		var at       = p;
+		var dollars  = 0;
+		var verbatim = false;
+
+		while (at < s.Length && (s[at] == '$' || s[at] == '@'))
+		{
+			if (s[at] == '$')
+				dollars++;
+			else
+				verbatim = true;
+
+			at++;
+		}
+
+		if (at >= s.Length)
+			return p;
+
+		if (at == p && s[at] == '\'')
+		{
+			at++;
+
+			if (at < s.Length && s[at] == '\\')
+				at++;
+
+			at++;
+
+			while (at < s.Length && s[at] != '\'')
+				at++;
+
+			return at < s.Length ? at + 1 : -1;
+		}
+
+		if (s[at] != '"')
+			return p;
+
+		var run = Count(s, at, '"');
+
+		if (run >= 3 && !verbatim)
+			return LongRawEnd(s, at + run, dollars, run);
+
+		for (at++; at < s.Length; at++)
+		{
+			var c = s[at];
+
+			if (c == '"')
+			{
+				if (verbatim && Next(s, at) == '"')
+				{
+					at++;
+
+					continue;
+				}
+
+				return at + 1;
+			}
+
+			if (c == '\\' && !verbatim)
+			{
+				at++;
+
+				continue;
+			}
+
+			if (dollars > 0 && (c == '{' || c == '}') && Next(s, at) == c)
+			{
+				at++;
+
+				continue;
+			}
+
+			if (dollars > 0 && c == '{')
+			{
+				var next = LongHoleEnd(s, at + 1, 1);
+
+				if (next < 0)
+					return -1;
+
+				at = next - 1;
+			}
+		}
+
+		return -1;
+	}
+
+	static bool IsDigit(char c)
+	{
+		return c >= '0' && c <= '9';
+	}
+
+	static bool IsBit(char c)
+	{
+		return c == '0' || c == '1';
+	}
+
+	static bool IsHex(char c)
+	{
+		return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
+	}
+
+	static bool IsStart(char c)
+	{
+		return c == '_' || char.IsLetter(c);
+	}
+
+	static bool IsPart(char c)
+	{
+		return c == '_' || char.IsLetterOrDigit(c);
+	}
+
+	// ── The parser ──────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// The reader, over kinds, building the same tree the generated parser builds — or, told
+	/// not to build, reading and nothing else.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Every method hands back the token it stopped at, or -1, and writes what it read into an
+	/// <c>out</c> parameter — the position is the return value because every caller needs it,
+	/// the node an argument because only some do. Where the reader only reads, every node is
+	/// null.
+	/// </para>
+	/// <para>
+	/// Reading without building is what the body of a lambda that says no types is read with
+	/// the first time, when nothing in it can be built yet, and what a text is read with again
+	/// where building it threw. What a guard is handed is built all the same, since the guard
+	/// cannot answer without it: a declaration's type, the operand a member is looked for on,
+	/// what `var` takes its type from.
+	/// </para>
+	/// <para>
+	/// A refusal is said where it happens, by the furthest token the reading looked at: every
+	/// look at a token goes through <see cref="Kind"/>, which remembers how far it has been.
+	/// That the lookahead which tells a lambda from a name counts too — `(int x) => y` stops at
+	/// the end and not at `y` — is how the generated parser counts, not a rule of the language.
+	/// </para>
+	/// </remarks>
+	ref struct Reader(Tokens tokens, string text, State context, bool ascii, bool build)
 	{
 		readonly byte[] _kinds   = tokens.Kinds;
 		readonly int[]  _starts  = tokens.Starts;
 		readonly int[]  _lengths = tokens.Lengths;
 		readonly int    _count   = tokens.Count;
 		readonly string _text    = text;
+		readonly State  _context = context;
+		readonly bool   _ascii   = ascii;
 
-		readonly ExpressionParser.State _context = context;
+		bool _build = build;
+		int  _furthest;
 
-		// What the text being read stands under (§7.8 of the grammar). Two of these is
+		// What the text being read stands under (the grammar's `state`). Two of these is
 		// already more than any expression written by a person, and it grows if it has to.
 		ExpressionParser.Reading[] _marks = new ExpressionParser.Reading[8];
 		int _marked;
 
-		readonly byte Kind(int i) => i < _count ? _kinds[i] : End;
+		/// <summary>The furthest token looked at.</summary>
+		public readonly int Furthest => _furthest;
+
+		byte Kind(int i)
+		{
+			if (i > _furthest)
+				_furthest = i;
+
+			return i < _count ? _kinds[i] : End;
+		}
+
+		/// <summary>A look at a token that is not a reading of it: what `?!` does in the grammar.</summary>
+		/// <remarks>
+		/// Where the token is the one looked for, the look refuses what asked and says nothing
+		/// about where the text went wrong; where it is not, the reading goes on to that token
+		/// anyway. So a negative look counts for nothing, and only there is this used rather
+		/// than <see cref="Kind"/>.
+		/// </remarks>
+		readonly byte Peek(int i)
+		{
+			return i < _count ? _kinds[i] : End;
+		}
+
+		/// <summary>A guard refused what was read up to <paramref name="at"/>.</summary>
+		int Refuse(int at)
+		{
+			if (at > _furthest)
+				_furthest = at;
+
+			return -1;
+		}
 
 		/// <summary>Where the tokens from one to another stand in the input.</summary>
-		readonly ExpressionParser.SourceSpan Span(int from, int to) =>
-			new(_starts[from], _starts[to - 1] + _lengths[to - 1] - _starts[from]);
+		readonly SourceSpan Span(int from, int to)
+		{
+			return new(_starts[from], _starts[to - 1] + _lengths[to - 1] - _starts[from]);
+		}
 
-		readonly string Cut(int i) => _text.Substring(_starts[i], _lengths[i]);
+		readonly string Cut(int i)
+		{
+			return _text.Substring(_starts[i], _lengths[i]);
+		}
 
 		readonly ReadOnlySpan<ExpressionParser.Reading> Marks => new(_marks, 0, _marked);
 
-		void Mark(ExpressionParser.Reading reading)
+		/// <summary>A word, which is a name or a keyword: what `var` is read as before it is asked whether it is `var`.</summary>
+		static bool IsWord(byte kind)
 		{
-			if (_marked == _marks.Length)
-				Array.Resize(ref _marks, _marked * 2);
+			return kind == Identifier || kind >= FirstWord;
+		}
 
-			_marks[_marked++] = reading;
+		/// <summary>Whether that token is the word `var`, without cutting a string to find out.</summary>
+		/// <remarks>
+		/// `var` is contextual, so there is no kind to switch on, and a `Substring` per
+		/// statement would be a string allocated to answer no.
+		/// </remarks>
+		readonly bool IsVar(int i)
+		{
+			return i < _count && _kinds[i] == Identifier && _lengths[i] == 3 && Same(_text.AsSpan(_starts[i], 3), "var");
+		}
+
+		/// <summary>Reads with building switched off, to find out whether a reading goes through before any of it is built.</summary>
+		void Quiet(out bool was)
+		{
+			was    = _build;
+			_build = false;
 		}
 
 		// ── The lambda, and what it takes ───────────────────────────────────────
@@ -803,135 +1850,132 @@ public static class HandExpression
 		{
 			node = null;
 
+			var from = i;
+
 			// The `using`s before it, each recorded as it is read — where the grammar's guard
 			// records them, and for the reason it does: every name after asks about them.
 			while (Kind(i) == KwUsing)
 			{
-				if (Kind(i + 1) != Identifier)
+				i = Import(i);
+
+				if (i < 0)
 					return -1;
-
-				var name = Cut(i + 1);
-				var end  = i + 2;
-
-				while (Kind(end) == Dot && Kind(end + 1) == Identifier)
-				{
-					name += "." + Cut(end + 1);
-					end  += 2;
-				}
-
-				if (Kind(end) != Semicolon || !_context.Imports(name, Span(i, end + 1)))
-					return -1;
-
-				i = end + 1;
 			}
 
 			if (Kind(i) != LeftParen)
 				return -1;
 
-			var at    = i + 1;
-			var taken = new List<ParameterExpression>();
-
-			if (Kind(at) != RightParen)
-			{
-				var first = Parameter(at, out var one);
-
-				if (first < 0)
-					return -1;
-
-				taken.Add(one!);
-				at = first;
-
-				while (Kind(at) == Comma)
-				{
-					var more = Parameter(at + 1, out var next);
-
-					if (more < 0)
-						return -1;
-
-					taken.Add(next!);
-					at = more;
-				}
-			}
+			var taken = new List<(string Name, SourceSpan At)>();
+			var at    = Parameters(i + 1, taken);
 
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
 				return -1;
 
 			// Where this lambda is, recorded before its body and closed after it, which is
 			// what says which lambda a `return` written inside it leaves.
-			_context.Entering(Span(i, at + 2));
+			_context.Entering(Span(from, at + 2));
 
 			var body = Value(at + 2, out var read);
 
 			if (body < 0)
 				return -1;
 
-			var span = Span(i, body);
+			var span = Span(from, body);
 
 			if (!_context.Leaves(span))
-				return -1;
+				return Refuse(body);
 
-			node = Expression.Lambda(_context.Returning(read!, span), taken.ToArray());
+			if (_build)
+				node = _context.Finished(Expression.Lambda(_context.Returning(read!, span), Taken(taken)));
 
 			return body;
 		}
 
-		int Parameter(int i, out ParameterExpression? node)
+		int Import(int i)
 		{
-			node = null;
+			if (Kind(i + 1) != Identifier)
+				return -1;
 
-			var at = Type(i, out var type);
+			var name = Cut(i + 1);
+			var at   = i + 2;
+
+			while (Kind(at) == Dot && Kind(at + 1) == Identifier)
+			{
+				name += "." + Cut(at + 1);
+				at   += 2;
+			}
+
+			if (Kind(at) != Semicolon)
+				return -1;
+
+			return _context.Imports(name, Span(i, at + 1)) ? at + 1 : Refuse(at + 1);
+		}
+
+		/// <summary>The parameters inside the brackets, each declared where it is read; where the list ends.</summary>
+		int Parameters(int i, List<(string Name, SourceSpan At)> taken)
+		{
+			var at = Parameter(i, taken);
+
+			if (at < 0)
+				return i;
+
+			while (Kind(at) == Comma)
+			{
+				var more = Parameter(at + 1, taken);
+
+				if (more < 0)
+					break;
+
+				at = more;
+			}
+
+			return at;
+		}
+
+		/// <summary>A parameter, declared by the guard while the text is read: the declaration is the one thing here that has to happen then.</summary>
+		int Parameter(int i, List<(string Name, SourceSpan At)> taken)
+		{
+			var at = Type(i, out _, build: false);
 
 			if (at < 0 || Kind(at) != Identifier)
 				return -1;
+
+			Type(i, out var type, build: true);
 
 			var name = Cut(at);
 			var span = Span(i, at + 1);
 
 			if (!_context.Takes(type!, name, span))
-				return -1;
+				return Refuse(at + 1);
 
-			node = _context.Named(name, span);
+			taken.Add((name, span));
 
 			return at + 1;
 		}
 
-		/// <summary>A lambda written inside an expression.</summary>
+		/// <summary>The parameters as the lambda takes them, made once it is known there is a lambda.</summary>
+		readonly ParameterExpression[] Taken(List<(string Name, SourceSpan At)> taken)
+		{
+			var made = new ParameterExpression[taken.Count];
+
+			for (var one = 0; one < made.Length; one++)
+				made[one] = _context.Named(taken[one].Name, taken[one].At);
+
+			return made;
+		}
+
+		/// <summary>A lambda written inside an expression, its parameters' types said.</summary>
 		/// <remarks>
-		/// The scope is recorded before the lambda is built and after its body is read, which
-		/// is where the grammar's guard stands: a name is looked up by where it is written, and
-		/// this is what says where the parameter's inside is.
+		/// The scope is recorded after its body is read, which is where the grammar's guard
+		/// stands: a name is looked up by where it is written, and this is what says where the
+		/// parameter's inside is.
 		/// </remarks>
 		int Inner(int i, out Expression? node)
 		{
 			node = null;
 
-			if (Kind(i) != LeftParen)
-				return -1;
-
-			var taken = new List<ParameterExpression>();
-			var at    = i + 1;
-
-			if (Kind(at) != RightParen)
-			{
-				var first = Parameter(at, out var one);
-
-				if (first < 0)
-					return -1;
-
-				taken.Add(one!);
-				at = first;
-
-				while (Kind(at) == Comma)
-				{
-					var more = Parameter(at + 1, out var next);
-
-					if (more < 0)
-						return -1;
-
-					taken.Add(next!);
-					at = more;
-				}
-			}
+			var taken = new List<(string Name, SourceSpan At)>();
+			var at    = Parameters(i + 1, taken);
 
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
 				return -1;
@@ -946,110 +1990,215 @@ public static class HandExpression
 			var span = Span(i, body);
 
 			if (!_context.Scoped(span) || !_context.Leaves(span))
+				return Refuse(body);
+
+			if (_build)
+				node = _context.Nested(read!, Taken(taken), span);
+
+			return body;
+		}
+
+		/// <summary>A lambda whose parameters say no types: `n => n * 2`, `(a, b) => a + b`.</summary>
+		/// <remarks>
+		/// <para>
+		/// Asked first whether a `=>` follows at all, because this is tried at every name and
+		/// every bracket an operand begins with, and nearly none of them is a lambda.
+		/// </para>
+		/// <para>
+		/// The body is read to find where it ends and nothing of it is built: building it
+		/// needs the types, and they are the delegate's the call it is handed to chooses. What
+		/// is made is the lambda still to be built, which the call builds by reading the body
+		/// again over exactly its own text, the parameters typed.
+		/// </para>
+		/// </remarks>
+		int Untyped(int i, out Expression? node)
+		{
+			node = null;
+
+			int arrow;
+
+			var bare = Kind(i) == Identifier;
+
+			if (bare)
+			{
+				arrow = i + 1;
+			}
+			else
+			{
+				if (Kind(i + 1) != Identifier)
+					return -1;
+
+				arrow = i + 2;
+
+				while (Kind(arrow) == Comma)
+				{
+					if (Kind(arrow + 1) != Identifier)
+						return -1;
+
+					arrow += 2;
+				}
+
+				if (Kind(arrow) != RightParen)
+					return -1;
+
+				arrow++;
+			}
+
+			if (Kind(arrow) != Arrow)
 				return -1;
 
-			node = _context.Nested(read!, taken.ToArray(), span);
+			var parameters = new ExpressionParser.Awaited[bare ? 1 : (arrow - i - 1) / 2];
+
+			for (var one = 0; one < parameters.Length; one++)
+			{
+				var word = bare ? i : i + 1 + 2 * one;
+
+				parameters[one] = new ExpressionParser.Awaited(Cut(word), _starts[word]);
+			}
+
+			var head = Span(i, arrow + 1);
+
+			if (!_context.Awaits(parameters, head) || !_context.Entering(head))
+				return Refuse(arrow + 1);
+
+			Quiet(out var was);
+
+			var body = Value(arrow + 1, out _);
+
+			_build = was;
+
+			if (body < 0)
+				return -1;
+
+			var span = Span(i, body);
+
+			if (!(_context.Scoped(span) && _context.Leaves(span) && _context.Settles(span)))
+				return Refuse(body);
+
+			if (_build)
+			{
+				var held = Span(arrow + 1, body);
+
+				node = _context.Deferred(
+					parameters, new ExpressionParser.Held(held.Start, held.Length), span, _ascii ? AsciiBody : Body);
+			}
 
 			return body;
 		}
 
 		// ── Types ───────────────────────────────────────────────────────────────
+		//
+		// A type is built where it is asked for and not where it is read: most places read one
+		// before they know whether what they are reading is theirs — a cast before its operand,
+		// a declaration before its name — and building one that turns out to be a name's is
+		// building on a path that is left.
 
-		int Type(int i, out Type? type)
+		int Type(int i, out Type? type, bool build)
 		{
-			var at = Core(i, out type);
+			var at = Core(i, out type, build);
 
 			if (at < 0)
 				return -1;
 
 			while (Kind(at) == Brackets)
 			{
-				type = type!.MakeArrayType();
+				type = type?.MakeArrayType();
 				at++;
 			}
 
 			return at;
 		}
 
-		int Core(int i, out Type? type)
+		int Core(int i, out Type? type, bool build)
 		{
-			type = Kind(i) switch
-			{
-				var k when k == KwSbyte   => typeof(sbyte),
-				var k when k == KwByte    => typeof(byte),
-				var k when k == KwShort   => typeof(short),
-				var k when k == KwUshort  => typeof(ushort),
-				var k when k == KwInt     => typeof(int),
-				var k when k == KwUint    => typeof(uint),
-				var k when k == KwLong    => typeof(long),
-				var k when k == KwUlong   => typeof(ulong),
-				var k when k == KwFloat   => typeof(float),
-				var k when k == KwDouble  => typeof(double),
-				var k when k == KwDecimal => typeof(decimal),
-				var k when k == KwBool    => typeof(bool),
-				var k when k == KwChar    => typeof(char),
-				var k when k == KwString  => typeof(string),
-				var k when k == KwObject  => typeof(object),
-				_                         => null,
-			};
+			var kind = Kind(i);
 
-			return type is not null ? i + 1 : Named(i, out type);
+			type = null;
+
+			if (kind == Identifier)
+				return Named(i, out type, build);
+
+			if (!IsCore(kind))
+				return -1;
+
+			if (build)
+				type = kind switch
+				{
+					var k when k == KwSbyte   => typeof(sbyte),
+					var k when k == KwByte    => typeof(byte),
+					var k when k == KwShort   => typeof(short),
+					var k when k == KwUshort  => typeof(ushort),
+					var k when k == KwInt     => typeof(int),
+					var k when k == KwUint    => typeof(uint),
+					var k when k == KwLong    => typeof(long),
+					var k when k == KwUlong   => typeof(ulong),
+					var k when k == KwFloat   => typeof(float),
+					var k when k == KwDouble  => typeof(double),
+					var k when k == KwDecimal => typeof(decimal),
+					var k when k == KwBool    => typeof(bool),
+					var k when k == KwChar    => typeof(char),
+					var k when k == KwString  => typeof(string),
+					_                         => typeof(object),
+				};
+
+			return i + 1;
 		}
 
 		/// <summary>Whether a token is a keyword that names a type.</summary>
-		static bool IsCore(byte kind) =>
-			kind == KwSbyte || kind == KwByte  || kind == KwShort   || kind == KwUshort || kind == KwInt  ||
-			kind == KwUint  || kind == KwLong  || kind == KwUlong   || kind == KwFloat  || kind == KwDouble ||
-			kind == KwDecimal || kind == KwBool || kind == KwChar   || kind == KwString || kind == KwObject;
+		static bool IsCore(byte kind)
+		{
+			return kind == KwSbyte   || kind == KwByte || kind == KwShort || kind == KwUshort || kind == KwInt    ||
+				kind == KwUint    || kind == KwLong || kind == KwUlong || kind == KwFloat  || kind == KwDouble ||
+				kind == KwDecimal || kind == KwBool || kind == KwChar  || kind == KwString || kind == KwObject;
+		}
 
 		/// <summary>
-		/// A dotted name, and the type arguments where there are any. What decides that it
-		/// is a type at all is whether the name resolves — asked here, while the text is
-		/// read, so that the answer can decide how the text reads.
+		/// A dotted name, and the type arguments where there are any. What decides that it is a
+		/// type at all is whether the name resolves — asked here, while the text is read, so
+		/// that the answer can decide how the text reads.
 		/// </summary>
-		int Named(int i, out Type? type)
+		int Named(int i, out Type? type, bool build)
 		{
 			type = null;
 
-			if (Kind(i) != Identifier)
-				return -1;
+			// Every word of the dotted name, so that the longest one can be asked about first
+			// and the tail given back where it names nothing: `Math.PI` is `Math` and a member
+			// of it, and only asking says so.
+			var last = i;
 
-			// Every word of the dotted name, so that the longest one can be asked about
-			// first and the tail given back where it names nothing: `Math.PI` is `Math`
-			// and a member of it, and only asking says so.
-			var words = new List<int> { i };
-			var at    = i + 1;
+			while (Kind(last + 1) == Dot && Kind(last + 2) == Identifier)
+				last += 2;
 
-			while (Kind(at) == Dot && Kind(at + 1) == Identifier)
+			for (; last >= i; last -= 2)
 			{
-				words.Add(at + 1);
-				at += 2;
-			}
+				var after = last + 1;
+				var name  = Dotted(i, last);
 
-			for (var last = words.Count - 1; last >= 0; last--)
-			{
-				var after = words[last] + 1;
-				var name  = Dotted(words, last);
-
-				// The generic form needs no name that resolves on its own: `List<int>`
-				// does and `List` does not, so where there are arguments they are what
-				// says the name is a type.
+				// The generic form needs no name that resolves on its own: `List<int>` does and
+				// `List` does not, so where there are arguments they are what says the name is
+				// a type.
 				if (Kind(after) == Less)
 				{
-					var closed = TypeArguments(after, out var arguments);
+					var closed = TypeArguments(after, out var arguments, build);
 
 					if (closed >= 0)
 					{
-						type = _context.Generic(name, arguments!);
+						if (build)
+							type = _context.Generic(name, arguments!);
 
 						return closed;
 					}
 				}
 
 				if (!_context.Resolves(name))
-					continue;
+				{
+					Refuse(after);
 
-				type = _context.TypeNamed(name);
+					continue;
+				}
+
+				if (build)
+					type = _context.TypeNamed(name);
 
 				return after;
 			}
@@ -1057,64 +2206,73 @@ public static class HandExpression
 			return -1;
 		}
 
-		readonly string Dotted(List<int> parts, int last)
+		readonly string Dotted(int first, int last)
 		{
-			var name = Cut(parts[0]);
+			var name = Cut(first);
 
-			for (var part = 1; part <= last; part++)
-				name += "." + Cut(parts[part]);
+			for (var part = first + 2; part <= last; part += 2)
+				name += "." + Cut(part);
 
 			return name;
 		}
 
-		int TypeArguments(int from, out Type[]? arguments)
+		int TypeArguments(int from, out Type[]? arguments, bool build)
 		{
 			arguments = null;
 
-			var read = new List<Type>();
-			var one  = Type(from + 1, out var first);
+			var read = build ? new List<Type>() : null;
+			var at   = Type(from + 1, out var first, build);
 
-			if (one < 0)
+			if (at < 0)
 				return -1;
 
-			read.Add(first!);
+			read?.Add(first!);
 
-			while (Kind(one) == Comma)
+			while (Kind(at) == Comma)
 			{
-				var next = Type(one + 1, out var more);
+				var next = Type(at + 1, out var more, build);
 
 				if (next < 0)
-					return -1;
+					break;
 
-				read.Add(more!);
-				one = next;
+				read?.Add(more!);
+				at = next;
 			}
 
-			if (Kind(one) != Greater)
+			if (Kind(at) != Greater)
 				return -1;
 
-			arguments = read.ToArray();
+			arguments = read?.ToArray();
 
-			return one + 1;
+			return at + 1;
 		}
 
 		// ── Statements ──────────────────────────────────────────────────────────
 
 		/// <summary>Where a value is wanted and a block or an `if` may stand.</summary>
-		int Value(int i, out Expression? node)
+		public int Value(int i, out Expression? node)
 		{
-			if (Kind(i) == LeftBrace)
+			var kind = Kind(i);
+
+			if (kind == LeftBrace)
 				return Block(i, out node);
 
-			if (Kind(i) == KwIf)
+			// An `if` worth what its branches are, read without building first: where it has no
+			// `else` it is the statement form below instead, and that one's branches are read
+			// otherwise.
+			if (kind == KwIf)
 			{
+				Quiet(out var was);
+
 				var chosen = IfValue(i, out node);
 
+				_build = was;
+
 				if (chosen >= 0)
-					return chosen;
+					return _build ? IfValue(i, out node) : chosen;
 			}
 
-			if (IsControl(Kind(i)))
+			if (IsControl(kind))
 			{
 				var control = Control(i, out node);
 
@@ -1122,59 +2280,24 @@ public static class HandExpression
 					return control;
 			}
 
-			return Expr(i, out node);
+			return Assignment(i, out node);
 		}
 
-		readonly bool IsControl(byte kind) =>
-			kind == KwTry || kind == KwIf  || kind == KwWhile ||
-			kind == KwDo  || kind == KwFor || kind == KwSwitch ||
-			kind == KwForeach;
+		static bool IsControl(byte kind)
+		{
+			return kind == KwTry || kind == KwIf  || kind == KwWhile  ||
+				kind == KwDo  || kind == KwFor || kind == KwSwitch ||
+				kind == KwForeach;
+		}
 
 		int Statement(int i, out Expression? node)
 		{
-			node = null;
+			var formed = Form(i, out node);
 
-			var local = Local(i, out node);
+			if (formed >= 0)
+				return formed;
 
-			if (local >= 0)
-				return local;
-
-			var inferred = Inferred(i, out node);
-
-			if (inferred >= 0)
-				return inferred;
-
-			if (Kind(i) == KwReturn)
-			{
-				var value = Value(i + 1, out var read);
-
-				if (value >= 0 && Kind(value) == Semicolon)
-				{
-					node = _context.Return(read!, Span(i, value + 1));
-
-					return value + 1;
-				}
-
-				return -1;
-			}
-
-			if (Kind(i) == LeftBrace)
-				return Block(i, out node);
-
-			if (IsControl(Kind(i)))
-			{
-				var control = Control(i, out node);
-
-				if (control >= 0)
-					return control;
-			}
-
-			var jump = Jump(i, out node);
-
-			if (jump >= 0 && Kind(jump) == Semicolon)
-				return jump + 1;
-
-			var expression = Expr(i, out node);
+			var expression = Assignment(i, out node);
 
 			if (expression >= 0 && Kind(expression) == Semicolon)
 				return expression + 1;
@@ -1184,27 +2307,132 @@ public static class HandExpression
 			return -1;
 		}
 
-		/// <summary>Whether that token is the word `var`, without cutting a string to find out.</summary>
+		/// <summary>Every statement but an expression with a semicolon after it, which is what a branch reads apart.</summary>
+		int Form(int i, out Expression? node)
+		{
+			var local = Local(i, out node);
+
+			if (local >= 0)
+				return local;
+
+			var unsettled = InferredUnsettled(i, out node);
+
+			if (unsettled >= 0)
+				return unsettled;
+
+			var inferred = Inferred(i, out node);
+
+			if (inferred >= 0)
+				return inferred;
+
+			var kind = Kind(i);
+
+			if (kind == KwReturn)
+				return Return(i, out node);
+
+			if (kind == LeftBrace)
+				return Block(i, out node);
+
+			if (IsControl(kind))
+			{
+				var control = Control(i, out node);
+
+				if (control >= 0)
+					return control;
+			}
+
+			return Jump(i, out node);
+		}
+
+		int Local(int i, out Expression? node)
+		{
+			node = null;
+
+			var at = Type(i, out _, build: false);
+
+			if (at < 0 || Kind(at) != Identifier)
+				return -1;
+
+			Type(i, out var type, build: true);
+
+			// Declared before its initializer is read, as the API wants — `Expression.Variable`
+			// is handed a type at the declaration — so `int x = x;` reads.
+			var name = Cut(at);
+
+			if (!_context.Declare(type!, name, Span(i, at + 1)))
+				return Refuse(at + 1);
+
+			if (Kind(at + 1) != Assign)
+				return -1;
+
+			var value = Value(at + 2, out var read);
+
+			if (value < 0 || Kind(value) != Semicolon)
+				return -1;
+
+			if (_build)
+				node = ExpressionParser.Assigned(_context.Named(name, Span(i, value + 1)), read!);
+
+			return value + 1;
+		}
+
+		/// <summary>`var` in the body of a lambda that says no types, read before they are known.</summary>
 		/// <remarks>
-		/// Asked of every statement that is not a declaration, which is why it is asked this
-		/// way: `var` is contextual and so there is no kind to switch on, and a `Substring`
-		/// per statement would be a string allocated to answer no.
+		/// The initializer is worth nothing yet — it is built over parameters with no type — so
+		/// the name is declared an <c>object</c>, and nothing made here is kept: the body is
+		/// read again once the types are known, and there this refuses and the next one reads.
 		/// </remarks>
-		readonly bool IsVar(int i) =>
-			Kind(i) == Identifier && _lengths[i] == 3 && Same(_text.AsSpan(_starts[i], 3), "var");
+		int InferredUnsettled(int i, out Expression? node)
+		{
+			node = null;
+
+			if (!IsWord(Kind(i)))
+				return -1;
+
+			if (!IsVar(i) || !_context.Unsettled(Span(i, i + 1)))
+				return Refuse(i + 1);
+
+			if (Kind(i + 1) != Identifier || Kind(i + 2) != Assign)
+				return -1;
+
+			var name = Cut(i + 1);
+
+			Quiet(out var was);
+
+			var value = Value(i + 3, out _);
+
+			_build = was;
+
+			if (value < 0 || Kind(value) != Semicolon)
+				return -1;
+
+			if (!_context.Declare(typeof(object), name, Span(i, value + 1)))
+				return Refuse(value + 1);
+
+			if (_build)
+				node = Expression.Empty();
+
+			return value + 1;
+		}
 
 		/// <summary>A declaration whose type is its initializer's.</summary>
 		/// <remarks>
 		/// Read where <see cref="Local"/> could not read a type, which is what leaves a real
 		/// type named `var` winning and `var` itself usable as a name. The declaration is made
 		/// after the initializer, because until that is a tree there is no type to make it
-		/// with — the same order the grammar's `Inferred` rule is written in.
+		/// with — so `var x = x;` does not read.
 		/// </remarks>
 		int Inferred(int i, out Expression? node)
 		{
 			node = null;
 
-			if (!IsVar(i) || Kind(i + 1) != Identifier || Kind(i + 2) != Assign)
+			if (!IsWord(Kind(i)))
+				return -1;
+
+			if (!IsVar(i))
+				return Refuse(i + 1);
+
+			if (Kind(i + 1) != Identifier || Kind(i + 2) != Assign)
 				return -1;
 
 			var name  = Cut(i + 1);
@@ -1213,39 +2441,46 @@ public static class HandExpression
 			if (value < 0 || Kind(value) != Semicolon)
 				return -1;
 
+			// The guard is handed the initializer built, which reading alone did not do.
+			if (read is null)
+				read = Built(i + 3);
+
 			var span = Span(i, value + 1);
 
 			if (!ExpressionParser.Inferable(read!) || !_context.Declare(read!.Type, name, span))
-				return -1;
+				return Refuse(value + 1);
 
-			node = ExpressionParser.Assigned(_context.Named(name, span), read!);
+			if (_build)
+				node = ExpressionParser.Assigned(_context.Named(name, span), read);
 
 			return value + 1;
 		}
 
-		int Local(int i, out Expression? node)
+		/// <summary>A value read again and built, for a guard that has to be handed it where the reading built nothing.</summary>
+		Expression? Built(int i)
+		{
+			var was = _build;
+
+			_build = true;
+
+			Value(i, out var read);
+
+			_build = was;
+
+			return read;
+		}
+
+		int Return(int i, out Expression? node)
 		{
 			node = null;
 
-			var at = Type(i, out var type);
-
-			if (at < 0 || Kind(at) != Identifier)
-				return -1;
-
-			var name = Cut(at);
-
-			if (Kind(at + 1) != Assign)
-				return -1;
-
-			if (!_context.Declare(type!, name, Span(i, at + 1)))
-				return -1;
-
-			var value = Value(at + 2, out var read);
+			var value = Value(i + 1, out var read);
 
 			if (value < 0 || Kind(value) != Semicolon)
 				return -1;
 
-			node = ExpressionParser.Assigned(_context.Named(name, Span(i, value + 1)), read!);
+			if (_build)
+				node = _context.Return(read!, Span(i, value + 1));
 
 			return value + 1;
 		}
@@ -1254,11 +2489,8 @@ public static class HandExpression
 		{
 			node = null;
 
-			if (Kind(i) != LeftBrace)
-				return -1;
-
 			var at         = i + 1;
-			var statements = new List<Expression>();
+			var statements = _build ? new List<Expression>() : null;
 
 			while (true)
 			{
@@ -1267,11 +2499,11 @@ public static class HandExpression
 				if (one < 0)
 					break;
 
-				statements.Add(read!);
+				statements?.Add(read!);
 				at = one;
 			}
 
-			var value = Expr(at, out var last);
+			var value = Assignment(at, out var last);
 
 			if (value >= 0)
 				at = value;
@@ -1284,64 +2516,81 @@ public static class HandExpression
 			var span = Span(i, at + 1);
 
 			if (!_context.Scoped(span))
-				return -1;
+				return Refuse(at + 1);
 
-			node = _context.Block(statements.ToArray(), span, last);
+			if (_build)
+				node = _context.Block(statements!.ToArray(), span, last);
 
 			return at + 1;
 		}
 
 		int Control(int i, out Expression? node)
 		{
-			node = null;
-
 			var kind = Kind(i);
 
 			if (kind == KwTry)    return Try(i, out node);
 			if (kind == KwIf)     return If(i, out node);
 			if (kind == KwWhile)  return While(i, out node);
 			if (kind == KwDo)     return DoWhile(i, out node);
-			if (kind == KwFor)     return For(i, out node);
-			if (kind == KwForeach) return Foreach(i, out node);
-			if (kind == KwSwitch)  return Switch(i, out node);
+			if (kind == KwFor)    return For(i, out node);
+			if (kind == KwSwitch) return Switch(i, out node);
 
-			return -1;
+			// A `foreach` that writes its element type, one that says `var` in a body read
+			// before its lambda has types, and one that says `var` where the source is worth
+			// something: the order the grammar tries them in.
+			var typed = Foreach(i, out node);
+
+			if (typed >= 0)
+				return typed;
+
+			var unsettled = ForeachUnsettled(i, out node);
+
+			if (unsettled >= 0)
+				return unsettled;
+
+			return ForeachInferred(i, out node);
 		}
 
+		/// <summary>An `if` as a statement: with an `else`, worth what its branches are; without one, a statement of its own.</summary>
 		int If(int i, out Expression? node)
 		{
 			node = null;
 
-			if (Kind(i) != KwIf || Kind(i + 1) != LeftParen)
+			if (Kind(i + 1) != LeftParen)
 				return -1;
 
-			var test = Expr(i + 2, out var read);
+			var test = Assignment(i + 2, out var read);
 
 			if (test < 0 || Kind(test) != RightParen)
 				return -1;
 
-			var then = Branch(test + 1, out var whenTrue);
+			var then = Branch(test + 1, out var whenTrue, out var statement);
 
-			if (then >= 0 && Kind(then) == KwElse)
+			if (then < 0)
+				return -1;
+
+			if (Kind(then) == KwElse)
 			{
-				var otherwise = Branch(then + 1, out var whenFalse);
+				var otherwise = Branch(then + 1, out var whenFalse, out _);
 
 				if (otherwise >= 0)
 				{
-					node = ExpressionParser.Branched(read!, whenTrue!, whenFalse!);
+					if (_build)
+						node = ExpressionParser.Branched(read!, whenTrue!, whenFalse!);
 
 					return otherwise;
 				}
 			}
 
-			var alone = Statement(test + 1, out var only);
-
-			if (alone < 0)
+			// No `else`, or none that reads: the `if` stands alone, which it can only where
+			// what it holds is a statement.
+			if (!statement)
 				return -1;
 
-			node = Expression.IfThen(read!, only!);
+			if (_build)
+				node = Expression.IfThen(read!, whenTrue!);
 
-			return alone;
+			return then;
 		}
 
 		/// <summary>The same `if` where a value is wanted, so that its branches are values.</summary>
@@ -1349,10 +2598,10 @@ public static class HandExpression
 		{
 			node = null;
 
-			if (Kind(i) != KwIf || Kind(i + 1) != LeftParen)
+			if (Kind(i + 1) != LeftParen)
 				return -1;
 
-			var test = Expr(i + 2, out var read);
+			var test = Assignment(i + 2, out var read);
 
 			if (test < 0 || Kind(test) != RightParen)
 				return -1;
@@ -1367,26 +2616,51 @@ public static class HandExpression
 			if (otherwise < 0)
 				return -1;
 
-			node = ExpressionParser.Branched(read!, whenTrue!, whenFalse!);
+			if (_build)
+				node = ExpressionParser.Branched(read!, whenTrue!, whenFalse!);
 
 			return otherwise;
 		}
 
-		int Branch(int i, out Expression? node)
+		/// <summary>A branch: a statement where one was written, an expression where one was.</summary>
+		/// <remarks>
+		/// An expression with a semicolon after it is the statement, and one without is the
+		/// expression — read once, and the semicolon decides.
+		/// </remarks>
+		int Branch(int i, out Expression? node, out bool statement)
 		{
-			var statement = Statement(i, out node);
+			statement = true;
 
-			return statement >= 0 ? statement : Expr(i, out node);
+			var formed = Form(i, out node);
+
+			if (formed >= 0)
+				return formed;
+
+			var expression = Assignment(i, out node);
+
+			if (expression < 0)
+			{
+				statement = false;
+
+				return -1;
+			}
+
+			if (Kind(expression) == Semicolon)
+				return expression + 1;
+
+			statement = false;
+
+			return expression;
 		}
 
 		int While(int i, out Expression? node)
 		{
 			node = null;
 
-			if (Kind(i) != KwWhile || Kind(i + 1) != LeftParen)
+			if (Kind(i + 1) != LeftParen)
 				return -1;
 
-			var test = Expr(i + 2, out var read);
+			var test = Assignment(i + 2, out var read);
 
 			if (test < 0 || Kind(test) != RightParen)
 				return -1;
@@ -1401,13 +2675,13 @@ public static class HandExpression
 			var span = Span(i, body);
 
 			if (!_context.Loops(span))
-				return -1;
+				return Refuse(body);
 
-			node = Expression.Loop(
-				Expression.Condition(
-					read!, inside!, Expression.Break(_context.Exit(span)), typeof(void)),
-				_context.Exit(span),
-				_context.Again(span));
+			if (_build)
+				node = Expression.Loop(
+					Expression.Condition(read!, inside!, Expression.Break(_context.Exit(span)), typeof(void)),
+					_context.Exit(span),
+					_context.Again(span));
 
 			return body;
 		}
@@ -1416,9 +2690,6 @@ public static class HandExpression
 		{
 			node = null;
 
-			if (Kind(i) != KwDo)
-				return -1;
-
 			_context.Opening(Span(i, i + 1));
 
 			var body = Statement(i + 1, out var inside);
@@ -1426,7 +2697,7 @@ public static class HandExpression
 			if (body < 0 || Kind(body) != KwWhile || Kind(body + 1) != LeftParen)
 				return -1;
 
-			var test = Expr(body + 2, out var read);
+			var test = Assignment(body + 2, out var read);
 
 			if (test < 0 || Kind(test) != RightParen || Kind(test + 1) != Semicolon)
 				return -1;
@@ -1434,18 +2705,17 @@ public static class HandExpression
 			var span = Span(i, test + 2);
 
 			if (!_context.Loops(span))
-				return -1;
+				return Refuse(test + 2);
 
-			node = Expression.Loop(
-				Expression.Block(
-					inside!,
-					Expression.Label(_context.Again(span)),
-					Expression.Condition(
-						read!,
-						Expression.Empty(),
-						Expression.Break(_context.Exit(span)),
-						typeof(void))),
-				_context.Exit(span));
+			// `Expression.Loop`'s own continue label stands at the top of the body, which is
+			// where C# puts it for a `while` and not for a `do`: there it goes to the test.
+			if (_build)
+				node = Expression.Loop(
+					Expression.Block(
+						inside!,
+						Expression.Label(_context.Again(span)),
+						Expression.Condition(read!, Expression.Empty(), Expression.Break(_context.Exit(span)), typeof(void))),
+					_context.Exit(span));
 
 			return test + 2;
 		}
@@ -1454,7 +2724,7 @@ public static class HandExpression
 		{
 			node = null;
 
-			if (Kind(i) != KwFor || Kind(i + 1) != LeftParen)
+			if (Kind(i + 1) != LeftParen)
 				return -1;
 
 			var init = Statement(i + 2, out var start);
@@ -1462,12 +2732,12 @@ public static class HandExpression
 			if (init < 0)
 				return -1;
 
-			var test = Expr(init, out var read);
+			var test = Assignment(init, out var read);
 
 			if (test < 0 || Kind(test) != Semicolon)
 				return -1;
 
-			var step = Expr(test + 1, out var next);
+			var step = Assignment(test + 1, out var next);
 
 			if (step < 0 || Kind(step) != RightParen)
 				return -1;
@@ -1482,67 +2752,144 @@ public static class HandExpression
 			var span = Span(i, body);
 
 			if (!_context.Loops(span) || !_context.Scoped(span))
-				return -1;
+				return Refuse(body);
 
-			node = _context.Block(
-				[start!], span,
-				Expression.Loop(
-					Expression.Condition(
-						read!,
-						Expression.Block(inside!, Expression.Label(_context.Again(span)), next!),
-						Expression.Break(_context.Exit(span)),
-						typeof(void)),
-					_context.Exit(span)));
+			if (_build)
+				node = _context.Block(
+					[start!], span,
+					Expression.Loop(
+						Expression.Condition(
+							read!,
+							Expression.Block(inside!, Expression.Label(_context.Again(span)), next!),
+							Expression.Break(_context.Exit(span)),
+							typeof(void)),
+						_context.Exit(span)));
 
 			return body;
 		}
 
-		/// <summary>`foreach`, in both the form that writes the element type and the `var` one.</summary>
-		/// <remarks>
-		/// The declaration is made at a different moment in each, as it is in the grammar's two
-		/// rules: a written type is known where it is written, and `var` is not known until the
-		/// source is a tree with an element type to ask for.
-		/// </remarks>
+		/// <summary>A `foreach` that writes the element type, which is known where it is written.</summary>
 		int Foreach(int i, out Expression? node)
 		{
 			node = null;
 
-			if (Kind(i) != KwForeach || Kind(i + 1) != LeftParen)
+			if (Kind(i + 1) != LeftParen)
 				return -1;
 
-			string      name;
-			int         over;
-			Expression? read;
+			var at = Type(i + 2, out _, build: false);
 
-			if (IsVar(i + 2) && Kind(i + 3) == Identifier && Kind(i + 4) == KwIn)
+			if (at < 0 || Kind(at) != Identifier)
+				return -1;
+
+			Type(i + 2, out var type, build: true);
+
+			var name = Cut(at);
+
+			if (!_context.Declare(type!, name, Span(i, at + 1)))
+				return Refuse(at + 1);
+
+			if (Kind(at + 1) != KwIn)
+				return -1;
+
+			var over = Assignment(at + 2, out var source);
+
+			if (over < 0 || Kind(over) != RightParen)
+				return -1;
+
+			return Iteration(i, over, name, source, out node);
+		}
+
+		/// <summary>`foreach (var …)` in a body read before its lambda has types, where the source is worth nothing yet.</summary>
+		int ForeachUnsettled(int i, out Expression? node)
+		{
+			node = null;
+
+			if (Kind(i + 1) != LeftParen || !IsWord(Kind(i + 2)))
+				return -1;
+
+			if (!IsVar(i + 2) || !_context.Unsettled(Span(i, i + 3)))
+				return Refuse(i + 3);
+
+			if (Kind(i + 3) != Identifier || Kind(i + 4) != KwIn)
+				return -1;
+
+			var name = Cut(i + 3);
+
+			Quiet(out var was);
+
+			var over = Assignment(i + 5, out _);
+
+			_build = was;
+
+			if (over < 0 || Kind(over) != RightParen)
+				return -1;
+
+			var head = Span(i, over + 1);
+
+			if (!_context.Declare(typeof(object), name, head) || !_context.Opening(head))
+				return Refuse(over + 1);
+
+			Quiet(out was);
+
+			var body = Statement(over + 1, out _);
+
+			_build = was;
+
+			if (body < 0)
+				return -1;
+
+			var span = Span(i, body);
+
+			if (!_context.Loops(span) || !_context.Scoped(span))
+				return Refuse(body);
+
+			if (_build)
+				node = Expression.Empty();
+
+			return body;
+		}
+
+		/// <summary>`foreach (var …)`, declared once the source is a tree with an element type to ask for.</summary>
+		int ForeachInferred(int i, out Expression? node)
+		{
+			node = null;
+
+			if (Kind(i + 1) != LeftParen || !IsWord(Kind(i + 2)))
+				return -1;
+
+			if (!IsVar(i + 2))
+				return Refuse(i + 3);
+
+			if (Kind(i + 3) != Identifier || Kind(i + 4) != KwIn)
+				return -1;
+
+			var name = Cut(i + 3);
+			var over = Assignment(i + 5, out var source);
+
+			if (over < 0 || Kind(over) != RightParen)
+				return -1;
+
+			if (source is null)
 			{
-				name = Cut(i + 3);
-				over = Expr(i + 5, out read);
+				var was = _build;
 
-				if (over < 0 || Kind(over) != RightParen)
-					return -1;
+				_build = true;
 
-				if (ExpressionParser.Yielded(read!) is not { } item ||
-					!_context.Declare(item, name, Span(i, over)))
-					return -1;
+				Assignment(i + 5, out source);
+
+				_build = was;
 			}
-			else
-			{
-				var at = Type(i + 2, out var type);
 
-				if (at < 0 || Kind(at) != Identifier || Kind(at + 1) != KwIn)
-					return -1;
+			if (!(ExpressionParser.Yielded(source!) is { } item && _context.Declare(item, name, Span(i, over + 1))))
+				return Refuse(over + 1);
 
-				name = Cut(at);
+			return Iteration(i, over, name, source, out node);
+		}
 
-				if (!_context.Declare(type!, name, Span(i, at + 1)))
-					return -1;
-
-				over = Expr(at + 2, out read);
-
-				if (over < 0 || Kind(over) != RightParen)
-					return -1;
-			}
+		/// <summary>What the two `foreach`s that build share: the loop and the scope, and what C# lowers one to.</summary>
+		int Iteration(int i, int over, string name, Expression? source, out Expression? node)
+		{
+			node = null;
 
 			_context.Opening(Span(i, over + 1));
 
@@ -1554,13 +2901,13 @@ public static class HandExpression
 			var span = Span(i, body);
 
 			if (!_context.Loops(span) || !_context.Scoped(span))
-				return -1;
+				return Refuse(body);
 
-			node = _context.Block(
-				[], span,
-				ExpressionParser.Iterated(
-					_context.Named(name, span), read!, inside!,
-					_context.Exit(span), _context.Again(span)));
+			if (_build)
+				node = _context.Block(
+					[], span,
+					ExpressionParser.Iterated(
+						_context.Named(name, span), source!, inside!, _context.Exit(span), _context.Again(span)));
 
 			return body;
 		}
@@ -1569,10 +2916,10 @@ public static class HandExpression
 		{
 			node = null;
 
-			if (Kind(i) != KwSwitch || Kind(i + 1) != LeftParen)
+			if (Kind(i + 1) != LeftParen)
 				return -1;
 
-			var value = Expr(i + 2, out var read);
+			var value = Assignment(i + 2, out var read);
 
 			if (value < 0 || Kind(value) != RightParen || Kind(value + 1) != LeftBrace)
 				return -1;
@@ -1580,17 +2927,22 @@ public static class HandExpression
 			_context.Breaking(Span(i, value + 2));
 
 			var at    = value + 2;
-			var cases = new List<SwitchCase>();
+			var cases = _build ? new List<SwitchCase>() : null;
 
 			while (Kind(at) == KwCase)
 			{
-				var one = Case(at, out var read2);
+				var test = Assignment(at + 1, out var label);
 
-				if (one < 0)
+				if (test < 0 || Kind(test) != Colon)
 					return -1;
 
-				cases.Add(read2!);
-				at = one;
+				var body = Statements(test + 1, out var statements);
+
+				if (body < 0)
+					return -1;
+
+				cases?.Add(Expression.SwitchCase(Expression.Block(statements!), label!));
+				at = body;
 			}
 
 			var fallback = default(Expression);
@@ -1600,13 +2952,15 @@ public static class HandExpression
 				if (Kind(at + 1) != Colon)
 					return -1;
 
-				var body = Bodies(at + 2, out var statements);
+				var body = Statements(at + 2, out var statements);
 
 				if (body < 0)
 					return -1;
 
-				fallback = Expression.Block(statements!);
-				at       = body;
+				if (_build)
+					fallback = Expression.Block(statements!);
+
+				at = body;
 			}
 
 			if (Kind(at) != RightBrace)
@@ -1615,58 +2969,54 @@ public static class HandExpression
 			var span = Span(i, at + 1);
 
 			if (!_context.Breaks(span))
-				return -1;
+				return Refuse(at + 1);
 
-			node = Expression.Block(
-				Expression.Switch(
-					typeof(void), read!, fallback, null, ExpressionParser.Against(cases.ToArray(), read!.Type)),
-				Expression.Label(_context.Exit(span)));
+			if (_build)
+				node = Expression.Block(
+					Expression.Switch(typeof(void), read!, fallback, null, ExpressionParser.Against(cases!.ToArray(), read!.Type)),
+					Expression.Label(_context.Exit(span)));
 
 			return at + 1;
 		}
 
-		int Case(int i, out SwitchCase? node)
-		{
-			node = null;
-
-			var test = Expr(i + 1, out var read);
-
-			if (test < 0 || Kind(test) != Colon)
-				return -1;
-
-			var body = Bodies(test + 1, out var statements);
-
-			if (body < 0)
-				return -1;
-
-			node = Expression.SwitchCase(Expression.Block(statements!), read!);
-
-			return body;
-		}
-
 		/// <summary>One statement at least, and as many after it as there are.</summary>
-		int Bodies(int i, out Expression[]? statements)
+		/// <remarks>
+		/// A statement that is not there where the next one would begin is where the list ends,
+		/// not where the text went wrong — and so is the first one missing, which is how the
+		/// generated parser counts a repetition: a turn that fails where it began is no refusal.
+		/// That is its accounting and not the language's; it shows only here, where nothing after
+		/// the list looks at the same token again.
+		/// </remarks>
+		int Statements(int i, out Expression[]? statements)
 		{
 			statements = null;
 
 			var at   = i;
-			var read = new List<Expression>();
+			var read = _build ? new List<Expression>() : null;
+			var some = false;
 
 			while (true)
 			{
-				var one = Statement(at, out var statement);
+				var before = _furthest;
+				var one    = Statement(at, out var statement);
 
 				if (one < 0)
-					break;
+				{
+					if (_furthest == at && before < at)
+						_furthest = before;
 
-				read.Add(statement!);
-				at = one;
+					break;
+				}
+
+				read?.Add(statement!);
+				at   = one;
+				some = true;
 			}
 
-			if (read.Count == 0)
+			if (!some)
 				return -1;
 
-			statements = read.ToArray();
+			statements = read?.ToArray();
 
 			return at;
 		}
@@ -1675,7 +3025,7 @@ public static class HandExpression
 		{
 			node = null;
 
-			if (Kind(i) != KwTry)
+			if (Kind(i + 1) != LeftBrace)
 				return -1;
 
 			var body = Block(i + 1, out var inside);
@@ -1684,7 +3034,8 @@ public static class HandExpression
 				return -1;
 
 			var at       = body;
-			var handlers = new List<CatchBlock>();
+			var handlers = _build ? new List<CatchBlock>() : null;
+			var caught   = false;
 
 			while (Kind(at) == KwCatch)
 			{
@@ -1693,28 +3044,34 @@ public static class HandExpression
 				if (one < 0)
 					return -1;
 
-				handlers.Add(handler!);
-				at = one;
+				handlers?.Add(handler!);
+				at     = one;
+				caught = true;
 			}
 
 			if (Kind(at) == KwFinally)
 			{
+				if (Kind(at + 1) != LeftBrace)
+					return -1;
+
 				var final = Block(at + 1, out var last);
 
 				if (final < 0)
 					return -1;
 
-				node = handlers.Count > 0
-					? Expression.TryCatchFinally(inside!, last!, handlers.ToArray())
-					: Expression.TryFinally(inside!, last!);
+				if (_build)
+					node = caught
+						? Expression.TryCatchFinally(inside!, last!, handlers!.ToArray())
+						: Expression.TryFinally(inside!, last!);
 
 				return final;
 			}
 
-			if (handlers.Count == 0)
+			if (!caught)
 				return -1;
 
-			node = Expression.TryCatch(inside!, handlers.ToArray());
+			if (_build)
+				node = Expression.TryCatch(inside!, handlers!.ToArray());
 
 			return at;
 		}
@@ -1723,20 +3080,22 @@ public static class HandExpression
 		{
 			node = null;
 
-			if (Kind(i) != KwCatch || Kind(i + 1) != LeftParen)
+			if (Kind(i + 1) != LeftParen)
 				return -1;
 
-			var at = Type(i + 2, out var type);
+			var at = Type(i + 2, out _, build: false);
 
 			if (at < 0 || Kind(at) != Identifier)
 				return -1;
 
+			Type(i + 2, out var type, build: true);
+
 			var name = Cut(at);
 
 			if (!_context.Declare(type!, name, Span(i, at + 1)))
-				return -1;
+				return Refuse(at + 1);
 
-			if (Kind(at + 1) != RightParen)
+			if (Kind(at + 1) != RightParen || Kind(at + 2) != LeftBrace)
 				return -1;
 
 			var body = Block(at + 2, out var inside);
@@ -1747,101 +3106,91 @@ public static class HandExpression
 			var span = Span(i, body);
 
 			if (!_context.Scoped(span))
-				return -1;
+				return Refuse(body);
 
-			node = Expression.Catch(_context.Named(name, span), inside!);
+			if (_build)
+				node = Expression.Catch(_context.Named(name, span), inside!);
 
 			return body;
 		}
 
+		/// <summary>A `break`, a `continue` or a `throw`, with the semicolon that ends it.</summary>
 		int Jump(int i, out Expression? node)
 		{
 			node = null;
 
 			var kind = Kind(i);
 
-			if (kind == KwBreak)
+			if (kind == KwBreak || kind == KwContinue)
 			{
-				node = Expression.Break(_context.Exit(Span(i, i + 1)));
+				if (Kind(i + 1) != Semicolon)
+					return -1;
 
-				return i + 1;
-			}
+				if (_build)
+					node = kind == KwBreak
+						? Expression.Break(_context.Exit(Span(i, i + 1)))
+						: Expression.Continue(_context.Again(Span(i, i + 1)));
 
-			if (kind == KwContinue)
-			{
-				node = Expression.Continue(_context.Again(Span(i, i + 1)));
-
-				return i + 1;
+				return i + 2;
 			}
 
 			if (kind != KwThrow)
 				return -1;
 
-			var value = Expr(i + 1, out var read);
+			var value = Assignment(i + 1, out var thrown);
 
 			if (value >= 0)
 			{
-				node = Expression.Throw(read!);
+				if (Kind(value) != Semicolon)
+					return -1;
 
-				return value;
+				if (_build)
+					node = Expression.Throw(thrown!);
+
+				return value + 1;
 			}
 
-			node = Expression.Rethrow();
+			if (Kind(i + 1) != Semicolon)
+				return -1;
 
-			return i + 1;
+			if (_build)
+				node = Expression.Rethrow();
+
+			return i + 2;
 		}
 
 		// ── The operators ───────────────────────────────────────────────────────
 
-		public int Expr(int i, out Expression? node) => Assignment(i, out node);
-
-		int Assignment(int i, out Expression? node)
+		public int Assignment(int i, out Expression? node)
 		{
-			node = null;
-
-			// An element is written to by one alternative and not by eleven: an index is
-			// an expression, and reading it once for each operator is what makes a nest of
-			// them cost what it should not.
 			if (Kind(i) == Identifier)
 			{
-				var name = Name(i, out var written);
+				var element = Written(i, out node);
 
-				if (name >= 0 && Kind(name) == LeftBracket)
-				{
-					var at = Indices(name, out var indices);
-
-					if (at >= 0 && Kind(at) == Assign && Kind(at + 1) != Assign)
-					{
-						var value = Assignment(at + 1, out var read);
-
-						if (value < 0)
-							return -1;
-
-						node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!, _context.Caller), read!);
-
-						return value;
-					}
-				}
+				if (element >= 0)
+					return element;
 			}
 
-			var target = Target(i, out var place);
+			var target = Target(i, out var name, out var member);
 
 			if (target >= 0)
 			{
 				var operation = Kind(target);
-				var compound  = true;
 
-				if (operation == Assign && Kind(target + 1) == Assign)
-					compound = false;
-
-				if (compound && IsAssignment(operation))
+				if (IsAssignment(operation) && (operation != Assign || Peek(target + 1) != Assign))
 				{
 					var value = Assignment(target + 1, out var read);
 
 					if (value < 0)
-						return -1;
+					{
+						node = null;
 
-					node = Assigned(operation, place!, read!);
+						return -1;
+					}
+
+					node = _build
+						? Assigned(operation, member is null ? name! : ExpressionParser.Member(name!, member, _context.Caller), read!)
+						: null;
 
 					return value;
 				}
@@ -1850,52 +3199,92 @@ public static class HandExpression
 			return Conditional(i, out node);
 		}
 
-		static bool IsAssignment(byte kind) =>
-			kind is Assign or PlusAssign or MinusAssign or StarAssign or SlashAssign or
-				PercentAssign or AmpAssign or PipeAssign or CaretAssign or LeftAssign or RightAssign;
+		/// <summary>An element written to: `a[i] = v`, and only the plain `=`.</summary>
+		/// <remarks>
+		/// The indices are read before it is known whether they are a target or the operand of
+		/// something else, so they are read first without being built: an index read as the
+		/// wrong one of the two would have been built on a path the reading leaves.
+		/// </remarks>
+		int Written(int i, out Expression? node)
+		{
+			node = null;
 
-		readonly Expression Assigned(byte operation, Expression target, Expression value) =>
-			operation switch
+			Quiet(out var was);
+
+			var name = Name(i, out _);
+			var at   = name >= 0 ? Indices(name, out _) : -1;
+
+			_build = was;
+
+			if (at < 0 || Kind(at) != Assign || Peek(at + 1) == Assign)
+				return -1;
+
+			Expression?   written = null;
+			Expression[]? indices = null;
+
+			if (_build)
+			{
+				Name(i, out written);
+				Indices(name, out indices);
+			}
+
+			var value = Assignment(at + 1, out var read);
+
+			if (value < 0)
+				return -1;
+
+			if (_build)
+				node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!, _context.Caller), read!);
+
+			return value;
+		}
+
+		static bool IsAssignment(byte kind)
+		{
+			return kind is Assign or PlusAssign or MinusAssign or StarAssign or SlashAssign or
+					PercentAssign or AmpAssign or PipeAssign or CaretAssign or LeftAssign or RightAssign;
+		}
+
+		readonly Expression Assigned(byte operation, Expression target, Expression value)
+		{
+			return operation switch
 			{
 				PlusAssign    => ExpressionParser.AddAssign(target, value, Marks),
 				MinusAssign   => ExpressionParser.SubtractAssign(target, value, Marks),
 				StarAssign    => ExpressionParser.MultiplyAssign(target, value, Marks),
-				SlashAssign   => ExpressionParser.ArithmeticAssign(
-					Expression.DivideAssign, Expression.Divide, target, value, Marks),
-				PercentAssign => ExpressionParser.ArithmeticAssign(
-					Expression.ModuloAssign, Expression.Modulo, target, value, Marks),
-				AmpAssign     => ExpressionParser.IntegralAssign(
-					Expression.AndAssign, Expression.And, target, value, Marks),
-				PipeAssign    => ExpressionParser.IntegralAssign(
-					Expression.OrAssign, Expression.Or, target, value, Marks),
-				CaretAssign   => ExpressionParser.IntegralAssign(
-					Expression.ExclusiveOrAssign, Expression.ExclusiveOr, target, value, Marks),
-				LeftAssign    => ExpressionParser.ShiftAssign(
-					Expression.LeftShiftAssign, Expression.LeftShift, target, value, Marks),
-				RightAssign   => ExpressionParser.ShiftAssign(
-					Expression.RightShiftAssign, Expression.RightShift, target, value, Marks),
+				SlashAssign   => ExpressionParser.ArithmeticAssign(Expression.DivideAssign, Expression.Divide, target, value, Marks),
+				PercentAssign => ExpressionParser.ArithmeticAssign(Expression.ModuloAssign, Expression.Modulo, target, value, Marks),
+				AmpAssign     => ExpressionParser.IntegralAssign(Expression.AndAssign, Expression.And, target, value, Marks),
+				PipeAssign    => ExpressionParser.IntegralAssign(Expression.OrAssign, Expression.Or, target, value, Marks),
+				CaretAssign   => ExpressionParser.IntegralAssign(Expression.ExclusiveOrAssign, Expression.ExclusiveOr, target, value, Marks),
+				LeftAssign    => ExpressionParser.ShiftAssign(Expression.LeftShiftAssign, Expression.LeftShift, target, value, Marks),
+				RightAssign   => ExpressionParser.ShiftAssign(Expression.RightShiftAssign, Expression.RightShift, target, value, Marks),
 				_             => ExpressionParser.Assigned(target, value),
 			};
+		}
 
 		/// <summary>What may be written to: a name, or a member of one.</summary>
-		int Target(int i, out Expression? node)
+		/// <remarks>
+		/// The guard asks whether the member is one a value can be written to, so it is handed
+		/// the name built even where nothing else is: `s.Trim()` is read here on the way to
+		/// finding out it is a call, and is refused here for it.
+		/// </remarks>
+		int Target(int i, out Expression? name, out string? member)
 		{
-			var at = Name(i, out node);
+			member = null;
+
+			var at = Name(i, out name, always: true);
 
 			if (at < 0)
 				return -1;
 
-			if (Kind(at) != Dot || Kind(at + 1) != Identifier)
-				return at;
+			if (Kind(at) == Dot && Kind(at + 1) == Identifier)
+			{
+				member = Cut(at + 1);
+				at    += 2;
+			}
 
-			var member = Cut(at + 1);
-
-			if (!ExpressionParser.Has(node!, member, _context.Caller))
-				return at;
-
-			node = ExpressionParser.Member(node!, member, _context.Caller);
-
-			return at + 2;
+			return ExpressionParser.Has(name!, member, _context.Caller) ? at : Refuse(at);
 		}
 
 		int Conditional(int i, out Expression? node)
@@ -1908,32 +3297,27 @@ public static class HandExpression
 			var then = Conditional(at + 1, out var whenTrue);
 
 			if (then < 0 || Kind(then) != Colon)
-				return -1;
+				return at;
 
 			var otherwise = Conditional(then + 1, out var whenFalse);
 
 			if (otherwise < 0)
-				return -1;
+				return at;
 
-			node = ExpressionParser.Chosen(node!, whenTrue, whenFalse);
+			if (_build)
+				node = ExpressionParser.Chosen(node!, whenTrue, whenFalse);
 
 			return otherwise;
 		}
 
 		/// <summary>
-		/// C#'s ladder, from `||` at the loosest to `*` at the tightest, as a loop over a
+		/// C#'s ladder, from `??` at the loosest to `*` at the tightest, as a loop over a
 		/// precedence rather than ten rules that differ only in a number.
 		/// </summary>
-		/// <remarks>
-		/// The grammar has to write a rule per level, because that is how a grammar says
-		/// which binds tighter, and §4.3 folds each of them into a loop of its own. A
-		/// person writes the number down and loops once — the same language, and one frame
-		/// per expression rather than ten.
-		/// </remarks>
 		int Binary(int i, int least, out Expression? node)
 		{
-			// `??` groups to the right and sits between `?:` and `||`, so it is written
-			// here rather than in the table: a level that folds leftwards cannot say it.
+			// `??` groups to the right and sits between `?:` and `||`, so it is written here
+			// rather than in the table: a level that folds leftwards cannot say it.
 			if (least <= 1)
 			{
 				var at = Binary(i, 2, out node);
@@ -1944,9 +3328,10 @@ public static class HandExpression
 				var right = Binary(at + 1, 1, out var other);
 
 				if (right < 0)
-					return -1;
+					return at;
 
-				node = ExpressionParser.Coalesced(node!, other);
+				if (_build)
+					node = ExpressionParser.Coalesced(node!, other);
 
 				return right;
 			}
@@ -1963,81 +3348,85 @@ public static class HandExpression
 				if (level < least)
 					return read;
 
-				// `is` and `as` are the two whose right side is a type and not an operand,
-				// and they sit at the relational level because C# puts them there.
-				if (Kind(read) == KwIs || Kind(read) == KwAs)
+				var operation = Kind(read);
+
+				// `is` and `as` are the two whose right side is a type and not an operand, and
+				// they sit at the relational level because C# puts them there.
+				if (operation == KwIs || operation == KwAs)
 				{
-					var named = Type(read + 1, out var type);
+					var named = Type(read + 1, out var type, _build);
 
 					if (named < 0)
-						return -1;
+						return read;
 
-					node = Kind(read) == KwIs
-						? Expression.TypeIs(node!, type!)
-						: Expression.TypeAs(node!, type!);
+					if (_build)
+						node = operation == KwIs ? Expression.TypeIs(node!, type!) : Expression.TypeAs(node!, type!);
+
 					read = named;
 
 					continue;
 				}
 
-				var operation = Kind(read);
-				var right     = Binary(read + width, level + 1, out var other);
+				var right = Binary(read + width, level + 1, out var other);
 
 				if (right < 0)
-					return -1;
+					return read;
 
-				node = width == 2 ? Shifted(operation, node!, other!) : Applied(operation, node!, other!);
+				if (_build)
+					node = width == 2 ? Shifted(operation, node!, other!) : Applied(operation, node!, other!);
+
 				read = right;
 			}
 		}
 
-		/// <summary>
-		/// Which level the operator at this token belongs to, and how many tokens it is.
-		/// </summary>
+		/// <summary>Which level the operator at this token belongs to, and how many tokens it is.</summary>
 		/// <remarks>
-		/// Two of them are two tokens: a shift is `&lt;` or `&gt;` written twice with
-		/// nothing between them, which is what lets `List&lt;List&lt;int&gt;&gt;` close two
-		/// argument lists. The comparison one level out is the same character once, and
-		/// what tells them apart is whether the second stands right against the first.
+		/// Two of them are two tokens: a shift is `&lt;` or `&gt;` written twice with nothing
+		/// between them, which is what lets `List&lt;List&lt;int&gt;&gt;` close two argument
+		/// lists. The comparison one level out is the same character once, and what tells them
+		/// apart is whether the second stands right against the first.
 		/// </remarks>
-		readonly int Level(int i, out int width)
+		int Level(int i, out int width)
 		{
 			width = 1;
 
 			var kind = Kind(i);
 
-			if (kind == OrElse)   return 2;
-			if (kind == AndAlso)  return 3;
-			if (kind == Pipe)     return Kind(i + 1) == Pipe ? 0 : 4;
-			if (kind == Caret)    return 5;
-			if (kind == Amp)      return Kind(i + 1) == Amp ? 0 : 6;
-			if (kind == Equal || kind == NotEqual) return 7;
+			if (kind == OrElse)  return 2;
+			if (kind == AndAlso) return 3;
+			if (kind == Pipe)    return Peek(i + 1) == Pipe ? 0 : 4;
+			if (kind == Caret)   return 5;
+			if (kind == Amp)     return Peek(i + 1) == Amp ? 0 : 6;
+
+			if (kind == Equal || kind == NotEqual)
+				return 7;
 
 			if (kind == Less || kind == Greater)
 			{
-				if (Kind(i + 1) == kind)
-				{
-					if (_starts[i] + _lengths[i] != _starts[i + 1])
-						return 0;
+				if (Kind(i + 1) != kind)
+					return 8;
 
-					width = 2;
+				if (_starts[i] + _lengths[i] != _starts[i + 1])
+					return 0;
 
-					return 9;
-				}
+				width = 2;
 
-				return 8;
+				return 9;
 			}
 
 			if (kind == LessEq || kind == GreaterEq) return 8;
 			if (kind == KwIs   || kind == KwAs)      return 8;
 			if (kind == Plus   || kind == Minus)     return 10;
-			if (kind == Star || kind == Slash || kind == Percent) return 11;
+
+			if (kind == Star || kind == Slash || kind == Percent)
+				return 11;
 
 			return 0;
 		}
 
-		readonly Expression Applied(byte operation, Expression left, Expression right) =>
-			operation switch
+		readonly Expression Applied(byte operation, Expression left, Expression right)
+		{
+			return operation switch
 			{
 				OrElse    => Expression.OrElse(left, right),
 				AndAlso   => Expression.AndAlso(left, right),
@@ -2056,12 +3445,15 @@ public static class HandExpression
 				Slash     => ExpressionParser.Arithmetic(Expression.Divide, left, right),
 				_         => ExpressionParser.Arithmetic(Expression.Modulo, left, right),
 			};
+		}
 
 		/// <summary>The shift, which the table above reaches with a width of two.</summary>
-		readonly Expression Shifted(byte operation, Expression left, Expression right) =>
-			operation == Less
-				? ExpressionParser.Shift(Expression.LeftShift, left, right)
-				: ExpressionParser.Shift(Expression.RightShift, left, right);
+		static Expression Shifted(byte operation, Expression left, Expression right)
+		{
+			return operation == Less
+					? ExpressionParser.Shift(Expression.LeftShift, left, right)
+					: ExpressionParser.Shift(Expression.RightShift, left, right);
+		}
 
 		int Unary(int i, out Expression? node)
 		{
@@ -2078,9 +3470,8 @@ public static class HandExpression
 				if (at < 0)
 					return -1;
 
-				node = kind == Increment
-					? Expression.PreIncrementAssign(target!)
-					: Expression.PreDecrementAssign(target!);
+				if (_build)
+					node = kind == Increment ? Expression.PreIncrementAssign(target!) : Expression.PreDecrementAssign(target!);
 
 				return at;
 			}
@@ -2092,22 +3483,24 @@ public static class HandExpression
 				if (at < 0)
 					return -1;
 
-				node = kind switch
-				{
-					Minus => ExpressionParser.Negate(operand!, Marks),
-					Plus  => ExpressionParser.Arithmetic(Expression.UnaryPlus, operand!),
-					Not   => Expression.Not(operand!),
-					_     => ExpressionParser.Integral(Expression.OnesComplement, operand!),
-				};
+				if (_build)
+					node = kind switch
+					{
+						Minus => ExpressionParser.Negate(operand!, Marks),
+						Plus  => ExpressionParser.Arithmetic(Expression.UnaryPlus, operand!),
+						Not   => Expression.Not(operand!),
+						_     => ExpressionParser.Integral(Expression.OnesComplement, operand!),
+					};
 
 				return at;
 			}
 
 			// A cast is told from a parenthesized expression by what stands inside it, and
-			// where that is no type this reading is simply not a cast.
+			// where that is no type this reading is simply not a cast. The type is built once
+			// the operand is there, which is when it is known to be one.
 			if (kind == LeftParen)
 			{
-				var named = Type(i + 1, out var type);
+				var named = Type(i + 1, out _, build: false);
 
 				if (named >= 0 && Kind(named) == RightParen)
 				{
@@ -2115,7 +3508,12 @@ public static class HandExpression
 
 					if (operand >= 0)
 					{
-						node = ExpressionParser.Cast(read!, type!, Marks);
+						if (_build)
+						{
+							Type(i + 1, out var type, build: true);
+
+							node = ExpressionParser.Cast(read!, type!, Marks);
+						}
 
 						return operand;
 					}
@@ -2125,40 +3523,50 @@ public static class HandExpression
 			return Postfix(i, out node);
 		}
 
-		/// <summary>
-		/// Everything written after an operand: a member, a call, an index, in a chain read
-		/// once from left to right.
-		/// </summary>
+		/// <summary>Everything written after an operand: a member, a call, an index, in a chain read once from left to right.</summary>
 		int Postfix(int i, out Expression? node)
 		{
 			node = null;
 
 			var at = -1;
 
-			// The three heads that are a name and something: a call of one, and the two
-			// that write to one.
+			// The three heads that are a name and something: a call of one, and the two that
+			// write to one.
 			if (Kind(i) == Identifier)
 			{
-				var name = Name(i, out var target);
+				var name = Name(i, out _, build: false);
 
 				if (name >= 0)
 				{
-					var arguments = Arguments(name, out var args);
+					if (Kind(name) == LeftParen)
+					{
+						var arguments = Arguments(name, out var args);
 
-					if (arguments >= 0)
-					{
-						node = ExpressionParser.Invoked(target!, args!);
-						at   = arguments;
+						if (arguments >= 0)
+						{
+							if (_build)
+							{
+								Name(i, out var target);
+
+								node = ExpressionParser.Invoked(target!, args!);
+							}
+
+							at = arguments;
+						}
 					}
-					else if (Kind(name) == Increment)
+
+					if (at < 0 && (Kind(name) == Increment || Kind(name) == Decrement))
 					{
-						node = Expression.PostIncrementAssign(target!);
-						at   = name + 1;
-					}
-					else if (Kind(name) == Decrement)
-					{
-						node = Expression.PostDecrementAssign(target!);
-						at   = name + 1;
+						if (_build)
+						{
+							Name(i, out var target);
+
+							node = Kind(name) == Increment
+								? Expression.PostIncrementAssign(target!)
+								: Expression.PostDecrementAssign(target!);
+						}
+
+						at = name + 1;
 					}
 				}
 			}
@@ -2175,19 +3583,27 @@ public static class HandExpression
 			{
 				if (Kind(at) == Dot && Kind(at + 1) == Identifier)
 				{
-					var member    = Cut(at + 1);
-					var arguments = Arguments(at + 2, out var args);
+					var member = Cut(at + 1);
 
-					if (arguments >= 0)
+					if (Kind(at + 2) == LeftParen)
 					{
-						node = _context.Calling(node!, member, args!);
-						at   = arguments;
+						var arguments = Arguments(at + 2, out var args);
 
-						continue;
+						if (arguments >= 0)
+						{
+							if (_build)
+								node = _context.Calling(node!, member, args!);
+
+							at = arguments;
+
+							continue;
+						}
 					}
 
-					node = ExpressionParser.Member(node!, member, _context.Caller);
-					at  += 2;
+					if (_build)
+						node = ExpressionParser.Member(node!, member, _context.Caller);
+
+					at += 2;
 
 					continue;
 				}
@@ -2199,8 +3615,10 @@ public static class HandExpression
 					if (indices < 0)
 						break;
 
-					node = ExpressionParser.Indexed(node!, read!, _context.Caller);
-					at   = indices;
+					if (_build)
+						node = ExpressionParser.Indexed(node!, read!, _context.Caller);
+
+					at = indices;
 
 					continue;
 				}
@@ -2208,16 +3626,17 @@ public static class HandExpression
 				// A guard takes the rest of the chain with it: what is written after it is
 				// protected by it, so all of it is read as steps and built inside the test.
 				// A `?` that begins no step is the ternary's, and is left where it is.
-				if (Kind(at) == Question &&
-					(Kind(at + 1) == LeftBracket || Kind(at + 1) == Dot && Kind(at + 2) == Identifier))
+				if (Kind(at) == Question && (Kind(at + 1) == LeftBracket || Kind(at + 1) == Dot && Kind(at + 2) == Identifier))
 				{
 					var chain = Chain(at, out var steps);
 
 					if (chain < 0)
 						break;
 
-					node = ExpressionParser.Chained(node!, steps!, _context);
-					at   = chain;
+					if (_build)
+						node = ExpressionParser.Chained(node!, steps!, _context);
+
+					at = chain;
 
 					continue;
 				}
@@ -2232,13 +3651,12 @@ public static class HandExpression
 		/// <remarks>
 		/// Read rather than built, which is what `?.` costs: the steps after the guard belong
 		/// inside its test, and a reader that builds as it goes would have built them outside.
-		/// The grammar's `Guarded` rule says the same thing by handing `Chained` an array.
 		/// </remarks>
 		int Chain(int i, out ExpressionParser.Step[]? steps)
 		{
 			steps = null;
 
-			var read = new List<ExpressionParser.Step>();
+			var read = _build ? new List<ExpressionParser.Step>() : null;
 			var at   = i;
 
 			while (true)
@@ -2251,7 +3669,7 @@ public static class HandExpression
 					var member    = Cut(from + 1);
 					var arguments = Arguments(from + 2, out var args);
 
-					read.Add(new ExpressionParser.Step(member, arguments >= 0 ? args : null, null, guarded));
+					read?.Add(new ExpressionParser.Step(member, arguments >= 0 ? args : null, null, guarded));
 					at = arguments >= 0 ? arguments : from + 2;
 
 					continue;
@@ -2259,12 +3677,12 @@ public static class HandExpression
 
 				if (Kind(from) == LeftBracket)
 				{
-					var indices = Indices(from, out var at2);
+					var indices = Indices(from, out var index);
 
 					if (indices < 0)
 						break;
 
-					read.Add(new ExpressionParser.Step(null, null, at2, guarded));
+					read?.Add(new ExpressionParser.Step(null, null, index, guarded));
 					at = indices;
 
 					continue;
@@ -2273,10 +3691,10 @@ public static class HandExpression
 				break;
 			}
 
-			if (read.Count == 0)
+			if (at == i)
 				return -1;
 
-			steps = read.ToArray();
+			steps = read?.ToArray();
 
 			return at;
 		}
@@ -2296,25 +3714,23 @@ public static class HandExpression
 			// keyword that names a type, which `Core` reads before it asks for a name.
 			if (kind == Identifier || IsCore(kind))
 			{
-				Type? type;
-
-				var named = kind == Identifier ? Named(i, out type) : Core(i, out type);
+				var named = Core(i, out _, build: false);
 
 				if (named >= 0 && Kind(named) == Dot && Kind(named + 1) == Identifier)
 				{
-					var member    = Cut(named + 1);
-					var arguments = Arguments(named + 2, out var args);
+					var member = Cut(named + 1);
+					var called = Arguments(named + 2, out var args);
 
-					if (arguments >= 0)
+					if (_build)
 					{
-						node = ExpressionParser.Called(type!, member, args!, _context.Caller);
+						Core(i, out var type, build: true);
 
-						return arguments;
+						node = called >= 0
+							? ExpressionParser.Called(type!, member, args!, _context.Caller)
+							: ExpressionParser.StaticMember(type!, member, _context.Caller);
 					}
 
-					node = ExpressionParser.StaticMember(type!, member, _context.Caller);
-
-					return named + 2;
+					return called >= 0 ? called : named + 2;
 				}
 			}
 
@@ -2323,11 +3739,9 @@ public static class HandExpression
 				if (Kind(i + 1) != LeftParen)
 					return -1;
 
-				Mark(kind == KwChecked
-					? ExpressionParser.Reading.Checked
-					: ExpressionParser.Reading.Unchecked);
+				Mark(kind == KwChecked ? ExpressionParser.Reading.Checked : ExpressionParser.Reading.Unchecked);
 
-				var inner = Expr(i + 2, out node);
+				var inner = Assignment(i + 2, out node);
 
 				_marked--;
 
@@ -2344,14 +3758,13 @@ public static class HandExpression
 				if (Kind(i + 1) != LeftParen)
 					return -1;
 
-				var read = Type(i + 2, out var type);
+				var read = Type(i + 2, out var type, _build);
 
 				if (read < 0 || Kind(read) != RightParen)
 					return -1;
 
-				node = kind == KwTypeof
-					? Expression.Constant(type, typeof(Type))
-					: Expression.Default(type!);
+				if (_build)
+					node = kind == KwTypeof ? Expression.Constant(type, typeof(Type)) : Expression.Default(type!);
 
 				return read + 1;
 			}
@@ -2363,26 +3776,22 @@ public static class HandExpression
 				if (Kind(i + 1) != LeftParen || Kind(i + 2) != Identifier)
 					return -1;
 
-				var name = Cut(i + 2);
-				var read = i + 3;
+				var last = i + 2;
 
-				while (Kind(read) == Dot && Kind(read + 1) == Identifier)
-				{
-					name  = Cut(read + 1);
-					read += 2;
-				}
+				while (Kind(last + 1) == Dot && Kind(last + 2) == Identifier)
+					last += 2;
 
-				if (Kind(read) != RightParen)
+				if (Kind(last + 1) != RightParen)
 					return -1;
 
-				node = Expression.Constant(name);
+				if (_build)
+					node = Expression.Constant(Cut(last));
 
-				return read + 1;
+				return last + 2;
 			}
 
 			// A lambda written where a value is wanted, tried before the parenthesis it begins
-			// like: `(int y) => y * 2` and `(y)` are told apart by what stands after the `)`,
-			// which is further than a kind can see.
+			// like: `(int y) => y * 2` and `(y)` are told apart by what stands after the `)`.
 			if (kind == LeftParen)
 			{
 				var lambda = Inner(i, out node);
@@ -2391,9 +3800,17 @@ public static class HandExpression
 					return lambda;
 			}
 
+			if (kind == LeftParen || kind == Identifier)
+			{
+				var untyped = Untyped(i, out node);
+
+				if (untyped >= 0)
+					return untyped;
+			}
+
 			if (kind == LeftParen)
 			{
-				var inner = Expr(i + 1, out node);
+				var inner = Assignment(i + 1, out node);
 
 				if (inner < 0 || Kind(inner) != RightParen)
 					return -1;
@@ -2401,30 +3818,26 @@ public static class HandExpression
 				return inner + 1;
 			}
 
-			if (kind == KwTrue)
+			if (kind >= Number && kind <= RawLong)
 			{
-				node = Expression.Constant(true);
+				if (_build)
+					node = Literal(i, kind);
 
 				return i + 1;
 			}
 
-			if (kind == KwFalse)
+			if (kind == KwTrue || kind == KwFalse)
 			{
-				node = Expression.Constant(false);
+				if (_build)
+					node = Expression.Constant(kind == KwTrue);
 
 				return i + 1;
 			}
 
 			if (kind == KwNull)
 			{
-				node = ExpressionParser.Null;
-
-				return i + 1;
-			}
-
-			if (kind >= Number && kind <= Character)
-			{
-				node = Literal(i, kind);
+				if (_build)
+					node = ExpressionParser.Null;
 
 				return i + 1;
 			}
@@ -2432,11 +3845,19 @@ public static class HandExpression
 			return Name(i, out node);
 		}
 
+		void Mark(ExpressionParser.Reading reading)
+		{
+			if (_marked == _marks.Length)
+				Array.Resize(ref _marks, _marked * 2);
+
+			_marks[_marked++] = reading;
+		}
+
 		int New(int i, out Expression? node)
 		{
 			node = null;
 
-			var at = Type(i + 1, out var type);
+			var at = Type(i + 1, out var type, _build);
 
 			if (at < 0)
 				return -1;
@@ -2444,41 +3865,46 @@ public static class HandExpression
 			// `new int[n]`: a size, and the array is the element type's.
 			if (Kind(at) == LeftBracket)
 			{
-				var size = Expr(at + 1, out var read);
+				var size = Assignment(at + 1, out var read);
 
 				if (size < 0 || Kind(size) != RightBracket)
 					return -1;
 
-				node = Expression.NewArrayBounds(type!, read!);
+				if (_build)
+					node = Expression.NewArrayBounds(type!, read!);
 
 				return size + 1;
 			}
 
-			// `new int[] { … }`: the brackets belong to the type, and the braces are what
-			// tell this from a constructor.
+			// `new int[] { … }`: the brackets belong to the type, and the braces are what tell
+			// this from a constructor. Whether the type is an array is a guard's question, so
+			// it is built to be asked.
+			if (type is null)
+				Type(i + 1, out type, build: true);
+
 			if (type!.IsArray && Kind(at) == LeftBrace)
 			{
-				var items = new List<Expression>();
+				var items = _build ? new List<Expression>() : null;
 				var read  = at + 1;
 
 				if (Kind(read) != RightBrace)
 				{
-					var first = Expr(read, out var one);
+					var first = Assignment(read, out var one);
 
 					if (first < 0)
 						return -1;
 
-					items.Add(one!);
+					items?.Add(one!);
 					read = first;
 
 					while (Kind(read) == Comma)
 					{
-						var more = Expr(read + 1, out var next);
+						var more = Assignment(read + 1, out var next);
 
 						if (more < 0)
 							return -1;
 
-						items.Add(next!);
+						items?.Add(next!);
 						read = more;
 					}
 				}
@@ -2486,11 +3912,15 @@ public static class HandExpression
 				if (Kind(read) != RightBrace)
 					return -1;
 
-				node = Expression.NewArrayInit(
-					type.GetElementType()!, ExpressionParser.Converted(items.ToArray(), type.GetElementType()!));
+				if (_build)
+					node = Expression.NewArrayInit(
+						type.GetElementType()!, ExpressionParser.Converted(items!.ToArray(), type.GetElementType()!));
 
 				return read + 1;
 			}
+
+			if (!type.IsArray)
+				Refuse(at);
 
 			var arguments = Arguments(at, out var args);
 
@@ -2501,11 +3931,12 @@ public static class HandExpression
 			var elements = default(ExpressionParser.Element[]);
 			var after    = arguments;
 
-			// One tail rather than three alternatives: what stands inside the braces is
-			// what says which of the two it is, and `Name =` is the narrower.
+			// One tail rather than three alternatives: what stands inside the braces is what
+			// says which of the two it is, and `Name =` is the narrower — asked first, and
+			// without building, because it is the other one where it fails further in.
 			if (Kind(after) == LeftBrace)
 			{
-				var bound = Bindings(after, out fields);
+				var bound = Bound(after, out fields);
 
 				if (bound >= 0)
 				{
@@ -2517,12 +3948,32 @@ public static class HandExpression
 
 					if (listed >= 0 && Kind(listed) == RightBrace)
 						after = listed + 1;
+					else
+						elements = null;
 				}
 			}
 
-			node = ExpressionParser.Made(type, args!, fields, elements, _context.Caller);
+			if (_build)
+				node = ExpressionParser.Made(type, args!, fields, elements, _context.Caller);
 
 			return after;
+		}
+
+		/// <summary>Member initializers, read first without building, since braces that fail as these are elements.</summary>
+		int Bound(int i, out ExpressionParser.Setting[]? settings)
+		{
+			settings = null;
+
+			Quiet(out var was);
+
+			var bound = Bindings(i, out _);
+
+			_build = was;
+
+			if (bound >= 0 && _build)
+				Bindings(i, out settings);
+
+			return bound;
 		}
 
 		int Bindings(int i, out ExpressionParser.Setting[]? settings)
@@ -2532,33 +3983,34 @@ public static class HandExpression
 			if (Kind(i) != LeftBrace)
 				return -1;
 
-			var read = new List<ExpressionParser.Setting>();
+			var read = _build ? new List<ExpressionParser.Setting>() : null;
 			var at   = Binding(i + 1, out var first);
 
 			if (at < 0)
 				return -1;
 
-			read.Add(first);
+			read?.Add(first);
 
 			while (Kind(at) == Comma)
 			{
 				var more = Binding(at + 1, out var next);
 
 				if (more < 0)
-					return -1;
+					break;
 
-				read.Add(next);
+				read?.Add(next);
 				at = more;
 			}
 
 			if (Kind(at) != RightBrace)
 				return -1;
 
-			settings = read.ToArray();
+			settings = read?.ToArray();
 
 			return at + 1;
 		}
 
+		/// <summary>What stands after one member's `=`: a value, a nested initializer of members, or one of elements.</summary>
 		int Binding(int i, out ExpressionParser.Setting setting)
 		{
 			setting = default;
@@ -2570,11 +4022,12 @@ public static class HandExpression
 
 			if (Kind(i + 2) == LeftBrace)
 			{
-				var nested = Bindings(i + 2, out var inside);
+				var nested = Bound(i + 2, out var inside);
 
 				if (nested >= 0)
 				{
-					setting = new ExpressionParser.Setting(name, null, inside, null);
+					if (_build)
+						setting = new ExpressionParser.Setting(name, null, inside, null);
 
 					return nested;
 				}
@@ -2583,18 +4036,20 @@ public static class HandExpression
 
 				if (listed >= 0 && Kind(listed) == RightBrace)
 				{
-					setting = new ExpressionParser.Setting(name, null, null, items);
+					if (_build)
+						setting = new ExpressionParser.Setting(name, null, null, items);
 
 					return listed + 1;
 				}
 			}
 
-			var value = Expr(i + 2, out var read);
+			var value = Assignment(i + 2, out var read);
 
 			if (value < 0)
 				return -1;
 
-			setting = new ExpressionParser.Setting(name, read, null, null);
+			if (_build)
+				setting = new ExpressionParser.Setting(name, read, null, null);
 
 			return value;
 		}
@@ -2603,71 +4058,72 @@ public static class HandExpression
 		{
 			elements = null;
 
-			var read = new List<ExpressionParser.Element>();
-			var at   = Element(i, out var first);
+			var read = _build ? new List<ExpressionParser.Element>() : null;
+			var at   = Element(i, out ExpressionParser.Element first);
 
 			if (at < 0)
 				return -1;
 
-			read.Add(first);
+			read?.Add(first);
 
 			while (Kind(at) == Comma)
 			{
-				var more = Element(at + 1, out var next);
+				var more = Element(at + 1, out ExpressionParser.Element next);
 
 				if (more < 0)
-					return -1;
+					break;
 
-				read.Add(next);
+				read?.Add(next);
 				at = more;
 			}
 
-			elements = read.ToArray();
+			elements = read?.ToArray();
 
 			return at;
 		}
 
+		/// <summary>What one call to `Add` takes: one expression, or for a dictionary two, in braces of their own.</summary>
 		int Element(int i, out ExpressionParser.Element element)
 		{
 			element = default;
 
-			// A braced element is what one `Add` of two arguments takes, which is how C#
-			// writes an entry of a dictionary.
 			if (Kind(i) == LeftBrace)
 			{
-				var arguments = new List<Expression>();
-				var at        = Expr(i + 1, out var first);
+				var arguments = _build ? new List<Expression>() : null;
+				var at        = Assignment(i + 1, out var first);
 
 				if (at < 0)
 					return -1;
 
-				arguments.Add(first!);
+				arguments?.Add(first!);
 
 				while (Kind(at) == Comma)
 				{
-					var more = Expr(at + 1, out var next);
+					var more = Assignment(at + 1, out var next);
 
 					if (more < 0)
-						return -1;
+						break;
 
-					arguments.Add(next!);
+					arguments?.Add(next!);
 					at = more;
 				}
 
 				if (Kind(at) != RightBrace)
 					return -1;
 
-				element = new ExpressionParser.Element(arguments.ToArray());
+				if (_build)
+					element = new ExpressionParser.Element(arguments!.ToArray());
 
 				return at + 1;
 			}
 
-			var only = Expr(i, out var value);
+			var only = Assignment(i, out var value);
 
 			if (only < 0)
 				return -1;
 
-			element = ExpressionParser.Only(value!);
+			if (_build)
+				element = ExpressionParser.Only(value!);
 
 			return only;
 		}
@@ -2679,27 +4135,24 @@ public static class HandExpression
 			if (Kind(i) != LeftParen)
 				return -1;
 
-			var read = new List<Expression>();
+			var read = _build ? new List<Expression>() : null;
 			var at   = i + 1;
 
-			if (Kind(at) != RightParen)
+			var first = Assignment(at, out var one);
+
+			if (first >= 0)
 			{
-				var first = Expr(at, out var one);
-
-				if (first < 0)
-					return -1;
-
-				read.Add(one!);
+				read?.Add(one!);
 				at = first;
 
 				while (Kind(at) == Comma)
 				{
-					var more = Expr(at + 1, out var next);
+					var more = Assignment(at + 1, out var next);
 
 					if (more < 0)
-						return -1;
+						break;
 
-					read.Add(next!);
+					read?.Add(next!);
 					at = more;
 				}
 			}
@@ -2707,7 +4160,7 @@ public static class HandExpression
 			if (Kind(at) != RightParen)
 				return -1;
 
-			arguments = read.ToArray();
+			arguments = read?.ToArray() ?? [];
 
 			return at + 1;
 		}
@@ -2719,35 +4172,35 @@ public static class HandExpression
 			if (Kind(i) != LeftBracket)
 				return -1;
 
-			var read  = new List<Expression>();
-			var at    = Expr(i + 1, out var first);
+			var read = _build ? new List<Expression>() : null;
+			var at   = Assignment(i + 1, out var first);
 
 			if (at < 0)
 				return -1;
 
-			read.Add(first!);
+			read?.Add(first!);
 
 			while (Kind(at) == Comma)
 			{
-				var more = Expr(at + 1, out var next);
+				var more = Assignment(at + 1, out var next);
 
 				if (more < 0)
-					return -1;
+					break;
 
-				read.Add(next!);
+				read?.Add(next!);
 				at = more;
 			}
 
 			if (Kind(at) != RightBracket)
 				return -1;
 
-			indices = read.ToArray();
+			indices = read?.ToArray();
 
 			return at + 1;
 		}
 
 		/// <summary>A word that names a variable, which is what makes it a name at all.</summary>
-		int Name(int i, out Expression? node)
+		int Name(int i, out Expression? node, bool build = true, bool always = false)
 		{
 			node = null;
 
@@ -2758,9 +4211,10 @@ public static class HandExpression
 			var span = Span(i, i + 1);
 
 			if (!_context.Knows(name, span))
-				return -1;
+				return Refuse(i + 1);
 
-			node = _context.Named(name, span);
+			if (always || build && _build)
+				node = _context.Named(name, span);
 
 			return i + 1;
 		}
@@ -2769,9 +4223,15 @@ public static class HandExpression
 
 		readonly Expression Literal(int i, byte kind)
 		{
-			if (kind == Text)      return Expression.Constant(Unescaped(i, false));
-			if (kind == Character) return Expression.Constant(Unescaped(i, false)[0]);
-			if (kind == Verbatim)  return Expression.Constant(Unescaped(i, true));
+			if (kind == Text)      return Expression.Constant(Unescaped(i));
+			if (kind == Character) return Expression.Constant(Unescaped(i)[0]);
+			if (kind == Verbatim)  return Expression.Constant(Unverbatim(i));
+
+			if (kind == RawText)
+				return Expression.Constant(ExpressionParser.Raw(Cut(i), Count(_text.AsSpan(0, _starts[i] + _lengths[i]), _starts[i], '"')));
+
+			if (kind >= Interpolated)
+				return ExpressionParser.Interpolation(Pieces(i, kind), _context, _ascii ? AsciiHole : Hole);
 
 			var digits = Digits(i, kind);
 
@@ -2781,8 +4241,8 @@ public static class HandExpression
 				RealD    => Expression.Constant(double.Parse(digits, NumberStyles.Float, CultureInfo.InvariantCulture)),
 				RealF    => Expression.Constant(float.Parse(digits, NumberStyles.Float, CultureInfo.InvariantCulture)),
 				RealM    => Expression.Constant(decimal.Parse(digits, NumberStyles.Float, CultureInfo.InvariantCulture)),
-				// Which type an integer is depends on its value, and the parser's own answer
-				// to that is the one to give: the two are held against each other.
+				// Which type an integer is depends on its value, and the language's own answer
+				// to that is the one to give.
 				Hex      => ExpressionParser.Integer(digits, 16, unsigned: false, wide: false),
 				HexU     => ExpressionParser.Integer(digits, 16, unsigned: true,  wide: false),
 				HexL     => ExpressionParser.Integer(digits, 16, unsigned: false, wide: true),
@@ -2798,6 +4258,34 @@ public static class HandExpression
 			};
 		}
 
+		/// <summary>An interpolated or raw string cut into what it is made of, which its holes are read over.</summary>
+		readonly ExpressionParser.InterpolatedText Pieces(int i, byte kind)
+		{
+			var from = _starts[i];
+			var s    = _text.AsSpan(0, from + _lengths[i]);
+
+			if (kind == RawLong)
+				return ExpressionParser.RawByHand(Cut(i), _text, Span(i, i + 1));
+
+			var parts = new List<Segment>();
+
+			if (kind == RawHoles)
+			{
+				var dollars = Count(s, from, '$');
+				var quotes  = Count(s, from + dollars, '"');
+
+				RawHolesEnd(s, from + dollars + quotes, dollars, quotes, parts);
+
+				return ExpressionParser.Raw(parts.ToArray(), _text);
+			}
+
+			var verbatim = s[from] == '@' || s[from + 1] == '@';
+
+			InterpolatedEnd(s, from + (verbatim ? 3 : 2), verbatim, parts);
+
+			return new ExpressionParser.InterpolatedText(parts.ToArray(), _text);
+		}
+
 		/// <summary>
 		/// The digits of a number, without the base it was written in, the suffix that says
 		/// its type, or the separators that are no part of its value.
@@ -2807,18 +4295,17 @@ public static class HandExpression
 			var from = _starts[i];
 			var to   = from + _lengths[i];
 
-			// The base is a prefix, and the suffix is the letter or two at the end. Which
-			// of them the number has, the kind already says: the lexer walked the
-			// characters once and there is nothing here to work out again.
+			// The base is a prefix, and the suffix is the letter or two at the end. Which of
+			// them the number has, the kind already says.
 			if (kind is >= Hex and <= BitsUL)
 				from += 2;
 
 			to -= kind switch
 			{
 				NumberU or NumberL or HexU or HexL or BitsU or BitsL => 1,
-				RealD or RealF or RealM                                  => 1,
-				NumberUL or HexUL or BitsUL                            => 2,
-				_                                                        => 0,
+				RealD or RealF or RealM                              => 1,
+				NumberUL or HexUL or BitsUL                          => 2,
+				_                                                    => 0,
 			};
 
 			var span = _text.AsSpan(from, to - from);
@@ -2827,78 +4314,34 @@ public static class HandExpression
 		}
 
 		/// <summary>The text a quoted run stands for, with the escapes it wrote read back.</summary>
-		readonly string Unescaped(int i, bool verbatim)
+		readonly string Unescaped(int i)
 		{
-			var from = _starts[i] + (verbatim ? 2 : 1);
-			var to   = _starts[i] + _lengths[i] - 1;
-			var made = new System.Text.StringBuilder(to - from);
+			var s    = _text.AsSpan(0, _starts[i] + _lengths[i] - 1);
+			var made = new StringBuilder(_lengths[i]);
 
-			for (var at = from; at < to; at++)
+			for (var at = _starts[i] + 1; at < s.Length;)
 			{
-				var c = _text[at];
-
-				if (verbatim)
+				if (s[at] != '\\')
 				{
-					made.Append(c);
-
-					if (c == '"')
-						at++;
+					made.Append(s[at]);
+					at++;
 
 					continue;
 				}
 
-				if (c != '\\')
-				{
-					made.Append(c);
+				var end = EscapeEnd(s, at);
 
-					continue;
-				}
-
-				at++;
-
-				switch (_text[at])
-				{
-					case 'a':  made.Append('\a'); break;
-					case 'b':  made.Append('\b'); break;
-					case 'f':  made.Append('\f'); break;
-					case 'n':  made.Append('\n'); break;
-					case 'r':  made.Append('\r'); break;
-					case 't':  made.Append('\t'); break;
-					case 'v':  made.Append('\v'); break;
-					case '0':  made.Append('\0'); break;
-					case '\\': made.Append('\\'); break;
-					case '\'': made.Append('\''); break;
-					case '"':  made.Append('"');  break;
-
-					case 'u':
-						made.Append((char)Convert.ToInt32(_text.Substring(at + 1, 4), 16));
-						at += 4;
-						break;
-
-					case 'U':
-						made.Append(char.ConvertFromUtf32(Convert.ToInt32(_text.Substring(at + 1, 8), 16)));
-						at += 8;
-						break;
-
-					case 'x':
-					{
-						var width = 0;
-
-						while (width < 4 && at + 1 + width < to && IsHex(_text[at + 1 + width]))
-							width++;
-
-						made.Append((char)Convert.ToInt32(_text.Substring(at + 1, width), 16));
-						at += width;
-						break;
-					}
-
-					default:
-						made.Append(_text[at]);
-						break;
-				}
+				made.Append(Escaped(s, at, end));
+				at = end;
 			}
 
 			return made.ToString();
+		}
+
+		/// <summary>The text of a verbatim string, every character as written and a doubled quote one.</summary>
+		readonly string Unverbatim(int i)
+		{
+			return _text.Substring(_starts[i] + 2, _lengths[i] - 3).Replace("\"\"", "\"");
 		}
 	}
 }

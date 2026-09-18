@@ -2845,6 +2845,49 @@ public static partial class ExpressionParser
 		int     _refusedAt = -1;
 		string? _refusal;
 
+		/// <summary>How much a reading had written down, to go back to.</summary>
+		internal readonly record struct Checkpoint(
+			int Scopes, int Declared, int Lambdas, int Loops, int Breakables, int Unsettled, int Imports,
+			int RefusedAt, string? Refusal, bool Deferred);
+
+		/// <summary>Where this reading stands now.</summary>
+		/// <remarks>
+		/// For a reader that builds where it reads and has to read the same text again without
+		/// building, because a construction refused it: the answer the text owes is what reading
+		/// alone would say, from the state it began in (§7.3). Most of what a guard writes is a
+		/// fact about a position and is the same written twice; a loop, a lambda or a body read
+		/// before its types are known is opened by one guard and closed by another, and a reading
+		/// cut off between the two leaves an extent open that would claim everything after it.
+		/// </remarks>
+		internal Checkpoint Mark()
+		{
+			return new Checkpoint(
+				_scopes?.Count ?? 0, _declared?.Count ?? 0, _lambdas?.Count ?? 0, _loops?.Count ?? 0,
+				_breakables?.Count ?? 0, _unsettled?.Count ?? 0, _imports.Count, _refusedAt, _refusal, _deferred);
+		}
+
+		/// <summary>Everything written since <paramref name="at"/> taken back.</summary>
+		internal void Rollback(Checkpoint at)
+		{
+			Truncate(_scopes,     at.Scopes);
+			Truncate(_declared,   at.Declared);
+			Truncate(_lambdas,    at.Lambdas);
+			Truncate(_loops,      at.Loops);
+			Truncate(_breakables, at.Breakables);
+			Truncate(_unsettled,  at.Unsettled);
+			Truncate(_imports,    at.Imports);
+
+			_refusedAt = at.RefusedAt;
+			_refusal   = at.Refusal;
+			_deferred  = at.Deferred;
+
+			static void Truncate<T>(List<T>? list, int count)
+			{
+				if (list is not null && list.Count > count)
+					list.RemoveRange(count, list.Count - count);
+			}
+		}
+
 		/// <summary>
 		/// What to say about a parse that refused a name, or null where it refused none and
 		/// the parser's own message is the one to give.

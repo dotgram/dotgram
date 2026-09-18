@@ -126,6 +126,15 @@ public sealed class ExpressionCarrierTests
 		// The calling assembly's internal type, constructor, field, method and property.
 		"using DotGram.Tests.ExpressionLanguage; () => new Hidden(21).Twice() + new Hidden(1).Value + Hidden.Seven",
 
+		// Interpolated and raw strings, whose holes each reading reads over a window of its own.
+		"(int x) => $\"a{x}b\"",
+		"(int x) => $\"{x,5:D3}\"",
+		"(int x) => $@\"a\"\"{x}\"",
+		"(int x) => $\"{$\"{x}\"}\"",
+		"(int x) => \"\"\"a\"b\"\"\"",
+		"(int x) => $$\"\"\"{x} {{x}}\"\"\"",
+		"(int x) => $$$\"\"\"{{{x}}}\"\"\"",
+
 		// And the refusals: a refusal is an answer and has to be the same answer.
 		"(int x) => x *",
 		"(int x) => { x += 1;",
@@ -134,12 +143,35 @@ public sealed class ExpressionCarrierTests
 		"",
 	];
 
+	/// <summary>Lambdas that say no types, whose bodies are read before the types are known and again after.</summary>
+	public static TheoryData<string> Untyped =>
+	[
+		"using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()",
+		"using System.Linq; (int[] a) => a.Aggregate((s, n) => s + n)",
+		"using System.Linq; (int[] a) => a.Select(n => { var m = n * 2; return m; }).Sum()",
+		"using System.Linq; (int[][] a) => a.Select(r => { int t = 0; foreach (var n in r) t += n; return t; }).Sum()",
+	];
+
 	[Theory]
 	[MemberData(nameof(Inputs))]
 	public void The_two_carriers_read_one_language(string input)
 	{
-		var tape      = ExpressionParser.TryParseLambda(input, new ExpressionParser.State());
-		var immediate = ExpressionParser.Immediate.TryParseLambda(input, new ExpressionParser.State());
+		Agree(input);
+	}
+
+	[Theory(Skip =
+		"The immediate carrier builds the body of a lambda that says no types before the types are known, " +
+		"and throws where the tape reads (docs/design/architecture-decisions.md, D3 and D8).")]
+	[MemberData(nameof(Untyped))]
+	public void And_where_a_lambda_says_no_types(string input)
+	{
+		Agree(input);
+	}
+
+	static void Agree(string input)
+	{
+		var tape      = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
+		var immediate = ExpressionParser.Immediate.TryParseLambda(input, new ExpressionParser.State { Text = input });
 
 		Assert.Equal(tape.IsSuccess, immediate.IsSuccess);
 

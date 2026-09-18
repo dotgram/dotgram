@@ -46,6 +46,10 @@
 		     what only a true symbol resolver can reach is reachable from here. -->
 		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
+
+		<!-- The hand-written parsers, held here to the grammars they are measured against
+		     (docs/design/architecture-decisions.md, D1). -->
+		<ProjectReference Include="..\..\examples\DotGram.Handwritten\DotGram.Handwritten.csproj" />
 	</ItemGroup>
 
 </Project>

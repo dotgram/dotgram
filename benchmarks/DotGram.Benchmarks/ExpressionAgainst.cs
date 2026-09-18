@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 using DotGram.ExpressionLanguage;
 using DotGram.Handwritten;
@@ -88,214 +89,6 @@ static class ExpressionAgainst
 		// applies rather than in weighing every pair against every other — and `Trim`, which
 		// pays it with no arguments to convert at all, said the asking was reading metadata.
 		"(string s) => s.ToUpperInvariant()",
-	];
-
-	/// <summary>
-	/// What the two are held to before anything is timed. Every part of the language the
-	/// hand-written parser claims to read is written here once, and every shape that told
-	/// the two apart while it was being written stayed.
-	/// </summary>
-	static readonly string[] Corpus =
-	[
-		// The floor, the ladder, and every level of it.
-		"(int x) => x",
-		"(int x) => x + 1",
-		"(int x) => x * x - 1",
-		"(int x) => x * (x - 1)",
-		"(int x, int y) => (x + y) * 3 - x / 5",
-		"(int x) => x % 3",
-		"(int x) => x < 1 || x > 9",
-		"(int x) => x > 0 && x < 9",
-		"(int x) => x >= 0 && x <= 9",
-		"(int x) => x == 1 || x != 2",
-		"(int x) => (x & 3) | (x ^ 1)",
-		"(int x) => x << 2",
-		"(int x) => x >> 2",
-		"(int x) => x << 2 >> 1",
-		"(int x) => -x",
-		"(int x) => +x",
-		"(int x) => ~x",
-		"(bool b) => !b",
-		"(int x) => - -x",
-		"(int x) => 1 - -x",
-
-		// Association and precedence, on every pair of levels that could be confused.
-		"(int a, int b, int c) => a - b + c",
-		"(int a, int b, int c) => a + b * c",
-		"(int a, int b, int c) => a * b / c",
-		"(int a, int b, int c) => a / b * c",
-		"(int a, int b, int c) => a << b >> c",
-		"(bool a, bool b, bool c) => a || b && c",
-		"(bool a, bool b, bool c) => a && b || c",
-		"(int a, int b) => a < b == true",
-		"(int a, int b, int c) => a & b | c",
-		"(int a, int b, int c) => a | b ^ c",
-
-		// Right associativity, and the two that have it.
-		"(int x) => x > 1 ? x : -x",
-		"(int x) => x > 1 ? 1 : x > 0 ? 2 : 3",
-		"(string s) => s ?? \"none\"",
-		"(string s, string t) => s ?? t ?? \"none\"",
-
-		// Assignment, plain and compound, to a name, a member and an element.
-		"(int x) => { x = 1; x }",
-		"(int x) => { x += 1; x -= 2; x *= 3; x /= 4; x %= 5; x }",
-		"(int x) => { x &= 1; x |= 2; x ^= 3; x <<= 1; x >>= 1; x }",
-		"(int[] a) => { a[0] = 1; a[0] }",
-
-		// Members, calls, indices, and the chains they make.
-		"(string s) => s.Length",
-		"(string s) => s.Trim()",
-		"(string s) => s.Trim().Length",
-		"(string s) => s.Substring(1, 2)",
-		"(int[] a) => a.Length + a[0]",
-		"(int[][] a) => a[0][1]",
-		"using System; (int x) => Math.Max(x, 1)",
-		"(int x) => System.Math.Max(x, 1)",
-		"using System; (int x) => Math.PI > x",
-		"(string s) => string.Concat(s, s)",
-
-		// The types, which are what a cast and a declaration are told apart by.
-		"(int x) => (long)x",
-		"(double d) => (int)d + 1",
-		"(int x) => (object)x",
-		"(object o) => o as string",
-		"(object o) => o is string",
-		"(int x) => new int[3]",
-		"(int x) => new int[] { x, 1 }",
-		"(int x) => new int[] { }",
-		"(int x) => new string('a', x)",
-
-		// Statements, and the scopes they open.
-		"(int x) => { int y = x + 1; return y * y; }",
-		"(int x) => { int y = 1; { int z = 2; x += z; } x + y }",
-		"(int x) => { if (x > 0) return 1; return 0; }",
-		"(int x) => { if (x > 0) x = 1; else x = 2; x }",
-		"(int x) => if (x > 0) 1 else 2",
-		"(int x) => { int y = if (x > 0) 1 else 2; y }",
-		"(int x) => { while (x < 10) { x += 1; } return x; }",
-		"(int x) => { do { x += 1; } while (x < 10); x }",
-		"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }",
-		"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { if (i % 2 == 0) continue; sum += i; } sum }",
-		"(int n) => { while (true) { if (n > 3) break; n += 1; } n }",
-		"(int n) => { switch (n) { case 1: n = 10; break; default: n = 0; break; } n }",
-
-		// `foreach`, which the API has no node for: over an array, over a list through the
-		// enumerator it declares, over a string, with the element type written and with `var`,
-		// and the jumps that name the loop it makes.
-		"(int[] a) => { int sum = 0; foreach (int n in a) sum += n; sum }",
-		"(int[] a) => { int sum = 0; foreach (var n in a) { sum += n; } sum }",
-		"(string s) => { int n = 0; foreach (char c in s) n += 1; n }",
-		"using System.Collections.Generic; (List<int> l) => { int sum = 0; foreach (var n in l) sum += n; sum }",
-		"(int[] a) => { int sum = 0; foreach (var n in a) { if (n < 0) continue; if (n > 3) break; sum += n; } sum }",
-
-		// The marks, which change what is built and nothing about what is read.
-		"(int x) => checked(x + 1)",
-		"(int x) => unchecked(x * 2)",
-		"(int x) => checked(x + unchecked(x * 2))",
-		"(int x) => checked(x + 1) + x",
-
-		// A type where a value is wanted, what a type defaults to, and a name as written.
-		"(int x) => typeof(int)",
-		"(int x) => typeof(int[])",
-		"(int x) => default(int) + x",
-		"(int x) => nameof(x)",
-
-		// LINQ: an extension method through a `using`, its type arguments inferred, taking a
-		// lambda written where a value is wanted.
-		"using System.Collections.Generic; using System.Linq; (List<int> l) => l.Where((int n) => n > 1).Select((int n) => n * 2).ToArray()",
-
-		// A lambda inside an expression: one that closes over what is around it, and two
-		// beside each other whose parameters are each their own.
-		"(int x) => { var f = (int y) => y + x; f(1) }",
-		"(int x) => { var f = (int y) => y + 1; var g = (int y) => y * 2; f(1) + g(2) }",
-
-		// And a `return` inside one, which leaves that lambda and not the one around it:
-		// alone, and beside a `return` of the outer lambda's own, which is two labels.
-		"(int x) => { var f = (int y) => { return y + 1; }; f(x) }",
-		"(int x) => { var f = (int y) => { return y * 2; }; return f(x) + 1; }",
-
-		// A guard and how far it reaches: one step, a whole chain protected by it, an index,
-		// what a nullable holds, and the ternary whose number keeps its point.
-		"(string s) => s?.Length",
-		"(string s) => s?.Trim().Length",
-		"(int[] a) => a?[0]",
-		"(string s) => (s?.Length)?.ToString()",
-		"(int x) => x > 0 ? .5 : 1.5",
-
-		// A declaration whose type is its initializer's, the same inside a `for`, and the
-		// word itself as a name — which is what makes `var` contextual rather than reserved.
-		"(int x) => { var doubled = x * 2; doubled }",
-		"(double x) => { var half = x / 2.0; return half; }",
-		"(int n) => { int sum = 0; for (var i = 0; i < n; i++) { sum += i; } sum }",
-		"(int var) => { var += 2; var }",
-		"(int x) => { var nothing = null; x }",
-
-		// The constants, every form of them.
-		"(int x) => 1",
-		"(int x) => 2147483648",
-		"(int x) => 1u",
-		"(int x) => 1L",
-		"(int x) => 1UL",
-		"(int x) => 1_000_000",
-		"(int x) => 0x1F",
-		"(int x) => 0xFFu",
-		"(int x) => 0b1010",
-		"(int x) => 1.5",
-		"(int x) => .5",
-		"(int x) => 1e3",
-		"(int x) => 1.5e-3",
-		"(int x) => 1.5f",
-		"(int x) => 1.5d",
-		"(int x) => 1.5m",
-		"(int x) => 1m",
-		"(bool b) => true",
-		"(bool b) => false",
-		"(string s) => null",
-		"(string s) => \"text\"",
-		"(string s) => \"a\\tb\\n\"",
-		"(string s) => \"\\u0041\"",
-		"(string s) => @\"a\"\"b\"",
-		"(char c) => 'a'",
-		"(char c) => '\\n'",
-
-		// What is left of the language: the constructs a person writes rarely and a
-		// parser has to read all the same.
-		"using System; (int x) => { try { x += 1; } catch (Exception e) { x = 0; } x }",
-		"using System; (int x) => { try { x += 1; } catch (Exception e) { x = 0; } finally { x += 1; } x }",
-		"(int x) => { try { x += 1; } finally { x += 1; } x }",
-		"using System; (int x) => { if (x < 0) throw new Exception(\"no\"); x }",
-		"(int x) => new System.Collections.Generic.List<int>()",
-		"(int x) => new System.Collections.Generic.List<int> { x, 1 }",
-		"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, \"a\" } }",
-		"(int x) => new System.Text.StringBuilder(16).Length",
-		"(int x) => System.Convert.ToString(x)",
-
-		// A `using`, two of them, and a nested type reached through one.
-		"using System.Text; (int x) => new StringBuilder(16).Length",
-		"using System; using System.Text; (int x) => Math.Max(new StringBuilder(x).Length, 1)",
-		"using System; (Environment.SpecialFolder f) => f",
-		"(int x) => { int[] a = new int[2]; a[0] = x; a[0] }",
-		"(int x) => ++x",
-		"(int x) => --x",
-		"(int x) => x++",
-		"(int x) => x--",
-
-		// And the refusals: a refusal is an answer, and has to be the same answer.
-		"(int x) => x *",
-		"(int x) =>",
-		"(int x) => { x += 1;",
-		"(int x) => y",
-		"(int x) => x.NoSuchMember",
-		"using System.Nowhere; (int x) => x",
-		"(int x) => Math.Max(x, 1)",
-		"(int x) => (",
-		"(int x) => )",
-		"int x => x",
-		"(int x) x",
-		"",
-		"(int x) => x > > 1",
-		"(int x) => x | | 1",
 	];
 
 	public static void Run(int rounds, int iterations)
@@ -420,9 +213,9 @@ static class ExpressionAgainst
 			for (var i = 0; i < 2000; i++)
 				read += reading switch
 				{
-					"hand"      => HandExpression.Parse(text) ? 1 : 0,
-					"immediate" => Read(true)  ? 1 : 0,
-					_           => Read(false) ? 1 : 0,
+					"hand"      => Read(Reading.Hand)      ? 1 : 0,
+					"immediate" => Read(Reading.Immediate) ? 1 : 0,
+					_           => Read(Reading.Tape)      ? 1 : 0,
 				};
 
 		Console.WriteLine($"{read:N0} {reading} readings of \"{text}\"");
@@ -430,9 +223,9 @@ static class ExpressionAgainst
 
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
-		("generated", static input => Read(false) ? 1 : 0),
-		("immediate", static input => Read(true)  ? 1 : 0),
-		("by hand",   static input => HandExpression.Parse(input) ? 1 : 0),
+		("generated", static input => Read(Reading.Tape)      ? 1 : 0),
+		("immediate", static input => Read(Reading.Immediate) ? 1 : 0),
+		("by hand",   static input => Read(Reading.Hand)      ? 1 : 0),
 		("its lexer", static input => HandExpression.LexOnly(input)),
 	];
 
@@ -440,15 +233,27 @@ static class ExpressionAgainst
 	// over it would allocate once per call and be measured doing it.
 	static string _input = "";
 
-	static bool Read(bool immediate)
+	/// <summary>Who every reading is on behalf of, asked once: asking each reading is a stack crawl, and the same one for all three.</summary>
+	static readonly Assembly Caller = typeof(ExpressionAgainst).Assembly;
+
+	/// <summary>A reading of one text, on behalf of <see cref="Caller"/>.</summary>
+	static ExpressionParser.State Fresh(string text)
 	{
-		var state = new ExpressionParser.State();
+		return new ExpressionParser.State(Caller) { Text = text };
+	}
+
+	static bool Read(Reading which)
+	{
+		var state = new ExpressionParser.State(Caller) { Text = _input };
 
 		try
 		{
-			return immediate
-				? ExpressionParser.Immediate.TryParseLambda(_input, state).IsSuccess
-				: ExpressionParser.TryParseLambda(_input, state).IsSuccess;
+			return which switch
+			{
+				Reading.Hand      => HandExpression.TryParseLambda(_input, state).IsSuccess,
+				Reading.Immediate => ExpressionParser.Immediate.TryParseLambda(_input, state).IsSuccess,
+				_                 => ExpressionParser.TryParseLambda(_input, state).IsSuccess,
+			};
 		}
 		catch (Exception exception) when (exception is FormatException or ArgumentException or InvalidOperationException)
 		{
@@ -457,23 +262,23 @@ static class ExpressionAgainst
 	}
 
 	/// <summary>
-	/// The three answering the same about every shape, before anything is timed. Throws
-	/// rather than warns: a ratio measured against a parser that reads a different language
-	/// is worse than no ratio.
+	/// The three answering the same, before anything is timed. Throws rather than warns: a
+	/// ratio measured against a parser that reads a different language is worse than no ratio.
 	/// </summary>
+	/// <remarks>
+	/// The hand-written parser is held to the tape over the whole shared corpus and over what
+	/// is timed, answer for answer — the tree, or where and how the text was refused
+	/// (<see cref="ExpressionCorpus.Answer"/>). The immediate carrier is held to the tape over
+	/// what is timed only: it builds the body of a lambda that says no types before the types
+	/// are known (docs/design/architecture-decisions.md, D8), so no figure of it is quoted for
+	/// one, and none stands among the inputs.
+	/// </remarks>
 	public static void Agree()
 	{
-		foreach (var text in Corpus.Concat(Inputs))
+		foreach (var text in ExpressionCorpus.Shapes.Concat(Inputs))
 		{
-			var tape      = Shown(text, Reading.Tape);
-			var immediate = Shown(text, Reading.Immediate);
-			var handed    = Shown(text, Reading.Hand);
-
-			if (tape != immediate)
-				throw new InvalidOperationException(
-					$"About \"{text}\": the tape and the immediate carrier read one grammar differently.\n" +
-					$"  tape      {tape}\n" +
-					$"  immediate {immediate}");
+			var tape   = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
+			var handed = ExpressionCorpus.Answer(text, HandExpression.TryParseLambda, Fresh(text));
 
 			if (tape != handed)
 				throw new InvalidOperationException(
@@ -482,44 +287,24 @@ static class ExpressionAgainst
 					$"  by hand   {handed}");
 		}
 
+		foreach (var text in Inputs)
+		{
+			var tape      = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
+			var immediate = ExpressionCorpus.Answer(text, ExpressionParser.Immediate.TryParseLambda, Fresh(text));
+
+			if (tape != immediate)
+				throw new InvalidOperationException(
+					$"About \"{text}\": the tape and the immediate carrier read one grammar differently.\n" +
+					$"  tape      {tape}\n" +
+					$"  immediate {immediate}");
+		}
+
 		Console.WriteLine(
-			$"All three read the same language and build the same tree over " +
-			$"{Corpus.Length + Inputs.Length} shapes.");
+			$"The hand-written parser answers as the tape over {ExpressionCorpus.Shapes.Length + Inputs.Length} shapes, " +
+			$"and the immediate carrier over the {Inputs.Length} timed.");
 	}
 
 	enum Reading { Tape, Immediate, Hand }
-
-	/// <summary>What one of the three makes of the text, as it prints, or why it made nothing.</summary>
-	static string Shown(string text, Reading which)
-	{
-		try
-		{
-			LambdaExpression? lambda;
-
-			if (which == Reading.Hand)
-			{
-				lambda = HandExpression.Build(text);
-			}
-			else
-			{
-				var state = new ExpressionParser.State();
-				var match = which == Reading.Immediate
-					? ExpressionParser.Immediate.TryParseLambda(text, state)
-					: ExpressionParser.TryParseLambda(text, state);
-
-				lambda = match.IsSuccess ? match.Value : null;
-			}
-
-			return lambda is null ? "<refused>" : lambda.ToString();
-		}
-		catch (Exception exception) when (exception is FormatException or ArgumentException or InvalidOperationException)
-		{
-			// What the API refuses it refuses in its own words, and both readings meet it
-			// the same way. The type of the refusal is the answer; its message is the
-			// API's and may name the reading that reached it.
-			return "<" + exception.GetType().Name + ">";
-		}
-	}
 
 	static int Nothing(string input) => input.Length & 1;
 
