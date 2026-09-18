@@ -3,6 +3,16 @@
 Snapshot: 2026-09-17. Read this when continuing the Finance work on another machine.
 This is a handoff, not a replacement for the code or language specification.
 
+## Integration update
+
+The user subsequently requested merging all Finance work into local main. Merge
+`55b1310d` includes main through `22330721`, the Finance enum/documentation/decimal
+changes, and the user's factory formatting commit `196850d7`. Both Finance targets
+built and all 6441 Finance tests passed after integration. The earlier branch-status
+and pending-merge notes below describe the original handoff snapshot and are superseded
+by this update. Also read `docs/design/performance-handoff-2026-09-17.md` for the
+new generator optimizations. No remote push is implied by the local integration.
+
 ## Start here
 
 1. Read `AGENTS.md`, `CLAUDE.md`, `docs/coding-conventions.md`, and relevant
