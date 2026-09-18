@@ -63,7 +63,6 @@ static class FixSemantics
 			{
 				if (reference.Id is not (1024 or 1025)) Add(FixSchema.Component(reference.Id), members);
 			}
-
 			else members[reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id] = reference.Kind == 2 ? reference.Id : 0;
 		}
 	}
