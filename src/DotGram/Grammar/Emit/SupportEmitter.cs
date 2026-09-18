@@ -322,34 +322,6 @@ public static class SupportEmitter
 				Label,
 			}
 
-			/// <summary>Names the language a grammar describes, for tooling to discover.</summary>
-			/// <summary>
-			/// Another grammar this one is written on top of.
-			/// </summary>
-			/// <remarks>
-			/// <para>
-			/// The named class's rules are declared beside this grammar's own, under a
-			/// namespace called after the class unless <see cref="As"/> says otherwise, so
-			/// that <c>using Sql92</c> and <c>Sql92.ValueExpression</c> reach them (§5.1).
-			/// Write it as many times as there are grammars to build on: a dialect on a
-			/// standard, a standard on a library of lexemes, both at once.
-			/// </para>
-			/// <para>
-			/// <b>The C# comes with it.</b> Whatever static members the named class holds are
-			/// brought into scope of the generated code, so a rule this grammar includes goes
-			/// on calling the helpers its author wrote. Two grammars offering the same name is
-			/// then an ordinary C# ambiguity and is refused as one; a member <em>you</em>
-			/// declare under a name a grammar you include calls is not refused and is used
-			/// instead of theirs, which is the one collision nothing here can see and the
-			/// reason to read what you include.
-			/// </para>
-			/// <para>
-			/// A grammar may also be inherited, by deriving from the class that holds it.
-			/// That is the older spelling and it says less: a class has one base and many
-			/// attributes, and a base class carries meaning of its own that a grammar has no
-			/// use for.
-			/// </para>
-			/// </remarks>
 			/// <summary>
 			/// The grammar a class is compiled from, and the first reading of it.
 			/// </summary>
@@ -403,6 +375,33 @@ public static class SupportEmitter
 				public string? Text { get; }
 			}
 
+			/// <summary>
+			/// Another grammar this one is written on top of.
+			/// </summary>
+			/// <remarks>
+			/// <para>
+			/// The named class's rules are declared beside this grammar's own, under a
+			/// namespace called after the class unless <see cref="As"/> says otherwise, so
+			/// that <c>using Sql92</c> and <c>Sql92.ValueExpression</c> reach them (§5.1).
+			/// Write it as many times as there are grammars to build on: a dialect on a
+			/// standard, a standard on a library of lexemes, both at once.
+			/// </para>
+			/// <para>
+			/// <b>The C# comes with it.</b> Whatever static members the named class holds are
+			/// brought into scope of the generated code, so a rule this grammar includes goes
+			/// on calling the helpers its author wrote. Two grammars offering the same name is
+			/// then an ordinary C# ambiguity and is refused as one; a member <em>you</em>
+			/// declare under a name a grammar you include calls is not refused and is used
+			/// instead of theirs, which is the one collision nothing here can see and the
+			/// reason to read what you include.
+			/// </para>
+			/// <para>
+			/// A grammar may also be inherited, by deriving from the class that holds it.
+			/// That is the older spelling and it says less: a class has one base and many
+			/// attributes, and a base class carries meaning of its own that a grammar has no
+			/// use for.
+			/// </para>
+			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			[global::Microsoft.CodeAnalysis.Embedded]
@@ -424,6 +423,7 @@ public static class SupportEmitter
 				public string? As { get; set; }
 			}
 
+			/// <summary>Names the language a grammar describes, for tooling to discover.</summary>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			[global::Microsoft.CodeAnalysis.Embedded]
