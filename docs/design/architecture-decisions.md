@@ -506,6 +506,38 @@ each owner then reviews its area by these rules, each removal named in the commi
   so that the ordinary Finance tests build in seconds and the oracle runs when the grammar or
   the parser changes.
 
+## D13. FIX first: the gap is to be explained and closed by hand-like code
+
+Decided 2026-09-18 by Igor. FIX is the priority; SQL and the rest go on beside it. The
+generated FIX parser is about 2.6x the hand-written one on a string and the reason is to be
+found, not assumed: first the parser's own initialization on small inputs, which can dominate
+a one-field parse; then the generator is to write code like the hand parser's. If that needs
+the architecture revisited, it is discussed with Igor.
+
+**What is known.** One field: 196 ns generated against 72 by hand — 124 ns over a parse that
+reads six characters, so most of a small parse is not reading. Order: recognizer 32%,
+materializer 27%, `Parser.Reset` 6%, factories 24% (shared with the hand parser). FIX is on the
+engine because it recovers; the hand parser is a loop that reads a tag into an int, finds the
+separator, switches on the tag's kind and builds.
+
+**First, the anatomy (performance-3f, with stand):**
+
+1. A slope over 0, 1, 2, 4, 8 fields, string form, generated against hand: the intercept is
+   what a call costs before it reads, the slope is a field. Each side's intercept is broken
+   down from the emitted code: renting the spare parser, `Reset`, the arena and value tables,
+   the context, the result array.
+2. A field's cost broken down: recognition (tag digits, `=`, the value to the separator),
+   the records written for it, materialization, the factory.
+3. Beside it, the same for `HandFixParser`, so that each line of the generated cost has the
+   hand parser's line next to it or a blank where the hand parser does nothing.
+
+**Then the design**, from that table: what the emitted code for `Fields` would have to be to
+match the hand parser line for line — a loop with no arena for a grammar whose only way back
+is `recover`, values built as they are read (D3, `Demand`), the separator found by a scan —
+and which of the generator's parts stand in the way (the engine for `recover`, the two-pass
+shape, per-call setup). That design comes to the architect and to Igor as a question about
+the architecture before anything is written.
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
