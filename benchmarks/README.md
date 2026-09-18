@@ -74,6 +74,13 @@ The comparison the ratio between them carries is exact; the absolute nanoseconds
 prints are not `--stand`'s and should not be pasted beside them. Results go to `paired.md`,
 same directory rule as `--stand`; it needs the same announced window.
 
+The three projects build to three different `bin` folders, so `beforeDir` and `afterDir` want
+their `.dll`s copied together first — there is no build option that puts them in one place.
+`--only substring` keeps rows whose id contains it, for a cheap rerun of one row a full run
+flagged, without paying for the other rows again; useful when a row's own spread is wide
+enough that one run's number is not worth trusting on its own (2026-09-18: `el/refused-late`
+read +16% in a full run and settled to noise, -4.5% to +0.7%, over four `--only` reruns).
+
 ## Parser resource baselines
 
 `ParserResourceBenchmarks` measures repeated SQL92 conditions at 1, 1000, 10000,

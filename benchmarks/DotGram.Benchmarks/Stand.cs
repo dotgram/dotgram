@@ -687,9 +687,10 @@ static class Stand
 
 	/// <summary>
 	/// Runs <see cref="PairedWorkloads"/> and writes <c>paired.md</c>: hand, before and after
-	/// in one table, the same control and pinning as <c>--stand</c>.
+	/// in one table, the same control and pinning as <c>--stand</c>. <paramref name="only"/>
+	/// keeps rows whose id contains it, for a cheaper rerun of one row a full run flagged.
 	/// </summary>
-	public static void Paired(string beforeDir, string afterDir, string? directory)
+	public static void Paired(string beforeDir, string afterDir, string? directory, string? only = null)
 	{
 		var pinned = Pin();
 		var output = directory ?? DefaultDirectory();
@@ -700,6 +701,9 @@ static class Stand
 		var after  = new PairedSide("after", afterDir);
 
 		var workloads = PairedWorkloads(before, after);
+
+		if (only is not null)
+			workloads = [.. workloads.Where(one => one.Id.Contains(only, StringComparison.Ordinal))];
 
 		foreach (var workload in workloads)
 			if (workload.Disagreement() is { } disagreement)
