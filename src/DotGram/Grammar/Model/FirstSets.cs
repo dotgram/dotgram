@@ -617,6 +617,13 @@ public static class FirstSets
 	/// an item need a few dozen; the budget is for the grammar whose callers and choices fan out
 	/// without end, where following every way on is what made generating T-SQL go from 4 s to
 	/// 86 and a split SQL:2023 not finish at all (2026-09-18).
+	/// <para>
+	/// <b>Past the budget the question is not asked</b>, and the diagnostic says nothing about
+	/// that repetition: it is left where it was before this check existed, which costs a
+	/// warning and never a build. That is the intended direction, not a gap to close — making
+	/// the walk complete again is what took generation to 86 s. A larger budget is a
+	/// measurement (DotGram.Sql's generator time before and after), not a fix.
+	/// </para>
 	/// </remarks>
 	const int Budget = 2048;
 
