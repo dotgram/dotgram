@@ -439,6 +439,25 @@ option the user turns on; it is never the default, which stays C# 8 on netstanda
 - It fits Q3's rule, not against it: Q3 removed options that chose between renderings nobody
   needed; these choose what the consumer's build allows.
 
+## D11. A diagnostic that says the grammar reads otherwise than written is a warning
+
+Decided 2026-09-18 by the architect, on sql-ff's finding.
+
+`GRAM5009` says that, over kinds, an optional or a repetition takes what the part after it
+needed, so the split reads something other than the grammar as written (`FirstSets.Committed`).
+It was Info, which a build does not print, and it had fired eight times on parsers already
+shipped over kinds — seven in T-SQL, one in SQL-92 — without anyone knowing, and six more on
+SQL:2023 in flight. A diagnostic about the language a parser accepts cannot be one nobody sees.
+
+- `GRAM5009` becomes a Warning. The other Info diagnostics in `Grammar/` are reviewed by the
+  same rule: what tells the author about a change in what is read is a Warning; what reports a
+  choice the generator made (carrier, rendering) stays Info.
+- Order: the fourteen places are fixed in the grammars first (SQL:2023 by sql-ff before its
+  split lands; T-SQL and SQL-92 by sql-ff as well, their owner, each fix with a test of the
+  input the grammar meant), then performance-3f raises the severity, so that
+  `TreatWarningsAsErrors` never meets it red.
+- `docs/development.md` says how to see Info diagnostics (`-v:detailed`).
+
 ## Open questions
 
 ### Q1. SQL:2023 through a lexical layer
