@@ -246,6 +246,15 @@ trees, since types from two contexts are never equal.
 - Rows whose spread forbids a verdict below it: an SQL literal 44%, EL interpolation 52%, an
   early EL refusal 45%, FIX slope-4 22%.
 
+**The baseline of 2026-09-19 (stand, main `8b0a3b89`; `docs/design/stand-2026-09-19.md`).**
+Generated to hand, geometric means with default PGO (PGO=0 twin): FIX string 1.72x (1.68x), bytes
+1.81x (2.23x), stream 2.63x (2.83x); Web URL 2.61x, date-time 6.89x, JSON 3.02x; EL tape 2.18x,
+immediate 1.39x; SQL:2023 7.88x; StockCount 1.20x; T-SQL at 0.33x of ScriptDom's time (located
+0.45x). Since the evening before: FIX's string form -29..-34%, SQL:2023 -22%. Flagged: the EL tape
+superlinear with linear allocation (an exponent of 1.46 from 100 to 1,000 terms, immediate 0.98)
+and drifting +8..+17% across three baselines — expr, diagnosis first; Web date-time at 6.9x —
+finance-24, an anatomy; SQL:2023's conditions linear now.
+
 ## D5. A stream is read without holding it
 
 Decided 2026-09-17 by Igor: streaming exists to process volumes larger than memory, so a
