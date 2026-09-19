@@ -1078,6 +1078,17 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   with its author. The byte rows stay at 1.65x the hand parser: the in-place array goes the
   buffered path, on the tape until C4c, which is next. The rest to the target (the field's and the
   tag's constructions, the stack's push) after it, with an anatomy.
+  Landed `9d5b0846..9c2237da`.
+  **C4c's design, agreed:** (1) the buffered machines were made without the file's carrier and
+  without `Replay`, so every one stayed on the tape — the reason the in-place bytes and the streams
+  did not move; they are handed both, under the span contract (expected: FIX's bytes 55-65 ns a
+  field against 96, the hand parser 58). (2) Release before each turn of an admitted recovering
+  repetition in the whole-stream form, where nothing holds a position from before the turn to the
+  rule's end; lines counted as released; the entry's starved check over a released position fixed.
+  A factory cannot keep a reference into the buffer through the generated API (captures are spans,
+  the input view a ref struct, `parserInput` refuses a buffered form). Gates: D5's skipped test
+  un-skipped, a stream larger than `maxRetained` answered, and the held buffer the same at 10,000
+  and 100,000 fields — the result grows, the input does not. (3) FIX's log form after it.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
