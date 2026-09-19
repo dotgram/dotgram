@@ -293,7 +293,7 @@ sealed partial class Machine
 			var rule = pair.Key;
 			var body = _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
 
-			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves);
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters);
 			var inner = scan.Render(body);
 
 			reaches |= scan.Reaches;
@@ -618,7 +618,8 @@ sealed partial class Machine
 		Func<IReadOnlyList<CharRange>, string?> tabulate,
 		Func<IReadOnlyList<CharRange>, string> ranges,
 		string tag = "",
-		bool starves = false)
+		bool starves = false,
+		Func<Node, char[]?>? stops = null)
 	{
 		static string Short(int count) => count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
 
@@ -1014,6 +1015,32 @@ sealed partial class Machine
 		void EmitRepeat(Writer code, Node.Repeat repeat, string fail)
 		{
 			var (body, min, max) = repeat;
+
+			// A run that stops only at one of a few characters is a search for them, as the
+			// engine's and the reader's are (Machine.EmitSearch): a field's value in FIX, a
+			// string's body. Not where the scanner has to say that it ran into the end.
+			if (max is null && !starves && stops?.Invoke(body) is { } stop)
+			{
+				var from  = $"from{_labels}";
+				var found = $"found{_labels++}";
+
+				if (min > 0)
+					code.Line($"var {from} = p;");
+
+				code.Line(
+					$"var {found} = " + (stop.Length switch
+					{
+						1    => $"global::System.MemoryExtensions.IndexOf(text.Slice(p), {CSharpEmitter.Char(stop[0])});",
+						<= 3 => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p), {string.Join(", ", stop.Select(CSharpEmitter.Char))});",
+						_    => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p), global::System.MemoryExtensions.AsSpan({CSharpEmitter.Quoted(new string(stop))}));",
+					}));
+				code.Line($"p = {found} < 0 ? text.Length : p + {found};");
+
+				if (min > 0)
+					code.Line($"if (p - {from} < {min}) goto {fail};");
+
+				return;
+			}
 			var loop    = $"L{_labels++}_turn";
 			var done    = $"L{_labels++}_done";
 			var counted = min > 0 || max is not null;

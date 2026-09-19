@@ -69,6 +69,65 @@ public sealed class DelimiterScanTests
 				EmittedCode.Match(fast, "Grammar", "TryParseStart", input));
 	}
 
+	/// <summary>
+	/// A run inside a scanner that stops only at a few characters — a line comment in the
+	/// trivia, braced so that a scanner reads it (Machine.Scan) — searched for its stops as the
+	/// engine's and the reader's runs are, and answering as the loop it replaces does. The
+	/// guard in the other spelling keeps that one a loop.
+	/// </summary>
+	[Theory]
+	[InlineData("*")]
+	[InlineData("+")]
+	public void A_scanner_searches_a_run_for_its_stops(string count)
+	{
+		var grammar =
+			"Comment = \"--\" & [^ '\\n' | '\\r']" + count + "\n" +
+			"trivia = { (' ' | '\\n' | Comment)* }\n" +
+			"Start : @int = n: ['0'..'9']+ => @(Text(n).Length)\n" +
+			"      | '(' & inner: Start & ')' => @(inner)\n" +
+			"parse Start";
+
+		var fast = Scanned(grammar, searches: true);
+		var slow = Scanned(grammar.Replace("[^ '\\n' | '\\r']" + count, "(when @(true) & [^ '\\n' | '\\r'])" + count), searches: false);
+
+		// Whether it was read, and what and how far where it was — not where or what a refusal
+		// says: the other spelling is no scanner at all, and a scanner, searching or not, records
+		// nothing from inside the trivia.
+		foreach (var input in new[] { "1", "-- x\n2", "( -- c\n 12 )", "--x", "--\n7", "-- a -- b\n(3)", "(4) -- tail", "--" })
+		{
+			var expected = EmittedCode.Match(slow, "Grammar", "TryParseStart", input);
+			var actual   = EmittedCode.Match(fast, "Grammar", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+
+			if (expected.IsSuccess)
+				Assert.Equal((expected.Value, expected.Position), (actual.Value, actual.Position));
+		}
+	}
+
+	/// <summary>Over a string; whether a scanner searches for its stops.</summary>
+	static Assembly Scanned(string grammar, bool searches)
+	{
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			// The engine, over characters: the reader reads trivia by methods of its own, and split
+			// lexically the trivia would be the lexer's.
+			ClassName = "Grammar", Direct = false, Lexical = false, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+
+		if (searches)
+			Assert.Contains("Scan_trivia", source);
+
+		Assert.Equal(searches, source.Contains("IndexOfAny(text.Slice(p), '\\n', '\\r')", StringComparison.Ordinal));
+
+		return EmittedCode.Compile(source, declarationMembers: """
+			static string Text(string value) => value;
+			static string Text(global::System.ReadOnlySpan<char> value) => value.ToString();
+			""");
+	}
+
 	[Theory]
 	[InlineData("+")]
 	[InlineData("{2,}")]
