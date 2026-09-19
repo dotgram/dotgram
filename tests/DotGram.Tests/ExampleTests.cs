@@ -480,6 +480,49 @@ public sealed class ExampleTests
 		Assert.Throws<FormatException>(
 			static () => RecoveringFeedReader.Read("R|AAPL|100|2026-08-12\n"));
 
+	// ── The stock count whose closing line begins like an item ────────────────────
+
+	[Fact]
+	public void A_count_reads_its_items_and_its_total()
+	{
+		var count = StockCountReader.Read("apples: 12\npears: 7\nEND 2\n");
+
+		Assert.Equal([new Stocked("apples", 12), new Stocked("pears", 7)], count.Lines);
+		Assert.Equal(2, count.Total);
+		Assert.True(count.Balances);
+	}
+
+	[Fact]
+	public void A_broken_line_costs_itself_and_the_closing_line_is_still_the_total()
+	{
+		// "END 1" begins as an item would, and a recovering repetition could have taken it for
+		// one more broken line; it is the total because the file ends with it.
+		var count = StockCountReader.Read("apples: 12\na 1\nEND 1");
+
+		Assert.Equal([new Stocked("apples", 12), new Unreadable(2, "a 1")], count.Lines);
+		Assert.Equal(1, count.Total);
+	}
+
+	[Fact]
+	public void A_closing_line_written_twice_is_a_broken_line_and_then_the_total() =>
+		Assert.Equal([new Unreadable(1, "END 3")], StockCountReader.Read("END 3\nEND 3\n").Lines);
+
+	[Theory]
+	[InlineData("apples: 12\npears: 7\n",   "no closing line")]
+	[InlineData("apples: 12\na: 1END 3\n", "a last item with no line end, running into the closing line")]
+	public void But_a_count_without_its_closing_line_is_refused(string text, string why) =>
+		Assert.True(
+			Record.Exception(() => StockCountReader.Read(text)) is FormatException,
+			$"A count with {why} should have been refused.");
+
+	[Fact]
+	public void And_a_reader_through_a_small_buffer_reads_the_same_count()
+	{
+		const string Text = "apples: 12\na 1\npears: 7\nEND 2\n";
+
+		Assert.Equal(StockCountReader.Read(Text).Lines, StockCountReader.Read(new StringReader(Text), bufferSize: 4).Lines);
+	}
+
 	// ── The feed that logs its rejections instead ────────────────────────────────
 
 	[Fact]
