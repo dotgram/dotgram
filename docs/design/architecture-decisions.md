@@ -1721,7 +1721,11 @@ same day; each comes back to the architect as a report, with no code changed.
    The first is the language's: after `(` both a value and a query can begin with a bracketed
    query, `((SELECT 1) + 1)` against `((SELECT 1) UNION (SELECT 2))`, decided at an unbounded
    distance; no fold or grammar edit removes it without changing the tree. Intended, like
-   `DecOctet`. The join's turn and the inline return are checked the same way next.
+   `DecOctet`. The join's turn and the inline return are the language's too: nested joins' tails
+   take an outer `JOIN … ON` greedily and only the count of `ON`s decides, and an inline return's
+   bracket can be a query's own. So the three heaviest causes in T-SQL's value tower are ambiguities
+   of unbounded depth; the grammar question is closed. What remains for SQL is measured next: an
+   anatomy of SQL:2023's 7.9x against the hand parser, phase by phase, as FIX's step 1 was.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
