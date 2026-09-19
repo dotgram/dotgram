@@ -237,6 +237,52 @@ sealed partial class Machine
 		return null;
 	}
 
+	/// <summary>
+	/// Whether a reader of this machine lets go of the input before each turn of the repetition
+	/// marked <c>recover</c> that <paramref name="rule"/> reads: the whole-result form of a stream
+	/// holding one turn and not all it has read (D5, docs/design/fix-reader-buffered-2026-09-18.md §3).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// It may where nothing reads behind the turn once the turn has begun. The carrier builds
+	/// every element at its rule's end and a bad one where it is stepped over, so what came
+	/// before is built by then; the repetition is the first thing its rule reads, so no capture
+	/// of the rule stands before it; the rule's value is typed, its constructions and guards ask
+	/// for no text of the whole rule, and no rule of the machine looks behind. A line or a column
+	/// is counted by the buffer as it lets go.
+	/// </para>
+	/// <para>
+	/// A stream only: bytes held in place hold nothing a release would free.
+	/// </para>
+	/// </remarks>
+	internal bool ReleasesTurns(RuleSymbol rule)
+	{
+		if (!BufferedInput || InPlace || Carrier is not ImmediateCarrier || _results.QualifiedOf(rule) is null)
+			return false;
+
+		if (_factories.TryGetValue(rule, out var made) && made.Any(factory => CSharpEmitter.WantsText(_graph, factory)))
+			return false;
+
+		if (!_graph.Bodies.TryGetValue(rule, out var body) ||
+			NodeWalk.Descendants(body).Any(node => node is Node.Guard guard && CSharpEmitter.Uses(_graph, guard.Text, "parserText")))
+			return false;
+
+		foreach (var one in _rules)
+			if (_graph.Bodies.TryGetValue(one, out var read) && NodeWalk.Descendants(read).Any(static node => node is Node.Behind))
+				return false;
+
+		while (body is Node.Construct(var built, _))
+			body = built;
+
+		if (body is Node.Sequence(var parts) && parts.Count > 0)
+			body = parts[0];
+
+		if (body is Node.Capture(_, var held))
+			body = held;
+
+		return _recoveryReads.ContainsKey(body);
+	}
+
 	/// <summary>Whether a reader of this machine reads a repetition marked <c>recover</c>.</summary>
 	public bool ReadsRecovery => _recoveryReads.Count > 0;
 

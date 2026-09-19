@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 
 using DotGram.Finance.Fix;
@@ -47,6 +48,34 @@ public sealed class FixRetentionTests
 
 		Assert.Contains(Limit.ToString(), error.Message);
 		Assert.Contains("maxRetained", error.Message);
+	}
+
+	/// <summary>
+	/// The whole-stream form keeps a field's window, however long the stream (D5): it builds each
+	/// field where the field ends and lets the input go before the next one, so a limit of a
+	/// kilobyte reads ten thousand fields and a hundred thousand alike — where holding the stream
+	/// would need the whole of it, and the limit would stop it at the first kilobyte. A broken
+	/// field every hundred keeps recovery in it.
+	/// </summary>
+	[Theory]
+	[InlineData(false, 10_000)]
+	[InlineData(false, 100_000)]
+	[InlineData(true, 10_000)]
+	[InlineData(true, 100_000)]
+	public void A_whole_stream_holds_a_field_and_not_the_stream(bool bytes, int count)
+	{
+		var text = new StringBuilder();
+
+		for (var i = 0; i < count; i++)
+			text.Append(i % 100 == 99 ? "bad" + (char)1 : Field(10));
+
+		var context = new FixGrammar.FixContext(FixFieldOptions.Default);
+		var fields  = bytes
+			? FixGrammar.ParseFields(new MemoryStream(Encoding.Latin1.GetBytes(text.ToString())), context, 256, Limit * 16)
+			: FixGrammar.ParseFields(new StringReader(text.ToString()), context, 256, Limit * 16);
+
+		Assert.Equal(count, fields.Length);
+		Assert.Equal(count / 100, fields.Count(static field => !field.IsValid));
 	}
 
 	[Fact]

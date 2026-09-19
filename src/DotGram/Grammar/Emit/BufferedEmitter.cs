@@ -369,7 +369,13 @@ public static partial class CSharpEmitter
 			file.Line($"var end = {BufferedMethod(publication, bytes, machine.InPlace)}(text, 0{hands});");
 			using (file.Block("if (end < 0)"))
 			{
-				file.Line("var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);");
+				// A reader that lets go of turns may have let go of where it refused: a place before
+				// the end of what was read held input, so it is not where more was wanted. Said so for
+				// every stream read by a recovering reader, the entry being written before the machine
+				// has chosen its carrier; where nothing was let go the two say the same.
+				file.Line(machine.ReadsRecovery && !machine.InPlace
+					? "var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.End && !text.Peek(failure.Position, out _);"
+					: "var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);");
 				file.Line($"return {match}.Failed(starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
 					"starved ? \"Expected more input.\" : \"Input does not match.\", " +
 					"failure.Position, failure.Expected, failure.ExpectedMore);");
@@ -403,7 +409,8 @@ public static partial class CSharpEmitter
 		var indent  = buffered.Substring(begins, at - begins);
 		var ending  = buffered.Contains("\r\n") ? "\r\n" : "\n";
 		var members = new System.Text.StringBuilder();
-		var lines   = LocatedMembers.Replace("\r\n", "\n").Split('\n');
+		var element = buffered.Contains("class BufferedBytes") ? "byte" : "char";
+		var lines   = LocatedMembers.Replace("ELEMENT", element).Replace("\r\n", "\n").Split('\n');
 
 		for (var i = 0; i < lines.Length; i++)
 		{
@@ -419,7 +426,7 @@ public static partial class CSharpEmitter
 		}
 
 		return buffered
-			.Replace("/*COUNT_RELEASED*/", "CountReleased(position);")
+			.Replace("/*COUNT_RELEASED*/", "CountReleased(_released);")
 			.Replace("/*LOCATED*/", members.ToString());
 	}
 
@@ -447,6 +454,9 @@ public static partial class CSharpEmitter
 		private int _lineAt;
 		private int _lines;
 		private int _lineStart;
+		// Where lines were last counted up to before the buffer let text go, and where the line
+		// holding that place began: a walk back stops there, since nothing behind it is held.
+		private int _floor;
 		private int _releasedLine;
 
 		public int LineAt(int position)
@@ -461,24 +471,41 @@ public static partial class CSharpEmitter
 			return position - _lineStart + 1;
 		}
 
-		// Counted as far as the release, and where the line holding it began, for a question
-		// about a place behind that reaches the release.
+		// Counted as far as what the buffer is about to let go of, and where the line holding it
+		// began, for a question about a place behind that reaches it. Asked where the buffer
+		// compacts, once a block, rather than at every release, which is once a turn.
 		private void CountReleased(int position)
 		{
 			MoveLine(position);
 			_releasedLine = _lineStart;
+			_floor        = position;
 		}
 
 		private void MoveLine(int position)
 		{
 			if (position >= _lineAt)
 			{
-				for (; _lineAt < position; _lineAt++)
-					if (_buffer[_lineAt - _start] == '\n')
+				// Searched for, not read a character at a time: a feed asking for lines had a
+				// branch on every character it read counted again.
+				var span = new global::System.ReadOnlySpan<ELEMENT>(_buffer, _lineAt - _start, position - _lineAt);
+				var last = global::System.MemoryExtensions.LastIndexOf(span, (ELEMENT)'\n');
+
+				if (last >= 0)
+				{
+					_lineStart = _lineAt + last + 1;
+					span       = span.Slice(0, last + 1);
+					#if NET8_0_OR_GREATER
+					_lines += global::System.MemoryExtensions.Count(span, (ELEMENT)'\n');
+					#else
+					for (var at = global::System.MemoryExtensions.IndexOf(span, (ELEMENT)'\n'); at >= 0; at = global::System.MemoryExtensions.IndexOf(span, (ELEMENT)'\n'))
 					{
 						_lines++;
-						_lineStart = _lineAt + 1;
+						span = span.Slice(at + 1);
 					}
+					#endif
+				}
+
+				_lineAt = position;
 
 				return;
 			}
@@ -490,10 +517,10 @@ public static partial class CSharpEmitter
 			_lineAt    = position;
 			_lineStart = position;
 
-			while (_lineStart > _released && _buffer[_lineStart - 1 - _start] != '\n')
+			while (_lineStart > _floor && _buffer[_lineStart - 1 - _start] != '\n')
 				_lineStart--;
 
-			if (_lineStart == _released)
+			if (_lineStart == _floor)
 				_lineStart = _releasedLine;
 		}
 		""";
@@ -569,6 +596,7 @@ public static partial class CSharpEmitter
 				{
 					if (_count - _start == _capacity && _released > _start)
 					{
+						/*COUNT_RELEASED*/
 						global::System.Array.Copy(_buffer, _released - _start, _buffer, 0, _count - _released);
 						_start = _released;
 					}
@@ -611,7 +639,16 @@ public static partial class CSharpEmitter
 			public void ReleaseBefore(int position)
 			{
 				if (position < _released || position > _count) throw new global::System.ArgumentOutOfRangeException(nameof(position));
-				/*COUNT_RELEASED*/
+				_released = position;
+			}
+
+			// What a reader lets go of at every turn: one store. The reader only ever lets go of a
+			// place it has read to and never goes back, which is what the check above asks of a
+			// caller it cannot trust; the work a release makes possible is done where the buffer
+			// needs the room (Fill), and not here.
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public void LetGo(int position)
+			{
 				_released = position;
 			}
 

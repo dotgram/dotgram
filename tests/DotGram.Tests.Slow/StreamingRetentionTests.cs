@@ -87,13 +87,13 @@ public sealed class StreamingRetentionTests
 
 	/// <remarks>
 	/// The result is an int a record, and the arena holds what a record is worth to the parse;
-	/// neither is anywhere near a record's text. Today the parse holds all of its input until it
-	/// completes, because construction is deferred and a capture is turned into a value from
-	/// the input it points into. That is a defect under D5, not a limit of this form.
+	/// neither is anywhere near a record's text. This grammar's whole parse is the streamed one
+	/// (Retention.StreamedParse): the rows are handed over one at a time and each is let go, so it
+	/// holds a record and not the stream. A whole stream the recovering reader reads — FIX's, which
+	/// is not a streamed parse — is held to the same in
+	/// DotGram.Finance.Tests (FixRetentionTests.A_whole_stream_holds_a_field_and_not_the_stream).
 	/// </remarks>
-	[Theory(Skip =
-		"A buffered parse returning its whole result retains all of its input: a defect under D5 " +
-		"(ruling of 2026-09-17, docs/design/architecture-decisions.md). The change that fixes it removes this skip.")]
+	[Theory]
 	[InlineData("reader whole")]
 	[InlineData("stream whole")]
 	public void A_whole_result_grows_with_the_result_and_not_with_the_input(string form)

@@ -3249,6 +3249,14 @@ sealed partial class Machine
 
 			using (code.Block("while (true)"))
 			{
+				// What came before the turn is built and nothing reads behind it: the buffer may let
+				// it go (Machine.ReleasesTurns).
+				if (machine.ReleasesTurns(owner))
+				{
+					code.Line("text.LetGo(p);");
+					code.Line();
+				}
+
 				// The complete continuation first, once the minimum is met.
 				using (min > 0 ? code.Block($"if ({turn} >= {min})") : null)
 				{
