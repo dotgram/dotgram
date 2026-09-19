@@ -1165,7 +1165,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   **Measured (stand):** the stream rows -37..-72%, 217 to 65 ns a field, allocation per call
   identical — past the expectation. The ideal reading has a column in the family table now, and
   the table says in words that bytes and streams have none, so their figures stand against the
-  hand parser alone.
+  hand parser alone. Landed `f457de98`: 217.3 to 64.5 ns a field over a stream and 215.4 to
+  65.0 over a reader, allocation the field and nothing else (96 B), the first call 7.05 to 4.88 ms
+  with 27 methods fewer, and -30..-45% still there at PGO=0. The expectation named beforehand was
+  55-60 and the result is 65 — a tenth short of its own range; the hand parser's lazy form is about
+  68 ns a field, so the generated one has drawn level rather than passed it.
   **Design agreed:** `yield` is lowered to a step rule, one recovering turn, which the driver
   calls once per element and the engine reads today. The step is admitted as the recovery scenario
   with its turn as its point; the reader writes it without a loop or a continuation, since the next
