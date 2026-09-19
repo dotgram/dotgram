@@ -1073,7 +1073,21 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   is decided by the leading node of what follows, per site, joined over sites, under two
   conditions that are the proof: the turn must consume, and a nullable continuation is unknown
   rather than followed, which keeps a streaming publication out of it. Each its own commit and
-  pair, with the generation-time gate, the corpora and a byte-for-byte dump. The buffered reader's pair passed (the
+  pair, with the generation-time gate, the corpora and a byte-for-byte dump.
+  **Measured, and the first way was not the cause (performance-ff, 2026-09-19).** With the
+  lookahead's body given nothing, the log separator's way is untouched, no way anywhere in the
+  solution goes (357 before and after), FIX's file does not change by a byte, and the only shipped
+  effect is expected tables renumbering among themselves. The cause is elsewhere and is exact: a
+  publication's root is given "anything may follow" unless it is a `parse`, and FIX publishes its
+  field list four times, twice as a parse and twice as a yield — so the yield readings poison the
+  parse readings of the same rule, and that travels down to the separator. A yield's continuation
+  is the next step the driver asks for, not anything the current element could give back to (the
+  sentence already approved for the recovery scenario), so it contributes nothing; not the end
+  either, since a caller may stop enumerating. With that the separator's way disappears and the
+  only way left in FIX is way 1's. `find` stays at "anything", with its being unanalysed written
+  down rather than guessed. The lookahead change waits until FIX's one rule counted as read again
+  more than before is explained; a checked-in test loses its example to it, and the factory counts
+  say §7.3 still holds, so the claim is rewritten with a look whose body cannot be read silently. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
