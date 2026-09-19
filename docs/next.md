@@ -23659,3 +23659,13 @@ or digits, with which no statement begins. SQL:2023's `IntervalPrimary` belongs 
 sentence of the BNF puts a qualifier after a time zone's primary. And one that is neither, found on
 the way: `(a - b AT LOCAL) DAY` is read by the BNF and refused by both parsers, in the towers'
 check and not in any optional.
+
+It is mended in both. A datetime less a datetime term had no role at all, so its brackets were
+refused before the qualifier could make an interval of them; `(a - b) DAY` only read because a
+column may be anything, and `(a - CURRENT_DATE) DAY` did not. It has a role now, `Difference`,
+which is no value: a bracket keeps it, a qualifier after the bracket makes an interval of it, and
+`ValueExpression` and `RowValuePredicand` refuse a reading that is nothing else, so `a -
+CURRENT_DATE`, `(a - CURRENT_DATE)` and `c = a - CURRENT_DATE` stay refused as the BNF has them.
+A predicate's own predicand is read without the refusal, since that is the way a bracket reaches
+it, and the predicate's pairing refuses it there. Both parsers agree on every corpus line, and the
+value corpora agree with the BNF on all 5,520.

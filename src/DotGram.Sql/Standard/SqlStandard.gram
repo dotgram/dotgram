@@ -486,8 +486,9 @@ RightBracketOrTrigraph = "??)" | ']'
 // refused, as the BNF has them.
 
 // <value expression>. A value that is no boolean is a boolean primary with nothing around it, so
-// the boolean reading is the one reading.
-ValueExpression : @Towers.Typed = e: Disjunction => @(e)
+// the boolean reading is the one reading. A datetime less a datetime is read the same way and is
+// no value: only a bracket takes it (`Bracketed`), for a qualifier to make an interval of it.
+ValueExpression : @Towers.Typed = e: Disjunction & when @((Towers.RolesOf(e) & ~Towers.Difference) != 0) => @(e)
 
 // <boolean value expression>, <search condition>: what only a boolean can be, or a predicand.
 BooleanValueExpression : @Towers.Typed = e: Disjunction & when @((Towers.RolesOf(e) & Towers.Truth) != 0) => @(e)
@@ -515,7 +516,7 @@ BooleanPrimary : @Towers.Typed
 	| j: JSONExistsPredicate => @(new Towers.Typed(j, Towers.Logical | Towers.Truth))
 	| "UNIQUE"i & ("NULLS"i & n: "NOT"i? & d: "DISTINCT"i)? & q: TableSubquery => @(new Towers.Typed(new Expression.Unique(Nodes.Nulls(d, n), q), Towers.Logical | Towers.Truth))
 	| p: PeriodConstructor & t: PeriodPredicatePart2 => @(new Towers.Typed(t with { Left = p }, Towers.Logical | Towers.Truth))
-	| e: RowValuePredicand & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes.Node!), Towers.Logical | Towers.Truth))
+	| e: CommonValueExpressionOrRow & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes.Node!), Towers.Logical | Towers.Truth))
 
 PredicatePart2Mark : @Towers.Tail = p: PredicatePart2 => @(p)
                                   | none => @(default)
@@ -607,7 +608,7 @@ PeriodConstructor : @PeriodValue = "PERIOD"i & '(' & s: DatetimeValueExpression 
 // value expression primary already are — or an explicit row value constructor. A row is read where a
 // bracket is (`Bracketed`), and `ROW (…)` where a primary begins; a row subquery is written as a
 // scalar subquery is, and read as one.
-RowValuePredicand : @Towers.Typed = e: CommonValueExpressionOrRow => @(e)
+RowValuePredicand : @Towers.Typed = e: CommonValueExpressionOrRow & when @((Towers.RolesOf(e) & ~Towers.Difference) != 0) => @(e)
 
 // <row value expression>: a value expression primary not in brackets, or an explicit row. So
 // `x IN (a + 1)` is refused by the BNF, whose <in value list> holds row value expressions.
@@ -703,7 +704,7 @@ PrimaryReading : @Towers.Typed
 // after another, each read the bracket's contents again, and a line refused deep inside nested
 // brackets cost a power of their depth — eight of them, 46 ms. A generalized invocation's value
 // expression is a primary.
-Bracketed : @Towers.Typed = '(' & e: ValueExpression & t: BracketTail & when @(Towers.KindOf(t) != Towers.Bare || (Towers.RolesOf(e) & (Towers.Bare | Towers.Parenthesized)) != 0) => @(Nodes.Bracketed(e, t))
+Bracketed : @Towers.Typed = '(' & e: Disjunction & t: BracketTail & when @(Nodes.Brackets(e, t)) => @(Nodes.Bracketed(e, t))
 
 BracketTail : @Towers.Bracket
 	= ')' => @(new Towers.Bracket(Towers.Parenthesized))

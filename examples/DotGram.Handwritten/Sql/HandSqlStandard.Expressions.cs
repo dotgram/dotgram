@@ -138,9 +138,20 @@ partial class HandSqlStandard
 
 	/// <summary>
 	/// <c>&lt;value expression&gt;</c>. A value that is no boolean is a boolean primary with nothing
-	/// around it, so the boolean reading is the one reading.
+	/// around it, so the boolean reading is the one reading. A datetime less a datetime is read the
+	/// same way and is no value: only a bracket takes it, for a qualifier to make an interval of it.
 	/// </summary>
-	static bool ValueExpression(ref SqlCursor cursor, out Typed value) => Disjunction(ref cursor, out value);
+	static bool ValueExpression(ref SqlCursor cursor, out Typed value)
+	{
+		var save = cursor;
+
+		if (Disjunction(ref cursor, out value) && (value.Roles & ~SqlTowers.Difference) != 0)
+			return true;
+
+		cursor = save;
+
+		return Refuse(out value);
+	}
 
 	/// <summary><c>&lt;boolean value expression&gt;</c>, <c>&lt;search condition&gt;</c>.</summary>
 	static bool BooleanValueExpression(ref SqlCursor cursor, out Typed value)
@@ -357,7 +368,7 @@ partial class HandSqlStandard
 			}
 		}
 
-		if (!RowValuePredicand(ref cursor, out value))
+		if (!CommonValueExpressionOrRow(ref cursor, out value))
 			return false;
 
 		var taken = cursor;
@@ -976,7 +987,17 @@ partial class HandSqlStandard
 	/// <c>&lt;row value predicand&gt;</c>: a common value expression — which a boolean predicand in
 	/// brackets and a value expression primary already are — or an explicit row.
 	/// </summary>
-	static bool RowValuePredicand(ref SqlCursor cursor, out Typed value) => CommonValueExpressionOrRow(ref cursor, out value);
+	static bool RowValuePredicand(ref SqlCursor cursor, out Typed value)
+	{
+		var save = cursor;
+
+		if (CommonValueExpressionOrRow(ref cursor, out value) && (value.Roles & ~SqlTowers.Difference) != 0)
+			return true;
+
+		cursor = save;
+
+		return Refuse(out value);
+	}
 
 	/// <summary>
 	/// <c>&lt;row value expression&gt;</c>: a value expression primary not in brackets, or an
@@ -1367,7 +1388,7 @@ partial class HandSqlStandard
 
 		value = default;
 
-		if (!cursor.Take(SqlTokenKind.LeftParen) || !ValueExpression(ref cursor, out var inner))
+		if (!cursor.Take(SqlTokenKind.LeftParen) || !Disjunction(ref cursor, out var inner))
 		{
 			cursor = save;
 
@@ -1381,7 +1402,10 @@ partial class HandSqlStandard
 			return false;
 		}
 
-		if (tail.Kind == SqlTowers.Bare && (inner.Roles & (SqlTowers.Bare | SqlTowers.Parenthesized)) == 0)
+		// A generalized invocation's contents are a primary, and a datetime less a datetime is only
+		// ever in brackets of its own.
+		if (tail.Kind == SqlTowers.Bare && (inner.Roles & (SqlTowers.Bare | SqlTowers.Parenthesized)) == 0 ||
+			tail.Kind == SqlTowers.Row && (inner.Roles & ~SqlTowers.Difference) == 0)
 		{
 			cursor = save;
 
@@ -1390,6 +1414,8 @@ partial class HandSqlStandard
 
 		value = tail.Kind switch
 		{
+			SqlTowers.Parenthesized when (inner.Roles & ~SqlTowers.Difference) == 0
+				=> new Typed(new Expression.Parenthesized(inner.Node), SqlTowers.Difference | SqlTowers.Parenthesized),
 			SqlTowers.Parenthesized => new Typed(new Expression.Parenthesized(inner.Node), SqlTowers.Value | SqlTowers.Parenthesized | (inner.Roles & SqlTowers.Truth)),
 			SqlTowers.Row           => new Typed(new Expression.Row(Items(inner.Node, tail.Rest)), SqlTowers.Row),
 			_                       => new Typed(new Expression.Member(new Expression.Generalized(inner.Node, tail.Type!), MemberAccessKind.Dot, tail.Method!, tail.Arguments), SqlTowers.Value | SqlTowers.Truth | SqlTowers.Bare),

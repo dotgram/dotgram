@@ -77,6 +77,13 @@ static class Towers
 	/// <summary>A primary whose last step is `.*`, which an <c>&lt;all fields reference&gt;</c> may name columns after.</summary>
 	public const int Starred = 1 << 17;
 
+	/// <summary>
+	/// A datetime less a datetime term, which is no value: §6.33 reads it only in brackets with an
+	/// interval qualifier after them, `(a - CURRENT_DATE) DAY`. A bracket keeps it, a qualifier makes
+	/// an interval of it, and nothing else takes it.
+	/// </summary>
+	public const int Difference = 1 << 18;
+
 	public const int String = Character | Binary;
 
 	/// <summary>A <c>&lt;value expression primary&gt;</c>, which has every type.</summary>
@@ -204,7 +211,7 @@ static class Towers
 
 		var roles = piece.Postfix.Kind switch
 		{
-			Qualified     => (primary & Value) == Value ? Interval : 0,
+			Qualified     => (primary & Value) == Value || (primary & Difference) != 0 ? Interval : 0,
 			Zoned         => primary & Datetime,
 			Collated      => primary & Character,
 			Typed_        => (primary & Value) == Value ? String : 0,
@@ -274,7 +281,7 @@ static class Towers
 
 		var roles = Join(pieces, operators);
 
-		return (roles & (Value | Row)) != 0 ? roles : 0;
+		return (roles & (Value | Row | Difference)) != 0 ? roles : 0;
 	}
 
 	/// <summary>
@@ -416,7 +423,7 @@ static class Towers
 		var terms   = 0;
 		var roles   = 0;
 
-		bool numeric = false, interval = false, datetime = false;
+		bool numeric = false, interval = false, datetime = false, difference = false;
 
 		for (var at = 0; at <= operators.Count; at++)
 		{
@@ -439,7 +446,8 @@ static class Towers
 			}
 			else
 			{
-				datetime  = datetime && (term & Interval) != 0 || interval && adds && (term & Datetime) != 0;
+				difference = datetime && !adds && (term & Datetime) != 0;
+				datetime   = datetime && (term & Interval) != 0 || interval && adds && (term & Datetime) != 0;
 				numeric  &= (term & Numeric) != 0;
 				interval &= (term & Interval) != 0;
 			}
@@ -454,7 +462,7 @@ static class Towers
 		if (terms == 1)
 			return roles;
 
-		return (numeric ? Numeric : 0) | (interval ? Interval : 0) | (datetime ? Datetime : 0);
+		return (numeric ? Numeric : 0) | (interval ? Interval : 0) | (datetime ? Datetime : 0) | (difference ? Difference : 0);
 	}
 
 	// ── Booleans ───────────────────────────────────────────────────────────────

@@ -82,10 +82,24 @@ static class Nodes
 
 	public static Expression Null() => new Expression.Literal(new LiteralValue.Null());
 
+	/// <summary>
+	/// Whether a bracket's contents are what follows them asks for: a generalized invocation's are a
+	/// primary, and a datetime less a datetime is only ever in brackets of its own.
+	/// </summary>
+	public static bool Brackets(Towers.Typed value, Towers.Bracket tail) =>
+		tail.Kind switch
+		{
+			Towers.Parenthesized => true,
+			Towers.Bare          => (value.Roles & (Towers.Bare | Towers.Parenthesized)) != 0,
+			_                    => (value.Roles & ~Towers.Difference) != 0,
+		};
+
 	/// <summary>A bracket's value expression and what followed it: brackets, a row, or a generalized invocation.</summary>
 	public static Towers.Typed Bracketed(Towers.Typed value, Towers.Bracket tail) =>
 		tail.Kind switch
 		{
+			Towers.Parenthesized when (value.Roles & ~Towers.Difference) == 0
+				=> new(new Expression.Parenthesized(value.Node), Towers.Difference | Towers.Parenthesized),
 			Towers.Parenthesized => new(new Expression.Parenthesized(value.Node), Towers.Value | Towers.Parenthesized | (value.Roles & Towers.Truth)),
 			Towers.Row           => new(new Expression.Row(List(value.Node, tail.Rest)), Towers.Row),
 			_                    => new(new Expression.Member(new Expression.Generalized(value.Node, tail.Type!), MemberAccessKind.Dot, tail.Method!, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
