@@ -32,6 +32,23 @@ static partial class Stand
 		var conditions = "SELECT 1 WHERE " + string.Join(" AND ", Enumerable.Range(0, 1000).Select(static i => "a" + i + " = 1"));
 		var rows       = "INSERT INTO t (a, b) VALUES " + string.Join(", ", Enumerable.Repeat("(1, 2)", 1000));
 
+		// A script of statements read one at a time (expr, 2026-09-19): the positional form tokenizes the whole text on every call, so the loop
+		// is a square today, and lazy tokens are to make it a line. ScriptDom reads the whole script once, as the constant.
+		foreach (var statements in new[] { 100, 400 })
+		{
+			var script = string.Concat(Enumerable.Repeat("SELECT a, b FROM t WHERE a = 1;\n", statements));
+			var b      = before.TsqlScript(script);
+			var a      = after.TsqlScript(script);
+
+			yield return new Workload("tsql", $"script{statements}",
+				[
+					new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
+					new Reading("before", b),
+					new Reading("after",  a),
+				],
+				() => b() == statements && a() == statements ? null : $"  the script has {statements} statements: before read {b()}, after {a()}");
+		}
+
 		yield return PairedTsql("columns1000", columns, before, after);
 		yield return PairedTsql("conditions1000", conditions, before, after);
 		yield return PairedTsql("rows1000", rows, before, after);

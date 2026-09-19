@@ -736,6 +736,43 @@ static partial class Stand
 			};
 		}
 
+		/// <summary>
+		/// A script read a statement at a time, <c>TransactSqlParser.TryParseStatement(string, int at)</c> in a loop from the end
+		/// of the last match: how many statements it read. The positional form tokenizes the whole input on every call.
+		/// </summary>
+		public Func<int> TsqlScript(string text)
+		{
+			var call = _tsql.GetMethod("TryParseStatement", [typeof(string), typeof(int)])
+				?? throw new InvalidOperationException("TransactSqlParser.TryParseStatement(string, int) not found");
+			PropertyInfo? success = null, position = null, length = null;
+
+			return () =>
+			{
+				var at    = 0;
+				var count = 0;
+
+				while (at < text.Length)
+				{
+					var match = call.Invoke(null, [text, at])!;
+
+					success  ??= match.GetType().GetProperty("IsSuccess");
+					position ??= match.GetType().GetProperty("Position");
+					length   ??= match.GetType().GetProperty("Length");
+
+					if (!(bool)success!.GetValue(match)!)
+						break;
+
+					count++;
+					at = (int)position!.GetValue(match)! + (int)length!.GetValue(match)!;
+
+					while (at < text.Length && (char.IsWhiteSpace(text[at]) || text[at] == ';'))
+						at++;
+				}
+
+				return count;
+			};
+		}
+
 		/// <summary>TransactSqlParser.TryParseStatement(string) of this side, by reflection: whether it read the statement.</summary>
 		public Func<int> Tsql(string text)
 		{
