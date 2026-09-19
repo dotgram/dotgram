@@ -1,0 +1,86 @@
+{
+  "Control": 31.23825,
+  "Rows": [
+    {
+      "Id": "config/dense",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 22907.71484375,
+          "Bytes": 47224,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 24139.84375,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 10606.34765625,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.47555792390493445
+    },
+    {
+      "Id": "config/spaced",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 27145.4345703125,
+          "Bytes": 47224,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 28168.7744140625,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 12532.861328125,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08500400673815539
+    },
+    {
+      "Id": "config/commented",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 35634.27734375,
+          "Bytes": 47224,
+          "Warmup": 6,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 35572.900390625,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 20035.25390625,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06250291179654421
+    }
+  ]
+}
