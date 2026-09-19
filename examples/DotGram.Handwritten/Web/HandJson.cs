@@ -33,43 +33,81 @@ public static class HandJson
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
-		var reader = new Reader(text);
+		var stacks = t_stacks ?? new Stacks();
+
+		t_stacks = null;
+
+		var reader = new Reader(text, stacks);
 
 		value   = reader.Text();
 		failure = value is null ? reader.Failure : -1;
 
+		stacks.Members.Clear();
+		stacks.Items.Clear();
+		t_stacks = stacks;
+
 		return value is not null;
 	}
 
-	/// <summary>An object or an array still open: what it has so far.</summary>
-	sealed class Open(bool isObject)
+	/// <summary>
+	/// What every open object and array has read so far, one stack for members and one for
+	/// elements. Kept for the thread between texts, so that a large one grows them once and the
+	/// next reuses them; a value closes by copying its own run off the top into an array of just
+	/// its length. A list for each value would grow by doubling past what it holds and be copied
+	/// again to close, and for a large one both would land on the large object heap.
+	/// </summary>
+	sealed class Stacks
 	{
-		public readonly bool IsObject = isObject;
-
-		public readonly List<KeyValuePair<string, JsonValue>> Members = isObject ? [] : null!;
-		public readonly List<JsonValue>                       Items   = isObject ? null! : [];
-
-		public string Name = "";
-
-		public void Add(JsonValue value)
-		{
-			if (IsObject)
-				Members.Add(new KeyValuePair<string, JsonValue>(Name, value));
-			else
-				Items.Add(value);
-		}
-
-		public JsonValue Close()
-		{
-			return IsObject ? new JsonValue.Object(Members.ToArray()) : new JsonValue.Array(Items.ToArray());
-		}
+		public readonly List<KeyValuePair<string, JsonValue>> Members = [];
+		public readonly List<JsonValue>                       Items   = [];
 	}
 
-	sealed class Reader(string text)
+	[ThreadStatic]
+	static Stacks? t_stacks;
+
+	/// <summary>An object or an array still open: where its members or elements begin.</summary>
+	sealed class Open(bool isObject, int start)
 	{
-		readonly string _text = text;
+		public readonly bool IsObject = isObject;
+		public readonly int  Start    = start;
+
+		public string Name = "";
+	}
+
+	sealed class Reader(string text, Stacks stacks)
+	{
+		readonly string _text   = text;
+		readonly Stacks _stacks = stacks;
 
 		int _at;
+
+		void Add(Open container, JsonValue value)
+		{
+			if (container.IsObject)
+				_stacks.Members.Add(new KeyValuePair<string, JsonValue>(container.Name, value));
+			else
+				_stacks.Items.Add(value);
+		}
+
+		JsonValue Close(Open container)
+		{
+			if (container.IsObject)
+			{
+				var members = new KeyValuePair<string, JsonValue>[_stacks.Members.Count - container.Start];
+
+				_stacks.Members.CopyTo(container.Start, members, 0, members.Length);
+				_stacks.Members.RemoveRange(container.Start, members.Length);
+
+				return new JsonValue.Object(members);
+			}
+
+			var items = new JsonValue[_stacks.Items.Count - container.Start];
+
+			_stacks.Items.CopyTo(container.Start, items, 0, items.Length);
+			_stacks.Items.RemoveRange(container.Start, items.Length);
+
+			return new JsonValue.Array(items);
+		}
 
 		public int Failure { get; private set; }
 
@@ -100,7 +138,7 @@ public static class HandJson
 							break;
 						}
 
-						var members = new Open(isObject: true);
+						var members = new Open(isObject: true, _stacks.Members.Count);
 
 						open.Add(members);
 
@@ -121,7 +159,7 @@ public static class HandJson
 							break;
 						}
 
-						open.Add(new Open(isObject: false));
+						open.Add(new Open(isObject: false, _stacks.Items.Count));
 
 						continue;
 
@@ -145,7 +183,7 @@ public static class HandJson
 
 					var innermost = open[open.Count - 1];
 
-					innermost.Add(value);
+					Add(innermost, value);
 
 					if (At(_at) == ',')
 					{
@@ -163,7 +201,7 @@ public static class HandJson
 
 					_at++;
 					open.RemoveAt(open.Count - 1);
-					value = innermost.Close();
+					value = Close(innermost);
 				}
 			}
 		}
