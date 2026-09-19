@@ -50,6 +50,12 @@ sealed partial class Machine
 
 	HashSet<RuleSymbol>? _seamReached;
 
+	/// <summary>Whether a node stands in the body of a rule the seam reaches.</summary>
+	bool InSeam(Node node) =>
+		(_seamNodes ??= NodeWalk.ByIdentity(SeamReached.Where(_graph.Bodies.ContainsKey).SelectMany(rule => NodeWalk.Descendants(_graph.Bodies[rule])))).Contains(node);
+
+	HashSet<Node>? _seamNodes;
+
 	HashSet<RuleSymbol> ReachedFromSeams()
 	{
 		var reached = new HashSet<RuleSymbol>();

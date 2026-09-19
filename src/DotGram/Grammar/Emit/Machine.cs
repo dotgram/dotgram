@@ -4558,6 +4558,13 @@ sealed partial class Machine
 				atProbe.Line($"if ({could}) goto {Label(atProbe, entry)};");
 			}
 
+			// Only where nothing is recorded. A reading that records goes in anyway, so that
+			// what refused the turn is said: where what follows refuses too, the turn's
+			// refusal is half of the message — as the reader's door does (Machine.Reader.cs,
+			// EmitTurns), and not inside the seam, whose refusals neither records.
+			if (Quiets && !InSeam(repeatNode))
+				atProbe.Line($"if (lookahead < 0 && !failure.Quiet) goto {Label(atProbe, entry)};");
+
 			atProbe.Line($"goto {Label(atProbe, next)};");
 
 			return probed;

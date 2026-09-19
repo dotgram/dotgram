@@ -408,6 +408,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class6[c] != 0) goto S187;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S187;
 				}
 
 				S9:
@@ -1137,6 +1138,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S81;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S81;
 				}
 
 				S80:
@@ -1301,6 +1303,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S96;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S96;
 				}
 
 				S95:
@@ -1441,6 +1444,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S108;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S108;
 				}
 
 				S107:
@@ -1554,6 +1558,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S118;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S118;
 				}
 
 				S117:
@@ -1667,6 +1672,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S128;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S128;
 				}
 
 				S127:
@@ -1770,6 +1776,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S137;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S137;
 				}
 
 				S136:
@@ -1888,6 +1895,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == ':') goto S145;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S145;
 					goto Return;
 				}
 
@@ -2465,6 +2473,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == '/') goto S233;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S233;
 				}
 
 				S198:
@@ -2504,6 +2513,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == '?') goto S217;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S217;
 				}
 
 				S200:
@@ -2513,6 +2523,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == '#') goto S201;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S201;
 					goto Return;
 				}
 
@@ -2560,6 +2571,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S208;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S208;
 				}
 
 				S206:
@@ -2757,6 +2769,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S224;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S224;
 				}
 
 				S222:
@@ -2945,6 +2958,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class4[c] != 0) goto S237;
 					}
+					if (lookahead < 0 && !failure.Quiet) goto S237;
 					goto S234;
 				}
 
