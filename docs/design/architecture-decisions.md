@@ -1635,6 +1635,16 @@ same day; each comes back to the architect as a report, with no code changed.
    own parser, on the tape with 131 of 137 building rules held by `Replay` and 20 direct causes,
    2.18x the hand parser against 1.39x for the immediate host an author's option forces — the
    causes classified and removed until `Auto` chooses immediate by itself and the second host goes.
+   **Classified (expr):** ten sites, each twice (a rule and its `_With1` twin). Twelve are
+   alternatives that begin with the same built operand; six a turn or an optional given back after a
+   token refuses; two a building rule read inside a lookahead. Decided: the lookahead is a grammar
+   edit now (look through a rule that builds nothing). The shared built head is a scenario, not a
+   grammar (D15): first whether C's fold can take a head that is a building capture — read once,
+   its value handed to every tail's construction, identical bindings only — which SQL would gain
+   from too; the grammar is factored by hand only where the pass provably cannot. The turns given
+   back are what `Replay`'s refinement B should already settle; why it does not goes to sql-39.
+   `NamedType`'s `<` — C#'s own ambiguity with a comparison — is intended and stays, so the parser
+   reaches the immediate carrier by `Auto` only when a carrier can be chosen per construction.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
