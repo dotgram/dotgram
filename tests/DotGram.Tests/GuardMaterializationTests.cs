@@ -101,4 +101,44 @@ public sealed class GuardMaterializationTests
 		Assert.Equal(4, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
 	}
 
+	/// <summary>
+	/// A guarded rule whose group is read by a method of its own hands that method the rule's
+	/// log mark — only where the carrier keeps one: the immediate carrier without a context
+	/// has none, and once handed a mark it never declared, the build failed with CS0103.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Tape, "engine")]
+	[InlineData(CarrierKind.Tape, "flat")]
+	[InlineData(CarrierKind.Tape, "reader")]
+	[InlineData(CarrierKind.Immediate, "engine")]
+	[InlineData(CarrierKind.Immediate, "flat")]
+	[InlineData(CarrierKind.Immediate, "reader")]
+	public void A_guard_beside_a_group_read_in_parts_builds(CarrierKind carrier, string rendering)
+	{
+		// Recursion keeps the rule out of the flat rendering, so that it is read by methods.
+		var grammar =
+			"T : @string = h: ['0'..'9'] & ('.' & f: ['0'..'9'])? & when @(Seen(h!)) => @(h! + f)\n" +
+			(rendering == "reader"
+				? "S : @string = t: T => @(t) | '(' & s: S & ')' => @(s)\nparse S\n"
+				: "parse T\n");
+
+		var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName = "Grammar", Carrier = carrier, Direct = rendering != "engine",
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(compilation.Diagnostics);
+
+		var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text,
+			declarationMembers: "public static int Guards; static bool Seen(string h) { Guards++; return h != \"0\"; }");
+
+		var entry = rendering == "reader" ? "TryParseS" : "TryParseT";
+		var input = rendering == "reader" ? "(1.2)" : "1.2";
+
+		var match = EmittedCode.Match(assembly, "Grammar", entry, input);
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal("12", match.Value);
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", entry, input.Replace('1', '0')).IsSuccess);
+	}
 }

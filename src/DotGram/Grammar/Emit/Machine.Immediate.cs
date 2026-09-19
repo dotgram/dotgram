@@ -324,6 +324,10 @@ sealed partial class Machine
 		public override IEnumerable<string> MarkRecords(string name) =>
 			Marks ? [$"var {name} = marked;"] : [];
 
+		/// <remarks>Only what <see cref="MarkRecords"/> declared: without marks, a part is handed none.</remarks>
+		public override IReadOnlyList<string> RecordMarks(string name) =>
+			Marks ? [name] : [];
+
 		/// <remarks>A failed turn has pushed onto the stacks; the mark is where they stood.</remarks>
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
 		{
