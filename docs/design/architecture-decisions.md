@@ -208,7 +208,14 @@ trees, since types from two contexts are never equal.
   the code C2 emits, open.
 - T-SQL against ScriptDom, default PGO: the generated parser at 0.28-0.55 of ScriptDom's time
   (located 0.42-0.67), 1.8-3.6x faster, allocating 3.3-13 KB against 48-138 KB. These replace the
-  single-row BenchmarkDotNet figures in `benchmarks/README.md` as the quoted comparison.
+  single-row BenchmarkDotNet figures in `benchmarks/README.md` as the quoted comparison for
+  the stand's rows. Over the whole corpus (BenchmarkDotNet, quiet machine, default PGO, main
+  `68c60c58`, 7,716 statements an operation): ScriptDom's tree 17.9 µs a statement (its lexer
+  alone 8.6), the generated parser 4.1 µs located and 3.4 without positions — 4.4x and 5.3x
+  faster — and 1.2 KB a statement against 42.5, 34x less garbage. The README's section carries
+  these with the date and the PGO setting (`22691b3e`); the raw report is under
+  `benchmarks/results/tsql-scriptdom-2026-09-18`. The week's changes did not cost the T-SQL
+  parser its lead.
 - Regex, for the record Igor asked for: a regex that only splits FIX into tag and value costs
   1.3-2.1x the hand parser (compiled 1.0-1.7x), about what the generated parser costs; a URL by
   regex 6-12x the hand parser (compiled 2.4-4.1x) where the generated one is 1.4-1.9x; a
