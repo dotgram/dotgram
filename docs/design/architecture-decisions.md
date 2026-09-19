@@ -1677,6 +1677,17 @@ same day; each comes back to the architect as a report, with no code changed.
    the family of the quoted string's turn, not refinement B: expr looks whether the same answer
    generalizes. The lookahead edit is done; the cause it held moved, honestly counted, to a member
    in `Postfix`.
+   **Written (expr, `7428b037`, held for window 37):** the pass already took a capture head; what
+   stopped it was the fold giving up on a choice as soon as one alternative was not a construction.
+   Condition (ii) is the one the pass already checks — over kinds a call to a rule that does not
+   give back commits its answer. No refusal position or outcome moves; nineteen EL lines reword (a
+   type's own message where a list of keywords stood). One loss came with it and is fixed in the
+   same commit: a guard leading a dispatched group refused naming nothing, so two expected tokens
+   vanished; it now names the other groups' first tokens. EL's direct causes 20 to 18; SQL's code
+   changes where its heads fold, its causes do not; the gate is noise. The two-characters-ahead
+   question does not settle EL's `?` and `{` turns: an `if … else` can end a statement, so a
+   continuation is any statement, and an initializer and a following block stay alike for an
+   expression of any length — the language's, intended.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
