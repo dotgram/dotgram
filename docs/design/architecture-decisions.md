@@ -819,6 +819,20 @@ had described it wrongly, there is no defect. The probe — a repetition whose c
 holds at every boundary — is the two-boundary case in C2's tests, and the reader is held to
 its three answers. The speller commit is on main (`f1baf4f3`).
 
+**C2 written and reviewed (performance-ff, 2026-09-18, late).** Emitted code moves in three
+grammars: FixGrammar's string and byte forms of the field lists, StockCount, RecoveringFeed;
+FIX's windowed stream forms stay on the engine for now. The loop, per §8.2: at each boundary the
+continuation as a part, then the turn as a part committed by resetting the ways it opened, a
+missing continuation at the end a refusal, the broken element out of line and cold, writing
+its record for the walk to call the recovery factory on. A rule asked again after failure no
+longer re-enters the repetition (a hang found and fixed on the way: a retried `eol` way replayed
+into the committed region). `RecoveringReaderTests`, five shapes incl. two `recover` in one rule
+and the every-boundary continuation, compare positions and values in full. Approved with two
+conditions: a literal synchronization is found by the C1 search, not by an attempt per
+character; and the reader with `recover` over the buffered forms (FIX over a stream, D5/D7) is
+the next slice, expr's search-branch patch in hand, owner to be agreed. The pair: slope,
+One/Order, stock-count in three forms, first calls with the methods/IL column; push after it.
+
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
 0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser
