@@ -24221,3 +24221,29 @@ call the reader averages.
 
 With the choice by kinds and the membership table done, recognition would be near 4 µs, level
 with the hand.
+
+## The join cause was never the language's (the critic's Q2)
+
+`JoinedRight`'s 29 rules were classified as an ambiguity of T-SQL, on the strength of the report's
+line `replay JoinedRight: Follows in TSqlTableReference [turn], then "ON"i` and of how the
+`ON`-counting reads: `a JOIN b JOIN c ON p1 ON p2`. No witness was built for it, and there is none.
+On valid input the `ON`s bind innermost-first the way brackets do and greedy reading gives nothing
+back; the give-backs are on input that fails altogether.
+
+Two forms were built to say the possessiveness in the grammar, and neither moves the report
+(`replayed: 321`, the same three lines): an atomic group around the tails,
+`JoinedRight = t: TablePrimary & { tails: JoinedTail* }`, and one around the call,
+`& { right: JoinedRight }` in `TSqlTableReference`. The cause is a `Follows` — the caller may ask
+the rule again — and no group tells the analysis that no shorter reading could be taken. What
+would: the call-level form of the fold's condition (ii), a call needing no way back where every
+shortening of it would resume on a token the continuation cannot take. Here `First(JoinedTail)`
+(the join types, the hints, `JOIN`, `CROSS`, `OUTER`) against a continuation demanding `ON`.
+
+`InlineReturn`'s 26 rules are conceded as a classification too: the distance is unbounded, but the
+cause is the shape of our own two alternatives, and folding the extras into the bracketed query
+would remove it at the price of accepting a `WITH` or an order inside brackets anywhere a
+parenthesized query stands. That is a trade-off for the grammar's owner and Igor, not a fact about
+the language. `TSqlPrimaryCore`'s 40 stand.
+
+So of the three, one is the language, one is the analysis's, and one is a trade-off we have not
+taken. The entry above that closed the grammar question closed it too early.

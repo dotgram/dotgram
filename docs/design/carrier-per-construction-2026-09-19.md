@@ -154,18 +154,34 @@ in T-SQL, and the towers' operands and predicates in SQL:2023. None of those is 
 holds them is Replay's causes, the first being `TSqlPrimaryCore`'s choice of a bracketed value
 against a subquery. The settled subtrees are the rarely written corners of the grammar.
 
-Weighted by time the answer does not move. In the Q4.2 profile, materialization was 12.0 of
-26.0 ms own time per round, and the factories themselves (`Construct_*`) were 1.2 ms of it.
-What a record costs is the walk's per-record work, not its rule's factory, so the time share
-is the count share.
+**The count above is unweighted, and the weighting it replaced was not a detail** (the critic's
+Q1, `docs/design/open-questions.md`). It was argued that the time share is the count share, because
+the factories are 1.2 of 12.0 ms of materialization and what is left is the walk's per-record work.
+The anatomy taken hours later says the greater part of that is not per-record at all: the arms'
+prologues are 46% of one SQL:2023 parse and a guard's walk 30%, both fixed per call, and both differ
+by which part method an arm sits in and by whether a guard asked for the walk. Settled subtrees are
+the rarely written corners, where a per-call price weighs most, so the error does not cancel.
 
-That puts step 2 at about 0.46 × 0.05 × 0.3–0.5, **one to two per cent of a T-SQL parse**. The
-fourth edge (points at the rule's end, with taped children) would reach a quarter of the records
-and about 5%, for the more complex half of the design. Neither is worth a second carrier in a
-machine now. The lever is the one AtomicBody pulled: take away the Replay causes that hold the
-value tower (40 rules under `TSqlPrimaryCore`'s choice, 29 under `JoinedRight`'s turn, 26 under
-`InlineReturn`'s query). Each cause that goes makes the hot rules settled, whatever carrier
-reads them, and this design is worth measuring again after that.
+So the numbers below are provisional, and the arithmetic is written out rather than rounded:
+0.46 × 0.048 × 0.3–0.5 is **0.7–1.2% of a T-SQL parse** for step 2, and 0.46 × 0.249 × 0.3–0.5 is
+**3.4–5.7%** for the fourth edge — which is not the same kind of number, and is the better bet of
+the two. For SQL:2023 the evidence is the static ceiling of §3 — 83 constructions, 35 of 555 rules —
+and not the dynamic zero, which was taken over the 334 T-SQL statements that happen to read as
+standard SQL.
+
+**When to take it again, and how.** After the materializer's prologue is split (expr's `fa47097e`
+and what follows it), since that changes the cost model this rests on. Weighted: each arm's count
+times that arm's own cost, taken once from the frame its method zeroes and the setup its walk pays,
+rather than a share assumed uniform. **What would unshelve step 2:** a weighted share of what
+settled subtrees build, times the 0.3–0.5 a construction saves built in place, above about 3% of a
+T-SQL parse.
+
+Until then the lever remains the one AtomicBody pulled: take away the Replay causes that hold the
+value tower. Of the three heaviest, `TSqlPrimaryCore`'s choice (40 rules) is the language's,
+`JoinedRight`'s (29) is the analysis's — a call needs no way back where every shortening of it
+resumes on a token the continuation cannot take — and `InlineReturn`'s (26) is a trade-off against
+over-acceptance that has not been taken. Each cause that goes makes the hot rules settled, whatever
+carrier reads them.
 
 ## 5. Proposed steps
 

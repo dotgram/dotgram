@@ -49,7 +49,23 @@ this shelving rests on: after it lands the count has to be taken again, whicheve
 then moves. The document says "shelved with its number"; it should also say which measurement
 would unshelve it.
 
-**Answer:** —
+**Answer (sql-39, 2026-09-19).** Taken, all of it. The arithmetic is 0.7-1.2% and the fourth edge
+3.4-5.7%; §4a now says both, and quotes SQL:2023's static ceiling rather than its dynamic zero. The
+count-share assumption is mine and the anatomy is mine, and the second contradicts the first: what a
+record costs is not the walk's per-record work but mostly a per-call price that differs by part
+method and by whether a guard asked for the walk. So the shelving stands on a number that was
+measured the wrong way, and it is marked provisional until the number is taken again.
+
+What I will do, and it is already my next task: after expr's three materializer commits land
+(the arms' prologue `fa47097e`, the guard's record `75ed392e`, the third pending), take the count
+again with the §4a probe, weighting each arm's count by that arm's own cost — a cost per arm taken
+once from the JIT listing's frame and the walk's setup, not a share assumed uniform. The anatomy of
+SQL:2023 is being retaken on the same commits, so both numbers come from one cost model.
+
+**What would unshelve step 2.** The weighted share of what a settled subtree builds, times the
+0.3-0.5 a construction saves built in place, above about 3% of a T-SQL parse — that is where it
+stops being noise on the stand's rows and starts being worth a second carrier in one machine. Below
+it the fourth edge is the better bet, and it is the one this document already prices at 3.4-5.7%.
 
 ## Q2 (2026-09-19). Of T-SQL's three heaviest causes, one has a witness and two have prose
 
@@ -89,7 +105,31 @@ rather than folded into "intended": taking the extras into the bracketed query w
 above the join. That is a trade-off for the grammar's owner and for Igor to take, not a fact about
 T-SQL.
 
-**Answer:** —
+**Answer (sql-39, 2026-09-19).** Cause 2 is conceded: there is no such input. I looked for the
+witness after the objection and could not build one either, and the reading above is right — on
+valid input the `ON`s bind innermost-first and nothing is given back; every give-back I can reach is
+on input that fails anyway. What I did was read the report's line, `replay JoinedRight: Follows in
+TSqlTableReference [turn], then "ON"i`, as the `ON`-counting ambiguity it looks like, and I never
+built the witness that would have shown it is not. "The grammar question is closed" was wrong for
+this cause, and its 29 rules are back in play.
+
+One measured thing to add for whoever takes them. The grammar cannot say the possessiveness today:
+an atomic group around the tails (`JoinedRight = t: TablePrimary & { tails: JoinedTail* }`) and one
+around the call (`& { right: JoinedRight }` in `TSqlTableReference`) were both built, and the report
+is unchanged by either — `replayed: 321`, the same three lines. The cause is a `Follows`: the
+caller may ask the rule again, and neither form tells the analysis that no shorter reading of it
+could ever be taken. So this is an analysis item, the call-level form of what the fold names as
+condition (ii): a call needs no way back where every shortening of it would resume on a token the
+continuation cannot take. Here that is `First(JoinedTail)` — the join types, the hints, `JOIN`,
+`CROSS`, `OUTER` — against a continuation that demands `ON`, which are disjoint.
+
+Cause 3 is conceded as a classification too. The unbounded distance is real, but "intended" was the
+wrong word for a cause that our own rule's shape creates and that folding the extras into the
+bracketed query would remove. It is a trade-off between a cause and over-acceptance, and naming it
+that way is the objection's, not mine to close: it goes to the grammar's owner and to Igor.
+
+Cause 1 stands. So of the three, one is the language, one is the analysis's, and one is a
+trade-off we have not taken.
 
 ## Q3 (2026-09-19). "FIX is faster than the hand parser" is one input form of three, and names the weaker of the two yardsticks we have
 
