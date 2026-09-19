@@ -46,6 +46,46 @@ static partial class Stand
 			[new Reading("generated", () => accepts(text) ? 1 : 0)],
 			() => accepts(text) == accepted ? null : $"  the generated parser {(accepts(text) ? "accepts" : "refuses")} it, and the row says it must {(accepted ? "accept" : "refuse")}");
 
+	/// <summary>The JSON objects and arrays of the web rows, shared with the paired stand.</summary>
+	const string JsonObjectText = "{\"id\": 12345, \"name\": \"dotgram\", \"tags\": [\"parser\", \"generator\", \"analyzer\"], \"nested\": {\"x\": 1.5, \"y\": null, \"z\": true}, \"text\": \"a string with an escape \\n and a unicode one \\u00e9\", \"list\": [1, 2, 3, 4, 5]}";
+
+	const string JsonArrayText = "[1, 2.5, -3, \"four\", true, false, null, [5, 6], {\"k\": \"v\"}, 1e3, \"a longer string to read\", 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]";
+
+	static readonly string[] UrlNames = ["plain", "full", "ipv4", "long-path", "refused"];
+
+	/// <summary>
+	/// The URLs and the JSON of the web rows, of two builds against each other with this tree's hand
+	/// parsers as the control: the RFC 3986 and RFC 8259 parsers loaded from each side by reflection.
+	/// </summary>
+	static IEnumerable<Workload> PairedWeb(PairedSide before, PairedSide after)
+	{
+		var inputs = UrlBenchmarks.Inputs.ToArray();
+
+		for (var i = 0; i < inputs.Length; i++)
+		{
+			var text = inputs[i];
+
+			yield return new Workload("web", "url." + UrlNames[i],
+				[
+					new Reading("hand",   () => HandUrl.TryParseReference(text, out _, out _) ? 1 : 0),
+					new Reading("before", before.WebUrl(text)),
+					new Reading("after",  after.WebUrl(text)),
+				],
+				() => null);
+		}
+
+		foreach (var (name, text) in new[] { ("json.object", JsonObjectText), ("json.array", JsonArrayText) })
+		{
+			yield return new Workload("web", name,
+				[
+					new Reading("hand",   () => HandJson.TryParse(text, out _, out _) ? 1 : 0),
+					new Reading("before", before.WebJson(text)),
+					new Reading("after",  after.WebJson(text)),
+				],
+				() => null);
+		}
+	}
+
 	static IEnumerable<Workload> WebWorkloads()
 	{
 		return
@@ -54,10 +94,8 @@ static partial class Stand
 
 			// RFC 8259: a recursive language; a regex cannot read it, so N/A. System.Text.Json is
 			// the outside reading, the way ScriptDom is T-SQL's.
-			.. WebJson("json.object",
-				"{\"id\": 12345, \"name\": \"dotgram\", \"tags\": [\"parser\", \"generator\", \"analyzer\"], \"nested\": {\"x\": 1.5, \"y\": null, \"z\": true}, \"text\": \"a string with an escape \\n and a unicode one \\u00e9\", \"list\": [1, 2, 3, 4, 5]}"),
-			.. WebJson("json.array",
-				"[1, 2.5, -3, \"four\", true, false, null, [5, 6], {\"k\": \"v\"}, 1e3, \"a longer string to read\", 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]"),
+			.. WebJson("json.object", JsonObjectText),
+			.. WebJson("json.array", JsonArrayText),
 
 			.. WebTimestamps(),
 			.. WebAddresses(),
@@ -121,7 +159,7 @@ static partial class Stand
 	/// </summary>
 	static IEnumerable<Workload> WebUrls()
 	{
-		string[] names   = ["plain", "full", "ipv4", "long-path", "refused"];
+		string[] names   = UrlNames;
 		var      inputs  = UrlBenchmarks.Inputs.ToArray();
 		var      (interpreted, compiled) = Both(UrlBenchmarks.Pattern);
 

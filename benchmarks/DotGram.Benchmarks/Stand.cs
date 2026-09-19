@@ -590,6 +590,8 @@ static partial class Stand
 		readonly Type _fixParseMode;
 		readonly Type _fixParseOptions;
 		readonly Type? _stock;
+		readonly Type? _uri;
+		readonly Type? _json;
 
 		public PairedSide(string name, string directory)
 		{
@@ -617,6 +619,13 @@ static partial class Stand
 			_fixMessages = Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages");
 			_fixParseMode = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseMode");
 			_fixParseOptions = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseOptions");
+
+			// Only a side that was given DotGram.Web has URLs and JSON to read.
+			if (File.Exists(Path.Combine(directory, "DotGram.Web.dll")))
+			{
+				_uri  = Load("DotGram.Web", "DotGram.Web.UriReference");
+				_json = Load("DotGram.Web", "DotGram.Web.JsonValue");
+			}
 
 			// Only a side that was given DotGram.Examples has a stock count to read.
 			_stock = File.Exists(Path.Combine(directory, "DotGram.Examples.dll"))
@@ -651,6 +660,21 @@ static partial class Stand
 
 				return IsSuccess(call.Invoke(null, [text, state])!);
 			};
+		}
+
+		/// <summary>UriReference.TryParse(string, out UriReference) of this side, by reflection: whether it read the text.</summary>
+		public Func<int> WebUrl(string text) => WebTryParse(_uri, "UriReference", text);
+
+		/// <summary>JsonValue.TryParse(string, out JsonValue) of this side, by reflection: whether it read the text.</summary>
+		public Func<int> WebJson(string text) => WebTryParse(_json, "JsonValue", text);
+
+		static Func<int> WebTryParse(Type? type, string name, string text)
+		{
+			var call = (type ?? throw new InvalidOperationException("The side has no DotGram.Web.dll")).GetMethods()
+				.First(one => one.Name == "TryParse" && one.GetParameters() is [{ ParameterType.Name: "String" }, { IsOut: true }])
+				?? throw new InvalidOperationException($"{name}.TryParse(string, out) not found");
+
+			return () => (bool)call.Invoke(null, [text, null])! ? 1 : 0;
 		}
 
 		/// <summary>StockCountReader.TryParseCount(string) of this side, by reflection: the match it returns.</summary>
@@ -797,6 +821,8 @@ static partial class Stand
 			.. PairedFixMessages(before, after),
 
 			.. PairedFeeds(before, after),
+
+			.. PairedWeb(before, after),
 
 			PairedExpression("floor",         "(int x) => x", before, after),
 			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),
