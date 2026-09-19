@@ -67,9 +67,24 @@ construction. A change meant to move a grammar off the tape is measured by its d
 | [`design/visual-studio-tooling-plan.md`](design/visual-studio-tooling-plan.md) | The living checklist for the extension. |
 | [`design/dsl-tooling-design.md`](design/dsl-tooling-design.md) | A plan for tooling an arbitrary DSL. |
 | [`design/DotGram_Tooling_Agent_Handoff.md`](design/DotGram_Tooling_Agent_Handoff.md) | A separate future project: IDE and LSP tooling. Not a description of anything that exists. |
+| [`design/architecture-decisions.md`](design/architecture-decisions.md) | The decisions the architect has collected, each with the measurement that settled it, the sessions' rules of work among them. |
+| [`design/fix-reader-2026-09-18.md`](design/fix-reader-2026-09-18.md) | What the generated FIX parser would have to be to read like the hand-written one, and what stands in the way. The engine's own comments cite it. |
+| [`design/fix-reader-buffered-2026-09-18.md`](design/fix-reader-buffered-2026-09-18.md) | The same reading over a buffer: releasing a window as the parse commits. |
+| [`design/carrier-per-construction-2026-09-19.md`](design/carrier-per-construction-2026-09-19.md) | Whether one machine could build some of its constructions in place and leave the rest to the tape, and what the measurement said. |
+| [`design/normalizer-passes-2026-09-18.md`](design/normalizer-passes-2026-09-18.md), [`design/normalizer-optimize-2026-09-18.md`](design/normalizer-optimize-2026-09-18.md) | The normalizer split into building the graph and optimizing it, so the optimizing part may run again. |
+| [`design/shared-beginnings-over-kinds-2026-09-18.md`](design/shared-beginnings-over-kinds-2026-09-18.md) | What holds SQL:2023's rules on the tape over kinds, and what removes each kind of cause. |
+| [`design/sql-over-kinds.md`](design/sql-over-kinds.md) | Reading SQL over tokens rather than characters. |
+| [`design/read-directive-2026-09-19.md`](design/read-directive-2026-09-19.md) | Reading one rule from a position: what the positional forms already do and what they still owe. |
+| [`design/reader-input-forms.md`](design/reader-input-forms.md) | The input forms the generator compiles for. |
+| [`design/test-audit-2026-09-18.md`](design/test-audit-2026-09-18.md) | What each test proves, and what was removed for proving it twice. |
 
 Nothing here is a statement about the current compiler. Where one of them has been
 built, `status.md` is what says so.
+
+The rest of `design/` is dated by name — `stand-2026-09-19.md`, `fix-slope-2026-09-18.md` and so
+on. Each is the record of one experiment or one measurement on the day it was taken: what was
+asked, how it was measured, what came out. They are not indexed one by one and they are not kept
+up to date; a figure in one is true of the tree it was taken on and of nothing else.
 
 ## Historical
 
