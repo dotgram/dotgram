@@ -788,6 +788,10 @@ answers by the latest boundary, that is a defect of the engine against §8.2, fo
 two-boundary case the note proposes; it is fixed in the engine, the examples and corpora
 re-read, and reported before it lands since it can change an accepted tree. If Igor prefers
 the greedy order, §8.2 changes first and every rendering follows.
+Settled the same evening: the engine answers by the first boundary, as §8.2 says; the note
+had described it wrongly, there is no defect. The probe — a repetition whose continuation
+holds at every boundary — is the two-boundary case in C2's tests, and the reader is held to
+its three answers. The speller commit is on main (`f1baf4f3`).
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
