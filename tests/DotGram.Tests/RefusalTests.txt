@@ -1346,20 +1346,20 @@ marks laid over an operand | engine | "(aa" | Starved at 3: Expected ';' or ')'.
 marks laid over an operand | tape | "" | Starved at 0: Expected ['(' | 'a'..'z'].
 marks laid over an operand | tape | "a!" | NoMatch at 1: Input does not match 'Start'.
 marks laid over an operand | tape | "aa" | accepted
-marks laid over an operand | tape | "(" | Starved at 1: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | tape | "(" | Starved at 1: Expected ['(' | 'a'..'z'].
 marks laid over an operand | tape | "(a" | Starved at 2: Expected ';' or ')'.
 marks laid over an operand | tape | "a)" | NoMatch at 1: Input does not match 'Start'.
-marks laid over an operand | tape | "()" | NoMatch at 1: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | tape | "()" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 marks laid over an operand | tape | "(a)!" | NoMatch at 3: Input does not match 'Start'.
 marks laid over an operand | tape | "(a))" | NoMatch at 3: Input does not match 'Start'.
-marks laid over an operand | tape | "((" | Starved at 2: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | tape | "((" | Starved at 2: Expected ['(' | 'a'..'z'].
 marks laid over an operand | tape | "((a" | Starved at 3: Expected ';' or ')'.
 marks laid over an operand | tape | "((a)" | Starved at 4: Expected ';' or ')'.
-marks laid over an operand | tape | "(())" | NoMatch at 2: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | tape | "(())" | NoMatch at 2: Expected ['(' | 'a'..'z'].
 marks laid over an operand | tape | "((a))!" | NoMatch at 5: Input does not match 'Start'.
 marks laid over an operand | tape | "((a)))" | NoMatch at 5: Input does not match 'Start'.
 marks laid over an operand | tape | "a;" | NoMatch at 1: Input does not match 'Start'.
-marks laid over an operand | tape | "(;" | NoMatch at 1: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | tape | "(;" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 marks laid over an operand | tape | "(a;!" | NoMatch at 3: Input does not match 'Start'.
 marks laid over an operand | tape | "(a;;" | NoMatch at 3: Input does not match 'Start'.
 marks laid over an operand | tape | "a" | accepted
@@ -1368,20 +1368,20 @@ marks laid over an operand | tape | "(aa" | Starved at 3: Expected ';' or ')'.
 marks laid over an operand | immediate | "" | Starved at 0: Expected ['(' | 'a'..'z'].
 marks laid over an operand | immediate | "a!" | NoMatch at 1: Input does not match 'Start'.
 marks laid over an operand | immediate | "aa" | accepted
-marks laid over an operand | immediate | "(" | Starved at 1: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | immediate | "(" | Starved at 1: Expected ['(' | 'a'..'z'].
 marks laid over an operand | immediate | "(a" | Starved at 2: Expected ';' or ')'.
 marks laid over an operand | immediate | "a)" | NoMatch at 1: Input does not match 'Start'.
-marks laid over an operand | immediate | "()" | NoMatch at 1: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | immediate | "()" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 marks laid over an operand | immediate | "(a)!" | NoMatch at 3: Input does not match 'Start'.
 marks laid over an operand | immediate | "(a))" | NoMatch at 3: Input does not match 'Start'.
-marks laid over an operand | immediate | "((" | Starved at 2: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | immediate | "((" | Starved at 2: Expected ['(' | 'a'..'z'].
 marks laid over an operand | immediate | "((a" | Starved at 3: Expected ';' or ')'.
 marks laid over an operand | immediate | "((a)" | Starved at 4: Expected ';' or ')'.
-marks laid over an operand | immediate | "(())" | NoMatch at 2: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | immediate | "(())" | NoMatch at 2: Expected ['(' | 'a'..'z'].
 marks laid over an operand | immediate | "((a))!" | NoMatch at 5: Input does not match 'Start'.
 marks laid over an operand | immediate | "((a)))" | NoMatch at 5: Input does not match 'Start'.
 marks laid over an operand | immediate | "a;" | NoMatch at 1: Input does not match 'Start'.
-marks laid over an operand | immediate | "(;" | NoMatch at 1: Expected ['(' | 'a'..'z' | '(' | 'a'..'z'].
+marks laid over an operand | immediate | "(;" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 marks laid over an operand | immediate | "(a;!" | NoMatch at 3: Input does not match 'Start'.
 marks laid over an operand | immediate | "(a;;" | NoMatch at 3: Input does not match 'Start'.
 marks laid over an operand | immediate | "a" | accepted
@@ -1957,10 +1957,10 @@ a rule that builds two ways | engine | "12b" | accepted
 a rule that builds two ways | engine | "12ab!" | NoMatch at 4: Input does not match 'Start'.
 a rule that builds two ways | engine | "12abb" | accepted
 a rule that builds two ways | engine | "b" | accepted
-a rule that builds two ways | engine | "ab!" | NoMatch at 2: Input does not match 'Start'.
+a rule that builds two ways | engine | "ab!" | NoMatch at 2: Expected ['0'..'9'].
 a rule that builds two ways | engine | "abb" | accepted
 a rule that builds two ways | engine | "2" | accepted
-a rule that builds two ways | engine | "12!" | NoMatch at 2: Input does not match 'Start'.
+a rule that builds two ways | engine | "12!" | NoMatch at 2: Expected ['a'..'z'].
 a rule that builds two ways | engine | "122" | accepted
 a rule that builds two ways | engine | "1a" | accepted
 a rule that builds two ways | engine | "a2" | accepted
@@ -2030,7 +2030,7 @@ a member that may be missing | engine | "ab2" | accepted
 a member that may be missing | engine | "ab12!" | NoMatch at 4: Input does not match 'Start'.
 a member that may be missing | engine | "ab122" | accepted
 a member that may be missing | engine | "b" | accepted
-a member that may be missing | engine | "ab!" | NoMatch at 2: Input does not match 'Start'.
+a member that may be missing | engine | "ab!" | NoMatch at 2: Expected ['0'..'9'].
 a member that may be missing | engine | "abb" | accepted
 a member that may be missing | engine | "1" | NoMatch at 0: Expected ['a'..'z'].
 a member that may be missing | engine | "2" | NoMatch at 0: Expected ['a'..'z'].
@@ -2738,12 +2738,12 @@ a look ahead | engine | "a = b!" | NoMatch at 5: Input does not match 'Start'.
 a look ahead | engine | "a = bb" | accepted
 a look ahead | engine | "a!" | NoMatch at 1: Input does not match 'Start'.
 a look ahead | engine | "aa" | accepted
-a look ahead | tape | "" | Starved at 0: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | tape | "" | Starved at 0: Expected ['a'..'z'].
 a look ahead | tape | "a" | accepted
 a look ahead | tape | "a " | accepted
 a look ahead | tape | "a =" | Starved at 3: Expected ['a'..'z'].
 a look ahead | tape | "a = " | Starved at 4: Expected ['a'..'z'].
-a look ahead | tape | " = b" | NoMatch at 1: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | tape | " = b" | NoMatch at 1: Expected ['a'..'z'].
 a look ahead | tape | "a= b" | accepted
 a look ahead | tape | "a  b" | NoMatch at 3: Input does not match 'Start'.
 a look ahead | tape | "a =b" | accepted
@@ -2751,12 +2751,12 @@ a look ahead | tape | "a = b!" | NoMatch at 5: Input does not match 'Start'.
 a look ahead | tape | "a = bb" | accepted
 a look ahead | tape | "a!" | NoMatch at 1: Input does not match 'Start'.
 a look ahead | tape | "aa" | accepted
-a look ahead | immediate | "" | Starved at 0: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | immediate | "" | Starved at 0: Expected ['a'..'z'].
 a look ahead | immediate | "a" | accepted
 a look ahead | immediate | "a " | accepted
 a look ahead | immediate | "a =" | Starved at 3: Expected ['a'..'z'].
 a look ahead | immediate | "a = " | Starved at 4: Expected ['a'..'z'].
-a look ahead | immediate | " = b" | NoMatch at 1: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | immediate | " = b" | NoMatch at 1: Expected ['a'..'z'].
 a look ahead | immediate | "a= b" | accepted
 a look ahead | immediate | "a  b" | NoMatch at 3: Input does not match 'Start'.
 a look ahead | immediate | "a =b" | accepted
@@ -2777,12 +2777,12 @@ a look ahead | engine over tokens | "a = b!" | NoMatch at 5: Input does not matc
 a look ahead | engine over tokens | "a = bb" | accepted
 a look ahead | engine over tokens | "a!" | NoMatch at 1: Input does not match 'Start'.
 a look ahead | engine over tokens | "aa" | accepted
-a look ahead | tape over tokens | "" | Starved at 0: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | tape over tokens | "" | Starved at 0: Expected ['a'..'z'].
 a look ahead | tape over tokens | "a" | accepted
 a look ahead | tape over tokens | "a " | accepted
 a look ahead | tape over tokens | "a =" | Starved at 3: Expected ['a'..'z'].
 a look ahead | tape over tokens | "a = " | Starved at 4: Expected ['a'..'z'].
-a look ahead | tape over tokens | " = b" | NoMatch at 1: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | tape over tokens | " = b" | NoMatch at 1: Expected ['a'..'z'].
 a look ahead | tape over tokens | "a= b" | accepted
 a look ahead | tape over tokens | "a  b" | NoMatch at 3: Input does not match 'Start'.
 a look ahead | tape over tokens | "a =b" | accepted
@@ -2790,12 +2790,12 @@ a look ahead | tape over tokens | "a = b!" | NoMatch at 5: Input does not match 
 a look ahead | tape over tokens | "a = bb" | accepted
 a look ahead | tape over tokens | "a!" | NoMatch at 1: Input does not match 'Start'.
 a look ahead | tape over tokens | "aa" | accepted
-a look ahead | immediate over tokens | "" | Starved at 0: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | immediate over tokens | "" | Starved at 0: Expected ['a'..'z'].
 a look ahead | immediate over tokens | "a" | accepted
 a look ahead | immediate over tokens | "a " | accepted
 a look ahead | immediate over tokens | "a =" | Starved at 3: Expected ['a'..'z'].
 a look ahead | immediate over tokens | "a = " | Starved at 4: Expected ['a'..'z'].
-a look ahead | immediate over tokens | " = b" | NoMatch at 1: Expected ['a'..'z' | 'a'..'z'].
+a look ahead | immediate over tokens | " = b" | NoMatch at 1: Expected ['a'..'z'].
 a look ahead | immediate over tokens | "a= b" | accepted
 a look ahead | immediate over tokens | "a  b" | NoMatch at 3: Input does not match 'Start'.
 a look ahead | immediate over tokens | "a =b" | accepted

@@ -4066,13 +4066,20 @@ sealed partial class Machine
 			_                        => false,
 		};
 
-	/// <summary>What a predicted choice's disjoint first sets accept, said as one element set would be.</summary>
+	/// <summary>What a predicted choice's first sets accept, said as one element set would be.</summary>
+	/// <remarks>
+	/// In the order the alternatives give them, each said once: alternatives that begin alike would
+	/// otherwise say the same range twice in one set — `['(' | 'a'..'z' | '(' | 'a'..'z']` where the
+	/// engine says it once.
+	/// </remarks>
 	IReadOnlyList<string> PredictedDisplays(IReadOnlyList<Node> alternatives)
 	{
 		var ranges = new List<CharRange>();
 
 		foreach (var alternative in alternatives)
-			ranges.AddRange(FirstSets.Of(alternative, _graph).Ranges);
+			foreach (var range in FirstSets.Of(alternative, _graph).Ranges)
+				if (!ranges.Exists(one => one.From <= range.From && range.To <= one.To))
+					ranges.Add(range);
 
 		return Displays(new Node.Element(false, ranges, [], []));
 	}
@@ -4431,6 +4438,35 @@ sealed partial class Machine
 				atTest.Line($"if ({RangesTest(begins.Ranges, Tabulate)}) goto {Label(atTest, entered)};");
 			}
 
+			// Left where the body cannot begin — and said, where the reading records, as the
+			// body's own refusal would have said it: where what follows refuses too, the optional
+			// not taken is half of the message (the reader's door says it, since 9f292dd6). Not
+			// entered to say it: a settled optional entered has no way back out. Not inside the
+			// seam, whose refusals neither records.
+			// The engine's own states only: a lowered method has no `lookahead`, and its failure
+			// may carry no list of ties.
+			if (Quiets && !_lowering && !InSeam(repeatNode))
+			{
+				var said = DeclareExpected(Displays(new Node.Element(false, begins.Ranges, [], [])));
+
+				_expectedUsed.Add(said);
+
+				using (atTest.Block("if (lookahead < 0 && !failure.Quiet)"))
+				{
+					atTest.Line("if (p > failure.Position)");
+
+					using (atTest.Block(""))
+					{
+						atTest.Line("failure.Position = p;");
+						atTest.Line($"failure.Expected = {said};");
+						atTest.Line("failure.ExpectedMore?.Clear();");
+					}
+
+					atTest.Line("else if (p == failure.Position)");
+					atTest.Then($"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add({said});");
+				}
+			}
+
 			atTest.Line($"goto {Label(atTest, next)};");
 
 			return state;
@@ -4573,7 +4609,7 @@ sealed partial class Machine
 			// what refused the turn is said: where what follows refuses too, the turn's
 			// refusal is half of the message — as the reader's door does (Machine.Reader.cs,
 			// EmitTurns), and not inside the seam, whose refusals neither records.
-			if (Quiets && !InSeam(repeatNode))
+			if (Quiets && !_lowering && !InSeam(repeatNode))
 				atProbe.Line($"if (lookahead < 0 && !failure.Quiet) goto {Label(atProbe, entry)};");
 
 			atProbe.Line($"goto {Label(atProbe, next)};");

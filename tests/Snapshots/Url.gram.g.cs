@@ -949,6 +949,17 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S70;
 					}
+					if (lookahead < 0 && !failure.Quiet)
+					{
+						if (p > failure.Position)
+						{
+							failure.Position = p;
+							failure.Expected = Recognize_DotGram_Expected26;
+							failure.ExpectedMore?.Clear();
+						}
+						else if (p == failure.Position)
+							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(Recognize_DotGram_Expected26);
+					}
 				}
 
 				S64:
@@ -1054,6 +1065,17 @@ namespace DotGram.Snapshots
 					{
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S79;
+					}
+					if (lookahead < 0 && !failure.Quiet)
+					{
+						if (p > failure.Position)
+						{
+							failure.Position = p;
+							failure.Expected = Recognize_DotGram_Expected26;
+							failure.ExpectedMore?.Clear();
+						}
+						else if (p == failure.Position)
+							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(Recognize_DotGram_Expected26);
 					}
 				}
 
@@ -1220,6 +1242,17 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S94;
 					}
+					if (lookahead < 0 && !failure.Quiet)
+					{
+						if (p > failure.Position)
+						{
+							failure.Position = p;
+							failure.Expected = Recognize_DotGram_Expected26;
+							failure.ExpectedMore?.Clear();
+						}
+						else if (p == failure.Position)
+							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(Recognize_DotGram_Expected26);
+					}
 				}
 
 				S88:
@@ -1385,6 +1418,17 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S106;
 					}
+					if (lookahead < 0 && !failure.Quiet)
+					{
+						if (p > failure.Position)
+						{
+							failure.Position = p;
+							failure.Expected = Recognize_DotGram_Expected26;
+							failure.ExpectedMore?.Clear();
+						}
+						else if (p == failure.Position)
+							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(Recognize_DotGram_Expected26);
+					}
 				}
 
 				S103:
@@ -1526,6 +1570,17 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S116;
 					}
+					if (lookahead < 0 && !failure.Quiet)
+					{
+						if (p > failure.Position)
+						{
+							failure.Position = p;
+							failure.Expected = Recognize_DotGram_Expected26;
+							failure.ExpectedMore?.Clear();
+						}
+						else if (p == failure.Position)
+							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(Recognize_DotGram_Expected26);
+					}
 				}
 
 				S115:
@@ -1640,6 +1695,17 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S126;
 					}
+					if (lookahead < 0 && !failure.Quiet)
+					{
+						if (p > failure.Position)
+						{
+							failure.Position = p;
+							failure.Expected = Recognize_DotGram_Expected26;
+							failure.ExpectedMore?.Clear();
+						}
+						else if (p == failure.Position)
+							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(Recognize_DotGram_Expected26);
+					}
 				}
 
 				S125:
@@ -1743,6 +1809,17 @@ namespace DotGram.Snapshots
 					{
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S135;
+					}
+					if (lookahead < 0 && !failure.Quiet)
+					{
+						if (p > failure.Position)
+						{
+							failure.Position = p;
+							failure.Expected = Recognize_DotGram_Expected26;
+							failure.ExpectedMore?.Clear();
+						}
+						else if (p == failure.Position)
+							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(Recognize_DotGram_Expected26);
 					}
 				}
 
@@ -3795,16 +3872,16 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_Expected25 => Recognize_DotGram_Expected25_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected25_Built, new string[] { "Group" }, null) ?? Recognize_DotGram_Expected25_Built!;
 
 		static string[]? Recognize_DotGram_Expected26_Built;
-		static string[] Recognize_DotGram_Expected26 => Recognize_DotGram_Expected26_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected26_Built, new string[] { "Hex" }, null) ?? Recognize_DotGram_Expected26_Built!;
+		static string[] Recognize_DotGram_Expected26 => Recognize_DotGram_Expected26_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected26_Built, new string[] { "['0'..'9' | 'A'..'F' | 'a'..'f']" }, null) ?? Recognize_DotGram_Expected26_Built!;
 
 		static string[]? Recognize_DotGram_Expected27_Built;
-		static string[] Recognize_DotGram_Expected27 => Recognize_DotGram_Expected27_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected27_Built, new string[] { "'%'" }, null) ?? Recognize_DotGram_Expected27_Built!;
+		static string[] Recognize_DotGram_Expected27 => Recognize_DotGram_Expected27_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected27_Built, new string[] { "Hex" }, null) ?? Recognize_DotGram_Expected27_Built!;
 
 		static string[]? Recognize_DotGram_Expected28_Built;
-		static string[] Recognize_DotGram_Expected28 => Recognize_DotGram_Expected28_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected28_Built, new string[] { "['0'..'9']" }, null) ?? Recognize_DotGram_Expected28_Built!;
+		static string[] Recognize_DotGram_Expected28 => Recognize_DotGram_Expected28_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected28_Built, new string[] { "'%'" }, null) ?? Recognize_DotGram_Expected28_Built!;
 
 		static string[]? Recognize_DotGram_Expected29_Built;
-		static string[] Recognize_DotGram_Expected29 => Recognize_DotGram_Expected29_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected29_Built, new string[] { "['0'..'9' | 'A'..'F' | 'a'..'f']" }, null) ?? Recognize_DotGram_Expected29_Built!;
+		static string[] Recognize_DotGram_Expected29 => Recognize_DotGram_Expected29_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected29_Built, new string[] { "['0'..'9']" }, null) ?? Recognize_DotGram_Expected29_Built!;
 
 		static string[]? Recognize_DotGram_Expected30_Built;
 		static string[] Recognize_DotGram_Expected30 => Recognize_DotGram_Expected30_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected30_Built, new string[] { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']" }, null) ?? Recognize_DotGram_Expected30_Built!;

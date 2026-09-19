@@ -2908,14 +2908,14 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2);
 					return -1;
 				}
 				c = text[p];
 
 				if (!((c >= '0' && c <= '9')))
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2);
 					return -1;
 				}
 
@@ -3018,7 +3018,7 @@ namespace DotGram.Snapshots
 
 					if (!o1 && failure.Quiet)
 					{
-						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2); }
+						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1); }
 						break;
 					}
 
@@ -3662,10 +3662,7 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_Primary_Expected0 => Recognize_DotGram_Primary_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Primary_Expected0_Built, new string[] { "\"()\"" }, null) ?? Recognize_DotGram_Primary_Expected0_Built!;
 
 		static string[]? Recognize_DotGram_Primary_Expected1_Built;
-		static string[] Recognize_DotGram_Primary_Expected1 => Recognize_DotGram_Primary_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Primary_Expected1_Built, new string[] { "['0'..'9' | '0'..'9']" }, null) ?? Recognize_DotGram_Primary_Expected1_Built!;
-
-		static string[]? Recognize_DotGram_Primary_Expected2_Built;
-		static string[] Recognize_DotGram_Primary_Expected2 => Recognize_DotGram_Primary_Expected2_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Primary_Expected2_Built, new string[] { "['(']" }, null) ?? Recognize_DotGram_Primary_Expected2_Built!;
+		static string[] Recognize_DotGram_Primary_Expected1 => Recognize_DotGram_Primary_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Primary_Expected1_Built, new string[] { "['(']" }, null) ?? Recognize_DotGram_Primary_Expected1_Built!;
 
 		static void Materialize_DotGram_Word(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{

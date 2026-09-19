@@ -2218,7 +2218,7 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_Feed_Expected20 => Recognize_DotGram_Feed_Expected20_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Feed_Expected20_Built, new string[] { "'H'" }, null) ?? Recognize_DotGram_Feed_Expected20_Built!;
 
 		static string[]? Recognize_DotGram_Feed_Expected21_Built;
-		static string[] Recognize_DotGram_Feed_Expected21 => Recognize_DotGram_Feed_Expected21_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Feed_Expected21_Built, new string[] { "['\\r' | '\\n' | '\\r']" }, null) ?? Recognize_DotGram_Feed_Expected21_Built!;
+		static string[] Recognize_DotGram_Feed_Expected21 => Recognize_DotGram_Feed_Expected21_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Feed_Expected21_Built, new string[] { "['\\r' | '\\n']" }, null) ?? Recognize_DotGram_Feed_Expected21_Built!;
 
 		static void Materialize_DotGram_Row(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{
