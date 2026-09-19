@@ -860,6 +860,15 @@ on the buffered path the lines are counted as the window is released, and `LineA
 what is held. performance-ff, before C3; tests in the slow project: linearity with broken lines
 on both forms (finance-24), and a stream with a small retained window whose broken line
 10,000 reports line 10,000.
+**Corrected by the stand the same night:** its "good" input named items with digits, which the
+grammar reads as broken lines, so every StockCount row it had timed, C2's good and broken rows
+included, was the rejection path; agreement passed because both parsers refused alike. With
+letter names: good lines linear at about 81 ns a line, twice the hand parser, both forms; every
+tenth line broken: the generated parser n^1.9 (43x the hand at 10,000 lines on the stream form),
+the hand linear — so the quadratic is exactly the rejection path, as finance-24 found. The rule
+taken from it: a stand row states what it reads and refuses to be timed when its input is not
+that ("good" has no unreadable line, "broken" exactly a tenth); agreement between two parsers
+is not evidence that the input is the case it claims.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
