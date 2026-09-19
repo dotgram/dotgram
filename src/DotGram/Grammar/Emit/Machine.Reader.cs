@@ -1404,7 +1404,7 @@ sealed partial class Machine
 					break;
 
 				case Node.Guard guard:
-					EmitGuard(code, guard);
+					EmitGuard(code, guard, loaded ? _guardRefuses : null);
 					break;
 
 				// A mark is a record of its own: it goes with the log wherever the log is put
@@ -1935,9 +1935,18 @@ sealed partial class Machine
 							// apart by, so they are tried in order — and a group that fails
 							// fails the choice, no other group's first set holding the token
 							// that chose this one.
+							// A guard the group begins with refuses where the token was read, and
+							// what the other groups would have taken there is what the choice
+							// wanted: tried in order, their refusals would have said so.
+							var refused = _guardRefuses;
+							_guardRefuses = group.Members.Any(LeadsWithGuard)
+								? machine.DeclareExpected(machine.PredictedDisplays(
+									alternatives.Where(one => !group.Members.Contains(one)).ToList()))
+								: null;
 							_dispatched = group.Set;
 							EmitAmong(code, group.Members, following, loaded: true);
 							_dispatched = null;
+							_guardRefuses = refused;
 							code.Line("break;");
 						}
 					}
@@ -3938,13 +3947,46 @@ sealed partial class Machine
 			}
 		}
 
-		void EmitGuard(Writer code, Node.Guard guard)
+		void EmitGuard(Writer code, Node.Guard guard, string? expected = null)
 		{
 			var call = EmitGuardCall(code, guard);
 			using (code.Block($"if (!{call})"))
 			{
-				code.Line(Refusal("null"));
+				if (expected is not null)
+					machine._expectedUsed.Add(expected);
+
+				code.Line(Refusal(expected ?? "null"));
 				code.Line("return -1;");
+			}
+		}
+
+		/// <summary>What a guard that begins a dispatched group refuses with: the other groups' first tokens.</summary>
+		string? _guardRefuses;
+
+		/// <summary>Whether an alternative's reading begins with a guard, through what builds or names it.</summary>
+		static bool LeadsWithGuard(Node alternative)
+		{
+			var read = alternative;
+
+			while (true)
+			{
+				switch (read)
+				{
+					case Node.Construct(var built, _):
+						read = built;
+						continue;
+
+					case Node.Capture(_, var captured):
+						read = captured;
+						continue;
+
+					case Node.Sequence(var parts) when parts.Count > 0:
+						read = parts[0];
+						continue;
+
+					default:
+						return read is Node.Guard;
+				}
 			}
 		}
 

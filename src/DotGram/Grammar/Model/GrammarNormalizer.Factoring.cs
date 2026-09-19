@@ -58,9 +58,22 @@ public sealed partial class GrammarNormalizer
 
 			// Preserve the established layout: one shared head followed by a choice
 			// of constructions. Nested groups of factories require a different layout.
-			if (node is not Node.Choice(var alternatives) || alternatives.Count < 2 ||
-				alternatives.Any(one => one is not Node.Construct))
+			if (node is not Node.Choice(var alternatives) || alternatives.Count < 2)
 				return node;
+
+			// An alternative that is not a construction is one the fold over characters has
+			// already made: a head and a choice of constructions behind it. Its choice begins
+			// alike again where every construction in it reads the same capture first — the
+			// three `new`s of an expression each read a type — and is folded as any choice
+			// behind a head is. Runs are not gathered across such an alternative.
+			if (alternatives.Any(one => one is not Node.Construct))
+			{
+				var walked = alternatives.Select(one => one is Node.Construct ? one : Walk(one)).ToList();
+
+				return walked.Where((one, i) => !ReferenceEquals(one, alternatives[i])).Any()
+					? ((Node.Choice)node).Rebuild(walked)
+					: node;
+			}
 
 			// The alternatives that begin alike, gathered into runs: all of them where all do,
 			// and otherwise every run of them (Q7.1's C, docs/design/shared-beginnings-over-kinds-
