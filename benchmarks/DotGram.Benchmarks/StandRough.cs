@@ -43,6 +43,8 @@ static partial class Stand
 			("ArithmeticTree.Read", "ArithmeticTree", "Read", sum),
 			("ClampedExample.Read", "ClampedExample", "Read", "clamp(x + 1, 0, 10) + (x + 2) + clamp(3, x, 9)"),
 			("Levels.Levelled", "Levels", "Levelled", sum),
+			("JsonParser.Read", "JsonParser", "Read", "{\"id\": 12345, \"name\": \"dotgram\", \"tags\": [\"a\", \"b\", \"c\"], \"nested\": {\"x\": 1.5, \"y\": null, \"z\": true}, \"list\": [1, 2, 3, 4, 5]}"),
+			("GramGrammar.ParseFile", "GramGrammar", "ParseFile", "Sum = l: Sum & '+' & r: Product | Product\nProduct = ['0'..'9']+\n\nparse Sum\n"),
 			("Levels.Levelled, deep", "Levels", "Levelled", string.Concat(Enumerable.Repeat("(1 + 2 * 3) - ", 20)) + "4"),
 		})
 		{
