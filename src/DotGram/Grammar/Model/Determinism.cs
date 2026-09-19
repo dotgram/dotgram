@@ -163,6 +163,53 @@ public static class Determinism
 	/// the door §3's braces already give an author whose trivia holds comments.
 	/// </remarks>
 	/// <summary>
+	/// Whether a repetition that stops at one character need never hand a completed turn back,
+	/// where a turn may begin with that same character: `("""" | [^ '"'])*` before `'"'`.
+	/// </summary>
+	/// <remarks>
+	/// The first characters say no — the doubled quote begins as the closing quote does. One
+	/// more says yes: a turn that read the doubled quote could have been the closing quote only
+	/// if what follows the closing quote could begin with the second quote. So every turn that
+	/// begins with the stop must be that character written out and then something `beyond` —
+	/// what follows the stop — cannot begin with; every other turn must not begin with it at all.
+	/// </remarks>
+	public static bool NeverGivesBackPast(Node.Repeat repeat, char stop, FollowSets.Continuation beyond, RecognitionGraph graph)
+	{
+		if (FirstSets.Nullable(repeat.Body, graph) || !beyond.Plain.IsKnown && !beyond.Plain.Ends)
+			return false;
+
+		var stopping = FirstSets.First.Chars([new CharRange(stop, stop)]);
+
+		foreach (var alternative in repeat.Body is Node.Choice(var alternatives) ? alternatives : [repeat.Body])
+		{
+			if (!FirstSets.Of(alternative, graph).Overlaps(stopping))
+				continue;
+
+			var read = alternative;
+
+			while (read is Node.Construct(var built, _))
+				read = built;
+
+			var parts = read is Node.Sequence(var sequence) ? sequence : [read];
+
+			if (parts.Count == 0 || parts[0] is not Node.Literal { IgnoreCase: false, Text: var text } || text.Length == 0 || text[0] != stop)
+				return false;
+
+			// What the turn reads after the stop.
+			var rest = text.Length > 1
+				? FirstSets.First.Chars([new CharRange(text[1], text[1])])
+				: parts.Count > 1 && !FirstSets.Nullable(new Node.Sequence([.. parts.Skip(1)]), graph)
+					? FirstSets.Of(new Node.Sequence([.. parts.Skip(1)]), graph)
+					: FirstSets.First.All;
+
+			if (rest.Overlaps(beyond.Plain))
+				return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
 	/// What each alternative reads past the seam it leads with — through what builds or names
 	/// it, which changes nothing about what is read — or null where one does not lead with it.
 	/// </summary>

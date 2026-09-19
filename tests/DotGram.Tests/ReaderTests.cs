@@ -422,9 +422,12 @@ public sealed class ReaderTests
 	public void Every_input_reads_the_same_both_ways(string grammar)
 	{
 		// A grammar the reader declined would compare the old rendering with itself and
-		// pass without reading a thing.
+		// pass without reading a thing. Asked of the reader's method and not of the way back
+		// it may write beside it (`Read_Start_Body`): `('a' & 'b')* & 'a'` gives no completed
+		// turn back — the turn that begins as the stop does goes on with 'b', which nothing
+		// after the stop begins with — and is read without one.
 		Assert.Contains(
-			"Read_Start_Body",
+			"Read_Start(",
 			Written(grammar + Line + "parse Start", reader: true, lexical: false),
 			StringComparison.Ordinal);
 

@@ -1302,8 +1302,16 @@ sealed partial class Machine
 							break;
 						}
 
+						// A repetition that stops at one character is told what follows that character,
+						// for the turn that begins with it (Determinism.NeverGivesBackPast).
+						if ((parts[i] is Node.Repeat one ? one : parts[i] is Node.Capture(_, Node.Repeat held) ? held : null) is { } stopped &&
+							i + 1 < parts.Count &&
+							parts[i + 1] is Node.Literal { IgnoreCase: false, Text: { Length: 1 } stop })
+							_stopAfter = (stopped, stop[0], follows[i + 1]);
+
 						Emit(code, parts[i], follows[i], still);
 
+						_stopAfter = null;
 						still = still && parts[i] is Node.Lookahead or Node.Empty;
 					}
 
@@ -2098,6 +2106,9 @@ sealed partial class Machine
 		/// <summary>The call's own first set beside <see cref="_refuseWith"/>, which that one holds.</summary>
 		string? _refuseOver;
 
+		/// <summary>A repetition about to be written, the one character after it, and what follows that.</summary>
+		(Node.Repeat Repeat, char Stop, FollowSets.Continuation Beyond)? _stopAfter;
+
 		/// <summary>
 		/// Alternatives with nothing to tell them apart by: one attempt after another.
 		/// </summary>
@@ -2779,7 +2790,9 @@ sealed partial class Machine
 				// rendering this replaces asked the same question in the same words; this
 				// one had stopped asking, and wrote a way for every run in every grammar.
 				var settled = max == min ||
-					Determinism.NeverGivesBack(repeat, following, _graph, machine._seam);
+					Determinism.NeverGivesBack(repeat, following, _graph, machine._seam) ||
+					_stopAfter is var (stopped, stop, beyond) && ReferenceEquals(stopped, repeat) &&
+					Determinism.NeverGivesBackPast(repeat, stop, beyond, _graph);
 
 				// A body that is one character is a run whether it was spelled out or named.
 				// A grammar names its classes far more often than it writes them: `Identifier

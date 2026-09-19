@@ -46,8 +46,8 @@ would keep on the tape: what lifting the refusal would move.
 | DotGram.Examples.Expressions.LocaleNumber | tape | read again | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
 | DotGram.Examples.Feeds.FeedReader | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 5/5 |
 | DotGram.Examples.Feeds.LoggingFeedReader | nothing to choose | none |  |  |  |  |  |  | 5/5 |
-| DotGram.Examples.Feeds.RecoveringFeedReader | tape | refused | 5 | 0 | 0 | 0 | 1 | 1 | 6/6 |
-| DotGram.Examples.Feeds.StockCountReader | tape | refused | 3 | 0 | 0 | 0 | 1 | 1 | 5/5 |
+| DotGram.Examples.Feeds.RecoveringFeedReader | immediate | none |  |  |  |  |  |  | 6/6 |
+| DotGram.Examples.Feeds.StockCountReader | immediate | none |  |  |  |  |  |  | 5/5 |
 | DotGram.Examples.Feeds.StreamingFeedReader | nothing to choose | none |  |  |  |  |  |  | 9/9 |
 | DotGram.Examples.Formats.Config | tape | read again | 3 | 0 | 0 | 3 | 0 | 0 | 6/6 |
 | DotGram.Examples.Formats.Config.Located | tape | read again | 3 | 0 | 0 | 3 | 0 | 0 | 6/6 |
@@ -59,25 +59,25 @@ would keep on the tape: what lifting the refusal would move.
 | DotGram.Examples.Formats.JsonParser | tape | read again | 9 | 0 | 0 | 11 | 0 | 0 | 30/30 |
 | DotGram.Examples.Formats.Links | nothing to choose | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Examples.Formats.MarkdownParser | tape | read again | 9 | 0 | 0 | 10 | 0 | 0 | 24/24 |
-| DotGram.Examples.Formats.MetricsLine | tape | read again | 5 | 0 | 0 | 4 | 0 | 0 | 11/11 |
+| DotGram.Examples.Formats.MetricsLine | tape | read again | 5 | 0 | 0 | 3 | 0 | 0 | 11/11 |
 | DotGram.Examples.Formats.Netstrings | tape | read again | 2 | 0 | 0 | 1 | 0 | 0 | 3/3 |
 | DotGram.Examples.Formats.TypedCsv | nothing to choose | none |  |  |  |  |  |  | 12/12 |
 | DotGram.Examples.Formats.XmlParser | tape | replay | 7 | 6 | 3 | 0 | 0 | 0 | 21/21 |
 | DotGram.Examples.Formats.YamlLite | tape | read again | 6 | 0 | 0 | 7 | 0 | 0 | 11/11 |
 | DotGram.Examples.Languages.Filter | tape | replay | 9 | 6 | 2 | 0 | 0 | 0 | 33/33 |
-| DotGram.Examples.Languages.FilterFile | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 4/4 |
+| DotGram.Examples.Languages.FilterFile | immediate | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Examples.Languages.Filters | tape | replay | 2 | 1 | 1 | 0 | 0 | 0 | 8/8 |
 | DotGram.Examples.Languages.GramGrammar | tape | replay | 35 | 28 | 2 | 0 | 0 | 0 | 108/108 |
 | DotGram.Examples.Languages.Lexemes | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.Scoped | tape | read again | 4 | 0 | 0 | 5 | 0 | 0 | 13/13 |
 | DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 2 | 0 | 0 | 15/15 |
-| DotGram.Examples.Languages.SettingsFile | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 3/3 |
+| DotGram.Examples.Languages.SettingsFile | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  |  |  | 12/12 |
 | DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 | 0 | 0 | 18/854 |
 | DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  |  |  | 18/854 |
-| DotGram.Finance.Fix.FixGrammar | tape | read again | 6 | 0 | 0 | 6 | 2 | 0 | 18/18 |
+| DotGram.Finance.Fix.FixGrammar | tape | read again | 6 | 0 | 0 | 6 | 0 | 0 | 18/18 |
 | DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  |  |  | 1910/1910 |
 | DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 | 0 | 0 | 12/242 |
@@ -122,9 +122,9 @@ or which nothing calls, so that no caller asks it again.
 | choice | every alternative led by what may read nothing | 4 | 8 | 17 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
 | choice | an alternative that may read nothing | 8 | 14 | 16 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
 | turns | the seam leads every alternative of the turn | 9 | 11 | 15 | 15 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
-| turns | what follows begins alike | 10 | 11 | 12 | 6 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
 | choice | the seam leads every alternative | 7 | 9 | 11 | 0 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
+| turns | what follows begins alike | 7 | 8 | 9 | 6 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
 | optional | a turn led by what may read nothing | 2 | 5 | 7 | 2 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
@@ -231,14 +231,6 @@ or which nothing calls, so that no caller asks it again.
 - again eol: opens a way
 - open eol: choice; literals, follow unknown; open; ("\r\n" | '\r')
 
-## DotGram.Examples.Feeds.RecoveringFeedReader
-
-- refused: it recovers; otherwise nothing
-
-## DotGram.Examples.Feeds.StockCountReader
-
-- refused: it recovers; otherwise nothing
-
 ## DotGram.Examples.Formats.Config
 
 - again Entry: through Value
@@ -333,8 +325,6 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Examples.Formats.MetricsLine
 
 - again Line: through Reading
-- again Quoted: opens a way
-- open Quoted: turns; what follows begins alike; open; ("""" & (?!'"' & any)*)*
 - again Reading: through Value
 - again Value: opens a way
 - open Value: choice; alternatives begin alike; open; (?=Digits & trivia & '.' & trivia & d: Decimal => (d) | n: Long => (n)…
@@ -376,13 +366,6 @@ or which nothing calls, so that no caller asks it again.
 - replay Number: under Value
 - replay Text: under Value
 - replay Value: under List
-
-## DotGram.Examples.Languages.FilterFile
-
-- again Filter: through Test
-- again Quoted: opens a way
-- open Quoted: turns; what follows begins alike; open; ("""" | [^ '"'])*
-- again Test: through Quoted
 
 ## DotGram.Examples.Languages.Filters
 
@@ -438,13 +421,6 @@ or which nothing calls, so that no caller asks it again.
 - open Applied: turns, captured; the seam leads every alternative of the turn; open; trivia & step: Step => (new Step(target, step))*
 - again Selector: opens a way
 - open Selector: choice; alternatives begin alike; entry; (s: Applied => (s) | s: Root => (s))
-
-## DotGram.Examples.Languages.SettingsFile
-
-- again File: through Setting
-- again Quoted: opens a way
-- open Quoted: turns; what follows begins alike; open; ("""" | [^ '"'])*
-- again Setting: through Quoted
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
@@ -582,8 +558,6 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Finance.Fix.FixGrammar
 
-- refused: it recovers; otherwise read again 2
-- refused: it recovers; otherwise read again 4
 - again Field: opens a way
 - open Field: choice; an alternative that may read nothing; open; (Separator | eof)
 - again Field: opens a way
