@@ -915,6 +915,18 @@ rule that does not stand, an atomic group something after which can still fail. 
 of shapes and to `Replay` (a rule point exactly where the rule stands); its internals are arrays
 by node, not dictionaries of records; the causes report counts the sites with a point per
 grammar, which answers what C4 gives SQL before its causes reach zero. C4 reads it.
+Written (performance-ff), four refinements accepted: the analysis is public like `Replay` and
+`Demand`, for the tests; a fourth kind of point, the caller's — a rule not kept itself whose
+every call has a point is settled where the call is (FIX's tag, called twice), a greatest
+fixpoint held to a recursive shape where the inner call can be given back; "kept" is `Replay`'s
+stands-or-losing, the grade `Auto` already builds early by, so a factory may run in a parse that
+fails in the end, as now; and a rule read anywhere its reading is thrown away (a lookahead, an
+argument, a seam's body, a recovery's synchronization) is not kept. Generated code identical;
+generation unchanged. Sites with a point: FIX and Fix44 all, Web and feeds all, SQL:2023 49%,
+T-SQL 1.7%, SQL-92 5%, EL 2% — so C4 is for FIX first, and why T-SQL has so few is counted later.
+Found with it: `Replay` takes a nullable call for one that cannot refuse, but `eof` and a word
+boundary are nullable and refuse, so a replaced reading can be marked as losing and built early —
+a correctness defect, sql-39's before the reader's gate.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
