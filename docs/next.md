@@ -23726,3 +23726,23 @@ Three more of SQL:2023's causes are the language's and stay: `InsertValues` (a c
 query's are told apart only after them), `TableContentsSource` (`(a, b) AS …` against a list of
 untyped columns, told apart by the `AS`), and `POSITION_REGEX`'s `?=RegexSearch` (`AFTER` is no
 reserved word). Each says so where it stands; the second is rewritten only if it is ever the last.
+
+## A FIX parse's first call, without FixSchema compiled
+
+Two changes took FixSchema off the first call. 59648810 and 41d23b96 made a tag's wire type a
+byte in the assembly's data instead of a switch over 912 tags: 13.8 KB of IL that both parsers
+compiled on their first field is no longer compiled at all. da7e5a81 made each of the message
+layer's 447 components, groups, messages and code sets a slot filled on first use: the static
+constructor that built them all, 82 KB of IL in one method, is gone.
+
+The stand, medians of five fresh processes (its anatomy tool, EventListener on):
+
+- the static constructor on its own: 24.2 ms, 85,622 bytes of IL, to 0.29 ms, 3,061 bytes;
+- the first FixMessages.Parse of an Order, constructor included: 41.0 ms to 18.8 ms, and the
+  first Build after a field parse 40.8 ms to 19.0 ms. The slots an Order touches cost 1.4 to
+  1.7 ms of that, compiled when first read;
+- the field parser's first call: generated 8.28 ms to 7.60 ms, hand 5.69 ms to 4.69 ms.
+
+The steady state did not move: the message rows -0.9 to -1.9 per cent inside spreads of 7 and 8,
+the field rows flat but for Orders128.stream at +5.6 per cent against a spread of 2, one pair
+with no mechanism behind it (IsData went from one array load to one), sent back for a rerun.
