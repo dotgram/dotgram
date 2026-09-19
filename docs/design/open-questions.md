@@ -135,6 +135,15 @@ rules stay on the tape, and the rule is general: a change after which a parser a
 server or the published syntax refuses is declined whatever it gains. Where one would gain a lot, it
 goes to Igor with the number and the price in accuracy beside it, and the default is no.
 
+**Noted, and D22 is taken as settled.** One door it does not close, for whoever takes the join's 29
+rules and looks at the inline return next: D22 declines a change after which the parser accepts what
+the server refuses. A single alternative whose brackets may hold the extras, with a guard that
+refuses exactly the combinations the server refuses, accepts nothing more — it reads the same
+language and removes the choice that the give-back lives in. Whether the guard can be written where
+it would have to run, and whether removing the choice really removes the cause, this session has not
+built and does not claim; it is the grammar owner's experiment, and if it cannot work the reason is
+worth a line here, since it is the same shape as the possessiveness `JoinedRight` needs.
+
 ## Q3 (2026-09-19). "FIX is faster than the hand parser" is one input form of three, and names the weaker of the two yardsticks we have
 
 **The claim.** "FIX text: the generated parser went from 1.72x of the hand parser to 0.76x … it is
