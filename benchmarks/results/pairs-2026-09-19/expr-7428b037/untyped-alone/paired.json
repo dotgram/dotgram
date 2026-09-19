@@ -1,0 +1,32 @@
+{
+  "Control": 140.004,
+  "Rows": [
+    {
+      "Id": "el/untyped",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 26218.701171875,
+          "Bytes": 15976,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 42227.490234375,
+          "Bytes": 16232,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 43821.875,
+          "Bytes": 16552,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.15319977875405758
+    }
+  ]
+}
