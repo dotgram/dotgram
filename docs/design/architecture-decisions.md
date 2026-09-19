@@ -1817,7 +1817,10 @@ same day; each comes back to the architect as a report, with no code changed.
    **The kind table landed (`51d40d9f`), paired:** SQL:2023 -4..-6% (twenty selects -3.7 µs, as
    forecast), T-SQL -9..-12%, first calls -7..-16% though T-SQL's file grew 4.4%; carriers and the
    refusal record unchanged; the table is RVA data on netstandard2.0 and net472 (no array allocated
-   in the getter). The gate caught the generator's own grammar at +34 ms (group splitting for
+   in the getter). The bit tables that followed (`74b9737c`) read neutral — the gain is only where
+   a class is wider than 256 characters, which no row has — and are kept for the simpler code, no
+   search left in T-SQL. The optional tails left in recognition are 1.7% and are not taken; the
+   anatomy is redone once expr's three land. The gate caught the generator's own grammar at +34 ms (group splitting for
    Unicode sets the table never takes), fixed with byte-identical output (`972414e8`). The bit tables
    wait for their window. sql-39's check of the prologue on T-SQL agrees with expr's figure.
    **The prologue, written (expr, `057cd797`, held for its pair):** each arm a local function of its
@@ -2350,4 +2353,15 @@ ahead and cannot leave a stream just past the rule — a stream is read element 
 alternatives, as everywhere in the language, not its longest match; a grammar that needs a boundary
 says so with `?!`. Leading trivia is skipped, trailing is not consumed. It was measured against the
 alternatives `match` (read as a search, as `Regex.Match` is), `next`, `take` and a `prefix` modifier on
-`parse`. The design, with the text for §6, is expr's, to the architect and then to Igor before code.
+`parse`.
+
+**Revised the same evening, Igor: no new directive — the positional forms are finished instead.**
+Reading one rule from a position is already in the language: §6.3's `TryParseX(input, at)` begins
+there and need not reach the end, and `TryParseX(input, at, length)` also bounds what it sees; over
+tokens the second may begin anywhere and ends at a character no token begins with. The architect
+proposed `read` without checking that, and expr's design found it. What the positional forms lack
+is what gets built: a form that moves the caller's position and answers yes or no
+(`bool TryReadR(input, ref int at, out R value)`), a form over bytes held whole, and the choice of
+leaving the trivia after the rule for the caller. Lazy tokens belong to the first step, not a
+later one: a loop of readings over one long text must not cost the square of it. The text of §6.3
+says what the finished set is; expr writes the design, and §6.3's wording goes to Igor before code.
