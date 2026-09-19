@@ -1110,7 +1110,20 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   generation time where D11 B's new analysis cost it; worth remembering when the next analysis
   change is weighed. The separator's way is gone (every way removed in the solution is that one),
   no grammar changed carrier, every suite and corpus green, and the carriers report's whole diff
-  is four rows. **And a gap in the stand found by it:** there were no rows for the log form at all,
+  is four rows. **Way 1 written, and FIX leaves the tape altogether:** the report goes from tape,
+  held by a rule read again, to the immediate carrier with nothing holding it, and the solution's
+  grammars on the tape fall from 43 to 42. The turn led by a lookahead was the last thing left once
+  the separator's way had gone — so this is D13's goal for FIX reached, not only the log form's
+  second way. The lead is a third field on the continuation rather than an analysis of its own,
+  since the emitter threads continuations exactly as the follow does and one field cannot drift
+  from the other; an unknown lead is the default, so the sites nobody reasoned about claim nothing;
+  a node that may read nothing answers unknown; and the containment the fixed point turns on had to
+  be a real ordering rather than equality, or a rule would have been re-enqueued for ever. Five
+  conditions before its pair, a carrier change on a shipped grammar being behaviour and not speed:
+  a differential against the hand parser over messages including broken ones, the factory counts
+  per field against the tape on accepted and refused input, D5's retention under a small window,
+  the locations unmoved, and the first call with its methods and IL. **And a gap in the stand found
+  by it:** there were no rows for the log form at all,
   so nothing measured the form this work is about until the stand added eighteen. The rule that
   follows: before a form is optimized, it has a row.
   **The whole coverage counted (stand, `docs/design/stand-coverage-2026-09-19.md`):** no span form
