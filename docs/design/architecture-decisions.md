@@ -869,6 +869,16 @@ the hand linear — so the quadratic is exactly the rejection path, as finance-2
 taken from it: a stand row states what it reads and refuses to be timed when its input is not
 that ("good" has no unreadable line, "broken" exactly a tenth); agreement between two parsers
 is not evidence that the input is the case it claims.
+**The linearity family (stand, `benchmarks/results/linearity-2026-09-19.md`; rough, 31 series,
+three sizes ten apart, flagged above an exponent of 1.2; every row of the stand now asserts
+what it reads, and all 77 passed unchanged).** Linear: FIX in every form, generated and hand; the
+URL path, media-type parameters, structured lists; T-SQL's columns, conditions and INSERT rows;
+the expression language on both carriers. Flagged, each to be diagnosed with a reproduction
+before a cause is named: StockCount's rejection path (known, performance-ff); the feed example
+(1.55 in the last step, no hand parser; finance-24); SQL:2023's search condition (1.38 and 1.21,
+112x the hand parser at 1,000 predicates, where T-SQL's is linear; sql-39); a JSON object
+(generated 1.36, and the hand parser 1.65 — worse than the generated, while System.Text.Json is
+linear; finance-24). The family runs with every baseline from now on.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
