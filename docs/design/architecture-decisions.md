@@ -1731,6 +1731,18 @@ same day; each comes back to the architect as a report, with no code changed.
    bracket can be a query's own. So the three heaviest causes in T-SQL's value tower are ambiguities
    of unbounded depth; the grammar question is closed. What remains for SQL is measured next: an
    anatomy of SQL:2023's 7.9x against the hand parser, phase by phase, as FIX's step 1 was.
+   **The anatomy (sql-39, next.md `96ba42ef`; twenty selects, 71 µs against the hand parser's
+   7.3):** 54 of the 71 are the shape of the materializer's code, not C4 and not the analysis. The
+   arms' prologues, 46%: the part methods zero 10-13 KB of frame on every call, since every arm's
+   locals have slots of their own and the JIT must clear references whichever arm runs — 402
+   records a parse at about 85 ns each. The walk each guard runs, 30%: the towers put a guard on
+   almost every level, 301 walks for 402 records, each paying a fixed setup to build, usually, one
+   record whose children are built. Recognition 13% (9.2 µs against the hand parser's 4.9, which
+   builds as it goes); the lexer is faster than the hand parser's. Decided: parts split by frame
+   rather than by code, or an arm a method, chosen by the numbers with the first call measured;
+   then a direct path for a guard whose record's children are built — both expr's, the
+   materializer's owner, expecting about 20 µs, 3x the hand parser; recognition analysed next by
+   sql-39.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
