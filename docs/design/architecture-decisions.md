@@ -1272,6 +1272,19 @@ same day; each comes back to the architect as a report, with no code changed.
    is dropped where the published rule begins with that seam, in `FollowSets`' entries and in the
    emitted entry method in one commit (analysis and code must not disagree), by expr, after C2
    lands, performance-ff and sql-39 told first.
+   **Superseded before it was written (expr's probes):** the entry is one case of a general one.
+   A seam followed by something that may read nothing and then a seam again — `t N t`, in every
+   grammar with implicit trivia, e.g. `Sum = l: Num & (op & r: Num)*` — leaves the first seam's
+   run unsettled, since its follow holds the seam's own characters; and `eof`, `?!any`, passed
+   what follows it through as if something could follow the end. Decided instead of the entry
+   change: a seam's run is settled against the half of its follow past the next seam
+   (`AfterSeam`) — two adjacent readings of an only-reading seam end at the same places, however
+   the characters are split — provided the seam is not captured and no capture, mark or
+   location boundary falls between the two seams, since a different split would change a value
+   though not a position; and `?!any` contributes the end only. expr, two commits after C2: the
+   analysis alone, whose emitted-code change across every trivia grammar is seen on its own
+   (snapshots, corpora, the refusal record, the gate, the diff of `carriers.md`, a stand pair on
+   the EL rows), then the hoist on top.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
    and the analysis keeps it apart — but the reader's choice: it decides by the first character
    only through a switch, and refuses the switch past 128 named characters, a limit on code
