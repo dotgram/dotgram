@@ -287,6 +287,8 @@ for its pair): EL's guard is handed a gathered list too, empty for a plain name;
 only when the list holds something, so lists that do are built as before and SQL's towers are
 untouched. Rough: 100 terms 15.9 µs and 1,000 terms 137, below the base before the regression
 (16.9 and 158).
+Paired: the EL tape back to the base before the regression at 100 and 1,000 terms (16,841 and
+159,387 ns against 16,852 and 158,176), SQL flat or -3..-7%. The regression is closed.
 **Web date-time's anatomy (finance-24):** the reader read nothing twice; the values did — each
 field became a string twice, once for the guard and once for the construction, and was parsed
 twice, about twenty strings and fourteen parses for 23 characters. The grammar's part is fixed
@@ -1058,6 +1060,9 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   it in a segment, a retry loop and a seal — the last `ways.` in FIX's immediate reader, for which
   every call rented the ways. An atomic group that opens no way is written as the call alone; its
   own commit and pair, stacked with `eof` for FIX's row.
+  The JIT's view of the `eof` lean (stand): with the body merged into one method, the string path's
+  hot code grows 55% while the byte path's shrinks 24% — the shape of that method is
+  performance-ff's to settle in the stack.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
