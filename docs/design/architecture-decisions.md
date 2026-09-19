@@ -682,6 +682,17 @@ interpolation row 28%), and a change counts only outside it.
   pays — finance-24 says why that row differs (a separate path, or the construction moved into a
   loop) or drops it. Allocation unchanged by all three.
 
+**The literal refusal (performance-ff, on top of C1).** The reader now refuses as the engine does,
+for a lone literal and for a choice of them: at the deepest character any of them agreed with,
+naming only those still agreeing, through the engine's own trie walk shared out of line (the
+inline form was +22% on the SQL:2023 file). `RefusalTests` gains the shape "literals that part
+late", 42 inputs, the three renderings agreeing on every one. Found beside it: the other shapes
+already hold 100 inputs where the reader and the engine disagree — the expected set named
+(`[' ' | '+']` against `'+'`), and "Expected X" against "Input does not match 'Start'" after a
+trailing character. Rule: the engine is the reference reading unless shown wrong; a disagreement
+in the position of a refusal is a correctness defect and goes before C2, one in the wording
+only goes after it.
+
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
 0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser
