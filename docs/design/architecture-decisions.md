@@ -1504,6 +1504,13 @@ same day; each comes back to the architect as a report, with no code changed.
    reader class (dead ways first, then the empty alternative, then literals) and the count's
    defect, each a separate commit after C2 lands, performance-ff told before each, the same
    conditions as `014136df`; the intended stay, `DecOctet` goes to C's factoring if it folds.
+   **Done locally (sql-39), pushed after the stand's gate and pairs:** the count — 8 places truly
+   sealed, not 29, since 21 were entries, which are asked again to reach the end (a benchmark's
+   config to immediate); the chain of first-character tests (RFC 8259 and RFC 6901 to immediate,
+   "begin apart" 33 to 19); the empty alternative (15 to 14). The fold's shared seam is a separate
+   step. And `Replay`'s nullable refusals fixed (`99f1c011`): only `eof` and a rule reading nothing
+   through a lookahead or a guard refuse — a word boundary declared is not a refusal; no grammar
+   changed carrier. It lands first, since C4b rests on it.
    **The seam hoist, written (expr):** `File = trivia & (Setting & trivia & eol & trivia)* & eof`,
    but `SettingsFile` stays on the tape for a reason outside the rule: a publication is entered
    as `trivia File trivia`, and where the rule begins with its seam the entry's seam is followed
