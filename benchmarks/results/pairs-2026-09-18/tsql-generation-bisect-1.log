@@ -1,0 +1,2 @@
+Preparing worktree (detached HEAD d4c58dfd)
+d4c58dfd: sql build 98 s; TransactSqlParser rules 1127 11.9 MB 4,996 ms | TransactSqlParser.Located rules 1127 12.1 MB 3,301 ms | GramGrammar rules 62 93 ms

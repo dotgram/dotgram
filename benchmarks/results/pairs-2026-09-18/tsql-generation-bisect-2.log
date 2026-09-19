@@ -1,0 +1,9 @@
+c4a79af9: sql build 96 s; TransactSqlParser rules 1127 11.9 MB 5,650 ms | TransactSqlParser.Located rules 1127 12.1 MB 3,494 ms | GramGrammar rules 62 94 ms
+96d86795: sql build 94 s; TransactSqlParser rules 1127 11.9 MB 4,922 ms | TransactSqlParser.Located rules 1127 12.1 MB 3,036 ms | GramGrammar rules 62 188 ms
+5c6d1bc6: sql build 91 s; TransactSqlParser rules 1127 11.8 MB 4,955 ms | TransactSqlParser.Located rules 1127 12.1 MB 3,146 ms | GramGrammar rules 62 122 ms
+d4f9a45c: sql build 105 s; TransactSqlParser rules 1127 12.0 MB 6,981 ms | TransactSqlParser.Located rules 1127 12.2 MB 4,109 ms | GramGrammar rules 62 173 ms
+1875588b: sql build 560 s; TransactSqlParser rules 1127 12.0 MB 114,136 ms | TransactSqlParser.Located rules 1127 12.2 MB 109,422 ms | GramGrammar rules 62 119 ms
+c8d44074: sql build 84 s; TransactSqlParser rules 1127 12.0 MB 4,782 ms | TransactSqlParser.Located rules 1127 12.2 MB 3,067 ms | GramGrammar rules 62 117 ms
+6173c973: sql build 87 s; TransactSqlParser rules 1138 12.0 MB 5,049 ms | TransactSqlParser.Located rules 1138 12.2 MB 2,919 ms | GramGrammar rules 62 140 ms
+c6e0348b: sql build 93 s; TransactSqlParser rules 1138 12.7 MB 5,383 ms | TransactSqlParser.Located rules 1138 12.9 MB 2,735 ms | GramGrammar rules 62 117 ms
+d4c58dfd: sql build 81 s; TransactSqlParser rules 1127 11.9 MB 4,556 ms | TransactSqlParser.Located rules 1127 12.1 MB 2,602 ms | GramGrammar rules 62 112 ms

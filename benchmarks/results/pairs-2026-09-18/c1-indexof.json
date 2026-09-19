@@ -1,0 +1,384 @@
+{
+  "Control": 31.42025,
+  "Rows": [
+    {
+      "Id": "fix/One.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 75.01449584960938,
+          "Bytes": 256,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 231.49642944335938,
+          "Bytes": 192,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 234.23233032226562,
+          "Bytes": 192,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03307466208313416
+    },
+    {
+      "Id": "fix/Order.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 659.3070983886719,
+          "Bytes": 920,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1854.2808532714844,
+          "Bytes": 1096,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1843.7828063964844,
+          "Bytes": 1096,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04288870091081932
+    },
+    {
+      "Id": "fix/slope-0.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 24.805736541748047,
+          "Bytes": 152,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 76.61240100860596,
+          "Bytes": 88,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 77.16419696807861,
+          "Bytes": 88,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.021062485823142015
+    },
+    {
+      "Id": "fix/slope-1.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 90.08216857910156,
+          "Bytes": 296,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 236.34033203125,
+          "Bytes": 192,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 237.5162124633789,
+          "Bytes": 192,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.042098075335069554
+    },
+    {
+      "Id": "fix/slope-2.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 158.25138092041016,
+          "Bytes": 432,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 388.8633728027344,
+          "Bytes": 296,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 399.60289001464844,
+          "Bytes": 296,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05560610972974341
+    },
+    {
+      "Id": "fix/slope-4.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 286.57569885253906,
+          "Bytes": 616,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 714.3238067626953,
+          "Bytes": 504,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 703.4063339233398,
+          "Bytes": 504,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05637604976299217
+    },
+    {
+      "Id": "fix/slope-8.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 505.6468963623047,
+          "Bytes": 992,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1323.5069274902344,
+          "Bytes": 920,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1312.4847412109375,
+          "Bytes": 920,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04006116830866005
+    },
+    {
+      "Id": "fix/slope-16.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 981.6062927246094,
+          "Bytes": 1744,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2528.791046142578,
+          "Bytes": 1752,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2545.6008911132812,
+          "Bytes": 1752,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03654173639118584
+    },
+    {
+      "Id": "el/string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 268.8385009765625,
+          "Bytes": 1112,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1087.4374389648438,
+          "Bytes": 1056,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1051.25732421875,
+          "Bytes": 1056,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before-immediate",
+          "Nanoseconds": 697.503662109375,
+          "Bytes": 1032,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after-immediate",
+          "Nanoseconds": 679.022216796875,
+          "Bytes": 1032,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0805739389054749
+    },
+    {
+      "Id": "el/interpolation",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1853.5125732421875,
+          "Bytes": 2304,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 4225.3814697265625,
+          "Bytes": 2368,
+          "Warmup": 5,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 4927.33154296875,
+          "Bytes": 2368,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before-immediate",
+          "Nanoseconds": 3854.9652099609375,
+          "Bytes": 2424,
+          "Warmup": 9,
+          "Rounds": []
+        },
+        {
+          "Reading": "after-immediate",
+          "Nanoseconds": 3867.4072265625,
+          "Bytes": 2424,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.28120930125345966
+    },
+    {
+      "Id": "el/untyped",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 19322.4365234375,
+          "Bytes": 16200,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 20199.560546875,
+          "Bytes": 16424,
+          "Warmup": 8,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 21174.951171875,
+          "Bytes": 16424,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.10607911837431944
+    },
+    {
+      "Id": "sql/literal",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 61.37046813964844,
+          "Bytes": 104,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 222.10464477539062,
+          "Bytes": 160,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 214.71948623657227,
+          "Bytes": 160,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06263558326444098
+    },
+    {
+      "Id": "sql/select20",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 8761.962890625,
+          "Bytes": 24040,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 93975.4150390625,
+          "Bytes": 21448,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 93502.6123046875,
+          "Bytes": 21448,
+          "Warmup": 5,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05186268773161693
+    }
+  ]
+}

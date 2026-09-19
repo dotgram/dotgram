@@ -1,0 +1,43 @@
+load                   1.66 ms   jit    6 methods      981 bytes IL    5.92 ms compiling   Program+<>c__DisplayClass0_0::<<Main>$>g__Phase|0 274, JitWatch::OnEventWritten 268, JitWatch::Take 212
+cctors                 0.13 ms   jit   47 methods     3054 bytes IL    0.71 ms compiling   SpanHelpers::Fill 862, Int64]]::MoveNext 265, Enumerable::FillIncrementing 202
+first parse            4.62 ms   jit   40 methods     4368 bytes IL    4.20 ms compiling   FixFieldFactory::Part0 1239
+      Char]::Peek 409
+      HandFixParser::Field 311
+      FixSchema::DataTag 300
+      FixFieldOptions::.ctor 280
+      FixFieldFactory::Value 250
+      Char]::MoveNext 232
+      HandFixParser::Create 149
+      MemoryMarshal::Cast 112
+      HandFixParser::Number 99
+      Char]::System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.FixField>.GetEnumerator 79
+      FixField::WithTerminator 75
+      HandFixParser::Separator 71
+      Char]::Discard 67
+      FixField::get_PrefixLength 64
+      FixField::get_TerminatorLength 64
+      HandFixParser::FindSeparator 63
+      Char]::.ctor 59
+      FixField::.ctor 41
+      FixSchema::IsData 37
+      HandFixParser::Parse 35
+      FixFieldOptions::DataTag 35
+      Program+<>c__DisplayClass0_0::<<Main>$>b__3 33
+      HandFixParser::Read 29
+      FixFieldOptions::IsData 29
+      Char]::Slice 29
+      FixField::Locate 29
+      FixField::TagPrefixLength 22
+      FixSchema::get_TypeCodes 16
+      __Canon]::.ctor 16
+      FixConvert::Text 14
+      Int32]::.ctor 13
+      Int32]::get_Item 13
+      FixFieldOptions::.cctor 12
+      FixField+Symbol::.ctor 10
+      Char]::System.IDisposable.Dispose 9
+      FixField::set_Position 8
+      FixField::set_Length 8
+      Char]::System.Collections.Generic.IEnumerator<DotGram.Finance.Fix.FixField>.get_Current 7
+second parse           0.26 ms   jit    1 methods        0 bytes IL    0.41 ms compiling   dynamicClass::InvokeStub_HandFixParser.Parse 0
+fields 1
