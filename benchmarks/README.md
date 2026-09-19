@@ -123,6 +123,18 @@ table charges it for its construction the way a user's first call would; and eac
 interpreted and compiled. "Lesser" is in the reading's name where it does less work, so that
 nobody reads `regex-lesser` faster than a parser as a win.
 
+### The first call, by phase
+
+`benchmarks/FirstCall` holds two small programs that take the first call of a parser apart in a
+fresh process (sql-39's, adopted 2026-09-18): `fixfirst <directory> generated|hand|parse|build`
+for FIX — the field parser, generated or by hand, and the message layer (`FixMessages.Parse`,
+and `Build` over the fields already read), with `FixSchema`'s type initializer on its own — and
+`sqlfirst <directory> <TryParse method> <input>` for SQL:2023. Each prints the phases (load, the
+type initializers, the first parse, the second) with their time, how many methods the runtime
+compiled in them, and the time spent compiling; `fixfirst` also lists the methods with their IL,
+from the runtime's events, which cost time of their own — the anatomy, not the time, which
+`--stand-paired --first` gives. The directory holds the DLLs of the build to look at.
+
 ### Tiered PGO
 
 The stand's agreement check runs every row's readings on every row's input before anything is

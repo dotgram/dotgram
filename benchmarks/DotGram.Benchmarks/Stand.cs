@@ -318,7 +318,7 @@ static partial class Stand
 	/// <summary>The field counts D13's slope rows fit a line over.</summary>
 	static readonly int[] FixSlopeCounts = [0, 1, 2, 4, 8, 16];
 
-	static string FixSlopeText(int fields) => string.Concat(Enumerable.Repeat("55=ABC", fields));
+	static string FixSlopeText(int fields) => string.Concat(Enumerable.Repeat("55=ABC\u0001", fields));
 
 	/// <summary>
 	/// One FIX input three ways: a string, bytes already in memory, and a stream read lazily.

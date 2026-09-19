@@ -32,6 +32,12 @@
 		<Project Path="benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="benchmarks/FirstCall/Fix/DotGram.FirstCall.Fix.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="benchmarks/FirstCall/Sql/DotGram.FirstCall.Sql.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 	</Folder>
 	<Folder Name="/docs/">
 		<File Path="docs/coding-conventions.md" />
