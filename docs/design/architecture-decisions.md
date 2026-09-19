@@ -1421,6 +1421,8 @@ same day; each comes back to the architect as a report, with no code changed.
    and the EL record no position or outcome moves; the wording moves toward the engine, the
    renderings' disagreements 100 to 77; three new corpus shapes. The hot path reads one more
    field at each loop exit; the stand pairs it.
+   The scanner's search landed `45155db6` (performance-ff): it already fires in the SQL grammars'
+   line comments and two examples; expr's analysis is unblocked, and FIX's `IndexOf` stays with it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
    and the analysis keeps it apart — but the reader's choice: it decides by the first character
    only through a switch, and refuses the switch past 128 named characters, a limit on code
