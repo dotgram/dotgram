@@ -1877,6 +1877,16 @@ sealed partial class Machine
 				return;
 			}
 
+			// Before the switch: a seam in front of every alternative puts its characters in
+			// every first set, and a switch on them reads all the alternatives in one group, in
+			// order, with a way into them.
+			if (machine.PastTheSeam(alternatives) is { } seamed)
+			{
+				EmitSeamChain(code, alternatives, seamed, following);
+
+				return;
+			}
+
 			if (machine.Dispatchable(alternatives, least: 2) is { } groups)
 			{
 				var name = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
@@ -1996,6 +2006,52 @@ sealed partial class Machine
 		/// wanted. Otherwise it is tested like the others, and the choice refuses as one.
 		/// </para>
 		/// </remarks>
+		/// <summary>
+		/// Alternatives that all begin with the seam, told apart by the character after it: the
+		/// seam read once to look, the position put back, and the alternative the character chose
+		/// read whole (<see cref="Machine.PastTheSeam"/>).
+		/// </summary>
+		/// <remarks>
+		/// A character no alternative begins with past the seam refuses the choice there, where
+		/// each alternative in turn would have refused it after reading the same seam. Nothing is
+		/// put on the tape: past the seam only one alternative can begin.
+		/// </remarks>
+		void EmitSeamChain(
+			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
+			FollowSets.Continuation following)
+		{
+			var name  = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+			var began = $"k{_ways++}";
+
+			code.Line($"var {began} = p;");
+
+			// The seam alone, as the first part of any of them reads it.
+			Emit(code, ((Node.Sequence)Machine.Bare(chain[0].Node)).Nodes[0], following);
+
+			_character = true;
+
+			using (code.Block($"if ({machine.Past("p")})"))
+				Refused(code, name);
+
+			code.Line($"c = {machine.ReadAt("p")};");
+
+			for (var i = 0; i < chain.Count; i++)
+			{
+				code.Line($"{(i == 0 ? "if" : "else if")} ({machine.RangesTest(chain[i].Set.Ranges, machine.Tabulate)})");
+
+				using (code.Block(""))
+				{
+					code.Line($"p = {began};");
+					Emit(code, chain[i].Node, following);
+				}
+			}
+
+			code.Line("else");
+
+			using (code.Block(""))
+				Refused(code, name);
+		}
+
 		void EmitChain(
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
 			FollowSets.Continuation following)

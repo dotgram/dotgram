@@ -460,6 +460,47 @@ public sealed class CarrierTests
 		}
 	}
 
+	/// <summary>
+	/// A fold's operators each begin with the seam, and the character after it tells them apart:
+	/// the choice looks past the seam once and the turns are compared past it, so neither opens a
+	/// way. Beside it, operators that begin alike past the seam, which a failure can come back into.
+	/// </summary>
+	[Theory]
+	[InlineData("{ ' '* }", "'+'", "'-'", true)]
+	[InlineData("' '*", "'+'", "'-'", true)]
+	[InlineData("{ ' '* }", "'+' & '+'", "'+'", false)]
+	public void A_folds_operators_told_apart_past_the_seam_open_no_way(string trivia, string plus, string minus, bool immediate)
+	{
+		var grammar =
+			$$"""
+			trivia = {{trivia}}
+			Start : @int = e: Expr => @(e)
+			Expr  : @int = l: Expr & {{plus}} & r: Num => @(l + r) | l: Expr & {{minus}} & r: Num => @(l - r) | n: Num => @(n)
+			Num   : @int = t: ['0'..'9']+ => @(int.Parse(t))
+			parse Start
+			""";
+
+		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+
+		var tape = Compiled(grammar, CarrierKind.Tape);
+		var auto = Compiled(grammar, CarrierKind.Auto);
+
+		foreach (var input in new[] { "1 + 2 - 3", "1+2", "1 ++ 2 + 3", "12 - 3 +", "1 +", " 1", "" })
+		{
+			var expected = EmittedCode.Match(tape.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(auto.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+
+			if (expected.IsSuccess)
+				Assert.Equal(ValueOf(expected), ValueOf(actual));
+			else
+				Assert.Equal(expected.Position, actual.Position);
+		}
+	}
+
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
 		GramCompiler.Compile(grammar, new GramCompilerOptions
 		{

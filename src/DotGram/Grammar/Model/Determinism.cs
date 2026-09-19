@@ -122,8 +122,11 @@ public static class Determinism
 		if (FirstSets.Nullable(body, graph))
 			return false;
 
+		// A fold's step is its construction around the sequence: what is read is the same.
+		var read = Unbuilt(body);
+
 		if (seam is not null &&
-			body is Node.Sequence(var parts) && parts.Count > 1 &&
+			read is Node.Sequence(var parts) && parts.Count > 1 &&
 			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, seam))
 		{
 			var contained = Contained(seam, graph);
@@ -137,7 +140,7 @@ public static class Determinism
 
 		// A turn that is a choice whose every alternative leads with the seam — an operator
 		// loop, and what left recursion is rewritten into — is compared past it the same way.
-		if (seam is not null && body is Node.Choice(var alternatives) && Rests(alternatives, seam) is { } rests)
+		if (seam is not null && read is Node.Choice(var alternatives) && Rests(alternatives, seam) is { } rests)
 		{
 			var contained = Contained(seam, graph);
 			var decides   = rests.Aggregate(FirstSets.First.None, (set, rest) => set.Or(FirstSets.Of(rest, graph)));
@@ -149,6 +152,14 @@ public static class Determinism
 
 		return !FirstSets.Of(body, graph).Overlaps(following.Plain);
 	}
+
+	/// <summary>A node without the captures and constructions around it.</summary>
+	static Node Unbuilt(Node node) => node switch
+	{
+		Node.Capture(_, var body)   => Unbuilt(body),
+		Node.Construct(var body, _) => Unbuilt(body),
+		_                           => node,
+	};
 
 	/// <summary>
 	/// The characters a continuation could meet by starting inside a span the seam

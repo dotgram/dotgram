@@ -502,6 +502,73 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>
+	/// Alternatives that all begin with the seam and that the first character after it tells
+	/// apart — each with what it begins with past the seam, narrowest first — or null.
+	/// </summary>
+	/// <remarks>
+	/// A fold's operators are written that way: <c>trivia &amp; '+' &amp; trivia &amp; r: Expr =&gt; …
+	/// | trivia &amp; '-' &amp; …</c>. Each alternative begins with the same run of trivia, so no first
+	/// set tells them apart, and the ordered reading opened a way into them. Past the trivia the
+	/// operator does. The alternatives are not taken apart for it — their constructions are keyed
+	/// by the fold — so the reader looks past the seam once and reads the alternative it chose
+	/// whole, trivia included. That is sound where the seam leaves nothing to come back to and
+	/// builds nothing (<see cref="ReadOnce"/>): read twice from one place, it answers the same.
+	/// </remarks>
+	internal List<(FirstSets.First Set, Node Node)>? PastTheSeam(IReadOnlyList<Node> alternatives)
+	{
+		if (alternatives.Count < 2 || _seam is not { } seam || !ReadOnce(seam))
+			return null;
+
+		var rests = new List<Node>(alternatives.Count);
+
+		foreach (var alternative in alternatives)
+		{
+			if (Bare(alternative) is not Node.Sequence(var parts) || parts.Count < 2 ||
+				parts[0] is not Node.Call(var called, { Count: 0 }) || !ReferenceEquals(called, seam))
+				return null;
+
+			rests.Add(parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]));
+		}
+
+		if (Chainable(rests) is not { } chain)
+			return null;
+
+		// Chainable ordered the rests; hand the alternatives back in that order.
+		return [.. chain.Select(one => (one.Set, alternatives[rests.IndexOf(one.Node)]))];
+	}
+
+	/// <summary>
+	/// Whether the seam's reading opens no way and builds nothing: an atomic group, or a run of
+	/// one class that never gives a character back — `trivia = [' ' | '\t']*` as most grammars
+	/// write it, whose run the seam analysis settles.
+	/// </summary>
+	bool ReadOnce(RuleSymbol seam)
+	{
+		if (!_graph.Bodies.TryGetValue(seam, out var body))
+			return false;
+
+		if (_results.QualifiedOf(seam) is not null)
+			return false;
+
+		switch (Bare(body))
+		{
+			case Node.Atomic:
+				return true;
+
+			case Node.Repeat repeat when RunTest(repeat.Body) is not null:
+				_follows ??= FollowSets.Of(_graph);
+
+				return Determinism.NeverGivesBack(
+					repeat,
+					_follows.TryGetValue(seam, out var after) ? after : FollowSets.Continuation.All,
+					_graph, FollowSets.SeamOf(seam, _graph));
+
+			default:
+				return false;
+		}
+	}
+
 	internal List<(FirstSets.First Set, Node Node)>? Chainable(IReadOnlyList<Node> alternatives)
 	{
 		if (alternatives.Count < 2)

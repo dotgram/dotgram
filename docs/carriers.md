@@ -29,7 +29,7 @@ would keep on the tape: what lifting the refusal would move.
 | DotGram.Benchmarks.Flat.Lowered | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Flat.NotLowered | immediate | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.ImmediateSql | immediate (author) |  |  |  |  |  |  |  | 12/242 |
-| DotGram.Benchmarks.Levels | tape | read again | 4 | 0 | 0 | 4 | 0 | 0 | 19/19 |
+| DotGram.Benchmarks.Levels | immediate | none |  |  |  |  |  |  | 19/19 |
 | DotGram.Benchmarks.MaterializationCost.NoCaptures | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.MaterializationCost.SpanCaptures | tape | replay | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
 | DotGram.Benchmarks.MaterializationCost.WithCaptures | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
@@ -40,9 +40,9 @@ would keep on the tape: what lifting the refusal would move.
 | DotGram.Benchmarks.Settlements | nothing to choose | none |  |  |  |  |  |  | 7/7 |
 | DotGram.Benchmarks.TinyScalar | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
-| DotGram.Examples.Expressions.ArithmeticTree | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 22/22 |
+| DotGram.Examples.Expressions.ArithmeticTree | immediate | none |  |  |  |  |  |  | 22/22 |
 | DotGram.Examples.Expressions.Calculator | tape | read again | 6 | 0 | 0 | 8 | 0 | 0 | 51/51 |
-| DotGram.Examples.Expressions.ClampedExample | tape | read again | 3 | 0 | 0 | 3 | 0 | 0 | 14/14 |
+| DotGram.Examples.Expressions.ClampedExample | immediate | none |  |  |  |  |  |  | 14/14 |
 | DotGram.Examples.Expressions.LocaleNumber | tape | read again | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
 | DotGram.Examples.Feeds.FeedReader | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 5/5 |
 | DotGram.Examples.Feeds.LoggingFeedReader | nothing to choose | none |  |  |  |  |  |  | 5/5 |
@@ -70,24 +70,24 @@ would keep on the tape: what lifting the refusal would move.
 | DotGram.Examples.Languages.GramGrammar | tape | replay | 35 | 28 | 2 | 0 | 0 | 0 | 108/108 |
 | DotGram.Examples.Languages.Lexemes | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.Scoped | tape | read again | 4 | 0 | 0 | 5 | 0 | 0 | 13/13 |
-| DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 2 | 0 | 0 | 15/15 |
+| DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Examples.Languages.SettingsFile | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  |  |  | 12/12 |
 | DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 | 0 | 0 | 18/854 |
 | DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  |  |  | 18/854 |
-| DotGram.Finance.Fix.FixGrammar | tape | read again | 6 | 0 | 0 | 6 | 0 | 0 | 18/18 |
+| DotGram.Finance.Fix.FixGrammar | tape | read again | 4 | 0 | 0 | 4 | 0 | 0 | 18/18 |
 | DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  |  |  | 1910/1910 |
 | DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 | 0 | 0 | 12/242 |
 | DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 26 | 0 | 2 | 0 | 1284/2641 |
 | DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
 | DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
-| DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 18/18 |
+| DotGram.Tests.Calculators.DecimalCalculator | immediate | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
-| DotGram.Tests.Calculators.TwoCalculators | tape | read again | 10 | 0 | 0 | 8 | 0 | 0 | 34/34 |
+| DotGram.Tests.Calculators.TwoCalculators | immediate | none |  |  |  |  |  |  | 34/34 |
 | DotGram.Tests.Extents | immediate | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Tests.Generated.UrlGrammar | nothing to choose | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Web.Rfc3339 | immediate | none |  |  |  |  |  |  | 5/5 |
@@ -120,12 +120,12 @@ or which nothing calls, so that no caller asks it again.
 | optional | what follows begins alike | 12 | 14 | 20 | 7 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
 | choice | every alternative led by what may read nothing | 4 | 8 | 17 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
-| choice | an alternative that may read nothing | 8 | 14 | 16 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
-| turns | the seam leads every alternative of the turn | 9 | 11 | 15 | 15 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
-| choice | the seam leads every alternative | 7 | 9 | 11 | 0 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
+| choice | an alternative that may read nothing | 7 | 13 | 14 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
 | counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
 | turns | what follows begins alike | 7 | 8 | 9 | 6 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
+| turns | the seam leads every alternative of the turn | 5 | 5 | 7 | 7 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | optional | a turn led by what may read nothing | 2 | 5 | 7 | 2 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
+| choice | the seam leads every alternative | 2 | 2 | 4 | 0 | 0 | Calculator.Expr: `(trivia & '+' & trivia & right: Expr_With1 => (left + right) \| trivia …` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
 | turns | seam first, what follows begins alike past it | 1 | 1 | 1 | 0 | 1 | Scoped.Program: `(trivia & Let)*` |
@@ -136,16 +136,6 @@ or which nothing calls, so that no caller asks it again.
 
 - again Expr: opens a way
 - open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & r: Expr => (l + r) | trivia & '-' & trivia & …
-- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & r: Expr => (l + r) | trivia & '-' & trivia & …
-
-## DotGram.Benchmarks.Levels
-
-- again Primary: through Sum
-- again Product: opens a way
-- open Product: choice; the seam leads every alternative; open; (trivia & '*' & trivia & r: Unary => (l * r) | trivia & '/' & trivia &…
-- again Sum: opens a way
-- open Sum: choice; the seam leads every alternative; open; (trivia & '+' & trivia & r: Product => (l + r) | trivia & '-' & trivia…
-- again Unary: through Primary
 
 ## DotGram.Benchmarks.MaterializationCost.NoCaptures
 
@@ -179,16 +169,6 @@ or which nothing calls, so that no caller asks it again.
 - open Host: choice; alternatives begin alike; open; (IPv4 | RegName)
 - again Url: through Authority
 
-## DotGram.Examples.Expressions.ArithmeticTree
-
-- again Power: through Unary
-- again Primary: through Sum
-- again Product: opens a way
-- open Product: choice; the seam leads every alternative; open; (trivia & '*' & trivia & right: Unary => (new Mul(left, right)) | triv…
-- again Sum: opens a way
-- open Sum: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Product => (new Add(left, right)) | tr…
-- again Unary: through Power
-
 ## DotGram.Examples.Expressions.Calculator
 
 - again DecimalNumber: through Point
@@ -207,13 +187,6 @@ or which nothing calls, so that no caller asks it again.
 - open Spacing: run; what follows begins alike; open; Whitespace+
 - again trivia: opens a way
 - open trivia: optional; what follows begins alike; open; Spacing?
-
-## DotGram.Examples.Expressions.ClampedExample
-
-- again Body: through Sum
-- again Sum: opens a way
-- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & '+' & trivia & right: Term => (System.Linq.Expressions.Expres…
-- again Term: through Sum
 
 ## DotGram.Examples.Expressions.LocaleNumber
 
@@ -417,8 +390,6 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Languages.Selectors
 
-- again Applied: opens a way
-- open Applied: turns, captured; the seam leads every alternative of the turn; open; trivia & step: Step => (new Step(target, step))*
 - again Selector: opens a way
 - open Selector: choice; alternatives begin alike; entry; (s: Applied => (s) | s: Root => (s))
 
@@ -558,11 +529,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Finance.Fix.FixGrammar
 
-- again Field: opens a way
-- open Field: choice; an alternative that may read nothing; open; (Separator | eof)
-- again Field: opens a way
-- open Field: choice; an alternative that may read nothing; open; (LogSeparator | eof)
-- again Fields: through Field
+- again Field: through Text
 - again Fields: through Field
 - again LogSeparator: opens a way
 - open LogSeparator: run; follow unknown; open; ' '*
@@ -1579,42 +1546,15 @@ or which nothing calls, so that no caller asks it again.
 - replay XmlMode: under ForClause
 - replay XmlNamespaces: under WithClause
 
-## DotGram.Tests.Calculators.DecimalCalculator
-
-- again Power: through Unary
-- again Primary: through Sum
-- again Product: opens a way
-- open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary => (op == "*" ? left …
-- again Sum: opens a way
-- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product => (op == "+" ? lef…
-- again Unary: through Power
-
 ## DotGram.Tests.Calculators.OneRuleParser
 
 - again Expr: opens a way
 - open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr => (new Add(left, right)) | trivi…
-- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr => (new Add(left, right)) | trivi…
 
 ## DotGram.Tests.Calculators.StrengthCalculator
 
 - again Expr: opens a way
 - open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr => (left + right) | trivia & '-' …
-- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr => (left + right) | trivia & '-' …
-
-## DotGram.Tests.Calculators.TwoCalculators
-
-- again Primary: through Sum
-- again Primary: through Sum
-- again Product: opens a way
-- open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary_With1 => (op == "*" ?…
-- again Product: opens a way
-- open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary_With2 => (op == "*" ?…
-- again Sum: opens a way
-- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product_With1 => (op == "+"…
-- again Sum: opens a way
-- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product_With2 => (op == "+"…
-- again Unary: through Primary
-- again Unary: through Primary
 
 ## DotGram.Web.Rfc3986
 

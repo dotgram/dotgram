@@ -24085,3 +24085,30 @@ docs/carriers.md: T-SQL's replayed rules go from 643 to 321, and those with a ca
 from 84 to 83. The general case is not the grammar's to fix: a negative lookahead over a building
 rule poisons everything under it, although nothing need be built inside a lookahead. That is for
 the generator, after C4.
+
+## A fold's operators, told apart past the seam (the reader's gate, the fold)
+
+A fold's operators each begin with the seam: `trivia & '+' & trivia & r: Num => … | trivia & '-'
+& …`. The alternatives cannot be taken apart to lift the seam out, since their constructions are
+keyed by the fold. So two things kept such a grammar on the tape. The choice had no first set to
+tell the alternatives apart by: the seam put its characters in every one, and a switch on them
+read them all, in order, in one group, with a way into it. The turn was a problem too:
+`NeverGivesBack` compared past the seam only where the seam led the turn's own sequence, not
+where the step's construction stood around it.
+
+The reader now looks past the seam once (`PastTheSeam`, `EmitSeamChain`). It reads the seam,
+decides by the character after it, puts the position back, and reads the chosen alternative
+whole, trivia included. This is asked before the switch. It is sound where reading the seam
+twice from one place gives the same answer, which `ReadOnce` checks: the seam builds nothing and
+opens no way, being either an atomic group or a run of one class that the seam analysis settles
+(`trivia = [' ' | '\t']*`, as most grammars write it). `NeverGivesBack` now looks through the
+step's construction before asking whether the seam leads.
+
+docs/carriers.md against main before it: Levels, ArithmeticTree, ClampedExample,
+DecimalCalculator and TwoCalculators move to immediate, taking the tape from 48 grammars to 43.
+Selectors has one rule read again, down from two. The class "the seam leads every alternative"
+goes from 11 places to 4, and "…of the turn" from 15 to 7. What remains are folds whose operand
+is the fold itself, such as `Expr & '+' & Expr`, where what follows the loop past the seam
+really does begin like a turn. A pair in CarrierTests holds this with an atomic and a plain
+trivia, against operators that begin alike past the seam, keeping the tape's answers and its
+refusal positions.
