@@ -2404,3 +2404,13 @@ packages, the extension's project nominally packable, its notes still "Initial p
 Sound: no TODO or unimplemented marker anywhere in the sources, a clean tree, the analyzer's
 packaging asserted by the build, compatibility compiled at the C# 8 floor, and the gaps in
 behaviour named in `status.md` rather than hidden.
+
+**Assigned 2026-09-19 on Igor's word, and a break is no concern at this stage.** finance-24 has
+the mechanics: the three smoke projects and the older runtime restored, both smokes taking the
+packages just built rather than the feed's (and failing when a version is wrong), a publish
+workflow by tag, source link and symbol packages and documentation for all five, the missing
+badge, the extension's project marked unpackable and its notes given a version heading, and the
+notes for Finance and Web — Finance's saying plainly that its public surface was replaced. expr
+moves the unshipped diagnostics into a 0.2.0 block and writes the notes for the generator and the
+expression language; sql-39 writes the SQL package's. The version itself is raised last, by
+finance-24, when the stand's windows are done, together with the six places that spell it by hand.
