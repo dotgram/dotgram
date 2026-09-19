@@ -1403,6 +1403,21 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    Held until verified: the reading of what the reader gives back is sql-39's from the shape
    of the normalized rule, not from the emitted code; sql-39 checks which repetition gets a way
    and why `NeverGivesBack` says no before expr writes the rewrite.
+   Verified (sql-39, by variants through the compiler and the emitted code): two causes,
+   independent. (1) The seam at the turn's head, confirmed — the rewritten form compiles
+   immediate, the original opens a way per turn and one inside the trivia rule; expr's rewrite
+   goes. (2) `eol` itself: the choice `"
+" | '
+' | ''` keeps a way into itself after
+   answering `"
+"`, since `''` alone is a later alternative, although nothing after a turn
+   can begin with `'
+'`. Decided: `Determinism` asks the question it asks of a seam of a choice
+   too — an accepted alternative is settled where no later alternative reads a proper prefix
+   of it whose remainder the follow can begin with — sql-39 (an exact analysis, the same family
+   as A/B), with performance-ff told, since the reader stops opening a way where it says so and
+   every line-based grammar changes emitted code; corpora, the refusal record, and a stand pair
+   on the feed rows, where fewer ways per line may show. With both, `SettingsFile` is the proof.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
