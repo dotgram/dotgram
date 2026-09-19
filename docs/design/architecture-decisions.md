@@ -1112,7 +1112,16 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   no grammar changed carrier, every suite and corpus green, and the carriers report's whole diff
   is four rows. **And a gap in the stand found by it:** there were no rows for the log form at all,
   so nothing measured the form this work is about until the stand added eighteen. The rule that
-  follows: before a form is optimized, it has a row. The buffered reader's pair passed (the
+  follows: before a form is optimized, it has a row.
+  **The whole coverage counted (stand, `docs/design/stand-coverage-2026-09-19.md`):** no span form
+  anywhere has a row; of FIX's message layer one parse method of twenty-one is timed and its
+  stream, reader and lazy forms none; the Web has rows for twelve publications of thirty-four; SQL
+  has six of forty-two rules in the standard, one of thirty-one in T-SQL, nothing for SQL-92, no
+  row for the window form anywhere and none for the search publication in any of the five parsers
+  that have it; of thirty-six examples three are measured. Added in this order as hands are free,
+  pairs first: the positional and window forms of the SQL parsers (the path expr is changing now),
+  the search publication, the message layer's stream and lazy forms, the Web's list publications
+  into the linearity family, one span row per library, and the examples' lazy feed reader. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
