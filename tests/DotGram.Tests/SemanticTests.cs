@@ -1060,6 +1060,30 @@ public sealed class SemanticTests
 				""").Diagnostics,
 			one => one.Id == GrammarNormalizer.MarkWithoutState);
 
+	/// <summary>
+	/// A mark says what stands over a reading, the same every time its site is reached — so its
+	/// value names no capture, and one that does is the grammar's mistake rather than a CS0103.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @int = w: ('a' | 'b') & '(' & i: A with state @(w.Length) & ')' => @(i)")]
+	[InlineData("Start : @int = i: A with state @(i) => @(i)")]
+	public void A_mark_that_names_a_capture_is_refused(string grammar) =>
+		Refused(GrammarNormalizer.MarkNamesCapture, "state : @int\nA : @int = 'x' => @(1)\n" + grammar);
+
+	/// <summary>What only spells a capture, or is a capture of another alternative, is not one.</summary>
+	[Fact]
+	public void And_a_mark_beside_a_capture_it_does_not_name_is_not() =>
+		Assert.DoesNotContain(
+			Compile(
+				"""
+				state : @int
+				Start : @int = w: A & '(' & i: A with state @(Sizes.w + "w".Length) & ')' => @(i)
+				             | w: A => @(w)
+				             | '[' & i: A with state @(2) & ']' => @(i)
+				A : @int = 'x' => @(1)
+				""").Diagnostics,
+			one => one.Id == GrammarNormalizer.MarkNamesCapture);
+
 	/// <summary>A name that only looks like one is not asking for anything.</summary>
 	[Fact]
 	public void And_a_string_that_spells_one_is_not_asking_for_it() =>

@@ -80,6 +80,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A mark placed, or the marks asked for, in a grammar that declares no <c>state</c>.</summary>
 	public const string MarkWithoutState = "GRAM4029";
 
+	/// <summary>A mark whose value names a capture of its own alternative.</summary>
+	public const string MarkNamesCapture = "GRAM4030";
+
 	/// <summary>Whether a refused input is read again over a context put back as it was, or read once.</summary>
 	public const string ContextRestored = "GRAM5013";
 

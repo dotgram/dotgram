@@ -116,6 +116,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM4027` | A `yield` publication cannot safely produce the requested element sequence. | Publish a complete non-nullable `Rule*` or `Rule+` sequence, optionally through transparent wrappers. Collection factories, outer choices, suffixes, recovery and implicit collection trivia are not supported yet. Use a compatible C# element type after `yield : @T`. |
 | `GRAM4028` | A publication result does not fit its explicit C# contract. | Choose a compatible base type, interface or array type. The contract changes the public API, not construction. Byte extent publications must also accept `byte[]`. |
 | `GRAM4029` | A mark is placed, or `parserState`/`parserMarks` asked for, in a grammar that declares no `state`. | A mark is a value of the type `state : @T` declares, so without one there is nothing to write it in. Declare the type the marks are written in (§7.8). |
+| `GRAM4030` | A mark's value names a capture of its own alternative. | A mark is what the grammar wrote at the site, the same every time the site is reached; a capture is a value of one reading. Place one mark per value, in an alternative each, and let a construction that must tell readings apart name `parserMarks` (§7.8). |
 
 ## GRAM5xxx — what a grammar gets
 

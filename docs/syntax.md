@@ -2637,8 +2637,9 @@ unwinds them, because being gone is the whole of what unwinding owes them, and t
 that reads them runs over what was accepted.
 
 **And where each one was placed.** A mark's value is what the grammar wrote at the site, the
-same every time the site is reached, so it says *what* stands over a construction and never
-*which*: two loops side by side both stand under `Loop`. A construction that has to tell them
+same every time the site is reached — which is why it names no capture, a capture being a value
+of one reading (`GRAM4030`) — so it says *what* stands over a construction and never *which*:
+two loops side by side both stand under `Loop`. A construction that has to tell them
 apart — a `break`, and the loop it leaves — names `parserMarks`:
 
 ```dotgram

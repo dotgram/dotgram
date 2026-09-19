@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
 
@@ -248,6 +249,7 @@ public sealed partial class GrammarNormalizer
 		{
 			CheckRepetitions  (_bodies[rule], rule);
 			CheckCaptures     (_bodies[rule], rule);
+			CheckMarks        (_bodies[rule], rule);
 			CheckConstruction (rule);
 			CheckLeftRecursion(rule);
 			CheckRecovery     (rule);
@@ -479,6 +481,74 @@ public sealed partial class GrammarNormalizer
 		foreach (var child in node.Children)
 			foreach (var found in Constructs(child))
 				yield return found;
+	}
+
+	/// <summary>
+	/// A mark whose value names a capture of the alternative it stands in (§7.8).
+	/// </summary>
+	/// <remarks>
+	/// A mark's value is what the grammar wrote at the site, the same every time the site is
+	/// reached; it says what stands over a construction, never which. A capture is a value of
+	/// one reading, so a mark built from one would differ between readings of the site — and
+	/// the mark is placed by code that has no captures in scope, so left to the C# compiler it
+	/// is a CS0103 in a file the author did not write.
+	/// </remarks>
+	void CheckMarks(Node body, RuleSymbol rule)
+	{
+		if (rule.Declaration is null)
+			return;
+
+		foreach (var alternative in body is Node.Choice choice ? choice.Nodes : [body])
+		{
+			List<string>? captures = null;
+
+			foreach (var node in NodeWalk.Descendants(alternative))
+				if (node is Node.Capture(var name, _))
+					(captures ??= []).Add(name);
+
+			if (captures is null)
+				continue;
+
+			foreach (var node in NodeWalk.Descendants(alternative))
+			{
+				if (node is not Node.Marked(_, var text))
+					continue;
+
+				var free = _scanner?.FreeNames(text);
+
+				foreach (var name in captures)
+				{
+					if (free is not null ? !free.Contains(name) : !NamesWord(text, name))
+						continue;
+
+					Report(
+						MarkNamesCapture,
+						$"A mark in '{rule.Name}' names the capture '{name}'. A mark's value is what the " +
+						"grammar wrote at the site, the same every time the site is reached, and a capture " +
+						"is a value of one reading. Place a mark per value, one alternative each (§7.8).",
+						rule.Declaration.At);
+
+					break;
+				}
+			}
+		}
+
+		// Where the expression would not parse: the name as a word of its own, and not a member
+		// of something else.
+		static bool NamesWord(string text, string name)
+		{
+			for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0;
+				at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
+			{
+				if ((at == 0 || !(Continues(text[at - 1]) || text[at - 1] == '.')) &&
+					(at + name.Length == text.Length || !Continues(text[at + name.Length])))
+					return true;
+			}
+
+			return false;
+		}
+
+		static bool Continues(char c) => char.IsLetterOrDigit(c) || c is '_' or '@';
 	}
 
 	/// <summary>What a capture is not allowed to be, which is now one thing.</summary>
