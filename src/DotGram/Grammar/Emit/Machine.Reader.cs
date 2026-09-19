@@ -1834,10 +1834,25 @@ sealed partial class Machine
 						machine._expectedUsed.Add(expected);
 						machine._expectedUsed.Add(covered);
 
-						code.Line(machine.Quiets
-							? $"if (!failure.Quiet) {Refusing}_Over(ref failure, p, {expected}, {covered});"
-							: $"{Refusing}_Over(ref failure, p, {expected}, {covered});");
-						code.Line("return -1;");
+						if (_refuseUnless is var (guard, without))
+						{
+							_refuseUnless = null;
+
+							RefusedUnless(code, expected, guard, without, covered);
+						}
+						else
+						{
+							code.Line(machine.Quiets
+								? $"if (!failure.Quiet) {Refusing}_Over(ref failure, p, {expected}, {covered});"
+								: $"{Refusing}_Over(ref failure, p, {expected}, {covered});");
+							code.Line("return -1;");
+						}
+					}
+					else if (_refuseUnless is var (guard, without))
+					{
+						_refuseUnless = null;
+
+						RefusedUnless(code, expected, guard, without);
 					}
 					else
 					{
@@ -1891,10 +1906,25 @@ sealed partial class Machine
 			{
 				var name = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
 
+				// A group that is one alternative led by a guard is named in a refusal only where
+				// its guard would let it read: tried in order, that alternative would have asked
+				// and been told no, and said nothing. Asked on the way out only, where one such
+				// group stands; with more, each would want its own set, and all are named.
+				var guarded = groups.Where(one => one.Members.Count == 1 && LeadingGuard(one.Members[0]) is not null).ToList();
+				var asked   = guarded.Count == 1
+					? (Guard: LeadingGuard(guarded[0].Members[0])!, Without: machine.DeclareExpected(machine.PredictedDisplays(
+						alternatives.Where(one => !ReferenceEquals(one, guarded[0].Members[0])).ToList())))
+					: ((Node.Guard Guard, string Without)?)null;
+
 				_character = true;
 
 				using (code.Block($"if ({machine.Past("p")})"))
-					Refused(code, name);
+				{
+					if (asked is { } past)
+						RefusedUnless(code, name, past.Guard, past.Without);
+					else
+						Refused(code, name);
+				}
 
 				code.Line($"c = {machine.ReadAt("p")};");
 
@@ -1956,7 +1986,12 @@ sealed partial class Machine
 					if (widest < 0)
 					{
 						using (code.Indent())
-							Refused(code, name);
+						{
+							if (asked is { } other)
+								RefusedUnless(code, name, other.Guard, other.Without);
+							else
+								Refused(code, name);
+						}
 					}
 					else
 					{
@@ -1975,9 +2010,11 @@ sealed partial class Machine
 							_refuseWith = name;
 							_refuseOver = machine.DeclareExpected(machine.Displays(
 								new Node.Element(false, [.. groups[widest].Set.Ranges], [], [])));
+							_refuseUnless = asked;
 							Emit(code, groups[widest].Members[0], following);
 							_refuseWith = null;
 							_refuseOver = null;
+							_refuseUnless = null;
 							code.Line("break;");
 						}
 					}
@@ -3963,8 +4000,46 @@ sealed partial class Machine
 		/// <summary>What a guard that begins a dispatched group refuses with: the other groups' first tokens.</summary>
 		string? _guardRefuses;
 
-		/// <summary>Whether an alternative's reading begins with a guard, through what builds or names it.</summary>
-		static bool LeadsWithGuard(Node alternative)
+		/// <summary>
+		/// The guard a dispatched choice asks before naming the group it leads, for the refusal
+		/// the widest group's call makes (<see cref="_refuseWith"/>).
+		/// </summary>
+		(Node.Guard Guard, string Without)? _refuseUnless;
+
+		/// <summary>
+		/// A refusal that names <paramref name="expected"/> where the guard would let its group
+		/// read, and <paramref name="without"/> where it would not. The guard is asked only when
+		/// the refusal is recorded, so a reading that goes on pays nothing for it.
+		/// </summary>
+		void RefusedUnless(Writer code, string expected, Node.Guard guard, string without, string? covered = null)
+		{
+			machine._expectedUsed.Add(expected);
+			machine._expectedUsed.Add(without);
+
+			// A text the guard reads is kept for the construction where the guard is asked on the
+			// way in; asked again here, it must not take that place.
+			var kept = new Dictionary<string, string>(_guardTexts, StringComparer.Ordinal);
+
+			using (code.Block(machine.Quiets ? "if (!failure.Quiet)" : ""))
+			{
+				var call  = EmitGuardCall(code, guard);
+				var named = $"{call} ? {expected} : {without}";
+
+				code.Line(covered is null
+					? $"{Refusing}(ref failure, p, {named});"
+					: $"{Refusing}_Over(ref failure, p, {named}, {covered});");
+			}
+
+			_guardTexts.Clear();
+
+			foreach (var one in kept)
+				_guardTexts[one.Key] = one.Value;
+
+			code.Line("return -1;");
+		}
+
+		/// <summary>The guard an alternative's reading begins with, through what builds or names it.</summary>
+		static Node.Guard? LeadingGuard(Node alternative)
 		{
 			var read = alternative;
 
@@ -3985,10 +4060,13 @@ sealed partial class Machine
 						continue;
 
 					default:
-						return read is Node.Guard;
+						return read as Node.Guard;
 				}
 			}
 		}
+
+		/// <summary>Whether an alternative's reading begins with a guard, through what builds or names it.</summary>
+		static bool LeadsWithGuard(Node alternative) => LeadingGuard(alternative) is not null;
 
 		int _guardLocals;
 
