@@ -16,8 +16,8 @@ namespace DotGram.Tests.Web;
 /// <remarks>
 /// <see cref="Rfc8259Tests"/> reads JSONTestSuite through <see cref="Both"/> already, and the
 /// JSON Pointer and Patch tests read their documents through it too; this adds texts that
-/// touch every production вЂ” literals, the number's parts, every escape, nesting, whitespace in
-/// each place it may stand вЂ” each taken apart one character at a time.
+/// touch every production — literals, the number's parts, every escape, nesting, whitespace in
+/// each place it may stand — each taken apart one character at a time.
 /// </remarks>
 public sealed class HandJsonTests
 {

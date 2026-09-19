@@ -12,8 +12,8 @@ namespace DotGram.Tests.Web;
 /// </summary>
 /// <remarks>
 /// <see cref="Rfc3986Tests"/> reads every one of its texts through <see cref="Both"/> already;
-/// this adds references chosen for the places two readers part вЂ” the host forms, IPv6's
-/// counting, escapes, the four path forms вЂ” and each of them taken apart one character at a
+/// this adds references chosen for the places two readers part — the host forms, IPv6's
+/// counting, escapes, the four path forms — and each of them taken apart one character at a
 /// time, which is where two readers stop in different places.
 /// </remarks>
 public sealed class HandUrlTests

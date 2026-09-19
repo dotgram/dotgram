@@ -14,9 +14,9 @@ namespace DotGram.Handwritten.Web;
 /// <remarks>
 /// <para>
 /// It reads exactly what the grammar reads (docs/design/architecture-decisions.md, D1): the
-/// same accepted and refused text, the same values вЂ” a number as its text, a string with its
+/// same accepted and refused text, the same values — a number as its text, a string with its
 /// escapes undone and an escaped lone surrogate kept, an object's members in order with a name
-/// written twice kept twice вЂ” and a refusal where the text stops being the beginning of any
+/// written twice kept twice — and a refusal where the text stops being the beginning of any
 /// JSON text.
 /// </para>
 /// <para>
@@ -27,7 +27,7 @@ namespace DotGram.Handwritten.Web;
 /// </remarks>
 public static class HandJson
 {
-	/// <summary>A JSON text (В§2), or false with the position where the text stops being one.</summary>
+	/// <summary>A JSON text (§2), or false with the position where the text stops being one.</summary>
 	public static bool TryParse(string text, out JsonValue? value, out int failure)
 	{
 		if (text is null)
@@ -73,7 +73,7 @@ public static class HandJson
 
 		public int Failure { get; private set; }
 
-		/// <summary>В§2: whitespace, one value, whitespace, and nothing after.</summary>
+		/// <summary>§2: whitespace, one value, whitespace, and nothing after.</summary>
 		public JsonValue? Text()
 		{
 			var open = new List<Open>();
@@ -168,7 +168,7 @@ public static class HandJson
 			}
 		}
 
-		/// <summary>В§4: a member's name, whitespace, a colon and whitespace.</summary>
+		/// <summary>§4: a member's name, whitespace, a colon and whitespace.</summary>
 		bool Name(Open members)
 		{
 			if (At(_at) != '"')
@@ -246,7 +246,7 @@ public static class HandJson
 		}
 
 		/// <summary>
-		/// В§6: an optional minus, an integer without a leading zero, a fraction and an exponent
+		/// §6: an optional minus, an integer without a leading zero, a fraction and an exponent
 		/// each of one digit at least, kept as it was written.
 		/// </summary>
 		JsonValue? Number()
@@ -296,8 +296,8 @@ public static class HandJson
 		}
 
 		/// <summary>
-		/// В§7: a string between quotation marks, with its escapes undone. A <c>\u</c> escape is
-		/// one UTF-16 unit, so a lone surrogate written as one stays one (В§8.2).
+		/// §7: a string between quotation marks, with its escapes undone. A <c>\u</c> escape is
+		/// one UTF-16 unit, so a lone surrogate written as one stays one (§8.2).
 		/// </summary>
 		string? String()
 		{
@@ -393,7 +393,7 @@ public static class HandJson
 			}
 		}
 
-		/// <summary>В§2's <c>ws</c>.</summary>
+		/// <summary>§2's <c>ws</c>.</summary>
 		void Whitespace()
 		{
 			while (At(_at) is ' ' or '\t' or '\n' or '\r')

@@ -417,9 +417,9 @@ public abstract class FixFieldReaderTests
 			Assert.Equal(new byte[] { 255, 0 }, Assert.IsType<FixField.Invalid>(bytes[0]).RawBytes.ToArray());
 			Assert.Equal("X", Assert.IsType<FixField.Symbol>(bytes[1]).Value);
 
-			var fields = parser.ParseLog("РѕС€РёР±РєР°|55=X");
+			var fields = parser.ParseLog("ошибка|55=X");
 
-			Assert.Equal("РѕС€РёР±РєР°", Assert.IsType<FixField.Invalid>(fields[0]).RawText);
+			Assert.Equal("ошибка", Assert.IsType<FixField.Invalid>(fields[0]).RawText);
 		});
 	}
 

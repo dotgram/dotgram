@@ -11,12 +11,12 @@ namespace DotGram.Handwritten.Web;
 /// <remarks>
 /// <para>
 /// It reads exactly what the grammar reads (docs/design/architecture-decisions.md, D1): the
-/// same accepted and refused text, the same values, and a refusal at the same position вЂ” where
+/// same accepted and refused text, the same values, and a refusal at the same position — where
 /// a character is wrong, or, for a date or time that is well formed but does not exist, just
-/// after it, where the grammar asks В§5.7's questions.
+/// after it, where the grammar asks §5.7's questions.
 /// </para>
 /// <para>
-/// В§5.7's rules are written out here again rather than borrowed from the grammar's helpers, so
+/// §5.7's rules are written out here again rather than borrowed from the grammar's helpers, so
 /// that the two agreeing means something.
 /// </para>
 /// </remarks>
@@ -77,7 +77,7 @@ public static class HandDateTime
 		return true;
 	}
 
-	// в”Ђв”Ђ В§5.6 в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+	// ── §5.6 ────────────────────────────────────────────────────────────────────
 
 	/// <summary><c>full-date</c>: yyyy-mm-dd, a day its month has.</summary>
 	static bool ReadDate(string text, ref int at, out FullDate date, out int failure)
@@ -168,7 +168,7 @@ public static class HandDateTime
 				return false;
 		}
 
-		// В§5.7: a leap second is the last second of a UTC day, so with the offset taken off the
+		// §5.7: a leap second is the last second of a UTC day, so with the offset taken off the
 		// time has to be 23:59.
 		var utcMinute = ((hour * 60 + minute - (int)offset.TotalMinutes) % 1440 + 1440) % 1440;
 
@@ -184,7 +184,7 @@ public static class HandDateTime
 		return true;
 	}
 
-	// в”Ђв”Ђ В§5.7 and Appendix C в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+	// ── §5.7 and Appendix C ─────────────────────────────────────────────────────
 
 	static int DaysIn(int year, int month)
 	{
@@ -201,7 +201,7 @@ public static class HandDateTime
 		}
 	}
 
-	// в”Ђв”Ђ Reading в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+	// ── Reading ─────────────────────────────────────────────────────────────────
 
 	/// <summary>Exactly <paramref name="count"/> digits, as a number.</summary>
 	static bool Digits(string text, ref int at, int count, out int value, out int failure)

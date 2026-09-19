@@ -1,4 +1,4 @@
-# Bound recovery-aware materialization вЂ” 2026-09-17
+# Bound recovery-aware materialization — 2026-09-17
 
 ## Change
 
@@ -62,7 +62,7 @@ Times are microseconds per operation.
 
 ## Remaining allocation limit
 
-Whole-string Fix at 8,000 fields still allocates about 24.45 MiB per call because its arena exceeds the 65,536-entry recycling limit. This explains why the current 8,000-field measurement does not simply double the 4,000-field time. Streaming does not retain the full history and remains around 0.53вЂ“0.66 MiB allocated per 8,000 fields. Reflection confirms that Fix retains its arena at 4,000 fields (capacity 65,536) and does not retain it at 8,000 fields. Changing the retention policy is separate work.
+Whole-string Fix at 8,000 fields still allocates about 24.45 MiB per call because its arena exceeds the 65,536-entry recycling limit. This explains why the current 8,000-field measurement does not simply double the 4,000-field time. Streaming does not retain the full history and remains around 0.53–0.66 MiB allocated per 8,000 fields. Reflection confirms that Fix retains its arena at 4,000 fields (capacity 65,536) and does not retain it at 8,000 fields. Changing the retention policy is separate work.
 
 ## Validation
 

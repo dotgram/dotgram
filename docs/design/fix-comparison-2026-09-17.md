@@ -1,4 +1,4 @@
-# FixParser versus Fix44 вЂ” 2026-09-17
+# FixParser versus Fix44 — 2026-09-17
 
 Current Release net10.0 assemblies, including the pending recovery-choice scan fix. No parser changes were made for this comparison.
 
@@ -39,7 +39,7 @@ All times are microseconds per operation.
 - Fix still has quadratic whole-string behavior: doubling 4,000 fields to 8,000 roughly quadruples time. Fix44 is much faster on these whole-string cases after the preceding recovery scan fix.
 - The generated Fix switch must materialize the typed Tag before calling context.Kind(tag). Machine.cs initializes guardFrom to zero when recovery plans exist. Materialization consequently revisits accumulated history for each field, including already-built entries. The recovery traversal itself also scans the history. This is a separate issue from the fixed recovery choice deactivation loop. Streaming yields one field at a time and bounds that history. This diagnosis is based on emitted-code inspection and scaling, not a new profiler capture.
 - Next optimization: bound typed switch/guard materialization and recovery traversal to their dependencies while preserving owner/recovery/backtracking semantics. Merely replacing guardFrom = 0 is insufficient because the recovery scan remains.
-- Ordinary field allocations are effectively equal. At 8,000 fields the whole-string allocation jumps to 24.45 MiB for Fix and 17.38 MiB for Fix44; the parser recycling policy retains arenas only through capacity 65,536. Streaming stays around 0.53вЂ“0.66 MiB of allocations for 8,000 fields.
+- Ordinary field allocations are effectively equal. At 8,000 fields the whole-string allocation jumps to 24.45 MiB for Fix and 17.38 MiB for Fix44; the parser recycling policy retains arenas only through capacity 65,536. Streaming stays around 0.53–0.66 MiB of allocations for 8,000 fields.
 
 ## Generated source size
 

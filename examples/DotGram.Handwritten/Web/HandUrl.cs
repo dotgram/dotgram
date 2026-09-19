@@ -29,7 +29,7 @@ namespace DotGram.Handwritten.Web;
 public static class HandUrl
 {
 	/// <summary>
-	/// A URI or a relative reference (В§4.1), or false with the position where the text stops
+	/// A URI or a relative reference (§4.1), or false with the position where the text stops
 	/// being one.
 	/// </summary>
 	public static bool TryParseReference(string text, out UriReference? reference, out int failure)
@@ -46,7 +46,7 @@ public static class HandUrl
 	}
 
 	/// <summary>
-	/// A URI (В§3), a reference with a scheme, or false with the position where the text stops
+	/// A URI (§3), a reference with a scheme, or false with the position where the text stops
 	/// being one.
 	/// </summary>
 	public static bool TryParseUri(string text, out UriReference? uri, out int failure)
@@ -73,7 +73,7 @@ public static class HandUrl
 
 		public int Furthest { get; private set; }
 
-		// в”Ђв”Ђ The two readings of a reference в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+		// ── The two readings of a reference ──────────────────────────────────────
 
 		/// <summary>The text as a URI: a scheme, a colon and a hierarchical part, to the end.</summary>
 		public UriReference? Uri()
@@ -108,7 +108,7 @@ public static class HandUrl
 		}
 
 		/// <summary>
-		/// В§3 and В§4.2: an authority and the path after it, or a path alone. A relative
+		/// §3 and §4.2: an authority and the path after it, or a path alone. A relative
 		/// reference's first segment may not hold a colon, or it would have been a scheme.
 		/// </summary>
 		UriReference? Hierarchical(bool relative)
@@ -171,7 +171,7 @@ public static class HandUrl
 			return parts with { Query = query, Fragment = fragment };
 		}
 
-		// в”Ђв”Ђ В§3.2, the authority в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+		// ── §3.2, the authority ──────────────────────────────────────────────────
 
 		UriReference? Authority()
 		{
@@ -218,8 +218,8 @@ public static class HandUrl
 		}
 
 		/// <summary>
-		/// В§3.2.2: an IPv6 address or a future one, in brackets. They cannot both read the
-		/// same text вЂ” one begins with a hex digit or a colon, the other with a 'v' вЂ” so each
+		/// §3.2.2: an IPv6 address or a future one, in brackets. They cannot both read the
+		/// same text — one begins with a hex digit or a colon, the other with a 'v' — so each
 		/// is tried and the one that reads is the host.
 		/// </summary>
 		bool IpLiteral()
@@ -249,9 +249,9 @@ public static class HandUrl
 		/// An IPv6 address from <paramref name="at"/>: the position after it, or -1.
 		/// </summary>
 		/// <remarks>
-		/// The nine forms of В§3.2.2 say one thing between them: eight groups of up to four hex
+		/// The nine forms of §3.2.2 say one thing between them: eight groups of up to four hex
 		/// digits, the last two of which may be an IPv4 address, or fewer with a single
-		/// <c>::</c> standing for the rest вЂ” and since it stands for at least one, seven at
+		/// <c>::</c> standing for the rest — and since it stands for at least one, seven at
 		/// most either side of it together. So this counts groups rather than trying the forms,
 		/// and stops at the first character no address could have.
 		/// </remarks>
@@ -356,7 +356,7 @@ public static class HandUrl
 		}
 
 		/// <summary>
-		/// A number from 0 to 255 written without a leading zero, as В§3.2.2's <c>dec-octet</c>
+		/// A number from 0 to 255 written without a leading zero, as §3.2.2's <c>dec-octet</c>
 		/// spells it.
 		/// </summary>
 		int DecimalOctet(int at)
@@ -387,7 +387,7 @@ public static class HandUrl
 		}
 
 		/// <summary>
-		/// В§3.2.2's <c>IPvFuture</c>: a 'v', a hex version, a dot and at least one character.
+		/// §3.2.2's <c>IPvFuture</c>: a 'v', a hex version, a dot and at least one character.
 		/// </summary>
 		int IpvFuture(int at)
 		{
@@ -420,7 +420,7 @@ public static class HandUrl
 			return at == start ? -1 : at;
 		}
 
-		// в”Ђв”Ђ В§3.3, path segments в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+		// ── §3.3, path segments ──────────────────────────────────────────────────
 
 		/// <summary>A segment of path characters: how many characters it took.</summary>
 		int Segment()
@@ -446,7 +446,7 @@ public static class HandUrl
 			return _at - start;
 		}
 
-		/// <summary>One <c>pchar</c> (В§3.3), an escape counting as one.</summary>
+		/// <summary>One <c>pchar</c> (§3.3), an escape counting as one.</summary>
 		bool PathCharacter(bool colon)
 		{
 			var c = At(_at);
@@ -461,7 +461,7 @@ public static class HandUrl
 			return Escape();
 		}
 
-		// в”Ђв”Ђ Reading в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+		// ── Reading ──────────────────────────────────────────────────────────────
 
 		/// <summary>A run of characters and escapes, as the text of the run.</summary>
 		string Run(Func<char, bool> accepts)
@@ -480,7 +480,7 @@ public static class HandUrl
 		}
 
 		/// <summary>
-		/// В§2.1: a '%' and two hex digits. A '%' that is not followed by them refuses the text
+		/// §2.1: a '%' and two hex digits. A '%' that is not followed by them refuses the text
 		/// where the digit should have been.
 		/// </summary>
 		bool Escape()
@@ -557,7 +557,7 @@ public static class HandUrl
 		}
 	}
 
-	// в”Ђв”Ђ В§2, the character sets в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+	// ── §2, the character sets ───────────────────────────────────────────────────
 
 	static bool IsAlpha(char c)
 	{

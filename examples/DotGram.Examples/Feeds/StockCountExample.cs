@@ -16,7 +16,7 @@ namespace DotGram.Examples.Feeds;
 //
 // Like RecoveringFeedExample, a broken line costs itself and not the file: `recover eol`
 // skips it, and the `=>` beside it turns what was skipped into a line of its own. What is
-// different is the closing line. `END 3` begins the way an item does вЂ” a name вЂ” and only
+// different is the closing line. `END 3` begins the way an item does — a name — and only
 // fails at the space where an item has its colon, so a recovering repetition would take it
 // for one more broken line and leave nothing for the total.
 //

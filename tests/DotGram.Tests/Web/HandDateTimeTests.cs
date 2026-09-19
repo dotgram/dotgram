@@ -12,7 +12,7 @@ namespace DotGram.Tests.Web;
 /// </summary>
 /// <remarks>
 /// <see cref="Rfc3339Tests"/> reads the JSON Schema suite and the RFC's examples through
-/// <see cref="Both"/> already; this adds the texts where В§5.7 decides and the shapes around a
+/// <see cref="Both"/> already; this adds the texts where §5.7 decides and the shapes around a
 /// fraction and an offset, each taken apart one character at a time.
 /// </remarks>
 public sealed class HandDateTimeTests
