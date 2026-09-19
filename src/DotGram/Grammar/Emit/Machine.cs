@@ -5400,7 +5400,14 @@ sealed partial class Machine
 		{
 			var name = $"Recognize_DotGram{_tag}_Expected" + _expectedCount++;
 
-			entry = (name, $"static readonly string[] {name} = {{ {items} }};");
+			// Built where a refusal first asks for it, not by the type's initializer: only the
+			// recording reading of a refused input reads a set, and a grammar read over kinds has
+			// a thousand of them, hundreds naming every keyword, which the first call of any
+			// parse paid for in the initializer's JIT (D17). One instance still, since a refusal
+			// tells two sets apart by reference.
+			entry = (name,
+				$"static string[]? {name}_Built;\n" +
+				$"static string[] {name} => {name}_Built ?? global::System.Threading.Interlocked.CompareExchange(ref {name}_Built, new string[] {{ {items} }}, null) ?? {name}_Built!;");
 			_expectedTables?.Add(items, entry);
 		}
 

@@ -47,9 +47,10 @@ public sealed class ExpectedTablesTests
 			""";
 		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text, declarationMembers: members);
 		var type = assembly.GetType("Grammar")!;
-		var tables = type.GetFields(BindingFlags.Static | BindingFlags.NonPublic)
-			.Where(field => field.FieldType == typeof(string[]) && field.Name.Contains("_Expected", StringComparison.Ordinal))
-			.Select(field => (string[])field.GetValue(null)!).ToArray();
+		// Each set is a property that builds its array the first time a refusal asks for it (D17).
+		var tables = type.GetProperties(BindingFlags.Static | BindingFlags.NonPublic)
+			.Where(property => property.PropertyType == typeof(string[]) && property.Name.Contains("_Expected", StringComparison.Ordinal))
+			.Select(property => (string[])property.GetValue(null)!).ToArray();
 
 		Assert.Single(tables, table => table.SequenceEqual(new[] { "'x'" }));
 		Assert.Equal(tables.Length, tables.Select(table => string.Join("\0", table)).Distinct(StringComparer.Ordinal).Count());

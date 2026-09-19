@@ -23691,3 +23691,25 @@ CURRENT_DATE`, `(a - CURRENT_DATE)` and `c = a - CURRENT_DATE` stay refused as t
 A predicate's own predicand is read without the refusal, since that is the way a bracket reaches
 it, and the predicate's pairing refuses it there. Both parsers agree on every corpus line, and the
 value corpora agree with the BNF on all 5,520.
+
+## The first call paid for every message a refusal could give (D17)
+
+Over kinds the first call of a SQL:2023 parse cost 14 to 56 ms more than over characters, and the
+phases of a fresh process say where: loading the assembly 0.9 ms either way, the first tokenize
+2 ms, the first parse 12 ms against 13.6 — and the type's initializer 84 ms against 20, of which
+75 against 12 were the JIT of that one method. It filled the arrays a refusal names what was
+expected with: 1,320 of them holding 21,319 strings where there had been 1,129 holding 1,891,
+since over kinds the set expected at a name is every keyword, about 410 of them, and almost the
+same set stands at hundreds of places. Merging equal arrays would not have helped: 976 of them are
+different.
+
+Only the recording reading of a refused input reads one, so each is built there now, the first
+time it is asked for: `static string[] X => X_Built ?? Interlocked.CompareExchange(ref X_Built,
+new string[] { … }, null) ?? X_Built!`, one instance still, since a refusal tells two sets apart by
+reference. The initializer is 10 ms with 2 of JIT, and the first call of a literal about 26 ms in
+all, below where it was over characters. Every generated parser pays the same way, so the stand
+is asked for first calls of FIX and the expression language too. The generator's own time is
+unchanged (the four SQL hosts 13.9 and 14.1 s against 15.9 and 15.0, alternated); the files are
+5 per cent larger for the second name. The deeper answer — a set of kinds a position expects and
+one table of names, so that no array is in the assembly's code at all — is performance-ff's, after
+C4.

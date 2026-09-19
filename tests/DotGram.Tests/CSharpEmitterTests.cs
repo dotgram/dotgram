@@ -1721,7 +1721,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start = 'x'\nparse Start");
 
 		Assert.Matches(
-			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = \{ ""'x'"" \};", source);
+			@"static string\[\] Recognize_DotGram_Expected\d+ => .* new string\[\] \{ ""'x'"" \}, null\)", source);
 		Assert.Matches(@"expected = Recognize_DotGram_Expected\d+;", source);
 	}
 
@@ -1792,7 +1792,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit("""Start = "http"i""");
 
 		Assert.Matches(
-			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = \{ ""\\""http\\""i"" \};", source);
+			@"static string\[\] Recognize_DotGram_Expected\d+ => .* new string\[\] \{ ""\\""http\\""i"" \}, null\)", source);
 
 		Assert.Contains(
 			"global::System.MemoryExtensions.Equals(text.Slice(p, 4), " +
@@ -1831,8 +1831,8 @@ public sealed class CSharpEmitterTests
 		var source = Emit("""Start = "http"i | "https" | "httpx" """);
 
 		Assert.Matches(
-			@"static readonly string\[\] Recognize_DotGram_Expected\d+ = " +
-			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \};",
+			@"static string\[\] Recognize_DotGram_Expected\d+ => .* new string\[\] " +
+			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \}, null\)",
 			source);
 		Assert.Contains("AsSpan(\"http\")", source);
 

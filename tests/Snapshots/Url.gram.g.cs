@@ -3742,69 +3742,101 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static readonly string[] Recognize_DotGram_Expected0 = { "Unreserved" };
+		static string[]? Recognize_DotGram_Expected0_Built;
+		static string[] Recognize_DotGram_Expected0 => Recognize_DotGram_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected0_Built, new string[] { "Unreserved" }, null) ?? Recognize_DotGram_Expected0_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected1 = { "SubDelim" };
+		static string[]? Recognize_DotGram_Expected1_Built;
+		static string[] Recognize_DotGram_Expected1 => Recognize_DotGram_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected1_Built, new string[] { "SubDelim" }, null) ?? Recognize_DotGram_Expected1_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected2 = { "PctEncoded" };
+		static string[]? Recognize_DotGram_Expected2_Built;
+		static string[] Recognize_DotGram_Expected2 => Recognize_DotGram_Expected2_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected2_Built, new string[] { "PctEncoded" }, null) ?? Recognize_DotGram_Expected2_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected3 = { "['/' | ':' | '?'..'@']" };
+		static string[]? Recognize_DotGram_Expected3_Built;
+		static string[] Recognize_DotGram_Expected3 => Recognize_DotGram_Expected3_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected3_Built, new string[] { "['/' | ':' | '?'..'@']" }, null) ?? Recognize_DotGram_Expected3_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected4 = { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%' | '/' | ':' | '?'..'@']" };
+		static string[]? Recognize_DotGram_Expected4_Built;
+		static string[] Recognize_DotGram_Expected4 => Recognize_DotGram_Expected4_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected4_Built, new string[] { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%' | '/' | ':' | '?'..'@']" }, null) ?? Recognize_DotGram_Expected4_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected5 = { "'#'" };
+		static string[]? Recognize_DotGram_Expected5_Built;
+		static string[] Recognize_DotGram_Expected5 => Recognize_DotGram_Expected5_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected5_Built, new string[] { "'#'" }, null) ?? Recognize_DotGram_Expected5_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected6 = { "'?'" };
+		static string[]? Recognize_DotGram_Expected6_Built;
+		static string[] Recognize_DotGram_Expected6 => Recognize_DotGram_Expected6_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected6_Built, new string[] { "'?'" }, null) ?? Recognize_DotGram_Expected6_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected7 = { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%' | ':' | '@']" };
+		static string[]? Recognize_DotGram_Expected7_Built;
+		static string[] Recognize_DotGram_Expected7 => Recognize_DotGram_Expected7_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected7_Built, new string[] { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%' | ':' | '@']" }, null) ?? Recognize_DotGram_Expected7_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected8 = { "'/'" };
+		static string[]? Recognize_DotGram_Expected8_Built;
+		static string[] Recognize_DotGram_Expected8 => Recognize_DotGram_Expected8_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected8_Built, new string[] { "'/'" }, null) ?? Recognize_DotGram_Expected8_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected9 = { "\"://\"" };
+		static string[]? Recognize_DotGram_Expected9_Built;
+		static string[] Recognize_DotGram_Expected9 => Recognize_DotGram_Expected9_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected9_Built, new string[] { "\"://\"" }, null) ?? Recognize_DotGram_Expected9_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected10 = { "\"https\"", "\"http\"", "\"ftp\"" };
+		static string[]? Recognize_DotGram_Expected10_Built;
+		static string[] Recognize_DotGram_Expected10 => Recognize_DotGram_Expected10_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected10_Built, new string[] { "\"https\"", "\"http\"", "\"ftp\"" }, null) ?? Recognize_DotGram_Expected10_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected11 = { "\"https\"", "\"http\"" };
+		static string[]? Recognize_DotGram_Expected11_Built;
+		static string[] Recognize_DotGram_Expected11 => Recognize_DotGram_Expected11_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected11_Built, new string[] { "\"https\"", "\"http\"" }, null) ?? Recognize_DotGram_Expected11_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected12 = { "\"https\"" };
+		static string[]? Recognize_DotGram_Expected12_Built;
+		static string[] Recognize_DotGram_Expected12 => Recognize_DotGram_Expected12_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected12_Built, new string[] { "\"https\"" }, null) ?? Recognize_DotGram_Expected12_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected13 = { "\"ftp\"" };
+		static string[]? Recognize_DotGram_Expected13_Built;
+		static string[] Recognize_DotGram_Expected13 => Recognize_DotGram_Expected13_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected13_Built, new string[] { "\"ftp\"" }, null) ?? Recognize_DotGram_Expected13_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected14 = { "Digit" };
+		static string[]? Recognize_DotGram_Expected14_Built;
+		static string[] Recognize_DotGram_Expected14 => Recognize_DotGram_Expected14_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected14_Built, new string[] { "Digit" }, null) ?? Recognize_DotGram_Expected14_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected15 = { "':'" };
+		static string[]? Recognize_DotGram_Expected15_Built;
+		static string[] Recognize_DotGram_Expected15 => Recognize_DotGram_Expected15_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected15_Built, new string[] { "':'" }, null) ?? Recognize_DotGram_Expected15_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected16 = { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%']" };
+		static string[]? Recognize_DotGram_Expected16_Built;
+		static string[] Recognize_DotGram_Expected16 => Recognize_DotGram_Expected16_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected16_Built, new string[] { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%']" }, null) ?? Recognize_DotGram_Expected16_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected17 = { "'.'" };
+		static string[]? Recognize_DotGram_Expected17_Built;
+		static string[] Recognize_DotGram_Expected17 => Recognize_DotGram_Expected17_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected17_Built, new string[] { "'.'" }, null) ?? Recognize_DotGram_Expected17_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected18 = { "']'" };
+		static string[]? Recognize_DotGram_Expected18_Built;
+		static string[] Recognize_DotGram_Expected18 => Recognize_DotGram_Expected18_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected18_Built, new string[] { "']'" }, null) ?? Recognize_DotGram_Expected18_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected19 = { "'['" };
+		static string[]? Recognize_DotGram_Expected19_Built;
+		static string[] Recognize_DotGram_Expected19 => Recognize_DotGram_Expected19_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected19_Built, new string[] { "'['" }, null) ?? Recognize_DotGram_Expected19_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected20 = { "'@'" };
+		static string[]? Recognize_DotGram_Expected20_Built;
+		static string[] Recognize_DotGram_Expected20 => Recognize_DotGram_Expected20_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected20_Built, new string[] { "'@'" }, null) ?? Recognize_DotGram_Expected20_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected21 = { "UserInfo" };
+		static string[]? Recognize_DotGram_Expected21_Built;
+		static string[] Recognize_DotGram_Expected21 => Recognize_DotGram_Expected21_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected21_Built, new string[] { "UserInfo" }, null) ?? Recognize_DotGram_Expected21_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected22 = { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%' | ':']" };
+		static string[]? Recognize_DotGram_Expected22_Built;
+		static string[] Recognize_DotGram_Expected22 => Recognize_DotGram_Expected22_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected22_Built, new string[] { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~' | '!' | '$' | '&'..',' | ';' | '=' | '%' | ':']" }, null) ?? Recognize_DotGram_Expected22_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected23 = { "\"::\"" };
+		static string[]? Recognize_DotGram_Expected23_Built;
+		static string[] Recognize_DotGram_Expected23 => Recognize_DotGram_Expected23_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected23_Built, new string[] { "\"::\"" }, null) ?? Recognize_DotGram_Expected23_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected24 = { "H16" };
+		static string[]? Recognize_DotGram_Expected24_Built;
+		static string[] Recognize_DotGram_Expected24 => Recognize_DotGram_Expected24_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected24_Built, new string[] { "H16" }, null) ?? Recognize_DotGram_Expected24_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected25 = { "Group" };
+		static string[]? Recognize_DotGram_Expected25_Built;
+		static string[] Recognize_DotGram_Expected25 => Recognize_DotGram_Expected25_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected25_Built, new string[] { "Group" }, null) ?? Recognize_DotGram_Expected25_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected26 = { "Hex" };
+		static string[]? Recognize_DotGram_Expected26_Built;
+		static string[] Recognize_DotGram_Expected26 => Recognize_DotGram_Expected26_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected26_Built, new string[] { "Hex" }, null) ?? Recognize_DotGram_Expected26_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected27 = { "'%'" };
+		static string[]? Recognize_DotGram_Expected27_Built;
+		static string[] Recognize_DotGram_Expected27 => Recognize_DotGram_Expected27_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected27_Built, new string[] { "'%'" }, null) ?? Recognize_DotGram_Expected27_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected28 = { "['0'..'9']" };
+		static string[]? Recognize_DotGram_Expected28_Built;
+		static string[] Recognize_DotGram_Expected28 => Recognize_DotGram_Expected28_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected28_Built, new string[] { "['0'..'9']" }, null) ?? Recognize_DotGram_Expected28_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected29 = { "['0'..'9' | 'A'..'F' | 'a'..'f']" };
+		static string[]? Recognize_DotGram_Expected29_Built;
+		static string[] Recognize_DotGram_Expected29 => Recognize_DotGram_Expected29_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected29_Built, new string[] { "['0'..'9' | 'A'..'F' | 'a'..'f']" }, null) ?? Recognize_DotGram_Expected29_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected30 = { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']" };
+		static string[]? Recognize_DotGram_Expected30_Built;
+		static string[] Recognize_DotGram_Expected30 => Recognize_DotGram_Expected30_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected30_Built, new string[] { "['-'..'.' | '0'..'9' | 'A'..'Z' | '_' | 'a'..'z' | '~']" }, null) ?? Recognize_DotGram_Expected30_Built!;
 
-		static readonly string[] Recognize_DotGram_Expected31 = { "['!' | '$' | '&'..',' | ';' | '=']" };
+		static string[]? Recognize_DotGram_Expected31_Built;
+		static string[] Recognize_DotGram_Expected31 => Recognize_DotGram_Expected31_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected31_Built, new string[] { "['!' | '$' | '&'..',' | ';' | '=']" }, null) ?? Recognize_DotGram_Expected31_Built!;
 
 		static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
