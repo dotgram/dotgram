@@ -51,6 +51,14 @@ static partial class Stand
 
 	const string JsonArrayText = "[1, 2.5, -3, \"four\", true, false, null, [5, 6], {\"k\": \"v\"}, 1e3, \"a longer string to read\", 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]";
 
+	const string CookieFull = "sid=38afes7a8; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Max-Age=2592000; Domain=example.com; Path=/docs; Secure; HttpOnly; SameSite=Lax";
+
+	const string CookieShort = "id=a3fWa";
+
+	const string PointerFull = "/definitions/item/properties/0/a~1b/c~0d";
+
+	const string PointerShort = "/a";
+
 	static readonly string[] UrlNames = ["plain", "full", "ipv4", "long-path", "refused"];
 
 	/// <summary>
@@ -100,6 +108,12 @@ static partial class Stand
 			.. WebTimestamps(),
 			.. WebAddresses(),
 			.. WebMediaTypes(),
+
+			// RFC 6265 and RFC 6901: read by the generated parser alone, as the structured fields are.
+			WebGenerated("cookie.full", CookieFull, static text => SetCookie.TryParse(text, out _)),
+			WebGenerated("cookie.short", CookieShort, static text => SetCookie.TryParse(text, out _)),
+			WebGenerated("pointer.full", PointerFull, static text => JsonPointer.TryParse(text, out _)),
+			WebGenerated("pointer.short", PointerShort, static text => JsonPointer.TryParse(text, out _)),
 
 			// RFC 9651: a small language of its own with nested lists and parameters; N/A.
 			WebGenerated("sf.item", "42;unit=\"s\";exact=?1", static text => StructuredField.TryParseItem(text, out _)),

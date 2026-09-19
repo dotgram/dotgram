@@ -742,6 +742,19 @@ static partial class Stand
 		/// <summary>UriReference.TryParse(string, out UriReference) of this side, by reflection: whether it read the text.</summary>
 		public Func<int> WebUrl(string text) => WebTryParse(_uri, "UriReference", text);
 
+		/// <summary>
+		/// <c>DotGram.Web.{type}.{method}(string, out ...)</c> of this side, by reflection: whether it read the text.
+		/// </summary>
+		public Func<int> WebTry(string type, string method, string text)
+		{
+			var owner = (_uri ?? throw new InvalidOperationException("The side has no DotGram.Web.dll")).Assembly.GetType("DotGram.Web." + type)
+				?? throw new InvalidOperationException($"DotGram.Web.{type} not found");
+			var call = owner.GetMethods()
+				.First(one => one.Name == method && one.GetParameters() is [{ ParameterType.Name: "String" }, { IsOut: true }]);
+
+			return () => (bool)call.Invoke(null, [text, null])! ? 1 : 0;
+		}
+
 		/// <summary>JsonValue.TryParse(string, out JsonValue) of this side, by reflection: whether it read the text.</summary>
 		public Func<int> WebJson(string text) => WebTryParse(_json, "JsonValue", text);
 
@@ -911,6 +924,7 @@ static partial class Stand
 			.. (before.HasStock && after.HasStock ? PairedFeeds(before, after) : []),
 
 			.. (before.HasWeb && after.HasWeb ? PairedWeb(before, after) : []),
+			.. (before.HasWeb && after.HasWeb ? PairedWebParsers(before, after) : []),
 
 			// The document grammar of the benchmarks project: the one grammar that is neither a library's nor an example's.
 			.. (before.HasConfig && after.HasConfig ? PairedConfig(before, after) : []),
