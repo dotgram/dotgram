@@ -605,6 +605,20 @@ two capture rows as two grammars, not as one grammar with and without strings.
 Microsoft's own corpus of eleven hundred `.sql` files. There are two harnesses because
 there are two questions.
 
+### The stand's rows, 2026-09-18 (default tiered PGO)
+
+The stand times five statements of different shapes (`tsql/*`, `StandTsql.cs`) against ScriptDom
+in the same process, the tree of one statement each, median of five runs: the generated parser
+takes **0.28-0.55x** of ScriptDom's time (1.8-3.6x faster), 0.42-0.67x with positions
+(`located`, the one to hold against it), and allocates **2.4-13.2 KB a statement against 48.5-138
+KB**. Under `DOTNET_TieredPGO=0` ScriptDom is 60-85% slower and the generated parser 8-20%, so
+the ratio widens to 0.21-0.32x; every figure here is with the default. The rows, the spreads
+and the twin are in [docs/design/stand-2026-09-18b.md](../docs/design/stand-2026-09-18b.md).
+
+The two tables below are the corpus-wide measurements, taken before this week's changes (the
+silent reading of a refusal, the lookahead fix, the SQL:2023 split); they have not been taken
+again and are kept as the record of that day.
+
 ### The number to quote
 
 `ScriptDomBenchmarks` is BenchmarkDotNet: one case per process, warmed and iterated until
