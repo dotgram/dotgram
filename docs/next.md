@@ -24247,3 +24247,20 @@ the language. `TSqlPrimaryCore`'s 40 stand.
 
 So of the three, one is the language, one is the analysis's, and one is a trade-off we have not
 taken. The entry above that closed the grammar question closed it too early.
+
+## What a refusal cost when nobody asked what it said
+
+Every bool TryParse of DotGram.Web read its text, and on a refusal read it again to build the
+message the caller had not asked for. The generator's `bool TryParseR(input, out value)` reads
+once and says nothing, and b9634ea3 put the package's thirty-one public wrappers and its seven
+internal "only whether" callers on it.
+
+The stand, paired, medians of five:
+
+- url.refused 612 to 250 ns and 152 to 64 bytes, which is 8.71 to 3.56 times the hand parser;
+- date-time.refused 89 to 50 ns, 128 to 96 bytes, and 1.61 to 0.90 times the hand parser, so
+  the generated refusal is now the faster of the two;
+- media-type 170 to 91, an address 148 to 73, a language tag 336 to 149 ns.
+
+The accepted rows, which were the control, are flat or better: date-time between -17 and -26
+per cent (the span captures of 4f4d4d37 are in that too), the rest within a few per cent.
