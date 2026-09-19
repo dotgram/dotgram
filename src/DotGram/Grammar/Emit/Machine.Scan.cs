@@ -1018,8 +1018,8 @@ sealed partial class Machine
 
 			// A run that stops only at one of a few characters is a search for them, as the
 			// engine's and the reader's are (Machine.EmitSearch): a field's value in FIX, a
-			// string's body. Not where the scanner has to say that it ran into the end.
-			if (max is null && !starves && stops?.Invoke(body) is { } stop)
+			// string's body.
+			if (max is null && stops?.Invoke(body) is { } stop)
 			{
 				var from  = $"from{_labels}";
 				var found = $"found{_labels++}";
@@ -1034,6 +1034,8 @@ sealed partial class Machine
 						<= 3 => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p), {string.Join(", ", stop.Select(CSharpEmitter.Char))});",
 						_    => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p), global::System.MemoryExtensions.AsSpan({CSharpEmitter.Quoted(new string(stop))}));",
 					}));
+				// Where the scanner has to say that it ran into the end, it says so as the loop did:
+				// a search that finds nothing stops at the end, and the loop raised nothing else.
 				code.Line($"p = {found} < 0 ? text.Length : p + {found};");
 
 				if (min > 0)

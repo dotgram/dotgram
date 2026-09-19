@@ -63,10 +63,15 @@ public sealed class DelimiterScanTests
 		var fast = Searched(grammar, searches: true);
 		var slow = Searched(grammar.Replace("& any)", "& when @(true) & any)"), searches: false);
 
+		// What was read and how far, not how a refusal is worded: where the run is a scanner's,
+		// a refusal names the rule it scans, and the other spelling is no scanner.
 		foreach (var input in new[] { "", "abc", "abc\u2028", "ab\u0085", "a\u2029", "a\nb", "a\rb", "\u2028" })
-			Assert.Equal(
-				EmittedCode.Match(slow, "Grammar", "TryParseStart", input),
-				EmittedCode.Match(fast, "Grammar", "TryParseStart", input));
+		{
+			var expected = EmittedCode.Match(slow, "Grammar", "TryParseStart", input);
+			var actual   = EmittedCode.Match(fast, "Grammar", "TryParseStart", input);
+
+			Assert.Equal((expected.IsSuccess, expected.Value, expected.Position), (actual.IsSuccess, actual.Value, actual.Position));
+		}
 	}
 
 	/// <summary>

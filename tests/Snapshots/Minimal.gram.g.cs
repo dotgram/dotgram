@@ -4187,14 +4187,8 @@ namespace DotGram.Snapshots
 			if (text.Length - p < 2 || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("//")))
 				goto L1_done;
 			p += 2;
-			L6_turn:
-			if ((uint)p >= (uint)text.Length) goto L7_done;
-			c = text[p];
-			if (!(!(c == '\n'))) goto L7_done;
-			p++;
-			goto L6_turn;
-			L7_done:
-			;
+			var found6 = global::System.MemoryExtensions.IndexOf(text.Slice(p), '\n');
+			p = found6 < 0 ? text.Length : p + found6;
 			goto L0_turn;
 			L1_done:
 			;
