@@ -880,6 +880,18 @@ before a cause is named: StockCount's rejection path (known, performance-ff); th
 112x the hand parser at 1,000 predicates, where T-SQL's is linear; sql-39); a JSON object
 (generated 1.36, and the hand parser 1.65 — worse than the generated, while System.Text.Json is
 linear; finance-24). The family runs with every baseline from now on.
+**SQL:2023's search condition, diagnosed (sql-39, a reproduction and dotTrace):** the generator,
+not the grammar. Even `a0 + a1 + …` alone is quadratic (exponent 1.98). The towers' guard over a
+gathered list — `first: Operand & rest: Operated* & when @(Towers.Common(first, rest))`, six such
+places — has the reader materialize `rest` element by element, each from the mark of the whole
+rule, walking the rule's whole log, and each clearing the live table over every record: n
+elements times O(n). T-SQL has no guard over a gathered list there and is linear; no grammar
+form avoids it, since a fold with a guard per step materializes from the rule's mark too.
+Decided: the materialization for a guard over a gathered list costs O(the list) in total —
+one walk for all its roots, or each from its own record, performance-ff's choice — and the
+live table is cleared over the range the walk uses only. performance-ff, after `LineAt` and
+before C3; the reproduction becomes a linearity test in the slow project; the stand pairs the
+SQL rows and a 1,000-predicate search condition against the hand parser's 553 µs.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
