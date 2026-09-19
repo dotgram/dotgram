@@ -715,6 +715,14 @@ already hold 100 inputs where the reader and the engine disagree — the expecte
 trailing character. Rule: the engine is the reference reading unless shown wrong; a disagreement
 in the position of a refusal is a correctness defect and goes before C2, one in the wording
 only goes after it.
+Answered: none of the hundred differ in position or outcome; all are wording (58 the same
+one — the reader names the trivia class where the engine names the literal, or splits a class,
+or says "Expected X" for "Input does not match 'Start'"), and they go after C2. The helper is
+written only inside the refusal branch, and the run's walk only where the whole run failed;
+a count from the generated FixGrammar confirms it before C1 goes in. Found on the rebase: with
+comments now read through the search, C1 wrote U+0085/U+2028/U+2029 raw into a C# literal,
+where C# reads them as line breaks — spelled through the emitter's character escaping now, a
+test in `DelimiterScanTests`.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
