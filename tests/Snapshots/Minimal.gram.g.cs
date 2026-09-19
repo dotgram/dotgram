@@ -6200,7 +6200,11 @@ namespace DotGram.Snapshots
 			internal int RefsCount;
 
 			/// <summary>Where the record being written begins, and which record it is.</summary>
-			int _record;
+			/// <remarks>
+			/// Once it is closed, where the last one begins: a guard asking for the record it just
+			/// captured is handed its place without a walk of the log to find it.
+			/// </remarks>
+			internal int Opened;
 			int _number;
 
 			[global::System.ThreadStatic]
@@ -6344,7 +6348,7 @@ namespace DotGram.Snapshots
 				if (LogCount + 2 > Log.Length)
 					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
 
-				_record = LogCount;
+				Opened = LogCount;
 				_number = Records++;
 				Log[LogCount++] = 0;
 				Log[LogCount++] = arm;
@@ -6356,7 +6360,7 @@ namespace DotGram.Snapshots
 				if (LogCount + 4 > Log.Length)
 					global::System.Array.Resize(ref Log, Log.Length * 2 + 4);
 
-				_record = LogCount;
+				Opened = LogCount;
 				_number = Records++;
 				Log[LogCount++] = 0;
 				Log[LogCount++] = arm;
@@ -6387,7 +6391,7 @@ namespace DotGram.Snapshots
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void End(int refs)
 			{
-				Log[_record] = LogCount - _record;
+				Log[Opened] = LogCount - Opened;
 				Last         = _number;
 				RefsCount    = refs;
 			}
@@ -6400,8 +6404,8 @@ namespace DotGram.Snapshots
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void EndAt(int refs)
 			{
-				Log[_record] = LogCount - _record;
-				Last         = _record;
+				Log[Opened] = LogCount - Opened;
+				Last         = Opened;
 				RefsCount    = refs;
 			}
 

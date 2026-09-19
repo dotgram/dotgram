@@ -776,6 +776,44 @@ sealed partial class Machine
 			// divided, and where it holds enough of them that their locals are a frame worth zeroing.
 			var alone = parts.Count > 1 || parts[0].Count >= AloneArms;
 
+			// Which arm builds the record at `at`, into `slot`: the loop's, and the one-record path's.
+			void Dispatch()
+			{
+				using (file.Block("switch (log[at + 1])"))
+				{
+					// Recovered elements first and in the walk itself: their arms are few and
+					// short, and a divided walk's parts are the rules'.
+					foreach (var read in _recoveryReads.Values)
+						if (_recoveryArms.ContainsKey(read.Plan.Id))
+							MaterializeRecoveryArm(file, read.Plan);
+
+					if (parts.Count == 1)
+					{
+						foreach (var (rule, factory) in parts[0])
+							if (alone)
+								CallDirectArm(file, rule, factory, placed);
+							else
+								MaterializeDirectArm(file, rule, factory);
+					}
+					else
+					{
+						for (var part = 0; part < parts.Count; part++)
+						{
+							foreach (var (rule, factory) in parts[part])
+								file.Line($"case {DirectArm(rule, factory)}:");
+
+							using (file.Indent())
+							{
+								file.Line(
+									$"{DirectMaterializer}_Part{part}(text, log[at + 1], read, slot" +
+									(placed ? ", start, end" : "") + ");");
+								file.Line("break;");
+							}
+						}
+					}
+				}
+			}
+
 			// Only what this walk reads is cleared: a guard walks from its own rule's mark, and
 			// clearing from the start of the log each time was a pass over every record before it.
 			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")}, from: first);");
@@ -799,6 +837,55 @@ sealed partial class Machine
 				// A record above the watermark was written since anything was built: whatever
 				// its flag says is about a record that was put back with the log.
 				file.Line("global::System.Array.Clear(built, ways.Built, ways.Records - ways.Built);");
+
+				// A guard asking for the record it has just captured, all of whose children were
+				// built for guards before it — the usual case, a guard at every level of a tower:
+				// the record is built where it stands, without listing the log from the rule's
+				// mark and marking what it reaches. That every record since the mark is built says
+				// its children are, the children of a record being written before it and after
+				// the mark. Where one is not, or marks stand over the walk, it walks.
+				if (alone && strays && !UsesMarks && _recoveryReads.Count == 0)
+				{
+					file.Line();
+					file.Line("if (roots < 0 && root >= first && root < ways.Records && built[root])");
+					using (file.Block(""))
+					{
+						file.Line("ways.Built = ways.Records;");
+						file.Line("return;");
+					}
+
+					file.Line("if (roots < 0 && root >= first && root == ways.Records - 1 &&");
+					file.Then("global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, first, root - first), false) < 0)");
+
+					using (file.Block(""))
+					{
+						file.Line("var at    = ways.Opened;");
+						file.Line("var slot  = root;");
+						if (placed)
+						{
+							file.Line("var start = log[at + 2];");
+							file.Line("var end   = log[at + 3];");
+						}
+						file.Line($"var read  = at + {(placed ? 4 : 2)};");
+						file.Line();
+						file.Line("built[slot] = true;");
+						file.Line();
+						// Divided, the parts are asked in turn, each answering whether the kind was
+						// one of its own: the walk's own switch written twice was past the JIT's budget.
+						if (parts.Count > 1)
+							for (var part = 0; part < parts.Count; part++)
+								file.Line(
+									(part < parts.Count - 1 ? "if (!" : "	") +
+									$"{DirectMaterializer}_Part{part}(text, log[at + 1], read, slot" +
+									(placed ? ", start, end" : "") + (part < parts.Count - 1 ? "))" : ");"));
+						else
+							Dispatch();
+
+						file.Line();
+						file.Line("ways.Built = ways.Records;");
+						file.Line("return;");
+					}
+				}
 			}
 
 			file.Line();
@@ -966,39 +1053,7 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				using (file.Block("switch (log[at + 1])"))
-				{
-					// Recovered elements first and in the walk itself: their arms are few and
-					// short, and a divided walk's parts are the rules'.
-					foreach (var read in _recoveryReads.Values)
-						if (_recoveryArms.ContainsKey(read.Plan.Id))
-							MaterializeRecoveryArm(file, read.Plan);
-
-					if (parts.Count == 1)
-					{
-						foreach (var (rule, factory) in parts[0])
-							if (alone)
-								CallDirectArm(file, rule, factory, placed);
-							else
-								MaterializeDirectArm(file, rule, factory);
-					}
-					else
-					{
-						for (var part = 0; part < parts.Count; part++)
-						{
-							foreach (var (rule, factory) in parts[part])
-								file.Line($"case {DirectArm(rule, factory)}:");
-
-							using (file.Indent())
-							{
-								file.Line(
-									$"{DirectMaterializer}_Part{part}(text, log[at + 1], read, slot" +
-									(placed ? ", start, end" : "") + ");");
-								file.Line("break;");
-							}
-						}
-					}
-				}
+				Dispatch();
 			}
 
 			if (twice)
@@ -1024,7 +1079,7 @@ sealed partial class Machine
 					file.Line();
 
 					using (file.Block(
-						$"void {DirectMaterializer}_Part{part}(" +
+						$"bool {DirectMaterializer}_Part{part}(" +
 						$"{InputType} text, int kind, int read, int slot" +
 						(placed ? ", int start, int end" : "") + ")"))
 					{
@@ -1034,8 +1089,15 @@ sealed partial class Machine
 						// that was the locals of all of them, some ten kilobytes, for a record
 						// that runs one (SQL:2023's select20: 32 of its 71 µs).
 						using (file.Block("switch (kind)"))
+						{
 							foreach (var (rule, factory) in parts[part])
 								CallDirectArm(file, rule, factory, placed);
+
+							file.Line("default: return false;");
+						}
+
+						file.Line();
+						file.Line("return true;");
 					}
 
 					foreach (var (rule, factory) in parts[part])
