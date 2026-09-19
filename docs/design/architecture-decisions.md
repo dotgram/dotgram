@@ -1131,6 +1131,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   source without re-verifying the combination — a slip, reported, main verified after. Step 2 read
   +2..+12% on FIX with no lines to count: a turn should only record where it may release, the work
   done in the fill when the buffer needs room; profiled before its pair.
+  **Why FIX over a stream is still 2.2-2.6x (2026-09-19):** FIX's public stream API returns an
+  enumeration through the `yield` form, which still reads a field at a time the old way; all of
+  C2-C4c went to the whole-stream form, 57 ns a field, which the public API does not use. **Igor:
+  the `yield` form on the reader next for FIX**, after C4c's second step and before the log form —
+  performance-ff, with expr's driver and step-5 patch, a design first; expected 55-60 ns a field.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
