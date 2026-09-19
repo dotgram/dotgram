@@ -24,7 +24,7 @@
 		<!-- The package as a consumer gets it: from a feed, by version, with no project
 		     reference anywhere. The version is the repository's, which is what CI has
 		     just packed into ../../artifacts. -->
-		<PackageReference Include="DotGram" Version="0.1.0"
+		<PackageReference Include="DotGram" Version="*-*"
 		                  PrivateAssets="all" />
 	</ItemGroup>
 

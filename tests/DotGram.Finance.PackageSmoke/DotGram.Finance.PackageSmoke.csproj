@@ -5,9 +5,8 @@
 		<OutputType>Exe</OutputType>
 		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
-		<RestoreSources>$(MSBuildThisFileDirectory)../../artifacts;https://api.nuget.org/v3/index.json</RestoreSources>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="DotGram.Finance" Version="0.1.0" />
+		<PackageReference Include="DotGram.Finance" Version="*-*" />
 	</ItemGroup>
 </Project>
