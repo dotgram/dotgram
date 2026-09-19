@@ -1460,6 +1460,12 @@ same day; each comes back to the architect as a report, with no code changed.
    and EL records unchanged line for line; seven generated files change; Fix44's 1,770 inline
    searches are one searching scanner called from 1,764 places. The hoist follows, measured by
    the diff of `carriers.md`; one stand run pairs FIX, EL and Web for both.
+   It landed without its generation gate, which is now run together with the hoist's. The hoist
+   (`ed567e40`, held): `SettingsFile` loses its trivia way, and what holds it now is sql-39's
+   reader classes; the Unicode-category seams keep theirs, since their extent is not known and
+   nothing is assumed. Held for one more reason: two engine refusals lose an expected item
+   ("Expected eof or 'b'" becomes "Expected eof" where another item could begin) — an equivalent
+   rewrite must not narrow what a refusal names, so the engine's door is fixed first.
    The scanner's search landed `45155db6` (performance-ff): it already fires in the SQL grammars'
    line comments and two examples; expr's analysis is unblocked, and FIX's `IndexOf` stays with it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
