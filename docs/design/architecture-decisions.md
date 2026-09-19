@@ -989,7 +989,9 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   Simpler than designed: the carrier's choice keeps a machine on the tape wherever any rule opens a
   way, and with sql-39's exclusive choice extended to a called `eof` FIX's field opens none, so FIX
   passes the existing gate unchanged; C4b is only the recovery scenario admitted, the broken
-  element built on the spot and the gathered stack. The expectation is restated before the pair.
+  element built on the spot and the gathered stack. The expectation, restated before the pair:
+  38-46 ns a field on the string form — below the hand parser's 51, near the target's 36 — and the
+  first call about 72-75 methods; the pair's base is main with sql-39's commits and without C4b.
   FIX's log form keeps two ways and the tape, a later item. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
 - C4c: release before each turn in the whole-stream form, where nothing holds a position across
