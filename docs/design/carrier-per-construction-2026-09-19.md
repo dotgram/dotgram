@@ -109,6 +109,32 @@ before any code (§5, step 1).
 
 ## 4a. Step 1's answer: the dynamic share
 
+**How to take the count again.** Nothing of this is committed, and the numbers below are only
+worth what the recipe is, so here it is whole. Four things, an hour at most.
+
+1. **Which rules are in a settled subtree.** In the generator, from
+   `Commit.Of(graph, Replay.Of(graph))`: a rule qualifies when every construction of it has a
+   point of `Commit.Kind.Rule`, and every call it makes that builds something names a rule that
+   qualifies. That is a fixpoint over the call graph, seeded with the rules whose constructions
+   all have `Kind.Rule` points and that build through no call. Write the set out of the generator
+   as a list of rule names beside the generated file — the report file (`*.DotGramReport.g.cs`)
+   is where such a list belongs.
+2. **A counter an arm.** `MaterializeDirectArm` (`Machine.Direct.Values.cs`) writes one `case` a
+   rule of the walk. Emit a line at the top of each — `Probe.Built[<n>]++;`, `<n>` the arm's
+   number — into a static array of a class added to `DotGram.Sql` for the run. Both callers of
+   the walk are then counted: the walk after the parse and the walk a guard asks for, since both
+   reach the same arms. Build `DotGram.Sql` alone, with `-nodeReuse:false -p:UseSharedCompilation=false`.
+3. **The corpus, cut as the stand cuts it.** As `ScriptDomBenchmarks.Setup` does it: every `*.sql`
+   of `tests/Corpus`, parsed by ScriptDom with the version its file names, each statement taken
+   out by `statement.StartOffset` and `statement.FragmentLength` and trimmed at the end, and kept
+   only where `TransactSqlParser.TryParseStatement` reads it. That is 7,716 statements. For
+   SQL:2023 the same statements are offered to its query, insert, update, delete and merge
+   entries, and 334 of them read: a thin corpus, and its counts include what a guard built inside
+   an entry that then refused.
+4. **The share.** Sum the counters of the arms whose rules are in the set of (1), over the sum of
+   all of them.
+
+
 Step 1 below has been taken, with a local build of DotGram.Sql and nothing committed. Each arm of
 the materializer counted the records it built, whether in the walk after the parse or for a
 guard during it. The corpus was the 7,716 ScriptDom statements the stand times T-SQL over, cut
