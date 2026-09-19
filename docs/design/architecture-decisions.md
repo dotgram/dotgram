@@ -1806,6 +1806,11 @@ same day; each comes back to the architect as a report, with no code changed.
    their fields and the walk takes none, and EL's single materializer gets arm methods. Rough:
    twenty selects 44.5 to 30.8 µs — 90 to 31 from where the anatomy started, against an expected
    20; EL -12..-21%. The bool `TryParse` is written with §6 as approved (`dba87a9e`, held).
+   The guard's direct path (`dafc5698`, held): where the guard's root is the last record opened and
+   everything since the rule's mark is built, the walk builds that one record and returns. Rough:
+   twenty selects 39 to 24 µs — the anatomy's 90 on this machine to about 24, the rest being
+   recognition (sql-39's kind table). A first version duplicated the walk's switch and pushed
+   T-SQL's and SQL:2023's walks past the JIT's budget; it never ran.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
