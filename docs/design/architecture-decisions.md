@@ -963,6 +963,14 @@ guards too — a map from record to slot and values in arrays as long as what wa
 rewound by dropping the slots above the mark — and the drop threshold per table, not in total;
 the store costs what is written, not records times tables. sql-39 (the store is his from D2);
 accepted when time and allocation both have an exponent of 1.1 or less.
+**Measured (stand, window 14), not accepted as it is:** 100 and 1,000 predicates -76% and -80%,
+21 MB to 162 KB and 168 MB to 1.6 MB a call, generation unchanged — but every EL row on the tape
++10..+23% and the short SQL rows +9..+42% (a column +42%, one select +20%), the long ones flat: a
+fixed cost per parse on small inputs, which are most of what people parse. The criterion is
+both at once: small inputs within their spread and large ones linear. First the row mix is ruled
+out (EL and short SQL alone, a PGO=0 twin); if it holds, the fixed cost is found by profile and
+removed, or the store becomes adaptive (sparse up to a record count, dense past it, or dense only
+for machines with a guard over a gathered list).
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
@@ -1472,6 +1480,8 @@ same day; each comes back to the architect as a report, with no code changed.
    "Input does not match" becoming "Expected '+'" in a fold), and the renderings' wording
    disagreements fall from 88 to 30. With it the hoist (`7c475a28`) changes no line of the refusal
    record. Both wait for the stand: the engine rows' pair and the generation gates.
+   The analysis `7e13fe68` paired: FIX's string rows -5.5..-7.4%, bytes flat, EL and Web flat,
+   allocation identical.
    The scanner's search landed `45155db6` (performance-ff): it already fires in the SQL grammars'
    line comments and two examples; expr's analysis is unblocked, and FIX's `IndexOf` stays with it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
