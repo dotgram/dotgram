@@ -897,8 +897,12 @@ filled by `Interlocked.CompareExchange`, so that one instance per set survives â
 tells sets apart by reference. Snapshots differ only in those declarations; the compatibility
 project builds at C# 8; generation of DotGram.Sql no worse (four hosts 14-16 s either way),
 files +5%. sql-39's own figure, loaded cores: the initializer 84 to 10 ms, a first literal parse
-about 26 ms against 35 before the split. The stand's paired first-call figures for SQL, FIX and
-EL are the record.
+about 26 ms against 35 before the split. **The stand's record (paired, medians of five, five
+fresh processes):** first call SQL literal 79 to 16 ms (-80%), one select 127 to 65 (-49%), twenty
+131 to 68 (-49%); EL -4..-16%; FIX unchanged at 7.5 ms (its initializer was small; the hand
+parser's first call 5.0 ms). Steady state within 2.6% everywhere, allocation identical. The split
+is now a net gain on the first call too; FIX's first-call gap to the hand parser is 2.5 ms and
+lies elsewhere than the type initializer.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so

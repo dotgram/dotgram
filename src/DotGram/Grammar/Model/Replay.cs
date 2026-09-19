@@ -100,14 +100,17 @@ public static class Replay
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
-		var found = new Dictionary<RuleSymbol, Because>();
+		var found  = new Dictionary<RuleSymbol, Because>();
+		var follow = FollowSets.Of(graph);
 
 		foreach (var rule in graph.Rules)
 			found[rule] = Because.Stands;
 
 		foreach (var rule in graph.Rules)
 			if (graph.Bodies.TryGetValue(rule, out var body))
-				Walk(body, Because.Stands, elsewhere: false, graph, found);
+				Walk(
+					body, Because.Stands, elsewhere: false,
+					follow.TryGetValue(rule, out var after) ? after.Plain : FirstSets.First.All, graph, found);
 
 		Spread(graph, found);
 
@@ -117,10 +120,12 @@ public static class Replay
 	/// <summary>
 	/// One body, with what is already known about the reading it stands in: <see
 	/// cref="Because.Stands"/> while nothing can take it back, and the reason once
-	/// something can.
+	/// something can. <paramref name="after"/> is what can come right after the node: the
+	/// rest of the sequence around it, and past a rest that may read nothing, what comes
+	/// after that, up to the rule's follow.
 	/// </summary>
 	static void Walk(
-		Node node, Because taken, bool elsewhere, RecognitionGraph graph,
+		Node node, Because taken, bool elsewhere, FirstSets.First after, RecognitionGraph graph,
 		Dictionary<RuleSymbol, Because> found)
 	{
 		switch (node)
@@ -130,26 +135,32 @@ public static class Replay
 					found[called] = taken;
 
 				foreach (var argument in arguments)
-					Walk(argument, taken, elsewhere, graph, found);
+					Walk(argument, taken, elsewhere, FirstSets.First.All, graph, found);
 
 				break;
 
 			case Node.Sequence(var parts):
 				// A part is put back when anything after it fails, because the sequence
-				// fails with it and the position goes back to where the sequence began.
+				// fails with it and the position goes back to where the sequence began. What
+				// that says is added to what is known from outside, not only where nothing was:
+				// a reading the whole parse would lose may still be replaced here, inside a
+				// turn that gives it up and lets the parse go on.
 				for (var i = 0; i < parts.Count; i++)
 				{
-					var after = taken;
+					var put = taken;
 
-					for (var j = i + 1; j < parts.Count && after == Because.Stands; j++)
+					for (var j = i + 1; j < parts.Count; j++)
 						if (CanFail(parts[j], graph))
 						{
-							after = elsewhere ? Because.Follows : Because.Losing;
+							var here = elsewhere ? Because.Follows : Because.Losing;
+
+							if (Weaker(put, here))
+								put = here;
 
 							break;
 						}
 
-					Walk(parts[i], after, elsewhere, graph, found);
+					Walk(parts[i], put, elsewhere, Next(parts, i + 1, after, graph), graph, found);
 				}
 
 				break;
@@ -157,93 +168,124 @@ public static class Replay
 			case Node.Choice(var alternatives):
 				// A call inside an alternative stood unless something after it in that same
 				// alternative failed, which the sequence above is what says. What the choice
-				// adds is somewhere for such a failure to go: every alternative but the last
-				// has one behind it, and a reading put back there is replaced, not lost —
-				// unless the first token tells the alternatives apart, and then the one that
-				// began is the only one that could have, and no sibling replaces it.
-				var apart = Exclusive(alternatives, graph);
-
+				// adds is somewhere for such a failure to go: an alternative after this one that
+				// can begin where it began. A reading put back there is replaced, not lost.
+				// Where no later alternative can, the choice fails with this one, and what that
+				// means is the answer of whatever holds the choice — `elsewhere` from above.
 				for (var i = 0; i < alternatives.Count; i++)
 					Walk(
-						alternatives[i], taken, elsewhere || !apart && i + 1 < alternatives.Count,
-						graph, found);
+						alternatives[i], taken, elsewhere || Replaced(alternatives, i, after, graph),
+						after, graph, found);
 
 				break;
 
 			case Node.Repeat(var body, _, _):
+			{
 				// A turn that fails is put back, but what stood inside it before the failure
 				// is what the sequence above already answers. What a repetition adds of its
-				// own is that such a failure ends the repetition and the parse goes on, so a
-				// reading lost inside a turn is replaced and not merely lost. Giving back a turn
-				// that succeeded is the tape's way back: see the note on Because.Turn.
-				Walk(body, taken, elsewhere: true, graph, found);
+				// own is that such a failure ends the repetition and the parse goes on with what
+				// follows it, which replaces the turn's reading where it can begin where the
+				// turn began. Where it cannot, the parse fails there, and that is the answer of
+				// whatever holds the repetition. Giving back a turn that succeeded is the tape's
+				// way back: see the note on Because.Turn.
+				var stops = Begins(body, after, graph) is not { } begins || !after.IsKnown || begins.Overlaps(after);
+
+				Walk(body, taken, elsewhere || stops, after, graph, found);
 
 				break;
+			}
 
 			case Node.Lookahead(_, var body):
-				Walk(body, Worse(taken, Because.Lookahead), elsewhere: true, graph, found);
+				Walk(body, Worse(taken, Because.Lookahead), elsewhere: true, FirstSets.First.All, graph, found);
 
 				break;
 
 			case Node.Atomic(var body):
-				Walk(body, taken, elsewhere, graph, found);
+				Walk(body, taken, elsewhere, after, graph, found);
 
 				break;
 
 			case Node.Capture(_, var body):
-				Walk(body, taken, elsewhere, graph, found);
+				Walk(body, taken, elsewhere, after, graph, found);
 
 				break;
 
 			case Node.Marked(var body, _):
-				Walk(body, taken, elsewhere, graph, found);
+				Walk(body, taken, elsewhere, after, graph, found);
 
 				break;
 
 			case Node.Construct(var body, _):
-				Walk(body, taken, elsewhere, graph, found);
+				Walk(body, taken, elsewhere, after, graph, found);
 
 				break;
 		}
 	}
 
 	/// <summary>
-	/// Whether at most one of these alternatives can begin where the choice stands: none
-	/// of them matches nothing, and no two of them begin with the same token.
+	/// Whether an alternative that fails after it began can be replaced by one tried after
+	/// it: whether some later alternative can begin with a token this one begins with.
 	/// </summary>
 	/// <remarks>
-	/// Where that holds, an alternative that failed cannot be replaced by a sibling: the
-	/// sibling would refuse at the very first token. The reading is still put back, but
-	/// nothing takes its place and the parse fails — which is <see cref="Because.Losing"/>
-	/// and not <see cref="Because.Follows"/>. This is the same fact the emitter asks
-	/// before it writes a choice as a switch, asked of the graph rather than of the
-	/// reader, so a report of it stands before anything is emitted.
+	/// <para>
+	/// An ordered choice tries the alternatives after the one that failed, and only those.
+	/// Where none of them can begin where this one began, each refuses at the first token,
+	/// nothing takes this one's place, and the choice fails with it; its reading is then
+	/// replaced only if something holding the choice replaces it, which is <c>elsewhere</c>
+	/// and not this. The same fact the emitter asks before it writes a choice as a switch,
+	/// asked of each alternative rather than of the choice as a whole: <c>COUNT(*)</c> may
+	/// share its first word with the general aggregate after it, and the general aggregate
+	/// with nothing after that.
+	/// </para>
+	/// <para>
+	/// What an alternative can begin with is its first set, and where it may read nothing,
+	/// whatever can follow the choice as well; so a later alternative that may read nothing
+	/// can begin with anything that follows. What is not settled counts as overlapping.
+	/// </para>
 	/// </remarks>
-	static bool Exclusive(IReadOnlyList<Node> alternatives, RecognitionGraph graph)
+	static bool Replaced(IReadOnlyList<Node> alternatives, int at, FirstSets.First after, RecognitionGraph graph)
 	{
-		if (alternatives.Count < 2)
+		if (at + 1 >= alternatives.Count)
+			return false;
+
+		if (Begins(alternatives[at], after, graph) is not { } begins)
 			return true;
 
-		var firsts = new FirstSets.First[alternatives.Count];
+		for (var later = at + 1; later < alternatives.Count; later++)
+			if (Begins(alternatives[later], after, graph) is not { } other || begins.Overlaps(other))
+				return true;
 
-		for (var i = 0; i < alternatives.Count; i++)
-		{
-			// One that matches nothing can stand in for any of the others.
-			if (FirstSets.Nullable(alternatives[i], graph))
-				return false;
+		return false;
+	}
 
-			firsts[i] = FirstSets.Of(alternatives[i], graph);
+	/// <summary>
+	/// What a node can begin with where <paramref name="after"/> follows it: its first set,
+	/// and <paramref name="after"/> too where it may read nothing. Null where that is not
+	/// settled.
+	/// </summary>
+	static FirstSets.First? Begins(Node node, FirstSets.First after, RecognitionGraph graph)
+	{
+		var first = FirstSets.Of(node, graph);
 
-			if (!firsts[i].IsKnown)
-				return false;
-		}
+		if (FirstSets.Nullable(node, graph))
+			first = first.Or(after);
 
-		for (var i = 0; i < firsts.Length; i++)
-			for (var j = i + 1; j < firsts.Length; j++)
-				if (firsts[i].Overlaps(firsts[j]))
-					return false;
+		return first.IsKnown ? first : null;
+	}
 
-		return true;
+	/// <summary>
+	/// What can come after the parts before <paramref name="from"/>: the rest of the sequence,
+	/// and past a rest that may read nothing, what follows the sequence.
+	/// </summary>
+	static FirstSets.First Next(IReadOnlyList<Node> parts, int from, FirstSets.First after, RecognitionGraph graph)
+	{
+		var rest = FirstSets.Following(parts, from, graph);
+
+		for (var i = from; i < parts.Count; i++)
+			if (!FirstSets.Nullable(parts[i], graph))
+				return rest;
+
+		return rest.Or(after);
 	}
 
 	/// <summary>The reason already known, or the new one where nothing was known.</summary>

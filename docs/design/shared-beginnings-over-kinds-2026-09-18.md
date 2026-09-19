@@ -76,9 +76,11 @@ follows the repetition. Where what follows cannot begin with the turn's first to
 on to fail too, and the reading is `Losing`. `CycleClause`'s `("TO" & v: ValueNode & "DEFAULT"
 & d: ValueNode)?` is followed by `USING`, which `TO` is not.
 
-Effect with A: 43 causes; the closure of what they hold shrinks by about a third (the scratch
-tool's own measure, 548 → 345; it is wider than `Replay`'s count, so the ratio is the figure
-to read, not the size). `CycleClause` and `SampleClause` leave the cycle.
+Effect with A: 43 causes. `CycleClause` and `SampleClause` leave the cycle. What the rules held
+under the causes do is another matter: the scratch tool's closure (548 → 345) was wider than
+`Replay`'s own count and overstated it. Landed (see §7), `GRAM5012` moves from 331 to 327 building
+rules on SQL:2023 and not at all on SQL-92 — the cycle is still held, as §1 says it would be
+until its last cause goes.
 
 B does not touch `Because.Turn` — a turn that *succeeded* being given back — which is the
 reader's and stays unanswered by the graph, as today.
@@ -155,6 +157,24 @@ the hand parser in the same commit (D1).
 Each step is counted with the scratch tool (`Replay` per rule, the causes, the cycle) before
 and after. The tool goes to `.work/` with its recipe in `docs/development.md` when the first
 step lands.
+
+## 7. A and B as landed
+
+`Replay.Walk` carries what follows each node (the rest of the sequence, and past a rest that may
+read nothing, the enclosing follow up to the rule's). A choice asks of each alternative whether a
+later one can begin where it began (`Replaced`), a nullable one beginning with what follows; a
+repetition asks whether what follows can begin where a turn did. What holds either still answers
+for it (`elsewhere`), so a failure the choice cannot replace is the enclosing context's, not
+`Losing` outright.
+
+Landing it found a defect that was already there: a sequence worked out why a part may be put
+back only while nothing was known from outside, so inside a turn of a reading the whole parse
+would lose (`Losing`), a part that a failed turn gives up and the parse then goes on without was
+left `Losing` and not `Follows` — which says a carrier may build it where it reads, when a
+successful parse throws that reading away. The reason from inside is now added to the one from
+outside. `ReplayTests` holds both refinements and the defect side by side; no grammar in the
+solution changes carrier or emitted text, SQL:2023's count moves 331 → 327, and generation time
+is no worse (the solution's 109 grammars 36.9 s → 33.9 s, DotGram.Sql 17.1 → 16.1).
 
 ## Appendix: the 43 causes after A and B, over kinds
 
