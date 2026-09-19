@@ -302,6 +302,13 @@ static partial class Stand
 				FixSlopeText(n),
 				(n, 0))),
 
+			// The same fields read from bytes already in memory (performance-ff's C2, .bytes forms).
+			.. FixSlopeCounts.Select(n => FixForm(
+				$"slope-{n}.bytes",
+				() => HandFixParser.Parse(FixSlopeBytes(n)),
+				() => FixParser.Parse(FixSlopeBytes(n)),
+				expected: (n, 0))),
+
 			// The web's formats (architect for Igor, 2026-09-18): generated, and a regular
 			// expression where one can be written honestly. Their base is the generated reading.
 			.. WebWorkloads(),
@@ -351,6 +358,8 @@ static partial class Stand
 
 	/// <summary>The field counts D13's slope rows fit a line over.</summary>
 	static readonly int[] FixSlopeCounts = [0, 1, 2, 4, 8, 16];
+
+	static byte[] FixSlopeBytes(int fields) => Encoding.Latin1.GetBytes(FixSlopeText(fields));
 
 	static string FixSlopeText(int fields) => string.Concat(Enumerable.Repeat("55=ABC\u0001", fields));
 
@@ -772,12 +781,18 @@ static partial class Stand
 			.. PairedFix("Orders128", orders128, before, after),
 			.. PairedFix("OrderMalformed", orderMalformed, before, after),
 
-			// D13: same rows as Workloads(), text form only.
+			// D13: same rows as Workloads(), text and bytes forms.
 			.. FixSlopeCounts.Select(n => PairedFixForm(
 				$"slope-{n}.text",
 				() => HandFixParser.Parse(FixSlopeText(n)),
 				before.FixText(FixSlopeText(n)),
 				after.FixText(FixSlopeText(n)))),
+
+			.. FixSlopeCounts.Select(n => PairedFixForm(
+				$"slope-{n}.bytes",
+				() => HandFixParser.Parse(FixSlopeBytes(n)),
+				before.FixBytes(FixSlopeBytes(n)),
+				after.FixBytes(FixSlopeBytes(n)))),
 
 			.. PairedFixMessages(before, after),
 
