@@ -254,6 +254,16 @@ immediate 1.39x; SQL:2023 7.88x; StockCount 1.20x; T-SQL at 0.33x of ScriptDom's
 superlinear with linear allocation (an exponent of 1.46 from 100 to 1,000 terms, immediate 0.98)
 and drifting +8..+17% across three baselines — expr, diagnosis first; Web date-time at 6.9x —
 finance-24, an anatomy; SQL:2023's conditions linear now.
+**Web date-time's anatomy (finance-24):** the reader read nothing twice; the values did — each
+field became a string twice, once for the guard and once for the construction, and was parsed
+twice, about twenty strings and fourteen parses for 23 characters. The grammar's part is fixed
+(span captures and span helpers): allocation equals the hand parser's, time 1.4-1.6x. The rest is
+the generator's: a refusal read twice, quietly and then recording, for a `Try` that hands out no
+message (68 ns and 88 B where the hand parser takes 25 ns and nothing; the URL refusal's 9.8x) —
+decided that an entry returning only a bool does not read again, and one returning a match reads
+again lazily when its error is asked for, over input still alive (expr, design first); and a
+capture read by a guard and a construction materialized for each — C4's design gives the
+construction the guard's value (performance-ff).
 
 ## D5. A stream is read without holding it
 
