@@ -94,15 +94,18 @@ static class Carriers
 		text.AppendLine("kept a grammar on the tape: `replay` — a building rule read where the reading may not stand");
 		text.AppendLine("(`Replay`) — or `read again` — a rule the reader can be asked again after it answered, which is");
 		text.AppendLine("asked only where the first gate let everything through. **Direct** is how many of the replayed");
-		text.AppendLine("rules have a cause of their own; the rest are under one of them.");
+		text.AppendLine("rules have a cause of their own; the rest are under one of them. **Points** is how many of the");
+		text.AppendLine("sites that build — a call whose value is built, a construction — have a point past which what they");
+		text.AppendLine("read is settled (`Commit`), of how many there are: what building at that point could take off the");
+		text.AppendLine("tape.");
 		text.AppendLine();
-		text.AppendLine("| Grammar | Carrier | Gate | Building | Replayed | Direct | Read again |");
-		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: |");
+		text.AppendLine("| Grammar | Carrier | Gate | Building | Replayed | Direct | Read again | Points |");
+		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var grammar in grammars)
 			text.AppendLine(
 				$"| {grammar.Name} | {Carrier(grammar)} | {grammar.Field("gate")} | {grammar.Field("building")} | " +
-				$"{grammar.Field("replayed")} | {grammar.Field("direct")} | {grammar.Field("read again")} |");
+				$"{grammar.Field("replayed")} | {grammar.Field("direct")} | {grammar.Field("read again")} | {grammar.Field("points")} |");
 
 		// The second gate by the shape that opened the way and why the way stays: `open` lines are
 		// `open Rule: shape; why; how the rule is called; node`.

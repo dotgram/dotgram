@@ -9,94 +9,97 @@ from the reports that build left; run again rather than edited.
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
 (`Replay`) — or `read again` — a rule the reader can be asked again after it answered, which is
 asked only where the first gate let everything through. **Direct** is how many of the replayed
-rules have a cause of their own; the rest are under one of them.
+rules have a cause of their own; the rest are under one of them. **Points** is how many of the
+sites that build — a call whose value is built, a construction — have a point past which what they
+read is settled (`Commit`), of how many there are: what building at that point could take off the
+tape.
 
-| Grammar | Carrier | Gate | Building | Replayed | Direct | Read again |
-| --- | --- | --- | ---: | ---: | ---: | ---: |
-| DotGram.Benchmarks.CallCost.Called | immediate | none |  |  |  |  |
-| DotGram.Benchmarks.CallCost.Inlined | nothing to choose | none |  |  |  |  |
-| DotGram.Benchmarks.CallCost.Valued | immediate | none |  |  |  |  |
-| DotGram.Benchmarks.Climbing | tape | read again | 1 | 0 | 0 | 1 |
-| DotGram.Benchmarks.Config | tape | read again | 4 | 0 | 0 | 5 |
-| DotGram.Benchmarks.Extents | immediate | none |  |  |  |  |
-| DotGram.Benchmarks.Feed | nothing to choose | none |  |  |  |  |
-| DotGram.Benchmarks.Flat.Lowered | nothing to choose | none |  |  |  |  |
-| DotGram.Benchmarks.Flat.NotLowered | immediate | none |  |  |  |  |
-| DotGram.Benchmarks.ImmediateSql | immediate (author) |  |  |  |  |  |
-| DotGram.Benchmarks.Levels | tape | read again | 4 | 0 | 0 | 4 |
-| DotGram.Benchmarks.MaterializationCost.NoCaptures | tape | read again | 1 | 0 | 0 | 2 |
-| DotGram.Benchmarks.MaterializationCost.SpanCaptures | tape | replay | 7 | 1 | 1 | 0 |
-| DotGram.Benchmarks.MaterializationCost.WithCaptures | tape | read again | 1 | 0 | 0 | 2 |
-| DotGram.Benchmarks.Nesting | nothing to choose | none |  |  |  |  |
-| DotGram.Benchmarks.Numbers | tape | read again | 2 | 0 | 0 | 2 |
-| DotGram.Benchmarks.Possession.Open | nothing to choose | none |  |  |  |  |
-| DotGram.Benchmarks.Possession.Settled | nothing to choose | none |  |  |  |  |
-| DotGram.Benchmarks.Settlements | nothing to choose | none |  |  |  |  |
-| DotGram.Benchmarks.TinyScalar | immediate | none |  |  |  |  |
-| DotGram.Benchmarks.Urls | tape | read again | 2 | 0 | 0 | 3 |
-| DotGram.Examples.Expressions.ArithmeticTree | tape | read again | 5 | 0 | 0 | 5 |
-| DotGram.Examples.Expressions.Calculator | tape | read again | 6 | 0 | 0 | 8 |
-| DotGram.Examples.Expressions.ClampedExample | tape | read again | 3 | 0 | 0 | 3 |
-| DotGram.Examples.Expressions.LocaleNumber | tape | read again | 2 | 0 | 0 | 2 |
-| DotGram.Examples.Feeds.FeedReader | tape | read again | 5 | 0 | 0 | 5 |
-| DotGram.Examples.Feeds.LoggingFeedReader | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Feeds.RecoveringFeedReader | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Feeds.StockCountReader | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Feeds.StreamingFeedReader | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Formats.Config | tape | read again | 4 | 0 | 0 | 6 |
-| DotGram.Examples.Formats.Config.Located | tape | read again | 4 | 0 | 0 | 6 |
-| DotGram.Examples.Formats.FileNames | tape | read again | 2 | 0 | 0 | 2 |
-| DotGram.Examples.Formats.FixParser | immediate | none |  |  |  |  |
-| DotGram.Examples.Formats.FixedWidth | immediate | none |  |  |  |  |
-| DotGram.Examples.Formats.HttpParser | tape | read again | 5 | 0 | 0 | 6 |
-| DotGram.Examples.Formats.IniParser | tape | read again | 7 | 0 | 0 | 11 |
-| DotGram.Examples.Formats.JsonParser | tape | read again | 9 | 0 | 0 | 11 |
-| DotGram.Examples.Formats.Links | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Formats.MarkdownParser | tape | read again | 9 | 0 | 0 | 10 |
-| DotGram.Examples.Formats.MetricsLine | tape | read again | 5 | 0 | 0 | 7 |
-| DotGram.Examples.Formats.Netstrings | tape | read again | 2 | 0 | 0 | 1 |
-| DotGram.Examples.Formats.TypedCsv | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Formats.XmlParser | tape | replay | 7 | 6 | 3 | 0 |
-| DotGram.Examples.Formats.YamlLite | tape | read again | 6 | 0 | 0 | 7 |
-| DotGram.Examples.Languages.Filter | tape | replay | 9 | 6 | 2 | 0 |
-| DotGram.Examples.Languages.FilterFile | tape | read again | 2 | 0 | 0 | 3 |
-| DotGram.Examples.Languages.Filters | tape | replay | 2 | 1 | 1 | 0 |
-| DotGram.Examples.Languages.GramGrammar | tape | replay | 35 | 28 | 2 | 0 |
-| DotGram.Examples.Languages.Lexemes | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Languages.Scoped | tape | read again | 4 | 0 | 0 | 5 |
-| DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 2 |
-| DotGram.Examples.Languages.SettingsFile | tape | read again | 2 | 0 | 0 | 3 |
-| DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  |
-| DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  |
-| DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  |
-| DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 |
-| DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  |
-| DotGram.Finance.Fix.FixGrammar | nothing to choose | none |  |  |  |  |
-| DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  |
-| DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  |
-| DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 |
-| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 26 | 0 |
-| DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 658 | 643 | 84 | 0 |
-| DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 658 | 643 | 84 | 0 |
-| DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 5 |
-| DotGram.Tests.Calculators.OneRuleParser | tape | read again | 1 | 0 | 0 | 1 |
-| DotGram.Tests.Calculators.StrengthCalculator | tape | read again | 1 | 0 | 0 | 1 |
-| DotGram.Tests.Calculators.TwoCalculators | tape | read again | 10 | 0 | 0 | 8 |
-| DotGram.Tests.Extents | immediate | none |  |  |  |  |
-| DotGram.Tests.Generated.UrlGrammar | nothing to choose | none |  |  |  |  |
-| DotGram.Web.Rfc3339 | immediate | none |  |  |  |  |
-| DotGram.Web.Rfc3986 | tape | read again | 6 | 0 | 0 | 12 |
-| DotGram.Web.Rfc5322 | tape | read again | 48 | 0 | 0 | 114 |
-| DotGram.Web.Rfc5646 | tape | read again | 9 | 0 | 0 | 7 |
-| DotGram.Web.Rfc6265 | tape | read again | 6 | 0 | 0 | 6 |
-| DotGram.Web.Rfc6266 | tape | read again | 3 | 0 | 0 | 5 |
-| DotGram.Web.Rfc6570 | tape | read again | 5 | 0 | 0 | 3 |
-| DotGram.Web.Rfc6901 | tape | read again | 2 | 0 | 0 | 3 |
-| DotGram.Web.Rfc7239 | tape | read again | 7 | 0 | 0 | 14 |
-| DotGram.Web.Rfc8259 | tape | read again | 10 | 0 | 0 | 11 |
-| DotGram.Web.Rfc8288 | tape | read again | 5 | 0 | 0 | 8 |
-| DotGram.Web.Rfc9110 | tape | read again | 4 | 0 | 0 | 8 |
-| DotGram.Web.Rfc9651 | tape | read again | 15 | 0 | 0 | 17 |
+| Grammar | Carrier | Gate | Building | Replayed | Direct | Read again | Points |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| DotGram.Benchmarks.CallCost.Called | immediate | none |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.CallCost.Inlined | nothing to choose | none |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.CallCost.Valued | immediate | none |  |  |  |  | 5/5 |
+| DotGram.Benchmarks.Climbing | tape | read again | 1 | 0 | 0 | 1 | 13/13 |
+| DotGram.Benchmarks.Config | tape | read again | 4 | 0 | 0 | 5 | 7/7 |
+| DotGram.Benchmarks.Extents | immediate | none |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.Feed | nothing to choose | none |  |  |  |  | 7/7 |
+| DotGram.Benchmarks.Flat.Lowered | nothing to choose | none |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Flat.NotLowered | immediate | none |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.ImmediateSql | immediate (author) |  |  |  |  |  | 12/242 |
+| DotGram.Benchmarks.Levels | tape | read again | 4 | 0 | 0 | 4 | 19/19 |
+| DotGram.Benchmarks.MaterializationCost.NoCaptures | tape | read again | 1 | 0 | 0 | 2 | 1/1 |
+| DotGram.Benchmarks.MaterializationCost.SpanCaptures | tape | replay | 7 | 1 | 1 | 0 | 17/17 |
+| DotGram.Benchmarks.MaterializationCost.WithCaptures | tape | read again | 1 | 0 | 0 | 2 | 1/1 |
+| DotGram.Benchmarks.Nesting | nothing to choose | none |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Numbers | tape | read again | 2 | 0 | 0 | 2 | 3/3 |
+| DotGram.Benchmarks.Possession.Open | nothing to choose | none |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Possession.Settled | nothing to choose | none |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Settlements | nothing to choose | none |  |  |  |  | 7/7 |
+| DotGram.Benchmarks.TinyScalar | immediate | none |  |  |  |  | 3/3 |
+| DotGram.Benchmarks.Urls | tape | read again | 2 | 0 | 0 | 3 | 1/1 |
+| DotGram.Examples.Expressions.ArithmeticTree | tape | read again | 5 | 0 | 0 | 5 | 22/22 |
+| DotGram.Examples.Expressions.Calculator | tape | read again | 6 | 0 | 0 | 8 | 51/51 |
+| DotGram.Examples.Expressions.ClampedExample | tape | read again | 3 | 0 | 0 | 3 | 14/14 |
+| DotGram.Examples.Expressions.LocaleNumber | tape | read again | 2 | 0 | 0 | 2 | 4/4 |
+| DotGram.Examples.Feeds.FeedReader | tape | read again | 5 | 0 | 0 | 5 | 5/5 |
+| DotGram.Examples.Feeds.LoggingFeedReader | nothing to choose | none |  |  |  |  | 5/5 |
+| DotGram.Examples.Feeds.RecoveringFeedReader | nothing to choose | none |  |  |  |  | 6/6 |
+| DotGram.Examples.Feeds.StockCountReader | nothing to choose | none |  |  |  |  | 5/5 |
+| DotGram.Examples.Feeds.StreamingFeedReader | nothing to choose | none |  |  |  |  | 9/9 |
+| DotGram.Examples.Formats.Config | tape | read again | 4 | 0 | 0 | 6 | 6/6 |
+| DotGram.Examples.Formats.Config.Located | tape | read again | 4 | 0 | 0 | 6 | 6/6 |
+| DotGram.Examples.Formats.FileNames | tape | read again | 2 | 0 | 0 | 2 | 4/4 |
+| DotGram.Examples.Formats.FixParser | immediate | none |  |  |  |  | 9/9 |
+| DotGram.Examples.Formats.FixedWidth | immediate | none |  |  |  |  | 22/22 |
+| DotGram.Examples.Formats.HttpParser | tape | read again | 5 | 0 | 0 | 6 | 10/10 |
+| DotGram.Examples.Formats.IniParser | tape | read again | 7 | 0 | 0 | 11 | 14/14 |
+| DotGram.Examples.Formats.JsonParser | tape | read again | 9 | 0 | 0 | 11 | 30/30 |
+| DotGram.Examples.Formats.Links | nothing to choose | none |  |  |  |  | 1/1 |
+| DotGram.Examples.Formats.MarkdownParser | tape | read again | 9 | 0 | 0 | 10 | 24/24 |
+| DotGram.Examples.Formats.MetricsLine | tape | read again | 5 | 0 | 0 | 7 | 11/11 |
+| DotGram.Examples.Formats.Netstrings | tape | read again | 2 | 0 | 0 | 1 | 3/3 |
+| DotGram.Examples.Formats.TypedCsv | nothing to choose | none |  |  |  |  | 12/12 |
+| DotGram.Examples.Formats.XmlParser | tape | replay | 7 | 6 | 3 | 0 | 21/21 |
+| DotGram.Examples.Formats.YamlLite | tape | read again | 6 | 0 | 0 | 7 | 11/11 |
+| DotGram.Examples.Languages.Filter | tape | replay | 9 | 6 | 2 | 0 | 33/33 |
+| DotGram.Examples.Languages.FilterFile | tape | read again | 2 | 0 | 0 | 3 | 4/4 |
+| DotGram.Examples.Languages.Filters | tape | replay | 2 | 1 | 1 | 0 | 8/8 |
+| DotGram.Examples.Languages.GramGrammar | tape | replay | 35 | 28 | 2 | 0 | 108/108 |
+| DotGram.Examples.Languages.Lexemes | nothing to choose | none |  |  |  |  | 0/0 |
+| DotGram.Examples.Languages.Scoped | tape | read again | 4 | 0 | 0 | 5 | 13/13 |
+| DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 2 | 15/15 |
+| DotGram.Examples.Languages.SettingsFile | tape | read again | 2 | 0 | 0 | 3 | 3/3 |
+| DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  | 3/3 |
+| DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  | 0/0 |
+| DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  | 12/12 |
+| DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 | 18/854 |
+| DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  | 18/854 |
+| DotGram.Finance.Fix.FixGrammar | nothing to choose | none |  |  |  |  | 18/18 |
+| DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  | 1910/1910 |
+| DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  | 0/0 |
+| DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 | 12/242 |
+| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 26 | 0 | 1284/2641 |
+| DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 658 | 643 | 84 | 0 | 54/3146 |
+| DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 658 | 643 | 84 | 0 | 54/3146 |
+| DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 5 | 18/18 |
+| DotGram.Tests.Calculators.OneRuleParser | tape | read again | 1 | 0 | 0 | 1 | 15/15 |
+| DotGram.Tests.Calculators.StrengthCalculator | tape | read again | 1 | 0 | 0 | 1 | 15/15 |
+| DotGram.Tests.Calculators.TwoCalculators | tape | read again | 10 | 0 | 0 | 8 | 34/34 |
+| DotGram.Tests.Extents | immediate | none |  |  |  |  | 1/1 |
+| DotGram.Tests.Generated.UrlGrammar | nothing to choose | none |  |  |  |  | 1/1 |
+| DotGram.Web.Rfc3339 | immediate | none |  |  |  |  | 5/5 |
+| DotGram.Web.Rfc3986 | tape | read again | 6 | 0 | 0 | 12 | 19/19 |
+| DotGram.Web.Rfc5322 | tape | read again | 48 | 0 | 0 | 114 | 129/129 |
+| DotGram.Web.Rfc5646 | tape | read again | 9 | 0 | 0 | 7 | 22/22 |
+| DotGram.Web.Rfc6265 | tape | read again | 6 | 0 | 0 | 6 | 29/29 |
+| DotGram.Web.Rfc6266 | tape | read again | 3 | 0 | 0 | 5 | 5/5 |
+| DotGram.Web.Rfc6570 | tape | read again | 5 | 0 | 0 | 3 | 10/10 |
+| DotGram.Web.Rfc6901 | tape | read again | 2 | 0 | 0 | 3 | 4/4 |
+| DotGram.Web.Rfc7239 | tape | read again | 7 | 0 | 0 | 14 | 16/16 |
+| DotGram.Web.Rfc8259 | tape | read again | 10 | 0 | 0 | 11 | 29/29 |
+| DotGram.Web.Rfc8288 | tape | read again | 5 | 0 | 0 | 8 | 9/9 |
+| DotGram.Web.Rfc9110 | tape | read again | 4 | 0 | 0 | 8 | 13/13 |
+| DotGram.Web.Rfc9651 | tape | read again | 15 | 0 | 0 | 17 | 44/44 |
 
 ## Where the second gate's ways are opened
 

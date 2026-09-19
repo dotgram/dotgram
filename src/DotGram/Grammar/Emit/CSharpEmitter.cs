@@ -891,7 +891,7 @@ public static partial class CSharpEmitter
 		}
 
 		if (carriers is not null && carrier != CarrierKind.Auto)
-			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}, the author's");
+			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}, the author's" + Points(graph, null));
 
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
@@ -2994,6 +2994,32 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
+	/// How many of the sites that build have a point past which they are settled (<see
+	/// cref="Commit"/>), of how many there are: a call whose value is built, and a construction.
+	/// What a carrier that builds at the point could take off the tape, said for every grammar.
+	/// </summary>
+	static string Points(RecognitionGraph graph, Replay.Report? replay)
+	{
+		var commit   = Commit.Of(graph, replay ?? Replay.Of(graph));
+		var demand   = Demand.Of(graph);
+		var building = 0;
+		var settled  = 0;
+
+		foreach (var site in commit.Sites)
+		{
+			if (site.Node is Node.Call call && (!demand.Knows(call) || demand.Of(call) == Demand.Kind.Never))
+				continue;
+
+			building++;
+
+			if (commit.TryGet(site.Node, out _))
+				settled++;
+		}
+
+		return $"; points: {settled}/{building}";
+	}
+
+	/// <summary>
 	/// What GRAM5012 decided, as lines of the report a build writes on request: which carrier
 	/// <see cref="CarrierKind.Auto"/> took, which gate kept the grammar on the tape, and for each
 	/// rule it kept there, why.
@@ -3024,10 +3050,10 @@ public static partial class CSharpEmitter
 		var gate = replayed.Count > 0 ? "replay" : again.Count > 0 ? "read again" : "none";
 		var by   = immediate && kept.Count == 0 ? "immediate" : kept.Count > 0 ? "tape" : "nothing to choose";
 
-		lines.Add(kept.Count == 0
+		lines.Add((kept.Count == 0
 			? $"carrier: {by}; gate: {gate}"
 			: $"carrier: {by}; gate: {gate}; building: {building.Count}; replayed: {replayed.Count}; " +
-				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}");
+				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}") + Points(graph, replay));
 
 		foreach (var rule in replayed.OrderBy(static rule => rule.Name, StringComparer.Ordinal))
 		{

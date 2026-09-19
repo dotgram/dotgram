@@ -170,25 +170,15 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Why a reader cannot read this repetition marked <c>recover</c>, or null where it can:
-	/// the scenario of a repetition whose only way back is <c>recover</c> (docs/design/
+	/// the scenario of a repetition whose only way back is <c>recover</c>, whose continuation
+	/// <see cref="Commit.Recovering(RecognitionGraph, RuleSymbol, Node)"/> finds whole (docs/design/
 	/// fix-reader-2026-09-18.md §8).
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// §8.2 tries the complete continuation at every boundary first, and the reader has to
-	/// be able to say what the complete continuation is. It can where nothing outside the
-	/// rule follows it — the rule is a publication's and no rule calls it — and the
-	/// repetition is either the last thing the rule reads, so that what follows is the end
-	/// the publication reads to, or is followed in the rule's own sequence by parts that end
-	/// in <c>eof</c>. A continuation that succeeds there has read to the end of the input,
-	/// and nothing is left to take it back.
-	/// </para>
-	/// <para>
 	/// What the reader does not yet do is refused here and kept by the engine: a recovery
 	/// with no <c>=&gt;</c>, or one whose elements nothing collects; a yielded one; a factory
-	/// that asks for the input, the state or the marks; an element that can be empty; and a
-	/// tape it cannot write on (<see cref="RecoveryRead"/>).
-	/// </para>
+	/// that asks for the input, the state or the marks; a repetition in a rule the publication
+	/// does not read first; and a tape it cannot write on (<see cref="RecoveryRead"/>).
 	/// </remarks>
 	string? UnreadRecovery(RuleSymbol root, RuleSymbol rule, Node node)
 	{
@@ -197,54 +187,16 @@ sealed partial class Machine
 		if (rule != root || Carrier is not TapeCarrier || !_recoveries.TryGetValue(node, out var plan))
 			return Why;
 
-		var (body, _, max) = (Node.Repeat)node;
-
-		if (plan.Recovery.Factory is null || plan.Slot < 0 || plan.Recovery.YieldStep || max is not null ||
-			FirstSets.Nullable(body, _graph) ||
+		if (plan.Recovery.Factory is null || plan.Slot < 0 || plan.Recovery.YieldStep ||
 			plan.Recovery.Asks.Any(name => name is "parserInput" or "parserState" or "parserMarks"))
 			return Why;
 
-		foreach (var other in _graph.Bodies.Values)
-			foreach (var one in NodeWalk.Descendants(other))
-				if (one is Node.Call(var called, _) && called == root)
-					return Why;
+		if (Commit.Recovering(_graph, rule, node) is not { } continuation)
+			return Why;
 
-		var top = _graph.Bodies[rule];
+		_recoveryReads[node] = new RecoveryRead(plan, continuation);
 
-		while (top is Node.Construct(var built, _))
-			top = built;
-
-		if (Holds(top, node))
-		{
-			_recoveryReads[node] = new RecoveryRead(plan, []);
-
-			return null;
-		}
-
-		if (top is Node.Sequence(var parts))
-			for (var i = 0; i < parts.Count; i++)
-				if (Holds(parts[i], node))
-				{
-					// Last, it reads to the end the publication reads to; followed, what follows
-					// has to end there itself.
-					if (i < parts.Count - 1 && !IsEnd(parts[parts.Count - 1]))
-						return Why;
-
-					_recoveryReads[node] = new RecoveryRead(plan, [.. parts.Skip(i + 1)]);
-
-					return null;
-				}
-
-		return Why;
-
-		// The repetition itself, or the capture of it.
-		static bool Holds(Node part, Node repetition) =>
-			ReferenceEquals(part, repetition) || part is Node.Capture(_, var held) && ReferenceEquals(held, repetition);
-
-		// `eof`, called or as the normalizer lowers its body: nothing may follow.
-		static bool IsEnd(Node part) =>
-			part is Node.Call(var called, _) && called.IsBuiltIn && called.Name == "eof" ||
-			part is Node.Lookahead { IsPositive: false, Body: Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 } };
+		return null;
 	}
 
 	/// <summary>

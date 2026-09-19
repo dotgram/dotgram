@@ -25,8 +25,9 @@ public sealed class SeamTests
 	/// </summary>
 	[Fact]
 	public void A_seam_run_gives_nothing_to_the_seam_after_it() =>
-		Assert.Contains("carrier: immediate; gate: none",
-			Carriers(Spaced + "File : @string[] = '[' & (Item & ';')* & eof\nparse File\n"));
+		Assert.Contains(
+			Carriers(Spaced + "File : @string[] = '[' & (Item & ';')* & eof\nparse File\n"),
+			line => line.StartsWith("carrier: immediate; gate: none;", System.StringComparison.Ordinal));
 
 	/// <summary>
 	/// Unless something between the two seams answers by where it stands: a guard there passes

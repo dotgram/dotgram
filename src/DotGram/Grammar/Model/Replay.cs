@@ -290,7 +290,7 @@ public static class Replay
 	/// can begin with anything that follows. What is not settled counts as overlapping.
 	/// </para>
 	/// </remarks>
-	static bool Replaced(IReadOnlyList<Node> alternatives, int at, FirstSets.First after, RecognitionGraph graph)
+	internal static bool Replaced(IReadOnlyList<Node> alternatives, int at, FirstSets.First after, RecognitionGraph graph)
 	{
 		if (at + 1 >= alternatives.Count)
 			return false;
@@ -310,7 +310,7 @@ public static class Replay
 	/// and <paramref name="after"/> too where it may read nothing. Null where that is not
 	/// settled.
 	/// </summary>
-	static FirstSets.First? Begins(Node node, FirstSets.First after, RecognitionGraph graph)
+	internal static FirstSets.First? Begins(Node node, FirstSets.First after, RecognitionGraph graph)
 	{
 		var first = FirstSets.Of(node, graph);
 
@@ -326,7 +326,7 @@ public static class Replay
 	/// seam where the rest begins with it; where it does not, past the seam is what the rest
 	/// begins with, unless the seam could have begun there too.
 	/// </summary>
-	static FollowSets.Continuation Next(
+	internal static FollowSets.Continuation Next(
 		IReadOnlyList<Node> parts, int from, FollowSets.Continuation after, RuleSymbol? seam, RecognitionGraph graph)
 	{
 		var plain = Rest(parts, from, after.Plain, graph);
@@ -360,7 +360,7 @@ public static class Replay
 	/// Whether a turn begins with the seam, and what it reads past it: the rest of its
 	/// sequence, as one node.
 	/// </summary>
-	static bool Seamed(Node body, RuleSymbol? seam, out Node past)
+	internal static bool Seamed(Node body, RuleSymbol? seam, out Node past)
 	{
 		past = body;
 
@@ -380,17 +380,17 @@ public static class Replay
 	readonly record struct Where(RuleSymbol Owner, List<Site>? Places, string? Why, Node? Failing = null);
 
 	/// <summary>The reason already known, or the new one where nothing was known.</summary>
-	static Because Worse(Because taken, Because other) => taken == Because.Stands ? other : taken;
+	internal static Because Worse(Because taken, Because other) => taken == Because.Stands ? other : taken;
 
 	/// <summary>Whether the first reason says less than the second, so the second replaces it.</summary>
-	static bool Weaker(Because was, Because now) =>
+	internal static bool Weaker(Because was, Because now) =>
 		was == Because.Stands || was == Because.Losing && now != Because.Losing;
 
 	/// <summary>
 	/// Whether this node can refuse where it stands. Conservative: only what provably
 	/// always matches answers no, so a reason to put a reading back is never missed.
 	/// </summary>
-	static bool CanFail(Node node, RecognitionGraph graph) => CanFail(node, graph, null);
+	internal static bool CanFail(Node node, RecognitionGraph graph) => CanFail(node, graph, null);
 
 	/// <summary>Whether each rule asked about can refuse, per graph.</summary>
 	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, System.Collections.Concurrent.ConcurrentDictionary<RuleSymbol, bool>> Refusing = new();
