@@ -996,6 +996,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
+  **A correctness defect found on main while writing C4b:** the immediate carrier merges two
+  members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
+  a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
+  first and conservatively: such a rule keeps the tape. The list of grammars that change carrier,
+  and for each shipped one whether it ever returned a wrong tree, comes with the commit.
 - C4c: release before each turn in the whole-stream form, where nothing holds a position across
   the turn and no factory keeps a reference into the buffer (a memory or an array, which a span
   cannot be); D5's retention test un-skipped, and a stream larger than `maxRetained` answered
