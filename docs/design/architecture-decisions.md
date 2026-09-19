@@ -220,8 +220,17 @@ trees, since types from two contexts are never equal.
   state. Rule from it: the gate holds a head to a base built in the same run, alternately (base,
   head, base, head) on one pinned set with nothing beside, and quotes the ratio, not the
   milliseconds; the bisection is read as a curve with the base as its control, a step naming a
-  commit, a slope naming the grammar's growth and the GRAM5009 check. Until then no analysis
-  change lands without its own generation-time figure.
+  commit, a slope naming the grammar's growth and the GRAM5009 check. **Closed the same night: a
+  curve, no culprit.** One worktree per commit, pinned, nothing beside: T-SQL 4.6-5.7 s across
+  the day's commits with one machine outlier at 7.0 s (its located twin rose with it) and the
+  known 1875588b spike (114 s); the head +18% over the same-run control, the located parser
+  +5%, the generator's own grammar noise at its size; not monotone in rules, no step. The
+  spread of one build is ±10-20% (the base itself 4,996 then 4,556 ms), as large as the effect.
+  So the gate's +47% was half machine state and the rest single-build noise. Consequences: the
+  gate script (`benchmarks/Gate-Generation.ps1`, base and head alternating, ratio of medians,
+  20% and 100 ms) runs three rounds at least, since one build a side is inside the noise; the
+  absolute figures in the stand's record are history. No analysis change lands without its own
+  gate run.
 - Rows whose spread forbids a verdict below it: an SQL literal 44%, EL interpolation 52%, an
   early EL refusal 45%, FIX slope-4 22%.
 
