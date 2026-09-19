@@ -115,6 +115,34 @@ static partial class Stand
 		yield return new Series("T-SQL columns",    "generated", "columns",    [10, 100, 1000], n => { var t = $"SELECT {Names(n)} FROM t"; return () => TransactSqlParser.TryParseStatement(t).IsSuccess; });
 		yield return new Series("T-SQL conditions", "generated", "predicates", [10, 100, 1000], n => { var t = Conditions(n); return () => TransactSqlParser.TryParseSearchCondition(t).IsSuccess; });
 		yield return new Series("T-SQL rows",       "generated", "rows",       [10, 100, 1000], n => { var t = $"INSERT INTO t (a, b) VALUES {Rows(n)}"; return () => TransactSqlParser.TryParseStatement(t).IsSuccess; });
+		// A script read a statement at a time through the positional form, which tokenizes the whole text on every call (expr, 2026-09-19).
+		yield return new Series("T-SQL script, a statement at a time", "generated", "statements", [10, 100, 400], n =>
+		{
+			var t = string.Concat(Enumerable.Repeat("SELECT a, b FROM t WHERE a = 1;" + (char)10, n));
+
+			return () =>
+			{
+				var at    = 0;
+				var count = 0;
+
+				while (at < t.Length)
+				{
+					var match = TransactSqlParser.TryParseStatement(t, at);
+
+					if (!match.IsSuccess)
+						return false;
+
+					count++;
+					at = (int)(match.Position + match.Length);
+
+					while (at < t.Length && (char.IsWhiteSpace(t[at]) || t[at] == ';'))
+						at++;
+				}
+
+				return count == n;
+			};
+		});
+
 		yield return new Series("SQL:2023 conditions", "generated", "predicates", [10, 100, 1000], n => { var t = Conditions(n); return () => SqlStandardParser.TryParseSearchCondition(t).IsSuccess; });
 		yield return new Series("SQL:2023 conditions", "hand",      "predicates", [10, 100, 1000], n => { var t = Conditions(n); return () => HandSqlStandard.TryParseSearchCondition(t, out _); });
 

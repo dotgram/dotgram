@@ -763,7 +763,7 @@ static partial class Stand
 						break;
 
 					count++;
-					at = (int)position!.GetValue(match)! + (int)length!.GetValue(match)!;
+					at = Convert.ToInt32(position!.GetValue(match)) + Convert.ToInt32(length!.GetValue(match));
 
 					while (at < text.Length && (char.IsWhiteSpace(text[at]) || text[at] == ';'))
 						at++;
