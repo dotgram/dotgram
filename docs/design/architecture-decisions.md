@@ -1718,6 +1718,10 @@ same day; each comes back to the architect as a report, with no code changed.
    time share is the count share: step 2 would give 1-2% of a parse. Shelved with its number; the
    lever is `Replay`'s causes in the value tower (a bracketed value against a subquery, 40 rules
    under it; a join's turn, 29; an inline return, 26), after which the design is measured again.
+   The first is the language's: after `(` both a value and a query can begin with a bracketed
+   query, `((SELECT 1) + 1)` against `((SELECT 1) UNION (SELECT 2))`, decided at an unbounded
+   distance; no fold or grammar edit removes it without changing the tree. Intended, like
+   `DecOctet`. The join's turn and the inline return are checked the same way next.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
