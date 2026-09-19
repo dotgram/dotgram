@@ -22,10 +22,14 @@ The two on net10.0 also run as `dotnet <path>.dll`. `-filter "/*/*/ClassName/Met
 runs one test. `DotGram.Tests` runs everything in about two minutes.
 
 What costs more than it is worth on every run lives in `tests/DotGram.Tests.Slow` (D12): the
-whole refusal record — `DotGram.Tests` compiles one reading in five of it — and the streaming
-memory bounds. `dotnet test DotGram.slnx` and CI run it; `dotnet test` over `DotGram.Tests` does
-not, and nothing is filtered to leave it out. Run it before any change to how failures are
-recorded, and before merging anything that touches retention.
+whole refusal record — `DotGram.Tests` compiles one reading in five of it — the streaming
+memory bounds, `GRAM5003`'s parts at every size and a split of nine hundred rules
+(`OversizeTests`), and the scaling tests, which hold a parser to time proportional to its
+input (`ExpressionScalingTests`: ten times the terms within fifteen times the time;
+`SqlConditionScalingTests`, `StockCountScalingTests`). `dotnet test DotGram.slnx` and CI run it;
+`dotnet test` over `DotGram.Tests` does not, and nothing is filtered to leave it out. Run it
+before any change to how failures are recorded, before merging anything that touches
+retention, and before one that touches how a walk reads what it has built.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 
@@ -271,6 +275,37 @@ one parse in a child process and is what to reach for if a change is ever suspec
 putting grammar recursion back on the C# stack — a `StackOverflowException` cannot be
 caught and takes the process with it, which is why it is a child.
 
+The instrument for a question of the form "is this faster, and than what" is **the stand**
+(`benchmarks/DotGram.Benchmarks/Stand*.cs`), and it is not run like the modes above:
+
+- `--stand [dir] [--only a,b] [--repeat N]` times every generated parser against its
+  hand-written one — FIX as a string, bytes and a stream, the web's formats, the expression
+  language on the tape and on the immediate carrier, SQL:2023, T-SQL against ScriptDom, the stock
+  count — with a regular expression beside it where one can be written honestly, the allocation
+  of a call, and the first call in a fresh process. `--repeat 5` takes five processes and reports
+  medians; a run whose control (a row of plain arithmetic timed in every round) is more than 5%
+  off the others is dropped.
+- `--stand-paired beforeDir afterDir` reads two builds in one process, round-robin, each loaded
+  from its own directory of DLLs: the only way a change to what the generator emits is measured,
+  since it holds a commit against its parent under one runtime and one profile. The hand-written
+  parser is the process's own and is a constant, never a party to the pair. `--stand-paired-check`
+  holds the rows of a pair to what they say and times nothing; `--stand-held` and
+  `--stand-held-whole` read what a stream form holds while it is read.
+- `linearity` times a parser at three sizes ten times apart and flags an exponent above 1.2, and
+  says whether it is the algorithm or the collector; run it when a change touches how a walk or
+  a carrier reads what it has built.
+- `benchmarks/Gate-Generation.ps1 -Base <commit> -Head <commit>` holds the time the generator
+  takes to write the grammars of the solution to a base commit's, the two rebuilt alternately in
+  the same run.
+
+**A timing is taken in an announced window**, on logical processors 0-15 at high priority, with
+nothing else timing; builds and tests of others run meanwhile only if they are pinned to 16-31.
+A before and an after are medians of five runs or more, never one run, and a lean on a row whose
+code did not change is read alone and with `DOTNET_TieredPGO=0` before it is believed. The rows,
+the medians, the paired stand's rules and what was learned of each are in
+[`benchmarks/README.md`](../benchmarks/README.md), and every measurement of a day is filed with its
+raw data under `benchmarks/results/`.
+
 The other modes — `--against`, `--hand`, `--speed`, `--roundtrip` and the rest — are in
 [`benchmarks/README.md`](../benchmarks/README.md), with what each was built to ask and what
 it answered. Profiling the generator itself rather than what it generates, over
@@ -300,6 +335,18 @@ is worth reading before measuring the generator.
   else's project. What each framework needs is written at the top of its
   project file — today, `System.Memory` on netstandard2.0 and net472, and nothing on
   net8.0.
+- A change to what the emitter writes owes its pair: `--stand-paired` of the commit against its
+  parent, over the rows of every family the emitted code changes in (a change that leaves the
+  output of the solution byte for byte the same owes none, only the gate below), and the
+  `linearity` family if it touches how a walk reads. A change that no pair reads is invisible to
+  every other pair: a commit once made the expression language's tape quadratic in the terms of a
+  list, and nothing saw it for a day because no row was longer than twenty terms.
+- A change to the generator — to its analysis or to what it writes — owes the generation gate:
+  `benchmarks/Gate-Generation.ps1 -Base <parent> -Head <commit>`. The time of the generator is
+  measured on the grammars of the solution, and an analysis that goes over every rule once more
+  has taken T-SQL from 4 to 86 seconds.
+- A change that means to take a grammar off the tape owes a run of `--carriers` before and after:
+  the difference in `docs/carriers.md` is the claim, and a grammar that is still there says why.
 - A refused construct owes a test that it is refused, and by which diagnostic. A construct
   that parses and then quietly means nothing is the failure this project is most careful
   about — and a row of `status.md` reading *refused* is that same claim, made in prose.

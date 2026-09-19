@@ -190,6 +190,21 @@ raises the exponent without the algorithm being wrong: a series above 1.2 is `GC
 linear and generation 2 collected, `ALGORITHM (allocation)` when the allocation grows faster than the
 input, and `ALGORITHM` when the time does with neither.
 
+### Which carrier a grammar took: `--carriers`
+
+```console
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --carriers [output]
+```
+
+Not a benchmark: it times nothing and builds nothing. It gathers, from the `*.DotGramReport.g.cs`
+files that a build with `-p:DotGramReportGeneration=true` writes beside every grammar's generated
+file, which carrier `Auto` took for each grammar of the solution (GRAM5012) and, for a grammar kept
+on the tape, the gate that kept it (`Replay` or the reader's) and each rule held there with its
+cause, and writes them into `docs/carriers.md` (or to `output`). Run it after such a build: it reads
+what the last one left in every `obj/GeneratedFiles`, so it is a run behind main by construction. It
+is written, never edited. A change that means to move a grammar off the tape is measured by the
+difference in this file before and after it; the stand then says what the move cost or saved.
+
 ### Tiered PGO
 
 The stand's agreement check runs every row's readings on every row's input before anything is
