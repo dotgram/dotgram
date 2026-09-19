@@ -32,6 +32,8 @@ discussed with him. Any edit to `syntax.md`, and anything that changes what a gr
 goes to Igor with the alternatives before it is written; the architect does not decide that an
 edit is "only a clarification". The one case this was not followed in: GRAM4030 and its
 sentence in §7.8 (`bdef4949`), put to Igor after the fact.
+**Igor's answer, 2026-09-19:** the diagnostic stays, the sentence added to §7.8 is reverted — the
+text of the specification is not touched.
 
 **Main is linear, 2026-09-18.** A session lands by rebasing onto `origin/main` and pushing
 `HEAD:main` (CLAUDE.md: no branches). Five merge commits reached main on 2026-09-18
@@ -314,6 +316,8 @@ changes, only callers who choose it gain; (2) the match becomes lazy, keeping th
 and reading again when its position, outcome or error is first asked — every caller gains, at two
 more references in every match returned, and span and stream entries stay eager. Recommended:
 (1) now, (2) only if a caller of the match is shown to pay for a message it never reads.
+**Decided by Igor, 2026-09-19: option 1.** expr emits the bool form (a line in §6); finance-24
+moves Web's wrappers onto it.
 
 ## D5. A stream is read without holding it
 
