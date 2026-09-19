@@ -1272,6 +1272,13 @@ same day; each comes back to the architect as a report, with no code changed.
    is dropped where the published rule begins with that seam, in `FollowSets`' entries and in the
    emitted entry method in one commit (analysis and code must not disagree), by expr, after C2
    lands, performance-ff and sql-39 told first.
+   **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
+   and the analysis keeps it apart — but the reader's choice: it decides by the first character
+   only through a switch, and refuses the switch past 128 named characters, a limit on code
+   size that also shut off the path without a way. Decided: where the switch is refused but the
+   alternatives are pairwise disjoint and none can read nothing, the reader writes a chain of
+   first-character tests from the narrowest set to the widest, the widest last as the else, and
+   opens no way — for `(Plain | Escape)*` one comparison with `\`, as a hand parser writes it.
 3. **Flat against reader.** Flat writes a publication as one method of states; reader writes a
    method per rule; flat recompiles the machine to do it, which is a known source of defects.
    Measure both on the Web grammars and the examples. No difference: flat goes. Flat faster: the
