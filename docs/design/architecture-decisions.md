@@ -1104,6 +1104,12 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   728 and 7,065 KB with it; over a reader 1,024 and 11,162 against 732 and 7,091. With step 2 the
   held memory grows 9.7x for 10x the fields — the result array, about 70 B a field, and nothing
   else; without it, about the input on top. Each step lands after its own time pair.
+  **Step 1 landed (`d194c138`, window 38):** FIX's in-place bytes 96.3 to 53.6 ns a field against
+  the hand parser's 58.3 — faster than the hand parser on bytes too; the whole-stream forms 103 to
+  57 (stream) and 104 to 59 (reader); StockCount's readers -18..-20%. Pushed after a rebase over new
+  source without re-verifying the combination — a slip, reported, main verified after. Step 2 read
+  +2..+12% on FIX with no lines to count: a turn should only record where it may release, the work
+  done in the fill when the buffer needs room; profiled before its pair.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
