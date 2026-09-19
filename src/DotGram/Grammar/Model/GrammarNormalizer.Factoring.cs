@@ -27,7 +27,7 @@ public sealed partial class GrammarNormalizer
 			if (NodeWalk.Descendants(body).Any(source.Powers.ContainsKey))
 				continue;
 
-			var rewritten = Walk(body);
+			var rewritten = Walk(body, top: true);
 			if (ReferenceEquals(body, rewritten))
 				continue;
 
@@ -41,12 +41,17 @@ public sealed partial class GrammarNormalizer
 			}).ToList();
 		}
 
-		Node Walk(Node node)
+		// `top` where the choice is the rule's body. Runs are folded only there: a fold leaves
+		// a run's alternatives behind its head, and the alternatives of a rule are found at the
+		// top of its body or behind one head at the end of it (Fold.Of) — a choice nested behind
+		// a head of its own is a layout the rest of the compiler does not have. Behind a head,
+		// only a choice all of whose alternatives begin alike is folded, which joins that head.
+		Node Walk(Node node, bool top = false)
 		{
 			if (node is Node.Choice { Selection: not null }) return node;
 			if (node is Node.Sequence(var sequence))
 			{
-				var changed = sequence.Select(Walk).ToList();
+				var changed = sequence.Select(part => Walk(part)).ToList();
 				return changed.Where((part, i) => !ReferenceEquals(part, sequence[i])).Any()
 					? Sequence(changed) : node;
 			}
@@ -57,28 +62,106 @@ public sealed partial class GrammarNormalizer
 				alternatives.Any(one => one is not Node.Construct))
 				return node;
 
-			var first = Parts(alternatives[0]);
-			var take = first.Count - 1;
-			foreach (var alternative in alternatives.Skip(1))
-			{
-				var other = Parts(alternative);
-				var shared = 0;
-				while (shared < take && shared < other.Count - 1 &&
-					Shareable(first[shared], other[shared]))
-					shared++;
-				take = shared;
-			}
-			if (take == 0)
-				return node;
+			// The alternatives that begin alike, gathered into runs: all of them where all do,
+			// and otherwise every run of them (Q7.1's C, docs/design/shared-beginnings-over-kinds-
+			// 2026-09-18.md §4). A run keeps the order of its members and takes the place of its
+			// first. An alternative between two members that does not join them is passed over
+			// only where it cannot begin as they do and cannot match nothing — then no input
+			// both it and the later member can read, and moving the member ahead of it changes
+			// no answer; any other stops the run there.
+			var used   = new bool[alternatives.Count];
+			var folded = new List<Node>();
+			var moved  = false;
 
-			var tails = new List<Node>();
-			foreach (var alternative in alternatives)
+			// Each alternative's parts once: a choice of T-SQL has a hundred alternatives, and the
+			// runs are asked about every pair of them.
+			var split = new IReadOnlyList<Node>[alternatives.Count];
+			for (var one = 0; one < alternatives.Count; one++)
+				split[one] = Parts(alternatives[one]);
+
+			for (var at = 0; at < alternatives.Count; at++)
 			{
-				Splits(alternative, take, out var how, out _, out var tail);
-				tails.Add(new Node.Construct(tail!, how!));
+				if (used[at])
+					continue;
+
+				used[at] = true;
+
+				var lead    = split[at];
+				var run     = new List<int> { at };
+				var between = new List<int>();
+
+				for (var next = at + 1; next < alternatives.Count && lead.Count > 1; next++)
+				{
+					if (used[next])
+						continue;
+
+					var parts = split[next];
+
+					if (parts.Count > 1 && Shareable(lead[0], parts[0]) &&
+						between.All(passed => Apart(split[passed][0], lead[0])))
+					{
+						run.Add(next);
+						used[next] = true;
+					}
+					else
+						between.Add(next);
+				}
+
+				if (run.Count < 2)
+				{
+					folded.Add(alternatives[at]);
+
+					continue;
+				}
+
+				var take = lead.Count - 1;
+				foreach (var member in run.Skip(1))
+				{
+					var other = split[member];
+					var shared = 0;
+					while (shared < take && shared < other.Count - 1 &&
+						Shareable(lead[shared], other[shared]))
+						shared++;
+					take = shared;
+				}
+
+				var tails = new List<Node>();
+				foreach (var member in run)
+				{
+					Splits(alternatives[member], take, out var how, out _, out var tail);
+					tails.Add(new Node.Construct(tail!, how!));
+				}
+				Splits(alternatives[at], take, out _, out var head, out _);
+				folded.Add(Sequence([head, new Node.Choice(tails)]));
+				moved = true;
 			}
-			Splits(alternatives[0], take, out _, out var head, out _);
-			return Sequence([head, new Node.Choice(tails)]);
+
+			return !moved || folded.Count > 1 && !top
+				? node
+				: folded.Count == 1 ? folded[0] : ((Node.Choice)node).Rebuild(folded);
+		}
+
+		// Whether an alternative beginning with `one` can be passed over by alternatives that
+		// begin with `lead`: over kinds each is a test of one token, and two tests that admit no
+		// kind in common never read the same token — nor does either match nothing. Anything
+		// else, a call or a test of every kind, is not shown apart and is not passed over.
+		static bool Apart(Node one, Node lead)
+		{
+			if (one is Node.Capture(_, var captured))
+				return Apart(captured, lead);
+
+			if (lead is Node.Capture(_, var led))
+				return Apart(one, led);
+
+			return Kinds(one) is { } these && Kinds(lead) is { } those &&
+				!these.Any(a => those.Any(b => a.From <= b.To && b.From <= a.To));
+
+			static IReadOnlyList<CharRange>? Kinds(Node node) => node switch
+			{
+				Node.Literal { Text.Length: 1, IgnoreCase: false } literal => [new CharRange(literal.Text[0], literal.Text[0])],
+				Node.Element { IsNegated: false, Ranges.Count: > 0, Categories.Count: 0, References.Count: 0 } element => element.Ranges,
+				_ => null,
+			};
 		}
 
 		static Node Sequence(IReadOnlyList<Node> parts) =>
