@@ -2365,3 +2365,13 @@ is what gets built: a form that moves the caller's position and answers yes or n
 leaving the trivia after the rule for the caller. Lazy tokens belong to the first step, not a
 later one: a loop of readings over one long text must not cost the square of it. The text of §6.3
 says what the finished set is; expr writes the design, and §6.3's wording goes to Igor before code.
+Checked against the SQL grammars (sql-39): over tokens the positional form already ends at the end
+of the last token, so the trivia after a rule is no difference at all; what it cannot do is begin
+where no token begins — a comment, for instance — and the host is then made to implement the
+language's trivia itself, line comments and nested blocks included. So the form skips leading
+trivia and begins at the first token at or after the position, its match saying where it really
+began; §6.3 says the opposite today, and that is the sentence going to Igor. The window form does
+not answer it, since it wants the length, which is what the reading is for. Lazy tokens are the
+acceptance criterion, not a later step: a script of thousands of statements read one at a time is
+the case. §6.3 also gains a sentence on what `eof` means from a position (the end of the input; in
+the window form, the end of the window); the follow is seeded with End, and no second seed.
