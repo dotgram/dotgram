@@ -1631,6 +1631,10 @@ same day; each comes back to the architect as a report, with no code changed.
    immediate by `Auto` on their own, both gates at zero, their answers unchanged: the mechanism,
    the seam, the reader's ways and the analysis together, proved on the example chosen for it.
    Every package's code byte-identical; five examples change, timed roughly before and after.
+   Landed `48b1eb77`, with the empty-list fix `e384d37e`. Next for expr: the expression language's
+   own parser, on the tape with 131 of 137 building rules held by `Replay` and 20 direct causes,
+   2.18x the hand parser against 1.39x for the immediate host an author's option forces — the
+   causes classified and removed until `Auto` chooses immediate by itself and the second host goes.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
