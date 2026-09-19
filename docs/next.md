@@ -24047,3 +24047,41 @@ row where what follows is the carried-on character in the other case.
 The quoted string's `""` turn is not in this. Giving that turn back is worth something only where
 what follows the closing quote can begin with a quote, which is two characters on from the loop.
 The follow sets say one. It belongs in `NeverGivesBack`, where the seam work is, and waits for it.
+
+## A native module's block is followed by the end of the batch, said as such (T-SQL, commit points)
+
+C3 marked a commit point at only 54 of T-SQL's 3,146 call sites, where SQL:2023 has one at 49%.
+Replay's causes explain it. 643 of the grammar's 658 building rules were not kept. Only 84 of
+those had a cause of their own; the other 559 were reached from a rule that was not kept, and
+343 of them came from one place. That place was `AtomicBody`'s `?!SqlPiece`, "no statement after
+a natively compiled module's block". The negative lookahead read a whole statement in order to
+refuse it, and a reading inside a lookahead is thrown away, so every statement and everything
+under it counted as read where its reading is thrown away. The next causes are ordinary replaced
+choices: a bracketed value against a subquery in `TSqlPrimaryCore` (40 rules under it),
+`JoinedRight`'s turn before `ON` (29), `InlineReturn`'s query (26), and none past that above 16.
+
+What follows the block is now written as what it is, the end of the batch:
+`?=(eof | TSql.GoLine)`. It was asked of the engine through sqlcmd (PARSEONLY) first:
+
+- Read: the block alone; the block with `;`s after it; the block with a comment after it; the
+  block with a `GO` after it.
+- Refused: a statement after it, with a `;` before it or without (`Msg 156`); a label (`Msg
+  102`); `)` (`Msg 102`); a second `END` (`Msg 156`); a function's block with a statement after
+  it (`Msg 156`).
+- Refused at `PROCEDURE` already: the module inside `BEGIN … END` or after an `IF`.
+
+Nothing else can stand there, so the language is the same for everything the engine reads. One
+input was read here and refused by the engine: the module nested in a block. It is now refused,
+at the outer `END`, where the engine refuses at `PROCEDURE`. The module after an `IF` is still
+read here, since the end of the input follows it; that looseness is the nesting, not this block.
+Where the parse fails, it fails at the same position as before with the same message, with one
+exception: after the block, a second `END` is now refused at that `END` (@159) and no longer one
+token past it (@162), which is where the engine points.
+
+Two theories in TransactSqlTests hold what the engine answered, read and refused, through
+`TryParseSql` and `TryParseScript`. The engine comparison over the corpus is identical line for
+line (7,394 read by both), the round trip is 7,716 of 7,716, and DotGram.Sql.Tests all pass.
+docs/carriers.md: T-SQL's replayed rules go from 643 to 321, and those with a cause of their own
+from 84 to 83. The general case is not the grammar's to fix: a negative lookahead over a building
+rule poisons everything under it, although nothing need be built inside a lookahead. That is for
+the generator, after C4.

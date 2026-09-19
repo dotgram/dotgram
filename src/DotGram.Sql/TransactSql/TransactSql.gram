@@ -2273,9 +2273,12 @@ StatementBlock : @Statement
 // ATOMIC WITH (…) SELECT 1; END; SELECT 2` is `Msg 156`. There is one nowhere else — in a batch,
 // nested in another or inside an `IF` it is `Msg 102`, in a module not compiled natively `Msg
 // 10782` — and a natively compiled module has no other body (`Msg 10783`, `Syntax.Natively`). A
-// plain block inside it is read.
+// plain block inside it is read. After it the batch ends: a statement, a label, a bracket and a
+// second `END` are each `Msg 156` or `Msg 102`, and only `;`s, spacing and comments are read. Said
+// as the end it is, rather than as no statement following, which read a whole statement to
+// refuse it and left every statement read where its reading is thrown away.
 AtomicBody : @Statement[]
-	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i & { ';'* } & ?!SqlPiece
+	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i & { ';'* } & ?=(eof | TSql.GoLine)
 		=> @(new Statement[] { new Statement.Compound(body, atomic) })
 
 // ── A natively compiled block's options ─────────────────────────────────────

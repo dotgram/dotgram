@@ -4543,6 +4543,40 @@ public sealed class TransactSqlTests
 	public void A_transaction_or_a_column_option_is_refused_where_the_engine_refuses_it(string input) =>
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
 
+	const string NativeModule =
+		"CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH " +
+		"(TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') SELECT 1 END";
+
+	/// <summary>
+	/// After a natively compiled module's atomic block the batch ends, as the engine answered
+	/// through sqlcmd: a statement, with or without a `;` before it, a label, a bracket and a
+	/// second `END` are `Msg 156` or `Msg 102`, and so is the module inside a block, where the
+	/// engine refuses it at `PROCEDURE` already.
+	/// </summary>
+	[Theory]
+	[InlineData(NativeModule + " SELECT 2")]
+	[InlineData(NativeModule + "; SELECT 2")]
+	[InlineData(NativeModule + " x: PRINT 1")]
+	[InlineData(NativeModule + " )")]
+	[InlineData(NativeModule + " END")]
+	[InlineData("BEGIN " + NativeModule + " END")]
+	[InlineData("CREATE FUNCTION f() RETURNS int WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') RETURN 1 END SELECT 2")]
+	public void Nothing_but_the_end_of_the_batch_follows_a_native_modules_block(string input) =>
+		Assert.False(TransactSqlParser.TryParseSql(input).IsSuccess, input);
+
+	/// <summary>And the batch ending there is read: after `;`s, spacing and comments, and before a `GO`.</summary>
+	[Theory]
+	[InlineData(NativeModule)]
+	[InlineData(NativeModule + ";;")]
+	[InlineData(NativeModule + " -- c\n/* d */")]
+	[InlineData(NativeModule + "\nGO\nSELECT 2")]
+	public void The_end_of_the_batch_after_a_native_modules_block_is_read(string input)
+	{
+		var match = TransactSqlParser.TryParseScript(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
 	[InlineData("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') SELECT 1; END")]
