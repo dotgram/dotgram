@@ -1030,6 +1030,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   cursor the reader keeps, not a refusal. Against the tape it builds the same, and one tag more
   on a broken field (the losing grade, allowed). Two recovering repetitions in one rule stay on
   the tape, by the shared-stack fix (`4f5457dc`).
+  C4a landed (`f77f5c10`). sql-39's exclusive `eof`, on which FIX's move rests, removes only work
+  from FixGrammar — both way-back loops, the switch's recorded selection, the end's way — yet reads
+  +5..+11% on FIX's string rows, most likely the inlining a separate body used to get. If the lean
+  survives a control alone and under PGO=0, it lands only with C4b, paired as a stack against main
+  on C4b's promised 38-46 ns; the shape of a method with no way back goes to performance-ff.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
