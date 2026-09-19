@@ -1089,6 +1089,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   the input view a ref struct, `parserInput` refuses a buffered form). Gates: D5's skipped test
   un-skipped, a stream larger than `maxRetained` answered, and the held buffer the same at 10,000
   and 100,000 fields — the result grows, the input does not. (3) FIX's log form after it.
+  Step 2 written (performance-ff). Its gate is FIX's own: the whole-stream parse over a reader and
+  a stream, 10,000 and 100,000 fields with a broken one every hundred, `maxRetained` of 1,024 —
+  answered with release, an error without it; a hard bound rather than a slope. The D5 test that
+  stood skipped already passed on main (its grammar is read by the streamed parse, which lets each
+  row go); the skip was stale and goes.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
