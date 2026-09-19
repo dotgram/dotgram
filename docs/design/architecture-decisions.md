@@ -906,6 +906,11 @@ per closed value, an object member 270 to 97 ns at 10,000 members, below the gen
 261, and an array element 53 to 15 ns, linear. What is left on a large object in both parsers is
 the result's own members array on the large object heap, a cost of the model. The linearity
 family gains a gen2-per-call column so that it tells the collector from an algorithm.
+With it (stand, rerun): every other flag reads as the collector — linear allocation, gen2 at
+the largest size; the two algorithms left are StockCount's rejection path (time 1.9, allocation
+linear: CPU only) and SQL:2023's search condition, whose allocation grows with an exponent of
+3.1 — 164 MB to read 1,000 predicates, gen2 on every call — so the gathered-list fix is accepted
+only when both time and allocation are linear.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
