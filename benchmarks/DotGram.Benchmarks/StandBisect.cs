@@ -9,6 +9,85 @@ namespace DotGram.Benchmarks;
 static partial class Stand
 {
 	/// <summary>
+	/// The tape of each directory's build at a hundred terms and at the ladder row, in microseconds a call, the builds read in
+	/// the same rounds (a round is about ten milliseconds of one build's one row, the builds taken in turn), so that what the
+	/// machine does between one build and the next is the same for all. Unpinned: a rough figure, of use for a lean of some
+	/// tens of per cent when the medians of fifteen rounds agree, and no finer.
+	/// </summary>
+	public static void ElRows(string[] directories)
+	{
+		var texts = new[]
+		{
+			("terms100", "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", 100))),
+			("ladder", "(int x, int y) => (x + y) * 3 - x / 5"),
+		};
+
+		var calls = directories.Select(directory => texts.Select(one => new PairedSide(directory, directory).El("TryParseLambda", one.Item2, immediate: false)).ToArray()).ToArray();
+
+		var batch = new int[texts.Length];
+
+		// Three seconds of each row of each build first, and the calls that fill about ten milliseconds from that.
+		for (var t = 0; t < texts.Length; t++)
+		{
+			for (var d = 0; d < calls.Length; d++)
+			{
+				var warm = Stopwatch.StartNew();
+
+				while (warm.Elapsed < TimeSpan.FromSeconds(3))
+					calls[d][t]();
+			}
+
+			var probe = Stopwatch.StartNew();
+			var n     = 0;
+
+			while (probe.Elapsed < TimeSpan.FromMilliseconds(50))
+			{
+				calls[0][t]();
+				n++;
+			}
+
+			batch[t] = Math.Max(1, (int)(n / 5));
+		}
+
+		var rounds = new List<double>[directories.Length, texts.Length];
+
+		for (var d = 0; d < directories.Length; d++)
+			for (var t = 0; t < texts.Length; t++)
+				rounds[d, t] = [];
+
+		for (var round = 0; round < 15; round++)
+		{
+			for (var t = 0; t < texts.Length; t++)
+			{
+				for (var k = 0; k < directories.Length; k++)
+				{
+					var d     = (k + round) % directories.Length;
+					var watch = Stopwatch.StartNew();
+
+					for (var i = 0; i < batch[t]; i++)
+						calls[d][t]();
+
+					rounds[d, t].Add(watch.Elapsed.TotalMilliseconds * 1000 / batch[t]);
+				}
+			}
+		}
+
+		for (var d = 0; d < directories.Length; d++)
+		{
+			var cells = new List<string>();
+
+			for (var t = 0; t < texts.Length; t++)
+			{
+				var sorted = rounds[d, t].Order().ToList();
+
+				cells.Add(string.Create(CultureInfo.InvariantCulture, $"{texts[t].Item1} {sorted[sorted.Count / 2]:F2} us ({sorted[0]:F2}..{sorted[^1]:F2})"));
+			}
+
+			Console.WriteLine($"{directories[d]} tape {string.Join(", ", cells)}");
+		}
+	}
+
+	/// <summary>
 	/// The tape of each directory's build at a thousand terms of the linearity chain, in microseconds a call: the median of
 	/// seven rounds of a hundred calls, after three seconds of warm-up. Not pinned and not held to a control, so only a large effect is read
 	/// from it; the paired stand is what says the small ones.

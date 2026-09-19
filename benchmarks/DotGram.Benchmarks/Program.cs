@@ -222,6 +222,14 @@ static class Program
 
 		// `--el-terms dir...` reads the expression language's tape at a thousand terms in each directory's build, unpinned:
 		// a rough figure for a bisection on a busy machine, good for an eightfold effect and for nothing finer.
+		// `--el-rows dir...` is the same for terms100 and ladder, the builds of every directory read in the same rounds.
+		if (args.Length >= 2 && args[0] == "--el-rows")
+		{
+			Stand.ElRows(args[1..]);
+
+			return;
+		}
+
 		if (args.Length >= 2 && args[0] == "--el-terms")
 		{
 			Stand.ElTerms(args[1..]);
