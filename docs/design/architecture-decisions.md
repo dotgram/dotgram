@@ -813,9 +813,18 @@ scanner decides by the first character and does not backtrack — both go when t
 counts nesting). **The stand's rows (medians of five, paired): every SQL row faster, -4..-40%
 (column -40%, a late refusal -34%, arithmetic -27%, twenty items -25%), allocation -0..-7%; still
 4-21x the hand parser. The first call got worse on every row, +14..+56 ms (a literal 26 to 82 ms)
-— the lexer's tables and code are paid before the first token; to be diagnosed (type
-initialization against JIT of the lexer) and fixed in the generator's lexer emission, not the
-grammar.**
+— diagnosed by sql-39 the same evening, phase by phase in a fresh process: the whole +63 ms is the
+JIT of the parser's static constructor (20 to 84 ms), which initializes the `static readonly
+string[] …_ExpectedN` arrays the refusal message reads; over kinds the expected set at a name
+position is all ~410 keywords, in hundreds of positions (elements 1,891 to 21,319; IL 34.7 to
+240.7 KB; 976 distinct arrays, so merging does not help). The lexer's tables are not involved;
+the first parse itself got cheaper. Decision (D17): the arrays are built lazily on the refusal
+path, where alone they are read (`??=` behind a property, an explicit field for the C# 8 floor);
+the type initializer then compiles none of them. sql-39 implements it now in the Expected
+emission only, tells performance-ff which file, and the stand measures first call before and
+after on the SQL, FIX and EL rows — every parser pays this initializer, and D13 asked about
+FIX's first call on small inputs. The deeper form, a set of kinds per position and one table of
+names, so that the arrays leave the assembly's code altogether, is performance-ff's after C4.**
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
