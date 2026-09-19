@@ -618,7 +618,12 @@ sealed partial class Machine
 		public abstract string PutAccumulator();
 
 		/// <summary>A member that is a span of text.</summary>
-		public abstract string PutText(DirectMember member, string from, string to);
+		/// <param name="cached">
+		/// A guard's local holding the same member already cut, with its <c>From</c> and
+		/// <c>To</c> beside it, where one stands in this method: a carrier that cuts the text
+		/// where it builds takes it when the positions are the ones it would cut.
+		/// </param>
+		public abstract string PutText(DirectMember member, string from, string to, string? cached = null);
 
 		/// <summary>A member that is another record.</summary>
 		public abstract string PutRecord(DirectMember member, string record);
@@ -847,7 +852,7 @@ sealed partial class Machine
 
 		public override string PutAccumulator() => "ways.Put(fold);";
 
-		public override string PutText(DirectMember member, string from, string to) => $"ways.Put({from}, {to});";
+		public override string PutText(DirectMember member, string from, string to, string? cached = null) => $"ways.Put({from}, {to});";
 
 		public override string PutRecord(DirectMember member, string record) => $"ways.Put({record});";
 

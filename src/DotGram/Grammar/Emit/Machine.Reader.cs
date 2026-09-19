@@ -1152,6 +1152,9 @@ sealed partial class Machine
 
 			Declare("var p = pos;");
 
+			foreach (var line in _hoisted)
+				Declare(line);
+
 			// A byte is read into an int, as the engine reads one, so that it compares with the
 			// character a set or a literal is written in.
 			if (_character)
@@ -1528,7 +1531,9 @@ sealed partial class Machine
 			foreach (var member in machine.DirectMembers(owner, factory))
 				Carried(code, member.Shape switch
 				{
-					MemberShape.Text    => machine.Carrier.PutText(member, First("a", "a", member.Slots), First("a", "b", member.Slots)),
+					MemberShape.Text    => machine.Carrier.PutText(
+						member, First("a", "a", member.Slots), First("a", "b", member.Slots),
+						_guardTexts.TryGetValue(member.Member.Name, out var cut) ? cut : null),
 					MemberShape.Pieces  => machine.Carrier.Collect(member, Refs, true),
 					MemberShape.Records => machine.Carrier.Collect(member, Refs, false),
 					_                   => machine.Carrier.PutRecord(
@@ -3703,11 +3708,29 @@ sealed partial class Machine
 
 				if (member.Rule is null)
 				{
+					var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.IsOptional ? "null" : "string.Empty";
+					var cut     = machine.Cut($"{handed}From", $"{handed}To - {handed}From");
+
+					// A string the construction will want as well is kept for it: declared at the
+					// method's start, where the construction can see it, and taken there where it
+					// stands on the positions the construction would cut (ImmediateCarrier.PutText).
+					if (machine.Carrier is ImmediateCarrier && !machine.BorrowedCaptures)
+					{
+						code.Line($"{handed}From = {First("a", "a", slots)};");
+						code.Line($"{handed}To   = {First("a", "b", slots)};");
+						code.Line($"{handed} = {handed}From < 0 ? {missing} : {cut};");
+
+						_hoisted.Add($"var {handed}From = -1;");
+						_hoisted.Add($"var {handed}To   = -1;");
+						_hoisted.Add(member.IsOptional ? $"string? {handed} = null;" : $"var {handed} = string.Empty;");
+						_guardTexts[member.Name] = handed;
+
+						continue;
+					}
+
 					code.Line($"var {handed}From = {First("a", "a", slots)};");
 					code.Line($"var {handed}To   = {First("a", "b", slots)};");
-					code.Line(
-						$"var {handed} = {handed}From < 0 ? {(machine.BorrowedCaptures ? machine.EmptyCapture : member.IsOptional ? "null" : "string.Empty")} : " +
-						machine.Cut($"{handed}From", $"{handed}To - {handed}From") + ";");
+					code.Line($"var {handed} = {handed}From < 0 ? {missing} : {cut};");
 
 					continue;
 				}
@@ -3814,6 +3837,15 @@ sealed partial class Machine
 		}
 
 		int _guardLocals;
+
+		/// <summary>
+		/// The text members a guard of this method cut into a string, by name, and the local
+		/// holding each: what the rule's construction may take instead of cutting it again.
+		/// </summary>
+		readonly Dictionary<string, string> _guardTexts = new(StringComparer.Ordinal);
+
+		/// <summary>Those locals' declarations, for the method's start.</summary>
+		readonly List<string> _hoisted = [];
 
 		/// <summary>A record's value as a guard sees it.</summary>
 		string ValueAt(RuleSymbol rule, string record) => machine.Carrier.ValueOf(rule, record);

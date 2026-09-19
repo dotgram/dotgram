@@ -423,11 +423,18 @@ sealed partial class Machine
 			return "";
 		}
 
-		public override string PutText(DirectMember member, string from, string to)
+		/// <remarks>
+		/// Where a guard of the rule cut the member already, what it cut is the value when it
+		/// stands on the same positions: the same text, cut once. Compared where it is taken,
+		/// so a capture written again after the guard — another turn, another alternative —
+		/// is cut on its own.
+		/// </remarks>
+		public override string PutText(DirectMember member, string from, string to, string? cached = null)
 		{
 			var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.Member.IsOptional ? "null" : "string.Empty";
+			var cut     = $"({from} < 0 ? {missing} : {machine.Cut(from, $"{to} - {from}")})";
 
-			_puts.Add((member, $"({from} < 0 ? {missing} : {machine.Cut(from, $"{to} - {from}")})"));
+			_puts.Add((member, cached is null ? cut : $"({cached}From == {from} && {cached}To == {to} ? {cached} : {cut})"));
 
 			return "";
 		}
