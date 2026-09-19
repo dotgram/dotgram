@@ -986,6 +986,12 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   stay (the end's goes with sql-39's exclusive choice, to about 45-50; the switch's needs the
   reader to prove nothing in the field is retried). The first call about 73-75 methods. Outside
   55-65, an anatomy against the target code before any conclusion.
+  Simpler than designed: the carrier's choice keeps a machine on the tape wherever any rule opens a
+  way, and with sql-39's exclusive choice extended to a called `eof` FIX's field opens none, so FIX
+  passes the existing gate unchanged; C4b is only the recovery scenario admitted, the broken
+  element built on the spot and the gathered stack. The expectation is restated before the pair.
+  FIX's log form keeps two ways and the tape, a later item. The buffered reader's pair passed (the
+  byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
 - C4c: release before each turn in the whole-stream form, where nothing holds a position across
   the turn and no factory keeps a reference into the buffer (a memory or an array, which a span
   cannot be); D5's retention test un-skipped, and a stream larger than `maxRetained` answered
