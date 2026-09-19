@@ -2023,7 +2023,8 @@ sealed partial class Machine
 				return;
 			}
 
-			if (machine.Dispatchable(alternatives, least: 2, named: Machine.KindTableSize) is { } wide &&
+			if (machine.SpansAKindTable(alternatives) &&
+				machine.Dispatchable(alternatives, least: 2, named: Machine.KindTableSize) is { } wide &&
 				machine.KindTable(wide) is { } table)
 			{
 				EmitGroupTable(code, alternatives, wide, table, following);

@@ -596,6 +596,35 @@ sealed partial class Machine
 		return [.. chain.OrderBy(static one => one.Width).ThenBy(static one => one.Index).Select(static one => (one.Set, one.Node))];
 	}
 
+	/// <summary>
+	/// Whether the alternatives' first characters lie within a group table's reach
+	/// (<see cref="KindTableSize"/>), asked before the groups are cut for one.
+	/// </summary>
+	/// <remarks>
+	/// Over characters a name begins with a Unicode category, and the groups of such a choice
+	/// were cut one stretch at a time until they named more than a table holds, for a table that could
+	/// never be written: GramGrammar's generation took a fifth longer for nothing.
+	/// </remarks>
+	internal bool SpansAKindTable(IReadOnlyList<Node> alternatives)
+	{
+		var from = int.MaxValue;
+		var to   = 0;
+
+		foreach (var alternative in alternatives)
+		{
+			if (Decidable(alternative) is not { Ends: false } set)
+				return false;
+
+			foreach (var range in set.Ranges)
+			{
+				from = global::System.Math.Min(from, range.From);
+				to   = global::System.Math.Max(to, range.To);
+			}
+		}
+
+		return to - from + 1 <= KindTableSize;
+	}
+
 	/// <param name="named">
 	/// How many characters the groups may name together: <see cref="Switched"/> for a switch
 	/// on the characters, more where the switch is on a table of them (<see cref="KindTable"/>).
