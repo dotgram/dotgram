@@ -1094,6 +1094,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   answered with release, an error without it; a hard bound rather than a slope. The D5 test that
   stood skipped already passed on main (its grammar is read by the streamed parse, which lets each
   row go); the skip was stale and goes.
+  **D5 in numbers (stand, held memory on the whole-stream parse itself, a collection inside every
+  second read):** over a stream, 10,000 and 100,000 fields, 772 and 9,125 KB held before step 2,
+  728 and 7,065 KB with it; over a reader 1,024 and 11,162 against 732 and 7,091. With step 2 the
+  held memory grows 9.7x for 10x the fields — the result array, about 70 B a field, and nothing
+  else; without it, about the input on top. Each step lands after its own time pair.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
