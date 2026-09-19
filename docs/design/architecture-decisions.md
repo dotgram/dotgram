@@ -1763,6 +1763,11 @@ same day; each comes back to the architect as a report, with no code changed.
    table from kind to group, the group's members tried in order — and a bit table for membership
    and long comparison chains, separately. sql-39, who lifted the same limit over characters,
    performance-ff told first. Expected: recognition about 4 µs, level with the hand parser.
+   **The prologue, written (expr, `057cd797`, held for its pair):** each arm a local function of its
+   own and a part a switch that calls it; the first part's prologue went from zeroing 13.3 KB to
+   none, and only the arms that run are compiled on the first call. Rough: twenty selects 90 to 44
+   µs, the T-SQL corpus 47.7 to 37.0 ms a round. EL's single materializer zeroes 4.8 KB on every
+   guard walk; the same form goes to it with the guard walk's direct path.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
