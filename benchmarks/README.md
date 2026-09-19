@@ -73,6 +73,15 @@ another short run and never with a full one. `--stand-check` times nothing and h
 row's readings to one another. `--stand-paired --first` takes the first call of each reading of
 each row in a fresh process each, median of five, before and after.
 
+`--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while
+it is walked: the live heap above what was live before, after a full collection, sampled eight
+times over a walk, each input of each side in a process of its own (it times nothing, so it needs
+no window, only cores 16-31). The inputs are a stream made as it is read (2,000,000 fields), memory
+streams of a million and a hundred thousand plain fields, and of the same with every second field
+malformed. The hand parser is read beside them; `--stand-held-one kept dir made-2000000` is the
+control that keeps every field it meets (137 MB), to show that the reading would see a reader that
+holds its input.
+
 ### Rows of a run share a profile
 
 All the rows of one `--stand-paired` run are read in one process, so the runtime's dynamic PGO

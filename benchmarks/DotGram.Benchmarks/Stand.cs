@@ -782,6 +782,10 @@ static partial class Stand
 		public Func<int> FixStream(byte[] bytes) => FixCount(() =>
 			FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
 
+		/// <summary>The stream form of this side, as the lazy sequence it returns, for a held-memory reading.</summary>
+		public IEnumerable FixStreamFields(Stream stream) =>
+			(IEnumerable)FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [stream, null, 4096, null])();
+
 		Func<object> FixCall(string method, Type[] parameters, object?[] arguments)
 		{
 			var call = _fix.GetMethod(method, parameters)

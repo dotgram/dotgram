@@ -204,6 +204,21 @@ static class Program
 			return;
 		}
 
+		// `--stand-held beforeDir afterDir [--repeat N]`: what each side's stream form holds while it is walked.
+		if (args.Length is 3 or 5 && args[0] == "--stand-held")
+		{
+			Stand.HeldPaired(args[1], args[2], args.Length == 5 && args[3] == "--repeat" ? int.Parse(args[4]) : 3);
+
+			return;
+		}
+
+		if (args.Length == 4 && args[0] == "--stand-held-one")
+		{
+			Stand.HeldOne(args[1], args[2], args[3]);
+
+			return;
+		}
+
 		if (args.Length == 5 && args[0] == "--stand-paired-first")
 		{
 			Stand.PairedFirst(args[1], args[2], args[3], args[4]);
