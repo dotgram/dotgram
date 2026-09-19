@@ -920,6 +920,10 @@ static partial class Stand
 
 			.. PairedFixMessages(before, after),
 
+			// The largest size of each linearity series, held before and after like any row: a change that makes a parser
+			// superlinear shows here, in the pair of the commit that does it, and not a day later in `linearity`.
+			.. PairedSweeps(before, after),
+
 			// The rows of the libraries a side was not given are left out: a pair of Finance alone is a pair of FIX.
 			.. (before.HasStock && after.HasStock ? PairedFeeds(before, after) : []),
 

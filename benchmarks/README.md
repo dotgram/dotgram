@@ -79,6 +79,14 @@ another and times nothing, so it needs no window. A side that was given `DotGram
 hand-written parser, so its "hand" reading is this process's own `Config.Read`, a constant to hold the
 pair against and no reference for the generated code.
 
+The largest size of each series of the linearity family is a row of the paired stand too: `fix/orders400.text`,
+`fix/slope-1600.text`, `tsql/columns1000`, `tsql/conditions1000`, `tsql/rows1000`, `web/json.array10000`,
+`web/json.object10000`, `web/url.path1000`, `web/media-type.params1000`, `web/sf.list10000`, and, for the
+expression language, `el/terms100` and `el/terms1000`. A change that costs more at ten times the size than at one
+tenth shows in the pair of the commit that does it: 584a7c1f made the tape quadratic in a list's terms, and no pair
+saw it because no row was longer than twenty terms. `--el-terms dir...` reads the tape at a thousand terms of each
+directory's build, unpinned, for a bisection on a busy machine (good for an eightfold effect and for nothing finer).
+
 `--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while
 it is walked: the live heap above what was live before, after a full collection, sampled eight
 times over a walk, each input of each side in a process of its own (it times nothing, so it needs
