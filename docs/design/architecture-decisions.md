@@ -1586,6 +1586,12 @@ same day; each comes back to the architect as a report, with no code changed.
    string's `""` turn needs a follow two characters ahead, which is `Determinism`'s never-gives-back
    question; it goes to expr, and is probably `SettingsFile`'s last cause. sql-39 next: why T-SQL
    has a commit point at 1.7% of its sites.
+   **The proof reached (expr, `94c10b3f`, held for its gate):** the quoted string's `""` turn is
+   settled by asking past the one-character stop — a turn that begins with it must go on with
+   something that cannot begin what follows the stop. `SettingsFile` and `FilterFile` then compile
+   immediate by `Auto` on their own, both gates at zero, their answers unchanged: the mechanism,
+   the seam, the reader's ways and the analysis together, proved on the example chosen for it.
+   Every package's code byte-identical; five examples change, timed roughly before and after.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
