@@ -1061,7 +1061,19 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   element built on the spot and the gathered stack. The expectation, restated before the pair:
   38-46 ns a field on the string form — below the hand parser's 51, near the target's 36 — and the
   first call about 72-75 methods; the pair's base is main with sql-39's commits and without C4b.
-  FIX's log form keeps two ways and the tape, a later item. The buffered reader's pair passed (the
+  FIX's log form keeps two ways and the tape, a later item.
+  **Its design, approved 2026-09-19.** Two ways hold it, and both must go. The first is general:
+  the follow given to a lookahead's body is everything the caller's continuation can be, for a
+  reason that is about the caller and not the body — a look is decided at its first match and
+  rewinds, so nothing after it can ask the body for another reading, exactly as with an atomic
+  group; the body gets nothing, and the union over a rule's other sites keeps the rest honest.
+  The second is the shape `(?!N & any)+` followed by `N` — read until a delimiter, the commonest
+  scanner there is: the turn begins only where `N` failed and the continuation is that same `N`,
+  which the analysis cannot see today because a lookahead contributes nothing to a first set. It
+  is decided by the leading node of what follows, per site, joined over sites, under two
+  conditions that are the proof: the turn must consume, and a nullable continuation is unknown
+  rather than followed, which keeps a streaming publication out of it. Each its own commit and
+  pair, with the generation-time gate, the corpora and a byte-for-byte dump. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
