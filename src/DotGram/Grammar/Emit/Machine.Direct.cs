@@ -178,13 +178,15 @@ sealed partial class Machine
 	/// What the reader does not yet do is refused here and kept by the engine: a recovery
 	/// with no <c>=&gt;</c>, or one whose elements nothing collects; a yielded one; a factory
 	/// that asks for the input, the state or the marks; a repetition in a rule the publication
-	/// does not read first; and a tape it cannot write on (<see cref="RecoveryRead"/>).
+	/// does not read first. Either carrier reads the rest: the tape writes the element as a record
+	/// of its own, and the immediate carrier builds it where it is stepped over, where it is let
+	/// carry the machine (<see cref="RecoveryRefusal"/>).
 	/// </remarks>
 	string? UnreadRecovery(RuleSymbol root, RuleSymbol rule, Node node)
 	{
 		const string Why = "it recovers from a bad element";
 
-		if (rule != root || Carrier is not TapeCarrier || !_recoveries.TryGetValue(node, out var plan))
+		if (rule != root || !_recoveries.TryGetValue(node, out var plan))
 			return Why;
 
 		if (plan.Recovery.Factory is null || plan.Slot < 0 || plan.Recovery.YieldStep ||
@@ -205,6 +207,35 @@ sealed partial class Machine
 	/// <c>eof</c> — or none, where the end of the input is the continuation.
 	/// </summary>
 	sealed record RecoveryRead(RecoveryPlan Plan, IReadOnlyList<Node> Continuation);
+
+	/// <summary>
+	/// Why the immediate carrier may not carry this machine's repetitions marked <c>recover</c>,
+	/// or null where it may: every one of them is read by the reader (<see cref="UnreadRecovery"/>),
+	/// and every construction of the machine is settled at the end of the rule it is in
+	/// (<see cref="Commit"/>, <see cref="Commit.Kind.Rule"/>) — which is where that carrier runs
+	/// it. A call only hands up what its rule built at its own end; a bad element is built where
+	/// it is stepped over, past which the turn it stands in is settled by construction.
+	/// </summary>
+	internal string? RecoveryRefusal()
+	{
+		const string Why = "it recovers";
+
+		if (_recoveries.Count == 0)
+			return null;
+
+		foreach (var pair in _recoveries)
+			if (!_recoveryReads.ContainsKey(pair.Key))
+				return Why;
+
+		var commit = Commit.Of(_graph, _replay ?? Replay.Of(_graph));
+
+		foreach (var site in commit.Sites)
+			if (site.Node is Node.Construct && _rules.Contains(site.Owner) &&
+				!(commit.TryGet(site.Node, out var point) && point.Kind == Commit.Kind.Rule))
+				return $"it recovers, and a construction of '{site.Owner.Name}' is not settled at the rule's end (Commit)";
+
+		return null;
+	}
 
 	/// <summary>Whether a reader of this machine reads a repetition marked <c>recover</c>.</summary>
 	public bool ReadsRecovery => _recoveryReads.Count > 0;

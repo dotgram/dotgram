@@ -673,6 +673,14 @@ sealed partial class Machine
 		/// <summary>A §7.8 mark, opened or closed, at the position.</summary>
 		public abstract string Mark(int kind, int site);
 
+		/// <summary>
+		/// A bad element of a repetition marked <c>recover</c>, stepped over: what the method that
+		/// steps over it writes once it knows where the element began (<c>pos</c>), where the
+		/// synchronization began (<c>to</c>), how far the element got (<c>reach</c>) and how many
+		/// elements came before it (<c>ordinal</c>) — the element, gathered where its siblings are.
+		/// </summary>
+		public abstract IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions);
+
 		// ---- building -----------------------------------------------------------------------
 
 		/// <summary>A record built into a value where the reader is, for a guard that asks (§3.6); nothing where it already is one.</summary>
@@ -896,6 +904,18 @@ sealed partial class Machine
 		public override string PushRecord(int slot, RuleSymbol rule) => $"ways.Push({slot}, ways.Last, -1);";
 
 		public override string Mark(int kind, int site) => $"ways.Mark({kind}, {site}, p);";
+
+		/// <remarks>A record of its own, under its own arm, which the walk builds (Machine.MaterializeRecoveryArm).</remarks>
+		public override IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions)
+		{
+			yield return positions
+				? $"ways.Begin({machine.RecoveryArm(plan)}, pos, to);"
+				: $"ways.Begin({machine.RecoveryArm(plan)});";
+			yield return "ways.Put(pos, to);";
+			yield return "ways.Put(reach, ordinal);";
+			yield return "ways.End(ways.RefsCount);";
+			yield return PushRecord(slot, element);
+		}
 
 		public override string Materialize(string record, string sinceMark) =>
 			$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +

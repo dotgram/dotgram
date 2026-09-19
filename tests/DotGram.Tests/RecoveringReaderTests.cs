@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -88,6 +88,74 @@ public sealed class RecoveringReaderTests
 		},
 	};
 
+	/// <summary>
+	/// The same on the immediate carrier (C4b): each element is built where its rule ends, a
+	/// bad one where it is stepped over, and the answers are the engine's.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Shapes))]
+	public void The_immediate_reader_answers_as_the_engine(string name, string grammar, string[] accepted)
+	{
+		var reader = Compile(grammar, direct: true, CarrierKind.Immediate);
+		var engine = Compile(grammar, direct: false);
+		var told   = new List<string>();
+
+		foreach (var input in Made(accepted))
+		{
+			var expected = Answer(engine, input);
+			var actual   = Answer(reader, input);
+
+			if (expected != actual)
+				told.Add($"{Escaped(input)}\n  engine: {expected}\n  reader: {actual}");
+		}
+
+		Assert.True(told.Count == 0, $"{name}: {told.Count} inputs told the two apart:\n" + string.Join("\n", told.Take(8)));
+	}
+
+	/// <summary>
+	/// What the immediate carrier builds, against the tape (the CarrierDemandTests way): the same
+	/// factories as often where every element is good; where one is bad, and only there, the
+	/// tag it read before it failed as well — a reading the turn's recovery replaces and whose
+	/// value nobody is handed, which is the measure the carrier is chosen by (Replay.Keeps).
+	/// </summary>
+	[Theory]
+	[InlineData("1=a;2=b;", "Field×2, Tag×2", "")]
+	[InlineData("1=a;2=;3=c;", "Bad×1, Field×2, Tag×2", "Tag")]
+	[InlineData("x;1=a;", "Bad×1, Field×1, Tag×1", "")]
+	public void The_immediate_reader_builds_what_the_tape_builds(string input, string built, string extra)
+	{
+		const string grammar = """
+			Tag    : @string   = v: ['0'..'9']+ => @(Log("Tag", Text(v)))
+			Field  : @string   = t: Tag & '=' & v: ['a'..'z']+ & ';' => @(Log("Field", t + Text(v)))
+			Fields : @string   = fields: Field* recover ';' => @(Log("Bad", Text(parserText))) & eof => @(string.Join(",", fields))
+			parse Fields
+			""";
+
+		var tape      = Built(Compile(grammar, direct: true, CarrierKind.Tape, Logged), input);
+		var immediate = Built(Compile(grammar, direct: true, CarrierKind.Immediate, Logged), input);
+
+		Assert.Equal(built, tape);
+		Assert.Equal(extra.Length == 0 ? built : built.Replace(extra + "×2", extra + "×3"), immediate);
+	}
+
+	const string Logged = Helpers + """
+		public static readonly System.Collections.Generic.List<string> Logs = new System.Collections.Generic.List<string>();
+		static string Log(string name, string value) { Logs.Add(name); return value; }
+		""";
+
+	/// <summary>The factories a parse ran, counted by name.</summary>
+	static string Built(Assembly assembly, string input)
+	{
+		var logs = (IList)assembly.GetType("Grammar")!.GetField("Logs", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+
+		logs.Clear();
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).IsSuccess);
+
+		return string.Join(", ", logs.Cast<string>().GroupBy(static one => one).OrderBy(static one => one.Key, StringComparer.Ordinal)
+			.Select(static one => one.Key + "×" + one.Count()));
+	}
+
 	[Theory]
 	[MemberData(nameof(Shapes))]
 	public void The_reader_answers_as_the_engine(string name, string grammar, string[] accepted)
@@ -123,7 +191,7 @@ public sealed class RecoveringReaderTests
 			: match.Value?.ToString() ?? "<null>";
 	}
 
-	static Assembly Compile(string grammar, bool direct)
+	static Assembly Compile(string grammar, bool direct, CarrierKind carrier = CarrierKind.Auto, string helpers = Helpers)
 	{
 		var published = grammar.Replace("parse Count", "parse Count as ParseStart")
 			.Replace("parse Fields", "parse Fields as ParseStart")
@@ -131,17 +199,23 @@ public sealed class RecoveringReaderTests
 			.Replace("parse Sheet", "parse Sheet as ParseStart");
 		var result = GramCompiler.Compile(published, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
+			ClassName = "Grammar", Direct = direct, Carrier = carrier, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 
 		EmittedCode.Quiet(result.Diagnostics);
 
 		var source = Assert.Single(result.Sources).Text;
 
-		// Held to what it is about: the reader wrote the recovering loop, the engine did not.
+		// Held to what it is about: the reader wrote the recovering loop, the engine did not; and
+		// where the immediate carrier was asked for, it is the one that carries.
 		Assert.Equal(direct, source.Contains("failure.Reach = p;", StringComparison.Ordinal));
 
-		return EmittedCode.Compile(source, declarationMembers: Helpers);
+		// Two recovering repetitions of one rule gather onto one stack, which the immediate
+		// carrier refuses (SharedStackTests): that shape is read on the tape, and said so.
+		if (carrier == CarrierKind.Immediate && !result.Diagnostics.Any(static one => one.Message.Contains("onto one stack")))
+			Assert.DoesNotContain("DirectValues.Rent()", source, StringComparison.Ordinal);
+
+		return EmittedCode.Compile(source, declarationMembers: helpers);
 	}
 
 	/// <summary>Every input made from the accepted ones, each once and in order (RefusalCorpus).</summary>

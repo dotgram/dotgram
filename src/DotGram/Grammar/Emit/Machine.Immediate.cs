@@ -250,6 +250,13 @@ sealed partial class Machine
 				// marks are, and carried where a reading deepens as the registers are.
 				if (Unbuilding)
 					yield return ("int", "unbuilt");
+
+				// Where a recovered element is, counted on from the one before (Located_DotGram): the
+				// bad elements are stepped over in the order they are read, as the tape's walk visits
+				// them. Over buffered input the buffer counts, and nothing is kept here.
+				if (!machine.BufferedInput && machine._recoveryReads.Values.Any(static read =>
+					read.Plan.Recovery.Asks.Contains("parserLine") || read.Plan.Recovery.Asks.Contains("parserColumn")))
+					yield return ("Located_DotGram", "located");
 			}
 		}
 
@@ -603,6 +610,22 @@ sealed partial class Machine
 			$"values.Push{StackOf(machine._results.ValueOf(rule))}({Last(rule)});";
 
 		/// <remarks>
+		/// Built where it is stepped over, by the <c>recover</c> factory, from the four numbers the
+		/// tape's record would hold, named as the walk names them (Machine.RecoverySupplied): past
+		/// the turn it stands in, nothing takes it back (Commit, the turn's point).
+		/// </remarks>
+		public override IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions)
+		{
+			if (plan.Recovery.Asks.Count > 0)
+				yield return "var recovered = (Position: pos, Value: to, AtomicIndex: reach, RuleIndex: ordinal);";
+
+			var arguments = string.Join(", ", plan.Recovery.Asks.Select(name => machine.RecoverySupplied(name, plan, "located")));
+			var built     = $"{Last(element)} = {plan.Method}({arguments}); {PushRecord(slot, element)}";
+
+			yield return Unbuilding ? $"if (unbuilt == 0) {{ {built} }}" : built;
+		}
+
+		/// <remarks>
 		/// A live stack rather than a pair of records on a log. The tape writes the mark down
 		/// and the walk at the end replays it into a stack to know what stood over a value;
 		/// here the value is built while the mark stands, so the stack is the answer as it is.
@@ -663,8 +686,8 @@ sealed partial class Machine
 
 		public override string? Refuses()
 		{
-			if (machine._graph.Recoveries.Count > 0)
-				return "it recovers";
+			if (machine.RecoveryRefusal() is { } recovers)
+				return recovers;
 
 			// An extent is carried: its value is the two positions the reader already has.
 			// Collecting one is not, and for a reason worth saying rather than hiding — the

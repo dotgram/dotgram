@@ -3110,8 +3110,16 @@ sealed partial class Machine
 			var slot   = plan.Slot - machine._captureOffsets[owner];
 			var began  = $"m{_ways++}";
 
+			// What an element opened on the ways is dropped at its commit. A reader carrying
+			// immediately has ways only where something opens one, and then only an element that
+			// can open one has anything to drop.
+			var ways = machine.Carrier is not ImmediateCarrier || machine.Opens(body);
+
 			code.Line($"var {turn} = 0;");
-			code.Line($"var {began} = ways.Cursor;");
+
+			if (ways)
+				code.Line($"var {began} = ways.Cursor;");
+
 			code.Line();
 
 			using (code.Block("while (true)"))
@@ -3144,14 +3152,15 @@ sealed partial class Machine
 				code.Line("failure.Reach = p;");
 
 				var mark  = $"k{_ways++}";
-				var taken = Attempt(code, body, inside, mark);
+				var taken = Attempt(code, body, inside, ways ? mark : null);
 
 				code.Line($"if ({taken} >= 0)");
 
 				using (code.Block(""))
 				{
 					// Committed: what it opened on the tape can never be asked for again.
-					code.Line($"ways.Count = ways.Cursor = {mark};");
+					if (ways)
+						code.Line($"ways.Count = ways.Cursor = {mark};");
 					code.Line($"p = {taken};");
 					code.Line($"{turn}++;");
 					code.Line("continue;");
@@ -3167,7 +3176,9 @@ sealed partial class Machine
 
 				using (code.Block(""))
 				{
-					code.Line($"ways.Count = ways.Cursor = {began};");
+					if (ways)
+						code.Line($"ways.Count = ways.Cursor = {began};");
+
 					code.Line("return -1;");
 				}
 
@@ -3250,22 +3261,24 @@ sealed partial class Machine
 
 			_records = true;
 
-			Carried(code, _positions
-				? $"ways.Begin({machine.RecoveryArm(read.Plan)}, pos, to);"
-				: $"ways.Begin({machine.RecoveryArm(read.Plan)});");
-			Carried(code, "ways.Put(pos, to);");
-			Carried(code, "ways.Put(reach, ordinal);");
-			Carried(code, "ways.End(ways.RefsCount);");
-			Carried(code, machine.Carrier.PushRecord(slot, RuleOfSlot(slot)));
+			foreach (var line in machine.Carrier.Recovered(read.Plan, slot, RuleOfSlot(slot), _positions))
+				Carried(code, line);
+
 			code.Line("return p;");
 
 			// What the synchronization's call hands on of the rule's gathering is the rule's, and
-			// is handed over under the same name.
-			var body = code.ToString();
+			// is handed over under the same name: the tape's one mark, or the immediate carrier's
+			// one a stack, whose names hold the stack's type until the file numbers it
+			// (Machine.TableName) and so are asked of the carrier rather than read off the text.
+			var body  = code.ToString();
+			var marks = machine.Carrier is TapeCarrier
+				? System.Text.RegularExpressions.Regex.IsMatch(body, @"\brb\b") ? ["rb"] : new List<string>()
+				: machine.Carrier.GatherHanding(owner, declared: false, inBody: true)
+					.Split(',').Select(static one => one.Trim()).Where(one => one.Length > 0 && body.Contains(one)).ToList();
 
-			handed = System.Text.RegularExpressions.Regex.IsMatch(body, @"\brb\b") ? ", rb" : "";
+			handed = string.Concat(marks.Select(static one => ", " + one));
 
-			Parts.Add((name, ", int ordinal" + (handed.Length > 0 ? ", int rb" : ""), body));
+			Parts.Add((name, ", int ordinal" + string.Concat(marks.Select(static one => ", int " + one)), body));
 			Cold.Add(name);
 
 			return name;
