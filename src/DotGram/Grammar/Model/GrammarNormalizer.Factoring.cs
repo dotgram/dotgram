@@ -530,23 +530,38 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	void Declined(int run, RuleSymbol owner)
 	{
-		if (owner.Declaration is null || !_declined.Add(owner))
-			return;
-
-		Warn(
-			SharedPrefix,
-			$"{run} alternatives of '{owner.Name}' begin with the same operand, and ordered choice " +
-			$"reads it once for each of them — {run} readings where one would do. It is not shared " +
-			"for you because it is not shown to have one reading where it stands: two alternatives " +
-			"prefer a shorter reading of it that lets their own tail fit, and one shared reading " +
-			"prefers its own, so sharing it would be a different grammar rather than the same one " +
-			"written once. Saying the operand is read once — braces around the lexeme it is, §4.5 — " +
-			"is what lets it be shared; writing the alternatives with the shared operand in front " +
-			"and the rest of each behind it is the same choice made by hand.",
-			owner.Declaration.At);
+		if (owner.Declaration is not null && !_declined.Exists(one => one.Owner == owner))
+			_declined.Add((owner, run));
 	}
 
-	readonly HashSet<RuleSymbol> _declined = [];
+	/// <summary>
+	/// What the fold declined to share, one rule at a time and in the order it declined them
+	/// (GRAM4016).
+	/// </summary>
+	/// <remarks>
+	/// The fold only records a decline: it changes the shape of the graph and says nothing
+	/// about it, so that it can be run again over a graph it has already folded without
+	/// saying the same thing twice (D14). What it could not do is a check on the graph it
+	/// leaves, made once it is done.
+	/// </remarks>
+	void ReportDeclines()
+	{
+		foreach (var (owner, run) in _declined)
+			Warn(
+				SharedPrefix,
+				$"{run} alternatives of '{owner.Name}' begin with the same operand, and ordered choice " +
+				$"reads it once for each of them — {run} readings where one would do. It is not shared " +
+				"for you because it is not shown to have one reading where it stands: two alternatives " +
+				"prefer a shorter reading of it that lets their own tail fit, and one shared reading " +
+				"prefers its own, so sharing it would be a different grammar rather than the same one " +
+				"written once. Saying the operand is read once — braces around the lexeme it is, §4.5 — " +
+				"is what lets it be shared; writing the alternatives with the shared operand in front " +
+				"and the rest of each behind it is the same choice made by hand.",
+				owner.Declaration!.At);
+	}
+
+	/// <summary>The rules the fold declined to share a beginning in, with how many alternatives began alike, in the order it declined them.</summary>
+	readonly List<(RuleSymbol Owner, int Run)> _declined = [];
 
 	/// <summary>How far a run of alternatives sharing one leading operand reaches.</summary>
 	int Run(IReadOnlyList<Node> alternatives, int from, RecognitionGraph graph, RuleSymbol owner)

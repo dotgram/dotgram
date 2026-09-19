@@ -32,9 +32,28 @@ namespace DotGram.Grammar.Model;
 public sealed partial class GrammarNormalizer
 {
 	/// <summary>
-	/// Inline every call to a rule whose alternatives only forward another rule's value.
+	/// What a forwarding rule says about its own refusal (§4's `on fail`), left to the rules it
+	/// forwards to.
 	/// </summary>
-	void CollapseTransparent()
+	/// <remarks>
+	/// Which rule forwards to which is a fact about what the grammar means, so this is decided
+	/// while the grammar is built, and <see cref="CollapseTransparent"/> — which only changes
+	/// the shape — writes nothing but bodies (D14). `Expression = e: Assignment` is gone once
+	/// collapsed, and "Expected an expression." is about the position, not about which of the
+	/// two rules was standing there. A source that says something of its own keeps it — the
+	/// nearer rule is the one that knows what it is.
+	/// </remarks>
+	void SaysThroughForwarders()
+	{
+		foreach (var pair in Transparent())
+			if (pair.Key.OnFail is { } said)
+				foreach (var source in pair.Value)
+					if (source.OnFail is null && !_says.ContainsKey(source))
+						_says[source] = said;
+	}
+
+	/// <summary>The rules whose calls can be replaced, each with the sources it forwards to, chains resolved.</summary>
+	Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol>> Transparent()
 	{
 		// Whose calls can be replaced, and by the choice of which sources.
 		var transparent = new Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol>>();
@@ -71,7 +90,7 @@ public sealed partial class GrammarNormalizer
 		}
 
 		if (transparent.Count == 0)
-			return;
+			return transparent;
 
 		// A transparent rule may forward to another. Resolve the chains up front, and a
 		// ring — which forwarding alone cannot make terminate — drops out whole.
@@ -106,16 +125,18 @@ public sealed partial class GrammarNormalizer
 				transparent[rule] = resolved;
 		}
 
-		// What a rule that is about to disappear says about its own refusal (§4's `on fail`)
-		// it leaves to whatever takes its place: `Expression = e: Assignment` is gone after
-		// this, and "Expected an expression." is about the position, not about which of the
-		// two rules was standing there. A source that says something of its own keeps it —
-		// the nearer rule is the one that knows what it is.
-		foreach (var pair in transparent)
-			if (pair.Key.OnFail is { } said)
-				foreach (var source in pair.Value)
-					if (source.OnFail is null && !_says.ContainsKey(source))
-						_says[source] = said;
+		return transparent;
+	}
+
+	/// <summary>
+	/// Inline every call to a rule whose alternatives only forward another rule's value.
+	/// </summary>
+	void CollapseTransparent()
+	{
+		var transparent = Transparent();
+
+		if (transparent.Count == 0)
+			return;
 
 		foreach (var rule in _rules)
 			_bodies[rule] = Inline(_bodies[rule]);

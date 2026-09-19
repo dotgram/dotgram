@@ -193,6 +193,9 @@ public sealed partial class GrammarNormalizer
 
 		// After the pass-throughs exist and before the results are computed from the
 		// captures: a call to a rule that only forwards becomes the choice it forwarded.
+		// What the forwarding rule said about its refusal is handed on first, as a builder:
+		// the collapse itself only changes the shape (D14).
+		normalizer.SaysThroughForwarders();
 		normalizer.CollapseTransparent();
 
 		normalizer.ComputeResults();
@@ -211,6 +214,10 @@ public sealed partial class GrammarNormalizer
 		// makes a shape the author may not: a construction after a head shared with its
 		// neighbours. Before the two below, which only read what binding recorded.
 		normalizer.Factor();
+
+		// What the fold declined to share, said once it has run: the fold changes the shape and
+		// says nothing, and what it could not do is a check on the graph it leaves (D14).
+		normalizer.ReportDeclines();
 
 		// Last, and reading only what binding recorded: which contract each grammar in the
 		// composition declared, and whether one type can be seen through all of them.
