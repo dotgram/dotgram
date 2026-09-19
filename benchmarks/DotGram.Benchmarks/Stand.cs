@@ -700,6 +700,42 @@ static partial class Stand
 			return () => IsSuccess(call.Invoke(null, [text])!);
 		}
 
+		/// <summary>
+		/// The quiet form of this side's SQL:2023 parser, <c>bool Try{Rule}(string, out value)</c> (expr's dba87a9e), by
+		/// reflection; null where the side has none.
+		/// </summary>
+		public Func<int>? SqlBool(string rule, string text)
+		{
+			var call = _sql.GetMethods(BindingFlags.Static | BindingFlags.Public).FirstOrDefault(one => one.Name == rule
+				&& one.ReturnType == typeof(bool) && one.GetParameters() is [{ ParameterType.Name: "String" }, { IsOut: true }]);
+
+			return call is null ? null : () => (bool)call.Invoke(null, [text, null])! ? 1 : 0;
+		}
+
+		/// <summary>The quiet form of this side's expression parser, <c>bool TryParseLambda(string, State, out value)</c>, by reflection; null where the side has none.</summary>
+		public Func<int>? ElBool(string rule, string text, bool immediate)
+		{
+			var type = immediate ? _elImmediate : _elTape;
+			var call = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).FirstOrDefault(one => one.Name == rule
+				&& one.ReturnType == typeof(bool) && one.GetParameters() is [{ ParameterType.Name: "String" }, var state, { IsOut: true }] && state.ParameterType == _elState);
+
+			if (call is null)
+				return null;
+
+			var ctor = _elState.GetConstructor([typeof(Assembly)]) ?? throw new InvalidOperationException("ExpressionParser.State(Assembly) not found");
+			var textProperty = _elState.GetProperty("Text", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+				?? throw new InvalidOperationException("ExpressionParser.State.Text not found");
+
+			return () =>
+			{
+				var state = ctor.Invoke([typeof(Stand).Assembly]);
+
+				textProperty.SetValue(state, text);
+
+				return (bool)call.Invoke(null, [text, state, null])! ? 1 : 0;
+			};
+		}
+
 		/// <summary>TransactSqlParser.TryParseStatement(string) of this side, by reflection: whether it read the statement.</summary>
 		public Func<int> Tsql(string text)
 		{
@@ -972,6 +1008,9 @@ static partial class Stand
 			// The largest size of each linearity series, held before and after like any row: a change that makes a parser
 			// superlinear shows here, in the pair of the commit that does it, and not a day later in `linearity`.
 			.. PairedSweeps(before, after),
+
+			// The quiet form beside the match (expr's dba87a9e): only where the after side has it.
+			.. PairedBool(before, after),
 
 			// The whole-stream forms, FixGrammar.ParseFields(Stream | TextReader): the yield form `.stream` is another driver.
 			.. PairedWholeStreams(before, after),
