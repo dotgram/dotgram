@@ -1102,7 +1102,7 @@ public static partial class CSharpEmitter
 
 				file.Line();
 				file.Line(
-					$"static int {BufferedMethod(publication, machine.BufferedBytes)}({machine.InputType} text, int pos{(climbs ? ", int power" : "")}, " +
+					$"static int {BufferedMethod(publication, machine.BufferedBytes, machine.InPlace)}({machine.InputType} text, int pos{(climbs ? ", int power" : "")}, " +
 					$"ref {FailureType} failure{(type is null ? "" : $", out {type} value")}{context}{reads}) =>");
 				file.Then(
 					$"{core}(text, pos{(climbs ? ", power" : "")}, ref failure{(type is null ? "" : ", out value")}" +
@@ -1119,7 +1119,7 @@ public static partial class CSharpEmitter
 			EmitEngine(file, machine, engine);
 			file.Write(machine.RenderScanners());
 			foreach (var publication in compiled.Publications)
-				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes), engine, whole: publication.Kind == PublishKind.Parse));
+				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes, machine.InPlace), engine, whole: publication.Kind == PublishKind.Parse));
 			return;
 		}
 

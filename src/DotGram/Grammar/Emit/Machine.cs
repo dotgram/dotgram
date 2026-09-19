@@ -23,6 +23,16 @@ sealed partial class Machine
 	public bool BufferedBytes { get; }
 	public bool BorrowedCaptures { get; }
 
+	/// <summary>
+	/// Whether this machine reads bytes the caller already holds, whole (D7), and nothing that
+	/// streams: there is no window to let go of, so what keeps a stream on the engine does not
+	/// keep this. Set by the buffered emitter on the machine it makes for the memory entries.
+	/// </summary>
+	public bool InPlace { get; set; }
+
+	/// <summary>Whether a machine of its own reads this publication's memory entries (<see cref="InPlace"/>).</summary>
+	public bool MemoryElsewhere { get; set; }
+
 	/// <summary>Whether some reading of this machine records no failure, so every place that records asks first.</summary>
 	/// <remarks>
 	/// A reading whose failure nothing reads — a `find` trying each start, the lexer measuring

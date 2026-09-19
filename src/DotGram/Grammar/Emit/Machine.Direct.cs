@@ -333,6 +333,10 @@ sealed partial class Machine
 				if (node is Node.Glue)
 					_directGlue = true;
 
+				// An external recognizer handed the context is handed the reader's.
+				if (node is Node.External { UsesContext: true })
+					_directGuardContext = true;
+
 				if (node is Node.Guard guard)
 				{
 					_directGuards = true;
@@ -347,7 +351,7 @@ sealed partial class Machine
 			}
 	}
 
-	/// <summary>Whether the readers carry the context: a guard names it, or a guard builds a value whose factory might.</summary>
+	/// <summary>Whether the readers carry the context: a guard or an external recognizer names it, or a guard builds a value whose factory might.</summary>
 	bool DirectReaderContext => UsesContext && (_directGuardContext || _directBuilds);
 
 	/// <summary>What a reader takes beyond the text, the position, the failure and the tape.</summary>

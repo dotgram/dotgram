@@ -56,7 +56,8 @@ public static partial class CSharpEmitter
 			public bool Peek(int position, out byte value)
 			""");
 
-	static string BufferedMethod(Publication publication, bool bytes = false) => "ReadBuffered_" + publication.MethodName + (bytes ? "_Bytes" : "");
+	static string BufferedMethod(Publication publication, bool bytes = false, bool inPlace = false) =>
+		"ReadBuffered_" + publication.MethodName + (bytes ? "_Bytes" : "") + (inPlace ? "_Memory" : "");
 
 	static void AddBufferedMachines(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
@@ -124,6 +125,28 @@ public static partial class CSharpEmitter
 					"on in another thread with the whole input, which a buffer cannot hand over.",
 					publication.At.Position, publication.At.Length, GramSeverity.Info));
 			added.Add(new Compiled(machine!, [publication], "Recognize_DotGram" + tag, tag, false, direct));
+
+			// Bytes the caller holds whole are read by methods where the string is, even where the
+			// stream is not. What keeps a stream on the engine is what a stream does: an external
+			// recognizer reading through its view may make the buffer fetch more under the reader,
+			// and the engine lets the window go as it reads. Bytes held whole do neither — the view
+			// the engine hands an external is handed it here too, and never fetches — so they get a
+			// machine of their own, and the stream keeps what it proves (fix-reader, byte[] in
+			// place, A).
+			if (bytes && !direct && publication.Kind == PublishKind.Parse &&
+				machines.Exists(one => one.Direct && one.Publications.Contains(publication)))
+			{
+				var memoryTag = tag + "_Memory";
+				var memory = new Machine(graph, results, lines, only: rules, tag: memoryTag,
+					partSize: partSize, bufferedInput: true, bufferedBytes: true, spanCaptures: spanCaptures,
+					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true) { InPlace = true };
+
+				if (memory.CanDirect([publication]) && !memory.Probes)
+				{
+					machine!.MemoryElsewhere = true;
+					added.Add(new Compiled(memory, [publication], "Recognize_DotGram" + memoryTag, memoryTag, false, true));
+				}
+			}
 		}
 		// Keep single-rule release proofs and small parsers independent. Large,
 		// substantially overlapping readers may share states within one input form.
@@ -190,7 +213,13 @@ public static partial class CSharpEmitter
 			return;
 		}
 
-		EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.Stream", buffered: true);
+		// The machine for bytes held whole writes those entries and nothing else; the stream's
+		// then writes only its own (InPlace, MemoryElsewhere).
+		if (!compiled.Machine.InPlace)
+			EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.Stream", buffered: true);
+
+		if (compiled.Machine.MemoryElsewhere)
+			return;
 
 		// Bytes the caller already holds are read by the same machine over the array itself:
 		// one fill that is the whole input, and the end known at once (D7). No buffer to size,
@@ -279,7 +308,7 @@ public static partial class CSharpEmitter
 				using (file.Block("while (text.Peek(start, out _))"))
 				{
 					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
-					file.Line($"var end = {BufferedMethod(publication, bytes)}(text, start{hands});");
+					file.Line($"var end = {BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands});");
 					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
 					file.Line(publication.YieldBatch ? "foreach (var item in value) yield return item;" : "yield return value;");
 					file.Line("start = end;");
@@ -305,7 +334,7 @@ public static partial class CSharpEmitter
 				using (file.Block("while (true)"))
 				{
 					file.Line($"var failure = new {FailureType}();");
-					file.Line($"var end = {BufferedMethod(publication, bytes)}(text, start{hands});");
+					file.Line($"var end = {BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands});");
 					using (file.Block("if (end >= 0)"))
 						file.Line($"yield return {match}.Success({(type is null ? bytes ? "text.Slice(start, end - start).ToArray()" : "text.Slice(start, end - start).ToString()" : "value")}, start, end - start);");
 					file.Line("if (end <= start && !text.Peek(start, out _)) yield break;");
@@ -322,7 +351,7 @@ public static partial class CSharpEmitter
 		{
 			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{construct};");
 			file.Line($"var failure = new {FailureType}();");
-			file.Line($"var end = {BufferedMethod(publication, bytes)}(text, 0{hands});");
+			file.Line($"var end = {BufferedMethod(publication, bytes, machine.InPlace)}(text, 0{hands});");
 			using (file.Block("if (end < 0)"))
 			{
 				file.Line("var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);");
