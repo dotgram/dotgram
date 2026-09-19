@@ -319,6 +319,13 @@ more references in every match returned, and span and stream entries stay eager.
 (1) now, (2) only if a caller of the match is shown to pay for a message it never reads.
 **Decided by Igor, 2026-09-19: option 1.** expr emits the bool form (a line in §6); finance-24
 moves Web's wrappers onto it.
+It breaks a principle §6.1 states in so many words, "no `out` parameters anywhere", whose reason
+is that a result with room for a failure needs no second shape and that whatever a parse will
+later want to say becomes a field, not a parameter. The new form is the one that says nothing,
+so that reason does not reach it. Put to Igor with the alternatives (a nullable result without
+`out`, or the lazy match); **Igor, 2026-09-19: the `out` form, and §6.1 says so** — its lead
+becomes "one `out` parameter, and only where nothing is said", with one sentence on why, and
+§6's sentence on what `TryParse` returns names the exception.
 
 ## D5. A stream is read without holding it
 
