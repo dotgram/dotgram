@@ -215,7 +215,13 @@ trees, since types from two contexts are never equal.
   date-time by regex 11-17x.
 - The generator-time gate against the morning base: T-SQL +47% (4.1 to 6.0 s), located +43%,
   the generator's own grammar +187% (67 to 194 ms). A bisection by pinned builds names the
-  commit; until then no analysis change lands without its own generation-time figure.
+  commit. First datum of the bisection: the morning base commit rebuilt in the evening reads
+  +22..+39% against its own morning report, so at least half of the gate's figure is machine
+  state. Rule from it: the gate holds a head to a base built in the same run, alternately (base,
+  head, base, head) on one pinned set with nothing beside, and quotes the ratio, not the
+  milliseconds; the bisection is read as a curve with the base as its control, a step naming a
+  commit, a slope naming the grammar's growth and the GRAM5009 check. Until then no analysis
+  change lands without its own generation-time figure.
 - Rows whose spread forbids a verdict below it: an SQL literal 44%, EL interpolation 52%, an
   early EL refusal 45%, FIX slope-4 22%.
 
