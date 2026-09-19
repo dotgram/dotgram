@@ -4689,7 +4689,7 @@ static class FixSchema
 		_ => 0,
 	};
 
-	// The wire type of each standard tag, as an index into TypeNames: one byte a tag, the tag
+	// The wire type of each standard tag, as a code TypeName names: one byte a tag, the tag
 	// itself the index, and zero for a tag the standard does not define. Data rather than a switch,
 	// so that asking needs nothing compiled: a switch over 912 tags was the largest method a
 	// parser's first call waited for, and FixFieldOptions asks it of every standard tag at once.
@@ -4757,41 +4757,46 @@ static class FixSchema
 		 9,  9,  9,  5, 14, 20,  3,  9, 14, 20,  9, 12, 11,             // 944
 	};
 
-	// Indexed by TypeCodes; the first is the type of a tag the standard does not define.
-	static readonly string?[] TypeNames =
+	// The name of a code in TypeCodes; zero is a tag the standard does not define. A switch and not
+	// an array, so that asking a type reads no static field and does not run this class's static
+	// constructor, which builds every component, group and code set the message layer uses.
+	static string? TypeName(byte code)
 	{
-		null,
-		"Amt",
-		"Boolean",
-		"char",
-		"Country",
-		"Currency",
-		"data",
-		"Exchange",
-		"float",
-		"int",
-		"Length",
-		"LocalMktDate",
-		"MonthYear",
-		"MultipleValueString",
-		"NumInGroup",
-		"Percentage",
-		"Price",
-		"PriceOffset",
-		"Qty",
-		"SeqNum",
-		"String",
-		"UTCDateOnly",
-		"UTCTimeOnly",
-		"UTCTimestamp",
-	};
+		return code switch
+		{
+			 1 => "Amt",
+			 2 => "Boolean",
+			 3 => "char",
+			 4 => "Country",
+			 5 => "Currency",
+			 6 => "data",
+			 7 => "Exchange",
+			 8 => "float",
+			 9 => "int",
+			10 => "Length",
+			11 => "LocalMktDate",
+			12 => "MonthYear",
+			13 => "MultipleValueString",
+			14 => "NumInGroup",
+			15 => "Percentage",
+			16 => "Price",
+			17 => "PriceOffset",
+			18 => "Qty",
+			19 => "SeqNum",
+			20 => "String",
+			21 => "UTCDateOnly",
+			22 => "UTCTimeOnly",
+			23 => "UTCTimestamp",
+			 _ => null,
+		};
+	}
 
 	const byte DataType = 6;
 
 	/// <summary>The standard wire type of a tag, or null where the standard does not define it.</summary>
 	public static string? Type(int tag)
 	{
-		return (uint)tag < (uint)TypeCodes.Length ? TypeNames[TypeCodes[tag]] : null;
+		return (uint)tag < (uint)TypeCodes.Length ? TypeName(TypeCodes[tag]) : null;
 	}
 
 	/// <summary>Whether a tag is one the standard types <c>data</c>, read from the codes without a string.</summary>
