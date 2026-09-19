@@ -861,6 +861,16 @@ matters: FIX's byte form, the one FIX needs, has not had C2. A whole array is no
 has nothing to release; decided that it is read by the reader over a span of bytes as the string
 is over characters, performance-ff, after the two quadratic defects and the scanner's search and
 before C3, its design to the architect first.
+**The design (performance-ff) and the decision.** The in-place array enters the same buffered
+machine as the stream, and a buffered machine goes to the reader only where the engine cannot
+prove it may release the window — right for a stream, wrong for memory, which holds everything.
+A: the in-place entry gets a machine of its own, read by the reader over the same buffered input,
+gated by readability alone; small, in one method, at the cost of a window check on each read.
+B: a span-of-bytes input kind, read exactly as a string with a byte for a character; faster, but
+a new input kind with many touch points. The language is not touched either way. Decided: A,
+measured — the byte rows alone and then with the string rows, the first call with its methods
+and IL, FixGrammar's size; if A keeps less than two thirds of the string's gain, B follows with
+A's profile as its reason; otherwise B waits with D10.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
