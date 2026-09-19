@@ -1711,6 +1711,13 @@ same day; each comes back to the architect as a report, with no code changed.
    step 1, a count of records per rule over the corpora weighted by their materialization cost,
    with no generator change; step 2, two carriers in one machine, is architecture and goes to
    Igor with that number.
+   **Step 1 measured, and it shelves step 2 (sql-39):** of 116,946 records T-SQL writes over the
+   corpus, 4.8% are in settled subtrees (24.9% in rules with every point at the rule's end);
+   SQL:2023 none. The records are the value tower, and none of it is settled — `Replay`'s causes
+   hold it. The factories are a tenth of materialization, so a record's cost is the walk and the
+   time share is the count share: step 2 would give 1-2% of a parse. Shelved with its number; the
+   lever is `Replay`'s causes in the value tower (a bracketed value against a subquery, 40 rules
+   under it; a join's turn, 29; an inline return, 26), after which the design is measured again.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
