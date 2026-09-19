@@ -1466,6 +1466,12 @@ same day; each comes back to the architect as a report, with no code changed.
    nothing is assumed. Held for one more reason: two engine refusals lose an expected item
    ("Expected eof or 'b'" becomes "Expected eof" where another item could begin) — an equivalent
    rewrite must not narrow what a refusal names, so the engine's door is fixed first.
+   Fixed (`e35bc176`, held for its pair): where the engine's machine probes a repetition that may
+   take nothing, the recording reading now goes in as the reader's does; no position or outcome
+   moves, 58 engine lines gain the expectations they had lost (the "[x" kind already on main, and
+   "Input does not match" becoming "Expected '+'" in a fold), and the renderings' wording
+   disagreements fall from 88 to 30. With it the hoist (`7c475a28`) changes no line of the refusal
+   record. Both wait for the stand: the engine rows' pair and the generation gates.
    The scanner's search landed `45155db6` (performance-ff): it already fires in the SQL grammars'
    line comments and two examples; expr's analysis is unblocked, and FIX's `IndexOf` stays with it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
