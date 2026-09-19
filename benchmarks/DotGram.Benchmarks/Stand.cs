@@ -278,6 +278,9 @@ static partial class Stand
 			// T-SQL against ScriptDom, which is the base of these rows (architect for Igor, 2026-09-18).
 			.. TsqlWorkloads(),
 
+			// A stock count, hand and generated (finance-24, for performance-ff's C2).
+			.. FeedWorkloads(),
+
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
 			Expression("nest7",         "(int x) => (((((((x)))))))"),

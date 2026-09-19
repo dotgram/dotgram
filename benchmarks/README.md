@@ -98,6 +98,14 @@ different shapes; agreement is that all three accept, and whether the trees say 
 what `--roundtrip` and `--kinds` answer over the corpus. The long select is written in the
 corpus's shape and not cut from it, since every fresh first-call process rebuilds the rows.
 
+`feeds/stock-count.{small,good,broken}.{text,reader,reader64}` (`StandFeeds.cs`) is the stock
+count of `DotGram.Examples` against `HandStockCount`: the string, and a `TextReader` at the
+default buffer and at 64 characters, over the four-line count of the example's header, a
+thousand good lines, and the same with every tenth broken. The stand references
+`DotGram.Examples` for it, unlike the URL benchmark, which copies a grammar: a copy of an
+example is a second parser to keep in step with the shipped one, and the hand parser
+references the same example for the same value types.
+
 Beside the parsers, a regular expression, where one can be written honestly:
 
 | family | regex reading | what the pattern does less |
