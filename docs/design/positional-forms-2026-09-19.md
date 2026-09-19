@@ -60,10 +60,27 @@ leading trivia of the next reading, which every entry already skips, so the loop
 unaffected. The whole form is untouched: it must reach the end of the input, and the trivia
 before the end is part of reaching it.
 
-What this changes for a caller: `Match.Length` and the position that comes back are shorter by
-the trivia after the value. In this repository the one consumer is the expression language, which
-reads an interpolation hole through the window form and trims what is left over, so it answers
-the same either way. It is a behaviour change to a published form and belongs in the release note.
+**It breaks behaviour that is already shipped**, and it should be read as that and not as a
+clarification: `Match.Length` and the position that comes back are shorter by the trivia after the
+value, for a form consumers have had since it existed.
+
+Who uses it here, looked at for this design:
+- **The expression language, an interpolation hole** (`Interpolation`, the window form): it takes
+  what is left of the hole after the match and trims it before deciding whether anything is there.
+  Unaffected.
+- **The expression language, an untyped lambda's body** (`Deferred`, the window form): it refuses
+  the body where `match.Length != body.Length`. A body whose text ends in trivia — `(x) => x + 1 `
+  inside a longer text — would then be refused with "Expected the end of the lambda". **It breaks,
+  and it is one line to fix**: compare against the body with its trailing trivia trimmed, or ask
+  that what is left after the match is trivia only. The change owes that line and a test with a
+  body that ends in a space.
+- **The Visual Studio extension** reads a grammar document through `DotGram/Language` and calls no
+  positional form. Unaffected.
+- **DotGram.Web, DotGram.Sql, the examples:** no caller of a positional form.
+
+Outside this repository the form is public API, and a host measuring a value by `Length` would
+read a shorter extent. It belongs in the release note as a breaking change, with the two lines
+above as the migration.
 
 ### 1.3 Over bytes already in memory
 
@@ -190,12 +207,18 @@ from a position is. Draft for Igor:
 >
 > What comes back says where the reading began and how far it got, and every position in it — and
 > in whatever the reading builds — is an offset into `input`, so a host reading a piece of a text
-> it holds keeps what those positions mean. The first form has to begin where a token of the text
-> begins; where `at` is inside trivia — a newline, a comment — the reading begins at the first
-> token after it, and `Position` says where. The window form cuts only the window into tokens, so
+> it holds keeps what those positions mean. Where `at` is inside trivia — a newline, a comment,
+> whatever this grammar's trivia is — the reading begins at the first token at or after it, and
+> `Position` says where. The window form cuts only the window into tokens, so
 > it may begin anywhere, and a character no token begins with ends the tokens rather than refusing
 > the reading: a hole in an interpolated string, read up to the `:` its format begins with, is the
 > shape it is for.
+>
+> **This changed.** Until this version the positional and window forms read the trivia after the
+> rule, so the position that came back was past it and `Length` counted it. They now stop where
+> the value ends. A caller that measured the value by `Length`, or went on from the position it
+> was handed, reads the same values in the same places; a caller that expected the trivia to be
+> already behind it reads it as the leading trivia of its next reading.
 >
 > **What `eof` means here.** A reading from a position ends where the rule ends, not where the
 > input does, so `eof` written in a rule (§7.4) is still the end of the whole input; inside a
