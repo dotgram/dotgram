@@ -32,6 +32,12 @@ static partial class Stand
 		{
 			var bytes = Encoding.Latin1.GetBytes(text);
 
+			// The yield form over a reader, beside the `.stream` rows' yield form over a stream.
+			yield return PairedFixForm($"{name}.yield-reader",
+				() => HandFixParser.Parse(new StringReader(text)),
+				before.FixYieldReader(text),
+				after.FixYieldReader(text));
+
 			foreach (var (form, reader) in new[] { ("whole-stream", false), ("whole-reader", true) })
 			{
 				yield return PairedFixForm($"{name}.{form}",

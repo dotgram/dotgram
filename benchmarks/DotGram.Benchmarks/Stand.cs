@@ -908,6 +908,10 @@ static partial class Stand
 		public Func<int> FixText(string text) => FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, null]));
 		public Func<int> FixBytes(byte[] bytes) => FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null]));
 
+		/// <summary>FixParser.Parse(TextReader) of this side, the yield form over a reader: the fields' tags summed.</summary>
+		public Func<int> FixYieldReader(string text) => FixCount(() =>
+			FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [new StringReader(text), null, 4096, null])());
+
 		public Func<int> FixStream(byte[] bytes) => FixCount(() =>
 			FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
 
