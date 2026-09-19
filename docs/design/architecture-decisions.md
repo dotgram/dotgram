@@ -266,6 +266,15 @@ terms 158 to 1,349 µs (1.36x the hand parser to 11.6x), 100 terms +100%, the sm
 the immediate carrier flat — introduced by one of the 21 commits since the evening baseline. expr's
 fix is measured on all EL rows; the introducing commit is bisected whatever that shows, to learn
 which pair missed it and why.
+**Bisected (stand):** `584a7c1f`, the first part of the gathered-list fix — one walk for a guard's
+list, which made EL's per-name guard walk quadratic in the terms. No pair missed it: none was run.
+The architect had told it to land alone at once, on sql-39's rough SQL figures, with the pair left
+to the store's second part; and a pair would not have seen it either, since the EL rows were
+lambdas of at most twenty terms. Rules from it: no commit that changes emitted code lands without
+its own pair, whoever says "now"; the stand's pairs carry size-sweep rows for every family with a
+linearity series (EL terms, FIX orders, JSON arrays, feeds), so a change of exponent shows in the
+pair of the commit that makes it; and the linearity family runs at the end of every pair window,
+not once a day. expr's `7cb9afba` removes it by his figures; the stand's EL pair says what is left.
 **Web date-time's anatomy (finance-24):** the reader read nothing twice; the values did — each
 field became a string twice, once for the guard and once for the construction, and was parsed
 twice, about twenty strings and fourteen parses for 23 characters. The grammar's part is fixed
