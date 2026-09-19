@@ -41,10 +41,10 @@ matters, and `linearity` has a series only for the media type's parameters, the 
 
 | publication | `string` | `(string, at)` | `(string, at, length)` | `Scan(ReadOnlySpan<char>, ...)` |
 | --- | --- | --- | --- | --- |
-| `SqlStandardParser`, 43 rules | 6 rules have a row (`Literal`, `ColumnReference`, `ValueExpression`, `SearchCondition`, `QueryExpression`, `SQLSchemaStatement`); **37 none** | **none** | **none** | **none** |
-| `Sql92Parser`, 5 rules | **none** (generation only, by the gate) | **none** | **none** | **none** |
-| `TransactSqlParser`, 32 rules | 1 rule: `Statement`; `SearchCondition` only in `linearity`; **30 none** | `Statement`, the script rows, *paired* | **none** | **none** |
-| `TransactSqlParser.Located`, 32 rules | `Statement` (the plain stand's located reading); **31 none** | **none** | **none** | **none** |
+| `SqlStandardParser`, 42 rules | 6 rules have a row (`Literal`, `ColumnReference`, `ValueExpression`, `SearchCondition`, `QueryExpression`, `SQLSchemaStatement`); **36 none** | **none** | **none** | **none** |
+| `Sql92Parser`, 4 rules | **none** (generation only, by the gate) | **none** | **none** | **none** |
+| `TransactSqlParser`, 31 rules | 1 rule: `Statement`; `SearchCondition` only in `linearity`; **29 none** | `Statement`, the script rows, *paired* | **none** | **none** |
+| `TransactSqlParser.Located`, 31 rules | `Statement` (the plain stand's located reading); **30 none** | **none** | **none** | **none** |
 
 The `Parse` (throwing) form of none. `Scan`, the search publication (`find`), has no row for any of the five parsers that publish
 it (Sql92, SqlStandard, T-SQL, Located, ExpressionLanguage). The bool forms: two rows (`sql/refused-late.bool`,
@@ -75,14 +75,14 @@ form over a `TextReader`), `FileNames`, `FixedWidth`, `HttpParser`, `IniParser`,
   `FixMessages` (5), `StreamingFeedReader` none.
 - **Lazy** (`yield`): the FIX forms covered; `ReadMessages` and `StreamingFeedReader` none.
 - **Search** (`Scan`): none, in five parsers.
-- **Positional** `(string, at)`: one rule of T-SQL (paired); 39 of SQL:2023's 43 rules and 4 of Sql92's 5 publish it with no row.
-- **Window** `(string, at, length)`: none.
+- **Positional** `(string, at)`: one rule of T-SQL (paired); 40 of SQL:2023's 42 rules, all 4 of Sql92's and 30 more of T-SQL's 31 publish it with no row.
+- **Window** `(string, at, length)`: none (40 SQL:2023 rules, 4 Sql92, 31 T-SQL and 31 Located publish it).
 
 ## Which of these matter first
 
 Not all at once. The forms about to change: the positional and window forms (lazy tokens, expr's next commits: the script rows
 are the only reading of them), the `Scan` search (five parsers publish one and every reader of it is invisible),
 the span forms (`FixMessages` in particular, and the FIX ones that copy), the lists and fields of the Web (loops, so a curve), the
-throwing `Parse` next to the `Try`, and `FixMessages`' stream and reader forms. The 37 SQL:2023 and 30 T-SQL rules with no row
+throwing `Parse` next to the `Try`, and `FixMessages`' stream and reader forms. The 36 SQL:2023 and 29 T-SQL rules with no row
 are rules of the grammar rather than forms of a publication: a change to the reader that touches them is read today only
 through the statements the T-SQL rows and the six SQL:2023 rules happen to contain.
