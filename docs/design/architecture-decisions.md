@@ -1117,10 +1117,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   anywhere has a row; of FIX's message layer one parse method of twenty-one is timed and its
   stream, reader and lazy forms none; the Web has rows for twelve publications of thirty-four; SQL
   has six of forty-two rules in the standard, one of thirty-one in T-SQL, nothing for SQL-92, no
-  row for the window form anywhere and none for the search publication in any of the five parsers
-  that have it; of thirty-six examples three are measured. Added in this order as hands are free,
+  row for the window form anywhere and none for the token scanner the split grammars publish (the
+  stand first called it the search publication and corrected itself); of thirty-six examples three are measured. Added in this order as hands are free,
   pairs first: the positional and window forms of the SQL parsers (the path expr is changing now),
-  the search publication, the message layer's stream and lazy forms, the Web's list publications
+  a row that loops the token scanner, which today hides inside every SQL and EL row,
+  the message layer's stream and lazy forms, the Web's list publications
   into the linearity family, one span row per library, and the examples' lazy feed reader. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
