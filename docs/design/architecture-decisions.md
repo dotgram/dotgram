@@ -666,6 +666,22 @@ a rule it reaches can reach itself. Gates: the generated files byte-identical ag
 `find`, recover, the buffered search branches, and release per turn after C4 (the D5 test is
 un-skipped there).
 
+**Window 2 (stand, 2026-09-18 20:34; medians of five, paired).** The rule for holding a change
+from here on: a row's paired spread is the hand parser's own run-to-run spread (2-13%, the EL
+interpolation row 28%), and a change counts only outside it.
+- C1 (performance-ff, `137600f4`: the reader's helpers and the runs by `IndexOf`): FIX flat, the
+  slope rows within 3%; EL and SQL flat. C1 is groundwork, and the gain the design attributes to
+  the scan of the separator is now expected of C2, where the reader with `recover` reads the
+  field. C1 lands as it is; the EL interpolation row's +17% is inside its spread and is re-read
+  at C2's pair, not rerun alone.
+- The FIX anatomy items (finance-24), measured one on top of the other: item 1 (the tag read
+  once) +4..+13% on 10 of 12 rows, slower; item 2 (`Create` not searching `=` again) -5..-13% on
+  all 12, on top of item 1; item 3 (one construction a field) -0.4..-13% on the string, order and
+  128-order rows but +5..+10% on the many-binary row. Decision: item 1 is reverted and item 2
+  paired alone against `42a99dca` before it lands; item 3 does not land while the many-binary row
+  pays — finance-24 says why that row differs (a separate path, or the construction moved into a
+  loop) or drops it. Allocation unchanged by all three.
+
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
 0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser
