@@ -772,6 +772,9 @@ sealed partial class Machine
 			// Small materializers retain their straight walk. Large split methods can
 			// amortize selection; marks still need every record visited in order.
 			var selected = twice && strays && !UsesMarks && parts.Count > 1;
+			// Whether the arms are methods of their own (CallDirectArm): wherever the walk is
+			// divided, and where it holds enough of them that their locals are a frame worth zeroing.
+			var alone = parts.Count > 1 || parts[0].Count >= AloneArms;
 
 			// Only what this walk reads is cleared: a guard walks from its own rule's mark, and
 			// clearing from the start of the log each time was a pass over every record before it.
@@ -861,7 +864,9 @@ sealed partial class Machine
 				}
 			}
 
-			if (!DenseDirectValues)
+			// Where the arms are methods of their own each takes its own tables, and the walk
+			// keeps them only for what it builds itself: a recovered element's arm.
+			if (!DenseDirectValues && (!alone || _recoveryReads.Count > 0))
 				foreach (var type in MaterializationTypes)
 					file.Line($"var values{TableName(type)} = values.V{TableName(type)}{(Carrier is TapeCarrier { AdaptiveStore: true } ? ".First" : "")};");
 
@@ -972,7 +977,10 @@ sealed partial class Machine
 					if (parts.Count == 1)
 					{
 						foreach (var (rule, factory) in parts[0])
-							MaterializeDirectArm(file, rule, factory);
+							if (alone)
+								CallDirectArm(file, rule, factory, placed);
+							else
+								MaterializeDirectArm(file, rule, factory);
 					}
 					else
 					{
@@ -1006,6 +1014,10 @@ sealed partial class Machine
 			// The span cannot be a field of the frame a local function captures and is
 			// handed over; `read` and `slot` are the iteration's own and are handed over
 			// too, `read` because an arm advances it and no one after the arm reads it.
+			if (parts.Count == 1 && alone)
+				foreach (var (rule, factory) in parts[0])
+					DirectArmMethod(file, rule, factory, placed);
+
 			if (parts.Count > 1)
 				for (var part = 0; part < parts.Count; part++)
 				{
@@ -1023,34 +1035,11 @@ sealed partial class Machine
 						// that runs one (SQL:2023's select20: 32 of its 71 µs).
 						using (file.Block("switch (kind)"))
 							foreach (var (rule, factory) in parts[part])
-							{
-								if (IsExtent(rule))
-								{
-									file.Line($"case {DirectArm(rule, factory)}: break;");
-
-									continue;
-								}
-
-								file.Line($"case {DirectArm(rule, factory)}:");
-								file.Then(
-									$"{DirectMaterializer}_Arm{DirectArm(rule, factory)}(text, read, slot" +
-									(placed ? ", start, end" : "") + "); break;");
-							}
+								CallDirectArm(file, rule, factory, placed);
 					}
 
 					foreach (var (rule, factory) in parts[part])
-					{
-						if (IsExtent(rule))
-							continue;
-
-						file.Line();
-
-						using (file.Block(
-							$"void {DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
-							$"{InputType} text, int read, int slot" +
-							(placed ? ", int start, int end" : "") + ")"))
-							MaterializeDirectArmBody(file, rule, factory);
-					}
+						DirectArmMethod(file, rule, factory, placed);
 				}
 
 			// The other switch over the same arms, divided into the same groups. It says
@@ -1111,6 +1100,81 @@ sealed partial class Machine
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>Arms with this many or more are methods of their own even where the walk is not divided.</summary>
+	const int AloneArms = 16;
+
+	/// <summary>An arm called where it is a method of its own, and an extent's arm, which builds nothing.</summary>
+	void CallDirectArm(Writer file, RuleSymbol rule, int factory, bool placed)
+	{
+		if (IsExtent(rule))
+		{
+			file.Line($"case {DirectArm(rule, factory)}: break;");
+
+			return;
+		}
+
+		file.Line($"case {DirectArm(rule, factory)}:");
+		file.Then(
+			$"{DirectMaterializer}_Arm{DirectArm(rule, factory)}(text, read, slot" +
+			(placed ? ", start, end" : "") + "); break;");
+	}
+
+	/// <summary>An arm as a method of its own, holding its own locals and taking its own tables.</summary>
+	void DirectArmMethod(Writer file, RuleSymbol rule, int factory, bool placed)
+	{
+		if (IsExtent(rule))
+			return;
+
+		file.Line();
+
+		using (file.Block(
+			$"void {DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
+			$"{InputType} text, int read, int slot" +
+			(placed ? ", int start, int end" : "") + ")"))
+		{
+			var body = new Writer(file.Depth);
+
+			MaterializeDirectArmBody(body, rule, factory);
+
+			var rendered = body.ToString();
+
+			// The tables this arm reads and writes, taken from their fields here and
+			// not by the walk for every arm: a table the walk holds is a field of the
+			// frame all its arms share, and the walk filled a hundred of them on
+			// every call to build one record. A table that grows is stored back to its
+			// field by Grow, so what an arm takes is always the table.
+			if (!DenseDirectValues)
+				foreach (var table in TablesIn(rendered))
+					file.Line($"var values{table} = values.V{table}{(Carrier is TapeCarrier { AdaptiveStore: true } ? ".First" : "")};");
+
+			file.Append(body);
+		}
+	}
+
+	/// <summary>The tables an arm's rendered body names, each once and in the order it first names them.</summary>
+	static List<string> TablesIn(string rendered)
+	{
+		var tables = new List<string>();
+		const string named = "values";
+
+		for (var at = rendered.IndexOf(named + TableOpens, StringComparison.Ordinal); at >= 0;
+			at = rendered.IndexOf(named + TableOpens, at + 1, StringComparison.Ordinal))
+		{
+			var opens  = at + named.Length;
+			var closes = rendered.IndexOf(TableCloses, opens);
+			var table  = rendered.Substring(opens, closes - opens + 1);
+
+			// `values.V…` is the field, and only a local is taken.
+			if (at > 0 && rendered[at - 1] == '.')
+				continue;
+
+			if (!tables.Contains(table))
+				tables.Add(table);
+		}
+
+		return tables;
 	}
 
 	/// <summary>The arms whose factories are handed the marks, for the walk being rendered.</summary>
