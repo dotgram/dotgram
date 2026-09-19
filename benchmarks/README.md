@@ -73,6 +73,16 @@ another short run and never with a full one. `--stand-check` times nothing and h
 row's readings to one another. `--stand-paired --first` takes the first call of each reading of
 each row in a fresh process each, median of five, before and after.
 
+### Rows of a run share a profile
+
+All the rows of one `--stand-paired` run are read in one process, so the runtime's dynamic PGO
+has seen every one of them when it optimizes the code they share. A change that touches only some
+forms of a parser can therefore look like a regression, or a gain, on the forms it does not touch:
+the byte forms of FIX read +2.5..+6.5% slower in a run of 28 rows and -2.2..-5.8% faster in a run
+of those byte forms alone, with the generated code of the byte path identical on both sides, and
+flat (-1.3..+2.9%) under `DOTNET_TieredPGO=0` (2026-09-19). Read a change outside the forms it
+touches against a run of just those forms and against the twin without PGO before believing it.
+
 ### The generator's time is a gate
 
 Every full run holds the time the generator took per host to the previous base (`--against
