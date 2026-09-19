@@ -616,6 +616,12 @@ static partial class Stand
 		readonly Type _tsql;
 		readonly Type? _json;
 
+		/// <summary>Whether the side was given DotGram.Examples, and so has a stock count to read.</summary>
+		public bool HasStock => _stock is not null;
+
+		/// <summary>Whether the side was given DotGram.Web, and so has URLs and JSON to read.</summary>
+		public bool HasWeb => _uri is not null;
+
 		public PairedSide(string name, string directory)
 		{
 			directory = Path.GetFullPath(directory);
@@ -853,9 +859,10 @@ static partial class Stand
 
 			.. PairedFixMessages(before, after),
 
-			.. PairedFeeds(before, after),
+			// The rows of the libraries a side was not given are left out: a pair of Finance alone is a pair of FIX.
+			.. (before.HasStock && after.HasStock ? PairedFeeds(before, after) : []),
 
-			.. PairedWeb(before, after),
+			.. (before.HasWeb && after.HasWeb ? PairedWeb(before, after) : []),
 
 			PairedExpression("floor",         "(int x) => x", before, after),
 			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),
