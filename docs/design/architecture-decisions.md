@@ -275,6 +275,13 @@ its own pair, whoever says "now"; the stand's pairs carry size-sweep rows for ev
 linearity series (EL terms, FIX orders, JSON arrays, feeds), so a change of exponent shows in the
 pair of the commit that makes it; and the linearity family runs at the end of every pair window,
 not once a day. expr's `7cb9afba` removes it by his figures; the stand's EL pair says what is left.
+Landed as `a3b4e410`: the quadratic is gone (1,000 to 3,000 terms 3.0x), but a constant part is
+left, +5..+15% on the small rows and +26..+29% at 100 and 1,000 terms against the base before
+`584a7c1f`: every guard now runs the general walk the gathered list needed. Decided, once a
+bisection confirms the one cause: that walk only for a guard handed a gathered list, decided by
+the guard's arguments when generating; every other guard back to the cheaper build; paired on EL
+and on SQL's conditions, so that neither loses what it gained. Also landed from expr: the
+renderings agree on every line of the refusal record.
 **Web date-time's anatomy (finance-24):** the reader read nothing twice; the values did — each
 field became a string twice, once for the guard and once for the construction, and was parsed
 twice, about twenty strings and fourteen parses for 23 characters. The grammar's part is fixed
