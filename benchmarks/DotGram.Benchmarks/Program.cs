@@ -86,6 +86,15 @@ static class Program
 			return;
 		}
 
+		// `tsql-loop plain|located [rounds]` reads the T-SQL corpus with one reading alone, for a profiler
+		// (no dashes: dotTrace takes those for its own). See TsqlLoop.cs.
+		if (args.Length >= 2 && args[0] == "tsql-loop")
+		{
+			TsqlLoop.Run(args[1], args.Length > 2 ? int.Parse(args[2]) : 300);
+
+			return;
+		}
+
 		// `--stand-check` holds every row's readings to one another and times nothing.
 		if (args.Length == 1 && args[0] == "--stand-check")
 		{

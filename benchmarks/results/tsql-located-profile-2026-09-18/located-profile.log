@@ -1,0 +1,6 @@
+dotTrace command-line profiler 2026.2.2 build 777.0.20260909.164805. Copyright (C) 2026 JetBrains s.r.o.
+Preparing to profile...
+Profiling in progress...
+located: 1500 rounds of 7716 statements in 49.96 s, 33.31 ms a round, 9.09 MB a round; collections gen0 284, gen1 4, gen2 0, paused 32 ms (0.1 %) (sink 11728320)
+Profiling is finished in 56.062 seconds
+Collected snapshot: T:\TEMP\dotgram-stand\w8\located.dtp

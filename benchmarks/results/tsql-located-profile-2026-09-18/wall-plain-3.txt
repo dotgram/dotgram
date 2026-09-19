@@ -1,0 +1,1 @@
+plain: 300 rounds of 7716 statements in 9.18 s, 30.59 ms a round, 9.12 MB a round; collections gen0 57, gen1 0, gen2 0, paused 7 ms (0.1 %) (sink 2469120)

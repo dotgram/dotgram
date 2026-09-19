@@ -1,0 +1,1 @@
+located: 300 rounds of 7716 statements in 10.60 s, 35.33 ms a round, 9.11 MB a round; collections gen0 57, gen1 1, gen2 0, paused 7 ms (0.1 %) (sink 2469120)
