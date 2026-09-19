@@ -592,6 +592,16 @@ is cured with `?!(word & ':')` and a test of a label right after the statement; 
 said with atomic braces, which the analysis already recognizes; the false classes narrow the
 analysis after the FIX steps; then the severity goes up.
 
+**The 49, classified (sql-39, `8682f167`, next.md "GRAM5009's 49 places, by what the analysis
+would have to see"):** 29 are a refusal behind a call (an inline `?!Label` whose body is a
+call, `?!Label` at the start of the called rule, `Trailing(word)`); 2 a positive lookahead in
+front of the call; 17 have nothing that can follow with the word, the analysis's own classes;
+1 unexplained (`AuditAction`'s `','?`). Three more real label traps found on the way (`AS ROW
+START` then `hidden:`, `WITH SORTED_DATA` or `WITH FILLFACTOR = 80` then `sorted_data:`),
+checked with sqlcmd, fixed in the grammar, the round trip 7,716 of 7,716. When `Leading` looks
+through calls (performance-ff, after C2), the 29 should go and this list is the check; the
+severity is raised when the list is empty.
+
 ## D12. Tests are reviewed for what each one proves
 
 Decided 2026-09-18 by Igor: the test suites are reviewed and what is redundant or no longer
