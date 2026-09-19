@@ -1827,6 +1827,8 @@ same day; each comes back to the architect as a report, with no code changed.
    twenty selects 39 to 24 µs — the anatomy's 90 on this machine to about 24, the rest being
    recognition (sql-39's kind table). A first version duplicated the walk's switch and pushed
    T-SQL's and SQL:2023's walks past the JIT's budget; it never ran.
+   **The prologue landed (`fa47097e`), paired:** twenty selects 76 to 41 µs, T-SQL -48..-63%, first
+   calls faster (a third less JIT), EL flat. The other three wait for their windows.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
