@@ -1800,6 +1800,12 @@ same day; each comes back to the architect as a report, with no code changed.
    none, and only the arms that run are compiled on the first call. Rough: twenty selects 90 to 44
    µs, the T-SQL corpus 47.7 to 37.0 ms a round. EL's single materializer zeroes 4.8 KB on every
    guard walk; the same form goes to it with the guard walk's direct path.
+   Then (expr, `bb603091`, held): what was left of the walk's own time was the preload of about a
+   hundred value tables into the closure the arms share — a struct of references zeroed and filled
+   on every walk, a guard's one-record walk included; an arm now takes the tables it names from
+   their fields and the walk takes none, and EL's single materializer gets arm methods. Rough:
+   twenty selects 44.5 to 30.8 µs — 90 to 31 from where the anatomy started, against an expected
+   20; EL -12..-21%. The bool `TryParse` is written with §6 as approved (`dba87a9e`, held).
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
