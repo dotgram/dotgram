@@ -757,10 +757,10 @@ namespace DotGram.Snapshots
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected5);
 					return -1;
 				}
-				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\r\n")))
 				{
 					if (!failure.Quiet)
-						p = Recognize_DotGram_Feed_Agreeing(text, p, "\u000D\u000A", false);
+						p = Recognize_DotGram_Feed_Agreeing(text, p, "\r\n", false);
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected5);
 					return -1;
 				}
@@ -1835,7 +1835,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\r\n")))
 					{
 						p += 2;
 						goto Return;

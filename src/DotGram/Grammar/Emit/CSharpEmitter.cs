@@ -2030,7 +2030,7 @@ public static partial class CSharpEmitter
 					{
 						var beginning = continuation.Beginning!;
 						var begins    = beginning.Length == 1
-							? $"text[p] == {Character(beginning[0])}"
+							? $"text[p] == {Char(beginning[0])}"
 							: $"global::System.MemoryExtensions.StartsWith(text.Slice(p), global::System.MemoryExtensions.AsSpan({Quoted(beginning)}))";
 
 						using (file.Block($"else if (kind == {longer} && {begins})"))
@@ -2365,29 +2365,40 @@ public static partial class CSharpEmitter
 	/// the rule is short enough to say. A verbatim literal would be shorter to produce and
 	/// would put the grammar's own line breaks into the generated file, which is a great deal
 	/// of noise in something nobody reads.
+	/// <para>
+	/// The one spelling of a string the generator has: every literal it writes goes through
+	/// here, as every character goes through <see cref="Char"/>. What is not printable is an
+	/// escape, and so are U+0085, U+2028 and U+2029, which C# takes for the end of a line inside
+	/// a literal as surely as a newline; anything else outside ASCII is itself, so that a
+	/// message says what it says.
+	/// </para>
 	/// </remarks>
-	internal static string Quoted(string text)
+	internal static string Quoted(string text) =>
+		Quote(new System.Text.StringBuilder(text.Length + 2), text).ToString();
+
+	/// <summary><see cref="Quoted"/>, appended where it is wanted rather than made on its own.</summary>
+	internal static System.Text.StringBuilder Quote(System.Text.StringBuilder into, string text)
 	{
-		var made = new System.Text.StringBuilder(text.Length + 16).Append('"');
+		into.Append('"');
 
 		foreach (var c in text)
 			switch (c)
 			{
-				case '"':  made.Append("\\\""); break;
-				case '\\': made.Append("\\\\"); break;
-				case '\n': made.Append("\\n");  break;
-				case '\r': made.Append("\\r");  break;
-				case '\t': made.Append("\\t");  break;
+				case '"':  into.Append("\\\""); break;
+				case '\\': into.Append("\\\\"); break;
+				case '\n': into.Append("\\n");  break;
+				case '\r': into.Append("\\r");  break;
+				case '\t': into.Append("\\t");  break;
 				default:
-					if (c < ' ')
-						made.Append("\\u").Append(((int)c).ToString("x4"));
+					if (c < ' ' || c is '\u0085' or '\u2028' or '\u2029')
+						into.Append("\\u").Append(((int)c).ToString("x4", System.Globalization.CultureInfo.InvariantCulture));
 					else
-						made.Append(c);
+						into.Append(c);
 
 					break;
 			}
 
-		return made.Append('"').ToString();
+		return into.Append('"');
 	}
 
 	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct)
@@ -3390,14 +3401,6 @@ public static partial class CSharpEmitter
 	/// has an overload with a value — which the normalizer made a rule of. The value is not
 	/// wanted here: the lexer asks how far, and a terminal that builds reads its value again.
 	/// </remarks>
-	/// <summary>A character as C# spells it between single quotes.</summary>
-	static string Character(char c) => c switch
-	{
-		'\'' => @"'\''",
-		'\\' => @"'\\'",
-		< ' ' => @"'\u" + ((int)c).ToString("x4", System.Globalization.CultureInfo.InvariantCulture) + "'",
-		_    => "'" + c + "'",
-	};
 
 	static string HostMeasure(LexicalSplit lexical, Node tail) =>
 		tail switch

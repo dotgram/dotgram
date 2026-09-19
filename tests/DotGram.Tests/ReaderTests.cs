@@ -593,6 +593,35 @@ public sealed class ReaderTests
 			Assert.Equal((false, 1L), engine);
 	}
 
+	/// <summary>
+	/// Literals holding the characters C# ends a line at inside a literal — U+0085, U+2028,
+	/// U+2029 — are written as escapes (CSharpEmitter.Quoted and Char), so that the file compiles,
+	/// and read and refused alike in both renderings.
+	/// </summary>
+	[Theory]
+	[InlineData("a\u0085b")]
+	[InlineData("a\u2028b")]
+	[InlineData("\u2029")]
+	[InlineData("a\u2028x")]
+	[InlineData("a")]
+	public void Line_ends_inside_a_literal_are_written_as_escapes(string input)
+	{
+		const string Grammar =
+			"Start = Word | '(' & Start & ')'\n" +
+			"Word = \"a\\u0085b\" | \"a\\u2028b\" | '\\u2029'\n" +
+			"parse Start";
+
+		(bool IsSuccess, long Position, string? Error) Read(bool reader)
+		{
+			var match = EmittedCode.Match(
+				EmittedCode.Compile(Written(Grammar, reader, lexical: false)), "Grammar", "TryParseStart", input);
+
+			return (match.IsSuccess, match.Position, match.Error);
+		}
+
+		Assert.Equal(Read(reader: false), Read(reader: true));
+	}
+
 	/// <summary>A literal refused where the input stops fitting it, by the reader as by the engine.</summary>
 	/// <remarks>
 	/// The refusal is where the parse refused: four characters into <c>abcxyz</c> on

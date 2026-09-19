@@ -4890,26 +4890,8 @@ sealed partial class Machine
 	static string Spanned(string value) =>
 		$"global::System.MemoryExtensions.AsSpan({Quoted(value)})";
 
-	/// <summary>The literal as C# source, with anything unprintable spelled out.</summary>
-	/// <remarks>
-	/// Everything outside printable ASCII goes as an escape rather than as itself. This
-	/// file is written by us and read by a compiler that is not, and a literal newline or a
-	/// U+2028 inside a string is what breaks one build and not another.
-	/// </remarks>
-	static string Quoted(string value)
-	{
-		var text = "";
-
-		foreach (var c in value)
-			text += c switch
-			{
-				'\\' => "\\\\",
-				'"'  => "\\\"",
-				_    => c is >= ' ' and <= '~' ? c.ToString() : $"\\u{(int)c:X4}",
-			};
-
-		return $"\"{text}\"";
-	}
+	/// <summary>The literal as C# source (<see cref="CSharpEmitter.Quoted"/>).</summary>
+	static string Quoted(string value) => CSharpEmitter.Quoted(value);
 
 	/// <summary>
 	/// Move <c>p</c> to the character of a literal that did not fit, knowing one of them
