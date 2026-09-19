@@ -1547,13 +1547,17 @@ public static partial class CSharpEmitter
 			file.Line("/// The input is not required to end there: what comes back says where the");
 			file.Line("/// reading began and how far it got, so a caller may go on from it. A position");
 			file.Line("/// is an offset into the text" +
-				(overKinds ? ", and a reading begins at a token, so one has to begin there." : "."));
+				(overKinds
+					? ", and a reading begins at a token, so it begins at the first one at or after it."
+					: "."));
 			file.Line("/// </remarks>");
 
 			begins   = overKinds ? "from" : "at";
 			reader   = MethodOf(publication.Rule);
-			position = "at";
-			extent   = overKinds ? "over - at" : "end - at";
+			// Over kinds the reading may have begun past the position it was handed, the trivia
+			// between two tokens being nobody's to skip but the lexer's.
+			position = overKinds ? "began" : "at";
+			extent   = overKinds ? "over - began" : "end - at";
 
 			Asking("string input, int at", positional: true);
 
@@ -1580,7 +1584,11 @@ public static partial class CSharpEmitter
 			}
 			file.Line("/// </remarks>");
 
-			begins = overKinds ? "0" : "at";
+			// A window is cut into tokens from its own start, so the reading begins at the
+			// position the caller named, whatever the whole text would have called a token there.
+			begins   = overKinds ? "0" : "at";
+			position = "at";
+			extent   = overKinds ? "over - at" : "end - at";
 
 			Asking("string input, int at, int length", positional: true, windowed: true);
 
@@ -1588,10 +1596,6 @@ public static partial class CSharpEmitter
 			Answering(positional: true, windowed: true);
 		}
 
-		// Whether the whole input is the rule, and its value where it is — and nothing about why
-		// not. One reading, quiet where the machine can be, and no message: a caller that only
-		// asks yes or no pays for none of what a refusal says, not even the second reading the
-		// form above makes to say it (§6).
 		// Whether the input is the rule, and its value where it is — and nothing about why not.
 		// One reading, quiet where the machine can be, and no message: a caller that only asks
 		// yes or no pays for none of what a refusal says, not even the second reading the form
@@ -1718,7 +1722,9 @@ public static partial class CSharpEmitter
 				file.Line();
 				// Over kinds what is cut is named by the tokens it lies between; over characters by
 				// where it began and how long it is.
-				file.Line($"value = {Recognized(positional ? begins : "0", overKinds || !positional ? "end" : $"end - {begins}")};");
+				// What is cut is named by where it starts and how much of it there is: tokens over
+				// kinds, characters over characters, and both counted from where the reading began.
+				file.Line($"value = {Recognized(positional ? begins : "0", positional ? $"end - {begins}" : "end")};");
 
 				// Where the reading stopped, said as the caller says positions: an offset into
 				// the input, which over kinds is the end of the last token it read.
@@ -1819,15 +1825,22 @@ public static partial class CSharpEmitter
 						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
 						file.Line();
 
+						// Nothing at or after it is a token, so there is nothing there to read: the
+						// rest of the input is trivia, or there is no rest.
 						using (file.Block("if (from < 0)"))
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
 							file.Line(
-								$"return {match}.Failed({OutcomeType}.NoMatch, " +
-								"\"No token begins at \" + at.ToString() + \".\", at, null, null);");
+								$"return {match}.Failed({OutcomeType}.Starved, " +
+								"\"Expected more input.\", source.Length, null, null);");
 						}
 
+						file.Line();
+						// Where the reading begins, which is the first token at or after the position it
+						// was handed: the trivia between them is not its business, and `Position` says
+						// where the value began rather than where the caller was looking (§6.3).
+						file.Line("var began = starts[from];");
 						file.Line();
 					}
 				}
@@ -1948,7 +1961,7 @@ public static partial class CSharpEmitter
 				if (overKinds)
 				{
 					// Both read the arrays, so both are worked out before the set goes back.
-					file.Line($"var whole = {Recognized(begins, "end")};");
+					file.Line($"var whole = {Recognized(begins, begins == "0" ? "end" : $"end - {begins}")};");
 					file.Line("var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];");
 					file.Line();
 					if (!kept) file.Line("Recycle_DotGram(tokens);");

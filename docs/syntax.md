@@ -1901,8 +1901,17 @@ host holding the text is asking for, and the trivia after it is the leading triv
 next reading. What comes back says where the reading began and how far it got, and every
 position in it — and in whatever the reading builds — is an offset into `input`, so a host
 reading a piece of a text it holds keeps what those positions mean. `eof` written in a
-rule is still the end of the whole input, and inside a window the end of the window. Over a grammar cut into tokens (§4) the first form has to begin where a
-token of the whole text begins, and is refused elsewhere. The second cuts only the window
+rule is still the end of the whole input, and inside a window the end of the window.
+
+Over a grammar cut into tokens (§4) a reading begins at a token, so it begins at the first
+one at or after `at`: the trivia between two tokens — a line break, a comment, whatever
+this grammar calls trivia — is the lexer's to skip and not the caller's to know, and a
+host reading a script a statement at a time hands in the position after the last
+statement, which is one of those as often as not. `Position` then says where the reading
+began, which is where the value begins and not where the caller was looking, and where
+nothing is left but trivia the answer is `Starved`. Over characters a reading still reports
+the position it was handed, and the trivia at it stands inside what comes back; that is the
+one place where the two halves do not yet answer alike. The window form cuts only the window
 into tokens, so it may begin anywhere, and a character no token begins with ends the
 tokens rather than refusing the reading: a hole in an interpolated string, read up to the
 `:` its format begins with, is the shape it is for. A publication compiled as a plain

@@ -1097,7 +1097,9 @@ sealed partial class Machine
 			}
 
 			helper.Line();
-			helper.Line("return -1;");
+			helper.Line("// Where none begins there, the first one after it: `low` is where the search");
+			helper.Line("// ended, and the count where nothing is left to read.");
+			helper.Line("return low < count ? low : -1;");
 		}
 
 		helper.Line();

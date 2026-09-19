@@ -1162,6 +1162,35 @@ public sealed class CSharpEmitterTests
 		parse Start
 		""";
 
+	/// <summary>
+	/// A reading begins at the first token at or after the position it was handed, and says
+	/// where it began: a host reading a script a statement at a time hands in the position after
+	/// the last one, which is a line break or a comment as often as not (§6.3).
+	/// </summary>
+	[Fact]
+	public void A_reading_begins_at_the_first_token_after_the_position()
+	{
+		var parser = EmittedCode.Compile(EmitSplit(TwoNames));
+
+		// `  ab cd`: nothing begins at 0, 1 is where the first token is.
+		var later = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "  ab cd", 0);
+
+		Assert.True(later.IsSuccess, later.Error);
+		Assert.Equal((2L, 5L), (later.Position, later.Length));
+
+		// Inside a token is inside a token still: the reading begins at the next one.
+		var inside = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "zz ab cd", 1);
+
+		Assert.True(inside.IsSuccess, inside.Error);
+		Assert.Equal((3L, 5L), (inside.Position, inside.Length));
+
+		// Where nothing is left but trivia there is nothing to read.
+		var nothing = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd   ", 5);
+
+		Assert.False(nothing.IsSuccess);
+		Assert.Equal("Expected more input.", nothing.Error);
+	}
+
 	/// <summary>A window may begin where no token of the whole text does.</summary>
 	/// <remarks>
 	/// <c>zzab</c> is one token of the whole input, so a reading asked to begin at its third
