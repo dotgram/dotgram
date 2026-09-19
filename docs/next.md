@@ -23713,3 +23713,11 @@ unchanged (the four SQL hosts 13.9 and 14.1 s against 15.9 and 15.0, alternated)
 5 per cent larger for the second name. The deeper answer — a set of kinds a position expects and
 one table of names, so that no array is in the assembly's code at all — is performance-ff's, after
 C4.
+
+## Auto chose the immediate carrier by itself (Q7.1's mechanism, shown)
+
+FixedWidthExample was on the tape for one reason, `eol`: the reader over the tape opened a way into
+`"\r\n" | '\n' | '\r'` although what follows it cannot begin with '\n', which LiteralRun and
+PrefixSettled already said and only the engine listened to. With that gone (014136df) `Auto`
+carries the grammar as Immediate, and the example's tests are what they were. SettingsFile joins it
+when the seam leaves its turns' head (expr's rewrite).
