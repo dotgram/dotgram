@@ -1285,6 +1285,13 @@ same day; each comes back to the architect as a report, with no code changed.
    analysis alone, whose emitted-code change across every trivia grammar is seen on its own
    (snapshots, corpora, the refusal record, the gate, the diff of `carriers.md`, a stand pair on
    the EL rows), then the hoist on top.
+   The value condition, sharpened with expr: the settled run reads exactly the split the engine
+   tries first, so captures, marks and locations — read from the first success — are the same
+   either way; only something that succeeds or fails on the split itself can tell the two
+   apart. So a seam's run keeps its way, per grammar, where a node whose success depends on the
+   position without consuming can stand between it and the next seam through what may read
+   nothing: a `when`, a lookahead either way, an external or host-measured terminal that may
+   match empty. The hoist takes the same condition.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
    and the analysis keeps it apart — but the reader's choice: it decides by the first character
    only through a switch, and refuses the switch past 128 named characters, a limit on code
