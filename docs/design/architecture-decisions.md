@@ -1373,6 +1373,12 @@ same day; each comes back to the architect as a report, with no code changed.
    correctness; the hoist would make it common. expr fixes it (the re-read path is his, Q7.2),
    after C2, with the shape added to the refusal corpus, and asks why the hundred compared
    inputs missed it. Order: C2, the analysis, the refusal defect, the hoist.
+   **Reordered by expr's verification of the analysis alone:** it moves four refusal lines onto the
+   reader defect (a newly settled run meets it), and it turns settled rules into scanners whose
+   repetition has no C1 search, so Fix44 would lose almost every `IndexOf` (1,770 to 8). Order now:
+   the reader's refusal fix with the corpus shapes, the search in the scanner's repetition
+   (performance-ff, after `LineAt`), the analysis, the hoist. performance-ff's queue before C3:
+   `LineAt`, the scanner's search, the gathered-list guard.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
    and the analysis keeps it apart — but the reader's choice: it decides by the first character
    only through a switch, and refuses the switch past 128 named characters, a limit on code
