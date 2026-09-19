@@ -951,11 +951,14 @@ sealed partial class Machine
 
 			// Built in one walk with every element a root, not in one walk an element: each of those
 			// walked the whole rule from its mark, and a list of a thousand was a million records.
+			// And no walk for a list of none, as none was walked an element at a time: a guard handed
+			// a list that is mostly empty — the expression language's dotted name, at every name —
+			// paid a walk each time for nothing to build.
 			if (build.Length > 0)
 			{
 				var whole = string.Format(build, "-1");
 
-				code.Line(whole.Substring(0, whole.Length - 2) + $", roots: {from}, rootSlots: {bits}L);");
+				code.Line($"if ({handed}.Length > 0) " + whole.Substring(0, whole.Length - 2) + $", roots: {from}, rootSlots: {bits}L);");
 			}
 
 			using (code.Block($"for (var at = {from}; at < ways.RefsCount; at += 3)"))
