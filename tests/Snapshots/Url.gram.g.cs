@@ -47,6 +47,28 @@ namespace DotGram.Snapshots
 			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Url</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseUrl(string input, out global::DotGram.Snapshots.Url.UrlValue value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Url_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Url</c> beginning at <paramref name="at"/>.</summary>
 		/// <remarks>
 		/// The input is not required to end there: what comes back says where the

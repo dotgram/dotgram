@@ -47,6 +47,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Hashed</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryHashed</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryHashed(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Hashed_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Hashed</c> beginning at <paramref name="at"/>.</summary>
 		/// <remarks>
 		/// The input is not required to end there: what comes back says where the
@@ -165,6 +187,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Marked</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryMarked</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryMarked(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Marked_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>List</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>List</c>. <c>TryLoose</c> answers instead.
@@ -205,6 +249,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>List</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryLoose</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryLoose(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_List_With1_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
 		}
 
 		/// <summary>Reads a <c>List</c> beginning at <paramref name="at"/>.</summary>
@@ -325,6 +391,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>List</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryTight</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryTight(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_List_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>List</c> beginning at <paramref name="at"/>.</summary>
 		/// <remarks>
 		/// The input is not required to end there: what comes back says where the
@@ -441,6 +529,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Small</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TrySmallOld</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TrySmallOld(string input, out int value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 1);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Reads a <c>Small</c> beginning at <paramref name="at"/>.</summary>
@@ -561,6 +671,28 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Small</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSmall</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseSmall(string input, out int value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 0);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Small</c> beginning at <paramref name="at"/>.</summary>
 		/// <remarks>
 		/// The input is not required to end there: what comes back says where the
@@ -679,6 +811,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Ab</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryAb</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryAb(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Ab_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Primary</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Primary</c>. <c>TryParsePrimary</c> answers instead.
@@ -719,6 +873,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Primary</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParsePrimary</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParsePrimary(string input, out int value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Primary_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Reads a <c>Primary</c> beginning at <paramref name="at"/>.</summary>

@@ -47,6 +47,28 @@ namespace DotGram.Snapshots
 			return Match<global::DotGram.Snapshots.Feed.FeedValue>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Feed</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseFeed</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseFeed(string input, out global::DotGram.Snapshots.Feed.FeedValue value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Feed_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Feed</c> beginning at <paramref name="at"/>.</summary>
 		/// <remarks>
 		/// The input is not required to end there: what comes back says where the

@@ -49,6 +49,21 @@ public sealed class GeneratedApiTests
 		Assert.NotNull(match.Error);
 	}
 
+	/// <summary>
+	/// The form that asks only whether: the value where the input is one, and nothing at all
+	/// where it is not — not a message, and not the second reading the other form makes to
+	/// say one.
+	/// </summary>
+	[Fact]
+	public void Try_parse_answering_only_whether_hands_back_the_value()
+	{
+		Assert.True(UrlGrammar.TryParseUrl("https://example.com/a", out UrlGrammar.Url? url));
+		Assert.Equal("example.com", url!.Authority.Host);
+
+		Assert.False(UrlGrammar.TryParseUrl("not a url", out url));
+		Assert.Null(url);
+	}
+
 	[Fact]
 	public void Find_hands_back_a_sequence_and_leaves_the_picking_to_linq()
 	{

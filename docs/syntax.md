@@ -1528,7 +1528,7 @@ is allowed to sit between the matches.**
 
 | Directive | What it says | Generated |
 | --- | --- | --- |
-| `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)` |
+| `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)`<br>`bool TryParseR(input, out R value)` — whether it is one, and nothing about why not |
 | `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
 
 `find` is a sequence and needs no companion for "all of them" or "the first one":
@@ -1646,12 +1646,13 @@ parse Trades as All : @FeedNode[] stream bytes
 find Trade : @IFeedNode
 ```
 
-`parse` returns the specified type, and its `TryParse` forms return `Match<T>`.
-`find` returns `IEnumerable<Match<T>>`. The rule's actual result must be assignable
-to `T` through identity, reference conversion or boxing; no numeric or user-defined
-conversion is introduced. An incompatible contract receives `GRAM4028`. Without a
-contract, the existing type inference is unchanged. An extent-only rule returns
-`string` for text and `byte[]` for byte input, so a shared contract must accept both.
+`parse` returns the specified type, and its `TryParse` forms return `Match<T>`, but for
+the one that answers only yes or no. `find` returns `IEnumerable<Match<T>>`. The rule's
+actual result must be assignable to `T` through identity, reference conversion or
+boxing; no numeric or user-defined conversion is introduced. An incompatible contract
+receives `GRAM4028`. Without a contract, the existing type inference is unchanged. An
+extent-only rule returns `string` for text and `byte[]` for byte input, so a shared
+contract must accept both.
 
 A named publication with an explicit contract uses `stream` to request buffered
 reader input. It does not infer the legacy reader API that changes an array result
@@ -1673,11 +1674,13 @@ public readonly struct Match<T>
 }
 ```
 
-**No `out` parameters anywhere.** `int.Parse` and `int.TryParse` are a pair because an
-`int` has no room to carry a failure; a result that has room does not need a second
-shape for it, and every later thing a match might want to say — what was expected,
-which record it was, whether the record was broken rather than absent — is a field
-here instead of another parameter on every signature.
+**One `out` parameter, and only where nothing is said.** `int.Parse` and `int.TryParse`
+are a pair because an `int` has no room to carry a failure; a result that has room does
+not need a second shape for it, and every later thing a match might want to say — what
+was expected, which record it was, whether the record was broken rather than absent — is
+a field here instead of another parameter on every signature.
+`bool TryParseR(input, out R value)` is the pair's second shape for a caller who asks only
+whether: it reads once and says nothing, so there is nothing for a `Match` to carry.
 
 What is left of the pair is a real choice, and it stays: `ParseR` asserts that the
 input is an `R` and throws when it is not, `TryParseR` asks and answers. Assertion is

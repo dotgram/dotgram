@@ -41,6 +41,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>A</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseA</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseA(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_A_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>B</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>B</c>. <c>TryParseB</c> answers instead.
@@ -75,6 +97,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>B</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseB</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseB(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_B_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>C</c>.</summary>
@@ -113,6 +157,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>C</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseC</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseC(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_C_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>D</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>D</c>. <c>TryParseD</c> answers instead.
@@ -147,6 +213,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>D</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseD</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseD(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_D_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>E</c>.</summary>
@@ -185,6 +273,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>E</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseE</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseE(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_E_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>F</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>F</c>. <c>TryParseF</c> answers instead.
@@ -219,6 +329,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>F</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseF</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseF(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_F_Whole(text, 0, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(0, end);
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Text</c>.</summary>
@@ -257,6 +389,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Text</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseText</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseText(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Text_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Number</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Number</c>. <c>TryParseNumber</c> answers instead.
@@ -291,6 +445,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Number</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseNumber</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseNumber(string input, out int value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Number_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Alias</c>.</summary>
@@ -329,6 +505,28 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Alias</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseAlias</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseAlias(string input, out int value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Alias_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Predicted</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Predicted</c>. <c>TryParsePredicted</c> answers instead.
@@ -363,6 +561,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Predicted</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParsePredicted</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParsePredicted(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Predicted_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>List</c>.</summary>
@@ -401,6 +621,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>List</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseList</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseList(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_List_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Counted</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Counted</c>. <c>TryParseCounted</c> answers instead.
@@ -435,6 +677,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Counted</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseCounted</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseCounted(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Counted_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Maybe</c>.</summary>
@@ -473,6 +737,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Maybe</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseMaybe</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseMaybe(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Maybe_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Ahead</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Ahead</c>. <c>TryParseAhead</c> answers instead.
@@ -507,6 +793,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Ahead</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseAhead</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseAhead(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Ahead_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Not</c>.</summary>
@@ -545,6 +853,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Not</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseNot</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseNot(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Not_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Committed</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Committed</c>. <c>TryParseCommitted</c> answers instead.
@@ -579,6 +909,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Committed</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseCommitted</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseCommitted(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Committed_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Sum</c>.</summary>
@@ -616,6 +968,29 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Sum</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSum</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseSum(string input, out int value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
+			var failure = new Failure();
+
+			var end = Recognize_Sum_Whole(text, 0, 0, ref failure, out var recognized, parserWhole);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Reads a <c>Sum</c> beginning at <paramref name="at"/>.</summary>
@@ -720,6 +1095,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Either</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseEither</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseEither(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Either_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Wrapped</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Wrapped</c>. <c>TryParseWrapped</c> answers instead.
@@ -756,6 +1153,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Wrapped</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseWrapped</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseWrapped(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Wrapped_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Sheet</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Sheet</c>. <c>TryParseSheet</c> answers instead.
@@ -790,6 +1209,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string[]>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Sheet</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSheet</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseSheet(string input, out string[] value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Sheet_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Reads a <c>Sheet</c> beginning at <paramref name="at"/>.</summary>
@@ -892,6 +1333,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Ci</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseCi</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseCi(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Ci_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Upper</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Upper</c>. <c>TryParseUpper</c> answers instead.
@@ -928,6 +1391,28 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Parses the whole input as <c>Upper</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseUpper</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParseUpper(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Upper_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
+		}
+
 		/// <summary>Parses the whole input as <c>Pair</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Pair</c>. <c>TryParsePair</c> answers instead.
@@ -962,6 +1447,28 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Parses the whole input as <c>Pair</c>, answering only whether it is one.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParsePair</c> returning a match says where and why.
+		/// </remarks>
+		public static bool TryParsePair(string input, out string value)
+		{
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Spaced_Pair_Whole(text, 0, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+
+			return true;
 		}
 
 		/// <summary>Every occurrence of <c>Item</c>, in order, found as it is asked for.</summary>

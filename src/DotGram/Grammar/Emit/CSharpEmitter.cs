@@ -1512,6 +1512,9 @@ public static partial class CSharpEmitter
 
 		Asking("string input", positional: false);
 
+		file.Line();
+		Answering();
+
 		// And the same rule read where the caller says it begins. No end of input is
 		// demanded — what comes back says how far the reading got — which is what lets a
 		// host read one piece of a text it is already holding, with every position in it
@@ -1563,6 +1566,84 @@ public static partial class CSharpEmitter
 			begins = overKinds ? "0" : "at";
 
 			Asking("string input, int at, int length", positional: true, windowed: true);
+		}
+
+		// Whether the whole input is the rule, and its value where it is — and nothing about why
+		// not. One reading, quiet where the machine can be, and no message: a caller that only
+		// asks yes or no pays for none of what a refusal says, not even the second reading the
+		// form above makes to say it (§6).
+		void Answering()
+		{
+			file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering only whether it is one.</summary>");
+			file.Line("/// <remarks>");
+			file.Line($"/// Nothing is said about a refusal: <c>Try{method}</c> returning a match says where and why.");
+			file.Line("/// </remarks>");
+
+			using (file.Block($"{AccessOf(publication)} static bool Try{method}(string input{takes}, out {value} value)"))
+			{
+				if (overKinds)
+				{
+					file.Line("var source = input;");
+					file.Line("var tokens = Tokenize_DotGram(source);");
+					file.Line();
+					file.Line("var starts  = tokens.Starts;");
+					file.Line("var lengths = tokens.Lengths;");
+					file.Line("var count   = tokens.Count;");
+					file.Line();
+
+					using (file.Block("if (tokens.Stopped >= 0)"))
+					{
+						file.Line("Recycle_DotGram(tokens);");
+						file.Line();
+						file.Line("value = default!;");
+						file.Line("return false;");
+					}
+
+					file.Line();
+					file.Line("var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);");
+				}
+				else
+				{
+					file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+				}
+
+				if (probes)
+					file.Line(
+						overKinds
+							? "var parserWhole = new global::System.ReadOnlyMemory<char>(tokens.Kinds, 0, count);"
+							: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
+
+				file.Line(quietFirst
+					? $"var failure = new {FailureType} {{ Quiet = true }};"
+					: $"var failure = new {FailureType}();");
+				file.Line();
+				file.Line($"var end = {WholeOf(publication.Rule)}(text, 0{hands});");
+				file.Line();
+
+				using (file.Block("if (end < 0)"))
+				{
+					if (overKinds)
+					{
+						file.Line("Recycle_DotGram(tokens);");
+						file.Line();
+					}
+
+					file.Line("value = default!;");
+					file.Line("return false;");
+				}
+
+				file.Line();
+				file.Line($"value = {Recognized("0", "end")};");
+
+				if (overKinds)
+				{
+					file.Line();
+					file.Line("Recycle_DotGram(tokens);");
+				}
+
+				file.Line();
+				file.Line("return true;");
+			}
 		}
 
 		void Asking(string parameters, bool positional, bool windowed = false)

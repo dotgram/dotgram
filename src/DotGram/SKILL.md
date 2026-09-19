@@ -76,7 +76,7 @@ A rule on its own generates no API. A directive does:
 
 | Directive | What it says | Generated |
 | --- | --- | --- |
-| `parse R` | the whole input is an `R` | `ParseR` — throws `FormatException`; `TryParseR` — a `Match<R>` |
+| `parse R` | the whole input is an `R` | `ParseR` — throws `FormatException`; `TryParseR` — a `Match<R>`, or `bool` with `out R value` for only whether |
 | `find R` | there are `R`s inside other text | `FindR` — a lazy sequence of `Match<R>` |
 | `parse Feed yield : @T` | a complete sequence of consecutive elements | `ParseFeed` — a lazy `IEnumerable<T>` |
 

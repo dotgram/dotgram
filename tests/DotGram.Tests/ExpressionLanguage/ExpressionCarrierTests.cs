@@ -166,6 +166,27 @@ public sealed class ExpressionCarrierTests
 		Agree(input);
 	}
 
+	/// <summary>
+	/// The form that answers only whether, over kinds and with a context: the same answer and
+	/// the same tree as the form that says why, on both carriers, and a refusal that is only
+	/// <c>false</c>. The lexer's own refusal, a character no token begins with, is one too.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Inputs))]
+	[InlineData("(int x) => x +")]
+	[InlineData("(in x) => x")]
+	[InlineData("(int x) => x # 1")]
+	public void The_form_that_answers_only_whether_says_what_the_match_says(string input)
+	{
+		var match = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
+
+		Assert.Equal(match.IsSuccess, ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input }, out var tape));
+		Assert.Equal(match.IsSuccess, ExpressionParser.Immediate.TryParseLambda(input, new ExpressionParser.State { Text = input }, out var immediate));
+
+		Assert.Equal(Shown(match.IsSuccess ? match.Value : null), Shown(tape));
+		Assert.Equal(Shown(match.IsSuccess ? match.Value : null), Shown(immediate));
+	}
+
 	static void Agree(string input)
 	{
 		var tape      = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
