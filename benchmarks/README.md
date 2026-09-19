@@ -143,6 +143,16 @@ compiled in them, and the time spent compiling; `fixfirst` also lists the method
 from the runtime's events, which cost time of their own — the anatomy, not the time, which
 `--stand-paired --first` gives. The directory holds the DLLs of the build to look at.
 
+### Linearity
+
+`linearity` (`StandLinearity.cs`) times every parser that reads a long input at three sizes ten
+times apart — the stock count, FIX orders and fields, JSON, a URL path, media-type parameters, a
+structured list, a feed, SQL conditions, rows and columns, an expression — and prints the exponent
+of each step, `log(t2/t1) / log(n2/n1)`, flagging a series above 1.2. Rough: one process, no
+window, a few hundred milliseconds a cell. It exists because the stock count's generated parser
+counted newlines from the start of the input for every rejected line and no row noticed until one
+held a thousand of them.
+
 ### Tiered PGO
 
 The stand's agreement check runs every row's readings on every row's input before anything is

@@ -116,6 +116,15 @@ static class Program
 			return;
 		}
 
+		// `linearity` times every parser that reads a long input at three sizes and prints the exponent of
+		// each step; above 1.2 it is flagged. Rough, without a window. See StandLinearity.cs.
+		if (args.Length == 1 && args[0] == "linearity")
+		{
+			Stand.Linearity();
+
+			return;
+		}
+
 		// `--stand-check` holds every row's readings to one another and times nothing.
 		if (args.Length == 1 && args[0] == "--stand-check")
 		{
