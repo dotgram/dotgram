@@ -1000,16 +1000,20 @@ RowPatternNavigationOperation : @Expression = s: ("RUNNING"i | "FINAL"i) & w: ("
 // its literals, identifiers and key names are left to the Syntax Rules (`!! See the Syntax Rules.`)
 // and read as nothing, here as in `--standard`; so `a[$ to last]` is read and `a[1 to last]` is not.
 
-// <JSON value function>. What happens on an empty result is said before what happens on an error.
+// <JSON value function>. What happens on an empty result is said before what happens on an error,
+// and both begin with a behaviour and `ON`: that is read once, and the word after `ON` says which it
+// was, so the first behaviour is not read again when it turns out to have been said of an error.
 JSONValueFunction : @Expression = "JSON_VALUE"i & '(' & c: JSONAPICommonSyntax & ("RETURNING"i & t: DataType)?
-	  & (empty: JSONValueBehavior & "ON"i & "EMPTY"i)? & (error: JSONValueBehavior & "ON"i & "ERROR"i)? & ')' => @(new Expression.JsonValue(c, t, empty, error))
+	  & (b: JSONValueBehavior & "ON"i & (e: "EMPTY"i & (r: JSONValueBehavior & "ON"i & "ERROR"i)? | "ERROR"i))? & ')'
+	  => @(new Expression.JsonValue(c, t, Nodes.OnEmpty(b, e), Nodes.OnError(b, e, r)))
 JSONValueBehavior : @JsonValueBehavior = "ERROR"i => @(new JsonValueBehavior.Error())
                                        | "NULL"i => @(new JsonValueBehavior.Null())
                                        | "DEFAULT"i & v: ValueNode => @(new JsonValueBehavior.Default(v))
 
 // <JSON query>.
 JSONQuery : @Expression = "JSON_QUERY"i & '(' & c: JSONAPICommonSyntax & o: JSONOutputClause? & (w: JSONQueryWrapperBehavior & "WRAPPER"i)?
-	  & q: JSONQueryQuotes? & (empty: JSONQueryBehavior & "ON"i & "EMPTY"i)? & (error: JSONQueryBehavior & "ON"i & "ERROR"i)? & ')' => @(new Expression.JsonQuery(c, o, Nodes.Wrapper(w), q, Nodes.QueryBehavior(empty), Nodes.QueryBehavior(error)))
+	  & q: JSONQueryQuotes? & (b: JSONQueryBehavior & "ON"i & (e: "EMPTY"i & (r: JSONQueryBehavior & "ON"i & "ERROR"i)? | "ERROR"i))? & ')'
+	  => @(new Expression.JsonQuery(c, o, Nodes.Wrapper(w), q, Nodes.QueryBehavior(Nodes.OnEmpty(b, e)), Nodes.QueryBehavior(Nodes.OnError(b, e, r))))
 JSONQueryWrapperBehavior = "WITHOUT"i & "ARRAY"i? | "WITH"i & ("CONDITIONAL"i | "UNCONDITIONAL"i)? & "ARRAY"i?
 JSONQueryQuotes          : @JsonQuotes = w: ("KEEP"i | "OMIT"i) & "QUOTES"i & s: ("ON"i & "SCALAR"i & "STRING"i)? => @(new JsonQuotes((w[0] | 0x20) == 'k' ? JsonQuotesBehavior.Keep : JsonQuotesBehavior.Omit, s is not null))
 JSONQueryBehavior        = "ERROR"i | "NULL"i | "EMPTY"i & ("ARRAY"i | "OBJECT"i)
@@ -1125,17 +1129,16 @@ JSONTablePrimitiveColumn : @JsonTableColumn
 // once, a guard refuses what only a regular one has (`DEFAULT … ON`, 1) beside what only a formatted
 // one has (`FORMAT`, a wrapper, quotes, `EMPTY ARRAY` or `EMPTY OBJECT`, 2). A column that says neither
 // is a regular one.
-JSONTableTypedColumn : @JsonTableColumn = c: ColumnName & t: DataType & f: JSONColumnFormat & ("PATH"i & p: CharacterStringLiteral)? & w: JSONColumnWrapper & e: JSONColumnOnEmpty & r: JSONColumnOnError & when @(Nodes.ColumnKinds(f, w, e, r) != 3) => @(Nodes.TypedColumn(c, t, f, p, w, e, r))
+JSONTableTypedColumn : @JsonTableColumn = c: ColumnName & t: DataType & f: JSONColumnFormat & ("PATH"i & p: CharacterStringLiteral)? & w: JSONColumnWrapper
+	& (b: JSONColumnBehavior & "ON"i & (e: "EMPTY"i & (r: JSONColumnBehavior & "ON"i & "ERROR"i)? | "ERROR"i))?
+	& when @(Nodes.ColumnKinds(f, w, Nodes.OnEmpty(b, e), Nodes.OnError(b, e, r)) != 3)
+	=> @(Nodes.TypedColumn(c, t, f, p, w, Nodes.OnEmpty(b, e) ?? new Nodes.ColumnPart(0), Nodes.OnError(b, e, r) ?? new Nodes.ColumnPart(0)))
 
 JSONColumnFormat  : @Nodes.ColumnPart = "FORMAT"i & r: JSONRepresentation => @(new Nodes.ColumnPart(2) { Format = r })
                                       | none => @(new Nodes.ColumnPart(0))
 JSONColumnWrapper : @Nodes.ColumnPart = w: JSONQueryWrapperBehavior & "WRAPPER"i & q: JSONColumnQuotes => @(q with { Kind = 2, Wrapper = Nodes.Wrapper(w) })
                                       | q: JSONColumnQuotes => @(q)
 JSONColumnQuotes  : @Nodes.ColumnPart = w: ("KEEP"i | "OMIT"i) & "QUOTES"i & s: ("ON"i & "SCALAR"i & "STRING"i)? => @(new Nodes.ColumnPart(2) { Quotes = new JsonQuotes((w[0] | 0x20) == 'k' ? JsonQuotesBehavior.Keep : JsonQuotesBehavior.Omit, s is not null) })
-                                      | none => @(new Nodes.ColumnPart(0))
-JSONColumnOnEmpty : @Nodes.ColumnPart = b: JSONColumnBehavior & "ON"i & "EMPTY"i => @(b)
-                                      | none => @(new Nodes.ColumnPart(0))
-JSONColumnOnError : @Nodes.ColumnPart = b: JSONColumnBehavior & "ON"i & "ERROR"i => @(b)
                                       | none => @(new Nodes.ColumnPart(0))
 JSONColumnBehavior : @Nodes.ColumnPart
 	= "ERROR"i => @(new Nodes.ColumnPart(0) { Value = new JsonValueBehavior.Error(), Query = JsonQueryBehavior.Error })

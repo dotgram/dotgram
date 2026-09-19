@@ -1153,6 +1153,19 @@ static class Nodes
 		public JsonQueryBehavior? Query { get; init; }
 	}
 
+	/// <summary>
+	/// What was said to happen on an empty result, where a behaviour and its <c>ON</c> are read once
+	/// and the word after <c>ON</c> says which it was: <paramref name="first"/> where it said
+	/// <c>EMPTY</c>, and nothing where it said <c>ERROR</c> or nothing was said.
+	/// </summary>
+	public static T? OnEmpty<T>(T? first, string? empty) where T : class => empty is null ? null : first;
+
+	/// <summary>
+	/// What was said to happen on an error: <paramref name="first"/> where it said <c>ERROR</c>, and
+	/// the second behaviour where the first was said of an empty result.
+	/// </summary>
+	public static T? OnError<T>(T? first, string? empty, T? second) where T : class => empty is null ? first : second;
+
 	public static int ColumnKinds(ColumnPart? format, ColumnPart? wrapper, ColumnPart? empty, ColumnPart? error) =>
 		(format?.Kind ?? 0) | (wrapper?.Kind ?? 0) | (empty?.Kind ?? 0) | (error?.Kind ?? 0);
 

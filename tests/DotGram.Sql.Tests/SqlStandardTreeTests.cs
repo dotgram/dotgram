@@ -314,6 +314,9 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CURRENT_TIMESTAMP(3)", "Current(Timestamp, null, 3)")]
 	[InlineData("ABS(a)", "Invocation(ABS, [Argument(a, null, false)])")]
 	[InlineData("JSON_VALUE(a, '$.x' RETURNING INTEGER NULL ON EMPTY ERROR ON ERROR)", "JsonValue(JsonApiCommon(a, '$.x', null, [], null), Numeric(Integer, null, null), Null(), Error())")]
+	// One behaviour and its ON are read once, and the word after ON says which it was.
+	[InlineData("JSON_VALUE(a, '$.x' NULL ON ERROR)", "JsonValue(JsonApiCommon(a, '$.x', null, [], null), null, null, Null())")]
+	[InlineData("JSON_VALUE(a, '$.x' NULL ON EMPTY)", "JsonValue(JsonApiCommon(a, '$.x', null, [], null), null, Null(), null)")]
 	[InlineData("JSON_OBJECT(KEY 'a' VALUE 1, 'b' : 2 ABSENT ON NULL)", "JsonObject([JsonMember('a', 1, KeyValue, null), JsonMember('b', 2, Colon, null)], AbsentOnNull, null, null)")]
 	[InlineData("a[$ to last]", "JsonAccessor(a, Array([JsonSubscript(Variable(Context, null), Variable(Last, null))]))")]
 	[InlineData("a.double()", "Member(a, Dot, double, [])")]
