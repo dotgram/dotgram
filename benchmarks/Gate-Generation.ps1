@@ -86,7 +86,7 @@ function Median($values) {
 ''
 "Generator time, head $($sides.head.Commit) against base $($sides.base.Commit), median of $Rounds alternating rounds (same cores):"
 ''
-'| host | base ms | head ms | head / base |'
+'| host | base ms (min-max) | head ms (min-max) | head / base |'
 '| --- | ---: | ---: | ---: |'
 
 $named = @()
@@ -98,7 +98,10 @@ foreach ($hostName in ($taken.head.Keys | Sort-Object)) {
 	$h = Median $taken.head[$hostName]
 	$ratio = $h / $b
 
-	'| {0} | {1:N0} | {2:N0} | {3:N2}x |' -f $hostName, $b, $h, $ratio
+	$bRange = $taken.base[$hostName] | Measure-Object -Minimum -Maximum
+	$hRange = $taken.head[$hostName] | Measure-Object -Minimum -Maximum
+
+	'| {0} | {1:N0} ({2:N0}-{3:N0}) | {4:N0} ({5:N0}-{6:N0}) | {7:N2}x |' -f $hostName, $b, $bRange.Minimum, $bRange.Maximum, $h, $hRange.Minimum, $hRange.Maximum, $ratio
 
 	if ([math]::Abs($ratio - 1) -gt $Tolerance -and [math]::Abs($h - $b) -ge $FloorMilliseconds) {
 		$named += '{0}: {1:N0} ms to {2:N0} ms ({3:+0%;-0%})' -f $hostName, $b, $h, ($ratio - 1)

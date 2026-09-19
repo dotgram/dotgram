@@ -643,9 +643,9 @@ KB**. Under `DOTNET_TieredPGO=0` ScriptDom is 60-85% slower and the generated pa
 the ratio widens to 0.21-0.32x; every figure here is with the default. The rows, the spreads
 and the twin are in [docs/design/stand-2026-09-18b.md](../docs/design/stand-2026-09-18b.md).
 
-The two tables below are the corpus-wide measurements, taken before this week's changes (the
-silent reading of a refusal, the lookahead fix, the SQL:2023 split); they have not been taken
-again and are kept as the record of that day.
+The corpus-wide measurements, both taken on 2026-09-18 at 23:25 on a quiet machine, on logical
+processors 0-15 at high priority, with the runtime's defaults, on main at `68c60c58` (the silent
+reading of a refusal, the lookahead fix, the SQL:2023 split and the rest of the week in):
 
 ### The number to quote
 
@@ -657,17 +657,18 @@ dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter '*Scri
 ```
 
 ```text
-| Method  | Mean      | Error    | StdDev    | Ratio | Gen0      | Allocated |
-|-------- |----------:|---------:|----------:|------:|----------:|----------:|
-| Tokens  |  73.12 ms | 1.455 ms |  3.884 ms |  0.50 | 5000.0000 | 258.45 MB |
-| Tree    | 146.73 ms | 4.494 ms | 12.894 ms |  1.00 | 5000.0000 | 280.21 MB |
-| Located |  32.63 ms | 0.636 ms |  0.871 ms |  0.22 |  166.6667 |   9.35 MB |
-| Grammar |  24.57 ms | 0.483 ms |  0.474 ms |  0.17 |  187.5000 |   9.35 MB |
+| Method  | Mean      | Error    | StdDev    | Median    | Ratio | RatioSD | Gen0      | Gen1     | Allocated |
+|-------- |----------:|---------:|----------:|----------:|------:|--------:|----------:|---------:|----------:|
+| Tokens  |  66.48 ms | 1.272 ms |  2.683 ms |  65.34 ms |  0.50 |    0.10 | 6000.0000 | 500.0000 | 288.97 MB |
+| Tree    | 137.81 ms | 8.452 ms | 24.922 ms | 148.47 ms |  1.04 |    0.27 | 6000.0000 |        - | 312.83 MB |
+| Located |  31.25 ms | 0.498 ms |  0.573 ms |  31.04 ms |  0.23 |    0.05 |  187.5000 |        - |   9.08 MB |
+| Grammar |  26.21 ms | 0.508 ms |  0.679 ms |  26.09 ms |  0.20 |    0.04 |  187.5000 |        - |   9.08 MB |
 ```
 
-One operation is the whole corpus — 6861 statements, the ones both parsers read, out of
-the 8397 ScriptDom finds. Per statement that is 21.4 µs for ScriptDom's tree, 10.7 µs for
-its lexer alone, 4.8 µs here with positions and 3.6 µs without.
+One operation is the whole corpus — 7,716 statements, the ones both parsers read, out of
+the 8,397 ScriptDom finds (6,861 the last time this was taken: the grammar reads more of the
+corpus now). Per statement that is 17.9 µs for ScriptDom's tree, 8.6 µs for its lexer alone,
+4.1 µs here with positions and 3.4 µs without.
 
 **Both build a tree of the whole statement.** That has to be said because it was not true
 until recently, and because saying it is cheap: what makes it true is the section below —
@@ -676,15 +677,15 @@ comes back as the statement it was read from. Hints, options, output clauses, th
 catalogue statement was given: all kept.
 
 **So the row to hold against ScriptDom's tree is `Located`**, which carries where each part
-of the statement was, as ScriptDom always does. That is **4.5 times**, and `Grammar` says
-what dropping the positions saves: about a fifth, for nothing in allocation, since a span
-is two numbers written into a record that exists either way.
+of the statement was, as ScriptDom always does. That is **4.4 times** (`Grammar`, without
+positions, 5.3), and the difference between the two is about a sixth, for nothing in
+allocation, since a span is two numbers written into a record that exists either way.
 
-**And 30 times less garbage** — 40.8 KB a statement against 1.36 KB — which is the number
-the shape of the answer no longer explains away at all. It is also where ScriptDom's spread
-comes from: five thousand Gen0 collections per thousand operations against a hundred and
-sixty, and `Tree` is the only row here whose standard deviation is in double figures while
-`Located` beside it holds to under three per cent.
+**And 34 times less garbage** — 42.5 KB a statement against 1.2 KB — which is where ScriptDom's
+spread comes from: six thousand Gen0 collections per thousand operations against a hundred and
+eighty-seven, and `Tree` is the only row here whose standard deviation is in double figures (18%
+of its mean, its median 148 ms above its mean of 138) while `Located` beside it holds to under two
+per cent.
 
 ### The number for the day
 
@@ -692,29 +693,31 @@ sixty, and `Tree` is the only row here whose standard deviation is in double fig
 method once per round, adjacent in time and in one process, and the rounds repeat. What
 the machine does to one measurement it does to the four beside it, so the ratio survives a
 machine that is not idle — which a developer's machine is not, and which is why this is the
-one to run while working.
+one to run while working. It is for movement, not for a number to quote: the two runs of 31
+rounds taken beside the table above spread 25-40% on the lexer and the located reading and
+144-168% on `.Gram`, whose rounds fall into a cheap and an expensive kind.
 
 ```console
-dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --speed 170 11
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --speed 170 31
 ```
 
 ```text
-against ScriptDom, TSql170Parser, 11 rounds
+against ScriptDom, TSql170Parser, 31 rounds
 
-  6861 of 8397 statements — the ones both parsers read, which is what may be timed
-  711 KB of T-SQL a round
+  7716 of 8397 statements — the ones both parsers read, which is what may be timed
+  770 KB of T-SQL a round
 
                         per statement     MB/s   ratio   spread    allocated
   --------------------------------------------------------------------------
-  ScriptDom, tokens          14725 ns      6.9    1.69   23.1%     39480 B
-  ScriptDom, tree            24915 ns      4.1    1.00   28.2%     42789 B
-  .Gram, located             12684 ns      8.0    1.96   27.3%      1445 B
-  .Gram                      12198 ns      8.3    2.04    8.5%      1445 B
+  ScriptDom, tokens          15684 ns      6.2    1.41   36.9%     39251 B
+  ScriptDom, tree            22091 ns      4.4    1.00    9.5%     42477 B
+  .Gram, located             15681 ns      6.2    1.41   38.8%      1237 B
+  .Gram                       9852 ns      9.9    2.24  144.1%      1235 B
 ```
 
 ### The two disagree, and the reason is worth knowing
 
-1.96 against 4.5 is not rounding. **Running everything in one process, which is what makes
+1.4 against 4.4 is not rounding. **Running everything in one process, which is what makes
 the round-robin fair to machine noise, makes it unfair to the parser that allocates less.**
 ScriptDom leaves 40 KB a statement on a heap this grammar shares; those collections happen
 whenever the runtime decides, which is to say during the rows that did not cause them. Each

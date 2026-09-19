@@ -1,0 +1,19 @@
+
+against ScriptDom, TSql170Parser, 31 rounds
+
+  7716 of 8397 statements — the ones both parsers read, which is what may be timed
+  770 KB of T-SQL a round
+
+                        per statement     MB/s   ratio   spread    allocated
+  --------------------------------------------------------------------------
+  ScriptDom, tokens          15186 ns      6.4    1.41   40.3%     39251 B
+  ScriptDom, tree            21389 ns      4.6    1.00   25.6%     42477 B
+  .Gram, located             13947 ns      7.0    1.53   31.1%      1248 B
+  .Gram                       6828 ns     14.3    3.13  167.8%      1235 B
+
+  (loop, removed)               15 ns
+
+  Both build a tree of the whole statement: --roundtrip says every one of these
+  comes back through ScriptDom as the statement it was read from. What differs is
+  where each part of it was — ScriptDom carries that always, and here it is asked
+  for, so the row to hold against ScriptDom's tree is the located one.

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 using System.Text;
 using System.Text.Json;
 
@@ -191,14 +192,14 @@ static partial class Stand
 
 		text.AppendLine(CultureInfo.InvariantCulture, $"# Paired first calls, {DateTime.Now:yyyy-MM-dd HH:mm}");
 		text.AppendLine();
-		text.AppendLine($"First call in a fresh process, median of {runs}, in ms. The hand reading is this build's own.");
+		text.AppendLine($"First call in a fresh process, median of {runs}: milliseconds, methods the runtime compiled during it, and the time it spent compiling them (JitInfo, no events). The hand reading is this build's own.");
 		text.AppendLine();
-		text.AppendLine("| row | reading | ms |");
-		text.AppendLine("| --- | --- | ---: |");
+		text.AppendLine("| row | reading | ms | methods | JIT ms |");
+		text.AppendLine("| --- | --- | ---: | ---: | ---: |");
 
 		foreach (var workload in workloads)
 		{
-			var taken = workload.Readings.Select(_ => new List<double>()).ToArray();
+			var taken = workload.Readings.Select(_ => new List<(double Ms, double Methods, double Jit)>()).ToArray();
 
 			for (var run = 0; run < runs; run++)
 				for (var k = 0; k < workload.Readings.Length; k++)
@@ -209,7 +210,8 @@ static partial class Stand
 				}
 
 			for (var i = 0; i < workload.Readings.Length; i++)
-				text.AppendLine(CultureInfo.InvariantCulture, $"| {workload.Id} | {workload.Readings[i].Name} | {Median(taken[i]):F2} |");
+				text.AppendLine(CultureInfo.InvariantCulture,
+					$"| {workload.Id} | {workload.Readings[i].Name} | {Median([.. taken[i].Select(static one => one.Ms)]):F2} | {Median([.. taken[i].Select(static one => one.Methods)]):F0} | {Median([.. taken[i].Select(static one => one.Jit)]):F2} |");
 		}
 
 		File.WriteAllText(Path.Combine(output, "paired-first.md"), text.ToString());
@@ -225,14 +227,19 @@ static partial class Stand
 		var workloads = PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir));
 		var workload  = Array.Find(workloads, one => one.Id == id) ?? throw new ArgumentException($"No row {id}.");
 		var run       = Array.Find(workload.Readings, one => one.Name == reading) ?? throw new ArgumentException($"{id} has no reading {reading}.");
+		var methods   = JitInfo.GetCompiledMethodCount();
+		var compiling = JitInfo.GetCompilationTime();
 		var watch     = Stopwatch.StartNew();
 
 		_sink = run.Run();
 
-		Console.WriteLine(watch.Elapsed.TotalMilliseconds.ToString("R", CultureInfo.InvariantCulture));
+		var elapsed = watch.Elapsed.TotalMilliseconds;
+
+		Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+			$"{elapsed:R} {JitInfo.GetCompiledMethodCount() - methods} {(JitInfo.GetCompilationTime() - compiling).TotalMilliseconds:R}"));
 	}
 
-	static double PairedChild(string beforeDir, string afterDir, string id, string reading)
+	static (double Ms, double Methods, double Jit) PairedChild(string beforeDir, string afterDir, string id, string reading)
 	{
 		var host  = Environment.ProcessPath!;
 		var start = new ProcessStartInfo(host) { RedirectStandardOutput = true, UseShellExecute = false };
@@ -251,6 +258,8 @@ static partial class Stand
 		if (process.ExitCode != 0)
 			throw new InvalidOperationException($"A paired first call of {id} {reading} exited with {process.ExitCode}.");
 
-		return double.Parse(output.Trim().Split('\n')[^1], CultureInfo.InvariantCulture);
+		var numbers = output.Trim().Split('\n')[^1].Split(' ');
+
+		return (double.Parse(numbers[0], CultureInfo.InvariantCulture), double.Parse(numbers[1], CultureInfo.InvariantCulture), double.Parse(numbers[2], CultureInfo.InvariantCulture));
 	}
 }

@@ -36,7 +36,7 @@ namespace DotGram.Benchmarks;
 public class SqlComparisonBenchmarks
 {
 	/// <summary>Search conditions of a few shapes and one refusal, which the carriers are read on.</summary>
-	public static readonly string[] Inputs =
+	public static string[] Inputs { get; } =
 	[
 		"a = 1",
 		"(a + b) * c > d",
