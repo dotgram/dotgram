@@ -657,6 +657,15 @@ literal at the literal's start, the engine and flat where it broke off; by the r
 is where the parse refused, the reader is wrong, and `RefusalTests` will hold the three renderings
 to one answer (performance-ff, after C1).
 
+**Step 5, the byte slice (expr, `c6e0348b`):** the same reader reads `BufferedBytes` — the
+character is an `int`, multi-character literals go through the input's `Matches`; a text capture
+joined across turns takes the input's element type (both carriers wrote a char array before;
+characters unchanged). GRAM5014 (Info) says why a publication stays on the engine over a buffer:
+a rule it reaches can reach itself. Gates: the generated files byte-identical against the parent
+(944 of 944), both suites green, no warnings. Left of step 5 and waiting on C2: `yield` and
+`find`, recover, the buffered search branches, and release per turn after C4 (the D5 test is
+un-skipped there).
+
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
 0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser
