@@ -255,6 +255,21 @@ static class Program
 			return;
 		}
 
+		// `--stand-held-whole beforeDir afterDir [--repeat N]`: what the whole-stream forms of FIX hold while they read.
+		if (args.Length is 3 or 5 && args[0] == "--stand-held-whole")
+		{
+			Stand.HeldWholePaired(args[1], args[2], args.Length == 5 && args[3] == "--repeat" ? int.Parse(args[4]) : 3);
+
+			return;
+		}
+
+		if (args.Length == 4 && args[0] == "--stand-held-whole-one")
+		{
+			Stand.HeldWholeOne(args[1], args[2], args[3]);
+
+			return;
+		}
+
 		if (args.Length == 4 && args[0] == "--stand-held-one")
 		{
 			Stand.HeldOne(args[1], args[2], args[3]);

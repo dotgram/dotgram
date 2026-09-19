@@ -730,6 +730,23 @@ static partial class Stand
 			};
 		}
 
+		/// <summary>
+		/// The whole-stream form of this side's FIX parser, <c>FixGrammar.ParseFields(Stream | TextReader, context)</c>, by
+		/// reflection over the internal grammar class: it reads everything and returns the array.
+		/// </summary>
+		public Func<object, object> FixWhole(bool textReader)
+		{
+			var grammar = _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") ?? throw new InvalidOperationException("FixGrammar not found");
+			var context = grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixContext not found");
+			var options = _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null);
+			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixFieldOptions) not found");
+			var method  = grammar.GetMethod("ParseFields", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
+				[textReader ? typeof(TextReader) : typeof(Stream), context, typeof(int?), typeof(int?)], null)
+				?? throw new InvalidOperationException("FixGrammar.ParseFields(Stream | TextReader, context, int?, int?) not found");
+
+			return input => method.Invoke(null, [input, make.Invoke([options]), null, null])!;
+		}
+
 		/// <summary><c>DotGram.Examples.{type}.{method}(string)</c> of this side, by reflection, its result left unread: 1 when it returned.</summary>
 		public Func<int> Example(string type, string method, string text)
 		{
