@@ -747,6 +747,14 @@ static partial class Stand
 			return input => method.Invoke(null, [input, make.Invoke([options]), null, null])!;
 		}
 
+		/// <summary>The whole-stream form (<see cref="FixWhole"/>) over the bytes or the text, its fields' tags summed as every FIX row does.</summary>
+		public Func<int> FixWholeCount(bool textReader, byte[] bytes, string text)
+		{
+			var parse = FixWhole(textReader);
+
+			return FixCount(() => parse(textReader ? new StringReader(text) : new MemoryStream(bytes, false)));
+		}
+
 		/// <summary><c>DotGram.Examples.{type}.{method}(string)</c> of this side, by reflection, its result left unread: 1 when it returned.</summary>
 		public Func<int> Example(string type, string method, string text)
 		{
@@ -964,6 +972,9 @@ static partial class Stand
 			// The largest size of each linearity series, held before and after like any row: a change that makes a parser
 			// superlinear shows here, in the pair of the commit that does it, and not a day later in `linearity`.
 			.. PairedSweeps(before, after),
+
+			// The whole-stream forms, FixGrammar.ParseFields(Stream | TextReader): the yield form `.stream` is another driver.
+			.. PairedWholeStreams(before, after),
 
 			// The rows of the libraries a side was not given are left out: a pair of Finance alone is a pair of FIX.
 			.. (before.HasStock && after.HasStock ? PairedFeeds(before, after) : []),
