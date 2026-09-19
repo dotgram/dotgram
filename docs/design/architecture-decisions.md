@@ -254,6 +254,13 @@ immediate 1.39x; SQL:2023 7.88x; StockCount 1.20x; T-SQL at 0.33x of ScriptDom's
 superlinear with linear allocation (an exponent of 1.46 from 100 to 1,000 terms, immediate 0.98)
 and drifting +8..+17% across three baselines — expr, diagnosis first; Web date-time at 6.9x —
 finance-24, an anatomy; SQL:2023's conditions linear now.
+**The EL tape, diagnosed and fixed locally (expr, `7cb9afba`):** the materializer. The walk a
+guard runs first rebuilt the `with state` marks by reading the log from its start, at every name,
+so every term; 94% of the time in one materializer. Marks are now rebuilt only where a record the
+walk may build hands its factory the state or the marks. 1,000 terms 1,353 to 183 µs, 3,000 terms
+11,010 to 546, linear; a scaling test in the slow project. It may also be the tape's drift on
+small inputs; the pair says. With it, locally: the renderings now agree on every line of the
+refusal record — the wording disagreements, 100 two days ago, are none.
 **Web date-time's anatomy (finance-24):** the reader read nothing twice; the values did — each
 field became a string twice, once for the guard and once for the construction, and was parsed
 twice, about twenty strings and fourteen parses for 23 characters. The grammar's part is fixed
