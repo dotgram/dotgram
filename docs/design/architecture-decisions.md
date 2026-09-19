@@ -1043,6 +1043,13 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   immediate carrier while it stands. Marks per gathered member, left "for when a measurement asks",
   are asked for: performance-ff, after C4b and FIX's log form, with the count of SQL machines held
   by that refusal alone first.
+  **Corrected by the fixed report (`ea818170`):** the refusal holds three SQL machines, not all —
+  two in SQL:2023, one in T-SQL — and each would be kept on the tape by `Replay` anyway; none is held
+  by the refusal alone. The architect's conclusion was drawn from the broken count. Marks per
+  member stay in the queue without priority; the report says when a machine is refused and nothing
+  else. What holds SQL is `Replay`, per machine: C4b's gate asks every construction of a machine for
+  a rule point, all or nothing, so SQL's 75% of sites with a point reach the immediate carrier only
+  when a construction's carrier can be chosen alone — a design question for after FIX.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
