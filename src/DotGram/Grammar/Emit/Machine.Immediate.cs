@@ -568,14 +568,14 @@ sealed partial class Machine
 					file.Line("if (last - first == length)");
 					file.Then($"return {machine.Cut("first", "length")};");
 					file.Line();
-					file.Line(machine.BorrowedCaptures ? "var built = new char[length]; int filled = 0;" : "var built = new global::System.Text.StringBuilder();");
+					file.Line(machine.BorrowedCaptures ? $"var built = new {machine.CaptureElement}[length]; int filled = 0;" : "var built = new global::System.Text.StringBuilder();");
 					file.Line();
 
 					using (file.Block("foreach (var piece in pieces)"))
 					{
 						file.Line("var from = (int)(piece >> 32);");
 						file.Line();
-						file.Line(machine.BorrowedCaptures ? "text.Slice(from, (int)piece - from).CopyTo(new global::System.Span<char>(built, filled, (int)piece - from)); filled += (int)piece - from;" : $"built.Append({machine.Cut("from", "(int)piece - from")});");
+						file.Line(machine.BorrowedCaptures ? $"text.Slice(from, (int)piece - from).CopyTo(new global::System.Span<{machine.CaptureElement}>(built, filled, (int)piece - from)); filled += (int)piece - from;" : $"built.Append({machine.Cut("from", "(int)piece - from")});");
 					}
 
 					file.Line();

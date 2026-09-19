@@ -1105,8 +1105,10 @@ sealed partial class Machine
 
 			Declare("var p = pos;");
 
+			// A byte is read into an int, as the engine reads one, so that it compares with the
+			// character a set or a literal is written in.
 			if (_character)
-				Declare("var c = '\\0';");
+				Declare(machine.BufferedBytes ? "var c = 0;" : "var c = '\\0';");
 
 			// The refs mark: where this method writes a record, and where the rule gathers
 			// and this is its body, which hands the mark to every part whether or not it
@@ -1527,7 +1529,11 @@ sealed partial class Machine
 					$"{Spanned(text)}, global::System.StringComparison.OrdinalIgnoreCase)"
 				: $"!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {text.Length}), {Spanned(text)})";
 
-			using (code.Block($"if ({machine.LacksRoom(text.Length)} || {comparison})"))
+			// Bytes compare with a literal written in characters one by one, which the buffer does
+			// where it holds them (byte literals are case-sensitive values below 256).
+			using (code.Block(machine.BufferedBytes
+				? $"if (!text.Matches(p, {Quoted(text)}))"
+				: $"if ({machine.LacksRoom(text.Length)} || {comparison})"))
 				Refused(code, name);
 
 			code.Line($"p += {text.Length};");

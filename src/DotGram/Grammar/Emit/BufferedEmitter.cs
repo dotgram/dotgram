@@ -104,14 +104,24 @@ public static partial class CSharpEmitter
 			// through the machine's helpers. Only there, so that the two forms of one publication
 			// are one rendering and answer alike to the character — a refusal inside a literal is
 			// placed where the literal began by the reader and where it broke off by the engine.
-			// Characters first. Not where the engine proves it can let the buffer go as it reads,
-			// which the reader does not do yet; nor where a reading can reach itself and would
-			// hand its input to another thread, which a buffer does not yet go with; nor where an
-			// external recognizer reads the input through its view, which the engine hands it.
-			var direct = !bytes && publication.Kind == PublishKind.Parse &&
+			// Not where the engine proves it can let the buffer go as it reads, which the reader
+			// does not do yet; nor where a reading can reach itself and would hand its input to
+			// another thread, which a buffer does not go with (GRAM5014); nor where an external
+			// recognizer reads the input through its view, which the engine hands it.
+			var readable = publication.Kind == PublishKind.Parse &&
 				!rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External)) &&
 				machines.Exists(one => one.Direct && one.Publications.Contains(publication)) &&
-				machine!.CanDirect([publication]) && !machine.Probes && !machine.CanReleaseBuffered;
+				machine!.CanDirect([publication]) && !machine.CanReleaseBuffered;
+			var direct = readable && !machine!.Probes;
+
+			// The one reason a publication read by methods over a string is read by the engine
+			// over a buffer that is a limit of this compiler rather than a choice, said as such.
+			if (readable && !direct)
+				diagnostics?.Add(new GramDiagnostic(GramCompiler.BufferedOnEngine,
+					$"'{publication.MethodName}' over a {(bytes ? "stream" : "reader")} is read by the engine, where over a " +
+					"string it is read by methods: a rule it reaches can reach itself, and a reading that deep goes " +
+					"on in another thread with the whole input, which a buffer cannot hand over.",
+					publication.At.Position, publication.At.Length, GramSeverity.Info));
 			added.Add(new Compiled(machine!, [publication], "Recognize_DotGram" + tag, tag, false, direct));
 		}
 		// Keep single-rule release proofs and small parsers independent. Large,

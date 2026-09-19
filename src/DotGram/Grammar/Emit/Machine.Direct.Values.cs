@@ -1251,7 +1251,7 @@ sealed partial class Machine
 						}
 						else
 						{
-							file.Line($"var chars{i} = new char[length{i}];");
+							file.Line($"var chars{i} = new {CaptureElement}[length{i}];");
 							file.Line($"var filled{i} = 0;");
 							file.Line($"var back{i}   = read - count{i} * 2;");
 							file.Line();
@@ -1263,7 +1263,7 @@ sealed partial class Machine
 								file.Line();
 								file.Line(
 									$"text.Slice(pieceFrom, pieceTo - pieceFrom)" +
-									$".CopyTo(new global::System.Span<char>(chars{i}, filled{i}, pieceTo - pieceFrom));");
+									$".CopyTo(new global::System.Span<{CaptureElement}>(chars{i}, filled{i}, pieceTo - pieceFrom));");
 								file.Line($"filled{i} += pieceTo - pieceFrom;");
 							}
 

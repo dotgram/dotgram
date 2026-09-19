@@ -353,6 +353,61 @@ public sealed class BufferedInputTests
 		}
 	}
 
+	/// <summary>The same over bytes: a stream read by the reader answers as the string does.</summary>
+	[Fact]
+	public void A_byte_stream_is_read_by_the_reader_the_string_form_is_read_by()
+	{
+		var compilation = GramCompiler.Compile(
+			"Start = Item & (',' & Item)*\nItem = Word & \"==\" & Word | Word\nWord = ['a'..'z']+\nparse Start stream bytes",
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape });
+		EmittedCode.Quiet(compilation.Diagnostics);
+		var source = Assert.Single(compilation.Sources).Text;
+
+		Assert.Contains("private ref struct Reader_DotGram_Buffered_ParseStart_Bytes", source, StringComparison.Ordinal);
+
+		var assembly = EmittedCode.Compile(source);
+		var parse = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!;
+		foreach (var input in new[] { "a", "a==b", "a,b==c,d", "ab==cd,ef", "a==", "a=b", "a,,b", "", "==" })
+		{
+			var expected = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+			var bytes = System.Text.Encoding.ASCII.GetBytes(input);
+			for (var split = 1; split <= input.Length + 1; split++)
+			{
+				using var stream = new ChunkedStream(bytes, split);
+				var match = parse.Invoke(null, [stream, 1, int.MaxValue])!;
+				object? Get(string property) => match.GetType().GetProperty(property)!.GetValue(match);
+				Assert.True(expected.IsSuccess == (bool)Get("IsSuccess")!, $"\"{input}\" split {split}");
+				Assert.Equal(expected.Position, (long)Get("Position")!);
+			}
+		}
+	}
+
+	/// <summary>
+	/// A reading that can reach itself stays on the engine over a buffer, and says why: its
+	/// string form is read by methods, and the two forms are two renderings.
+	/// </summary>
+	[Fact]
+	public void A_buffered_form_left_on_the_engine_says_why()
+	{
+		var compilation = GramCompiler.Compile(
+			"Start = '(' & Start & ')' | Item\nItem = Word & '=' & Word | Word\nWord = ['a'..'z']+\nparse Start stream",
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape });
+		var told = Assert.Single(compilation.Diagnostics, one => one.Id == GramCompiler.BufferedOnEngine);
+
+		Assert.Equal(GramSeverity.Info, told.Severity);
+		Assert.Contains("can reach itself", told.Message, StringComparison.Ordinal);
+
+		var source = Assert.Single(compilation.Sources).Text;
+
+		Assert.DoesNotContain("Reader_DotGram_Buffered_", source, StringComparison.Ordinal);
+		Assert.Contains("private ref struct Reader_DotGram", source, StringComparison.Ordinal);
+	}
+
+	sealed class ChunkedStream(byte[] bytes, int chunk) : MemoryStream(bytes)
+	{
+		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, chunk));
+	}
+
 	[Fact]
 	public void Guards_are_not_reexecuted_for_each_refill()
 	{

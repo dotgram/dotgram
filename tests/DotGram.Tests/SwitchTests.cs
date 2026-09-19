@@ -71,6 +71,14 @@ public sealed class SwitchTests
 	[InlineData("12=b", 2)]
 	public void Scalar_run_methods_preserve_factory_demand_across_backtracking(string input, int calls)
 	{
+		// On the engine, where the scalar run is a method of its own, and read by methods, where
+		// the buffered forms are read by the same reader as the string (FIX step 5).
+		foreach (var direct in new[] { false, true })
+			Scalar_run_methods_preserve_factory_demand(input, calls, direct);
+	}
+
+	static void Scalar_run_methods_preserve_factory_demand(string input, int calls, bool direct)
+	{
 		var result = GramCompiler.Compile("""
 			Number : @int = digits: { ['1'..'9'] & ['0'..'9']* } => @(Make(digits))
 			First : @int = n: Number & "=x" => @(n)
@@ -80,11 +88,12 @@ public sealed class SwitchTests
 			parse Start
 			""", new GramCompilerOptions
 		{
-			BufferedInput = true, BufferedBytes = true, CSharpScanner = RoslynCSharpScanner.Instance,
+			BufferedInput = true, BufferedBytes = true, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
-		Assert.Contains("static int Read_Number", source);
+		if (!direct)
+			Assert.Contains("static int Read_Number", source);
 		var assembly = EmittedCode.Compile(source, declarationMembers: """
 			public static int Calls;
 			static int Make(string text) { Calls++; return 12; }

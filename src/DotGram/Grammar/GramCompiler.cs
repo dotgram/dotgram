@@ -274,6 +274,9 @@ public static class GramCompiler
 	/// <summary>Which carrier the generator chose, where it was left to choose, and why.</summary>
 	public const string CarrierChosen = "GRAM5012";
 
+	/// <summary>A buffered form read by the engine where its string form is read by methods, and why.</summary>
+	public const string BufferedOnEngine = "GRAM5014";
+
 	/// <summary>A terminal the host measures has nothing in front of it to be found by.</summary>
 	public const string Unanchored = "GRAM5011";
 

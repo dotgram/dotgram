@@ -32,7 +32,10 @@ sealed partial class Machine
 	/// </remarks>
 	public bool Quiets { get; }
 
-	string CaptureSpanType => $"global::System.ReadOnlySpan<{(BufferedBytes ? "byte" : "char")}>";
+	string CaptureSpanType => $"global::System.ReadOnlySpan<{CaptureElement}>";
+
+	/// <summary>What a borrowed capture is a span of: the input's own element.</summary>
+	internal string CaptureElement => BufferedBytes ? "byte" : "char";
 	string EmptyCapture => BorrowedCaptures ? $"default({CaptureSpanType})" : "string.Empty";
 
 	// A first conservative release proof: one source-independent, deterministic rule.
