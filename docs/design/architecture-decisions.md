@@ -937,7 +937,11 @@ support (arena, pool, reset, construct, read, scan, guard), about 1 KB together 
 table of names by code, `IsData` read from the codes — finance-24, paired on first call and
 steady state, both parsers; the method count of the support set is C2's first-call baseline
 (86 to 40 is the gap); the phase tool goes from sql-39 to the stand's kit as the first-call
-anatomy, run for C2 before and after.
+anatomy, run for C2 before and after. **Landed `59648810` (finance-24):** `Type` is two reads, a byte per tag in RVA data and 23
+names; `IsData` compares a code and `FixFieldOptions` keeps no table of its own; a one-off
+comparison against the switch found no difference for tags -2..1100. `Component` and `Codes`
+are switches still, off the parser's startup path (the message layer's), the same technique if
+their first call ever matters. The pair is ordered.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
