@@ -1479,14 +1479,17 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    docs index): a table per grammar — building, kept, held by `Replay`, direct causes, second
    gate, carrier — then each grammar's causes by owner. C and the seam rewrite are measured
    by its diff.
-   C's gate (stand): T-SQL generation 1.04x, located 1.03x, SQL:2023 1.00x, inside tolerance;
-   a quiet machine reads T-SQL at 4.4 s, which the morning's 4.1 and the evening's 4.6-5.7
-   bracket.
+   A quiet machine reads T-SQL's generation at 4.4 s, which the morning's 4.1 and the evening's
+   4.6-5.7 bracket.
    **The report landed `597af083` (sql-39):** sites and the opening node are kept only under the
    report option; generated code unchanged; the path without a report does strictly less (the
    gate, three rounds, flat). `docs/carriers.md` is in the docs index; the layout line in
    CLAUDE.md is left to Igor by the session's own rule. First run: 84 grammars, 53 on the tape;
    SQL:2023 327 of 556 before C, 29 with a cause of their own.
+   **C landed `5ae11836` (expr), `lm` `58aee5f7`, GRAM4030 `bdef4949`:** SQL:2023 325 to 308 of
+   556 building rules on the tape; T-SQL and SQL-92 unmoved (625 of 640, 44 of 48); only the
+   four SQL parser files differ, the two fixes change no generated file; the gate inside
+   tolerance (T-SQL 1.04x, located 1.03x, SQL:2023 1.00x, SQL-92 1.06x). The seam hoist is next.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
