@@ -75,7 +75,7 @@ rules have a cause of their own; the rest are under one of them.
 | DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  |
 | DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  |
 | DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 |
-| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 325 | 29 | 0 |
+| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 26 | 0 |
 | DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 658 | 643 | 84 | 0 |
 | DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 658 | 643 | 84 | 0 |
 | DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 6 |
@@ -98,29 +98,70 @@ rules have a cause of their own; the rest are under one of them.
 | DotGram.Web.Rfc9110 | tape | read again | 4 | 0 | 0 | 8 |
 | DotGram.Web.Rfc9651 | tape | read again | 15 | 0 | 0 | 17 |
 
+## Where the second gate's ways are opened
+
+Each place a rule's own reading opens a way, by its shape — a choice over characters, a run of
+one character, the turns of a repetition — and why the way could not be left out. **Places**
+counts each once per grammar; **captured** is how many of them capture inside the turn, and
+**sealed** how many are in a rule every call of which is inside an atomic group or a lookahead,
+or which nothing calls, so that no caller asks it again.
+
+| Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| run | what follows begins alike | 24 | 40 | 40 | 0 | 7 | Config.LineComment: `[^ '\n' \| '\r']*` |
+| choice | alternatives begin alike | 14 | 23 | 38 | 0 | 8 | Config.trivia: `(LineComment \| BlockComment)` |
+| turns | a turn led by what may read nothing | 8 | 16 | 34 | 8 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
+| choice | alternatives begin apart | 12 | 20 | 33 | 0 | 1 | JsonParser.Body: `(Plain \| Escape)` |
+| optional | what follows begins alike | 12 | 14 | 20 | 7 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
+| turns | the seam leads every alternative of the turn | 11 | 15 | 19 | 19 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
+| choice | every alternative led by what may read nothing | 4 | 8 | 17 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
+| choice | an alternative that may read nothing | 7 | 14 | 15 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
+| turns | what follows begins alike | 10 | 11 | 12 | 6 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
+| choice | the seam leads every alternative | 7 | 9 | 11 | 0 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
+| counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
+| optional | a turn led by what may read nothing | 2 | 5 | 7 | 2 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
+| choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
+| choice | an ignore-case literal | 1 | 1 | 4 | 0 | 0 | Rfc5646.Grandfathered: `("i-ami"i \| "i-bnn"i \| "i-default"i \| "i-enochian"i \| "i-hak"i \| "i-kl…` |
+| turns | seam first, what follows can begin inside it | 2 | 2 | 2 | 2 | 2 | FilterFile.Filter: `(trivia & Word & trivia & item1: Test)*` |
+| turns | a turn led by a lookahead | 1 | 1 | 1 | 0 | 1 | Config.BlockComment: `(?!"*/" & any)*` |
+| choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
+| turns | seam first, what follows begins alike past it | 1 | 1 | 1 | 0 | 1 | Scoped.Program: `(trivia & Let)*` |
+| choice | literals under a capture or construction | 1 | 1 | 1 | 0 | 0 | Rfc9651.SfBareItem: `("?1" => (BareItem.Boolean.True) \| "?0" => (BareItem.Boolean.False))` |
+
 ## DotGram.Benchmarks.Climbing
 
 - again Expr: opens a way
+- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & r: Expr => (l + r) | trivia & '-' & trivia & …
+- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & r: Expr => (l + r) | trivia & '-' & trivia & …
 
 ## DotGram.Benchmarks.Config
 
 - again BlockComment: opens a way
+- open BlockComment: turns; a turn led by a lookahead; sealed; (?!"*/" & any)*
 - again Entry: through trivia
 - again File: through trivia
 - again LineComment: opens a way
+- open LineComment: run; what follows begins alike; sealed; [^ '\n' | '\r']*
 - again trivia: opens a way
+- open trivia: choice; alternatives begin alike; open; (LineComment | BlockComment)
 
 ## DotGram.Benchmarks.Levels
 
 - again Primary: through Sum
 - again Product: opens a way
+- open Product: turns, captured; the seam leads every alternative of the turn; open; (trivia & '*' & trivia & r: Unary => (l * r) | trivia & '/' & trivia &…
+- open Product: choice; the seam leads every alternative; open; (trivia & '*' & trivia & r: Unary => (l * r) | trivia & '/' & trivia &…
 - again Sum: opens a way
+- open Sum: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & r: Product => (l + r) | trivia & '-' & trivia…
+- open Sum: choice; the seam leads every alternative; open; (trivia & '+' & trivia & r: Product => (l + r) | trivia & '-' & trivia…
 - again Unary: through Primary
 
 ## DotGram.Benchmarks.MaterializationCost.NoCaptures
 
 - again Host: opens a way
+- open Host: choice; alternatives begin alike; open; (IPv4 | RegName)
 - again Url: opens a way
+- open Url: optional; what follows begins alike; entry; (UserInfo & '@')?
 
 ## DotGram.Benchmarks.MaterializationCost.SpanCaptures
 
@@ -129,17 +170,22 @@ rules have a cause of their own; the rest are under one of them.
 ## DotGram.Benchmarks.MaterializationCost.WithCaptures
 
 - again Host: opens a way
+- open Host: choice; alternatives begin alike; open; (IPv4 | RegName)
 - again Url: opens a way
+- open Url: optional, captured; what follows begins alike; entry; (user: UserInfo & '@')?
 
 ## DotGram.Benchmarks.Numbers
 
 - again Number: opens a way
+- open Number: run; what follows begins alike; open; ['0'..'9']+
 - again Sum: through Number
 
 ## DotGram.Benchmarks.Urls
 
 - again Authority: opens a way
+- open Authority: optional, captured; what follows begins alike; open; (user: UserInfo & '@')?
 - again Host: opens a way
+- open Host: choice; alternatives begin alike; open; (IPv4 | RegName)
 - again Url: through Authority
 
 ## DotGram.Examples.Expressions.ArithmeticTree
@@ -147,31 +193,47 @@ rules have a cause of their own; the rest are under one of them.
 - again Power: through Unary
 - again Primary: through Sum
 - again Product: opens a way
+- open Product: turns, captured; the seam leads every alternative of the turn; open; (trivia & '*' & trivia & right: Unary => (new Mul(left, right)) | triv…
+- open Product: choice; the seam leads every alternative; open; (trivia & '*' & trivia & right: Unary => (new Mul(left, right)) | triv…
 - again Sum: opens a way
+- open Sum: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Product => (new Add(left, right)) | tr…
+- open Sum: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Product => (new Add(left, right)) | tr…
 - again Unary: through trivia
 - again trivia: opens a way
+- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
 
 ## DotGram.Examples.Expressions.Calculator
 
 - again DecimalNumber: through Point
 - again Expr: opens a way
+- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr_With1 => (left + right) | trivia …
+- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr_With1 => (left + right) | trivia …
 - again Expr: opens a way
+- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr_With2 => (left + right) | trivia …
+- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr_With2 => (left + right) | trivia …
 - again Expr: opens a way
+- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr_With3 => (left + right) | trivia …
+- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr_With3 => (left + right) | trivia …
 - again NodeNumber: through Point
 - again Point: through trivia
 - again Spacing: opens a way
+- open Spacing: run; what follows begins alike; open; Whitespace+
 - again trivia: opens a way
+- open trivia: optional; what follows begins alike; open; Spacing?
 
 ## DotGram.Examples.Expressions.ClampedExample
 
 - again Body: through Sum
 - again Sum: opens a way
+- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & '+' & trivia & right: Term => (System.Linq.Expressions.Expres…
 - again Term: through Sum
 
 ## DotGram.Examples.Expressions.LocaleNumber
 
 - again Number: opens a way
+- open Number: choice; alternatives begin alike; entry; (whole: Digit+ & Point & frac: Digit+ => (Whole(whole) + Fraction(frac…
 - again Number: opens a way
+- open Number: choice; alternatives begin alike; entry; (whole: Digit+ & Comma & frac: Digit+ => (Whole(whole) + Fraction(frac…
 
 ## DotGram.Examples.Feeds.FeedReader
 
@@ -180,14 +242,18 @@ rules have a cause of their own; the rest are under one of them.
 - again Row: through eol
 - again Trailer: through eol
 - again eol: opens a way
+- open eol: choice; literals, follow unknown; open; ("\r\n" | '\r')
 
 ## DotGram.Examples.Formats.Config
 
 - again Entry: through trivia
 - again File: through trivia
 - again LineComment: opens a way
+- open LineComment: run; what follows begins alike; sealed; [^ '\n' | '\r']*
 - again Spacing: opens a way
+- open Spacing: run; what follows begins alike; sealed; Whitespace+
 - again Value: opens a way
+- open Value: run; what follows begins alike; open; [^ '\n' | '\r']*
 - again trivia: through Spacing
 
 ## DotGram.Examples.Formats.Config.Located
@@ -195,42 +261,63 @@ rules have a cause of their own; the rest are under one of them.
 - again Entry: through trivia
 - again File: through trivia
 - again LineComment: opens a way
+- open LineComment: run; what follows begins alike; sealed; [^ '\n' | '\r']*
 - again Spacing: opens a way
+- open Spacing: run; what follows begins alike; sealed; Whitespace+
 - again Value: opens a way
+- open Value: run; what follows begins alike; open; [^ '\n' | '\r']*
 - again trivia: through Spacing
 
 ## DotGram.Examples.Formats.FileNames
 
 - again Route: through Segment
 - again Segment: opens a way
+- open Segment: run; what follows begins alike; open; [IsAllowed]+
 
 ## DotGram.Examples.Formats.HttpParser
 
 - again Field: opens a way
+- open Field: choice; an alternative that may read nothing; open; (eol | ?=eof)
 - again Fold: opens a way
+- open Fold: choice; an alternative that may read nothing; open; (eol | ?=eof)
 - again Headers: through Field
 - again Line: opens a way
+- open Line: run; what follows begins alike; open; [^ '\n' | '\r']*
 - again Space: opens a way
+- open Space: run; what follows begins alike; open; ['\t' | ' ']*
 - again eol: opens a way
+- open eol: choice; literals, a shorter one wanted; open; ("\r\n" | '\r')
 
 ## DotGram.Examples.Formats.IniParser
 
 - again Blank: through Space
 - again Comment: opens a way
+- open Comment: run; what follows begins alike; open; [^ '\n' | '\r']*
 - again Entries: opens a way
+- open Entries: turns, captured; a turn led by what may read nothing; open; (item0: Entry | Blank)*
+- open Entries: choice; every alternative led by what may read nothing; open; (item0: Entry | Blank)
+- open Entries: optional; what follows begins alike; open; Tail?
 - again Entry: opens a way
+- open Entry: choice; an alternative that may read nothing; open; (eol | ?=eof)
 - again Ini: through Entries
 - again Key: opens a way
+- open Key: run; what follows begins alike; open; [^ '\n' | '\r' | '#' | ';' | '=' | '[' | ']']+
 - again Section: through Entries
 - again Space: opens a way
+- open Space: run; what follows begins alike; open; ['\t' | ' ']*
 - again Tail: opens a way
+- open Tail: choice; alternatives begin alike; open; (Space & Comment | Comment)
 - again Value: opens a way
+- open Value: run; what follows begins alike; open; [^ '\n' | '\r']*
 - again eol: opens a way
+- open eol: choice; literals, a shorter one wanted; open; ("\r\n" | '\r')
 
 ## DotGram.Examples.Formats.JsonParser
 
 - again Array: through trivia
 - again Body: opens a way
+- open Body: turns; what follows begins alike; open; (Plain | Escape)*
+- open Body: choice; alternatives begin apart; open; (Plain | Escape)
 - again Json: through Value
 - again List: through trivia
 - again List: through Value
@@ -240,33 +327,43 @@ rules have a cause of their own; the rest are under one of them.
 - again Text: through trivia
 - again Value: through Object
 - again trivia: opens a way
+- open trivia: run; what follows begins alike; open; ['\t'..'\n' | '\r' | ' ']*
 
 ## DotGram.Examples.Formats.MarkdownParser
 
 - again Blank: through eol
 - again Block: opens a way
+- open Block: choice; alternatives begin alike; open; (block: Heading => (block) | block: Bullets => (block) | block: Code =…
 - again Bullet: through eol
 - again Bullets: opens a way
+- open Bullets: turns, captured; what follows begins alike; open; items: Bullet+
 - again Code: opens a way
+- open Code: turns, captured; a turn led by what may read nothing; open; lines: CodeLine*
 - again CodeLine: through eol
 - again Doc: through Block
 - again Heading: through eol
 - again Paragraph: through eol
 - again eol: opens a way
+- open eol: choice; literals, a shorter one wanted; open; ("\r\n" | '\r')
 
 ## DotGram.Examples.Formats.MetricsLine
 
 - again Line: through trivia
 - again LineComment: opens a way
+- open LineComment: run; what follows begins alike; sealed; [^ '\n' | '\r']*
 - again Quoted: opens a way
+- open Quoted: turns; what follows begins alike; open; ("""" & (?!'"' & any)*)*
 - again Reading: through trivia
 - again Spacing: opens a way
+- open Spacing: run; what follows begins alike; sealed; Whitespace+
 - again Value: opens a way
+- open Value: choice; alternatives begin alike; open; (?=Digits & trivia & '.' & trivia & d: Decimal => (d) | n: Long => (n)…
 - again trivia: through Spacing
 
 ## DotGram.Examples.Formats.Netstrings
 
 - again Stream: opens a way
+- open Stream: turns, captured; what follows begins alike; entry; item0: Frame*
 
 ## DotGram.Examples.Formats.XmlParser
 
@@ -282,10 +379,15 @@ rules have a cause of their own; the rest are under one of them.
 - again Blank: through Space
 - again Doc: through Lines
 - again Line: opens a way
+- open Line: choice; an alternative that may read nothing; open; (eol | ?=eof)
 - again Lines: opens a way
+- open Lines: choice; every alternative led by what may read nothing; open; (item0: Line | Blank)
 - again Rest: opens a way
+- open Rest: run; what follows begins alike; open; [^ '\n' | '\r']*
 - again Space: opens a way
+- open Space: run; what follows begins alike; open; ' '*
 - again eol: opens a way
+- open eol: choice; literals, a shorter one wanted; open; ("\r\n" | '\r')
 
 ## DotGram.Examples.Languages.Filter
 
@@ -299,9 +401,13 @@ rules have a cause of their own; the rest are under one of them.
 ## DotGram.Examples.Languages.FilterFile
 
 - again Filter: opens a way
+- open Filter: turns, captured; seam first, what follows can begin inside it; entry; (trivia & Word & trivia & item1: Test)*
 - again Quoted: opens a way
+- open Quoted: turns; what follows begins alike; open; ("""" | [^ '"'])*
+- open Quoted: choice; alternatives begin apart; open; ("""" | [^ '"'])
 - again Test: through trivia
 - again trivia: opens a way
+- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
 
 ## DotGram.Examples.Languages.Filters
 
@@ -341,27 +447,41 @@ rules have a cause of their own; the rest are under one of them.
 ## DotGram.Examples.Languages.Scoped
 
 - again Blank: opens a way
+- open Blank: run; what follows begins alike; open; Space+
 - again Expr: opens a way
+- open Expr: choice; alternatives begin apart; open; ('(' & trivia & inner: Expr & trivia & ')' => (inner) | n: Integer => …
+- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr => (left + right) | trivia & '*' …
+- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr => (left + right) | trivia & '*' …
 - again Let: through trivia
 - again Program: opens a way
+- open Program: turns; seam first, what follows begins alike past it; entry; (trivia & Let)*
 - again trivia: opens a way
+- open trivia: optional; what follows begins alike; open; Blank?
 
 ## DotGram.Examples.Languages.Selectors
 
 - again Applied: opens a way
+- open Applied: turns, captured; the seam leads every alternative of the turn; open; trivia & step: Step => (new Step(target, step))*
 - again Selector: opens a way
+- open Selector: choice; alternatives begin alike; entry; (s: Applied => (s) | s: Root => (s))
 
 ## DotGram.Examples.Languages.SettingsFile
 
 - again File: opens a way
+- open File: turns, captured; seam first, what follows can begin inside it; entry; (trivia & item0: Setting & trivia & eol)*
 - again Quoted: opens a way
+- open Quoted: turns; what follows begins alike; open; ("""" | [^ '"'])*
+- open Quoted: choice; alternatives begin apart; open; ("""" | [^ '"'])
 - again Setting: opens a way
+- open Setting: choice; alternatives begin apart; open; (Number | Quoted | Word)
 - again trivia: opens a way
+- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
 
 ## DotGram.Examples.Languages.SqlDialect
 
 - again Test: through trivia
 - again trivia: opens a way
+- open trivia: run; what follows begins alike; open; ' '*
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
@@ -549,7 +669,6 @@ rules have a cause of their own; the rest are under one of them.
 - replay CharacterLargeObjectLength: Follows in CharacterStringType [choice], then ')'
 - replay CharacterLength: Follows in CharacterStringType [choice], then ')'
 - replay CharacterNode: Follows in JSONNameAndValue [choice], then "VALUE"i
-- replay ColumnDefinition: Follows in AlterTableAction [choice], then "ADD"i
 - replay ColumnNameList: Follows in Correlated [choice], then ')'
 - replay CommonSequenceGeneratorOptions: Follows in ColumnValueSource [choice], then ')'
 - replay ContextuallyTypedElement: Follows in ContextuallyTypedRowValueExpression [choice], then ',' …
@@ -565,12 +684,10 @@ rules have a cause of their own; the rest are under one of them.
 - replay JSONOutputClause: Follows in JSONArrayConstructor [choice], then ')'
 - replay JSONPathPredicate: Follows in JSONPredicatePrimary [choice], then ')'
 - replay LargeObjectLength: Follows in BinaryStringType [choice], then ')'
-- replay PeriodForSpecification: Follows in AlterTableAction [choice], then DropBehavior
 - replay Privileges: Follows in GrantStatement [choice], then "TO"i
 - replay RowPattern: Follows in RowPatternPrimary [choice], then ')'
 - replay SQLStatementName: Follows in DescribeStatement [choice], then UsingDescriptor
 - replay SchemaName: Follows in SchemaNameClause [choice], then "AUTHORIZATION"i
-- replay SchemaQualifiedName: Follows in AlterTableAction [choice], then DropBehavior
 - replay SimpleTargetSpecification: Follows in SQLDiagnosticsInformation [choice], then '='
 - replay StartField: Follows in IntervalQualifier [choice], then "TO"i
 - replay Subquery: Follows in TableContentsSource [choice], then "WITH"i
@@ -599,25 +716,17 @@ rules have a cause of their own; the rest are under one of them.
 - replay CharacterSetSpecification: under PredefinedType
 - replay CharacterStringType: under PredefinedType
 - replay CharacterValueExpression: under CharacterNode
-- replay CheckConstraintDefinition: under ColumnConstraint
 - replay CollateClause: under PredefinedType
 - replay CollectionNode: under TablePrimary
 - replay CollectionTypeSuffix: under DataType
 - replay CollectionValueConstructor: under PrimaryBase
 - replay CollectionValueExpression: under TablePrimary
-- replay ColumnConstraint: under ColumnConstraintDefinition
-- replay ColumnConstraintDefinition: under ColumnDefinition
 - replay ColumnReference: under WindowedFunction
-- replay ColumnValueSource: under ColumnDefinition
 - replay CommonSequenceGeneratorOption: under CommonSequenceGeneratorOptions
 - replay CommonValueExpression: under DatetimeValueExpression
 - replay CommonValueExpressionOrRow: under BooleanPrimary
 - replay ComparisonTail: under PredicatePart2
 - replay Conjunction: under Disjunction
-- replay ConstraintCharacteristics: under ColumnConstraintDefinition
-- replay ConstraintCheckTime: under ConstraintCharacteristics
-- replay ConstraintEnforcement: under ConstraintCharacteristics
-- replay ConstraintNameDefinition: under ColumnConstraintDefinition
 - replay ContextuallyTypedRowValueExpression: under ContextuallyTypedTableValueConstructor
 - replay Correlated: under TablePrimary
 - replay CorrelationOrRecognition: under TablePrimary
@@ -630,9 +739,6 @@ rules have a cause of their own; the rest are under one of them.
 - replay DatetimeType: under PredefinedType
 - replay DatetimeValueExpression: under ForPortionOf
 - replay DatetimeValueFunction: under ValueFunction
-- replay DefaultClause: under ColumnValueSource
-- replay DefaultOption: under DefaultClause
-- replay DeleteRule: under ReferentialTriggeredAction
 - replay DeleteStatementSearched: under DataChangeStatement
 - replay Disjunction: under ValueExpression
 - replay ElseClause: under CaseExpression
@@ -771,9 +877,6 @@ rules have a cause of their own; the rest are under one of them.
 - replay Recognized: under TablePrimary
 - replay ReferenceResolution: under PrimaryBase
 - replay ReferenceType: under DataTypeBase
-- replay ReferencesSpecification: under ColumnConstraint
-- replay ReferentialAction: under UpdateRule
-- replay ReferentialTriggeredAction: under ReferencesSpecification
 - replay RegexSearch: under NumericValueFunction
 - replay Result: under SimpleWhenClause
 - replay ResultOffsetClause: under QueryExpression
@@ -801,6 +904,7 @@ rules have a cause of their own; the rest are under one of them.
 - replay SQLArgument: under SQLArgumentList
 - replay SQLArgumentList: under PrimaryStep
 - replay SampleClause: under TableFactor
+- replay SchemaQualifiedName: under StringValueFunction
 - replay SearchClause: under SearchOrCycleClause
 - replay SearchOrCycleClause: under WithListElement
 - replay SearchedWhenClause: under CaseExpression
@@ -845,7 +949,6 @@ rules have a cause of their own; the rest are under one of them.
 - replay UnionOrExcept: under QueryExpressionBody
 - replay UnsignedLiteral: under PrimaryBase
 - replay UnsignedValueSpecification: under WindowFrameBound
-- replay UpdateRule: under ReferentialTriggeredAction
 - replay UpdateStatementSearched: under DataChangeStatement
 - replay UserDefinedTypeSpecification: under IsPredicatePart2
 - replay UsingUnits: under PositionExpression
@@ -2169,17 +2272,24 @@ rules have a cause of their own; the rest are under one of them.
 - again Power: through Unary
 - again Primary: through Sum
 - again Product: opens a way
+- open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary => (op == "*" ? left …
 - again Sum: opens a way
+- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product => (op == "+" ? lef…
 - again Unary: through trivia
 - again trivia: opens a way
+- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
 
 ## DotGram.Tests.Calculators.OneRuleParser
 
 - again Expr: opens a way
+- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr => (new Add(left, right)) | trivi…
+- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr => (new Add(left, right)) | trivi…
 
 ## DotGram.Tests.Calculators.StrengthCalculator
 
 - again Expr: opens a way
+- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr => (left + right) | trivia & '-' …
+- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr => (left + right) | trivia & '-' …
 
 ## DotGram.Tests.Calculators.TwoCalculators
 
@@ -2187,25 +2297,47 @@ rules have a cause of their own; the rest are under one of them.
 - again Primary: through Sum
 - again Primary: through trivia
 - again Product: opens a way
+- open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary_With1 => (op == "*" ?…
 - again Product: opens a way
+- open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary_With2 => (op == "*" ?…
 - again Sum: opens a way
+- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product_With1 => (op == "+"…
 - again Sum: opens a way
+- open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product_With2 => (op == "+"…
 - again Unary: through trivia
 - again Unary: through trivia
 - again trivia: opens a way
+- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
 
 ## DotGram.Web.Rfc3986
 
 - again Authority: opens a way
+- open Authority: optional, captured; a turn led by what may read nothing; open; (user: UserInfoText & '@')?
 - again DecOctet: opens a way
+- open DecOctet: choice; alternatives begin alike; open; ('1' & Digit & Digit | ['1'..'9'] & Digit | Digit)
+- open DecOctet: choice; alternatives begin alike; open; ("25" & ['0'..'5'] | '2' & ['0'..'4'] & Digit | ['1'..'9'] & Digit | D…
+- open DecOctet: choice; alternatives begin alike; open; (['1'..'9'] & Digit | Digit)
 - again HierPart: opens a way
+- open HierPart: choice; an alternative that may read nothing; open; ("//" & a: Authority & path: PathAbEmpty => (a with { Path = path }) |…
 - again HostText: opens a way
+- open HostText: choice; an alternative that may read nothing; open; (IPLiteral | IPv4Address | RegName)
 - again IPLiteral: through IPv6Address
 - again IPv4Address: through DecOctet
 - again IPv6Address: opens a way
+- open IPv6Address: choice; alternatives begin alike; open; ((H16 & ':'){6} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | ((H16 &…
+- open IPv6Address: optional; what follows begins alike; open; (H16 & ':')?
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,2}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,3}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,4}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,5}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,6}
+- open IPv6Address: choice; alternatives begin alike; open; ("::" & (H16 & ':'){5} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | …
 - again Ls32: opens a way
+- open Ls32: choice; alternatives begin alike; open; (H16 & ':' & H16 | IPv4Address)
 - again Reference: opens a way
+- open Reference: choice; an alternative that may read nothing; entry; (u: Uri => (u) | r: RelativeRef => (r))
 - again RelativePart: opens a way
+- open RelativePart: choice; an alternative that may read nothing; open; ("//" & a: Authority & path: PathAbEmpty => (a with { Path = path }) |…
 - again RelativeRef: through RelativePart
 - again Uri: through HierPart
 
@@ -2217,53 +2349,99 @@ rules have a cause of their own; the rest are under one of them.
 - again AddrSpecRule: through CurrentLocalPart
 - again AddrSpecRule: through CurrentLocalPart
 - again Address: opens a way
+- open Address: choice; alternatives begin alike; open; (mailbox: Mailbox => (mailbox) | group: Group => (group))
 - again AddressList: through NullMembers
 - again AddressList: through Address
 - again Address: opens a way
+- open Address: choice; alternatives begin alike; open; (mailbox: Mailbox_With4 => (mailbox) | group: Group_With4 => (group))
 - again AngleAddr: opens a way
+- open AngleAddr: optional; a turn led by what may read nothing; open; ObsRoute?
 - again AngleAddr: through Cfws
 - again AngleAddr: through Cfws
 - again AngleAddr: through Cfws
 - again Atom: through Cfws
 - again AtomText: opens a way
+- open AtomText: run; what follows begins alike; open; Atext+
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Cfws: opens a way
+- open Cfws: choice; alternatives begin alike; open; ((Fws? & Comment)+ & Fws? | Fws)
+- open Cfws: turns; a turn led by what may read nothing; open; (Fws? & Comment)+
+- open Cfws: optional; what follows begins alike; open; Fws?
 - again Cfws: opens a way
+- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With1)+ & CurrentFws? | CurrentFws)
+- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With1)+
 - again Cfws: opens a way
+- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With2)+ & CurrentFws? | CurrentFws)
+- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With2)+
+- open Cfws: optional; a turn led by what may read nothing; open; CurrentFws?
 - again Cfws: opens a way
+- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With3)+ & CurrentFws? | CurrentFws)
+- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With3)+
+- open Cfws: optional; a turn led by what may read nothing; open; CurrentFws?
 - again Cfws: opens a way
+- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With4)+ & CurrentFws? | CurrentFws)
+- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With4)+
+- open Cfws: optional; a turn led by what may read nothing; open; CurrentFws?
 - again Comment: opens a way
+- open Comment: turns; a turn led by what may read nothing; open; (Fws? & Ccontent)*
 - again Comment: opens a way
+- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With1)*
 - again Comment: opens a way
+- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With2)*
 - again Comment: opens a way
+- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With3)*
 - again Comment: opens a way
+- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With4)*
 - again Ctext: opens a way
+- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
 - again Ctext: opens a way
+- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
 - again Ctext: opens a way
+- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
 - again Ctext: opens a way
+- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
 - again CurrentDomain: opens a way
+- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With1 => (literal) | Cfws_With1? & text: DotAt…
 - again CurrentDomain: opens a way
+- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With2 => (literal) | Cfws_With2? & text: DotAt…
 - again CurrentDomain: opens a way
+- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With3 => (literal) | Cfws_With3? & text: DotAt…
 - again CurrentDomain: opens a way
+- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With4 => (literal) | Cfws_With4? & text: DotAt…
 - again CurrentFws: opens a way
+- open CurrentFws: optional; a turn led by what may read nothing; open; (Wsp* & Crlf)?
+- open CurrentFws: run; what follows begins alike; open; Wsp+
 - again CurrentLocalPart: opens a way
+- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With1? & text: DotAtomText & Cfws_With1? => (text) | Cfws_With1?…
 - again CurrentLocalPart: opens a way
+- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With2? & text: DotAtomText & Cfws_With2? => (text) | Cfws_With2?…
 - again CurrentLocalPart: opens a way
+- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With3? & text: DotAtomText & Cfws_With3? => (text) | Cfws_With3?…
 - again CurrentLocalPart: opens a way
+- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With4? & text: DotAtomText & Cfws_With4? => (text) | Cfws_With4?…
 - again CurrentPhrase: opens a way
+- open CurrentPhrase: turns; a turn led by what may read nothing; open; WordText_With2+
 - again CurrentPhrase: opens a way
+- open CurrentPhrase: turns; a turn led by what may read nothing; open; WordText_With3+
 - again CurrentPhrase: opens a way
+- open CurrentPhrase: turns; a turn led by what may read nothing; open; WordText_With4+
 - again Domain: opens a way
+- open Domain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral => (literal) | first: Atom & rest: DotAtom* =>…
 - again DomainLiteral: through Cfws
 - again DomainLiteralBody: opens a way
+- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (Fws? & Dtext)*
 - again DomainLiteralBody: opens a way
+- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With1)*
 - again DomainLiteralBody: opens a way
+- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With2)*
 - again DomainLiteralBody: opens a way
+- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With3)*
 - again DomainLiteralBody: opens a way
+- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With4)*
 - again DomainLiteral: through Cfws
 - again DomainLiteral: through Cfws
 - again DomainLiteral: through Cfws
@@ -2272,33 +2450,57 @@ rules have a cause of their own; the rest are under one of them.
 - again DotWord: through Word
 - again Dtext: through ObsDtext
 - again Dtext: opens a way
+- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
 - again Dtext: opens a way
+- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
 - again Dtext: opens a way
+- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
 - again Dtext: opens a way
+- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
 - again Fws: through ObsFws
 - again Group: through Cfws
 - again GroupList: opens a way
+- open GroupList: choice; an alternative that may read nothing; open; (list: MailboxList => (list) | ObsGroupList => (Array.Empty<EmailAddre…
 - again GroupList: opens a way
+- open GroupList: choice; an alternative that may read nothing; open; (list: MailboxList_With4 => (list) | Never => (Array.Empty<EmailAddres…
 - again Group: through CurrentPhrase
 - again LocalPart: through Word
 - again Mailbox: opens a way
+- open Mailbox: choice; every alternative led by what may read nothing; open; (name: Phrase? & address: AngleAddr => (new EmailAddress.Mailbox(Rfc53…
+- open Mailbox: optional, captured; a turn led by what may read nothing; open; name: Phrase?
 - again MailboxList: through NullMembers
 - again MailboxList: through Mailbox
 - again MailboxList: through Mailbox
 - again Mailbox: opens a way
+- open Mailbox: choice; every alternative led by what may read nothing; entry; (name: CurrentPhrase_With2? & address: AngleAddr_With2 => (new EmailAd…
+- open Mailbox: optional, captured; what follows begins alike; entry; name: CurrentPhrase_With2?
 - again Mailbox: opens a way
+- open Mailbox: choice; every alternative led by what may read nothing; open; (name: CurrentPhrase_With3? & address: AngleAddr_With3 => (new EmailAd…
+- open Mailbox: optional, captured; what follows begins alike; open; name: CurrentPhrase_With3?
 - again Mailbox: opens a way
+- open Mailbox: choice; every alternative led by what may read nothing; open; (name: CurrentPhrase_With4? & address: AngleAddr_With4 => (new EmailAd…
+- open Mailbox: optional, captured; what follows begins alike; open; name: CurrentPhrase_With4?
 - again NextAddress: opens a way
+- open NextAddress: choice; an alternative that may read nothing; open; (address: Address => (new[] { address }) | NullMember => (Array.Empty<…
 - again NextAddress: opens a way
+- open NextAddress: choice; alternatives begin apart; open; (address: Address_With4 => (new[] { address }) | Never => (Array.Empty…
 - again NextMailbox: opens a way
+- open NextMailbox: choice; an alternative that may read nothing; open; (mailbox: Mailbox => (new[] { mailbox }) | NullMember => (Array.Empty<…
 - again NextMailbox: opens a way
+- open NextMailbox: choice; alternatives begin apart; open; (mailbox: Mailbox_With3 => (new[] { mailbox }) | Never => (Array.Empty…
 - again NextMailbox: opens a way
+- open NextMailbox: choice; alternatives begin apart; open; (mailbox: Mailbox_With4 => (new[] { mailbox }) | Never => (Array.Empty…
 - again NullMember: through Cfws
 - again NullMembers: opens a way
+- open NullMembers: turns; a turn led by what may read nothing; open; (Cfws? & ',')*
 - again ObsDtext: through QuotedPair
 - again ObsFws: opens a way
+- open ObsFws: turns; a turn led by what may read nothing; open; (Crlf? & Wsp)+
 - again ObsGroupList: opens a way
+- open ObsGroupList: turns; a turn led by what may read nothing; open; (Cfws? & ',')+
 - again ObsPhrase: opens a way
+- open ObsPhrase: turns; what follows begins alike; open; (WordText | '.' | Cfws)*
+- open ObsPhrase: choice; alternatives begin alike; open; (WordText | Cfws)
 - again ObsRoute: through Cfws
 - again Phrase: through ObsPhrase
 - again Qcontent: through QuotedPair
@@ -2307,41 +2509,79 @@ rules have a cause of their own; the rest are under one of them.
 - again Qcontent: through QuotedPair
 - again Qcontent: through QuotedPair
 - again Qtext: opens a way
+- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
 - again Qtext: opens a way
+- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
 - again Qtext: opens a way
+- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
 - again Qtext: opens a way
+- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
 - again QuotedBody: opens a way
+- open QuotedBody: turns; a turn led by what may read nothing; open; (Fws? & Qcontent)*
 - again QuotedBody: opens a way
+- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With1)*
 - again QuotedBody: opens a way
+- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With2)*
 - again QuotedBody: opens a way
+- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With3)*
 - again QuotedBody: opens a way
+- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With4)*
 - again QuotedPair: opens a way
+- open QuotedPair: choice; alternatives begin alike; open; ('\\' & ['\t' | ' '..'~'] | ObsQp)
 - again QuotedPair: opens a way
+- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
 - again QuotedPair: opens a way
+- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
 - again QuotedPair: opens a way
+- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
 - again QuotedPair: opens a way
+- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
 - again Word: opens a way
+- open Word: choice; every alternative led by what may read nothing; open; (Cfws? & text: AtomText & Cfws? => (text) | Cfws? & body: QuotedBody &…
 - again WordText: opens a way
+- open WordText: optional; what follows begins alike; open; Cfws?
 - again WordText: opens a way
+- open WordText: optional; what follows begins alike; open; Cfws_With2?
 - again WordText: opens a way
+- open WordText: optional; what follows begins alike; open; Cfws_With3?
 - again WordText: opens a way
+- open WordText: optional; what follows begins alike; open; Cfws_With4?
 
 ## DotGram.Web.Rfc5646
 
 - again Extension: opens a way
+- open Extension: turns, captured; what follows begins alike; open; subtags: ExtensionSubtag+
 - again Grandfathered: opens a way
+- open Grandfathered: choice; an ignore-case literal; open; ("i-ami"i | "i-bnn"i | "i-default"i | "i-enochian"i | "i-hak"i | "i-kl…
+- open Grandfathered: choice; an ignore-case literal; open; ("no-bok"i | "no-nyn"i)
+- open Grandfathered: choice; an ignore-case literal; open; ("sgn-BE-FR"i | "sgn-BE-NL"i | "sgn-CH-DE"i)
+- open Grandfathered: choice; an ignore-case literal; open; ("zh-guoyu"i | "zh-hakka"i | "zh-min-nan"i | "zh-min"i | "zh-xiang"i)
 - again LangTag: opens a way
+- open LangTag: choice; alternatives begin alike; open; (language: ShortLanguage & extended: ExtLang{0,3} & tail: Tail => (tai…
+- open LangTag: counted, captured; what follows begins alike; open; extended: ExtLang{0,3}
 - again LanguageTag: opens a way
+- open LanguageTag: choice; alternatives begin alike; entry; (registered: Grandfathered & eof => (Rfc5646.Registered(registered)) |…
+- open LanguageTag: choice; alternatives begin alike; entry; (tag: LangTag => (tag) | subtags: PrivateUse => (new LanguageTag(null,…
 - again Tail: opens a way
+- open Tail: optional, captured; what follows begins alike; open; ('-' & script: Script)?
+- open Tail: optional, captured; what follows begins alike; open; ('-' & region: Region)?
+- open Tail: turns, captured; what follows begins alike; open; variants: Variant*
+- open Tail: turns, captured; what follows begins alike; open; extensions: Extension*
 - again Variant: through VariantText
 - again VariantText: opens a way
+- open VariantText: choice; alternatives begin alike; open; (Alphanum{5,8} | Digit & Alphanum{3})
 
 ## DotGram.Web.Rfc6265
 
 - again CookieDate: opens a way
+- open CookieDate: turns, captured; what follows begins alike; entry; rest: NextDateToken*
 - again DayToken: through Tail
 - again MonthToken: opens a way
+- open MonthToken: choice; alternatives begin alike; entry; ("apr"i & any* => (4) | "aug"i & any* => (8))
+- open MonthToken: choice; alternatives begin alike; entry; ("jan"i & any* => (1) | "jun"i & any* => (6) | "jul"i & any* => (7))
+- open MonthToken: choice; alternatives begin alike; entry; ("mar"i & any* => (3) | "may"i & any* => (5))
 - again Tail: opens a way
+- open Tail: run; what follows begins alike; open; any*
 - again TimeToken: through Tail
 - again YearToken: through Tail
 
@@ -2350,37 +2590,59 @@ rules have a cause of their own; the rest are under one of them.
 - again DispositionField: through DispositionParms
 - again DispositionParm: through ParmValue
 - again DispositionParms: opens a way
+- open DispositionParms: turns, captured; a turn led by what may read nothing; open; items: DispositionParm*
 - again ParmValue: through QuotedString
 - again QuotedString: opens a way
+- open QuotedString: choice; alternatives begin apart; open; (['\t' | ' '..'!' | '#'..'[' | ']'..'~' | ''..'ÿ'] | '\\' & ['\t' | '…
 
 ## DotGram.Web.Rfc6570
 
 - again LiteralChar: opens a way
+- open LiteralChar: choice; alternatives begin apart; open; (['!' | '#'..'$' | '&'..';' | '=' | '?'..'[' | ']' | '_' | 'a'..'z' | …
 - again Literals: opens a way
+- open Literals: turns; what follows begins alike; open; (LiteralChar | PctEncoded)+
+- open Literals: choice; alternatives begin apart; open; (LiteralChar | PctEncoded)
 - again Template: opens a way
+- open Template: choice; alternatives begin apart; entry; (parts: Expression | parts: Literals)
 
 ## DotGram.Web.Rfc6901
 
 - again Pointer: through ReferenceToken
 - again ReferenceToken: through TokenText
 - again TokenText: opens a way
+- open TokenText: choice; alternatives begin apart; open; ([^ '/' | '~'] | '~' & ['0'..'1'])
 
 ## DotGram.Web.Rfc7239
 
 - again DecOctet: opens a way
+- open DecOctet: choice; alternatives begin alike; open; ('1' & Digit & Digit | ['1'..'9'] & Digit | Digit)
+- open DecOctet: choice; alternatives begin alike; open; ("25" & ['0'..'5'] | '2' & ['0'..'4'] & Digit | ['1'..'9'] & Digit | D…
+- open DecOctet: choice; alternatives begin alike; open; (['1'..'9'] & Digit | Digit)
 - again Element: through PairList
 - again ElementList: opens a way
+- open ElementList: turns, captured; a turn led by what may read nothing; open; rest: NextElement*
 - again ForwardedField: through Ows
 - again IPv4Address: through DecOctet
 - again IPv6Address: opens a way
+- open IPv6Address: choice; alternatives begin alike; open; ((H16 & ':'){6} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | ((H16 &…
+- open IPv6Address: optional; what follows begins alike; open; (H16 & ':')?
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,2}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,3}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,4}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,5}
+- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,6}
+- open IPv6Address: choice; alternatives begin alike; open; ("::" & (H16 & ':'){5} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | …
 - again Ls32: opens a way
+- open Ls32: choice; alternatives begin alike; open; (H16 & ':' & H16 | IPv4Address)
 - again NextElement: through Ows
 - again NextPairSlot: through PairSlot
 - again Node: through IPv4Address
 - again Ows: opens a way
+- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
 - again PairList: through PairSlot
 - again PairSlot: through QuotedString
 - again QuotedString: opens a way
+- open QuotedString: choice; alternatives begin apart; open; (['\t' | ' '..'!' | '#'..'[' | ']'..'~' | ''..'ÿ'] | '\\' & ['\t' | '…
 
 ## DotGram.Web.Rfc8259
 
@@ -2394,46 +2656,68 @@ rules have a cause of their own; the rest are under one of them.
 - again NextMember: through Member
 - again ObjectBody: through Members
 - again StringText: opens a way
+- open StringText: choice; alternatives begin apart; open; ([' '..'!' | '#'..'[' | ']'..'￿'] | '\\' & (['"' | '/' | '\\' | 'b' | …
 - again Value: through ObjectBody
 
 ## DotGram.Web.Rfc8288
 
 - again Assignment: opens a way
+- open Assignment: optional; what follows begins alike; open; ('=' & Ows & (Token | QuotedString))?
 - again Element: opens a way
+- open Element: choice; an alternative that may read nothing; open; ((',' & Ows)+ | ?!any)
 - again Field: through Ows
 - again LinkParam: through Ows
 - again LinkValue: opens a way
+- open LinkValue: turns, captured; a turn led by what may read nothing; open; parameters: LinkParam*
 - again Ows: opens a way
+- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
 - again QuotedString: opens a way
+- open QuotedString: choice; alternatives begin apart; open; (['\t' | ' '..'!' | '#'..'[' | ']'..'~' | ''..'ÿ'] | '\\' & ['\t' | '…
 - again Token: opens a way
+- open Token: run; what follows begins alike; open; Tchar+
 
 ## DotGram.Web.Rfc9110
 
 - again ContentTypeField: through Ows
 - again Media: through Token
 - again Ows: opens a way
+- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
 - again ParameterSlot: through Ows
 - again ParameterText: opens a way
+- open ParameterText: optional; what follows begins alike; open; (Token & '=' & (Token | QuotedString))?
 - again Parameters: opens a way
+- open Parameters: turns, captured; a turn led by what may read nothing; open; slots: ParameterSlot*
 - again QuotedString: opens a way
+- open QuotedString: choice; alternatives begin apart; open; (['\t' | ' '..'!' | '#'..'[' | ']'..'~' | ''..'ÿ'] | '\\' & ['\t' | '…
 - again Token: opens a way
+- open Token: run; what follows begins alike; open; Tchar+
 
 ## DotGram.Web.Rfc9651
 
 - again DictMember: opens a way
+- open DictMember: choice; an alternative that may read nothing; open; ('=' & value: ListMember | parameters: SfParameters)
 - again DictRest: through DictMember
 - again DictionaryField: opens a way
+- open DictionaryField: turns, captured; a turn led by what may read nothing; entry; rest: DictRest*
 - again InnerMember: opens a way
+- open InnerMember: choice; an alternative that may read nothing; open; (' '+ | ?=')')
 - again ItemField: through SfItem
 - again Key: opens a way
+- open Key: run; what follows begins alike; open; ['*' | '-'..'.' | '0'..'9' | '_' | 'a'..'z']*
 - again ListField: opens a way
+- open ListField: turns, captured; a turn led by what may read nothing; entry; rest: ListRest*
 - again ListMember: through SfItem
 - again ListRest: through ListMember
 - again Parameter: through SfBareItem
 - again SfBareItem: opens a way
+- open SfBareItem: choice; every alternative led by what may read nothing; open; (text: SfDecimal => (new BareItem.Decimal(Rfc9651.Decimal(text))) | te…
+- open SfBareItem: choice; literals under a capture or construction; open; ("?1" => (BareItem.Boolean.True) | "?0" => (BareItem.Boolean.False))
 - again SfDecimal: opens a way
+- open SfDecimal: run; what follows begins alike; open; Digit{1,3}
 - again SfInnerList: through SfParameters
 - again SfInteger: opens a way
+- open SfInteger: run; what follows begins alike; open; Digit{1,15}
 - again SfItem: through SfBareItem
 - again SfParameters: through Parameter
 - again SfToken: opens a way
+- open SfToken: run; what follows begins alike; open; ['!' | '#'..'\'' | '*'..'+' | '-'..':' | 'A'..'Z' | '^'..'z' | '|' | '…

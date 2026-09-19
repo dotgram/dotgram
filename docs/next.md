@@ -23811,3 +23811,77 @@ The analysis walks `OptionSetting` without the lookahead that called it.
 **Not yet explained: 1 place.** `AuditAction = … & ','?` is said to take `,`. The rule that
 reads it is `AuditAction*` followed by `AuditStateWith?`, and nothing there begins with a comma.
 Wherever the analysis's comma comes from, it is not in this call.
+
+## The reader's gate, by the shape that opens each way
+
+The second gate keeps a grammar on the tape where some rule can be read again after it has
+answered. It keeps 43 of the 84 grammars. In them, 353 rules can be read again: 209 open a way
+themselves and the rest are only callers of those. The carriers report now also names every
+place a rule's own reading opens a way, and docs/carriers.md collects them into a table by
+class. There are 271 places in all.
+
+Each place has three labels:
+
+- **its shape:** a choice over characters, a run of one character class, the turns of a
+  repetition, an optional, or a counted repetition;
+- **why the way stays:** what `LiteralRun` or `NeverGivesBack` could not settle, told by what
+  the alternatives or the turn begin with;
+- **how the rule is called:** as an entry, only from inside atomic groups and lookaheads
+  ("sealed"), or openly.
+
+This list is the input for C2 and C4 and for expr's passes. Each class is one of three things:
+a rewrite of the graph, like the seam; a reader change, like `eol`; or intended.
+
+**A rewrite of the graph: 90 places.**
+
+- **The seam leads every alternative of the turn: 19 places.** Plus 11 places where it leads
+  every alternative of a choice. These are expression grammars, where each operator's turn
+  starts with `trivia`, as in `(trivia & '+' & trivia & r: Expr | trivia & '-' & …)*`.
+  `NeverGivesBack` compares past the seam only when the seam leads the turn's own sequence.
+  Taking `trivia` out in front of the choice makes these the case the seam already settles.
+- **A turn led by what may read nothing: 34 places.** Plus 17 where every alternative of a
+  choice is led that way, and 7 optionals. This is a seam of the grammar's own, not `trivia`:
+  `Ows & ',' & Ows` in RFC 9110, 9651 and 7239, `Fws?` and `CurrentFws?` throughout RFC 5322,
+  `Blank` in the INI parser. The continuation after the loop starts with the same whitespace.
+  Generalising the seam from `trivia` to any rule that heads both the turn and what follows
+  would take most of these.
+- **The seam first, what follows can begin inside it: 2 places.** `FilterFile.Filter` and
+  `SettingsFile.File`: the trivia holds a comment, and a comment is a unit of many lengths. An
+  atomic `trivia` closes this, as §3 already offers.
+
+**A reader change: 59 places.**
+
+- **Alternatives that begin apart: 33 places in 12 grammars.** For example
+  `JsonParser.Body`'s `(Plain | Escape)`: no alternative can begin where another began, and
+  none is empty. If something later fails, the next alternative fails at its first character
+  where it stands, so the way it would be tried by leads nowhere. The first character decides,
+  as it already does for `eol`.
+- **An alternative that may read nothing: 15 places.** Mostly `(eol | ?=eof)`: the lookahead
+  cannot hold where `eol` read, so the way is just as dead. The test is the same one, taken
+  past a lookahead.
+- **Literals: 10 places.** A shorter one written first and wanted by what follows (4); what
+  follows unknown (1); ignore-case literals (4); literals under a construction,
+  `"?1" => … | "?0" => …` (1). The last two are `LiteralRun` not looking through the case
+  flag and the construction.
+- **A turn led by a lookahead: 1 place.** `(?!"*/" & any)*`: the lookahead refuses exactly
+  what follows the loop.
+
+**Intended, or the language's own: 122 places.**
+
+- **A run the continuation can go on with: 40 places.** Whitespace next to whitespace,
+  `[^\n\r]*` up to a line end, a token's characters. Maximal munch is what these mean, and
+  giving back only replays what the next run reads. Where that is the author's intent, an
+  atomic group says so.
+- **Alternatives that begin alike: 38 places.** `IPv4 | RegName`, RFC 3986's `DecOctet`,
+  and `Mailbox | Group`. The ambiguity is the language's; DecOctet's common beginning is one
+  that factoring could take.
+- **Optionals and turns that what follows begins alike: 33 places.** `(UserInfo & '@')?`
+  before a host, `("""" | [^"])*` inside a quoted string, and the language tag's extensions.
+  The part after them decides, and that is the backtracking these grammars are written for.
+  One of them is `Scoped.Program`'s `(trivia & Let)*`, which begins alike even past the seam.
+- **Counted repetitions: 11 places.** IPv6's `(H16 & ':'){0,n}`.
+
+**Counted but sealed: 29 places.** These are in rules that nothing calls openly: every call is
+inside an atomic group or a lookahead, or the rule is an entry. Whatever a caller does, nobody
+reads them again, so the gate should not count them. It does today, because it asks whether a
+rule opens a way and not whether anything can come back into it.
