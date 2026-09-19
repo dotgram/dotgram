@@ -232,6 +232,15 @@ static class Program
 			return;
 		}
 
+		// `--fix-hot dir text|bytes seconds` reads an order over and over through one entry point of the side's FIX parser, for
+		// the JIT's own account of what it made of it (DOTNET_JitStdOutFile with DOTNET_JitDisasmSummary or JitDisasm).
+		if (args.Length == 4 && args[0] == "--fix-hot")
+		{
+			Stand.FixHot(args[1], args[2], double.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture));
+
+			return;
+		}
+
 		if (args.Length >= 2 && args[0] == "--el-rows")
 		{
 			Stand.ElRows(args[1..]);

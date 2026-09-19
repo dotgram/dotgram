@@ -3,11 +3,30 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 
 namespace DotGram.Benchmarks;
 
 static partial class Stand
 {
+	/// <summary>An order read through one entry point of a side's FIX parser for some seconds; prints the calls made.</summary>
+	public static void FixHot(string directory, string form, double seconds)
+	{
+		var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
+		var side  = new PairedSide(directory, directory);
+		var call  = form == "bytes" ? side.FixBytes(Encoding.Latin1.GetBytes(order)) : side.FixText(order);
+		var watch = Stopwatch.StartNew();
+		var calls = 0L;
+
+		while (watch.Elapsed.TotalSeconds < seconds)
+		{
+			call();
+			calls++;
+		}
+
+		Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{directory} {form}: {calls} calls in {seconds} s, {watch.Elapsed.TotalMilliseconds * 1000 / calls:F3} us each"));
+	}
+
 	/// <summary>
 	/// The tape of each directory's build at a hundred terms and at the ladder row, in microseconds a call, the builds read in
 	/// the same rounds (a round is about ten milliseconds of one build's one row, the builds taken in turn), so that what the
