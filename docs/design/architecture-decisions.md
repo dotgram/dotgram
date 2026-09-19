@@ -2375,3 +2375,28 @@ not answer it, since it wants the length, which is what the reading is for. Lazy
 acceptance criterion, not a later step: a script of thousands of statements read one at a time is
 the case. §6.3 also gains a sentence on what `eof` means from a position (the end of the input; in
 the window form, the end of the window); the follow is seeded with End, and no second seed.
+
+## D19. What 0.2.0 owes before it is cut
+
+Asked by Igor 2026-09-19 and audited against the tree (654 commits since the tag of 0.1.0).
+Blocking, in the order they matter:
+- **The package smokes stopped proving anything.** At 0.1.0 the build smoked Sql, Web, the
+  expression language and Finance, on two frameworks; three of those projects are gone, the step
+  installing the older runtime with them, and the two that remain pin the 0.1.0 package and keep
+  the public feed among their sources, so they resolve the released package instead of the one
+  just built.
+- **The version and its notes.** The version is still 0.1.0, four packages of five still say
+  "First release", `GRAM0009` is still unshipped in the analyzer's release file, and the version
+  is written by hand in six more places.
+- **Finance breaks its consumers.** Its public surface is replaced: the field type is a class
+  where it was a struct, the old model and the whole generated tree are gone from the package, the
+  grammar now lives in a test fixture, and the dual licence with its third-party notices was
+  dropped. Legitimate, but the notes must say it, and the csproj still carries the old licence
+  arrangement's leftovers.
+- **There is no way to publish.** No release workflow and no tag-triggered job; the build only
+  uploads artifacts.
+Smaller: no badge for Finance, XML documentation only in Finance, no source link or symbol
+packages, the extension's project nominally packable, its notes still "Initial preview".
+Sound: no TODO or unimplemented marker anywhere in the sources, a clean tree, the analyzer's
+packaging asserted by the build, compatibility compiled at the C# 8 floor, and the gaps in
+behaviour named in `status.md` rather than hidden.
