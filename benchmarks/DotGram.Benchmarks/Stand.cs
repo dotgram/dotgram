@@ -163,6 +163,7 @@ static partial class Stand
 	/// <summary>The rows of a pair held to what they say, both sides, and to one another; nothing is timed and nothing is pinned.</summary>
 	public static void PairedCheck(string beforeDir, string afterDir, string? only)
 	{
+		PairedFixContent(beforeDir, afterDir);
 		var workloads = PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir))
 			.Where(one => only is null || Matches(one.Id, only))
 			.ToArray();
@@ -952,6 +953,25 @@ static partial class Stand
 		public Func<int> FixYieldReader(string text) => FixCount(() =>
 			FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [new StringReader(text), null, 4096, null])());
 
+		/// <summary>
+		/// Every field of the text read by this side's FIX parser, serialized: what it built, not how many it found (the critic, 2026-09-19).
+		/// <paramref name="form"/> is "text", "bytes" or "stream".
+		/// </summary>
+		public string[] FixFields(string form, string text)
+		{
+			var bytes  = Encoding.Latin1.GetBytes(text);
+			var fields = form switch
+			{
+				"bytes"  => FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null])(),
+				"stream" => FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])(),
+				_        => FixCall("Parse", [typeof(string), _fixOptions], [text, null])(),
+			};
+
+			return [.. ((IEnumerable)fields).Cast<object>().Select(DescribeFixField)];
+		}
+
+		Func<int> FixCountPlaceholder() => () => 0;
+
 		public Func<int> FixStream(byte[] bytes) => FixCount(() =>
 			FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
 
@@ -1249,6 +1269,7 @@ static partial class Stand
 	public static void Paired(string beforeDir, string afterDir, string? directory, string? only = null)
 	{
 		var pinned = Pin();
+		PairedFixContent(beforeDir, afterDir);
 		var output = directory ?? DefaultDirectory();
 
 		Directory.CreateDirectory(output);
