@@ -10,7 +10,13 @@
 		<Description>SQL parsers written in .gram, building one tree of records: the ISO standard's SQL-92 and Microsoft's T-SQL.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;sql;iso-sql;tsql;t-sql;sql-server;dotgram</PackageTags>
-		<PackageReleaseNotes>First release: SQL-92, and T-SQL with a parser for each SQL Server compatibility level from 100 to 170, both building one tree of records.</PackageReleaseNotes>
+		<PackageReleaseNotes>The trees and their writers are unchanged, and so is every method that was here before: what moved is what the grammars read, and there is one more way to ask.
+
+Every publication now has a third method, bool TryParseX(string input, out T value), beside ParseX and the Match&lt;T&gt; form. It answers only whether the text reads, says nothing about what was expected where it does not, and a refusal costs it about half, since nothing is read a second time to record the message.
+
+SqlStandardParser reads the standard through a lexical split, which bounds two things the ISO grammar leaves unbounded: a comment holds others six deep, and a /* inside a comment always opens one. It now reads what it used to refuse — a datetime less a datetime in brackets before an interval qualifier, a JSON behaviour and its ON clause, and the JSON and period forms of a WHEN operand — and refuses what it used to take, where an operand would swallow a reading that fits the text better. Sql92Parser follows it where the two share a production.
+
+TransactSqlParser leaves a statement's label to that statement: HIDDEN, SORTED_DATA and a login's password words no longer take the label on the line after them. A native module's atomic block is now followed by the end of the batch, said as such, rather than by a refusal naming no statement.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->
