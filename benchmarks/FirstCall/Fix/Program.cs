@@ -8,7 +8,7 @@ using System.Text;
 
 // The first call of the FIX parsers, in phases, in a fresh process (from sql-39's fixfirst).
 //
-//     fixfirst <directory> generated | hand | generated-bytes | hand-bytes | parse | build | stock
+//     fixfirst <directory> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock
 //
 // The directory holds DotGram.Finance.dll, and DotGram.Handwritten.dll for `hand`. Each phase prints
 // its time, how many methods the runtime compiled during it, their IL, and the time it spent compiling:
@@ -30,9 +30,9 @@ using System.Text;
 var directory = args.Length > 1 ? args[0] : null;
 var mode      = args.Length > 1 ? args[1] : null;
 
-if (directory is null || mode is not ("generated" or "hand" or "generated-bytes" or "hand-bytes" or "parse" or "build" or "stock"))
+if (directory is null || mode is not ("generated" or "hand" or "generated-bytes" or "hand-bytes" or "generated-stream" or "hand-stream" or "parse" or "build" or "stock"))
 {
-	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | generated-bytes | hand-bytes | parse | build | stock");
+	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock");
 
 	return 2;
 }
@@ -54,7 +54,8 @@ var options = finance.GetType("DotGram.Finance.Fix.FixFieldOptions")!;
 var fieldParser = (mode.StartsWith("hand", StringComparison.Ordinal) ? handwritten!.GetType("DotGram.Handwritten.Fix.HandFixParser") : finance.GetType("DotGram.Finance.Fix.FixParser"))!;
 var messages = finance.GetType("DotGram.Finance.Fix.FixMessages")!;
 var bytes       = mode.EndsWith("-bytes", StringComparison.Ordinal);
-var parseFields = fieldParser.GetMethod("Parse", [bytes ? typeof(byte[]) : typeof(string), options])!;
+var streamed    = mode.EndsWith("-stream", StringComparison.Ordinal);
+var parseFields = fieldParser.GetMethod("Parse", streamed ? [typeof(Stream), options, typeof(int), typeof(int?)] : [bytes ? typeof(byte[]) : typeof(string), options])!;
 
 switch (mode)
 {
@@ -84,7 +85,7 @@ switch (mode)
 		break;
 	}
 
-	case "generated" or "hand" or "generated-bytes" or "hand-bytes":
+	case "generated" or "hand" or "generated-bytes" or "hand-bytes" or "generated-stream" or "hand-stream":
 	{
 		var types = new List<Type> { fieldParser };
 
@@ -101,8 +102,10 @@ switch (mode)
 
 		Phase("cctors", false);
 
-		var input = bytes ? System.Text.Encoding.Latin1.GetBytes(plain) : (object)plain;
-		var call  = () => (Array)parseFields.Invoke(null, [input, null])!;
+		var input = bytes || streamed ? System.Text.Encoding.Latin1.GetBytes(plain) : (object)plain;
+		var call  = () => Materialized(streamed
+			? parseFields.Invoke(null, [new MemoryStream((byte[])input, false), null, 4096, null])!
+			: parseFields.Invoke(null, [input, null])!);
 
 		var first = call();
 
@@ -160,6 +163,9 @@ switch (mode)
 }
 
 return 0;
+
+// A stream form reads lazily: what it returns is walked to the end so that the first parse is the whole parse.
+static Array Materialized(object fields) => fields is Array array ? array : ((System.Collections.IEnumerable)fields).Cast<object>().ToArray();
 
 void Phase(string name, bool everyMethod)
 {

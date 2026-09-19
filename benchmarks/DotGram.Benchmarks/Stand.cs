@@ -309,6 +309,13 @@ static partial class Stand
 				() => FixParser.Parse(FixSlopeBytes(n)),
 				expected: (n, 0))),
 
+			// And through a stream over them, the windowed form (performance-ff's buffered reader with recover).
+			.. FixSlopeCounts.Select(n => FixForm(
+				$"slope-{n}.stream",
+				() => HandFixParser.Parse(new MemoryStream(FixSlopeBytes(n), false)),
+				() => FixParser.Parse(new MemoryStream(FixSlopeBytes(n), false)),
+				expected: (n, 0))),
+
 			// The web's formats (architect for Igor, 2026-09-18): generated, and a regular
 			// expression where one can be written honestly. Their base is the generated reading.
 			.. WebWorkloads(),
@@ -856,6 +863,12 @@ static partial class Stand
 				() => HandFixParser.Parse(FixSlopeBytes(n)),
 				before.FixBytes(FixSlopeBytes(n)),
 				after.FixBytes(FixSlopeBytes(n)))),
+
+			.. FixSlopeCounts.Select(n => PairedFixForm(
+				$"slope-{n}.stream",
+				() => HandFixParser.Parse(new MemoryStream(FixSlopeBytes(n), false)),
+				before.FixStream(FixSlopeBytes(n)),
+				after.FixStream(FixSlopeBytes(n)))),
 
 			.. PairedFixMessages(before, after),
 
