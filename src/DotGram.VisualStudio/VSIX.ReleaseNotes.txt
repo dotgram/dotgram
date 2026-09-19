@@ -1,5 +1,16 @@
 DotGram language support
 
+0.2.0
+
+- The `stream` and `bytes` keywords of a publication are highlighted.
+- `switch`, `case` and `default` are offered by completion.
+- Explicit typed `yield` publications are understood, whether or not the input is streamed.
+- A rule's failure message is read, shown in Quick Info and checked.
+- Semantic diagnostics wait for a project's included grammars to load, so an include that has
+  not arrived yet no longer reads as an unresolved one.
+
+0.1.0
+
 Initial preview for Visual Studio 18.
 
 - Syntax classification and diagnostics for standalone .gram files and embedded grammars.
