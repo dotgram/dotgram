@@ -32,6 +32,8 @@ docs/
 	                      and the Linux container
 	visual-studio.md      the extension, and the StringSyntax annotations
 	ast.md                the tree the SQL parsers build, and where each node comes from
+	carriers.md           every grammar's carrier and what holds it on the tape; written
+	                      by --carriers, never edited
 	coverage.md           how much of Microsoft's T-SQL reference the T-SQL grammar reads;
 	                      written by --coverage, never edited
 	next.md               the engineering diary, authoritative about nothing present
@@ -49,6 +51,10 @@ src/
 		                  renders
 	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own:
 	                      ExpressionParser, in the namespace the project is named for
+	DotGram.Finance/      FIX, a package of its own, in the DotGram.Finance.Fix namespace:
+	                      the wire read into typed fields (FixParser), the messages built
+	                      over them (FixMessages), the schema as tables. README.md and
+	                      SKILL.md ship on NuGet
 	DotGram.Sql/          SQL, a package of its own, with room for other databases: the one
 	                      tree the SQL grammars meet in, its writer and walker, in the
 	                      DotGram.Sql namespace, and a directory and namespace per dialect
@@ -84,10 +90,18 @@ tests/
 	                      GRAM5003's parts at every size, and a nine-hundred-rule split
 	DotGram.Sql.Tests/    the SQL parsers held to what SQL Server answers, and the tree, its
 	                      writer and walker
+	DotGram.Finance.Tests/ the FIX package: fields, messages, the streaming forms, and the
+	                      hand-written parser beside the generated one
+	DotGram.Finance.Fix44/ the FIX 4.4 grammar and its generated parser, the oracle the
+	                      package is held against. Not shipped: it is a fixture
+	DotGram.Finance.Fix44.Tests/ the comparisons against that oracle, kept out of
+	                      Finance.Tests so that the ordinary tests build in seconds (D12)
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
 	                      net8.0 at the C# 8 floor. Building it is the assertion
 	DotGram.PackageSmoke/ the packed package asked what it promises, under the oldest
 	                      Roslyn it supports. Not in the solution; CI runs it after packing
+	DotGram.Finance.PackageSmoke/ the same for the FIX package, on both frameworks it
+	                      ships for. Not in the solution; CI runs it after packing
 	DotGram.VisualStudio.Tests/
 	  Playground/         grammars to open in the experimental instance, each with the
 	                      manual check beside it (docs/visual-studio.md)
@@ -98,6 +112,15 @@ tests/
 benchmarks/
 	DotGram.Benchmarks/   BenchmarkDotNet, run by hand and not by CI. Built by the
 	                      solution so that it has to keep compiling
+	DotGram.Finance.Benchmarks/ the same for FIX
+	FirstCall/            what a first call costs: a fresh process reports its phases, the
+	                      methods it compiled and their size (Fix/, Sql/)
+	DotGram.CodeSize/     the generated assemblies of two checkouts weighed against each other
+	Gate-Generation.ps1   the generator's own time on the grammars, held to a base built in
+	                      the same run
+	README.md             the measuring stand: its rows, the paired form, the windows a
+	                      timing run is taken in, and every mode
+	results/              what a measurement answered, by date; kept, not maintained
 .work/                    scratch, ignored by git
 ```
 
