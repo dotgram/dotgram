@@ -271,6 +271,15 @@ decided that an entry returning only a bool does not read again, and one returni
 again lazily when its error is asked for, over input still alive (expr, design first); and a
 capture read by a guard and a construction materialized for each — C4's design gives the
 construction the guard's value (performance-ff).
+**The refusal read twice, put to Igor (2026-09-19).** §6 has no form that only recognizes: `parse`
+publishes a throwing `ParseR` and a `TryParseR` returning a match, whose error needs the second,
+recording reading. Two ways, both changing what the generator emits, so Igor's: (1) every `parse`
+over a string also emits `bool TryParseR(string, out R)` at the publication's accessibility,
+reading once and building no message, and Web's wrappers call it — an addition, nothing existing
+changes, only callers who choose it gain; (2) the match becomes lazy, keeping the refused input
+and reading again when its position, outcome or error is first asked — every caller gains, at two
+more references in every match returned, and span and stream entries stay eager. Recommended:
+(1) now, (2) only if a caller of the match is shown to pay for a message it never reads.
 
 ## D5. A stream is read without holding it
 
