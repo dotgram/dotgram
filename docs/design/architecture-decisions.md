@@ -1103,7 +1103,16 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   silence is not the gate either. The old test is retired rather than dressed up, its grammar
   becoming the witness for the opposite with the factory counts behind it; the tape-keeping claim
   keeps its own witness in the test beside it. The narrowed meaning goes into the code beside the
-  gate, into the commit's message, and into `status.md` and `implementation.md` in the same commit. The buffered reader's pair passed (the
+  gate, into the commit's message, and into `status.md` and `implementation.md` in the same commit.
+  **Committed, and the gate ran the other way:** the generator got faster, not slower — T-SQL's
+  generation 0.90x, SQL:2023 0.94x, no host outside tolerance. A narrower follow set is less to
+  carry round the fixed point and less for every later question to chew on, so precision here buys
+  generation time where D11 B's new analysis cost it; worth remembering when the next analysis
+  change is weighed. The separator's way is gone (every way removed in the solution is that one),
+  no grammar changed carrier, every suite and corpus green, and the carriers report's whole diff
+  is four rows. **And a gap in the stand found by it:** there were no rows for the log form at all,
+  so nothing measured the form this work is about until the stand added eighteen. The rule that
+  follows: before a form is optimized, it has a row. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
