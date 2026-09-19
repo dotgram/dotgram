@@ -24139,3 +24139,44 @@ intended, like DecOctet. The next causes are smaller: `InsertRows` against a gua
 `MergeArm`'s search condition before `THEN` (15), `AlterTableAction`'s constraint (14). None of
 them is in the value tower. On the tape, T-SQL's value tower is as settled as its language lets
 it be. What is left to gain is in the carrier and the reader's form, not in the grammar.
+
+## SQL:2023 against the hand: where the 10x is (anatomy of select20)
+
+Stand's dotTrace of `sql-loop generated|hand` (benchmarks/results/sql-anatomy-2026-09-19): 71 µs
+a call against 6.7. The phases below are own time from that profile, scaled to the wall time. The
+counts come from a local probe build of the walk, which was not committed.
+
+| Phase | Generated, ns | Share | Hand, ns | What removes it |
+| --- | ---: | ---: | ---: | --- |
+| The arms' frame: `Part0`–`Part2` of the materializer | 32,500 | 46% | — | the form of the code |
+| The walk per guard: `Materialize` itself, `Reaches*`, `Room`, the clears, `IndexOf` | 21,600 | 30% | — | the form of the code |
+| Recognition (`Read_*`, `Recognize`, the seam) | 9,200 | 13% | 4,900 recognising and building | not taken apart yet |
+| Factories (`Construct_*`) | 2,400 | 3% | (inside the above) | — |
+| The runtime: lists, `Nullable`, casts, GC | 1,300 | 2% | 620 | — |
+| Other and native | 1,600 | 2% | 100 | — |
+| Call setup (`TryParseQueryExpression`) | 840 | 1% | 45 | — |
+| Host helpers (`Towers`, `Nodes`) | 800 | 1% | 350 | — |
+| Lexer | 440 | 1% | 680 | nothing: it is faster than the hand's |
+| Tape records (`Ways`) | 220 | 0.3% | — | — |
+
+- **The arms' frame.** A parse builds 402 records: 243 through `Part0`, 71 through `Part1` and 88
+  through `Part2`. The JIT's prologue of `Part0` probes the stack and zeroes 12.6 KB on every call,
+  and `Part1`'s zeroes 10.4 KB (the listings came from `DOTNET_JitDisasm`). The locals of all its
+  arms have frame slots of their own. Their struct and array locals hold references, so each must
+  be zeroed, whichever arm runs. Divided by the calls, the own time is 85 ns for a record in
+  `Part0` and 89 in `Part1`, which is what zeroing that much costs. What an arm itself does is a
+  few reads and a factory call. Each arm in a method of its own, or parts sized by their frame
+  rather than their code, zeroes only what that arm uses.
+- **The walk per guard.** The value tower guards almost every level (`Towers.RolesOf`), and a
+  guard names a built value. So the parse walks the tape 301 times, for 402 records, about 14 walks
+  a column. Each walk pays its fixed cost: `Room` and the clear of `built`, a frame of 1.1 KB
+  zeroed, 125 table fields loaded into the local functions' closure, and the listing and marking of
+  everything from the rule's mark (3,654 records listed in all). That is 54 ns a walk in
+  `Materialize` alone. In the usual case the root's children are all built already, so the walk
+  builds one record. A path that calls that record's arm directly would skip the listing, the
+  marking and the preloads. C4 has no part in this: SQL:2023 has no settled subtree in its tower
+  (carrier-per-construction §4a). The guards are the language's roles, not a cause the analysis
+  can take away.
+- **Together** the first two are 54 µs of the 71. With both removed, SQL:2023 would be near 20 µs,
+  about 3x the hand. What would then lead is recognition: 9.2 µs, against the hand's 4.9 µs for
+  recognising and building together.
