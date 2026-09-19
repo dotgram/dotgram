@@ -1532,6 +1532,11 @@ same day; each comes back to the architect as a report, with no code changed.
    step. And `Replay`'s nullable refusals fixed (`99f1c011`): only `eof` and a rule reading nothing
    through a lookahead or a guard refuse — a word boundary declared is not a refusal; no grammar
    changed carrier. It lands first, since C4b rests on it.
+   Landed `9bf12288`, the gate flat. The fourth item done locally: literals under a construction
+   and ignore-case literals settle in the reader's way decision, both classes gone. The quoted
+   string's `""` turn needs a follow two characters ahead, which is `Determinism`'s never-gives-back
+   question; it goes to expr, and is probably `SettingsFile`'s last cause. sql-39 next: why T-SQL
+   has a commit point at 1.7% of its sites.
    **The seam hoist, written (expr):** `File = trivia & (Setting & trivia & eol & trivia)* & eof`,
    but `SettingsFile` stays on the tape for a reason outside the rule: a publication is entered
    as `trivia File trivia`, and where the rule begins with its seam the entry's seam is followed
