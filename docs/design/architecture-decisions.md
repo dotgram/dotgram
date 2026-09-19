@@ -704,6 +704,12 @@ interpolation row 28%), and a change counts only outside it.
   on the engine a capture is not free, it is arena records per occurrence, and a grammar author
   trading a scan for a capture loses. `JsonValue`'s depth defect in `ToString`/`Equals`/
   `GetHashCode` is fixed on main (`817ef9bd`, a 100,000-deep test).
+  Closed: the value from the wire again, no capture, landed (`4effecbc`), 0..-12% and no row
+  slower; the digits form dropped — the many-binary row +5..+10% on all three forms against
+  3-5% spreads, though bytes gained up to -15%. The lesson: reading the digits in the guard
+  wins where the guard's value tables are the cost, and loses where a second `when` on the
+  same field still needs the numbers, since it reads the tag again. The C2 control example,
+  a feed with a trailer (`StockCount`), is on main at `91383eec`.
 
 **The literal refusal (performance-ff, on top of C1).** The reader now refuses as the engine does,
 for a lone literal and for a choice of them: at the deepest character any of them agreed with,
