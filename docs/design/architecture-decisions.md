@@ -1050,6 +1050,14 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   else. What holds SQL is `Replay`, per machine: C4b's gate asks every construction of a machine for
   a rule point, all or nothing, so SQL's 75% of sites with a point reach the immediate carrier only
   when a construction's carrier can be chosen alone — a design question for after FIX.
+  **C4b landed (`6df44160`, window 33):** StockCount's string form -14..-26%, the recovering feed
+  -23..-27%, allocation identical (the saving is the walk), first calls five and eight methods
+  fewer and 17-25% faster; the buffered forms wait for C4c. sql-39's `eof` lands only stacked with
+  C4b's FIX move (its lean at default PGO is the string entry's; the code is faster under PGO=0).
+  Found on the way: FIX's tag is an atomic group whose inside opens no way, yet the reader wrapped
+  it in a segment, a retry loop and a seal — the last `ways.` in FIX's immediate reader, for which
+  every call rented the ways. An atomic group that opens no way is written as the call alone; its
+  own commit and pair, stacked with `eof` for FIX's row.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
