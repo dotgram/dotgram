@@ -32,11 +32,11 @@ public sealed record ForwardedElement(IReadOnlyList<ForwardedElement.Pair> Pairs
 	/// <summary>A Forwarded field value, or false where the text is not one.</summary>
 	public static bool TryParseField(string text, [NotNullWhen(true)] out ForwardedElement[]? elements)
 	{
-		var match = Rfc7239.TryParseForwarded(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc7239.TryParseForwarded(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		elements = match.IsSuccess ? match.Value : null;
+		elements = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>The value of the pair of a name, whatever its case, or null. An element holds each name once.</summary>
@@ -139,11 +139,11 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 	/// <summary>A node identifier, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out ForwardedNode? node)
 	{
-		var match = Rfc7239.TryParseNode(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc7239.TryParseNode(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		node = match.IsSuccess ? match.Value : null;
+		node = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>The node identifiers of §6.</summary>
@@ -332,7 +332,7 @@ static partial class Rfc7239
 
 			var valid = pair.Name.ToLowerInvariant() switch
 			{
-				"by" or "for" => TryParseNode(pair.Value).IsSuccess,
+				"by" or "for" => TryParseNode(pair.Value, out _),
 				"host"        => IsHost(pair.Value),
 				"proto"       => IsScheme(pair.Value),
 				_             => true,
@@ -351,10 +351,8 @@ static partial class Rfc7239
 	// RFC 7230 §5.4: Host = uri-host [ ":" port ], an authority with no userinfo.
 	static bool IsHost(string value)
 	{
-		var reference = Rfc3986.TryParseReference("//" + value);
-
-		return reference.IsSuccess &&
-			reference.Value is { UserInfo: null, Path: "", Query: null, Fragment: null };
+		return Rfc3986.TryParseReference("//" + value, out var reference) &&
+			reference is { UserInfo: null, Path: "", Query: null, Fragment: null };
 	}
 
 	// RFC 3986 §3.1: scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." ).

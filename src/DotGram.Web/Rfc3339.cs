@@ -151,11 +151,11 @@ public sealed record Timestamp(FullDate Date, FullTime Time)
 	/// <summary>A date-time, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out Timestamp? timestamp)
 	{
-		var match = Rfc3339.TryParseTimestamp(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc3339.TryParseTimestamp(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		timestamp = match.IsSuccess ? match.Value : null;
+		timestamp = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>The instant, as .NET holds one.</summary>
@@ -196,11 +196,11 @@ public sealed record FullDate(int Year, int Month, int Day)
 	/// <summary>A full-date, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out FullDate? date)
 	{
-		var match = Rfc3339.TryParseFullDate(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc3339.TryParseFullDate(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		date = match.IsSuccess ? match.Value : null;
+		date = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	public override string ToString() =>
@@ -224,11 +224,11 @@ public sealed record FullTime(int Hour, int Minute, int Second, string? Fraction
 	/// <summary>A full-time, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out FullTime? time)
 	{
-		var match = Rfc3339.TryParseFullTime(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc3339.TryParseFullTime(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		time = match.IsSuccess ? match.Value : null;
+		time = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	public override string ToString()

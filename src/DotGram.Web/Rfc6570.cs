@@ -24,11 +24,11 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 	/// <summary>A URI Template, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out UriTemplate? template)
 	{
-		var match = Rfc6570.TryParseTemplate(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc6570.TryParseTemplate(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		template = match.IsSuccess ? match.Value : null;
+		template = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A piece of a template: a <see cref="Literal"/> or an <see cref="Expression"/>.</summary>

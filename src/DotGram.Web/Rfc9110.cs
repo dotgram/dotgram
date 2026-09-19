@@ -32,11 +32,11 @@ public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaT
 	/// <summary>A Content-Type field value, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out MediaType? type)
 	{
-		var match = Rfc9110.TryParseContentType(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc9110.TryParseContentType(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		type = match.IsSuccess ? match.Value : null;
+		type = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>The value of the first parameter of this name, whatever its case, or null.</summary>
@@ -145,11 +145,11 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 	/// <summary>An Accept field value, or false where the text is not one.</summary>
 	public static bool TryParseAccept(string text, [NotNullWhen(true)] out MediaRange[]? ranges)
 	{
-		var match = Rfc9110.TryParseAccept(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc9110.TryParseAccept(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		ranges = match.IsSuccess ? match.Value : null;
+		ranges = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>

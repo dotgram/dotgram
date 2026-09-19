@@ -49,11 +49,11 @@ public sealed record LanguageTag(
 	/// <summary>A well-formed language tag, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out LanguageTag? tag)
 	{
-		var match = Rfc5646.TryParseTag(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc5646.TryParseTag(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		tag = match.IsSuccess ? match.Value : null;
+		tag = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>§2.2.6: a single letter or digit other than <c>x</c>, and the subtags it introduces.</summary>

@@ -30,11 +30,11 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	/// <summary>A JSON Pointer in its string form, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out JsonPointer? pointer)
 	{
-		var match = Rfc6901.TryParsePointer(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc6901.TryParsePointer(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		pointer = match.IsSuccess ? match.Value : null;
+		pointer = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A JSON Pointer in a URI fragment (§6): <c>#</c>, and the string form pct-encoded as UTF-8.</summary>
@@ -45,11 +45,11 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	/// <summary>A JSON Pointer in a URI fragment, or false where the text is not one.</summary>
 	public static bool TryParseFragment(string text, [NotNullWhen(true)] out JsonPointer? pointer)
 	{
-		var match = Rfc6901.TryParseFragment(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc6901.TryParseFragment(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		pointer = match.IsSuccess ? match.Value : null;
+		pointer = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>Equal to another pointer with the same tokens in the same order.</summary>
@@ -270,9 +270,7 @@ static partial class Rfc6901
 			return null;
 		}
 
-		var pointer = TryParsePointer(decoded);
-
-		return pointer.IsSuccess ? pointer.Value : null;
+		return TryParsePointer(decoded, out var pointer) ? pointer : null;
 	}
 
 	static int Hex(char digit) =>

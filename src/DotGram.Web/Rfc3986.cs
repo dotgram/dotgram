@@ -39,11 +39,11 @@ public sealed record UriReference(
 	/// <summary>A URI reference, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out UriReference? reference)
 	{
-		var match = Rfc3986.TryParseReference(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc3986.TryParseReference(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		reference = match.IsSuccess ? match.Value : null;
+		reference = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A URI (§3): a reference with a scheme.</summary>
@@ -54,11 +54,11 @@ public sealed record UriReference(
 	/// <summary>A URI, or false where the text is not one.</summary>
 	public static bool TryParseUri(string text, [NotNullWhen(true)] out UriReference? uri)
 	{
-		var match = Rfc3986.TryParseUri(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc3986.TryParseUri(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		uri = match.IsSuccess ? match.Value : null;
+		uri = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>One part with its percent-escapes turned back into the characters they stand for.</summary>

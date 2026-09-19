@@ -38,11 +38,11 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 	/// <summary>A Set-Cookie field value, or false where §5.2 ignores it.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out SetCookie? cookie)
 	{
-		var match = Rfc6265.TryParseSetCookie(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc6265.TryParseSetCookie(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		cookie = match.IsSuccess ? match.Value : null;
+		cookie = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>§5.1.3: whether a canonicalized host name domain-matches a domain string.</summary>
@@ -235,11 +235,11 @@ public sealed record CookiePair(string Name, string Value)
 	/// <summary>A Cookie field value, or false where the text is not one.</summary>
 	public static bool TryParseField(string text, [NotNullWhen(true)] out CookiePair[]? pairs)
 	{
-		var match = Rfc6265.TryParseCookies(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc6265.TryParseCookies(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		pairs = match.IsSuccess ? match.Value : null;
+		pairs = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 }
 
@@ -372,25 +372,25 @@ static partial class Rfc6265
 
 		date = default;
 
-		var tokens = TryReadDateTokens(text);
-
-		if (!tokens.IsSuccess)
+		if (!TryReadDateTokens(text, out var tokens))
 			return false;
 
 		int[]? time = null;
 		int? day = null, month = null, year = null;
 
-		// Step 2: each token matches the first production not yet found that it can.
-		foreach (var token in tokens.Value!)
+		// Step 2: each token matches the first production not yet found that it can. Most of
+		// them are refused by most productions, so only whether each reads is asked: a refusal
+		// with its message would be built and thrown away several times a date.
+		foreach (var token in tokens)
 		{
-			if (time is null && TryReadTime(token) is { IsSuccess: true } readTime)
-				time = readTime.Value;
-			else if (day is null && TryReadDay(token) is { IsSuccess: true } readDay)
-				day = readDay.Value;
-			else if (month is null && TryReadMonth(token) is { IsSuccess: true } readMonth)
-				month = readMonth.Value;
-			else if (year is null && TryReadYear(token) is { IsSuccess: true } readYear)
-				year = readYear.Value;
+			if (time is null && TryReadTime(token, out var readTime))
+				time = readTime;
+			else if (day is null && TryReadDay(token, out var readDay))
+				day = readDay;
+			else if (month is null && TryReadMonth(token, out var readMonth))
+				month = readMonth;
+			else if (year is null && TryReadYear(token, out var readYear))
+				year = readYear;
 		}
 
 		if (time is null || day is null || month is null || year is not { } value)

@@ -37,11 +37,11 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 	/// <summary>A Content-Disposition field value, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out ContentDisposition? field)
 	{
-		var match = Rfc6266.TryParseContentDisposition(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc6266.TryParseContentDisposition(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		field = match.IsSuccess ? match.Value : null;
+		field = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>Whether the type is <c>inline</c>, whatever its case (§4.2).</summary>

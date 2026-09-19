@@ -26,11 +26,11 @@ public sealed record AddrSpec(string LocalPart, string Domain)
 	/// <summary>An addr-spec as a receiver reads it, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out AddrSpec? address)
 	{
-		var match = Rfc5322.TryParseAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc5322.TryParseAddrSpec(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		address = match.IsSuccess ? match.Value : null;
+		address = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>An addr-spec in §3's syntax alone: what a sender may write.</summary>
@@ -41,11 +41,11 @@ public sealed record AddrSpec(string LocalPart, string Domain)
 	/// <summary>An addr-spec in §3's syntax alone, or false where the text is not one.</summary>
 	public static bool TryParseStrict(string text, [NotNullWhen(true)] out AddrSpec? address)
 	{
-		var match = Rfc5322.TryParseStrictAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc5322.TryParseStrictAddrSpec(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		address = match.IsSuccess ? match.Value : null;
+		address = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>Whether a local part can be written as a dot-atom: atext, and dots between runs of it.</summary>
@@ -103,11 +103,11 @@ public abstract record EmailAddress
 	/// <summary>An address-list as a receiver reads it, or false where the text is not one.</summary>
 	public static bool TryParseList(string text, [NotNullWhen(true)] out EmailAddress[]? addresses)
 	{
-		var match = Rfc5322.TryParseAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc5322.TryParseAddressList(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		addresses = match.IsSuccess ? match.Value : null;
+		addresses = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>An address-list in §3's syntax alone: what a sender may write.</summary>
@@ -118,11 +118,11 @@ public abstract record EmailAddress
 	/// <summary>An address-list in §3's syntax alone, or false where the text is not one.</summary>
 	public static bool TryParseStrictList(string text, [NotNullWhen(true)] out EmailAddress[]? addresses)
 	{
-		var match = Rfc5322.TryParseStrictAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc5322.TryParseStrictAddressList(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		addresses = match.IsSuccess ? match.Value : null;
+		addresses = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A mailbox-list as a receiver reads it, null members left out: what <c>From</c> holds.</summary>
@@ -133,11 +133,11 @@ public abstract record EmailAddress
 	/// <summary>A mailbox-list as a receiver reads it, or false where the text is not one.</summary>
 	public static bool TryParseMailboxList(string text, [NotNullWhen(true)] out Mailbox[]? mailboxes)
 	{
-		var match = Rfc5322.TryParseMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc5322.TryParseMailboxList(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		mailboxes = match.IsSuccess ? match.Value : null;
+		mailboxes = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A mailbox-list in §3's syntax alone.</summary>
@@ -148,11 +148,11 @@ public abstract record EmailAddress
 	/// <summary>A mailbox-list in §3's syntax alone, or false where the text is not one.</summary>
 	public static bool TryParseStrictMailboxList(string text, [NotNullWhen(true)] out Mailbox[]? mailboxes)
 	{
-		var match = Rfc5322.TryParseStrictMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc5322.TryParseStrictMailboxList(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		mailboxes = match.IsSuccess ? match.Value : null;
+		mailboxes = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A mailbox: an addr-spec and, where one was given, a display name.</summary>
@@ -170,11 +170,11 @@ public abstract record EmailAddress
 		/// <summary>A mailbox as a receiver reads it, or false where the text is not one.</summary>
 		public static bool TryParse(string text, [NotNullWhen(true)] out Mailbox? mailbox)
 		{
-			var match = Rfc5322.TryParseMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+			var read = Rfc5322.TryParseMailbox(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-			mailbox = match.IsSuccess ? match.Value : null;
+			mailbox = read ? parsed : null;
 
-			return match.IsSuccess;
+			return read;
 		}
 
 		/// <summary>A mailbox in §3's syntax alone.</summary>
@@ -185,11 +185,11 @@ public abstract record EmailAddress
 		/// <summary>A mailbox in §3's syntax alone, or false where the text is not one.</summary>
 		public static bool TryParseStrict(string text, [NotNullWhen(true)] out Mailbox? mailbox)
 		{
-			var match = Rfc5322.TryParseStrictMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+			var read = Rfc5322.TryParseStrictMailbox(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-			mailbox = match.IsSuccess ? match.Value : null;
+			mailbox = read ? parsed : null;
 
-			return match.IsSuccess;
+			return read;
 		}
 	}
 

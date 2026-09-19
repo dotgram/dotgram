@@ -40,11 +40,11 @@ public static class StructuredField
 	/// <summary>An Item field value, or false where the text is not one.</summary>
 	public static bool TryParseItem(string text, [NotNullWhen(true)] out Item? item)
 	{
-		var match = Rfc9651.TryParseItem(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc9651.TryParseItem(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		item = match.IsSuccess ? match.Value : null;
+		item = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A List field value (§4.2.1).</summary>
@@ -55,11 +55,11 @@ public static class StructuredField
 	/// <summary>A List field value, or false where the text is not one.</summary>
 	public static bool TryParseList(string text, [NotNullWhen(true)] out IReadOnlyList<Member>? list)
 	{
-		var match = Rfc9651.TryParseList(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc9651.TryParseList(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		list = match.IsSuccess ? match.Value : null;
+		list = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>A Dictionary field value (§4.2.2).</summary>
@@ -70,11 +70,11 @@ public static class StructuredField
 	/// <summary>A Dictionary field value, or false where the text is not one.</summary>
 	public static bool TryParseDictionary(string text, [NotNullWhen(true)] out OrderedMap<Member>? dictionary)
 	{
-		var match = Rfc9651.TryParseDictionary(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc9651.TryParseDictionary(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		dictionary = match.IsSuccess ? match.Value : null;
+		dictionary = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>Several lines of one field as the one value a field is read from.</summary>

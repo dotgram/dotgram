@@ -40,11 +40,11 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 	/// <summary>A Link field value, or false where the text is not one.</summary>
 	public static bool TryParseField(string text, [NotNullWhen(true)] out WebLink[]? links)
 	{
-		var match = Rfc8288.TryParseLinks(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc8288.TryParseLinks(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		links = match.IsSuccess ? match.Value : null;
+		links = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>Equal to another link-value with the same target and equal parameters in the same order.</summary>
@@ -141,7 +141,7 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	// A URI-Reference, as Rfc3986 says. The check is a rule of its own, so that no guarded rule holds a
 	// repetition the reader would divide into a part.
-	Target : @string = text: TargetText & when @(Rfc3986.TryParseReference(text!).IsSuccess) => @(text)
+	Target : @string = text: TargetText & when @(Rfc3986.TryParseReference(text!, out _)) => @(text)
 
 	TargetText = [^ '>']*
 
@@ -218,7 +218,7 @@ static partial class Rfc8288
 				return null;
 			}
 
-		if (language is not null && !Rfc5646.TryParseTag(language).IsSuccess)
+		if (language is not null && !Rfc5646.TryParseTag(language, out _))
 			return null;
 
 		var bytes = new byte[chars.Length];

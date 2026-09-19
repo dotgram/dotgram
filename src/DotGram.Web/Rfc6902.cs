@@ -374,15 +374,13 @@ static class Rfc6902
 			return null;
 		}
 
-		var pointer = Rfc6901.TryParsePointer(text);
-
-		if (!pointer.IsSuccess)
+		if (!Rfc6901.TryParsePointer(text, out var pointer))
 		{
 			error = $"'{name}' is no JSON Pointer: '{text}'.";
 			return null;
 		}
 
-		return pointer.Value;
+		return pointer;
 	}
 
 	// ── Applying ─────────────────────────────────────────────────────────────────

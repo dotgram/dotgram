@@ -33,11 +33,11 @@ public abstract record JsonValue
 	/// <summary>A JSON text, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out JsonValue? value)
 	{
-		var match = Rfc8259.TryParseJson(text ?? throw new ArgumentNullException(nameof(text)));
+		var read = Rfc8259.TryParseJson(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
 
-		value = match.IsSuccess ? match.Value : null;
+		value = read ? parsed : null;
 
-		return match.IsSuccess;
+		return read;
 	}
 
 	/// <summary>§4: members in the order written, names as unescaped strings, duplicates kept.</summary>
