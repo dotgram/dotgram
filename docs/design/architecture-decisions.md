@@ -1353,6 +1353,16 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    immediate carrier over a grammar with a guard beside a group: the open CS0103 `lm` defect (a
    `when` next to a part method under Immediate) — `ImmediateSql` hit it, the `TRIM` merge was
    reverted for it; expr takes it right after C.
+   `CaseRegionExample` does not give the proof either: with its one cause removed, the second
+   gate holds it (the identifier is read first and given back). `SettingsFile` is held by a gap
+   in B — over characters the turn and the continuation begin with the same seam (trivia), so
+   their first tokens always overlap; `FollowSets` already compares after the seam
+   (`AfterSeam`), `Replay` did not. B takes the seam into account (sql-39, a control grammar
+   with trivia); if `SettingsFile` then reaches zero and the second gate still holds it, what
+   the reader gives back there is the input for C2/C4. A second CS0103 of the same family:
+   `with state @(Region(w))` naming a capture of its own alternative breaks the consumer's
+   build instead of a diagnostic — expr, with `lm`; whether a mark may name a capture is read
+   from §7.8, and asked of Igor if the text is silent.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
