@@ -971,6 +971,14 @@ both at once: small inputs within their spread and large ones linear. First the 
 out (EL and short SQL alone, a PGO=0 twin); if it holds, the fixed cost is found by profile and
 removed, or the store becomes adaptive (sparse up to a record count, dense past it, or dense only
 for machines with a guard over a gathered list).
+**Reworked (sql-39, `e4ad4638`, replacing the dense store, held for its pair):** the row mix was
+ruled out, and the profile put the cost in the dense form itself — a call to add each written
+value and an indirection to read each one, in materializers too large to inline. So the store
+keeps indexing by record and grows a table only where a value is written into it, instead of
+growing all 302 in `Room`; it is dropped per table, and no longer sums every table's length on
+every parse. Small grammars' stores and every snapshot unchanged. Locally: a column -12%, one
+select -12%, EL unchanged; 1,000 predicates 35 ms and 164 MB to 4.4 ms and 1.6 MB, 2,000
+linear, exponents at most 1.08; a scaling test in the slow project.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
