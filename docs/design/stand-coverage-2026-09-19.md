@@ -1,6 +1,6 @@
 # What the stand does not read: the published forms with no row
 
-2026-09-19, at the stand's tree `2fcd156d`. The architect's rule from window 61: a form has a row before it is optimized.
+**Taken on the evening of 2026-09-19, from the stand's tree `2fcd156d` and the net10.0 builds of the libraries at `5d1f26d8` (the surface), and it goes out of date by construction: as soon as expr's bool `Try...(out)` forms land on main the publications of every parser double, and each row added or removed after this date changes a line of it. Regenerate before believing a line older than the day it was taken.** The architect's order of additions (2026-09-19): (1) the positional `(string, at)` form of SQL:2023 and T-SQL and one window row; (2) `Scan` for SQL:2023 and EL; (3) `FixMessages` stream, `TextReader` and lazy reading; (4) the Web lists as `linearity` series; (5) one span row per library; (6) `StreamingFeedReader`. The throwing `Parse` next to the `Try` and the twenty-one unmeasured examples are not wanted. The architect's rule from window 61: a form has a row before it is optimized.
 The log form of FIX had none, and a way was removed from it that nobody had measured. This is the list of the holes, by
 library, by input (a string, a span, bytes in memory, a stream, a `TextReader`) and by kind of publication (whole, lazy,
 search, positional, window). The publications are read off the built assemblies (`DotGram.Finance`, `.Web`, `.Sql`,
