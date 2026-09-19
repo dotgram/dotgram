@@ -2426,3 +2426,21 @@ evening's work, the web's 82 places and the expression language's 8, and left of
 tree's 6,500 and the generator's 908: a file-wide suppression over a whole package is an empty
 flag. Recorded as those packages' debt, not as anything the release waits for; the SQL notes say
 the package carries no XML documentation yet.
+
+## D20. The emitted code may take what the consumer's framework offers
+
+Igor's, 2026-09-19: what the generator emits is compiled in the consumer's project, so a `#if` in
+it selects the consumer's framework, not ours. Today everything is written to the floor — C# 8 and
+what netstandard2.0 has — so a consumer on a current framework gets code written for net472.
+Worth taking, in the order of what they promise: a search over a set of characters or bytes
+(.NET 8), which also removes our own rule that a stop set of more than five characters is read one
+character at a time; the search for the first character outside a class, which is every run a
+scanner reads; recognizing a keyword from a span without making a string (.NET 9) and frozen
+tables, where a grammar over tokens spends its time — SQL has 410 words; and the ASCII helpers
+for comparisons that ignore case. Skipping locals' initialization and pointers are not part of it:
+D10 makes those an option, not a default. Conditions: the floor branch stays byte for byte what it
+is today, so no reading on an old framework can regress; both branches are compiled and held by
+tests; the cost in emitted size is stated; a pair compares the two branches on one platform rather
+than two commits; one item at a time, each with its pair. performance-ff designs it after FIX's log
+form, with the stand's measure of what compiling for the newer framework already buys our own
+libraries as the ceiling to expect.
