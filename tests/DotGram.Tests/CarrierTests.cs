@@ -329,6 +329,50 @@ public sealed class CarrierTests
 		}
 	}
 
+	/// <summary>
+	/// Alternatives the first character tells apart open no way, however wide a class that tells
+	/// them is: <c>[^ ';' | '\\']</c> is too wide for a switch to name, and decides all the same.
+	/// Beside it, two that begin alike, which a failure after them can come back into.
+	/// </summary>
+	[Theory]
+	[InlineData("Plain | Escape", true)]
+	[InlineData("Plain | Two", false)]
+	public void Alternatives_that_begin_apart_open_no_way(string pair, bool immediate)
+	{
+		var grammar =
+			$$"""
+			Start  : @string[] = (s: Pair & ';')* => @(s)
+			Pair   : @string = t: ({{pair}})* => @(t)
+			Plain  = [^ ';' | '\\']
+			Escape = '\\' & ['n' | 't']
+			Two    = [^ ';' | '\\'] & ['a'..'z']
+			parse Start
+			""";
+
+		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+
+		if (!immediate)
+			Assert.Contains("Pair", told.Message, StringComparison.Ordinal);
+
+		var tape = Compiled(grammar, CarrierKind.Tape);
+		var auto = Compiled(grammar, CarrierKind.Auto);
+
+		foreach (var input in new[] { "ab;c\\n;", "\\t;", "a\\x;", "\\;", ";;", "é\\n;", "" })
+		{
+			var expected = EmittedCode.Match(tape.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(auto.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+
+			if (expected.IsSuccess)
+				Assert.Equal((string[])expected.Value!, (string[])actual.Value!);
+			else
+				Assert.Equal(expected.Position, actual.Position);
+		}
+	}
+
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
 		GramCompiler.Compile(grammar, new GramCompilerOptions
 		{

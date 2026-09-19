@@ -23983,3 +23983,32 @@ writes a project's reports over another's):
 52 grammars were on the tape and 51 are now. A pair in CarrierTests keeps it in place: a rule
 called only as `{Word}` against the same rule called openly. It also checks that what the
 immediate carrier then reads, ways inside the group included, is what the tape reads.
+
+## Alternatives the first character tells apart, however widely, open no way (gate 2, second)
+
+The reader decides a choice by its first character only through a switch, and a switch names its
+characters. `Dispatchable` gave up once it would have named more than 128 of them. A class written
+as its complement, JSON's `[^ '"' | '\\']`, is about 65,000, so the choice fell back to trying
+its alternatives in order, and that opened a way on the tape. The first sets were never wrong:
+they held the complement exactly, and `(Plain | Escape)` was known to begin apart all along.
+
+Where the switch gives up but the first character still tells every alternative from every other,
+the reader now writes a chain (`Chainable`, `EmitChain`). There is a test for each alternative but
+the widest, narrowest first, and the widest goes last as the `else` without a test of its own. The
+widest is usually the complement, so for JSON's body the chain is a single comparison with `'\\'`.
+Written order does not matter: no two of the alternatives can begin with the same character, so at
+most one of them can match. Nothing goes on the tape, because no other alternative could have
+begun there. Where the widest begins with a call, the call refuses what it does not take and the
+choice adds what it wanted, as the switch's `default:` does; otherwise it is tested like the rest.
+
+docs/carriers.md, serial rebuilds before and after:
+
+- RFC 8259 (JSON) and RFC 6901 move to immediate.
+- Rules read again: RFC 7239 14 → 9, RFC 6266 5 → 2, RFC 6570 3 → 2, RFC 8288 and RFC 9110 8 → 7.
+- 49 grammars are on the tape now, down from 51.
+- The class "alternatives begin apart" goes from 33 places to 19. Those left are RFC 5322's, where
+  one alternative is `Never` and has no first character to be told by.
+
+A pair in CarrierTests keeps this in place: `(Plain | Escape)*` against `(Plain | Two)*`, with the
+same answers and the same refusal positions as the tape. The snapshots are unchanged, and so are
+DotGram.Tests, Slow, the SQL corpora and Finance.

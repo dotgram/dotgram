@@ -1921,7 +1921,82 @@ sealed partial class Machine
 				return;
 			}
 
+			if (machine.Chainable(alternatives) is { } chain)
+			{
+				EmitChain(code, alternatives, chain, following);
+
+				return;
+			}
+
 			EmitAmong(code, alternatives, following);
+		}
+
+		/// <summary>
+		/// Alternatives the first character tells apart, but too widely for a switch to name:
+		/// a test for each but the widest, narrowest first, and the widest as what is left.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// <c>(Plain | Escape)*</c> with <c>Plain = [^ '"' | '\\']</c> is one comparison with
+		/// <c>'\\'</c> a character, and not a test of the complement: the sets are disjoint, so a
+		/// character that is not <c>'\\'</c> can only begin <c>Plain</c>, and <c>Plain</c> says
+		/// itself what it does not take. Nothing is put on the tape, since no alternative but
+		/// the one the character chose could have begun here — the way the ordered reading
+		/// opened led nowhere.
+		/// </para>
+		/// <para>
+		/// The widest is read as the switch's <c>default:</c> is read, where it begins with a
+		/// call: the call refuses what it does not begin with, and the choice adds what it
+		/// wanted. Otherwise it is tested like the others, and the choice refuses as one.
+		/// </para>
+		/// </remarks>
+		void EmitChain(
+			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
+			FollowSets.Continuation following)
+		{
+			var name = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+
+			_character = true;
+
+			using (code.Block($"if ({machine.Past("p")})"))
+				Refused(code, name);
+
+			code.Line($"c = {machine.ReadAt("p")};");
+
+			for (var i = 0; i < chain.Count - 1; i++)
+			{
+				code.Line($"{(i == 0 ? "if" : "else if")} ({machine.RangesTest(chain[i].Set.Ranges, machine.Tabulate)})");
+
+				using (code.Block(""))
+				{
+					_dispatched = chain[i].Set;
+					Emit(code, chain[i].Node, following, loaded: true);
+					_dispatched = null;
+				}
+			}
+
+			var (widest, last) = chain[chain.Count - 1];
+
+			code.Line("else");
+
+			using (code.Block(""))
+			{
+				if (Leads(last) is { } call && machine.Decidable(call) is { Ends: false })
+				{
+					_refuseWith = name;
+					Emit(code, last, following);
+					_refuseWith = null;
+				}
+				else
+				{
+					using (code.Block($"if (!({machine.RangesTest(widest.Ranges, machine.Tabulate)}))"))
+						Refused(code, name);
+
+					_dispatched = widest;
+					Emit(code, last, following, loaded: true);
+					_dispatched = null;
+				}
+			}
 		}
 
 		/// <summary>

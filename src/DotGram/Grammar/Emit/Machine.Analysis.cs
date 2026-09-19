@@ -356,6 +356,51 @@ sealed partial class Machine
 	/// each is a call into a method that refuses, and a person would have switched on the
 	/// token.
 	/// </param>
+	/// <summary>
+	/// The alternatives in the order a chain of first-character tests reads them, narrowest
+	/// first — or null where one character does not tell every one of them from every other.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What <see cref="Dispatchable"/> refuses for being too wide rather than for not deciding:
+	/// a switch names its characters, and a class written as its complement, <c>[^ '"' | '\\']</c>,
+	/// is sixty-five thousand of them. The first character decides all the same, and where it
+	/// does, no alternative but the one it chose can begin here, so there is nothing to come
+	/// back for either — the way the ordered reading opened into such a choice led nowhere.
+	/// </para>
+	/// <para>
+	/// Written order is not kept, and need not be: where no two alternatives can begin with the
+	/// same character, at most one of them can match, whichever is tried first. Narrowest first
+	/// so that the widest, usually a complement, is the one read without a test of its own.
+	/// </para>
+	/// </remarks>
+	internal List<(FirstSets.First Set, Node Node)>? Chainable(IReadOnlyList<Node> alternatives)
+	{
+		if (alternatives.Count < 2)
+			return null;
+
+		var chain = new List<(FirstSets.First Set, Node Node, long Width, int Index)>(alternatives.Count);
+
+		for (var i = 0; i < alternatives.Count; i++)
+		{
+			if (Decidable(alternatives[i]) is not { Ends: false } set)
+				return null;
+
+			foreach (var other in chain)
+				if (other.Set.Overlaps(set))
+					return null;
+
+			var width = 0L;
+
+			foreach (var range in set.Ranges)
+				width += range.To - range.From + 1;
+
+			chain.Add((set, alternatives[i], width, i));
+		}
+
+		return [.. chain.OrderBy(static one => one.Width).ThenBy(static one => one.Index).Select(static one => (one.Set, one.Node))];
+	}
+
 	List<(FirstSets.First Set, List<Node> Members)>? Dispatchable(IReadOnlyList<Node> alternatives, int least = Grouped)
 	{
 		if (alternatives.Count < least)
