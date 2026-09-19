@@ -23745,4 +23745,5 @@ The stand, medians of five fresh processes (its anatomy tool, EventListener on):
 
 The steady state did not move: the message rows -0.9 to -1.9 per cent inside spreads of 7 and 8,
 the field rows flat but for Orders128.stream at +5.6 per cent against a spread of 2, one pair
-with no mechanism behind it (IsData went from one array load to one), sent back for a rerun.
+with no mechanism behind it (IsData went from one array load to one). Rerun, it was -0.9 per
+cent, and Order.stream +1.3 against a spread of 3: layout in the first pair.
