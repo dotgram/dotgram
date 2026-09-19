@@ -1515,6 +1515,9 @@ same day; each comes back to the architect as a report, with no code changed.
    grammar's follow); reworked to read only the rest of its own sequence (`7c1920ac`), every
    generated file identical, gated again. The 88 B a refusal stays: it is the list of every set
    tied at the furthest position when there are three or more, on the refusal path.
+   Both land: the reworked hoist leaves generation flat everywhere; the engine probe costs a real
+   ~37 ns on the smallest FIX stream parse (+7%, repeated), accepted as the price of a correct
+   expected set and moot once FIX's stream form is read by the reader.
    The scanner's search landed `45155db6` (performance-ff): it already fires in the SQL grammars'
    line comments and two examples; expr's analysis is unblocked, and FIX's `IndexOf` stays with it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
