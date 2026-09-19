@@ -563,6 +563,16 @@ each owner then reviews its area by these rules, each removal named in the commi
   oracle comparisons and links the shared field-reader tests, which Finance.Tests runs on the
   generated and hand parsers; the README says when the oracle is run locally, and CI always
   runs it. Finance.Tests 6,376 tests, Fix44.Tests 614; build times to be confirmed by the stand.
+  **The mechanism for the rest (decided 2026-09-18 on expr's plan):** the oracle's is the
+  convention — a project, not a trait. `tests/DotGram.Tests.Slow` holds what is paid on demand
+  and in CI: the full refusal corpus (`RefusalTests`, 20 s, the ordinary run keeping a
+  deterministic one-in-five sample of every shape and rendering against the same recorded
+  file, the full corpus always before a change to failure recording lands), the streaming
+  retention sampling (49 s, D5's holder), and performance-ff's oversize and 49-second buffered
+  split tests. `dotnet test` on the solution runs it, `dotnet test` on a project does not; no
+  filter to remember, one line in the layout and in development.md. Kept as they are: the
+  precondition asserts that say which rendering a test exercises; replaced by behaviour: the
+  context test that asserts emitted text (a counting guard, once without the pair, twice with).
 
 ## D13. FIX first: the gap is to be explained and closed by hand-like code
 
@@ -1151,6 +1161,44 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    because of a few causes (SQL-92: 5 direct, 38 under them; T-SQL: 114 and 523); each cause
    removed moves a whole subtree to one-pass construction. Part of D3's track. sql-ff, after Q1,
    design first.
+   **Design over kinds 2026-09-18 (sql-39, `docs/design/shared-beginnings-over-kinds-2026-09-18.md`),
+   reviewed and decided the same evening.** What the design established: over kinds 342 of
+   573 rules of SQL:2023 are read where the reading may not stand, 66 by a cause of their own;
+   184 of them are one cycle through `ValueExpression`, held by any of about twenty causes in it;
+   and the carrier is chosen per machine (`Machine.Choose`), so nothing in a parse moves until the
+   count is zero. Two refinements of `Replay`, exact and not heuristic, take the causes 66 to 43
+   and the cycle's closure down by a third: A, a sibling alternative replaces a reading only where
+   it can begin with the token the reading began with; B, a failed turn of a repetition or an
+   optional is replaced only where what follows can begin with it. The rest is shared beginnings
+   in the grammar: C, folding a prefix shared by a run of adjacent alternatives and not only by
+   all (`FactorCommittedPrefixes`); D, across a rule boundary, mostly gone after A; E and §5, five
+   grammar edits that decide at a token instead of reading and looking.
+   Decisions:
+   - A and B go, in `Replay.cs`, by sql-39 (performance-ff is on C2; told before the edit, the
+     functions named). Their statement is made exact before they are written: an alternative's
+     or a turn's failure gives the enclosing context's answer (`elsewhere` from above), not
+     `Losing` outright; "can begin with" is over the first sets with nullability — a nullable
+     later alternative can begin with anything the choice's follow can, and a nullable follow
+     reaches through to the rule's own follow. A control grammar each, the generation-time gate
+     on DotGram.Sql, and any snapshot that moves is explained (`CSharpEmitter` reads `Replay`
+     only under `Auto`).
+   - The first milestone is SQL-92, not SQL:2023: nine causes after A. They are taken to zero
+     first, so that the whole chain — the count at zero, `Auto` choosing immediate on its own,
+     the stand reading the half `ImmediateSql` promised — is proved on a shipped parser before
+     the 43 of SQL:2023 are ground down. Where `ImmediateSql` then still differs from what `Auto`
+     chose, that difference is the finding.
+   - C is a normalizer pass and re-runs over kinds: expr's, as part of D14 step 3 (the
+     optimizing passes separated and repeatable), gauged by sql-39's count before and after.
+   - E and §5 are sql-39's grammar edits, each with the `Both` test and the hand parser (D1),
+     independent of the rest and started at once.
+   - D waits for the count after A and C, and is counted by hand before anything is built.
+   - The all-or-nothing carrier is the real limit, and it is what D13's C4 removes for FIX:
+     construction at the innermost point past which the reading stands is a carrier chosen per
+     position, not per machine. When C4 lands, Q7.1's count says how much SQL gains from it
+     without reaching zero; the two tracks meet there and the plan is read again.
+   - The counting tool ships as a report, not as a scratch file: what `GRAM5012` counts, listed
+     per rule with its cause, the way `--coverage` writes `coverage.md`. Its form is sql-39's to
+     propose when A lands.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
