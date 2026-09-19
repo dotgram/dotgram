@@ -949,6 +949,26 @@ T-SQL 1.7%, SQL-92 5%, EL 2% — so C4 is for FIX first, and why T-SQL has so fe
 Found with it: `Replay` takes a nullable call for one that cannot refuse, but `eof` and a word
 boundary are nullable and refuse, so a replaced reading can be marked as losing and built early —
 a correctness defect, sql-39's before the reader's gate.
+
+**C4's design for FIX (performance-ff), approved 2026-09-19.** C3 gives every building site in
+FIX a rule point, but the field call, which has the recovering turn's; and a rule point is where
+the immediate carrier already builds. So C4 is not a new carrier: the immediate carrier learns
+the recovery scenario, with C3 as its gate — the one thing that keeps FIX on the tape today is
+that the immediate carrier refuses any grammar that recovers. Three commits:
+- C4a: a value built for a guard is the one the construction gets, where nothing between them
+  writes the capture again (RFC 3339's date: three strings where six were cut), held against the
+  known defect of a guard over a repeated capture.
+- C4b: the immediate carrier reads a recovering repetition — the element built at the end of its
+  own rule, pushed at the turn's commit, a failed turn putting the stack back, a broken element
+  built on the spot; the read-again gate learns that a committed turn is never read again. After
+  sql-39's fix of `Replay`'s nullable refusals, on which "kept" rests. With it go the value store,
+  the walk, the log and its writes and watermarks for FIX; what stays is the ways, as long as the
+  field opens any, and `Failure` and `Match`, which are the API. The expected figure per field is
+  named before the pair.
+- C4c: release before each turn in the whole-stream form, where nothing holds a position across
+  the turn and no factory keeps a reference into the buffer (a memory or an array, which a span
+  cannot be); D5's retention test un-skipped, and a stream larger than `maxRetained` answered
+  where today it is an error.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
