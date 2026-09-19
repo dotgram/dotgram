@@ -61,16 +61,22 @@ public static partial class FeedReader
 	public static TradeFile Read(string text)
 	{
 		var feed   = ParseFeed(text);
-		var trades = new List<Trade>();
+		var trades = new Trade[feed.Rows.Length];
 
-		foreach (var row in feed.Rows)
-			trades.Add(new Trade(row.Symbol, Number(row.Qty), ToDate(row.Date)));
+		// As many trades as rows, so an array of that length: a list would grow past it by
+		// doubling, and a big feed's list would be rebuilt on the large object heap each time.
+		for (var index = 0; index < trades.Length; index++)
+		{
+			var row = feed.Rows[index];
+
+			trades[index] = new Trade(row.Symbol, Number(row.Qty), ToDate(row.Date));
+		}
 
 		// The one check the grammar cannot make today: `when @(count == rows.Length)` is
 		// a guard over a value, and guards over values are docs/syntax.md §8.1.
-		if (Number(feed.Trailer.Count) != trades.Count)
+		if (Number(feed.Trailer.Count) != trades.Length)
 			throw new FormatException(
-				$"The trailer declares {feed.Trailer.Count} records and the feed has {trades.Count}.");
+				$"The trailer declares {feed.Trailer.Count} records and the feed has {trades.Length}.");
 
 		return new TradeFile(ToDate(feed.Header.Date), feed.Header.Source, trades);
 	}
