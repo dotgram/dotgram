@@ -1493,8 +1493,16 @@ static partial class Stand
 		}
 	}
 
+	/// <summary>
+	/// The repository the reports and the previous base are read from: the one this program was built in,
+	/// or the one <c>DOTGRAM_ROOT</c> names — a copy of the binaries kept elsewhere (a RAM disk, so that
+	/// a build in the tree cannot move them under a run) has no repository above it to find.
+	/// </summary>
 	static string? Root()
 	{
+		if (Environment.GetEnvironmentVariable("DOTGRAM_ROOT") is { Length: > 0 } named && File.Exists(Path.Combine(named, "DotGram.slnx")))
+			return named;
+
 		for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
 			if (File.Exists(Path.Combine(directory.FullName, "DotGram.slnx")))
 				return directory.FullName;
