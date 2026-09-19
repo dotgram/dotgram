@@ -1,3 +1,9 @@
+<!--
+  Agents: the skill for this package is SKILL.md, beside this file in the package
+  directory — which parser to take, the contract they share, and what is easy to get
+  wrong. Read it before writing code against the package. In a restored package that is
+  ~/.nuget/packages/dotgram.sql/<version>/SKILL.md.
+-->
 # DotGram.Sql
 
 SQL parsers written in `.gram`, and the one tree of records they meet in. Where an
@@ -24,9 +30,9 @@ dialect is the size of the difference.
 
 `TransactSqlParser` builds the tree, and `Sql92Parser` the expressions in it that the two share.
 `SqlStandardParser` builds a tree of its own, the standard's, laid out in
-[`Sql2023Ast.cs`](Standard/Sql2023Ast.cs) in `DotGram.Sql.Ast`, for names: an identifier with its
-spelling and style, an identifier chain, a table name, a column reference. Everything else it
-reads, it recognizes: it says whether a text is the standard's language and builds nothing for it.
+[`Sql2023Ast.cs`](Standard/Sql2023Ast.cs) in `DotGram.Sql.Ast` and printed back by
+[`Sql2023Writer`](Standard/Sql2023Writer.cs). Its records are named for the standard's
+constructs, so `DotGram.Sql.Ast.Statement` and `DotGram.Sql.Statement` are two types.
 
 `SqlStandardParser` publishes the standard's productions under their own names —
 `ParseValueExpression`, `ParseSearchCondition`, `ParseQueryExpression`, `ParseSQLSchemaStatement`
@@ -34,9 +40,10 @@ and the rest listed at the end of its grammar. `TransactSqlParser` publishes `Pa
 `ParseQuery`, `ParseSearchCondition`, `ParseValueExpression`, `ParseStatement`, `ParseSql` and
 `ParseScript`, each with its `TryParse…`.
 
-`Sql92Parser` and `TransactSqlParser` read through a lexical split (`Lexical = true`): a lexical
-half makes tokens, and the syntactic half above it decides each choice by the token in front of
-it, which is what a parser written by hand does.
+All three read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
+syntactic half above it decides each choice by the token in front of it, which is what a parser
+written by hand does. `SqlStandardParser` reads two things less than the standard does because of
+it: a comment holds others six deep, and a `/*` inside a comment always opens one.
 
 ```csharp
 using DotGram.Sql;
