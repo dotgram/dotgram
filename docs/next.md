@@ -24112,3 +24112,30 @@ is the fold itself, such as `Expr & '+' & Expr`, where what follows the loop pas
 really does begin like a turn. A pair in CarrierTests holds this with an atomic and a plain
 trivia, against operators that begin alike past the seam, keeping the tape's answers and its
 refusal positions.
+
+## T-SQL's value tower: what holds it is the language (the grammar question closed)
+
+After AtomicBody, 83 of T-SQL's rules are replayed for a cause of their own, and 238 more are
+replayed because they sit under one of those. The three heaviest causes were checked for a
+grammar edit before any was written. All three are ambiguities of the language whose deciding
+token can be any distance away:
+
+- **`TSqlValueExpression` in `TSqlPrimaryCore`'s choice (41 rules under it).** The choice is
+  between a bracketed value and a scalar subquery. `((SELECT 1) + 1)` is a value and
+  `((SELECT 1) UNION (SELECT 2))` is a query; which one it is shows only after the inner bracket.
+  Fold C does not take it either. The two alternatives are not neighbours, and the subquery's
+  `(` is inside a call. Even factored, the rest after `(` still overlaps.
+- **`JoinedRight`'s turn before `ON` (30 rules under it).** In `a JOIN b JOIN c ON p1 ON p2`, the
+  nested join's tails greedily take a `JOIN … ON` that belongs to the outer level, and the turn is
+  given back when the outer `ON` is missing. Only the count of `ON`s decides.
+- **`TSqlQueryExpression` in `InlineReturn`'s choice (27 rules under it).** The choice is a
+  bracketed query with `ORDER BY`/`OFFSET` inside, against a bare query expression, which may
+  itself begin with a bracket. In `(SELECT 1) UNION SELECT 2` it is the token after the bracket
+  that cancels the first alternative. Reordering moves the cause onto the second alternative and
+  changes which tree `(SELECT 1)` builds.
+
+A lookahead does not decide any of these, and a reorder changes the tree. They are recorded as
+intended, like DecOctet. The next causes are smaller: `InsertRows` against a guard (36),
+`MergeArm`'s search condition before `THEN` (15), `AlterTableAction`'s constraint (14). None of
+them is in the value tower. On the tape, T-SQL's value tower is as settled as its language lets
+it be. What is left to gain is in the carrier and the reader's form, not in the grammar.

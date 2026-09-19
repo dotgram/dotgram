@@ -108,6 +108,15 @@ static class Program
 			return;
 		}
 
+		// `sql-loop generated|hand [calls]` reads SQL:2023's select20 with one reading alone, for a
+		// profiler, the same way. See SqlLoop.cs.
+		if (args.Length >= 2 && args[0] == "sql-loop")
+		{
+			SqlLoop.Run(args[1], args.Length > 2 ? int.Parse(args[2]) : 2_000_000);
+
+			return;
+		}
+
 		// `stock-slope` reads the stock count at four sizes, by hand and generated, for the shape of the curve.
 		if (args.Length == 1 && args[0] == "stock-slope")
 		{
