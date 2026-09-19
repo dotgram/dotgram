@@ -1688,6 +1688,14 @@ same day; each comes back to the architect as a report, with no code changed.
    question does not settle EL's `?` and `{` turns: an `if … else` can end a statement, so a
    continuation is any statement, and an initializer and a following block stay alike for an
    expression of any length — the language's, intended.
+   **The fold's shared seam (sql-39, `9c98a48e`, held for its gate):** the reader peeks past the
+   seam once, decides by the character after it, puts the position back and reads the chosen
+   alternative whole, where the seam builds nothing and opens no way; `NeverGivesBack` sees the seam
+   through the fold step's construction. Five examples to immediate (48 to 43 on the tape); what
+   is left are folds whose right operand is the fold itself, where past the seam the continuation
+   really does begin like a turn. Next for sql-39: a design, no code, for a carrier chosen per
+   construction rather than per machine — the one thing between SQL's and EL's commit points and
+   the immediate carrier — to the architect, then to Igor.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
