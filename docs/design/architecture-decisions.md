@@ -18,6 +18,11 @@ is measured against the hand parser, and how it is undone.
 The architect's refusal stands until Igor overrides it. An experiment in scratch needs no
 approval; landing it does.
 
+**Everyone cleans up after themselves, Igor 2026-09-19.** The scratch disk T: is 48 GB. A
+session deletes its build trees, copies, traces and dumps as soon as the work they served is
+reported and its raw results are in the repository; the stand keeps only the trees of its current
+queue and one base.
+
 **The architect does not measure or write, Igor 2026-09-18.** Its work is plan, delegate, review,
 reconcile and decide. Everything about the measuring stand — `Stand.cs`, baseline runs, the
 before/after runs a session asks for — belongs to the `stand` session.
