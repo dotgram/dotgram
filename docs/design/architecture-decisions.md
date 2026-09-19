@@ -1235,6 +1235,10 @@ same day; each comes back to the architect as a report, with no code changed.
    within a couple of per cent of today's, the located within today's located; sql-39 reads the
    profile and says whether the 12.5% in the reader (the `start` carried through the parts)
    changes that.
+   sql-39's reading agrees: plain pays about 2% for the start carried through the reader even
+   with no flag; a flag around `Locate` alone saves nothing; the walk must stay specialized,
+   since plain through the located walk pays the whole +13%. Decided as Q4.2's design; the
+   prototype after C2 with performance-ff. No further variant is needed.
 3. **Flat against reader.** Flat writes a publication as one method of states; reader writes a
    method per rule; flat recompiles the machine to do it, which is a known source of defects.
    Measure both on the Web grammars and the examples. No difference: flat goes. Flat faster: the
