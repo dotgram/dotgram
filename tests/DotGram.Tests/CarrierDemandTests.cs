@@ -118,6 +118,35 @@ public sealed class CarrierDemandTests
 		Assert.Equal(Counted(tape.Built), Counted(immediate.Built));
 	}
 
+	/// <summary>
+	/// What a recovery synchronizes on is read to find where to go on, and thrown away: its
+	/// text is the bad element's, and nothing it builds is anyone's. <c>Mark</c> builds, and is
+	/// read only there; whichever carrier Auto chooses must never run its factory, as the tape
+	/// never does. What holds it today is the immediate carrier's gate for a recovering machine
+	/// (Machine.RecoveryRefusal): Commit counts what a synchronization reads as thrown away, so
+	/// <c>Mark</c>'s construction has no point and the carrier refuses (GRAM5007).
+	/// </summary>
+	const string Synchronized = """
+		Mark : @string = t: ';' => @(Log("Mark", ";"))
+		Row : @string = 'R' & t: ['a'..'z']+ & ';' => @(Log("Row", t.ToString()))
+		Start : @string = rows: Row* recover Mark => @(Log("Bad", "!")) & eof => @(Log("Start", string.Join(",", rows)))
+		parse Start
+		""";
+
+	[Theory]
+	[InlineData("Ra;X;Rb;")]
+	[InlineData("Ra;Rb;")]
+	[InlineData("X;Y;")]
+	public void What_a_recovery_synchronizes_on_is_not_built(string input)
+	{
+		var (tape, _) = Run(CarrierKind.Tape, input, Synchronized);
+		var (auto, _) = Run(CarrierKind.Auto, input, Synchronized);
+
+		Assert.Equal(tape.Answer, auto.Answer);
+		Assert.DoesNotContain("Mark", auto.Built);
+		Assert.Equal(Counted(tape.Built), Counted(auto.Built));
+	}
+
 	static (Outcome Outcome, string? Value) Run(CarrierKind carrier, string input, string grammar = Grammar)
 	{
 		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
