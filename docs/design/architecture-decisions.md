@@ -1645,6 +1645,18 @@ same day; each comes back to the architect as a report, with no code changed.
    back are what `Replay`'s refinement B should already settle; why it does not goes to sql-39.
    `NamedType`'s `<` — C#'s own ambiguity with a comparison — is intended and stays, so the parser
    reaches the immediate carrier by `Auto` only when a carrier can be chosen per construction.
+   **The fold on a building head, decided (expr's design):** a run of alternatives folds on a head
+   that is a capture when every alternative binds the same name to the same call with the same
+   arguments, the called rule has one reading that can lead anywhere before any tail (possessive
+   against the union of the tails' first sets — what a committed token has for free), and the
+   tails' constructions read the head by that name; then the head is read and built once. A proof,
+   not a heuristic. In EL it takes the `try` and the three `new` sites; assignment, a qualified core
+   and a member inside a fold's loop it cannot. Held to the refusal record, the diff of
+   `carriers.md` across the solution, the gate and an EL and SQL pair. The turns given back in EL
+   turned out to be the two-characters-ahead question (`?.`, `?[`, `??` and a following block),
+   the family of the quoted string's turn, not refinement B: expr looks whether the same answer
+   generalizes. The lookahead edit is done; the cause it held moved, honestly counted, to a member
+   in `Postfix`.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
