@@ -1743,6 +1743,15 @@ same day; each comes back to the architect as a report, with no code changed.
    then a direct path for a guard whose record's children are built — both expr's, the
    materializer's owner, expecting about 20 µs, 3x the hand parser; recognition analysed next by
    sql-39.
+   **Recognition, analysed (sql-39, next.md `02035cc7`):** no way is opened, retried or replayed;
+   almost all of the difference is the choice over kinds hitting the switch's limit of 128 named
+   kinds. A primary's first set is 357 kinds, since an identifier begins with any unreserved word,
+   so no switch is built and 21 alternatives are tried in order, each refusing on its first token —
+   1,381 of 2,023 rule calls refuse on the first token, about 37 calls a column; the hand parser
+   switches on the token's kind and word. Decided: the switch unbound from named labels — a byte
+   table from kind to group, the group's members tried in order — and a bit table for membership
+   and long comparison chains, separately. sql-39, who lifted the same limit over characters,
+   performance-ff told first. Expected: recognition about 4 µs, level with the hand parser.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
