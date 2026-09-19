@@ -40,13 +40,13 @@ namespace DotGram.Web;
 
 	// full-date, and §5.7's days of the month.
 	FullDate : @FullDate
-		= year: DateFullYear & '-' & month: TwoDigits & '-' & day: TwoDigits & when @(Rfc3339.IsDate(year!, month!, day!))
+		= year: DateFullYear & '-' & month: TwoDigits & '-' & day: TwoDigits & when @(Rfc3339.IsDate(year, month, day))
 		=> @(new FullDate(Rfc3339.Number(year), Rfc3339.Number(month), Rfc3339.Number(day)))
 
 	// full-time: partial-time and time-offset, and §5.7's hours, minutes and leap second.
 	FullTime : @FullTime
 		= hour: TwoDigits & ':' & minute: TwoDigits & ':' & second: TwoDigits & fraction: SecFrac & offset: TimeOffset
-		  & when @(Rfc3339.IsTime(hour!, minute!, second!, offset!))
+		  & when @(Rfc3339.IsTime(hour, minute, second, offset))
 		=> @(Rfc3339.Time(hour, minute, second, fraction, offset))
 
 	// time-offset. What it means is worked out beside the time it belongs to.
@@ -55,17 +55,25 @@ namespace DotGram.Web;
 	parse Timestamp as ParseTimestamp
 	parse FullDate  as ParseFullDate
 	parse FullTime  as ParseFullTime
-	""")]
+	""", SpanCaptures = true)]
 static partial class Rfc3339
 {
 	// ParseTimestamp, ParseFullDate, ParseFullTime and their Try forms are generated here; Timestamp.Parse,
 	// FullDate.Parse and FullTime.Parse are the ways in.
 
-	internal static int Number(string digits) =>
-		int.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture);
+	// The grammar has read these as digits, and at most four of them.
+	internal static int Number(ReadOnlySpan<char> digits)
+	{
+		var value = 0;
+
+		foreach (var digit in digits)
+			value = value * 10 + (digit - '0');
+
+		return value;
+	}
 
 	/// <summary>§5.7: a month of the year, and a day within it.</summary>
-	internal static bool IsDate(string year, string month, string day)
+	internal static bool IsDate(ReadOnlySpan<char> year, ReadOnlySpan<char> month, ReadOnlySpan<char> day)
 	{
 		var y = Number(year);
 		var m = Number(month);
@@ -86,7 +94,7 @@ static partial class Rfc3339
 	}
 
 	/// <summary>§5.7: an hour, a minute and an offset in range, and a leap second only at 23:59 UTC.</summary>
-	internal static bool IsTime(string hour, string minute, string second, string offset)
+	internal static bool IsTime(ReadOnlySpan<char> hour, ReadOnlySpan<char> minute, ReadOnlySpan<char> second, ReadOnlySpan<char> offset)
 	{
 		var h = Number(hour);
 		var m = Number(minute);
@@ -99,8 +107,8 @@ static partial class Rfc3339
 
 		if (offset.Length > 1)
 		{
-			var offsetHour   = Number(offset.Substring(1, 2));
-			var offsetMinute = Number(offset.Substring(4, 2));
+			var offsetHour   = Number(offset.Slice(1, 2));
+			var offsetMinute = Number(offset.Slice(4, 2));
 
 			if (offsetHour > 23 || offsetMinute > 59)
 				return false;
@@ -118,15 +126,15 @@ static partial class Rfc3339
 	}
 
 	/// <param name="fraction">The fraction with its point, or nothing where none was written.</param>
-	internal static FullTime Time(string hour, string minute, string second, string fraction, string offset)
+	internal static FullTime Time(ReadOnlySpan<char> hour, ReadOnlySpan<char> minute, ReadOnlySpan<char> second, ReadOnlySpan<char> fraction, ReadOnlySpan<char> offset)
 	{
-		var digits = fraction.Length == 0 ? null : fraction.Substring(1);
+		var digits = fraction.Length == 0 ? null : fraction.Slice(1).ToString();
 
 		if (offset.Length == 1)
 			return new FullTime(Number(hour), Number(minute), Number(second), digits, TimeSpan.Zero, false);
 
-		var size    = new TimeSpan(Number(offset.Substring(1, 2)), Number(offset.Substring(4, 2)), 0);
-		var unknown = offset == "-00:00";
+		var size    = new TimeSpan(Number(offset.Slice(1, 2)), Number(offset.Slice(4, 2)), 0);
+		var unknown = offset.SequenceEqual("-00:00".AsSpan());
 
 		return new FullTime(Number(hour), Number(minute), Number(second), digits, offset[0] == '-' ? -size : size, unknown);
 	}
