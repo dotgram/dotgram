@@ -1,6 +1,6 @@
 # What the stand does not read: the published forms with no row
 
-**Taken on the evening of 2026-09-19, from the stand's tree `2fcd156d` and the net10.0 builds of the libraries at `5d1f26d8` (the surface), and it goes out of date by construction: as soon as expr's bool `Try...(out)` forms land on main the publications of every parser double, and each row added or removed after this date changes a line of it. Regenerate before believing a line older than the day it was taken.** The architect's order of additions (2026-09-19): (1) the positional `(string, at)` form of SQL:2023 and T-SQL and one window row; (2) `Scan` for SQL:2023 and EL; (3) `FixMessages` stream, `TextReader` and lazy reading; (4) the Web lists as `linearity` series; (5) one span row per library; (6) `StreamingFeedReader`. The throwing `Parse` next to the `Try` and the twenty-one unmeasured examples are not wanted. The architect's rule from window 61: a form has a row before it is optimized.
+**Taken on the evening of 2026-09-19, from the stand's tree `2fcd156d` and the net10.0 builds of the libraries at `5d1f26d8` (the surface), and it goes out of date by construction: as soon as expr's bool `Try...(out)` forms land on main the publications of every parser double, and each row added or removed after this date changes a line of it. Regenerate before believing a line older than the day it was taken.** The architect's order of additions (2026-09-19): (1) the positional `(string, at)` form of SQL:2023 and T-SQL and one window row; (2) `Scan` (the token scanner) for SQL:2023 and EL; (3) `FixMessages` stream, `TextReader` and lazy reading; (4) the Web lists as `linearity` series; (5) one span row per library; (6) `StreamingFeedReader`. The throwing `Parse` next to the `Try` and the twenty-one unmeasured examples are not wanted. The architect's rule from window 61: a form has a row before it is optimized.
 The log form of FIX had none, and a way was removed from it that nobody had measured. This is the list of the holes, by
 library, by input (a string, a span, bytes in memory, a stream, a `TextReader`) and by kind of publication (whole, lazy,
 search, positional, window). The publications are read off the built assemblies (`DotGram.Finance`, `.Web`, `.Sql`,
@@ -46,8 +46,9 @@ matters, and `linearity` has a series only for the media type's parameters, the 
 | `TransactSqlParser`, 31 rules | 1 rule: `Statement`; `SearchCondition` only in `linearity`; **29 none** | `Statement`, the script rows, *paired* | **none** | **none** |
 | `TransactSqlParser.Located`, 31 rules | `Statement` (the plain stand's located reading); **30 none** | **none** | **none** | **none** |
 
-The `Parse` (throwing) form of none. `Scan`, the search publication (`find`), has no row for any of the five parsers that publish
-it (Sql92, SqlStandard, T-SQL, Located, ExpressionLanguage). The bool forms: two rows (`sql/refused-late.bool`,
+The `Parse` (throwing) form of none. `Scan(ReadOnlySpan<char> text, int pos, out int kind)` is the split grammar's token scanner (one token's kind, and where it ends: the lexer's own
+entry, public), not a search publication as an earlier version of this list said; it has no row for any of the five parsers that publish it
+(Sql92, SqlStandard, T-SQL, Located, ExpressionLanguage). The bool forms: two rows (`sql/refused-late.bool`,
 `sql/select20.bool`), *paired*. The `Syntax.Parse(string, string)` helper: none.
 
 ## The expression language
@@ -74,14 +75,14 @@ form over a `TextReader`), `FileNames`, `FixedWidth`, `HttpParser`, `IniParser`,
 - **A `TextReader`**: `FixParser.Parse` and the stock count covered (paired for the first); `FixParser.ParseLog(TextReader)`,
   `FixMessages` (5), `StreamingFeedReader` none.
 - **Lazy** (`yield`): the FIX forms covered; `ReadMessages` and `StreamingFeedReader` none.
-- **Search** (`Scan`): none, in five parsers.
+- **The token scanner** (`Scan`): none, in five parsers.
 - **Positional** `(string, at)`: one rule of T-SQL (paired); 40 of SQL:2023's 42 rules, all 4 of Sql92's and 30 more of T-SQL's 31 publish it with no row.
 - **Window** `(string, at, length)`: none (40 SQL:2023 rules, 4 Sql92, 31 T-SQL and 31 Located publish it).
 
 ## Which of these matter first
 
 Not all at once. The forms about to change: the positional and window forms (lazy tokens, expr's next commits: the script rows
-are the only reading of them), the `Scan` search (five parsers publish one and every reader of it is invisible),
+are the only reading of them), the `Scan` token scanner (five parsers publish one and the lexer's own speed is visible nowhere),
 the span forms (`FixMessages` in particular, and the FIX ones that copy), the lists and fields of the Web (loops, so a curve), the
 throwing `Parse` next to the `Try`, and `FixMessages`' stream and reader forms. The 36 SQL:2023 and 29 T-SQL rules with no row
 are rules of the grammar rather than forms of a publication: a change to the reader that touches them is read today only
