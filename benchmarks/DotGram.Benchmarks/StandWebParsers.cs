@@ -30,6 +30,7 @@ static partial class Stand
 			("language-tag.plain",   "LanguageTag",     "TryParse",       "en-US", true, static text => LanguageTag.TryParse(text, out _)),
 			("language-tag.full",    "LanguageTag",     "TryParse",       "sl-Latn-IT-rozaj-1994-u-co-phonebk-x-private", true, static text => LanguageTag.TryParse(text, out _)),
 			("language-tag.refused", "LanguageTag",     "TryParse",       "en--US", false, static text => LanguageTag.TryParse(text, out _)),
+			("date-time.refused",   "Timestamp",       "TryParse",       "2026-09-18T12:34:56", false, static text => Timestamp.TryParse(text, out _)),
 			("sf.item",             "StructuredField", "TryParseItem",   "42;unit=\"s\";exact=?1", true, static text => StructuredField.TryParseItem(text, out _)),
 			("sf.list",             "StructuredField", "TryParseList",   "\"foo\", bar;baz=?1, (1 2 3);q=0.5, :aGVsbG8=:, 10.5", true, static text => StructuredField.TryParseList(text, out _)),
 			("sf.dictionary",       "StructuredField", "TryParseDictionary", "a=1, b=?0, c=\"text\", d=:aGVsbG8=:, e=(1 2);f=3", true, static text => StructuredField.TryParseDictionary(text, out _)),
