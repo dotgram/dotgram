@@ -1379,6 +1379,18 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    in §7.8 making the rule explicit — a clarification of the text, not a change to the language.
    `lm` is reproduced on all three renderings and fixed (a part receives only the marks
    declared for it; a theory of six cases); both land after C.
+   **AfterSeam landed (sql-39):** only `SettingsFile` moved, exactly as expected — `Replay` no
+   longer holds it, the second gate does; every emitted file identical; a control grammar with
+   trivia. What the reader gives back there, read from the graph: over a seam `File = (Setting &
+   eol)* & eof` becomes a turn `trivia & Setting & trivia & eol` and a continuation `trivia &
+   eof`; at the end the reader begins a turn, reads its leading trivia, fails at `Setting`, gives
+   the turn back with the trivia, and the continuation reads the same trivia again. Decided: the
+   seam leaves the head of the turn in the graph — `(t S t e)* t eof` is rewritten `t (S t e t)*
+   eof`, which holds because the seam is a greedy star (`t t` reads what `t` reads) — a
+   normalizer rewrite in the optimizing passes (expr, D14), not a special case in `Determinism`
+   and the reader; every analysis then sees the turn begin past the seam. `SettingsFile` is the
+   proof case: both gates at zero, `Auto` choosing immediate on its own, answers unchanged.
+   SKILL.md for Sql is done (`87741771`).
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
