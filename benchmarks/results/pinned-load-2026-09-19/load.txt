@@ -1,0 +1,4 @@
+start 11:12:17 affinity FFFF0000
+build 1 done 11:13:41 exit 0
+build 2 done 11:14:49 exit 0
+end 11:14:49
