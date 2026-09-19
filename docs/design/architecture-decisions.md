@@ -1423,6 +1423,11 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    non-predictive choice regardless and uses the analysis only for the refusal message. So the
    change is in the reader's choice emission, not `Determinism`: sql-39, a separate commit before
    C2, the same conditions, performance-ff rebasing C2 on it.
+   **Landed `014136df`:** a control pair; snapshots and the refusal record unchanged; no package
+   grammar's code moves (Web, Finance, SQL, EL byte-identical), seven grammars of examples and
+   benchmarks do; the gate flat (13.3/12.9/13.2 to 13.3/13.2/13.0 s). `FixedWidthExample`, whose
+   only cause was `eol`, now compiles immediate by `Auto` on its own with its tests unchanged —
+   the mechanism proof, arrived at before `SettingsFile`. `SettingsFile` keeps the seam only.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
