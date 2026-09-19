@@ -847,7 +847,11 @@ form flat, the byte forms +2.5..+6.5% (one field +6.5%, the slope rows +4..+6% a
 through the buffered-bytes input to the engine before and after, identical to the line, since a
 buffered machine goes to the reader only where the engine cannot prove its release; C2's note
 had said otherwise. So nothing is reverted; the byte rows are paired again with a PGO=0 twin and
-profiled if the sign holds (a neighbour's JIT or layout, not an algorithm). The consequence that
+profiled if the sign holds (a neighbour's JIT or layout, not an algorithm). Paired again
+(window 11, identical byte code on both sides): faster on all eight byte rows, -2..-6%, flat under
+PGO=0 — the opposite sign, the difference being which other rows shared the process. A rule for
+the stand from it: the rows of one paired run share one dynamic-PGO profile, so a change that
+touches some forms is read both in a run of those forms alone and in the run with the rest. The consequence that
 matters: FIX's byte form, the one FIX needs, has not had C2. A whole array is not a stream and
 has nothing to release; decided that it is read by the reader over a span of bytes as the string
 is over characters, performance-ff, after the two quadratic defects and the scanner's search and
