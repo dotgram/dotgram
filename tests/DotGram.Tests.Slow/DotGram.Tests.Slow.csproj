@@ -23,6 +23,8 @@
 		<ProjectReference Include="..\..\examples\DotGram.Examples\DotGram.Examples.csproj" />
 		<!-- And SQL, for the long condition a shipped parser has to read in linear time: SqlConditionScalingTests. -->
 		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
+		<!-- And the expression language, whose tape reads a long expression in linear time: ExpressionScalingTests. -->
+		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
 
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />

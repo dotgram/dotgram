@@ -870,13 +870,42 @@ sealed partial class Machine
 			if (UsesMarks)
 			{
 				// The marks standing over the walk's start: those opened before it and not
-				// yet closed. Nothing else before the start is read.
+				// yet closed. Nothing else before the start is read — and that only where a
+				// record the walk may build hands its factory the marks. A guard builds a few
+				// records at the end of a long log, once per reading of it: walking the whole
+				// log in front of it every time was the tape's time growing with the square of
+				// the input (an expression of a thousand terms, 1.46 from a hundred).
+				var asking = parts
+					.SelectMany(static part => part)
+					.Where(one => !_factories.TryGetValue(one.Rule, out var made) || one.Factory < 0 || one.Factory >= made.Count ||
+						CSharpEmitter.Asks(_graph, made[one.Factory], "parserState") || CSharpEmitter.Asks(_graph, made[one.Factory], "parserMarks"))
+					.Select(one => DirectArm(one.Rule, one.Factory))
+					.Distinct()
+					.OrderBy(static arm => arm)
+					.ToList();
+
 				file.Line("var marked = 0;");
 				file.Line();
-				using (file.Block("for (var at = 0; at < from; at += log[at])"))
+
+				// Where the grammar recovers, its failure factories are arms of their own this does
+				// not look into, and the walk from the start stays on every call: a known limit. No
+				// grammar shipped or among the examples has recovery, a guard and a state together.
+				if (asking.Count > 0 || _recoveryReads.Count > 0)
+				{
+					var asked = _recoveryReads.Count > 0
+						? "from > 0"
+						: "from > 0 && " + DirectMaterializer + "_AsksMarks(log, from, ways.LogCount)";
+
+					using (file.Block($"if ({asked})"))
+					using (file.Block("for (var at = 0; at < from; at += log[at])"))
 					using (file.Block("if (log[at + 1] < 0)"))
 						DirectMark(file);
-				file.Line();
+
+					file.Line();
+
+					if (_recoveryReads.Count == 0)
+						_marksAsked = asking;
+				}
 			}
 
 			using (file.Block(selected
@@ -1023,10 +1052,38 @@ sealed partial class Machine
 						file.Line("return true;");
 					}
 				}
+
+			// Whether a record between two places in the log hands its factory the marks.
+			if (_marksAsked is { } arms)
+			{
+				file.Line();
+				file.Line("/// <summary>Whether a record the walk may build from here on is handed the marks standing over it.</summary>");
+
+				using (file.Block($"static bool {DirectMaterializer}_AsksMarks(int[] log, int from, int end)"))
+				{
+					using (file.Block("for (var at = from; at < end; at += log[at])"))
+					{
+						file.Line("switch (log[at + 1])");
+
+						using (file.Block(""))
+						{
+							file.Line(string.Concat(arms.Select(static arm => $"case {arm}: ")) + "return true;");
+						}
+					}
+
+					file.Line();
+					file.Line("return false;");
+				}
+
+				_marksAsked = null;
+			}
 		}
 
 		return file.ToString();
 	}
+
+	/// <summary>The arms whose factories are handed the marks, for the walk being rendered.</summary>
+	List<int>? _marksAsked;
 
 	/// <summary>
 	/// The arms of a direct walk, in as few groups as will each keep inside the budget.
