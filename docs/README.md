@@ -68,6 +68,7 @@ construction. A change meant to move a grammar off the tape is measured by its d
 | [`design/dsl-tooling-design.md`](design/dsl-tooling-design.md) | A plan for tooling an arbitrary DSL. |
 | [`design/DotGram_Tooling_Agent_Handoff.md`](design/DotGram_Tooling_Agent_Handoff.md) | A separate future project: IDE and LSP tooling. Not a description of anything that exists. |
 | [`design/architecture-decisions.md`](design/architecture-decisions.md) | The decisions the architect has collected, each with the measurement that settled it, the sessions' rules of work among them. |
+| [`design/open-questions.md`](design/open-questions.md) | The critic's objections (D21): what each one argues with, what it rests on, and the answer it was given. Open until answered. |
 | [`design/fix-reader-2026-09-18.md`](design/fix-reader-2026-09-18.md) | What the generated FIX parser would have to be to read like the hand-written one, and what stands in the way. The engine's own comments cite it. |
 | [`design/fix-reader-buffered-2026-09-18.md`](design/fix-reader-buffered-2026-09-18.md) | The same reading over a buffer: releasing a window as the parse commits. |
 | [`design/carrier-per-construction-2026-09-19.md`](design/carrier-per-construction-2026-09-19.md) | Whether one machine could build some of its constructions in place and leave the rest to the tape, and what the measurement said. |
