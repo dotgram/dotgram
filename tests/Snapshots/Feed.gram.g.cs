@@ -394,7 +394,7 @@ namespace DotGram.Snapshots
 						o1 = c == 'R';
 					}
 
-					if (!o1)
+					if (!o1 && failure.Quiet)
 					{
 						break;
 					}
@@ -1147,7 +1147,10 @@ namespace DotGram.Snapshots
 				ways.Seal(s0);
 
 				if (q0 >= 0)
+				{
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected0);
 					return -1;
+				}
 				return p;
 			}
 

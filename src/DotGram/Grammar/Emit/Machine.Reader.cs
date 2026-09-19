@@ -45,6 +45,29 @@ sealed partial class Machine
 	/// <summary>The refusal recorder the emitted readers call.</summary>
 	const string Refusing = "Refuse_DotGram";
 
+	/// <summary>The seams of the grammar and every rule they reach: read, by the engine, without recording what they refuse.</summary>
+	internal HashSet<RuleSymbol> SeamReached => _seamReached ??= ReachedFromSeams();
+
+	HashSet<RuleSymbol>? _seamReached;
+
+	HashSet<RuleSymbol> ReachedFromSeams()
+	{
+		var reached = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		foreach (var trivia in _graph.Trivia.Values)
+			if (trivia is Node.Call(var seam, _) && reached.Add(seam))
+				pending.Push(seam);
+
+		while (pending.Count > 0)
+			if (_graph.Bodies.TryGetValue(pending.Pop(), out var body))
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Call(var called, _) && reached.Add(called))
+						pending.Push(called);
+
+		return reached;
+	}
+
 	bool _readerWays = true;
 
 	/// <summary>
@@ -3289,7 +3312,15 @@ sealed partial class Machine
 
 					code.Line();
 
-					using (code.Block($"if (!{open})"))
+					// Only where nothing is recorded. A reading that records tries the turn anyway,
+					// as the engine does, so that what refused it is said: where the loop ends and
+					// what follows it refuses too, the turn's refusal is half of the message, and
+					// without it a parse refused past the loop said only that it did not match. Not
+					// in a rule the engine reads as a scan — a word — nor in the seam or what it calls,
+					// which the engine reads without recording what they refuse.
+					var tries = machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner);
+
+					using (code.Block(tries ? $"if (!{open} && failure.Quiet)" : $"if (!{open})"))
 					{
 						// A door that does not open below the minimum is not the loop ending
 						// but the rule failing, and says what it wanted.
@@ -3720,8 +3751,25 @@ sealed partial class Machine
 				code.Line($"ways.Seal(s{mark});");
 
 			code.Line();
-			code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
-			code.Then("return -1;");
+
+			// A rule that is nothing but a look, the engine reads as a scan and names where it
+			// refuses: `eof`. Said so here too, or a parse refused at the end by it after a loop
+			// said only that the input did not match. A look inside a rule refuses silently, as it
+			// did: what it says is left to what the rule reads next.
+			var named = _graph.Bodies.TryGetValue(owner, out var body) &&
+				body is Node.Lookahead(_, var looked) && ReferenceEquals(looked, inside) &&
+				machine.ScannerOf(owner) is not null;
+
+			if (!named)
+			{
+				code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
+				code.Then("return -1;");
+
+				return;
+			}
+
+			using (code.Block($"if ({seen} {(positive ? "<" : ">=")} 0)"))
+				Refused(code, machine.DeclareExpected([owner.Name]));
 		}
 
 		/// <summary>

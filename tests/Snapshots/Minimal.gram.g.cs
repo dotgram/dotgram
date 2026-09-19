@@ -2641,7 +2641,7 @@ namespace DotGram.Snapshots
 						o1 = c == '+';
 					}
 
-					if (!o1)
+					if (!o1 && failure.Quiet)
 					{
 						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1); }
 						break;

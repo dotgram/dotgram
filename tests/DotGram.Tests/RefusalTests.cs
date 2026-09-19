@@ -20,6 +20,37 @@ public sealed class RefusalTests
 		RefusalCorpus.AssertSample();
 
 	/// <summary>
+	/// A loop that ends where its turn cannot begin, and the end refused after it: every
+	/// rendering says what the turn wanted and what the end did, where the engine says it. The
+	/// reader, which does not try a turn it can see will not begin, used to record nothing there
+	/// and answer that the input did not match, where the input began.
+	/// </summary>
+	[Theory]
+	[InlineData("[b;;", 3)]
+	[InlineData("[ b ; ;", 6)]
+	[InlineData("[b;x", 3)]
+	public void A_loop_before_the_end_is_refused_where_the_engine_refuses_it(string input, int at)
+	{
+		const string Grammar =
+			"trivia = ' '*\nItem : @string = t: 'b' => @(t)\nStart : @string[] = '[' & (Item & ';')* & eof\nparse Start\n";
+
+		foreach (var (carrier, direct) in new[] { (CarrierKind.Tape, false), (CarrierKind.Tape, true), (CarrierKind.Immediate, true) })
+		{
+			var compilation = GramCompiler.Compile(Grammar, new GramCompilerOptions
+			{
+				ClassName = "Grammar", Carrier = carrier, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+			EmittedCode.Quiet(compilation.Diagnostics);
+
+			var match = EmittedCode.Match(EmittedCode.Compile(Assert.Single(compilation.Sources).Text), "Grammar", "TryParseStart", input);
+
+			Assert.False(match.IsSuccess);
+			Assert.Equal(at, match.Position);
+			Assert.Equal("Expected 'b' or eof.", match.Error);
+		}
+	}
+
+	/// <summary>
 	/// A refusal is read twice, and on the immediate carrier what the first reading ran the
 	/// second runs again — once more, and only where the parse refused.
 	/// </summary>

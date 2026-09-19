@@ -1458,7 +1458,7 @@ namespace DotGram.Snapshots
 						o1 = c == ',' || c == ';';
 					}
 
-					if (!o1)
+					if (!o1 && failure.Quiet)
 					{
 						break;
 					}
@@ -1851,7 +1851,7 @@ namespace DotGram.Snapshots
 						o1 = c == ',';
 					}
 
-					if (!o1)
+					if (!o1 && failure.Quiet)
 					{
 						break;
 					}
@@ -2992,7 +2992,7 @@ namespace DotGram.Snapshots
 						o1 = c == '(';
 					}
 
-					if (!o1)
+					if (!o1 && failure.Quiet)
 					{
 						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2); }
 						break;

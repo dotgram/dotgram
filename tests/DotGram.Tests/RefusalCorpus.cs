@@ -65,6 +65,29 @@ static class RefusalCorpus
 			"parse Start\n",
 			["a , b", "ab,cd"]),
 
+		// A loop that ends where its turn cannot begin, and the end refused after it: the turn's
+		// refusal is half of what is said there, and the reader, which does not try a turn it
+		// can see will not begin, used to say only that the input did not match.
+		("turns before the end",
+			"trivia = ' '*\n" +
+			"Item : @string = t: 'b' => @(t)\n" +
+			"Start : @string[] = '[' & (Item & ';')* & eof\n" +
+			"parse Start\n",
+			["[b;b;", "[ b ; b ; ", "["]),
+
+		("turns before the end, unspaced",
+			"Item : @string = t: 'b' => @(t)\n" +
+			"Start : @string[] = (Item & ';')* & eof\n" +
+			"parse Start\n",
+			["b;b;", ""]),
+
+		("turns of two beginnings before the end",
+			"trivia = ' '*\n" +
+			"Item : @string = t: ['a'..'z']+ => @(t) | n: ['0'..'9']+ => @(n)\n" +
+			"Start : @string[] = (Item & ',')* & eof\n" +
+			"parse Start\n",
+			["ab, 12 ,", "a,"]),
+
 		("a look ahead",
 			"trivia = ' '*\n" +
 			"Start : @string = ?=(Name & '=') & n: Name & '=' & v: Name => @(n + v)\n" +

@@ -74,12 +74,12 @@ a fold | tape | "a = 1 + b = 22" | accepted
 a fold | tape | "a = 1 + bb= 22" | accepted
 a fold | tape | "a = 1 + bb  22" | NoMatch at 12: Expected '='.
 a fold | tape | "a = 1 + bb =22" | accepted
-a fold | tape | "a = 1 + bb = 22!" | NoMatch at 15: Expected [' ' | '+'].
+a fold | tape | "a = 1 + bb = 22!" | NoMatch at 15: Expected '+'.
 a fold | tape | "a = 1 + bb = 222" | accepted
 a fold | tape | "a=" | Starved at 2: Expected ['0'..'9'].
 a fold | tape | "=1" | NoMatch at 0: Expected ['a'..'z'].
 a fold | tape | "a1" | NoMatch at 1: Expected '='.
-a fold | tape | "a=1!" | NoMatch at 3: Expected [' ' | '+'].
+a fold | tape | "a=1!" | NoMatch at 3: Expected '+'.
 a fold | tape | "a=11" | accepted
 a fold | tape | " = 1 + bb" | NoMatch at 1: Expected ['a'..'z'].
 a fold | tape | "a= 1 + bb" | Starved at 9: Expected '='.
@@ -123,12 +123,12 @@ a fold | immediate | "a = 1 + b = 22" | accepted
 a fold | immediate | "a = 1 + bb= 22" | accepted
 a fold | immediate | "a = 1 + bb  22" | NoMatch at 12: Expected '='.
 a fold | immediate | "a = 1 + bb =22" | accepted
-a fold | immediate | "a = 1 + bb = 22!" | NoMatch at 15: Expected [' ' | '+'].
+a fold | immediate | "a = 1 + bb = 22!" | NoMatch at 15: Expected '+'.
 a fold | immediate | "a = 1 + bb = 222" | accepted
 a fold | immediate | "a=" | Starved at 2: Expected ['0'..'9'].
 a fold | immediate | "=1" | NoMatch at 0: Expected ['a'..'z'].
 a fold | immediate | "a1" | NoMatch at 1: Expected '='.
-a fold | immediate | "a=1!" | NoMatch at 3: Expected [' ' | '+'].
+a fold | immediate | "a=1!" | NoMatch at 3: Expected '+'.
 a fold | immediate | "a=11" | accepted
 a fold | immediate | " = 1 + bb" | NoMatch at 1: Expected ['a'..'z'].
 a fold | immediate | "a= 1 + bb" | Starved at 9: Expected '='.
@@ -221,12 +221,12 @@ a fold | tape over tokens | "a = 1 + b = 22" | accepted
 a fold | tape over tokens | "a = 1 + bb= 22" | accepted
 a fold | tape over tokens | "a = 1 + bb  22" | NoMatch at 12: Expected '='.
 a fold | tape over tokens | "a = 1 + bb =22" | accepted
-a fold | tape over tokens | "a = 1 + bb = 22!" | NoMatch at 15: Expected [' ' | '+'].
+a fold | tape over tokens | "a = 1 + bb = 22!" | NoMatch at 15: Expected '+'.
 a fold | tape over tokens | "a = 1 + bb = 222" | accepted
 a fold | tape over tokens | "a=" | Starved at 2: Expected ['0'..'9'].
 a fold | tape over tokens | "=1" | NoMatch at 0: Expected ['a'..'z'].
 a fold | tape over tokens | "a1" | NoMatch at 1: Expected '='.
-a fold | tape over tokens | "a=1!" | NoMatch at 3: Expected [' ' | '+'].
+a fold | tape over tokens | "a=1!" | NoMatch at 3: Expected '+'.
 a fold | tape over tokens | "a=11" | accepted
 a fold | tape over tokens | " = 1 + bb" | NoMatch at 1: Expected ['a'..'z'].
 a fold | tape over tokens | "a= 1 + bb" | Starved at 9: Expected '='.
@@ -270,12 +270,12 @@ a fold | immediate over tokens | "a = 1 + b = 22" | accepted
 a fold | immediate over tokens | "a = 1 + bb= 22" | accepted
 a fold | immediate over tokens | "a = 1 + bb  22" | NoMatch at 12: Expected '='.
 a fold | immediate over tokens | "a = 1 + bb =22" | accepted
-a fold | immediate over tokens | "a = 1 + bb = 22!" | NoMatch at 15: Expected [' ' | '+'].
+a fold | immediate over tokens | "a = 1 + bb = 22!" | NoMatch at 15: Expected '+'.
 a fold | immediate over tokens | "a = 1 + bb = 222" | accepted
 a fold | immediate over tokens | "a=" | Starved at 2: Expected ['0'..'9'].
 a fold | immediate over tokens | "=1" | NoMatch at 0: Expected ['a'..'z'].
 a fold | immediate over tokens | "a1" | NoMatch at 1: Expected '='.
-a fold | immediate over tokens | "a=1!" | NoMatch at 3: Expected [' ' | '+'].
+a fold | immediate over tokens | "a=1!" | NoMatch at 3: Expected '+'.
 a fold | immediate over tokens | "a=11" | accepted
 a fold | immediate over tokens | " = 1 + bb" | NoMatch at 1: Expected ['a'..'z'].
 a fold | immediate over tokens | "a= 1 + bb" | Starved at 9: Expected '='.
@@ -394,7 +394,7 @@ a cycle | tape | "a = 1 + (b" | Starved at 10: Expected '='.
 a cycle | tape | "a = 1 + (b " | Starved at 11: Expected '='.
 a cycle | tape | "a = 1 + (b =" | Starved at 12: Expected ['0'..'9'].
 a cycle | tape | "a = 1 + (b = " | Starved at 13: Expected ['0'..'9'].
-a cycle | tape | "a = 1 + (b = 2" | Starved at 14: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a = 1 + (b = 2" | Starved at 14: Expected '+' or ')'.
 a cycle | tape | "a = 1 + (b = 2 " | Starved at 15: Expected '+' or ')'.
 a cycle | tape | "a = 1 + (b = 2 +" | Starved at 16: Expected ['a'..'z' | '('].
 a cycle | tape | "a = 1 + (b = 2 + " | Starved at 17: Expected ['a'..'z' | '('].
@@ -402,7 +402,7 @@ a cycle | tape | "a = 1 + (b = 2 + c" | Starved at 18: Expected '='.
 a cycle | tape | "a = 1 + (b = 2 + c " | Starved at 19: Expected '='.
 a cycle | tape | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | tape | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
-a cycle | tape | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
 a cycle | tape | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | tape | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | tape | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
@@ -411,7 +411,7 @@ a cycle | tape | "a =  + (b = 2 + c = 3)" | NoMatch at 5: Expected ['0'..'9'].
 a cycle | tape | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | tape | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | tape | "a = 1 +(b = 2 + c = 3)" | accepted
-a cycle | tape | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected [' ' | '+'].
+a cycle | tape | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
 a cycle | tape | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | tape | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | tape | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
@@ -425,49 +425,49 @@ a cycle | tape | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | tape | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | tape | "a = 1 + (b = 2 + c =3)" | accepted
 a cycle | tape | "a = 1 + (b = 2 + c = )" | NoMatch at 21: Expected ['0'..'9'].
-a cycle | tape | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected [' ' | '+'].
-a cycle | tape | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected [' ' | '+'].
+a cycle | tape | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected '+'.
+a cycle | tape | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected '+'.
 a cycle | tape | "(" | Starved at 1: Expected ['a'..'z' | '('].
 a cycle | tape | "((" | Starved at 2: Expected ['a'..'z' | '('].
 a cycle | tape | "((a" | Starved at 3: Expected '='.
 a cycle | tape | "((a " | Starved at 4: Expected '='.
 a cycle | tape | "((a =" | Starved at 5: Expected ['0'..'9'].
 a cycle | tape | "((a = " | Starved at 6: Expected ['0'..'9'].
-a cycle | tape | "((a = 1" | Starved at 7: Expected [' ' | '+'] or ')'.
-a cycle | tape | "((a = 1)" | Starved at 8: Expected [' ' | '+'] or ')'.
-a cycle | tape | "(a = 1))" | NoMatch at 7: Expected [' ' | '+'].
+a cycle | tape | "((a = 1" | Starved at 7: Expected '+' or ')'.
+a cycle | tape | "((a = 1)" | Starved at 8: Expected '+' or ')'.
+a cycle | tape | "(a = 1))" | NoMatch at 7: Expected '+'.
 a cycle | tape | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | tape | "((a= 1))" | accepted
 a cycle | tape | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | tape | "((a =1))" | accepted
 a cycle | tape | "((a = ))" | NoMatch at 6: Expected ['0'..'9'].
-a cycle | tape | "((a = 1))!" | NoMatch at 9: Expected [' ' | '+'].
-a cycle | tape | "((a = 1)))" | NoMatch at 9: Expected [' ' | '+'].
+a cycle | tape | "((a = 1))!" | NoMatch at 9: Expected '+'.
+a cycle | tape | "((a = 1)))" | NoMatch at 9: Expected '+'.
 a cycle | tape | "(a" | Starved at 2: Expected '='.
 a cycle | tape | "(a " | Starved at 3: Expected '='.
 a cycle | tape | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | tape | "(a = " | Starved at 5: Expected ['0'..'9'].
 a cycle | tape | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | tape | "(a= 1" | Starved at 5: Expected [' ' | '+'] or ')'.
+a cycle | tape | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | tape | "(a  1" | NoMatch at 4: Expected '='.
-a cycle | tape | "(a =1" | Starved at 5: Expected [' ' | '+'] or ')'.
-a cycle | tape | "(a = 1!" | NoMatch at 6: Expected [' ' | '+'] or ')'.
-a cycle | tape | "(a = 11" | Starved at 7: Expected [' ' | '+'] or ')'.
+a cycle | tape | "(a =1" | Starved at 5: Expected '+' or ')'.
+a cycle | tape | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
+a cycle | tape | "(a = 11" | Starved at 7: Expected '+' or ')'.
 a cycle | tape | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | tape | "a= 1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
-a cycle | tape | "a =1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a =  + (b = 2" | NoMatch at 5: Expected ['0'..'9'].
-a cycle | tape | "a = 1+ (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a = 1+ (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
-a cycle | tape | "a = 1 +(b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a = 1 + b = 2" | accepted
 a cycle | tape | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | tape | "a = 1 + (b= 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
-a cycle | tape | "a = 1 + (b =2" | Starved at 13: Expected [' ' | '+'] or ')'.
-a cycle | tape | "a = 1 + (b = 2!" | NoMatch at 14: Expected [' ' | '+'] or ')'.
-a cycle | tape | "a = 1 + (b = 22" | Starved at 15: Expected [' ' | '+'] or ')'.
+a cycle | tape | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
+a cycle | tape | "a = 1 + (b = 2!" | NoMatch at 14: Expected '+' or ')'.
+a cycle | tape | "a = 1 + (b = 22" | Starved at 15: Expected '+' or ')'.
 a cycle | immediate | "" | Starved at 0: Expected ['a'..'z' | '('].
 a cycle | immediate | "a" | Starved at 1: Expected '='.
 a cycle | immediate | "a " | Starved at 2: Expected '='.
@@ -482,7 +482,7 @@ a cycle | immediate | "a = 1 + (b" | Starved at 10: Expected '='.
 a cycle | immediate | "a = 1 + (b " | Starved at 11: Expected '='.
 a cycle | immediate | "a = 1 + (b =" | Starved at 12: Expected ['0'..'9'].
 a cycle | immediate | "a = 1 + (b = " | Starved at 13: Expected ['0'..'9'].
-a cycle | immediate | "a = 1 + (b = 2" | Starved at 14: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a = 1 + (b = 2" | Starved at 14: Expected '+' or ')'.
 a cycle | immediate | "a = 1 + (b = 2 " | Starved at 15: Expected '+' or ')'.
 a cycle | immediate | "a = 1 + (b = 2 +" | Starved at 16: Expected ['a'..'z' | '('].
 a cycle | immediate | "a = 1 + (b = 2 + " | Starved at 17: Expected ['a'..'z' | '('].
@@ -490,7 +490,7 @@ a cycle | immediate | "a = 1 + (b = 2 + c" | Starved at 18: Expected '='.
 a cycle | immediate | "a = 1 + (b = 2 + c " | Starved at 19: Expected '='.
 a cycle | immediate | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | immediate | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
-a cycle | immediate | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
 a cycle | immediate | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | immediate | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | immediate | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
@@ -499,7 +499,7 @@ a cycle | immediate | "a =  + (b = 2 + c = 3)" | NoMatch at 5: Expected ['0'..'9
 a cycle | immediate | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | immediate | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | immediate | "a = 1 +(b = 2 + c = 3)" | accepted
-a cycle | immediate | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected [' ' | '+'].
+a cycle | immediate | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
 a cycle | immediate | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | immediate | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | immediate | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
@@ -513,49 +513,49 @@ a cycle | immediate | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | immediate | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | immediate | "a = 1 + (b = 2 + c =3)" | accepted
 a cycle | immediate | "a = 1 + (b = 2 + c = )" | NoMatch at 21: Expected ['0'..'9'].
-a cycle | immediate | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected [' ' | '+'].
-a cycle | immediate | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected [' ' | '+'].
+a cycle | immediate | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected '+'.
+a cycle | immediate | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected '+'.
 a cycle | immediate | "(" | Starved at 1: Expected ['a'..'z' | '('].
 a cycle | immediate | "((" | Starved at 2: Expected ['a'..'z' | '('].
 a cycle | immediate | "((a" | Starved at 3: Expected '='.
 a cycle | immediate | "((a " | Starved at 4: Expected '='.
 a cycle | immediate | "((a =" | Starved at 5: Expected ['0'..'9'].
 a cycle | immediate | "((a = " | Starved at 6: Expected ['0'..'9'].
-a cycle | immediate | "((a = 1" | Starved at 7: Expected [' ' | '+'] or ')'.
-a cycle | immediate | "((a = 1)" | Starved at 8: Expected [' ' | '+'] or ')'.
-a cycle | immediate | "(a = 1))" | NoMatch at 7: Expected [' ' | '+'].
+a cycle | immediate | "((a = 1" | Starved at 7: Expected '+' or ')'.
+a cycle | immediate | "((a = 1)" | Starved at 8: Expected '+' or ')'.
+a cycle | immediate | "(a = 1))" | NoMatch at 7: Expected '+'.
 a cycle | immediate | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | immediate | "((a= 1))" | accepted
 a cycle | immediate | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | immediate | "((a =1))" | accepted
 a cycle | immediate | "((a = ))" | NoMatch at 6: Expected ['0'..'9'].
-a cycle | immediate | "((a = 1))!" | NoMatch at 9: Expected [' ' | '+'].
-a cycle | immediate | "((a = 1)))" | NoMatch at 9: Expected [' ' | '+'].
+a cycle | immediate | "((a = 1))!" | NoMatch at 9: Expected '+'.
+a cycle | immediate | "((a = 1)))" | NoMatch at 9: Expected '+'.
 a cycle | immediate | "(a" | Starved at 2: Expected '='.
 a cycle | immediate | "(a " | Starved at 3: Expected '='.
 a cycle | immediate | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | immediate | "(a = " | Starved at 5: Expected ['0'..'9'].
 a cycle | immediate | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | immediate | "(a= 1" | Starved at 5: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | immediate | "(a  1" | NoMatch at 4: Expected '='.
-a cycle | immediate | "(a =1" | Starved at 5: Expected [' ' | '+'] or ')'.
-a cycle | immediate | "(a = 1!" | NoMatch at 6: Expected [' ' | '+'] or ')'.
-a cycle | immediate | "(a = 11" | Starved at 7: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "(a =1" | Starved at 5: Expected '+' or ')'.
+a cycle | immediate | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
+a cycle | immediate | "(a = 11" | Starved at 7: Expected '+' or ')'.
 a cycle | immediate | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | immediate | "a= 1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
-a cycle | immediate | "a =1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a =  + (b = 2" | NoMatch at 5: Expected ['0'..'9'].
-a cycle | immediate | "a = 1+ (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a = 1+ (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
-a cycle | immediate | "a = 1 +(b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a = 1 + b = 2" | accepted
 a cycle | immediate | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | immediate | "a = 1 + (b= 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
-a cycle | immediate | "a = 1 + (b =2" | Starved at 13: Expected [' ' | '+'] or ')'.
-a cycle | immediate | "a = 1 + (b = 2!" | NoMatch at 14: Expected [' ' | '+'] or ')'.
-a cycle | immediate | "a = 1 + (b = 22" | Starved at 15: Expected [' ' | '+'] or ')'.
+a cycle | immediate | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
+a cycle | immediate | "a = 1 + (b = 2!" | NoMatch at 14: Expected '+' or ')'.
+a cycle | immediate | "a = 1 + (b = 22" | Starved at 15: Expected '+' or ')'.
 a cycle | engine over tokens | "" | Starved at 0: Expected ['a'..'z' | '('].
 a cycle | engine over tokens | "a" | Starved at 1: Expected '='.
 a cycle | engine over tokens | "a " | Starved at 2: Expected '='.
@@ -658,7 +658,7 @@ a cycle | tape over tokens | "a = 1 + (b" | Starved at 10: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b " | Starved at 11: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b =" | Starved at 12: Expected ['0'..'9'].
 a cycle | tape over tokens | "a = 1 + (b = " | Starved at 13: Expected ['0'..'9'].
-a cycle | tape over tokens | "a = 1 + (b = 2" | Starved at 14: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a = 1 + (b = 2" | Starved at 14: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1 + (b = 2 " | Starved at 15: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1 + (b = 2 +" | Starved at 16: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "a = 1 + (b = 2 + " | Starved at 17: Expected ['a'..'z' | '('].
@@ -666,7 +666,7 @@ a cycle | tape over tokens | "a = 1 + (b = 2 + c" | Starved at 18: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b = 2 + c " | Starved at 19: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | tape over tokens | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
-a cycle | tape over tokens | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
 a cycle | tape over tokens | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | tape over tokens | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | tape over tokens | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
@@ -675,7 +675,7 @@ a cycle | tape over tokens | "a =  + (b = 2 + c = 3)" | NoMatch at 5: Expected [
 a cycle | tape over tokens | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | tape over tokens | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | tape over tokens | "a = 1 +(b = 2 + c = 3)" | accepted
-a cycle | tape over tokens | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected [' ' | '+'].
+a cycle | tape over tokens | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
 a cycle | tape over tokens | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | tape over tokens | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | tape over tokens | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
@@ -689,49 +689,49 @@ a cycle | tape over tokens | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | tape over tokens | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b = 2 + c =3)" | accepted
 a cycle | tape over tokens | "a = 1 + (b = 2 + c = )" | NoMatch at 21: Expected ['0'..'9'].
-a cycle | tape over tokens | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected [' ' | '+'].
-a cycle | tape over tokens | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected [' ' | '+'].
+a cycle | tape over tokens | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected '+'.
+a cycle | tape over tokens | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected '+'.
 a cycle | tape over tokens | "(" | Starved at 1: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "((" | Starved at 2: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "((a" | Starved at 3: Expected '='.
 a cycle | tape over tokens | "((a " | Starved at 4: Expected '='.
 a cycle | tape over tokens | "((a =" | Starved at 5: Expected ['0'..'9'].
 a cycle | tape over tokens | "((a = " | Starved at 6: Expected ['0'..'9'].
-a cycle | tape over tokens | "((a = 1" | Starved at 7: Expected [' ' | '+'] or ')'.
-a cycle | tape over tokens | "((a = 1)" | Starved at 8: Expected [' ' | '+'] or ')'.
-a cycle | tape over tokens | "(a = 1))" | NoMatch at 7: Expected [' ' | '+'].
+a cycle | tape over tokens | "((a = 1" | Starved at 7: Expected '+' or ')'.
+a cycle | tape over tokens | "((a = 1)" | Starved at 8: Expected '+' or ')'.
+a cycle | tape over tokens | "(a = 1))" | NoMatch at 7: Expected '+'.
 a cycle | tape over tokens | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | tape over tokens | "((a= 1))" | accepted
 a cycle | tape over tokens | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | tape over tokens | "((a =1))" | accepted
 a cycle | tape over tokens | "((a = ))" | NoMatch at 6: Expected ['0'..'9'].
-a cycle | tape over tokens | "((a = 1))!" | NoMatch at 9: Expected [' ' | '+'].
-a cycle | tape over tokens | "((a = 1)))" | NoMatch at 9: Expected [' ' | '+'].
+a cycle | tape over tokens | "((a = 1))!" | NoMatch at 9: Expected '+'.
+a cycle | tape over tokens | "((a = 1)))" | NoMatch at 9: Expected '+'.
 a cycle | tape over tokens | "(a" | Starved at 2: Expected '='.
 a cycle | tape over tokens | "(a " | Starved at 3: Expected '='.
 a cycle | tape over tokens | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | tape over tokens | "(a = " | Starved at 5: Expected ['0'..'9'].
 a cycle | tape over tokens | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | tape over tokens | "(a= 1" | Starved at 5: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | tape over tokens | "(a  1" | NoMatch at 4: Expected '='.
-a cycle | tape over tokens | "(a =1" | Starved at 5: Expected [' ' | '+'] or ')'.
-a cycle | tape over tokens | "(a = 1!" | NoMatch at 6: Expected [' ' | '+'] or ')'.
-a cycle | tape over tokens | "(a = 11" | Starved at 7: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "(a =1" | Starved at 5: Expected '+' or ')'.
+a cycle | tape over tokens | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
+a cycle | tape over tokens | "(a = 11" | Starved at 7: Expected '+' or ')'.
 a cycle | tape over tokens | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | tape over tokens | "a= 1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
-a cycle | tape over tokens | "a =1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a =  + (b = 2" | NoMatch at 5: Expected ['0'..'9'].
-a cycle | tape over tokens | "a = 1+ (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a = 1+ (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
-a cycle | tape over tokens | "a = 1 +(b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1 + b = 2" | accepted
 a cycle | tape over tokens | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | tape over tokens | "a = 1 + (b= 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
-a cycle | tape over tokens | "a = 1 + (b =2" | Starved at 13: Expected [' ' | '+'] or ')'.
-a cycle | tape over tokens | "a = 1 + (b = 2!" | NoMatch at 14: Expected [' ' | '+'] or ')'.
-a cycle | tape over tokens | "a = 1 + (b = 22" | Starved at 15: Expected [' ' | '+'] or ')'.
+a cycle | tape over tokens | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
+a cycle | tape over tokens | "a = 1 + (b = 2!" | NoMatch at 14: Expected '+' or ')'.
+a cycle | tape over tokens | "a = 1 + (b = 22" | Starved at 15: Expected '+' or ')'.
 a cycle | immediate over tokens | "" | Starved at 0: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "a" | Starved at 1: Expected '='.
 a cycle | immediate over tokens | "a " | Starved at 2: Expected '='.
@@ -746,7 +746,7 @@ a cycle | immediate over tokens | "a = 1 + (b" | Starved at 10: Expected '='.
 a cycle | immediate over tokens | "a = 1 + (b " | Starved at 11: Expected '='.
 a cycle | immediate over tokens | "a = 1 + (b =" | Starved at 12: Expected ['0'..'9'].
 a cycle | immediate over tokens | "a = 1 + (b = " | Starved at 13: Expected ['0'..'9'].
-a cycle | immediate over tokens | "a = 1 + (b = 2" | Starved at 14: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a = 1 + (b = 2" | Starved at 14: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1 + (b = 2 " | Starved at 15: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1 + (b = 2 +" | Starved at 16: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "a = 1 + (b = 2 + " | Starved at 17: Expected ['a'..'z' | '('].
@@ -754,7 +754,7 @@ a cycle | immediate over tokens | "a = 1 + (b = 2 + c" | Starved at 18: Expected
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c " | Starved at 19: Expected '='.
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
-a cycle | immediate over tokens | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
 a cycle | immediate over tokens | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | immediate over tokens | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | immediate over tokens | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
@@ -763,7 +763,7 @@ a cycle | immediate over tokens | "a =  + (b = 2 + c = 3)" | NoMatch at 5: Expec
 a cycle | immediate over tokens | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | immediate over tokens | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | immediate over tokens | "a = 1 +(b = 2 + c = 3)" | accepted
-a cycle | immediate over tokens | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected [' ' | '+'].
+a cycle | immediate over tokens | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
 a cycle | immediate over tokens | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | immediate over tokens | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | immediate over tokens | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
@@ -777,49 +777,49 @@ a cycle | immediate over tokens | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c =3)" | accepted
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c = )" | NoMatch at 21: Expected ['0'..'9'].
-a cycle | immediate over tokens | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected [' ' | '+'].
-a cycle | immediate over tokens | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected [' ' | '+'].
+a cycle | immediate over tokens | "a = 1 + (b = 2 + c = 3)!" | NoMatch at 23: Expected '+'.
+a cycle | immediate over tokens | "a = 1 + (b = 2 + c = 3))" | NoMatch at 23: Expected '+'.
 a cycle | immediate over tokens | "(" | Starved at 1: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "((" | Starved at 2: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "((a" | Starved at 3: Expected '='.
 a cycle | immediate over tokens | "((a " | Starved at 4: Expected '='.
 a cycle | immediate over tokens | "((a =" | Starved at 5: Expected ['0'..'9'].
 a cycle | immediate over tokens | "((a = " | Starved at 6: Expected ['0'..'9'].
-a cycle | immediate over tokens | "((a = 1" | Starved at 7: Expected [' ' | '+'] or ')'.
-a cycle | immediate over tokens | "((a = 1)" | Starved at 8: Expected [' ' | '+'] or ')'.
-a cycle | immediate over tokens | "(a = 1))" | NoMatch at 7: Expected [' ' | '+'].
+a cycle | immediate over tokens | "((a = 1" | Starved at 7: Expected '+' or ')'.
+a cycle | immediate over tokens | "((a = 1)" | Starved at 8: Expected '+' or ')'.
+a cycle | immediate over tokens | "(a = 1))" | NoMatch at 7: Expected '+'.
 a cycle | immediate over tokens | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
 a cycle | immediate over tokens | "((a= 1))" | accepted
 a cycle | immediate over tokens | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | immediate over tokens | "((a =1))" | accepted
 a cycle | immediate over tokens | "((a = ))" | NoMatch at 6: Expected ['0'..'9'].
-a cycle | immediate over tokens | "((a = 1))!" | NoMatch at 9: Expected [' ' | '+'].
-a cycle | immediate over tokens | "((a = 1)))" | NoMatch at 9: Expected [' ' | '+'].
+a cycle | immediate over tokens | "((a = 1))!" | NoMatch at 9: Expected '+'.
+a cycle | immediate over tokens | "((a = 1)))" | NoMatch at 9: Expected '+'.
 a cycle | immediate over tokens | "(a" | Starved at 2: Expected '='.
 a cycle | immediate over tokens | "(a " | Starved at 3: Expected '='.
 a cycle | immediate over tokens | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | immediate over tokens | "(a = " | Starved at 5: Expected ['0'..'9'].
 a cycle | immediate over tokens | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | immediate over tokens | "(a= 1" | Starved at 5: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | immediate over tokens | "(a  1" | NoMatch at 4: Expected '='.
-a cycle | immediate over tokens | "(a =1" | Starved at 5: Expected [' ' | '+'] or ')'.
-a cycle | immediate over tokens | "(a = 1!" | NoMatch at 6: Expected [' ' | '+'] or ')'.
-a cycle | immediate over tokens | "(a = 11" | Starved at 7: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "(a =1" | Starved at 5: Expected '+' or ')'.
+a cycle | immediate over tokens | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
+a cycle | immediate over tokens | "(a = 11" | Starved at 7: Expected '+' or ')'.
 a cycle | immediate over tokens | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | immediate over tokens | "a= 1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
-a cycle | immediate over tokens | "a =1 + (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a =  + (b = 2" | NoMatch at 5: Expected ['0'..'9'].
-a cycle | immediate over tokens | "a = 1+ (b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a = 1+ (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
-a cycle | immediate over tokens | "a = 1 +(b = 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1 + b = 2" | accepted
 a cycle | immediate over tokens | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
-a cycle | immediate over tokens | "a = 1 + (b= 2" | Starved at 13: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
-a cycle | immediate over tokens | "a = 1 + (b =2" | Starved at 13: Expected [' ' | '+'] or ')'.
-a cycle | immediate over tokens | "a = 1 + (b = 2!" | NoMatch at 14: Expected [' ' | '+'] or ')'.
-a cycle | immediate over tokens | "a = 1 + (b = 22" | Starved at 15: Expected [' ' | '+'] or ')'.
+a cycle | immediate over tokens | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
+a cycle | immediate over tokens | "a = 1 + (b = 2!" | NoMatch at 14: Expected '+' or ')'.
+a cycle | immediate over tokens | "a = 1 + (b = 22" | Starved at 15: Expected '+' or ')'.
 records gathered | engine | "" | Starved at 0: Expected ['a'..'z'].
 records gathered | engine | "a" | accepted
 records gathered | engine | "a," | Starved at 2: Expected ['a'..'z'].
@@ -847,9 +847,9 @@ records gathered | tape | ",b,c" | NoMatch at 0: Expected ['a'..'z'].
 records gathered | tape | "ab,c" | accepted
 records gathered | tape | "a,,c" | NoMatch at 2: Expected ['a'..'z'].
 records gathered | tape | "a,bc" | accepted
-records gathered | tape | "a,b,c!" | NoMatch at 5: Input does not match 'Start'.
+records gathered | tape | "a,b,c!" | NoMatch at 5: Expected ','.
 records gathered | tape | "a,b,cc" | accepted
-records gathered | tape | "a!" | NoMatch at 1: Input does not match 'Start'.
+records gathered | tape | "a!" | NoMatch at 1: Expected ','.
 records gathered | tape | "aa" | accepted
 records gathered | tape | "," | NoMatch at 0: Expected ['a'..'z'].
 records gathered | tape | "a,!" | NoMatch at 2: Expected ['a'..'z'].
@@ -865,9 +865,9 @@ records gathered | immediate | ",b,c" | NoMatch at 0: Expected ['a'..'z'].
 records gathered | immediate | "ab,c" | accepted
 records gathered | immediate | "a,,c" | NoMatch at 2: Expected ['a'..'z'].
 records gathered | immediate | "a,bc" | accepted
-records gathered | immediate | "a,b,c!" | NoMatch at 5: Input does not match 'Start'.
+records gathered | immediate | "a,b,c!" | NoMatch at 5: Expected ','.
 records gathered | immediate | "a,b,cc" | accepted
-records gathered | immediate | "a!" | NoMatch at 1: Input does not match 'Start'.
+records gathered | immediate | "a!" | NoMatch at 1: Expected ','.
 records gathered | immediate | "aa" | accepted
 records gathered | immediate | "," | NoMatch at 0: Expected ['a'..'z'].
 records gathered | immediate | "a,!" | NoMatch at 2: Expected ['a'..'z'].
@@ -899,7 +899,7 @@ text gathered | engine | "a,,cd" | NoMatch at 2: Expected ['a'..'z'].
 text gathered | engine | "ab,,d" | NoMatch at 3: Expected ['a'..'z'].
 text gathered | engine | "ab,,cd!" | NoMatch at 3: Expected ['a'..'z'].
 text gathered | engine | "ab,,cdd" | NoMatch at 3: Expected ['a'..'z'].
-text gathered | tape | "" | Starved at 0: Expected parts: ['a'..'z']+ & ','?.
+text gathered | tape | "" | Starved at 0: Expected ['a'..'z'].
 text gathered | tape | "a" | accepted
 text gathered | tape | "ab" | accepted
 text gathered | tape | "ab," | accepted
@@ -912,19 +912,19 @@ text gathered | tape | "abcd,e" | accepted
 text gathered | tape | "ab,d,e" | accepted
 text gathered | tape | "ab,c,e" | accepted
 text gathered | tape | "ab,cde" | accepted
-text gathered | tape | "ab,cd,e!" | NoMatch at 7: Input does not match 'Start'.
+text gathered | tape | "ab,cd,e!" | NoMatch at 7: Expected ['a'..'z'].
 text gathered | tape | "ab,cd,ee" | accepted
 text gathered | tape | "b" | accepted
-text gathered | tape | "ab!" | NoMatch at 2: Input does not match 'Start'.
+text gathered | tape | "ab!" | NoMatch at 2: Expected ['a'..'z'].
 text gathered | tape | "abb" | accepted
-text gathered | tape | "ab,," | NoMatch at 3: Input does not match 'Start'.
-text gathered | tape | "ab,,c" | NoMatch at 3: Input does not match 'Start'.
-text gathered | tape | "b,,cd" | NoMatch at 2: Input does not match 'Start'.
-text gathered | tape | "a,,cd" | NoMatch at 2: Input does not match 'Start'.
-text gathered | tape | "ab,,d" | NoMatch at 3: Input does not match 'Start'.
-text gathered | tape | "ab,,cd!" | NoMatch at 3: Input does not match 'Start'.
-text gathered | tape | "ab,,cdd" | NoMatch at 3: Input does not match 'Start'.
-text gathered | immediate | "" | Starved at 0: Expected parts: ['a'..'z']+ & ','?.
+text gathered | tape | "ab,," | NoMatch at 3: Expected ['a'..'z'].
+text gathered | tape | "ab,,c" | NoMatch at 3: Expected ['a'..'z'].
+text gathered | tape | "b,,cd" | NoMatch at 2: Expected ['a'..'z'].
+text gathered | tape | "a,,cd" | NoMatch at 2: Expected ['a'..'z'].
+text gathered | tape | "ab,,d" | NoMatch at 3: Expected ['a'..'z'].
+text gathered | tape | "ab,,cd!" | NoMatch at 3: Expected ['a'..'z'].
+text gathered | tape | "ab,,cdd" | NoMatch at 3: Expected ['a'..'z'].
+text gathered | immediate | "" | Starved at 0: Expected ['a'..'z'].
 text gathered | immediate | "a" | accepted
 text gathered | immediate | "ab" | accepted
 text gathered | immediate | "ab," | accepted
@@ -937,18 +937,18 @@ text gathered | immediate | "abcd,e" | accepted
 text gathered | immediate | "ab,d,e" | accepted
 text gathered | immediate | "ab,c,e" | accepted
 text gathered | immediate | "ab,cde" | accepted
-text gathered | immediate | "ab,cd,e!" | NoMatch at 7: Input does not match 'Start'.
+text gathered | immediate | "ab,cd,e!" | NoMatch at 7: Expected ['a'..'z'].
 text gathered | immediate | "ab,cd,ee" | accepted
 text gathered | immediate | "b" | accepted
-text gathered | immediate | "ab!" | NoMatch at 2: Input does not match 'Start'.
+text gathered | immediate | "ab!" | NoMatch at 2: Expected ['a'..'z'].
 text gathered | immediate | "abb" | accepted
-text gathered | immediate | "ab,," | NoMatch at 3: Input does not match 'Start'.
-text gathered | immediate | "ab,,c" | NoMatch at 3: Input does not match 'Start'.
-text gathered | immediate | "b,,cd" | NoMatch at 2: Input does not match 'Start'.
-text gathered | immediate | "a,,cd" | NoMatch at 2: Input does not match 'Start'.
-text gathered | immediate | "ab,,d" | NoMatch at 3: Input does not match 'Start'.
-text gathered | immediate | "ab,,cd!" | NoMatch at 3: Input does not match 'Start'.
-text gathered | immediate | "ab,,cdd" | NoMatch at 3: Input does not match 'Start'.
+text gathered | immediate | "ab,," | NoMatch at 3: Expected ['a'..'z'].
+text gathered | immediate | "ab,,c" | NoMatch at 3: Expected ['a'..'z'].
+text gathered | immediate | "b,,cd" | NoMatch at 2: Expected ['a'..'z'].
+text gathered | immediate | "a,,cd" | NoMatch at 2: Expected ['a'..'z'].
+text gathered | immediate | "ab,,d" | NoMatch at 3: Expected ['a'..'z'].
+text gathered | immediate | "ab,,cd!" | NoMatch at 3: Expected ['a'..'z'].
+text gathered | immediate | "ab,,cdd" | NoMatch at 3: Expected ['a'..'z'].
 an extent | engine | "" | Starved at 0: Expected ['a'..'z'].
 an extent | engine | "a" | Starved at 1: Expected '='.
 an extent | engine | "ab" | Starved at 2: Expected '='.
@@ -1013,7 +1013,7 @@ an extent | tape | "b=cd" | accepted
 an extent | tape | "a=cd" | accepted
 an extent | tape | "abcd" | Starved at 4: Expected '='.
 an extent | tape | "ab=d" | accepted
-an extent | tape | "ab=cd!" | NoMatch at 5: Input does not match 'Start'.
+an extent | tape | "ab=cd!" | NoMatch at 5: Expected ','.
 an extent | tape | "ab=cdd" | accepted
 an extent | tape | "ab " | Starved at 3: Expected '='.
 an extent | tape | "ab =" | Starved at 4: Expected ['a'..'z'].
@@ -1045,7 +1045,7 @@ an extent | tape | "ab = cd , ef= gh" | accepted
 an extent | tape | "ab = cd , ef  gh" | NoMatch at 14: Expected '='.
 an extent | tape | "ab = cd , ef =gh" | accepted
 an extent | tape | "ab = cd , ef = h" | accepted
-an extent | tape | "ab = cd , ef = gh!" | NoMatch at 17: Input does not match 'Start'.
+an extent | tape | "ab = cd , ef = gh!" | NoMatch at 17: Expected ','.
 an extent | tape | "ab = cd , ef = ghh" | accepted
 an extent | tape | "b=" | Starved at 2: Expected ['a'..'z'].
 an extent | tape | "a=" | Starved at 2: Expected ['a'..'z'].
@@ -1068,7 +1068,7 @@ an extent | immediate | "b=cd" | accepted
 an extent | immediate | "a=cd" | accepted
 an extent | immediate | "abcd" | Starved at 4: Expected '='.
 an extent | immediate | "ab=d" | accepted
-an extent | immediate | "ab=cd!" | NoMatch at 5: Input does not match 'Start'.
+an extent | immediate | "ab=cd!" | NoMatch at 5: Expected ','.
 an extent | immediate | "ab=cdd" | accepted
 an extent | immediate | "ab " | Starved at 3: Expected '='.
 an extent | immediate | "ab =" | Starved at 4: Expected ['a'..'z'].
@@ -1100,7 +1100,7 @@ an extent | immediate | "ab = cd , ef= gh" | accepted
 an extent | immediate | "ab = cd , ef  gh" | NoMatch at 14: Expected '='.
 an extent | immediate | "ab = cd , ef =gh" | accepted
 an extent | immediate | "ab = cd , ef = h" | accepted
-an extent | immediate | "ab = cd , ef = gh!" | NoMatch at 17: Input does not match 'Start'.
+an extent | immediate | "ab = cd , ef = gh!" | NoMatch at 17: Expected ','.
 an extent | immediate | "ab = cd , ef = ghh" | accepted
 an extent | immediate | "b=" | Starved at 2: Expected ['a'..'z'].
 an extent | immediate | "a=" | Starved at 2: Expected ['a'..'z'].
@@ -1178,7 +1178,7 @@ an extent | tape over tokens | "b=cd" | accepted
 an extent | tape over tokens | "a=cd" | accepted
 an extent | tape over tokens | "abcd" | Starved at 4: Expected '='.
 an extent | tape over tokens | "ab=d" | accepted
-an extent | tape over tokens | "ab=cd!" | NoMatch at 5: Input does not match 'Start'.
+an extent | tape over tokens | "ab=cd!" | NoMatch at 5: Expected ','.
 an extent | tape over tokens | "ab=cdd" | accepted
 an extent | tape over tokens | "ab " | Starved at 3: Expected '='.
 an extent | tape over tokens | "ab =" | Starved at 4: Expected ['a'..'z'].
@@ -1210,7 +1210,7 @@ an extent | tape over tokens | "ab = cd , ef= gh" | accepted
 an extent | tape over tokens | "ab = cd , ef  gh" | NoMatch at 14: Expected '='.
 an extent | tape over tokens | "ab = cd , ef =gh" | accepted
 an extent | tape over tokens | "ab = cd , ef = h" | accepted
-an extent | tape over tokens | "ab = cd , ef = gh!" | NoMatch at 17: Input does not match 'Start'.
+an extent | tape over tokens | "ab = cd , ef = gh!" | NoMatch at 17: Expected ','.
 an extent | tape over tokens | "ab = cd , ef = ghh" | accepted
 an extent | tape over tokens | "b=" | Starved at 2: Expected ['a'..'z'].
 an extent | tape over tokens | "a=" | Starved at 2: Expected ['a'..'z'].
@@ -1233,7 +1233,7 @@ an extent | immediate over tokens | "b=cd" | accepted
 an extent | immediate over tokens | "a=cd" | accepted
 an extent | immediate over tokens | "abcd" | Starved at 4: Expected '='.
 an extent | immediate over tokens | "ab=d" | accepted
-an extent | immediate over tokens | "ab=cd!" | NoMatch at 5: Input does not match 'Start'.
+an extent | immediate over tokens | "ab=cd!" | NoMatch at 5: Expected ','.
 an extent | immediate over tokens | "ab=cdd" | accepted
 an extent | immediate over tokens | "ab " | Starved at 3: Expected '='.
 an extent | immediate over tokens | "ab =" | Starved at 4: Expected ['a'..'z'].
@@ -1265,7 +1265,7 @@ an extent | immediate over tokens | "ab = cd , ef= gh" | accepted
 an extent | immediate over tokens | "ab = cd , ef  gh" | NoMatch at 14: Expected '='.
 an extent | immediate over tokens | "ab = cd , ef =gh" | accepted
 an extent | immediate over tokens | "ab = cd , ef = h" | accepted
-an extent | immediate over tokens | "ab = cd , ef = gh!" | NoMatch at 17: Input does not match 'Start'.
+an extent | immediate over tokens | "ab = cd , ef = gh!" | NoMatch at 17: Expected ','.
 an extent | immediate over tokens | "ab = cd , ef = ghh" | accepted
 an extent | immediate over tokens | "b=" | Starved at 2: Expected ['a'..'z'].
 an extent | immediate over tokens | "a=" | Starved at 2: Expected ['a'..'z'].
@@ -1451,7 +1451,7 @@ two captures of one folding rule | engine | "a=" | Starved at 2: Expected ['a'..
 two captures of one folding rule | engine | "a =!" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | engine | "a ==" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape | "" | Starved at 0: Expected ['a'..'z'].
-two captures of one folding rule | tape | "a" | Starved at 1: Expected [' ' | '+'] or '='.
+two captures of one folding rule | tape | "a" | Starved at 1: Expected '+' or '='.
 two captures of one folding rule | tape | "a " | Starved at 2: Expected '+' or '='.
 two captures of one folding rule | tape | "a =" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape | "a = " | Starved at 4: Expected ['a'..'z'].
@@ -1459,11 +1459,11 @@ two captures of one folding rule | tape | " = b" | NoMatch at 1: Expected ['a'..
 two captures of one folding rule | tape | "a= b" | accepted
 two captures of one folding rule | tape | "a  b" | NoMatch at 3: Expected '+' or '='.
 two captures of one folding rule | tape | "a =b" | accepted
-two captures of one folding rule | tape | "a = b!" | NoMatch at 5: Expected [' ' | '+'].
+two captures of one folding rule | tape | "a = b!" | NoMatch at 5: Expected '+'.
 two captures of one folding rule | tape | "a = bb" | accepted
 two captures of one folding rule | tape | "a +" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape | "a + " | Starved at 4: Expected ['a'..'z'].
-two captures of one folding rule | tape | "a + b" | Starved at 5: Expected [' ' | '+'] or '='.
+two captures of one folding rule | tape | "a + b" | Starved at 5: Expected '+' or '='.
 two captures of one folding rule | tape | "a + b " | Starved at 6: Expected '+' or '='.
 two captures of one folding rule | tape | "a + b =" | Starved at 7: Expected ['a'..'z'].
 two captures of one folding rule | tape | "a + b = " | Starved at 8: Expected ['a'..'z'].
@@ -1475,7 +1475,7 @@ two captures of one folding rule | tape | "a +  = c" | NoMatch at 5: Expected ['
 two captures of one folding rule | tape | "a + b= c" | accepted
 two captures of one folding rule | tape | "a + b  c" | NoMatch at 7: Expected '+' or '='.
 two captures of one folding rule | tape | "a + b =c" | accepted
-two captures of one folding rule | tape | "a + b = c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | tape | "a + b = c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | tape | "a + b = cc" | accepted
 two captures of one folding rule | tape | "a = b" | accepted
 two captures of one folding rule | tape | "a = b " | accepted
@@ -1489,7 +1489,7 @@ two captures of one folding rule | tape | "a =  + c" | NoMatch at 5: Expected ['
 two captures of one folding rule | tape | "a = b+ c" | accepted
 two captures of one folding rule | tape | "a = b  c" | NoMatch at 7: Expected '+'.
 two captures of one folding rule | tape | "a = b +c" | accepted
-two captures of one folding rule | tape | "a = b + c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | tape | "a = b + c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | tape | "a = b + cc" | accepted
 two captures of one folding rule | tape | "a + b = c" | accepted
 two captures of one folding rule | tape | "a + b = c " | accepted
@@ -1507,14 +1507,14 @@ two captures of one folding rule | tape | "a + b =  + d" | NoMatch at 9: Expecte
 two captures of one folding rule | tape | "a + b = c+ d" | accepted
 two captures of one folding rule | tape | "a + b = c  d" | NoMatch at 11: Expected '+'.
 two captures of one folding rule | tape | "a + b = c +d" | accepted
-two captures of one folding rule | tape | "a + b = c + d!" | NoMatch at 13: Expected [' ' | '+'].
+two captures of one folding rule | tape | "a + b = c + d!" | NoMatch at 13: Expected '+'.
 two captures of one folding rule | tape | "a + b = c + dd" | accepted
 two captures of one folding rule | tape | " =" | NoMatch at 1: Expected ['a'..'z'].
 two captures of one folding rule | tape | "a=" | Starved at 2: Expected ['a'..'z'].
 two captures of one folding rule | tape | "a =!" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape | "a ==" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | immediate | "" | Starved at 0: Expected ['a'..'z'].
-two captures of one folding rule | immediate | "a" | Starved at 1: Expected [' ' | '+'] or '='.
+two captures of one folding rule | immediate | "a" | Starved at 1: Expected '+' or '='.
 two captures of one folding rule | immediate | "a " | Starved at 2: Expected '+' or '='.
 two captures of one folding rule | immediate | "a =" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | immediate | "a = " | Starved at 4: Expected ['a'..'z'].
@@ -1522,11 +1522,11 @@ two captures of one folding rule | immediate | " = b" | NoMatch at 1: Expected [
 two captures of one folding rule | immediate | "a= b" | accepted
 two captures of one folding rule | immediate | "a  b" | NoMatch at 3: Expected '+' or '='.
 two captures of one folding rule | immediate | "a =b" | accepted
-two captures of one folding rule | immediate | "a = b!" | NoMatch at 5: Expected [' ' | '+'].
+two captures of one folding rule | immediate | "a = b!" | NoMatch at 5: Expected '+'.
 two captures of one folding rule | immediate | "a = bb" | accepted
 two captures of one folding rule | immediate | "a +" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | immediate | "a + " | Starved at 4: Expected ['a'..'z'].
-two captures of one folding rule | immediate | "a + b" | Starved at 5: Expected [' ' | '+'] or '='.
+two captures of one folding rule | immediate | "a + b" | Starved at 5: Expected '+' or '='.
 two captures of one folding rule | immediate | "a + b " | Starved at 6: Expected '+' or '='.
 two captures of one folding rule | immediate | "a + b =" | Starved at 7: Expected ['a'..'z'].
 two captures of one folding rule | immediate | "a + b = " | Starved at 8: Expected ['a'..'z'].
@@ -1538,7 +1538,7 @@ two captures of one folding rule | immediate | "a +  = c" | NoMatch at 5: Expect
 two captures of one folding rule | immediate | "a + b= c" | accepted
 two captures of one folding rule | immediate | "a + b  c" | NoMatch at 7: Expected '+' or '='.
 two captures of one folding rule | immediate | "a + b =c" | accepted
-two captures of one folding rule | immediate | "a + b = c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | immediate | "a + b = c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | immediate | "a + b = cc" | accepted
 two captures of one folding rule | immediate | "a = b" | accepted
 two captures of one folding rule | immediate | "a = b " | accepted
@@ -1552,7 +1552,7 @@ two captures of one folding rule | immediate | "a =  + c" | NoMatch at 5: Expect
 two captures of one folding rule | immediate | "a = b+ c" | accepted
 two captures of one folding rule | immediate | "a = b  c" | NoMatch at 7: Expected '+'.
 two captures of one folding rule | immediate | "a = b +c" | accepted
-two captures of one folding rule | immediate | "a = b + c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | immediate | "a = b + c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | immediate | "a = b + cc" | accepted
 two captures of one folding rule | immediate | "a + b = c" | accepted
 two captures of one folding rule | immediate | "a + b = c " | accepted
@@ -1570,7 +1570,7 @@ two captures of one folding rule | immediate | "a + b =  + d" | NoMatch at 9: Ex
 two captures of one folding rule | immediate | "a + b = c+ d" | accepted
 two captures of one folding rule | immediate | "a + b = c  d" | NoMatch at 11: Expected '+'.
 two captures of one folding rule | immediate | "a + b = c +d" | accepted
-two captures of one folding rule | immediate | "a + b = c + d!" | NoMatch at 13: Expected [' ' | '+'].
+two captures of one folding rule | immediate | "a + b = c + d!" | NoMatch at 13: Expected '+'.
 two captures of one folding rule | immediate | "a + b = c + dd" | accepted
 two captures of one folding rule | immediate | " =" | NoMatch at 1: Expected ['a'..'z'].
 two captures of one folding rule | immediate | "a=" | Starved at 2: Expected ['a'..'z'].
@@ -1640,7 +1640,7 @@ two captures of one folding rule | engine over tokens | "a=" | Starved at 2: Exp
 two captures of one folding rule | engine over tokens | "a =!" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | engine over tokens | "a ==" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape over tokens | "" | Starved at 0: Expected ['a'..'z'].
-two captures of one folding rule | tape over tokens | "a" | Starved at 1: Expected [' ' | '+'] or '='.
+two captures of one folding rule | tape over tokens | "a" | Starved at 1: Expected '+' or '='.
 two captures of one folding rule | tape over tokens | "a " | Starved at 2: Expected '+' or '='.
 two captures of one folding rule | tape over tokens | "a =" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape over tokens | "a = " | Starved at 4: Expected ['a'..'z'].
@@ -1648,11 +1648,11 @@ two captures of one folding rule | tape over tokens | " = b" | NoMatch at 1: Exp
 two captures of one folding rule | tape over tokens | "a= b" | accepted
 two captures of one folding rule | tape over tokens | "a  b" | NoMatch at 3: Expected '+' or '='.
 two captures of one folding rule | tape over tokens | "a =b" | accepted
-two captures of one folding rule | tape over tokens | "a = b!" | NoMatch at 5: Expected [' ' | '+'].
+two captures of one folding rule | tape over tokens | "a = b!" | NoMatch at 5: Expected '+'.
 two captures of one folding rule | tape over tokens | "a = bb" | accepted
 two captures of one folding rule | tape over tokens | "a +" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape over tokens | "a + " | Starved at 4: Expected ['a'..'z'].
-two captures of one folding rule | tape over tokens | "a + b" | Starved at 5: Expected [' ' | '+'] or '='.
+two captures of one folding rule | tape over tokens | "a + b" | Starved at 5: Expected '+' or '='.
 two captures of one folding rule | tape over tokens | "a + b " | Starved at 6: Expected '+' or '='.
 two captures of one folding rule | tape over tokens | "a + b =" | Starved at 7: Expected ['a'..'z'].
 two captures of one folding rule | tape over tokens | "a + b = " | Starved at 8: Expected ['a'..'z'].
@@ -1664,7 +1664,7 @@ two captures of one folding rule | tape over tokens | "a +  = c" | NoMatch at 5:
 two captures of one folding rule | tape over tokens | "a + b= c" | accepted
 two captures of one folding rule | tape over tokens | "a + b  c" | NoMatch at 7: Expected '+' or '='.
 two captures of one folding rule | tape over tokens | "a + b =c" | accepted
-two captures of one folding rule | tape over tokens | "a + b = c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | tape over tokens | "a + b = c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | tape over tokens | "a + b = cc" | accepted
 two captures of one folding rule | tape over tokens | "a = b" | accepted
 two captures of one folding rule | tape over tokens | "a = b " | accepted
@@ -1678,7 +1678,7 @@ two captures of one folding rule | tape over tokens | "a =  + c" | NoMatch at 5:
 two captures of one folding rule | tape over tokens | "a = b+ c" | accepted
 two captures of one folding rule | tape over tokens | "a = b  c" | NoMatch at 7: Expected '+'.
 two captures of one folding rule | tape over tokens | "a = b +c" | accepted
-two captures of one folding rule | tape over tokens | "a = b + c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | tape over tokens | "a = b + c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | tape over tokens | "a = b + cc" | accepted
 two captures of one folding rule | tape over tokens | "a + b = c" | accepted
 two captures of one folding rule | tape over tokens | "a + b = c " | accepted
@@ -1696,14 +1696,14 @@ two captures of one folding rule | tape over tokens | "a + b =  + d" | NoMatch a
 two captures of one folding rule | tape over tokens | "a + b = c+ d" | accepted
 two captures of one folding rule | tape over tokens | "a + b = c  d" | NoMatch at 11: Expected '+'.
 two captures of one folding rule | tape over tokens | "a + b = c +d" | accepted
-two captures of one folding rule | tape over tokens | "a + b = c + d!" | NoMatch at 13: Expected [' ' | '+'].
+two captures of one folding rule | tape over tokens | "a + b = c + d!" | NoMatch at 13: Expected '+'.
 two captures of one folding rule | tape over tokens | "a + b = c + dd" | accepted
 two captures of one folding rule | tape over tokens | " =" | NoMatch at 1: Expected ['a'..'z'].
 two captures of one folding rule | tape over tokens | "a=" | Starved at 2: Expected ['a'..'z'].
 two captures of one folding rule | tape over tokens | "a =!" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | tape over tokens | "a ==" | NoMatch at 3: Expected ['a'..'z'].
 two captures of one folding rule | immediate over tokens | "" | Starved at 0: Expected ['a'..'z'].
-two captures of one folding rule | immediate over tokens | "a" | Starved at 1: Expected [' ' | '+'] or '='.
+two captures of one folding rule | immediate over tokens | "a" | Starved at 1: Expected '+' or '='.
 two captures of one folding rule | immediate over tokens | "a " | Starved at 2: Expected '+' or '='.
 two captures of one folding rule | immediate over tokens | "a =" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | immediate over tokens | "a = " | Starved at 4: Expected ['a'..'z'].
@@ -1711,11 +1711,11 @@ two captures of one folding rule | immediate over tokens | " = b" | NoMatch at 1
 two captures of one folding rule | immediate over tokens | "a= b" | accepted
 two captures of one folding rule | immediate over tokens | "a  b" | NoMatch at 3: Expected '+' or '='.
 two captures of one folding rule | immediate over tokens | "a =b" | accepted
-two captures of one folding rule | immediate over tokens | "a = b!" | NoMatch at 5: Expected [' ' | '+'].
+two captures of one folding rule | immediate over tokens | "a = b!" | NoMatch at 5: Expected '+'.
 two captures of one folding rule | immediate over tokens | "a = bb" | accepted
 two captures of one folding rule | immediate over tokens | "a +" | Starved at 3: Expected ['a'..'z'].
 two captures of one folding rule | immediate over tokens | "a + " | Starved at 4: Expected ['a'..'z'].
-two captures of one folding rule | immediate over tokens | "a + b" | Starved at 5: Expected [' ' | '+'] or '='.
+two captures of one folding rule | immediate over tokens | "a + b" | Starved at 5: Expected '+' or '='.
 two captures of one folding rule | immediate over tokens | "a + b " | Starved at 6: Expected '+' or '='.
 two captures of one folding rule | immediate over tokens | "a + b =" | Starved at 7: Expected ['a'..'z'].
 two captures of one folding rule | immediate over tokens | "a + b = " | Starved at 8: Expected ['a'..'z'].
@@ -1727,7 +1727,7 @@ two captures of one folding rule | immediate over tokens | "a +  = c" | NoMatch 
 two captures of one folding rule | immediate over tokens | "a + b= c" | accepted
 two captures of one folding rule | immediate over tokens | "a + b  c" | NoMatch at 7: Expected '+' or '='.
 two captures of one folding rule | immediate over tokens | "a + b =c" | accepted
-two captures of one folding rule | immediate over tokens | "a + b = c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | immediate over tokens | "a + b = c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | immediate over tokens | "a + b = cc" | accepted
 two captures of one folding rule | immediate over tokens | "a = b" | accepted
 two captures of one folding rule | immediate over tokens | "a = b " | accepted
@@ -1741,7 +1741,7 @@ two captures of one folding rule | immediate over tokens | "a =  + c" | NoMatch 
 two captures of one folding rule | immediate over tokens | "a = b+ c" | accepted
 two captures of one folding rule | immediate over tokens | "a = b  c" | NoMatch at 7: Expected '+'.
 two captures of one folding rule | immediate over tokens | "a = b +c" | accepted
-two captures of one folding rule | immediate over tokens | "a = b + c!" | NoMatch at 9: Expected [' ' | '+'].
+two captures of one folding rule | immediate over tokens | "a = b + c!" | NoMatch at 9: Expected '+'.
 two captures of one folding rule | immediate over tokens | "a = b + cc" | accepted
 two captures of one folding rule | immediate over tokens | "a + b = c" | accepted
 two captures of one folding rule | immediate over tokens | "a + b = c " | accepted
@@ -1759,7 +1759,7 @@ two captures of one folding rule | immediate over tokens | "a + b =  + d" | NoMa
 two captures of one folding rule | immediate over tokens | "a + b = c+ d" | accepted
 two captures of one folding rule | immediate over tokens | "a + b = c  d" | NoMatch at 11: Expected '+'.
 two captures of one folding rule | immediate over tokens | "a + b = c +d" | accepted
-two captures of one folding rule | immediate over tokens | "a + b = c + d!" | NoMatch at 13: Expected [' ' | '+'].
+two captures of one folding rule | immediate over tokens | "a + b = c + d!" | NoMatch at 13: Expected '+'.
 two captures of one folding rule | immediate over tokens | "a + b = c + dd" | accepted
 two captures of one folding rule | immediate over tokens | " =" | NoMatch at 1: Expected ['a'..'z'].
 two captures of one folding rule | immediate over tokens | "a=" | Starved at 2: Expected ['a'..'z'].
@@ -1984,10 +1984,10 @@ a rule that builds two ways | tape | "12b" | accepted
 a rule that builds two ways | tape | "12ab!" | NoMatch at 4: Input does not match 'Start'.
 a rule that builds two ways | tape | "12abb" | accepted
 a rule that builds two ways | tape | "b" | accepted
-a rule that builds two ways | tape | "ab!" | NoMatch at 2: Input does not match 'Start'.
+a rule that builds two ways | tape | "ab!" | NoMatch at 2: Expected ['0'..'9'].
 a rule that builds two ways | tape | "abb" | accepted
 a rule that builds two ways | tape | "2" | accepted
-a rule that builds two ways | tape | "12!" | NoMatch at 2: Input does not match 'Start'.
+a rule that builds two ways | tape | "12!" | NoMatch at 2: Expected ['a'..'z'].
 a rule that builds two ways | tape | "122" | accepted
 a rule that builds two ways | tape | "1a" | accepted
 a rule that builds two ways | tape | "a2" | accepted
@@ -2011,10 +2011,10 @@ a rule that builds two ways | immediate | "12b" | accepted
 a rule that builds two ways | immediate | "12ab!" | NoMatch at 4: Input does not match 'Start'.
 a rule that builds two ways | immediate | "12abb" | accepted
 a rule that builds two ways | immediate | "b" | accepted
-a rule that builds two ways | immediate | "ab!" | NoMatch at 2: Input does not match 'Start'.
+a rule that builds two ways | immediate | "ab!" | NoMatch at 2: Expected ['0'..'9'].
 a rule that builds two ways | immediate | "abb" | accepted
 a rule that builds two ways | immediate | "2" | accepted
-a rule that builds two ways | immediate | "12!" | NoMatch at 2: Input does not match 'Start'.
+a rule that builds two ways | immediate | "12!" | NoMatch at 2: Expected ['a'..'z'].
 a rule that builds two ways | immediate | "122" | accepted
 a rule that builds two ways | immediate | "1a" | accepted
 a rule that builds two ways | immediate | "a2" | accepted
@@ -2046,7 +2046,7 @@ a member that may be missing | tape | "ab2" | accepted
 a member that may be missing | tape | "ab12!" | NoMatch at 4: Input does not match 'Start'.
 a member that may be missing | tape | "ab122" | accepted
 a member that may be missing | tape | "b" | accepted
-a member that may be missing | tape | "ab!" | NoMatch at 2: Input does not match 'Start'.
+a member that may be missing | tape | "ab!" | NoMatch at 2: Expected ['0'..'9'].
 a member that may be missing | tape | "abb" | accepted
 a member that may be missing | tape | "1" | NoMatch at 0: Expected ['a'..'z'].
 a member that may be missing | tape | "2" | NoMatch at 0: Expected ['a'..'z'].
@@ -2062,7 +2062,7 @@ a member that may be missing | immediate | "ab2" | accepted
 a member that may be missing | immediate | "ab12!" | NoMatch at 4: Input does not match 'Start'.
 a member that may be missing | immediate | "ab122" | accepted
 a member that may be missing | immediate | "b" | accepted
-a member that may be missing | immediate | "ab!" | NoMatch at 2: Input does not match 'Start'.
+a member that may be missing | immediate | "ab!" | NoMatch at 2: Expected ['0'..'9'].
 a member that may be missing | immediate | "abb" | accepted
 a member that may be missing | immediate | "1" | NoMatch at 0: Expected ['a'..'z'].
 a member that may be missing | immediate | "2" | NoMatch at 0: Expected ['a'..'z'].
@@ -2386,6 +2386,345 @@ a rule that says what it is | immediate over tokens | "abcd" | Starved at 4: Exp
 a rule that says what it is | immediate over tokens | "ab,d" | accepted
 a rule that says what it is | immediate over tokens | "ab,cd!" | NoMatch at 5: Input does not match 'Start'.
 a rule that says what it is | immediate over tokens | "ab,cdd" | accepted
+turns before the end | engine | "" | Starved at 0: Expected '['.
+turns before the end | engine | "[" | accepted
+turns before the end | engine | "[b" | Starved at 2: Expected ';'.
+turns before the end | engine | "[b;" | accepted
+turns before the end | engine | "[b;b" | Starved at 4: Expected ';'.
+turns before the end | engine | "b;b;" | NoMatch at 0: Expected '['.
+turns before the end | engine | "[;b;" | NoMatch at 1: Expected eof.
+turns before the end | engine | "[bb;" | NoMatch at 2: Expected ';'.
+turns before the end | engine | "[b;;" | NoMatch at 3: Expected 'b' or eof.
+turns before the end | engine | "[b;b;!" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | engine | "[b;b;;" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | engine | "[ " | accepted
+turns before the end | engine | "[ b" | Starved at 3: Expected ';'.
+turns before the end | engine | "[ b " | Starved at 4: Expected ';'.
+turns before the end | engine | "[ b ;" | accepted
+turns before the end | engine | "[ b ; " | accepted
+turns before the end | engine | "[ b ; b" | Starved at 7: Expected ';'.
+turns before the end | engine | "[ b ; b " | Starved at 8: Expected ';'.
+turns before the end | engine | "[ b ; b ;" | accepted
+turns before the end | engine | " b ; b ; " | NoMatch at 1: Expected '['.
+turns before the end | engine | "[b ; b ; " | accepted
+turns before the end | engine | "[  ; b ; " | NoMatch at 3: Expected eof or 'b'.
+turns before the end | engine | "[ b; b ; " | accepted
+turns before the end | engine | "[ b  b ; " | NoMatch at 5: Expected ';'.
+turns before the end | engine | "[ b ;b ; " | accepted
+turns before the end | engine | "[ b ;  ; " | NoMatch at 7: Expected 'b' or eof.
+turns before the end | engine | "[ b ; b; " | accepted
+turns before the end | engine | "[ b ; b  " | Starved at 9: Expected ';'.
+turns before the end | engine | "[ b ; b ; !" | NoMatch at 10: Expected 'b' or eof.
+turns before the end | engine | "[ b ; b ;  " | accepted
+turns before the end | engine | "[!" | NoMatch at 1: Expected eof.
+turns before the end | engine | "[[" | NoMatch at 1: Expected eof.
+turns before the end | tape | "" | Starved at 0: Expected '['.
+turns before the end | tape | "[" | accepted
+turns before the end | tape | "[b" | Starved at 2: Expected ';'.
+turns before the end | tape | "[b;" | accepted
+turns before the end | tape | "[b;b" | Starved at 4: Expected ';'.
+turns before the end | tape | "b;b;" | NoMatch at 0: Expected '['.
+turns before the end | tape | "[;b;" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | tape | "[bb;" | NoMatch at 2: Expected ';'.
+turns before the end | tape | "[b;;" | NoMatch at 3: Expected 'b' or eof.
+turns before the end | tape | "[b;b;!" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | tape | "[b;b;;" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | tape | "[ " | accepted
+turns before the end | tape | "[ b" | Starved at 3: Expected ';'.
+turns before the end | tape | "[ b " | Starved at 4: Expected ';'.
+turns before the end | tape | "[ b ;" | accepted
+turns before the end | tape | "[ b ; " | accepted
+turns before the end | tape | "[ b ; b" | Starved at 7: Expected ';'.
+turns before the end | tape | "[ b ; b " | Starved at 8: Expected ';'.
+turns before the end | tape | "[ b ; b ;" | accepted
+turns before the end | tape | " b ; b ; " | NoMatch at 1: Expected '['.
+turns before the end | tape | "[b ; b ; " | accepted
+turns before the end | tape | "[  ; b ; " | NoMatch at 3: Expected 'b' or eof.
+turns before the end | tape | "[ b; b ; " | accepted
+turns before the end | tape | "[ b  b ; " | NoMatch at 5: Expected ';'.
+turns before the end | tape | "[ b ;b ; " | accepted
+turns before the end | tape | "[ b ;  ; " | NoMatch at 7: Expected 'b' or eof.
+turns before the end | tape | "[ b ; b; " | accepted
+turns before the end | tape | "[ b ; b  " | Starved at 9: Expected ';'.
+turns before the end | tape | "[ b ; b ; !" | NoMatch at 10: Expected 'b' or eof.
+turns before the end | tape | "[ b ; b ;  " | accepted
+turns before the end | tape | "[!" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | tape | "[[" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | immediate | "" | Starved at 0: Expected '['.
+turns before the end | immediate | "[" | accepted
+turns before the end | immediate | "[b" | Starved at 2: Expected ';'.
+turns before the end | immediate | "[b;" | accepted
+turns before the end | immediate | "[b;b" | Starved at 4: Expected ';'.
+turns before the end | immediate | "b;b;" | NoMatch at 0: Expected '['.
+turns before the end | immediate | "[;b;" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | immediate | "[bb;" | NoMatch at 2: Expected ';'.
+turns before the end | immediate | "[b;;" | NoMatch at 3: Expected 'b' or eof.
+turns before the end | immediate | "[b;b;!" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | immediate | "[b;b;;" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | immediate | "[ " | accepted
+turns before the end | immediate | "[ b" | Starved at 3: Expected ';'.
+turns before the end | immediate | "[ b " | Starved at 4: Expected ';'.
+turns before the end | immediate | "[ b ;" | accepted
+turns before the end | immediate | "[ b ; " | accepted
+turns before the end | immediate | "[ b ; b" | Starved at 7: Expected ';'.
+turns before the end | immediate | "[ b ; b " | Starved at 8: Expected ';'.
+turns before the end | immediate | "[ b ; b ;" | accepted
+turns before the end | immediate | " b ; b ; " | NoMatch at 1: Expected '['.
+turns before the end | immediate | "[b ; b ; " | accepted
+turns before the end | immediate | "[  ; b ; " | NoMatch at 3: Expected 'b' or eof.
+turns before the end | immediate | "[ b; b ; " | accepted
+turns before the end | immediate | "[ b  b ; " | NoMatch at 5: Expected ';'.
+turns before the end | immediate | "[ b ;b ; " | accepted
+turns before the end | immediate | "[ b ;  ; " | NoMatch at 7: Expected 'b' or eof.
+turns before the end | immediate | "[ b ; b; " | accepted
+turns before the end | immediate | "[ b ; b  " | Starved at 9: Expected ';'.
+turns before the end | immediate | "[ b ; b ; !" | NoMatch at 10: Expected 'b' or eof.
+turns before the end | immediate | "[ b ; b ;  " | accepted
+turns before the end | immediate | "[!" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | immediate | "[[" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | engine over tokens | "" | Starved at 0: Expected '['.
+turns before the end | engine over tokens | "[" | accepted
+turns before the end | engine over tokens | "[b" | Starved at 2: Expected ';'.
+turns before the end | engine over tokens | "[b;" | accepted
+turns before the end | engine over tokens | "[b;b" | Starved at 4: Expected ';'.
+turns before the end | engine over tokens | "b;b;" | NoMatch at 0: Expected '['.
+turns before the end | engine over tokens | "[;b;" | NoMatch at 1: Expected eof.
+turns before the end | engine over tokens | "[bb;" | NoMatch at 2: Expected ';'.
+turns before the end | engine over tokens | "[b;;" | NoMatch at 3: Expected 'b' or eof.
+turns before the end | engine over tokens | "[b;b;!" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | engine over tokens | "[b;b;;" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | engine over tokens | "[ " | accepted
+turns before the end | engine over tokens | "[ b" | Starved at 3: Expected ';'.
+turns before the end | engine over tokens | "[ b " | Starved at 4: Expected ';'.
+turns before the end | engine over tokens | "[ b ;" | accepted
+turns before the end | engine over tokens | "[ b ; " | accepted
+turns before the end | engine over tokens | "[ b ; b" | Starved at 7: Expected ';'.
+turns before the end | engine over tokens | "[ b ; b " | Starved at 8: Expected ';'.
+turns before the end | engine over tokens | "[ b ; b ;" | accepted
+turns before the end | engine over tokens | " b ; b ; " | NoMatch at 1: Expected '['.
+turns before the end | engine over tokens | "[b ; b ; " | accepted
+turns before the end | engine over tokens | "[  ; b ; " | NoMatch at 3: Expected eof or 'b'.
+turns before the end | engine over tokens | "[ b; b ; " | accepted
+turns before the end | engine over tokens | "[ b  b ; " | NoMatch at 5: Expected ';'.
+turns before the end | engine over tokens | "[ b ;b ; " | accepted
+turns before the end | engine over tokens | "[ b ;  ; " | NoMatch at 7: Expected 'b' or eof.
+turns before the end | engine over tokens | "[ b ; b; " | accepted
+turns before the end | engine over tokens | "[ b ; b  " | Starved at 9: Expected ';'.
+turns before the end | engine over tokens | "[ b ; b ; !" | NoMatch at 10: Expected 'b' or eof.
+turns before the end | engine over tokens | "[ b ; b ;  " | accepted
+turns before the end | engine over tokens | "[!" | NoMatch at 1: Expected eof.
+turns before the end | engine over tokens | "[[" | NoMatch at 1: Expected eof.
+turns before the end | tape over tokens | "" | Starved at 0: Expected '['.
+turns before the end | tape over tokens | "[" | accepted
+turns before the end | tape over tokens | "[b" | Starved at 2: Expected ';'.
+turns before the end | tape over tokens | "[b;" | accepted
+turns before the end | tape over tokens | "[b;b" | Starved at 4: Expected ';'.
+turns before the end | tape over tokens | "b;b;" | NoMatch at 0: Expected '['.
+turns before the end | tape over tokens | "[;b;" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | tape over tokens | "[bb;" | NoMatch at 2: Expected ';'.
+turns before the end | tape over tokens | "[b;;" | NoMatch at 3: Expected 'b' or eof.
+turns before the end | tape over tokens | "[b;b;!" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | tape over tokens | "[b;b;;" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | tape over tokens | "[ " | accepted
+turns before the end | tape over tokens | "[ b" | Starved at 3: Expected ';'.
+turns before the end | tape over tokens | "[ b " | Starved at 4: Expected ';'.
+turns before the end | tape over tokens | "[ b ;" | accepted
+turns before the end | tape over tokens | "[ b ; " | accepted
+turns before the end | tape over tokens | "[ b ; b" | Starved at 7: Expected ';'.
+turns before the end | tape over tokens | "[ b ; b " | Starved at 8: Expected ';'.
+turns before the end | tape over tokens | "[ b ; b ;" | accepted
+turns before the end | tape over tokens | " b ; b ; " | NoMatch at 1: Expected '['.
+turns before the end | tape over tokens | "[b ; b ; " | accepted
+turns before the end | tape over tokens | "[  ; b ; " | NoMatch at 3: Expected 'b' or eof.
+turns before the end | tape over tokens | "[ b; b ; " | accepted
+turns before the end | tape over tokens | "[ b  b ; " | NoMatch at 5: Expected ';'.
+turns before the end | tape over tokens | "[ b ;b ; " | accepted
+turns before the end | tape over tokens | "[ b ;  ; " | NoMatch at 7: Expected 'b' or eof.
+turns before the end | tape over tokens | "[ b ; b; " | accepted
+turns before the end | tape over tokens | "[ b ; b  " | Starved at 9: Expected ';'.
+turns before the end | tape over tokens | "[ b ; b ; !" | NoMatch at 10: Expected 'b' or eof.
+turns before the end | tape over tokens | "[ b ; b ;  " | accepted
+turns before the end | tape over tokens | "[!" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | tape over tokens | "[[" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | immediate over tokens | "" | Starved at 0: Expected '['.
+turns before the end | immediate over tokens | "[" | accepted
+turns before the end | immediate over tokens | "[b" | Starved at 2: Expected ';'.
+turns before the end | immediate over tokens | "[b;" | accepted
+turns before the end | immediate over tokens | "[b;b" | Starved at 4: Expected ';'.
+turns before the end | immediate over tokens | "b;b;" | NoMatch at 0: Expected '['.
+turns before the end | immediate over tokens | "[;b;" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[bb;" | NoMatch at 2: Expected ';'.
+turns before the end | immediate over tokens | "[b;;" | NoMatch at 3: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[b;b;!" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[b;b;;" | NoMatch at 5: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[ " | accepted
+turns before the end | immediate over tokens | "[ b" | Starved at 3: Expected ';'.
+turns before the end | immediate over tokens | "[ b " | Starved at 4: Expected ';'.
+turns before the end | immediate over tokens | "[ b ;" | accepted
+turns before the end | immediate over tokens | "[ b ; " | accepted
+turns before the end | immediate over tokens | "[ b ; b" | Starved at 7: Expected ';'.
+turns before the end | immediate over tokens | "[ b ; b " | Starved at 8: Expected ';'.
+turns before the end | immediate over tokens | "[ b ; b ;" | accepted
+turns before the end | immediate over tokens | " b ; b ; " | NoMatch at 1: Expected '['.
+turns before the end | immediate over tokens | "[b ; b ; " | accepted
+turns before the end | immediate over tokens | "[  ; b ; " | NoMatch at 3: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[ b; b ; " | accepted
+turns before the end | immediate over tokens | "[ b  b ; " | NoMatch at 5: Expected ';'.
+turns before the end | immediate over tokens | "[ b ;b ; " | accepted
+turns before the end | immediate over tokens | "[ b ;  ; " | NoMatch at 7: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[ b ; b; " | accepted
+turns before the end | immediate over tokens | "[ b ; b  " | Starved at 9: Expected ';'.
+turns before the end | immediate over tokens | "[ b ; b ; !" | NoMatch at 10: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[ b ; b ;  " | accepted
+turns before the end | immediate over tokens | "[!" | NoMatch at 1: Expected 'b' or eof.
+turns before the end | immediate over tokens | "[[" | NoMatch at 1: Expected 'b' or eof.
+turns before the end, unspaced | engine | "" | accepted
+turns before the end, unspaced | engine | "b" | Starved at 1: Expected ';'.
+turns before the end, unspaced | engine | "b;" | accepted
+turns before the end, unspaced | engine | "b;b" | Starved at 3: Expected ';'.
+turns before the end, unspaced | engine | ";b;" | NoMatch at 0: Expected eof.
+turns before the end, unspaced | engine | "bb;" | NoMatch at 1: Expected ';'.
+turns before the end, unspaced | engine | "b;;" | NoMatch at 2: Expected 'b' or eof.
+turns before the end, unspaced | engine | "b;b;!" | NoMatch at 4: Expected 'b' or eof.
+turns before the end, unspaced | engine | "b;b;;" | NoMatch at 4: Expected 'b' or eof.
+turns before the end, unspaced | tape | "" | accepted
+turns before the end, unspaced | tape | "b" | Starved at 1: Expected ';'.
+turns before the end, unspaced | tape | "b;" | accepted
+turns before the end, unspaced | tape | "b;b" | Starved at 3: Expected ';'.
+turns before the end, unspaced | tape | ";b;" | NoMatch at 0: Expected 'b' or eof.
+turns before the end, unspaced | tape | "bb;" | NoMatch at 1: Expected ';'.
+turns before the end, unspaced | tape | "b;;" | NoMatch at 2: Expected 'b' or eof.
+turns before the end, unspaced | tape | "b;b;!" | NoMatch at 4: Expected 'b' or eof.
+turns before the end, unspaced | tape | "b;b;;" | NoMatch at 4: Expected 'b' or eof.
+turns before the end, unspaced | immediate | "" | accepted
+turns before the end, unspaced | immediate | "b" | Starved at 1: Expected ';'.
+turns before the end, unspaced | immediate | "b;" | accepted
+turns before the end, unspaced | immediate | "b;b" | Starved at 3: Expected ';'.
+turns before the end, unspaced | immediate | ";b;" | NoMatch at 0: Expected 'b' or eof.
+turns before the end, unspaced | immediate | "bb;" | NoMatch at 1: Expected ';'.
+turns before the end, unspaced | immediate | "b;;" | NoMatch at 2: Expected 'b' or eof.
+turns before the end, unspaced | immediate | "b;b;!" | NoMatch at 4: Expected 'b' or eof.
+turns before the end, unspaced | immediate | "b;b;;" | NoMatch at 4: Expected 'b' or eof.
+turns of two beginnings before the end | engine | "" | accepted
+turns of two beginnings before the end | engine | "a" | Starved at 1: Expected ','.
+turns of two beginnings before the end | engine | "ab" | Starved at 2: Expected ','.
+turns of two beginnings before the end | engine | "ab," | accepted
+turns of two beginnings before the end | engine | "ab, " | accepted
+turns of two beginnings before the end | engine | "ab, 1" | Starved at 5: Expected ','.
+turns of two beginnings before the end | engine | "ab, 12" | Starved at 6: Expected ','.
+turns of two beginnings before the end | engine | "ab, 12 " | Starved at 7: Expected ','.
+turns of two beginnings before the end | engine | "b, 12 ," | accepted
+turns of two beginnings before the end | engine | "a, 12 ," | accepted
+turns of two beginnings before the end | engine | "ab 12 ," | NoMatch at 3: Expected ','.
+turns of two beginnings before the end | engine | "ab,12 ," | accepted
+turns of two beginnings before the end | engine | "ab, 2 ," | accepted
+turns of two beginnings before the end | engine | "ab, 1 ," | accepted
+turns of two beginnings before the end | engine | "ab, 12," | accepted
+turns of two beginnings before the end | engine | "ab, 12 ,!" | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | engine | "ab, 12 ,," | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | engine | "," | NoMatch at 0: Expected eof.
+turns of two beginnings before the end | engine | "a,!" | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | engine | "a,," | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape | "" | accepted
+turns of two beginnings before the end | tape | "a" | Starved at 1: Expected ','.
+turns of two beginnings before the end | tape | "ab" | Starved at 2: Expected ','.
+turns of two beginnings before the end | tape | "ab," | accepted
+turns of two beginnings before the end | tape | "ab, " | accepted
+turns of two beginnings before the end | tape | "ab, 1" | Starved at 5: Expected ','.
+turns of two beginnings before the end | tape | "ab, 12" | Starved at 6: Expected ','.
+turns of two beginnings before the end | tape | "ab, 12 " | Starved at 7: Expected ','.
+turns of two beginnings before the end | tape | "b, 12 ," | accepted
+turns of two beginnings before the end | tape | "a, 12 ," | accepted
+turns of two beginnings before the end | tape | "ab 12 ," | NoMatch at 3: Expected ','.
+turns of two beginnings before the end | tape | "ab,12 ," | accepted
+turns of two beginnings before the end | tape | "ab, 2 ," | accepted
+turns of two beginnings before the end | tape | "ab, 1 ," | accepted
+turns of two beginnings before the end | tape | "ab, 12," | accepted
+turns of two beginnings before the end | tape | "ab, 12 ,!" | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape | "ab, 12 ,," | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape | "," | NoMatch at 0: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape | "a,!" | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape | "a,," | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate | "" | accepted
+turns of two beginnings before the end | immediate | "a" | Starved at 1: Expected ','.
+turns of two beginnings before the end | immediate | "ab" | Starved at 2: Expected ','.
+turns of two beginnings before the end | immediate | "ab," | accepted
+turns of two beginnings before the end | immediate | "ab, " | accepted
+turns of two beginnings before the end | immediate | "ab, 1" | Starved at 5: Expected ','.
+turns of two beginnings before the end | immediate | "ab, 12" | Starved at 6: Expected ','.
+turns of two beginnings before the end | immediate | "ab, 12 " | Starved at 7: Expected ','.
+turns of two beginnings before the end | immediate | "b, 12 ," | accepted
+turns of two beginnings before the end | immediate | "a, 12 ," | accepted
+turns of two beginnings before the end | immediate | "ab 12 ," | NoMatch at 3: Expected ','.
+turns of two beginnings before the end | immediate | "ab,12 ," | accepted
+turns of two beginnings before the end | immediate | "ab, 2 ," | accepted
+turns of two beginnings before the end | immediate | "ab, 1 ," | accepted
+turns of two beginnings before the end | immediate | "ab, 12," | accepted
+turns of two beginnings before the end | immediate | "ab, 12 ,!" | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate | "ab, 12 ,," | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate | "," | NoMatch at 0: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate | "a,!" | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate | "a,," | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | engine over tokens | "" | accepted
+turns of two beginnings before the end | engine over tokens | "a" | Starved at 1: Expected ','.
+turns of two beginnings before the end | engine over tokens | "ab" | Starved at 2: Expected ','.
+turns of two beginnings before the end | engine over tokens | "ab," | accepted
+turns of two beginnings before the end | engine over tokens | "ab, " | accepted
+turns of two beginnings before the end | engine over tokens | "ab, 1" | Starved at 5: Expected ','.
+turns of two beginnings before the end | engine over tokens | "ab, 12" | Starved at 6: Expected ','.
+turns of two beginnings before the end | engine over tokens | "ab, 12 " | Starved at 7: Expected ','.
+turns of two beginnings before the end | engine over tokens | "b, 12 ," | accepted
+turns of two beginnings before the end | engine over tokens | "a, 12 ," | accepted
+turns of two beginnings before the end | engine over tokens | "ab 12 ," | NoMatch at 3: Expected ','.
+turns of two beginnings before the end | engine over tokens | "ab,12 ," | accepted
+turns of two beginnings before the end | engine over tokens | "ab, 2 ," | accepted
+turns of two beginnings before the end | engine over tokens | "ab, 1 ," | accepted
+turns of two beginnings before the end | engine over tokens | "ab, 12," | accepted
+turns of two beginnings before the end | engine over tokens | "ab, 12 ,!" | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | engine over tokens | "ab, 12 ,," | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | engine over tokens | "," | NoMatch at 0: Expected eof.
+turns of two beginnings before the end | engine over tokens | "a,!" | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | engine over tokens | "a,," | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape over tokens | "" | accepted
+turns of two beginnings before the end | tape over tokens | "a" | Starved at 1: Expected ','.
+turns of two beginnings before the end | tape over tokens | "ab" | Starved at 2: Expected ','.
+turns of two beginnings before the end | tape over tokens | "ab," | accepted
+turns of two beginnings before the end | tape over tokens | "ab, " | accepted
+turns of two beginnings before the end | tape over tokens | "ab, 1" | Starved at 5: Expected ','.
+turns of two beginnings before the end | tape over tokens | "ab, 12" | Starved at 6: Expected ','.
+turns of two beginnings before the end | tape over tokens | "ab, 12 " | Starved at 7: Expected ','.
+turns of two beginnings before the end | tape over tokens | "b, 12 ," | accepted
+turns of two beginnings before the end | tape over tokens | "a, 12 ," | accepted
+turns of two beginnings before the end | tape over tokens | "ab 12 ," | NoMatch at 3: Expected ','.
+turns of two beginnings before the end | tape over tokens | "ab,12 ," | accepted
+turns of two beginnings before the end | tape over tokens | "ab, 2 ," | accepted
+turns of two beginnings before the end | tape over tokens | "ab, 1 ," | accepted
+turns of two beginnings before the end | tape over tokens | "ab, 12," | accepted
+turns of two beginnings before the end | tape over tokens | "ab, 12 ,!" | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape over tokens | "ab, 12 ,," | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape over tokens | "," | NoMatch at 0: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape over tokens | "a,!" | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | tape over tokens | "a,," | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate over tokens | "" | accepted
+turns of two beginnings before the end | immediate over tokens | "a" | Starved at 1: Expected ','.
+turns of two beginnings before the end | immediate over tokens | "ab" | Starved at 2: Expected ','.
+turns of two beginnings before the end | immediate over tokens | "ab," | accepted
+turns of two beginnings before the end | immediate over tokens | "ab, " | accepted
+turns of two beginnings before the end | immediate over tokens | "ab, 1" | Starved at 5: Expected ','.
+turns of two beginnings before the end | immediate over tokens | "ab, 12" | Starved at 6: Expected ','.
+turns of two beginnings before the end | immediate over tokens | "ab, 12 " | Starved at 7: Expected ','.
+turns of two beginnings before the end | immediate over tokens | "b, 12 ," | accepted
+turns of two beginnings before the end | immediate over tokens | "a, 12 ," | accepted
+turns of two beginnings before the end | immediate over tokens | "ab 12 ," | NoMatch at 3: Expected ','.
+turns of two beginnings before the end | immediate over tokens | "ab,12 ," | accepted
+turns of two beginnings before the end | immediate over tokens | "ab, 2 ," | accepted
+turns of two beginnings before the end | immediate over tokens | "ab, 1 ," | accepted
+turns of two beginnings before the end | immediate over tokens | "ab, 12," | accepted
+turns of two beginnings before the end | immediate over tokens | "ab, 12 ,!" | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate over tokens | "ab, 12 ,," | NoMatch at 8: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate over tokens | "," | NoMatch at 0: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate over tokens | "a,!" | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
+turns of two beginnings before the end | immediate over tokens | "a,," | NoMatch at 2: Expected ['a'..'z' | '0'..'9'] or eof.
 a look ahead | engine | "" | Starved at 0: Expected ['a'..'z'].
 a look ahead | engine | "a" | accepted
 a look ahead | engine | "a " | accepted
