@@ -2348,7 +2348,7 @@ namespace DotGram.Snapshots
 							var q2 = Read_Word_Small(p);
 							if (q2 < 0)
 							{
-								if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected1);
+								if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, Recognize_DotGram_Small_Expected1, Recognize_DotGram_Hashed_Expected0);
 								return -1;
 							}
 							p = q2;
@@ -4558,6 +4558,26 @@ namespace DotGram.Snapshots
 
 				more.Add(expected);
 			}
+		}
+
+		/// <summary>
+		/// Records what a choice wanted where the call that begins its widest group refused at the
+		/// same place: that call's own set, which the choice's holds, is dropped for it.
+		/// </summary>
+		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered)
+		{
+			if (failure.Looking > 0)
+				return;
+
+			if (at == failure.Position)
+			{
+				if (ReferenceEquals(failure.Expected, covered))
+					failure.Expected = expected;
+
+				failure.ExpectedMore?.Remove(covered);
+			}
+
+			Refuse_DotGram(ref failure, at, expected);
 		}
 
 		/// <summary>How much of a run matched, asked only when it did not.</summary>

@@ -1805,7 +1805,24 @@ sealed partial class Machine
 				_refuseWith = null;
 
 				using (code.Block($"if ({result} < 0)"))
-					Refused(code, expected);
+				{
+					if (_refuseOver is { } covered && covered != expected)
+					{
+						machine._expectedUsed.Add(expected);
+						machine._expectedUsed.Add(covered);
+
+						code.Line(machine.Quiets
+							? $"if (!failure.Quiet) {Refusing}_Over(ref failure, p, {expected}, {covered});"
+							: $"{Refusing}_Over(ref failure, p, {expected}, {covered});");
+						code.Line("return -1;");
+					}
+					else
+					{
+						Refused(code, expected);
+					}
+				}
+
+				_refuseOver = null;
 			}
 			else
 			{
@@ -1910,9 +1927,15 @@ sealed partial class Machine
 							// labels would have given: recorded at the position the call was
 							// made from, it merges with the call's refusal where the call
 							// refused there and is dropped where it read on.
+							// And where the call refused right there, what it said is the widest
+							// group's own first set, which the choice's set holds: said once, in
+							// the choice's words, as the engine says it.
 							_refuseWith = name;
+							_refuseOver = machine.DeclareExpected(machine.Displays(
+								new Node.Element(false, [.. groups[widest].Set.Ranges], [], [])));
 							Emit(code, groups[widest].Members[0], following);
 							_refuseWith = null;
+							_refuseOver = null;
 							code.Line("break;");
 						}
 					}
@@ -2066,6 +2089,9 @@ sealed partial class Machine
 		/// recorded: set while the group written as <c>default:</c> is being written.
 		/// </summary>
 		string? _refuseWith;
+
+		/// <summary>The call's own first set beside <see cref="_refuseWith"/>, which that one holds.</summary>
+		string? _refuseOver;
 
 		/// <summary>
 		/// Alternatives with nothing to tell them apart by: one attempt after another.

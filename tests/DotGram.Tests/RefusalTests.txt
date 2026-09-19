@@ -403,7 +403,7 @@ a cycle | tape | "a = 1 + (b = 2 + c " | Starved at 19: Expected '='.
 a cycle | tape | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | tape | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
 a cycle | tape | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
-a cycle | tape | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | tape | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | tape | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
 a cycle | tape | "a =1 + (b = 2 + c = 3)" | accepted
@@ -412,7 +412,7 @@ a cycle | tape | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | tape | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | tape | "a = 1 +(b = 2 + c = 3)" | accepted
 a cycle | tape | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
-a cycle | tape | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | tape | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | tape | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
 a cycle | tape | "a = 1 + (b =2 + c = 3)" | accepted
@@ -420,7 +420,7 @@ a cycle | tape | "a = 1 + (b =  + c = 3)" | NoMatch at 14: Expected ['0'..'9'].
 a cycle | tape | "a = 1 + (b = 2+ c = 3)" | accepted
 a cycle | tape | "a = 1 + (b = 2  c = 3)" | NoMatch at 16: Expected '+' or ')'.
 a cycle | tape | "a = 1 + (b = 2 +c = 3)" | accepted
-a cycle | tape | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z' | '('].
 a cycle | tape | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | tape | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | tape | "a = 1 + (b = 2 + c =3)" | accepted
@@ -436,7 +436,7 @@ a cycle | tape | "((a = " | Starved at 6: Expected ['0'..'9'].
 a cycle | tape | "((a = 1" | Starved at 7: Expected '+' or ')'.
 a cycle | tape | "((a = 1)" | Starved at 8: Expected '+' or ')'.
 a cycle | tape | "(a = 1))" | NoMatch at 7: Expected '+'.
-a cycle | tape | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape | "(( = 1))" | NoMatch at 3: Expected ['a'..'z' | '('].
 a cycle | tape | "((a= 1))" | accepted
 a cycle | tape | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | tape | "((a =1))" | accepted
@@ -447,13 +447,13 @@ a cycle | tape | "(a" | Starved at 2: Expected '='.
 a cycle | tape | "(a " | Starved at 3: Expected '='.
 a cycle | tape | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | tape | "(a = " | Starved at 5: Expected ['0'..'9'].
-a cycle | tape | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape | "( = 1" | NoMatch at 2: Expected ['a'..'z' | '('].
 a cycle | tape | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | tape | "(a  1" | NoMatch at 4: Expected '='.
 a cycle | tape | "(a =1" | Starved at 5: Expected '+' or ')'.
 a cycle | tape | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
 a cycle | tape | "(a = 11" | Starved at 7: Expected '+' or ')'.
-a cycle | tape | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | tape | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
 a cycle | tape | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
@@ -462,7 +462,7 @@ a cycle | tape | "a = 1+ (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
 a cycle | tape | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a = 1 + b = 2" | accepted
-a cycle | tape | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | tape | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
 a cycle | tape | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
@@ -491,7 +491,7 @@ a cycle | immediate | "a = 1 + (b = 2 + c " | Starved at 19: Expected '='.
 a cycle | immediate | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | immediate | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
 a cycle | immediate | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
-a cycle | immediate | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | immediate | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | immediate | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
 a cycle | immediate | "a =1 + (b = 2 + c = 3)" | accepted
@@ -500,7 +500,7 @@ a cycle | immediate | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | immediate | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | immediate | "a = 1 +(b = 2 + c = 3)" | accepted
 a cycle | immediate | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
-a cycle | immediate | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | immediate | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | immediate | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
 a cycle | immediate | "a = 1 + (b =2 + c = 3)" | accepted
@@ -508,7 +508,7 @@ a cycle | immediate | "a = 1 + (b =  + c = 3)" | NoMatch at 14: Expected ['0'..'
 a cycle | immediate | "a = 1 + (b = 2+ c = 3)" | accepted
 a cycle | immediate | "a = 1 + (b = 2  c = 3)" | NoMatch at 16: Expected '+' or ')'.
 a cycle | immediate | "a = 1 + (b = 2 +c = 3)" | accepted
-a cycle | immediate | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z' | '('].
 a cycle | immediate | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | immediate | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | immediate | "a = 1 + (b = 2 + c =3)" | accepted
@@ -524,7 +524,7 @@ a cycle | immediate | "((a = " | Starved at 6: Expected ['0'..'9'].
 a cycle | immediate | "((a = 1" | Starved at 7: Expected '+' or ')'.
 a cycle | immediate | "((a = 1)" | Starved at 8: Expected '+' or ')'.
 a cycle | immediate | "(a = 1))" | NoMatch at 7: Expected '+'.
-a cycle | immediate | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate | "(( = 1))" | NoMatch at 3: Expected ['a'..'z' | '('].
 a cycle | immediate | "((a= 1))" | accepted
 a cycle | immediate | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | immediate | "((a =1))" | accepted
@@ -535,13 +535,13 @@ a cycle | immediate | "(a" | Starved at 2: Expected '='.
 a cycle | immediate | "(a " | Starved at 3: Expected '='.
 a cycle | immediate | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | immediate | "(a = " | Starved at 5: Expected ['0'..'9'].
-a cycle | immediate | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate | "( = 1" | NoMatch at 2: Expected ['a'..'z' | '('].
 a cycle | immediate | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | immediate | "(a  1" | NoMatch at 4: Expected '='.
 a cycle | immediate | "(a =1" | Starved at 5: Expected '+' or ')'.
 a cycle | immediate | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
 a cycle | immediate | "(a = 11" | Starved at 7: Expected '+' or ')'.
-a cycle | immediate | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | immediate | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
 a cycle | immediate | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
@@ -550,7 +550,7 @@ a cycle | immediate | "a = 1+ (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
 a cycle | immediate | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a = 1 + b = 2" | accepted
-a cycle | immediate | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | immediate | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
 a cycle | immediate | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
@@ -667,7 +667,7 @@ a cycle | tape over tokens | "a = 1 + (b = 2 + c " | Starved at 19: Expected '='
 a cycle | tape over tokens | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | tape over tokens | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
 a cycle | tape over tokens | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
-a cycle | tape over tokens | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape over tokens | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | tape over tokens | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
 a cycle | tape over tokens | "a =1 + (b = 2 + c = 3)" | accepted
@@ -676,7 +676,7 @@ a cycle | tape over tokens | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | tape over tokens | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | tape over tokens | "a = 1 +(b = 2 + c = 3)" | accepted
 a cycle | tape over tokens | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
-a cycle | tape over tokens | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape over tokens | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | tape over tokens | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b =2 + c = 3)" | accepted
@@ -684,7 +684,7 @@ a cycle | tape over tokens | "a = 1 + (b =  + c = 3)" | NoMatch at 14: Expected 
 a cycle | tape over tokens | "a = 1 + (b = 2+ c = 3)" | accepted
 a cycle | tape over tokens | "a = 1 + (b = 2  c = 3)" | NoMatch at 16: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1 + (b = 2 +c = 3)" | accepted
-a cycle | tape over tokens | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape over tokens | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | tape over tokens | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b = 2 + c =3)" | accepted
@@ -700,7 +700,7 @@ a cycle | tape over tokens | "((a = " | Starved at 6: Expected ['0'..'9'].
 a cycle | tape over tokens | "((a = 1" | Starved at 7: Expected '+' or ')'.
 a cycle | tape over tokens | "((a = 1)" | Starved at 8: Expected '+' or ')'.
 a cycle | tape over tokens | "(a = 1))" | NoMatch at 7: Expected '+'.
-a cycle | tape over tokens | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape over tokens | "(( = 1))" | NoMatch at 3: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "((a= 1))" | accepted
 a cycle | tape over tokens | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | tape over tokens | "((a =1))" | accepted
@@ -711,13 +711,13 @@ a cycle | tape over tokens | "(a" | Starved at 2: Expected '='.
 a cycle | tape over tokens | "(a " | Starved at 3: Expected '='.
 a cycle | tape over tokens | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | tape over tokens | "(a = " | Starved at 5: Expected ['0'..'9'].
-a cycle | tape over tokens | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape over tokens | "( = 1" | NoMatch at 2: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | tape over tokens | "(a  1" | NoMatch at 4: Expected '='.
 a cycle | tape over tokens | "(a =1" | Starved at 5: Expected '+' or ')'.
 a cycle | tape over tokens | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
 a cycle | tape over tokens | "(a = 11" | Starved at 7: Expected '+' or ')'.
-a cycle | tape over tokens | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape over tokens | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
 a cycle | tape over tokens | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
@@ -726,7 +726,7 @@ a cycle | tape over tokens | "a = 1+ (b = 2" | Starved at 13: Expected '+' or ')
 a cycle | tape over tokens | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
 a cycle | tape over tokens | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1 + b = 2" | accepted
-a cycle | tape over tokens | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | tape over tokens | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | tape over tokens | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | tape over tokens | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
 a cycle | tape over tokens | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
@@ -755,7 +755,7 @@ a cycle | immediate over tokens | "a = 1 + (b = 2 + c " | Starved at 19: Expecte
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c =" | Starved at 20: Expected ['0'..'9'].
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c = " | Starved at 21: Expected ['0'..'9'].
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c = 3" | Starved at 22: Expected '+' or ')'.
-a cycle | immediate over tokens | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate over tokens | " = 1 + (b = 2 + c = 3)" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "a= 1 + (b = 2 + c = 3)" | accepted
 a cycle | immediate over tokens | "a  1 + (b = 2 + c = 3)" | NoMatch at 3: Expected '='.
 a cycle | immediate over tokens | "a =1 + (b = 2 + c = 3)" | accepted
@@ -764,7 +764,7 @@ a cycle | immediate over tokens | "a = 1+ (b = 2 + c = 3)" | accepted
 a cycle | immediate over tokens | "a = 1  (b = 2 + c = 3)" | NoMatch at 7: Expected '+'.
 a cycle | immediate over tokens | "a = 1 +(b = 2 + c = 3)" | accepted
 a cycle | immediate over tokens | "a = 1 + b = 2 + c = 3)" | NoMatch at 21: Expected '+'.
-a cycle | immediate over tokens | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate over tokens | "a = 1 + ( = 2 + c = 3)" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "a = 1 + (b= 2 + c = 3)" | accepted
 a cycle | immediate over tokens | "a = 1 + (b  2 + c = 3)" | NoMatch at 12: Expected '='.
 a cycle | immediate over tokens | "a = 1 + (b =2 + c = 3)" | accepted
@@ -772,7 +772,7 @@ a cycle | immediate over tokens | "a = 1 + (b =  + c = 3)" | NoMatch at 14: Expe
 a cycle | immediate over tokens | "a = 1 + (b = 2+ c = 3)" | accepted
 a cycle | immediate over tokens | "a = 1 + (b = 2  c = 3)" | NoMatch at 16: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1 + (b = 2 +c = 3)" | accepted
-a cycle | immediate over tokens | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate over tokens | "a = 1 + (b = 2 +  = 3)" | NoMatch at 18: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c= 3)" | accepted
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c  3)" | NoMatch at 20: Expected '='.
 a cycle | immediate over tokens | "a = 1 + (b = 2 + c =3)" | accepted
@@ -788,7 +788,7 @@ a cycle | immediate over tokens | "((a = " | Starved at 6: Expected ['0'..'9'].
 a cycle | immediate over tokens | "((a = 1" | Starved at 7: Expected '+' or ')'.
 a cycle | immediate over tokens | "((a = 1)" | Starved at 8: Expected '+' or ')'.
 a cycle | immediate over tokens | "(a = 1))" | NoMatch at 7: Expected '+'.
-a cycle | immediate over tokens | "(( = 1))" | NoMatch at 3: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate over tokens | "(( = 1))" | NoMatch at 3: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "((a= 1))" | accepted
 a cycle | immediate over tokens | "((a  1))" | NoMatch at 5: Expected '='.
 a cycle | immediate over tokens | "((a =1))" | accepted
@@ -799,13 +799,13 @@ a cycle | immediate over tokens | "(a" | Starved at 2: Expected '='.
 a cycle | immediate over tokens | "(a " | Starved at 3: Expected '='.
 a cycle | immediate over tokens | "(a =" | Starved at 4: Expected ['0'..'9'].
 a cycle | immediate over tokens | "(a = " | Starved at 5: Expected ['0'..'9'].
-a cycle | immediate over tokens | "( = 1" | NoMatch at 2: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate over tokens | "( = 1" | NoMatch at 2: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "(a= 1" | Starved at 5: Expected '+' or ')'.
 a cycle | immediate over tokens | "(a  1" | NoMatch at 4: Expected '='.
 a cycle | immediate over tokens | "(a =1" | Starved at 5: Expected '+' or ')'.
 a cycle | immediate over tokens | "(a = 1!" | NoMatch at 6: Expected '+' or ')'.
 a cycle | immediate over tokens | "(a = 11" | Starved at 7: Expected '+' or ')'.
-a cycle | immediate over tokens | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate over tokens | " = 1 + (b = 2" | NoMatch at 1: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "a= 1 + (b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a  1 + (b = 2" | NoMatch at 3: Expected '='.
 a cycle | immediate over tokens | "a =1 + (b = 2" | Starved at 13: Expected '+' or ')'.
@@ -814,7 +814,7 @@ a cycle | immediate over tokens | "a = 1+ (b = 2" | Starved at 13: Expected '+' 
 a cycle | immediate over tokens | "a = 1  (b = 2" | NoMatch at 7: Expected '+'.
 a cycle | immediate over tokens | "a = 1 +(b = 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1 + b = 2" | accepted
-a cycle | immediate over tokens | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z'] or ['a'..'z' | '('].
+a cycle | immediate over tokens | "a = 1 + ( = 2" | NoMatch at 10: Expected ['a'..'z' | '('].
 a cycle | immediate over tokens | "a = 1 + (b= 2" | Starved at 13: Expected '+' or ')'.
 a cycle | immediate over tokens | "a = 1 + (b  2" | NoMatch at 12: Expected '='.
 a cycle | immediate over tokens | "a = 1 + (b =2" | Starved at 13: Expected '+' or ')'.
@@ -1800,7 +1800,7 @@ a rule that reaches itself | tape | "aa" | accepted
 a rule that reaches itself | tape | "(" | Starved at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | tape | "(a" | Starved at 2: Expected ')'.
 a rule that reaches itself | tape | "a)" | NoMatch at 1: Input does not match 'Start'.
-a rule that reaches itself | tape | "()" | NoMatch at 1: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | tape | "()" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | tape | "(a)!" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | tape | "(a))" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | tape | "( " | Starved at 2: Expected ['(' | 'a'..'z'].
@@ -1814,7 +1814,7 @@ a rule that reaches itself | tape | " ( a ) )" | NoMatch at 7: Input does not ma
 a rule that reaches itself | tape | "(( a ) )" | accepted
 a rule that reaches itself | tape | "(  a ) )" | NoMatch at 7: Input does not match 'Start'.
 a rule that reaches itself | tape | "( (a ) )" | accepted
-a rule that reaches itself | tape | "( (  ) )" | NoMatch at 5: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | tape | "( (  ) )" | NoMatch at 5: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | tape | "( ( a) )" | accepted
 a rule that reaches itself | tape | "( ( a  )" | Starved at 8: Expected ')'.
 a rule that reaches itself | tape | "( ( a ))" | accepted
@@ -1829,7 +1829,7 @@ a rule that reaches itself | immediate | "aa" | accepted
 a rule that reaches itself | immediate | "(" | Starved at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | immediate | "(a" | Starved at 2: Expected ')'.
 a rule that reaches itself | immediate | "a)" | NoMatch at 1: Input does not match 'Start'.
-a rule that reaches itself | immediate | "()" | NoMatch at 1: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | immediate | "()" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | immediate | "(a)!" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | immediate | "(a))" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | immediate | "( " | Starved at 2: Expected ['(' | 'a'..'z'].
@@ -1843,7 +1843,7 @@ a rule that reaches itself | immediate | " ( a ) )" | NoMatch at 7: Input does n
 a rule that reaches itself | immediate | "(( a ) )" | accepted
 a rule that reaches itself | immediate | "(  a ) )" | NoMatch at 7: Input does not match 'Start'.
 a rule that reaches itself | immediate | "( (a ) )" | accepted
-a rule that reaches itself | immediate | "( (  ) )" | NoMatch at 5: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | immediate | "( (  ) )" | NoMatch at 5: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | immediate | "( ( a) )" | accepted
 a rule that reaches itself | immediate | "( ( a  )" | Starved at 8: Expected ')'.
 a rule that reaches itself | immediate | "( ( a ))" | accepted
@@ -1887,7 +1887,7 @@ a rule that reaches itself | tape over tokens | "aa" | accepted
 a rule that reaches itself | tape over tokens | "(" | Starved at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | tape over tokens | "(a" | Starved at 2: Expected ')'.
 a rule that reaches itself | tape over tokens | "a)" | NoMatch at 1: Input does not match 'Start'.
-a rule that reaches itself | tape over tokens | "()" | NoMatch at 1: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | tape over tokens | "()" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | tape over tokens | "(a)!" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | tape over tokens | "(a))" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | tape over tokens | "( " | Starved at 2: Expected ['(' | 'a'..'z'].
@@ -1901,7 +1901,7 @@ a rule that reaches itself | tape over tokens | " ( a ) )" | NoMatch at 7: Input
 a rule that reaches itself | tape over tokens | "(( a ) )" | accepted
 a rule that reaches itself | tape over tokens | "(  a ) )" | NoMatch at 7: Input does not match 'Start'.
 a rule that reaches itself | tape over tokens | "( (a ) )" | accepted
-a rule that reaches itself | tape over tokens | "( (  ) )" | NoMatch at 5: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | tape over tokens | "( (  ) )" | NoMatch at 5: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | tape over tokens | "( ( a) )" | accepted
 a rule that reaches itself | tape over tokens | "( ( a  )" | Starved at 8: Expected ')'.
 a rule that reaches itself | tape over tokens | "( ( a ))" | accepted
@@ -1916,7 +1916,7 @@ a rule that reaches itself | immediate over tokens | "aa" | accepted
 a rule that reaches itself | immediate over tokens | "(" | Starved at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | immediate over tokens | "(a" | Starved at 2: Expected ')'.
 a rule that reaches itself | immediate over tokens | "a)" | NoMatch at 1: Input does not match 'Start'.
-a rule that reaches itself | immediate over tokens | "()" | NoMatch at 1: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | immediate over tokens | "()" | NoMatch at 1: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | immediate over tokens | "(a)!" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | immediate over tokens | "(a))" | NoMatch at 3: Input does not match 'Start'.
 a rule that reaches itself | immediate over tokens | "( " | Starved at 2: Expected ['(' | 'a'..'z'].
@@ -1930,7 +1930,7 @@ a rule that reaches itself | immediate over tokens | " ( a ) )" | NoMatch at 7: 
 a rule that reaches itself | immediate over tokens | "(( a ) )" | accepted
 a rule that reaches itself | immediate over tokens | "(  a ) )" | NoMatch at 7: Input does not match 'Start'.
 a rule that reaches itself | immediate over tokens | "( (a ) )" | accepted
-a rule that reaches itself | immediate over tokens | "( (  ) )" | NoMatch at 5: Expected ['a'..'z'] or ['(' | 'a'..'z'].
+a rule that reaches itself | immediate over tokens | "( (  ) )" | NoMatch at 5: Expected ['(' | 'a'..'z'].
 a rule that reaches itself | immediate over tokens | "( ( a) )" | accepted
 a rule that reaches itself | immediate over tokens | "( ( a  )" | Starved at 8: Expected ')'.
 a rule that reaches itself | immediate over tokens | "( ( a ))" | accepted
