@@ -2438,6 +2438,15 @@ evening's work, the web's 82 places and the expression language's 8, and left of
 tree's 6,500 and the generator's 908: a file-wide suppression over a whole package is an empty
 flag. Recorded as those packages' debt, not as anything the release waits for; the SQL notes say
 the package carries no XML documentation yet.
+**Done 2026-09-19 (finance-24, `19a60765..6bed33a3`, nine commits):** the three smoke projects and
+the older runtime are back and all four libraries are smoked on both frameworks; the smokes take
+the packages just built and fail at restore without them; a publish workflow runs on a tag, checks
+that the tag matches the version, packs the five and holds the push until the repository has a key;
+source link everywhere; the web package documents its whole surface and fails its build on a
+missing comment; the extension is unpackable and its notes have a heading per version; the notes
+for Finance and Web are written, Finance's saying plainly that the public surface is replaced.
+What is left for Igor: the name of the key the workflow will use, and when the version is raised —
+with it the six files that spell it by hand.
 
 ## D20. The emitted code may take what the consumer's framework offers
 
