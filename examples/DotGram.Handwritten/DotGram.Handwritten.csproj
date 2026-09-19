@@ -8,6 +8,7 @@
 		<ProjectReference Include="../../src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
 		<ProjectReference Include="../../src/DotGram.Sql/DotGram.Sql.csproj" />
 		<ProjectReference Include="../../src/DotGram.Web/DotGram.Web.csproj" />
+		<ProjectReference Include="../DotGram.Examples/DotGram.Examples.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<!-- A hand parser's publications take the state its grammar reads with, which is internal
