@@ -1239,6 +1239,28 @@ same day; each comes back to the architect as a report, with no code changed.
    with no flag; a flag around `Locate` alone saves nothing; the walk must stay specialized,
    since plain through the located walk pays the whole +13%. Decided as Q4.2's design; the
    prototype after C2 with performance-ff. No further variant is needed.
+
+   **The reader's gate, classified (sql-39, `b19575b2`, `0fcebca6`; next.md "The reader's gate, by
+   the shape that opens each way", the table in `docs/carriers.md`).** It holds 43 of 84 grammars
+   and 353 rules; 209 open a way themselves, at 271 places. By what removes them:
+   - a graph rewrite, 90: a seam at the head of every alternative of a turn or a choice (30, the
+     expression grammars); a grammar's own seam rule — `Ows`, `Fws?`, `Blank` — at the head of
+     the turn and of the continuation (58, the RFC grammars and INI), which is the seam hoist
+     generalized from trivia to any rule that is a greedy star over a class; a seam the
+     continuation can begin inside of (2, a comment in trivia);
+   - the reader, 59: alternatives that begin apart, so the way is dead (33 in 12 grammars); an
+     alternative that may read nothing, `(eol | ?=eof)` (15); literals (10); a lookahead at a
+     turn's head (1);
+   - intended, the language's, 122: maximal munch (40), alternatives that begin alike (38; one,
+     `DecOctet`, a factoring candidate), a tail that decides (33), IPv6's counted groups (11).
+   And a defect of the count itself: 29 places are in rules nothing calls openly — every call
+   inside an atomic group or a lookahead, or an entry — whose ways nobody can re-enter, yet the
+   gate counts them.
+   Decided: expr generalizes the seam hoist to any greedy-star seam rule and to the heads of
+   every alternative, as one rewrite, measured by the diff of `carriers.md`; sql-39 takes the
+   reader class (dead ways first, then the empty alternative, then literals) and the count's
+   defect, each a separate commit after C2 lands, performance-ff told before each, the same
+   conditions as `014136df`; the intended stay, `DecOctet` goes to C's factoring if it folds.
 3. **Flat against reader.** Flat writes a publication as one method of states; reader writes a
    method per rule; flat recompiles the machine to do it, which is a known source of defects.
    Measure both on the Web grammars and the examples. No difference: flat goes. Flat faster: the
