@@ -843,7 +843,15 @@ the second pass the anatomy put at 85 of 131 ns.
 C2 landed `779018c8`; the byte forms' pair is ordered against its parent.
 **C2 as landed (stand, window 10, medians of five):** FIX's string forms -16..-22%, the stream
 form flat, the byte forms +2.5..+6.5% (one field +6.5%, the slope rows +4..+6% against spreads of
-3-4%) — outside the spread, so the byte part is reverted and comes back with its cause found.
+3-4%). Checked before any revert: C2 changed no byte path at all — the in-place array goes
+through the buffered-bytes input to the engine before and after, identical to the line, since a
+buffered machine goes to the reader only where the engine cannot prove its release; C2's note
+had said otherwise. So nothing is reverted; the byte rows are paired again with a PGO=0 twin and
+profiled if the sign holds (a neighbour's JIT or layout, not an algorithm). The consequence that
+matters: FIX's byte form, the one FIX needs, has not had C2. A whole array is not a stream and
+has nothing to release; decided that it is read by the reader over a span of bytes as the string
+is over characters, performance-ff, after the two quadratic defects and the scanner's search and
+before C3, its design to the architect first.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
