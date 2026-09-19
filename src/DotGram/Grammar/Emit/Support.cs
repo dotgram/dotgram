@@ -788,6 +788,7 @@ public static partial class CSharpEmitter
 			object?[] _values = global::System.Array.Empty<object?>();
 			/*TYPED_FIELDS*/
 			/*CACHE_FIELD*/
+			/*LOCATED_FIELD*/
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
@@ -866,6 +867,7 @@ public static partial class CSharpEmitter
 				global::System.Array.Clear(_values, 0, _valuesUsed);
 				/*TYPED_RESET*/
 				/*CACHE_RESET*/
+				/*LOCATED_RESET*/
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be
@@ -1161,7 +1163,7 @@ public static partial class CSharpEmitter
 	/// </para>
 	/// </remarks>
 	internal static string ParserRuntime(
-		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes)
+		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes, bool locating = false)
 	{
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
@@ -1214,6 +1216,10 @@ public static partial class CSharpEmitter
 			"internal void Truncate(int count, ParserArena entries)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\t// Descending, and checked against the arena rather than assumed: a link\n\t\t// prepended by the derivation being discarded may still be the head for\n\t\t// its call, and popping it here — the same order it was pushed in — is\n\t\t// what stops that call's chain from pointing at a slot the next\n\t\t// derivation through it is about to reuse for something else entirely.\n\t\tfor (var i = _valuesUsed - 1; i >= count; i--)\n\t\t{\n\t\t\tvar callIndex = entries[i].CallIndex;\n\n\t\t\tif (callIndex >= 0 && _linkHeads[callIndex] == i)\n\t\t\t\t_linkHeads[callIndex] = _linkNexts[i];\n\n\t\t\t_linkHeads[i] = -1;\n\t\t\t_linkNexts[i] = -1;\n\t\t}\n\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\n\t\t_valuesUsed = count;\n\t}\n\n\tif (count < LinkedUpTo)\n\t\tLinkedUpTo = count;\n}\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_RESET",
 			"global::System.Array.Clear(_built, 0, _valuesUsed);", caches);
+
+		// Where the recovered elements of this parse are: counted on from one to the next.
+		runtime = CacheRuntime(runtime, "LOCATED_FIELD", "internal Located_DotGram Located;", locating);
+		runtime = CacheRuntime(runtime, "LOCATED_RESET", "Located = default;", locating);
 
 		// One int per arena slot, and it says two things without conflicting: at a `StateSet`
 		// it is the mark that encloses it, and everywhere else the innermost mark standing
@@ -1472,27 +1478,60 @@ public static partial class CSharpEmitter
 	/// </para>
 	/// </remarks>
 	internal const string LocateHelper = """
-		/// <summary>Which line a position is on, counting from 1.</summary>
-		static int LineAt(global::System.ReadOnlySpan<char> text, int position)
+		/// <summary>
+		/// Which line a position is on and how far into it, both from 1, counted on from the
+		/// last position asked about rather than from the start of the input.
+		/// </summary>
+		/// <remarks>
+		/// A walk asks in the order the input was read, so each question costs what lies
+		/// between it and the one before: a parse that asks about every bad line of a feed pays
+		/// for the feed once, where counting from the start paid for it once a line. Asked about
+		/// a place behind, it counts back over the distance, never from the start again.
+		/// </remarks>
+		struct Located_DotGram
 		{
-			var line = 1;
+			int _at;
+			int _lines;
+			int _start;
 
-			for (var at = 0; at < position; at++)
-				if (text[at] == '\n')
-					line++;
+			public int LineAt(global::System.ReadOnlySpan<char> text, int position)
+			{
+				Move(text, position);
 
-			return line;
-		}
+				return _lines + 1;
+			}
 
-		/// <summary>How far into its line a position is, counting from 1.</summary>
-		static int ColumnAt(global::System.ReadOnlySpan<char> text, int position)
-		{
-			var column = 1;
+			public int ColumnAt(global::System.ReadOnlySpan<char> text, int position)
+			{
+				Move(text, position);
 
-			for (var at = 0; at < position; at++)
-				column = text[at] == '\n' ? 1 : column + 1;
+				return position - _start + 1;
+			}
 
-			return column;
+			void Move(global::System.ReadOnlySpan<char> text, int position)
+			{
+				if (position >= _at)
+				{
+					for (; _at < position; _at++)
+						if (text[_at] == '\n')
+						{
+							_lines++;
+							_start = _at + 1;
+						}
+
+					return;
+				}
+
+				for (var at = _at - 1; at >= position; at--)
+					if (text[at] == '\n')
+						_lines--;
+
+				_at    = position;
+				_start = position;
+
+				while (_start > 0 && text[_start - 1] != '\n')
+					_start--;
+			}
 		}
 		""";
 }

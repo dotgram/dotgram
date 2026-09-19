@@ -3450,7 +3450,7 @@ public sealed class SemanticTests
 		// Everything the hook is told is an argument. Nothing is computed into a local
 		// first, because a statement would survive the erasure and the scan would happen
 		// whether or not anybody is listening.
-		Assert.Contains("OnRecovered(\"Row\", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, LineAt(text, recovered.Position), ColumnAt(text, recovered.Position), recovered.RuleIndex", source);
+		Assert.Contains("OnRecovered(\"Row\", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex", source);
 
 		// The elements that did match still collect — it is only the broken one that is
 		// dropped — so what must be absent is a factory, not the collecting.

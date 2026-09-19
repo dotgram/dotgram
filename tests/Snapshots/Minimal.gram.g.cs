@@ -3723,7 +3723,7 @@ namespace DotGram.Snapshots
 							{
 								case 0:
 								{
-									OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, LineAt(text, recovered.Position), ColumnAt(text, recovered.Position), recovered.RuleIndex, "Input does not match 'Row' at " + recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+									OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, "Input does not match 'Row' at " + recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 									break;
 								}
 							}
@@ -4833,7 +4833,7 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, LineAt(text, recovered.Position), ColumnAt(text, recovered.Position), recovered.RuleIndex, "Input does not match 'Row' at " + recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+						OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, "Input does not match 'Row' at " + recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 						break;
 					}
 				}
@@ -5582,27 +5582,60 @@ namespace DotGram.Snapshots
 		static partial void OnRecovered(
 			string rule, string text, long position, int line, int column, int ordinal, string message);
 
-		/// <summary>Which line a position is on, counting from 1.</summary>
-		static int LineAt(global::System.ReadOnlySpan<char> text, int position)
+		/// <summary>
+		/// Which line a position is on and how far into it, both from 1, counted on from the
+		/// last position asked about rather than from the start of the input.
+		/// </summary>
+		/// <remarks>
+		/// A walk asks in the order the input was read, so each question costs what lies
+		/// between it and the one before: a parse that asks about every bad line of a feed pays
+		/// for the feed once, where counting from the start paid for it once a line. Asked about
+		/// a place behind, it counts back over the distance, never from the start again.
+		/// </remarks>
+		struct Located_DotGram
 		{
-			var line = 1;
+			int _at;
+			int _lines;
+			int _start;
 
-			for (var at = 0; at < position; at++)
-				if (text[at] == '\n')
-					line++;
+			public int LineAt(global::System.ReadOnlySpan<char> text, int position)
+			{
+				Move(text, position);
 
-			return line;
-		}
+				return _lines + 1;
+			}
 
-		/// <summary>How far into its line a position is, counting from 1.</summary>
-		static int ColumnAt(global::System.ReadOnlySpan<char> text, int position)
-		{
-			var column = 1;
+			public int ColumnAt(global::System.ReadOnlySpan<char> text, int position)
+			{
+				Move(text, position);
 
-			for (var at = 0; at < position; at++)
-				column = text[at] == '\n' ? 1 : column + 1;
+				return position - _start + 1;
+			}
 
-			return column;
+			void Move(global::System.ReadOnlySpan<char> text, int position)
+			{
+				if (position >= _at)
+				{
+					for (; _at < position; _at++)
+						if (text[_at] == '\n')
+						{
+							_lines++;
+							_start = _at + 1;
+						}
+
+					return;
+				}
+
+				for (var at = _at - 1; at >= position; at--)
+					if (text[at] == '\n')
+						_lines--;
+
+				_at    = position;
+				_start = position;
+
+				while (_start > 0 && text[_start - 1] != '\n')
+					_start--;
+			}
 		}
 
 		/// <summary>The ways back still open in a direct parse (Machine.Direct.cs).</summary>
@@ -6058,6 +6091,7 @@ namespace DotGram.Snapshots
 			string[] _values0 = global::System.Array.Empty<string>();
 			int[] _values1 = global::System.Array.Empty<int>();
 			string[][] _values2 = global::System.Array.Empty<string[]>();
+			internal Located_DotGram Located;
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
@@ -6139,6 +6173,7 @@ namespace DotGram.Snapshots
 				global::System.Array.Clear(_values0, 0, global::System.Math.Min(_valuesUsed, _values0.Length));
 				global::System.Array.Clear(_values1, 0, global::System.Math.Min(_valuesUsed, _values1.Length));
 				global::System.Array.Clear(_values2, 0, global::System.Math.Min(_valuesUsed, _values2.Length));
+				Located = default;
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be

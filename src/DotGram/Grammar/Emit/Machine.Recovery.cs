@@ -220,13 +220,22 @@ sealed partial class Machine
 	/// character, and a line and a column are counted in the source rather than in the
 	/// kinds, where they would all be one.
 	/// </remarks>
-	string RecoverySupplied(string name, RecoveryPlan plan) => name switch
+	/// <param name="located">
+	/// What counts lines on from the last place asked about: the parser's own in the engine, whose
+	/// walks are one a step where a parse yields, and a walk's own in the reader's. Over buffered
+	/// input the buffer counts, since only it knows what it has let go.
+	/// </param>
+	string RecoverySupplied(string name, RecoveryPlan plan, string located = "parser.Located") => name switch
 	{
 		"parserText"     => Cut("recovered.Position", "recovered.Value - recovered.Position"),
 		"parserPosition" => At("recovered.Position"),
 		"parserOrdinal"  => "recovered.RuleIndex",
-		"parserLine"     => $"LineAt({Source}, {At("recovered.Position")})",
-		"parserColumn"   => $"ColumnAt({Source}, {At("recovered.Position")})",
+		"parserLine"     => BufferedInput && !OverKinds
+			? $"text.LineAt({At("recovered.Position")})"
+			: $"{located}.LineAt({Source}, {At("recovered.Position")})",
+		"parserColumn"   => BufferedInput && !OverKinds
+			? $"text.ColumnAt({At("recovered.Position")})"
+			: $"{located}.ColumnAt({Source}, {At("recovered.Position")})",
 		"parserSpan"     => Span("recovered.Position", "recovered.Value - recovered.Position"),
 		"parserMessage"  => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
 			"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",

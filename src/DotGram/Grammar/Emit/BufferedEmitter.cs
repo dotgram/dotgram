@@ -283,7 +283,10 @@ public static partial class CSharpEmitter
 					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
 					file.Line(publication.YieldBatch ? "foreach (var item in value) yield return item;" : "yield return value;");
 					file.Line("start = end;");
-					if (!Locating(graph) && !Reaches(graph, publication.Rule).Any(rule =>
+					// What an element read is let go once it is handed back, a line or a column
+					// asked for or not: the buffer counts line breaks as it lets them go (Located).
+					// Only a look behind reads back past where an element began.
+					if (!Reaches(graph, publication.Rule).Any(rule =>
 						NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind)))
 						file.Line("text.ReleaseBefore(start);");
 				}
@@ -292,7 +295,7 @@ public static partial class CSharpEmitter
 		}
 		if (publication.Kind == PublishKind.Find)
 		{
-			var retain = Locating(graph) || Reaches(graph, publication.Rule).Any(rule =>
+			var retain = Reaches(graph, publication.Rule).Any(rule =>
 				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
 			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{match}>")))
@@ -337,6 +340,119 @@ public static partial class CSharpEmitter
 			file.Line("return match.Value;");
 		}
 	}
+
+	/// <summary>
+	/// A buffer that says which line a position is on and how far into it: line breaks counted
+	/// as far as asked, and as far as released, so that nothing is ever read behind what the
+	/// buffer still holds (D5). A position asked about behind the last one is counted back to
+	/// over the distance, and where that reaches what was released, the line began where the
+	/// release left it. Written only where a recovery asks for a line or a column: every other
+	/// buffer releases without counting anything.
+	/// </summary>
+	internal static string Located(string buffered, bool locating)
+	{
+		if (!locating)
+			return WithoutLine(WithoutLine(buffered, "/*COUNT_RELEASED*/"), "/*LOCATED*/");
+
+		var at      = buffered.IndexOf("/*LOCATED*/", StringComparison.Ordinal);
+		var begins  = buffered.LastIndexOf('\n', at) + 1;
+		var indent  = buffered.Substring(begins, at - begins);
+		var ending  = buffered.Contains("\r\n") ? "\r\n" : "\n";
+		var members = new System.Text.StringBuilder();
+		var lines   = LocatedMembers.Replace("\r\n", "\n").Split('\n');
+
+		for (var i = 0; i < lines.Length; i++)
+		{
+			if (i > 0)
+			{
+				members.Append(ending);
+
+				if (lines[i].Length > 0)
+					members.Append(indent);
+			}
+
+			members.Append(lines[i]);
+		}
+
+		return buffered
+			.Replace("/*COUNT_RELEASED*/", "CountReleased(position);")
+			.Replace("/*LOCATED*/", members.ToString());
+	}
+
+	/// <summary>The text without the line a placeholder stands on.</summary>
+	static string WithoutLine(string text, string token)
+	{
+		var at = text.IndexOf(token, StringComparison.Ordinal);
+
+		if (at < 0)
+			return text;
+
+		var begins = text.LastIndexOf('\n', at) + 1;
+		var ends   = text.IndexOf('\n', at);
+
+		// And the empty line that set it apart, where one did: nothing is left to set apart.
+		if (begins >= 2 && text[begins - 2] == '\n')
+			begins -= 1;
+		else if (begins >= 3 && text[begins - 2] == '\r' && text[begins - 3] == '\n')
+			begins -= 2;
+
+		return text.Remove(begins, (ends < 0 ? text.Length : ends + 1) - begins);
+	}
+
+	const string LocatedMembers = """
+		private int _lineAt;
+		private int _lines;
+		private int _lineStart;
+		private int _releasedLine;
+
+		public int LineAt(int position)
+		{
+			MoveLine(position);
+			return _lines + 1;
+		}
+
+		public int ColumnAt(int position)
+		{
+			MoveLine(position);
+			return position - _lineStart + 1;
+		}
+
+		// Counted as far as the release, and where the line holding it began, for a question
+		// about a place behind that reaches the release.
+		private void CountReleased(int position)
+		{
+			MoveLine(position);
+			_releasedLine = _lineStart;
+		}
+
+		private void MoveLine(int position)
+		{
+			if (position >= _lineAt)
+			{
+				for (; _lineAt < position; _lineAt++)
+					if (_buffer[_lineAt - _start] == '\n')
+					{
+						_lines++;
+						_lineStart = _lineAt + 1;
+					}
+
+				return;
+			}
+
+			for (var at = _lineAt - 1; at >= position; at--)
+				if (_buffer[at - _start] == '\n')
+					_lines--;
+
+			_lineAt    = position;
+			_lineStart = position;
+
+			while (_lineStart > _released && _buffer[_lineStart - 1 - _start] != '\n')
+				_lineStart--;
+
+			if (_lineStart == _released)
+				_lineStart = _releasedLine;
+		}
+		""";
 
 	const string BufferedTextClass = """
 		private sealed class BufferedText : global::System.IDisposable, IParserInputSource<char>
@@ -447,8 +563,11 @@ public static partial class CSharpEmitter
 			public void ReleaseBefore(int position)
 			{
 				if (position < _released || position > _count) throw new global::System.ArgumentOutOfRangeException(nameof(position));
+				/*COUNT_RELEASED*/
 				_released = position;
 			}
+
+			/*LOCATED*/
 
 			// Where the input ended, once Ensure has said it has: the position after its last
 			// character. Before that it is only how far the input has been read.
@@ -510,17 +629,6 @@ public static partial class CSharpEmitter
 			Trace(action, state, position, arena);
 		}
 
-		static int LineAt(BufferedText text, int position)
-		{
-			var line = 1;
-			for (var at = 0; at < position; at++) if (text.Get(at) == '\n') line++;
-			return line;
-		}
-		static int ColumnAt(BufferedText text, int position)
-		{
-			var column = 1;
-			for (var at = 0; at < position; at++) column = text.Get(at) == '\n' ? 1 : column + 1;
-			return column;
-		}
+		// The end of the trace hook, which a file with no engine goes without (CSharpEmitter).
 		""";
 }

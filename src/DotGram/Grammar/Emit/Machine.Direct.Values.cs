@@ -752,6 +752,13 @@ sealed partial class Machine
 			file.Line();
 			file.Line("var log   = ways.Log;");
 
+			// Where a recovered element is, counted on from the one before (Located_DotGram): the
+			// walk visits them in the order they were read.
+			if (!BufferedInput && _recoveryReads.Values.Any(read =>
+				_recoveryArms.ContainsKey(read.Plan.Id) &&
+				(read.Plan.Recovery.Asks.Contains("parserLine") || read.Plan.Recovery.Asks.Contains("parserColumn"))))
+				file.Line("var located = default(Located_DotGram);");
+
 			if (strays)
 				file.Line("var live  = values.Live;");
 
@@ -1161,7 +1168,7 @@ sealed partial class Machine
 			var arguments = new List<string>();
 
 			foreach (var name in plan.Recovery.Asks)
-				arguments.Add(RecoverySupplied(name, plan));
+				arguments.Add(RecoverySupplied(name, plan, "located"));
 
 			file.Line($"{DirectInto(type, "slot")} = {plan.Method}({string.Join(", ", arguments)});");
 

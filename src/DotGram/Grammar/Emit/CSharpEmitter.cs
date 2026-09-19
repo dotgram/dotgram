@@ -697,10 +697,14 @@ public static partial class CSharpEmitter
 		// a buffer read by methods alone goes without it.
 		var engined = machines.Exists(static compiled => !compiled.Flat && !compiled.Direct) || valuing is not null;
 
+		// And one that counts line breaks as it lets input go, where a recovery asks for a line or
+		// a column: what it has let go it can no longer read.
+		var locating = Locating(graph);
+
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput && !compiled.Machine.BufferedBytes))
-			file.Write(engined ? BufferedTextClass : WithoutEngineTrace(BufferedTextClass));
+			file.Write(Located(engined ? BufferedTextClass : WithoutEngineTrace(BufferedTextClass), locating));
 		if (machines.Exists(static compiled => compiled.Machine.BufferedBytes))
-			file.Write(engined ? BufferedByteClass() : WithoutEngineTrace(BufferedByteClass()));
+			file.Write(Located(engined ? BufferedByteClass() : WithoutEngineTrace(BufferedByteClass()), locating));
 
 		if (Streaming(graph, overKinds))
 		{
@@ -786,7 +790,8 @@ public static partial class CSharpEmitter
 				graph.Climbing.Count > 0,
 				machines.Exists(static compiled => compiled.Machine.Caches),
 				machines.Exists(static compiled => compiled.Machine.UsesMarks),
-				tables));
+				tables,
+				Locating(graph)));
 
 		// A carrier the author asked for and did not get, said once per reason and said here:
 		// which carrier a machine took is settled by what it turned out to hold, and nothing
@@ -3571,7 +3576,7 @@ public static partial class CSharpEmitter
 	static string WithoutEngineTrace(string buffered)
 	{
 		var from = buffered.IndexOf("[global::System.Diagnostics.Conditional(\"DOTGRAM_TRACE\")]", StringComparison.Ordinal);
-		var to   = buffered.IndexOf("static int LineAt(", StringComparison.Ordinal);
+		var to   = buffered.IndexOf("// The end of the trace hook", StringComparison.Ordinal);
 
 		return from < 0 || to < from ? buffered : buffered.Remove(from, to - from);
 	}
