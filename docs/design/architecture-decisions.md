@@ -340,6 +340,9 @@ so that reason does not reach it. Put to Igor with the alternatives (a nullable 
 `out`, or the lazy match); **Igor, 2026-09-19: the `out` form, and §6.1 says so** — its lead
 becomes "one `out` parameter, and only where nothing is said", with one sentence on why, and
 §6's sentence on what `TryParse` returns names the exception.
+Landed `9acc28ac` with §6 in Igor's words: on a refusal the bool form takes half the time and
+half the allocation (EL 1,284 to 661 ns, a late SQL refusal 23.1 to 11.3 µs), an accepted input
+flat. finance-24 moves Web's wrappers onto it.
 
 ## D5. A stream is read without holding it
 
