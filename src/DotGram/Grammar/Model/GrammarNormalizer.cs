@@ -213,6 +213,11 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.Check();
 
+		// After the checks, which read the grammar as it was written, and before the fold, which
+		// then sees each turn begin past the seam, as every analysis after it does: the same
+		// reading, with the seam no longer read at a turn's head and read again after it.
+		normalizer.HoistSeams();
+
 		// After the checks, because the grammar is checked as it was written and the fold
 		// makes a shape the author may not: a construction after a head shared with its
 		// neighbours. Before the two below, which only read what binding recorded.

@@ -34,7 +34,7 @@ rules have a cause of their own; the rest are under one of them.
 | DotGram.Benchmarks.Settlements | nothing to choose | none |  |  |  |  |
 | DotGram.Benchmarks.TinyScalar | immediate | none |  |  |  |  |
 | DotGram.Benchmarks.Urls | tape | read again | 2 | 0 | 0 | 3 |
-| DotGram.Examples.Expressions.ArithmeticTree | tape | read again | 5 | 0 | 0 | 6 |
+| DotGram.Examples.Expressions.ArithmeticTree | tape | read again | 5 | 0 | 0 | 5 |
 | DotGram.Examples.Expressions.Calculator | tape | read again | 6 | 0 | 0 | 8 |
 | DotGram.Examples.Expressions.ClampedExample | tape | read again | 3 | 0 | 0 | 3 |
 | DotGram.Examples.Expressions.LocaleNumber | tape | read again | 2 | 0 | 0 | 2 |
@@ -59,14 +59,14 @@ rules have a cause of their own; the rest are under one of them.
 | DotGram.Examples.Formats.XmlParser | tape | replay | 7 | 6 | 3 | 0 |
 | DotGram.Examples.Formats.YamlLite | tape | read again | 6 | 0 | 0 | 7 |
 | DotGram.Examples.Languages.Filter | tape | replay | 9 | 6 | 2 | 0 |
-| DotGram.Examples.Languages.FilterFile | tape | read again | 2 | 0 | 0 | 4 |
+| DotGram.Examples.Languages.FilterFile | tape | read again | 2 | 0 | 0 | 3 |
 | DotGram.Examples.Languages.Filters | tape | replay | 2 | 1 | 1 | 0 |
 | DotGram.Examples.Languages.GramGrammar | tape | replay | 35 | 28 | 2 | 0 |
 | DotGram.Examples.Languages.Lexemes | nothing to choose | none |  |  |  |  |
 | DotGram.Examples.Languages.Scoped | tape | read again | 4 | 0 | 0 | 5 |
 | DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 2 |
-| DotGram.Examples.Languages.SettingsFile | tape | read again | 2 | 0 | 0 | 4 |
-| DotGram.Examples.Languages.SqlDialect | tape | read again | 1 | 0 | 0 | 2 |
+| DotGram.Examples.Languages.SettingsFile | tape | read again | 2 | 0 | 0 | 3 |
+| DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  |
 | DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  |
 | DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  |
 | DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 |
@@ -78,10 +78,10 @@ rules have a cause of their own; the rest are under one of them.
 | DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 26 | 0 |
 | DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 658 | 643 | 84 | 0 |
 | DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 658 | 643 | 84 | 0 |
-| DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 6 |
+| DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 5 |
 | DotGram.Tests.Calculators.OneRuleParser | tape | read again | 1 | 0 | 0 | 1 |
 | DotGram.Tests.Calculators.StrengthCalculator | tape | read again | 1 | 0 | 0 | 1 |
-| DotGram.Tests.Calculators.TwoCalculators | tape | read again | 10 | 0 | 0 | 10 |
+| DotGram.Tests.Calculators.TwoCalculators | tape | read again | 10 | 0 | 0 | 8 |
 | DotGram.Tests.Extents | immediate | none |  |  |  |  |
 | DotGram.Tests.Generated.UrlGrammar | nothing to choose | none |  |  |  |  |
 | DotGram.Web.Rfc3339 | immediate | none |  |  |  |  |
@@ -108,13 +108,13 @@ or which nothing calls, so that no caller asks it again.
 
 | Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| run | what follows begins alike | 24 | 40 | 40 | 0 | 7 | Config.LineComment: `[^ '\n' \| '\r']*` |
 | choice | alternatives begin alike | 14 | 23 | 38 | 0 | 8 | Config.trivia: `(LineComment \| BlockComment)` |
+| run | what follows begins alike | 18 | 34 | 34 | 0 | 7 | Config.LineComment: `[^ '\n' \| '\r']*` |
 | turns | a turn led by what may read nothing | 8 | 16 | 34 | 8 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
 | choice | alternatives begin apart | 12 | 20 | 33 | 0 | 1 | JsonParser.Body: `(Plain \| Escape)` |
 | optional | what follows begins alike | 12 | 14 | 20 | 7 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
-| turns | the seam leads every alternative of the turn | 11 | 15 | 19 | 19 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | choice | every alternative led by what may read nothing | 4 | 8 | 17 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
+| turns | the seam leads every alternative of the turn | 9 | 11 | 15 | 15 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | choice | an alternative that may read nothing | 7 | 14 | 15 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
 | turns | what follows begins alike | 10 | 11 | 12 | 6 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
 | choice | the seam leads every alternative | 7 | 9 | 11 | 0 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
@@ -122,7 +122,6 @@ or which nothing calls, so that no caller asks it again.
 | optional | a turn led by what may read nothing | 2 | 5 | 7 | 2 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
 | choice | an ignore-case literal | 1 | 1 | 4 | 0 | 0 | Rfc5646.Grandfathered: `("i-ami"i \| "i-bnn"i \| "i-default"i \| "i-enochian"i \| "i-hak"i \| "i-kl…` |
-| turns | seam first, what follows can begin inside it | 2 | 2 | 2 | 2 | 2 | FilterFile.Filter: `(trivia & Word & trivia & item1: Test)*` |
 | turns | a turn led by a lookahead | 1 | 1 | 1 | 0 | 1 | Config.BlockComment: `(?!"*/" & any)*` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
 | turns | seam first, what follows begins alike past it | 1 | 1 | 1 | 0 | 1 | Scoped.Program: `(trivia & Let)*` |
@@ -149,10 +148,8 @@ or which nothing calls, so that no caller asks it again.
 
 - again Primary: through Sum
 - again Product: opens a way
-- open Product: turns, captured; the seam leads every alternative of the turn; open; (trivia & '*' & trivia & r: Unary => (l * r) | trivia & '/' & trivia &…
 - open Product: choice; the seam leads every alternative; open; (trivia & '*' & trivia & r: Unary => (l * r) | trivia & '/' & trivia &…
 - again Sum: opens a way
-- open Sum: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & r: Product => (l + r) | trivia & '-' & trivia…
 - open Sum: choice; the seam leads every alternative; open; (trivia & '+' & trivia & r: Product => (l + r) | trivia & '-' & trivia…
 - again Unary: through Primary
 
@@ -193,14 +190,10 @@ or which nothing calls, so that no caller asks it again.
 - again Power: through Unary
 - again Primary: through Sum
 - again Product: opens a way
-- open Product: turns, captured; the seam leads every alternative of the turn; open; (trivia & '*' & trivia & right: Unary => (new Mul(left, right)) | triv…
 - open Product: choice; the seam leads every alternative; open; (trivia & '*' & trivia & right: Unary => (new Mul(left, right)) | triv…
 - again Sum: opens a way
-- open Sum: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Product => (new Add(left, right)) | tr…
 - open Sum: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Product => (new Add(left, right)) | tr…
-- again Unary: through trivia
-- again trivia: opens a way
-- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
+- again Unary: through Power
 
 ## DotGram.Examples.Expressions.Calculator
 
@@ -400,14 +393,11 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Languages.FilterFile
 
-- again Filter: opens a way
-- open Filter: turns, captured; seam first, what follows can begin inside it; entry; (trivia & Word & trivia & item1: Test)*
+- again Filter: through Test
 - again Quoted: opens a way
 - open Quoted: turns; what follows begins alike; open; ("""" | [^ '"'])*
 - open Quoted: choice; alternatives begin apart; open; ("""" | [^ '"'])
-- again Test: through trivia
-- again trivia: opens a way
-- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
+- again Test: through Quoted
 
 ## DotGram.Examples.Languages.Filters
 
@@ -467,21 +457,12 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Languages.SettingsFile
 
-- again File: opens a way
-- open File: turns, captured; seam first, what follows can begin inside it; entry; (trivia & item0: Setting & trivia & eol)*
+- again File: through Setting
 - again Quoted: opens a way
 - open Quoted: turns; what follows begins alike; open; ("""" | [^ '"'])*
 - open Quoted: choice; alternatives begin apart; open; ("""" | [^ '"'])
 - again Setting: opens a way
 - open Setting: choice; alternatives begin apart; open; (Number | Quoted | Word)
-- again trivia: opens a way
-- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
-
-## DotGram.Examples.Languages.SqlDialect
-
-- again Test: through trivia
-- again trivia: opens a way
-- open trivia: run; what follows begins alike; open; ' '*
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
@@ -2275,9 +2256,7 @@ or which nothing calls, so that no caller asks it again.
 - open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary => (op == "*" ? left …
 - again Sum: opens a way
 - open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product => (op == "+" ? lef…
-- again Unary: through trivia
-- again trivia: opens a way
-- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
+- again Unary: through Power
 
 ## DotGram.Tests.Calculators.OneRuleParser
 
@@ -2293,9 +2272,8 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Tests.Calculators.TwoCalculators
 
-- again DoubleNumber: through trivia
 - again Primary: through Sum
-- again Primary: through trivia
+- again Primary: through Sum
 - again Product: opens a way
 - open Product: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['*' | '/'] & trivia & right: Unary_With1 => (op == "*" ?…
 - again Product: opens a way
@@ -2304,10 +2282,8 @@ or which nothing calls, so that no caller asks it again.
 - open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product_With1 => (op == "+"…
 - again Sum: opens a way
 - open Sum: turns, captured; the seam leads every alternative of the turn; open; trivia & op: ['+' | '-'] & trivia & right: Product_With2 => (op == "+"…
-- again Unary: through trivia
-- again Unary: through trivia
-- again trivia: opens a way
-- open trivia: run; what follows begins alike; open; ['\t' | ' ']*
+- again Unary: through Primary
+- again Unary: through Primary
 
 ## DotGram.Web.Rfc3986
 
