@@ -871,6 +871,12 @@ a new input kind with many touch points. The language is not touched either way.
 measured — the byte rows alone and then with the string rows, the first call with its methods
 and IL, FixGrammar's size; if A keeps less than two thirds of the string's gain, B follows with
 A's profile as its reason; otherwise B waits with D10.
+Corrected by performance-ff's measurement while writing A: FIX's window release was not the
+gate; an external recognizer given a view of the input (`@ReadData`) keeps a buffered machine
+on the engine, since over a stream it could make the buffer fetch under the reader. Over a
+whole array the view is the engine's own and nothing is fetched, so the in-place machine is gated
+by readability alone. The same external is what the stream form's reader will have to answer.
+FixGrammar grows 11% (four readers where there were two).
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
