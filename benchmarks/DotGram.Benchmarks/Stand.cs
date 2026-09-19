@@ -526,6 +526,7 @@ static partial class Stand
 		readonly Type _fixMessages;
 		readonly Type _fixParseMode;
 		readonly Type _fixParseOptions;
+		readonly Type? _stock;
 
 		public PairedSide(string name, string directory)
 		{
@@ -553,6 +554,11 @@ static partial class Stand
 			_fixMessages = Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages");
 			_fixParseMode = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseMode");
 			_fixParseOptions = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseOptions");
+
+			// Only a side that was given DotGram.Examples has a stock count to read.
+			_stock = File.Exists(Path.Combine(directory, "DotGram.Examples.dll"))
+				? Load("DotGram.Examples", "DotGram.Examples.Feeds.StockCountReader")
+				: null;
 		}
 
 		public Func<int> Sql(string method, string text)
@@ -582,6 +588,38 @@ static partial class Stand
 
 				return IsSuccess(call.Invoke(null, [text, state])!);
 			};
+		}
+
+		/// <summary>StockCountReader.TryParseCount(string) of this side, by reflection: the match it returns.</summary>
+		public Func<object> StockText(string text)
+		{
+			var call = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).GetMethod("TryParseCount", [typeof(string)])
+				?? throw new InvalidOperationException("StockCountReader.TryParseCount(string) not found");
+
+			return () => call.Invoke(null, [text])!;
+		}
+
+		/// <summary>StockCountReader.TryParseCount(TextReader, int?, int?) over a StringReader, with the buffer size given (null: the default).</summary>
+		public Func<object> StockReader(string text, int? bufferSize)
+		{
+			var call = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).GetMethod("TryParseCount", [typeof(TextReader), typeof(int?), typeof(int?)])
+				?? throw new InvalidOperationException("StockCountReader.TryParseCount(TextReader, int?, int?) not found");
+
+			return () => call.Invoke(null, [new StringReader(text), bufferSize, null])!;
+		}
+
+		/// <summary>Whether a match was a success, and the total and the number of lines of what it read.</summary>
+		public static (bool Ok, int Total, int Lines) StockSummary(object match)
+		{
+			var type = match.GetType();
+
+			if (!(bool)type.GetProperty("IsSuccess")!.GetValue(match)!)
+				return (false, 0, 0);
+
+			var value = type.GetProperty("Value")!.GetValue(match)!;
+			var lines = (System.Collections.ICollection)value.GetType().GetProperty("Lines")!.GetValue(value)!;
+
+			return (true, (int)value.GetType().GetProperty("Total")!.GetValue(value)!, lines.Count);
 		}
 
 		/// <summary>FixMessages.Parse of a wire message, strict, by reflection: what it read, as 1.</summary>
@@ -688,6 +726,8 @@ static partial class Stand
 				after.FixText(FixSlopeText(n)))),
 
 			.. PairedFixMessages(before, after),
+
+			.. PairedFeeds(before, after),
 
 			PairedExpression("floor",         "(int x) => x", before, after),
 			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),

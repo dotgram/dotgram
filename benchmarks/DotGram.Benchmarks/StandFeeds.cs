@@ -25,18 +25,61 @@ namespace DotGram.Benchmarks;
 
 static partial class Stand
 {
-	static IEnumerable<Workload> FeedWorkloads()
-	{
-		var small  = "apples: 12\npears: 7\nplums seven\nEND 3\n";
-		var good   = string.Concat(Enumerable.Range(0, 1000).Select(static i => $"item{i}: {i % 100}\n")) + "END 1000\n";
-		var broken = string.Concat(Enumerable.Range(0, 1000).Select(static i => i % 10 == 9 ? "x 1\n" : $"item{i}: {i % 100}\n")) + "END 900\n";
+	/// <summary>The three inputs of the stock count: the example's four lines, a thousand good ones, and the same with every tenth broken.</summary>
+	static (string Name, string Text)[] StockInputs() =>
+	[
+		("small",  "apples: 12\npears: 7\nplums seven\nEND 3\n"),
+		("good",   string.Concat(Enumerable.Range(0, 1000).Select(static i => $"item{i}: {i % 100}\n")) + "END 1000\n"),
+		("broken", string.Concat(Enumerable.Range(0, 1000).Select(static i => i % 10 == 9 ? "x 1\n" : $"item{i}: {i % 100}\n")) + "END 900\n"),
+	];
 
-		return
-		[
-			.. StockCountRows("small",  small),
-			.. StockCountRows("good",   good),
-			.. StockCountRows("broken", broken),
-		];
+	static IEnumerable<Workload> FeedWorkloads() => StockInputs().SelectMany(static input => StockCountRows(input.Name, input.Text));
+
+	/// <summary>
+	/// The stock count of two builds against each other, with this tree's hand parser as the control:
+	/// the same rows as <see cref="FeedWorkloads"/>, the generated parsers loaded from each side.
+	/// </summary>
+	static IEnumerable<Workload> PairedFeeds(PairedSide before, PairedSide after)
+	{
+		foreach (var (name, text) in StockInputs())
+		{
+			yield return PairedStockRow($"stock-count.{name}.text",
+				() => HandStockCount.TryRead(text, out var count, out _) ? count : null,
+				before.StockText(text), after.StockText(text));
+
+			yield return PairedStockRow($"stock-count.{name}.reader",
+				() => HandStockCount.TryRead(new StringReader(text), out var count, out _) ? count : null,
+				before.StockReader(text, null), after.StockReader(text, null));
+
+			yield return PairedStockRow($"stock-count.{name}.reader64",
+				() => HandStockCount.TryRead(new StringReader(text), out var count, out _, 64) ? count : null,
+				before.StockReader(text, 64), after.StockReader(text, 64));
+		}
+	}
+
+	static Workload PairedStockRow(string name, Func<StockCount?> hand, Func<object> before, Func<object> after)
+	{
+		return new Workload(
+			"feeds",
+			name,
+			[
+				new Reading("hand",   () => hand() is null ? 0 : 1),
+				new Reading("before", () => PairedSide.StockSummary(before()).Ok ? 1 : 0),
+				new Reading("after",  () => PairedSide.StockSummary(after()).Ok ? 1 : 0),
+			],
+			() =>
+			{
+				var control = hand();
+				var b       = PairedSide.StockSummary(before());
+				var a       = PairedSide.StockSummary(after());
+
+				if (control is null || !b.Ok || !a.Ok)
+					return $"  every side must read it: hand {(control is null ? "refuses" : "reads")}, before {(b.Ok ? "reads" : "refuses")}, after {(a.Ok ? "reads" : "refuses")}";
+
+				return b == (true, control.Total, control.Lines.Count) && a == b
+					? null
+					: $"  the sides read different counts: hand {control.Total} over {control.Lines.Count} lines, before {b.Total} over {b.Lines}, after {a.Total} over {a.Lines}";
+			});
 	}
 
 	static IEnumerable<Workload> StockCountRows(string name, string text)

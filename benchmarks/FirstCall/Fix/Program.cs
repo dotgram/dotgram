@@ -8,7 +8,7 @@ using System.Text;
 
 // The first call of the FIX parsers, in phases, in a fresh process (from sql-39's fixfirst).
 //
-//     fixfirst <directory> generated | hand | parse | build
+//     fixfirst <directory> generated | hand | parse | build | stock
 //
 // The directory holds DotGram.Finance.dll, and DotGram.Handwritten.dll for `hand`. Each phase prints
 // its time, how many methods the runtime compiled during it, their IL, and the time it spent compiling:
@@ -17,6 +17,8 @@ using System.Text;
 //   hand        HandFixParser.Parse of the same, the same phases.
 //   parse       FixMessages.Parse of a NewOrderSingle: load, FixSchema's type initializer on its own, the
 //               first parse, the second.
+//   stock       StockCountReader.TryParseCount of the example's four-line count (DotGram.Examples.dll in the
+//               directory too): load, the type initializers, the first parse, the second.
 //   build       FixMessages.Build of the fields FixParser.Parse read from the same message: the same phases,
 //               with the field parse before the first build so that the build is what is timed.
 //
@@ -28,9 +30,9 @@ using System.Text;
 var directory = args.Length > 1 ? args[0] : null;
 var mode      = args.Length > 1 ? args[1] : null;
 
-if (directory is null || mode is not ("generated" or "hand" or "parse" or "build"))
+if (directory is null || mode is not ("generated" or "hand" or "parse" or "build" or "stock"))
 {
-	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | parse | build");
+	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | parse | build | stock");
 
 	return 2;
 }
@@ -55,6 +57,32 @@ var parseFields = fieldParser.GetMethod("Parse", [typeof(string), options])!;
 
 switch (mode)
 {
+	case "stock":
+	{
+		var examples = Assembly.LoadFrom(Path.Combine(directory, "DotGram.Examples.dll"));
+		var reader   = examples.GetType("DotGram.Examples.Feeds.StockCountReader")!;
+
+		Phase("load examples", false);
+		RuntimeHelpers.RunClassConstructor(reader.TypeHandle);
+
+		foreach (var type in reader.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic).Where(static type => !type.ContainsGenericParameters))
+			RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+
+		Phase("cctors", false);
+
+		var count = "apples: 12\npears: 7\nplums seven\nEND 3\n";
+		var parse = reader.GetMethod("TryParseCount", [typeof(string)])!;
+		var call  = () => parse.Invoke(null, [count])!;
+		var first = call();
+
+		Phase("first parse", true);
+		call();
+		Phase("second parse", false);
+		Console.WriteLine(first.GetType().GetProperty("IsSuccess")!.GetValue(first)! is true ? "read" : "REFUSED");
+
+		break;
+	}
+
 	case "generated" or "hand":
 	{
 		var types = new List<Type> { fieldParser };
