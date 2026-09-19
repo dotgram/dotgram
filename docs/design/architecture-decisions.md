@@ -994,6 +994,8 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   first call about 72-75 methods; the pair's base is main with sql-39's commits and without C4b.
   FIX's log form keeps two ways and the tape, a later item. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
+  Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
+  `carriers.md`. C4a waits for its pair; C4b is being written.
 - C4c: release before each turn in the whole-stream form, where nothing holds a position across
   the turn and no factory keeps a reference into the buffer (a memory or an array, which a span
   cannot be); D5's retention test un-skipped, and a stream larger than `maxRetained` answered
