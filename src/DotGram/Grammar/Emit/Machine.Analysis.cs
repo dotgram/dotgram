@@ -432,6 +432,73 @@ sealed partial class Machine
 			body is Node.Element;
 	}
 
+	/// <summary>
+	/// Whether a choice is all text, each pair of whose texts can be decided where they differ
+	/// and never returned to — what <see cref="LiteralRun"/> asks, of more choices.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// For the reader's way back only; the engine's <see cref="LiteralRun"/> compiles the run
+	/// itself and is left as it is. Two things more are text here. A text captured or built
+	/// from, <c>"?1" => @(true) | "?0" => @(false)</c>, which is the same text to the choice.
+	/// And a text that ignores case, compared ignoring case: <c>"abc"i</c> begins
+	/// <c>"ab"i</c>, and the character the longer one went on with is wanted by what follows
+	/// in either case or not at all.
+	/// </para>
+	/// <para>
+	/// Where the reader reads such a choice in order and opens no way, a failure after it has
+	/// nothing to come back for: the texts that differ cannot both match, and a shorter text
+	/// written after a longer one it begins leaves a character nothing after it takes.
+	/// </para>
+	/// </remarks>
+	internal bool SettledText(IReadOnlyList<Node> alternatives, FirstSets.First following)
+	{
+		var texts = new List<Node.Literal>(alternatives.Count);
+
+		foreach (var alternative in alternatives)
+		{
+			if (Bare(alternative) is not Node.Literal { Text.Length: > 0 } text)
+				return false;
+
+			texts.Add(text);
+		}
+
+		if (texts.Count < 2)
+			return false;
+
+		for (var i = 0; i < texts.Count; i++)
+			for (var j = i + 1; j < texts.Count; j++)
+				if (!Settled(texts[i], texts[j]))
+					return false;
+
+		return true;
+
+		bool Settled(Node.Literal first, Node.Literal second)
+		{
+			if (!first.IgnoreCase && !second.IgnoreCase)
+				return PrefixSettled(first.Text, second.Text, following);
+
+			var how = StringComparison.OrdinalIgnoreCase;
+
+			if (first.Text.Length == second.Text.Length)
+				return !string.Equals(first.Text, second.Text, how);
+
+			if (first.Text.Length < second.Text.Length)
+				return !second.Text.StartsWith(first.Text, how);
+
+			if (!first.Text.StartsWith(second.Text, how))
+				return true;
+
+			var carriedOn = first.Text[second.Text.Length];
+			var upper     = char.ToUpperInvariant(carriedOn);
+			var lower     = char.ToLowerInvariant(carriedOn);
+
+			return following.IsKnown &&
+				!following.Overlaps(FirstSets.First.Chars(FirstSets.First.Normalized(
+					[new CharRange(carriedOn, carriedOn), new CharRange(upper, upper), new CharRange(lower, lower)])));
+		}
+	}
+
 	internal List<(FirstSets.First Set, Node Node)>? Chainable(IReadOnlyList<Node> alternatives)
 	{
 		if (alternatives.Count < 2)

@@ -414,6 +414,50 @@ public sealed class CarrierTests
 		}
 	}
 
+	/// <summary>
+	/// A run of texts opens no way where nothing can want the shorter of two, and that holds of
+	/// texts built from, <c>"?1" => … | "?0" => …</c>, and of texts that ignore case, compared
+	/// ignoring it. Beside each, a shorter text what follows can go on from — in either case.
+	/// </summary>
+	[Theory]
+	[InlineData("@bool", "\"?1\" => @(true) | \"?0\" => @(false)", "';'", true)]
+	[InlineData("@bool", "\"?1\" => @(true) | \"?\" => @(false)", "'1'", false)]
+	[InlineData("@string", "t: (\"abc\"i | \"ab\"i) => @(t)", "';'", true)]
+	[InlineData("@string", "t: (\"abc\"i | \"ab\"i) => @(t)", "'c'", false)]
+	[InlineData("@string", "t: (\"abc\"i | \"ab\"i) => @(t)", "'C'", false)]
+	public void A_run_of_texts_built_from_or_ignoring_case_opens_no_way(string type, string word, string after, bool immediate)
+	{
+		var grammar =
+			$$"""
+			Start : {{type}}[] = (s: Word & {{after}})* => @(s)
+			Word  : {{type}} = {{word}}
+			parse Start
+			""";
+
+		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+
+		if (!immediate)
+			Assert.Contains("Word", told.Message, StringComparison.Ordinal);
+
+		var tape = Compiled(grammar, CarrierKind.Tape);
+		var auto = Compiled(grammar, CarrierKind.Auto);
+
+		foreach (var input in new[] { "?1;?0;", "?1?11", "abc;AB;", "abcc", "ABCC", "aBC", "ab;", "" })
+		{
+			var expected = EmittedCode.Match(tape.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(auto.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+
+			if (expected.IsSuccess)
+				Assert.Equal(ValueOf(expected), ValueOf(actual));
+			else
+				Assert.Equal(expected.Position, actual.Position);
+		}
+	}
+
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
 		GramCompiler.Compile(grammar, new GramCompilerOptions
 		{

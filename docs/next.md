@@ -24028,3 +24028,22 @@ alternative that may read nothing", and no grammar changes carrier. The places l
 differently: they are optionals, or alternatives that begin alike. A pair in CarrierTests holds
 it: `('\n' | ?=';')` against `('\n' | ?='\n') & '\n'`, with the tape's answers and refusal
 positions.
+
+## Texts built from, and texts that ignore case, open no way either (gate 2, fourth)
+
+The reader opens no way into a run of text where nothing can want the shorter of two texts
+(`LiteralRun`, `PrefixSettled`). It asked that only of bare texts that keep case. Two more
+shapes are now asked, for the reader's way only; the engine's run, which compiles the texts
+itself, is as it was. The first is a text captured or built from, `"?1" => @(true) | "?0" =>
+@(false)`, which is the same text to the choice. The second is a text that ignores case, compared
+ignoring case: `"abc"i` begins `"ab"i`, and the character the longer one went on with has to be
+wanted by what follows in neither case (`SettledText`).
+
+docs/carriers.md: RFC 5646 has 6 rules read again, down from 7. The classes "an ignore-case
+literal" (its grandfathered tags) and "literals under a capture or construction" (RFC 9651's
+booleans) are gone, and no grammar changes carrier. A pair in CarrierTests holds it, with a
+row where what follows is the carried-on character in the other case.
+
+The quoted string's `""` turn is not in this. Giving that turn back is worth something only where
+what follows the closing quote can begin with a quote, which is two characters on from the loop.
+The follow sets say one. It belongs in `NeverGivesBack`, where the seam work is, and waits for it.
