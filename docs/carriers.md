@@ -12,94 +12,97 @@ asked only where the first gate let everything through. **Direct** is how many o
 rules have a cause of their own; the rest are under one of them. **Points** is how many of the
 sites that build — a call whose value is built, a construction — have a point past which what they
 read is settled (`Commit`), of how many there are: what building at that point could take off the
-tape.
+tape. **Refused** is how many of a grammar's machines the immediate carrier refuses before any gate
+is asked (gate `refused` where nothing else kept it), each named under the grammar with its
+reason; their building rules count in **Building**. **Alone** is how many of those neither gate
+would keep on the tape: what lifting the refusal would move.
 
-| Grammar | Carrier | Gate | Building | Replayed | Direct | Read again | Points |
-| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| DotGram.Benchmarks.CallCost.Called | immediate | none |  |  |  |  | 1/1 |
-| DotGram.Benchmarks.CallCost.Inlined | nothing to choose | none |  |  |  |  | 1/1 |
-| DotGram.Benchmarks.CallCost.Valued | immediate | none |  |  |  |  | 5/5 |
-| DotGram.Benchmarks.Climbing | tape | read again | 1 | 0 | 0 | 1 | 13/13 |
-| DotGram.Benchmarks.Config | immediate | none |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.Extents | immediate | none |  |  |  |  | 1/1 |
-| DotGram.Benchmarks.Feed | nothing to choose | none |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.Flat.Lowered | nothing to choose | none |  |  |  |  | 0/0 |
-| DotGram.Benchmarks.Flat.NotLowered | immediate | none |  |  |  |  | 0/0 |
-| DotGram.Benchmarks.ImmediateSql | immediate (author) |  |  |  |  |  | 12/242 |
-| DotGram.Benchmarks.Levels | tape | read again | 4 | 0 | 0 | 4 | 19/19 |
-| DotGram.Benchmarks.MaterializationCost.NoCaptures | tape | read again | 1 | 0 | 0 | 2 | 1/1 |
-| DotGram.Benchmarks.MaterializationCost.SpanCaptures | tape | replay | 7 | 1 | 1 | 0 | 17/17 |
-| DotGram.Benchmarks.MaterializationCost.WithCaptures | tape | read again | 1 | 0 | 0 | 2 | 1/1 |
-| DotGram.Benchmarks.Nesting | nothing to choose | none |  |  |  |  | 0/0 |
-| DotGram.Benchmarks.Numbers | tape | read again | 2 | 0 | 0 | 2 | 3/3 |
-| DotGram.Benchmarks.Possession.Open | nothing to choose | none |  |  |  |  | 0/0 |
-| DotGram.Benchmarks.Possession.Settled | nothing to choose | none |  |  |  |  | 0/0 |
-| DotGram.Benchmarks.Settlements | nothing to choose | none |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.TinyScalar | immediate | none |  |  |  |  | 3/3 |
-| DotGram.Benchmarks.Urls | tape | read again | 2 | 0 | 0 | 3 | 1/1 |
-| DotGram.Examples.Expressions.ArithmeticTree | tape | read again | 5 | 0 | 0 | 5 | 22/22 |
-| DotGram.Examples.Expressions.Calculator | tape | read again | 6 | 0 | 0 | 8 | 51/51 |
-| DotGram.Examples.Expressions.ClampedExample | tape | read again | 3 | 0 | 0 | 3 | 14/14 |
-| DotGram.Examples.Expressions.LocaleNumber | tape | read again | 2 | 0 | 0 | 2 | 4/4 |
-| DotGram.Examples.Feeds.FeedReader | tape | read again | 5 | 0 | 0 | 5 | 5/5 |
-| DotGram.Examples.Feeds.LoggingFeedReader | nothing to choose | none |  |  |  |  | 5/5 |
-| DotGram.Examples.Feeds.RecoveringFeedReader | nothing to choose | none |  |  |  |  | 6/6 |
-| DotGram.Examples.Feeds.StockCountReader | nothing to choose | none |  |  |  |  | 5/5 |
-| DotGram.Examples.Feeds.StreamingFeedReader | nothing to choose | none |  |  |  |  | 9/9 |
-| DotGram.Examples.Formats.Config | tape | read again | 3 | 0 | 0 | 3 | 6/6 |
-| DotGram.Examples.Formats.Config.Located | tape | read again | 3 | 0 | 0 | 3 | 6/6 |
-| DotGram.Examples.Formats.FileNames | tape | read again | 2 | 0 | 0 | 2 | 4/4 |
-| DotGram.Examples.Formats.FixParser | immediate | none |  |  |  |  | 9/9 |
-| DotGram.Examples.Formats.FixedWidth | immediate | none |  |  |  |  | 22/22 |
-| DotGram.Examples.Formats.HttpParser | tape | read again | 5 | 0 | 0 | 6 | 10/10 |
-| DotGram.Examples.Formats.IniParser | tape | read again | 7 | 0 | 0 | 11 | 14/14 |
-| DotGram.Examples.Formats.JsonParser | tape | read again | 9 | 0 | 0 | 11 | 30/30 |
-| DotGram.Examples.Formats.Links | nothing to choose | none |  |  |  |  | 1/1 |
-| DotGram.Examples.Formats.MarkdownParser | tape | read again | 9 | 0 | 0 | 10 | 24/24 |
-| DotGram.Examples.Formats.MetricsLine | tape | read again | 5 | 0 | 0 | 4 | 11/11 |
-| DotGram.Examples.Formats.Netstrings | tape | read again | 2 | 0 | 0 | 1 | 3/3 |
-| DotGram.Examples.Formats.TypedCsv | nothing to choose | none |  |  |  |  | 12/12 |
-| DotGram.Examples.Formats.XmlParser | tape | replay | 7 | 6 | 3 | 0 | 21/21 |
-| DotGram.Examples.Formats.YamlLite | tape | read again | 6 | 0 | 0 | 7 | 11/11 |
-| DotGram.Examples.Languages.Filter | tape | replay | 9 | 6 | 2 | 0 | 33/33 |
-| DotGram.Examples.Languages.FilterFile | tape | read again | 2 | 0 | 0 | 3 | 4/4 |
-| DotGram.Examples.Languages.Filters | tape | replay | 2 | 1 | 1 | 0 | 8/8 |
-| DotGram.Examples.Languages.GramGrammar | tape | replay | 35 | 28 | 2 | 0 | 108/108 |
-| DotGram.Examples.Languages.Lexemes | nothing to choose | none |  |  |  |  | 0/0 |
-| DotGram.Examples.Languages.Scoped | tape | read again | 4 | 0 | 0 | 5 | 13/13 |
-| DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 2 | 15/15 |
-| DotGram.Examples.Languages.SettingsFile | tape | read again | 2 | 0 | 0 | 3 | 3/3 |
-| DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  | 3/3 |
-| DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  | 0/0 |
-| DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 | 18/854 |
-| DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  | 18/854 |
-| DotGram.Finance.Fix.FixGrammar | nothing to choose | none |  |  |  |  | 18/18 |
-| DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  | 1910/1910 |
-| DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  | 0/0 |
-| DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 | 12/242 |
-| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 17 | 15 | 2 | 0 | 1284/2641 |
-| DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 178 | 173 | 34 | 0 | 2362/3146 |
-| DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 178 | 173 | 34 | 0 | 2362/3146 |
-| DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 5 | 18/18 |
-| DotGram.Tests.Calculators.OneRuleParser | tape | read again | 1 | 0 | 0 | 1 | 15/15 |
-| DotGram.Tests.Calculators.StrengthCalculator | tape | read again | 1 | 0 | 0 | 1 | 15/15 |
-| DotGram.Tests.Calculators.TwoCalculators | tape | read again | 10 | 0 | 0 | 8 | 34/34 |
-| DotGram.Tests.Extents | immediate | none |  |  |  |  | 1/1 |
-| DotGram.Tests.Generated.UrlGrammar | nothing to choose | none |  |  |  |  | 1/1 |
-| DotGram.Web.Rfc3339 | immediate | none |  |  |  |  | 5/5 |
-| DotGram.Web.Rfc3986 | tape | read again | 6 | 0 | 0 | 12 | 19/19 |
-| DotGram.Web.Rfc5322 | tape | read again | 48 | 0 | 0 | 114 | 129/129 |
-| DotGram.Web.Rfc5646 | tape | read again | 9 | 0 | 0 | 6 | 22/22 |
-| DotGram.Web.Rfc6265 | tape | read again | 6 | 0 | 0 | 6 | 29/29 |
-| DotGram.Web.Rfc6266 | tape | read again | 3 | 0 | 0 | 2 | 5/5 |
-| DotGram.Web.Rfc6570 | tape | read again | 5 | 0 | 0 | 2 | 10/10 |
-| DotGram.Web.Rfc6901 | immediate | none |  |  |  |  | 4/4 |
-| DotGram.Web.Rfc7239 | tape | read again | 7 | 0 | 0 | 9 | 16/16 |
-| DotGram.Web.Rfc8259 | immediate | none |  |  |  |  | 29/29 |
-| DotGram.Web.Rfc8288 | tape | read again | 5 | 0 | 0 | 7 | 9/9 |
-| DotGram.Web.Rfc9110 | tape | read again | 4 | 0 | 0 | 7 | 13/13 |
-| DotGram.Web.Rfc9651 | tape | read again | 15 | 0 | 0 | 17 | 44/44 |
+| Grammar | Carrier | Gate | Building | Replayed | Direct | Read again | Refused | Alone | Points |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| DotGram.Benchmarks.CallCost.Called | immediate | none |  |  |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.CallCost.Inlined | nothing to choose | none |  |  |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.CallCost.Valued | immediate | none |  |  |  |  |  |  | 5/5 |
+| DotGram.Benchmarks.Climbing | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 13/13 |
+| DotGram.Benchmarks.Config | immediate | none |  |  |  |  |  |  | 7/7 |
+| DotGram.Benchmarks.Extents | immediate | none |  |  |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.Feed | nothing to choose | none |  |  |  |  |  |  | 7/7 |
+| DotGram.Benchmarks.Flat.Lowered | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Flat.NotLowered | immediate | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.ImmediateSql | immediate (author) |  |  |  |  |  |  |  | 12/242 |
+| DotGram.Benchmarks.Levels | tape | read again | 4 | 0 | 0 | 4 | 0 | 0 | 19/19 |
+| DotGram.Benchmarks.MaterializationCost.NoCaptures | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
+| DotGram.Benchmarks.MaterializationCost.SpanCaptures | tape | replay | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
+| DotGram.Benchmarks.MaterializationCost.WithCaptures | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
+| DotGram.Benchmarks.Nesting | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Numbers | tape | read again | 2 | 0 | 0 | 2 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.Possession.Open | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Possession.Settled | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Benchmarks.Settlements | nothing to choose | none |  |  |  |  |  |  | 7/7 |
+| DotGram.Benchmarks.TinyScalar | immediate | none |  |  |  |  |  |  | 3/3 |
+| DotGram.Benchmarks.Urls | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
+| DotGram.Examples.Expressions.ArithmeticTree | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 22/22 |
+| DotGram.Examples.Expressions.Calculator | tape | read again | 6 | 0 | 0 | 8 | 0 | 0 | 51/51 |
+| DotGram.Examples.Expressions.ClampedExample | tape | read again | 3 | 0 | 0 | 3 | 0 | 0 | 14/14 |
+| DotGram.Examples.Expressions.LocaleNumber | tape | read again | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
+| DotGram.Examples.Feeds.FeedReader | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 5/5 |
+| DotGram.Examples.Feeds.LoggingFeedReader | nothing to choose | none |  |  |  |  |  |  | 5/5 |
+| DotGram.Examples.Feeds.RecoveringFeedReader | tape | refused | 5 | 0 | 0 | 0 | 1 | 1 | 6/6 |
+| DotGram.Examples.Feeds.StockCountReader | tape | refused | 3 | 0 | 0 | 0 | 1 | 1 | 5/5 |
+| DotGram.Examples.Feeds.StreamingFeedReader | nothing to choose | none |  |  |  |  |  |  | 9/9 |
+| DotGram.Examples.Formats.Config | tape | read again | 3 | 0 | 0 | 3 | 0 | 0 | 6/6 |
+| DotGram.Examples.Formats.Config.Located | tape | read again | 3 | 0 | 0 | 3 | 0 | 0 | 6/6 |
+| DotGram.Examples.Formats.FileNames | tape | read again | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
+| DotGram.Examples.Formats.FixParser | immediate | none |  |  |  |  |  |  | 9/9 |
+| DotGram.Examples.Formats.FixedWidth | immediate | none |  |  |  |  |  |  | 22/22 |
+| DotGram.Examples.Formats.HttpParser | tape | read again | 5 | 0 | 0 | 6 | 0 | 0 | 10/10 |
+| DotGram.Examples.Formats.IniParser | tape | read again | 7 | 0 | 0 | 11 | 0 | 0 | 14/14 |
+| DotGram.Examples.Formats.JsonParser | tape | read again | 9 | 0 | 0 | 11 | 0 | 0 | 30/30 |
+| DotGram.Examples.Formats.Links | nothing to choose | none |  |  |  |  |  |  | 1/1 |
+| DotGram.Examples.Formats.MarkdownParser | tape | read again | 9 | 0 | 0 | 10 | 0 | 0 | 24/24 |
+| DotGram.Examples.Formats.MetricsLine | tape | read again | 5 | 0 | 0 | 4 | 0 | 0 | 11/11 |
+| DotGram.Examples.Formats.Netstrings | tape | read again | 2 | 0 | 0 | 1 | 0 | 0 | 3/3 |
+| DotGram.Examples.Formats.TypedCsv | nothing to choose | none |  |  |  |  |  |  | 12/12 |
+| DotGram.Examples.Formats.XmlParser | tape | replay | 7 | 6 | 3 | 0 | 0 | 0 | 21/21 |
+| DotGram.Examples.Formats.YamlLite | tape | read again | 6 | 0 | 0 | 7 | 0 | 0 | 11/11 |
+| DotGram.Examples.Languages.Filter | tape | replay | 9 | 6 | 2 | 0 | 0 | 0 | 33/33 |
+| DotGram.Examples.Languages.FilterFile | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 4/4 |
+| DotGram.Examples.Languages.Filters | tape | replay | 2 | 1 | 1 | 0 | 0 | 0 | 8/8 |
+| DotGram.Examples.Languages.GramGrammar | tape | replay | 35 | 28 | 2 | 0 | 0 | 0 | 108/108 |
+| DotGram.Examples.Languages.Lexemes | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Examples.Languages.Scoped | tape | read again | 4 | 0 | 0 | 5 | 0 | 0 | 13/13 |
+| DotGram.Examples.Languages.Selectors | tape | read again | 6 | 0 | 0 | 2 | 0 | 0 | 15/15 |
+| DotGram.Examples.Languages.SettingsFile | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 3/3 |
+| DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  |  |  | 3/3 |
+| DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  |  |  | 12/12 |
+| DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 | 0 | 0 | 18/854 |
+| DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  |  |  | 18/854 |
+| DotGram.Finance.Fix.FixGrammar | tape | read again | 6 | 0 | 0 | 6 | 2 | 0 | 18/18 |
+| DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  |  |  | 1910/1910 |
+| DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 | 0 | 0 | 12/242 |
+| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 26 | 0 | 2 | 0 | 1284/2641 |
+| DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
+| DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
+| DotGram.Tests.Calculators.DecimalCalculator | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 18/18 |
+| DotGram.Tests.Calculators.OneRuleParser | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
+| DotGram.Tests.Calculators.StrengthCalculator | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
+| DotGram.Tests.Calculators.TwoCalculators | tape | read again | 10 | 0 | 0 | 8 | 0 | 0 | 34/34 |
+| DotGram.Tests.Extents | immediate | none |  |  |  |  |  |  | 1/1 |
+| DotGram.Tests.Generated.UrlGrammar | nothing to choose | none |  |  |  |  |  |  | 1/1 |
+| DotGram.Web.Rfc3339 | immediate | none |  |  |  |  |  |  | 5/5 |
+| DotGram.Web.Rfc3986 | tape | read again | 6 | 0 | 0 | 12 | 0 | 0 | 19/19 |
+| DotGram.Web.Rfc5322 | tape | read again | 48 | 0 | 0 | 114 | 0 | 0 | 129/129 |
+| DotGram.Web.Rfc5646 | tape | read again | 9 | 0 | 0 | 6 | 0 | 0 | 22/22 |
+| DotGram.Web.Rfc6265 | tape | read again | 6 | 0 | 0 | 6 | 0 | 0 | 29/29 |
+| DotGram.Web.Rfc6266 | tape | read again | 3 | 0 | 0 | 2 | 0 | 0 | 5/5 |
+| DotGram.Web.Rfc6570 | tape | read again | 5 | 0 | 0 | 2 | 0 | 0 | 10/10 |
+| DotGram.Web.Rfc6901 | immediate | none |  |  |  |  |  |  | 4/4 |
+| DotGram.Web.Rfc7239 | tape | read again | 7 | 0 | 0 | 9 | 0 | 0 | 16/16 |
+| DotGram.Web.Rfc8259 | immediate | none |  |  |  |  |  |  | 29/29 |
+| DotGram.Web.Rfc8288 | tape | read again | 5 | 0 | 0 | 7 | 0 | 0 | 9/9 |
+| DotGram.Web.Rfc9110 | tape | read again | 4 | 0 | 0 | 7 | 0 | 0 | 13/13 |
+| DotGram.Web.Rfc9651 | tape | read again | 15 | 0 | 0 | 17 | 0 | 0 | 44/44 |
 
 ## Where the second gate's ways are opened
 
@@ -117,8 +120,8 @@ or which nothing calls, so that no caller asks it again.
 | optional | what follows begins alike | 12 | 14 | 20 | 7 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
 | choice | every alternative led by what may read nothing | 4 | 8 | 17 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
+| choice | an alternative that may read nothing | 8 | 14 | 16 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
 | turns | the seam leads every alternative of the turn | 9 | 11 | 15 | 15 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
-| choice | an alternative that may read nothing | 7 | 13 | 14 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
 | turns | what follows begins alike | 10 | 11 | 12 | 6 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
 | choice | the seam leads every alternative | 7 | 9 | 11 | 0 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
@@ -126,6 +129,8 @@ or which nothing calls, so that no caller asks it again.
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
 | turns | seam first, what follows begins alike past it | 1 | 1 | 1 | 0 | 1 | Scoped.Program: `(trivia & Let)*` |
+| run | follow unknown | 1 | 1 | 1 | 0 | 0 | FixGrammar.LogSeparator: `' '*` |
+| turns | a turn led by a lookahead | 1 | 1 | 1 | 0 | 0 | FixGrammar.Text: `(?!LogSeparator & any)+` |
 
 ## DotGram.Benchmarks.Climbing
 
@@ -225,6 +230,14 @@ or which nothing calls, so that no caller asks it again.
 - again Trailer: through eol
 - again eol: opens a way
 - open eol: choice; literals, follow unknown; open; ("\r\n" | '\r')
+
+## DotGram.Examples.Feeds.RecoveringFeedReader
+
+- refused: it recovers; otherwise nothing
+
+## DotGram.Examples.Feeds.StockCountReader
+
+- refused: it recovers; otherwise nothing
 
 ## DotGram.Examples.Formats.Config
 
@@ -567,6 +580,21 @@ or which nothing calls, so that no caller asks it again.
 - replay While: under Control
 - replay While: under Control
 
+## DotGram.Finance.Fix.FixGrammar
+
+- refused: it recovers; otherwise read again 2
+- refused: it recovers; otherwise read again 4
+- again Field: opens a way
+- open Field: choice; an alternative that may read nothing; open; (Separator | eof)
+- again Field: opens a way
+- open Field: choice; an alternative that may read nothing; open; (LogSeparator | eof)
+- again Fields: through Field
+- again Fields: through Field
+- again LogSeparator: opens a way
+- open LogSeparator: run; follow unknown; open; ' '*
+- again Text: opens a way
+- open Text: turns; a turn led by a lookahead; open; (?!LogSeparator & any)+
+
 ## DotGram.Sql.Standard.Sql92Parser
 
 - replay ColumnList: Follows in TableReference [turn], then ')'
@@ -616,42 +644,381 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.Standard.SqlStandardParser
 
+- refused: 'JSONTablePlanTail' gathers two members onto one stack (JsonTablePlan); otherwise replay 290
+- refused: 'JSONTablePlanTail' gathers two members onto one stack (JsonTablePlan); otherwise replay 308
+- replay CharacterLargeObjectLength: Follows in CharacterStringType [choice], then ')'
+- replay CharacterLength: Follows in CharacterStringType [choice], then ')'
+- replay CharacterNode: Follows in JSONNameAndValue [choice], then "VALUE"i
+- replay ColumnNameList: Follows in Correlated [choice], then ')'
+- replay CommonSequenceGeneratorOptions: Follows in ColumnValueSource [choice], then ')'
+- replay ContextuallyTypedElement: Follows in ContextuallyTypedRowValueExpression [choice], then ',' …
+- replay ContextuallyTypedTableValueConstructor: Follows in InsertValues [choice], then ?!"UNION"i or "EXCEPT"i or "INTERSECT"i or "ORDER"i or "OFFSET"i or "F…
+- replay ContextuallyTypedValueSpecification: Follows in ContextuallyTypedRowValueExpression [choice], then ')'
+- replay DataType: Follows in Correlated [choice], then Identifier
+- replay FetchOrientation: Follows in FetchStatement [turn], then "FROM"i
+- replay GrantedBy: Follows in RevokeStatement [choice], then DropBehavior
+- replay Grantees: Follows in RevokeStatement [choice], then DropBehavior
 - replay Identifier: Follows in CharacterSetSpecification [turn], then '.'
+- replay IdentityGeneration: Follows in ColumnValueSource [choice], then "AS"i
+- replay JSONInputExpression: Follows in JSONArrayConstructor [choice], then ')'
+- replay JSONOutputClause: Follows in JSONArrayConstructor [choice], then ')'
+- replay JSONPathPredicate: Follows in JSONPredicatePrimary [choice], then ')'
+- replay LargeObjectLength: Follows in BinaryStringType [choice], then ')'
+- replay Privileges: Follows in GrantStatement [choice], then "TO"i
+- replay RowPattern: Follows in RowPatternPrimary [choice], then ')'
+- replay SQLStatementName: Follows in DescribeStatement [choice], then UsingDescriptor
+- replay SchemaName: Follows in SchemaNameClause [choice], then "AUTHORIZATION"i
+- replay SimpleTargetSpecification: Follows in SQLDiagnosticsInformation [choice], then '='
 - replay StartField: Follows in IntervalQualifier [choice], then "TO"i
+- replay Subquery: Follows in TablePrimary [choice], then CorrelationOrRecognition
+- replay ValueNode: Follows in CollectionValueConstructor [choice], then "??)" or ']'
+- replay AbsoluteValue: under ValueFunction
 - replay ActualIdentifier: under Identifier
+- replay AggregateCall: under AggregateFunction
+- replay AggregateFunction: under WindowedFunction
+- replay AllFields: under SelectSublist
+- replay AndOperand: under Conjunction
+- replay ArrayElementStep: under FunctionSubscript
+- replay ArrayValueExpression: under ValueFunction
+- replay AsClause: under AllFields
+- replay BasicSequenceGeneratorOption: under CommonSequenceGeneratorOption
+- replay BinaryStringType: under PredefinedType
+- replay BooleanFactor: under Conjunction
 - replay BooleanLiteral: under GeneralLiteral
+- replay BooleanPrimary: under BooleanTest
+- replay BooleanTest: under BooleanFactor
+- replay BooleanValueExpression: under SearchedWhenClause
+- replay BracketTail: under Bracketed
+- replay Bracketed: under PrimaryReading
+- replay CaseExpression: under PrimaryBase
+- replay CastSpecification: under PrimaryBase
+- replay ChainOrMeasure: under PrimaryBase
+- replay CharacterSetSpecification: under PredefinedType
+- replay CharacterStringType: under PredefinedType
+- replay CharacterValueExpression: under CharacterNode
+- replay CollateClause: under PredefinedType
+- replay CollectionNode: under TablePrimary
+- replay CollectionTypeSuffix: under DataType
+- replay CollectionValueConstructor: under PrimaryBase
+- replay CollectionValueExpression: under TablePrimary
+- replay ColumnReference: under WindowedFunction
+- replay CommonSequenceGeneratorOption: under CommonSequenceGeneratorOptions
+- replay CommonValueExpression: under DatetimeValueExpression
+- replay CommonValueExpressionOrRow: under BooleanPrimary
+- replay ComparisonTail: under PredicatePart2
+- replay Conjunction: under Disjunction
+- replay ContextuallyTypedRowValueExpression: under ContextuallyTypedTableValueConstructor
+- replay Correlated: under TablePrimary
+- replay CorrelationOrRecognition: under TablePrimary
+- replay CorrespondingSpec: under Intersected
+- replay CycleClause: under SearchOrCycleClause
+- replay DataChangeDeltaTable: under TablePrimary
+- replay DataChangeStatement: under DataChangeDeltaTable
+- replay DataTypeBase: under DataType
 - replay DateLiteral: under GeneralLiteral
+- replay DatetimeType: under PredefinedType
+- replay DatetimeValueExpression: under ForPortionOf
+- replay DatetimeValueFunction: under ValueFunction
+- replay DeleteStatementSearched: under DataChangeStatement
+- replay Disjunction: under ValueExpression
+- replay ElseClause: under CaseExpression
 - replay EndField: under IntervalQualifier
-- replay GeneralLiteral: under ?
+- replay ExistingWindowName: under WindowSpecificationDetails
+- replay ExtractExpression: under NumericValueFunction
+- replay FetchFirstClause: under QueryExpression
+- replay FetchFirstQuantity: under FetchFirstClause
+- replay FieldDefinition: under RowType
+- replay FilterClause: under AggregateFunction
+- replay ForPortionOf: under DeleteStatementSearched
+- replay FromClause: under TableExpression
+- replay FunctionSubscript: under Primary
+- replay GeneralLiteral: under UnsignedLiteral
+- replay GeneralValueSpecification: under PrimaryBase
+- replay GranteeItem: under Grantees
+- replay Grantor: under GrantedBy
+- replay GreatestOrLeastFunction: under PrimaryBase
+- replay GroupByClause: under TableExpression
+- replay GroupingColumnReference: under OrdinaryGroupingSet
+- replay GroupingElement: under GroupByClause
+- replay HavingClause: under TableExpression
+- replay IdentifierChain: under PeriodPredicand
+- replay ImplicitlyTypedValueSpecification: under ContextuallyTypedValueSpecification
+- replay InsertColumnsAndSource: under InsertStatement
+- replay InsertStatement: under DataChangeStatement
+- replay InsertValues: under InsertColumnsAndSource
+- replay Intersected: under QueryTerm
 - replay IntervalLiteral: under GeneralLiteral
+- replay IntervalPrimary: under TimeZoneSpecifier
 - replay IntervalQualifier: under IntervalLiteral
 - replay IntroducedStringLiteral: under GeneralLiteral
-- replay LocalOrSchemaQualifiedName: under ?
-- replay SignedNumericLiteral: under ?
+- replay IsPredicatePart2: under PredicatePart2
+- replay JSONAPICommonSyntax: under JSONValueFunction
+- replay JSONAggregateFunction: under AggregateCall
+- replay JSONArgument: under JSONAPICommonSyntax
+- replay JSONArrayConstructor: under PrimaryBase
+- replay JSONColumnBehavior: under JSONTableTypedColumn
+- replay JSONColumnFormat: under JSONTableTypedColumn
+- replay JSONColumnQuotes: under JSONColumnWrapper
+- replay JSONColumnWrapper: under JSONTableTypedColumn
+- replay JSONExistsPredicate: under BooleanPrimary
+- replay JSONInputClause: under JSONInputExpression
+- replay JSONMethod: under PrimaryStep
+- replay JSONNameAndValue: under JSONAggregateFunction
+- replay JSONObjectConstructor: under PrimaryBase
+- replay JSONPathAccessor: under JSONPathUnary
+- replay JSONPathAccessorOp: under JSONPathAccessor
+- replay JSONPathAdded: under JSONPathWff
+- replay JSONPathMultiplicative: under JSONPathWff
+- replay JSONPathMultiplied: under JSONPathMultiplicative
+- replay JSONPathPrimary: under JSONPathAccessor
+- replay JSONPathUnary: under JSONPathMultiplicative
+- replay JSONPathWff: under JSONSubscript
+- replay JSONPredicatePrimary: under JSONPathPredicate
+- replay JSONQuery: under PrimaryBase
+- replay JSONQueryQuotes: under JSONQuery
+- replay JSONRepresentation: under JSONOutputClause
+- replay JSONSerialize: under StringValueFunction
+- replay JSONSubscript: under PrimaryStep
+- replay JSONTable: under TablePrimary
+- replay JSONTableColumnDefinition: under JSONTableColumnsClause
+- replay JSONTableColumnsClause: under JSONTable
+- replay JSONTableDefaultPlanChoices: under JSONTablePlanClause
+- replay JSONTablePlan: under JSONTablePlanClause
+- replay JSONTablePlanClause: under JSONTable
+- replay JSONTablePlanPrimary: under JSONTablePlan
+- replay JSONTablePlanTail: under JSONTablePlan
+- replay JSONTablePrimitive: under TablePrimary
+- replay JSONTablePrimitiveColumn: under JSONTablePrimitive
+- replay JSONTableTypedColumn: under JSONTableColumnDefinition
+- replay JSONTypedValueFunction: under ValueFunction
+- replay JSONValueBehavior: under JSONValueFunction
+- replay JSONValueExpression: under JSONSerialize
+- replay JSONValueFunction: under PrimaryBase
+- replay JoinOperand: under PartitionedJoin
+- replay JoinOperandTail: under JoinOperand
+- replay JoinPartitioning: under Joins
+- replay JoinSpecification: under PartitionedJoin
+- replay JoinStep: under Joins
+- replay Joins: under TableReference
+- replay LikeEscape: under NegatablePredicatePart2
+- replay ListaggOverflowClause: under AggregateCall
+- replay LocalOrSchemaQualifiedName: under SimpleTable
+- replay MergeCondition: under MergeWhenClause
+- replay MergeInsertSpecification: under MergeWhenClause
+- replay MergeMatchedThen: under MergeWhenClause
+- replay MergeStatement: under DataChangeStatement
+- replay MergeWhenClause: under MergeStatement
+- replay MultisetElementReference: under PrimaryBase
+- replay MultisetValueExpression: under ValueFunction
+- replay NationalCharacterStringType: under PredefinedType
+- replay NegatablePredicatePart2: under PredicatePart2
+- replay NewSpecification: under PrimaryBase
+- replay NextValueExpression: under PrimaryBase
+- replay NumericNode: under NumericValueFunction
+- replay NumericType: under PredefinedType
+- replay NumericValueExpression: under ValueFunction
+- replay NumericValueFunction: under ValueFunction
+- replay ObjectName: under Privileges
+- replay Operand: under CommonValueExpressionOrRow
+- replay Operated: under CommonValueExpressionOrRow
+- replay Operator: under Operated
+- replay OrOperand: under Disjunction
+- replay OrderByClause: under QueryExpression
+- replay OrdinaryGroupingSet: under GroupingElement
+- replay OverflowBehavior: under ListaggOverflowClause
+- replay OverlayFunction: under StringValueFunction
+- replay OverrideClause: under InsertColumnsAndSource
+- replay ParenthesizedJoinedTable: under TablePrimary
+- replay PartitionColumn: under WindowPartitionClause
+- replay PartitionedJoin: under Joins
+- replay PathResolvedUserDefinedTypeName: under DataTypeBase
+- replay PeriodConstructor: under BooleanPrimary
+- replay PeriodContained: under PeriodPredicatePart2
+- replay PeriodPredicand: under PeriodPredicatePart2
+- replay PeriodPredicatePart2: under BooleanPrimary
+- replay PositionExpression: under NumericValueFunction
+- replay Postfix: under Operand
+- replay PredefinedType: under DataTypeBase
+- replay PredicatePart2: under WhenOperand
+- replay PredicatePart2Mark: under BooleanPrimary
+- replay Primary: under Operand
+- replay PrimaryBase: under PrimaryReading
+- replay PrimaryReading: under Primary
+- replay PrimaryStep: under FunctionSubscript
+- replay PrimarySteps: under PrimaryReading
+- replay PrivilegeAction: under PrivilegeActions
+- replay PrivilegeActions: under Privileges
+- replay QueryExpression: under Subquery
+- replay QueryExpressionBody: under QueryExpression
+- replay QueryPrimary: under QueryTerm
+- replay QuerySpecification: under SimpleTable
+- replay QuerySystemTimePeriodSpecification: under TablePrimary
+- replay QueryTerm: under QueryExpressionBody
+- replay Recognized: under TablePrimary
+- replay ReferenceResolution: under PrimaryBase
+- replay ReferenceType: under DataTypeBase
+- replay RegexSearch: under NumericValueFunction
+- replay Result: under SimpleWhenClause
+- replay ResultOffsetClause: under QueryExpression
+- replay RoutineInvocation: under PrimaryBase
+- replay RoutineName: under RoutineInvocation
+- replay RoutineType: under SpecificRoutineDesignator
+- replay RowPatternCommonSyntax: under WindowFrameClause
+- replay RowPatternDefinition: under RowPatternCommonSyntax
+- replay RowPatternFactor: under RowPatternTerm
+- replay RowPatternMeasure: under RowPatternMeasures
+- replay RowPatternMeasures: under WindowFrameClause
+- replay RowPatternNavigationOperation: under PrimaryBase
+- replay RowPatternPartitionBy: under RowPatternRecognitionClause
+- replay RowPatternPrimary: under RowPatternFactor
+- replay RowPatternQuantifier: under RowPatternFactor
+- replay RowPatternRecognitionClause: under Recognized
+- replay RowPatternRowsPerMatch: under RowPatternRecognitionClause
+- replay RowPatternSkipTo: under RowPatternCommonSyntax
+- replay RowPatternSubsetClause: under RowPatternCommonSyntax
+- replay RowPatternSubsetItem: under RowPatternSubsetClause
+- replay RowPatternTerm: under RowPattern
+- replay RowType: under DataTypeBase
+- replay RowValueExpression: under NegatablePredicatePart2
+- replay RowValuePredicand: under CaseExpression
+- replay SQLArgument: under SQLArgumentList
+- replay SQLArgumentList: under PrimaryStep
+- replay SampleClause: under TableFactor
+- replay SchemaQualifiedName: under StringValueFunction
+- replay SearchClause: under SearchOrCycleClause
+- replay SearchOrCycleClause: under WithListElement
+- replay SearchedWhenClause: under CaseExpression
+- replay SelectList: under QuerySpecification
+- replay SelectSublist: under SelectList
+- replay SetClause: under SetClauseList
+- replay SetClauseList: under MergeMatchedThen
+- replay SetTarget: under SetClause
+- replay SetTargetTail: under SetTarget
+- replay SignedNumericLiteral: under SimpleValueSpecification
+- replay SimpleOrDynamicValue: under WindowedFunction
+- replay SimpleTable: under QueryPrimary
+- replay SimpleValueSpecification: under SimpleOrDynamicValue
+- replay SimpleWhenClause: under CaseExpression
 - replay SingleDatetimeField: under IntervalQualifier
+- replay SortSpecification: under SortSpecificationList
+- replay SortSpecificationList: under AggregateCall
+- replay SpecificRoutineDesignator: under PrivilegeAction
+- replay StaticMethodInvocation: under PrimaryBase
+- replay StringValueExpression: under NumericValueFunction
+- replay StringValueFunction: under ValueFunction
+- replay SubstringFunction: under StringValueFunction
+- replay SubstringTail: under SubstringFunction
+- replay SubtypeTreatment: under PrimaryBase
+- replay TableExpression: under QuerySpecification
+- replay TableFactor: under TableReference
+- replay TablePrimary: under TableFactor
+- replay TableReference: under FromClause
+- replay TableValueConstructor: under SimpleTable
+- replay TargetCorrelation: under DeleteStatementSearched
+- replay TargetSubtype: under SubtypeTreatment
+- replay TargetTable: under DeleteStatementSearched
 - replay TimeLiteral: under GeneralLiteral
+- replay TimeZone: under Postfix
+- replay TimeZoneSpecifier: under TimeZone
 - replay TimestampLiteral: under GeneralLiteral
+- replay TrimAfterSpecification: under TrimOperands
+- replay TrimFrom: under TrimOperands
+- replay TrimFunction: under StringValueFunction
+- replay TrimOperands: under TrimFunction
+- replay TruthTest: under BooleanTest
+- replay UnionOrExcept: under QueryExpressionBody
+- replay UnsignedLiteral: under PrimaryBase
+- replay UnsignedValueSpecification: under WindowFrameBound
+- replay UpdateStatementSearched: under DataChangeStatement
+- replay UserDefinedTypeSpecification: under IsPredicatePart2
+- replay UsingUnits: under PositionExpression
+- replay ValueExpression: under ValueNode
+- replay ValueExpressionPrimary: under ReferenceResolution
+- replay ValueFunction: under Primary
+- replay WhenOperand: under SimpleWhenClause
+- replay WhereClause: under TableExpression
+- replay WindowClause: under TableExpression
+- replay WindowDefinition: under WindowClause
+- replay WindowFrameBound: under WindowFrameExtent
+- replay WindowFrameClause: under WindowSpecificationDetails
+- replay WindowFrameExclusion: under WindowFrameClause
+- replay WindowFrameExtent: under WindowFrameClause
+- replay WindowFrameStart: under WindowFrameExtent
+- replay WindowNameOrSpecification: under WindowOver
+- replay WindowOrderClause: under WindowSpecificationDetails
+- replay WindowOver: under WindowedFunction
+- replay WindowPartitionClause: under WindowSpecificationDetails
+- replay WindowSpecification: under WindowNameOrSpecification
+- replay WindowSpecificationDetails: under WindowSpecification
+- replay WindowedFunction: under PrimaryBase
+- replay WithClause: under QueryExpression
+- replay WithListElement: under WithClause
+- replay WithinGroupSpecification: under AggregateCall
 
 ## DotGram.Sql.TransactSql.TransactSqlParser
 
+- refused: 'SetExpressions_Dialect' gathers two members onto one stack (string); otherwise replay 321
+- replay AlterColumnWord: Follows in AlterTableAction [choice], then when (Syntax.FlagsOnline(flag, options))
 - replay Arguments: Follows in Member [turn], then ')'
+- replay AssemblyOptions: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
 - replay AssignOp: Follows in TSqlSelectSublist [choice], then TSqlValueExpression
+- replay BackupRedundancy: Follows in DatabaseTail [turn], then ')'
+- replay BindingOptions: Follows in BrokerStatement [choice], then when (Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "US…
 - replay BrokerString: Follows in AvailabilityMade [turn], then '('
+- replay ColumnDefinition: Follows in AlterTableAction [choice], then when (Syntax.AlteredColumn(column))
+- replay ColumnKeySetting: Follows in KeyStatement [choice], then ')'
 - replay ColumnList: Follows in VariableSource [turn], then ')'
+- replay ColumnOnline: Follows in AlterTableAction [choice], then when (Syntax.AlteredColumn(column))
+- replay ConstraintBody: Follows in AlterTableAction [choice], then "FOR"i
+- replay CreateOrAlter: Follows in KeyStatement [choice], then 'Ĝ' & name: TSqlIdentifier & tail: CredentialWith & ('2' & '̲' & '̳' &…
+- replay CursorFor: Follows in CursorQuery [choice], then QueryHints
+- replay CursorSelect: Follows in CursorQuery [choice], then CursorFor
 - replay DataAlias: Follows in RowsetArgument [choice], then when (alias is null || string.Equals(name, "DATA", System.StringCompar…
+- replay DataSourceBody: Follows in ExternalStatement [choice], then when (Syntax.NamedOnce(null, options))
+- replay DatabaseTarget: Follows in AlterDatabaseStatement [choice], then "SET"i
 - replay DatePart: Follows in DatePart [choice], then ')'
+- replay DbccWait: Follows in DbccOption [choice], then ')'
+- replay DbccWord: Follows in DbccArgument [choice], then '='
+- replay DeclaredBody: Follows in CreateTableStatement [choice], then ')'
+- replay DmlTarget: Follows in TSqlInsert [choice], then InsertRows
+- replay EventBody: Follows in EventAdd [turn], then ')'
+- replay EventObject: Follows in EventTerm [choice], then ','
+- replay EventSet: Follows in TargetAdd [turn], then ')'
+- replay ExecValue: Follows in ExecArgument [choice], then when (Syntax.Passes(v, back))
+- replay ExternalTableWith: Follows in ExternalStatement [choice], then "AS"i
+- replay FetchRow: Follows in CursorStatement [choice], then "FROM"i
 - replay FullTextAll: Follows in FullTextColumns [choice], then ')'
 - replay GroupingSetItem: Follows in GroupingSet [choice], then ')'
 - replay GroupingSet: Follows in TSqlGrouping [choice], then ')'
+- replay IncludeColumns: Follows in TableIndex [turn], then ')'
+- replay IndexOrder: Follows in CreateIndexStatement [choice], then "INDEX"i
+- replay InsertColumns: Follows in TSqlInsert [choice], then InsertRows
+- replay InsertRows: Follows in TSqlInsert [choice], then when (options is null || rows is not Query.FromExecute)
 - replay JoinHint: Follows in TSqlTableReference [turn], then "JOIN"i
 - replay JoinedRight: Follows in TSqlTableReference [turn], then "ON"i
+- replay LanguageFile: Follows in CodeStatement [choice], then when (Syntax.LanguageFiles(file, other))
+- replay MasterKeySetting: Follows in KeyStatement [choice], then ')'
+- replay MemberName: Follows in SetStatement [choice], then MemberTail
+- replay MemberTail: Follows in SetStatement [choice], then when (tail is not { Operator: "" } || members is { Length: 1 })
+- replay ModelOptions: Follows in CodeStatement [choice], then when (Syntax.NamedOnce(null, options))
 - replay Nulls: Follows in CallTail [choice], then Over
 - replay OdbcLiteralKind: Follows in OdbcEscape [choice], then NationalCharacterStringLiteral
 - replay OdbcType: Follows in OdbcFunction [choice], then ')'
 - replay OffsetFetch: Follows in InlineReturn [choice], then ')'
+- replay OnOff: Follows in TypeStatement [choice], then ')'
+- replay OptionList: Follows in SwitchTail [choice], then ')'
+- replay OptionsWith: Follows in CreateTableStatement [choice], then "AS"i
 - replay OrderByClause: Follows in InlineReturn [choice], then ')'
+- replay OutputClause: Follows in TSqlInsert [choice], then InsertRows
+- replay OutputList: Follows in OutputClause [choice], then "INTO"i
+- replay PlacementTarget: Lookahead in SwitchTail [lookahead]
+- replay PoolName: Follows in ExternalStatement [choice], then ExternalPoolWith
 - replay PredictCall: Follows in TSqlTablePrimary [choice], then PredictSchema
+- replay PriorityOptions: Follows in BrokerStatement [turn], then ')'
 - replay QueryHints: Follows in TSqlInsert [choice], then when (options is null || rows is not Query.FromExecute)
+- replay QueueWith: Follows in BrokerStatement [choice], then when (Syntax.NamedOnce(null, options) && Syntax.Activates(options))
+- replay RoleWord: Follows in PrincipalStatement [choice], then TSqlIdentifier
+- replay RouteOptions: Follows in BrokerStatement [choice], then when (Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "AD…
 - replay RowValueConstructorElement: Follows in RowValueConstructor [choice], then ',' …
 - replay RowValueConstructor: Follows in TSqlPredicate [choice], then PredicateTail
 - replay RowsetArgument: Follows in RowsetArgument [choice], then ')'
@@ -659,26 +1026,46 @@ or which nothing calls, so that no caller asks it again.
 - replay RowsetSchema: Follows in TSqlTablePrimary [choice], then when (Syntax.Schemas(f, schema))
 - replay RowsetValue: Follows in RowsetArgument [choice], then ',' …
 - replay SearchCondition: Follows in MergeArm [choice], then "THEN"i
+- replay ServerOrDatabase: Follows in AuditStatement [choice], then "AUDIT"i
+- replay SetValue: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
+- replay SpatialSetting: Follows in SpatialSet [choice], then ')'
 - replay TSqlAlias: Follows in TSqlSelectSublist [choice], then '='
 - replay TSqlGroupingColumn: Follows in GroupByExpression [choice], then ')'
 - replay TSqlJoinType: Follows in TSqlTableReference [turn], then "JOIN"i
 - replay TSqlQueryExpression: Follows in InlineReturn [choice], then ')'
 - replay TSqlSubquery: Follows in TSqlTablePrimary [choice], then CorrelationName
 - replay TSqlValueExpression: Follows in TSqlPrimaryCore [choice], then ')'
+- replay TableAs: Follows in CreateTableStatement [choice], then '('
+- replay TableBody: Follows in ExternalStatement [choice], then ')'
+- replay TextColumn: Follows in TextStatement [turn], then TextPointer
 - replay Top: Follows in TSqlInsert [choice], then DmlTarget
 - replay WithClause: Follows in InlineReturn [choice], then TSqlQueryExpression
 - replay WithinGroup: Follows in CallTail [choice], then Over
+- replay Activation: under QueueOption
 - replay AdHocObject: under TSqlTablePrimary
 - replay AdHocServer: under TSqlTablePrimary
+- replay AffinityValue: under OptionSetting
 - replay Argument: under Arguments
+- replay AssemblyOption: under AssemblyOptions
+- replay AssignTail: under MemberTail
+- replay AssignedValue: under VariableChainTail
+- replay Assignment: under Assignments
+- replay Assignments: under TSqlUpdate
 - replay AtTimeZone: under TSqlValuePrimary
+- replay BareKeyOption: under BareKeyOptions
+- replay BareKeyOptions: under ConstraintWith
+- replay BindingOption: under BindingOptions
 - replay BooleanPrimary: under BooleanTest
 - replay BooleanTerm: under SearchCondition
 - replay BooleanTest: under TSqlBooleanFactor
 - replay CallTail: under TSqlPrimaryCore
 - replay CaseExpression: under TSqlPrimaryCore
 - replay CastOperand: under TSqlCast
+- replay ChainTail: under Assignment
 - replay ChangeTrackingContext: under WithClause
+- replay ChangedSource: under InsertRows
+- replay ChangedStatement: under ChangedTable
+- replay ChangedTable: under ChangedSource
 - replay ChunksFunction: under TSqlTablePrimary
 - replay ChunksOverlap: under ChunksFunction
 - replay ChunksSet: under ChunksFunction
@@ -687,15 +1074,50 @@ or which nothing calls, so that no caller asks it again.
 - replay ChunksType: under ChunksFunction
 - replay ChunksValue: under ChunksSource
 - replay Collate: under TSqlValueExpression
+- replay ColumnBody: under ColumnDefinition
 - replay ColumnName: under ColumnList
 - replay ColumnReference: under TSqlPrimaryCore
+- replay ColumnTail: under TableColumnBody
+- replay ColumnTrait: under ColumnTail
+- replay ConstraintOption: under ConstraintWith
+- replay ConstraintWith: under ConstraintBody
 - replay CountStar: under TSqlPrimaryCore
 - replay CteBody: under CteDefinition
 - replay CteDefinition: under WithClause
+- replay CursorColumn: under CursorColumns
+- replay CursorColumns: under CursorFor
+- replay DataSourceChange: under DataSourceBody
+- replay DataSourceItem: under DataSourceBody
+- replay DataSourceOption: under DataSourceItem
 - replay DatePartCall: under TSqlPrimaryCore
 - replay DatePartFunction: under DatePartCall
+- replay DbccValue: under ExecValue
 - replay DistinctTail: under TSqlPredicate
+- replay DmlCall: under TSqlInsert
+- replay DmlWhere: under TSqlDelete
 - replay DottedType: under ?
+- replay EdgePair: under ConstraintBody
+- replay EncryptionOption: under ColumnTrait
+- replay Enforced: under ConstraintBody
+- replay EventActions: under EventBody
+- replay EventPredicate: under EventBody
+- replay EventSetting: under EventSet
+- replay ExactNumber: under ?
+- replay ExecArgument: under ExecArguments
+- replay ExecArguments: under ExecuteBody
+- replay ExecAt: under ExecuteBody
+- replay ExecContext: under ExecuteBody
+- replay ExecContextKind: under ExecContext
+- replay ExecContextName: under ExecContext
+- replay ExecDataSource: under ExecuteBody
+- replay ExecName: under ExecTarget
+- replay ExecNumber: under ExecTarget
+- replay ExecReturn: under ExecuteBody
+- replay ExecTarget: under ExecuteBody
+- replay ExecuteBody: under ExecuteStatement
+- replay ExecuteStatement: under InsertRows
+- replay ExternalTableItem: under ExternalTableWith
+- replay ExternalTableOption: under ExternalTableItem
 - replay FetchClause: under OffsetFetch
 - replay ForClause: under TSqlSubquery
 - replay FromClause: under TSqlQuerySpecification
@@ -711,6 +1133,11 @@ or which nothing calls, so that no caller asks it again.
 - replay IdentityFunction: under TSqlSelectSublist
 - replay IdentityNumber: under IdentityFunction
 - replay InPredicateValue: under NegatablePredicate
+- replay IndexColumn: under IndexColumns
+- replay IndexColumns: under ConstraintBody
+- replay IndexName: under IncludeColumns
+- replay IndexOn: under ConstraintBody
+- replay InsertColumn: under InsertColumns
 - replay Into: under TSqlQuerySpecification
 - replay JoinedTail: under JoinedRight
 - replay JsonArrayBody: under TSqlValueFunction
@@ -728,14 +1155,36 @@ or which nothing calls, so that no caller asks it again.
 - replay JsonValueReturning: under TSqlValueFunction
 - replay JsonValue: under JsonKeyValue
 - replay JsonWrapper: under TSqlValueFunction
+- replay LanguageOption: under LanguageFile
+- replay LanguagePlatform: under LanguageOption
 - replay LeftRightCall: under TSqlPrimaryCore
+- replay LevelOrDefault: under PriorityOption
+- replay LocalVariable: under FetchRow
+- replay MaskOption: under ColumnTrait
 - replay Member: under TSqlValuePrimary
+- replay MergeArm: under TSqlMerge
+- replay MergeChange: under MergeArm
+- replay MergeColumn: under MergeColumns
+- replay MergeColumns: under MergeInsert
+- replay MergeInsertRows: under MergeInsert
+- replay MergeInsert: under MergeArm
+- replay MethodCallTail: under Assignment
+- replay ModelOption: under ModelOptions
+- replay NameOrAny: under PriorityOption
+- replay NamedConstraint: under ColumnTrait
 - replay NegatablePredicate: under PredicateTail
 - replay NextValue: under TSqlPrimaryCore
 - replay NullSpec: under PredictColumn
 - replay OdbcEscape: under TSqlPrimaryCore
 - replay OdbcFunction: under OdbcEscape
+- replay OnPartitions: under OptionSetting
 - replay OpenQueryCall: under RowsetFunction
+- replay OptionNest: under OptionTail
+- replay OptionSetting: under OptionList
+- replay OptionTail: under OptionSetting
+- replay OptionUnit: under OptionValue
+- replay OptionValue: under OptionSetting
+- replay OutputItem: under OutputList
 - replay Over: under CallTail
 - replay PivotName: under PivotNames
 - replay PivotNames: under Pivot
@@ -744,9 +1193,16 @@ or which nothing calls, so that no caller asks it again.
 - replay PredicateTail: under TSqlPredicate
 - replay PredictColumn: under PredictSchema
 - replay PredictSchema: under TSqlTablePrimary
+- replay PriorityOption: under PriorityOptions
 - replay QueryHint: under QueryHints
 - replay QueryPrimary: under TSqlQueryExpression
+- replay QueueOption: under QueueWith
+- replay ReferenceAction: under ConstraintBody
+- replay ReferenceOn: under References
+- replay References: under ConstraintBody
+- replay ResultColumns: under ?
 - replay Result: under CaseExpression
+- replay RouteOption: under RouteOptions
 - replay RowsetArguments: under PredictCall
 - replay RowsetOrder: under RowsetArgument
 - replay SampleUnit: under TableSample
@@ -764,15 +1220,22 @@ or which nothing calls, so that no caller asks it again.
 - replay SemanticArguments: under RowsetFunction
 - replay SetFunctionSpecification: under TSqlPrimaryCore
 - replay SortSpecification: under OrderByClause
+- replay SortedData: under BareKeyOption
 - replay SourceHints: under TSqlTablePrimary
+- replay SpatialItem: under SpatialSetting
+- replay StringOrAny: under PriorityOption
+- replay SwitchTail: under OptionTail
 - replay SystemTimeWhen: under SystemTime
 - replay SystemTime: under TSqlTablePrimary
 - replay TSqlAsClause: under TSqlSelectSublist
 - replay TSqlBooleanFactor: under BooleanTerm
 - replay TSqlCast: under TSqlPrimaryCore
+- replay TSqlDelete: under ChangedStatement
 - replay TSqlEscapeClause: under NegatablePredicate
 - replay TSqlGroupByClause: under TSqlQuerySpecification
 - replay TSqlGrouping: under TSqlGroupByClause
+- replay TSqlInsert: under ChangedStatement
+- replay TSqlMerge: under ChangedStatement
 - replay TSqlPredicate: under BooleanPrimary
 - replay TSqlPrimaryCore: under TSqlValuePrimary
 - replay TSqlQuerySpecification: under QueryPrimary
@@ -783,11 +1246,18 @@ or which nothing calls, so that no caller asks it again.
 - replay TSqlTablePrimary: under JoinedRight
 - replay TSqlTableReference: under FromClause
 - replay TSqlTableValueConstructor: under QueryPrimary
+- replay TSqlUpdate: under ChangedStatement
 - replay TSqlValueFunction: under TSqlPrimaryCore
 - replay TSqlValuePrimary: under TSqlValueExpression
 - replay TSqlValueSpecification: under TSqlPrimaryCore
+- replay TableColumnBody: under TableColumn
+- replay TableColumn: under TableElement
+- replay TableElement: under TableBody
 - replay TableHint: under SampledHint
 - replay TableHints: under SourceHints
+- replay TableIndexOption: under TableIndexWith
+- replay TableIndexWith: under TableIndex
+- replay TableIndex: under TableElement
 - replay TableRepeatable: under TableSample
 - replay TableSample: under TSqlTablePrimary
 - replay TableSearchColumn: under TableSearchColumns
@@ -796,8 +1266,10 @@ or which nothing calls, so that no caller asks it again.
 - replay TopSuffix: under Top
 - replay Unpivot: under PivotSuffix
 - replay UnsignedLiteral: under TSqlPrimaryCore
+- replay UpdateVariableTail: under Assignment
 - replay UseModel: under FunctionCall
 - replay ValueFunction: under TSqlPrimaryCore
+- replay VariableChainTail: under UpdateVariableTail
 - replay VariableSource: under TSqlTablePrimary
 - replay WhereClause: under TSqlQuerySpecification
 - replay WindowDef: under Window
@@ -810,24 +1282,68 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.TransactSql.TransactSqlParser.Located
 
+- refused: 'SetExpressions_Dialect' gathers two members onto one stack (string); otherwise replay 321
+- replay AlterColumnWord: Follows in AlterTableAction [choice], then when (Syntax.FlagsOnline(flag, options))
 - replay Arguments: Follows in Member [turn], then ')'
+- replay AssemblyOptions: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
 - replay AssignOp: Follows in TSqlSelectSublist [choice], then TSqlValueExpression
+- replay BackupRedundancy: Follows in DatabaseTail [turn], then ')'
+- replay BindingOptions: Follows in BrokerStatement [choice], then when (Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "US…
 - replay BrokerString: Follows in AvailabilityMade [turn], then '('
+- replay ColumnDefinition: Follows in AlterTableAction [choice], then when (Syntax.AlteredColumn(column))
+- replay ColumnKeySetting: Follows in KeyStatement [choice], then ')'
 - replay ColumnList: Follows in VariableSource [turn], then ')'
+- replay ColumnOnline: Follows in AlterTableAction [choice], then when (Syntax.AlteredColumn(column))
+- replay ConstraintBody: Follows in AlterTableAction [choice], then "FOR"i
+- replay CreateOrAlter: Follows in KeyStatement [choice], then 'Ĝ' & name: TSqlIdentifier & tail: CredentialWith & ('2' & '̲' & '̳' &…
+- replay CursorFor: Follows in CursorQuery [choice], then QueryHints
+- replay CursorSelect: Follows in CursorQuery [choice], then CursorFor
 - replay DataAlias: Follows in RowsetArgument [choice], then when (alias is null || string.Equals(name, "DATA", System.StringCompar…
+- replay DataSourceBody: Follows in ExternalStatement [choice], then when (Syntax.NamedOnce(null, options))
+- replay DatabaseTarget: Follows in AlterDatabaseStatement [choice], then "SET"i
 - replay DatePart: Follows in DatePart [choice], then ')'
+- replay DbccWait: Follows in DbccOption [choice], then ')'
+- replay DbccWord: Follows in DbccArgument [choice], then '='
+- replay DeclaredBody: Follows in CreateTableStatement [choice], then ')'
+- replay DmlTarget: Follows in TSqlInsert [choice], then InsertRows
+- replay EventBody: Follows in EventAdd [turn], then ')'
+- replay EventObject: Follows in EventTerm [choice], then ','
+- replay EventSet: Follows in TargetAdd [turn], then ')'
+- replay ExecValue: Follows in ExecArgument [choice], then when (Syntax.Passes(v, back))
+- replay ExternalTableWith: Follows in ExternalStatement [choice], then "AS"i
+- replay FetchRow: Follows in CursorStatement [choice], then "FROM"i
 - replay FullTextAll: Follows in FullTextColumns [choice], then ')'
 - replay GroupingSetItem: Follows in GroupingSet [choice], then ')'
 - replay GroupingSet: Follows in TSqlGrouping [choice], then ')'
+- replay IncludeColumns: Follows in TableIndex [turn], then ')'
+- replay IndexOrder: Follows in CreateIndexStatement [choice], then "INDEX"i
+- replay InsertColumns: Follows in TSqlInsert [choice], then InsertRows
+- replay InsertRows: Follows in TSqlInsert [choice], then when (options is null || rows is not Query.FromExecute)
 - replay JoinHint: Follows in TSqlTableReference [turn], then "JOIN"i
 - replay JoinedRight: Follows in TSqlTableReference [turn], then "ON"i
+- replay LanguageFile: Follows in CodeStatement [choice], then when (Syntax.LanguageFiles(file, other))
+- replay MasterKeySetting: Follows in KeyStatement [choice], then ')'
+- replay MemberName: Follows in SetStatement [choice], then MemberTail
+- replay MemberTail: Follows in SetStatement [choice], then when (tail is not { Operator: "" } || members is { Length: 1 })
+- replay ModelOptions: Follows in CodeStatement [choice], then when (Syntax.NamedOnce(null, options))
 - replay Nulls: Follows in CallTail [choice], then Over
 - replay OdbcLiteralKind: Follows in OdbcEscape [choice], then NationalCharacterStringLiteral
 - replay OdbcType: Follows in OdbcFunction [choice], then ')'
 - replay OffsetFetch: Follows in InlineReturn [choice], then ')'
+- replay OnOff: Follows in TypeStatement [choice], then ')'
+- replay OptionList: Follows in SwitchTail [choice], then ')'
+- replay OptionsWith: Follows in CreateTableStatement [choice], then "AS"i
 - replay OrderByClause: Follows in InlineReturn [choice], then ')'
+- replay OutputClause: Follows in TSqlInsert [choice], then InsertRows
+- replay OutputList: Follows in OutputClause [choice], then "INTO"i
+- replay PlacementTarget: Lookahead in SwitchTail [lookahead]
+- replay PoolName: Follows in ExternalStatement [choice], then ExternalPoolWith
 - replay PredictCall: Follows in TSqlTablePrimary [choice], then PredictSchema
+- replay PriorityOptions: Follows in BrokerStatement [turn], then ')'
 - replay QueryHints: Follows in TSqlInsert [choice], then when (options is null || rows is not Query.FromExecute)
+- replay QueueWith: Follows in BrokerStatement [choice], then when (Syntax.NamedOnce(null, options) && Syntax.Activates(options))
+- replay RoleWord: Follows in PrincipalStatement [choice], then TSqlIdentifier
+- replay RouteOptions: Follows in BrokerStatement [choice], then when (Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "AD…
 - replay RowValueConstructorElement: Follows in RowValueConstructor [choice], then ',' …
 - replay RowValueConstructor: Follows in TSqlPredicate [choice], then PredicateTail
 - replay RowsetArgument: Follows in RowsetArgument [choice], then ')'
@@ -835,26 +1351,46 @@ or which nothing calls, so that no caller asks it again.
 - replay RowsetSchema: Follows in TSqlTablePrimary [choice], then when (Syntax.Schemas(f, schema))
 - replay RowsetValue: Follows in RowsetArgument [choice], then ',' …
 - replay SearchCondition: Follows in MergeArm [choice], then "THEN"i
+- replay ServerOrDatabase: Follows in AuditStatement [choice], then "AUDIT"i
+- replay SetValue: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
+- replay SpatialSetting: Follows in SpatialSet [choice], then ')'
 - replay TSqlAlias: Follows in TSqlSelectSublist [choice], then '='
 - replay TSqlGroupingColumn: Follows in GroupByExpression [choice], then ')'
 - replay TSqlJoinType: Follows in TSqlTableReference [turn], then "JOIN"i
 - replay TSqlQueryExpression: Follows in InlineReturn [choice], then ')'
 - replay TSqlSubquery: Follows in TSqlTablePrimary [choice], then CorrelationName
 - replay TSqlValueExpression: Follows in TSqlPrimaryCore [choice], then ')'
+- replay TableAs: Follows in CreateTableStatement [choice], then '('
+- replay TableBody: Follows in ExternalStatement [choice], then ')'
+- replay TextColumn: Follows in TextStatement [turn], then TextPointer
 - replay Top: Follows in TSqlInsert [choice], then DmlTarget
 - replay WithClause: Follows in InlineReturn [choice], then TSqlQueryExpression
 - replay WithinGroup: Follows in CallTail [choice], then Over
+- replay Activation: under QueueOption
 - replay AdHocObject: under TSqlTablePrimary
 - replay AdHocServer: under TSqlTablePrimary
+- replay AffinityValue: under OptionSetting
 - replay Argument: under Arguments
+- replay AssemblyOption: under AssemblyOptions
+- replay AssignTail: under MemberTail
+- replay AssignedValue: under VariableChainTail
+- replay Assignment: under Assignments
+- replay Assignments: under TSqlUpdate
 - replay AtTimeZone: under TSqlValuePrimary
+- replay BareKeyOption: under BareKeyOptions
+- replay BareKeyOptions: under ConstraintWith
+- replay BindingOption: under BindingOptions
 - replay BooleanPrimary: under BooleanTest
 - replay BooleanTerm: under SearchCondition
 - replay BooleanTest: under TSqlBooleanFactor
 - replay CallTail: under TSqlPrimaryCore
 - replay CaseExpression: under TSqlPrimaryCore
 - replay CastOperand: under TSqlCast
+- replay ChainTail: under Assignment
 - replay ChangeTrackingContext: under WithClause
+- replay ChangedSource: under InsertRows
+- replay ChangedStatement: under ChangedTable
+- replay ChangedTable: under ChangedSource
 - replay ChunksFunction: under TSqlTablePrimary
 - replay ChunksOverlap: under ChunksFunction
 - replay ChunksSet: under ChunksFunction
@@ -863,15 +1399,50 @@ or which nothing calls, so that no caller asks it again.
 - replay ChunksType: under ChunksFunction
 - replay ChunksValue: under ChunksSource
 - replay Collate: under TSqlValueExpression
+- replay ColumnBody: under ColumnDefinition
 - replay ColumnName: under ColumnList
 - replay ColumnReference: under TSqlPrimaryCore
+- replay ColumnTail: under TableColumnBody
+- replay ColumnTrait: under ColumnTail
+- replay ConstraintOption: under ConstraintWith
+- replay ConstraintWith: under ConstraintBody
 - replay CountStar: under TSqlPrimaryCore
 - replay CteBody: under CteDefinition
 - replay CteDefinition: under WithClause
+- replay CursorColumn: under CursorColumns
+- replay CursorColumns: under CursorFor
+- replay DataSourceChange: under DataSourceBody
+- replay DataSourceItem: under DataSourceBody
+- replay DataSourceOption: under DataSourceItem
 - replay DatePartCall: under TSqlPrimaryCore
 - replay DatePartFunction: under DatePartCall
+- replay DbccValue: under ExecValue
 - replay DistinctTail: under TSqlPredicate
+- replay DmlCall: under TSqlInsert
+- replay DmlWhere: under TSqlDelete
 - replay DottedType: under ?
+- replay EdgePair: under ConstraintBody
+- replay EncryptionOption: under ColumnTrait
+- replay Enforced: under ConstraintBody
+- replay EventActions: under EventBody
+- replay EventPredicate: under EventBody
+- replay EventSetting: under EventSet
+- replay ExactNumber: under ?
+- replay ExecArgument: under ExecArguments
+- replay ExecArguments: under ExecuteBody
+- replay ExecAt: under ExecuteBody
+- replay ExecContext: under ExecuteBody
+- replay ExecContextKind: under ExecContext
+- replay ExecContextName: under ExecContext
+- replay ExecDataSource: under ExecuteBody
+- replay ExecName: under ExecTarget
+- replay ExecNumber: under ExecTarget
+- replay ExecReturn: under ExecuteBody
+- replay ExecTarget: under ExecuteBody
+- replay ExecuteBody: under ExecuteStatement
+- replay ExecuteStatement: under InsertRows
+- replay ExternalTableItem: under ExternalTableWith
+- replay ExternalTableOption: under ExternalTableItem
 - replay FetchClause: under OffsetFetch
 - replay ForClause: under TSqlSubquery
 - replay FromClause: under TSqlQuerySpecification
@@ -887,6 +1458,11 @@ or which nothing calls, so that no caller asks it again.
 - replay IdentityFunction: under TSqlSelectSublist
 - replay IdentityNumber: under IdentityFunction
 - replay InPredicateValue: under NegatablePredicate
+- replay IndexColumn: under IndexColumns
+- replay IndexColumns: under ConstraintBody
+- replay IndexName: under IncludeColumns
+- replay IndexOn: under ConstraintBody
+- replay InsertColumn: under InsertColumns
 - replay Into: under TSqlQuerySpecification
 - replay JoinedTail: under JoinedRight
 - replay JsonArrayBody: under TSqlValueFunction
@@ -904,14 +1480,36 @@ or which nothing calls, so that no caller asks it again.
 - replay JsonValueReturning: under TSqlValueFunction
 - replay JsonValue: under JsonKeyValue
 - replay JsonWrapper: under TSqlValueFunction
+- replay LanguageOption: under LanguageFile
+- replay LanguagePlatform: under LanguageOption
 - replay LeftRightCall: under TSqlPrimaryCore
+- replay LevelOrDefault: under PriorityOption
+- replay LocalVariable: under FetchRow
+- replay MaskOption: under ColumnTrait
 - replay Member: under TSqlValuePrimary
+- replay MergeArm: under TSqlMerge
+- replay MergeChange: under MergeArm
+- replay MergeColumn: under MergeColumns
+- replay MergeColumns: under MergeInsert
+- replay MergeInsertRows: under MergeInsert
+- replay MergeInsert: under MergeArm
+- replay MethodCallTail: under Assignment
+- replay ModelOption: under ModelOptions
+- replay NameOrAny: under PriorityOption
+- replay NamedConstraint: under ColumnTrait
 - replay NegatablePredicate: under PredicateTail
 - replay NextValue: under TSqlPrimaryCore
 - replay NullSpec: under PredictColumn
 - replay OdbcEscape: under TSqlPrimaryCore
 - replay OdbcFunction: under OdbcEscape
+- replay OnPartitions: under OptionSetting
 - replay OpenQueryCall: under RowsetFunction
+- replay OptionNest: under OptionTail
+- replay OptionSetting: under OptionList
+- replay OptionTail: under OptionSetting
+- replay OptionUnit: under OptionValue
+- replay OptionValue: under OptionSetting
+- replay OutputItem: under OutputList
 - replay Over: under CallTail
 - replay PivotName: under PivotNames
 - replay PivotNames: under Pivot
@@ -920,9 +1518,16 @@ or which nothing calls, so that no caller asks it again.
 - replay PredicateTail: under TSqlPredicate
 - replay PredictColumn: under PredictSchema
 - replay PredictSchema: under TSqlTablePrimary
+- replay PriorityOption: under PriorityOptions
 - replay QueryHint: under QueryHints
 - replay QueryPrimary: under TSqlQueryExpression
+- replay QueueOption: under QueueWith
+- replay ReferenceAction: under ConstraintBody
+- replay ReferenceOn: under References
+- replay References: under ConstraintBody
+- replay ResultColumns: under ?
 - replay Result: under CaseExpression
+- replay RouteOption: under RouteOptions
 - replay RowsetArguments: under PredictCall
 - replay RowsetOrder: under RowsetArgument
 - replay SampleUnit: under TableSample
@@ -940,15 +1545,22 @@ or which nothing calls, so that no caller asks it again.
 - replay SemanticArguments: under RowsetFunction
 - replay SetFunctionSpecification: under TSqlPrimaryCore
 - replay SortSpecification: under OrderByClause
+- replay SortedData: under BareKeyOption
 - replay SourceHints: under TSqlTablePrimary
+- replay SpatialItem: under SpatialSetting
+- replay StringOrAny: under PriorityOption
+- replay SwitchTail: under OptionTail
 - replay SystemTimeWhen: under SystemTime
 - replay SystemTime: under TSqlTablePrimary
 - replay TSqlAsClause: under TSqlSelectSublist
 - replay TSqlBooleanFactor: under BooleanTerm
 - replay TSqlCast: under TSqlPrimaryCore
+- replay TSqlDelete: under ChangedStatement
 - replay TSqlEscapeClause: under NegatablePredicate
 - replay TSqlGroupByClause: under TSqlQuerySpecification
 - replay TSqlGrouping: under TSqlGroupByClause
+- replay TSqlInsert: under ChangedStatement
+- replay TSqlMerge: under ChangedStatement
 - replay TSqlPredicate: under BooleanPrimary
 - replay TSqlPrimaryCore: under TSqlValuePrimary
 - replay TSqlQuerySpecification: under QueryPrimary
@@ -959,11 +1571,18 @@ or which nothing calls, so that no caller asks it again.
 - replay TSqlTablePrimary: under JoinedRight
 - replay TSqlTableReference: under FromClause
 - replay TSqlTableValueConstructor: under QueryPrimary
+- replay TSqlUpdate: under ChangedStatement
 - replay TSqlValueFunction: under TSqlPrimaryCore
 - replay TSqlValuePrimary: under TSqlValueExpression
 - replay TSqlValueSpecification: under TSqlPrimaryCore
+- replay TableColumnBody: under TableColumn
+- replay TableColumn: under TableElement
+- replay TableElement: under TableBody
 - replay TableHint: under SampledHint
 - replay TableHints: under SourceHints
+- replay TableIndexOption: under TableIndexWith
+- replay TableIndexWith: under TableIndex
+- replay TableIndex: under TableElement
 - replay TableRepeatable: under TableSample
 - replay TableSample: under TSqlTablePrimary
 - replay TableSearchColumn: under TableSearchColumns
@@ -972,8 +1591,10 @@ or which nothing calls, so that no caller asks it again.
 - replay TopSuffix: under Top
 - replay Unpivot: under PivotSuffix
 - replay UnsignedLiteral: under TSqlPrimaryCore
+- replay UpdateVariableTail: under Assignment
 - replay UseModel: under FunctionCall
 - replay ValueFunction: under TSqlPrimaryCore
+- replay VariableChainTail: under UpdateVariableTail
 - replay VariableSource: under TSqlTablePrimary
 - replay WhereClause: under TSqlQuerySpecification
 - replay WindowDef: under Window

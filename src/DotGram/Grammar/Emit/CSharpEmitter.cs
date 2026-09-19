@@ -293,6 +293,8 @@ public static partial class CSharpEmitter
 				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
 				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets);
 			made.Anchor = owner.Machine.Anchor;
+			// Reported as the machines it replaces were: a merged machine said nothing in the report.
+			made.Reporting = carriers is not null;
 			if (!made.CanDirect(publications)) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
@@ -3041,19 +3043,35 @@ public static partial class CSharpEmitter
 	{
 		var direct    = machines.Where(static one => one.Direct).ToList();
 		var kept      = direct.Select(static one => one.Machine.KeptOnTape).OfType<Machine.Kept>().ToList();
+		var refused   = direct.Select(static one => one.Machine.RefusedOnTape).OfType<Machine.RefusedByCarrier>().ToList();
 		var immediate = direct.Exists(static one => one.Machine.CarriesImmediately);
-		var building  = kept.SelectMany(static one => one.Building).Distinct().ToList();
-		var replayed  = kept.SelectMany(static one => one.Replayed).Distinct().ToList();
-		var again     = kept.SelectMany(static one => one.Again).Distinct().ToList();
+		// What the gates would say of a refused machine counts as it did before the carrier refused
+		// it, so that a refusal adds to the report and takes nothing out of it.
+		var gated     = kept.Concat(refused.Select(static one => one.Otherwise)).ToList();
+		var building  = gated.SelectMany(static one => one.Building).Distinct().ToList();
+		var replayed  = gated.SelectMany(static one => one.Replayed).Distinct().ToList();
+		var again     = gated.Where(static one => one.Replayed.Count == 0).SelectMany(static one => one.Again).Distinct().ToList();
 		var opened    = new HashSet<RuleSymbol>(direct.SelectMany(static one => one.Machine.OpenedHere ?? []));
 
-		var gate = replayed.Count > 0 ? "replay" : again.Count > 0 ? "read again" : "none";
-		var by   = immediate && kept.Count == 0 ? "immediate" : kept.Count > 0 ? "tape" : "nothing to choose";
+		// A machine the immediate carrier refuses is on the tape before any gate is asked; how many
+		// of those nothing else would keep there — no rule replayed, none read again — is what
+		// lifting the refusal would move.
+		var alone = refused.Count(static one => one.Otherwise.Replayed.Count == 0 && one.Otherwise.Again.Count == 0);
 
-		lines.Add((kept.Count == 0
+		var gate = replayed.Count > 0 ? "replay" : again.Count > 0 ? "read again" : refused.Count > 0 ? "refused" : "none";
+		var by   = immediate && kept.Count == 0 && refused.Count == 0 ? "immediate" : kept.Count + refused.Count > 0 ? "tape" : "nothing to choose";
+
+		lines.Add((kept.Count + refused.Count == 0
 			? $"carrier: {by}; gate: {gate}"
 			: $"carrier: {by}; gate: {gate}; building: {building.Count}; replayed: {replayed.Count}; " +
-				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}") + Points(graph, replay));
+				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}; " +
+				$"refused: {refused.Count}; alone: {alone}") + Points(graph, replay));
+
+		foreach (var one in refused)
+			lines.Add(
+				$"refused: {one.Why}; otherwise " +
+				(one.Otherwise.Replayed.Count > 0 ? $"replay {one.Otherwise.Replayed.Count}" :
+					one.Otherwise.Again.Count > 0 ? $"read again {one.Otherwise.Again.Count}" : "nothing"));
 
 		foreach (var rule in replayed.OrderBy(static rule => rule.Name, StringComparer.Ordinal))
 		{

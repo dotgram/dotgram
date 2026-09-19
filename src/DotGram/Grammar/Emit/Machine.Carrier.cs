@@ -40,6 +40,18 @@ sealed partial class Machine
 	internal Kept? KeptOnTape { get; private set; }
 
 	/// <summary>
+	/// Why the immediate carrier refused a machine left to choose, and what the gates would have
+	/// said had it not: the carriers report's, and nothing a diagnostic says (GRAM5012 is silent
+	/// where the carrier refuses). Null where it did not refuse, or where there was nothing to choose.
+	/// </summary>
+	/// <param name="Why">The immediate carrier's refusal, the first it found.</param>
+	/// <param name="Otherwise">What would have kept the machine on the tape all the same: empty lists where nothing would.</param>
+	internal sealed record RefusedByCarrier(string Why, Kept Otherwise);
+
+	/// <summary>The refusal, where there was one (<see cref="RefusedByCarrier"/>).</summary>
+	internal RefusedByCarrier? RefusedOnTape { get; private set; }
+
+	/// <summary>
 	/// Whether a build asked for the carriers report: then <see cref="OpenedHere"/> is kept, and
 	/// otherwise nothing is.
 	/// </summary>
@@ -292,13 +304,21 @@ sealed partial class Machine
 
 		_chosen = tape;
 
-		if (building.Count == 0 || _replay is null || immediate.Refuses() is not null)
+		if (building.Count == 0 || _replay is null)
 			return;
 
-		var replayed = building
-			.Where(rule => !_replay.Keeps(rule))
-			.OrderBy(rule => _replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
-			.ToList();
+		// Refused before any gate is asked, as it always was. Where the report is asked for, what the
+		// gates would have said is kept beside the refusal, so that it says whether the refusal is
+		// all that holds the machine back; otherwise nothing more is asked.
+		if (immediate.Refuses() is { } refused)
+		{
+			if (Reporting)
+				RefusedOnTape = new RefusedByCarrier(refused, new Kept(building, Replayed(), ReadAgain(rules, opens, ownWays)));
+
+			return;
+		}
+
+		var replayed = Replayed();
 
 		if (replayed.Count > 0)
 		{
@@ -317,6 +337,11 @@ sealed partial class Machine
 		}
 
 		_chosen = immediate;
+
+		List<RuleSymbol> Replayed() => building
+			.Where(rule => !_replay.Keeps(rule))
+			.OrderBy(rule => _replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
+			.ToList();
 	}
 
 	/// <summary>
