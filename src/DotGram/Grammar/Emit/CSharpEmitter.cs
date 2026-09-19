@@ -654,10 +654,14 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// A reader that recovers asks how far the element it last began got, which the
+		// failure carries and its refusals keep (Refuse_DotGram): the engine's `reach`.
+		var readsRecovery = machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsRecovery);
+
 		if (machines.Count > 0)
 		{
 			file.Write(FailureStructWith(
-				reach: graph.Recoveries.Count > 0 && Streaming(graph, overKinds),
+				reach: graph.Recoveries.Count > 0 && (Streaming(graph, overKinds) || readsRecovery),
 				starved: Streaming(graph, overKinds),
 				expected: true,
 				// The machine that reads a terminal again is an engine too, and an engine
@@ -734,7 +738,13 @@ public static partial class CSharpEmitter
 		// by where it sits in this list, so they must all be looking at the same list.
 		if (machines.Exists(static compiled => compiled.Direct))
 		{
-			file.Write(DirectSupport.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+			file.Write(DirectSupport
+				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
+				.Replace(
+					"/*REACH*/",
+					readsRecovery
+						? "if (at > failure.Reach)" + Lines.Ending + "\t\t\t\tfailure.Reach = at;" + Lines.Ending + Lines.Ending + "\t\t\t"
+						: ""));
 			file.Line();
 
 			// Each carrier's own store, where its machines rent one: the tables the tape's

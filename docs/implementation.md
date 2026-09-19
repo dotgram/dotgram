@@ -194,8 +194,8 @@ business, and no longer costs this one its flat path.
 
 **The reader** is the default for everything else that qualifies — `Direct` is true
 unless the host sets it off, which a test of the engine does. `CanDirect` refuses, and
-leaves to the engine: a `find`, a publication read from a stream, a recovery, a capture of
-what a lookahead saw, a call with arguments, an external recognizer that keeps a value,
+leaves to the engine: a `find`, a publication read from a stream, a recovery other than
+the one §6 names, a capture of what a lookahead saw, a call with arguments, an external recognizer that keeps a value,
 and a guard handed a value whose construction asks for the input. It records the refusal
 in words (`Refusal`); over kinds, where it changes what the grammar means, that is said as
 `GRAM5005` (§8). §6 describes the reader.
@@ -448,6 +448,29 @@ body again after moving the tape on, so that a replay reads the earlier decision
 rather than taking them again (`Ways.Retry`). A rule that opens no way and calls nothing
 that does has one reading and is one method. Over token kinds (§8) a rule's answer stands,
 and there is no tape at all.
+
+**A repetition marked `recover` is a scenario, recognized by its shape** (§8.2 of the
+syntax; `UnreadRecovery` in `Machine.Direct.cs`). The reader takes one where it can say
+what the complete continuation is: the rule holding it is a publication's and no rule calls
+it, and the repetition is either the last thing the rule reads — so that what follows is
+the end the publication reads to — or is followed in the rule's own sequence by parts that
+end in `eof`. A continuation that holds there has read to the end, and nothing is left to
+take a turn back, which is what makes the loop a `while` with no way back into it:
+at each boundary the continuation first (the rest of the sequence, or the end), then an
+element, then — both failed, input left — a bad element, skipped to past the next match of
+the synchronization. A committed element's ways are dropped; a loop that fails drops what it
+opened, so that asking the rule again can change only what came before it, as the engine
+never comes back into a recovering repetition. A bad element is a record of its own on the
+tape, under an arm of its own, holding where it began, where the synchronization began,
+how far it got and its ordinal; the walk calls the `recover` factory on it as the engine
+does on its arena entry. How far it got is the failure's `Reach`, reset where each element
+begins and raised by `Refuse_DotGram` in a grammar whose reader recovers — the engine's
+`reach`. What the reader does not take stays with the engine: a recovery with no `=>` or
+whose elements nothing collects, a yielded one, a factory asking for the input, the state or
+the marks, an element that can be empty, and a publication read a window at a time. FIX's
+fields are the first instance (`recover Separator` to the end of the input), the stock count
+and the recovering feed the second (a trailer ending in `eof`); `RecoveringReaderTests` holds
+the reader to the engine on the scenario's shapes.
 
 **Recursion runs on the thread's stack**, which the automaton did not need. A rule that can
 reach itself probes the stack once in sixty-four entries; where the runtime says the margin

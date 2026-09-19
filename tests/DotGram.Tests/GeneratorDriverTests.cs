@@ -1970,8 +1970,10 @@ public sealed class GeneratorDriverTests
 			"PlainFeed.g.cs");
 
 		Assert.DoesNotContain("Refused", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("failure.Reach", source, StringComparison.Ordinal);
-		Assert.Contains("var reach", source, StringComparison.Ordinal);
+
+		// How far a bad element got is kept by the reader that reads this feed on the failure,
+		// reset where each element begins (Machine.Reader.cs, EmitRecovering) — not a refusal's.
+		Assert.Contains("failure.Reach = p;", source, StringComparison.Ordinal);
 	}
 
 	// ── Captures matched to a constructor (§7.3) ─────────────────────────────────

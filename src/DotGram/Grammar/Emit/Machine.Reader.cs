@@ -258,7 +258,15 @@ sealed partial class Machine
 
 				foreach (var (name, taken, part) in reader.Parts)
 				{
-					file.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
+					// A part only a failure reaches is kept out of the method that calls it, so
+					// that the hot one stays small (EmitRecovering).
+					if (reader.Cold.Contains(name))
+					{
+						file.Line($"/// <summary>What <c>{rule.Name}</c> does with an element it could not read: steps over it to the next synchronization.</summary>");
+						file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
+					}
+					else
+						file.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
 
 					using (file.Block($"public int {name}(int pos{taken})"))
 					{
@@ -1025,6 +1033,9 @@ sealed partial class Machine
 		/// <summary>The alternatives written as methods of their own, and their bodies.</summary>
 		public List<(string Name, string Taken, string Body)> Parts { get; } = [];
 
+		/// <summary>The parts only a failure reaches, written out of line (<see cref="EmitRecovering"/>).</summary>
+		public HashSet<string> Cold { get; } = [];
+
 		/// <summary>Whether the provisional method or any of its parts writes an open way.</summary>
 		public bool ObservedOpen { get; private set; }
 
@@ -1246,6 +1257,15 @@ sealed partial class Machine
 
 					for (var i = 0; i < parts.Count; i++)
 					{
+						// A repetition marked `recover` tries what follows it at every boundary
+						// (§8.2), so it reads what follows it too, and the sequence ends there.
+						if (Recovering(parts[i]) is (Node.Repeat recovering, RecoveryRead read) && read.Continuation.Count > 0)
+						{
+							EmitRecovering(code, recovering, read, following);
+
+							break;
+						}
+
 						Emit(code, parts[i], follows[i], still);
 
 						still = still && parts[i] is Node.Lookahead or Node.Empty;
@@ -2362,6 +2382,8 @@ sealed partial class Machine
 			foreach (var made in apart.Parts)
 				Parts.Add(made);
 
+			Cold.UnionWith(apart.Cold);
+
 			var undo = new System.Text.StringBuilder();
 
 			foreach (var slot in taken)
@@ -2589,6 +2611,13 @@ sealed partial class Machine
 
 		void EmitRepeat(Writer code, Node.Repeat repeat, FollowSets.Continuation following)
 		{
+			if (machine._recoveryReads.TryGetValue(repeat, out var recovery))
+			{
+				EmitRecovering(code, repeat, recovery, following);
+
+				return;
+			}
+
 			var (body, min, max) = repeat;
 
 			// What a turn is followed by is another turn, or what follows the loop where
@@ -2890,6 +2919,305 @@ sealed partial class Machine
 				code.Line();
 				code.Line($"p -= {gave};");
 			}
+		}
+
+		/// <summary>The repetition marked <c>recover</c> a part is, or captures, where the reader reads it.</summary>
+		(Node.Repeat, RecoveryRead)? Recovering(Node part)
+		{
+			var held = part is Node.Capture(_, var inner) ? inner : part;
+
+			return held is Node.Repeat repeat && machine._recoveryReads.TryGetValue(repeat, out var read)
+				? (repeat, read)
+				: null;
+		}
+
+		/// <summary>
+		/// A repetition marked <c>recover</c> (docs/syntax.md §8.2): at every boundary the
+		/// complete continuation first, then an element, then — where both failed and input
+		/// remains — a bad element, skipped past the next match of the synchronization.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// The continuation is the rest of the rule's sequence, which ends in <c>eof</c>, or
+		/// where there is none the end of the input the publication reads to
+		/// (<see cref="UnreadRecovery"/>). One that succeeds has
+		/// read to the end, so the loop is over and so is the rule's sequence: nothing after
+		/// it can take a turn back. An element that succeeds is committed for the same
+		/// reason, as the engine's <c>DeactivateChoices</c> commits it — the ways it opened
+		/// are dropped, so that no failure later can ask it for another reading.
+		/// </para>
+		/// <para>
+		/// A bad element is a record of its own on the tape, under an arm of its own: where it
+		/// began, where the synchronization began, how far it got and how many elements came
+		/// before it. The walk builds it with the <c>recover</c> factory, as the engine's does
+		/// from its arena entry (<see cref="MaterializeRecoveryArm"/>), and it is gathered where
+		/// its siblings are. How far it got is the failure's <c>Reach</c>, which a refusal
+		/// raises and the loop resets where each element begins: the engine's <c>reach</c>.
+		/// </para>
+		/// </remarks>
+		void EmitRecovering(Writer code, Node.Repeat repeat, RecoveryRead read, FollowSets.Continuation following)
+		{
+			var (body, min, _) = repeat;
+			var plan   = read.Plan;
+			var inside = new FollowSets.Continuation(FirstSets.Of(body, _graph).Or(following.Plain), following.AfterSeam);
+			var turn   = $"t{_turns++}";
+			var slot   = plan.Slot - machine._captureOffsets[owner];
+			var began  = $"m{_ways++}";
+
+			code.Line($"var {turn} = 0;");
+			code.Line($"var {began} = ways.Cursor;");
+			code.Line();
+
+			using (code.Block("while (true)"))
+			{
+				// The complete continuation first, once the minimum is met.
+				using (min > 0 ? code.Block($"if ({turn} >= {min})") : null)
+				{
+					if (read.Continuation.Count == 0)
+					{
+						code.Line($"if ({machine.Past("p")})");
+						code.Then("break;");
+					}
+					else
+					{
+						var rest = Attempt(code, new Node.Sequence(read.Continuation), following);
+
+						code.Line($"if ({rest} >= 0)");
+
+						using (code.Block(""))
+						{
+							code.Line($"p = {rest};");
+							code.Line("break;");
+						}
+					}
+				}
+
+				code.Line();
+
+				// An element, with how far it gets counted from where it begins.
+				code.Line("failure.Reach = p;");
+
+				var mark  = $"k{_ways++}";
+				var taken = Attempt(code, body, inside, mark);
+
+				code.Line($"if ({taken} >= 0)");
+
+				using (code.Block(""))
+				{
+					// Committed: what it opened on the tape can never be asked for again.
+					code.Line($"ways.Count = ways.Cursor = {mark};");
+					code.Line($"p = {taken};");
+					code.Line($"{turn}++;");
+					code.Line("continue;");
+				}
+
+				code.Line();
+
+				// Neither, and nothing left: an element or the continuation is missing, which the
+				// two attempts have said. What the loop opened on the tape goes with it: the
+				// engine never comes back into a recovering repetition, so a reading of the rule
+				// asked again may change only what came before it.
+				code.Line($"if ({machine.Past("p")})");
+
+				using (code.Block(""))
+				{
+					code.Line($"ways.Count = ways.Cursor = {began};");
+					code.Line("return -1;");
+				}
+
+				code.Line();
+
+				// A bad element: stepped over to past the next match of the synchronization, or to
+				// the end, by a method of its own that only a failure calls.
+				code.Line($"p = {Broken(read, slot, out var handed)}(p, {turn}{handed});");
+				code.Line($"{turn}++;");
+			}
+		}
+
+		/// <summary>
+		/// The method that steps over a bad element: from where it began to the next match of the
+		/// synchronization, which it moves past, or to the end; and the record of it, pushed
+		/// where its siblings are. Named <c>Read_{Rule}_Broken</c>, and handed the position and
+		/// how many elements came before.
+		/// </summary>
+		string Broken(RecoveryRead read, int slot, out string handed)
+		{
+			// One a marked repetition: a rule may mark more than one (§8.2).
+			var before = machine._recoveryReads.Values.Count(one => one.Plan.Rule == read.Plan.Rule && one.Plan.Id < read.Plan.Id);
+			var name   = machine.ReaderOf(owner) + "_Broken" + (before > 0 ? before.ToString(System.Globalization.CultureInfo.InvariantCulture) : "");
+			var code = new Writer(0);
+
+			code.Line("var p     = pos;");
+			code.Line("var reach = failure.Reach;");
+			code.Line("var to    = p;");
+			code.Line();
+
+			using (code.Block("while (true)"))
+			{
+				code.Line($"if ({machine.Past("p")})");
+
+				using (code.Block(""))
+				{
+					code.Line("to = p;");
+					code.Line("break;");
+				}
+
+				code.Line();
+
+				// Where the synchronization begins with one of a few characters, the next place it
+				// can begin is searched for (Machine.EmitSearch, IndexOf) rather than tried at
+				// every position: a feed with a bad line in ten pays a scan, not an attempt per
+				// character.
+				if (SyncStops(read.Plan.Recovery.Sync) is { } stops)
+				{
+					machine.EmitSearch(code, "hit", "p", stops);
+					code.Line("if (hit < 0)");
+
+					using (code.Block(""))
+					{
+						code.Line($"p  = {machine.EndOfInput};");
+						code.Line("to = p;");
+						code.Line("break;");
+					}
+
+					code.Line();
+					code.Line("p = hit;");
+					code.Line();
+				}
+
+				var synced = Attempt(code, read.Plan.Recovery.Sync, FollowSets.Continuation.All);
+
+				code.Line($"if ({synced} > p)");
+
+				using (code.Block(""))
+				{
+					code.Line("to = p;");
+					code.Line($"p = {synced};");
+					code.Line("break;");
+				}
+
+				code.Line();
+				code.Line("p++;");
+			}
+
+			code.Line();
+
+			_records = true;
+
+			Carried(code, _positions
+				? $"ways.Begin({machine.RecoveryArm(read.Plan)}, pos, to);"
+				: $"ways.Begin({machine.RecoveryArm(read.Plan)});");
+			Carried(code, "ways.Put(pos, to);");
+			Carried(code, "ways.Put(reach, ordinal);");
+			Carried(code, "ways.End(ways.RefsCount);");
+			Carried(code, machine.Carrier.PushRecord(slot, RuleOfSlot(slot)));
+			code.Line("return p;");
+
+			// What the synchronization's call hands on of the rule's gathering is the rule's, and
+			// is handed over under the same name.
+			var body = code.ToString();
+
+			handed = System.Text.RegularExpressions.Regex.IsMatch(body, @"\brb\b") ? ", rb" : "";
+
+			Parts.Add((name, ", int ordinal" + (handed.Length > 0 ? ", int rb" : ""), body));
+			Cold.Add(name);
+
+			return name;
+		}
+
+		/// <summary>
+		/// The characters a synchronization can begin with, where they are few enough to search
+		/// for and it cannot match nothing; null where it has to be tried at every position.
+		/// </summary>
+		List<char>? SyncStops(Node sync)
+		{
+			if (machine.BufferedInput || machine.Decidable(sync) is not { IsKnown: true, Ends: false } first)
+				return null;
+
+			var stops = new List<char>(5);
+
+			foreach (var range in first.Ranges)
+				for (int one = range.From; one <= range.To; one++)
+				{
+					if (stops.Count == 5)
+						return null;
+
+					stops.Add((char)one);
+				}
+
+			return stops.Count > 0 ? stops : null;
+		}
+
+		/// <summary>
+		/// One attempt at a part, asked for every reading it has, with what it wrote put back
+		/// where it fails: the name of the position it reached, or of -1.
+		/// </summary>
+		/// <param name="mark">
+		/// Where the attempt began on the tape's ways, declared under this name, for a caller
+		/// that commits what the attempt opened.
+		/// </param>
+		string Attempt(Writer code, Node part, FollowSets.Continuation following, string? mark = null)
+		{
+			var (call, undo, opens) = Called(part, following);
+			var segment = _ways++;
+			var began   = mark ?? $"s{segment}";
+			var took    = $"q{_calls++}";
+
+			if (opens || mark is not null)
+				code.Line($"var {began} = ways.Cursor;");
+
+			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
+				code.Line(line);
+			foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+				code.Line(line);
+
+			if (!opens)
+			{
+				code.Line($"var {took} = {call};");
+				code.Line();
+
+				using (code.Block($"if ({took} < 0)"))
+				{
+					LogBack(code, $"lm{segment}");
+					foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+						code.Line(line);
+
+					if (undo.Length > 0)
+						code.Line(undo);
+				}
+
+				code.Line();
+
+				return took;
+			}
+
+			code.Line($"var {took} = -1;");
+			code.Line();
+
+			using (code.Block("while (true)"))
+			{
+				code.Line($"{took} = {call};");
+				code.Line();
+				code.Line($"if ({took} >= 0)");
+				code.Then("break;");
+				code.Line();
+				LogBack(code, $"lm{segment}");
+				foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+					code.Line(line);
+
+				if (undo.Length > 0)
+					code.Line(undo);
+
+				code.Line();
+				code.Line($"if (ways.Cursor > {began} && ways.Retry({began}))");
+				code.Then("continue;");
+				code.Line();
+				code.Line("break;");
+			}
+
+			code.Line();
+
+			return took;
 		}
 
 		/// <summary>

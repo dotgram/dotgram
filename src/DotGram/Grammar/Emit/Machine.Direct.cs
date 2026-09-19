@@ -115,11 +115,18 @@ sealed partial class Machine
 			if (_graph.Trivia.TryGetValue(rule, out var seam))
 				bodies.Add(seam);
 
-			foreach (var one in bodies)
-				foreach (var node in NodeWalk.Descendants(one))
+			// Indexed, because a repetition marked `recover` adds its synchronization: it is
+			// read by the rule as much as the body is, and is not under it.
+			for (var at = 0; at < bodies.Count; at++)
+				foreach (var node in NodeWalk.Descendants(bodies[at]))
 				{
-					if (_graph.Recoveries.ContainsKey(node))
-						return Refused(rule, "it recovers from a bad element");
+					if (_graph.Recoveries.TryGetValue(node, out var recovery))
+					{
+						if (UnreadRecovery(root, rule, node) is { } unread)
+							return Refused(rule, unread);
+
+						bodies.Add(recovery.Sync);
+					}
 
 					switch (node)
 					{
@@ -160,6 +167,98 @@ sealed partial class Machine
 
 		return true;
 	}
+
+	/// <summary>
+	/// Why a reader cannot read this repetition marked <c>recover</c>, or null where it can:
+	/// the scenario of a repetition whose only way back is <c>recover</c> (docs/design/
+	/// fix-reader-2026-09-18.md §8).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §8.2 tries the complete continuation at every boundary first, and the reader has to
+	/// be able to say what the complete continuation is. It can where nothing outside the
+	/// rule follows it — the rule is a publication's and no rule calls it — and the
+	/// repetition is either the last thing the rule reads, so that what follows is the end
+	/// the publication reads to, or is followed in the rule's own sequence by parts that end
+	/// in <c>eof</c>. A continuation that succeeds there has read to the end of the input,
+	/// and nothing is left to take it back.
+	/// </para>
+	/// <para>
+	/// What the reader does not yet do is refused here and kept by the engine: a recovery
+	/// with no <c>=&gt;</c>, or one whose elements nothing collects; a yielded one; a factory
+	/// that asks for the input, the state or the marks; an element that can be empty; and a
+	/// tape it cannot write on (<see cref="RecoveryRead"/>).
+	/// </para>
+	/// </remarks>
+	string? UnreadRecovery(RuleSymbol root, RuleSymbol rule, Node node)
+	{
+		const string Why = "it recovers from a bad element";
+
+		if (rule != root || Carrier is not TapeCarrier || !_recoveries.TryGetValue(node, out var plan))
+			return Why;
+
+		var (body, _, max) = (Node.Repeat)node;
+
+		if (plan.Recovery.Factory is null || plan.Slot < 0 || plan.Recovery.YieldStep || max is not null ||
+			FirstSets.Nullable(body, _graph) ||
+			plan.Recovery.Asks.Any(name => name is "parserInput" or "parserState" or "parserMarks"))
+			return Why;
+
+		foreach (var other in _graph.Bodies.Values)
+			foreach (var one in NodeWalk.Descendants(other))
+				if (one is Node.Call(var called, _) && called == root)
+					return Why;
+
+		var top = _graph.Bodies[rule];
+
+		while (top is Node.Construct(var built, _))
+			top = built;
+
+		if (Holds(top, node))
+		{
+			_recoveryReads[node] = new RecoveryRead(plan, []);
+
+			return null;
+		}
+
+		if (top is Node.Sequence(var parts))
+			for (var i = 0; i < parts.Count; i++)
+				if (Holds(parts[i], node))
+				{
+					// Last, it reads to the end the publication reads to; followed, what follows
+					// has to end there itself.
+					if (i < parts.Count - 1 && !IsEnd(parts[parts.Count - 1]))
+						return Why;
+
+					_recoveryReads[node] = new RecoveryRead(plan, [.. parts.Skip(i + 1)]);
+
+					return null;
+				}
+
+		return Why;
+
+		// The repetition itself, or the capture of it.
+		static bool Holds(Node part, Node repetition) =>
+			ReferenceEquals(part, repetition) || part is Node.Capture(_, var held) && ReferenceEquals(held, repetition);
+
+		// `eof`, called or as the normalizer lowers its body: nothing may follow.
+		static bool IsEnd(Node part) =>
+			part is Node.Call(var called, _) && called.IsBuiltIn && called.Name == "eof" ||
+			part is Node.Lookahead { IsPositive: false, Body: Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 } };
+	}
+
+	/// <summary>
+	/// A repetition marked <c>recover</c> the reader reads: its plan, and the parts of its
+	/// rule's sequence after it — the continuation §8.2 tries at every boundary, ending in
+	/// <c>eof</c> — or none, where the end of the input is the continuation.
+	/// </summary>
+	sealed record RecoveryRead(RecoveryPlan Plan, IReadOnlyList<Node> Continuation);
+
+	/// <summary>Whether a reader of this machine reads a repetition marked <c>recover</c>.</summary>
+	public bool ReadsRecovery => _recoveryReads.Count > 0;
+
+	/// <summary>The recovering repetitions <see cref="UnreadRecovery"/> admitted, by the repetition.</summary>
+	readonly Dictionary<Node, RecoveryRead> _recoveryReads = new(NodeIdentity.Instance);
 
 	/// <summary>
 	/// Whether a guard can be run by a reader: what it names has to be something the
@@ -323,10 +422,16 @@ sealed partial class Machine
 			if (_graph.Trivia.TryGetValue(rule, out var seam))
 				bodies.Add(seam);
 
-			foreach (var one in bodies)
-				foreach (var node in NodeWalk.Descendants(one))
+			for (var at = 0; at < bodies.Count; at++)
+				foreach (var node in NodeWalk.Descendants(bodies[at]))
+				{
 					if (node is Node.Call(var called, _))
 						Reach(called);
+
+					// A repetition's synchronization is read by its rule (DirectReachable).
+					if (_graph.Recoveries.TryGetValue(node, out var recovery))
+						bodies.Add(recovery.Sync);
+				}
 		}
 
 		foreach (var publication in publications)

@@ -1831,7 +1831,7 @@ public static partial class CSharpEmitter
 			if (failure.Looking > 0)
 				return;
 
-			if (at > failure.Position)
+			/*REACH*/if (at > failure.Position)
 			{
 				failure.Position     = at;
 				failure.Expected     = expected;

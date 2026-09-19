@@ -397,12 +397,26 @@ sealed partial class Machine
 					Armed(rule, i);
 		}
 
+		// A recovered element is a record of its own (RecoveryRead), numbered after every
+		// rule's so that no rule's number moves.
+		_recoveryArms.Clear();
+
+		foreach (var read in _recoveryReads.Values)
+			if (rules.Contains(read.Plan.Rule))
+				_recoveryArms[read.Plan.Id] = _directArms.Count + _recoveryArms.Count;
+
 		void Armed(RuleSymbol rule, int factory)
 		{
 			_directArms[(rule, factory)] = _directArms.Count;
 			_directArmed.Add((rule, factory));
 		}
 	}
+
+	/// <summary>The arm a recovered element's record is written under, by the plan's number.</summary>
+	readonly Dictionary<int, int> _recoveryArms = [];
+
+	/// <summary>Which arm a recovered element of this plan writes its record under.</summary>
+	int RecoveryArm(RecoveryPlan plan) => _recoveryArms[plan.Id];
 
 	readonly Dictionary<(RuleSymbol Rule, int Factory), int> _directArms = [];
 	readonly List<(RuleSymbol Rule, int Factory)>            _directArmed = [];
@@ -876,6 +890,12 @@ sealed partial class Machine
 
 				using (file.Block("switch (log[at + 1])"))
 				{
+					// Recovered elements first and in the walk itself: their arms are few and
+					// short, and a divided walk's parts are the rules'.
+					foreach (var read in _recoveryReads.Values)
+						if (_recoveryArms.ContainsKey(read.Plan.Id))
+							MaterializeRecoveryArm(file, read.Plan);
+
 					if (parts.Count == 1)
 					{
 						foreach (var (rule, factory) in parts[0])
@@ -1104,6 +1124,46 @@ sealed partial class Machine
 					$"{DirectInto(type, "slot")} = " +
 					$"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))});");
 			}
+
+			if (DirectMark(type, "slot") is { Length: > 0 } mark)
+				file.Line(mark);
+
+			file.Line("break;");
+		}
+	}
+
+	/// <summary>
+	/// A recovered element's record built: the <c>recover</c> factory called with what it asks
+	/// for, read from where the element began, where the synchronization began, how far the
+	/// element got and how many elements came before it — the engine's
+	/// <see cref="MaterializeRecovery"/> over the tape's record rather than the arena's.
+	/// </summary>
+	/// <remarks>
+	/// The four are named as the arena entry names them, so that <see cref="RecoverySupplied"/>
+	/// says the same things in the same words for both.
+	/// </remarks>
+	void MaterializeRecoveryArm(Writer file, RecoveryPlan plan)
+	{
+		var type = _results.QualifiedOf(plan.Element!)!;
+
+		using (file.Block($"case {RecoveryArm(plan)}:"))
+		{
+			// Named only where the factory asks for any of them: a local nothing reads is a
+			// warning in somebody else's build.
+			if (plan.Recovery.Asks.Count > 0)
+				file.Line(
+					"var recovered = (Position: log[read], Value: log[read + 1], " +
+					"AtomicIndex: log[read + 2], RuleIndex: log[read + 3]);");
+
+			if (DenseDirectValues)
+				file.Line($"var valueSlot = values.Add{TableName(type)}(slot);");
+
+			var arguments = new List<string>();
+
+			foreach (var name in plan.Recovery.Asks)
+				arguments.Add(RecoverySupplied(name, plan));
+
+			file.Line($"{DirectInto(type, "slot")} = {plan.Method}({string.Join(", ", arguments)});");
 
 			if (DirectMark(type, "slot") is { Length: > 0 } mark)
 				file.Line(mark);
