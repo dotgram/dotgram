@@ -1022,6 +1022,14 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
+  C4a paired (a cookie -40..-48 B, EL's immediate loop -320 B, the rest identical). C4b written
+  (`ba6bc238`, held for its pair): StockCount and the recovering feed move to the immediate carrier;
+  FIX follows when sql-39's exclusive `eof` lands, since its field still opens one way on main.
+  Two corrections made while writing it: the gate asks that every construction of the machine has
+  a rule point — a call only hands up a value built at its rule's end; and lines and columns are a
+  cursor the reader keeps, not a refusal. Against the tape it builds the same, and one tag more
+  on a broken field (the losing grade, allowed). Two recovering repetitions in one rule stay on
+  the tape, by the shared-stack fix (`4f5457dc`).
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
