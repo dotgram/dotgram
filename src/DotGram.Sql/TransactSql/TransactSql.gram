@@ -4650,10 +4650,10 @@ FunctionReturns : @Statement.CreateFunction
 // `WITH`; the corpus's own was hidden by the mirage. The brackets are kept as the query in
 // brackets, and the writer puts the `WITH` and the order back inside them.
 InlineReturn : @Statement[]
-	= '(' & with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & ')'
-		=> @(new Statement[] { new Statement.Select(with ?? Clause.None, new Query.Parenthesized(q), Clause.Ordered(by, window), Clause.None, Clause.None) })
-	| with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
+	= with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
 		=> @(new Statement[] { new Statement.Select(with ?? Clause.None, q, Clause.Ordered(by, window), Clause.None, Clause.None) })
+	| '(' & with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & ')'
+		=> @(new Statement[] { new Statement.Select(with ?? Clause.None, new Query.Parenthesized(q), Clause.Ordered(by, window), Clause.None, Clause.None) })
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement
