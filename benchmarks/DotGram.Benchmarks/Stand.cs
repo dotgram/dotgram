@@ -978,6 +978,19 @@ static partial class Stand
 			return () => build.Invoke(null, [wire, array.Invoke(null, [fields()]), null]) is null ? 0 : 1;
 		}
 
+		/// <summary>FixParser.ParseLog (the `|`-separated log form) of this side: "text", "bytes", or "stream" (the yield form over a stream).</summary>
+		public Func<int> FixLog(string form, string text)
+		{
+			var bytes = Encoding.Latin1.GetBytes(text);
+
+			return form switch
+			{
+				"bytes"  => FixCount(FixCall("ParseLog", [typeof(byte[]), _fixOptions], [bytes, null])),
+				"stream" => FixCount(() => FixCall("ParseLog", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])()),
+				_        => FixCount(FixCall("ParseLog", [typeof(string), _fixOptions], [text, null])),
+			};
+		}
+
 		public Func<int> FixText(string text) => FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, null]));
 		public Func<int> FixBytes(byte[] bytes) => FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null]));
 
@@ -1107,6 +1120,9 @@ static partial class Stand
 			// The largest size of each linearity series, held before and after like any row: a change that makes a parser
 			// superlinear shows here, in the pair of the commit that does it, and not a day later in `linearity`.
 			.. PairedSweeps(before, after),
+
+			// FIX's log forms: the separator is `|` between spaces, and the way opened at it is what performance-ff's 55c46da6 removes.
+			.. PairedFixLog(before, after),
 
 			// The quiet form beside the match (expr's dba87a9e): only where the after side has it.
 			.. PairedBool(before, after),
