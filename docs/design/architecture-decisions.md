@@ -2507,7 +2507,14 @@ arithmetic also gives 0.7-1.2% rather than 1-2%, and the fourth edge, dismissed 
 The number is taken again, weighted, after the prologue lands. Of the three ambiguities only the
 bracketed value against a subquery has a witness: the join's turn has none, and if none is found it
 is a question for the analysis and 29 rules come back; the inline return is our own rule, removable
-at a named price, which makes it Igor's trade-off and not a fact about T-SQL. On FIX the comparison
+at a named price, which makes it Igor's trade-off and not a fact about T-SQL. **Answered by sql-39
+the same evening (`0ab26872`):** there is no witness for the join's turn, so the 29 rules are back
+in the work, and the cure cannot be said in the grammar today — an atomic group round the tails or
+round the call changes nothing, because the cause means "the caller may ask the rule again" and a
+group does not take that away. It is the analysis's, in the words he gave it: a call needs no way
+back where any shortening of its reading would resume on a token the continuation cannot accept.
+sql-39 takes it after the anatomy. The shelved carrier is marked provisional, its arithmetic
+corrected, and it is re-derived weighted from one cost model together with the anatomy. On FIX the comparison
 is honest — the stand holds both parsers to the same answers before timing — but the stronger
 sentence was left out of the table: against the ideal reader we built as a floor, the generated
 parser is 1.04x (48.9 ns a field against 46.8), where it was 3.1x the day before by the stand's own
