@@ -39,13 +39,13 @@ public class Documents
 	const int Entries = 400;
 
 	/// <summary>Nothing to skip at any seam — the commonest case, and the fastest to get wrong.</summary>
-	static readonly string Dense = Build(comments: 0, spaced: false);
+	internal static readonly string Dense = Build(comments: 0, spaced: false);
 
 	/// <summary>A space at every seam, and no comments: the ordinary formatted file.</summary>
-	static readonly string Spaced = Build(comments: 0, spaced: true);
+	internal static readonly string Spaced = Build(comments: 0, spaced: true);
 
 	/// <summary>Every fourth entry behind a line comment, every eighth behind a block one.</summary>
-	static readonly string Commented = Build(comments: 1, spaced: true);
+	internal static readonly string Commented = Build(comments: 1, spaced: true);
 
 	static string Build(int comments, bool spaced)
 	{

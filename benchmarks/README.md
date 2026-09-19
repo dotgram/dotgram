@@ -73,6 +73,12 @@ another short run and never with a full one. `--stand-check` times nothing and h
 row's readings to one another. `--stand-paired --first` takes the first call of each reading of
 each row in a fresh process each, median of five, before and after.
 
+`--stand-paired-check beforeDir afterDir [--only a,b]` holds a pair's rows to what they say and to one
+another and times nothing, so it needs no window. A side that was given `DotGram.Benchmarks.dll` has the
+`config/*` rows: the document grammar of `Documents.cs`, at that side's own build of it. Config has no
+hand-written parser, so its "hand" reading is this process's own `Config.Read`, a constant to hold the
+pair against and no reference for the generated code.
+
 `--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while
 it is walked: the live heap above what was live before, after a full collection, sampled eight
 times over a walk, each input of each side in a process of its own (it times nothing, so it needs

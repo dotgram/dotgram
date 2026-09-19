@@ -133,6 +133,14 @@ static class Program
 			return;
 		}
 
+		// `--stand-paired-check beforeDir afterDir [--only a,b]` is `--stand-check` for a pair.
+		if (args.Length is 3 or 5 && args[0] == "--stand-paired-check")
+		{
+			Stand.PairedCheck(args[1], args[2], args.Length == 5 && args[3] == "--only" ? args[4] : null);
+
+			return;
+		}
+
 		if (args.Length == 3 && args[0] == "--stand-first")
 		{
 			Stand.First(args[1], args[2]);

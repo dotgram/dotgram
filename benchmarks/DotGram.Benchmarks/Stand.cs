@@ -160,6 +160,19 @@ static partial class Stand
 	/// </summary>
 	public static void Check() => Console.WriteLine($"{Agreed().Length} rows, every reading agreeing.");
 
+	/// <summary>The rows of a pair held to what they say, both sides, and to one another; nothing is timed and nothing is pinned.</summary>
+	public static void PairedCheck(string beforeDir, string afterDir, string? only)
+	{
+		var workloads = PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir))
+			.Where(one => only is null || Matches(one.Id, only))
+			.ToArray();
+
+		foreach (var workload in workloads)
+			Check(workload);
+
+		Console.WriteLine($"{workloads.Length} rows, every reading of both sides agreeing.");
+	}
+
 	/// <summary>What <see cref="GenerationGate"/> says of a result already taken, against another.</summary>
 	public static void Gate(string now, string against) =>
 		Console.WriteLine(GenerationGate(JsonSerializer.Deserialize<Result>(File.ReadAllText(now), Json)!, null, against));
@@ -622,6 +635,10 @@ static partial class Stand
 		readonly Type? _uri;
 		readonly Type _tsql;
 		readonly Type? _json;
+		readonly Type? _config;
+
+		/// <summary>Whether the side was given DotGram.Benchmarks.dll, and so has the document grammar to read.</summary>
+		public bool HasConfig => _config is not null;
 
 		/// <summary>Whether the side was given DotGram.Examples, and so has a stock count to read.</summary>
 		public bool HasStock => _stock is not null;
@@ -663,6 +680,11 @@ static partial class Stand
 				_uri  = Load("DotGram.Web", "DotGram.Web.UriReference");
 				_json = Load("DotGram.Web", "DotGram.Web.JsonValue");
 			}
+
+			// Only a side that was given DotGram.Benchmarks has the document grammar (Documents.cs) to read.
+			_config = File.Exists(Path.Combine(directory, "DotGram.Benchmarks.dll"))
+				? Load("DotGram.Benchmarks", "DotGram.Benchmarks.Config")
+				: null;
 
 			// Only a side that was given DotGram.Examples has a stock count to read.
 			_stock = File.Exists(Path.Combine(directory, "DotGram.Examples.dll"))
@@ -706,6 +728,15 @@ static partial class Stand
 
 				return IsSuccess(call.Invoke(null, [text, state])!);
 			};
+		}
+
+		/// <summary>Config.Read(string) of this side, by reflection: how many settings it read.</summary>
+		public Func<int> ConfigRead(string text)
+		{
+			var call = (_config ?? throw new InvalidOperationException("The side has no DotGram.Benchmarks.dll")).GetMethod("Read", [typeof(string)])
+				?? throw new InvalidOperationException("Config.Read(string) not found");
+
+			return () => ((Array)call.Invoke(null, [text])!).Length;
 		}
 
 		/// <summary>UriReference.TryParse(string, out UriReference) of this side, by reflection: whether it read the text.</summary>
@@ -880,6 +911,9 @@ static partial class Stand
 			.. (before.HasStock && after.HasStock ? PairedFeeds(before, after) : []),
 
 			.. (before.HasWeb && after.HasWeb ? PairedWeb(before, after) : []),
+
+			// The document grammar of the benchmarks project: the one grammar that is neither a library's nor an example's.
+			.. (before.HasConfig && after.HasConfig ? PairedConfig(before, after) : []),
 
 			PairedExpression("floor",         "(int x) => x", before, after),
 			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),
