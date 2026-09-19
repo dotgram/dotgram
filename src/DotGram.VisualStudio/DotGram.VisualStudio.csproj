@@ -2,6 +2,10 @@
 
 	<PropertyGroup>
 		<TargetFramework>net472</TargetFramework>
+
+		<!-- The extension ships as a VSIX and never as a NuGet package: say so, so that a pack
+		     of everything packable leaves it alone rather than by CI naming the five. -->
+		<IsPackable>false</IsPackable>
 		<!-- No version here: it takes the repository's, because the three artifacts go out
 		     under one tag. `GetVsixVersion` below hands that to the manifest. It used to
 		     carry a line of its own, counted up per build and unrelated to the packages;
