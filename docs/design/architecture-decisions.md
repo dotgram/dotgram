@@ -1261,6 +1261,17 @@ same day; each comes back to the architect as a report, with no code changed.
    reader class (dead ways first, then the empty alternative, then literals) and the count's
    defect, each a separate commit after C2 lands, performance-ff told before each, the same
    conditions as `014136df`; the intended stay, `DecOctet` goes to C's factoring if it folds.
+   **The seam hoist, written (expr):** `File = trivia & (Setting & trivia & eol & trivia)* & eof`,
+   but `SettingsFile` stays on the tape for a reason outside the rule: a publication is entered
+   as `trivia File trivia`, and where the rule begins with its seam the entry's seam is followed
+   by the same characters, so the run is never settled and every trivia grammar opens a way
+   there. Two corrections to the proof: the language's star does give back, so the rewrite holds
+   only where neither the turn nor the continuation can begin inside the seam — the question
+   `NeverGivesBack` asks, from which the comment-in-trivia case falls out; and adjacent seams the
+   hoist creates collapse into one under the same condition. Decided: the entry's leading seam
+   is dropped where the published rule begins with that seam, in `FollowSets`' entries and in the
+   emitted entry method in one commit (analysis and code must not disagree), by expr, after C2
+   lands, performance-ff and sql-39 told first.
 3. **Flat against reader.** Flat writes a publication as one method of states; reader writes a
    method per rule; flat recompiles the machine to do it, which is a known source of defects.
    Measure both on the Web grammars and the examples. No difference: flat goes. Flat faster: the
