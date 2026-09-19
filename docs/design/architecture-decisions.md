@@ -900,6 +900,21 @@ machine goes to the reader wherever nothing is released, the external included; 
 searches run through the buffer's own search. FIX has no buffered engine left: six readers, the
 file 626 to 521 KB. The in-place array now goes through the stream's machine, so the pair must
 show A's byte gain kept, or the separate memory machine comes back.
+
+**C3's design (performance-ff), approved 2026-09-19.** A new analysis beside `Replay` and
+`Demand`, pure over the graph: for each reading site, the innermost enclosing point past which
+what it read stands, or none (built after the parse, as now). A point is the end of a rule that
+stands, the turn of a repetition that nothing after it can reopen (a `recover` repetition in
+the scenario the reader takes, whose loop commits a turn by construction; or one `Determinism`
+proves never gives back, in a rule that stands), or the end of an atomic group in a rule that
+stands; the innermost wins, and a point counts only if every enclosing point stands, or a
+factory would run for a node that was not accepted (§7.3). Inside a rule that stands, a point
+only makes construction earlier; the one case where it turns "may not stand" into "stands" is
+the recovering turn — FIX's field. Not points: an alternative, a lookahead, anything under a
+rule that does not stand, an atomic group something after which can still fail. Held to a table
+of shapes and to `Replay` (a rule point exactly where the rule stands); its internals are arrays
+by node, not dictionaries of records; the causes report counts the sites with a point per
+grammar, which answers what C4 gives SQL before its causes reach zero. C4 reads it.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
