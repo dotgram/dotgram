@@ -115,19 +115,10 @@ PredicateTail : @Expression
                  ? new Expression.Comparison(null!, Syntax.Compared(op), right!)
                  : new Expression.Quantified(null!, Syntax.Compared(op), Syntax.Quantified(some), sub!))
 
-          // §8.3 <between predicate>
-          | negated: "NOT"i? & "BETWEEN"i & low: RowValueConstructor & "AND"i & high: RowValueConstructor =>
-              @(new Expression.Between(null!, negated is not null, low, high))
-
-          // §8.4 <in predicate>
-          | negated: "NOT"i? & "IN"i & values: InPredicateValue =>
-              @(new Expression.In(null!, negated is not null, values))
-
-          // §8.5 <like predicate>. The standard narrows both sides to character
-          // strings; that is a type rule and not a syntax one, so it is not written
-          // here — see the note on the collapsed towers above.
-          | negated: "NOT"i? & "LIKE"i & pattern: ValueExpression & escape: EscapeClause? =>
-              @(new Expression.Like(null!, negated is not null, pattern, escape))
+          // §8.3 to §8.5, the three a `NOT` may stand in front of. The `NOT` is read once and
+          // the word after it says which: written three times, a `NOT` in front of `IN` was
+          // read by the first, which found no `BETWEEN` and gave it back.
+          | negated: "NOT"i? & p: NegatablePredicate => @(Syntax.Negated(p, negated is not null))
 
           // §8.6 <null predicate>
           | "IS"i & negated: "NOT"i? & "NULL"i => @(new Expression.IsNull(null!, negated is not null))
@@ -139,6 +130,21 @@ PredicateTail : @Expression
           // §8.12 <overlaps predicate>
           | "OVERLAPS"i & right: RowValueConstructor =>
               @(new Expression.Overlaps(null!, right))
+
+NegatablePredicate : @Expression
+          // §8.3 <between predicate>
+          = "BETWEEN"i & low: RowValueConstructor & "AND"i & high: RowValueConstructor =>
+              @(new Expression.Between(null!, false, low, high))
+
+          // §8.4 <in predicate>
+          | "IN"i & values: InPredicateValue =>
+              @(new Expression.In(null!, false, values))
+
+          // §8.5 <like predicate>. The standard narrows both sides to character
+          // strings; that is a type rule and not a syntax one, so it is not written
+          // here — see the note on the collapsed towers above.
+          | "LIKE"i & pattern: ValueExpression & escape: EscapeClause? =>
+              @(new Expression.Like(null!, false, pattern, escape))
 
 // §8.5 writes the escape as two things, the word and the character after it. They are
 // named together here because a dialect may bracket the pair rather than extend it —

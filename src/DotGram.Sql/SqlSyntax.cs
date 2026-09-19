@@ -3663,6 +3663,16 @@ public static class Syntax
 		                         : SqlOrder.Descending;
 
 	/// <summary>Which comparison operator was written (§8.2's <c>&lt;comp op&gt;</c>).</summary>
+	/// <summary>A <c>BETWEEN</c>, <c>IN</c> or <c>LIKE</c> predicate with the <c>NOT</c> read in front of it.</summary>
+	public static Expression Negated(Expression predicate, bool not) =>
+		!not ? predicate : predicate switch
+		{
+			Expression.Between between => between with { Negated = true },
+			Expression.In @in          => @in with { Negated = true },
+			Expression.Like like       => like with { Negated = true },
+			_                          => predicate,
+		};
+
 	public static SqlComparison Compared(string operatorText) => Compacted(operatorText) switch
 	{
 		"="  => SqlComparison.Equal,
