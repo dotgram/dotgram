@@ -1328,6 +1328,31 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    - The counting tool ships as a report, not as a scratch file: what `GRAM5012` counts, listed
      per rule with its cause, the way `--coverage` writes `coverage.md`. Its form is sql-39's to
      propose when A lands.
+   **Landed 2026-09-18 (sql-39):** A and B, `0e68711c`, and with them an older defect of `Replay`
+   (a part inside a given-up turn stayed `Losing` where the parse succeeds without it; the
+   reason from inside is now added to the one from outside); `ReplayTests` holds each case
+   beside its opposite; no grammar changes carrier or text; generation no slower. The grammar
+   edits: JSON `ON EMPTY`/`ON ERROR` read once (`ed7ed7dd`), the `WHEN` operand (`27b9d04b`), the
+   `NOT` before `BETWEEN`/`IN`/`LIKE` in SQL-92 (`a82193ae`), each with tests, corpora, and the
+   server for T-SQL. SQL:2023: 325 of 556 building rules on the tape; eight causes left in the
+   expression cycle, five of them C/D (shared beginnings), three §5 (sql-39's).
+   **The SQL-92 milestone, revised.** After `NOT`, SQL-92's seven causes are all structural — the
+   bracket that opens an expression, a row and a subquery in three rules, the select list's
+   `name.*` against an expression, the joins' turn, `CORRESPONDING`, two `TRIM` alternatives —
+   and T-SQL overrides every rule involved, so taking SQL-92 to zero would rebuild its brackets
+   and joins for a parser few use and move T-SQL not at all. GRAM5012 across all 101 hosts
+   (sql-39): every SQL and EL grammar carries tens to hundreds of causes; every Web grammar and
+   most examples are held not by the graph but by the reader's own way back (`Because.Turn`,
+   "can be read again after answering"), which Q7.1 does not touch; near zero only three
+   examples. Decided: the mechanism — zero, `Auto` choosing immediate by itself, the answers
+   unchanged — is proved on `CaseRegionExample` (one cause, one edit) and nothing more is
+   claimed of it; the gain for SQL comes from C4 (a carrier per position, after which
+   all-or-nothing is not needed) or, failing that, from the bracket read once designed for
+   T-SQL, which waits for C4's answer. The reader's way back is the second gate on `Auto`, to be
+   counted per grammar once C2's reader with `recover` exists. Found on the way and blocking any
+   immediate carrier over a grammar with a guard beside a group: the open CS0103 `lm` defect (a
+   `when` next to a part method under Immediate) — `ImmediateSql` hit it, the `TRIM` merge was
+   reverted for it; expr takes it right after C.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
