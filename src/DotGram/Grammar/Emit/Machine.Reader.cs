@@ -1604,6 +1604,8 @@ sealed partial class Machine
 
 			// Bytes compare with a literal written in characters one by one, which the buffer does
 			// where it holds them (byte literals are case-sensitive values below 256).
+			// A span made and dropped inside the one comparison: nothing fills between (the span
+			// contract at Machine.Cut).
 			var comparison = machine.BufferedBytes
 				? $"!text.Matches(p, {Quoted(text)})"
 				: folded
@@ -3160,7 +3162,7 @@ sealed partial class Machine
 		/// </summary>
 		List<char>? SyncStops(Node sync)
 		{
-			if (machine.BufferedInput || machine.Decidable(sync) is not { IsKnown: true, Ends: false } first)
+			if (machine.Decidable(sync) is not { IsKnown: true, Ends: false } first)
 				return null;
 
 			var stops = new List<char>(5);

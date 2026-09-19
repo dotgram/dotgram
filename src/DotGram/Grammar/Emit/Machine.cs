@@ -105,7 +105,8 @@ sealed partial class Machine
 	/// <remarks>
 	/// A search, where the runtime has a vectorized one, for what would otherwise be read a
 	/// character at a time: a field's value up to its separator, a broken element up to the
-	/// sync. One to five stops; more is a class, and a class is read.
+	/// sync. One to five stops; more is a class, and a class is read. What it answers is a
+	/// position, never a span (the span contract at <see cref="Cut"/>).
 	/// </remarks>
 	void EmitSearch(Writer writer, string into, string from, IReadOnlyList<char> stops)
 	{
@@ -1145,6 +1146,16 @@ sealed partial class Machine
 	/// Over characters a position indexes what is being read, so the cut is a slice of it.
 	/// Over kinds it indexes a token and the text is somewhere else entirely — which is the
 	/// one thing a split grammar has to be careful about, and the reason this is a method.
+	/// <para>
+	/// A borrowed capture is a span into the input, and over a buffer that span does not outlive
+	/// a fill: growing clears the old array and gives it back to the pool, and compacting moves
+	/// what it holds (BufferedText.Fill). So this is the emitter's contract, for every span it
+	/// makes into the input — here, the literal comparisons, the searches, <c>Matches</c>: across
+	/// anything that can fill (a read, a rule, an external recognizer handed the input's view),
+	/// a reading holds positions and never spans. A span is made inside the one expression that
+	/// uses it, or handed to code that cannot fill (a guard, a factory in the walk after the
+	/// parse). Whoever makes one live across a call breaks the stream forms.
+	/// </para>
 	/// </remarks>
 	string Cut(string from, string length) =>
 		OverKinds
@@ -4103,7 +4114,7 @@ sealed partial class Machine
 		// A run that stops only at a few characters is a search for them, with the answer the
 		// loop would give: `(?!Separator & any)+` before a one-character separator is a FIX
 		// field's value.
-		if (!BufferedInput && !_starves && max is null && StopCharacters(repeatNode.Body) is { } stops)
+		if (!_starves && max is null && StopCharacters(repeatNode.Body) is { } stops)
 		{
 			EmitSearch(writer, "stop", "p", stops);
 			writer.Line($"p = stop < 0 ? {EndOfInput} : stop;");

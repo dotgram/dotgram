@@ -45,6 +45,7 @@ public static partial class CSharpEmitter
 		.Replace("public void Dispose()", "public BufferedBytes(global::System.ReadOnlyMemory<byte> input)\n\t{\n\t\t_input = null!;\n\t\t_limit = int.MaxValue;\n\t\tif (global::System.Runtime.InteropServices.MemoryMarshal.TryGetArray(input, out global::System.ArraySegment<byte> held) && held.Array != null)\n\t\t{\n\t\t\t// Positions count from the segment's start; the array is indexed from its own.\n\t\t\t_buffer = held.Array;\n\t\t\t_start = -held.Offset;\n\t\t}\n\t\telse\n\t\t{\n\t\t\t// Memory that is not an array is copied once, and that copy is still the caller's to keep.\n\t\t\t_buffer = input.ToArray();\n\t\t}\n\t\t_count = input.Length;\n\t\t_capacity = input.Length;\n\t\t_ended = true;\n\t\t_borrowed = true;\n\t}\n\n\tpublic void Dispose()")
 		.Replace("ReadOnlySpan<char>", "ReadOnlySpan<byte>")
 		.Replace("public bool Peek(int position, out byte value)", """
+			// Compares where it stands and hands back nothing into the buffer (Machine.Cut).
 			public bool Matches(int position, string literal)
 			{
 				if (!Ensure(position, literal.Length)) return false;
@@ -108,10 +109,11 @@ public static partial class CSharpEmitter
 			// placed where the literal began by the reader and where it broke off by the engine.
 			// Not where the engine proves it can let the buffer go as it reads, which the reader
 			// does not do yet; nor where a reading can reach itself and would hand its input to
-			// another thread, which a buffer does not go with (GRAM5014); nor where an external
-			// recognizer reads the input through its view, which the engine hands it.
+			// another thread, which a buffer does not go with (GRAM5014). An external recognizer
+			// reading the input through its view may make the buffer fetch more under the reader,
+			// which is safe because nothing is let go here and the reader holds positions, never
+			// spans, across anything that can fetch (the contract at BufferedText.Fill).
 			var readable = publication.Kind == PublishKind.Parse &&
-				!rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External)) &&
 				machines.Exists(one => one.Direct && one.Publications.Contains(publication)) &&
 				machine!.CanDirect([publication]) && !machine.CanReleaseBuffered;
 			var direct = readable && !machine!.Probes;
@@ -569,6 +571,10 @@ public static partial class CSharpEmitter
 						var capacity = _capacity <= _limit / 2 ? _capacity * 2 : _limit;
 						var grown = global::System.Buffers.ArrayPool<char>.Shared.Rent(capacity);
 						global::System.Array.Copy(_buffer, 0, grown, 0, _count - _start);
+						// The old array is cleared and given back here, and a compaction above moves
+						// what it holds: a span into this buffer does not outlive a fill. So across
+						// anything that can fill — a read, a rule, an external recognizer — a reader
+						// holds positions, never spans (Machine.Cut, the contract of the emitter).
 						if (_buffer.Length <= KeptLength)
 							global::System.Buffers.ArrayPool<char>.Shared.Return(_buffer, clearArray: true);
 						_buffer = grown;

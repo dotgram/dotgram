@@ -2895,7 +2895,7 @@ public sealed class GeneratorDriverTests
 			SourceText.From(text);
 	}
 
-	static string GetGeneratedSource(GeneratorDriverRunResult result, string hintName)
+	internal static string GetGeneratedSource(GeneratorDriverRunResult result, string hintName)
 	{
 		var sources = result.Results
 			.SelectMany(static r => r.GeneratedSources)

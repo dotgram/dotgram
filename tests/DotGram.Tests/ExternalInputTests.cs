@@ -42,6 +42,59 @@ public sealed class ExternalInputTests
 		}
 	}
 
+	/// <summary>
+	/// A reader over a stream whose external recognizer makes the buffer grow right after a
+	/// capture, inside a repetition marked <c>recover</c>: one byte a read and a buffer of one to
+	/// begin with, so that every capture is followed by a fill that clears the array it was in.
+	/// What was captured is a position, and the walk cuts it out after the parse, so the answers
+	/// are the string's (the span contract, Machine.Cut).
+	/// </summary>
+	[Fact]
+	public void A_reader_holds_positions_across_the_fills_an_external_recognizer_makes()
+	{
+		const string code = """
+			using System;
+			[DotGram.Gram("context : @Context\nItem : @string = t: ['a'..'z']+ & ':' & v: { @Read } & ';' => @(Text(t) + \"=\" + Text(v))\nItems : @string = items: Item* recover ';' => @(\"!\" + Text(parserText)) & eof => @(string.Join(\",\", items))\nparse Items stream bytes", BufferedInput = true, SpanCaptures = true)]
+			public partial class Probe
+			{
+				public sealed class Context { public int Size; }
+				static string Text(ReadOnlySpan<char> value) { return value.ToString(); }
+				static string Text(ReadOnlySpan<byte> value) { return System.Text.Encoding.ASCII.GetString(value); }
+				static bool Read(ParserInput<char> input, ref int p, Context context) { return input.TryAdvance(ref p, context.Size); }
+				static bool Read(ParserInput<byte> input, ref int p, Context context) { return input.TryAdvance(ref p, context.Size); }
+			}
+			""";
+		var generated = GeneratorDriverTests.GetGeneratedSource(GeneratorDriverTests.RunGenerator(code), "Probe.g.cs");
+
+		// Held to what it is about: the stream is read by the reader, recovering.
+		Assert.Contains("ref struct Reader_DotGram_Buffered_ParseItems_Bytes", generated, StringComparison.Ordinal);
+		Assert.Contains("failure.Reach = p;", generated, StringComparison.Ordinal);
+
+		var type = GeneratorDriverTests.Build(code).GetType("Probe")!;
+
+		foreach (var input in new[] { "ab:xyz;cd:uvw;", "ab:xyz;bad;cd:uvw;", "a:xy", "q:abc;" })
+		foreach (var kind in new[] { typeof(TextReader), typeof(Stream) })
+		{
+			var context = Activator.CreateInstance(type.GetNestedType("Context")!)!;
+			context.GetType().GetField("Size")!.SetValue(context, 3);
+
+			object? Answer(object from, Type domain)
+			{
+				var method = type.GetMethods().Single(m => m.Name == "TryParseItems" && m.GetParameters()[0].ParameterType == domain &&
+					m.GetParameters().Length == (domain == typeof(string) ? 2 : 4));
+				var match  = method.Invoke(null, domain == typeof(string) ? [from, context] : [from, context, 1, 1 << 16])!;
+				var passed = (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+
+				return passed ? match.GetType().GetProperty("Value")!.GetValue(match) : "refused at " + match.GetType().GetProperty("Position")!.GetValue(match);
+			}
+
+			using var reader = new ShortReader(input);
+			using var stream = new ShortStream(Encoding.ASCII.GetBytes(input));
+
+			Assert.Equal(Answer(input, typeof(string)), Answer(kind == typeof(Stream) ? stream : reader, kind));
+		}
+	}
+
 	[Fact]
 	public void Failed_alternative_keeps_input_available_for_backtracking()
 	{
