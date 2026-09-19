@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 
@@ -110,7 +111,8 @@ public static class Replay
 			if (graph.Bodies.TryGetValue(rule, out var body))
 				Walk(
 					body, Because.Stands, elsewhere: false,
-					follow.TryGetValue(rule, out var after) ? after.Plain : FirstSets.First.All, graph, found);
+					follow.TryGetValue(rule, out var after) ? after : FollowSets.Continuation.All,
+					FollowSets.SeamOf(rule, graph), graph, found);
 
 		Spread(graph, found);
 
@@ -122,11 +124,12 @@ public static class Replay
 	/// cref="Because.Stands"/> while nothing can take it back, and the reason once
 	/// something can. <paramref name="after"/> is what can come right after the node: the
 	/// rest of the sequence around it, and past a rest that may read nothing, what comes
-	/// after that, up to the rule's follow.
+	/// after that, up to the rule's follow — plainly, and past the <paramref name="seam"/> the
+	/// rule's namespace reads between its parts, where that is the first thing read.
 	/// </summary>
 	static void Walk(
-		Node node, Because taken, bool elsewhere, FirstSets.First after, RecognitionGraph graph,
-		Dictionary<RuleSymbol, Because> found)
+		Node node, Because taken, bool elsewhere, FollowSets.Continuation after, RuleSymbol? seam,
+		RecognitionGraph graph, Dictionary<RuleSymbol, Because> found)
 	{
 		switch (node)
 		{
@@ -135,7 +138,7 @@ public static class Replay
 					found[called] = taken;
 
 				foreach (var argument in arguments)
-					Walk(argument, taken, elsewhere, FirstSets.First.All, graph, found);
+					Walk(argument, taken, elsewhere, FollowSets.Continuation.All, seam, graph, found);
 
 				break;
 
@@ -160,7 +163,7 @@ public static class Replay
 							break;
 						}
 
-					Walk(parts[i], put, elsewhere, Next(parts, i + 1, after, graph), graph, found);
+					Walk(parts[i], put, elsewhere, Next(parts, i + 1, after, seam, graph), seam, graph, found);
 				}
 
 				break;
@@ -174,8 +177,8 @@ public static class Replay
 				// means is the answer of whatever holds the choice — `elsewhere` from above.
 				for (var i = 0; i < alternatives.Count; i++)
 					Walk(
-						alternatives[i], taken, elsewhere || Replaced(alternatives, i, after, graph),
-						after, graph, found);
+						alternatives[i], taken, elsewhere || Replaced(alternatives, i, after.Plain, graph),
+						after, seam, graph, found);
 
 				break;
 
@@ -188,35 +191,41 @@ public static class Replay
 				// turn began. Where it cannot, the parse fails there, and that is the answer of
 				// whatever holds the repetition. Giving back a turn that succeeded is the tape's
 				// way back: see the note on Because.Turn.
-				var stops = Begins(body, after, graph) is not { } begins || !after.IsKnown || begins.Overlaps(after);
+				//
+				// A turn that begins with the seam begins where the continuation does, on the same
+				// trivia, which says nothing; what either reads past it is what tells them apart,
+				// as FollowSets' AfterSeam has it.
+				var stops = Seamed(body, seam, out var past)
+					? Begins(past, after.AfterSeam, graph) is not { } beyond || !after.AfterSeam.IsKnown || beyond.Overlaps(after.AfterSeam)
+					: Begins(body, after.Plain, graph) is not { } begins || !after.Plain.IsKnown || begins.Overlaps(after.Plain);
 
-				Walk(body, taken, elsewhere || stops, after, graph, found);
+				Walk(body, taken, elsewhere || stops, after, seam, graph, found);
 
 				break;
 			}
 
 			case Node.Lookahead(_, var body):
-				Walk(body, Worse(taken, Because.Lookahead), elsewhere: true, FirstSets.First.All, graph, found);
+				Walk(body, Worse(taken, Because.Lookahead), elsewhere: true, FollowSets.Continuation.All, seam, graph, found);
 
 				break;
 
 			case Node.Atomic(var body):
-				Walk(body, taken, elsewhere, after, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found);
 
 				break;
 
 			case Node.Capture(_, var body):
-				Walk(body, taken, elsewhere, after, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found);
 
 				break;
 
 			case Node.Marked(var body, _):
-				Walk(body, taken, elsewhere, after, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found);
 
 				break;
 
 			case Node.Construct(var body, _):
-				Walk(body, taken, elsewhere, after, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found);
 
 				break;
 		}
@@ -275,9 +284,30 @@ public static class Replay
 
 	/// <summary>
 	/// What can come after the parts before <paramref name="from"/>: the rest of the sequence,
-	/// and past a rest that may read nothing, what follows the sequence.
+	/// and past a rest that may read nothing, what follows the sequence. Plainly, and past the
+	/// seam where the rest begins with it; where it does not, past the seam is what the rest
+	/// begins with, unless the seam could have begun there too.
 	/// </summary>
-	static FirstSets.First Next(IReadOnlyList<Node> parts, int from, FirstSets.First after, RecognitionGraph graph)
+	static FollowSets.Continuation Next(
+		IReadOnlyList<Node> parts, int from, FollowSets.Continuation after, RuleSymbol? seam, RecognitionGraph graph)
+	{
+		var plain = Rest(parts, from, after.Plain, graph);
+
+		if (from >= parts.Count)
+			return after;
+
+		if (seam is not null && parts[from] is Node.Call(var called, { Count: 0 }) && ReferenceEquals(called, seam))
+			return new FollowSets.Continuation(plain, Rest(parts, from + 1, after.AfterSeam, graph));
+
+		var seamFirst = seam is not null && graph.Bodies.TryGetValue(seam, out var seamBody)
+			? FirstSets.Of(seamBody, graph)
+			: FirstSets.First.None;
+
+		return new FollowSets.Continuation(plain, plain.Overlaps(seamFirst) ? FirstSets.First.All : plain);
+	}
+
+	/// <summary>What the parts from <paramref name="from"/> begin with, and <paramref name="after"/> where they may all read nothing.</summary>
+	static FirstSets.First Rest(IReadOnlyList<Node> parts, int from, FirstSets.First after, RecognitionGraph graph)
 	{
 		var rest = FirstSets.Following(parts, from, graph);
 
@@ -286,6 +316,23 @@ public static class Replay
 				return rest;
 
 		return rest.Or(after);
+	}
+
+	/// <summary>
+	/// Whether a turn begins with the seam, and what it reads past it: the rest of its
+	/// sequence, as one node.
+	/// </summary>
+	static bool Seamed(Node body, RuleSymbol? seam, out Node past)
+	{
+		past = body;
+
+		if (seam is null || body is not Node.Sequence(var parts) || parts.Count < 2 ||
+			parts[0] is not Node.Call(var called, { Count: 0 }) || !ReferenceEquals(called, seam))
+			return false;
+
+		past = parts.Count == 2 ? parts[1] : new Node.Sequence(parts.Skip(1).ToList());
+
+		return true;
 	}
 
 	/// <summary>The reason already known, or the new one where nothing was known.</summary>

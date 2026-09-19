@@ -91,6 +91,28 @@ public sealed class ReplayTests
 	}
 
 	/// <summary>
+	/// Where the grammar reads trivia between its parts, a turn and what follows the repetition
+	/// both begin with it, which tells them apart no more than it did before; what each reads
+	/// past it does. <c>(S ';')* '.'</c> cannot go on where a turn failed, and <c>(S ';')* 'a'
+	/// 'z'</c> can.
+	/// </summary>
+	[Theory]
+	[InlineData("'.'", Replay.Because.Losing)]
+	[InlineData("'a' & 'z'", Replay.Because.Follows)]
+	public void Past_the_seam_a_turn_is_told_from_what_follows(string after, Replay.Because expected)
+	{
+		var report = Report(
+			$$"""
+			trivia = ' '*
+			File : @string = (s: S & ';')* & {{after}} => @("")
+			S : @string = t: 'a' => @(t)
+			parse File
+			""");
+
+		Assert.Equal(expected, Of(report, "S"));
+	}
+
+	/// <summary>
 	/// And what holds the choice still answers for it: the same alternative, alone at its
 	/// token, is replaced where the choice itself stands in an alternative that has a sibling
 	/// beginning the same way.
