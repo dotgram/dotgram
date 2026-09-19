@@ -146,6 +146,26 @@ static class EmittedCode
 	}
 
 	/// <summary>
+	/// The form that answers only whether, begun where it is told: the value where there is
+	/// one, and where the reading stopped, which it wrote back into the position it was handed.
+	/// </summary>
+	public static (bool Read, object? Value, int At) Answered(
+		Assembly assembly, string className, string method, string input, int at, int? length = null)
+	{
+		var type       = assembly.GetType(className)!;
+		var found      = type.GetMethods().Single(one =>
+			one.Name == method &&
+			one.GetParameters() is { } taken &&
+			taken.Length == (length is null ? 3 : 4) &&
+			taken[1].ParameterType.IsByRef && !taken[1].IsOut &&
+			taken[taken.Length - 1].IsOut);
+		var parameters = length is null ? new object?[] { input, at, null } : [input, at, length, null];
+		var read       = (bool)found.Invoke(null, parameters)!;
+
+		return (read, parameters[parameters.Length - 1], (int)parameters[1]!);
+	}
+
+	/// <summary>
 	/// The same call, reading the <c>Outcome</c> the match carries (§7.5) by name — the
 	/// enum is generated, so there is no type here to compare against.
 	/// </summary>

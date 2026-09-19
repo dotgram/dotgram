@@ -1885,9 +1885,17 @@ forms wherever it is read by the shared automaton or by methods:
 ```csharp
 Match<T> TryParseX(string input, int at);              // begins at `at`, need not reach the end
 Match<T> TryParseX(string input, int at, int length);  // and sees nothing from `at + length` on
+bool TryParseX(string input, ref int at, out T value);             // and moves `at` past it
+bool TryParseX(string input, ref int at, int length, out T value);
 ```
 
-Neither demands the end of the input, and neither reads the trivia after the rule: a
+The `bool` forms are §6.1's `bool` form with a position — one quiet reading, no message —
+and on a reading `at` moves to the end of what was read; on `false` it stays where it was
+and nothing is built. A position outside the input is `NoMatch` in the forms that answer
+with a match, and `ArgumentOutOfRangeException` in the two that move one: a position of
+the caller's own making is the caller's mistake, not something the input answers for.
+
+None of them demands the end of the input, and none reads the trivia after the rule: a
 reading that begins where it is told stops where the value ends, which is the extent a
 host holding the text is asking for, and the trivia after it is the leading trivia of the
 next reading. What comes back says where the reading began and how far it got, and every

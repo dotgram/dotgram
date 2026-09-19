@@ -107,6 +107,34 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
 		}
 
+		/// <summary>Reads a <c>Hashed</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryHashed</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryHashed(string input, ref int at, out string value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Hashed(text, at, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(at, end - at);
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Hashed</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -143,6 +171,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
+		/// <summary>Reads a <c>Hashed</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryHashed</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryHashed(string input, ref int at, int length, out string value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Hashed(text, at, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(at, end - at);
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Marked</c>.</summary>
@@ -311,6 +367,34 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
 		}
 
+		/// <summary>Reads a <c>List</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryLoose</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryLoose(string input, ref int at, out string value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_List_With1(text, at, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(at, end - at);
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>List</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -347,6 +431,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
+		/// <summary>Reads a <c>List</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryLoose</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryLoose(string input, ref int at, int length, out string value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_List_With1(text, at, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(at, end - at);
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>List</c>.</summary>
@@ -451,6 +563,34 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
 		}
 
+		/// <summary>Reads a <c>List</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryTight</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryTight(string input, ref int at, out string value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_List(text, at, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(at, end - at);
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>List</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -487,6 +627,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
+		/// <summary>Reads a <c>List</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryTight</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryTight(string input, ref int at, int length, out string value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_List(text, at, ref failure);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = input.Substring(at, end - at);
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Small</c>.</summary>
@@ -591,6 +759,34 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Small</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TrySmallOld</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TrySmallOld(string input, ref int at, out int value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Small</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -627,6 +823,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Small</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TrySmallOld</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TrySmallOld(string input, ref int at, int length, out int value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Small</c>.</summary>
@@ -731,6 +955,34 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Small</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSmall</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseSmall(string input, ref int at, out int value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Small</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -767,6 +1019,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Small</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSmall</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseSmall(string input, ref int at, int length, out int value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Ab</c>.</summary>
@@ -935,6 +1215,34 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Primary</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParsePrimary</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParsePrimary(string input, ref int at, out int value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Primary</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -971,6 +1279,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Primary</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParsePrimary</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParsePrimary(string input, ref int at, int length, out int value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Every occurrence of <c>Word</c>, in order, found as it is asked for.</summary>

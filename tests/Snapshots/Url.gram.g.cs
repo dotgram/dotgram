@@ -107,6 +107,34 @@ namespace DotGram.Snapshots
 			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseUrl(string input, ref int at, out global::DotGram.Snapshots.Url.UrlValue value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Url(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Url</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -143,6 +171,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseUrl(string input, ref int at, int length, out global::DotGram.Snapshots.Url.UrlValue value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure { Quiet = true };
+
+			var end = Recognize_Url(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Every occurrence of <c>Url</c>, in order, found as it is asked for.</summary>

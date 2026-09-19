@@ -132,14 +132,28 @@ public static partial class CSharpEmitter
 				continue;
 			}
 
+			// The name is the word before the parameters, whatever stands between it and the
+			// opening: `public static bool Try…(` names a method as `public int Read…(` does,
+			// and a header not recognized is a body counted into the method before it — which is
+			// how a publication's own methods came to be measured as part of the support type
+			// above them.
 			var first = start + opening.Length;
-			var at = first;
+			var opens = text.IndexOf('(', first);
 
-			while (at < end && (char.IsLetterOrDigit(text[at]) || text[at] == '_'))
-				at++;
+			if (opens < 0 || opens >= end)
+				continue;
 
-			if (at > first && at < end && text[at] == '(')
-				return text.Substring(first, at - first);
+			// An assignment before them makes it a field holding something, not a method.
+			if (text.IndexOf('=', first, opens - first) >= 0)
+				continue;
+
+			var at = opens;
+
+			while (at > first && (char.IsLetterOrDigit(text[at - 1]) || text[at - 1] == '_'))
+				at--;
+
+			if (at < opens)
+				return text.Substring(at, opens - at);
 		}
 
 		return null;
@@ -1513,7 +1527,7 @@ public static partial class CSharpEmitter
 		Asking("string input", positional: false);
 
 		file.Line();
-		Answering();
+		Answering(positional: false);
 
 		// And the same rule read where the caller says it begins. No end of input is
 		// demanded — what comes back says how far the reading got — which is what lets a
@@ -1543,6 +1557,9 @@ public static partial class CSharpEmitter
 
 			Asking("string input, int at", positional: true);
 
+			file.Line();
+			Answering(positional: true);
+
 			// And read inside a window: from `at`, and seeing nothing past `at + length`. What
 			// a host holding a text reads a piece of it with when the piece is not where a
 			// token of the whole text begins — the hole of an interpolated string, the body
@@ -1566,58 +1583,117 @@ public static partial class CSharpEmitter
 			begins = overKinds ? "0" : "at";
 
 			Asking("string input, int at, int length", positional: true, windowed: true);
+
+			file.Line();
+			Answering(positional: true, windowed: true);
 		}
 
 		// Whether the whole input is the rule, and its value where it is — and nothing about why
 		// not. One reading, quiet where the machine can be, and no message: a caller that only
 		// asks yes or no pays for none of what a refusal says, not even the second reading the
 		// form above makes to say it (§6).
-		void Answering()
+		// Whether the input is the rule, and its value where it is — and nothing about why not.
+		// One reading, quiet where the machine can be, and no message: a caller that only asks
+		// yes or no pays for none of what a refusal says, not even the second reading the form
+		// above makes to say it (§6). Where it begins where it is told, it moves the position
+		// it was handed to the end of what it read, and leaves it where it was on a refusal.
+		void Answering(bool positional, bool windowed = false)
 		{
-			file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering only whether it is one.</summary>");
+			var parameters = positional
+				? windowed ? "string input, ref int at, int length" : "string input, ref int at"
+				: "string input";
+
+			file.Line(positional
+				? $"/// <summary>Reads a <c>{name}</c> at <paramref name=\"at\"/>, answering only whether one is there.</summary>"
+				: $"/// <summary>Parses the whole input as <c>{name}</c>, answering only whether it is one.</summary>");
 			file.Line("/// <remarks>");
 			file.Line($"/// Nothing is said about a refusal: <c>Try{method}</c> returning a match says where and why.");
+
+			if (positional)
+			{
+				file.Line("/// On a reading, <paramref name=\"at\"/> moves to the end of what was read; on a");
+				file.Line("/// refusal it stays where it was.");
+			}
+
 			file.Line("/// </remarks>");
 
-			using (file.Block($"{AccessOf(publication)} static bool Try{method}(string input{takes}, out {value} value)"))
+			using (file.Block($"{AccessOf(publication)} static bool Try{method}({parameters}{takes}, out {value} value)"))
 			{
+				// A position of the caller's own making that is nowhere in the input is the
+				// caller's mistake, and not something the input could answer for.
+				if (positional)
+				{
+					file.Line(windowed
+						? "if (at < 0 || length < 0 || at > input.Length - length)"
+						: "if (at < 0 || at > input.Length)");
+					file.Then($"throw new global::System.ArgumentOutOfRangeException(nameof(at));");
+					file.Line();
+				}
+
 				if (overKinds)
 				{
 					file.Line("var source = input;");
-					file.Line("var tokens = Tokenize_DotGram(source);");
+					file.Line(windowed
+						? "var tokens = Tokenize_DotGram(source, at, at + length);"
+						: "var tokens = Tokenize_DotGram(source);");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
 					file.Line("var count   = tokens.Count;");
 					file.Line();
 
-					using (file.Block("if (tokens.Stopped >= 0)"))
+					if (!windowed)
 					{
-						file.Line("Recycle_DotGram(tokens);");
+						using (file.Block("if (tokens.Stopped >= 0)"))
+						{
+							file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							file.Line("value = default!;");
+							file.Line("return false;");
+						}
+
 						file.Line();
-						file.Line("value = default!;");
-						file.Line("return false;");
 					}
 
-					file.Line();
+					// Out here a position is an offset into the text; in there it is a token.
+					if (positional && !windowed)
+					{
+						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
+						file.Line();
+
+						using (file.Block("if (from < 0)"))
+						{
+							file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							file.Line("value = default!;");
+							file.Line("return false;");
+						}
+
+						file.Line();
+					}
+
 					file.Line("var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);");
 				}
 				else
 				{
-					file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+					file.Line(windowed
+						? "var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);"
+						: "var text    = global::System.MemoryExtensions.AsSpan(input);");
 				}
 
 				if (probes)
 					file.Line(
 						overKinds
 							? "var parserWhole = new global::System.ReadOnlyMemory<char>(tokens.Kinds, 0, count);"
-							: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
+							: windowed
+								? "var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);"
+								: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
 
 				file.Line(quietFirst
 					? $"var failure = new {FailureType} {{ Quiet = true }};"
 					: $"var failure = new {FailureType}();");
 				file.Line();
-				file.Line($"var end = {WholeOf(publication.Rule)}(text, 0{hands});");
+				file.Line($"var end = {(positional ? reader : WholeOf(publication.Rule))}(text, {(positional ? begins : "0")}{hands});");
 				file.Line();
 
 				using (file.Block("if (end < 0)"))
@@ -1633,7 +1709,16 @@ public static partial class CSharpEmitter
 				}
 
 				file.Line();
-				file.Line($"value = {Recognized("0", "end")};");
+				// Over kinds what is cut is named by the tokens it lies between; over characters by
+				// where it began and how long it is.
+				file.Line($"value = {Recognized(positional ? begins : "0", overKinds || !positional ? "end" : $"end - {begins}")};");
+
+				// Where the reading stopped, said as the caller says positions: an offset into
+				// the input, which over kinds is the end of the last token it read.
+				if (positional)
+					file.Line(overKinds
+						? "at = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];"
+						: "at = end;");
 
 				if (overKinds)
 				{

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
 
 using DotGram.Generation;
@@ -1249,6 +1250,79 @@ public sealed class CSharpEmitterTests
 
 		Assert.True(directly.IsSuccess, directly.Error);
 		Assert.Equal((0L, 7L), (directly.Position, directly.Length));
+	}
+
+	/// <summary>
+	/// The form that answers only whether, begun where it is told (§6.3): the value, the
+	/// position moved to the end of it, and a refusal that moves nothing and says nothing.
+	/// </summary>
+	[Fact]
+	public void A_reading_that_answers_only_whether_moves_the_position_it_was_handed()
+	{
+		var parser = EmittedCode.Compile(Emit(
+			"""
+			trivia = ' '*
+
+			// Recursive only so that it is not lowered: a lowered publication gets no position.
+			Start = Name & Rest
+			Rest  = Name | '(' & Start & ')'
+			Name  = ['a'..'z']+
+			parse Start
+			"""));
+
+		// A loop over a text of several values reads each of them, and the trivia between two
+		// is the leading trivia of the next reading.
+		var read = new List<string>();
+		var at   = 0;
+
+		while (at < "ab cd  ef gh  ij kl".Length &&
+			EmittedCode.Answered(parser, "Grammar", "TryParseStart", "ab cd  ef gh  ij kl", at) is { Read: true } one)
+		{
+			read.Add((string)one.Value!);
+			at = one.At;
+		}
+
+		// The trivia a reading begins on is read, and is part of what it hands back, exactly as
+		// the form that answers with a match hands it back: where a value begins is a question
+		// of its own, and the form that answers only whether answers it the same way.
+		Assert.Equal(["ab cd", "  ef gh", "  ij kl"], read);
+		Assert.Equal(19, at);
+
+		// A refusal moves nothing and hands nothing back. `12 ab` cannot begin a `Start` at all;
+		// `ab 12` can, `Name` giving back to `a` and `b`, which is the first derivation that
+		// succeeds and the whole of what a reading from a position asks for.
+		var refused = EmittedCode.Answered(parser, "Grammar", "TryParseStart", "12 ab", 0);
+
+		Assert.False(refused.Read);
+		Assert.Null(refused.Value);
+		Assert.Equal(0, refused.At);
+
+		// And inside a window, which sees nothing past it.
+		var window = EmittedCode.Answered(parser, "Grammar", "TryParseStart", "ab cd ef", 0, 5);
+
+		Assert.True(window.Read);
+		Assert.Equal("ab cd", window.Value);
+		Assert.Equal(5, window.At);
+	}
+
+	/// <summary>A position of the caller's own making that is nowhere in the input is its mistake.</summary>
+	[Fact]
+	public void A_position_outside_the_input_is_the_caller_s_mistake()
+	{
+		var parser = EmittedCode.Compile(Emit(
+			"""
+			trivia = ' '*
+
+			Start = Name & Rest
+			Rest  = Name | '(' & Start & ')'
+			Name  = ['a'..'z']+
+			parse Start
+			"""));
+
+		var thrown = Assert.Throws<TargetInvocationException>(
+			() => EmittedCode.Answered(parser, "Grammar", "TryParseStart", "ab cd", 6));
+
+		Assert.IsType<ArgumentOutOfRangeException>(thrown.InnerException);
 	}
 
 	/// <summary>A character inside the window that begins no token ends its tokens.</summary>

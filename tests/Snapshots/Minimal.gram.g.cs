@@ -1026,6 +1026,35 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Sum</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSum</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseSum(string input, ref int at, out int value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
+			var failure = new Failure();
+
+			var end = Recognize_Sum(text, at, 0, ref failure, out var recognized, parserWhole);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Sum</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -1057,6 +1086,35 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Sum</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSum</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseSum(string input, ref int at, int length, out int value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = Recognize_Sum(text, at, 0, ref failure, out var recognized, parserWhole);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Either</c>.</summary>
@@ -1265,6 +1323,34 @@ namespace DotGram.Snapshots
 			return Match<string[]>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Sheet</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSheet</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseSheet(string input, ref int at, out string[] value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Sheet(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
 		/// <summary>Reads a <c>Sheet</c> inside a window of the input.</summary>
 		/// <remarks>
 		/// The reading begins at <paramref name="at"/> and sees no character from
@@ -1295,6 +1381,34 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string[]>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Sheet</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseSheet</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseSheet(string input, ref int at, int length, out string[] value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = Recognize_Sheet(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
 		}
 
 		/// <summary>Parses the whole input as <c>Ci</c>.</summary>
