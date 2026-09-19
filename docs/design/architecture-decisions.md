@@ -935,6 +935,18 @@ the largest size; the two algorithms left are StockCount's rejection path (time 
 linear: CPU only) and SQL:2023's search condition, whose allocation grows with an exponent of
 3.1 — 164 MB to read 1,000 predicates, gen2 on every call — so the gathered-list fix is accepted
 only when both time and allocation are linear.
+**The fix in two parts (performance-ff).** The walk: a guard over a list builds all its
+elements in one walk that takes the list as its roots, and the live table is cleared from the
+walk's first record only — the reproduction's 1,000 terms 37 to 23 ms, 2,000 terms 90 to 34 ms,
+time and allocation linear from 1,000 to 2,000; landing alone. What is left is the value store's
+shape: SQL:2023 has 302 value tables, sparse by record number because a guard's machine builds
+while it reads; every `Room` grows all 302 to the record count, and the store is dropped when it
+passes a million cells in total, so past about 3,500 records every parse allocates all of it
+again — 164 MB at 1,000 predicates, 160 KB a predicate. Decided: a dense store for machines with
+guards too — a map from record to slot and values in arrays as long as what was written,
+rewound by dropping the slots above the mark — and the drop threshold per table, not in total;
+the store costs what is written, not records times tables. sql-39 (the store is his from D2);
+accepted when time and allocation both have an exponent of 1.1 or less.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
