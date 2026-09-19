@@ -889,7 +889,8 @@ pool. It holds today (captures on the tape are pairs of positions, sliced by the
 parse); it is written beside every place a span is made and beside the fill, and tested by a
 stream read a byte at a time with an external that grows the buffer right after a capture.
 **Found by the design, and open:** the whole-parse stream form of FIX holds the entire input
-today, up to `maxRetained`, on the engine as on this reader — its values are built by the walk
+today, up to `maxRetained`, on the engine as on this reader (the `yield` forms, which the stand
+measured, go a window at a time) — its values are built by the walk
 after the parse, from slices of the input, so nothing can be released before. D5 is therefore
 not met for it, and it is met only by C4, which builds at each turn's commit and can release the
 window behind it: a stream of 10,000 fields under a retained window of a few kilobytes is C4's
@@ -918,7 +919,9 @@ grammar, which answers what C4 gives SQL before its causes reach zero. C4 reads 
 Written (performance-ff), four refinements accepted: the analysis is public like `Replay` and
 `Demand`, for the tests; a fourth kind of point, the caller's — a rule not kept itself whose
 every call has a point is settled where the call is (FIX's tag, called twice), a greatest
-fixpoint held to a recursive shape where the inner call can be given back; "kept" is `Replay`'s
+fixpoint; a recursive rule whose inner call can be given back keeps its point too, since a point
+says only when to build and C4 builds from the derivation that reached the point, on which a
+reading given back does not lie (the architect had asked otherwise and was answered); "kept" is `Replay`'s
 stands-or-losing, the grade `Auto` already builds early by, so a factory may run in a parse that
 fails in the end, as now; and a rule read anywhere its reading is thrown away (a lookahead, an
 argument, a seam's body, a recovery's synchronization) is not kept. Generated code identical;
