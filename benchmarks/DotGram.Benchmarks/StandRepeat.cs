@@ -31,10 +31,11 @@ static partial class Stand
 	/// <summary>The runs' medians, and what to say about which runs were used.</summary>
 	sealed record Pooled(Row[] Rows, double Control, int[] Kept, string Note);
 
-	public static void Repeat(string? directory, bool rebuild, string? only, string? against, int count)
+	public static void Repeat(string? directory, bool rebuild, string? only, string? against, int count, double? limitMinutes = null)
 	{
-		var output = directory ?? DefaultDirectory();
-		var root   = Root();
+		var output   = directory ?? DefaultDirectory();
+		var root     = Root();
+		var deadline = Deadline(limitMinutes);
 
 		Directory.CreateDirectory(output);
 
@@ -48,8 +49,19 @@ static partial class Stand
 			if (only is not null)
 				arguments.AddRange(["--only", only]);
 
+			if (!Within(deadline, i, count, ref count))
+				break;
+
 			Console.WriteLine($"=== run {i} of {count}, {DateTime.Now:HH:mm:ss}");
-			RunAgain(arguments);
+
+			if (!RunAgain(arguments, deadline))
+			{
+				count = i - 1;
+
+				Console.WriteLine($"=== the limit of {limitMinutes} minutes came inside run {i}: it was stopped, {count} runs are used");
+
+				break;
+			}
 		}
 
 		var runs   = Enumerable.Range(1, count)
@@ -69,9 +81,10 @@ static partial class Stand
 	}
 
 	/// <summary>The paired stand taken <paramref name="count"/> times, and the medians of it.</summary>
-	public static void RepeatPaired(string beforeDir, string afterDir, string? directory, string? only, int count)
+	public static void RepeatPaired(string beforeDir, string afterDir, string? directory, string? only, int count, double? limitMinutes = null)
 	{
-		var output = directory ?? DefaultDirectory();
+		var output   = directory ?? DefaultDirectory();
+		var deadline = Deadline(limitMinutes);
 
 		Directory.CreateDirectory(output);
 
@@ -82,8 +95,19 @@ static partial class Stand
 			if (only is not null)
 				arguments.AddRange(["--only", only]);
 
+			if (!Within(deadline, i, count, ref count))
+				break;
+
 			Console.WriteLine($"=== run {i} of {count}, {DateTime.Now:HH:mm:ss}");
-			RunAgain(arguments);
+
+			if (!RunAgain(arguments, deadline))
+			{
+				count = i - 1;
+
+				Console.WriteLine($"=== the limit of {limitMinutes} minutes came inside run {i}: it was stopped, {count} runs are used");
+
+				break;
+			}
 		}
 
 		var runs   = Enumerable.Range(1, count)
@@ -98,6 +122,23 @@ static partial class Stand
 		Console.WriteLine();
 		Console.WriteLine(report);
 		Console.WriteLine($"Written to {output}");
+	}
+
+	static DateTime? Deadline(double? minutes) => minutes is { } limit ? DateTime.Now.AddMinutes(limit) : null;
+
+	/// <summary>Whether another run may begin: the limit has not come, and there is time for one as long as the last (unknown: half the limit's remainder).</summary>
+	static bool Within(DateTime? deadline, int run, int planned, ref int count)
+	{
+		if (deadline is { } end && DateTime.Now >= end)
+		{
+			count = run - 1;
+
+			Console.WriteLine($"=== the limit has come before run {run} of {planned}: {count} runs are used");
+
+			return false;
+		}
+
+		return true;
 	}
 
 	static Pooled Pool(Taken[] runs, string output)
@@ -148,7 +189,7 @@ static partial class Stand
 	}
 
 	/// <summary>Runs this program again with these arguments, as a process of its own, and waits.</summary>
-	static void RunAgain(List<string> arguments)
+	static bool RunAgain(List<string> arguments, DateTime? deadline = null)
 	{
 		var path  = Environment.ProcessPath!;
 		var start = new ProcessStartInfo(path) { UseShellExecute = false };
@@ -162,10 +203,25 @@ static partial class Stand
 
 		using var process = Process.Start(start)!;
 
-		process.WaitForExit();
+		if (deadline is { } end)
+		{
+			var remaining = end - DateTime.Now;
+
+			if (remaining <= TimeSpan.Zero || !process.WaitForExit(remaining))
+			{
+				process.Kill(true);
+				process.WaitForExit();
+
+				return false;
+			}
+		}
+		else
+			process.WaitForExit();
 
 		if (process.ExitCode != 0)
 			throw new InvalidOperationException($"A child run ({string.Join(' ', arguments)}) exited with {process.ExitCode}.");
+
+		return true;
 	}
 
 	// ── First calls of the paired stand ─────────────────────────────────────────

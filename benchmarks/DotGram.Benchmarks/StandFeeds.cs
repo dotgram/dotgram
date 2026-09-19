@@ -25,12 +25,36 @@ namespace DotGram.Benchmarks;
 
 static partial class Stand
 {
+	/// <summary>
+	/// A name the grammar reads: <c>Name</c> is letters only, so an item called "item12" is a broken line
+	/// (the digits end the name and the colon is missing) — the first "good" input of the stock count was
+	/// a thousand of them. Base 26, <c>itemaa</c>, <c>itemab</c>, ...
+	/// </summary>
+	internal static string StockItem(int index)
+	{
+		var name = "";
+
+		do
+		{
+			name = (char)('a' + index % 26) + name;
+			index /= 26;
+		}
+		while (index > 0);
+
+		return "item" + name;
+	}
+
+	/// <summary>The stock count of <paramref name="lines"/> lines, a tenth of them broken where asked, and the closing line counting the good ones.</summary>
+	internal static string StockText(int lines, bool broken) =>
+		string.Concat(Enumerable.Range(0, lines).Select(i => broken && i % 10 == 9 ? "x 1\n" : $"{StockItem(i)}: {i % 100}\n"))
+		+ $"END {(broken ? lines - lines / 10 : lines)}\n";
+
 	/// <summary>The three inputs of the stock count: the example's four lines, a thousand good ones, and the same with every tenth broken.</summary>
 	static (string Name, string Text)[] StockInputs() =>
 	[
 		("small",  "apples: 12\npears: 7\nplums seven\nEND 3\n"),
-		("good",   string.Concat(Enumerable.Range(0, 1000).Select(static i => $"item{i}: {i % 100}\n")) + "END 1000\n"),
-		("broken", string.Concat(Enumerable.Range(0, 1000).Select(static i => i % 10 == 9 ? "x 1\n" : $"item{i}: {i % 100}\n")) + "END 900\n"),
+		("good",   StockText(1000, false)),
+		("broken", StockText(1000, true)),
 	];
 
 	static IEnumerable<Workload> FeedWorkloads() => StockInputs().SelectMany(static input => StockCountRows(input.Name, input.Text));
@@ -57,6 +81,20 @@ static partial class Stand
 		}
 	}
 
+	/// <summary>
+	/// A "good" input has no unreadable line and a "broken" one has a tenth of them: agreement between two
+	/// parsers that both refuse every line proved nothing, and the first "good" rows were exactly that.
+	/// </summary>
+	static string? NotWhatItSays(string name, StockCount count)
+	{
+		var expected = name.Contains(".good.", StringComparison.Ordinal) ? 0 : name.Contains(".broken.", StringComparison.Ordinal) ? count.Lines.Count / 10 : -1;
+		var actual   = count.Lines.Count(static line => line is Unreadable);
+
+		return expected >= 0 && actual != expected
+			? $"  {name} has {actual} unreadable lines of {count.Lines.Count}, and it says {expected}"
+			: null;
+	}
+
 	static Workload PairedStockRow(string name, Func<StockCount?> hand, Func<object> before, Func<object> after)
 	{
 		return new Workload(
@@ -77,7 +115,7 @@ static partial class Stand
 					return $"  every side must read it: hand {(control is null ? "refuses" : "reads")}, before {(b.Ok ? "reads" : "refuses")}, after {(a.Ok ? "reads" : "refuses")}";
 
 				return b == (true, control.Total, control.Lines.Count) && a == b
-					? null
+					? NotWhatItSays(name, control)
 					: $"  the sides read different counts: hand {control.Total} over {control.Lines.Count} lines, before {b.Total} over {b.Lines}, after {a.Total} over {a.Lines}";
 			});
 	}
@@ -119,7 +157,7 @@ static partial class Stand
 				if (byHand.Total != value.Total || !byHand.Lines.SequenceEqual(value.Lines))
 					return $"  hand read total {byHand.Total} over {byHand.Lines.Count} lines, generated total {value.Total} over {value.Lines.Count} lines";
 
-				return null;
+				return NotWhatItSays(name, byHand);
 			});
 
 		static int Weigh(StockCount? count) => count is null ? 0 : count.Lines.Count + count.Total;

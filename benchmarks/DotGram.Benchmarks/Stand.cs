@@ -984,6 +984,13 @@ static partial class Stand
 		var iterations = Iterations(workload.Readings[0].Run);
 		var warmups    = new int[workload.Readings.Length];
 
+		// A sample is as many calls as take SampleMs of the base reading, which a reading much slower than
+		// it (the stock count's generated parser is 50-90x the hand one on a thousand lines) would take
+		// seconds over, eight times a round for five runs. It takes at most four times the calls it would
+		// need for a sample of its own: within 4x of the base nothing changes, beyond it the sample is a
+		// few times SampleMs long and no more.
+		var each = workload.Readings.Select((reading, i) => i == 0 ? iterations : Math.Min(iterations, 4 * Iterations(reading.Run))).ToArray();
+
 		// The control is a yardstick for the machine, so it is read after the tiered JIT has
 		// settled: in a run of one row the first samples were tier 0 code (138 ns against 30).
 		if (controls.Count == 0)
@@ -1003,7 +1010,7 @@ static partial class Stand
 			{
 				var i = round % 2 == 0 ? k : workload.Readings.Length - 1 - k;
 
-				taken[i].Add(TimeSteady(workload.Readings[i].Run, iterations, ref redone));
+				taken[i].Add(TimeSteady(workload.Readings[i].Run, each[i], ref redone));
 			}
 		}
 

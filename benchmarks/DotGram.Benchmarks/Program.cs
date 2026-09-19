@@ -69,8 +69,21 @@ static class Program
 				rest.RemoveRange(flag, 2);
 			}
 
+			// `--limit minutes` stops a `--repeat` at the announced end of a window: a run in progress is
+			// killed, and the runs finished before it are what is reported.
+			double? limit = null;
+
+			flag = rest.IndexOf("--limit");
+
+			if (flag >= 0)
+			{
+				limit = double.Parse(rest[flag + 1], System.Globalization.CultureInfo.InvariantCulture);
+
+				rest.RemoveRange(flag, 2);
+			}
+
 			if (repeat > 1)
-				Stand.Repeat(rest.FirstOrDefault(), rebuild, only, against, repeat);
+				Stand.Repeat(rest.FirstOrDefault(), rebuild, only, against, repeat, limit);
 			else
 				Stand.Run(rest.FirstOrDefault(), rebuild, only, against);
 
@@ -91,6 +104,14 @@ static class Program
 		if (args.Length >= 2 && args[0] == "tsql-loop")
 		{
 			TsqlLoop.Run(args[1], args.Length > 2 ? int.Parse(args[2]) : 300);
+
+			return;
+		}
+
+		// `stock-slope` reads the stock count at four sizes, by hand and generated, for the shape of the curve.
+		if (args.Length == 1 && args[0] == "stock-slope")
+		{
+			StockSlope.Run();
 
 			return;
 		}
@@ -126,7 +147,7 @@ static class Program
 		// (2026-09-18, Q7.3's Fix44 stream form). See Stand.Paired.
 		// `--repeat N` takes it N times in processes of their own and reports medians; `--first`
 		// takes the first call of each reading in a fresh process instead, and nothing else.
-		if (args.Length is >= 3 and <= 9 && args[0] == "--stand-paired")
+		if (args.Length is >= 3 and <= 11 && args[0] == "--stand-paired")
 		{
 			var rest  = args.Skip(1).ToList();
 			var only  = (string?)null;
@@ -151,12 +172,23 @@ static class Program
 				rest.RemoveRange(flag, 2);
 			}
 
+			double? limit = null;
+
+			flag = rest.IndexOf("--limit");
+
+			if (flag >= 0)
+			{
+				limit = double.Parse(rest[flag + 1], System.Globalization.CultureInfo.InvariantCulture);
+
+				rest.RemoveRange(flag, 2);
+			}
+
 			var directory = rest.Count > 2 ? rest[2] : null;
 
 			if (first)
 				Stand.PairedFirstCalls(rest[0], rest[1], directory, only);
 			else if (repeat > 1)
-				Stand.RepeatPaired(rest[0], rest[1], directory, only, repeat);
+				Stand.RepeatPaired(rest[0], rest[1], directory, only, repeat, limit);
 			else
 				Stand.Paired(rest[0], rest[1], directory, only);
 

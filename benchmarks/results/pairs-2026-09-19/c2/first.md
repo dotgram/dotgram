@@ -1,0 +1,65 @@
+# Paired first calls, 2026-09-19 00:28
+
+First call in a fresh process, median of 5: milliseconds, methods the runtime compiled during it, and the time it spent compiling them (JitInfo, no events). The hand reading is this build's own.
+
+| row | reading | ms | methods | JIT ms |
+| --- | --- | ---: | ---: | ---: |
+| fix/One.text | hand | 4.23 | 42 | 4.03 |
+| fix/One.text | before | 6.53 | 88 | 6.32 |
+| fix/One.text | after | 6.13 | 79 | 5.96 |
+| fix/Order.text | hand | 5.58 | 78 | 5.20 |
+| fix/Order.text | before | 7.76 | 122 | 7.47 |
+| fix/Order.text | after | 7.54 | 119 | 7.27 |
+| fix/slope-0.text | hand | 1.68 | 14 | 1.53 |
+| fix/slope-0.text | before | 4.27 | 55 | 4.14 |
+| fix/slope-0.text | after | 2.61 | 33 | 2.53 |
+| fix/slope-1.text | hand | 4.30 | 42 | 4.08 |
+| fix/slope-1.text | before | 6.64 | 88 | 6.42 |
+| fix/slope-1.text | after | 6.21 | 79 | 6.05 |
+| fix/slope-2.text | hand | 4.39 | 42 | 4.16 |
+| fix/slope-2.text | before | 6.84 | 89 | 6.59 |
+| fix/slope-2.text | after | 6.34 | 80 | 6.14 |
+| fix/slope-4.text | hand | 4.33 | 42 | 4.11 |
+| fix/slope-4.text | before | 6.72 | 89 | 6.48 |
+| fix/slope-4.text | after | 6.31 | 80 | 6.12 |
+| fix/slope-8.text | hand | 4.43 | 42 | 4.18 |
+| fix/slope-8.text | before | 6.92 | 89 | 6.66 |
+| fix/slope-8.text | after | 6.65 | 86 | 6.42 |
+| fix/slope-16.text | hand | 4.70 | 44 | 4.34 |
+| fix/slope-16.text | before | 7.03 | 89 | 6.75 |
+| fix/slope-16.text | after | 6.73 | 86 | 6.48 |
+| feeds/stock-count.small.text | hand | 1.28 | 22 | 1.10 |
+| feeds/stock-count.small.text | before | 4.06 | 70 | 3.73 |
+| feeds/stock-count.small.text | after | 3.60 | 57 | 3.31 |
+| feeds/stock-count.small.reader | hand | 1.30 | 22 | 1.11 |
+| feeds/stock-count.small.reader | before | 4.45 | 76 | 4.07 |
+| feeds/stock-count.small.reader | after | 4.00 | 66 | 3.66 |
+| feeds/stock-count.small.reader64 | hand | 1.27 | 22 | 1.10 |
+| feeds/stock-count.small.reader64 | before | 4.48 | 76 | 4.11 |
+| feeds/stock-count.small.reader64 | after | 4.03 | 66 | 3.69 |
+| feeds/stock-count.good.text | hand | 1.58 | 21 | 1.11 |
+| feeds/stock-count.good.text | before | 18.27 | 68 | 13.09 |
+| feeds/stock-count.good.text | after | 7.89 | 62 | 3.66 |
+| feeds/stock-count.good.reader | hand | 1.52 | 21 | 1.07 |
+| feeds/stock-count.good.reader | before | 28.60 | 76 | 15.65 |
+| feeds/stock-count.good.reader | after | 16.32 | 71 | 4.08 |
+| feeds/stock-count.good.reader64 | hand | 1.51 | 21 | 1.06 |
+| feeds/stock-count.good.reader64 | before | 28.21 | 76 | 15.44 |
+| feeds/stock-count.good.reader64 | after | 16.24 | 71 | 4.04 |
+| feeds/stock-count.broken.text | hand | 1.51 | 21 | 1.07 |
+| feeds/stock-count.broken.text | before | 17.99 | 68 | 13.00 |
+| feeds/stock-count.broken.text | after | 7.82 | 62 | 3.51 |
+| feeds/stock-count.broken.reader | hand | 1.50 | 21 | 1.06 |
+| feeds/stock-count.broken.reader | before | 27.30 | 76 | 15.32 |
+| feeds/stock-count.broken.reader | after | 16.17 | 71 | 4.10 |
+| feeds/stock-count.broken.reader64 | hand | 1.47 | 21 | 1.04 |
+| feeds/stock-count.broken.reader64 | before | 27.25 | 76 | 15.24 |
+| feeds/stock-count.broken.reader64 | after | 16.14 | 71 | 4.03 |
+| el/string | hand | 8.31 | 104 | 7.13 |
+| el/string | before | 26.98 | 213 | 25.42 |
+| el/string | after | 26.91 | 213 | 25.37 |
+| el/string | before-immediate | 17.96 | 196 | 16.64 |
+| el/string | after-immediate | 17.83 | 196 | 16.50 |
+| sql/select20 | hand | 17.26 | 216 | 16.60 |
+| sql/select20 | before | 65.37 | 490 | 63.11 |
+| sql/select20 | after | 65.14 | 490 | 62.99 |

@@ -1,0 +1,52 @@
+load                   1.70 ms   jit    6 methods      981 bytes IL    6.09 ms compiling   Program+<>c__DisplayClass0_0::<<Main>$>g__Phase|0 274, JitWatch::OnEventWritten 268, JitWatch::Take 212
+load examples          0.39 ms   jit   48 methods     3061 bytes IL    0.81 ms compiling   SpanHelpers::Fill 862, Int64]]::MoveNext 265, Enumerable::FillIncrementing 202
+cctors                 0.63 ms   jit    5 methods       54 bytes IL    0.13 ms compiling   Int32]::.ctor 13, Int32]::get_Item 13, Program+<>c::.cctor 11
+first parse            3.75 ms   jit   48 methods     5453 bytes IL    3.25 ms compiling   StockCountReader::Materialize_DotGram_Direct 826
+      StockCountReader+Reader_DotGram::Read_Total 438
+      StockCountReader+Reader_DotGram::Read_Count 421
+      StockCountReader+Reader_DotGram::Read_Line 325
+      StockCountReader+Reader_DotGram::Read_Count_Broken 294
+      StockCountReader+DirectValues::Return 258
+      StockCountReader+DirectValues::Room 247
+      StockCountReader+Reader_DotGram::Read_eol 246
+      StockCountReader+Ways::Put 159
+      StockCountReader::Refuse_DotGram 147
+      StockCountReader+Reader_DotGram::Read_eof 146
+      StockCountReader+Ways::Collect 131
+      StockCountReader::TryParseCount 128
+      StockCountReader::Recognize_Count_Whole 128
+      StockCountReader+Ways::Begin 127
+      StockCountReader+Ways::Push 117
+      StockCountReader+Ways::Rent 116
+      StockCountReader+Ways::Return 97
+      StockCountReader+Reader_DotGram::Read_Name 87
+      StockCountReader+DirectValues::.ctor 85
+      StockCountReader::Recognize_DotGram_Agreeing 80
+      StockCountReader+DirectValues::Rent 67
+      StockCountReader+Reader_DotGram::Recognize_Count_Whole_Read 61
+      StockCountReader+Reader_DotGram::Read_eof_Part0 54
+      __Canon]::.ctor 54
+      StockCountReader+Ways::.ctor 53
+      StockCountReader+Reader_DotGram::Read_Count_Part0 49
+      StockCountReader+Ways::End 46
+      StockCountReader::get_Recognize_DotGram_Expected10 44
+      StockCountReader+Reader_DotGram::Read_Count_Part1 44
+      StockCountReader::get_Recognize_DotGram_Expected8 44
+      StockCountReader::get_Recognize_DotGram_Expected14 44
+      StockCountReader+Ways::Seal 40
+      StockCountReader::LineAt 33
+      Int32]::.ctor 30
+      Program+<>c__DisplayClass0_1::<<Main>$>b__3 28
+      StockCountReader+Reader_DotGram::.ctor 27
+      Stocked::.ctor 21
+      Unreadable::.ctor 21
+      StockCount::.ctor 21
+      StockCountReader::Construct_Line 13
+      StockCountReader::Number 13
+      __Canon]::Success 13
+      StockCountReader::Recognize_Count_Recover 8
+      StockCountReader::Construct_Count 8
+      StockLine::.ctor 7
+      StockCountReader::Construct_Total 7
+second parse           0.31 ms   jit    1 methods        0 bytes IL    0.51 ms compiling   dynamicClass::InvokeStub_StockCountReader.TryParseCount 0
+read
