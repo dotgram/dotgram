@@ -63,13 +63,24 @@ public static class HandUrl
 	}
 
 	/// <summary>
-	/// One reading of a text: where it is, and the furthest position any attempt was refused at.
+	/// One reading of a text: where it is, where each part read so far lies, and the furthest
+	/// position any attempt was refused at. A struct, and the parts kept as positions until the
+	/// reading is done, so that a reference costs the one record it is and the text of its parts,
+	/// and a refusal costs nothing.
 	/// </summary>
-	sealed class Reader(string text)
+	struct Reader(string text)
 	{
 		readonly string _text = text;
 
 		int _at;
+
+		Part _scheme;
+		Part _userInfo;
+		Part _host;
+		Part _port;
+		Part _path;
+		Part _query;
+		Part _fragment;
 
 		public int Furthest { get; private set; }
 
@@ -78,7 +89,7 @@ public static class HandUrl
 		/// <summary>The text as a URI: a scheme, a colon and a hierarchical part, to the end.</summary>
 		public UriReference? Uri()
 		{
-			_at = 0;
+			Start();
 
 			if (!Is(IsAlpha))
 				return null;
@@ -87,47 +98,62 @@ public static class HandUrl
 			{
 			}
 
-			var scheme = _text.Substring(0, _at);
+			var scheme = new Part(0, _at);
 
-			if (!Is(':'))
+			if (!Is(':') || !Hierarchical(relative: false) || !Rest())
 				return null;
 
-			var parts = Hierarchical(relative: false);
+			_scheme = scheme;
 
-			return parts is null ? null : Rest(parts with { Scheme = scheme });
+			return Parts();
 		}
 
 		/// <summary>The text as a relative reference, to the end.</summary>
 		public UriReference? Relative()
 		{
-			_at = 0;
+			Start();
 
-			var parts = Hierarchical(relative: true);
+			return Hierarchical(relative: true) && Rest() ? Parts() : null;
+		}
 
-			return parts is null ? null : Rest(parts);
+		void Start()
+		{
+			_at     = 0;
+			_scheme = _userInfo = _host = _port = _path = _query = _fragment = default;
+		}
+
+		UriReference Parts()
+		{
+			return new UriReference(
+				Text(_scheme), Text(_userInfo), Text(_host), Text(_port), Text(_path) ?? "", Text(_query), Text(_fragment));
+		}
+
+		string? Text(Part part)
+		{
+			return part.Present ? _text.Substring(part.Start, part.End - part.Start) : null;
 		}
 
 		/// <summary>
 		/// §3 and §4.2: an authority and the path after it, or a path alone. A relative
 		/// reference's first segment may not hold a colon, or it would have been a scheme.
 		/// </summary>
-		UriReference? Hierarchical(bool relative)
+		bool Hierarchical(bool relative)
 		{
 			if (Peek('/') && Peek('/', 1))
 			{
 				_at += 2;
 
-				var authority = Authority();
-
-				if (authority is null)
-					return null;
+				if (!Authority())
+					return false;
 
 				var start = _at;
 
 				while (Is('/'))
 					Segment();
 
-				return authority with { Path = _text.Substring(start, _at - start) };
+				_path = new Part(start, _at);
+
+				return true;
 			}
 
 			var from = _at;
@@ -146,62 +172,61 @@ public static class HandUrl
 					Segment();
 			}
 
-			return new UriReference(null, null, null, null, _text.Substring(from, _at - from), null, null);
+			_path = new Part(from, _at);
+
+			return true;
 		}
 
 		/// <summary>The query and the fragment, and then nothing.</summary>
-		UriReference? Rest(UriReference parts)
+		bool Rest()
 		{
-			string? query    = null;
-			string? fragment = null;
-
 			if (Is('?'))
-				query = Run(IsQueryCharacter);
+				_query = Run(IsQueryCharacter);
 
 			if (Is('#'))
-				fragment = Run(IsQueryCharacter);
+				_fragment = Run(IsQueryCharacter);
 
 			if (_at < _text.Length)
 			{
 				Refused(_at);
 
-				return null;
+				return false;
 			}
 
-			return parts with { Query = query, Fragment = fragment };
+			return true;
 		}
 
 		// ── §3.2, the authority ──────────────────────────────────────────────────
 
-		UriReference? Authority()
+		bool Authority()
 		{
 			var start = _at;
 
 			// A userinfo is everything before the first '@', if it comes before anything a
 			// userinfo may not hold.
-			string? userInfo = null;
-			var     user     = Run(IsUserInfoCharacter);
+			var userInfo = default(Part);
+			var user     = Run(IsUserInfoCharacter);
 
 			if (Is('@'))
 				userInfo = user;
 			else
 				_at = start;
 
-			string host;
+			Part host;
 
 			if (Peek('['))
 			{
 				var literal = _at;
 
 				if (!IpLiteral())
-					return null;
+					return false;
 
-				host = _text.Substring(literal, _at - literal);
+				host = new Part(literal, _at);
 			}
 			else
 				host = Run(IsRegisteredNameCharacter);
 
-			string? port = null;
+			var port = default(Part);
 
 			if (Is(':'))
 			{
@@ -211,10 +236,14 @@ public static class HandUrl
 				{
 				}
 
-				port = _text.Substring(digits, _at - digits);
+				port = new Part(digits, _at);
 			}
 
-			return new UriReference(null, userInfo, host, port, "", null, null);
+			_userInfo = userInfo;
+			_host     = host;
+			_port     = port;
+
+			return true;
 		}
 
 		/// <summary>
@@ -463,8 +492,8 @@ public static class HandUrl
 
 		// ── Reading ──────────────────────────────────────────────────────────────
 
-		/// <summary>A run of characters and escapes, as the text of the run.</summary>
-		string Run(Func<char, bool> accepts)
+		/// <summary>A run of characters and escapes, as where it lies.</summary>
+		Part Run(Func<char, bool> accepts)
 		{
 			var start = _at;
 
@@ -476,7 +505,7 @@ public static class HandUrl
 					break;
 			}
 
-			return _text.Substring(start, _at - start);
+			return new Part(start, _at);
 		}
 
 		/// <summary>
@@ -558,6 +587,14 @@ public static class HandUrl
 	}
 
 	// ── §2, the character sets ───────────────────────────────────────────────────
+
+	/// <summary>Where a part lies in the text; the default is a part that is not there.</summary>
+	readonly struct Part(int start, int end)
+	{
+		public readonly int  Start   = start;
+		public readonly int  End     = end;
+		public readonly bool Present = true;
+	}
 
 	static bool IsAlpha(char c)
 	{
