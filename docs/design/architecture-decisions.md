@@ -1490,6 +1490,10 @@ same day; each comes back to the architect as a report, with no code changed.
    record. Both wait for the stand: the engine rows' pair and the generation gates.
    The analysis `7e13fe68` paired: FIX's string rows -5.5..-7.4%, bytes flat, EL and Web flat,
    allocation identical.
+   The hoist's gate named the generator's own grammar +32 ms (the pass computed the whole
+   grammar's follow); reworked to read only the rest of its own sequence (`7c1920ac`), every
+   generated file identical, gated again. The 88 B a refusal stays: it is the list of every set
+   tied at the furthest position when there are three or more, on the refusal path.
    The scanner's search landed `45155db6` (performance-ff): it already fires in the SQL grammars'
    line comments and two examples; expr's analysis is unblocked, and FIX's `IndexOf` stays with it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
