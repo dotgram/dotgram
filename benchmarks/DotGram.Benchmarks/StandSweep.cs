@@ -52,6 +52,18 @@ static partial class Stand
 					() => b() == statements && quiet() == statements ? null : $"  the script has {statements} statements: the match form read {b()}, the bool form {quiet()}");
 			}
 
+			// The bool positional form on both sides, where both have it: what the same form costs before and after.
+			if (before.TsqlScriptBool(script) is { } quietBefore && after.TsqlScriptBool(script) is { } quietAfter)
+			{
+				yield return new Workload("tsql", $"script{statements}.boolboth",
+					[
+						new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
+						new Reading("before", quietBefore),
+						new Reading("after",  quietAfter),
+					],
+					() => quietBefore() == statements && quietAfter() == statements ? null : $"  the script has {statements} statements: before read {quietBefore()}, after {quietAfter()}");
+			}
+
 			yield return new Workload("tsql", $"script{statements}",
 				[
 					new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
