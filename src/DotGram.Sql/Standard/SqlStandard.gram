@@ -784,7 +784,10 @@ Result             : @Expression = v: ValueNode => @(v)
 
 // <when operand>: a row value predicand, or a predicate's second part with nothing before it — any
 // but a JSON predicate's and a period predicate's — whose missing left side is the case operand.
-WhenOperand : @Expression = p: PredicatePart2 & when @(Towers.RolesOf(p) == Towers.Any) => @(Nodes.Predicated(new Expression.CaseOperand(), p.Node!))
+// Of those two, the ones that begin with a word a name may be spelled with (`FORMAT JSON IS JSON`,
+// `IMMEDIATELY PRECEDES`) are left out in front as well as by the guard: then the two alternatives
+// begin apart, and a second part that fails is not a reading the predicand replaces.
+WhenOperand : @Expression = ?!("FORMAT"i | "IMMEDIATELY"i) & p: PredicatePart2 & when @(Towers.RolesOf(p) == Towers.Any) => @(Nodes.Predicated(new Expression.CaseOperand(), p.Node!))
                           | r: RowValuePredicand => @(r.Node)
 
 // <cast specification>. A domain's name is a user-defined type's in shape, and <data type> reads it.
