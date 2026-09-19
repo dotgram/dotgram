@@ -2449,6 +2449,18 @@ parse inside a factory would otherwise evict the outer reading's tokens and brin
 A scaling test holds the loop linear. What it does not answer, and the design says so, is one short
 reading out of a huge text; tokens on demand stay written down as the answer if that case ever
 arrives.
+**Written (expr, four commits):** a reading from a position stops where the rule ends (paired
+flat); the forms that move the position and answer yes or no; the tokenization kept between
+readings, which takes the loop's exponent from 1.99 to 1.00 — 400 statements 42 µs against 1.7 ms;
+and a reading over tokens beginning at the first token at or after the position, with nothing but
+trivia left answered as a starved input rather than a refusal to begin. It carries a defect found
+by its own test and unrelated to position: the extent handed back was cut by the index the reading
+reached rather than by a count from where it began, so an extent-only rule read from anywhere but
+the start cut too much and threw below the first token; nothing in the solution reads one that way.
+Left over and decided: over characters the position reported is still the one handed in, so a value
+with trivia before it carries it. That is done next, in its own commit before the release chores,
+because §6.3 now promises the position is where the value begins and a promise kept for tokens
+only is two behaviours again; until it lands the text says plainly what the character path does.
 
 ## D19. What 0.2.0 owes before it is cut
 
