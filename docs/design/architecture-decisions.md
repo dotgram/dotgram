@@ -202,6 +202,12 @@ had shown +10-13% where the paired run showed +4% steady, and once the cause was
 the paired form is what a before/after is quoted from. Over SQL it compares acceptance and not
 trees, since types from two contexts are never equal.
 
+**The pinned-load experiment (stand, 2026-09-19, rerun with a sustained load):** repeated rebuilds
+pinned to cores 16-31, which the sampler showed at 72% against 46-52% before and after, moved no
+timing on 0-15 beyond its spread — generated readings -0.7..+0.4%, the hand parsers +2..+5% inside
+their 5-14%, the stand's control +1.4%. The rule stands as amended: builds and tests pinned to
+16-31 while the stand times; an unpinned build is not, it took an earlier window to pieces.
+
 **The full baseline of 2026-09-18 evening (stand, medians of five, every family; the doc is
 `docs/design/stand-2026-09-18b.md` with the raw results).** What it settled:
 - Every generated-to-hand ratio is quoted **with default tiered PGO**, and the PGO=0 run is kept
