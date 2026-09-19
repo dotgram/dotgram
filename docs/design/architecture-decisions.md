@@ -881,6 +881,19 @@ FixGrammar grows 11% (four readers where there were two).
 rows (one field -29.5%, an order -28.3%, sixteen fields -30.2%); string and stream flat;
 allocation identical; the first byte parse nine methods and 1.8 KB of IL fewer. Far past the
 two-thirds bar: A stands, B waits with D10.
+**The stream form next (performance-ff's design, agreed).** The recovering reader over FIX's
+stream form, under one invariant that is now a contract of the emitted code: across anything
+that can fill the buffer — a read, a sub-rule, an external such as `@ReadData` — the reader holds
+positions only, never a span, since a fill may move the buffer and return the old array to the
+pool. It holds today (captures on the tape are pairs of positions, sliced by the walk after the
+parse); it is written beside every place a span is made and beside the fill, and tested by a
+stream read a byte at a time with an external that grows the buffer right after a capture.
+**Found by the design, and open:** the whole-parse stream form of FIX holds the entire input
+today, up to `maxRetained`, on the engine as on this reader — its values are built by the walk
+after the parse, from slices of the input, so nothing can be released before. D5 is therefore
+not met for it, and it is met only by C4, which builds at each turn's commit and can release the
+window behind it: a stream of 10,000 fields under a retained window of a few kilobytes is C4's
+acceptance test, not only its speed.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
