@@ -223,6 +223,15 @@ static class Program
 		// `--el-terms dir...` reads the expression language's tape at a thousand terms in each directory's build, unpinned:
 		// a rough figure for a bisection on a busy machine, good for an eightfold effect and for nothing finer.
 		// `--el-rows dir...` is the same for terms100 and ladder, the builds of every directory read in the same rounds.
+		// `--rough-examples beforeDir afterDir` reads five of the examples' entry points at each side's build in the same
+		// rounds, unpinned: a rough figure, for a change confined to examples the stand has no row for.
+		if (args.Length == 3 && args[0] == "--rough-examples")
+		{
+			Stand.RoughExamples(args[1], args[2]);
+
+			return;
+		}
+
 		if (args.Length >= 2 && args[0] == "--el-rows")
 		{
 			Stand.ElRows(args[1..]);

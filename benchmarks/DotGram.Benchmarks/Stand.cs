@@ -730,6 +730,28 @@ static partial class Stand
 			};
 		}
 
+		/// <summary><c>DotGram.Examples.{type}.{method}(string)</c> of this side, by reflection, its result left unread: 1 when it returned.</summary>
+		public Func<int> Example(string type, string method, string text)
+		{
+			var owner = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).Assembly.GetTypes()
+				.First(one => one.Name == type && one.Namespace!.StartsWith("DotGram.Examples", StringComparison.Ordinal));
+			var call = owner.GetMethod(method, [typeof(string)])
+				?? throw new InvalidOperationException($"{type}.{method}(string) not found");
+
+			return () => call.Invoke(null, [text]) is null ? 0 : 1;
+		}
+
+		/// <summary>RecoveringFeedReader.Read(string) of this side, by reflection: how many lines it read, the ones it rejected among them.</summary>
+		public Func<int> RecoveringFeed(string text)
+		{
+			var owner = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).Assembly.GetType("DotGram.Examples.Feeds.RecoveringFeedReader")
+				?? throw new InvalidOperationException("RecoveringFeedReader not found");
+			var call = owner.GetMethod("Read", [typeof(string)])
+				?? throw new InvalidOperationException("RecoveringFeedReader.Read(string) not found");
+
+			return () => ((System.Collections.ICollection)call.Invoke(null, [text])!).Count;
+		}
+
 		/// <summary>Config.Read(string) of this side, by reflection: how many settings it read.</summary>
 		public Func<int> ConfigRead(string text)
 		{
@@ -926,6 +948,7 @@ static partial class Stand
 
 			// The rows of the libraries a side was not given are left out: a pair of Finance alone is a pair of FIX.
 			.. (before.HasStock && after.HasStock ? PairedFeeds(before, after) : []),
+			.. (before.HasStock && after.HasStock ? PairedRecovering(before, after) : []),
 
 			.. (before.HasWeb && after.HasWeb ? PairedWeb(before, after) : []),
 			.. (before.HasWeb && after.HasWeb ? PairedWebParsers(before, after) : []),
