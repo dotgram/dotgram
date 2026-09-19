@@ -4,7 +4,7 @@
 		<RootNamespace>DotGram.Finance</RootNamespace>
 		<Description>FIX 4.4 tag-value parsing built with DotGram.</Description>
 
-		<PackageReleaseNotes>FIX 4.4 flat typed field parsing with native byte streams and an explicitly invoked message, group and validation API.</PackageReleaseNotes>
+		<PackageReleaseNotes>The public surface is replaced, and 0.1.0's model is gone from the package: FixParser reads flat typed fields from a string, a byte array, a TextReader or a Stream, and FixMessages builds, validates and walks messages over the fields it is given. Wire and log framing are one enum (FixFraming); the length/data dictionary and the custom pairs are FixFieldOptions; a group comes back as its field sets rather than through typed entry classes, which are withdrawn. A streamed call takes bufferSize and maxRetained, and a field past the limit is an IOException in both the generated and the hand parser. Numbers are decimal, every public member is documented, and a package skill ships beside the README.</PackageReleaseNotes>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>fix;finance;trading;parser;dotgram</PackageTags>
 
