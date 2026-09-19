@@ -315,6 +315,7 @@ static partial class Stand
 
 			// T-SQL against ScriptDom, which is the base of these rows (architect for Igor, 2026-09-18).
 			.. TsqlWorkloads(),
+			Tsql("comment", SqlWithComments),
 
 			// A stock count, hand and generated (finance-24, for performance-ff's C2).
 			.. FeedWorkloads(),
@@ -346,6 +347,7 @@ static partial class Stand
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("select1", "SELECT a FROM t", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("values", "VALUES (1)", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
+			Sql<Ast.Statement.Select, Ast.Statement.Select>("comment", SqlWithComments, SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 			Sql<Ast.Statement, Ast.Statement>("create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", SqlStandardParser.TryParseSQLSchemaStatement, HandSqlStandard.TryParseSQLSchemaStatement),
 
 			// Q7.2: a select refused near its end, not at the first token — HandSqlStandard's
@@ -357,6 +359,17 @@ static partial class Stand
 	}
 
 	/// <summary>The field counts D13's slope rows fit a line over.</summary>
+	/// <summary>
+	/// A query with a line comment after each part, the comments long enough to be most of the text:
+	/// what a lexer's search for the end of a comment, or a loop over its characters, is timed on.
+	/// </summary>
+	const string SqlWithComments =
+		"SELECT a, -- the first column, which carries the name of the customer and is read on every row of the report below\n" +
+		"b, -- the second column, which carries the total of the order the customer placed last, in the currency of the ledger\n" +
+		"c\n" +
+		"FROM t -- the table of orders, one row for each order line and one for each shipment made against the line\n" +
+		"WHERE a = 1 -- only the orders of the year still open in the ledger, and none that were cancelled after they shipped";
+
 	static readonly int[] FixSlopeCounts = [0, 1, 2, 4, 8, 16];
 
 	static byte[] FixSlopeBytes(int fields) => Encoding.Latin1.GetBytes(FixSlopeText(fields));
@@ -591,6 +604,7 @@ static partial class Stand
 		readonly Type _fixParseOptions;
 		readonly Type? _stock;
 		readonly Type? _uri;
+		readonly Type _tsql;
 		readonly Type? _json;
 
 		public PairedSide(string name, string directory)
@@ -611,6 +625,7 @@ static partial class Stand
 					?? throw new InvalidOperationException($"{name}: {type} not found in {assembly}");
 
 			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
+			_tsql        = Load("DotGram.Sql", "DotGram.Sql.TransactSql.TransactSqlParser");
 			_elTape      = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
 			_elImmediate = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
 			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
@@ -637,6 +652,15 @@ static partial class Stand
 		{
 			var call = _sql.GetMethod(method, [typeof(string)])
 				?? throw new InvalidOperationException($"SqlStandardParser.{method}(string) not found");
+
+			return () => IsSuccess(call.Invoke(null, [text])!);
+		}
+
+		/// <summary>TransactSqlParser.TryParseStatement(string) of this side, by reflection: whether it read the statement.</summary>
+		public Func<int> Tsql(string text)
+		{
+			var call = _tsql.GetMethod("TryParseStatement", [typeof(string)])
+				?? throw new InvalidOperationException("TransactSqlParser.TryParseStatement(string) not found");
 
 			return () => IsSuccess(call.Invoke(null, [text])!);
 		}
@@ -837,6 +861,8 @@ static partial class Stand
 			PairedExpression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +", before, after),
 
 			PairedSql("literal", "TryParseLiteral", "1", before, after),
+			PairedSql("comment", "TryParseQueryExpression", SqlWithComments, before, after),
+			PairedTsql("comment", SqlWithComments, before, after),
 			PairedSql("column", "TryParseColumnReference", "a.b.c", before, after),
 			PairedSql("arithmetic", "TryParseValueExpression", "(a + b) * c - d / 5", before, after),
 			PairedSql("nest8", "TryParseValueExpression", "((((((((a))))))))", before, after),
@@ -949,6 +975,20 @@ static partial class Stand
 
 			return bi == ai ? null : $"  before-immediate {(bi ? "accepted" : "refused")}, after-immediate {(ai ? "accepted" : "refused")}";
 		}
+	}
+
+	/// <summary>T-SQL of two builds against each other, with ScriptDom as the control the hand parser is elsewhere.</summary>
+	static Workload PairedTsql(string name, string text, PairedSide before, PairedSide after)
+	{
+		return new Workload(
+			"tsql",
+			name,
+			[
+				new Reading("hand",   () => ScriptDomAccepts(text) ? 1 : 0),
+				new Reading("before", before.Tsql(text)),
+				new Reading("after",  after.Tsql(text)),
+			],
+			() => before.Tsql(text)() == 1 && after.Tsql(text)() == 1 ? null : "  a side refuses the statement");
 	}
 
 	static Workload PairedSql(string name, string method, string text, PairedSide before, PairedSide after)
