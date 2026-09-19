@@ -231,10 +231,26 @@ public static class FollowSets
 	{
 		switch (node)
 		{
+			// The end: it reads nothing, and nothing after it can be read.
+			case var end when AtEnd(end, graph):
+				return Continuation.End;
+
 			// The seam itself, standing first: what follows once it has been read is the
 			// old continuation as it plainly was. That is the definition of the other half.
 			case Node.Call(var called, _) when seam is not null && ReferenceEquals(called, seam):
 				return new Continuation(Plainly(node, after.Plain, graph), after.Plain);
+
+			// A rule of the same namespace that begins by reading the seam: past it, what the
+			// rest of the rule begins with. A publication's rule is entered after the seam and
+			// almost always opens with a repetition spaced by it.
+			case Node.Call(var called, { Count: 0 }) when seam is not null &&
+				ReferenceEquals(SeamOf(called, graph), seam) &&
+				graph.Bodies.TryGetValue(called, out var calledBody) &&
+				Unwrapped(calledBody) is Node.Sequence(var calledParts) && calledParts.Count > 1 &&
+				calledParts[0] is Node.Call(var leading, _) && ReferenceEquals(leading, seam):
+				return new Continuation(
+					Plainly(node, after.Plain, graph),
+					Plainly(new Node.Sequence([.. calledParts.Skip(1)]), after.Plain, graph));
 
 			// Structure is walked rather than summarized, or a sequence that merely leads
 			// with the seam would be taxed for beginning with trivia characters — which is
@@ -333,10 +349,47 @@ public static class FollowSets
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
+		if (AtEnd(node, graph))
+			return FirstSets.First.End;
+
+		// Part by part, so that an end inside it stops what follows from being let through.
+		if (node is Node.Sequence(var parts))
+		{
+			for (var i = parts.Count - 1; i >= 0; i--)
+				after = Plainly(parts[i], after, graph);
+
+			return after;
+		}
+
 		var first = FirstSets.Of(node, graph);
 
 		return first.Nothing                 ? after :
 			FirstSets.Nullable(node, graph) ? first.Or(after) :
 			first;
 	}
+
+	/// <summary>A rule's body as it reads, past what builds and names it.</summary>
+	static Node Unwrapped(Node body) => body switch
+	{
+		Node.Construct(var built, _) => Unwrapped(built),
+		Node.Capture(_, var captured) => Unwrapped(captured),
+		_ => body,
+	};
+
+	/// <summary>
+	/// Whether a node matches only at the end of the input: <c>?!any</c>, or a rule that is
+	/// nothing else — <c>eof</c>.
+	/// </summary>
+	/// <remarks>
+	/// It reads nothing, so it is nullable and what follows it would ordinarily be let through as
+	/// what may begin the input where it stands. Where it succeeds nothing follows, so the end is
+	/// the whole answer.
+	/// </remarks>
+	internal static bool AtEnd(Node node, RecognitionGraph graph) => node switch
+	{
+		Node.Lookahead(false, Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }) => true,
+		Node.Call(var called, { Count: 0 }) => graph.Bodies.TryGetValue(called, out var body) &&
+			body is Node.Lookahead(false, Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }),
+		_ => false,
+	};
 }

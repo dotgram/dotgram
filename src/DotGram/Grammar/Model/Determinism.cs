@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 
@@ -109,6 +110,15 @@ public static class Determinism
 	{
 		var body = repeat.Body;
 
+		// The seam's own run, compared with what follows past the next seam: a shorter reading
+		// handed to a seam after it ends where the longest would, so only what begins inside
+		// the run without being a seam could want one — unless something between two seams can
+		// tell the splits apart (SeamSplits).
+		if (SeamRun(repeat, graph) is { } own &&
+			!Contained(own, graph).Overlaps(following.AfterSeam) &&
+			!SeamSplits.Matter(graph))
+			return true;
+
 		if (FirstSets.Nullable(body, graph))
 			return false;
 
@@ -121,6 +131,18 @@ public static class Determinism
 			var decides   = FirstSets.Of(rest, graph);
 
 			return !FirstSets.Nullable(rest, graph) &&
+				!decides.Overlaps(following.AfterSeam) &&
+				!following.AfterSeam.Overlaps(contained);
+		}
+
+		// A turn that is a choice whose every alternative leads with the seam — an operator
+		// loop, and what left recursion is rewritten into — is compared past it the same way.
+		if (seam is not null && body is Node.Choice(var alternatives) && Rests(alternatives, seam) is { } rests)
+		{
+			var contained = Contained(seam, graph);
+			var decides   = rests.Aggregate(FirstSets.First.None, (set, rest) => set.Or(FirstSets.Of(rest, graph)));
+
+			return !rests.Exists(rest => FirstSets.Nullable(rest, graph)) &&
 				!decides.Overlaps(following.AfterSeam) &&
 				!following.AfterSeam.Overlaps(contained);
 		}
@@ -140,7 +162,64 @@ public static class Determinism
 	/// is the answer. An atomic seam has one reading and no boundaries at all, which is
 	/// the door §3's braces already give an author whose trivia holds comments.
 	/// </remarks>
-	static FirstSets.First Contained(RuleSymbol seam, RecognitionGraph graph)
+	/// <summary>
+	/// What each alternative reads past the seam it leads with — through what builds or names
+	/// it, which changes nothing about what is read — or null where one does not lead with it.
+	/// </summary>
+	static List<Node>? Rests(IReadOnlyList<Node> alternatives, RuleSymbol seam)
+	{
+		var rests = new List<Node>(alternatives.Count);
+
+		foreach (var alternative in alternatives)
+		{
+			var read = alternative;
+
+			while (read is Node.Construct(var built, _))
+				read = built;
+
+			if (read is not Node.Sequence(var parts) || parts.Count < 2 ||
+				parts[0] is not Node.Call(var called, _) || !ReferenceEquals(called, seam))
+				return null;
+
+			rests.Add(parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]));
+		}
+
+		return rests;
+	}
+
+	/// <summary>
+	/// The seam whose whole body is this repetition, where it only reads; null for any other.
+	/// </summary>
+	/// <remarks>
+	/// Written as an optional of a star — <c>trivia = Spacing?</c>, with <c>Spacing</c> a run — it
+	/// is the same run, and both the optional and the star inside it are the seam's.
+	/// </remarks>
+	static RuleSymbol? SeamRun(Node.Repeat repeat, RecognitionGraph graph)
+	{
+		foreach (var trivia in graph.Trivia.Values)
+		{
+			if (trivia is not Node.Call(var seam, { Count: 0 }) || !graph.Bodies.TryGetValue(seam, out var body))
+				continue;
+
+			if (ReferenceEquals(body, repeat))
+				return Reads(body) ? seam : null;
+
+			if (body is Node.Repeat(Node.Call(var inner, { Count: 0 }), 0, 1) &&
+				graph.Bodies.TryGetValue(inner, out var run) && ReferenceEquals(run, repeat))
+				return Starred(inner, graph) is not null && Reads(run) ? seam : null;
+		}
+
+		return null;
+
+		static bool Reads(Node body) => !NodeWalk.Descendants(body).Any(static node =>
+			node is Node.Guard or Node.Capture or Node.Construct or Node.Marked or Node.Lookahead or Node.Behind or Node.Glue or Node.External);
+	}
+
+	/// <summary>What a rule repeats, where its whole body is a repetition without a bound.</summary>
+	internal static Node? Starred(RuleSymbol rule, RecognitionGraph graph) =>
+		graph.Bodies.TryGetValue(rule, out var body) && body is Node.Repeat(var unit, _, null) ? unit : null;
+
+	internal static FirstSets.First Contained(RuleSymbol seam, RecognitionGraph graph)
 	{
 		if (!graph.Bodies.TryGetValue(seam, out var body))
 			return FirstSets.First.All;
@@ -149,6 +228,8 @@ public static class Determinism
 		{
 			Node.Atomic                 => FirstSets.First.None,
 			Node.Empty                  => FirstSets.First.None,
+			Node.Repeat(Node.Call(var inner, { Count: 0 }), 0, 1) when Starred(inner, graph) is { } unit
+			                            => Boundaries(unit, graph),
 			Node.Repeat(var unit, _, _) => Boundaries(unit, graph),
 			_                           => FirstSets.First.All,
 		};
