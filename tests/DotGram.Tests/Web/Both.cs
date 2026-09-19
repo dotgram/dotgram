@@ -24,7 +24,7 @@ namespace DotGram.Tests.Web;
 /// </remarks>
 static class Both
 {
-	// в”Ђв”Ђ RFC 3986 в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+	// ── RFC 3986 ────────────────────────────────────────────────────────────────
 
 	/// <summary>A URI reference, read by both; the generated parser's answer.</summary>
 	public static UriReference Reference(string text)
