@@ -3810,7 +3810,7 @@ public static partial class CSharpEmitter
 			element is { IsNegated: false, Categories.Count: 0, References.Count: 0 } &&
 			tabulate(element.Ranges) is { } table)
 		{
-			return $"c <= {Machine.TableSize - 1} && {table}[c] != 0";
+			return table;
 		}
 
 		foreach (var range in element.Ranges)
@@ -3877,7 +3877,7 @@ public static partial class CSharpEmitter
 			return $"(c < {AsciiSize} || {whole})";
 
 		var reached = tabulate(low) is { } named
-			? $"{named}[c] != 0"
+			? named
 			: string.Join(" || ", low.Select(static one => one.IsSingle
 				? $"c == {Char(one.From)}"
 				: $"(c >= {Char(one.From)} && c <= {Char(one.To)})"));

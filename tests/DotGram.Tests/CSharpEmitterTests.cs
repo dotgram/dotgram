@@ -96,6 +96,23 @@ public sealed class CSharpEmitterTests
 	public void Element_sets_and_repetition(string input, bool expected) =>
 		Assert.Equal(expected, Run("Start = ['0'..'9']+", input).Matched);
 
+	/// <summary>A class reaching past a byte table is read from a bit table, from its first character.</summary>
+	[Theory]
+	[InlineData("abc",          true)]
+	[InlineData("\u0100\u0110", true)]
+	[InlineData("\u0200a",      true)]
+	[InlineData("d",            false)]
+	[InlineData("\u0111",       false)]
+	[InlineData("\u01FF",       false)]
+	[InlineData("\u0211",       false)]
+	public void A_class_past_a_byte_table_is_read_from_bits(string input, bool expected)
+	{
+		const string grammar = "Start = ['a'..'c' | '\\u0100'..'\\u0110' | '\\u0200'..'\\u0210']+";
+
+		Assert.Contains("_Bits", Emit(grammar + "\nparse Start"), StringComparison.Ordinal);
+		Assert.Equal(expected, Run(grammar, input).Matched);
+	}
+
 	[Fact]
 	public void Simple_recursive_rule_uses_the_shared_parser_arena()
 	{

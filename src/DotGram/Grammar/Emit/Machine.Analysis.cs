@@ -864,7 +864,7 @@ sealed partial class Machine
 		IReadOnlyList<CharRange> ranges, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
 	{
 		if (tabulate?.Invoke(ranges) is { } table)
-			return TableTest(table);
+			return table;
 
 		if (ranges.Count > Emitted)
 			return $"{Search}({Wide(ranges)}, c)";

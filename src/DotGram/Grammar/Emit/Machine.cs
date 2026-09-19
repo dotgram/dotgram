@@ -5213,20 +5213,23 @@ sealed partial class Machine
 	/// in different places are two different things that can fail.
 	/// </remarks>
 	/// <summary>
-	/// The table a character class is read from, or null where it is written out instead.
+	/// The test a character class is read from a table by, over <c>c</c>, or null where it is
+	/// written out instead.
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// Only for a class within <see cref="TableSize"/>, which is what makes the table a few
-	/// hundred bytes and the guard one comparison. A class reaching past that would need either a table too
-	/// large to be worth it or a second test for the tail, and the classes that do — a
-	/// Unicode category, an inverted class — are not the ones that cost the most branches.
+	/// Within <see cref="TableSize"/> a byte a character, which is what makes the table a few
+	/// hundred bytes and the guard one comparison: a plain array, one per distinct class,
+	/// built once.
 	/// </para>
 	/// <para>
-	/// A plain array rather than a <c>ReadOnlySpan&lt;byte&gt;</c> over a literal: the span
-	/// form is the one that costs no allocation, but it leans on the RVA lowering, and the
-	/// floor this emits for (§netstandard2.0) is not where that can be relied on. One
-	/// array per distinct class, built once.
+	/// Past it and within <see cref="KindTableSize"/>, a bit a character, from the first
+	/// character the class holds (<see cref="Bits"/>). That is where the kinds of a token path
+	/// are: a class of the words that are not reserved is a hundred ranges, which written out
+	/// was a hundred comparisons and searched (<see cref="Wide"/>) was a call of seven steps.
+	/// A span over a literal, lowered to the assembly's data at the floor too, as the group
+	/// tables are (<see cref="KindTable"/>). A class reaching further, a Unicode category or an
+	/// inverted class, is written out as before.
 	/// </para>
 	/// </remarks>
 	string? Tabulate(IReadOnlyList<CharRange> ranges)
@@ -5234,12 +5237,15 @@ sealed partial class Machine
 		if (ranges.Count < Tabulated)
 			return null;
 
+		if (ranges[ranges.Count - 1].To >= TableSize)
+			return Bits(ranges);
+
 		var table = new byte[TableSize];
 
 		foreach (var range in ranges)
 		{
 			if (range.To >= TableSize)
-				return null;
+				return Bits(ranges);
 
 			for (int c = range.From; c <= range.To; c++)
 				table[c] = 1;
@@ -5251,7 +5257,7 @@ sealed partial class Machine
 		{
 			_classesUsed.Add(already);
 
-			return already;
+			return TableTest(already);
 		}
 
 		var name = $"Recognize_DotGram{_tag}_Class" + _classCount++;
@@ -5260,8 +5266,62 @@ sealed partial class Machine
 		_classesUsed.Add(name);
 		_classes.Add((name, $"static readonly byte[] {name} = {{ {items} }};"));
 
-		return name;
+		return TableTest(name);
 	}
+
+	/// <summary>
+	/// The test a class wider than <see cref="TableSize"/> is read from a bit table by, or null
+	/// where it reaches past <see cref="KindTableSize"/>.
+	/// </summary>
+	string? Bits(IReadOnlyList<CharRange> ranges)
+	{
+		var from = int.MaxValue;
+		var to   = 0;
+
+		foreach (var range in ranges)
+		{
+			from = global::System.Math.Min(from, range.From);
+			to   = global::System.Math.Max(to, range.To);
+		}
+
+		from &= ~7;
+
+		if (to - from + 1 > KindTableSize)
+			return null;
+
+		var bits = new byte[(to - from) / 8 + 1];
+
+		foreach (var range in ranges)
+			for (int c = range.From; c <= range.To; c++)
+				bits[(c - from) >> 3] |= (byte)(1 << ((c - from) & 7));
+
+		var items = string.Join(",", bits);
+
+		if (!_bitTables.TryGetValue(items, out var name))
+		{
+			name = $"Recognize_DotGram{_tag}_Bits" + _bitTables.Count;
+
+			_bitTables[items] = name;
+			_classes.Add((name, $"static global::System.ReadOnlySpan<byte> {name} => new byte[] {{ {items} }};"));
+		}
+
+		_classesUsed.Add(name);
+
+		if (_classesUsed.Add(Bit))
+			_classes.Add((Bit, BitMethod));
+
+		return $"{Bit}({name}, {(from == 0 ? "c" : $"c - {from}")})";
+	}
+
+	readonly Dictionary<string, string> _bitTables = new(StringComparer.Ordinal);
+
+	string Bit => $"Recognize_DotGram{_tag}_Bit";
+
+	/// <summary>Whether a bit table holds the character <paramref name="at"/> places past its start.</summary>
+	string BitMethod =>
+		"[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]\n" +
+		$"static bool {Bit}(global::System.ReadOnlySpan<byte> bits, int at) =>\n" +
+		"\t(uint)at < (uint)(bits.Length << 3) && (bits[at >> 3] & (1 << (at & 7))) != 0;";
 
 	/// <summary>
 	/// The table a choice's groups are found by, one byte a character: the group's number
