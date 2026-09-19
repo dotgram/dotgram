@@ -261,6 +261,11 @@ walk may build hands its factory the state or the marks. 1,000 terms 1,353 to 18
 11,010 to 546, linear; a scaling test in the slow project. It may also be the tape's drift on
 small inputs; the pair says. With it, locally: the renderings now agree on every line of the
 refusal record — the wording disagreements, 100 two days ago, are none.
+**The EL tape drift is a regression (stand, an EL-only pair, every run's range positive):** 1,000
+terms 158 to 1,349 µs (1.36x the hand parser to 11.6x), 100 terms +100%, the small rows +6..+15%,
+the immediate carrier flat — introduced by one of the 21 commits since the evening baseline. expr's
+fix is measured on all EL rows; the introducing commit is bisected whatever that shows, to learn
+which pair missed it and why.
 **Web date-time's anatomy (finance-24):** the reader read nothing twice; the values did — each
 field became a string twice, once for the guard and once for the construction, and was parsed
 twice, about twenty strings and fourteen parses for 23 characters. The grammar's part is fixed
