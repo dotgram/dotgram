@@ -1225,6 +1225,16 @@ same day; each comes back to the architect as a report, with no code changed.
    the `Locate` calls, which decides whether a type flag is enough or the record format has to
    be one; the prototype after C2, with performance-ff, in his reader. No hand prototype now,
    since C2 changes the reader it would copy.
+   **Profiled (stand, window 8; results under `benchmarks/results/tsql-located-profile-2026-09-18`):**
+   located pays +15% wall over the corpus at the same allocation and GC; of the extra CPU, 76%
+   is the materializers' own time (+33%), reader and recognizer 12.5%, the `Locate` calls
+   nothing (inlined, at most 1 ms of 35 forced out of line). So recording positions is nearly
+   free and consuming them in materialization is the cost. Direction for the prototype after
+   C2: one reader that always records, one record format, and the walk consuming positions
+   under a struct type parameter the JIT specializes away — the plain variant should then read
+   within a couple of per cent of today's, the located within today's located; sql-39 reads the
+   profile and says whether the 12.5% in the reader (the `start` carried through the parts)
+   changes that.
 3. **Flat against reader.** Flat writes a publication as one method of states; reader writes a
    method per rule; flat recompiles the machine to do it, which is a known source of defects.
    Measure both on the Web grammars and the examples. No difference: flat goes. Flat faster: the
