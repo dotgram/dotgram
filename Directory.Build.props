@@ -26,6 +26,13 @@
 		<RepositoryUrl>https://github.com/dotgram/dotgram</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/dotgram/dotgram</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
+
+		<!-- SourceLink, which the SDK carries itself: with the repository's URL above, a debugger
+		     steps from a package's line into the source on GitHub. The symbols are in the assembly
+		     (`DebugType embedded` in each package), so no symbol package is published. -->
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 	</PropertyGroup>
 
 	<!-- The icon every package carries. Items are evaluated after every property, so

@@ -5,4 +5,5 @@
 	</PropertyGroup>
 	<Import Project="src/DotGram/build/DotGram.targets"
 	        Condition="'$(_DotGramAnalyzerReferences)' != ''" />
+
 </Project>
