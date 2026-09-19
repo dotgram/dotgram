@@ -23721,3 +23721,8 @@ FixedWidthExample was on the tape for one reason, `eol`: the reader over the tap
 PrefixSettled already said and only the engine listened to. With that gone (014136df) `Auto`
 carries the grammar as Immediate, and the example's tests are what they were. SettingsFile joins it
 when the seam leaves its turns' head (expr's rewrite).
+
+Three more of SQL:2023's causes are the language's and stay: `InsertValues` (a constructor's rows and a
+query's are told apart only after them), `TableContentsSource` (`(a, b) AS …` against a list of
+untyped columns, told apart by the `AS`), and `POSITION_REGEX`'s `?=RegexSearch` (`AFTER` is no
+reserved word). Each says so where it stands; the second is rewritten only if it is ever the last.

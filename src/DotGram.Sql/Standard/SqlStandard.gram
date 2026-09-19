@@ -846,6 +846,8 @@ AbsoluteValue : @Towers.Typed = w: "ABS"i & '(' & e: CommonValueExpression & ')'
 NumericValueFunction : @Expression
 	= position: PositionExpression => @(position)
 	| "OCCURRENCES_REGEX"i & '(' & r: RegexSearch & ')' => @(Nodes.Regex(RegexFunction.OccurrencesRegex, r))
+	// `AFTER` is no reserved word, so `AFTER (x) IN y` is both a flag before `(x)` and a call of
+	// `after`: the search is looked at whole to say which, and that look is the language's (Q7.1 §5).
 	| "POSITION_REGEX"i & '(' & (where: ("START"i | "AFTER"i) & ?=RegexSearch)? & r: RegexSearch & ("OCCURRENCE"i & occurrence: NumericNode)? & ("GROUP"i & grouping: NumericNode)? & ')' => @(Nodes.Regex(RegexFunction.PositionRegex, r) with { StartOrAfter = Nodes.StartOrAfter(where), Occurrence = occurrence, Group = grouping })
 	| extract: ExtractExpression => @(extract)
 	| w: ("CHAR_LENGTH"i | "CHARACTER_LENGTH"i) & '(' & v: CharacterValueExpression & ("USING"i & u: CharLengthUnits)? & ')' => @(new Expression.Length(Nodes.LengthFunctionOf(w), v.Node, Nodes.UnitsOf(u)))
@@ -1526,6 +1528,9 @@ InsertColumnsAndSource : @Nodes.InsertBody
 // expressions, and the constructor alone is not. Over characters the first alternative fails at
 // that word and the second reads it; over kinds the reading that fits is the one that stands, so
 // what may not follow is said here rather than discovered by giving the reading back.
+// That the two are told apart only after the rows is the language's: the constructor's rows may
+// hold DEFAULT and a query's may not, so they share no beginning to read once, and a reading of
+// the rows that the second alternative replaces is meant (Q7.1 §5).
 InsertValues : @InsertSource = r: ContextuallyTypedTableValueConstructor & ?!("UNION"i | "EXCEPT"i | "INTERSECT"i | "ORDER"i | "OFFSET"i | "FETCH"i) => @(new InsertSource.Values(r))
                              | q: QueryExpression => @(new InsertSource.Query(q))
 
@@ -1695,6 +1700,10 @@ TableDefinition : @Statement.CreateTable = "CREATE"i & s: (("GLOBAL"i | "LOCAL"i
 	  & v: ("WITH"i & "SYSTEM"i & "VERSIONING"i)? & ("ON"i & "COMMIT"i & o: ("PRESERVE"i | "DELETE"i) & "ROWS"i)?
 	  => @(new Statement.CreateTable { Scope = Nodes.ScopeOf(s), Name = n, Contents = c, SystemVersioning = v is not null, OnCommit = Nodes.CommitOf(o) })
 
+// `(a, b) AS … WITH DATA` and a list of elements `(a, b)` — a column may be defined without a
+// type — are told apart only by the `AS` after the bracket, which is the language's. Read once, the
+// bracket would be a list of elements that becomes a list of names where `AS` follows; left as it is
+// until nothing else holds the expressions on the tape (Q7.1 §5).
 TableContentsSource : @TableContents
 	= ('(' & columns: ColumnNameList & ')')? & "AS"i & q: TableSubquery & "WITH"i & no: "NO"i? & "DATA"i => @(new TableContents.AsQuery(columns ?? System.Array.Empty<Identifier>(), q, no is null ? WithDataMode.WithData : WithDataMode.WithNoData))
 	| e: TableElementList => @(new TableContents.Elements(e))
