@@ -840,6 +840,7 @@ an empty message's 4.3 to 2.6 ms. StockCount's four-line case -26..-43%. Control
 to land; the byte forms, which C2 also changed and the stand did not measure, are paired next
 and the byte part reverted if they lose. What remains of the gap is C3 and C4 — the arena and
 the second pass the anatomy put at 85 of 131 ns.
+C2 landed `779018c8`; the byte forms' pair is ordered against its parent.
 **Found by the same window: StockCount is quadratic.** Nanoseconds a line, generated string
 form, no broken lines: 196 at 4 lines, 433 at 100, 1,479 at 1,000, 22,008 at 10,000 — n^2.2
 (the stream form n^2.3); the hand parser linear. The same with broken lines, so not recovery;
