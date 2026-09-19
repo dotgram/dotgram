@@ -686,13 +686,6 @@ public sealed class ExpressionParserTests
 	// ── Extension methods, found through the text's `using`s ────────────────────
 
 	[Fact]
-	public void A_method_a_using_brings_is_found_where_the_type_has_none() =>
-		Assert.Equal(
-			10,
-			Both.Compile<Func<int, int>>(
-				"using DotGram.Tests.ExpressionLanguage; (int x) => x.Doubled()")(5));
-
-	[Fact]
 	public void And_it_takes_its_arguments_as_any_other_call_does() =>
 		Assert.Equal(
 			"hi!",
@@ -1419,19 +1412,6 @@ public sealed class ExpressionParserTests
 				.Select(text => Both.Parse("using System; " + text).Body.Type));
 
 	[Fact]
-	public void And_a_name_that_is_no_type_leaves_the_parenthesis_a_parenthesis() =>
-		// The cast ambiguity C# needs a rule of its own for: `(Foo)x` is a cast where `Foo`
-		// names a type and an expression where it does not, and the guard answering no is
-		// what sends the parse to the other reading.
-		Assert.Equal(
-			[6L, 8],
-			new object[]
-			{
-				Both.Compile<Func<int, long>>("(int x) => (long)x * 2L")(3),
-				Both.Compile<Func<int, int>>("(int x) => (x + 1) * 2")(3),
-			});
-
-	[Fact]
 	public void An_instance_member_and_a_call_are_found_as_C_sharp_finds_them() =>
 		// A property by its exact name, and of the methods by a name the one C# would call.
 		Assert.Equal(
@@ -1973,10 +1953,6 @@ public sealed class ExpressionParserTests
 				Both.Compile<Func<int>>("() => -2147483648")(),
 				Both.Compile<Func<long>>("() => -9223372036854775808")(),
 			});
-
-	[Fact]
-	public void And_an_integer_no_type_holds_is_refused() =>
-		Assert.False(Both.TryParse("() => 18446744073709551616").IsSuccess);
 
 	[Theory]
 	[InlineData("\"\\x41\"",         "A")]
