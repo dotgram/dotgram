@@ -2490,5 +2490,26 @@ So a session named `critic`, reporting to Igor directly and not through the arch
   rests on, and the answer it was given, so that an objection cannot be quietly dropped.
 - **An objection comes with evidence** — a place in the code, a number, or a reproduction — and no
   more than two or three at a time.
+
+**Its first three, and what they changed (2026-09-19, `docs/design/open-questions.md`).** The
+carrier per construction was shelved on an unweighted count of records with "the time share is the
+count share" standing in for the weighting the step had been set with — which the anatomy of the
+same evening contradicts, since the prologues and the guard's walk are fixed costs per call; the
+arithmetic also gives 0.7-1.2% rather than 1-2%, and the fourth edge, dismissed with it, 3.4-5.7%.
+The number is taken again, weighted, after the prologue lands. Of the three ambiguities only the
+bracketed value against a subquery has a witness: the join's turn has none, and if none is found it
+is a question for the analysis and 29 rules come back; the inline return is our own rule, removable
+at a named price, which makes it Igor's trade-off and not a fact about T-SQL. On FIX the comparison
+is honest — the stand holds both parsers to the same answers before timing — but the stronger
+sentence was left out of the table: against the ideal reader we built as a floor, the generated
+parser is 1.04x (48.9 ns a field against 46.8), where it was 3.3x the day before, and that cannot
+be answered with "the hand parser is slow"; the byte and stream forms have no ideal reader, so
+their 1.71x and 2.19x stand against the hand parser alone. And when the emitted code takes a newer
+framework's API (D20), the hand parsers get the same in the same commit, or the pair will show a
+gain that is only their handicap.
+**The pattern behind the architect's mistakes of the day, as the critic put it:** each was a number
+or a form accepted on the word of the session that produced it, at the moment it agreed with the
+plan. **Rule taken from it:** where a decision turns on one number, the entry names the assumption
+that number rests on, so the next measurement can be held against it rather than filed beside it.
 - **It may speak to any session and to Igor directly**, including where it holds the architect
   wrong, which is the point of it.
