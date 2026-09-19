@@ -894,6 +894,12 @@ after the parse, from slices of the input, so nothing can be released before. D5
 not met for it, and it is met only by C4, which builds at each turn's commit and can release the
 window behind it: a stream of 10,000 fields under a retained window of a few kilobytes is C4's
 acceptance test, not only its speed.
+Written (`8d874d1c`, held for its pair): the contract stands in the doc of the emitter's cut, at
+the search, the literal comparison and the match, and beside the emitted fill; a buffered
+machine goes to the reader wherever nothing is released, the external included; C1's and C2's
+searches run through the buffer's own search. FIX has no buffered engine left: six readers, the
+file 626 to 521 KB. The in-place array now goes through the stream's machine, so the pair must
+show A's byte gain kept, or the separate memory machine comes back.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
