@@ -763,6 +763,26 @@ record included; FixGrammar byte for byte the same after both. Next for performa
 speller commit, the D12 move of the oversize and buffered-split tests into the slow project,
 then C2 over StockCount.
 
+**C2's note (performance-ff, 2026-09-18) and the order of `recover`.** The trigger is by shape:
+a rule holding a repetition marked `recover` whose turn the reader can read and nothing
+outside re-enters, followed in the same sequence by a continuation ending in `eof` (empty for
+FIX, `total: Total & eof` for StockCount); the loop is one small method, the turn a method, the
+broken-element search and the continuation cold and out of line; no delegate or virtual call
+of the reader's own on the hot path; the tape stays until C3/C4. Accepted, with one thing
+decided against the note: performance-ff proposed the engine's order — read turns to the end,
+then give them back from the end until the continuation holds, the latest boundary — instead
+of `syntax.md` §8.2, which says the continuation is tried first at every boundary and the
+repetition ends at the first boundary where it holds. **The specification stands.** It is the
+language (Igor decides it, not a rendering), and it is the only order a stream can have: a
+`TextReader` parse hands good elements back as it goes and cannot give them back from the
+end, and §8.2 says the driver steps over a bad element one repetition at a time. It is also
+the cheaper code: no stack of boundary marks and no truncation from the end, one mark per
+boundary attempt, and for FIX the continuation is `eof`, one comparison. If the engine really
+answers by the latest boundary, that is a defect of the engine against §8.2, found by the
+two-boundary case the note proposes; it is fixed in the engine, the examples and corpora
+re-read, and reported before it lands since it can change an accepted tree. If Igor prefers
+the greedy order, §8.2 changes first and every rendering follows.
+
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
 0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser
