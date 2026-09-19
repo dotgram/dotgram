@@ -964,7 +964,12 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   sql-39's fix of `Replay`'s nullable refusals, on which "kept" rests. With it go the value store,
   the walk, the log and its writes and watermarks for FIX; what stays is the ways, as long as the
   field opens any, and `Failure` and `Match`, which are the API. The expected figure per field is
-  named before the pair.
+  named before the pair: 55-65 ns a field on the string form, against 102 today, the hand
+  parser's 51 and the target's 36 — the value store, the walk, the record writes and above all the
+  mid-parse walk the switch guard ran for the tag on every field go; the two ways the field opens
+  stay (the end's goes with sql-39's exclusive choice, to about 45-50; the switch's needs the
+  reader to prove nothing in the field is retried). The first call about 73-75 methods. Outside
+  55-65, an anatomy against the target code before any conclusion.
 - C4c: release before each turn in the whole-stream form, where nothing holds a position across
   the turn and no factory keeps a reference into the buffer (a memory or an array, which a span
   cannot be); D5's retention test un-skipped, and a stream larger than `maxRetained` answered
