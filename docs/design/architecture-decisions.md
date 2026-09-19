@@ -848,6 +848,18 @@ reads a feed in quadratic time breaks D5's premise outright: it goes to performa
 C3, with a test in the slow project that holds the ratio of 10,000 lines to 1,000 below 15, and
 FIX checked on long messages for the same. The stand gains a linearity family: every parser
 with a long input at 1x, 10x and 100x, its exponent in a column, flagged above 1.2.
+**Its cause (finance-24, the same night):** the generated `LineAt` counts newlines from position
+0 on every call, and a recovery `=>` reading `parserLine` calls it for every rejected element; good
+lines are linear at about 77 ns, twice the hand parser (the stand's "good" input may itself be
+read as broken, being checked). Worse, the buffered `LineAt` reads from 0 through the input's
+`Get`, behind what the window has released — a correctness fault of D5, not only a cost; `ColumnAt`
+has the same shape. Decided: the parse state keeps a (position, line) pair, and the last
+newline's position for columns; a call at or past it counts on from it and moves it, a call
+behind it after a backtrack counts from the nearest kept point at or before it, never from 0;
+on the buffered path the lines are counted as the window is released, and `LineAt` reads only
+what is held. performance-ff, before C3; tests in the slow project: linearity with broken lines
+on both forms (finance-24), and a stream with a small retained window whose broken line
+10,000 reports line 10,000.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
