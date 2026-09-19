@@ -23586,6 +23586,28 @@ scanner refuses outright (`GRAM5004`), which is why each level keeps them apart.
 refused. Over characters this fell out of the automaton; over kinds it is `GluedWord`, a token no
 position accepts.
 
+Measured by the stand, 4e366615 against 7d3ba2d5, `--stand-paired --only sql/ --repeat 5`, the
+median of five processes each, the hand parser as the control (its own spread 3.5 to 17 per cent):
+
+| row | hand ns | over characters | over kinds | change |
+| --- | ---: | ---: | ---: | ---: |
+| literal | 51 | 263 (5.2x) | 211 (4.1x) | −20% |
+| column | 137 | 2,371 (17.3x) | 1,432 (10.4x) | −40% |
+| arithmetic | 1,625 | 23,830 (14.7x) | 17,481 (10.8x) | −27% |
+| nest8 | 2,682 | 45,722 (17.1x) | 42,645 (15.9x) | −7% |
+| condition | 1,896 | 19,485 (10.3x) | 17,814 (9.4x) | −9% |
+| select1 | 744 | 8,961 (12.0x) | 6,929 (9.3x) | −23% |
+| select20 | 7,438 | 125,832 (16.9x) | 94,941 (12.8x) | −25% |
+| values | 485 | 8,373 (17.3x) | 8,010 (16.5x) | −4% |
+| create | 834 | 6,736 (8.1x) | 6,273 (7.5x) | −7% |
+| refused-late | 2,852 | 88,533 (31.0x) | 58,783 (20.6x) | −34% |
+
+Faster on every row and allocating 0 to 7 per cent less; still four to twenty-one times the hand
+parser. **The first call is the other way round:** a fresh process's first parse costs 14 to 56 ms
+more over kinds (literal 26 → 82 ms, column 54 → 97, the rest 110–120 → 123–133), the shortest
+input rising most. That is what a parse pays before it reads anything — the lexer's tables and
+methods — and it is the next question about this parser, not a reason to go back.
+
 What it took, briefly, because each step found something that was not the grammar's:
 
 - The grammar compiled over characters without a word said about eight lookaheads the automaton
