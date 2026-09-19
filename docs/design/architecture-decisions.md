@@ -877,6 +877,10 @@ on the engine, since over a stream it could make the buffer fetch under the read
 whole array the view is the engine's own and nothing is fetched, so the in-place machine is gated
 by readability alone. The same external is what the stream form's reader will have to answer.
 FixGrammar grows 11% (four readers where there were two).
+**A measured (stand, window 18):** FIX's byte rows -28..-30% alone and -23..-29% with the string
+rows (one field -29.5%, an order -28.3%, sixteen fields -30.2%); string and stream flat;
+allocation identical; the first byte parse nine methods and 1.8 KB of IL fewer. Far past the
+two-thirds bar: A stands, B waits with D10.
 StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
 on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
 Controls flat.
@@ -979,6 +983,10 @@ growing all 302 in `Room`; it is dropped per table, and no longer sums every tab
 every parse. Small grammars' stores and every snapshot unchanged. Locally: a column -12%, one
 select -12%, EL unchanged; 1,000 predicates 35 ms and 164 MB to 4.4 ms and 1.6 MB, 2,000
 linear, exponents at most 1.08; a scaling test in the slow project.
+**Measured (stand, window 19):** every SQL:2023 row faster — a column -14%, one select -17%,
+twenty -25%, values -26%, 100 and 1,000 predicates -85% and -86% with 21 MB to 162 KB and 168 MB to
+1.6 MB a call; EL flat; the same under PGO=0; generation within 1.05x. Accepted; the quadratic of
+the search condition is closed.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
