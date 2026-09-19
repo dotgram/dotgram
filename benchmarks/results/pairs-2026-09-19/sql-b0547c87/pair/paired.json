@@ -1,0 +1,613 @@
+{
+  "Control": 30.91575,
+  "Rows": [
+    {
+      "Id": "fix/One.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 75.38871765136719,
+          "Bytes": 256,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 80.96046447753906,
+          "Bytes": 192,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 82.08732604980469,
+          "Bytes": 192,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.25000632504667886
+    },
+    {
+      "Id": "tsql/columns1000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1939631.25,
+          "Bytes": 1498969.875,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 514500,
+          "Bytes": 200464,
+          "Warmup": 5,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 456418.75,
+          "Bytes": 200464,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.28557618877299484
+    },
+    {
+      "Id": "tsql/conditions1000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 876696.09375,
+          "Bytes": 1763388,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1066725,
+          "Bytes": 424424,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 937114.0625,
+          "Bytes": 424424,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03611838124492613
+    },
+    {
+      "Id": "tsql/rows1000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 589406.25,
+          "Bytes": 1417300,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 819923.4375,
+          "Bytes": 296496.75,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 727335.15625,
+          "Bytes": 296496.75,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03365940300090133
+    },
+    {
+      "Id": "web/json.object10000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 808262.5,
+          "Bytes": 1040128.25,
+          "Warmup": 7,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1303676.5625,
+          "Bytes": 1599240.25,
+          "Warmup": 13,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1206052.34375,
+          "Bytes": 1599240.25,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.30428697360077944
+    },
+    {
+      "Id": "web/url.full",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 153.74698638916016,
+          "Bytes": 328,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 281.3758850097656,
+          "Bytes": 536,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 287.1925354003906,
+          "Bytes": 536,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03269414708520402
+    },
+    {
+      "Id": "web/json.object",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 583.1401824951172,
+          "Bytes": 1976,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 940.6406402587891,
+          "Bytes": 2584,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 934.5054626464844,
+          "Bytes": 2584,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.054505003378760714
+    },
+    {
+      "Id": "el/string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 271.8292236328125,
+          "Bytes": 1112,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1036.4692687988281,
+          "Bytes": 1056,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1064.9398803710938,
+          "Bytes": 1056,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before-immediate",
+          "Nanoseconds": 657.8880310058594,
+          "Bytes": 1032,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after-immediate",
+          "Nanoseconds": 651.2092590332031,
+          "Bytes": 1032,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06795549717647323
+    },
+    {
+      "Id": "sql/literal",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 50.908565521240234,
+          "Bytes": 104,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 131.44235610961914,
+          "Bytes": 160,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 133.89015197753906,
+          "Bytes": 160,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0970673360621189
+    },
+    {
+      "Id": "sql/comment",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2118.76220703125,
+          "Bytes": 5472,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 17328.82080078125,
+          "Bytes": 5136,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 16583.6669921875,
+          "Bytes": 5136,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.13953528567889428
+    },
+    {
+      "Id": "sql/conditions100",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 49049.462890625,
+          "Bytes": 188224,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 410377.63671875,
+          "Bytes": 161736,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 391395.41015625,
+          "Bytes": 161736,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09899923646112173
+    },
+    {
+      "Id": "sql/conditions1000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 494439.0625,
+          "Bytes": 1872968,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 4102543.75,
+          "Bytes": 1616203.125,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 3929422.65625,
+          "Bytes": 1616203.125,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.11045344945819284
+    },
+    {
+      "Id": "tsql/comment",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 19286.669921875,
+          "Bytes": 53584,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 3991.650390625,
+          "Bytes": 1192,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 3621.3623046875,
+          "Bytes": 1192,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.030962097870584394
+    },
+    {
+      "Id": "sql/column",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 135.53028106689453,
+          "Bytes": 456,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1146.9507217407227,
+          "Bytes": 392,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1138.9516830444336,
+          "Bytes": 392,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05487433310487792
+    },
+    {
+      "Id": "sql/arithmetic",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1603.35693359375,
+          "Bytes": 4272,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 13177.593994140625,
+          "Bytes": 3472,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 12597.433471679688,
+          "Bytes": 3472,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.10285351016772366
+    },
+    {
+      "Id": "sql/nest8",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2721.2310791015625,
+          "Bytes": 6040,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 33387.884521484375,
+          "Bytes": 6504,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 33229.87060546875,
+          "Bytes": 6504,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03402292044459248
+    },
+    {
+      "Id": "sql/condition",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1783.0596923828125,
+          "Bytes": 5760,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 13773.236083984375,
+          "Bytes": 4928,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 13188.491821289062,
+          "Bytes": 4928,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09430608636716056
+    },
+    {
+      "Id": "sql/select1",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 655.841064453125,
+          "Bytes": 1640,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 5652.337646484375,
+          "Bytes": 1688,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 5449.125671386719,
+          "Bytes": 1688,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.10895693931300196
+    },
+    {
+      "Id": "sql/select20",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 7028.7841796875,
+          "Bytes": 24040,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 73647.03369140625,
+          "Bytes": 21448,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 69931.06689453125,
+          "Bytes": 21448,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.1052183230924734
+    },
+    {
+      "Id": "sql/values",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 453.5804748535156,
+          "Bytes": 1712,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 6118.705749511719,
+          "Bytes": 1904,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 5992.6605224609375,
+          "Bytes": 1904,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.044483168689877665
+    },
+    {
+      "Id": "sql/create",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 776.1436462402344,
+          "Bytes": 1648,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 4487.2344970703125,
+          "Bytes": 1568,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 4485.55908203125,
+          "Bytes": 1568,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.12923532424332085
+    },
+    {
+      "Id": "sql/refused-late",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2661.6119384765625,
+          "Bytes": 8440,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 44445.7275390625,
+          "Bytes": 13552,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 41674.6337890625,
+          "Bytes": 13552,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.10368890004895907
+    }
+  ]
+}
