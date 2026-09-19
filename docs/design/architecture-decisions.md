@@ -1190,6 +1190,17 @@ same day; each comes back to the architect as a report, with no code changed.
    whether locations are offered, which the JIT specializes; measure time without locations,
    time with, JIT and first-call cost when both are used, and the build for netstandard2.0.
    sql-ff.
+   **Sized 2026-09-18 (sql-39):** the located SQL-92 differs from the plain one by 3,375 of
+   18.2k lines, and only 118 of them are `Locate` calls; the rest is the recording — a start
+   in every rule's `ways.Begin`, a second layer of value materialization, extra method parts.
+   So one generic reading means the reader and the walk written once with the recording under
+   a type flag, and the record format holding positions in both variants or computing offsets
+   differently — all in the reader performance-ff is rewriting for C2. Decided: first a measure
+   without code — the stand profiles the located against the plain T-SQL reading over the corpus
+   (dotTrace, sql-39's question and harness), to say what share is the recording itself against
+   the `Locate` calls, which decides whether a type flag is enough or the record format has to
+   be one; the prototype after C2, with performance-ff, in his reader. No hand prototype now,
+   since C2 changes the reader it would copy.
 3. **Flat against reader.** Flat writes a publication as one method of states; reader writes a
    method per rule; flat recompiles the machine to do it, which is a known source of defects.
    Measure both on the Web grammars and the examples. No difference: flat goes. Flat faster: the
