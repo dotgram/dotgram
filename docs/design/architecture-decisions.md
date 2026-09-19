@@ -1292,6 +1292,19 @@ same day; each comes back to the architect as a report, with no code changed.
    position without consuming can stand between it and the next seam through what may read
    nothing: a `when`, a lookahead either way, an external or host-measured terminal that may
    match empty. The hoist takes the same condition.
+   **Both written, uncommitted until C2 (expr):** with them `carriers.md` moves one grammar to
+   immediate (`SqlDialect`) and "again trivia: opens a way" from ten grammars to four, each of the
+   four explained (a comment in trivia; JSON's seam before a body that may begin with a space;
+   `Spacing?`, an optional of a star, recognized next). `SettingsFile` is no longer held by the
+   seam but by a quoted string's `""` turn and the reader's way into a three-way choice, both
+   sql-39's reader class; fold rules' operator alternatives behind one seam go to his choice
+   emission too, since their constructions are keyed by the fold. **Found, and put first:** a
+   refusal defect already on main — where a turn's first element fails at the turn's start and
+   then `eof` fails, the reader records nothing and answers "does not match" at 0 where the
+   engine answers "Expected …" at the right place. It is a position disagreement, so
+   correctness; the hoist would make it common. expr fixes it (the re-read path is his, Q7.2),
+   after C2, with the shape added to the refusal corpus, and asks why the hundred compared
+   inputs missed it. Order: C2, the analysis, the refusal defect, the hoist.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
    and the analysis keeps it apart — but the reader's choice: it decides by the first character
    only through a switch, and refuses the switch past 128 named characters, a limit on code
