@@ -774,6 +774,41 @@ static partial class Stand
 			};
 		}
 
+		/// <summary>
+		/// The same script read through the bool positional form, <c>bool TryParseStatement(string input, ref int at, out Statement value)</c>:
+		/// null where the side has none. <c>at</c> is moved to the end of what was read.
+		/// </summary>
+		public Func<int>? TsqlScriptBool(string text)
+		{
+			var call = _tsql.GetMethods(BindingFlags.Static | BindingFlags.Public).FirstOrDefault(one => one.Name == "TryParseStatement"
+				&& one.ReturnType == typeof(bool) && one.GetParameters() is [{ ParameterType.Name: "String" }, { ParameterType.IsByRef: true, ParameterType.Name: "Int32&" }, { IsOut: true }]);
+
+			if (call is null)
+				return null;
+
+			return () =>
+			{
+				var at    = 0;
+				var count = 0;
+
+				while (at < text.Length)
+				{
+					var arguments = new object?[] { text, at, null };
+
+					if (!(bool)call.Invoke(null, arguments)!)
+						break;
+
+					count++;
+					at = (int)arguments[1]!;
+
+					while (at < text.Length && (char.IsWhiteSpace(text[at]) || text[at] == ';'))
+						at++;
+				}
+
+				return count;
+			};
+		}
+
 		/// <summary>TransactSqlParser.TryParseStatement(string) of this side, by reflection: whether it read the statement.</summary>
 		public Func<int> Tsql(string text)
 		{

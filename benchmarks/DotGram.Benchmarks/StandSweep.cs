@@ -40,6 +40,18 @@ static partial class Stand
 			var b      = before.TsqlScript(script);
 			var a      = after.TsqlScript(script);
 
+			// The bool positional form on the after side against the match form on the before side, where the after side has one (expr).
+			if (after.TsqlScriptBool(script) is { } quiet)
+			{
+				yield return new Workload("tsql", $"script{statements}.bool",
+					[
+						new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
+						new Reading("before", b),
+						new Reading("after",  quiet),
+					],
+					() => b() == statements && quiet() == statements ? null : $"  the script has {statements} statements: the match form read {b()}, the bool form {quiet()}");
+			}
+
 			yield return new Workload("tsql", $"script{statements}",
 				[
 					new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
