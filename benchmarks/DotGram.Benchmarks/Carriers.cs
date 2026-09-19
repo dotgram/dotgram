@@ -104,6 +104,49 @@ static class Carriers
 				$"| {grammar.Name} | {Carrier(grammar)} | {grammar.Field("gate")} | {grammar.Field("building")} | " +
 				$"{grammar.Field("replayed")} | {grammar.Field("direct")} | {grammar.Field("read again")} |");
 
+		// The second gate by the shape that opened the way and why the way stays: `open` lines are
+		// `open Rule: shape; why; how the rule is called; node`.
+		var opens = grammars
+			.SelectMany(static grammar => grammar.Lines
+				.Where(static line => line.StartsWith("open ", StringComparison.Ordinal))
+				.Select(line =>
+				{
+					var colon = line.IndexOf(": ", StringComparison.Ordinal);
+					var parts = line.Substring(colon + 2).Split("; ", 4);
+					var shape = parts[0].Replace(", captured", "", StringComparison.Ordinal);
+
+					return (Grammar: grammar.Name, Rule: line.Substring(5, colon - 5), Class: shape + "; " + parts[1],
+						Captured: parts[0].EndsWith(", captured", StringComparison.Ordinal), Sealed: parts[2] != "open", Node: parts[3]);
+				}))
+			.ToList();
+
+		if (opens.Count > 0)
+		{
+			text.AppendLine();
+			text.AppendLine("## Where the second gate's ways are opened");
+			text.AppendLine();
+			text.AppendLine("Each place a rule's own reading opens a way, by its shape — a choice over characters, a run of");
+			text.AppendLine("one character, the turns of a repetition — and why the way could not be left out. **Places**");
+			text.AppendLine("counts each once per grammar; **captured** is how many of them capture inside the turn, and");
+			text.AppendLine("**sealed** how many are in a rule every call of which is inside an atomic group or a lookahead,");
+			text.AppendLine("or which nothing calls, so that no caller asks it again.");
+			text.AppendLine();
+			text.AppendLine("| Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |");
+			text.AppendLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |");
+
+			foreach (var group in opens.GroupBy(static one => one.Class).OrderByDescending(static group => group.Count()))
+			{
+				var first = group.First();
+				var split = group.Key.Split("; ", 2);
+
+				text.AppendLine(
+					$"| {split[0]} | {split[1]} | {group.Select(static one => one.Grammar).Distinct().Count()} | " +
+					$"{group.Select(static one => one.Grammar + " " + one.Rule).Distinct().Count()} | {group.Count()} | " +
+					$"{group.Count(static one => one.Captured)} | {group.Count(static one => one.Sealed)} | {first.Grammar.Split('.')[^1]}.{first.Rule}: " +
+					$"`{first.Node.Replace("|", "\\|", StringComparison.Ordinal)}` |");
+			}
+		}
+
 		foreach (var grammar in grammars.Where(static one => one.Lines.Count > 1))
 		{
 			text.AppendLine();

@@ -48,6 +48,213 @@ sealed partial class Machine
 	/// <summary>The rules whose own reading opened a way back, before their callers were added: the report's.</summary>
 	internal HashSet<RuleSymbol>? OpenedHere { get; private set; }
 
+	/// <summary>
+	/// Where each of <see cref="OpenedHere"/> opened its way, as the report says it: the shape of
+	/// the node, why the way could not be left out, and the node. Kept where the report was asked
+	/// for and nowhere else.
+	/// </summary>
+	internal Dictionary<RuleSymbol, List<string>>? OpenedAt { get; private set; }
+
+	/// <summary>A choice that opens a way, noted for the report where it was asked for.</summary>
+	void OpeningChoice(RuleSymbol rule, IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
+	{
+		if (Reporting)
+			Opening(rule, "choice", WhyChoice(alternatives, following.Plain), new Node.Choice([.. alternatives]));
+	}
+
+	/// <summary>A repetition that opens a way, noted for the report where it was asked for.</summary>
+	void OpeningRepeat(RuleSymbol rule, Node.Repeat repeat, FollowSets.Continuation following, bool run)
+	{
+		if (!Reporting)
+			return;
+
+		var captured = NodeWalk.Descendants(repeat.Body).Any(static one => one is Node.Capture) ? ", captured" : "";
+
+		var shape = run ? "run" : repeat.Max == 1 ? "optional" : repeat.Max is not null ? "counted" : "turns";
+
+		Opening(rule, shape + captured, WhyRepeat(repeat, following), repeat);
+	}
+
+	void Opening(RuleSymbol rule, string form, string why, Node node)
+	{
+		OpenedAt ??= [];
+
+		if (!OpenedAt.TryGetValue(rule, out var sites))
+			OpenedAt[rule] = sites = [];
+
+		// One line of a comment: a literal's line break is shown the way the grammar writes it.
+		var shown = Display(node).Replace("\r", "\\r").Replace("\n", "\\n");
+
+		if (shown.Length > 70)
+			shown = shown.Substring(0, 70) + "…";
+
+		var line = $"{form}; {why}; {CalledAs(rule)}; {shown}";
+
+		if (!sites.Contains(line))
+			sites.Add(line);
+	}
+
+	/// <summary>
+	/// How the rule is called: <c>entry</c> where no rule calls it, <c>sealed</c> where every call
+	/// stands inside an atomic group or a lookahead — whose answer is committed, so nothing asks the
+	/// rule again — and <c>open</c> otherwise.
+	/// </summary>
+	string CalledAs(RuleSymbol rule)
+	{
+		var open   = 0;
+		var closed = 0;
+
+		foreach (var body in _graph.Bodies.Values)
+			Count(body, committed: false);
+
+		return open + closed == 0 ? "entry" : open == 0 ? "sealed" : "open";
+
+		void Count(Node node, bool committed)
+		{
+			if (node is Node.Call(var called, _) && ReferenceEquals(called, rule))
+			{
+				if (committed)
+					closed++;
+				else
+					open++;
+			}
+
+			var inside = committed || node is Node.Atomic or Node.Lookahead;
+
+			switch (node)
+			{
+				case Node.Atomic one:    Count(one.Body, inside); break;
+				case Node.Marked one:    Count(one.Body, inside); break;
+				case Node.Repeat one:    Count(one.Body, inside); break;
+				case Node.Lookahead one: Count(one.Body, inside); break;
+				case Node.Capture one:   Count(one.Body, inside); break;
+				case Node.Construct one: Count(one.Body, inside); break;
+
+				default:
+					foreach (var child in node.Children)
+						Count(child, inside);
+					break;
+			}
+		}
+	}
+
+	/// <summary>Whether every way into a node reads the seam first: what a rewrite could take out in front of it.</summary>
+	bool LeadsWithSeam(Node node) => node switch
+	{
+		Node.Capture(_, var body)   => LeadsWithSeam(body),
+		Node.Construct(var body, _) => LeadsWithSeam(body),
+		Node.Sequence(var parts)    => parts.Count > 0 && LeadsWithSeam(parts[0]),
+		Node.Choice(var options)    => options.Count > 0 && options.All(LeadsWithSeam),
+		Node.Call(var called, _)    => _seam is { } seam && ReferenceEquals(called, seam),
+		_                           => false,
+	};
+
+	/// <summary>A node without the captures and constructions around it.</summary>
+	static Node Bare(Node node) => node switch
+	{
+		Node.Capture(_, var body)   => Bare(body),
+		Node.Construct(var body, _) => Bare(body),
+		_                           => node,
+	};
+
+	/// <summary>Whether a node begins with a part that may read nothing, looking through a few calls.</summary>
+	bool LedByNothing(Node node, int depth) => node switch
+	{
+		Node.Capture(_, var body)   => LedByNothing(body, depth),
+		Node.Construct(var body, _) => LedByNothing(body, depth),
+		Node.Marked(var body, _)    => LedByNothing(body, depth),
+		Node.Sequence(var parts)    => parts.Count > 1 &&
+		                               (FirstSets.Nullable(parts[0], _graph) || LedByNothing(parts[0], depth)),
+		Node.Choice(var options)    => options.Count > 0 && options.All(one => LedByNothing(one, depth)),
+		Node.Call(var called, _)    => depth > 0 && _graph.Bodies.TryGetValue(called, out var body) &&
+		                               LedByNothing(body, depth - 1),
+		_                           => false,
+	};
+
+	/// <summary>
+	/// Why a choice over characters keeps a way: what <c>LiteralRun</c> could not settle, said
+	/// by what the alternatives begin with against each other and against what follows.
+	/// </summary>
+	string WhyChoice(IReadOnlyList<Node> alternatives, FirstSets.First following)
+	{
+		if (alternatives.All(static one => one is Node.Literal { IgnoreCase: false }))
+			return !following.IsKnown ? "literals, follow unknown" : "literals, a shorter one wanted";
+
+		if (alternatives.Any(static one => one is Node.Literal { IgnoreCase: true }))
+			return "an ignore-case literal";
+
+		var empty = alternatives[alternatives.Count - 1] is Node.Empty;
+		var begun = alternatives.Where(static one => one is not Node.Empty).ToList();
+
+		if (begun.Exists(one => FirstSets.Nullable(one, _graph)))
+			return "an alternative that may read nothing";
+
+		var firsts = begun.Select(one => FirstSets.Of(one, _graph)).ToList();
+
+		for (var i = 0; i < firsts.Count; i++)
+			for (var j = i + 1; j < firsts.Count; j++)
+				if (firsts[i].Overlaps(firsts[j]))
+					return begun.All(LeadsWithSeam) ? "the seam leads every alternative"
+						: begun.All(one => LedByNothing(one, 3)) ? "every alternative led by what may read nothing"
+						: begun.All(static one => Bare(one) is Node.Literal { IgnoreCase: false }) ? "literals under a capture or construction"
+						: "alternatives begin alike";
+
+		if (!empty)
+			return "alternatives begin apart";
+
+		if (!following.IsKnown)
+			return "optional, follow unknown";
+
+		return firsts.Exists(one => one.Overlaps(following))
+			? "optional, what follows begins alike"
+			: "optional, what follows begins apart";
+	}
+
+	/// <summary>Why a repetition keeps a way: the question <see cref="Determinism.NeverGivesBack"/> answered no to.</summary>
+	string WhyRepeat(Node.Repeat repeat, FollowSets.Continuation following)
+	{
+		var body = repeat.Body;
+
+		if (FirstSets.Nullable(body, _graph))
+			return "a turn that may read nothing";
+
+		if (_seam is { } seam && body is Node.Sequence(var parts) && parts.Count > 1 &&
+			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, seam))
+		{
+			var rest = parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)]);
+
+			if (FirstSets.Nullable(rest, _graph))
+				return "seam first, the rest may read nothing";
+
+			if (!following.AfterSeam.IsKnown)
+				return "seam first, follow unknown";
+
+			return FirstSets.Of(rest, _graph).Overlaps(following.AfterSeam)
+				? "seam first, what follows begins alike past it"
+				: "seam first, what follows can begin inside it";
+		}
+
+		// The seam in front of every alternative of the turn rather than of the turn: NeverGivesBack
+		// compares past it only where it leads the sequence.
+		if (LeadsWithSeam(body))
+			return "the seam leads every alternative of the turn";
+
+		if (!following.Plain.IsKnown)
+			return "follow unknown";
+
+		// A turn guarded by a lookahead, `(?!"*/" & any)*`: the lookahead says where the turns stop,
+		// and what it refuses is usually what follows the loop.
+		if (Bare(body) is Node.Sequence(var guarded) && guarded.Count > 1 && guarded[0] is Node.Lookahead)
+			return "a turn led by a lookahead";
+
+		// A seam of the turn's own: something that may read nothing — `Ows`, `Fws?` — in front
+		// of what decides, which what follows the loop usually begins with as well.
+		if (LedByNothing(body, 3))
+			return "a turn led by what may read nothing";
+
+		return "what follows begins alike";
+	}
+
 	/// <summary>The tape a machine choosing its carrier reads with until it knows enough to choose.</summary>
 	TapeCarrier? _provisional;
 

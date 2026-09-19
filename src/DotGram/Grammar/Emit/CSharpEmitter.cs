@@ -3025,9 +3025,21 @@ public static partial class CSharpEmitter
 		}
 
 		foreach (var rule in again.OrderBy(static rule => rule.Name, StringComparer.Ordinal))
+		{
 			lines.Add(opened.Contains(rule)
 				? $"again {Name(rule)}: opens a way"
 				: $"again {Name(rule)}: through {Caller(rule, again, calls: true) ?? "?"}");
+
+			// Where it opened it: the shape, why the way stays, and the node — once, however many
+			// machines read the rule.
+			var said = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var one in direct)
+				if (one.Machine.OpenedAt is { } at && at.TryGetValue(rule, out var sites))
+					foreach (var site in sites)
+						if (said.Add(site))
+							lines.Add($"open {Name(rule)}: {site}");
+		}
 
 		// What around the site says the reading may be replaced, and what after it can refuse, as
 		// the grammar's author wrote it: over kinds a token is its kind's name, not its number.

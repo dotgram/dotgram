@@ -1998,6 +1998,9 @@ sealed partial class Machine
 			// `eol` is that choice wherever what follows it cannot begin with '\n'.
 			if (_tape && LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count)
 			{
+				if (analyzing)
+					machine.OpeningChoice(owner, alternatives, following);
+
 				EmitChoiceOverCharacters(code, alternatives, tried, following);
 
 				return;
@@ -2608,6 +2611,9 @@ sealed partial class Machine
 				// = Word & WordOrDigit*` is the ordinary way to write the ordinary thing, and
 				// asking only whether the body was literally an element sent every one of them
 				// through the machinery for turns that are not all alike.
+				if (analyzing && !settled && max != 0)
+					machine.OpeningRepeat(owner, repeat, following, run: machine.RunTest(body) is not null);
+
 				if (machine.RunTest(body) is { } test)
 					EmitRun(code, body, test, min, max, settled);
 				else
