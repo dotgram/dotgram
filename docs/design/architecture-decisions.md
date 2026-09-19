@@ -735,6 +735,11 @@ a count from the generated FixGrammar confirms it before C1 goes in. Found on th
 comments now read through the search, C1 wrote U+0085/U+2028/U+2029 raw into a C# literal,
 where C# reads them as line breaks — spelled through the emitter's character escaping now, a
 test in `DelimiterScanTests`.
+Landed: C1 `f2b218da`, the literal fix `aef52068` (the two hand-parser lines with finance-24's
+go, the shape in the refusal corpus), each verified alone on the rebased base, the whole slow
+record included; FixGrammar byte for byte the same after both. Next for performance-ff: the
+speller commit, the D12 move of the oversize and buffered-split tests into the slow project,
+then C2 over StockCount.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
