@@ -2529,3 +2529,14 @@ plan. **Rule taken from it:** where a decision turns on one number, the entry na
 that number rests on, so the next measurement can be held against it rather than filed beside it.
 - **It may speak to any session and to Igor directly**, including where it holds the architect
   wrong, which is the point of it.
+
+## D22. A parser answers as the specification and the server do, before it answers fast
+
+Decided 2026-09-19 by Igor, asked about one trade-off and answered as a rule. T-SQL's inline
+return could be written so that a cause of `Replay` disappears and 27 rules leave the tape, at the
+price of accepting a `WITH` and an order inside brackets that the server rejects. The price is not
+paid. Any change that would have a parser accept what the published syntax or the server refuses is
+declined however much it buys; where one buys a great deal it comes to Igor with its number and
+the exactness it costs, and the default answer is no. This is D13's order of criteria applied to
+acceptance rather than to correctness of construction: first the parser reads what the language
+reads, then it reads it quickly.
