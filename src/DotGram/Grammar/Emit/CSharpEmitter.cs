@@ -316,7 +316,9 @@ public static partial class CSharpEmitter
 		foreach (var compiled in machines)
 			compiled.Machine.CompileRules();
 
-		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables);
+		AddBufferedMachines(
+			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
+			carrier, replay, carriers is not null);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds

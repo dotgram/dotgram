@@ -63,8 +63,11 @@ public static partial class CSharpEmitter
 	static void AddBufferedMachines(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
-		Dictionary<string, (string Name, string Declaration)>? expectedTables)
+		Dictionary<string, (string Name, string Declaration)>? expectedTables,
+		CarrierKind carrier, Replay.Report? replay, bool reporting)
 	{
+		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
+		// made without them it read on the tape whatever those said.
 		if (!requested && !byteRequested && !graph.Publications.Any(one => one.BufferedInput || one.BufferedBytes))
 			return;
 
@@ -90,8 +93,11 @@ public static partial class CSharpEmitter
 			if (why is null)
 			{
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
-					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
-					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true);
+					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
+					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
+				{
+					Reporting = reporting,
+				};
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
 			}
@@ -140,8 +146,12 @@ public static partial class CSharpEmitter
 			{
 				var memoryTag = tag + "_Memory";
 				var memory = new Machine(graph, results, lines, only: rules, tag: memoryTag,
-					partSize: partSize, bufferedInput: true, bufferedBytes: true, spanCaptures: spanCaptures,
-					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true) { InPlace = true };
+					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: true, spanCaptures: spanCaptures,
+					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
+				{
+					InPlace   = true,
+					Reporting = reporting,
+				};
 
 				if (memory.CanDirect([publication]) && !memory.Probes)
 				{
@@ -181,9 +191,12 @@ public static partial class CSharpEmitter
 				continue;
 
 			var shared = new Machine(graph, results, lines, only: graph.Rules.Where(rules.Contains).ToArray(),
-				tag: owner.Tag, partSize: partSize, bufferedInput: true, bufferedBytes: owner.Machine.BufferedBytes,
+				tag: owner.Tag, partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: owner.Machine.BufferedBytes,
 				spanCaptures: spanCaptures, bufferedFind: publications.Any(one => one.Kind != PublishKind.Parse),
-				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true);
+				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
+			{
+				Reporting = reporting,
+			};
 			added[host] = owner with { Machine = shared, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
 				added.RemoveAt(guests[guest]);
