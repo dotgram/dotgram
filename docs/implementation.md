@@ -245,8 +245,14 @@ a construction runs once per derivation *tried*, not once per derivation accepte
 solely for the derivation that stands or for one on which the whole parse then fails
 (`Replay`), and where no rule it reads can be asked for a second answer after giving its
 first — which only the reader, once written, can see, so the choice is made after a first
-rendering on the tape. What remains given up is a parse that fails having already run
-some constructions. `GRAM5012` says which carrier was chosen and, where it was the tape,
+rendering on the tape. The gate is asked of what the machine *builds*, and that is
+narrower than what `Replay` calls given up: a rule read under a lookahead has its reading
+thrown away whatever else is true, but where the machine constructs nothing for it there
+is nothing to hold back, so such a reading does not keep the tape. It is not the same
+question as whether the look's body is read silently — a host-decided `switch` under a
+look is never silent and still reaches Immediate — because silence is about what the
+machine writes down and this is about whose constructions have run. What remains given up
+is a parse that fails having already run some constructions. `GRAM5012` says which carrier was chosen and, where it was the tape,
 which rules kept it there.
 
 A carrier the author named that cannot carry a machine leaves that machine

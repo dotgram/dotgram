@@ -204,25 +204,77 @@ public sealed class CarrierTests
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Immediate));
 	}
 
-	/// <summary>A rule read for a reading that is thrown away keeps the grammar on the tape, and is named.</summary>
+	/// <summary>
+	/// A look whose body the machine can read silently builds nothing for the reading it
+	/// throws away, so it keeps nothing on the tape.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>?=Name &amp; n: Name</c> reads <c>Name</c> twice and keeps the second reading only.
+	/// What decides the carrier is not that a reading is given up but that something was
+	/// <em>built</em> for it: where the look's body is read silently — nothing captured,
+	/// nothing constructed, the machine's <c>unbuilt</c> standing over it — §7.3 is kept
+	/// without the tape, and the constructions run exactly where the tape would have run them.
+	/// </para>
+	/// <para>
+	/// Held by counting, not by reading the code: the factories the two carriers run, for an
+	/// input that stands and for one that is refused, have to be the same list.
+	/// </para>
+	/// </remarks>
 	[Fact]
-	public void Left_to_the_generator_a_rule_read_for_nothing_keeps_the_tape()
+	public void A_look_the_machine_can_read_silently_builds_nothing()
 	{
 		const string Ahead =
 			"""
-			Start : @string = ?=Name & n: Name => @(n)
-			Name  : @string = t: ['a'..'z']+ => @(t)
+			Start : @string = ?=Name & n: Name => @(Log("Start", n))
+			Name  : @string = t: ['a'..'z']+ => @(Log("Name", t.ToString()))
 			parse Start
 			""";
 
-		var (source, _) = Compiled(Ahead, CarrierKind.Auto);
+		const string Members = """
+			public static readonly System.Collections.Generic.List<string> Built =
+				new System.Collections.Generic.List<string>();
+			static string Log(string name, string value)
+			{
+				Built.Add(name);
+				return value;
+			}
+			""";
 
-		Assert.Contains("Materialize_DotGram", source, StringComparison.Ordinal);
+		var source = Assert.Single(GramCompiler.Compile(Ahead, new GramCompilerOptions
+		{
+			ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Auto,
+		}).Sources).Text;
 
-		var told = Assert.Single(Diagnostics(Ahead, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+		Assert.Contains("ImmediateValues",           source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
 
-		Assert.Contains("on the tape", told.Message, StringComparison.Ordinal);
-		Assert.Contains("Name",        told.Message, StringComparison.Ordinal);
+		foreach (var input in new[] { "abc", "", "1" })
+			Assert.Equal(Built(CarrierKind.Tape, input), Built(CarrierKind.Auto, input));
+
+		// A look reads Name and gives it back; the rule is built once, for the reading that stands.
+		Assert.Equal(["Name", "Start"], Built(CarrierKind.Auto, "abc"));
+		Assert.Empty(Built(CarrierKind.Auto, "1"));
+
+		string[] Built(CarrierKind carrier, string input)
+		{
+			var result = GramCompiler.Compile(Ahead, new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Carrier       = carrier,
+			});
+
+			var host = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members)
+				.GetType("Grammar")!;
+			var told = (IList<string>)host.GetField("Built", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+
+			told.Clear();
+
+			host.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, [input]);
+
+			return [.. told];
+		}
 	}
 
 	/// <summary>And so does a rule read again after it answered, which the graph alone does not show.</summary>

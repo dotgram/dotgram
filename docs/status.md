@@ -1428,7 +1428,11 @@ GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
   chose, `GRAM5012` (since 2026-09-13; `GRAM5008`, which offered `Immediate` instead, is
   retired). Immediate where every rule the machine builds is read only for the derivation
   that stands or the one the parse then fails on, and none can be read again after it has
-  answered; the tape everywhere else, naming the rules that kept it there.
+  answered; the tape everywhere else, naming the rules that kept it there. What counts
+  against a grammar is not a reading that is given up but one that has already built
+  something: a rule read where the machine constructs nothing — under a lookahead, whose
+  reading is thrown away by definition and whose body the machine need not build — leaves
+  nothing to hold back, so a look over a building rule does not by itself keep the tape.
 - **`Tape`**: records built into values by a walk once the parse is accepted. The carrier
   that streams, finds and recovers, and the one that keeps "nothing is built while
   matching" whole.

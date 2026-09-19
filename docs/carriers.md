@@ -77,11 +77,11 @@ would keep on the tape: what lifting the refusal would move.
 | DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  |  |  | 12/12 |
 | DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 18 | 0 | 0 | 0 | 18/850 |
 | DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  |  |  | 18/850 |
-| DotGram.Finance.Fix.FixGrammar | tape | read again | 4 | 0 | 0 | 4 | 0 | 0 | 18/18 |
+| DotGram.Finance.Fix.FixGrammar | tape | read again | 5 | 0 | 0 | 4 | 0 | 0 | 18/18 |
 | DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  |  |  | 1910/1910 |
 | DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Sql.Standard.Sql92Parser | tape | replay | 48 | 44 | 4 | 0 | 0 | 0 | 12/242 |
-| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 26 | 0 | 2 | 0 | 1284/2641 |
+| DotGram.Sql.Standard.SqlStandardParser | tape | replay | 556 | 308 | 25 | 0 | 2 | 0 | 1284/2641 |
 | DotGram.Sql.TransactSql.TransactSqlParser | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
 | DotGram.Sql.TransactSql.TransactSqlParser.Located | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
 | DotGram.Tests.Calculators.DecimalCalculator | immediate | none |  |  |  |  |  |  | 18/18 |
@@ -129,7 +129,6 @@ or which nothing calls, so that no caller asks it again.
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
 | turns | seam first, what follows begins alike past it | 1 | 1 | 1 | 0 | 1 | Scoped.Program: `(trivia & Let)*` |
-| run | follow unknown | 1 | 1 | 1 | 0 | 0 | FixGrammar.LogSeparator: `' '*` |
 | turns | a turn led by a lookahead | 1 | 1 | 1 | 0 | 0 | FixGrammar.Text: `(?!LogSeparator & any)+` |
 
 ## DotGram.Benchmarks.Climbing
@@ -531,8 +530,7 @@ or which nothing calls, so that no caller asks it again.
 
 - again Field: through Text
 - again Fields: through Field
-- again LogSeparator: opens a way
-- open LogSeparator: run; follow unknown; open; ' '*
+- again Fields: through Field
 - again Text: opens a way
 - open Text: turns; a turn led by a lookahead; open; (?!LogSeparator & any)+
 
@@ -604,7 +602,6 @@ or which nothing calls, so that no caller asks it again.
 - replay JSONInputExpression: Follows in JSONArrayConstructor [choice], then ')'
 - replay JSONOutputClause: Follows in JSONArrayConstructor [choice], then ')'
 - replay JSONPathPredicate: Follows in JSONPredicatePrimary [choice], then ')'
-- replay LargeObjectLength: Follows in BinaryStringType [choice], then ')'
 - replay Privileges: Follows in GrantStatement [choice], then "TO"i
 - replay RowPattern: Follows in RowPatternPrimary [choice], then ')'
 - replay SQLStatementName: Follows in DescribeStatement [choice], then UsingDescriptor
@@ -741,6 +738,7 @@ or which nothing calls, so that no caller asks it again.
 - replay JoinSpecification: under PartitionedJoin
 - replay JoinStep: under Joins
 - replay Joins: under TableReference
+- replay LargeObjectLength: under CharacterLargeObjectLength
 - replay LikeEscape: under NegatablePredicatePart2
 - replay ListaggOverflowClause: under AggregateCall
 - replay LocalOrSchemaQualifiedName: under SimpleTable

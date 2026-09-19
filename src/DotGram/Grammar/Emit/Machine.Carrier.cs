@@ -318,6 +318,15 @@ sealed partial class Machine
 			return;
 		}
 
+		// What keeps the tape is not a reading that is thrown away but something already built
+		// for one: the question is asked of `building`, the rules whose value this machine
+		// constructs, so where a reading builds nothing there is nothing to hold back and the
+		// gate lets it through. A lookahead is where that tells: `Replay` still calls what a
+		// look reads thrown away — it is — and a look over a rule that builds nothing no longer
+		// keeps the grammar on the tape for it. Not the same question as whether the body is
+		// read silently: a host-decided `switch` under a look is never silent and still reaches
+		// the immediate carrier, because silence is about what the machine writes down and this
+		// is about what the author's constructions have already run.
 		var replayed = Replayed();
 
 		if (replayed.Count > 0)

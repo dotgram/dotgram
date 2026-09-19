@@ -26,9 +26,15 @@ namespace DotGram.Grammar.Model;
 /// <para>
 /// A published rule is where the answer comes from rather than where it is needed. A
 /// <c>parse</c> reads the whole input, so after its root there is the end of the text and
-/// nothing else — a fact, and the strongest one here. A <c>find</c> may stop anywhere, so
-/// after its root there is anything. A rule published both ways gets both, which is
-/// anything.
+/// nothing else — a fact, and the strongest one here. A <c>yield</c> hands its elements out
+/// one at a time, and what comes after one of them is the next step the driver asks for, not
+/// anything the element could be asked to give back to; so after its root there is nothing,
+/// and it is <em>nothing</em> rather than <em>the end</em> because a caller may stop
+/// enumerating wherever it likes and the end of the text must not be claimed. A <c>find</c>
+/// may stop anywhere, so after its root there is anything — whether it, too, could say
+/// nothing is a question nobody has worked through, and an unexamined <c>None</c> there would
+/// be quiet daring rather than knowledge. A rule published several ways gets all of them,
+/// which is the widest.
 /// </para>
 /// </remarks>
 public static class FollowSets
@@ -94,7 +100,12 @@ public static class FollowSets
 			if (!follow.ContainsKey(publication.Rule))
 				continue;
 
-			var after = publication.Kind == PublishKind.Parse ? Continuation.End : Continuation.All;
+			var after = publication.Kind switch
+			{
+				PublishKind.Parse => Continuation.End,
+				PublishKind.Yield => Continuation.None,
+				_                 => Continuation.All,
+			};
 
 			if (graph.Trivia.TryGetValue(publication.Rule, out var around))
 				entries.Add((
@@ -190,10 +201,15 @@ public static class FollowSets
 				case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
 				case Node.Marked(var kept, _):      Contribute(kept,     after, seam); return;
 
-				// What is inside is read and given back, so what follows it is read
-				// again by whatever comes next — which this cannot see from here.
+				// Inside, nothing follows — the atomic group's sentence, and for the same
+				// reason: a look is decided at its first match and gives back everything it
+				// read, so nothing after it can ever ask its body for a different reading.
+				// What is read again by whatever comes next follows the *look*, not its body,
+				// and that is the caller's continuation rather than anything contributed here.
+				// What follows a part inside the body is unaffected: the sequence above
+				// threads it, so `?(A* & B)` still hands B's first set to the star.
 				case Node.Lookahead(_, var seen):
-					Contribute(seen, Continuation.All, seam);
+					Contribute(seen, Continuation.None, seam);
 
 					return;
 			}

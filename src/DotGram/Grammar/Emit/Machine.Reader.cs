@@ -4254,8 +4254,14 @@ sealed partial class Machine
 				return;
 			}
 
-			var seen                = $"q{_calls++}";
-			var (call, undo, opens) = Called(inside, FollowSets.Continuation.All);
+			var seen = $"q{_calls++}";
+
+			// Inside, nothing follows — the same continuation an atomic group hands its
+			// contents (EmitAtomic), and the same reason: a look is decided at its first
+			// match and gives back what it read, so a repetition standing at the end of its
+			// body is never asked for a shorter reading and owes no way. `?!LogSeparator`
+			// over `' '* & '|' & ' '*` was opening one for the trailing run of spaces.
+			var (call, undo, opens) = Called(inside, FollowSets.Continuation.None);
 
 			// What a look recorded is dropped whether it saw or not: its outcome is one bit,
 			// and what it captured on the way to it is not the rule's. Over the tape, what it
