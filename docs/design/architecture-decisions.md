@@ -1446,6 +1446,10 @@ same day; each comes back to the architect as a report, with no code changed.
    identical, one FIX row +5% repeated alone; a refusal allocates 88 B more and costs more (a URL
    refusal +15%, an early EL refusal +4..5%) — accepted for the refusal's correctness, the 88 B to
    be explained and removed if it can be.
+   Repeated alone (window 13): FIX's string rows flat, the +5% did not repeat. The 88 B are the
+   list of a second tied expected set, now named as the engine names it; held inline and listed
+   only from a third, after the hoist (expr). The scanner's search paired: T-SQL comments -4.6%,
+   SQL comments -1.0%, controls flat.
    The scanner's search landed `45155db6` (performance-ff): it already fires in the SQL grammars'
    line comments and two examples; expr's analysis is unblocked, and FIX's `IndexOf` stays with it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
