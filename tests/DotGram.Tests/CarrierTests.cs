@@ -260,6 +260,32 @@ public sealed class CarrierTests
 		Assert.Contains("read again", told.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A choice of texts where the shorter one could only be wanted by what cannot follow opens no
+	/// way back, on the tape as in the engine: <c>eol</c> is <c>"\r\n" | '\n' | '\r'</c>, and giving
+	/// <c>"\r\n"</c> back for <c>'\r'</c> is worth something only where a <c>'\n'</c> may come next.
+	/// </summary>
+	[Theory]
+	[InlineData("(s: Line & eol)*", true)]
+	[InlineData("(s: Line & eol)* & \"\\nz\"", false)]
+	public void A_run_of_texts_nothing_can_come_back_for_opens_no_way(string file, bool immediate)
+	{
+		var grammar =
+			$$"""
+			using Std;
+			File : @string[] = {{file}} => @(s)
+			Line : @string = t: ['a'..'z']+ => @(t)
+			parse File
+			""";
+
+		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+
+		if (!immediate)
+			Assert.Contains("eol", told.Message, StringComparison.Ordinal);
+	}
+
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
 		GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
