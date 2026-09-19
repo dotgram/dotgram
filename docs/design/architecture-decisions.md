@@ -875,6 +875,13 @@ on the buffered path the lines are counted as the window is released, and `LineA
 what is held. performance-ff, before C3; tests in the slow project: linearity with broken lines
 on both forms (finance-24), and a stream with a small retained window whose broken line
 10,000 reports line 10,000.
+**Landed `a8fa877a` (performance-ff):** a line cursor in the engine's parser and local in the
+reader's walk, counting back only the distance; the buffer counts lines as it releases and reads
+nothing behind what it holds. Found and fixed with it: the `yield` and `find` drivers held the
+whole input to be able to answer a line, which D5 forbids; they release with line tracking now.
+Tests: every rendering's location against a count from the start, and in the slow project
+10,000 lines through a 64-character window, the bad element at 10000:4; finance-24's scaling
+test lands on it.
 **Corrected by the stand the same night:** its "good" input named items with digits, which the
 grammar reads as broken lines, so every StockCount row it had timed, C2's good and broken rows
 included, was the rejection path; agreement passed because both parsers refused alike. With
