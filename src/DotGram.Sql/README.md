@@ -38,7 +38,8 @@ constructs, so `DotGram.Sql.Ast.Statement` and `DotGram.Sql.Statement` are two t
 `ParseValueExpression`, `ParseSearchCondition`, `ParseQueryExpression`, `ParseSQLSchemaStatement`
 and the rest listed at the end of its grammar. `TransactSqlParser` publishes `ParseSelect`,
 `ParseQuery`, `ParseSearchCondition`, `ParseValueExpression`, `ParseStatement`, `ParseSql` and
-`ParseScript`, each with its `TryParse…`.
+`ParseScript`, each with two `TryParse…`: one giving a `Match<T>` with the refusal's message and
+position, and a `bool TryParse…(string input, out T value)` for where only the answer is wanted.
 
 All three read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
 syntactic half above it decides each choice by the token in front of it, which is what a parser

@@ -25,11 +25,14 @@ is what to decide before using one, the contract they share, and what is easy to
 
 ## The contract they share
 
-- **Input is a `string`.** Every published production has `ParseX` and `TryParseX`, and each
+- **Input is a `string`.** Every published production has `ParseX` and two `TryParseX`, and each
   reads the *whole* input: text left over is a refusal, not a shorter answer.
 - **`ParseX` throws `FormatException`**, its message saying what was expected and ending
   with the offset where the text stopped fitting. **`TryParseX` returns a `Match<T>`**:
   `IsSuccess`, `Value` (read it only after `IsSuccess`), `Error` and `Position`.
+- **`bool TryParseX(string input, out T value)`** answers only whether the text reads, and says
+  nothing about what was expected where it does not. Where the message is not wanted, ask this
+  one: a refusal costs it about half, since nothing is read a second time to record what failed.
 - **A node is a record.** Two that mean the same are equal. `SqlWriter.Write` prints a T-SQL
   tree back as text; `Sql2023Writer.Write` (in `DotGram.Sql.Ast`) prints the standard's.
 - **`SqlWalker.Walk(root, visit)`** hands every node under `root` to `visit`, parent first,
