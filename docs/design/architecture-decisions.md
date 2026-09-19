@@ -1035,6 +1035,14 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   +5..+11% on FIX's string rows, most likely the inlining a separate body used to get. If the lean
   survives a control alone and under PGO=0, it lands only with C4b, paired as a stack against main
   on C4b's promised 38-46 ns; the shape of a method with no way back goes to performance-ff.
+  **A counting defect, and what it hid:** since the shared-stack fix, the causes report counted only
+  machines the immediate carrier could carry, so SQL's machines, now refused for gathering two
+  members onto one stack, dropped out of its columns silently; generated code unchanged. The report
+  is fixed to show such a refusal per rule. What it shows matters more: every SQL:2023 and T-SQL
+  machine is refused by that conservative rule, so nothing Q7.1 and C3 opened for SQL can reach the
+  immediate carrier while it stands. Marks per gathered member, left "for when a measurement asks",
+  are asked for: performance-ff, after C4b and FIX's log form, with the count of SQL machines held
+  by that refusal alone first.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
