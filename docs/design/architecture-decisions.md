@@ -892,6 +892,14 @@ one walk for all its roots, or each from its own record, performance-ff's choice
 live table is cleared over the range the walk uses only. performance-ff, after `LineAt` and
 before C3; the reproduction becomes a linearity test in the slow project; the stand pairs the
 SQL rows and a 1,000-predicate search condition against the hand parser's 553 µs.
+**The other two flags (finance-24), neither the generator:** the feed example's own growing
+`List`, whose last array went to the large object heap on every read at 10,000 records — an
+array of the rows' length instead, 3,075 to 1,603 µs, no gen2; and the hand JSON parser's lists
+that doubled and were copied — now two stacks per thread reused across texts and an exact array
+per closed value, an object member 270 to 97 ns at 10,000 members, below the generated parser's
+261, and an array element 53 to 15 ns, linear. What is left on a large object in both parsers is
+the result's own members array on the large object heap, a cost of the model. The linearity
+family gains a gen2-per-call column so that it tells the collector from an algorithm.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
