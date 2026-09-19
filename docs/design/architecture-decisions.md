@@ -1537,6 +1537,14 @@ same day; each comes back to the architect as a report, with no code changed.
    string's `""` turn needs a follow two characters ahead, which is `Determinism`'s never-gives-back
    question; it goes to expr, and is probably `SettingsFile`'s last cause. sql-39 next: why T-SQL
    has a commit point at 1.7% of its sites.
+   **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
+   own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
+   lookahead that reads a whole statement, so every statement and all under it counts as read
+   where the reading is thrown away. The rest are ordinary choices, as in SQL:2023. Decided: the
+   grammar checks the end of the batch there instead, once sql-39 shows from the published syntax
+   and the server that the language is the same (the position of a refusal unchanged, only its
+   expectation); and the scenario goes to the generator after C4 — a lookahead over a building
+   rule could call a variant that only recognizes, so that its reading poisons nothing else.
    **The seam hoist, written (expr):** `File = trivia & (Setting & trivia & eol & trivia)* & eof`,
    but `SettingsFile` stays on the tape for a reason outside the rule: a publication is entered
    as `trivia File trivia`, and where the rule begins with its seam the entry's seam is followed
