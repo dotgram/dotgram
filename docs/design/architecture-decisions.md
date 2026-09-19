@@ -282,6 +282,11 @@ bisection confirms the one cause: that walk only for a guard handed a gathered l
 the guard's arguments when generating; every other guard back to the cheaper build; paired on EL
 and on SQL's conditions, so that neither loses what it gained. Also landed from expr: the
 renderings agree on every line of the refusal record.
+The second bisection confirmed one cause. Fixed more simply than decided (expr, `7937b564`, held
+for its pair): EL's guard is handed a gathered list too, empty for a plain name; the walk now runs
+only when the list holds something, so lists that do are built as before and SQL's towers are
+untouched. Rough: 100 terms 15.9 µs and 1,000 terms 137, below the base before the regression
+(16.9 and 158).
 **Web date-time's anatomy (finance-24):** the reader read nothing twice; the values did — each
 field became a string twice, once for the guard and once for the construction, and was parsed
 twice, about twenty strings and fourteen parses for 23 characters. The grammar's part is fixed
