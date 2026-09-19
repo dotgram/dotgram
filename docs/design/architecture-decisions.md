@@ -1087,7 +1087,13 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   only way left in FIX is way 1's. `find` stays at "anything", with its being unanalysed written
   down rather than guessed. The lookahead change waits until FIX's one rule counted as read again
   more than before is explained; a checked-in test loses its example to it, and the factory counts
-  say §7.3 still holds, so the claim is rewritten with a look whose body cannot be read silently. The buffered reader's pair passed (the
+  say §7.3 still holds, so the claim is rewritten with a look whose body cannot be read silently.
+  Explained: the movement is the report's accounting and not behaviour — the emitted file is
+  byte-identical, the ways and rents of the whole solution unchanged, the carrier and the gate the
+  same; what changed is which rules the reader counts as its own, since a look's body compiled
+  silently leaves that account. So the two land together under one pair and one gate, the pair
+  measuring the change that moves FIX, with each effect named separately in the message so that no
+  one looks for a gain where there is none. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
