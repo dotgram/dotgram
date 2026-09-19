@@ -2420,3 +2420,9 @@ notes for Finance and Web — Finance's saying plainly that its public surface w
 moves the unshipped diagnostics into a 0.2.0 block and writes the notes for the generator and the
 expression language; sql-39 writes the SQL package's. The version itself is raised last, by
 finance-24, when the stand's windows are done, together with the six places that spell it by hand.
+Symbols stay embedded, as the packages say deliberately, with source link beside them and no
+symbol package — the two are alternatives. Documentation is turned on where writing it is an
+evening's work, the web's 82 places and the expression language's 8, and left off for the SQL
+tree's 6,500 and the generator's 908: a file-wide suppression over a whole package is an empty
+flag. Recorded as those packages' debt, not as anything the release waits for; the SQL notes say
+the package carries no XML documentation yet.
