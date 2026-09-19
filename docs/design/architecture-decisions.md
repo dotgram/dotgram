@@ -841,6 +841,12 @@ to land; the byte forms, which C2 also changed and the stand did not measure, ar
 and the byte part reverted if they lose. What remains of the gap is C3 and C4 — the arena and
 the second pass the anatomy put at 85 of 131 ns.
 C2 landed `779018c8`; the byte forms' pair is ordered against its parent.
+**C2 as landed (stand, window 10, medians of five):** FIX's string forms -16..-22%, the stream
+form flat, the byte forms +2.5..+6.5% (one field +6.5%, the slope rows +4..+6% against spreads of
+3-4%) — outside the spread, so the byte part is reverted and comes back with its cause found.
+StockCount with real names: good lines -53% on the string form, **0.97x the hand parser**, -45%
+on the stream form; broken lines -8..-24%, still 3.3-4.0x the hand parser until `LineAt`.
+Controls flat.
 **Found by the same window: StockCount is quadratic.** Nanoseconds a line, generated string
 form, no broken lines: 196 at 4 lines, 433 at 100, 1,479 at 1,000, 22,008 at 10,000 — n^2.2
 (the stream form n^2.3); the hand parser linear. The same with broken lines, so not recovery;
