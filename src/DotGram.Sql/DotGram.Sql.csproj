@@ -16,6 +16,8 @@ Every publication now has a third method, bool TryParseX(string input, out T val
 
 SqlStandardParser reads the standard through a lexical split, which bounds two things the ISO grammar leaves unbounded: a comment holds others six deep, and a /* inside a comment always opens one. It now reads what it used to refuse — a datetime less a datetime in brackets before an interval qualifier, a JSON behaviour and its ON clause, and the JSON and period forms of a WHEN operand — and refuses what it used to take, where an operand would swallow a reading that fits the text better. Sql92Parser follows it where the two share a production.
 
+The package still ships no XML documentation, so an editor shows no summaries for the tree's types: what each node is named after is in docs/ast.md, and how to use the parsers is in the README and the SKILL beside it. It is a debt of this package rather than a decision about its API.
+
 TransactSqlParser leaves a statement's label to that statement: HIDDEN, SORTED_DATA and a login's password words no longer take the label on the line after them. A native module's atomic block is now followed by the end of the batch, said as such, rather than by a refusal naming no statement.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
