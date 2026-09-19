@@ -121,8 +121,8 @@ static class Program
 		{
 			var rest  = args.Skip(1).ToList();
 			var only  = (string?)null;
-			var flag  = rest.IndexOf("--only");
 			var first = rest.Remove("--first");
+			var flag  = rest.IndexOf("--only");
 
 			if (flag >= 0)
 			{

@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using DotGram.Finance.Fix;
+using DotGram.Handwritten.Web;
 using DotGram.Web;
 
 namespace DotGram.Benchmarks;
@@ -12,8 +14,10 @@ namespace DotGram.Benchmarks;
 // The web's formats, and what a regular expression says of them (architect, for Igor,
 // 2026-09-18: "benchmarks of all the parsers, regex included").
 //
-// A row here has no hand-written reading, because there is no hand-written parser of these
-// formats: its first reading, the base every ratio is taken against, is the generated one.
+// A row here has a hand-written reading where D16 has one written (RFC 3986, RFC 3339 and
+// RFC 8259, in DotGram.Handwritten/Web), and that is its base; where none exists (RFC 5322,
+// RFC 9110, RFC 9651) the first reading, the base every ratio is taken against, is the
+// generated one.
 // The regular expressions are transcriptions of the specification, not loose look-alikes,
 // and each row says in its own words how much less than the parser one of them does. Where
 // no transcription exists or one would be a fiction (JSON is recursive, a structured field
@@ -48,13 +52,12 @@ static partial class Stand
 		[
 			.. WebUrls(),
 
-			// RFC 8259: a recursive language; a regex cannot read it, so N/A.
-			WebGenerated("json.object",
-				"{\"id\": 12345, \"name\": \"dotgram\", \"tags\": [\"parser\", \"generator\", \"analyzer\"], \"nested\": {\"x\": 1.5, \"y\": null, \"z\": true}, \"text\": \"a string with an escape \\n and a unicode one \\u00e9\", \"list\": [1, 2, 3, 4, 5]}",
-				static text => JsonValue.TryParse(text, out _)),
-			WebGenerated("json.array",
-				"[1, 2.5, -3, \"four\", true, false, null, [5, 6], {\"k\": \"v\"}, 1e3, \"a longer string to read\", 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]",
-				static text => JsonValue.TryParse(text, out _)),
+			// RFC 8259: a recursive language; a regex cannot read it, so N/A. System.Text.Json is
+			// the outside reading, the way ScriptDom is T-SQL's.
+			.. WebJson("json.object",
+				"{\"id\": 12345, \"name\": \"dotgram\", \"tags\": [\"parser\", \"generator\", \"analyzer\"], \"nested\": {\"x\": 1.5, \"y\": null, \"z\": true}, \"text\": \"a string with an escape \\n and a unicode one \\u00e9\", \"list\": [1, 2, 3, 4, 5]}"),
+			.. WebJson("json.array",
+				"[1, 2.5, -3, \"four\", true, false, null, [5, 6], {\"k\": \"v\"}, 1e3, \"a longer string to read\", 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]"),
 
 			.. WebTimestamps(),
 			.. WebAddresses(),
@@ -65,6 +68,48 @@ static partial class Stand
 			WebGenerated("sf.list", "\"foo\", bar;baz=?1, (1 2 3);q=0.5, :aGVsbG8=:, 10.5", static text => StructuredField.TryParseList(text, out _)),
 			WebGenerated("sf.dictionary", "a=1, b=?0, c=\"text\", d=:aGVsbG8=:, e=(1 2);f=3", static text => StructuredField.TryParseDictionary(text, out _)),
 		];
+	}
+
+	// ── RFC 8259 ────────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// One JSON text, read by hand, by the generated parser and by System.Text.Json, which only
+	/// checks and builds no tree of these values' shape: the outside reading, not an equal. The
+	/// hand and generated trees are held equal; System.Text.Json has only to accept.
+	/// </summary>
+	static IEnumerable<Workload> WebJson(string name, string text)
+	{
+		yield return Web(
+			name,
+			[
+				new Reading("hand",                () => HandJson.TryParse(text, out _, out _) ? 1 : 0),
+				new Reading("generated",           () => JsonValue.TryParse(text, out _) ? 1 : 0),
+				new Reading("system-text-json",    () => SystemTextJson(text) ? 1 : 0),
+			],
+			() =>
+			{
+				var byHand      = HandJson.TryParse(text, out var hand, out _);
+				var byGenerated = JsonValue.TryParse(text, out var generated);
+
+				if (!byHand || !byGenerated || !SystemTextJson(text))
+					return $"  every reading must accept it: hand {(byHand ? "accepts" : "refuses")}, generated {(byGenerated ? "accepts" : "refuses")}, System.Text.Json {(SystemTextJson(text) ? "accepts" : "refuses")}";
+
+				return Equals(hand, generated) ? null : "  the hand tree and the generated tree differ";
+			});
+	}
+
+	static bool SystemTextJson(string text)
+	{
+		try
+		{
+			using var document = JsonDocument.Parse(text);
+
+			return document.RootElement.ValueKind != JsonValueKind.Undefined;
+		}
+		catch (JsonException)
+		{
+			return false;
+		}
 	}
 
 	// ── RFC 3986 ────────────────────────────────────────────────────────────────
@@ -87,6 +132,7 @@ static partial class Stand
 			yield return Web(
 				"url." + names[i],
 				[
+					new Reading("hand",           () => UrlHand(text)),
 					new Reading("generated",      () => UrlGenerated(text)),
 					new Reading("regex",          () => UrlRegex(interpreted.Value, text)),
 					new Reading("regex-compiled", () => UrlRegex(compiled.Value, text)),
@@ -95,11 +141,14 @@ static partial class Stand
 		}
 	}
 
-	static int UrlGenerated(string text)
-	{
-		if (!UriReference.TryParse(text, out var url))
-			return 0;
+	static int UrlHand(string text) =>
+		HandUrl.TryParseReference(text, out var url, out _) ? UrlLength(url!) : 0;
 
+	static int UrlGenerated(string text) =>
+		UriReference.TryParse(text, out var url) ? UrlLength(url) : 0;
+
+	static int UrlLength(UriReference url)
+	{
 		return (url.Scheme?.Length ?? 0) + (url.UserInfo?.Length ?? 0) + (url.Host?.Length ?? 0) +
 			(url.Port?.Length ?? 0) + url.Path.Length + (url.Query?.Length ?? 0) + (url.Fragment?.Length ?? 0);
 	}
@@ -121,7 +170,11 @@ static partial class Stand
 	static string? UrlDisagreement(Regex regex, string text)
 	{
 		var accepted = UriReference.TryParse(text, out var url);
+		var byHand   = HandUrl.TryParseReference(text, out var hand, out _);
 		var match    = regex.Match(text);
+
+		if (accepted != byHand || (accepted && !Equals(url, hand)))
+			return $"  '{text}': the generated parser {(accepted ? "reads" : "refuses")} it, the hand parser {(byHand ? "reads" : "refuses")} it, and they {(accepted && byHand ? "do not read the same" : "differ")}";
 
 		if (accepted != match.Success)
 			return $"  '{text}': the RFC 3986 parser {(accepted ? "accepts" : "refuses")} it, the pattern {(match.Success ? "accepts" : "refuses")}";
@@ -172,6 +225,7 @@ static partial class Stand
 			yield return Web(
 				name,
 				[
+					new Reading("hand",           () => TimestampHand(text)),
 					new Reading("generated",      () => TimestampGenerated(text)),
 					new Reading("regex",          () => TimestampRegex(interpreted.Value, text, out _)),
 					new Reading("regex-compiled", () => TimestampRegex(compiled.Value, text, out _)),
@@ -180,11 +234,14 @@ static partial class Stand
 		}
 	}
 
-	static int TimestampGenerated(string text)
-	{
-		if (!Timestamp.TryParse(text, out var timestamp))
-			return 0;
+	static int TimestampHand(string text) =>
+		HandDateTime.TryParseTimestamp(text, out var timestamp, out _) ? TimestampLength(timestamp!) : 0;
 
+	static int TimestampGenerated(string text) =>
+		Timestamp.TryParse(text, out var timestamp) ? TimestampLength(timestamp) : 0;
+
+	static int TimestampLength(Timestamp timestamp)
+	{
 		var (date, time) = (timestamp.Date, timestamp.Time);
 
 		return date.Year + date.Month + date.Day + time.Hour + time.Minute + time.Second +
@@ -221,7 +278,11 @@ static partial class Stand
 	static string? TimestampDisagreement(Regex regex, string text)
 	{
 		var accepted = Timestamp.TryParse(text, out var timestamp);
+		var byHand   = HandDateTime.TryParseTimestamp(text, out var hand, out _);
 		var match    = regex.Match(text);
+
+		if (accepted != byHand || (accepted && !Equals(timestamp, hand)))
+			return $"  '{text}': the generated parser {(accepted ? "reads" : "refuses")} it, the hand parser {(byHand ? "reads" : "refuses")} it, and they {(accepted && byHand ? "do not read the same" : "differ")}";
 
 		if (accepted != match.Success)
 			return $"  '{text}': the RFC 3339 parser {(accepted ? "accepts" : "refuses")} it, the pattern {(match.Success ? "accepts" : "refuses")}";
