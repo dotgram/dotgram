@@ -2405,6 +2405,20 @@ not answer it, since it wants the length, which is what the reading is for. Lazy
 acceptance criterion, not a later step: a script of thousands of statements read one at a time is
 the case. §6.3 also gains a sentence on what `eof` means from a position (the end of the input; in
 the window form, the end of the window); the follow is seeded with End, and no second seed.
+**The lazy tokens, decided 2026-09-19 after expr reconsidered his own design.** The loop costs the
+square today — a T-SQL script read a statement at a time is 56 µs, 1.9 ms, 30.3 ms at 10, 100 and
+400 statements — because every positional call tokenizes the whole input. Tokens made as they are
+asked for would be correct by construction but give a split grammar a second rendering for its
+positional forms, and T-SQL's file is 14.5 MB already; a doubling window stays refused, since a
+negative lookahead peeking past the edge answers the other way. So the tokenization is kept
+between calls, which is the same eager tokenization and therefore the same answers, and makes the
+loop linear: two slots per thread, for strings only — an array the caller may rewrite is not
+cached — the input held weakly so that a large document is not pinned, the tokens dropped when
+another input arrives. Two slots because a host may alternate between documents and because a
+parse inside a factory would otherwise evict the outer reading's tokens and bring the square back.
+A scaling test holds the loop linear. What it does not answer, and the design says so, is one short
+reading out of a huge text; tokens on demand stay written down as the answer if that case ever
+arrives.
 
 ## D19. What 0.2.0 owes before it is cut
 
