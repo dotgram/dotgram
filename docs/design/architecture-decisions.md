@@ -1069,6 +1069,15 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   The JIT's view of the `eof` lean (stand): with the body merged into one method, the string path's
   hot code grows 55% while the byte path's shrinks 24% — the shape of that method is
   performance-ff's to settle in the stack.
+  **The stack measured (stand, window 36), FIX's string form per field:** main 95.6 ns; with `eof`
+  62.7; with no ways where nothing opens one 63.5; with the recovering element kept a method of its
+  own 49.5 — against the hand parser's 60.8 in the same run. **The generated FIX parser reads a
+  string 19% faster than the hand-written one**, -48% a field, one field 151 to 81 ns. The promise
+  was 38-46 and is missed by a few nanoseconds: under PGO=0 the last two read the same, 78.3, so
+  the last step is the tiered JIT's and not the emitted code's. Lands as one stack, `eof` carried
+  with its author. The byte rows stay at 1.65x the hand parser: the in-place array goes the
+  buffered path, on the tape until C4c, which is next. The rest to the target (the field's and the
+  tag's constructions, the stack's push) after it, with an anatomy.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
