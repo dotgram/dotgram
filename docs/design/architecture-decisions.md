@@ -197,6 +197,28 @@ had shown +10-13% where the paired run showed +4% steady, and once the cause was
 the paired form is what a before/after is quoted from. Over SQL it compares acceptance and not
 trees, since types from two contexts are never equal.
 
+**The full baseline of 2026-09-18 evening (stand, medians of five, every family; the doc is
+`docs/design/stand-2026-09-18b.md` with the raw results).** What it settled:
+- Every generated-to-hand ratio is quoted **with default tiered PGO**, and the PGO=0 run is kept
+  as its twin, never mixed in. Without PGO the hand parsers slow by +38% at the median (up to
+  +146%), generated readings by +23%, ScriptDom by +64..85%, so the ratios shrink (FIX one field
+  2.54x to 2.27x, a plain URL 1.72x to 1.03x, an SQL literal 8.0x to 5.9x); 79 of 127 readings
+  move by a tenth or more. The hand parsers profit from dynamic PGO more than the generated code
+  does — small monomorphic methods against large ones — which is a question for the shape of
+  the code C2 emits, open.
+- T-SQL against ScriptDom, default PGO: the generated parser at 0.28-0.55 of ScriptDom's time
+  (located 0.42-0.67), 1.8-3.6x faster, allocating 3.3-13 KB against 48-138 KB. These replace the
+  single-row BenchmarkDotNet figures in `benchmarks/README.md` as the quoted comparison.
+- Regex, for the record Igor asked for: a regex that only splits FIX into tag and value costs
+  1.3-2.1x the hand parser (compiled 1.0-1.7x), about what the generated parser costs; a URL by
+  regex 6-12x the hand parser (compiled 2.4-4.1x) where the generated one is 1.4-1.9x; a
+  date-time by regex 11-17x.
+- The generator-time gate against the morning base: T-SQL +47% (4.1 to 6.0 s), located +43%,
+  the generator's own grammar +187% (67 to 194 ms). A bisection by pinned builds names the
+  commit; until then no analysis change lands without its own generation-time figure.
+- Rows whose spread forbids a verdict below it: an SQL literal 44%, EL interpolation 52%, an
+  early EL refusal 45%, FIX slope-4 22%.
+
 ## D5. A stream is read without holding it
 
 Decided 2026-09-17 by Igor: streaming exists to process volumes larger than memory, so a
