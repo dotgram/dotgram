@@ -1,20 +1,35 @@
 ﻿using System;
+using System.Threading;
 
 namespace DotGram.Finance.Fix;
 
 static class FixSchema
 {
+	// Each component, group, message and code set is a slot filled the first time it is asked for,
+	// not a field the static constructor fills: 447 array initializers in one constructor were
+	// 82 KB of IL, compiled at the message layer's first touch whether it needed one of them or
+	// all. A slot's property is its own small method, compiled when it is first read.
+	//
+	// Two threads may both find a slot empty and each build its array; the first to publish wins
+	// and both return that one, because FixSemantics keys a cache by the array itself.
+	static T[] Publish<T>(ref T[]? slot, T[] made)
+	{
+		return Interlocked.CompareExchange(ref slot, made, null) ?? made;
+	}
+
 	// CommissionData
-	static readonly SchemaRef[] C1000 =
+	static SchemaRef[]? c1000;
+	static SchemaRef[] C1000 => c1000 ?? Publish(ref c1000,
 	[
 		new SchemaRef(12,  false, 0), // Commission
 		new SchemaRef(13,  false, 0), // CommType
 		new SchemaRef(479, false, 0), // CommCurrency
 		new SchemaRef(497, false, 0)  // FundRenewWaiv
-	];
+	]);
 
 	// DiscretionInstructions
-	static readonly SchemaRef[] C1001 =
+	static SchemaRef[]? c1001;
+	static SchemaRef[] C1001 => c1001 ?? Publish(ref c1001,
 	[
 		new SchemaRef(388, false, 0), // DiscretionInst
 		new SchemaRef(389, false, 0), // DiscretionOffsetValue
@@ -23,10 +38,11 @@ static class FixSchema
 		new SchemaRef(843, false, 0), // DiscretionLimitType
 		new SchemaRef(844, false, 0), // DiscretionRoundDirection
 		new SchemaRef(846, false, 0), // DiscretionScope
-	];
+	]);
 
 	// FinancingDetails
-	static readonly SchemaRef[] C1002 =
+	static SchemaRef[]? c1002;
+	static SchemaRef[] C1002 => c1002 ?? Publish(ref c1002,
 	[
 		new SchemaRef(913, false, 0), // AgreementDesc
 		new SchemaRef(914, false, 0), // AgreementID
@@ -37,10 +53,11 @@ static class FixSchema
 		new SchemaRef(917, false, 0), // EndDate
 		new SchemaRef(919, false, 0), // DeliveryType
 		new SchemaRef(898, false, 0), // MarginRatio
-	];
+	]);
 
 	// Instrument
-	static readonly SchemaRef[] C1003 =
+	static SchemaRef[]? c1003;
+	static SchemaRef[] C1003 => c1003 ?? Publish(ref c1003,
 	[
 		new SchemaRef(55, false, 0), // Symbol
 		new SchemaRef(65, false, 0), // SymbolSfx
@@ -85,18 +102,20 @@ static class FixSchema
 		new SchemaRef(2070, false, 2), // EvntGrp
 		new SchemaRef(873, false, 0), // DatedDate
 		new SchemaRef(874, false, 0), // InterestAccrualDate
-	];
+	]);
 
 	// InstrumentExtension
-	static readonly SchemaRef[] C1004 =
+	static SchemaRef[]? c1004;
+	static SchemaRef[] C1004 => c1004 ?? Publish(ref c1004,
 	[
 		new SchemaRef(668, false, 0), // DeliveryForm
 		new SchemaRef(869, false, 0), // PctAtRisk
 		new SchemaRef(2074, false, 2), // AttrbGrp
-	];
+	]);
 
 	// InstrumentLeg
-	static readonly SchemaRef[] C1005 =
+	static SchemaRef[]? c1005;
+	static SchemaRef[] C1005 => c1005 ?? Publish(ref c1005,
 	[
 		new SchemaRef(600, false, 0), // LegSymbol
 		new SchemaRef(601, false, 0), // LegSymbolSfx
@@ -140,30 +159,33 @@ static class FixSchema
 		new SchemaRef(739, false, 0), // LegDatedDate
 		new SchemaRef(955, false, 0), // LegContractSettlMonth
 		new SchemaRef(956, false, 0), // LegInterestAccrualDate
-	];
+	]);
 
 	// LegBenchmarkCurveData
-	static readonly SchemaRef[] C1006 =
+	static SchemaRef[]? c1006;
+	static SchemaRef[] C1006 => c1006 ?? Publish(ref c1006,
 	[
 		new SchemaRef(676, false, 0), // LegBenchmarkCurveCurrency
 		new SchemaRef(677, false, 0), // LegBenchmarkCurveName
 		new SchemaRef(678, false, 0), // LegBenchmarkCurvePoint
 		new SchemaRef(679, false, 0), // LegBenchmarkPrice
 		new SchemaRef(680, false, 0), // LegBenchmarkPriceType
-	];
+	]);
 
 	// OrderQtyData
-	static readonly SchemaRef[] C1011 =
+	static SchemaRef[]? c1011;
+	static SchemaRef[] C1011 => c1011 ?? Publish(ref c1011,
 	[
 		new SchemaRef(38, false, 0), // OrderQty
 		new SchemaRef(152, false, 0), // CashOrderQty
 		new SchemaRef(516, false, 0), // OrderPercent
 		new SchemaRef(468, false, 0), // RoundingDirection
 		new SchemaRef(469, false, 0), // RoundingModulus
-	];
+	]);
 
 	// PegInstructions
-	static readonly SchemaRef[] C1013 =
+	static SchemaRef[]? c1013;
+	static SchemaRef[] C1013 => c1013 ?? Publish(ref c1013,
 	[
 		new SchemaRef(211, false, 0), // PegOffsetValue
 		new SchemaRef(835, false, 0), // PegMoveType
@@ -171,20 +193,22 @@ static class FixSchema
 		new SchemaRef(837, false, 0), // PegLimitType
 		new SchemaRef(838, false, 0), // PegRoundDirection
 		new SchemaRef(840, false, 0), // PegScope
-	];
+	]);
 
 	// SettlInstructionsData
-	static readonly SchemaRef[] C1016 =
+	static SchemaRef[]? c1016;
+	static SchemaRef[] C1016 => c1016 ?? Publish(ref c1016,
 	[
 		new SchemaRef(172, false, 0), // SettlDeliveryType
 		new SchemaRef(169, false, 0), // StandInstDbType
 		new SchemaRef(170, false, 0), // StandInstDbName
 		new SchemaRef(171, false, 0), // StandInstDbID
 		new SchemaRef(2075, false, 2), // DlvyInstGrp
-	];
+	]);
 
 	// SpreadOrBenchmarkCurveData
-	static readonly SchemaRef[] C1018 =
+	static SchemaRef[]? c1018;
+	static SchemaRef[] C1018 => c1018 ?? Publish(ref c1018,
 	[
 		new SchemaRef(218, false, 0), // Spread
 		new SchemaRef(220, false, 0), // BenchmarkCurveCurrency
@@ -194,10 +218,11 @@ static class FixSchema
 		new SchemaRef(663, false, 0), // BenchmarkPriceType
 		new SchemaRef(699, false, 0), // BenchmarkSecurityID
 		new SchemaRef(761, false, 0), // BenchmarkSecurityIDSource
-	];
+	]);
 
 	// UnderlyingInstrument
-	static readonly SchemaRef[] C1021 =
+	static SchemaRef[]? c1021;
+	static SchemaRef[] C1021 => c1021 ?? Publish(ref c1021,
 	[
 		new SchemaRef(311, false, 0), // UnderlyingSymbol
 		new SchemaRef(312, false, 0), // UnderlyingSymbolSfx
@@ -246,10 +271,11 @@ static class FixSchema
 		new SchemaRef(885, false, 0), // UnderlyingCurrentValue
 		new SchemaRef(886, false, 0), // UnderlyingEndValue
 		new SchemaRef(1023, false, 2), // UnderlyingStipulations
-	];
+	]);
 
 	// YieldData
-	static readonly SchemaRef[] C1022 =
+	static SchemaRef[]? c1022;
+	static SchemaRef[] C1022 => c1022 ?? Publish(ref c1022,
 	[
 		new SchemaRef(235, false, 0), // YieldType
 		new SchemaRef(236, false, 0), // Yield
@@ -257,10 +283,11 @@ static class FixSchema
 		new SchemaRef(696, false, 0), // YieldRedemptionDate
 		new SchemaRef(697, false, 0), // YieldRedemptionPrice
 		new SchemaRef(698, false, 0), // YieldRedemptionPriceType
-	];
+	]);
 
 	// StandardHeader
-	static readonly SchemaRef[] C1024 =
+	static SchemaRef[]? c1024;
+	static SchemaRef[] C1024 => c1024 ?? Publish(ref c1024,
 	[
 		new SchemaRef(   8, true,  0), // BeginString
 		new SchemaRef(   9, true,  0), // BodyLength
@@ -289,117 +316,131 @@ static class FixSchema
 		new SchemaRef( 347, false, 0), // MessageEncoding
 		new SchemaRef( 369, false, 0), // LastMsgSeqNumProcessed
 		new SchemaRef(2085, false, 2), // HopGrp
-	];
+	]);
 
 	// StandardTrailer
-	static readonly SchemaRef[] C1025 =
+	static SchemaRef[]? c1025;
+	static SchemaRef[] C1025 => c1025 ?? Publish(ref c1025,
 	[
 		new SchemaRef(93, false, 0), // SignatureLength
 		new SchemaRef(89, false, 0), // Signature
 		new SchemaRef(10, true, 0), // CheckSum
-	];
+	]);
 
 	// LegStipulations
-	static readonly SchemaRef[] G1007 =
+	static SchemaRef[]? g1007;
+	static SchemaRef[] G1007 => g1007 ?? Publish(ref g1007,
 	[
 		new SchemaRef(688, false, 0), // LegStipulationType
 		new SchemaRef(689, false, 0), // LegStipulationValue
-	];
+	]);
 
 	// NestedParties
-	static readonly SchemaRef[] G1008 =
+	static SchemaRef[]? g1008;
+	static SchemaRef[] G1008 => g1008 ?? Publish(ref g1008,
 	[
 		new SchemaRef(524, false, 0), // NestedPartyID
 		new SchemaRef(525, false, 0), // NestedPartyIDSource
 		new SchemaRef(538, false, 0), // NestedPartyRole
 		new SchemaRef(2078, false, 2), // NstdPtysSubGrp
-	];
+	]);
 
 	// NestedParties2
-	static readonly SchemaRef[] G1009 =
+	static SchemaRef[]? g1009;
+	static SchemaRef[] G1009 => g1009 ?? Publish(ref g1009,
 	[
 		new SchemaRef(757, false, 0), // Nested2PartyID
 		new SchemaRef(758, false, 0), // Nested2PartyIDSource
 		new SchemaRef(759, false, 0), // Nested2PartyRole
 		new SchemaRef(2079, false, 2), // NstdPtys2SubGrp
-	];
+	]);
 
 	// NestedParties3
-	static readonly SchemaRef[] G1010 =
+	static SchemaRef[]? g1010;
+	static SchemaRef[] G1010 => g1010 ?? Publish(ref g1010,
 	[
 		new SchemaRef(949, false, 0), // Nested3PartyID
 		new SchemaRef(950, false, 0), // Nested3PartyIDSource
 		new SchemaRef(951, false, 0), // Nested3PartyRole
 		new SchemaRef(2080, false, 2), // NstdPtys3SubGrp
-	];
+	]);
 
 	// Parties
-	static readonly SchemaRef[] G1012 =
+	static SchemaRef[]? g1012;
+	static SchemaRef[] G1012 => g1012 ?? Publish(ref g1012,
 	[
 		new SchemaRef( 448, false, 0), // PartyID
 		new SchemaRef( 447, false, 0), // PartyIDSource
 		new SchemaRef( 452, false, 0), // PartyRole
 		new SchemaRef(2077, false, 2), // PtysSubGrp
-	];
+	]);
 
 	// PositionAmountData
-	static readonly SchemaRef[] G1014 =
+	static SchemaRef[]? g1014;
+	static SchemaRef[] G1014 => g1014 ?? Publish(ref g1014,
 	[
 		new SchemaRef(707, false, 0), // PosAmtType
 		new SchemaRef(708, false, 0), // PosAmt
-	];
+	]);
 
 	// PositionQty
-	static readonly SchemaRef[] G1015 =
+	static SchemaRef[]? g1015;
+	static SchemaRef[] G1015 => g1015 ?? Publish(ref g1015,
 	[
 		new SchemaRef( 703, false, 0), // PosType
 		new SchemaRef( 704, false, 0), // LongQty
 		new SchemaRef( 705, false, 0), // ShortQty
 		new SchemaRef( 706, false, 0), // PosQtyStatus
 		new SchemaRef(1008, false, 2), // NestedParties
-	];
+	]);
 
 	// SettlParties
-	static readonly SchemaRef[] G1017 =
+	static SchemaRef[]? g1017;
+	static SchemaRef[] G1017 => g1017 ?? Publish(ref g1017,
 	[
 		new SchemaRef( 782, false, 0), // SettlPartyID
 		new SchemaRef( 783, false, 0), // SettlPartyIDSource
 		new SchemaRef( 784, false, 0), // SettlPartyRole
 		new SchemaRef(2076, false, 2), // SettlPtysSubGrp
-	];
+	]);
 
 	// Stipulations
-	static readonly SchemaRef[] G1019 =
+	static SchemaRef[]? g1019;
+	static SchemaRef[] G1019 => g1019 ?? Publish(ref g1019,
 	[
 		new SchemaRef(233, false, 0), // StipulationType
 		new SchemaRef(234, false, 0), // StipulationValue
-	];
+	]);
 
 	// TrdRegTimestamps
-	static readonly SchemaRef[] G1020 =
+	static SchemaRef[]? g1020;
+	static SchemaRef[] G1020 => g1020 ?? Publish(ref g1020,
 	[
 		new SchemaRef(769, false, 0), // TrdRegTimestamp
 		new SchemaRef(770, false, 0), // TrdRegTimestampType
 		new SchemaRef(771, false, 0), // TrdRegTimestampOrigin
-	];
+	]);
 
 	// UnderlyingStipulations
-	static readonly SchemaRef[] G1023 =
+	static SchemaRef[]? g1023;
+	static SchemaRef[] G1023 => g1023 ?? Publish(ref g1023,
 	[
 		new SchemaRef(888, false, 0), // UnderlyingStipType
 		new SchemaRef(889, false, 0), // UnderlyingStipValue
-	];
+	]);
 
 	// AffectedOrdGrp
-	static readonly SchemaRef[] G2001 =
+	static SchemaRef[]? g2001;
+	static SchemaRef[] G2001 => g2001 ?? Publish(ref g2001,
 	[
 		new SchemaRef(41, false, 0), // OrigClOrdID
 		new SchemaRef(535, false, 0), // AffectedOrderID
 		new SchemaRef(536, false, 0), // AffectedSecondaryOrderID
-	];
+	]);
 
 	// AllocAckGrp
-	static readonly SchemaRef[] G2002 =
+	static SchemaRef[]? g2002;
+	static SchemaRef[] G2002 => g2002 ?? Publish(ref g2002,
 	[
 		new SchemaRef(79, false, 0), // AllocAccount
 		new SchemaRef(661, false, 0), // AllocAcctIDSource
@@ -409,10 +450,11 @@ static class FixSchema
 		new SchemaRef(161, false, 0), // AllocText
 		new SchemaRef(360, false, 0), // EncodedAllocTextLen
 		new SchemaRef(361, false, 0), // EncodedAllocText
-	];
+	]);
 
 	// AllocGrp
-	static readonly SchemaRef[] G2003 =
+	static SchemaRef[]? g2003;
+	static SchemaRef[] G2003 => g2003 ?? Publish(ref g2003,
 	[
 		new SchemaRef(79, false, 0), // AllocAccount
 		new SchemaRef(661, false, 0), // AllocAcctIDSource
@@ -442,10 +484,11 @@ static class FixSchema
 		new SchemaRef(2007, false, 2), // ClrInstGrp
 		new SchemaRef(780, false, 0), // AllocSettlInstType
 		new SchemaRef(1016, false, 1), // SettlInstructionsData
-	];
+	]);
 
 	// BidCompReqGrp
-	static readonly SchemaRef[] G2004 =
+	static SchemaRef[]? g2004;
+	static SchemaRef[] G2004 => g2004 ?? Publish(ref g2004,
 	[
 		new SchemaRef(66, false, 0), // ListID
 		new SchemaRef(54, false, 0), // Side
@@ -456,10 +499,11 @@ static class FixSchema
 		new SchemaRef(64, false, 0), // SettlDate
 		new SchemaRef(1, false, 0), // Account
 		new SchemaRef(660, false, 0), // AcctIDSource
-	];
+	]);
 
 	// BidCompRspGrp
-	static readonly SchemaRef[] G2005 =
+	static SchemaRef[]? g2005;
+	static SchemaRef[] G2005 => g2005 ?? Publish(ref g2005,
 	[
 		new SchemaRef(1000, true, 1), // CommissionData
 		new SchemaRef(66, false, 0), // ListID
@@ -476,10 +520,11 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// BidDescReqGrp
-	static readonly SchemaRef[] G2006 =
+	static SchemaRef[]? g2006;
+	static SchemaRef[] G2006 => g2006 ?? Publish(ref g2006,
 	[
 		new SchemaRef(399, false, 0), // BidDescriptorType
 		new SchemaRef(400, false, 0), // BidDescriptor
@@ -492,31 +537,35 @@ static class FixSchema
 		new SchemaRef(406, false, 0), // FairValue
 		new SchemaRef(407, false, 0), // OutsideIndexPct
 		new SchemaRef(408, false, 0), // ValueOfFutures
-	];
+	]);
 
 	// ClrInstGrp
-	static readonly SchemaRef[] G2007 =
+	static SchemaRef[]? g2007;
+	static SchemaRef[] G2007 => g2007 ?? Publish(ref g2007,
 	[
 		new SchemaRef(577, false, 0), // ClearingInstruction
-	];
+	]);
 
 	// CollInqQualGrp
-	static readonly SchemaRef[] G2008 =
+	static SchemaRef[]? g2008;
+	static SchemaRef[] G2008 => g2008 ?? Publish(ref g2008,
 	[
 		new SchemaRef(896, false, 0), // CollInquiryQualifier
-	];
+	]);
 
 	// CompIDReqGrp
-	static readonly SchemaRef[] G2009 =
+	static SchemaRef[]? g2009;
+	static SchemaRef[] G2009 => g2009 ?? Publish(ref g2009,
 	[
 		new SchemaRef(930, false, 0), // RefCompID
 		new SchemaRef(931, false, 0), // RefSubID
 		new SchemaRef(283, false, 0), // LocationID
 		new SchemaRef(284, false, 0), // DeskID
-	];
+	]);
 
 	// CompIDStatGrp
-	static readonly SchemaRef[] G2010 =
+	static SchemaRef[]? g2010;
+	static SchemaRef[] G2010 => g2010 ?? Publish(ref g2010,
 	[
 		new SchemaRef(930, false, 0), // RefCompID
 		new SchemaRef(931, false, 0), // RefSubID
@@ -524,36 +573,40 @@ static class FixSchema
 		new SchemaRef(284, false, 0), // DeskID
 		new SchemaRef(928, false, 0), // StatusValue
 		new SchemaRef(929, false, 0), // StatusText
-	];
+	]);
 
 	// ContAmtGrp
-	static readonly SchemaRef[] G2011 =
+	static SchemaRef[]? g2011;
+	static SchemaRef[] G2011 => g2011 ?? Publish(ref g2011,
 	[
 		new SchemaRef(519, false, 0), // ContAmtType
 		new SchemaRef(520, false, 0), // ContAmtValue
 		new SchemaRef(521, false, 0), // ContAmtCurr
-	];
+	]);
 
 	// ContraGrp
-	static readonly SchemaRef[] G2012 =
+	static SchemaRef[]? g2012;
+	static SchemaRef[] G2012 => g2012 ?? Publish(ref g2012,
 	[
 		new SchemaRef(375, false, 0), // ContraBroker
 		new SchemaRef(337, false, 0), // ContraTrader
 		new SchemaRef(437, false, 0), // ContraTradeQty
 		new SchemaRef(438, false, 0), // ContraTradeTime
 		new SchemaRef(655, false, 0), // ContraLegRefID
-	];
+	]);
 
 	// CpctyConfGrp
-	static readonly SchemaRef[] G2013 =
+	static SchemaRef[]? g2013;
+	static SchemaRef[] G2013 => g2013 ?? Publish(ref g2013,
 	[
 		new SchemaRef(528, true, 0), // OrderCapacity
 		new SchemaRef(529, false, 0), // OrderRestrictions
 		new SchemaRef(863, true, 0), // OrderCapacityQty
-	];
+	]);
 
 	// ExecAllocGrp
-	static readonly SchemaRef[] G2014 =
+	static SchemaRef[]? g2014;
+	static SchemaRef[] G2014 => g2014 ?? Publish(ref g2014,
 	[
 		new SchemaRef(32, false, 0), // LastQty
 		new SchemaRef(17, false, 0), // ExecID
@@ -561,28 +614,32 @@ static class FixSchema
 		new SchemaRef(31, false, 0), // LastPx
 		new SchemaRef(669, false, 0), // LastParPx
 		new SchemaRef(29, false, 0), // LastCapacity
-	];
+	]);
 
 	// ExecCollGrp
-	static readonly SchemaRef[] G2015 =
+	static SchemaRef[]? g2015;
+	static SchemaRef[] G2015 => g2015 ?? Publish(ref g2015,
 	[
 		new SchemaRef(17, false, 0), // ExecID
-	];
+	]);
 
 	// ExecsGrp
-	static readonly SchemaRef[] G2016 =
+	static SchemaRef[]? g2016;
+	static SchemaRef[] G2016 => g2016 ?? Publish(ref g2016,
 	[
 		new SchemaRef(17, false, 0), // ExecID
-	];
+	]);
 
 	// InstrmtGrp
-	static readonly SchemaRef[] G2017 =
+	static SchemaRef[]? g2017;
+	static SchemaRef[] G2017 => g2017 ?? Publish(ref g2017,
 	[
 		new SchemaRef(1003, false, 1), // Instrument
-	];
+	]);
 
 	// InstrmtLegExecGrp
-	static readonly SchemaRef[] G2018 =
+	static SchemaRef[]? g2018;
+	static SchemaRef[] G2018 => g2018 ?? Publish(ref g2018,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(687, false, 0), // LegQty
@@ -596,54 +653,61 @@ static class FixSchema
 		new SchemaRef(587, false, 0), // LegSettlType
 		new SchemaRef(588, false, 0), // LegSettlDate
 		new SchemaRef(637, false, 0), // LegLastPx
-	];
+	]);
 
 	// InstrmtLegGrp
-	static readonly SchemaRef[] G2019 =
+	static SchemaRef[]? g2019;
+	static SchemaRef[] G2019 => g2019 ?? Publish(ref g2019,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
-	];
+	]);
 
 	// InstrmtLegIOIGrp
-	static readonly SchemaRef[] G2020 =
+	static SchemaRef[]? g2020;
+	static SchemaRef[] G2020 => g2020 ?? Publish(ref g2020,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(682, false, 0), // LegIOIQty
 		new SchemaRef(1007, false, 2), // LegStipulations
-	];
+	]);
 
 	// InstrmtLegSecListGrp
-	static readonly SchemaRef[] G2021 =
+	static SchemaRef[]? g2021;
+	static SchemaRef[] G2021 => g2021 ?? Publish(ref g2021,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(690, false, 0), // LegSwapType
 		new SchemaRef(587, false, 0), // LegSettlType
 		new SchemaRef(1007, false, 2), // LegStipulations
 		new SchemaRef(1006, false, 1), // LegBenchmarkCurveData
-	];
+	]);
 
 	// InstrmtMDReqGrp
-	static readonly SchemaRef[] G2022 =
+	static SchemaRef[]? g2022;
+	static SchemaRef[] G2022 => g2022 ?? Publish(ref g2022,
 	[
 		new SchemaRef(1003, true, 1), // Instrument
 		new SchemaRef(2066, false, 2), // UndInstrmtGrp
 		new SchemaRef(2019, false, 2), // InstrmtLegGrp
-	];
+	]);
 
 	// InstrmtStrkPxGrp
-	static readonly SchemaRef[] G2023 =
+	static SchemaRef[]? g2023;
+	static SchemaRef[] G2023 => g2023 ?? Publish(ref g2023,
 	[
 		new SchemaRef(1003, true, 1), // Instrument
-	];
+	]);
 
 	// IOIQualGrp
-	static readonly SchemaRef[] G2024 =
+	static SchemaRef[]? g2024;
+	static SchemaRef[] G2024 => g2024 ?? Publish(ref g2024,
 	[
 		new SchemaRef(104, false, 0), // IOIQualifier
-	];
+	]);
 
 	// LegOrdGrp
-	static readonly SchemaRef[] G2025 =
+	static SchemaRef[]? g2025;
+	static SchemaRef[] G2025 => g2025 ?? Publish(ref g2025,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(687, false, 0), // LegQty
@@ -657,10 +721,11 @@ static class FixSchema
 		new SchemaRef(566, false, 0), // LegPrice
 		new SchemaRef(587, false, 0), // LegSettlType
 		new SchemaRef(588, false, 0), // LegSettlDate
-	];
+	]);
 
 	// LegPreAllocGrp
-	static readonly SchemaRef[] G2026 =
+	static SchemaRef[]? g2026;
+	static SchemaRef[] G2026 => g2026 ?? Publish(ref g2026,
 	[
 		new SchemaRef(671, false, 0), // LegAllocAccount
 		new SchemaRef(672, false, 0), // LegIndividualAllocID
@@ -668,10 +733,11 @@ static class FixSchema
 		new SchemaRef(673, false, 0), // LegAllocQty
 		new SchemaRef(674, false, 0), // LegAllocAcctIDSource
 		new SchemaRef(675, false, 0), // LegSettlCurrency
-	];
+	]);
 
 	// LegQuotGrp
-	static readonly SchemaRef[] G2027 =
+	static SchemaRef[]? g2027;
+	static SchemaRef[] G2027 => g2027 ?? Publish(ref g2027,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(687, false, 0), // LegQty
@@ -684,10 +750,11 @@ static class FixSchema
 		new SchemaRef(681, false, 0), // LegBidPx
 		new SchemaRef(684, false, 0), // LegOfferPx
 		new SchemaRef(1006, false, 1), // LegBenchmarkCurveData
-	];
+	]);
 
 	// LegQuotStatGrp
-	static readonly SchemaRef[] G2028 =
+	static SchemaRef[]? g2028;
+	static SchemaRef[] G2028 => g2028 ?? Publish(ref g2028,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(687, false, 0), // LegQty
@@ -696,18 +763,20 @@ static class FixSchema
 		new SchemaRef(588, false, 0), // LegSettlDate
 		new SchemaRef(1007, false, 2), // LegStipulations
 		new SchemaRef(1008, false, 2), // NestedParties
-	];
+	]);
 
 	// LinesOfTextGrp
-	static readonly SchemaRef[] G2029 =
+	static SchemaRef[]? g2029;
+	static SchemaRef[] G2029 => g2029 ?? Publish(ref g2029,
 	[
 		new SchemaRef(58, true, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// ListOrdGrp
-	static readonly SchemaRef[] G2030 =
+	static SchemaRef[]? g2030;
+	static SchemaRef[] G2030 => g2030 ?? Publish(ref g2030,
 	[
 		new SchemaRef(11, true, 0), // ClOrdID
 		new SchemaRef(526, false, 0), // SecondaryClOrdID
@@ -784,10 +853,11 @@ static class FixSchema
 		new SchemaRef(848, false, 0), // TargetStrategyParameters
 		new SchemaRef(849, false, 0), // ParticipationRate
 		new SchemaRef(494, false, 0), // Designation
-	];
+	]);
 
 	// MDFullGrp
-	static readonly SchemaRef[] G2031 =
+	static SchemaRef[]? g2031;
+	static SchemaRef[] G2031 => g2031 ?? Publish(ref g2031,
 	[
 		new SchemaRef(269, true, 0), // MDEntryType
 		new SchemaRef(270, false, 0), // MDEntryPx
@@ -822,10 +892,11 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// MDIncGrp
-	static readonly SchemaRef[] G2032 =
+	static SchemaRef[]? g2032;
+	static SchemaRef[] G2032 => g2032 ?? Publish(ref g2032,
 	[
 		new SchemaRef(279, true, 0), // MDUpdateAction
 		new SchemaRef(285, false, 0), // DeleteReason
@@ -870,31 +941,35 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// MDReqGrp
-	static readonly SchemaRef[] G2033 =
+	static SchemaRef[]? g2033;
+	static SchemaRef[] G2033 => g2033 ?? Publish(ref g2033,
 	[
 		new SchemaRef(269, true, 0), // MDEntryType
-	];
+	]);
 
 	// MDRjctGrp
-	static readonly SchemaRef[] G2034 =
+	static SchemaRef[]? g2034;
+	static SchemaRef[] G2034 => g2034 ?? Publish(ref g2034,
 	[
 		new SchemaRef(817, false, 0), // AltMDSourceID
-	];
+	]);
 
 	// MiscFeesGrp
-	static readonly SchemaRef[] G2035 =
+	static SchemaRef[]? g2035;
+	static SchemaRef[] G2035 => g2035 ?? Publish(ref g2035,
 	[
 		new SchemaRef(137, false, 0), // MiscFeeAmt
 		new SchemaRef(138, false, 0), // MiscFeeCurr
 		new SchemaRef(139, false, 0), // MiscFeeType
 		new SchemaRef(891, false, 0), // MiscFeeBasis
-	];
+	]);
 
 	// OrdAllocGrp
-	static readonly SchemaRef[] G2036 =
+	static SchemaRef[]? g2036;
+	static SchemaRef[] G2036 => g2036 ?? Publish(ref g2036,
 	[
 		new SchemaRef(11, false, 0), // ClOrdID
 		new SchemaRef(37, false, 0), // OrderID
@@ -905,10 +980,11 @@ static class FixSchema
 		new SchemaRef(38, false, 0), // OrderQty
 		new SchemaRef(799, false, 0), // OrderAvgPx
 		new SchemaRef(800, false, 0), // OrderBookingQty
-	];
+	]);
 
 	// OrdListStatGrp
-	static readonly SchemaRef[] G2037 =
+	static SchemaRef[]? g2037;
+	static SchemaRef[] G2037 => g2037 ?? Publish(ref g2037,
 	[
 		new SchemaRef(11, true, 0), // ClOrdID
 		new SchemaRef(526, false, 0), // SecondaryClOrdID
@@ -922,18 +998,20 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// PosUndInstrmtGrp
-	static readonly SchemaRef[] G2038 =
+	static SchemaRef[]? g2038;
+	static SchemaRef[] G2038 => g2038 ?? Publish(ref g2038,
 	[
 		new SchemaRef(1021, false, 1), // UnderlyingInstrument
 		new SchemaRef(732, true, 0), // UnderlyingSettlPrice
 		new SchemaRef(733, true, 0), // UnderlyingSettlPriceType
-	];
+	]);
 
 	// PreAllocGrp
-	static readonly SchemaRef[] G2039 =
+	static SchemaRef[]? g2039;
+	static SchemaRef[] G2039 => g2039 ?? Publish(ref g2039,
 	[
 		new SchemaRef(79, false, 0), // AllocAccount
 		new SchemaRef(661, false, 0), // AllocAcctIDSource
@@ -941,10 +1019,11 @@ static class FixSchema
 		new SchemaRef(467, false, 0), // IndividualAllocID
 		new SchemaRef(1008, false, 2), // NestedParties
 		new SchemaRef(80, false, 0), // AllocQty
-	];
+	]);
 
 	// PreAllocMlegGrp
-	static readonly SchemaRef[] G2040 =
+	static SchemaRef[]? g2040;
+	static SchemaRef[] G2040 => g2040 ?? Publish(ref g2040,
 	[
 		new SchemaRef(79, false, 0), // AllocAccount
 		new SchemaRef(661, false, 0), // AllocAcctIDSource
@@ -952,19 +1031,21 @@ static class FixSchema
 		new SchemaRef(467, false, 0), // IndividualAllocID
 		new SchemaRef(1010, false, 2), // NestedParties3
 		new SchemaRef(80, false, 0), // AllocQty
-	];
+	]);
 
 	// QuotCxlEntriesGrp
-	static readonly SchemaRef[] G2041 =
+	static SchemaRef[]? g2041;
+	static SchemaRef[] G2041 => g2041 ?? Publish(ref g2041,
 	[
 		new SchemaRef(1003, false, 1), // Instrument
 		new SchemaRef(1002, false, 1), // FinancingDetails
 		new SchemaRef(2066, false, 2), // UndInstrmtGrp
 		new SchemaRef(2019, false, 2), // InstrmtLegGrp
-	];
+	]);
 
 	// QuotEntryAckGrp
-	static readonly SchemaRef[] G2042 =
+	static SchemaRef[]? g2042;
+	static SchemaRef[] G2042 => g2042 ?? Publish(ref g2042,
 	[
 		new SchemaRef(299, false, 0), // QuoteEntryID
 		new SchemaRef(1003, false, 1), // Instrument
@@ -993,10 +1074,11 @@ static class FixSchema
 		new SchemaRef(643, false, 0), // OfferForwardPoints2
 		new SchemaRef(15, false, 0), // Currency
 		new SchemaRef(368, false, 0), // QuoteEntryRejectReason
-	];
+	]);
 
 	// QuotEntryGrp
-	static readonly SchemaRef[] G2043 =
+	static SchemaRef[]? g2043;
+	static SchemaRef[] G2043 => g2043 ?? Publish(ref g2043,
 	[
 		new SchemaRef(299, true, 0), // QuoteEntryID
 		new SchemaRef(1003, false, 1), // Instrument
@@ -1024,16 +1106,18 @@ static class FixSchema
 		new SchemaRef(642, false, 0), // BidForwardPoints2
 		new SchemaRef(643, false, 0), // OfferForwardPoints2
 		new SchemaRef(15, false, 0), // Currency
-	];
+	]);
 
 	// QuotQualGrp
-	static readonly SchemaRef[] G2044 =
+	static SchemaRef[]? g2044;
+	static SchemaRef[] G2044 => g2044 ?? Publish(ref g2044,
 	[
 		new SchemaRef(695, false, 0), // QuoteQualifier
-	];
+	]);
 
 	// QuotReqGrp
-	static readonly SchemaRef[] G2045 =
+	static SchemaRef[]? g2045;
+	static SchemaRef[] G2045 => g2045 ?? Publish(ref g2045,
 	[
 		new SchemaRef(1003, true, 1), // Instrument
 		new SchemaRef(1002, false, 1), // FinancingDetails
@@ -1069,10 +1153,11 @@ static class FixSchema
 		new SchemaRef(640, false, 0), // Price2
 		new SchemaRef(1022, false, 1), // YieldData
 		new SchemaRef(1012, false, 2), // Parties
-	];
+	]);
 
 	// QuotReqLegsGrp
-	static readonly SchemaRef[] G2046 =
+	static SchemaRef[]? g2046;
+	static SchemaRef[] G2046 => g2046 ?? Publish(ref g2046,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(687, false, 0), // LegQty
@@ -1082,10 +1167,11 @@ static class FixSchema
 		new SchemaRef(1007, false, 2), // LegStipulations
 		new SchemaRef(1008, false, 2), // NestedParties
 		new SchemaRef(1006, false, 1), // LegBenchmarkCurveData
-	];
+	]);
 
 	// QuotReqRjctGrp
-	static readonly SchemaRef[] G2047 =
+	static SchemaRef[]? g2047;
+	static SchemaRef[] G2047 => g2047 ?? Publish(ref g2047,
 	[
 		new SchemaRef(1003, true, 1), // Instrument
 		new SchemaRef(1002, false, 1), // FinancingDetails
@@ -1120,20 +1206,22 @@ static class FixSchema
 		new SchemaRef(640, false, 0), // Price2
 		new SchemaRef(1022, false, 1), // YieldData
 		new SchemaRef(1012, false, 2), // Parties
-	];
+	]);
 
 	// QuotSetAckGrp
-	static readonly SchemaRef[] G2048 =
+	static SchemaRef[]? g2048;
+	static SchemaRef[] G2048 => g2048 ?? Publish(ref g2048,
 	[
 		new SchemaRef(302, false, 0), // QuoteSetID
 		new SchemaRef(1021, false, 1), // UnderlyingInstrument
 		new SchemaRef(304, false, 0), // TotNoQuoteEntries
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2042, false, 2), // QuotEntryAckGrp
-	];
+	]);
 
 	// QuotSetGrp
-	static readonly SchemaRef[] G2049 =
+	static SchemaRef[]? g2049;
+	static SchemaRef[] G2049 => g2049 ?? Publish(ref g2049,
 	[
 		new SchemaRef(302, true, 0), // QuoteSetID
 		new SchemaRef(1021, false, 1), // UnderlyingInstrument
@@ -1141,10 +1229,11 @@ static class FixSchema
 		new SchemaRef(304, true, 0), // TotNoQuoteEntries
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2043, true, 2), // QuotEntryGrp
-	];
+	]);
 
 	// RelSymDerivSecGrp
-	static readonly SchemaRef[] G2050 =
+	static SchemaRef[]? g2050;
+	static SchemaRef[] G2050 => g2050 ?? Publish(ref g2050,
 	[
 		new SchemaRef(1003, false, 1), // Instrument
 		new SchemaRef(15, false, 0), // Currency
@@ -1156,10 +1245,11 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// RFQReqGrp
-	static readonly SchemaRef[] G2051 =
+	static SchemaRef[]? g2051;
+	static SchemaRef[] G2051 => g2051 ?? Publish(ref g2051,
 	[
 		new SchemaRef(1003, true, 1), // Instrument
 		new SchemaRef(2066, false, 2), // UndInstrmtGrp
@@ -1169,10 +1259,11 @@ static class FixSchema
 		new SchemaRef(537, false, 0), // QuoteType
 		new SchemaRef(336, false, 0), // TradingSessionID
 		new SchemaRef(625, false, 0), // TradingSessionSubID
-	];
+	]);
 
 	// RgstDistInstGrp
-	static readonly SchemaRef[] G2052 =
+	static SchemaRef[]? g2052;
+	static SchemaRef[] G2052 => g2052 ?? Publish(ref g2052,
 	[
 		new SchemaRef(477, false, 0), // DistribPaymentMethod
 		new SchemaRef(512, false, 0), // DistribPercentage
@@ -1182,10 +1273,11 @@ static class FixSchema
 		new SchemaRef(500, false, 0), // CashDistribAgentAcctNumber
 		new SchemaRef(501, false, 0), // CashDistribPayRef
 		new SchemaRef(502, false, 0), // CashDistribAgentAcctName
-	];
+	]);
 
 	// RgstDtlsGrp
-	static readonly SchemaRef[] G2053 =
+	static SchemaRef[]? g2053;
+	static SchemaRef[] G2053 => g2053 ?? Publish(ref g2053,
 	[
 		new SchemaRef(509, false, 0), // RegistDtls
 		new SchemaRef(511, false, 0), // RegistEmail
@@ -1195,17 +1287,19 @@ static class FixSchema
 		new SchemaRef(522, false, 0), // OwnerType
 		new SchemaRef(486, false, 0), // DateOfBirth
 		new SchemaRef(475, false, 0), // InvestorCountryOfResidence
-	];
+	]);
 
 	// RoutingGrp
-	static readonly SchemaRef[] G2054 =
+	static SchemaRef[]? g2054;
+	static SchemaRef[] G2054 => g2054 ?? Publish(ref g2054,
 	[
 		new SchemaRef(216, false, 0), // RoutingType
 		new SchemaRef(217, false, 0), // RoutingID
-	];
+	]);
 
 	// SecListGrp
-	static readonly SchemaRef[] G2055 =
+	static SchemaRef[]? g2055;
+	static SchemaRef[] G2055 => g2055 ?? Publish(ref g2055,
 	[
 		new SchemaRef(1003, false, 1), // Instrument
 		new SchemaRef(1004, false, 1), // InstrumentExtension
@@ -1224,19 +1318,21 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// SecTypesGrp
-	static readonly SchemaRef[] G2056 =
+	static SchemaRef[]? g2056;
+	static SchemaRef[] G2056 => g2056 ?? Publish(ref g2056,
 	[
 		new SchemaRef(167, false, 0), // SecurityType
 		new SchemaRef(762, false, 0), // SecuritySubType
 		new SchemaRef(460, false, 0), // Product
 		new SchemaRef(461, false, 0), // CFICode
-	];
+	]);
 
 	// SettlInstGrp
-	static readonly SchemaRef[] G2057 =
+	static SchemaRef[]? g2057;
+	static SchemaRef[] G2057 => g2057 ?? Publish(ref g2057,
 	[
 		new SchemaRef(162, false, 0), // SettlInstID
 		new SchemaRef(163, false, 0), // SettlInstTransType
@@ -1259,10 +1355,11 @@ static class FixSchema
 		new SchemaRef(491, false, 0), // CardIssNum
 		new SchemaRef(504, false, 0), // PaymentDate
 		new SchemaRef(505, false, 0), // PaymentRemitterID
-	];
+	]);
 
 	// SideCrossOrdCxlGrp
-	static readonly SchemaRef[] G2058 =
+	static SchemaRef[]? g2058;
+	static SchemaRef[] G2058 => g2058 ?? Publish(ref g2058,
 	[
 		new SchemaRef(54, true, 0), // Side
 		new SchemaRef(41, true, 0), // OrigClOrdID
@@ -1278,10 +1375,11 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// SideCrossOrdModGrp
-	static readonly SchemaRef[] G2059 =
+	static SchemaRef[]? g2059;
+	static SchemaRef[] G2059 => g2059 ?? Publish(ref g2059,
 	[
 		new SchemaRef(54, true, 0), // Side
 		new SchemaRef(11, true, 0), // ClOrdID
@@ -1317,10 +1415,11 @@ static class FixSchema
 		new SchemaRef(635, false, 0), // ClearingFeeIndicator
 		new SchemaRef(377, false, 0), // SolicitedFlag
 		new SchemaRef(659, false, 0), // SideComplianceID
-	];
+	]);
 
 	// TrdAllocGrp
-	static readonly SchemaRef[] G2060 =
+	static SchemaRef[]? g2060;
+	static SchemaRef[] G2060 => g2060 ?? Publish(ref g2060,
 	[
 		new SchemaRef(79, false, 0), // AllocAccount
 		new SchemaRef(661, false, 0), // AllocAcctIDSource
@@ -1328,10 +1427,11 @@ static class FixSchema
 		new SchemaRef(467, false, 0), // IndividualAllocID
 		new SchemaRef(1009, false, 2), // NestedParties2
 		new SchemaRef(80, false, 0), // AllocQty
-	];
+	]);
 
 	// TrdCapRptSideGrp
-	static readonly SchemaRef[] G2061 =
+	static SchemaRef[]? g2061;
+	static SchemaRef[] G2061 => g2061 ?? Publish(ref g2061,
 	[
 		new SchemaRef(54, true, 0), // Side
 		new SchemaRef(37, true, 0), // OrderID
@@ -1392,17 +1492,19 @@ static class FixSchema
 		new SchemaRef(591, false, 0), // PreallocMethod
 		new SchemaRef(70, false, 0), // AllocID
 		new SchemaRef(2060, false, 2), // TrdAllocGrp
-	];
+	]);
 
 	// TrdCollGrp
-	static readonly SchemaRef[] G2062 =
+	static SchemaRef[]? g2062;
+	static SchemaRef[] G2062 => g2062 ?? Publish(ref g2062,
 	[
 		new SchemaRef(571, false, 0), // TradeReportID
 		new SchemaRef(818, false, 0), // SecondaryTradeReportID
-	];
+	]);
 
 	// TrdInstrmtLegGrp
-	static readonly SchemaRef[] G2063 =
+	static SchemaRef[]? g2063;
+	static SchemaRef[] G2063 => g2063 ?? Publish(ref g2063,
 	[
 		new SchemaRef(1005, false, 1), // InstrumentLeg
 		new SchemaRef(687, false, 0), // LegQty
@@ -1416,30 +1518,34 @@ static class FixSchema
 		new SchemaRef(587, false, 0), // LegSettlType
 		new SchemaRef(588, false, 0), // LegSettlDate
 		new SchemaRef(637, false, 0), // LegLastPx
-	];
+	]);
 
 	// TrdgSesGrp
-	static readonly SchemaRef[] G2064 =
+	static SchemaRef[]? g2064;
+	static SchemaRef[] G2064 => g2064 ?? Publish(ref g2064,
 	[
 		new SchemaRef(336, false, 0), // TradingSessionID
 		new SchemaRef(625, false, 0), // TradingSessionSubID
-	];
+	]);
 
 	// UndInstrmtCollGrp
-	static readonly SchemaRef[] G2065 =
+	static SchemaRef[]? g2065;
+	static SchemaRef[] G2065 => g2065 ?? Publish(ref g2065,
 	[
 		new SchemaRef(1021, false, 1), // UnderlyingInstrument
 		new SchemaRef(944, false, 0), // CollAction
-	];
+	]);
 
 	// UndInstrmtGrp
-	static readonly SchemaRef[] G2066 =
+	static SchemaRef[]? g2066;
+	static SchemaRef[] G2066 => g2066 ?? Publish(ref g2066,
 	[
 		new SchemaRef(1021, false, 1), // UnderlyingInstrument
-	];
+	]);
 
 	// UndInstrmtStrkPxGrp
-	static readonly SchemaRef[] G2067 =
+	static SchemaRef[]? g2067;
+	static SchemaRef[] G2067 => g2067 ?? Publish(ref g2067,
 	[
 		new SchemaRef(1021, false, 1), // UnderlyingInstrument
 		new SchemaRef(140, false, 0), // PrevClosePx
@@ -1451,137 +1557,155 @@ static class FixSchema
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
-	];
+	]);
 
 	// TrdCapDtGrp
-	static readonly SchemaRef[] G2069 =
+	static SchemaRef[]? g2069;
+	static SchemaRef[] G2069 => g2069 ?? Publish(ref g2069,
 	[
 		new SchemaRef(75, false, 0), // TradeDate
 		new SchemaRef(60, false, 0), // TransactTime
-	];
+	]);
 
 	// EvntGrp
-	static readonly SchemaRef[] G2070 =
+	static SchemaRef[]? g2070;
+	static SchemaRef[] G2070 => g2070 ?? Publish(ref g2070,
 	[
 		new SchemaRef(865, false, 0), // EventType
 		new SchemaRef(866, false, 0), // EventDate
 		new SchemaRef(867, false, 0), // EventPx
 		new SchemaRef(868, false, 0), // EventText
-	];
+	]);
 
 	// SecAltIDGrp
-	static readonly SchemaRef[] G2071 =
+	static SchemaRef[]? g2071;
+	static SchemaRef[] G2071 => g2071 ?? Publish(ref g2071,
 	[
 		new SchemaRef(455, false, 0), // SecurityAltID
 		new SchemaRef(456, false, 0), // SecurityAltIDSource
-	];
+	]);
 
 	// LegSecAltIDGrp
-	static readonly SchemaRef[] G2072 =
+	static SchemaRef[]? g2072;
+	static SchemaRef[] G2072 => g2072 ?? Publish(ref g2072,
 	[
 		new SchemaRef(605, false, 0), // LegSecurityAltID
 		new SchemaRef(606, false, 0), // LegSecurityAltIDSource
-	];
+	]);
 
 	// UndSecAltIDGrp
-	static readonly SchemaRef[] G2073 =
+	static SchemaRef[]? g2073;
+	static SchemaRef[] G2073 => g2073 ?? Publish(ref g2073,
 	[
 		new SchemaRef(458, false, 0), // UnderlyingSecurityAltID
 		new SchemaRef(459, false, 0), // UnderlyingSecurityAltIDSource
-	];
+	]);
 
 	// AttrbGrp
-	static readonly SchemaRef[] G2074 =
+	static SchemaRef[]? g2074;
+	static SchemaRef[] G2074 => g2074 ?? Publish(ref g2074,
 	[
 		new SchemaRef(871, false, 0), // InstrAttribType
 		new SchemaRef(872, false, 0), // InstrAttribValue
-	];
+	]);
 
 	// DlvyInstGrp
-	static readonly SchemaRef[] G2075 =
+	static SchemaRef[]? g2075;
+	static SchemaRef[] G2075 => g2075 ?? Publish(ref g2075,
 	[
 		new SchemaRef(165, false, 0), // SettlInstSource
 		new SchemaRef(787, false, 0), // DlvyInstType
 		new SchemaRef(1017, false, 2), // SettlParties
-	];
+	]);
 
 	// SettlPtysSubGrp
-	static readonly SchemaRef[] G2076 =
+	static SchemaRef[]? g2076;
+	static SchemaRef[] G2076 => g2076 ?? Publish(ref g2076,
 	[
 		new SchemaRef(785, false, 0), // SettlPartySubID
 		new SchemaRef(786, false, 0), // SettlPartySubIDType
-	];
+	]);
 
 	// PtysSubGrp
-	static readonly SchemaRef[] G2077 =
+	static SchemaRef[]? g2077;
+	static SchemaRef[] G2077 => g2077 ?? Publish(ref g2077,
 	[
 		new SchemaRef(523, false, 0), // PartySubID
 		new SchemaRef(803, false, 0), // PartySubIDType
-	];
+	]);
 
 	// NstdPtysSubGrp
-	static readonly SchemaRef[] G2078 =
+	static SchemaRef[]? g2078;
+	static SchemaRef[] G2078 => g2078 ?? Publish(ref g2078,
 	[
 		new SchemaRef(545, false, 0), // NestedPartySubID
 		new SchemaRef(805, false, 0), // NestedPartySubIDType
-	];
+	]);
 
 	// NstdPtys2SubGrp
-	static readonly SchemaRef[] G2079 =
+	static SchemaRef[]? g2079;
+	static SchemaRef[] G2079 => g2079 ?? Publish(ref g2079,
 	[
 		new SchemaRef(760, false, 0), // Nested2PartySubID
 		new SchemaRef(807, false, 0), // Nested2PartySubIDType
-	];
+	]);
 
 	// NstdPtys3SubGrp
-	static readonly SchemaRef[] G2080 =
+	static SchemaRef[]? g2080;
+	static SchemaRef[] G2080 => g2080 ?? Publish(ref g2080,
 	[
 		new SchemaRef(953, false, 0), // Nested3PartySubID
 		new SchemaRef(954, false, 0), // Nested3PartySubIDType
-	];
+	]);
 
 	// HopGrp
-	static readonly SchemaRef[] G2085 =
+	static SchemaRef[]? g2085;
+	static SchemaRef[] G2085 => g2085 ?? Publish(ref g2085,
 	[
 		new SchemaRef(628, false, 0), // HopCompID
 		new SchemaRef(629, false, 0), // HopSendingTime
 		new SchemaRef(630, false, 0), // HopRefID
-	];
+	]);
 
 	// MsgTypeGrp
-	static readonly SchemaRef[] G2098 =
+	static SchemaRef[]? g2098;
+	static SchemaRef[] G2098 => g2098 ?? Publish(ref g2098,
 	[
 		new SchemaRef(372, false, 0), // RefMsgType
 		new SchemaRef(385, false, 0), // MsgDirection
-	];
+	]);
 
 	// Heartbeat
-	static readonly SchemaRef[] M1 =
+	static SchemaRef[]? m1;
+	static SchemaRef[] M1 => m1 ?? Publish(ref m1,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(112, false, 0), // TestReqID
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// TestRequest
-	static readonly SchemaRef[] M2 =
+	static SchemaRef[]? m2;
+	static SchemaRef[] M2 => m2 ?? Publish(ref m2,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(112, true, 0), // TestReqID
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ResendRequest
-	static readonly SchemaRef[] M3 =
+	static SchemaRef[]? m3;
+	static SchemaRef[] M3 => m3 ?? Publish(ref m3,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(7, true, 0), // BeginSeqNo
 		new SchemaRef(16, true, 0), // EndSeqNo
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// Reject
-	static readonly SchemaRef[] M4 =
+	static SchemaRef[]? m4;
+	static SchemaRef[] M4 => m4 ?? Publish(ref m4,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(45, true, 0), // RefSeqNum
@@ -1592,29 +1716,32 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SequenceReset
-	static readonly SchemaRef[] M5 =
+	static SchemaRef[]? m5;
+	static SchemaRef[] M5 => m5 ?? Publish(ref m5,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(123, false, 0), // GapFillFlag
 		new SchemaRef(36, true, 0), // NewSeqNo
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// Logout
-	static readonly SchemaRef[] M6 =
+	static SchemaRef[]? m6;
+	static SchemaRef[] M6 => m6 ?? Publish(ref m6,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(58, false, 0), // Text
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// IOI
-	static readonly SchemaRef[] M7 =
+	static SchemaRef[]? m7;
+	static SchemaRef[] M7 => m7 ?? Publish(ref m7,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(23, true, 0), // IOIID
@@ -1645,10 +1772,11 @@ static class FixSchema
 		new SchemaRef(1018, false, 1), // SpreadOrBenchmarkCurveData
 		new SchemaRef(1022, false, 1), // YieldData
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// Advertisement
-	static readonly SchemaRef[] M8 =
+	static SchemaRef[]? m8;
+	static SchemaRef[] M8 => m8 ?? Publish(ref m8,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(2, true, 0), // AdvId
@@ -1672,10 +1800,11 @@ static class FixSchema
 		new SchemaRef(336, false, 0), // TradingSessionID
 		new SchemaRef(625, false, 0), // TradingSessionSubID
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ExecutionReport
-	static readonly SchemaRef[] M9 =
+	static SchemaRef[]? m9;
+	static SchemaRef[] M9 => m9 ?? Publish(ref m9,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, true, 0), // OrderID
@@ -1817,10 +1946,11 @@ static class FixSchema
 		new SchemaRef(797, false, 0), // CopyMsgIndicator
 		new SchemaRef(2035, false, 2), // MiscFeesGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// OrderCancelReject
-	static readonly SchemaRef[] M10 =
+	static SchemaRef[]? m10;
+	static SchemaRef[] M10 => m10 ?? Publish(ref m10,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, true, 0), // OrderID
@@ -1845,10 +1975,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// Logon
-	static readonly SchemaRef[] M11 =
+	static SchemaRef[]? m11;
+	static SchemaRef[] M11 => m11 ?? Publish(ref m11,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(98, true, 0), // EncryptMethod
@@ -1863,10 +1994,11 @@ static class FixSchema
 		new SchemaRef(553, false, 0), // Username
 		new SchemaRef(554, false, 0), // Password
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// News
-	static readonly SchemaRef[] M12 =
+	static SchemaRef[]? m12;
+	static SchemaRef[] M12 => m12 ?? Publish(ref m12,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(42, false, 0), // OrigTime
@@ -1883,10 +2015,11 @@ static class FixSchema
 		new SchemaRef(95, false, 0), // RawDataLength
 		new SchemaRef(96, false, 0), // RawData
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// Email
-	static readonly SchemaRef[] M13 =
+	static SchemaRef[]? m13;
+	static SchemaRef[] M13 => m13 ?? Publish(ref m13,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(164, true, 0), // EmailThreadID
@@ -1905,10 +2038,11 @@ static class FixSchema
 		new SchemaRef(95, false, 0), // RawDataLength
 		new SchemaRef(96, false, 0), // RawData
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// NewOrderSingle
-	static readonly SchemaRef[] M14 =
+	static SchemaRef[]? m14;
+	static SchemaRef[] M14 => m14 ?? Publish(ref m14,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(11, true, 0), // ClOrdID
@@ -1988,10 +2122,11 @@ static class FixSchema
 		new SchemaRef(513, false, 0), // RegistID
 		new SchemaRef(494, false, 0), // Designation
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// NewOrderList
-	static readonly SchemaRef[] M15 =
+	static SchemaRef[]? m15;
+	static SchemaRef[] M15 => m15 ?? Publish(ref m15,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(66, true, 0), // ListID
@@ -2014,10 +2149,11 @@ static class FixSchema
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2030, true, 2), // ListOrdGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// OrderCancelRequest
-	static readonly SchemaRef[] M16 =
+	static SchemaRef[]? m16;
+	static SchemaRef[] M16 => m16 ?? Publish(ref m16,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(41, true, 0), // OrigClOrdID
@@ -2042,10 +2178,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// OrderCancelReplaceRequest
-	static readonly SchemaRef[] M17 =
+	static SchemaRef[]? m17;
+	static SchemaRef[] M17 => m17 ?? Publish(ref m17,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, false, 0), // OrderID
@@ -2124,10 +2261,11 @@ static class FixSchema
 		new SchemaRef(513, false, 0), // RegistID
 		new SchemaRef(494, false, 0), // Designation
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// OrderStatusRequest
-	static readonly SchemaRef[] M18 =
+	static SchemaRef[]? m18;
+	static SchemaRef[] M18 => m18 ?? Publish(ref m18,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, false, 0), // OrderID
@@ -2143,10 +2281,11 @@ static class FixSchema
 		new SchemaRef(2066, false, 2), // UndInstrmtGrp
 		new SchemaRef(54, true, 0), // Side
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// AllocationInstruction
-	static readonly SchemaRef[] M19 =
+	static SchemaRef[]? m19;
+	static SchemaRef[] M19 => m19 ?? Publish(ref m19,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(70, true, 0), // AllocID
@@ -2213,10 +2352,11 @@ static class FixSchema
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2003, false, 2), // AllocGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ListCancelRequest
-	static readonly SchemaRef[] M20 =
+	static SchemaRef[]? m20;
+	static SchemaRef[] M20 => m20 ?? Publish(ref m20,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(66, true, 0), // ListID
@@ -2227,10 +2367,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ListExecute
-	static readonly SchemaRef[] M21 =
+	static SchemaRef[]? m21;
+	static SchemaRef[] M21 => m21 ?? Publish(ref m21,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(66, true, 0), // ListID
@@ -2241,10 +2382,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ListStatusRequest
-	static readonly SchemaRef[] M22 =
+	static SchemaRef[]? m22;
+	static SchemaRef[] M22 => m22 ?? Publish(ref m22,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(66, true, 0), // ListID
@@ -2252,10 +2394,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ListStatus
-	static readonly SchemaRef[] M23 =
+	static SchemaRef[]? m23;
+	static SchemaRef[] M23 => m23 ?? Publish(ref m23,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(66, true, 0), // ListID
@@ -2271,10 +2414,11 @@ static class FixSchema
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2037, true, 2), // OrdListStatGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// AllocationInstructionAck
-	static readonly SchemaRef[] M24 =
+	static SchemaRef[]? m24;
+	static SchemaRef[] M24 => m24 ?? Publish(ref m24,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(70, true, 0), // AllocID
@@ -2294,10 +2438,11 @@ static class FixSchema
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(2002, false, 2), // AllocAckGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// DontKnowTrade
-	static readonly SchemaRef[] M25 =
+	static SchemaRef[]? m25;
+	static SchemaRef[] M25 => m25 ?? Publish(ref m25,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, true, 0), // OrderID
@@ -2315,10 +2460,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// QuoteRequest
-	static readonly SchemaRef[] M26 =
+	static SchemaRef[]? m26;
+	static SchemaRef[] M26 => m26 ?? Publish(ref m26,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(131, true, 0), // QuoteReqID
@@ -2330,10 +2476,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// Quote
-	static readonly SchemaRef[] M27 =
+	static SchemaRef[]? m27;
+	static SchemaRef[] M27 => m27 ?? Publish(ref m27,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(131, false, 0), // QuoteReqID
@@ -2396,10 +2543,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SettlementInstructions
-	static readonly SchemaRef[] M28 =
+	static SchemaRef[]? m28;
+	static SchemaRef[] M28 => m28 ?? Publish(ref m28,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(777, true, 0), // SettlInstMsgID
@@ -2413,10 +2561,11 @@ static class FixSchema
 		new SchemaRef(60, true, 0), // TransactTime
 		new SchemaRef(2057, false, 2), // SettlInstGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// MarketDataRequest
-	static readonly SchemaRef[] M29 =
+	static SchemaRef[]? m29;
+	static SchemaRef[] M29 => m29 ?? Publish(ref m29,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(262, true, 0), // MDReqID
@@ -2433,10 +2582,11 @@ static class FixSchema
 		new SchemaRef(815, false, 0), // ApplQueueAction
 		new SchemaRef(812, false, 0), // ApplQueueMax
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// MarketDataSnapshotFullRefresh
-	static readonly SchemaRef[] M30 =
+	static SchemaRef[]? m30;
+	static SchemaRef[] M30 => m30 ?? Publish(ref m30,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(262, false, 0), // MDReqID
@@ -2450,10 +2600,11 @@ static class FixSchema
 		new SchemaRef(813, false, 0), // ApplQueueDepth
 		new SchemaRef(814, false, 0), // ApplQueueResolution
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// MarketDataIncrementalRefresh
-	static readonly SchemaRef[] M31 =
+	static SchemaRef[]? m31;
+	static SchemaRef[] M31 => m31 ?? Publish(ref m31,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(262, false, 0), // MDReqID
@@ -2461,10 +2612,11 @@ static class FixSchema
 		new SchemaRef(813, false, 0), // ApplQueueDepth
 		new SchemaRef(814, false, 0), // ApplQueueResolution
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// MarketDataRequestReject
-	static readonly SchemaRef[] M32 =
+	static SchemaRef[]? m32;
+	static SchemaRef[] M32 => m32 ?? Publish(ref m32,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(262, true, 0), // MDReqID
@@ -2474,10 +2626,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// QuoteCancel
-	static readonly SchemaRef[] M33 =
+	static SchemaRef[]? m33;
+	static SchemaRef[] M33 => m33 ?? Publish(ref m33,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(131, false, 0), // QuoteReqID
@@ -2492,10 +2645,11 @@ static class FixSchema
 		new SchemaRef(625, false, 0), // TradingSessionSubID
 		new SchemaRef(2041, false, 2), // QuotCxlEntriesGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// QuoteStatusRequest
-	static readonly SchemaRef[] M34 =
+	static SchemaRef[]? m34;
+	static SchemaRef[] M34 => m34 ?? Publish(ref m34,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(649, false, 0), // QuoteStatusReqID
@@ -2512,10 +2666,11 @@ static class FixSchema
 		new SchemaRef(625, false, 0), // TradingSessionSubID
 		new SchemaRef(263, false, 0), // SubscriptionRequestType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// MassQuoteAcknowledgement
-	static readonly SchemaRef[] M35 =
+	static SchemaRef[]? m35;
+	static SchemaRef[] M35 => m35 ?? Publish(ref m35,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(131, false, 0), // QuoteReqID
@@ -2533,10 +2688,11 @@ static class FixSchema
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(2048, false, 2), // QuotSetAckGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityDefinitionRequest
-	static readonly SchemaRef[] M36 =
+	static SchemaRef[]? m36;
+	static SchemaRef[] M36 => m36 ?? Publish(ref m36,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -2554,10 +2710,11 @@ static class FixSchema
 		new SchemaRef(827, false, 0), // ExpirationCycle
 		new SchemaRef(263, false, 0), // SubscriptionRequestType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityDefinition
-	static readonly SchemaRef[] M37 =
+	static SchemaRef[]? m37;
+	static SchemaRef[] M37 => m37 ?? Publish(ref m37,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -2577,10 +2734,11 @@ static class FixSchema
 		new SchemaRef(561, false, 0), // RoundLot
 		new SchemaRef(562, false, 0), // MinTradeVol
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityStatusRequest
-	static readonly SchemaRef[] M38 =
+	static SchemaRef[]? m38;
+	static SchemaRef[] M38 => m38 ?? Publish(ref m38,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(324, true, 0), // SecurityStatusReqID
@@ -2593,10 +2751,11 @@ static class FixSchema
 		new SchemaRef(336, false, 0), // TradingSessionID
 		new SchemaRef(625, false, 0), // TradingSessionSubID
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityStatus
-	static readonly SchemaRef[] M39 =
+	static SchemaRef[]? m39;
+	static SchemaRef[] M39 => m39 ?? Publish(ref m39,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(324, false, 0), // SecurityStatusReqID
@@ -2625,10 +2784,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// TradingSessionStatusRequest
-	static readonly SchemaRef[] M40 =
+	static SchemaRef[]? m40;
+	static SchemaRef[] M40 => m40 ?? Publish(ref m40,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(335, true, 0), // TradSesReqID
@@ -2638,10 +2798,11 @@ static class FixSchema
 		new SchemaRef(339, false, 0), // TradSesMode
 		new SchemaRef(263, true, 0), // SubscriptionRequestType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// TradingSessionStatus
-	static readonly SchemaRef[] M41 =
+	static SchemaRef[]? m41;
+	static SchemaRef[] M41 => m41 ?? Publish(ref m41,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(335, false, 0), // TradSesReqID
@@ -2662,10 +2823,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// MassQuote
-	static readonly SchemaRef[] M42 =
+	static SchemaRef[]? m42;
+	static SchemaRef[] M42 => m42 ?? Publish(ref m42,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(131, false, 0), // QuoteReqID
@@ -2680,10 +2842,11 @@ static class FixSchema
 		new SchemaRef(294, false, 0), // DefOfferSize
 		new SchemaRef(2049, true, 2), // QuotSetGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// BusinessMessageReject
-	static readonly SchemaRef[] M43 =
+	static SchemaRef[]? m43;
+	static SchemaRef[] M43 => m43 ?? Publish(ref m43,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(45, false, 0), // RefSeqNum
@@ -2694,10 +2857,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// BidRequest
-	static readonly SchemaRef[] M44 =
+	static SchemaRef[]? m44;
+	static SchemaRef[] M44 => m44 ?? Publish(ref m44,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(390, false, 0), // BidID
@@ -2730,20 +2894,22 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// BidResponse
-	static readonly SchemaRef[] M45 =
+	static SchemaRef[]? m45;
+	static SchemaRef[] M45 => m45 ?? Publish(ref m45,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(390, false, 0), // BidID
 		new SchemaRef(391, false, 0), // ClientBidID
 		new SchemaRef(2005, true, 2), // BidCompRspGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ListStrikePrice
-	static readonly SchemaRef[] M46 =
+	static SchemaRef[]? m46;
+	static SchemaRef[] M46 => m46 ?? Publish(ref m46,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(66, true, 0), // ListID
@@ -2752,17 +2918,19 @@ static class FixSchema
 		new SchemaRef(2023, true, 2), // InstrmtStrkPxGrp
 		new SchemaRef(2067, false, 2), // UndInstrmtStrkPxGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// XMLnonFIX
-	static readonly SchemaRef[] M47 =
+	static SchemaRef[]? m47;
+	static SchemaRef[] M47 => m47 ?? Publish(ref m47,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// RegistrationInstructions
-	static readonly SchemaRef[] M48 =
+	static SchemaRef[]? m48;
+	static SchemaRef[] M48 => m48 ?? Publish(ref m48,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(513, true, 0), // RegistID
@@ -2778,10 +2946,11 @@ static class FixSchema
 		new SchemaRef(2053, false, 2), // RgstDtlsGrp
 		new SchemaRef(2052, false, 2), // RgstDistInstGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// RegistrationInstructionsResponse
-	static readonly SchemaRef[] M49 =
+	static SchemaRef[]? m49;
+	static SchemaRef[] M49 => m49 ?? Publish(ref m49,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(513, true, 0), // RegistID
@@ -2795,10 +2964,11 @@ static class FixSchema
 		new SchemaRef(507, false, 0), // RegistRejReasonCode
 		new SchemaRef(496, false, 0), // RegistRejReasonText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// OrderMassCancelRequest
-	static readonly SchemaRef[] M50 =
+	static SchemaRef[]? m50;
+	static SchemaRef[] M50 => m50 ?? Publish(ref m50,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(11, true, 0), // ClOrdID
@@ -2814,10 +2984,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// OrderMassCancelReport
-	static readonly SchemaRef[] M51 =
+	static SchemaRef[]? m51;
+	static SchemaRef[] M51 => m51 ?? Publish(ref m51,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(11, false, 0), // ClOrdID
@@ -2839,10 +3010,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// NewOrderCross
-	static readonly SchemaRef[] M52 =
+	static SchemaRef[]? m52;
+	static SchemaRef[] M52 => m52 ?? Publish(ref m52,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(548, true, 0), // CrossID
@@ -2891,10 +3063,11 @@ static class FixSchema
 		new SchemaRef(513, false, 0), // RegistID
 		new SchemaRef(494, false, 0), // Designation
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CrossOrderCancelReplaceRequest
-	static readonly SchemaRef[] M53 =
+	static SchemaRef[]? m53;
+	static SchemaRef[] M53 => m53 ?? Publish(ref m53,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, false, 0), // OrderID
@@ -2945,10 +3118,11 @@ static class FixSchema
 		new SchemaRef(513, false, 0), // RegistID
 		new SchemaRef(494, false, 0), // Designation
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CrossOrderCancelRequest
-	static readonly SchemaRef[] M54 =
+	static SchemaRef[]? m54;
+	static SchemaRef[] M54 => m54 ?? Publish(ref m54,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, false, 0), // OrderID
@@ -2962,10 +3136,11 @@ static class FixSchema
 		new SchemaRef(2019, false, 2), // InstrmtLegGrp
 		new SchemaRef(60, true, 0), // TransactTime
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityTypeRequest
-	static readonly SchemaRef[] M55 =
+	static SchemaRef[]? m55;
+	static SchemaRef[] M55 => m55 ?? Publish(ref m55,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -2978,10 +3153,11 @@ static class FixSchema
 		new SchemaRef(167, false, 0), // SecurityType
 		new SchemaRef(762, false, 0), // SecuritySubType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityTypes
-	static readonly SchemaRef[] M56 =
+	static SchemaRef[]? m56;
+	static SchemaRef[] M56 => m56 ?? Publish(ref m56,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -2997,10 +3173,11 @@ static class FixSchema
 		new SchemaRef(625, false, 0), // TradingSessionSubID
 		new SchemaRef(263, false, 0), // SubscriptionRequestType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityListRequest
-	static readonly SchemaRef[] M57 =
+	static SchemaRef[]? m57;
+	static SchemaRef[] M57 => m57 ?? Publish(ref m57,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -3018,10 +3195,11 @@ static class FixSchema
 		new SchemaRef(625, false, 0), // TradingSessionSubID
 		new SchemaRef(263, false, 0), // SubscriptionRequestType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SecurityList
-	static readonly SchemaRef[] M58 =
+	static SchemaRef[]? m58;
+	static SchemaRef[] M58 => m58 ?? Publish(ref m58,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -3031,10 +3209,11 @@ static class FixSchema
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2055, false, 2), // SecListGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// DerivativeSecurityListRequest
-	static readonly SchemaRef[] M59 =
+	static SchemaRef[]? m59;
+	static SchemaRef[] M59 => m59 ?? Publish(ref m59,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -3049,10 +3228,11 @@ static class FixSchema
 		new SchemaRef(625, false, 0), // TradingSessionSubID
 		new SchemaRef(263, false, 0), // SubscriptionRequestType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// DerivativeSecurityList
-	static readonly SchemaRef[] M60 =
+	static SchemaRef[]? m60;
+	static SchemaRef[] M60 => m60 ?? Publish(ref m60,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(320, true, 0), // SecurityReqID
@@ -3063,10 +3243,11 @@ static class FixSchema
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2050, false, 2), // RelSymDerivSecGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// NewOrderMultileg
-	static readonly SchemaRef[] M61 =
+	static SchemaRef[]? m61;
+	static SchemaRef[] M61 => m61 ?? Publish(ref m61,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(11, true, 0), // ClOrdID
@@ -3141,10 +3322,11 @@ static class FixSchema
 		new SchemaRef(494, false, 0), // Designation
 		new SchemaRef(563, false, 0), // MultiLegRptTypeReq
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// MultilegOrderCancelReplace
-	static readonly SchemaRef[] M62 =
+	static SchemaRef[]? m62;
+	static SchemaRef[] M62 => m62 ?? Publish(ref m62,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(37, false, 0), // OrderID
@@ -3222,10 +3404,11 @@ static class FixSchema
 		new SchemaRef(494, false, 0), // Designation
 		new SchemaRef(563, false, 0), // MultiLegRptTypeReq
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// TradeCaptureReportRequest
-	static readonly SchemaRef[] M63 =
+	static SchemaRef[]? m63;
+	static SchemaRef[] M63 => m63 ?? Publish(ref m63,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(568, true, 0), // TradeRequestID
@@ -3265,10 +3448,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// TradeCaptureReport
-	static readonly SchemaRef[] M64 =
+	static SchemaRef[]? m64;
+	static SchemaRef[] M64 => m64 ?? Publish(ref m64,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(571, true, 0), // TradeReportID
@@ -3329,10 +3513,11 @@ static class FixSchema
 		new SchemaRef(852, false, 0), // PublishTrdIndicator
 		new SchemaRef(853, false, 0), // ShortSaleReason
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// OrderMassStatusRequest
-	static readonly SchemaRef[] M65 =
+	static SchemaRef[]? m65;
+	static SchemaRef[] M65 => m65 ?? Publish(ref m65,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(584, true, 0), // MassStatusReqID
@@ -3346,10 +3531,11 @@ static class FixSchema
 		new SchemaRef(1021, false, 1), // UnderlyingInstrument
 		new SchemaRef(54, false, 0), // Side
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// QuoteRequestReject
-	static readonly SchemaRef[] M66 =
+	static SchemaRef[]? m66;
+	static SchemaRef[] M66 => m66 ?? Publish(ref m66,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(131, true, 0), // QuoteReqID
@@ -3360,20 +3546,22 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// RFQRequest
-	static readonly SchemaRef[] M67 =
+	static SchemaRef[]? m67;
+	static SchemaRef[] M67 => m67 ?? Publish(ref m67,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(644, true, 0), // RFQReqID
 		new SchemaRef(2051, true, 2), // RFQReqGrp
 		new SchemaRef(263, false, 0), // SubscriptionRequestType
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// QuoteStatusReport
-	static readonly SchemaRef[] M68 =
+	static SchemaRef[]? m68;
+	static SchemaRef[] M68 => m68 ?? Publish(ref m68,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(649, false, 0), // QuoteStatusReqID
@@ -3438,10 +3626,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// QuoteResponse
-	static readonly SchemaRef[] M69 =
+	static SchemaRef[]? m69;
+	static SchemaRef[] M69 => m69 ?? Publish(ref m69,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(693, true, 0), // QuoteRespID
@@ -3506,10 +3695,11 @@ static class FixSchema
 		new SchemaRef(1018, false, 1), // SpreadOrBenchmarkCurveData
 		new SchemaRef(1022, false, 1), // YieldData
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// Confirmation
-	static readonly SchemaRef[] M70 =
+	static SchemaRef[]? m70;
+	static SchemaRef[] M70 => m70 ?? Publish(ref m70,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(664, true, 0), // ConfirmID
@@ -3578,10 +3768,11 @@ static class FixSchema
 		new SchemaRef(1019, false, 2), // Stipulations
 		new SchemaRef(2035, false, 2), // MiscFeesGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// PositionMaintenanceRequest
-	static readonly SchemaRef[] M71 =
+	static SchemaRef[]? m71;
+	static SchemaRef[] M71 => m71 ?? Publish(ref m71,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(710, true, 0), // PosReqID
@@ -3611,10 +3802,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// PositionMaintenanceReport
-	static readonly SchemaRef[] M72 =
+	static SchemaRef[]? m72;
+	static SchemaRef[] M72 => m72 ?? Publish(ref m72,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(721, true, 0), // PosMaintRptID
@@ -3645,10 +3837,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// RequestForPositions
-	static readonly SchemaRef[] M73 =
+	static SchemaRef[]? m73;
+	static SchemaRef[] M73 => m73 ?? Publish(ref m73,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(710, true, 0), // PosReqID
@@ -3674,10 +3867,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// RequestForPositionsAck
-	static readonly SchemaRef[] M74 =
+	static SchemaRef[]? m74;
+	static SchemaRef[] M74 => m74 ?? Publish(ref m74,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(721, true, 0), // PosMaintRptID
@@ -3700,10 +3894,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// PositionReport
-	static readonly SchemaRef[] M75 =
+	static SchemaRef[]? m75;
+	static SchemaRef[] M75 => m75 ?? Publish(ref m75,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(721, true, 0), // PosMaintRptID
@@ -3735,10 +3930,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// TradeCaptureReportRequestAck
-	static readonly SchemaRef[] M76 =
+	static SchemaRef[]? m76;
+	static SchemaRef[] M76 => m76 ?? Publish(ref m76,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(568, true, 0), // TradeRequestID
@@ -3757,10 +3953,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// TradeCaptureReportAck
-	static readonly SchemaRef[] M77 =
+	static SchemaRef[]? m77;
+	static SchemaRef[] M77 => m77 ?? Publish(ref m77,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(571, true, 0), // TradeReportID
@@ -3801,10 +3998,11 @@ static class FixSchema
 		new SchemaRef(591, false, 0), // PreallocMethod
 		new SchemaRef(2060, false, 2), // TrdAllocGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// AllocationReport
-	static readonly SchemaRef[] M78 =
+	static SchemaRef[]? m78;
+	static SchemaRef[] M78 => m78 ?? Publish(ref m78,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(755, true, 0), // AllocReportID
@@ -3875,10 +4073,11 @@ static class FixSchema
 		new SchemaRef(893, false, 0), // LastFragment
 		new SchemaRef(2003, false, 2), // AllocGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// AllocationReportAck
-	static readonly SchemaRef[] M79 =
+	static SchemaRef[]? m79;
+	static SchemaRef[] M79 => m79 ?? Publish(ref m79,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(755, true, 0), // AllocReportID
@@ -3899,10 +4098,11 @@ static class FixSchema
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(2002, false, 2), // AllocAckGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ConfirmationAck
-	static readonly SchemaRef[] M80 =
+	static SchemaRef[]? m80;
+	static SchemaRef[] M80 => m80 ?? Publish(ref m80,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(664, true, 0), // ConfirmID
@@ -3915,10 +4115,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// SettlementInstructionRequest
-	static readonly SchemaRef[] M81 =
+	static SchemaRef[]? m81;
+	static SchemaRef[] M81 => m81 ?? Publish(ref m81,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(791, true, 0), // SettlInstReqID
@@ -3937,10 +4138,11 @@ static class FixSchema
 		new SchemaRef(170, false, 0), // StandInstDbName
 		new SchemaRef(171, false, 0), // StandInstDbID
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// AssignmentReport
-	static readonly SchemaRef[] M82 =
+	static SchemaRef[]? m82;
+	static SchemaRef[] M82 => m82 ?? Publish(ref m82,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(833, true, 0), // AsgnRptID
@@ -3971,10 +4173,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CollateralRequest
-	static readonly SchemaRef[] M83 =
+	static SchemaRef[]? m83;
+	static SchemaRef[] M83 => m83 ?? Publish(ref m83,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(894, true, 0), // CollReqID
@@ -4021,10 +4224,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CollateralAssignment
-	static readonly SchemaRef[] M84 =
+	static SchemaRef[]? m84;
+	static SchemaRef[] M84 => m84 ?? Publish(ref m84,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(902, true, 0), // CollAsgnID
@@ -4075,10 +4279,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CollateralResponse
-	static readonly SchemaRef[] M85 =
+	static SchemaRef[]? m85;
+	static SchemaRef[] M85 => m85 ?? Publish(ref m85,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(904, true, 0), // CollRespID
@@ -4124,10 +4329,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CollateralReport
-	static readonly SchemaRef[] M86 =
+	static SchemaRef[]? m86;
+	static SchemaRef[] M86 => m86 ?? Publish(ref m86,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(908, true, 0), // CollRptID
@@ -4176,10 +4382,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CollateralInquiry
-	static readonly SchemaRef[] M87 =
+	static SchemaRef[]? m87;
+	static SchemaRef[] M87 => m87 ?? Publish(ref m87,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(909, true, 0), // CollInquiryID
@@ -4227,20 +4434,22 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// NetworkCounterpartySystemStatusRequest
-	static readonly SchemaRef[] M88 =
+	static SchemaRef[]? m88;
+	static SchemaRef[] M88 => m88 ?? Publish(ref m88,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(935, true, 0), // NetworkRequestType
 		new SchemaRef(933, true, 0), // NetworkRequestID
 		new SchemaRef(2009, false, 2), // CompIDReqGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// NetworkCounterpartySystemStatusResponse
-	static readonly SchemaRef[] M89 =
+	static SchemaRef[]? m89;
+	static SchemaRef[] M89 => m89 ?? Publish(ref m89,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(937, true, 0), // NetworkStatusResponseType
@@ -4249,10 +4458,11 @@ static class FixSchema
 		new SchemaRef(934, false, 0), // LastNetworkResponseID
 		new SchemaRef(2010, true, 2), // CompIDStatGrp
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// UserRequest
-	static readonly SchemaRef[] M90 =
+	static SchemaRef[]? m90;
+	static SchemaRef[] M90 => m90 ?? Publish(ref m90,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(923, true, 0), // UserRequestID
@@ -4263,10 +4473,11 @@ static class FixSchema
 		new SchemaRef(95, false, 0), // RawDataLength
 		new SchemaRef(96, false, 0), // RawData
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// UserResponse
-	static readonly SchemaRef[] M91 =
+	static SchemaRef[]? m91;
+	static SchemaRef[] M91 => m91 ?? Publish(ref m91,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(923, true, 0), // UserRequestID
@@ -4274,10 +4485,11 @@ static class FixSchema
 		new SchemaRef(926, false, 0), // UserStatus
 		new SchemaRef(927, false, 0), // UserStatusText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// CollateralInquiryAck
-	static readonly SchemaRef[] M92 =
+	static SchemaRef[]? m92;
+	static SchemaRef[] M92 => m92 ?? Publish(ref m92,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(909, true, 0), // CollInquiryID
@@ -4313,10 +4525,11 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	// ConfirmationRequest
-	static readonly SchemaRef[] M93 =
+	static SchemaRef[]? m93;
+	static SchemaRef[] M93 => m93 ?? Publish(ref m93,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
 		new SchemaRef(859, true, 0), // ConfirmReqID
@@ -4333,7 +4546,7 @@ static class FixSchema
 		new SchemaRef(354, false, 0), // EncodedTextLen
 		new SchemaRef(355, false, 0), // EncodedText
 		new SchemaRef(1025, true, 1), // StandardTrailer
-	];
+	]);
 
 	public static SchemaRef[] Component(int id) => id switch
 	{
@@ -4805,22 +5018,25 @@ static class FixSchema
 		return (uint)tag < (uint)TypeCodes.Length && TypeCodes[tag] == DataType;
 	}
 
-	static readonly string[] AdvSideCodeSet =
+	static string[]? advSideCodeSet;
+	static string[] AdvSideCodeSet => advSideCodeSet ?? Publish(ref advSideCodeSet,
 	[
 		"B", // Buy
 		"S", // Sell
 		"X", // Cross
 		"T", // Trade
-	];
+	]);
 
-	static readonly string[] AdvTransTypeCodeSet =
+	static string[]? advTransTypeCodeSet;
+	static string[] AdvTransTypeCodeSet => advTransTypeCodeSet ?? Publish(ref advTransTypeCodeSet,
 	[
 		"N", // New
 		"C", // Cancel
 		"R", // Replace
-	];
+	]);
 
-	static readonly string[] CommTypeCodeSet =
+	static string[]? commTypeCodeSet;
+	static string[] CommTypeCodeSet => commTypeCodeSet ?? Publish(ref commTypeCodeSet,
 	[
 		"1", // PerUnit
 		"2", // Percent
@@ -4828,9 +5044,10 @@ static class FixSchema
 		"4", // PercentageWaivedCashDiscount
 		"5", // PercentageWaivedEnhancedUnits
 		"6", // PointsPerBondOrContract
-	];
+	]);
 
-	static readonly string[] ExecInstCodeSet =
+	static string[]? execInstCodeSet;
+	static string[] ExecInstCodeSet => execInstCodeSet ?? Publish(ref execInstCodeSet,
 	[
 		"1", // NotHeld
 		"2", // Work
@@ -4873,16 +5090,18 @@ static class FixSchema
 		"c", // IgnorePriceValidityChecks
 		"d", // PegToLimitPrice
 		"e", // WorkToTargetStrategy
-	];
+	]);
 
-	static readonly string[] HandlInstCodeSet =
+	static string[]? handlInstCodeSet;
+	static string[] HandlInstCodeSet => handlInstCodeSet ?? Publish(ref handlInstCodeSet,
 	[
 		"1", // AutomatedExecutionNoIntervention
 		"2", // AutomatedExecutionInterventionOK
 		"3", // ManualOrder
-	];
+	]);
 
-	static readonly string[] SecurityIDSourceCodeSet =
+	static string[]? securityIDSourceCodeSet;
+	static string[] SecurityIDSourceCodeSet => securityIDSourceCodeSet ?? Publish(ref securityIDSourceCodeSet,
 	[
 		"1", // CUSIP
 		"2", // SEDOL
@@ -4903,38 +5122,43 @@ static class FixSchema
 		"H", // ClearingHouse
 		"I", // ISDAFpMLSpecification
 		"J", // OptionPriceReportingAuthority
-	];
+	]);
 
-	static readonly string[] IOIQltyIndCodeSet =
+	static string[]? iOIQltyIndCodeSet;
+	static string[] IOIQltyIndCodeSet => iOIQltyIndCodeSet ?? Publish(ref iOIQltyIndCodeSet,
 	[
 		"L", // Low
 		"M", // Medium
 		"H", // High
-	];
+	]);
 
-	static readonly string[] IOIQtyCodeSet =
+	static string[]? iOIQtyCodeSet;
+	static string[] IOIQtyCodeSet => iOIQtyCodeSet ?? Publish(ref iOIQtyCodeSet,
 	[
 		"S", // Small
 		"M", // Medium
 		"L", // Large
-	];
+	]);
 
-	static readonly string[] IOITransTypeCodeSet =
+	static string[]? iOITransTypeCodeSet;
+	static string[] IOITransTypeCodeSet => iOITransTypeCodeSet ?? Publish(ref iOITransTypeCodeSet,
 	[
 		"N", // New
 		"C", // Cancel
 		"R", // Replace
-	];
+	]);
 
-	static readonly string[] LastCapacityCodeSet =
+	static string[]? lastCapacityCodeSet;
+	static string[] LastCapacityCodeSet => lastCapacityCodeSet ?? Publish(ref lastCapacityCodeSet,
 	[
 		"1", // Agent
 		"2", // CrossAsAgent
 		"3", // CrossAsPrincipal
 		"4", // Principal
-	];
+	]);
 
-	static readonly string[] MsgTypeCodeSet =
+	static string[]? msgTypeCodeSet;
+	static string[] MsgTypeCodeSet => msgTypeCodeSet ?? Publish(ref msgTypeCodeSet,
 	[
 		"0",  // Heartbeat
 		"1",  // TestRequest
@@ -5029,9 +5253,10 @@ static class FixSchema
 		"BF", // UserResponse
 		"BG", // CollateralInquiryAck
 		"BH", // ConfirmationRequest
-	];
+	]);
 
-	static readonly string[] OrdStatusCodeSet =
+	static string[]? ordStatusCodeSet;
+	static string[] OrdStatusCodeSet => ordStatusCodeSet ?? Publish(ref ordStatusCodeSet,
 	[
 		"0", // New
 		"1", // PartiallyFilled
@@ -5048,9 +5273,10 @@ static class FixSchema
 		"C", // Expired
 		"D", // AcceptedForBidding
 		"E", // PendingReplace
-	];
+	]);
 
-	static readonly string[] OrdTypeCodeSet =
+	static string[]? ordTypeCodeSet;
+	static string[] OrdTypeCodeSet => ordTypeCodeSet ?? Publish(ref ordTypeCodeSet,
 	[
 		"1", // Market
 		"2", // Limit
@@ -5069,15 +5295,17 @@ static class FixSchema
 		"L", // PreviousFundValuationPoint
 		"M", // NextFundValuationPoint
 		"P", // Pegged
-	];
+	]);
 
-	static readonly string[] PossDupFlagCodeSet =
+	static string[]? possDupFlagCodeSet;
+	static string[] PossDupFlagCodeSet => possDupFlagCodeSet ?? Publish(ref possDupFlagCodeSet,
 	[
 		"Y", // PossibleDuplicate
 		"N", // OriginalTransmission
-	];
+	]);
 
-	static readonly string[] SideCodeSet =
+	static string[]? sideCodeSet;
+	static string[] SideCodeSet => sideCodeSet ?? Publish(ref sideCodeSet,
 	[
 		"1", // Buy
 		"2", // Sell
@@ -5095,9 +5323,10 @@ static class FixSchema
 		"E", // Redeem
 		"F", // Lend
 		"G", // Borrow
-	];
+	]);
 
-	static readonly string[] TimeInForceCodeSet =
+	static string[]? timeInForceCodeSet;
+	static string[] TimeInForceCodeSet => timeInForceCodeSet ?? Publish(ref timeInForceCodeSet,
 	[
 		"0", // Day
 		"1", // GoodTillCancel
@@ -5107,16 +5336,18 @@ static class FixSchema
 		"5", // GoodTillCrossing
 		"6", // GoodTillDate
 		"7", // AtTheClose
-	];
+	]);
 
-	static readonly string[] UrgencyCodeSet =
+	static string[]? urgencyCodeSet;
+	static string[] UrgencyCodeSet => urgencyCodeSet ?? Publish(ref urgencyCodeSet,
 	[
 		"0", // Normal
 		"1", // Flash
 		"2", // Background
-	];
+	]);
 
-	static readonly string[] SettlTypeCodeSet =
+	static string[]? settlTypeCodeSet;
+	static string[] SettlTypeCodeSet => settlTypeCodeSet ?? Publish(ref settlTypeCodeSet,
 	[
 		"0", // Regular
 		"1", // Cash
@@ -5128,24 +5359,27 @@ static class FixSchema
 		"7", // WhenAndIfIssued
 		"8", // SellersOption
 		"9", // TPlus5
-	];
+	]);
 
-	static readonly string[] AllocTransTypeCodeSet =
+	static string[]? allocTransTypeCodeSet;
+	static string[] AllocTransTypeCodeSet => allocTransTypeCodeSet ?? Publish(ref allocTransTypeCodeSet,
 	[
 		"0", // New
 		"1", // Replace
 		"2", // Cancel
-	];
+	]);
 
-	static readonly string[] PositionEffectCodeSet =
+	static string[]? positionEffectCodeSet;
+	static string[] PositionEffectCodeSet => positionEffectCodeSet ?? Publish(ref positionEffectCodeSet,
 	[
 		"O", // Open
 		"C", // Close
 		"R", // Rolled
 		"F", // FIFO
-	];
+	]);
 
-	static readonly string[] ProcessCodeCodeSet =
+	static string[]? processCodeCodeSet;
+	static string[] ProcessCodeCodeSet => processCodeCodeSet ?? Publish(ref processCodeCodeSet,
 	[
 		"0", // Regular
 		"1", // SoftDollar
@@ -5154,9 +5388,10 @@ static class FixSchema
 		"4", // SoftDollarStepIn
 		"5", // SoftDollarStepOut
 		"6", // PlanSponsor
-	];
+	]);
 
-	static readonly string[] AllocStatusCodeSet =
+	static string[]? allocStatusCodeSet;
+	static string[] AllocStatusCodeSet => allocStatusCodeSet ?? Publish(ref allocStatusCodeSet,
 	[
 		"0", // Accepted
 		"1", // BlockLevelReject
@@ -5164,9 +5399,10 @@ static class FixSchema
 		"3", // Received
 		"4", // Incomplete
 		"5", // RejectedByIntermediary
-	];
+	]);
 
-	static readonly string[] AllocRejCodeCodeSet =
+	static string[]? allocRejCodeCodeSet;
+	static string[] AllocRejCodeCodeSet => allocRejCodeCodeSet ?? Publish(ref allocRejCodeCodeSet,
 	[
 		"0", // UnknownAccount
 		"1", // IncorrectQuantity
@@ -5182,22 +5418,25 @@ static class FixSchema
 		"11", // MismatchedData
 		"12", // UnknownClOrdID
 		"13", // WarehouseRequestRejected
-	];
+	]);
 
-	static readonly string[] EmailTypeCodeSet =
+	static string[]? emailTypeCodeSet;
+	static string[] EmailTypeCodeSet => emailTypeCodeSet ?? Publish(ref emailTypeCodeSet,
 	[
 		"0", // New
 		"1", // Reply
 		"2", // AdminReply
-	];
+	]);
 
-	static readonly string[] PossResendCodeSet =
+	static string[]? possResendCodeSet;
+	static string[] PossResendCodeSet => possResendCodeSet ?? Publish(ref possResendCodeSet,
 	[
 		"Y", // PossibleResend
 		"N", // OriginalTransmission
-	];
+	]);
 
-	static readonly string[] EncryptMethodCodeSet =
+	static string[]? encryptMethodCodeSet;
+	static string[] EncryptMethodCodeSet => encryptMethodCodeSet ?? Publish(ref encryptMethodCodeSet,
 	[
 		"0", // None
 		"1", // PKCS
@@ -5206,9 +5445,10 @@ static class FixSchema
 		"4", // PGPDES
 		"5", // PGPDESMD5
 		"6", // PEM
-	];
+	]);
 
-	static readonly string[] CxlRejReasonCodeSet =
+	static string[]? cxlRejReasonCodeSet;
+	static string[] CxlRejReasonCodeSet => cxlRejReasonCodeSet ?? Publish(ref cxlRejReasonCodeSet,
 	[
 		"0", // TooLateToCancel
 		"1", // UnknownOrder
@@ -5218,9 +5458,10 @@ static class FixSchema
 		"5", // OrigOrdModTime
 		"6", // DuplicateClOrdID
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] OrdRejReasonCodeSet =
+	static string[]? ordRejReasonCodeSet;
+	static string[] OrdRejReasonCodeSet => ordRejReasonCodeSet ?? Publish(ref ordRejReasonCodeSet,
 	[
 		"0", // BrokerCredit
 		"1", // UnknownSymbol
@@ -5239,9 +5480,10 @@ static class FixSchema
 		"14", // IncorrectAllocatedQuantity
 		"15", // UnknownAccount
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] IOIQualifierCodeSet =
+	static string[]? iOIQualifierCodeSet;
+	static string[] IOIQualifierCodeSet => iOIQualifierCodeSet ?? Publish(ref iOIQualifierCodeSet,
 	[
 		"A", // AllOrNone
 		"B", // MarketOnClose
@@ -5261,33 +5503,38 @@ static class FixSchema
 		"X", // CrossingOpportunity
 		"Y", // AtTheMidpoint
 		"Z", // PreOpen
-	];
+	]);
 
-	static readonly string[] ReportToExchCodeSet =
+	static string[]? reportToExchCodeSet;
+	static string[] ReportToExchCodeSet => reportToExchCodeSet ?? Publish(ref reportToExchCodeSet,
 	[
 		"Y", // ReceiverReports
 		"N", // SenderReports
-	];
+	]);
 
-	static readonly string[] LocateReqdCodeSet =
+	static string[]? locateReqdCodeSet;
+	static string[] LocateReqdCodeSet => locateReqdCodeSet ?? Publish(ref locateReqdCodeSet,
 	[
 		"Y", // Yes
 		"N", // No
-	];
+	]);
 
-	static readonly string[] ForexReqCodeSet =
+	static string[]? forexReqCodeSet;
+	static string[] ForexReqCodeSet => forexReqCodeSet ?? Publish(ref forexReqCodeSet,
 	[
 		"Y", // ExecuteForexAfterSecurityTrade
 		"N", // DoNotExecuteForexAfterSecurityTrade
-	];
+	]);
 
-	static readonly string[] GapFillFlagCodeSet =
+	static string[]? gapFillFlagCodeSet;
+	static string[] GapFillFlagCodeSet => gapFillFlagCodeSet ?? Publish(ref gapFillFlagCodeSet,
 	[
 		"Y", // GapFillMessage
 		"N", // SequenceReset
-	];
+	]);
 
-	static readonly string[] DKReasonCodeSet =
+	static string[]? dKReasonCodeSet;
+	static string[] DKReasonCodeSet => dKReasonCodeSet ?? Publish(ref dKReasonCodeSet,
 	[
 		"A", // UnknownSymbol
 		"B", // WrongSide
@@ -5296,15 +5543,17 @@ static class FixSchema
 		"E", // PriceExceedsLimit
 		"F", // CalculationDifference
 		"Z", // Other
-	];
+	]);
 
-	static readonly string[] IOINaturalFlagCodeSet =
+	static string[]? iOINaturalFlagCodeSet;
+	static string[] IOINaturalFlagCodeSet => iOINaturalFlagCodeSet ?? Publish(ref iOINaturalFlagCodeSet,
 	[
 		"Y", // Natural
 		"N", // NotNatural
-	];
+	]);
 
-	static readonly string[] MiscFeeTypeCodeSet =
+	static string[]? miscFeeTypeCodeSet;
+	static string[] MiscFeeTypeCodeSet => miscFeeTypeCodeSet ?? Publish(ref miscFeeTypeCodeSet,
 	[
 		"1", // Regulatory
 		"2", // Tax
@@ -5318,15 +5567,17 @@ static class FixSchema
 		"10", // PerTransaction
 		"11", // Conversion
 		"12", // Agent
-	];
+	]);
 
-	static readonly string[] ResetSeqNumFlagCodeSet =
+	static string[]? resetSeqNumFlagCodeSet;
+	static string[] ResetSeqNumFlagCodeSet => resetSeqNumFlagCodeSet ?? Publish(ref resetSeqNumFlagCodeSet,
 	[
 		"Y", // Yes
 		"N", // No
-	];
+	]);
 
-	static readonly string[] ExecTypeCodeSet =
+	static string[]? execTypeCodeSet;
+	static string[] ExecTypeCodeSet => execTypeCodeSet ?? Publish(ref execTypeCodeSet,
 	[
 		"0", // New
 		"3", // DoneForDay
@@ -5345,37 +5596,42 @@ static class FixSchema
 		"G", // TradeCorrect
 		"H", // TradeCancel
 		"I", // OrderStatus
-	];
+	]);
 
-	static readonly string[] SettlCurrFxRateCalcCodeSet =
+	static string[]? settlCurrFxRateCalcCodeSet;
+	static string[] SettlCurrFxRateCalcCodeSet => settlCurrFxRateCalcCodeSet ?? Publish(ref settlCurrFxRateCalcCodeSet,
 	[
 		"M", // Multiply
 		"D", // Divide
-	];
+	]);
 
-	static readonly string[] SettlInstModeCodeSet =
+	static string[]? settlInstModeCodeSet;
+	static string[] SettlInstModeCodeSet => settlInstModeCodeSet ?? Publish(ref settlInstModeCodeSet,
 	[
 		"1", // StandingInstructionsProvided
 		"4", // SpecificOrderForASingleAccount
 		"5", // RequestReject
-	];
+	]);
 
-	static readonly string[] SettlInstTransTypeCodeSet =
+	static string[]? settlInstTransTypeCodeSet;
+	static string[] SettlInstTransTypeCodeSet => settlInstTransTypeCodeSet ?? Publish(ref settlInstTransTypeCodeSet,
 	[
 		"N", // New
 		"C", // Cancel
 		"R", // Replace
 		"T", // Restate
-	];
+	]);
 
-	static readonly string[] SettlInstSourceCodeSet =
+	static string[]? settlInstSourceCodeSet;
+	static string[] SettlInstSourceCodeSet => settlInstSourceCodeSet ?? Publish(ref settlInstSourceCodeSet,
 	[
 		"1", // BrokerCredit
 		"2", // Institution
 		"3", // Investor
-	];
+	]);
 
-	static readonly string[] SecurityTypeCodeSet =
+	static string[]? securityTypeCodeSet;
+	static string[] SecurityTypeCodeSet => securityTypeCodeSet ?? Publish(ref securityTypeCodeSet,
 	[
 		"EUSUPRA", // EuroSupranationalCoupons
 		"FAC", // FederalAgencyCoupon
@@ -5472,65 +5728,74 @@ static class FixSchema
 		"NONE", // NoSecurityType
 		"FUT", // Future
 		"OPT", // Option
-	];
+	]);
 
-	static readonly string[] StandInstDbTypeCodeSet =
+	static string[]? standInstDbTypeCodeSet;
+	static string[] StandInstDbTypeCodeSet => standInstDbTypeCodeSet ?? Publish(ref standInstDbTypeCodeSet,
 	[
 		"0", // Other
 		"1", // DTCSID
 		"2", // ThomsonALERT
 		"3", // AGlobalCustodian
 		"4", // AccountNet
-	];
+	]);
 
-	static readonly string[] SettlDeliveryTypeCodeSet =
+	static string[]? settlDeliveryTypeCodeSet;
+	static string[] SettlDeliveryTypeCodeSet => settlDeliveryTypeCodeSet ?? Publish(ref settlDeliveryTypeCodeSet,
 	[
 		"0", // Versus
 		"1", // Free
 		"2", // TriParty
 		"3", // HoldInCustody
-	];
+	]);
 
-	static readonly string[] AllocLinkTypeCodeSet =
+	static string[]? allocLinkTypeCodeSet;
+	static string[] AllocLinkTypeCodeSet => allocLinkTypeCodeSet ?? Publish(ref allocLinkTypeCodeSet,
 	[
 		"0", // FXNetting
 		"1", // FXSwap
-	];
+	]);
 
-	static readonly string[] PutOrCallCodeSet =
+	static string[]? putOrCallCodeSet;
+	static string[] PutOrCallCodeSet => putOrCallCodeSet ?? Publish(ref putOrCallCodeSet,
 	[
 		"0", // Put
 		"1", // Call
-	];
+	]);
 
-	static readonly string[] CoveredOrUncoveredCodeSet =
+	static string[]? coveredOrUncoveredCodeSet;
+	static string[] CoveredOrUncoveredCodeSet => coveredOrUncoveredCodeSet ?? Publish(ref coveredOrUncoveredCodeSet,
 	[
 		"0", // Covered
 		"1", // Uncovered
-	];
+	]);
 
-	static readonly string[] NotifyBrokerOfCreditCodeSet =
+	static string[]? notifyBrokerOfCreditCodeSet;
+	static string[] NotifyBrokerOfCreditCodeSet => notifyBrokerOfCreditCodeSet ?? Publish(ref notifyBrokerOfCreditCodeSet,
 	[
 		"Y", // DetailsShouldBeCommunicated
 		"N", // DetailsShouldNotBeCommunicated
-	];
+	]);
 
-	static readonly string[] AllocHandlInstCodeSet =
+	static string[]? allocHandlInstCodeSet;
+	static string[] AllocHandlInstCodeSet => allocHandlInstCodeSet ?? Publish(ref allocHandlInstCodeSet,
 	[
 		"1", // Match
 		"2", // Forward
 		"3", // ForwardAndMatch
-	];
+	]);
 
-	static readonly string[] RoutingTypeCodeSet =
+	static string[]? routingTypeCodeSet;
+	static string[] RoutingTypeCodeSet => routingTypeCodeSet ?? Publish(ref routingTypeCodeSet,
 	[
 		"1", // TargetFirm
 		"2", // TargetList
 		"3", // BlockFirm
 		"4", // BlockList
-	];
+	]);
 
-	static readonly string[] BenchmarkCurveNameCodeSet =
+	static string[]? benchmarkCurveNameCodeSet;
+	static string[] BenchmarkCurveNameCodeSet => benchmarkCurveNameCodeSet ?? Publish(ref benchmarkCurveNameCodeSet,
 	[
 		"EONIA", // EONIA
 		"EUREPO", // EUREPO
@@ -5544,9 +5809,10 @@ static class FixSchema
 		"SONIA", // SONIA
 		"SWAP", // SWAP
 		"Treasury", // Treasury
-	];
+	]);
 
-	static readonly string[] StipulationTypeCodeSet =
+	static string[]? stipulationTypeCodeSet;
+	static string[] StipulationTypeCodeSet => stipulationTypeCodeSet ?? Publish(ref stipulationTypeCodeSet,
 	[
 		"AMT", // AlternativeMinimumTax
 		"AUTOREINV", // AutoReinvestment
@@ -5598,9 +5864,10 @@ static class FixSchema
 		"WAM", // WeightedAverageMaturity
 		"WHOLE", // WholePool
 		"YIELD", // YieldRange
-	];
+	]);
 
-	static readonly string[] YieldTypeCodeSet =
+	static string[]? yieldTypeCodeSet;
+	static string[] YieldTypeCodeSet => yieldTypeCodeSet ?? Publish(ref yieldTypeCodeSet,
 	[
 		"AFTERTAX", // AfterTaxYield
 		"ANNUAL", // AnnualYield
@@ -5636,34 +5903,39 @@ static class FixSchema
 		"TRUE", // TrueYield
 		"VALUE1/32", // YieldValueOf132
 		"WORST", // YieldToWorst
-	];
+	]);
 
-	static readonly string[] TradedFlatSwitchCodeSet =
+	static string[]? tradedFlatSwitchCodeSet;
+	static string[] TradedFlatSwitchCodeSet => tradedFlatSwitchCodeSet ?? Publish(ref tradedFlatSwitchCodeSet,
 	[
 		"Y", // TradedFlat
 		"N", // NotTradedFlat
-	];
+	]);
 
-	static readonly string[] SubscriptionRequestTypeCodeSet =
+	static string[]? subscriptionRequestTypeCodeSet;
+	static string[] SubscriptionRequestTypeCodeSet => subscriptionRequestTypeCodeSet ?? Publish(ref subscriptionRequestTypeCodeSet,
 	[
 		"0", // Snapshot
 		"1", // SnapshotAndUpdates
 		"2", // DisablePreviousSnapshot
-	];
+	]);
 
-	static readonly string[] MDUpdateTypeCodeSet =
+	static string[]? mDUpdateTypeCodeSet;
+	static string[] MDUpdateTypeCodeSet => mDUpdateTypeCodeSet ?? Publish(ref mDUpdateTypeCodeSet,
 	[
 		"0", // FullRefresh
 		"1", // IncrementalRefresh
-	];
+	]);
 
-	static readonly string[] AggregatedBookCodeSet =
+	static string[]? aggregatedBookCodeSet;
+	static string[] AggregatedBookCodeSet => aggregatedBookCodeSet ?? Publish(ref aggregatedBookCodeSet,
 	[
 		"Y", // BookEntriesToBeAggregated
 		"N", // BookEntriesShouldNotBeAggregated
-	];
+	]);
 
-	static readonly string[] MDEntryTypeCodeSet =
+	static string[]? mDEntryTypeCodeSet;
+	static string[] MDEntryTypeCodeSet => mDEntryTypeCodeSet ?? Publish(ref mDEntryTypeCodeSet,
 	[
 		"0", // Bid
 		"1", // Offer
@@ -5678,17 +5950,19 @@ static class FixSchema
 		"A", // Imbalance
 		"B", // TradeVolume
 		"C", // OpenInterest
-	];
+	]);
 
-	static readonly string[] TickDirectionCodeSet =
+	static string[]? tickDirectionCodeSet;
+	static string[] TickDirectionCodeSet => tickDirectionCodeSet ?? Publish(ref tickDirectionCodeSet,
 	[
 		"0", // PlusTick
 		"1", // ZeroPlusTick
 		"2", // MinusTick
 		"3", // ZeroMinusTick
-	];
+	]);
 
-	static readonly string[] QuoteConditionCodeSet =
+	static string[]? quoteConditionCodeSet;
+	static string[] QuoteConditionCodeSet => quoteConditionCodeSet ?? Publish(ref quoteConditionCodeSet,
 	[
 		"A", // Open
 		"B", // Closed
@@ -5699,9 +5973,10 @@ static class FixSchema
 		"G", // Depth
 		"H", // FastTrading
 		"I", // NonFirm
-	];
+	]);
 
-	static readonly string[] TradeConditionCodeSet =
+	static string[]? tradeConditionCodeSet;
+	static string[] TradeConditionCodeSet => tradeConditionCodeSet ?? Publish(ref tradeConditionCodeSet,
 	[
 		"A", // Cash
 		"B", // AveragePriceTrade
@@ -5720,16 +5995,18 @@ static class FixSchema
 		"P", // ImbalanceMoreBuyers
 		"Q", // ImbalanceMoreSellers
 		"R", // OpeningPrice
-	];
+	]);
 
-	static readonly string[] MDUpdateActionCodeSet =
+	static string[]? mDUpdateActionCodeSet;
+	static string[] MDUpdateActionCodeSet => mDUpdateActionCodeSet ?? Publish(ref mDUpdateActionCodeSet,
 	[
 		"0", // New
 		"1", // Change
 		"2", // Delete
-	];
+	]);
 
-	static readonly string[] MDReqRejReasonCodeSet =
+	static string[]? mDReqRejReasonCodeSet;
+	static string[] MDReqRejReasonCodeSet => mDReqRejReasonCodeSet ?? Publish(ref mDReqRejReasonCodeSet,
 	[
 		"0", // UnknownSymbol
 		"1", // DuplicateMDReqID
@@ -5744,15 +6021,17 @@ static class FixSchema
 		"A", // UnsupportedScope
 		"B", // UnsupportedOpenCloseSettleFlag
 		"C", // UnsupportedMDImplicitDelete
-	];
+	]);
 
-	static readonly string[] DeleteReasonCodeSet =
+	static string[]? deleteReasonCodeSet;
+	static string[] DeleteReasonCodeSet => deleteReasonCodeSet ?? Publish(ref deleteReasonCodeSet,
 	[
 		"0", // Cancellation
 		"1", // Error
-	];
+	]);
 
-	static readonly string[] OpenCloseSettlFlagCodeSet =
+	static string[]? openCloseSettlFlagCodeSet;
+	static string[] OpenCloseSettlFlagCodeSet => openCloseSettlFlagCodeSet ?? Publish(ref openCloseSettlFlagCodeSet,
 	[
 		"0", // DailyOpen
 		"1", // SessionOpen
@@ -5760,24 +6039,27 @@ static class FixSchema
 		"3", // ExpectedEntry
 		"4", // EntryFromPreviousBusinessDay
 		"5", // TheoreticalPriceValue
-	];
+	]);
 
-	static readonly string[] FinancialStatusCodeSet =
+	static string[]? financialStatusCodeSet;
+	static string[] FinancialStatusCodeSet => financialStatusCodeSet ?? Publish(ref financialStatusCodeSet,
 	[
 		"1", // Bankrupt
 		"2", // PendingDelisting
-	];
+	]);
 
-	static readonly string[] CorporateActionCodeSet =
+	static string[]? corporateActionCodeSet;
+	static string[] CorporateActionCodeSet => corporateActionCodeSet ?? Publish(ref corporateActionCodeSet,
 	[
 		"A", // ExDividend
 		"B", // ExDistribution
 		"C", // ExRights
 		"D", // New
 		"E", // ExInterest
-	];
+	]);
 
-	static readonly string[] QuoteStatusCodeSet =
+	static string[]? quoteStatusCodeSet;
+	static string[] QuoteStatusCodeSet => quoteStatusCodeSet ?? Publish(ref quoteStatusCodeSet,
 	[
 		"0", // Accepted
 		"1", // CancelForSymbol
@@ -5795,17 +6077,19 @@ static class FixSchema
 		"13", // CrossMarketWarning
 		"14", // CanceledDueToLockMarket
 		"15", // CanceledDueToCrossMarket
-	];
+	]);
 
-	static readonly string[] QuoteCancelTypeCodeSet =
+	static string[]? quoteCancelTypeCodeSet;
+	static string[] QuoteCancelTypeCodeSet => quoteCancelTypeCodeSet ?? Publish(ref quoteCancelTypeCodeSet,
 	[
 		"1", // CancelForOneOrMoreSecurities
 		"2", // CancelForSecurityType
 		"3", // CancelForUnderlyingSecurity
 		"4", // CancelAllQuotes
-	];
+	]);
 
-	static readonly string[] QuoteRejectReasonCodeSet =
+	static string[]? quoteRejectReasonCodeSet;
+	static string[] QuoteRejectReasonCodeSet => quoteRejectReasonCodeSet ?? Publish(ref quoteRejectReasonCodeSet,
 	[
 		"1", // UnknownSymbol
 		"2", // Exchange
@@ -5817,44 +6101,50 @@ static class FixSchema
 		"8", // InvalidPrice
 		"9", // NotAuthorizedToQuoteSecurity
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] QuoteResponseLevelCodeSet =
+	static string[]? quoteResponseLevelCodeSet;
+	static string[] QuoteResponseLevelCodeSet => quoteResponseLevelCodeSet ?? Publish(ref quoteResponseLevelCodeSet,
 	[
 		"0", // NoAcknowledgement
 		"1", // AcknowledgeOnlyNegativeOrErroneousQuotes
 		"2", // AcknowledgeEachQuoteMessage
-	];
+	]);
 
-	static readonly string[] QuoteRequestTypeCodeSet =
+	static string[]? quoteRequestTypeCodeSet;
+	static string[] QuoteRequestTypeCodeSet => quoteRequestTypeCodeSet ?? Publish(ref quoteRequestTypeCodeSet,
 	[
 		"1", // Manual
 		"2", // Automatic
-	];
+	]);
 
-	static readonly string[] SecurityRequestTypeCodeSet =
+	static string[]? securityRequestTypeCodeSet;
+	static string[] SecurityRequestTypeCodeSet => securityRequestTypeCodeSet ?? Publish(ref securityRequestTypeCodeSet,
 	[
 		"0", // RequestSecurityIdentityAndSpecifications
 		"1", // RequestSecurityIdentityForSpecifications
 		"2", // RequestListSecurityTypes
 		"3", // RequestListSecurities
-	];
+	]);
 
-	static readonly string[] SecurityResponseTypeCodeSet =
+	static string[]? securityResponseTypeCodeSet;
+	static string[] SecurityResponseTypeCodeSet => securityResponseTypeCodeSet ?? Publish(ref securityResponseTypeCodeSet,
 	[
 		"1", // AcceptAsIs
 		"2", // AcceptWithRevisions
 		"5", // RejectSecurityProposal
 		"6", // CannotMatchSelectionCriteria
-	];
+	]);
 
-	static readonly string[] UnsolicitedIndicatorCodeSet =
+	static string[]? unsolicitedIndicatorCodeSet;
+	static string[] UnsolicitedIndicatorCodeSet => unsolicitedIndicatorCodeSet ?? Publish(ref unsolicitedIndicatorCodeSet,
 	[
 		"Y", // MessageIsBeingSentUnsolicited
 		"N", // MessageIsBeingSentAsAResultOfAPriorRequest
-	];
+	]);
 
-	static readonly string[] SecurityTradingStatusCodeSet =
+	static string[]? securityTradingStatusCodeSet;
+	static string[] SecurityTradingStatusCodeSet => securityTradingStatusCodeSet ?? Publish(ref securityTradingStatusCodeSet,
 	[
 		"1", // OpeningDelay
 		"2", // TradingHalt
@@ -5878,9 +6168,10 @@ static class FixSchema
 		"21", // PreOpen
 		"22", // OpeningRotation
 		"23", // FastMarket
-	];
+	]);
 
-	static readonly string[] HaltReasonCodeSet =
+	static string[]? haltReasonCodeSet;
+	static string[] HaltReasonCodeSet => haltReasonCodeSet ?? Publish(ref haltReasonCodeSet,
 	[
 		"I", // OrderImbalance
 		"X", // EquipmentChangeover
@@ -5888,42 +6179,48 @@ static class FixSchema
 		"D", // NewsDissemination
 		"E", // OrderInflux
 		"M", // AdditionalInformation
-	];
+	]);
 
-	static readonly string[] InViewOfCommonCodeSet =
+	static string[]? inViewOfCommonCodeSet;
+	static string[] InViewOfCommonCodeSet => inViewOfCommonCodeSet ?? Publish(ref inViewOfCommonCodeSet,
 	[
 		"Y", // HaltWasDueToCommonStockBeingHalted
 		"N", // HaltWasNotRelatedToAHaltOfTheCommonStock
-	];
+	]);
 
-	static readonly string[] DueToRelatedCodeSet =
+	static string[]? dueToRelatedCodeSet;
+	static string[] DueToRelatedCodeSet => dueToRelatedCodeSet ?? Publish(ref dueToRelatedCodeSet,
 	[
 		"Y", // RelatedToSecurityHalt
 		"N", // NotRelatedToSecurityHalt
-	];
+	]);
 
-	static readonly string[] AdjustmentCodeSet =
+	static string[]? adjustmentCodeSet;
+	static string[] AdjustmentCodeSet => adjustmentCodeSet ?? Publish(ref adjustmentCodeSet,
 	[
 		"1", // Cancel
 		"2", // Error
 		"3", // Correction
-	];
+	]);
 
-	static readonly string[] TradSesMethodCodeSet =
+	static string[]? tradSesMethodCodeSet;
+	static string[] TradSesMethodCodeSet => tradSesMethodCodeSet ?? Publish(ref tradSesMethodCodeSet,
 	[
 		"1", // Electronic
 		"2", // OpenOutcry
 		"3", // TwoParty
-	];
+	]);
 
-	static readonly string[] TradSesModeCodeSet =
+	static string[]? tradSesModeCodeSet;
+	static string[] TradSesModeCodeSet => tradSesModeCodeSet ?? Publish(ref tradSesModeCodeSet,
 	[
 		"1", // Testing
 		"2", // Simulated
 		"3", // Production
-	];
+	]);
 
-	static readonly string[] TradSesStatusCodeSet =
+	static string[]? tradSesStatusCodeSet;
+	static string[] TradSesStatusCodeSet => tradSesStatusCodeSet ?? Publish(ref tradSesStatusCodeSet,
 	[
 		"0", // Unknown
 		"1", // Halted
@@ -5932,17 +6229,19 @@ static class FixSchema
 		"4", // PreOpen
 		"5", // PreClose
 		"6", // RequestRejected
-	];
+	]);
 
-	static readonly string[] MessageEncodingCodeSet =
+	static string[]? messageEncodingCodeSet;
+	static string[] MessageEncodingCodeSet => messageEncodingCodeSet ?? Publish(ref messageEncodingCodeSet,
 	[
 		"ISO-2022-JP", // ISO2022JP
 		"EUC-JP", // EUCJP
 		"Shift_JIS", // ShiftJIS
 		"UTF-8", // UTF8
-	];
+	]);
 
-	static readonly string[] SessionRejectReasonCodeSet =
+	static string[]? sessionRejectReasonCodeSet;
+	static string[] SessionRejectReasonCodeSet => sessionRejectReasonCodeSet ?? Publish(ref sessionRejectReasonCodeSet,
 	[
 		"0", // InvalidTagNumber
 		"1", // RequiredTagMissing
@@ -5963,21 +6262,24 @@ static class FixSchema
 		"16", // IncorrectNumInGroupCountForRepeatingGroup
 		"17", // Non
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] BidRequestTransTypeCodeSet =
+	static string[]? bidRequestTransTypeCodeSet;
+	static string[] BidRequestTransTypeCodeSet => bidRequestTransTypeCodeSet ?? Publish(ref bidRequestTransTypeCodeSet,
 	[
 		"N", // New
 		"C", // Cancel
-	];
+	]);
 
-	static readonly string[] SolicitedFlagCodeSet =
+	static string[]? solicitedFlagCodeSet;
+	static string[] SolicitedFlagCodeSet => solicitedFlagCodeSet ?? Publish(ref solicitedFlagCodeSet,
 	[
 		"Y", // WasSolicited
 		"N", // WasNotSolicited
-	];
+	]);
 
-	static readonly string[] ExecRestatementReasonCodeSet =
+	static string[]? execRestatementReasonCodeSet;
+	static string[] ExecRestatementReasonCodeSet => execRestatementReasonCodeSet ?? Publish(ref execRestatementReasonCodeSet,
 	[
 		"0", // GTCorporateAction
 		"1", // GTRenewal
@@ -5991,9 +6293,10 @@ static class FixSchema
 		"9", // Canceled
 		"10", // WarehouseRecap
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] BusinessRejectReasonCodeSet =
+	static string[]? businessRejectReasonCodeSet;
+	static string[] BusinessRejectReasonCodeSet => businessRejectReasonCodeSet ?? Publish(ref businessRejectReasonCodeSet,
 	[
 		"0", // Other
 		"1", // UnknownID
@@ -6003,15 +6306,17 @@ static class FixSchema
 		"5", // ConditionallyRequiredFieldMissing
 		"6", // NotAuthorized
 		"7", // DeliverToFirmNotAvailableAtThisTime
-	];
+	]);
 
-	static readonly string[] MsgDirectionCodeSet =
+	static string[]? msgDirectionCodeSet;
+	static string[] MsgDirectionCodeSet => msgDirectionCodeSet ?? Publish(ref msgDirectionCodeSet,
 	[
 		"S", // Send
 		"R", // Receive
-	];
+	]);
 
-	static readonly string[] DiscretionInstCodeSet =
+	static string[]? discretionInstCodeSet;
+	static string[] DiscretionInstCodeSet => discretionInstCodeSet ?? Publish(ref discretionInstCodeSet,
 	[
 		"0", // RelatedToDisplayedPrice
 		"1", // RelatedToMarketPrice
@@ -6020,64 +6325,73 @@ static class FixSchema
 		"4", // RelatedToMidpointPrice
 		"5", // RelatedToLastTradePrice
 		"6", // RelatedToVWAP
-	];
+	]);
 
-	static readonly string[] BidTypeCodeSet =
+	static string[]? bidTypeCodeSet;
+	static string[] BidTypeCodeSet => bidTypeCodeSet ?? Publish(ref bidTypeCodeSet,
 	[
 		"1", // NonDisclosed
 		"2", // Disclosed
 		"3", // NoBiddingProcess
-	];
+	]);
 
-	static readonly string[] BidDescriptorTypeCodeSet =
+	static string[]? bidDescriptorTypeCodeSet;
+	static string[] BidDescriptorTypeCodeSet => bidDescriptorTypeCodeSet ?? Publish(ref bidDescriptorTypeCodeSet,
 	[
 		"1", // Sector
 		"2", // Country
 		"3", // Index
-	];
+	]);
 
-	static readonly string[] SideValueIndCodeSet =
+	static string[]? sideValueIndCodeSet;
+	static string[] SideValueIndCodeSet => sideValueIndCodeSet ?? Publish(ref sideValueIndCodeSet,
 	[
 		"1", // SideValue1
 		"2", // SideValue2
-	];
+	]);
 
-	static readonly string[] LiquidityIndTypeCodeSet =
+	static string[]? liquidityIndTypeCodeSet;
+	static string[] LiquidityIndTypeCodeSet => liquidityIndTypeCodeSet ?? Publish(ref liquidityIndTypeCodeSet,
 	[
 		"1", // FiveDayMovingAverage
 		"2", // TwentyDayMovingAverage
 		"3", // NormalMarketSize
 		"4", // Other
-	];
+	]);
 
-	static readonly string[] ExchangeForPhysicalCodeSet =
+	static string[]? exchangeForPhysicalCodeSet;
+	static string[] ExchangeForPhysicalCodeSet => exchangeForPhysicalCodeSet ?? Publish(ref exchangeForPhysicalCodeSet,
 	[
 		"Y", // True
 		"N", // False
-	];
+	]);
 
-	static readonly string[] ProgRptReqsCodeSet =
+	static string[]? progRptReqsCodeSet;
+	static string[] ProgRptReqsCodeSet => progRptReqsCodeSet ?? Publish(ref progRptReqsCodeSet,
 	[
 		"1", // BuySideRequests
 		"2", // SellSideSends
 		"3", // RealTimeExecutionReports
-	];
+	]);
 
-	static readonly string[] IncTaxIndCodeSet =
+	static string[]? incTaxIndCodeSet;
+	static string[] IncTaxIndCodeSet => incTaxIndCodeSet ?? Publish(ref incTaxIndCodeSet,
 	[
 		"1", // Net
 		"2", // Gross
-	];
+	]);
 
-	static readonly string[] BidTradeTypeCodeSet =
+	static string[]? bidTradeTypeCodeSet;
+	static string[] BidTradeTypeCodeSet => bidTradeTypeCodeSet ?? Publish(ref bidTradeTypeCodeSet,
 	[
 		"R", // RiskTrade
 		"G", // VWAPGuarantee
 		"A", // Agency
 		"J", // GuaranteedClose
-	];
+	]);
 
-	static readonly string[] BasisPxTypeCodeSet =
+	static string[]? basisPxTypeCodeSet;
+	static string[] BasisPxTypeCodeSet => basisPxTypeCodeSet ?? Publish(ref basisPxTypeCodeSet,
 	[
 		"2", // ClosingPriceAtMorningSession
 		"3", // ClosingPrice
@@ -6092,9 +6406,10 @@ static class FixSchema
 		"C", // Strike
 		"D", // Open
 		"Z", // Others
-	];
+	]);
 
-	static readonly string[] PriceTypeCodeSet =
+	static string[]? priceTypeCodeSet;
+	static string[] PriceTypeCodeSet => priceTypeCodeSet ?? Publish(ref priceTypeCodeSet,
 	[
 		"1", // Percentage
 		"2", // PerUnit
@@ -6107,16 +6422,18 @@ static class FixSchema
 		"9", // Yield
 		"10", // FixedCabinetTradePrice
 		"11", // VariableCabinetTradePrice
-	];
+	]);
 
-	static readonly string[] GTBookingInstCodeSet =
+	static string[]? gTBookingInstCodeSet;
+	static string[] GTBookingInstCodeSet => gTBookingInstCodeSet ?? Publish(ref gTBookingInstCodeSet,
 	[
 		"0", // BookOutAllTradesOnDayOfExecution
 		"1", // AccumulateUntilFilledOrExpired
 		"2", // AccumulateUntilVerballlyNotifiedOtherwise
-	];
+	]);
 
-	static readonly string[] ListStatusTypeCodeSet =
+	static string[]? listStatusTypeCodeSet;
+	static string[] ListStatusTypeCodeSet => listStatusTypeCodeSet ?? Publish(ref listStatusTypeCodeSet,
 	[
 		"1", // Ack
 		"2", // Response
@@ -6124,15 +6441,17 @@ static class FixSchema
 		"4", // ExecStarted
 		"5", // AllDone
 		"6", // Alert
-	];
+	]);
 
-	static readonly string[] NetGrossIndCodeSet =
+	static string[]? netGrossIndCodeSet;
+	static string[] NetGrossIndCodeSet => netGrossIndCodeSet ?? Publish(ref netGrossIndCodeSet,
 	[
 		"1", // Net
 		"2", // Gross
-	];
+	]);
 
-	static readonly string[] ListOrderStatusCodeSet =
+	static string[]? listOrderStatusCodeSet;
+	static string[] ListOrderStatusCodeSet => listOrderStatusCodeSet ?? Publish(ref listOrderStatusCodeSet,
 	[
 		"1", // InBiddingProcess
 		"2", // ReceivedForExecution
@@ -6141,31 +6460,35 @@ static class FixSchema
 		"5", // Alert
 		"6", // AllDone
 		"7", // Reject
-	];
+	]);
 
-	static readonly string[] ListExecInstTypeCodeSet =
+	static string[]? listExecInstTypeCodeSet;
+	static string[] ListExecInstTypeCodeSet => listExecInstTypeCodeSet ?? Publish(ref listExecInstTypeCodeSet,
 	[
 		"1", // Immediate
 		"2", // WaitForInstruction
 		"3", // SellDriven
 		"4", // BuyDrivenCashTopUp
 		"5", // BuyDrivenCashWithdraw
-	];
+	]);
 
-	static readonly string[] CxlRejResponseToCodeSet =
+	static string[]? cxlRejResponseToCodeSet;
+	static string[] CxlRejResponseToCodeSet => cxlRejResponseToCodeSet ?? Publish(ref cxlRejResponseToCodeSet,
 	[
 		"1", // OrderCancelRequest
 		"2", // OrderCancel
-	];
+	]);
 
-	static readonly string[] MultiLegReportingTypeCodeSet =
+	static string[]? multiLegReportingTypeCodeSet;
+	static string[] MultiLegReportingTypeCodeSet => multiLegReportingTypeCodeSet ?? Publish(ref multiLegReportingTypeCodeSet,
 	[
 		"1", // SingleSecurity
 		"2", // IndividualLegOfAMultiLegSecurity
 		"3", // MultiLegSecurity
-	];
+	]);
 
-	static readonly string[] PartyIDSourceCodeSet =
+	static string[]? partyIDSourceCodeSet;
+	static string[] PartyIDSourceCodeSet => partyIDSourceCodeSet ?? Publish(ref partyIDSourceCodeSet,
 	[
 		"B", // BIC
 		"C", // GeneralIdentifier
@@ -6185,9 +6508,10 @@ static class FixSchema
 		"9", // AustralianBusinessNumber
 		"A", // AustralianTaxFileNumber
 		"I", // ISITCAcronym
-	];
+	]);
 
-	static readonly string[] PartyRoleCodeSet =
+	static string[]? partyRoleCodeSet;
+	static string[] PartyRoleCodeSet => partyRoleCodeSet ?? Publish(ref partyRoleCodeSet,
 	[
 		"1", // ExecutingFirm
 		"2", // BrokerOfCredit
@@ -6226,9 +6550,10 @@ static class FixSchema
 		"36", // EnteringTrader
 		"37", // ContraTrader
 		"38", // PositionAccount
-	];
+	]);
 
-	static readonly string[] ProductCodeSet =
+	static string[]? productCodeSet;
+	static string[] ProductCodeSet => productCodeSet ?? Publish(ref productCodeSet,
 	[
 		"1", // AGENCY
 		"2", // COMMODITY
@@ -6243,22 +6568,25 @@ static class FixSchema
 		"11", // MUNICIPAL
 		"12", // OTHER
 		"13", // FINANCING
-	];
+	]);
 
-	static readonly string[] TestMessageIndicatorCodeSet =
+	static string[]? testMessageIndicatorCodeSet;
+	static string[] TestMessageIndicatorCodeSet => testMessageIndicatorCodeSet ?? Publish(ref testMessageIndicatorCodeSet,
 	[
 		"Y", // True
 		"N", // False
-	];
+	]);
 
-	static readonly string[] RoundingDirectionCodeSet =
+	static string[]? roundingDirectionCodeSet;
+	static string[] RoundingDirectionCodeSet => roundingDirectionCodeSet ?? Publish(ref roundingDirectionCodeSet,
 	[
 		"0", // RoundToNearest
 		"1", // RoundDown
 		"2", // RoundUp
-	];
+	]);
 
-	static readonly string[] DistribPaymentMethodCodeSet =
+	static string[]? distribPaymentMethodCodeSet;
+	static string[] DistribPaymentMethodCodeSet => distribPaymentMethodCodeSet ?? Publish(ref distribPaymentMethodCodeSet,
 	[
 		"1", // CREST
 		"2", // NSCC
@@ -6272,26 +6600,29 @@ static class FixSchema
 		"10", // BPAY
 		"11", // HighValueClearingSystemHVACS
 		"12", // ReinvestInFund
-	];
+	]);
 
-	static readonly string[] CancellationRightsCodeSet =
+	static string[]? cancellationRightsCodeSet;
+	static string[] CancellationRightsCodeSet => cancellationRightsCodeSet ?? Publish(ref cancellationRightsCodeSet,
 	[
 		"Y", // Yes
 		"N", // NoExecutionOnly
 		"M", // NoWaiverAgreement
 		"O", // NoInstitutional
-	];
+	]);
 
-	static readonly string[] MoneyLaunderingStatusCodeSet =
+	static string[]? moneyLaunderingStatusCodeSet;
+	static string[] MoneyLaunderingStatusCodeSet => moneyLaunderingStatusCodeSet ?? Publish(ref moneyLaunderingStatusCodeSet,
 	[
 		"Y", // Passed
 		"N", // NotChecked
 		"1", // ExemptBelowLimit
 		"2", // ExemptMoneyType
 		"3", // ExemptAuthorised
-	];
+	]);
 
-	static readonly string[] ExecPriceTypeCodeSet =
+	static string[]? execPriceTypeCodeSet;
+	static string[] ExecPriceTypeCodeSet => execPriceTypeCodeSet ?? Publish(ref execPriceTypeCodeSet,
 	[
 		"B", // BidPrice
 		"C", // CreationPrice
@@ -6301,18 +6632,20 @@ static class FixSchema
 		"P", // OfferPriceMinusAdjustmentPercent
 		"Q", // OfferPriceMinusAdjustmentAmount
 		"S", // SinglePrice
-	];
+	]);
 
-	static readonly string[] TradeReportTransTypeCodeSet =
+	static string[]? tradeReportTransTypeCodeSet;
+	static string[] TradeReportTransTypeCodeSet => tradeReportTransTypeCodeSet ?? Publish(ref tradeReportTransTypeCodeSet,
 	[
 		"0", // New
 		"1", // Cancel
 		"2", // Replace
 		"3", // Release
 		"4", // Reverse
-	];
+	]);
 
-	static readonly string[] PaymentMethodCodeSet =
+	static string[]? paymentMethodCodeSet;
+	static string[] PaymentMethodCodeSet => paymentMethodCodeSet ?? Publish(ref paymentMethodCodeSet,
 	[
 		"1", // CREST
 		"2", // NSCC
@@ -6329,9 +6662,10 @@ static class FixSchema
 		"13", // ACHCredit
 		"14", // BPAY
 		"15", // HighValueClearingSystem
-	];
+	]);
 
-	static readonly string[] TaxAdvantageTypeCodeSet =
+	static string[]? taxAdvantageTypeCodeSet;
+	static string[] TaxAdvantageTypeCodeSet => taxAdvantageTypeCodeSet ?? Publish(ref taxAdvantageTypeCodeSet,
 	[
 		"0", // None
 		"1", // MaxiISA
@@ -6363,23 +6697,26 @@ static class FixSchema
 		"27", // RothConversionIRANonPrototype
 		"28", // EducationIRAPrototype
 		"29", // EducationIRANonPrototype
-	];
+	]);
 
-	static readonly string[] FundRenewWaivCodeSet =
+	static string[]? fundRenewWaivCodeSet;
+	static string[] FundRenewWaivCodeSet => fundRenewWaivCodeSet ?? Publish(ref fundRenewWaivCodeSet,
 	[
 		"Y", // Yes
 		"N", // No
-	];
+	]);
 
-	static readonly string[] RegistStatusCodeSet =
+	static string[]? registStatusCodeSet;
+	static string[] RegistStatusCodeSet => registStatusCodeSet ?? Publish(ref registStatusCodeSet,
 	[
 		"A", // Accepted
 		"R", // Rejected
 		"H", // Held
 		"N", // Reminder
-	];
+	]);
 
-	static readonly string[] RegistRejReasonCodeCodeSet =
+	static string[]? registRejReasonCodeCodeSet;
+	static string[] RegistRejReasonCodeCodeSet => registRejReasonCodeCodeSet ?? Publish(ref registRejReasonCodeCodeSet,
 	[
 		"1", // InvalidAccountType
 		"2", // InvalidTaxExemptType
@@ -6400,23 +6737,26 @@ static class FixSchema
 		"17", // InvalidAgentCode
 		"18", // InvalidAccountNum
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] RegistTransTypeCodeSet =
+	static string[]? registTransTypeCodeSet;
+	static string[] RegistTransTypeCodeSet => registTransTypeCodeSet ?? Publish(ref registTransTypeCodeSet,
 	[
 		"0", // New
 		"1", // Replace
 		"2", // Cancel
-	];
+	]);
 
-	static readonly string[] OwnershipTypeCodeSet =
+	static string[]? ownershipTypeCodeSet;
+	static string[] OwnershipTypeCodeSet => ownershipTypeCodeSet ?? Publish(ref ownershipTypeCodeSet,
 	[
 		"J", // JointInvestors
 		"T", // TenantsInCommon
 		"2", // JointTrustees
-	];
+	]);
 
-	static readonly string[] ContAmtTypeCodeSet =
+	static string[]? contAmtTypeCodeSet;
+	static string[] ContAmtTypeCodeSet => contAmtTypeCodeSet ?? Publish(ref contAmtTypeCodeSet,
 	[
 		"1", // CommissionAmount
 		"2", // CommissionPercent
@@ -6433,9 +6773,10 @@ static class FixSchema
 		"13", // FundBasedRenewalCommissionOnOrder
 		"14", // FundBasedRenewalCommissionOnFund
 		"15", // NetSettlementAmount
-	];
+	]);
 
-	static readonly string[] OwnerTypeCodeSet =
+	static string[]? ownerTypeCodeSet;
+	static string[] OwnerTypeCodeSet => ownerTypeCodeSet ?? Publish(ref ownerTypeCodeSet,
 	[
 		"1", // IndividualInvestor
 		"2", // PublicCompany
@@ -6450,9 +6791,10 @@ static class FixSchema
 		"11", // NonProfitOrganization
 		"12", // CorporateBody
 		"13", // Nominee
-	];
+	]);
 
-	static readonly string[] OrderCapacityCodeSet =
+	static string[]? orderCapacityCodeSet;
+	static string[] OrderCapacityCodeSet => orderCapacityCodeSet ?? Publish(ref orderCapacityCodeSet,
 	[
 		"A", // Agency
 		"G", // Proprietary
@@ -6460,9 +6802,10 @@ static class FixSchema
 		"P", // Principal
 		"R", // RisklessPrincipal
 		"W", // AgentForOtherMember
-	];
+	]);
 
-	static readonly string[] OrderRestrictionsCodeSet =
+	static string[]? orderRestrictionsCodeSet;
+	static string[] OrderRestrictionsCodeSet => orderRestrictionsCodeSet ?? Publish(ref orderRestrictionsCodeSet,
 	[
 		"1", // ProgramTrade
 		"2", // IndexArbitrage
@@ -6474,9 +6817,10 @@ static class FixSchema
 		"8", // ExternalMarketParticipant
 		"9", // ExternalInterConnectedMarketLinkage
 		"A", // RisklessArbitrage
-	];
+	]);
 
-	static readonly string[] MassCancelRequestTypeCodeSet =
+	static string[]? massCancelRequestTypeCodeSet;
+	static string[] MassCancelRequestTypeCodeSet => massCancelRequestTypeCodeSet ?? Publish(ref massCancelRequestTypeCodeSet,
 	[
 		"1", // CancelOrdersForASecurity
 		"2", // CancelOrdersForAnUnderlyingSecurity
@@ -6485,9 +6829,10 @@ static class FixSchema
 		"5", // CancelOrdersForASecurityType
 		"6", // CancelOrdersForATradingSession
 		"7", // CancelAllOrders
-	];
+	]);
 
-	static readonly string[] MassCancelResponseCodeSet =
+	static string[]? massCancelResponseCodeSet;
+	static string[] MassCancelResponseCodeSet => massCancelResponseCodeSet ?? Publish(ref massCancelResponseCodeSet,
 	[
 		"0", // CancelRequestRejected
 		"1", // CancelOrdersForASecurity
@@ -6497,9 +6842,10 @@ static class FixSchema
 		"5", // CancelOrdersForASecurityType
 		"6", // CancelOrdersForATradingSession
 		"7", // CancelAllOrders
-	];
+	]);
 
-	static readonly string[] MassCancelRejectReasonCodeSet =
+	static string[]? massCancelRejectReasonCodeSet;
+	static string[] MassCancelRejectReasonCodeSet => massCancelRejectReasonCodeSet ?? Publish(ref massCancelRejectReasonCodeSet,
 	[
 		"0", // MassCancelNotSupported
 		"1", // InvalidOrUnknownSecurity
@@ -6509,67 +6855,76 @@ static class FixSchema
 		"5", // InvalidOrUnknownSecurityType
 		"6", // InvalidOrUnknownTradingSession
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] QuoteTypeCodeSet =
+	static string[]? quoteTypeCodeSet;
+	static string[] QuoteTypeCodeSet => quoteTypeCodeSet ?? Publish(ref quoteTypeCodeSet,
 	[
 		"0", // Indicative
 		"1", // Tradeable
 		"2", // RestrictedTradeable
 		"3", // Counter
-	];
+	]);
 
-	static readonly string[] CashMarginCodeSet =
+	static string[]? cashMarginCodeSet;
+	static string[] CashMarginCodeSet => cashMarginCodeSet ?? Publish(ref cashMarginCodeSet,
 	[
 		"1", // Cash
 		"2", // MarginOpen
 		"3", // MarginClose
-	];
+	]);
 
-	static readonly string[] ScopeCodeSet =
+	static string[]? scopeCodeSet;
+	static string[] ScopeCodeSet => scopeCodeSet ?? Publish(ref scopeCodeSet,
 	[
 		"1", // LocalMarket
 		"2", // National
 		"3", // Global
-	];
+	]);
 
-	static readonly string[] MDImplicitDeleteCodeSet =
+	static string[]? mDImplicitDeleteCodeSet;
+	static string[] MDImplicitDeleteCodeSet => mDImplicitDeleteCodeSet ?? Publish(ref mDImplicitDeleteCodeSet,
 	[
 		"Y", // Yes
 		"N", // No
-	];
+	]);
 
-	static readonly string[] CrossTypeCodeSet =
+	static string[]? crossTypeCodeSet;
+	static string[] CrossTypeCodeSet => crossTypeCodeSet ?? Publish(ref crossTypeCodeSet,
 	[
 		"1", // CrossAON
 		"2", // CrossIOC
 		"3", // CrossOneSide
 		"4", // CrossSamePrice
-	];
+	]);
 
-	static readonly string[] CrossPrioritizationCodeSet =
+	static string[]? crossPrioritizationCodeSet;
+	static string[] CrossPrioritizationCodeSet => crossPrioritizationCodeSet ?? Publish(ref crossPrioritizationCodeSet,
 	[
 		"0", // None
 		"1", // BuySideIsPrioritized
 		"2", // SellSideIsPrioritized
-	];
+	]);
 
-	static readonly string[] NoSidesCodeSet =
+	static string[]? noSidesCodeSet;
+	static string[] NoSidesCodeSet => noSidesCodeSet ?? Publish(ref noSidesCodeSet,
 	[
 		"1", // OneSide
 		"2", // BothSides
-	];
+	]);
 
-	static readonly string[] SecurityListRequestTypeCodeSet =
+	static string[]? securityListRequestTypeCodeSet;
+	static string[] SecurityListRequestTypeCodeSet => securityListRequestTypeCodeSet ?? Publish(ref securityListRequestTypeCodeSet,
 	[
 		"0", // Symbol
 		"1", // SecurityTypeAnd
 		"2", // Product
 		"3", // TradingSessionID
 		"4", // AllSecurities
-	];
+	]);
 
-	static readonly string[] SecurityRequestResultCodeSet =
+	static string[]? securityRequestResultCodeSet;
+	static string[] SecurityRequestResultCodeSet => securityRequestResultCodeSet ?? Publish(ref securityRequestResultCodeSet,
 	[
 		"0", // ValidRequest
 		"1", // InvalidOrUnsupportedRequest
@@ -6577,44 +6932,50 @@ static class FixSchema
 		"3", // NotAuthorizedToRetrieveInstrumentData
 		"4", // InstrumentDataTemporarilyUnavailable
 		"5", // RequestForInstrumentDataNotSupported
-	];
+	]);
 
-	static readonly string[] MultiLegRptTypeReqCodeSet =
+	static string[]? multiLegRptTypeReqCodeSet;
+	static string[] MultiLegRptTypeReqCodeSet => multiLegRptTypeReqCodeSet ?? Publish(ref multiLegRptTypeReqCodeSet,
 	[
 		"0", // ReportByMulitlegSecurityOnly
 		"1", // ReportByMultilegSecurityAndInstrumentLegs
 		"2", // ReportByInstrumentLegsOnly
-	];
+	]);
 
-	static readonly string[] TradSesStatusRejReasonCodeSet =
+	static string[]? tradSesStatusRejReasonCodeSet;
+	static string[] TradSesStatusRejReasonCodeSet => tradSesStatusRejReasonCodeSet ?? Publish(ref tradSesStatusRejReasonCodeSet,
 	[
 		"1", // UnknownOrInvalidTradingSessionID
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] TradeRequestTypeCodeSet =
+	static string[]? tradeRequestTypeCodeSet;
+	static string[] TradeRequestTypeCodeSet => tradeRequestTypeCodeSet ?? Publish(ref tradeRequestTypeCodeSet,
 	[
 		"0", // AllTrades
 		"1", // MatchedTradesMatchingCriteria
 		"2", // UnmatchedTradesThatMatchCriteria
 		"3", // UnreportedTradesThatMatchCriteria
 		"4", // AdvisoriesThatMatchCriteria
-	];
+	]);
 
-	static readonly string[] PreviouslyReportedCodeSet =
+	static string[]? previouslyReportedCodeSet;
+	static string[] PreviouslyReportedCodeSet => previouslyReportedCodeSet ?? Publish(ref previouslyReportedCodeSet,
 	[
 		"Y", // PerviouslyReportedToCounterparty
 		"N", // NotReportedToCounterparty
-	];
+	]);
 
-	static readonly string[] MatchStatusCodeSet =
+	static string[]? matchStatusCodeSet;
+	static string[] MatchStatusCodeSet => matchStatusCodeSet ?? Publish(ref matchStatusCodeSet,
 	[
 		"0", // Compared
 		"1", // Uncompared
 		"2", // AdvisoryOrAlert
-	];
+	]);
 
-	static readonly string[] MatchTypeCodeSet =
+	static string[]? matchTypeCodeSet;
+	static string[] MatchTypeCodeSet => matchTypeCodeSet ?? Publish(ref matchTypeCodeSet,
 	[
 		"A1", // ExactMatchPlus4BadgesExecTime
 		"A2", // ExactMatchPlus4Badges
@@ -6634,15 +6995,17 @@ static class FixSchema
 		"M4", // ACTDefaultTrade
 		"M5", // ACTDefaultAfterM2
 		"M6", // ACTM6Match
-	];
+	]);
 
-	static readonly string[] OddLotCodeSet =
+	static string[]? oddLotCodeSet;
+	static string[] OddLotCodeSet => oddLotCodeSet ?? Publish(ref oddLotCodeSet,
 	[
 		"Y", // TreatAsOddLot
 		"N", // TreatAsRoundLot
-	];
+	]);
 
-	static readonly string[] ClearingInstructionCodeSet =
+	static string[]? clearingInstructionCodeSet;
+	static string[] ClearingInstructionCodeSet => clearingInstructionCodeSet ?? Publish(ref clearingInstructionCodeSet,
 	[
 		"0", // ProcessNormally
 		"1", // ExcludeFromAllNetting
@@ -6658,9 +7021,10 @@ static class FixSchema
 		"11", // QualifiedServiceRepresentativeQSR
 		"12", // CustomerTrade
 		"13", // SelfClearing
-	];
+	]);
 
-	static readonly string[] AccountTypeCodeSet =
+	static string[]? accountTypeCodeSet;
+	static string[] AccountTypeCodeSet => accountTypeCodeSet ?? Publish(ref accountTypeCodeSet,
 	[
 		"1", // CarriedCustomerSide
 		"2", // CarriedNonCustomerSide
@@ -6669,17 +7033,19 @@ static class FixSchema
 		"6", // CarriedNonCustomerSideCrossMargined
 		"7", // HouseTraderCrossMargined
 		"8", // JointBackOfficeAccount
-	];
+	]);
 
-	static readonly string[] CustOrderCapacityCodeSet =
+	static string[]? custOrderCapacityCodeSet;
+	static string[] CustOrderCapacityCodeSet => custOrderCapacityCodeSet ?? Publish(ref custOrderCapacityCodeSet,
 	[
 		"1", // MemberTradingForTheirOwnAccount
 		"2", // ClearingFirmTradingForItsProprietaryAccount
 		"3", // MemberTradingForAnotherMember
 		"4", // AllOther
-	];
+	]);
 
-	static readonly string[] MassStatusReqTypeCodeSet =
+	static string[]? massStatusReqTypeCodeSet;
+	static string[] MassStatusReqTypeCodeSet => massStatusReqTypeCodeSet ?? Publish(ref massStatusReqTypeCodeSet,
 	[
 		"1", // StatusForOrdersForASecurity
 		"2", // StatusForOrdersForAnUnderlyingSecurity
@@ -6689,38 +7055,43 @@ static class FixSchema
 		"6", // StatusForOrdersForATradingSession
 		"7", // StatusForAllOrders
 		"8", // StatusForOrdersForAPartyID
-	];
+	]);
 
-	static readonly string[] DayBookingInstCodeSet =
+	static string[]? dayBookingInstCodeSet;
+	static string[] DayBookingInstCodeSet => dayBookingInstCodeSet ?? Publish(ref dayBookingInstCodeSet,
 	[
 		"0", // Auto
 		"1", // SpeakWithOrderInitiatorBeforeBooking
 		"2", // Accumulate
-	];
+	]);
 
-	static readonly string[] BookingUnitCodeSet =
+	static string[]? bookingUnitCodeSet;
+	static string[] BookingUnitCodeSet => bookingUnitCodeSet ?? Publish(ref bookingUnitCodeSet,
 	[
 		"0", // EachPartialExecutionIsABookableUnit
 		"1", // AggregatePartialExecutionsOnThisOrder
 		"2", // AggregateExecutionsForThisSymbol
-	];
+	]);
 
-	static readonly string[] PreallocMethodCodeSet =
+	static string[]? preallocMethodCodeSet;
+	static string[] PreallocMethodCodeSet => preallocMethodCodeSet ?? Publish(ref preallocMethodCodeSet,
 	[
 		"0", // ProRata
 		"1", // DoNotProRata
-	];
+	]);
 
-	static readonly string[] AllocTypeCodeSet =
+	static string[]? allocTypeCodeSet;
+	static string[] AllocTypeCodeSet => allocTypeCodeSet ?? Publish(ref allocTypeCodeSet,
 	[
 		"1", // Calculated
 		"2", // Preliminary
 		"5", // ReadyToBook
 		"7", // WarehouseInstruction
 		"8", // RequestToIntermediary
-	];
+	]);
 
-	static readonly string[] ClearingFeeIndicatorCodeSet =
+	static string[]? clearingFeeIndicatorCodeSet;
+	static string[] ClearingFeeIndicatorCodeSet => clearingFeeIndicatorCodeSet ?? Publish(ref clearingFeeIndicatorCodeSet,
 	[
 		"B", // CBOEMember
 		"C", // NonMemberAndCustomer
@@ -6736,27 +7107,31 @@ static class FixSchema
 		"4", // FourthYearDelegate
 		"5", // FifthYearDelegate
 		"9", // SixthYearDelegate
-	];
+	]);
 
-	static readonly string[] WorkingIndicatorCodeSet =
+	static string[]? workingIndicatorCodeSet;
+	static string[] WorkingIndicatorCodeSet => workingIndicatorCodeSet ?? Publish(ref workingIndicatorCodeSet,
 	[
 		"Y", // Working
 		"N", // NotWorking
-	];
+	]);
 
-	static readonly string[] PriorityIndicatorCodeSet =
+	static string[]? priorityIndicatorCodeSet;
+	static string[] PriorityIndicatorCodeSet => priorityIndicatorCodeSet ?? Publish(ref priorityIndicatorCodeSet,
 	[
 		"0", // PriorityUnchanged
 		"1", // LostPriorityAsResultOfOrderChange
-	];
+	]);
 
-	static readonly string[] LegalConfirmCodeSet =
+	static string[]? legalConfirmCodeSet;
+	static string[] LegalConfirmCodeSet => legalConfirmCodeSet ?? Publish(ref legalConfirmCodeSet,
 	[
 		"Y", // LegalConfirm
 		"N", // DoesNotConsituteALegalConfirm
-	];
+	]);
 
-	static readonly string[] QuoteRequestRejectReasonCodeSet =
+	static string[]? quoteRequestRejectReasonCodeSet;
+	static string[] QuoteRequestRejectReasonCodeSet => quoteRequestRejectReasonCodeSet ?? Publish(ref quoteRequestRejectReasonCodeSet,
 	[
 		"1", // UnknownSymbol
 		"2", // Exchange
@@ -6769,9 +7144,10 @@ static class FixSchema
 		"9", // NoInventory
 		"10", // Pass
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] AcctIDSourceCodeSet =
+	static string[]? acctIDSourceCodeSet;
+	static string[] AcctIDSourceCodeSet => acctIDSourceCodeSet ?? Publish(ref acctIDSourceCodeSet,
 	[
 		"1", // BIC
 		"2", // SIDCode
@@ -6779,39 +7155,44 @@ static class FixSchema
 		"4", // OMGEO
 		"5", // DTCCCode
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] ConfirmStatusCodeSet =
+	static string[]? confirmStatusCodeSet;
+	static string[] ConfirmStatusCodeSet => confirmStatusCodeSet ?? Publish(ref confirmStatusCodeSet,
 	[
 		"1", // Received
 		"2", // MismatchedAccount
 		"3", // MissingSettlementInstructions
 		"4", // Confirmed
 		"5", // RequestRejected
-	];
+	]);
 
-	static readonly string[] ConfirmTransTypeCodeSet =
+	static string[]? confirmTransTypeCodeSet;
+	static string[] ConfirmTransTypeCodeSet => confirmTransTypeCodeSet ?? Publish(ref confirmTransTypeCodeSet,
 	[
 		"0", // New
 		"1", // Replace
 		"2", // Cancel
-	];
+	]);
 
-	static readonly string[] DeliveryFormCodeSet =
+	static string[]? deliveryFormCodeSet;
+	static string[] DeliveryFormCodeSet => deliveryFormCodeSet ?? Publish(ref deliveryFormCodeSet,
 	[
 		"1", // BookEntry
 		"2", // Bearer
-	];
+	]);
 
-	static readonly string[] LegSwapTypeCodeSet =
+	static string[]? legSwapTypeCodeSet;
+	static string[] LegSwapTypeCodeSet => legSwapTypeCodeSet ?? Publish(ref legSwapTypeCodeSet,
 	[
 		"1", // ParForPar
 		"2", // ModifiedDuration
 		"4", // Risk
 		"5", // Proceeds
-	];
+	]);
 
-	static readonly string[] QuotePriceTypeCodeSet =
+	static string[]? quotePriceTypeCodeSet;
+	static string[] QuotePriceTypeCodeSet => quotePriceTypeCodeSet ?? Publish(ref quotePriceTypeCodeSet,
 	[
 		"1", // Percent
 		"2", // PerShare
@@ -6823,9 +7204,10 @@ static class FixSchema
 		"8", // TEDYield
 		"9", // YieldSpread
 		"10", // Yield
-	];
+	]);
 
-	static readonly string[] QuoteRespTypeCodeSet =
+	static string[]? quoteRespTypeCodeSet;
+	static string[] QuoteRespTypeCodeSet => quoteRespTypeCodeSet ?? Publish(ref quoteRespTypeCodeSet,
 	[
 		"1", // Hit
 		"2", // Counter
@@ -6833,9 +7215,10 @@ static class FixSchema
 		"4", // Cover
 		"5", // DoneAway
 		"6", // Pass
-	];
+	]);
 
-	static readonly string[] PosTypeCodeSet =
+	static string[]? posTypeCodeSet;
+	static string[] PosTypeCodeSet => posTypeCodeSet ?? Publish(ref posTypeCodeSet,
 	[
 		"TQ", // TransactionQuantity
 		"IAS", // IntraSpreadQty
@@ -6856,16 +7239,18 @@ static class FixSchema
 		"TOT", // TotalTransactionQty
 		"XM", // CrossMarginQty
 		"SPL", // IntegralSplit
-	];
+	]);
 
-	static readonly string[] PosQtyStatusCodeSet =
+	static string[]? posQtyStatusCodeSet;
+	static string[] PosQtyStatusCodeSet => posQtyStatusCodeSet ?? Publish(ref posQtyStatusCodeSet,
 	[
 		"0", // Submitted
 		"1", // Accepted
 		"2", // Rejected
-	];
+	]);
 
-	static readonly string[] PosAmtTypeCodeSet =
+	static string[]? posAmtTypeCodeSet;
+	static string[] PosAmtTypeCodeSet => posAmtTypeCodeSet ?? Publish(ref posAmtTypeCodeSet,
 	[
 		"FMTM", // FinalMarkToMarketAmount
 		"IMTM", // IncrementalMarkToMarketAmount
@@ -6875,70 +7260,79 @@ static class FixSchema
 		"CRES", // CashResidualAmount
 		"CASH", // CashAmount
 		"VADJ", // ValueAdjustedAmount
-	];
+	]);
 
-	static readonly string[] PosTransTypeCodeSet =
+	static string[]? posTransTypeCodeSet;
+	static string[] PosTransTypeCodeSet => posTransTypeCodeSet ?? Publish(ref posTransTypeCodeSet,
 	[
 		"1", // Exercise
 		"2", // DoNotExercise
 		"3", // PositionAdjustment
 		"4", // PositionChangeSubmission
 		"5", // Pledge
-	];
+	]);
 
-	static readonly string[] PosMaintActionCodeSet =
+	static string[]? posMaintActionCodeSet;
+	static string[] PosMaintActionCodeSet => posMaintActionCodeSet ?? Publish(ref posMaintActionCodeSet,
 	[
 		"1", // New
 		"2", // Replace
 		"3", // Cancel
-	];
+	]);
 
-	static readonly string[] SettlSessIDCodeSet =
+	static string[]? settlSessIDCodeSet;
+	static string[] SettlSessIDCodeSet => settlSessIDCodeSet ?? Publish(ref settlSessIDCodeSet,
 	[
 		"ITD", // Intraday
 		"RTH", // RegularTradingHours
 		"ETH", // ElectronicTradingHours
-	];
+	]);
 
-	static readonly string[] AdjustmentTypeCodeSet =
+	static string[]? adjustmentTypeCodeSet;
+	static string[] AdjustmentTypeCodeSet => adjustmentTypeCodeSet ?? Publish(ref adjustmentTypeCodeSet,
 	[
 		"0", // ProcessRequestAsMarginDisposition
 		"1", // DeltaPlus
 		"2", // DeltaMinus
 		"3", // Final
-	];
+	]);
 
-	static readonly string[] PosMaintStatusCodeSet =
+	static string[]? posMaintStatusCodeSet;
+	static string[] PosMaintStatusCodeSet => posMaintStatusCodeSet ?? Publish(ref posMaintStatusCodeSet,
 	[
 		"0", // Accepted
 		"1", // AcceptedWithWarnings
 		"2", // Rejected
 		"3", // Completed
 		"4", // CompletedWithWarnings
-	];
+	]);
 
-	static readonly string[] PosMaintResultCodeSet =
+	static string[]? posMaintResultCodeSet;
+	static string[] PosMaintResultCodeSet => posMaintResultCodeSet ?? Publish(ref posMaintResultCodeSet,
 	[
 		"0", // SuccessfulCompletion
 		"1", // Rejected
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] PosReqTypeCodeSet =
+	static string[]? posReqTypeCodeSet;
+	static string[] PosReqTypeCodeSet => posReqTypeCodeSet ?? Publish(ref posReqTypeCodeSet,
 	[
 		"0", // Positions
 		"1", // Trades
 		"2", // Exercises
 		"3", // Assignments
-	];
+	]);
 
-	static readonly string[] ResponseTransportTypeCodeSet =
+	static string[]? responseTransportTypeCodeSet;
+	static string[] ResponseTransportTypeCodeSet => responseTransportTypeCodeSet ?? Publish(ref responseTransportTypeCodeSet,
 	[
 		"0", // Inband
 		"1", // OutOfBand
-	];
+	]);
 
-	static readonly string[] PosReqResultCodeSet =
+	static string[]? posReqResultCodeSet;
+	static string[] PosReqResultCodeSet => posReqResultCodeSet ?? Publish(ref posReqResultCodeSet,
 	[
 		"0", // ValidRequest
 		"1", // InvalidOrUnsupportedRequest
@@ -6946,34 +7340,39 @@ static class FixSchema
 		"3", // NotAuthorizedToRequestPositions
 		"4", // RequestForPositionNotSupported
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] PosReqStatusCodeSet =
+	static string[]? posReqStatusCodeSet;
+	static string[] PosReqStatusCodeSet => posReqStatusCodeSet ?? Publish(ref posReqStatusCodeSet,
 	[
 		"0", // Completed
 		"1", // CompletedWithWarnings
 		"2", // Rejected
-	];
+	]);
 
-	static readonly string[] SettlPriceTypeCodeSet =
+	static string[]? settlPriceTypeCodeSet;
+	static string[] SettlPriceTypeCodeSet => settlPriceTypeCodeSet ?? Publish(ref settlPriceTypeCodeSet,
 	[
 		"1", // Final
 		"2", // Theoretical
-	];
+	]);
 
-	static readonly string[] AssignmentMethodCodeSet =
+	static string[]? assignmentMethodCodeSet;
+	static string[] AssignmentMethodCodeSet => assignmentMethodCodeSet ?? Publish(ref assignmentMethodCodeSet,
 	[
 		"R", // Random
 		"P", // ProRata
-	];
+	]);
 
-	static readonly string[] ExerciseMethodCodeSet =
+	static string[]? exerciseMethodCodeSet;
+	static string[] ExerciseMethodCodeSet => exerciseMethodCodeSet ?? Publish(ref exerciseMethodCodeSet,
 	[
 		"A", // Automatic
 		"M", // Manual
-	];
+	]);
 
-	static readonly string[] TradeRequestResultCodeSet =
+	static string[]? tradeRequestResultCodeSet;
+	static string[] TradeRequestResultCodeSet => tradeRequestResultCodeSet ?? Publish(ref tradeRequestResultCodeSet,
 	[
 		"0", // Successful
 		"1", // InvalidOrUnknownInstrument
@@ -6984,16 +7383,18 @@ static class FixSchema
 		"8", // TradeRequestTypeNotSupported
 		"9", // NotAuthorized
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] TradeRequestStatusCodeSet =
+	static string[]? tradeRequestStatusCodeSet;
+	static string[] TradeRequestStatusCodeSet => tradeRequestStatusCodeSet ?? Publish(ref tradeRequestStatusCodeSet,
 	[
 		"0", // Accepted
 		"1", // Completed
 		"2", // Rejected
-	];
+	]);
 
-	static readonly string[] TradeReportRejectReasonCodeSet =
+	static string[]? tradeReportRejectReasonCodeSet;
+	static string[] TradeReportRejectReasonCodeSet => tradeReportRejectReasonCodeSet ?? Publish(ref tradeReportRejectReasonCodeSet,
 	[
 		"0", // Successful
 		"1", // InvalidPartyOnformation
@@ -7001,92 +7402,104 @@ static class FixSchema
 		"3", // UnauthorizedToReportTrades
 		"4", // InvalidTradeType
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] SideMultiLegReportingTypeCodeSet =
+	static string[]? sideMultiLegReportingTypeCodeSet;
+	static string[] SideMultiLegReportingTypeCodeSet => sideMultiLegReportingTypeCodeSet ?? Publish(ref sideMultiLegReportingTypeCodeSet,
 	[
 		"1", // SingleSecurity
 		"2", // IndividualLegOfAMultilegSecurity
 		"3", // MultilegSecurity
-	];
+	]);
 
-	static readonly string[] TrdRegTimestampTypeCodeSet =
+	static string[]? trdRegTimestampTypeCodeSet;
+	static string[] TrdRegTimestampTypeCodeSet => trdRegTimestampTypeCodeSet ?? Publish(ref trdRegTimestampTypeCodeSet,
 	[
 		"1", // ExecutionTime
 		"2", // TimeIn
 		"3", // TimeOut
 		"4", // BrokerReceipt
 		"5", // BrokerExecution
-	];
+	]);
 
-	static readonly string[] ConfirmTypeCodeSet =
+	static string[]? confirmTypeCodeSet;
+	static string[] ConfirmTypeCodeSet => confirmTypeCodeSet ?? Publish(ref confirmTypeCodeSet,
 	[
 		"1", // Status
 		"2", // Confirmation
 		"3", // ConfirmationRequestRejected
-	];
+	]);
 
-	static readonly string[] ConfirmRejReasonCodeSet =
+	static string[]? confirmRejReasonCodeSet;
+	static string[] ConfirmRejReasonCodeSet => confirmRejReasonCodeSet ?? Publish(ref confirmRejReasonCodeSet,
 	[
 		"1", // MismatchedAccount
 		"2", // MissingSettlementInstructions
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] BookingTypeCodeSet =
+	static string[]? bookingTypeCodeSet;
+	static string[] BookingTypeCodeSet => bookingTypeCodeSet ?? Publish(ref bookingTypeCodeSet,
 	[
 		"0", // RegularBooking
 		"1", // CFD
 		"2", // TotalReturnSwap
-	];
+	]);
 
-	static readonly string[] AllocSettlInstTypeCodeSet =
+	static string[]? allocSettlInstTypeCodeSet;
+	static string[] AllocSettlInstTypeCodeSet => allocSettlInstTypeCodeSet ?? Publish(ref allocSettlInstTypeCodeSet,
 	[
 		"0", // UseDefaultInstructions
 		"1", // DeriveFromParametersProvided
 		"2", // FullDetailsProvided
 		"3", // SSIDBIDsProvided
 		"4", // PhoneForInstructions
-	];
+	]);
 
-	static readonly string[] DlvyInstTypeCodeSet =
+	static string[]? dlvyInstTypeCodeSet;
+	static string[] DlvyInstTypeCodeSet => dlvyInstTypeCodeSet ?? Publish(ref dlvyInstTypeCodeSet,
 	[
 		"S", // Securities
 		"C", // Cash
-	];
+	]);
 
-	static readonly string[] TerminationTypeCodeSet =
+	static string[]? terminationTypeCodeSet;
+	static string[] TerminationTypeCodeSet => terminationTypeCodeSet ?? Publish(ref terminationTypeCodeSet,
 	[
 		"1", // Overnight
 		"2", // Term
 		"3", // Flexible
 		"4", // Open
-	];
+	]);
 
-	static readonly string[] SettlInstReqRejCodeCodeSet =
+	static string[]? settlInstReqRejCodeCodeSet;
+	static string[] SettlInstReqRejCodeCodeSet => settlInstReqRejCodeCodeSet ?? Publish(ref settlInstReqRejCodeCodeSet,
 	[
 		"0", // UnableToProcessRequest
 		"1", // UnknownAccount
 		"2", // NoMatchingSettlementInstructionsFound
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] AllocReportTypeCodeSet =
+	static string[]? allocReportTypeCodeSet;
+	static string[] AllocReportTypeCodeSet => allocReportTypeCodeSet ?? Publish(ref allocReportTypeCodeSet,
 	[
 		"3", // SellsideCalculatedUsingPreliminary
 		"4", // SellsideCalculatedWithoutPreliminary
 		"5", // WarehouseRecap
 		"8", // RequestToIntermediary
-	];
+	]);
 
-	static readonly string[] AllocCancReplaceReasonCodeSet =
+	static string[]? allocCancReplaceReasonCodeSet;
+	static string[] AllocCancReplaceReasonCodeSet => allocCancReplaceReasonCodeSet ?? Publish(ref allocCancReplaceReasonCodeSet,
 	[
 		"1", // OriginalDetailsIncomplete
 		"2", // ChangeInUnderlyingOrderDetails
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] AllocAccountTypeCodeSet =
+	static string[]? allocAccountTypeCodeSet;
+	static string[] AllocAccountTypeCodeSet => allocAccountTypeCodeSet ?? Publish(ref allocAccountTypeCodeSet,
 	[
 		"1", // CarriedCustomerSide
 		"2", // CarriedNonCustomerSide
@@ -7095,9 +7508,10 @@ static class FixSchema
 		"6", // CarriedNonCustomerSideCrossMargined
 		"7", // HouseTraderCrossMargined
 		"8", // JointBackOfficeAccount
-	];
+	]);
 
-	static readonly string[] PartySubIDTypeCodeSet =
+	static string[]? partySubIDTypeCodeSet;
+	static string[] PartySubIDTypeCodeSet => partySubIDTypeCodeSet ?? Publish(ref partySubIDTypeCodeSet,
 	[
 		"1", // Firm
 		"2", // Person
@@ -7125,9 +7539,10 @@ static class FixSchema
 		"24", // Department
 		"25", // LocationDesk
 		"26", // PositionAccountType
-	];
+	]);
 
-	static readonly string[] AllocIntermedReqTypeCodeSet =
+	static string[]? allocIntermedReqTypeCodeSet;
+	static string[] AllocIntermedReqTypeCodeSet => allocIntermedReqTypeCodeSet ?? Publish(ref allocIntermedReqTypeCodeSet,
 	[
 		"1", // PendingAccept
 		"2", // PendingRelease
@@ -7135,45 +7550,51 @@ static class FixSchema
 		"4", // Accept
 		"5", // BlockLevelReject
 		"6", // AccountLevelReject
-	];
+	]);
 
-	static readonly string[] ApplQueueResolutionCodeSet =
+	static string[]? applQueueResolutionCodeSet;
+	static string[] ApplQueueResolutionCodeSet => applQueueResolutionCodeSet ?? Publish(ref applQueueResolutionCodeSet,
 	[
 		"0", // NoActionTaken
 		"1", // QueueFlushed
 		"2", // OverlayLast
 		"3", // EndSession
-	];
+	]);
 
-	static readonly string[] ApplQueueActionCodeSet =
+	static string[]? applQueueActionCodeSet;
+	static string[] ApplQueueActionCodeSet => applQueueActionCodeSet ?? Publish(ref applQueueActionCodeSet,
 	[
 		"0", // NoActionTaken
 		"1", // QueueFlushed
 		"2", // OverlayLast
 		"3", // EndSession
-	];
+	]);
 
-	static readonly string[] AvgPxIndicatorCodeSet =
+	static string[]? avgPxIndicatorCodeSet;
+	static string[] AvgPxIndicatorCodeSet => avgPxIndicatorCodeSet ?? Publish(ref avgPxIndicatorCodeSet,
 	[
 		"0", // NoAveragePricing
 		"1", // Trade
 		"2", // LastTrade
-	];
+	]);
 
-	static readonly string[] TradeAllocIndicatorCodeSet =
+	static string[]? tradeAllocIndicatorCodeSet;
+	static string[] TradeAllocIndicatorCodeSet => tradeAllocIndicatorCodeSet ?? Publish(ref tradeAllocIndicatorCodeSet,
 	[
 		"0", // AllocationNotRequired
 		"1", // AllocationRequired
 		"2", // UseAllocationProvidedWithTheTrade
-	];
+	]);
 
-	static readonly string[] ExpirationCycleCodeSet =
+	static string[]? expirationCycleCodeSet;
+	static string[] ExpirationCycleCodeSet => expirationCycleCodeSet ?? Publish(ref expirationCycleCodeSet,
 	[
 		"0", // ExpireOnTradingSessionClose
 		"1", // ExpireOnTradingSessionOpen
-	];
+	]);
 
-	static readonly string[] TrdTypeCodeSet =
+	static string[]? trdTypeCodeSet;
+	static string[] TrdTypeCodeSet => trdTypeCodeSet ?? Publish(ref trdTypeCodeSet,
 	[
 		"0", // RegularTrade
 		"1", // BlockTrade
@@ -7186,99 +7607,113 @@ static class FixSchema
 		"8", // LateBunchedTrade
 		"9", // PriorReferencePriceTrade
 		"10", // AfterHoursTrade
-	];
+	]);
 
-	static readonly string[] PegMoveTypeCodeSet =
+	static string[]? pegMoveTypeCodeSet;
+	static string[] PegMoveTypeCodeSet => pegMoveTypeCodeSet ?? Publish(ref pegMoveTypeCodeSet,
 	[
 		"0", // Floating
 		"1", // Fixed
-	];
+	]);
 
-	static readonly string[] PegOffsetTypeCodeSet =
+	static string[]? pegOffsetTypeCodeSet;
+	static string[] PegOffsetTypeCodeSet => pegOffsetTypeCodeSet ?? Publish(ref pegOffsetTypeCodeSet,
 	[
 		"0", // Price
 		"1", // BasisPoints
 		"2", // Ticks
 		"3", // PriceTier
-	];
+	]);
 
-	static readonly string[] PegLimitTypeCodeSet =
+	static string[]? pegLimitTypeCodeSet;
+	static string[] PegLimitTypeCodeSet => pegLimitTypeCodeSet ?? Publish(ref pegLimitTypeCodeSet,
 	[
 		"0", // OrBetter
 		"1", // Strict
 		"2", // OrWorse
-	];
+	]);
 
-	static readonly string[] PegRoundDirectionCodeSet =
+	static string[]? pegRoundDirectionCodeSet;
+	static string[] PegRoundDirectionCodeSet => pegRoundDirectionCodeSet ?? Publish(ref pegRoundDirectionCodeSet,
 	[
 		"1", // MoreAggressive
 		"2", // MorePassive
-	];
+	]);
 
-	static readonly string[] PegScopeCodeSet =
+	static string[]? pegScopeCodeSet;
+	static string[] PegScopeCodeSet => pegScopeCodeSet ?? Publish(ref pegScopeCodeSet,
 	[
 		"1", // Local
 		"2", // National
 		"3", // Global
 		"4", // NationalExcludingLocal
-	];
+	]);
 
-	static readonly string[] DiscretionMoveTypeCodeSet =
+	static string[]? discretionMoveTypeCodeSet;
+	static string[] DiscretionMoveTypeCodeSet => discretionMoveTypeCodeSet ?? Publish(ref discretionMoveTypeCodeSet,
 	[
 		"0", // Floating
 		"1", // Fixed
-	];
+	]);
 
-	static readonly string[] DiscretionOffsetTypeCodeSet =
+	static string[]? discretionOffsetTypeCodeSet;
+	static string[] DiscretionOffsetTypeCodeSet => discretionOffsetTypeCodeSet ?? Publish(ref discretionOffsetTypeCodeSet,
 	[
 		"0", // Price
 		"1", // BasisPoints
 		"2", // Ticks
 		"3", // PriceTier
-	];
+	]);
 
-	static readonly string[] DiscretionLimitTypeCodeSet =
+	static string[]? discretionLimitTypeCodeSet;
+	static string[] DiscretionLimitTypeCodeSet => discretionLimitTypeCodeSet ?? Publish(ref discretionLimitTypeCodeSet,
 	[
 		"0", // OrBetter
 		"1", // Strict
 		"2", // OrWorse
-	];
+	]);
 
-	static readonly string[] DiscretionRoundDirectionCodeSet =
+	static string[]? discretionRoundDirectionCodeSet;
+	static string[] DiscretionRoundDirectionCodeSet => discretionRoundDirectionCodeSet ?? Publish(ref discretionRoundDirectionCodeSet,
 	[
 		"1", // MoreAggressive
 		"2", // MorePassive
-	];
+	]);
 
-	static readonly string[] DiscretionScopeCodeSet =
+	static string[]? discretionScopeCodeSet;
+	static string[] DiscretionScopeCodeSet => discretionScopeCodeSet ?? Publish(ref discretionScopeCodeSet,
 	[
 		"1", // Local
 		"2", // National
 		"3", // Global
 		"4", // NationalExcludingLocal
-	];
+	]);
 
-	static readonly string[] TargetStrategyCodeSet =
+	static string[]? targetStrategyCodeSet;
+	static string[] TargetStrategyCodeSet => targetStrategyCodeSet ?? Publish(ref targetStrategyCodeSet,
 	[
 		"1", // VWAP
 		"2", // Participate
 		"3", // MininizeMarketImpact
-	];
+	]);
 
-	static readonly string[] LastLiquidityIndCodeSet =
+	static string[]? lastLiquidityIndCodeSet;
+	static string[] LastLiquidityIndCodeSet => lastLiquidityIndCodeSet ?? Publish(ref lastLiquidityIndCodeSet,
 	[
 		"1", // AddedLiquidity
 		"2", // RemovedLiquidity
 		"3", // LiquidityRoutedOut
-	];
+	]);
 
-	static readonly string[] PublishTrdIndicatorCodeSet =
+	static string[]? publishTrdIndicatorCodeSet;
+	static string[] PublishTrdIndicatorCodeSet => publishTrdIndicatorCodeSet ?? Publish(ref publishTrdIndicatorCodeSet,
 	[
 		"Y", // ReportTrade
 		"N", // DoNotReportTrade
-	];
+	]);
 
-	static readonly string[] ShortSaleReasonCodeSet =
+	static string[]? shortSaleReasonCodeSet;
+	static string[] ShortSaleReasonCodeSet => shortSaleReasonCodeSet ?? Publish(ref shortSaleReasonCodeSet,
 	[
 		"0", // DealerSoldShort
 		"1", // DealerSoldShortExempt
@@ -7286,15 +7721,17 @@ static class FixSchema
 		"3", // SellingCustomerSoldShortExempt
 		"4", // QualifiedServiceRepresentative
 		"5", // QSROrAGUContraSideSoldShortExempt
-	];
+	]);
 
-	static readonly string[] QtyTypeCodeSet =
+	static string[]? qtyTypeCodeSet;
+	static string[] QtyTypeCodeSet => qtyTypeCodeSet ?? Publish(ref qtyTypeCodeSet,
 	[
 		"0", // Units
 		"1", // Contracts
-	];
+	]);
 
-	static readonly string[] TradeReportTypeCodeSet =
+	static string[]? tradeReportTypeCodeSet;
+	static string[] TradeReportTypeCodeSet => tradeReportTypeCodeSet ?? Publish(ref tradeReportTypeCodeSet,
 	[
 		"0", // Submit
 		"1", // Alleged
@@ -7304,24 +7741,27 @@ static class FixSchema
 		"5", // No
 		"6", // TradeReportCancel
 		"7", // LockedIn
-	];
+	]);
 
-	static readonly string[] AllocNoOrdersTypeCodeSet =
+	static string[]? allocNoOrdersTypeCodeSet;
+	static string[] AllocNoOrdersTypeCodeSet => allocNoOrdersTypeCodeSet ?? Publish(ref allocNoOrdersTypeCodeSet,
 	[
 		"0", // NotSpecified
 		"1", // ExplicitListProvided
-	];
+	]);
 
-	static readonly string[] EventTypeCodeSet =
+	static string[]? eventTypeCodeSet;
+	static string[] EventTypeCodeSet => eventTypeCodeSet ?? Publish(ref eventTypeCodeSet,
 	[
 		"1", // Put
 		"2", // Call
 		"3", // Tender
 		"4", // SinkingFundCall
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] InstrAttribTypeCodeSet =
+	static string[]? instrAttribTypeCodeSet;
+	static string[] InstrAttribTypeCodeSet => instrAttribTypeCodeSet ?? Publish(ref instrAttribTypeCodeSet,
 	[
 		"1", // Flat
 		"2", // ZeroCoupon
@@ -7346,29 +7786,33 @@ static class FixSchema
 		"21", // CallableBelowMaturityValue
 		"22", // CallableWithoutNotice
 		"99", // Text
-	];
+	]);
 
-	static readonly string[] CPProgramCodeSet =
+	static string[]? cPProgramCodeSet;
+	static string[] CPProgramCodeSet => cPProgramCodeSet ?? Publish(ref cPProgramCodeSet,
 	[
 		"1", // Program3a3
 		"2", // Program42
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] MiscFeeBasisCodeSet =
+	static string[]? miscFeeBasisCodeSet;
+	static string[] MiscFeeBasisCodeSet => miscFeeBasisCodeSet ?? Publish(ref miscFeeBasisCodeSet,
 	[
 		"0", // Absolute
 		"1", // PerUnit
 		"2", // Percentage
-	];
+	]);
 
-	static readonly string[] LastFragmentCodeSet =
+	static string[]? lastFragmentCodeSet;
+	static string[] LastFragmentCodeSet => lastFragmentCodeSet ?? Publish(ref lastFragmentCodeSet,
 	[
 		"Y", // LastMessage
 		"N", // NotLastMessage
-	];
+	]);
 
-	static readonly string[] CollAsgnReasonCodeSet =
+	static string[]? collAsgnReasonCodeSet;
+	static string[] CollAsgnReasonCodeSet => collAsgnReasonCodeSet ?? Publish(ref collAsgnReasonCodeSet,
 	[
 		"0", // Initial
 		"1", // Scheduled
@@ -7378,9 +7822,10 @@ static class FixSchema
 		"5", // ForwardCollateralDemand
 		"6", // EventOfDefault
 		"7", // AdverseTaxEvent
-	];
+	]);
 
-	static readonly string[] CollInquiryQualifierCodeSet =
+	static string[]? collInquiryQualifierCodeSet;
+	static string[] CollInquiryQualifierCodeSet => collInquiryQualifierCodeSet ?? Publish(ref collInquiryQualifierCodeSet,
 	[
 		"0", // TradeDate
 		"1", // GCInstrument
@@ -7390,26 +7835,29 @@ static class FixSchema
 		"5", // PartiallyAssigned
 		"6", // FullyAssigned
 		"7", // OutstandingTrades
-	];
+	]);
 
-	static readonly string[] CollAsgnTransTypeCodeSet =
+	static string[]? collAsgnTransTypeCodeSet;
+	static string[] CollAsgnTransTypeCodeSet => collAsgnTransTypeCodeSet ?? Publish(ref collAsgnTransTypeCodeSet,
 	[
 		"0", // New
 		"1", // Replace
 		"2", // Cancel
 		"3", // Release
 		"4", // Reverse
-	];
+	]);
 
-	static readonly string[] CollAsgnRespTypeCodeSet =
+	static string[]? collAsgnRespTypeCodeSet;
+	static string[] CollAsgnRespTypeCodeSet => collAsgnRespTypeCodeSet ?? Publish(ref collAsgnRespTypeCodeSet,
 	[
 		"0", // Received
 		"1", // Accepted
 		"2", // Declined
 		"3", // Rejected
-	];
+	]);
 
-	static readonly string[] CollAsgnRejectReasonCodeSet =
+	static string[]? collAsgnRejectReasonCodeSet;
+	static string[] CollAsgnRejectReasonCodeSet => collAsgnRejectReasonCodeSet ?? Publish(ref collAsgnRejectReasonCodeSet,
 	[
 		"0", // UnknownDeal
 		"1", // UnknownOrInvalidInstrument
@@ -7418,34 +7866,38 @@ static class FixSchema
 		"4", // InvalidTypeOfCollateral
 		"5", // ExcessiveSubstitution
 		"99", // Other
-	];
+	]);
 
-	static readonly string[] CollStatusCodeSet =
+	static string[]? collStatusCodeSet;
+	static string[] CollStatusCodeSet => collStatusCodeSet ?? Publish(ref collStatusCodeSet,
 	[
 		"0", // Unassigned
 		"1", // PartiallyAssigned
 		"2", // AssignmentProposed
 		"3", // Assigned
 		"4", // Challenged
-	];
+	]);
 
-	static readonly string[] DeliveryTypeCodeSet =
+	static string[]? deliveryTypeCodeSet;
+	static string[] DeliveryTypeCodeSet => deliveryTypeCodeSet ?? Publish(ref deliveryTypeCodeSet,
 	[
 		"0", // VersusPayment
 		"1", // Free
 		"2", // TriParty
 		"3", // HoldInCustody
-	];
+	]);
 
-	static readonly string[] UserRequestTypeCodeSet =
+	static string[]? userRequestTypeCodeSet;
+	static string[] UserRequestTypeCodeSet => userRequestTypeCodeSet ?? Publish(ref userRequestTypeCodeSet,
 	[
 		"1", // LogOnUser
 		"2", // LogOffUser
 		"3", // ChangePasswordForUser
 		"4", // RequestIndividualUserStatus
-	];
+	]);
 
-	static readonly string[] UserStatusCodeSet =
+	static string[]? userStatusCodeSet;
+	static string[] UserStatusCodeSet => userStatusCodeSet ?? Publish(ref userStatusCodeSet,
 	[
 		"1", // LoggedIn
 		"2", // NotLoggedIn
@@ -7453,60 +7905,68 @@ static class FixSchema
 		"4", // PasswordIncorrect
 		"5", // PasswordChanged
 		"6", // Other
-	];
+	]);
 
-	static readonly string[] StatusValueCodeSet =
+	static string[]? statusValueCodeSet;
+	static string[] StatusValueCodeSet => statusValueCodeSet ?? Publish(ref statusValueCodeSet,
 	[
 		"1", // Connected
 		"2", // NotConnectedUnexpected
 		"3", // NotConnectedExpected
 		"4", // InProcess
-	];
+	]);
 
-	static readonly string[] NetworkRequestTypeCodeSet =
+	static string[]? networkRequestTypeCodeSet;
+	static string[] NetworkRequestTypeCodeSet => networkRequestTypeCodeSet ?? Publish(ref networkRequestTypeCodeSet,
 	[
 		"1", // Snapshot
 		"2", // Subscribe
 		"4", // StopSubscribing
 		"8", // LevelOfDetail
-	];
+	]);
 
-	static readonly string[] NetworkStatusResponseTypeCodeSet =
+	static string[]? networkStatusResponseTypeCodeSet;
+	static string[] NetworkStatusResponseTypeCodeSet => networkStatusResponseTypeCodeSet ?? Publish(ref networkStatusResponseTypeCodeSet,
 	[
 		"1", // Full
 		"2", // IncrementalUpdate
-	];
+	]);
 
-	static readonly string[] TrdRptStatusCodeSet =
+	static string[]? trdRptStatusCodeSet;
+	static string[] TrdRptStatusCodeSet => trdRptStatusCodeSet ?? Publish(ref trdRptStatusCodeSet,
 	[
 		"0", // Accepted
 		"1", // Rejected
-	];
+	]);
 
-	static readonly string[] AffirmStatusCodeSet =
+	static string[]? affirmStatusCodeSet;
+	static string[] AffirmStatusCodeSet => affirmStatusCodeSet ?? Publish(ref affirmStatusCodeSet,
 	[
 		"1", // Received
 		"2", // ConfirmRejected
 		"3", // Affirmed
-	];
+	]);
 
-	static readonly string[] CollActionCodeSet =
+	static string[]? collActionCodeSet;
+	static string[] CollActionCodeSet => collActionCodeSet ?? Publish(ref collActionCodeSet,
 	[
 		"0", // Retain
 		"1", // Add
 		"2", // Remove
-	];
+	]);
 
-	static readonly string[] CollInquiryStatusCodeSet =
+	static string[]? collInquiryStatusCodeSet;
+	static string[] CollInquiryStatusCodeSet => collInquiryStatusCodeSet ?? Publish(ref collInquiryStatusCodeSet,
 	[
 		"0", // Accepted
 		"1", // AcceptedWithWarnings
 		"2", // Completed
 		"3", // CompletedWithWarnings
 		"4", // Rejected
-	];
+	]);
 
-	static readonly string[] CollInquiryResultCodeSet =
+	static string[]? collInquiryResultCodeSet;
+	static string[] CollInquiryResultCodeSet => collInquiryResultCodeSet ?? Publish(ref collInquiryResultCodeSet,
 	[
 		"0",  // Successful
 		"1",  // InvalidOrUnknownInstrument
@@ -7519,7 +7979,7 @@ static class FixSchema
 		"8",  // CollateralInquiryTypeNotSupported
 		"9",  // UnauthorizedForCollateralInquiry
 		"99", // Other
-	];
+	]);
 
 	public static string[]? Codes(int tag) => tag switch
 	{
