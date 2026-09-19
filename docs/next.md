@@ -23956,3 +23956,30 @@ place it names for SQL:2023's `Subquery`, from `TableContentsSource` to `TablePr
 same cause. So the defect was not reached by anything that ships. Generation time is unchanged:
 T-SQL 4,952 against 4,938 ms, SQL:2023 4,073 against 3,785 ms, one build each on cores 16-31.
 ReplayTests holds `Held & eof` against `Held & none`.
+
+## The reader's gate counts a rule only where a caller can come back into it (gate 2, first)
+
+Of the 29 places the classification called "counted but sealed", 21 are not. An entry asks its
+rule again until the input is read to its end, because the entry's reading is a way back of its
+own. So a rule that only an entry calls can be read again, and the gate was right to count it.
+The other eight are sealed. They are the pieces of a `trivia` written as an atomic group:
+comments and spacing in the two Config grammars and in MetricsLine. The group seals every way
+opened inside it once it has answered, and a lookahead does the same.
+
+The gate now counts a rule only where both of two things hold. The rule must have a way to give:
+it opened one itself, or it calls outside an atomic group and a lookahead a rule that has one. A
+rule whose body is an atomic group throughout seals its own ways as it answers, so it has none to
+give. And a caller must be able to ask it again: it is an entry, or it is called outside an
+atomic group and a lookahead somewhere. The loops the reader writes stay as they were, since
+only the choice of carrier reads this.
+
+docs/carriers.md, before and after on 312d5b98 (a serial rebuild of each, so that no build
+writes a project's reports over another's):
+
+- DotGram.Benchmarks.Config moves to immediate.
+- The Config example and its Located twin now have 3 rules read again, down from 6.
+- MetricsLine now has 4, down from 7.
+
+52 grammars were on the tape and 51 are now. A pair in CarrierTests keeps it in place: a rule
+called only as `{Word}` against the same rule called openly. It also checks that what the
+immediate carrier then reads, ways inside the group included, is what the tape reads.

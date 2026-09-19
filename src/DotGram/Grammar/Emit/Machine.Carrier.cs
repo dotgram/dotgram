@@ -279,7 +279,9 @@ sealed partial class Machine
 	/// nothing to carry, and one that carrier would refuse is not offered it.
 	/// </para>
 	/// </remarks>
-	void Choose(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens)
+	/// <param name="opens">Every rule written with a way back: those that open one, and their callers.</param>
+	/// <param name="ownWays">Those that open one themselves.</param>
+	void Choose(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens, HashSet<RuleSymbol> ownWays)
 	{
 		if (_carrierKind != CarrierKind.Auto || _chosen is not null)
 			return;
@@ -305,7 +307,7 @@ sealed partial class Machine
 			return;
 		}
 
-		var again = rules.Where(opens.Contains).ToList();
+		var again = ReadAgain(rules, opens, ownWays);
 
 		if (again.Count > 0)
 		{
@@ -315,6 +317,89 @@ sealed partial class Machine
 		}
 
 		_chosen = immediate;
+	}
+
+	/// <summary>
+	/// The rules a caller can ask again after they answered: those with a way to give, that are
+	/// called where the way stays open.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A rule has a way to give where it opened one itself, or where it calls, outside an atomic
+	/// group and a lookahead, a rule that has. And it can be asked again where a caller can come
+	/// back into it: from an entry, which asks again until the input is read to its end, or from
+	/// a call outside an atomic group and a lookahead. Both of those seal the ways opened inside
+	/// them once they have answered (<c>ways.Seal</c>), so nothing behind them is asked again.
+	/// </para>
+	/// <para>
+	/// <c>opens</c> said less: every rule with a way, and every rule calling one, which is what
+	/// the reader needs to know to write the loops. A comment read inside `trivia = { … }` has
+	/// its way, and nobody comes back into it.
+	/// </para>
+	/// </remarks>
+	List<RuleSymbol> ReadAgain(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens, HashSet<RuleSymbol> ownWays)
+	{
+		var open   = new Dictionary<RuleSymbol, List<RuleSymbol>>();
+		var called = new HashSet<RuleSymbol>();
+
+		foreach (var rule in rules)
+			if (_graph.Bodies.TryGetValue(rule, out var body))
+				OpenCalls(body, rule, committed: false);
+
+		// A way to give, spread from the rules that open one to those that call them openly. A rule
+		// that is an atomic group throughout seals what it opened as it answers.
+		var gives = new HashSet<RuleSymbol>(ownWays.Where(rule =>
+			!_graph.Bodies.TryGetValue(rule, out var body) || Unwrapped(body) is not Node.Atomic));
+
+		for (var more = true; more; )
+		{
+			more = false;
+
+			foreach (var rule in rules)
+				if (!gives.Contains(rule) && open.TryGetValue(rule, out var callees) && callees.Exists(gives.Contains))
+					more |= gives.Add(rule);
+		}
+
+		var entries = new HashSet<RuleSymbol>(_graph.Publications.Select(static one => one.Rule).OfType<RuleSymbol>());
+
+		return [.. rules.Where(rule => opens.Contains(rule) && gives.Contains(rule) && (entries.Contains(rule) || called.Contains(rule)))];
+
+		static Node Unwrapped(Node node) => node switch
+		{
+			Node.Capture(_, var body)   => Unwrapped(body),
+			Node.Construct(var body, _) => Unwrapped(body),
+			_                           => node,
+		};
+
+		void OpenCalls(Node node, RuleSymbol owner, bool committed)
+		{
+			if (!committed && node is Node.Call(var callee, _))
+			{
+				called.Add(callee);
+
+				if (!open.TryGetValue(owner, out var callees))
+					open[owner] = callees = [];
+
+				callees.Add(callee);
+			}
+
+			var inside = committed || node is Node.Atomic or Node.Lookahead;
+
+			switch (node)
+			{
+				case Node.Atomic one:    OpenCalls(one.Body, owner, inside); break;
+				case Node.Marked one:    OpenCalls(one.Body, owner, inside); break;
+				case Node.Repeat one:    OpenCalls(one.Body, owner, inside); break;
+				case Node.Lookahead one: OpenCalls(one.Body, owner, inside); break;
+				case Node.Capture one:   OpenCalls(one.Body, owner, inside); break;
+				case Node.Construct one: OpenCalls(one.Body, owner, inside); break;
+
+				default:
+					foreach (var child in node.Children)
+						OpenCalls(child, owner, inside);
+					break;
+			}
+		}
 	}
 
 	/// <summary>How this machine's readers carry what they read.</summary>

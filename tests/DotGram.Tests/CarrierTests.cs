@@ -286,6 +286,49 @@ public sealed class CarrierTests
 			Assert.Contains("eol", told.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A rule called only inside an atomic group is never asked for another answer, whatever ways
+	/// it opens inside: the group seals them once it has answered. Beside it, the same rule called
+	/// openly, which a failure after it comes back into.
+	/// </summary>
+	[Theory]
+	[InlineData("t: {Word}", true)]
+	[InlineData("t: Word", false)]
+	public void A_rule_only_called_inside_an_atomic_group_is_not_read_again(string line, bool immediate)
+	{
+		var grammar =
+			$$"""
+			Start : @string[] = (s: Line & ';')* => @(s)
+			Line  : @string = {{line}} => @(t)
+			Word  = ['a'..'z']+ & (Two | One)
+			Two   = ['0'..'9'] & ['0'..'9']
+			One   = ['0'..'9']
+			parse Start
+			""";
+
+		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+
+		if (!immediate)
+			Assert.Contains("Word", told.Message, StringComparison.Ordinal);
+
+		// And what it chose reads what the tape reads, the ways inside the group included.
+		var tape = Compiled(grammar, CarrierKind.Tape);
+		var auto = Compiled(grammar, CarrierKind.Auto);
+
+		foreach (var input in new[] { "ab12;cd3;", "a1;", "ab123;", "x;", "" })
+		{
+			var expected = EmittedCode.Match(tape.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(auto.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+
+			if (expected.IsSuccess)
+				Assert.Equal((string[])expected.Value!, (string[])actual.Value!);
+		}
+	}
+
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
 		GramCompiler.Compile(grammar, new GramCompilerOptions
 		{

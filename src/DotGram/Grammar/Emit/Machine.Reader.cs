@@ -223,10 +223,14 @@ sealed partial class Machine
 		if (Reporting)
 			OpenedHere = [.. opens];
 
+		// Opens adds the callers to the set it is handed; the choice wants those that opened one
+		// themselves as well.
+		var own = new HashSet<RuleSymbol>(opens);
+
 		_opens = Opens(rules, opens);
 
 		// And a machine left to choose its carrier chooses now, knowing which rules open a way.
-		Choose(rules, _opens);
+		Choose(rules, _opens, own);
 
 		// Render again with the selected carrier and known open rules. Append each rule
 		// and its parts immediately so completed method strings need not all stay alive.
