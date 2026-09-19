@@ -733,8 +733,10 @@ static partial class Stand
 		/// <summary><c>DotGram.Examples.{type}.{method}(string)</c> of this side, by reflection, its result left unread: 1 when it returned.</summary>
 		public Func<int> Example(string type, string method, string text)
 		{
-			var owner = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).Assembly.GetTypes()
-				.First(one => one.Name == type && one.Namespace!.StartsWith("DotGram.Examples", StringComparison.Ordinal));
+			// The examples' types, and the benchmarks' own (Levels) from a side that was given DotGram.Benchmarks.dll.
+			var owner = new[] { _stock, _config }.Where(static one => one is not null).SelectMany(static one => one!.Assembly.GetTypes())
+				.FirstOrDefault(one => one.Name == type && one.Namespace!.StartsWith("DotGram.", StringComparison.Ordinal))
+				?? throw new InvalidOperationException($"{type} not found in the side's Examples or Benchmarks");
 			var call = owner.GetMethod(method, [typeof(string)])
 				?? throw new InvalidOperationException($"{type}.{method}(string) not found");
 

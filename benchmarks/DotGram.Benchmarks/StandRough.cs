@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 
 namespace DotGram.Benchmarks;
 
@@ -20,7 +21,7 @@ static partial class Stand
 		var quoted = "\"" + string.Concat(Enumerable.Repeat("a \"\"quoted\"\" text ", 20)) + "\"";
 		var lines  = string.Concat(Enumerable.Range(0, 20).Select(i => $"name{i} = \"a b {i}\"\nport{i} = {i}\nmode{i} = fast\n"));
 
-		var rows = new (string Name, Func<int> Before, Func<int> After)[]
+		var rows = new List<(string Name, Func<int> Before, Func<int> After)>
 		{
 			Row("MetricsLine.Read", "MetricsLine", "Read", "cpu=0.75 mem=2048 host=\"db-1\" up=36000 # sampled"),
 			Row("MetricsLine.Read, quoted", "MetricsLine", "Read", "name=\"a \"\"quoted\"\" value\" other=\"b\" third=\"c d e\""),
@@ -32,6 +33,29 @@ static partial class Stand
 			Row("SettingsFile.ParseSettings, 60 lines", "SettingsFile", "ParseSettings", lines),
 		};
 
+		// The fold examples (sql-39's seam): the expressions the examples read, and the benchmarks' Levels where the side has it.
+		var sum = "1 + 2 * 3 - (4 / 2) * -5 + 6 * (7 - 8) / 9";
+
+		foreach (var (name, type, method, text) in new[]
+		{
+			("Calculator.EvaluateInt", "Calculator", "EvaluateInt", sum),
+			("Calculator.BuildTree", "Calculator", "BuildTree", sum),
+			("ArithmeticTree.Read", "ArithmeticTree", "Read", sum),
+			("ClampedExample.Read", "ClampedExample", "Read", "clamp(x + 1, 0, 10) + (x + 2) + clamp(3, x, 9)"),
+			("Levels.Levelled", "Levels", "Levelled", sum),
+			("Levels.Levelled, deep", "Levels", "Levelled", string.Concat(Enumerable.Repeat("(1 + 2 * 3) - ", 20)) + "4"),
+		})
+		{
+			try
+			{
+				rows.Add(Row(name, type, method, text));
+			}
+			catch (Exception exception) when (exception is InvalidOperationException or AmbiguousMatchException)
+			{
+				Console.WriteLine($"<!-- {name} left out: {exception.Message} -->");
+			}
+		}
+
 		(string, Func<int>, Func<int>) Row(string name, string type, string method, string text) =>
 			(name, before.Example(type, method, text), after.Example(type, method, text));
 
@@ -40,8 +64,17 @@ static partial class Stand
 
 		foreach (var (name, b, a) in rows)
 		{
-			if (b() != 1 || a() != 1)
-				throw new InvalidOperationException($"{name}: a side returned nothing.");
+			try
+			{
+				if (b() != 1 || a() != 1)
+					throw new InvalidOperationException($"{name}: a side returned nothing.");
+			}
+			catch (System.Reflection.TargetInvocationException exception)
+			{
+				Console.WriteLine($"| {name} | left out: {exception.InnerException?.Message} | | | |");
+
+				continue;
+			}
 
 			foreach (var call in new[] { b, a })
 			{
