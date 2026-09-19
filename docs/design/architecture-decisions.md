@@ -573,6 +573,11 @@ each owner then reviews its area by these rules, each removal named in the commi
   filter to remember, one line in the layout and in development.md. Kept as they are: the
   precondition asserts that say which rendering a test exercises; replaced by behaviour: the
   context test that asserts emitted text (a counting guard, once without the pair, twice with).
+  **Landed `195bb324` (expr):** the project is in the solution with the whole refusal record and
+  the retention tests; the sample is one reading in five (what costs is compiling a parser per
+  reading, not the inputs) held to the same recorded lines, RefusalTests with CarrierTests 9 s
+  against 20; the context test asserts behaviour. Duplicate hunting in the EL classes stays open,
+  low priority at 9 s together.
 
 ## D13. FIX first: the gap is to be explained and closed by hand-like code
 
@@ -759,6 +764,13 @@ the split grammars' emitted code, and that is D14's purpose — one step, measur
 and gated by the agreement tests like any emitter change, no flag (a flag would be an option of
 Q3's kind); (2) the four rewrites inside `LowerAll` move into Optimize, as a step of their own
 after 6, byte-identical, since Optimize is meant to be complete.
+
+**Step 3 landed `6fde0ca0` (expr):** the two shape-changing passes that also spoke no longer
+do — the forwarding of an `on fail` message is a builder run before the collapse, and
+`Factor` records its declines for a check to say as GRAM4016 after it — so an optimizer can
+run again over its own result without saying anything twice. 944 files identical, a guard test
+for a diagnostic said once over a fold. Next in the same step: Q7.1's C, counted on sql-39's
+counter after A and B.
 
 ## D15. A heuristic is for a scenario, never for a grammar
 
