@@ -1016,9 +1016,40 @@ sealed partial class Machine
 						$"{InputType} text, int kind, int read, int slot" +
 						(placed ? ", int start, int end" : "") + ")"))
 					{
+						// Each arm is a method of its own, called from here. The JIT gives every
+						// local of a method a slot of its own and zeroes each one that holds a
+						// reference, in the prologue, on every call; with the arms' bodies here
+						// that was the locals of all of them, some ten kilobytes, for a record
+						// that runs one (SQL:2023's select20: 32 of its 71 µs).
 						using (file.Block("switch (kind)"))
 							foreach (var (rule, factory) in parts[part])
-								MaterializeDirectArm(file, rule, factory);
+							{
+								if (IsExtent(rule))
+								{
+									file.Line($"case {DirectArm(rule, factory)}: break;");
+
+									continue;
+								}
+
+								file.Line($"case {DirectArm(rule, factory)}:");
+								file.Then(
+									$"{DirectMaterializer}_Arm{DirectArm(rule, factory)}(text, read, slot" +
+									(placed ? ", start, end" : "") + "); break;");
+							}
+					}
+
+					foreach (var (rule, factory) in parts[part])
+					{
+						if (IsExtent(rule))
+							continue;
+
+						file.Line();
+
+						using (file.Block(
+							$"void {DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
+							$"{InputType} text, int read, int slot" +
+							(placed ? ", int start, int end" : "") + ")"))
+							MaterializeDirectArmBody(file, rule, factory);
 					}
 				}
 
@@ -1169,71 +1200,72 @@ sealed partial class Machine
 	/// </summary>
 	void MaterializeDirectArm(Writer file, RuleSymbol rule, int factory)
 	{
-		var type = _results.QualifiedOf(rule)!;
-
 		using (file.Block($"case {DirectArm(rule, factory)}:"))
 		{
-			if (IsExtent(rule))
-			{
-				// An extent is never put anywhere: whoever captured it reads its record.
-				file.Line("break;");
-
-				return;
-			}
-
-			if (DenseDirectValues)
-				file.Line($"var valueSlot = values.Add{TableName(type)}(slot);");
-
-			if (DirectGrow(type, "slot") is { Length: > 0 } grown)
-				file.Line(grown);
-
-			if (_reread is not null && _reread.Contains(rule))
-			{
-				// A terminal that builds: the lexer measured it, and the character machine of its
-				// own builds it from the text.
-				file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({TokenOf("start")});");
-
-				if (DirectMark(type, "slot") is { Length: > 0 } marked)
-					file.Line(marked);
-
-				file.Line("break;");
-
-				return;
-			}
-
-			var shaped = DirectMembers(rule, factory);
-
-			// A fold's step leads with the value so far (§4.3).
-			if (IsStep(rule, factory))
-				file.Line("var accumulated = log[read++];");
-
-			foreach (var member in shaped)
-				ReadMember(file, member);
-
-			if (factory < 0)
-			{
-				file.Line($"{DirectInto(type, "slot")} = new {type}(");
-
-				using (file.Indent())
-					for (var i = 0; i < shaped.Count; i++)
-						file.Line(
-							$"captured{shaped[i].Index}{(shaped[i].Member.IsOptional ? "" : "!")}" +
-							(i + 1 < shaped.Count ? "," : ");"));
-			}
-			else
-			{
-				var made = _factories[rule][factory];
-
-				file.Line(
-					$"{DirectInto(type, "slot")} = " +
-					$"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))});");
-			}
-
-			if (DirectMark(type, "slot") is { Length: > 0 } mark)
-				file.Line(mark);
-
+			MaterializeDirectArmBody(file, rule, factory);
 			file.Line("break;");
 		}
+	}
+
+	/// <summary>What one arm does, without the label or the jump that make it a case of the walk.</summary>
+	void MaterializeDirectArmBody(Writer file, RuleSymbol rule, int factory)
+	{
+		var type = _results.QualifiedOf(rule)!;
+
+		if (IsExtent(rule))
+		{
+			// An extent is never put anywhere: whoever captured it reads its record.
+			return;
+		}
+
+		if (DenseDirectValues)
+			file.Line($"var valueSlot = values.Add{TableName(type)}(slot);");
+
+		if (DirectGrow(type, "slot") is { Length: > 0 } grown)
+			file.Line(grown);
+
+		if (_reread is not null && _reread.Contains(rule))
+		{
+			// A terminal that builds: the lexer measured it, and the character machine of its
+			// own builds it from the text.
+			file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({TokenOf("start")});");
+
+			if (DirectMark(type, "slot") is { Length: > 0 } marked)
+				file.Line(marked);
+
+			return;
+		}
+
+		var shaped = DirectMembers(rule, factory);
+
+		// A fold's step leads with the value so far (§4.3).
+		if (IsStep(rule, factory))
+			file.Line("var accumulated = log[read++];");
+
+		foreach (var member in shaped)
+			ReadMember(file, member);
+
+		if (factory < 0)
+		{
+			file.Line($"{DirectInto(type, "slot")} = new {type}(");
+
+			using (file.Indent())
+				for (var i = 0; i < shaped.Count; i++)
+					file.Line(
+						$"captured{shaped[i].Index}{(shaped[i].Member.IsOptional ? "" : "!")}" +
+						(i + 1 < shaped.Count ? "," : ");"));
+		}
+		else
+		{
+			var made = _factories[rule][factory];
+
+			file.Line(
+				$"{DirectInto(type, "slot")} = " +
+				$"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))});");
+		}
+
+		if (DirectMark(type, "slot") is { Length: > 0 } mark)
+			file.Line(mark);
 	}
 
 	/// <summary>
