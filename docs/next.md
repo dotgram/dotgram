@@ -24180,3 +24180,44 @@ counts come from a local probe build of the walk, which was not committed.
 - **Together** the first two are 54 µs of the 71. With both removed, SQL:2023 would be near 20 µs,
   about 3x the hand. What would then lead is recognition: 9.2 µs, against the hand's 4.9 µs for
   recognising and building together.
+
+## SQL:2023's recognition against the hand (the third row of the anatomy)
+
+Recognition is 9.2 µs of select20's 71 against the hand's 4.9, which also builds in that time. The
+counts come from a copy of the generated parser and of HandSqlStandard, instrumented in the
+scratchpad and not committed. Time per row is the profile's own time, or count × the 3.5 ns a
+call the reader averages.
+
+| Row | What a parse does | Generated | Hand | What removes it |
+| --- | --- | ---: | ---: | --- |
+| Ways | opened, retried, replayed | 0, 0, 0 | — | nothing to remove |
+| Choice by kinds | calls refused at their first token | 1,381 of 2,023 | few | a dispatch table for wide sets (the form of the code, over the first sets there are) |
+| Membership | `Recognize_In` binary search over ranges of kinds | 152 calls, 1.8 µs | a switch on the kind | a table of kinds (the form of the code) |
+| Rule calls | methods entered | 2,023 (750 of them an alternative's method) | 836 | follows from the choice by kinds |
+| Given back | alternatives rolled back, records written and dropped | 767, 128 of 528 | — | follows from the choice by kinds |
+| Read again | a rule entered twice at one position | 126 | 63 | the analysis (left-factoring), and the hand pays it too |
+
+- **Choice by kinds is the row.** `Dispatchable` switches only where the labels name at most
+  `Switched` = 128 kinds. PrimaryBase's first sets reach 357 kinds, since an identifier begins
+  with every word that is not reserved. So its 21 alternatives are tried in order. Each is a
+  method, and nothing checks its own first set before the call. For `a0`, 20 parts are called
+  and most of them call a rule that refuses the word on its first token: `CAST`, `CASE`, `NEW`,
+  the JSON functions and so on. That is about 37 calls a column. The same cap takes
+  PrimaryReading, where `(` begins both Bracketed and Subquery beside the wide PrimaryBase, and
+  the postfix probes (`COLLATE`, `AT TIME ZONE`, the interval qualifier). Together they account
+  for about 1,050 of the 1,381. The hand makes the same choice with a switch on the token's kind
+  and word, and calls in order only the name-led alternatives that really overlap. What removes
+  it is a switch that is not bound to named labels: a byte table from kind to group (the kinds
+  are dense, 0 to 0x2A8), with each group's members tried in order as today. Estimated 3.5 to
+  4 µs.
+- **Membership.** `Recognize_In` is a binary search over up to 93 ranges, about 11.6 ns a call,
+  and the inline tests are chains of up to a hundred comparisons (Identifier's reserved-word
+  look). A bit table per set takes that to about 1 ns.
+- **The rest.** The optional tails (TruthTest, PredicatePart2, AllFields, AsClause, WindowOver,
+  ChainOrMeasure's `OVER`) are probed by a call that refuses the `,` after each column, about 120
+  calls. Reading again (Identifier and ActualIdentifier four times a column) is where
+  StaticMethodInvocation, RoutineInvocation and the name alternative all begin with a name. The
+  hand reads that name again too, 63 times, so it is not the difference.
+
+With the choice by kinds and the membership table done, recognition would be near 4 µs, level
+with the hand.
