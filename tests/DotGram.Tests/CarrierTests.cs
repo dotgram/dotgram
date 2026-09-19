@@ -380,11 +380,13 @@ public sealed class CarrierTests
 	/// </summary>
 	[Theory]
 	[InlineData("('\\n' | ?=';')", "", true)]
+	[InlineData("('\\n' | eof)", "", true)]
 	[InlineData("('\\n' | ?='\\n')", " & '\\n'", false)]
 	public void An_empty_alternative_that_cannot_hold_there_opens_no_way(string end, string after, bool immediate)
 	{
 		var grammar =
 			$$"""
+			using Std;
 			Start : @string[] = (s: Line{{after}} & ';')* => @(s)
 			Line  : @string = t: ['a'..'z']+ & {{end}} => @(t)
 			parse Start

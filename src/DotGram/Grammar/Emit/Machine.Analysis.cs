@@ -417,6 +417,9 @@ sealed partial class Machine
 		{
 			Node.Lookahead(false, var body) when Everything(body) => (null, true),
 			Node.Lookahead(true, Node.Lookahead(false, var body)) when Everything(body) => (null, true),
+			// `eof` called as a rule rather than written in place: FIX's `(Separator | eof)`.
+			Node.Call(var called, { Count: 0 }) when _graph.Bodies.TryGetValue(called, out var body) &&
+				body is Node.Lookahead(false, var any) && Everything(any) => (null, true),
 			Node.Lookahead(true, var body) => Consumes(body) is { } set ? (set, false) : null,
 			_ => Decidable(node) is { Ends: false } set ? (set, false) : null,
 		};
