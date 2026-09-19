@@ -11,6 +11,7 @@
 [![DotGram on NuGet](https://img.shields.io/nuget/v/DotGram?label=DotGram&logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![DotGram.Sql on NuGet](https://img.shields.io/nuget/v/DotGram.Sql?label=DotGram.Sql&logo=nuget)](https://www.nuget.org/packages/DotGram.Sql)
 [![DotGram.Web on NuGet](https://img.shields.io/nuget/v/DotGram.Web?label=DotGram.Web&logo=nuget)](https://www.nuget.org/packages/DotGram.Web)
+[![DotGram.Finance on NuGet](https://img.shields.io/nuget/v/DotGram.Finance?label=DotGram.Finance&logo=nuget)](https://www.nuget.org/packages/DotGram.Finance)
 [![DotGram.ExpressionLanguage on NuGet](https://img.shields.io/nuget/v/DotGram.ExpressionLanguage?label=DotGram.ExpressionLanguage&logo=nuget)](https://www.nuget.org/packages/DotGram.ExpressionLanguage)
 [![NuGet downloads](https://img.shields.io/nuget/dt/DotGram?logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4?logo=dotnet)](#compatibility)
