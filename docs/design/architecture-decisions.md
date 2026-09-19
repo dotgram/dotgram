@@ -1131,6 +1131,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   source without re-verifying the combination — a slip, reported, main verified after. Step 2 read
   +2..+12% on FIX with no lines to count: a turn should only record where it may release, the work
   done in the fill when the buffer needs room; profiled before its pair.
+  Reworked so and paired (window 45): the whole-stream rows inside the A/A floor, the held memory
+  kept (7,065 against 9,128 KB at 100,000 fields), StockCount's readers flat or faster; one row
+  leans, a 64-character buffer over good lines (+5..+9%), since each compaction now counts the lines
+  it lets go and so small a buffer compacts on every fill. Lands with the row named; compacting
+  only once half the buffer is released is a later step of its own.
   **Why FIX over a stream is still 2.2-2.6x (2026-09-19):** FIX's public stream API returns an
   enumeration through the `yield` form, which still reads a field at a time the old way; all of
   C2-C4c went to the whole-stream form, 57 ns a field, which the public API does not use. **Igor:
