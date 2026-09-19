@@ -23933,3 +23933,26 @@ about eight times remains, and it no longer grows with the input. `SqlConditionS
 DotGram.Tests.Slow holds the time to linear and a predicate to 8 KB. Against main's generator it
 fails at 168 KB a predicate and 27.8 times the time for ten times the input. Only the store that
 holds dense tables changes; a small grammar's store, and so every snapshot, is as it was.
+
+## A rule that reads nothing can refuse (a Replay defect, found by C3)
+
+`Replay.CanFail` took a call to a rule that matches the empty input for one that never refuses.
+`eof` matches the empty input and refuses wherever the input goes on, and so does any rule that
+reads nothing through a lookahead or a guard. Take `Held & eof | Given & …`, where `Given`
+begins as `Held` does. When `eof` refused, `Held` was put back and the second alternative read
+in its place, but the walk never gave it that cause. So a machine left to choose could build
+`Held` where it read it, which is a construction run for a reading that did not stand (§7.3).
+
+A call now refuses where the body of the rule it names can. The walk looks into the body and
+cuts a cycle by answering "refuses", the direction that keeps a reason. Each rule's answer is
+kept per graph. That is sound whichever way it came out: "never refuses" holds only where no
+part could refuse, so no cut went into it. A built-in with no body refuses unless it is `none`.
+`wordboundary` is no counterexample: called, it is the declaration of what continues a word and
+matches nothing, and its refusal lives in `?!wordboundary`, a lookahead the walk already counted
+as refusing.
+
+No grammar changes carrier. docs/carriers.md, serial rebuilds before and after, moves only the
+place it names for SQL:2023's `Subquery`, from `TableContentsSource` to `TablePrimary`, for the
+same cause. So the defect was not reached by anything that ships. Generation time is unchanged:
+T-SQL 4,952 against 4,938 ms, SQL:2023 4,073 against 3,785 ms, one build each on cores 16-31.
+ReplayTests holds `Held & eof` against `Held & none`.

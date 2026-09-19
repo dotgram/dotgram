@@ -50,6 +50,29 @@ public sealed class ReplayTests
 	}
 
 	/// <summary>
+	/// A rule that reads nothing can still refuse: <c>eof</c> where the input goes on. After it,
+	/// the reading before it is replaced by the sibling that begins alike; after <c>none</c>,
+	/// which never refuses, it is not replaced there at all. Matching the empty input was taken
+	/// for never refusing, and <c>Held</c> was built where it was read and then replaced.
+	/// </summary>
+	[Theory]
+	[InlineData("eof", true)]
+	[InlineData("none", false)]
+	public void A_rule_that_reads_nothing_and_refuses_puts_back_what_came_before(string after, bool replaced)
+	{
+		var report = Report(
+			$$"""
+			using Std;
+			Start : @string = h: Held & {{after}} => @(h) | g: Given & 'x' => @(g)
+			Held  : @string = t: 'a' => @(t)
+			Given : @string = t: 'a' => @(t)
+			parse Start
+			""");
+
+		Assert.Equal(replaced, Of(report, "Held") == Replay.Because.Follows);
+	}
+
+	/// <summary>
 	/// A later alternative that may read nothing can begin with whatever follows the choice:
 	/// the same alternative is replaced where what follows begins like it, and not where it
 	/// does not.

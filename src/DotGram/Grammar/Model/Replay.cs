@@ -390,7 +390,12 @@ public static class Replay
 	/// Whether this node can refuse where it stands. Conservative: only what provably
 	/// always matches answers no, so a reason to put a reading back is never missed.
 	/// </summary>
-	static bool CanFail(Node node, RecognitionGraph graph)
+	static bool CanFail(Node node, RecognitionGraph graph) => CanFail(node, graph, null);
+
+	/// <summary>Whether each rule asked about can refuse, per graph.</summary>
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, System.Collections.Concurrent.ConcurrentDictionary<RuleSymbol, bool>> Refusing = new();
+
+	static bool CanFail(Node node, RecognitionGraph graph, HashSet<RuleSymbol>? asked)
 	{
 		switch (node)
 		{
@@ -403,21 +408,21 @@ public static class Replay
 				return false;
 
 			case Node.Capture(_, var one):
-				return CanFail(one, graph);
+				return CanFail(one, graph, asked);
 
 			case Node.Marked(var one, _):
-				return CanFail(one, graph);
+				return CanFail(one, graph, asked);
 
 			case Node.Construct(var one, _):
-				return CanFail(one, graph);
+				return CanFail(one, graph, asked);
 
 			case Node.Atomic(var one):
-				return CanFail(one, graph);
+				return CanFail(one, graph, asked);
 
 			case Node.Sequence(var parts):
 			{
 				foreach (var part in parts)
-					if (CanFail(part, graph))
+					if (CanFail(part, graph, asked))
 						return true;
 
 				return false;
@@ -427,15 +432,41 @@ public static class Replay
 			case Node.Choice(var alternatives):
 			{
 				foreach (var alternative in alternatives)
-					if (!CanFail(alternative, graph))
+					if (!CanFail(alternative, graph, asked))
 						return false;
 
 				return true;
 			}
 
-			// A rule that matches the empty input cannot refuse.
+			// A rule refuses where its body can. Matching the empty input is not the same as
+			// never refusing: `eof` and `wordboundary` match nothing and refuse, and so does any
+			// rule that reads nothing through a lookahead or a guard. A rule asked again while
+			// it is being asked is taken to refuse — the direction that keeps a reason.
 			case Node.Call(var called, _):
-				return !(graph.Nullable.TryGetValue(called, out var nullable) && nullable);
+			{
+				if (!graph.Bodies.TryGetValue(called, out var body))
+					return !(called.IsBuiltIn && called.Name == "none");
+
+				// Kept per graph, and sound to keep whichever way it came out: "never refuses" is
+				// only concluded where no part can, so no cut below it went into it, and a cut
+				// only ever says "refuses", which is the safe answer.
+				var known = Refusing.GetValue(graph, static _ => new System.Collections.Concurrent.ConcurrentDictionary<RuleSymbol, bool>());
+
+				if (known.TryGetValue(called, out var answer))
+					return answer;
+
+				asked ??= [];
+
+				if (!asked.Add(called))
+					return true;
+
+				var fails = CanFail(body, graph, asked);
+
+				asked.Remove(called);
+				known[called] = fails;
+
+				return fails;
+			}
 
 			default:
 				return true;

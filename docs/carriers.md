@@ -671,7 +671,7 @@ or which nothing calls, so that no caller asks it again.
 - replay SchemaName: Follows in SchemaNameClause [choice], then "AUTHORIZATION"i
 - replay SimpleTargetSpecification: Follows in SQLDiagnosticsInformation [choice], then '='
 - replay StartField: Follows in IntervalQualifier [choice], then "TO"i
-- replay Subquery: Follows in TableContentsSource [choice], then "WITH"i
+- replay Subquery: Follows in TablePrimary [choice], then CorrelationOrRecognition
 - replay ValueNode: Follows in CollectionValueConstructor [choice], then "??)" or ']'
 - replay AbsoluteValue: under ValueFunction
 - replay ActualIdentifier: under Identifier
