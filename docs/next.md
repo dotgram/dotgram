@@ -24276,3 +24276,34 @@ architect with the number and the price in accuracy beside it, for Igor; the def
 
 What is left for the value tower is what costs no accuracy: the analysis (`JoinedRight`'s 29 rules,
 a call that needs no way back), and the shape of the code the materializer and the reader emit.
+
+## The door the critic saw, and a gap it uncovered (InlineReturn)
+
+**The numbers first.** Under `TSqlQueryExpression`'s cause are 26 rules, 27 counting the rule
+itself; under `JoinedRight`'s 29, 30 with itself; under `TSqlValueExpression`'s 40, 41 with itself.
+Both spellings have been used; the report counts the rules under a cause, not the rule that carries
+it.
+
+**The door.** One alternative whose brackets are optional, with a guard that refuses what the
+server refuses:
+
+```dotgram
+InlineReturn : @Statement[]
+	= open: '('? & with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & close: ')'?
+	  & when @((open is null) == (close is null))
+```
+
+It was built. The cause does leave the report: `TSqlQueryExpression` is then replayed only `under
+TSqlSubquery`. But `replayed` stays at 321 and `points` moves 2362 → 2357, because those 27 rules
+are held by the subquery's cause as well — so the door frees nothing on its own. A guard is not a
+choice: it refuses a reading, it does not cause another to be tried, and 18 of T-SQL's causes are
+already "a guard after the reading" (`then when (…)`). That is why the shape is the same one
+`JoinedRight` needs — a reading proved final — and not a way around it.
+
+**What the check uncovered.** `CREATE FUNCTION dbo.f1() RETURNS TABLE AS RETURN (SELECT 1 AS a)
+UNION ALL SELECT 2 AS a` — SQL Server parses it (`SET PARSEONLY ON`, exit 0; the control, `… RETURN
+(SELECT 1 AS a) FROM;`, gives Msg 156, so the probe does catch errors). We refuse it, at the token
+after the brackets, and with both forms of the rule. `TryParseQuery` on the same text reads it, so
+the query is not the problem: the choice in `InlineReturn` does not give back there, though the
+analysis records that it may. Under-acceptance, and by Igor's rule it outranks what the cause
+costs.
