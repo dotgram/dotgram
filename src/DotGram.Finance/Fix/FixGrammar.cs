@@ -21,12 +21,12 @@ namespace DotGram.Finance.Fix;
 
 	Field : @FixField =
 		wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
-			case 0: value: Text
+			case 0: Text
 			case 1:
 				size: Size & Separator & dataTag: Tag & '='
 				& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & @ReadData
 		}) & end: (Separator | eof)
-		=> @((dataTag is int data ? context.Binary(data, wire, parserSpan.Start) : FixFieldFactory.Value(tag, value)).WithTerminator(end.Length))
+		=> @((dataTag is int data ? context.Binary(data, wire, parserSpan.Start) : context.Text(tag, wire)).WithTerminator(end.Length))
 
 	Fields : @FixField[] =
 		Field*
@@ -71,6 +71,18 @@ sealed partial class FixGrammar
 			DataLimit = (long)start + length;
 
 			return true;
+		}
+
+		// A text field: its value is what follows the '=' of its wire text. Found again here rather
+		// than captured, because a capture costs the engine more on every field than this search.
+		public FixField Text(int tag, ReadOnlySpan<char> wire)
+		{
+			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf('=') + 1));
+		}
+
+		public FixField Text(int tag, ReadOnlySpan<byte> wire)
+		{
+			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf((byte)'=') + 1));
 		}
 
 		// A length/data pair, whose data tag the grammar has read: the payload follows the second
