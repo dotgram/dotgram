@@ -29,10 +29,17 @@ static partial class Stand
 		("slope-16", 16),
 		("recover-1000000", 1_000_000),
 		("recover-100000", 100_000),
+
+		// The same walks over a TextReader on the made stream: the yield form of BufferedText.
+		("made-2000000-reader", StreamedFields),
+		("slope-100000-reader", 100_000),
+		("recover-100000-reader", 100_000),
 	];
 
 	static Stream HeldStream(string input)
 	{
+		input = input.EndsWith("-reader", StringComparison.Ordinal) ? input[..^"-reader".Length] : input;
+
 		if (input == "made-2000000")
 			return new MadeFix(StreamedFields);
 
@@ -51,9 +58,14 @@ static partial class Stand
 	public static void HeldOne(string side, string directory, string input)
 	{
 		var expected = Array.Find(HeldInputs, one => one.Name == input).Fields;
-		Func<Stream, IEnumerable> parse = side is "hand" or "kept"
-			? stream => HandFixParser.Parse(stream)
-			: new PairedSide(side, directory).FixStreamFields;
+		var  reader = input.EndsWith("-reader", StringComparison.Ordinal);
+		Func<Stream, IEnumerable> parse = reader
+			? side is "hand" or "kept"
+				? stream => HandFixParser.Parse(new StreamReader(stream, Encoding.Latin1))
+				: stream => new PairedSide(side, directory).FixYieldReaderFields(new StreamReader(stream, Encoding.Latin1))
+			: side is "hand" or "kept"
+				? stream => HandFixParser.Parse(stream)
+				: new PairedSide(side, directory).FixStreamFields;
 
 		// The input exists before the floor is taken: a memory stream's bytes are the caller's, not the reader's.
 		var source = HeldStream(input);
