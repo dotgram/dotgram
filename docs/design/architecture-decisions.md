@@ -994,7 +994,14 @@ switch never had; the names are a 23-case switch now and `Type` reads only the R
 parser path was never affected. The message layer's own first `Build` pays that initializer,
 not the `Codes` switch; the fix there would be arrays built per id on demand, a reshaping of a
 maintained file. Decided: measured first, by the stand's first-call anatomy on a message build,
-and decided from the number.
+and decided from the number. The number: the initializer about 35 ms, almost all JIT of one 82.5 KB method of 448 array
+initializers. Decided: lazy slots by a scripted conversion of the file — the reference triples
+in one RVA table with an offset per slot, decoded into a kept array on first use; code sets as
+one string per set split on first use; the int-to-int switches stay; no static arrays left, so
+no initializer. Verified by dumps before and after for every id, the Finance suites, and the
+stand's first Build and steady-state message rows. finance-24 also found and fixes a
+double-encoding of every non-ASCII character in nine files it wrote through a helper, and the
+two FIX design documents of 2026-09-17 in the same commit.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
