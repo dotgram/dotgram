@@ -8,7 +8,7 @@ using System.Text;
 
 // The first call of the FIX parsers, in phases, in a fresh process (from sql-39's fixfirst).
 //
-//     fixfirst <directory> generated | hand | parse | build | stock
+//     fixfirst <directory> generated | hand | generated-bytes | hand-bytes | parse | build | stock
 //
 // The directory holds DotGram.Finance.dll, and DotGram.Handwritten.dll for `hand`. Each phase prints
 // its time, how many methods the runtime compiled during it, their IL, and the time it spent compiling:
@@ -30,9 +30,9 @@ using System.Text;
 var directory = args.Length > 1 ? args[0] : null;
 var mode      = args.Length > 1 ? args[1] : null;
 
-if (directory is null || mode is not ("generated" or "hand" or "parse" or "build" or "stock"))
+if (directory is null || mode is not ("generated" or "hand" or "generated-bytes" or "hand-bytes" or "parse" or "build" or "stock"))
 {
-	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | parse | build | stock");
+	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | generated-bytes | hand-bytes | parse | build | stock");
 
 	return 2;
 }
@@ -46,14 +46,15 @@ var plain  = "55=ABC\u0001";
 var order  = OrderWire();
 
 var finance = Assembly.LoadFrom(Path.Combine(directory, "DotGram.Finance.dll"));
-var handwritten = mode == "hand" ? Assembly.LoadFrom(Path.Combine(directory, "DotGram.Handwritten.dll")) : null;
+var handwritten = mode.StartsWith("hand", StringComparison.Ordinal) ? Assembly.LoadFrom(Path.Combine(directory, "DotGram.Handwritten.dll")) : null;
 
 Phase("load", false);
 
 var options = finance.GetType("DotGram.Finance.Fix.FixFieldOptions")!;
-var fieldParser = (mode == "hand" ? handwritten!.GetType("DotGram.Handwritten.Fix.HandFixParser") : finance.GetType("DotGram.Finance.Fix.FixParser"))!;
+var fieldParser = (mode.StartsWith("hand", StringComparison.Ordinal) ? handwritten!.GetType("DotGram.Handwritten.Fix.HandFixParser") : finance.GetType("DotGram.Finance.Fix.FixParser"))!;
 var messages = finance.GetType("DotGram.Finance.Fix.FixMessages")!;
-var parseFields = fieldParser.GetMethod("Parse", [typeof(string), options])!;
+var bytes       = mode.EndsWith("-bytes", StringComparison.Ordinal);
+var parseFields = fieldParser.GetMethod("Parse", [bytes ? typeof(byte[]) : typeof(string), options])!;
 
 switch (mode)
 {
@@ -83,11 +84,11 @@ switch (mode)
 		break;
 	}
 
-	case "generated" or "hand":
+	case "generated" or "hand" or "generated-bytes" or "hand-bytes":
 	{
 		var types = new List<Type> { fieldParser };
 
-		if (mode == "generated")
+		if (mode.StartsWith("generated", StringComparison.Ordinal))
 		{
 			var grammar = finance.GetType("DotGram.Finance.Fix.FixGrammar")!;
 
@@ -100,7 +101,8 @@ switch (mode)
 
 		Phase("cctors", false);
 
-		var call = () => (Array)parseFields.Invoke(null, [plain, null])!;
+		var input = bytes ? System.Text.Encoding.Latin1.GetBytes(plain) : (object)plain;
+		var call  = () => (Array)parseFields.Invoke(null, [input, null])!;
 
 		var first = call();
 
