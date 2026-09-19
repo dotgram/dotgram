@@ -348,6 +348,8 @@ static partial class Stand
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("values", "VALUES (1)", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
 			Sql<Ast.Statement.Select, Ast.Statement.Select>("comment", SqlWithComments, SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
+			Sql<Ast.Expression, Ast.Expression>("conditions100", SqlConditions(100), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Expression, Ast.Expression>("conditions1000", SqlConditions(1000), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition),
 			Sql<Ast.Statement, Ast.Statement>("create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", SqlStandardParser.TryParseSQLSchemaStatement, HandSqlStandard.TryParseSQLSchemaStatement),
 
 			// Q7.2: a select refused near its end, not at the first token — HandSqlStandard's
@@ -369,6 +371,13 @@ static partial class Stand
 		"c\n" +
 		"FROM t -- the table of orders, one row for each order line and one for each shipment made against the line\n" +
 		"WHERE a = 1 -- only the orders of the year still open in the ledger, and none that were cancelled after they shipped";
+
+	/// <summary>
+	/// A search condition of <paramref name="predicates"/> predicates joined by AND: the input on which the
+	/// SQL:2023 parser was quadratic in time and in allocation (164 MB a call at a thousand), which no row
+	/// of the stand held enough of a list to show.
+	/// </summary>
+	static string SqlConditions(int predicates) => string.Join(" AND ", Enumerable.Range(0, predicates).Select(static i => "a" + i + " = 1"));
 
 	static readonly int[] FixSlopeCounts = [0, 1, 2, 4, 8, 16];
 
@@ -862,6 +871,8 @@ static partial class Stand
 
 			PairedSql("literal", "TryParseLiteral", "1", before, after),
 			PairedSql("comment", "TryParseQueryExpression", SqlWithComments, before, after),
+			PairedSql("conditions100", "TryParseSearchCondition", SqlConditions(100), before, after),
+			PairedSql("conditions1000", "TryParseSearchCondition", SqlConditions(1000), before, after),
 			PairedTsql("comment", SqlWithComments, before, after),
 			PairedSql("column", "TryParseColumnReference", "a.b.c", before, after),
 			PairedSql("arithmetic", "TryParseValueExpression", "(a + b) * c - d / 5", before, after),
