@@ -134,8 +134,8 @@ and then finds the token that begins at `at`. A loop of readings over a long tex
 its square. That must not ship.
 
 **What the form promises** is that it answers as if the whole input were tokenized: the value it
-reads, and where it ends, do not depend on how much of the input the lexer has looked at. Two
-cheaper schemes break that promise or the loop, and are written here so they are not tried again:
+reads, and where it ends, do not depend on how much of the input the lexer has looked at. Three
+schemes keep or break that promise; the third is the one that landed.
 
 - **A window that doubles.** Tokenize `[at, at + block)`, read, and where the reading touched the
   edge, tokenize twice as much and read again. The reading is repeated, which is geometric and
@@ -143,13 +143,21 @@ cheaper schemes break that promise or the loop, and are written here so they are
   consuming it and see a false end of input, and the machine records how far it looked only when
   it refuses. A grammar with `?!any` in it would then answer differently for a window that ends
   where the value does.
-- **A tokenization kept between calls.** Tokenize the whole input once and keep it, keyed by the
-  string, for the next call. It makes the loop linear and the promise holds, but a single reading
-  of a short value from a long text still tokenizes all of it, and something must decide when the
-  kept tokenization is dropped. A host that wants that can have it explicitly, as a reading
-  session it holds, which is a separate question about the API.
+- **A tokenization kept between calls — what landed.** Tokenize the whole input and keep it for
+  the next reading that comes with the same string. The answers are exactly today's, since it is
+  the same tokenization and not an approximation, and the loop becomes one tokenization plus the
+  readings: linear, which is what the condition asks. Two slots per thread, so that a host
+  alternating between two documents holds both, and a parse reached from inside a factory does
+  not push out the reading that called it. The input is held weakly and the tokens strongly, and
+  both go as soon as the input is collected or another takes the slot: a thread-static holding a
+  document nobody else has is the leak D5 was about. Strings only — what a caller may write into
+  between two readings, an array of bytes or a memory, would make a kept tokenization a lie, so
+  the byte forms keep none. **What it does not fix**, and is known and uncovered: one reading of
+  a short value from a huge text still tokenizes all of it, as it does today.
 
-**The proposal: tokens made as they are asked for.** A third buffered source beside `BufferedText`
+**The answer if this ever has to be exact: tokens made as they are asked for.** Not built, and
+here so the next reader does not start from nothing. It is the only scheme that keeps the promise
+for a single reading out of a huge text as well as for a loop. A third buffered source beside `BufferedText`
 and `BufferedBytes` (fix-reader-buffered §2): `BufferedKinds`, which holds the text, lexes from
 `at` in blocks, and answers the reader's helpers — `Get(p)` the kind of token `p`, `Ensure(p, n)`
 whether there are `n` tokens from `p` on (lexing more where there are not), `Slice(p, n)` the
@@ -172,8 +180,13 @@ window form already has it.
   (§1.5): the lexer is asked to begin there, so where the whole text sees one token a positional
   reading may see the beginning of another, which is what a host reading a piece of a text means.
 
-Cost of the loop after this: each reading lexes the tokens it reads, plus at most one block, so a
-loop over a text costs the text once.
+Cost of the loop that way: each reading lexes the tokens it reads, plus at most one block, so a
+loop over a text costs the text once. **What it costs to build**, which is why it did not land:
+a machine reads its elements either from a span or from a buffer, and that is a property of the
+machine, not of a publication — so a split grammar gets a second rendering of itself for its
+positional forms, and T-SQL's generated file is 14.5 MB today, or else the whole-input form reads
+through `Get(p)` too and every split grammar's ordinary parse pays for it. Both are worse than
+the problem the loop had.
 
 ## 3. What §6.3 says
 

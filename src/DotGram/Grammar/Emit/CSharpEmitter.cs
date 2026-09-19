@@ -1599,6 +1599,11 @@ public static partial class CSharpEmitter
 		// it was handed to the end of what it read, and leaves it where it was on a refusal.
 		void Answering(bool positional, bool windowed = false)
 		{
+			// A reading that begins where it is told cuts the whole input, and the cutting is kept
+			// for the next reading of the same string (Tokenized_DotGram), so what it holds is never
+			// handed back to the pool here.
+			var kept = positional && !windowed;
+
 			var parameters = positional
 				? windowed ? "string input, ref int at, int length" : "string input, ref int at"
 				: "string input";
@@ -1635,7 +1640,9 @@ public static partial class CSharpEmitter
 					file.Line("var source = input;");
 					file.Line(windowed
 						? "var tokens = Tokenize_DotGram(source, at, at + length);"
-						: "var tokens = Tokenize_DotGram(source);");
+						: kept
+							? "var tokens = Tokenized_DotGram(source);"
+							: "var tokens = Tokenize_DotGram(source);");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
@@ -1646,7 +1653,7 @@ public static partial class CSharpEmitter
 					{
 						using (file.Block("if (tokens.Stopped >= 0)"))
 						{
-							file.Line("Recycle_DotGram(tokens);");
+							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
 							file.Line("value = default!;");
 							file.Line("return false;");
@@ -1663,7 +1670,7 @@ public static partial class CSharpEmitter
 
 						using (file.Block("if (from < 0)"))
 						{
-							file.Line("Recycle_DotGram(tokens);");
+							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
 							file.Line("value = default!;");
 							file.Line("return false;");
@@ -1700,7 +1707,7 @@ public static partial class CSharpEmitter
 				{
 					if (overKinds)
 					{
-						file.Line("Recycle_DotGram(tokens);");
+						if (!kept) file.Line("Recycle_DotGram(tokens);");
 						file.Line();
 					}
 
@@ -1723,7 +1730,7 @@ public static partial class CSharpEmitter
 				if (overKinds)
 				{
 					file.Line();
-					file.Line("Recycle_DotGram(tokens);");
+					if (!kept) file.Line("Recycle_DotGram(tokens);");
 				}
 
 				file.Line();
@@ -1733,6 +1740,9 @@ public static partial class CSharpEmitter
 
 		void Asking(string parameters, bool positional, bool windowed = false)
 		{
+			// As in Answering: what the cutting cache holds is not recycled here.
+			var kept = positional && !windowed;
+
 			// The positional form takes a parameter called `at`, so what the body would have
 			// called the place it stopped is called something else there. Only there: the
 			// whole form is emitted exactly as it always was.
@@ -1760,7 +1770,9 @@ public static partial class CSharpEmitter
 					file.Line("var source = input;");
 					file.Line(windowed
 						? "var tokens = Tokenize_DotGram(source, at, at + length);"
-						: "var tokens = Tokenize_DotGram(source);");
+						: kept
+							? "var tokens = Tokenized_DotGram(source);"
+							: "var tokens = Tokenize_DotGram(source);");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
@@ -1776,7 +1788,7 @@ public static partial class CSharpEmitter
 						{
 							file.Line($"var {halt} = tokens.Stopped;");
 							file.Line();
-							file.Line("Recycle_DotGram(tokens);");
+							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
 
 							// The lexer stopped where no token begins, and the character standing
@@ -1809,7 +1821,7 @@ public static partial class CSharpEmitter
 
 						using (file.Block("if (from < 0)"))
 						{
-							file.Line("Recycle_DotGram(tokens);");
+							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
 							file.Line(
 								$"return {match}.Failed({OutcomeType}.NoMatch, " +
@@ -1915,7 +1927,7 @@ public static partial class CSharpEmitter
 								"tokens.Stopped >= 0 ? tokens.Stopped : at + length;"
 							: $"var {halt} = failure.Position < count ? starts[failure.Position] : source.Length;");
 						file.Line();
-						file.Line("Recycle_DotGram(tokens);");
+						if (!kept) file.Line("Recycle_DotGram(tokens);");
 						file.Line();
 					}
 
@@ -1939,7 +1951,7 @@ public static partial class CSharpEmitter
 					file.Line($"var whole = {Recognized(begins, "end")};");
 					file.Line("var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];");
 					file.Line();
-					file.Line("Recycle_DotGram(tokens);");
+					if (!kept) file.Line("Recycle_DotGram(tokens);");
 					file.Line();
 					file.Line($"return {match}.Success(whole, {position}, {extent});");
 				}
@@ -2099,6 +2111,88 @@ public static partial class CSharpEmitter
 		file.Line("/// the input stopped being this language.");
 		file.Line("/// </remarks>");
 
+		file.Line();
+		file.Line("/// <summary>The inputs whose kinds this thread still holds, and the kinds it holds for them.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// A reading that begins where it is told cuts the whole input into kinds, and a host");
+		file.Line("/// reading one value after another from one text would cut it again for every value:");
+		file.Line("/// the text once per value is the square of the text. So the last cutting is kept and");
+		file.Line("/// handed back where the next reading comes with the same string.");
+		file.Line("/// </remarks>");
+		file.Line("/// <remarks>");
+		file.Line("/// Two of them, and not one. A host alternating between two documents would otherwise");
+		file.Line("/// hold neither, and a parse reached from inside a factory of another — reading its own");
+		file.Line("/// text — would push out the reading that called it and give the square back.");
+		file.Line("/// </remarks>");
+		file.Line("/// <remarks>");
+		file.Line("/// The input is held weakly and the kinds strongly: the kinds are as long as the text,");
+		file.Line("/// and a thread-static holding a document nobody else has is the leak this is not.");
+		file.Line("/// Where the input is gone, so are its kinds, at the next reading that looks.");
+		file.Line("/// A string only: what a caller may write into between two readings — an array of");
+		file.Line("/// bytes, a memory — would make a kept cutting a lie, so the byte forms keep none.");
+		file.Line("/// </remarks>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static global::System.WeakReference<string>[]? _cutInputs;");
+		file.Line();
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static Tokens_DotGram?[]? _cutTokens;");
+		file.Line();
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static int _cutNext;");
+		file.Line();
+		file.Line("/// <summary>The whole input as kinds, cut now or kept from the reading before this one.</summary>");
+
+		using (file.Block("static Tokens_DotGram Tokenized_DotGram(string input)"))
+		{
+			file.Line("var inputs = _cutInputs;");
+			file.Line("var kept   = _cutTokens;");
+			file.Line();
+
+			using (file.Block("if (inputs != null && kept != null)"))
+			using (file.Block("for (var slot = 0; slot < inputs.Length; slot++)"))
+			{
+				file.Line("var held = inputs[slot];");
+				file.Line();
+				file.Line("if (held == null || kept[slot] == null)");
+				file.Then("continue;");
+				file.Line();
+
+				using (file.Block("if (!held.TryGetTarget(out var was))"))
+				{
+					file.Line("// The text is gone and its kinds go with it.");
+					file.Line("Recycle_DotGram(kept[slot]!);");
+					file.Line();
+					file.Line("inputs[slot] = null!;");
+					file.Line("kept[slot]   = null;");
+					file.Line();
+					file.Line("continue;");
+				}
+
+				file.Line();
+				file.Line("if (ReferenceEquals(was, input))");
+				file.Then("return kept[slot]!;");
+			}
+
+			file.Line();
+			file.Line("var tokens = Tokenize_DotGram(input, 0, input.Length);");
+			file.Line();
+			file.Line("inputs ??= _cutInputs = new global::System.WeakReference<string>[2];");
+			file.Line("kept   ??= _cutTokens = new Tokens_DotGram?[2];");
+            file.Line();
+			file.Line("var next = _cutNext;");
+			file.Line();
+			file.Line("_cutNext = next + 1 == inputs.Length ? 0 : next + 1;");
+			file.Line();
+			file.Line("if (kept[next] != null)");
+			file.Then("Recycle_DotGram(kept[next]!);");
+			file.Line();
+			file.Line("inputs[next] = new global::System.WeakReference<string>(input);");
+			file.Line("kept[next]   = tokens;");
+			file.Line();
+			file.Line("return tokens;");
+		}
+
+		file.Line();
 		file.Line("static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length);");
 		file.Line();
 		file.Line("/// <summary>The kinds between two offsets of the input, with where each one was.</summary>");
