@@ -277,6 +277,16 @@ sealed partial class Machine
 						"[global::System.Runtime.CompilerServices.MethodImpl(" +
 						"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
+				// The element of a repetition marked `recover` the reader reads is read once a turn
+				// from the loop, and the turn is all the loop does: left to itself the JIT folds the
+				// element's whole chain into the loop and the loop into the entry (FIX's text form:
+				// the hot chain from 13.4 to 20.9 KB, +4..+9% a field), where a method of its own was
+				// the boundary a way back used to draw. A person writing the parser would call it.
+				else if (_recoveryReads.Values.Any(read => ReferenceEquals(read.Plan.Element, rule)))
+					file.Line(
+						"[global::System.Runtime.CompilerServices.MethodImpl(" +
+						"global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
+
 				using (file.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
 				{
 					// The rule the way back into itself goes through, so the probe stands here and
