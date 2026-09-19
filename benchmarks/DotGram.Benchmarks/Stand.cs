@@ -809,6 +809,129 @@ static partial class Stand
 			};
 		}
 
+		/// <summary>
+		/// The positional <c>(string, at)</c> or window <c>(string, at, length)</c> form of a rule of the SQL:2023 or the T-SQL parser, by
+		/// reflection: whether it read the statement that begins at <paramref name="at"/>.
+		/// </summary>
+		public Func<int> SqlPositional(bool tsql, string method, string text, int at, int? length)
+		{
+			var call = (tsql ? _tsql : _sql).GetMethod(method, length is null ? [typeof(string), typeof(int)] : [typeof(string), typeof(int), typeof(int)])
+				?? throw new InvalidOperationException($"{method}(string, int{(length is null ? "" : ", int")}) not found");
+			object[] arguments = length is null ? [text, at] : [text, at, length.Value];
+
+			return () => IsSuccess(call.Invoke(null, arguments)!);
+		}
+
+		/// <summary>The token scanner of a parser ("sql", "tsql" or "el"), looped over a text: how many tokens it found.</summary>
+		public Func<int> Scan(string parser, string text)
+		{
+			var type   = parser switch { "tsql" => _tsql, "el" => _elTape, _ => _sql };
+			var method = type.GetMethod("Scan", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+				?? throw new InvalidOperationException($"{type.Name}.Scan not found");
+			var scan   = (ScanFunction)Delegate.CreateDelegate(typeof(ScanFunction), method);
+
+			return () => ScanCount(scan, text);
+		}
+
+		/// <summary>
+		/// A form of <c>FixMessages</c> over one strict wire message: "parse-stream" and "parse-reader" (<c>Parse(Stream | TextReader, mode, size)</c>),
+		/// "read-stream" and "read-reader" (<c>ReadMessages</c>, lazy, over <paramref name="messages"/> messages), and "parse-span"
+		/// (<c>Parse(ReadOnlySpan&lt;char&gt;, mode)</c>, through a dynamic method, since a span cannot be handed to <c>Invoke</c>).
+		/// </summary>
+		public Func<int> FixMessagesForm(string form, string wire, int messages)
+		{
+			var mode = Enum.ToObject(_fixParseMode, 0);
+			var text = string.Concat(Enumerable.Repeat(wire, messages));
+			var one  = Encoding.Latin1.GetBytes(wire);
+			var many = Encoding.Latin1.GetBytes(text);
+
+			if (form == "parse-span")
+			{
+				var target = _fixMessages.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixParseMode])
+					?? throw new InvalidOperationException("FixMessages.Parse(ReadOnlySpan<char>, FixParseMode) not found");
+				var call   = SpanCall(target);
+
+				return () => call(wire) is null ? 0 : 1;
+			}
+
+			var parse = form.StartsWith("parse", StringComparison.Ordinal);
+			var input = form.EndsWith("stream", StringComparison.Ordinal) ? typeof(Stream) : typeof(TextReader);
+			var entry = _fixMessages.GetMethod(parse ? "Parse" : "ReadMessages", [input, _fixParseMode, typeof(int)])
+				?? throw new InvalidOperationException($"FixMessages.{(parse ? "Parse" : "ReadMessages")}({input.Name}, FixParseMode, int) not found");
+
+			return () =>
+			{
+				var source = input == typeof(Stream) ? (object)new MemoryStream(parse ? one : many, false) : new StringReader(parse ? wire : text);
+				var result = entry.Invoke(null, [source, mode, 4096]);
+
+				if (parse)
+					return result is null ? 0 : 1;
+
+				var count = 0;
+
+				foreach (var message in (IEnumerable)result!)
+					count++;
+
+				return count;
+			};
+		}
+
+		/// <summary>FixParser.Parse(ReadOnlySpan&lt;char&gt;) of this side, through a dynamic method: how many fields it read.</summary>
+		public Func<int> FixSpan(string text)
+		{
+			var target = _fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixOptions])
+				?? throw new InvalidOperationException("FixParser.Parse(ReadOnlySpan<char>, FixFieldOptions) not found");
+			var call   = SpanCall(target);
+
+			return () => ((Array)call(text)!).Length;
+		}
+
+		/// <summary>StreamingFeedReader.Read(TextReader) of this side (DotGram.Examples), walked: how many parts it yielded.</summary>
+		public Func<int> StreamingFeed(string text)
+		{
+			var owner = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).Assembly.GetType("DotGram.Examples.Feeds.StreamingFeedReader")
+				?? throw new InvalidOperationException("StreamingFeedReader not found");
+			var call  = owner.GetMethod("Read", [typeof(TextReader)]) ?? throw new InvalidOperationException("StreamingFeedReader.Read(TextReader) not found");
+
+			return () =>
+			{
+				var count = 0;
+
+				foreach (var part in (IEnumerable)call.Invoke(null, [new StringReader(text)])!)
+					count++;
+
+				return count;
+			};
+		}
+
+		/// <summary>A static method taking a span of chars first, as a delegate over a string: the other parameters are null, or the enum's zero.</summary>
+		static Func<string, object?> SpanCall(MethodInfo target)
+		{
+			var asSpan  = typeof(MemoryExtensions).GetMethod(nameof(MemoryExtensions.AsSpan), [typeof(string)])!;
+			var dynamic = new System.Reflection.Emit.DynamicMethod("span", typeof(object), [typeof(string)], typeof(Stand).Module, skipVisibility: true);
+			var il      = dynamic.GetILGenerator();
+
+			il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+			il.Emit(System.Reflection.Emit.OpCodes.Call, asSpan);
+
+			foreach (var parameter in target.GetParameters().Skip(1))
+			{
+				if (parameter.ParameterType.IsEnum)
+					il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_0);
+				else
+					il.Emit(System.Reflection.Emit.OpCodes.Ldnull);
+			}
+
+			il.Emit(System.Reflection.Emit.OpCodes.Call, target);
+
+			if (target.ReturnType.IsValueType)
+				il.Emit(System.Reflection.Emit.OpCodes.Box, target.ReturnType);
+
+			il.Emit(System.Reflection.Emit.OpCodes.Ret);
+
+			return (Func<string, object?>)dynamic.CreateDelegate(typeof(Func<string, object?>));
+		}
+
 		/// <summary>TransactSqlParser.TryParseStatement(string) of this side, by reflection: whether it read the statement.</summary>
 		public Func<int> Tsql(string text)
 		{
@@ -1120,6 +1243,10 @@ static partial class Stand
 			// The largest size of each linearity series, held before and after like any row: a change that makes a parser
 			// superlinear shows here, in the pair of the commit that does it, and not a day later in `linearity`.
 			.. PairedSweeps(before, after),
+
+			// The published forms no row read (docs/design/stand-coverage-2026-09-19.md): positional and window, the token scanner, FixMessages'
+			// streams, readers and lazy reading, a span, the streaming feed.
+			.. PairedForms(before, after),
 
 			// FIX's log forms: the separator is `|` between spaces, and the way opened at it is what performance-ff's 55c46da6 removes.
 			.. PairedFixLog(before, after),
