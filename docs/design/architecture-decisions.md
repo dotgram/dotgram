@@ -1560,6 +1560,14 @@ same day; each comes back to the architect as a report, with no code changed.
    and the server that the language is the same (the position of a refusal unchanged, only its
    expectation); and the scenario goes to the generator after C4 — a lookahead over a building
    rule could call a variant that only recognizes, so that its reading poisons nothing else.
+   **Done (sql-39, `a021ad2c`, after the stand):** checked against the server — after an atomic
+   block only the end of the batch can follow; one input the grammar used to read and the server
+   refuses (a module nested in a block) is now refused, and a stray `END` is refused where the
+   server refuses it; the engine comparison over the corpus identical, the round trip whole.
+   T-SQL's commit points 54 to 2,362 of 3,146 sites (1.7% to 75%), rules held by `Replay` 643 to
+   321 — one line of grammar. The reader's gate items (1) and (2) landed (`109770ac`, `d032591f`):
+   config -44..-56%, JSON -49..-58% (1.27-1.66x the hand parser), none of the three grammars moved
+   to immediate has two gathered members on one stack.
    **The seam hoist, written (expr):** `File = trivia & (Setting & trivia & eol & trivia)* & eof`,
    but `SettingsFile` stays on the tape for a reason outside the rule: a publication is entered
    as `trivia File trivia`, and where the rule begins with its seam the entry's seam is followed
