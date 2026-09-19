@@ -3651,6 +3651,21 @@ sealed partial class Machine
 			var took                = $"q{_calls++}";
 			var (call, undo, opens) = Called(kept, FollowSets.Continuation.None);
 
+			// Where nothing under the group can open a way, there is nothing to take back into it
+			// and nothing to seal: the loop never went round, the seal spent nothing, and the one
+			// `ways.` it wrote was all that gave a reader carrying immediately a Ways to rent (FIX's
+			// Tag, `{ ['1'..'9'] & ['0'..'9']* }`, twice a field). A failure inside is a failure of
+			// the part, which whoever marked the records puts back, as for any other part.
+			if (!opens)
+			{
+				code.Line($"var {took} = {call};");
+				code.Line($"if ({took} < 0)");
+				code.Then("return -1;");
+				code.Line($"p = {took};");
+
+				return;
+			}
+
 			code.Line($"var s{segment}  = ways.Cursor;");
 			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 				code.Line(line);
@@ -3893,16 +3908,18 @@ sealed partial class Machine
 				return;
 			}
 
-			var seen         = $"q{_calls++}";
-			var (call, undo, _) = Called(inside, FollowSets.Continuation.All);
+			var seen                = $"q{_calls++}";
+			var (call, undo, opens) = Called(inside, FollowSets.Continuation.All);
 
 			// What a look recorded is dropped whether it saw or not: its outcome is one bit,
 			// and what it captured on the way to it is not the rule's. Over the tape, what it
 			// decided is also sealed — nothing after it may reopen it, because a second
-			// reading of it can only say the same.
-			var mark = _ways++;
+			// reading of it can only say the same. Where nothing inside can open a way there is
+			// nothing to seal, and nothing is written about ways.
+			var mark    = _ways++;
+			var sealing = _tape && opens;
 
-			if (_tape)
+			if (sealing)
 				code.Line($"var s{mark}  = ways.Cursor;");
 
 			foreach (var line in machine.Carrier.MarkRecords($"lm{mark}"))
@@ -3923,7 +3940,7 @@ sealed partial class Machine
 			if (undo.Length > 0)
 				code.Line(undo);
 
-			if (_tape)
+			if (sealing)
 				code.Line($"ways.Seal(s{mark});");
 
 			code.Line();

@@ -1133,7 +1133,6 @@ namespace DotGram.Snapshots
 			public int Read_eof_Feed(int pos)
 			{
 				var p = pos;
-				var s0  = ways.Cursor;
 				var lm0  = ways.LogCount;
 				var lm0R = ways.Records;
 				var rr0 = ways.RefsCount;
@@ -1144,7 +1143,6 @@ namespace DotGram.Snapshots
 				ways.LogCount  = lm0;
 				ways.Records   = lm0R;
 				ways.RefsCount = rr0;
-				ways.Seal(s0);
 
 				if (q0 >= 0)
 				{
