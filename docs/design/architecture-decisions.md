@@ -1428,6 +1428,14 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    benchmarks do; the gate flat (13.3/12.9/13.2 to 13.3/13.2/13.0 s). `FixedWidthExample`, whose
    only cause was `eol`, now compiles immediate by `Auto` on its own with its tests unchanged —
    the mechanism proof, arrived at before `SettingsFile`. `SettingsFile` keeps the seam only.
+   **§5's three, decided 2026-09-18:** each is the language's own ambiguity, not the grammar's.
+   `AFTER` is not reserved, so `AFTER (x) IN y` is both a flag with a pattern and a function; the
+   two `VALUES` are told apart only by what follows the rows; `(a, b) AS query` against a list of
+   elements only by the `AS` after the bracket. The first two cannot reach zero without changing
+   answers; the third has one exact form (the bracket read once as elements, a guard turning
+   them into names where `AS` follows), which is a rewrite with a guard beside a group. All
+   three are recorded as intentional, like the six atomic ones, and not touched; the third is
+   taken up only when C has brought the cycle to one or two causes and it is the one left.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
