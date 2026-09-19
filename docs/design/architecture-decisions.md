@@ -219,7 +219,8 @@ their 5-14%, the stand's control +1.4%. The rule stands as amended: builds and t
 **Asked by Igor 2026-09-19, when there is time:** the same rows on net8.0 against net10.0 — the
 generated and the hand parsers apart, since the ratio between them may move with the runtime's
 JIT; every family, the first call and its compiled methods beside the steady state, default PGO
-with a twin if there is room. What is wanted from it is whether net8 is worth measuring on at all.
+with a twin if there is room. Narrowed the same evening: measurements stay on net10, since net8 leaves support in a month, so
+the comparison is a one-off curiosity — one run, one row a family, nothing added to the kit.
 
 **The full baseline of 2026-09-18 evening (stand, medians of five, every family; the doc is
 `docs/design/stand-2026-09-18b.md` with the raw results).** What it settled:
