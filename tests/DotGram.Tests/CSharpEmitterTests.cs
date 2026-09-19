@@ -1195,6 +1195,62 @@ public sealed class CSharpEmitterTests
 		Assert.Equal((2L, 5L), (window.Position, window.Length));
 	}
 
+	/// <summary>
+	/// A reading that begins where it is told ends where the rule ends, and reads no trivia
+	/// after it (§6.3): the value's own extent is what a host holding the text is asking for.
+	/// </summary>
+	/// <remarks>
+	/// Over characters, where the trivia is a rule of the grammar. Over kinds it was never
+	/// otherwise: the lexer eats the trivia and a reading ends at its last token, which the
+	/// window tests above already say.
+	/// </remarks>
+	[Fact]
+	public void A_reading_from_a_position_leaves_the_trivia_after_it()
+	{
+		var parser = EmittedCode.Compile(Emit(
+			"""
+			trivia = ' '*
+
+			// Recursive only so that it is not lowered: a lowered publication gets no position.
+			Start = Name & Rest
+			Rest  = Name | '(' & Start & ')'
+			Name  = ['a'..'z']+
+			parse Start
+			"""));
+
+		var whole = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd   ", 0);
+
+		Assert.True(whole.IsSuccess, whole.Error);
+		Assert.Equal((0L, 5L), (whole.Position, whole.Length));
+
+		// The trivia before the value is read, the trivia after it is not.
+		var later = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "  ab cd  ef", 0);
+
+		Assert.True(later.IsSuccess, later.Error);
+		Assert.Equal(7L, later.Length);
+
+		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd   ", 0, 8);
+
+		Assert.True(window.IsSuccess, window.Error);
+		Assert.Equal(5L, window.Length);
+
+		// And read by methods, which is the other rendering of the same entry.
+		var read = EmittedCode.Compile(Assert.Single(GramCompiler.Compile(
+			"""
+			trivia = ' '*
+
+			Start = Name & Name
+			Name  = ['a'..'z']+
+			parse Start
+			""",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance }).Sources).Text);
+
+		var directly = EmittedCode.Positioned(read, "Grammar", "TryParseStart", "  ab cd  ef", 0);
+
+		Assert.True(directly.IsSuccess, directly.Error);
+		Assert.Equal((0L, 7L), (directly.Position, directly.Length));
+	}
+
 	/// <summary>A character inside the window that begins no token ends its tokens.</summary>
 	[Fact]
 	public void Inside_a_window_the_lexer_stopping_ends_the_tokens()

@@ -971,9 +971,16 @@ sealed partial class Machine
 
 		using (members.Block($"public int {core}_Read{(tape ? "_Body" : "")}(int pos{DirectStrength(rule)})"))
 		{
+			// A whole input is the trivia, the rule and the trivia again, because reaching the
+			// end is what it is for. A reading that begins where it is told stops where the
+			// rule ends (§6.3): the value's own extent is what a host reading a piece of a text
+			// it holds is asking for, and the trivia after it is the next reading's leading
+			// trivia.
 			var reader = new ReaderWriter(this, rule);
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
-				? new Node.Sequence([seam, new Node.Call(rule, []), seam])
+				? ends
+					? new Node.Sequence([seam, new Node.Call(rule, []), seam])
+					: new Node.Sequence([seam, new Node.Call(rule, [])])
 				: (Node)new Node.Call(rule, []);
 
 			members.Write(reader.Render(

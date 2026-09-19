@@ -1887,16 +1887,24 @@ Match<T> TryParseX(string input, int at);              // begins at `at`, need n
 Match<T> TryParseX(string input, int at, int length);  // and sees nothing from `at + length` on
 ```
 
-Neither demands the end of the input. What comes back says where the reading began and
-how far it got, and every position in it — and in whatever the reading builds — is an
-offset into `input`, so a host reading a piece of a text it holds keeps what those
-positions mean. Over a grammar cut into tokens (§4) the first form has to begin where a
+Neither demands the end of the input, and neither reads the trivia after the rule: a
+reading that begins where it is told stops where the value ends, which is the extent a
+host holding the text is asking for, and the trivia after it is the leading trivia of the
+next reading. What comes back says where the reading began and how far it got, and every
+position in it — and in whatever the reading builds — is an offset into `input`, so a host
+reading a piece of a text it holds keeps what those positions mean. `eof` written in a
+rule is still the end of the whole input, and inside a window the end of the window. Over a grammar cut into tokens (§4) the first form has to begin where a
 token of the whole text begins, and is refused elsewhere. The second cuts only the window
 into tokens, so it may begin anywhere, and a character no token begins with ends the
 tokens rather than refusing the reading: a hole in an interpolated string, read up to the
 `:` its format begins with, is the shape it is for. A publication compiled as a plain
 method, with the one entry a whole parse needs, gets neither: its rules were proved to
 need nothing else only against the end of the input.
+
+**This changed.** Until this version both forms read the trivia after the rule as well, so
+the position that came back was past it and `Length` counted it. A caller that went on from
+the position it was handed reads the same values in the same places; a caller that measured
+a value by `Length` reads a shorter extent.
 
 **What "how far back" means is fixed by §4**, and this is the whole of the retention
 rule:

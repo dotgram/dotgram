@@ -225,6 +225,9 @@ sealed partial class Machine
 	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
 	readonly List<RecoveryPlan> _recoveryPlans = [];
 	readonly Dictionary<RuleSymbol, int> _wholeEntries = [];
+
+	/// <summary>The entry a reading that begins where it is told uses: the trivia there, then the rule (§6.3).</summary>
+	readonly Dictionary<RuleSymbol, int> _leadEntries = [];
 	readonly List<string> _extra = [];
 
 	/// <summary>Every array declared, by name, in the order they were asked for.</summary>
@@ -850,6 +853,20 @@ sealed partial class Machine
 		// however little of the grammar reaches it.
 		_roots.Add(_entries[root]);
 
+		// A reading that begins where it is told reads the trivia at that place and then the
+		// rule, and stops there (§6.3). The rule's own state is not that, so where the grammar
+		// has trivia the entry is compiled: the reader's is written the same way.
+		if (_graph.Trivia.TryGetValue(root, out var leading) && !_leadEntries.ContainsKey(root))
+		{
+			_seam      = FollowSets.SeamOf(root, _graph);
+			_traceRule = root.Name;
+
+			_leadEntries[root] = Compile(
+				new Node.Sequence([leading, _graph.Bodies[root]]), Return, FollowSets.Continuation.All);
+
+			_roots.Add(_leadEntries[root]);
+		}
+
 		if (!whole || _wholeEntries.ContainsKey(root))
 			return;
 
@@ -1334,7 +1351,8 @@ sealed partial class Machine
 		var file  = new Writer(0);
 		var type  = _results.QualifiedOf(root);
 		var output = type is null ? "" : $", out {type} value";
-		var entry = Numbered(whole ? _wholeEntries[root] : _entries[root]);
+		var entry = Numbered(whole ? _wholeEntries[root]
+			: _leadEntries.TryGetValue(root, out var lead) ? lead : _entries[root]);
 		var strength = _graph.Climbing.ContainsKey(root) ? ", int power" : "";
 		var enginePower = _graph.Climbing.Count > 0
 			? ", " + (_graph.Climbing.ContainsKey(root) ? "power" : "0")
