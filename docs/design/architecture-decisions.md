@@ -810,7 +810,12 @@ corpus lines against `HandSqlStandard` with no difference; generation 4.0 s and 
 13.9; four visible changes to users, two towards the BNF (an introduced literal's parts) and two
 away from it (comments nest six deep; `/*` inside a comment always opens one, since the trivia
 scanner decides by the first character and does not backtrack — both go when the scanner
-counts nesting). The stand's SQL rows follow.
+counts nesting). **The stand's rows (medians of five, paired): every SQL row faster, -4..-40%
+(column -40%, a late refusal -34%, arithmetic -27%, twenty items -25%), allocation -0..-7%; still
+4-21x the hand parser. The first call got worse on every row, +14..+56 ms (a literal 26 to 82 ms)
+— the lexer's tables and code are paid before the first token; to be diagnosed (type
+initialization against JIT of the lexer) and fixed in the generator's lexer emission, not the
+grammar.**
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
