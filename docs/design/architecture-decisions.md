@@ -1701,6 +1701,16 @@ same day; each comes back to the architect as a report, with no code changed.
    really does begin like a turn. Next for sql-39: a design, no code, for a carrier chosen per
    construction rather than per machine — the one thing between SQL's and EL's commit points and
    the immediate carrier — to the architect, then to Igor.
+   **The design, reviewed (sql-39, `docs/design/carrier-per-construction-2026-09-19.md`):** one
+   machine can carry both — the reader and the ways do not depend on the carrier, and the tape
+   already builds mid-parse for a guard; four edges between parent and child, of which the
+   narrowest safe set, a settled subtree (every construction with a point at its rule's end, every
+   building call into the same), needs only a held table and a leaf record. Static reach: T-SQL 26%
+   of its constructions (195 of 654 rules), SQL:2023 7%, EL and the Web's tape grammars nothing —
+   EL is held by `Replay`, Web by the reader's gate. Estimate for T-SQL 7-11% of a parse. Decided:
+   step 1, a count of records per rule over the corpora weighted by their materialization cost,
+   with no generator change; step 2, two carriers in one machine, is architecture and goes to
+   Igor with that number.
    **Answered (sql-39):** 643 of T-SQL's 658 building rules are not kept, 84 by a cause of their
    own; of the rest, 343 hang on one place — `?!SqlPiece` after an atomic block, a negative
    lookahead that reads a whole statement, so every statement and all under it counts as read
