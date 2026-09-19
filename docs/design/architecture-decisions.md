@@ -1409,6 +1409,13 @@ same day; each comes back to the architect as a report, with no code changed.
    the reader's refusal fix with the corpus shapes, the search in the scanner's repetition
    (performance-ff, after `LineAt`), the analysis, the hoist. performance-ff's queue before C3:
    `LineAt`, the scanner's search, the gathered-list guard.
+   **The reader's refusal fix landed `9f292dd6` (expr):** the recording reading tries a turn behind
+   a closed door as the engine does, except in scanners and the seam; a rule that is only a look
+   is named on refusal as the engine names it. An inline look still refuses silently: recording
+   it moved EL refusals past the hand parser's, so it was left out. Over the whole refusal record
+   and the EL record no position or outcome moves; the wording moves toward the engine, the
+   renderings' disagreements 100 to 77; three new corpus shapes. The hot path reads one more
+   field at each loop exit; the stand pairs it.
    **The dead ways, located (sql-39):** not the sets — a negated class is an exact complement
    and the analysis keeps it apart — but the reader's choice: it decides by the first character
    only through a switch, and refuses the switch past 128 named characters, a limit on code
