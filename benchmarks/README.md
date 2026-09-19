@@ -151,7 +151,11 @@ structured list, a feed, SQL conditions, rows and columns, an expression — and
 of each step, `log(t2/t1) / log(n2/n1)`, flagging a series above 1.2. Rough: one process, no
 window, a few hundred milliseconds a cell. It exists because the stock count's generated parser
 counted newlines from the start of the input for every rejected line and no row noticed until one
-held a thousand of them.
+held a thousand of them. Beside each exponent it prints the KB a call allocates at each size and the
+generation 2 collections a call causes at the largest, because a growing list on the large object heap
+raises the exponent without the algorithm being wrong: a series above 1.2 is `GC` when its allocation is
+linear and generation 2 collected, `ALGORITHM (allocation)` when the allocation grows faster than the
+input, and `ALGORITHM` when the time does with neither.
 
 ### Tiered PGO
 

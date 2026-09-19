@@ -26,6 +26,12 @@ namespace DotGram.Benchmarks;
 // counted newlines from the start of the input for every rejected line, and nobody saw it until a row
 // happened to hold a thousand of them.
 //
+// A step above the threshold is not necessarily the algorithm's: a growing list in the parser's result
+// lands on the large object heap and is collected in generation 2, and the time of a call then grows
+// with the size of what it allocates. So beside each exponent the report gives the generation 2
+// collections a call caused at the largest size and the bytes it allocated at each size, and a series
+// above the threshold whose largest size collects in generation 2 is flagged "GC" and not "algorithm".
+//
 // Rough, in one process, without a window: it is the shape of a curve that is asked for, not a number.
 // A reading that refuses its input is named and left out, the way a row of the stand would not be timed.
 
@@ -126,14 +132,16 @@ static partial class Stand
 	/// </summary>
 	public static void Linearity()
 	{
-		Console.WriteLine("| parser | form | unit | sizes | µs at each size | exponents | |");
-		Console.WriteLine("| --- | --- | --- | --- | --- | --- | --- |");
+		Console.WriteLine("| parser | form | unit | sizes | µs at each size | exponents | KB a call | gen2 a call at the largest | |");
+		Console.WriteLine("| --- | --- | --- | --- | --- | --- | --- | ---: | --- |");
 
 		var flagged = new List<string>();
 
 		foreach (var series in LinearitySeries())
 		{
-			var times = new List<double>();
+			var times     = new List<double>();
+			var kilobytes = new List<double>();
+			var gen2      = 0.0;
 
 			foreach (var size in series.Sizes)
 			{
@@ -146,10 +154,14 @@ static partial class Stand
 					break;
 				}
 
-				times.Add(TimeRough(read));
+				var (time, bytes, collected) = TimeRough(read);
+
+				times.Add(time);
+				kilobytes.Add(bytes / 1024);
+				gen2 = collected;
 
 				// A call of seconds is the answer already; the next size would be a hundred times as long.
-				if (times[^1] > 3e9)
+				if (time > 3e9)
 					break;
 			}
 
@@ -159,25 +171,42 @@ static partial class Stand
 				exponents.Add(Math.Log(times[i] / times[i - 1]) / Math.Log((double)series.Sizes[i] / series.Sizes[i - 1]));
 
 			var worst = exponents.Count == 0 ? double.NaN : exponents.Max();
-			var flag  = times.Any(double.IsNaN) ? "REFUSED" : worst > LinearityThreshold ? "SUPERLINEAR" : "";
 
-			if (flag == "SUPERLINEAR")
-				flagged.Add($"{series.Parser}, {series.Form}: exponent {worst:F2}");
+			// What it allocates has an exponent of its own: a list copied on every element allocates with the
+			// square of the size, and that is the algorithm's and not the collector's however often generation 2 runs.
+			var allocated = Enumerable.Range(1, Math.Max(0, kilobytes.Count - 1))
+				.Select(i => Math.Log(kilobytes[i] / kilobytes[i - 1]) / Math.Log((double)series.Sizes[i] / series.Sizes[i - 1]))
+				.DefaultIfEmpty(0)
+				.Max();
+
+			var flag = times.Any(double.IsNaN)
+				? "REFUSED"
+				: worst <= LinearityThreshold ? ""
+				: allocated > LinearityThreshold ? "ALGORITHM (allocation)"
+				: gen2 > 0 ? "GC"
+				: "ALGORITHM";
+
+			if (flag is not "" and not "REFUSED")
+				flagged.Add($"{series.Parser}, {series.Form}: time exponent {worst:F2}, allocation exponent {allocated:F2}, generation 2 a call {gen2:F2}: {flag}");
 
 			Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
 				$"| {series.Parser} | {series.Form} | {series.Unit} | {string.Join(" / ", series.Sizes.Take(times.Count).Select(static one => one.ToString("N0", CultureInfo.InvariantCulture)))} | " +
 				$"{string.Join(" / ", times.Select(static one => double.IsNaN(one) ? "-" : (one / 1000).ToString("F1", CultureInfo.InvariantCulture)))} | " +
-				$"{string.Join(" / ", exponents.Select(static one => one.ToString("F2", CultureInfo.InvariantCulture)))} | {flag} |"));
+				$"{string.Join(" / ", exponents.Select(static one => one.ToString("F2", CultureInfo.InvariantCulture)))} | " +
+				$"{string.Join(" / ", kilobytes.Select(static one => one.ToString("N0", CultureInfo.InvariantCulture)))} | {gen2:F2} | {flag} |"));
 		}
 
 		Console.WriteLine();
 		Console.WriteLine(flagged.Count == 0
 			? $"No series above the exponent {LinearityThreshold}."
-			: $"Above the exponent {LinearityThreshold}:\n" + string.Join("\n", flagged.Select(static one => "- " + one)));
+			: $"Above the exponent {LinearityThreshold} (GC: linear allocation and generation 2 collected at the largest size; ALGORITHM: the time grows without either, or (allocation) the allocation grows too):\n" + string.Join("\n", flagged.Select(static one => "- " + one)));
 	}
 
-	/// <summary>Nanoseconds a call takes: warmed for 100 ms, then timed for at least 200 ms and 3 calls.</summary>
-	static double TimeRough(Func<bool> run)
+	/// <summary>
+	/// Nanoseconds a call takes, the bytes it allocates and the generation 2 collections it causes:
+	/// warmed for 100 ms, then timed for at least 200 ms and 3 calls.
+	/// </summary>
+	static (double Nanoseconds, double Bytes, double Gen2) TimeRough(Func<bool> run)
 	{
 		var watch = Stopwatch.StartNew();
 
@@ -185,7 +214,9 @@ static partial class Stand
 			run();
 		while (watch.ElapsedMilliseconds < 100);
 
-		var calls = 0;
+		var calls     = 0;
+		var allocated = GC.GetAllocatedBytesForCurrentThread();
+		var gen2      = GC.CollectionCount(2);
 
 		watch.Restart();
 
@@ -196,6 +227,8 @@ static partial class Stand
 		}
 		while (watch.ElapsedMilliseconds < 200 || calls < 3);
 
-		return watch.Elapsed.TotalMilliseconds * 1e6 / calls;
+		return (watch.Elapsed.TotalMilliseconds * 1e6 / calls,
+			(GC.GetAllocatedBytesForCurrentThread() - allocated) / (double)calls,
+			(GC.CollectionCount(2) - gen2) / (double)calls);
 	}
 }
