@@ -75,8 +75,8 @@ would keep on the tape: what lifting the refusal would move.
 | DotGram.Examples.Languages.SqlDialect | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | immediate | none |  |  |  |  |  |  | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 20 | 0 | 0 | 0 | 18/854 |
-| DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  |  |  | 18/854 |
+| DotGram.ExpressionLanguage.ExpressionParser | tape | replay | 137 | 131 | 18 | 0 | 0 | 0 | 18/850 |
+| DotGram.ExpressionLanguage.ExpressionParser.Immediate | immediate (author) |  |  |  |  |  |  |  | 18/850 |
 | DotGram.Finance.Fix.FixGrammar | tape | read again | 4 | 0 | 0 | 4 | 0 | 0 | 18/18 |
 | DotGram.Finance.Fix44.Fix44Grammar | nothing to choose | none |  |  |  |  |  |  | 1910/1910 |
 | DotGram.Finance.Fix44.FixFieldGrammar | nothing to choose | none |  |  |  |  |  |  | 0/0 |
@@ -395,8 +395,6 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
-- replay Assignment: Follows in Primary [choice], then ']'
-- replay Assignment: Follows in Primary [choice], then ']'
 - replay Catch: Follows in Try [choice], then "finally"
 - replay Catch: Follows in Try [choice], then "finally"
 - replay Conditional: Follows in Conditional [turn], then ':'
@@ -405,8 +403,8 @@ or which nothing calls, so that no caller asks it again.
 - replay Core: Follows in Primary [choice], then '.'
 - replay Elements: Follows in Primary [turn], then '}'
 - replay Elements: Follows in Primary [turn], then '}'
-- replay Identifier: Follows in Untyped [lookahead], then "=>"
-- replay Identifier: Follows in Untyped [lookahead], then "=>"
+- replay Identifier: Follows in Postfix [turn], then Arguments
+- replay Identifier: Follows in Postfix [turn], then Arguments
 - replay Indices: Follows in Assignment [choice], then '='
 - replay Indices: Follows in Assignment [choice], then '='
 - replay Name: Follows in Assignment [choice], then Indices
@@ -417,6 +415,8 @@ or which nothing calls, so that no caller asks it again.
 - replay Type: Follows in NamedType [turn], then '>'
 - replay Arguments: under Postfix
 - replay Arguments: under Postfix
+- replay Assignment: under Indices
+- replay Assignment: under Indices
 - replay Awaiting: under Untyped
 - replay Awaiting: under Untyped
 - replay Bin: under Primary
