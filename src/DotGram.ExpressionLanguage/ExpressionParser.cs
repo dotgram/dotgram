@@ -456,7 +456,7 @@ namespace DotGram.ExpressionLanguage;
 	// A lookahead refuses without saying what it wanted, so the expression that follows is
 	// not also told it might have been a lambda at every one of those places.
 	Untyped : @Expression
-		= ?=((Identifier | '(' & Identifier & (',' & Identifier)* & ')') & "=>")
+		= ?=((NameOnly | '(' & NameOnly & (',' & NameOnly)* & ')') & "=>")
 		& (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
 		& when @(context.Awaits(Awaited.Of(one, first, rest), parserSpan))
 		& body: Held
@@ -555,6 +555,12 @@ namespace DotGram.ExpressionLanguage;
 	// part is an array of words, and a name assembled from those has nothing in it the author
 	// did not name.
 	Identifier : @string on fail "Expected a name." = ?!Keyword & w: Word => @(w)
+
+	// What Identifier reads, building nothing: for a look, which keeps nothing it reads and
+	// which, reading a rule that builds, would have the carrier build it all the same — so a
+	// lambda's parameters were built twice, once to be looked at. Until a look reads a rule that
+	// builds as one that only recognizes, which the generator is to do (performance-ff, after C4).
+	NameOnly = ?!Keyword & Word
 
 	// A keyword is no type's name, which C# says by making it one and this says by refusing it
 	// here: read as the head of a dotted name, `return` in `x + return` sent the parse looking
