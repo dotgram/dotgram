@@ -1242,9 +1242,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Hashed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
+		static void Materialize_DotGram_Hashed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
 		{
-			values.Room(ways.Records);
+			values.Room(ways.Records, from: first);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1255,7 +1255,13 @@ namespace DotGram.Snapshots
 			for (var at = from; at < ways.LogCount; at += log[at])
 				starts[listed++] = at;
 
-			live[root] = true;
+			if (roots < 0)
+				live[root] = true;
+			else
+			{
+				for (var at = roots; at < ways.RefsCount; at += 3)
+					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
+			}
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
@@ -1736,9 +1742,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_List_With1_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
+		static void Materialize_DotGram_List_With1_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
 		{
-			values.Room(ways.Records);
+			values.Room(ways.Records, from: first);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1749,7 +1755,13 @@ namespace DotGram.Snapshots
 			for (var at = from; at < ways.LogCount; at += log[at])
 				starts[listed++] = at;
 
-			live[root] = true;
+			if (roots < 0)
+				live[root] = true;
+			else
+			{
+				for (var at = roots; at < ways.RefsCount; at += 3)
+					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
+			}
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
@@ -2122,9 +2134,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_List_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
+		static void Materialize_DotGram_List_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
 		{
-			values.Room(ways.Records);
+			values.Room(ways.Records, from: first);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -2135,7 +2147,13 @@ namespace DotGram.Snapshots
 			for (var at = from; at < ways.LogCount; at += log[at])
 				starts[listed++] = at;
 
-			live[root] = true;
+			if (roots < 0)
+				live[root] = true;
+			else
+			{
+				for (var at = roots; at < ways.RefsCount; at += 3)
+					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
+			}
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
@@ -2674,9 +2692,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Small_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int parserReading)
+		static void Materialize_DotGram_Small_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int parserReading, int roots = -1, long rootSlots = 0)
 		{
-			values.Room(ways.Records);
+			values.Room(ways.Records, from: first);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -2690,7 +2708,13 @@ namespace DotGram.Snapshots
 			for (var at = from; at < ways.LogCount; at += log[at])
 				starts[listed++] = at;
 
-			live[root] = true;
+			if (roots < 0)
+				live[root] = true;
+			else
+			{
+				for (var at = roots; at < ways.RefsCount; at += 3)
+					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
+			}
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
@@ -3235,9 +3259,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Primary_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
+		static void Materialize_DotGram_Primary_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
 		{
-			values.Room(ways.Records);
+			values.Room(ways.Records, from: first);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -3248,7 +3272,13 @@ namespace DotGram.Snapshots
 			for (var at = from; at < ways.LogCount; at += log[at])
 				starts[listed++] = at;
 
-			live[root] = true;
+			if (roots < 0)
+				live[root] = true;
+			else
+			{
+				for (var at = roots; at < ways.RefsCount; at += 3)
+					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
+			}
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
@@ -4602,7 +4632,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Room for a value at every index below the count; what was built stays built.</summary>
-			internal void Room(int count, bool live = true)
+			internal void Room(int count, bool live = true, int from = 0)
 			{
 				if (count > _used) _used = count;
 				if (Live.Length < count)
@@ -4613,8 +4643,8 @@ namespace DotGram.Snapshots
 					global::System.Array.Copy(Built, built, Built.Length);
 					Built  = built;
 				}
-				else if (live)
-					global::System.Array.Clear(Live, 0, count);
+				else if (live && count > from)
+					global::System.Array.Clear(Live, from, count - from);
 				if (V0.Length < count)
 					global::System.Array.Resize(ref V0, global::System.Math.Max(count, V0.Length * 2));
 				if (V1.Length < count)

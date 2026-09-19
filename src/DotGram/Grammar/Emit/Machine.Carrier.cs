@@ -814,13 +814,18 @@ sealed partial class Machine
 				$"{(bracket < 0 ? "" : type.Substring(bracket))};");
 			code.Line($"{handed}Count = 0;");
 
+			// Built in one walk with every element a root, not in one walk an element: each of those
+			// walked the whole rule from its mark, and a list of a thousand was a million records.
+			if (build.Length > 0)
+			{
+				var whole = string.Format(build, "-1");
+
+				code.Line(whole.Substring(0, whole.Length - 2) + $", roots: {from}, rootSlots: {bits}L);");
+			}
+
 			using (code.Block($"for (var at = {from}; at < ways.RefsCount; at += 3)"))
 			{
 				code.Line($"if (({bits}L & (1L << ways.Refs[at])) == 0) continue;");
-
-				if (build.Length > 0)
-					code.Line(string.Format(build, "ways.Refs[at + 1]"));
-
 				code.Line($"{handed}[{handed}Count++] = {ValueOfType(type, "ways.Refs[at + 1]")};");
 			}
 		}

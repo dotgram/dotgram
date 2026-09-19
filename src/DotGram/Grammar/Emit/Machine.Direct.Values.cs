@@ -736,7 +736,7 @@ sealed partial class Machine
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
 			$"{WaysType} ways, {InputType} text, DirectValues values, int root, int from, int first" +
-			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
+			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int roots = -1, long rootSlots = 0)"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
 			// it already built; where no guard builds, nothing is ever built twice and the
@@ -748,7 +748,9 @@ sealed partial class Machine
 			// amortize selection; marks still need every record visited in order.
 			var selected = twice && strays && !UsesMarks && parts.Count > 1;
 
-			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")});");
+			// Only what this walk reads is cleared: a guard walks from its own rule's mark, and
+			// clearing from the start of the log each time was a pass over every record before it.
+			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")}, from: first);");
 			file.Line();
 			file.Line("var log   = ways.Log;");
 
@@ -783,7 +785,17 @@ sealed partial class Machine
 				file.Line("for (var at = from; at < ways.LogCount; at += log[at])");
 				file.Then("starts[listed++] = at;");
 				file.Line();
-				file.Line("live[root] = true;");
+				// One root, or every record gathered for the slots asked since `roots`: a guard handed a
+				// list builds all of it in one walk (TapeCarrier.Gathered), not one walk an element.
+				file.Line("if (roots < 0)");
+				file.Then("live[root] = true;");
+				file.Line("else");
+
+				using (file.Block(""))
+				{
+					file.Line("for (var at = roots; at < ways.RefsCount; at += 3)");
+					file.Then("if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;");
+				}
 				file.Line();
 				using (file.Block("for (var back = listed - 1; back >= 0; back--)"))
 				{

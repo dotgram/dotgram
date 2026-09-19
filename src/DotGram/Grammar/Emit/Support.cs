@@ -1379,11 +1379,11 @@ public static partial class CSharpEmitter
 		Spared(text, "DirectValues", "values");
 		text.Append("\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
-		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(")\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");
+		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(", int from = 0)\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");
 		if (dense)
-			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t}\n\t\telse if (live) global::System.Array.Clear(Live, 0, count);\n");
+			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t}\n\t\telse if (live && count > from) global::System.Array.Clear(Live, from, count - from);\n");
 		else
-			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse if (live)\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
+			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse if (live && count > from)\n\t\t\tglobal::System.Array.Clear(Live, from, count - from);\n");
 
 		if (dense)
 		{
