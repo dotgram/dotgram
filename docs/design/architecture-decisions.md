@@ -1153,7 +1153,11 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   when it must not. Fixed in the graph, in the `yield` commit. The call graph `Replay` reads skips
   synchronizations too, so a rule read only there is answered "stands" by default and `Auto` could
   build a reading that is thrown away; fixed in its own commit right after, with a count of the
-  grammars where a synchronization calls a building rule.
+  grammars where a synchronization calls a building rule. Checked first: none in the solution
+  does, and the danger is not reachable — a synchronization exists only where there is recovery,
+  every recovering machine passes C4b's gate, and that gate asks `Commit`, which counts what a
+  synchronization reads as thrown away. A regression test holds it now; `Replay`'s call graph
+  walks synchronizations later, after FIX's log form, as a correction of the analysis.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
