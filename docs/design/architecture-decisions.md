@@ -1162,6 +1162,10 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   C2-C4c went to the whole-stream form, 57 ns a field, which the public API does not use. **Igor:
   the `yield` form on the reader next for FIX**, after C4c's second step and before the log form —
   performance-ff, with expr's driver and step-5 patch, a design first; expected 55-60 ns a field.
+  **Measured (stand):** the stream rows -37..-72%, 217 to 65 ns a field, allocation per call
+  identical — past the expectation. The ideal reading has a column in the family table now, and
+  the table says in words that bytes and streams have none, so their figures stand against the
+  hand parser alone.
   **Design agreed:** `yield` is lowered to a step rule, one recovering turn, which the driver
   calls once per element and the engine reads today. The step is admitted as the recovery scenario
   with its turn as its point; the reader writes it without a loop or a continuation, since the next
@@ -2502,7 +2506,8 @@ is a question for the analysis and 29 rules come back; the inline return is our 
 at a named price, which makes it Igor's trade-off and not a fact about T-SQL. On FIX the comparison
 is honest — the stand holds both parsers to the same answers before timing — but the stronger
 sentence was left out of the table: against the ideal reader we built as a floor, the generated
-parser is 1.04x (48.9 ns a field against 46.8), where it was 3.3x the day before, and that cannot
+parser is 1.04x (48.9 ns a field against 46.8), where it was 3.1x the day before by the stand's own
+arithmetic, and that cannot
 be answered with "the hand parser is slow"; the byte and stream forms have no ideal reader, so
 their 1.71x and 2.19x stand against the hand parser alone. And when the emitted code takes a newer
 framework's API (D20), the hand parsers get the same in the same commit, or the pair will show a
