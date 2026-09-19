@@ -34,6 +34,7 @@ edit is "only a clarification". The one case this was not followed in: GRAM4030 
 sentence in §7.8 (`bdef4949`), put to Igor after the fact.
 **Igor's answer, 2026-09-19:** the diagnostic stays, the sentence added to §7.8 is reverted — the
 text of the specification is not touched.
+Done by expr (`13e38513`): §7.8 is byte for byte what it was before `bdef4949`.
 
 **Main is linear, 2026-09-18.** A session lands by rebasing onto `origin/main` and pushing
 `HEAD:main` (CLAUDE.md: no branches). Five merge commits reached main on 2026-09-18
