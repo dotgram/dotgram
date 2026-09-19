@@ -121,6 +121,7 @@ then quietly mean nothing.
 | a rule's own refusal message, `on fail "…"` §4/§7.5 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `internal parse`, `private find` §6 | ✓ | — | — | ✓ | ✓ |
 | `TryParseR(input, at)` and `TryParseR(input, at, length)` §6.3 | — | — | — | ✓ | ✓ |
+| `bool TryParseR(input, out R value)`, the quiet form §6/§6.1 | — | — | — | ✓ | ✓ |
 | the publications of one rule sharing a machine, told apart by the reading §5.1 | — | — | ✓ | ✓ | ✓ |
 | a publication another reaches, joined into that one's machine | — | — | — | ✓ | ✓ |
 | a grammar cut into a lexer and a syntactic half, `Lexical = true` §4 | — | — | ✓ | ✓ | ✓ |
@@ -391,8 +392,9 @@ operand of its own to read at it.
 
 ## What a publication answers with
 
-`TryParseR` hands back a `Match<T>` — value, error, position, length — and takes no
-`out` parameters. `FindR` hands back a lazy `IEnumerable<Match<T>>`, so "the first
+`TryParseR` hands back a `Match<T>` — value, error, position, length. Beside it stands the
+one form that takes an `out` parameter, `bool TryParseR(input, out R value)`, for a caller
+who asks only whether: it reads once, quietly, and says nothing about a refusal (§6.1). `FindR` hands back a lazy `IEnumerable<Match<T>>`, so "the first
 one" and "the ones that satisfy this" are LINQ's rather than more directives.
 `match` and `find all` are gone: one word meant three different things across
 ecosystems, and the other was a sequence method wearing a directive's clothes.

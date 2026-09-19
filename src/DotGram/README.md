@@ -267,7 +267,7 @@ keeps every one and reads them all.
   binding powers for expression grammars;
 * grammar namespaces, and grammar libraries that cross a project reference;
 * a lexical split: the same notation read over tokens instead of characters;
-* `Parse`, `TryParse` and `Find`;
+* `Parse`, `TryParse` — a match, or `bool` with the value in an `out` — and `Find`;
 * streaming from a `TextReader`, and recovery inside repetitions.
 
 ## No runtime parser library
