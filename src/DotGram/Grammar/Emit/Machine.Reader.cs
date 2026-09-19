@@ -2156,8 +2156,11 @@ sealed partial class Machine
 			// A choice that is one run of text, where no shorter text can be wanted by what
 			// follows (LiteralRun, PrefixSettled), has nothing to come back to on the tape
 			// either: it is tried in order below and opens no way, as the engine compiles it.
-			// `eol` is that choice wherever what follows it cannot begin with '\n'.
-			if (_tape && LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count)
+			// `eol` is that choice wherever what follows it cannot begin with '\n'. And so is a
+			// choice none of whose alternatives can hold where another held (Exclusive):
+			// `(eol | ?=eof)`, whose lookahead cannot hold where `eol` read a character.
+			if (_tape && LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count &&
+				!machine.Exclusive(alternatives))
 			{
 				if (analyzing)
 					machine.OpeningChoice(owner, alternatives, following);

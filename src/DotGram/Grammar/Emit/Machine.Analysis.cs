@@ -374,6 +374,64 @@ sealed partial class Machine
 	/// so that the widest, usually a complement, is the one read without a test of its own.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Whether no alternative can hold where another one did: what each can begin with at a
+	/// position — its first set, or for a lookahead what it looks for, the end of the input
+	/// included — is disjoint from what every other can.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Then a way into the choice leads nowhere: coming back for the next alternative asks it to
+	/// hold at the position where the one taken held, and nothing it can begin with is there.
+	/// <c>(eol | ?=eof)</c> is the shape: <c>eol</c> read a character, and the end of the input
+	/// is not one.
+	/// </para>
+	/// <para>
+	/// Wider than <see cref="Chainable"/> by the lookaheads, which read nothing and so have no
+	/// first set a switch or a chain could test before trying them; tried in order they need
+	/// none, since the order no longer matters to what holds.
+	/// </para>
+	/// </remarks>
+	internal bool Exclusive(IReadOnlyList<Node> alternatives)
+	{
+		var seen = new List<(FirstSets.First? Set, bool End)>(alternatives.Count);
+
+		foreach (var alternative in alternatives)
+		{
+			if (Begins(alternative) is not { } one)
+				return false;
+
+			foreach (var other in seen)
+				if (one.End && other.End || one.Set is { } mine && other.Set is { } theirs && mine.Overlaps(theirs))
+					return false;
+
+			seen.Add(one);
+		}
+
+		return true;
+
+		// What an alternative can begin with, or null where that is not known: a lookahead for
+		// the end holds only there, a lookahead for something that reads holds where that thing
+		// begins, and anything else where its first set says.
+		(FirstSets.First? Set, bool End)? Begins(Node node) => node switch
+		{
+			Node.Lookahead(false, var body) when Everything(body) => (null, true),
+			Node.Lookahead(true, Node.Lookahead(false, var body)) when Everything(body) => (null, true),
+			Node.Lookahead(true, var body) => Consumes(body) is { } set ? (set, false) : null,
+			_ => Decidable(node) is { Ends: false } set ? (set, false) : null,
+		};
+
+		FirstSets.First? Consumes(Node body) =>
+			!FirstSets.Nullable(body, _graph) && FirstSets.Of(body, _graph) is { Nothing: false, Anything: false } set ? set : null;
+
+		// One character of anything, which only the end of the input refuses: `eof` is `?!any`.
+		bool Everything(Node body) =>
+			!FirstSets.Nullable(body, _graph) &&
+			FirstSets.Of(body, _graph) is var set &&
+			(set.Anything || set.Ranges.Count == 1 && set.Ranges[0].From == char.MinValue && set.Ranges[0].To == char.MaxValue) &&
+			body is Node.Element;
+	}
+
 	internal List<(FirstSets.First Set, Node Node)>? Chainable(IReadOnlyList<Node> alternatives)
 	{
 		if (alternatives.Count < 2)

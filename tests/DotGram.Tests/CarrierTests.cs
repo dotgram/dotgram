@@ -373,6 +373,47 @@ public sealed class CarrierTests
 		}
 	}
 
+	/// <summary>
+	/// An alternative that reads nothing opens no way where it cannot hold where the one before it
+	/// read — <c>(eol | ?=eof)</c>, here before a semicolon. Beside it, a lookahead that holds
+	/// where the text before it was read, which a failure after it comes back into.
+	/// </summary>
+	[Theory]
+	[InlineData("('\\n' | ?=';')", "", true)]
+	[InlineData("('\\n' | ?='\\n')", " & '\\n'", false)]
+	public void An_empty_alternative_that_cannot_hold_there_opens_no_way(string end, string after, bool immediate)
+	{
+		var grammar =
+			$$"""
+			Start : @string[] = (s: Line{{after}} & ';')* => @(s)
+			Line  : @string = t: ['a'..'z']+ & {{end}} => @(t)
+			parse Start
+			""";
+
+		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+
+		if (!immediate)
+			Assert.Contains("Line", told.Message, StringComparison.Ordinal);
+
+		var tape = Compiled(grammar, CarrierKind.Tape);
+		var auto = Compiled(grammar, CarrierKind.Auto);
+
+		foreach (var input in new[] { "ab\n;cd;", "ab;", "ab\n\n;", "ab\n", "a;b", "" })
+		{
+			var expected = EmittedCode.Match(tape.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(auto.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+
+			if (expected.IsSuccess)
+				Assert.Equal((string[])expected.Value!, (string[])actual.Value!);
+			else
+				Assert.Equal(expected.Position, actual.Position);
+		}
+	}
+
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
 		GramCompiler.Compile(grammar, new GramCompilerOptions
 		{

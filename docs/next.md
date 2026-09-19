@@ -24012,3 +24012,19 @@ docs/carriers.md, serial rebuilds before and after:
 A pair in CarrierTests keeps this in place: `(Plain | Escape)*` against `(Plain | Two)*`, with the
 same answers and the same refusal positions as the tape. The snapshots are unchanged, and so are
 DotGram.Tests, Slow, the SQL corpora and Finance.
+
+## An alternative that cannot hold where another did opens no way (gate 2, third)
+
+`(eol | ?=eof)` was read in order with a way into it, but coming back for the lookahead after
+`eol` had read a character asks the end of the input to be where a character is. `Exclusive`
+asks this of the whole choice. For each alternative it takes what that alternative can begin
+with at a position: its first set; for a lookahead, what the lookahead looks for; and for `eof`
+(`?!any`), the end alone. If no two of those meet, the choice is read in order with no way
+opened, as a settled literal run already is. The lookaheads are what `Chainable` could not take,
+since they read nothing and have no first character to test.
+
+This is the smallest of the three. docs/carriers.md goes from 15 places to 14 in the class "an
+alternative that may read nothing", and no grammar changes carrier. The places left are shaped
+differently: they are optionals, or alternatives that begin alike. A pair in CarrierTests holds
+it: `('\n' | ?=';')` against `('\n' | ?='\n') & '\n'`, with the tape's answers and refusal
+positions.
