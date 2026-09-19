@@ -28,6 +28,12 @@ work on a parser, not on the generator. A change to the language itself (`syntax
 notation, what a construct means, what hooks can see) is discussed with Igor first, before a
 design is written, let alone code.
 
+**Main is linear, 2026-09-18.** A session lands by rebasing onto `origin/main` and pushing
+`HEAD:main` (CLAUDE.md: no branches). Five merge commits reached main on 2026-09-18
+(`97ade22a`, `87433353`, `91383eec`, `06ddaca4`, `4effecbc`); they stay, but no more: a merge
+on main makes the stand's bisection of a generator-time regression ambiguous, since a step
+may land on a commit that never built on its own.
+
 ## D1. A handwritten parser reads exactly the grammar it is measured against
 
 Decided 2026-09-17 by Igor.
