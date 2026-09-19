@@ -667,6 +667,40 @@ sealed partial class Machine
 				if (machine.IsExtent(rule) && machine.Gathered(rule))
 					return $"'{rule.Name}' is an extent collected across turns";
 
+			// A member gathered across turns takes what its rule pushed onto the stack of its type
+			// since the rule began, so two members of one rule on one stack would take each other's:
+			// `a: X* & ';' & b: X*` handed `a` all four of `ab;cd` and `b` none. Kept apart on the
+			// tape, whose references carry the slot they were pushed for.
+			foreach (var rule in machine._rules)
+				if (SharedStack(rule) is { } shared)
+					return $"'{rule.Name}' gathers two members onto one stack ({shared})";
+
+			return null;
+		}
+
+		/// <summary>The stack two gathered members of the rule would share, or null where none is shared.</summary>
+		/// <remarks>What <see cref="GatheredStacks"/> answers, asked without requiring the stacks.</remarks>
+		string? SharedStack(RuleSymbol owner)
+		{
+			var seen  = new HashSet<string>(StringComparer.Ordinal);
+			var steps = machine.DirectStepSlots(owner);
+
+			foreach (var member in machine.DirectMembers(owner))
+			{
+				if (member.Slots.All(steps.Contains))
+					continue;
+
+				var stack = member.Shape switch
+				{
+					MemberShape.Pieces  => "text",
+					MemberShape.Records => machine._results.ValueOf(member.Member.Rule),
+					_                   => null,
+				};
+
+				if (stack is not null && !seen.Add(stack))
+					return stack;
+			}
+
 			return null;
 		}
 
