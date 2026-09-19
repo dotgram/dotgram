@@ -520,6 +520,47 @@ public sealed partial class BufferedInputTests
 		Assert.Equal(true, assembly.GetType("Grammar")!.GetMethod("Check")!.Invoke(null, null));
 	}
 
+	/// <summary>
+	/// A search over a buffer reads on a block at a time until it finds a stop or the input ends,
+	/// and answers in positions of the input, not of the block — for characters and for bytes.
+	/// A stop beyond the retention limit is the limit's IOException, as a reading would be.
+	/// </summary>
+	[Fact]
+	public void A_buffer_searches_across_the_blocks_it_reads()
+	{
+		var compilation = GramCompiler.Compile("Start = any*\nparse Start",
+			new GramCompilerOptions { BufferedInput = true, BufferedBytes = true });
+		EmittedCode.Quiet(compilation.Diagnostics);
+		var assembly = EmittedCode.Compile(compilation.Sources.Single().Text, declarationMembers: """
+			public static string Chars()
+			{
+				using var text = new BufferedText(new System.IO.StringReader("abcdef|ghi;jk"), 2, 100);
+				return string.Join(",", text.IndexOf(0, '|'), text.IndexOf(0, ';', '|'), text.IndexOf(7, ';'),
+					text.IndexOf(0, 'x', 'y', 'f'), text.IndexOf(0, System.MemoryExtensions.AsSpan("xyz;")),
+					text.IndexOf(7, 'x'), text.End);
+			}
+
+			public static string Bytes()
+			{
+				using var text = new BufferedBytes(new System.IO.MemoryStream(System.Text.Encoding.ASCII.GetBytes("abcdef|ghi;jk")), 2, 100);
+				return string.Join(",", text.IndexOf(0, (byte)'|'), text.IndexOf(0, (byte)';', (byte)'|'), text.IndexOf(7, (byte)';'),
+					text.IndexOf(0, (byte)'x', (byte)'y', (byte)'f'), text.IndexOf(0, new byte[] { (byte)'x', (byte)'y', (byte)'z', (byte)';' }),
+					text.IndexOf(7, (byte)'x'), text.End);
+			}
+
+			public static int Beyond()
+			{
+				using var text = new BufferedText(new System.IO.StringReader("aaaaaaaa|"), 2, 4);
+				return text.IndexOf(0, '|');
+			}
+			""");
+		var grammar = assembly.GetType("Grammar")!;
+		Assert.Equal("6,6,10,5,10,-1,13", grammar.GetMethod("Chars")!.Invoke(null, null));
+		Assert.Equal("6,6,10,5,10,-1,13", grammar.GetMethod("Bytes")!.Invoke(null, null));
+		var raised = Assert.Throws<TargetInvocationException>(() => grammar.GetMethod("Beyond")!.Invoke(null, null));
+		Assert.IsType<IOException>(raised.InnerException);
+	}
+
 	[Theory]
 	[InlineData("Start : @string = 'a' => @(parserInput)\nparse Start stream")]
 	[InlineData("Start = '\\u0400'\nparse Start stream bytes")]

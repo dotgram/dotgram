@@ -99,8 +99,19 @@ sealed partial class Machine
 	/// </remarks>
 	void EmitSearch(Writer writer, string into, string from, IReadOnlyList<char> stops)
 	{
+		// The buffer searches what it holds and reads on a block at a time, so the answer is
+		// already a position.
 		if (BufferedInput)
-			throw new InvalidOperationException("A search over buffered input is not written yet (fix-reader-buffered, step 5).");
+		{
+			var each = BufferedBytes ? stops.Select(static stop => "(byte)" + CSharpEmitter.Char(stop)) : stops.Select(CSharpEmitter.Char);
+			var set  = stops.Count <= 3 ? string.Join(", ", each)
+				: BufferedBytes ? $"new byte[] {{ {string.Join(", ", each)} }}"
+				: $"global::System.MemoryExtensions.AsSpan({Quoted(new string([.. stops]))})";
+
+			writer.Line($"var {into} = text.IndexOf({from}, {set});");
+
+			return;
+		}
 
 		var span = $"text.Slice({from})";
 		var call = stops.Count switch
@@ -116,15 +127,10 @@ sealed partial class Machine
 
 	/// <summary>Where the input ended, once a search or a bounds test has found that it did.</summary>
 	string EndOfInput =>
-		BufferedInput
-			? throw new InvalidOperationException("The end of buffered input is not written yet (fix-reader-buffered, step 5).")
-			: "text.Length";
+		BufferedInput ? "text.End" : "text.Length";
 
 	/// <summary>The text between two positions, for use at once: over a buffer it lives until the next read.</summary>
-	string Slice(string from, string to) =>
-		BufferedInput
-			? throw new InvalidOperationException("A slice of buffered input is not written yet (fix-reader-buffered, step 5).")
-			: $"text.Slice({from}, {to} - {from})";
+	string Slice(string from, string to) => $"text.Slice({from}, {to} - {from})";
 
 	const int Return = 0;
 	const int Accept = 1;

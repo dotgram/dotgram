@@ -38,6 +38,7 @@ public static partial class CSharpEmitter
 		.Replace("new char[", "new byte[")
 		.Replace("out char value", "out byte value")
 		.Replace("public char Get", "public byte Get")
+		.Replace("char stop", "byte stop")
 		.Replace(" retained characters;", " retained bytes;")
 		.Replace("private bool _ended;", "private bool _ended;\n\t// The caller's own array, read in place (D7): never given to the pool.\n\tprivate bool _borrowed;")
 		.Replace("if (_buffer.Length <= KeptLength)", "if (!_borrowed && _buffer.Length <= KeptLength)")
@@ -448,6 +449,59 @@ public static partial class CSharpEmitter
 				if (position < _released || position > _count) throw new global::System.ArgumentOutOfRangeException(nameof(position));
 				_released = position;
 			}
+
+			// Where the input ended, once Ensure has said it has: the position after its last
+			// character. Before that it is only how far the input has been read.
+			public int End => _count;
+
+			// The first position at or after `from` holding a stop, or -1 once the input has ended
+			// without one. It reads on only as far as it has to look, a block at a time, and holds
+			// what it has looked at from `from` on, which is what the caller has not yet released:
+			// so it keeps no more than a reading of the same text character by character would,
+			// and a stop beyond the limit is the same IOException (D5).
+			public int IndexOf(int from, char stop0)
+			{
+				for (var at = from; Ensure(at, 1); at = _count)
+				{
+					var found = global::System.MemoryExtensions.IndexOf(Held(at), stop0);
+					if (found >= 0) return at + found;
+				}
+				return -1;
+			}
+
+			public int IndexOf(int from, char stop0, char stop1)
+			{
+				for (var at = from; Ensure(at, 1); at = _count)
+				{
+					var found = global::System.MemoryExtensions.IndexOfAny(Held(at), stop0, stop1);
+					if (found >= 0) return at + found;
+				}
+				return -1;
+			}
+
+			public int IndexOf(int from, char stop0, char stop1, char stop2)
+			{
+				for (var at = from; Ensure(at, 1); at = _count)
+				{
+					var found = global::System.MemoryExtensions.IndexOfAny(Held(at), stop0, stop1, stop2);
+					if (found >= 0) return at + found;
+				}
+				return -1;
+			}
+
+			public int IndexOf(int from, global::System.ReadOnlySpan<char> stops)
+			{
+				for (var at = from; Ensure(at, 1); at = _count)
+				{
+					var found = global::System.MemoryExtensions.IndexOfAny(Held(at), stops);
+					if (found >= 0) return at + found;
+				}
+				return -1;
+			}
+
+			// What has been read from `at` on, which Ensure has just said holds at least one.
+			private global::System.ReadOnlySpan<char> Held(int at) =>
+				new global::System.ReadOnlySpan<char>(_buffer, at - _start, _count - at);
 		}
 
 		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
