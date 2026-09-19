@@ -268,6 +268,15 @@ immediate 1.39x; SQL:2023 7.88x; StockCount 1.20x; T-SQL at 0.33x of ScriptDom's
 superlinear with linear allocation (an exponent of 1.46 from 100 to 1,000 terms, immediate 0.98)
 and drifting +8..+17% across three baselines — expr, diagnosis first; Web date-time at 6.9x —
 finance-24, an anatomy; SQL:2023's conditions linear now.
+**The afternoon baseline (stand, main `841ce7c7`; `docs/design/stand-2026-09-19b.md`).** Generated
+to hand, default PGO, geometric means: FIX string 0.76x (morning 1.72x, the 18th 2.43x), its slope
+0.73x, bytes 1.71x (C4c's first step landed after this base), stream 2.19x; URL 2.60x; date-time
+2.32x (6.89x); JSON 1.38x (3.02x); EL tape 1.98x, immediate 1.36x; SQL:2023 7.31x (7.88x; 10.54x on
+the 18th); StockCount 1.07x; T-SQL 0.32x of ScriptDom's time. Regexes against the hand parser,
+interpreted and compiled: FIX's split of tag from value 2.01x and 1.64x, allocating five to eight
+times the generated parser; URL 10.7x and 3.3x; date-time 6.0x and 5.0x. No linearity flag of an
+algorithm is left (EL's tape 1.46 to 0.48-0.78); what remains are the collector's. The PGO=0 twin
+is two runs of three, below the rule; five more are queued.
 **The EL tape, diagnosed and fixed locally (expr, `7cb9afba`):** the materializer. The walk a
 guard runs first rebuilt the `with state` marks by reading the log from its start, at every name,
 so every term; 94% of the time in one materializer. Marks are now rebuilt only where a record the
