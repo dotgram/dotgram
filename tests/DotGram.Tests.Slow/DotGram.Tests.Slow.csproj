@@ -19,6 +19,9 @@
 
 	<ItemGroup>
 		<!-- The generator is called here, not run over this project. -->
+		<!-- The examples, for what is held to a bound over a whole grammar: StockCountScalingTests. -->
+		<ProjectReference Include="..\..\examples\DotGram.Examples\DotGram.Examples.csproj" />
+
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
 	</ItemGroup>
