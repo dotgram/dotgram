@@ -2336,3 +2336,18 @@ in memory; `IEnumerable<string>`, `string[]` and `TextReader` are text pulled; `
 `ReadOnlyMemory<byte>` bytes in memory; `Stream` bytes pulled. So the generalization is one
 machine per symbol type, generic over its source (5), and a source per form, rather than one
 machine per form.
+
+## D18. A third directive: `read R`
+
+Decided 2026-09-19 by Igor. Besides `parse R` (the whole input is an `R`) and `find R` (`R`s inside
+something else), `read R` reads one `R` exactly at a given position and answers its value and where
+it ended, leaving the rest of the input untouched — for tokenizers and framing driven by the host,
+a generated reading inside a hand-written parser, and parsing at a position without a copy. Its
+methods are `ReadR` (the name is the BCL's for reading one item and advancing: `BinaryReader`,
+`Utf8JsonReader`), over strings, spans and bytes held whole; no stream form, since a buffer reads
+ahead and cannot leave a stream just past the rule — a stream is read element by element with
+`parse … yield`. Where the rule ends is its first successful derivation, in the order of its
+alternatives, as everywhere in the language, not its longest match; a grammar that needs a boundary
+says so with `?!`. Leading trivia is skipped, trailing is not consumed. It was measured against the
+alternatives `match` (read as a search, as `Regex.Match` is), `next`, `take` and a `prefix` modifier on
+`parse`. The design, with the text for §6, is expr's, to the architect and then to Igor before code.
