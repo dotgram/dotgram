@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -14,106 +8,16 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// What a generated parser says about input it refuses — the outcome, the position and the
-/// whole message, which carries every set expected there and every set tied with it — held
-/// against what it said before, in every rendering.
+/// What a generated parser says about input it refuses, held against the record of what it
+/// said before (<see cref="RefusalCorpus"/>), and what reading a refusal twice costs.
 /// </summary>
-/// <remarks>
-/// <para>
-/// A parse may be read in more than one way before it answers: a first reading that records
-/// nothing, and a second that records, run only where the first refused (Q7.2,
-/// docs/design/diagnostics-off-the-hot-path-2026-09-18.md). Whatever the generator does to get
-/// there, a refusal has to come out as it did when a single reading recorded as it went. So
-/// the answers are kept in a file beside this one, written by the generator as it was, and
-/// every change since is held to it.
-/// </para>
-/// <para>
-/// The inputs are made from the accepted ones rather than written: every proper prefix of
-/// each, each with one character left out, and each with one character too many. That is
-/// where refusals are that are neither at the first character nor at the end — a tie between
-/// alternatives, an `on fail` spoken where a rule was entered, a look that got further than
-/// the parse.
-/// </para>
-/// <para>
-/// A file that does not exist is written and the test fails, as a snapshot does; a file that
-/// differs is written beside it as <c>.actual</c>, for a diff.
-/// </para>
-/// </remarks>
 public sealed class RefusalTests
 {
-	static readonly (string Name, string Grammar, string[] Inputs)[] Shapes =
-	[
-		.. CarrierTests.Shapes,
-
-		("alternatives that fail at one place",
-			"trivia = ' '*\n" +
-			"Start : @string = a: Name & '=' & v: Digits => @(a + \"=\" + v)\n" +
-			"                | a: Name & ':' & v: Name => @(a + \":\" + v)\n" +
-			"                | a: Name & '(' & v: Digits & ')' => @(a + \"(\" + v + \")\")\n" +
-			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
-			"Digits : @string = t: ['0'..'9']+ => @(t)\n" +
-			"parse Start\n",
-			["a = 1", "a : b", "a ( 12 )"]),
-
-		("a rule that says what it is",
-			"trivia = ' '*\n" +
-			"Start : @string = n: Name & ',' & m: Name => @(n + m)\n" +
-			"Name : @string on fail \"Expected a name.\" = t: ['a'..'z']+ => @(t)\n" +
-			"parse Start\n",
-			["a , b", "ab,cd"]),
-
-		("a look ahead",
-			"trivia = ' '*\n" +
-			"Start : @string = ?=(Name & '=') & n: Name & '=' & v: Name => @(n + v)\n" +
-			"                | n: Name & ?!'=' => @(n)\n" +
-			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
-			"parse Start\n",
-			["a = b", "a"]),
-	];
-
-	static readonly (string Name, bool Direct, CarrierKind Carrier)[] Renderings =
-	[
-		("engine",    false, CarrierKind.Tape),
-		("tape",      true,  CarrierKind.Tape),
-		("immediate", true,  CarrierKind.Immediate),
-	];
-
+	/// <summary>One reading in five of the record, a different rendering for each shape.</summary>
+	/// <remarks>The whole record is held by <c>DotGram.Tests.Slow</c>, before any change to how failures are recorded.</remarks>
 	[Fact]
-	public void Every_refusal_is_the_one_it_was()
-	{
-		var answers = new StringBuilder();
-
-		foreach (var (name, grammar, inputs) in Shapes)
-			foreach (var lexical in grammar.Contains("trivia", StringComparison.Ordinal) ? new[] { false, true } : [false])
-				foreach (var rendering in Renderings)
-				{
-					var probe = Compiled(grammar, rendering.Direct, rendering.Carrier, lexical);
-
-					foreach (var input in Refused(inputs))
-						answers
-							.Append(name).Append(" | ")
-							.Append(rendering.Name).Append(lexical ? " over tokens" : "").Append(" | ")
-							.Append(Escaped(input)).Append(" | ")
-							.Append(Answer(probe, input))
-							.Append('\n');
-				}
-
-		var actual = answers.ToString();
-
-		if (!File.Exists(Expected))
-		{
-			File.WriteAllText(Expected, actual, Utf8);
-
-			Assert.Fail($"No record of the refusals; wrote one to {Expected}. Read it, and commit it if it is right.");
-		}
-
-		if (File.ReadAllText(Expected).Replace("\r\n", "\n") == actual)
-			return;
-
-		File.WriteAllText(Expected + ".actual", actual, Utf8);
-
-		Assert.Fail($"A refusal is not the one it was; what it is now is in {Expected}.actual.");
-	}
+	public void Every_refusal_in_a_sample_is_the_one_it_was() =>
+		RefusalCorpus.AssertSample();
 
 	/// <summary>
 	/// A refusal is read twice, and on the immediate carrier what the first reading ran the
@@ -160,94 +64,32 @@ public sealed class RefusalTests
 	}
 
 	/// <summary>
-	/// A grammar with a context keeps the one recording reading: what its guards write into
-	/// the context would still be there for a second one.
+	/// A context is read twice over only where it can be put back (§7.7): with a <c>Mark()</c>
+	/// and a <c>Rollback</c> a refused input runs its guard in both readings, and the second
+	/// begins from the state the first began with; without them it is read once.
 	/// </summary>
-	[Fact]
-	public void A_grammar_with_a_context_reads_once_and_records()
+	[Theory]
+	[InlineData(false, 1)]
+	[InlineData(true, 2)]
+	public void A_context_is_read_again_only_where_it_can_be_put_back(bool rewinds, int guards)
 	{
-		var result = GramCompiler.Compile(
-			"context : @System.Text.StringBuilder\n" +
-			"Start = t: ['a'..'z']+ & when @(context.Append(t) != null) & '='\n" +
-			"parse Start\n",
-			new GramCompilerOptions
-			{
-				ClassName     = "Probe",
-				Namespace     = "Refused",
-				CSharpScanner = RoslynCSharpScanner.Instance,
-			});
+		var pair = rewinds ? "internal int Mark() => Count; internal void Rollback(int at) => Count = at; " : "";
 
-		var source = Assert.Single(result.Sources).Text;
+		// Through the generator a build runs, where the symbol resolver can find the pair.
+		var assembly = GeneratorDriverTests.Build(
+			"public sealed class Words { public static int Guards; public int Count; " + pair +
+			"public bool Add() { Guards++; Count++; return true; } }\n" +
+			"[DotGram.Gram(\"context : @Words\\nStart = ['a'..'z'] & when @(context.Add()) & '!'\\nparse Start\")]\n" +
+			"public partial class Rewound { }\n");
 
-		Assert.DoesNotContain("Quiet = true", source, StringComparison.Ordinal);
-		Assert.Contains("var failure = new Failure();", source, StringComparison.Ordinal);
+		var words   = assembly.GetType("Words")!;
+		var context = Activator.CreateInstance(words)!;
+		var match   = assembly.GetType("Rewound")!.GetMethod("TryParseStart", [typeof(string), words])!.Invoke(null, ["a?", context])!;
+
+		Assert.False((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
+		Assert.Equal(guards, (int)words.GetField("Guards")!.GetValue(null)!);
+
+		// Put back before the second reading, the context holds what one reading wrote.
+		Assert.Equal(1, (int)words.GetField("Count")!.GetValue(context)!);
 	}
-
-	/// <summary>Every input made from the accepted ones, refused or not, each once and in order.</summary>
-	static IEnumerable<string> Refused(string[] inputs)
-	{
-		var seen = new HashSet<string>(StringComparer.Ordinal);
-
-		foreach (var input in inputs)
-		{
-			for (var length = 0; length < input.Length; length++)
-				if (seen.Add(input.Substring(0, length)))
-					yield return input.Substring(0, length);
-
-			for (var at = 0; at < input.Length; at++)
-				if (seen.Add(input.Remove(at, 1)))
-					yield return input.Remove(at, 1);
-
-			if (input.Length == 0)
-				continue;
-
-			foreach (var extra in new[] { input + "!", input + input.Substring(input.Length - 1) })
-				if (seen.Add(extra))
-					yield return extra;
-		}
-	}
-
-	/// <summary>What the parse said: its value where it accepted, its outcome, position and message where it did not.</summary>
-	static string Answer(Assembly probe, string input)
-	{
-		try
-		{
-			var match = EmittedCode.Match(probe, "Refused.Probe", "TryParseStart", input);
-
-			return match.IsSuccess
-				? "accepted"
-				: $"{EmittedCode.Outcome(probe, "Refused.Probe", "TryParseStart", input)} at {match.Position}: {match.Error}";
-		}
-		catch (TargetInvocationException thrown) when (thrown.InnerException is { } inner)
-		{
-			return "threw " + inner.GetType().Name;
-		}
-	}
-
-	static string Escaped(string input) => "\"" + input.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-
-	static Assembly Compiled(string grammar, bool direct, CarrierKind carrier, bool lexical)
-	{
-		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
-		{
-			ClassName     = "Probe",
-			Namespace     = "Refused",
-			CSharpScanner = RoslynCSharpScanner.Instance,
-			Direct        = direct,
-			Carrier       = carrier,
-			Lexical       = lexical,
-		});
-
-		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
-
-		return EmittedCode.Compile(Assert.Single(result.Sources).Text, "Probe", "Refused");
-	}
-
-	static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
-
-	static string Expected => Path.Combine(Path.GetDirectoryName(ThisFile)!, "RefusalTests.txt");
-
-	static string ThisFile { get; } = FilePath();
-
-	static string FilePath([CallerFilePath] string path = "") => path;
 }

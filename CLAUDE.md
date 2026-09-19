@@ -78,6 +78,9 @@ tests/
 	                      and the generator attached as an analyzer
 	  Calculators/        one language spelled several ways, held against itself: the
 	                      spellings an example would only repeat
+	DotGram.Tests.Slow/   what is paid for on request and in CI rather than on every run
+	                      of DotGram.Tests (D12): the whole refusal record, of which
+	                      DotGram.Tests holds a sample, and the memory bounds of streaming
 	DotGram.Sql.Tests/    the SQL parsers held to what SQL Server answers, and the tree, its
 	                      writer and walker
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and

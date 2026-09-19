@@ -37,7 +37,7 @@ namespace DotGram.Tests;
 /// running beside it would be measured with it, and would pass or fail it at random.
 /// </para>
 /// </remarks>
-[Collection(typeof(GeneratorCostTests.Alone))]
+[Collection(typeof(Alone))]
 public sealed class StreamingRetentionTests
 {
 	const string Grammar = """

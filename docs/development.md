@@ -20,6 +20,12 @@ it builds into can be started directly:
 being net472 — `tests/DotGram.VisualStudio.Tests/bin/Debug/net472/DotGram.VisualStudio.Tests.exe`.
 The two on net10.0 also run as `dotnet <path>.dll`. `-filter "/*/*/ClassName/MethodName"`
 runs one test. `DotGram.Tests` runs everything in about two minutes.
+
+What costs more than it is worth on every run lives in `tests/DotGram.Tests.Slow` (D12): the
+whole refusal record — `DotGram.Tests` compiles one reading in five of it — and the streaming
+memory bounds. `dotnet test DotGram.slnx` and CI run it; `dotnet test` over `DotGram.Tests` does
+not, and nothing is filtered to leave it out. Run it before any change to how failures are
+recorded, and before merging anything that touches retention.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 

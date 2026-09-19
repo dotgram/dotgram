@@ -86,6 +86,9 @@
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="tests/DotGram.Tests.Slow/DotGram.Tests.Slow.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/DotGram.Sql.Tests/DotGram.Sql.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>

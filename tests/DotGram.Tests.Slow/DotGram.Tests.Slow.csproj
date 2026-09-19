@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- What is paid for on request and in CI rather than on every run of DotGram.Tests (D12):
+	     the whole refusal record, the memory bounds of streamed input. `dotnet test` over the
+	     solution runs it; over DotGram.Tests alone it does not, and nothing has to be filtered. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Tests</RootNamespace>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The generator is called here, not run over this project. -->
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
+	</ItemGroup>
+
+	<!-- Written once, in DotGram.Tests, and read by both: the compiler of emitted code, the
+	     shapes and the record of their refusals, which DotGram.Tests holds a sample of. -->
+	<ItemGroup>
+		<Compile Include="..\DotGram.Tests\EmittedCode.cs"   Link="Shared\EmittedCode.cs" />
+		<Compile Include="..\DotGram.Tests\CarrierShapes.cs" Link="Shared\CarrierShapes.cs" />
+		<Compile Include="..\DotGram.Tests\RefusalCorpus.cs" Link="Shared\RefusalCorpus.cs" />
+	</ItemGroup>
+
+</Project>
