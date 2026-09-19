@@ -941,7 +941,13 @@ anatomy, run for C2 before and after. **Landed `59648810` (finance-24):** `Type`
 names; `IsData` compares a code and `FixFieldOptions` keeps no table of its own; a one-off
 comparison against the switch found no difference for tags -2..1100. `Component` and `Codes`
 are switches still, off the parser's startup path (the message layer's), the same technique if
-their first call ever matters. The pair is ordered.
+their first call ever matters. The pair is ordered. Follow-up `41d23b96`: the 23 names had been a static array, and touching it ran
+`FixSchema`'s initializer, which builds the message layer's 448 arrays — the string-literal
+switch never had; the names are a 23-case switch now and `Type` reads only the RVA codes; the
+parser path was never affected. The message layer's own first `Build` pays that initializer,
+not the `Codes` switch; the fix there would be arrays built per id on demand, a reshaping of a
+maintained file. Decided: measured first, by the stand's first-call anatomy on a message build,
+and decided from the number.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
