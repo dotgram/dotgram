@@ -10206,6 +10206,10 @@ public sealed class TransactSqlTests
 	[InlineData("DECLARE @a INT\nEXEC p @a\noutput: PRINT 1")]
 	[InlineData("ALTER TABLE t ADD c INT\nsparse: PRINT 1")]
 	[InlineData("ALTER TABLE t ADD CONSTRAINT k PRIMARY KEY (a)\nenforced: PRINT 1")]
+	[InlineData("ALTER TABLE t ADD c datetime2 GENERATED ALWAYS AS ROW START\nhidden: PRINT 1")]
+	[InlineData("ALTER TABLE t ADD c datetime2 GENERATED ALWAYS AS ROW START HIDDEN\nhidden: PRINT 1")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT k PRIMARY KEY (a) WITH SORTED_DATA\nsorted_data: PRINT 1")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT k PRIMARY KEY (a) WITH FILLFACTOR = 80\nsorted_data: PRINT 1")]
 	[InlineData("SELECT a FROM t FOR XML AUTO, ELEMENTS\nxsinil: PRINT 1")]
 	[InlineData("SELECT a FROM t FOR XML AUTO, ELEMENTS\nabsent: PRINT 1")]
 	// Not a label, and the same trap: a cursor named `GLOBAL`.

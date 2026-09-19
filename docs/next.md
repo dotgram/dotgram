@@ -23758,3 +23758,56 @@ names; for the reader, whether a rule opened a way itself or through a call. `--
 the lot into docs/carriers.md. Kept only on request: `Replay` keeps no places and a machine no
 openers otherwise, and the generated parsers are the same either way. First run: 84 grammars, 53 on
 the tape; SQL:2023 327 of 556 building rules held, 29 with a cause of their own.
+
+## GRAM5009's 49 places, by what the analysis would have to see (D11)
+
+The list as it stands, sorted by what the analysis would need to see so that each place stops
+being reported. It is here for when `Leading` looks through calls: then each class below can be
+checked against the build. T-SQL has 46, SQL:2023 two, SQL-92 one.
+
+Sorting it found three places that are real, and they are mended here. T-SQL reserves neither
+`HIDDEN` nor `SORTED_DATA`, so either may label the statement that comes next.
+`ALTER TABLE t ADD c datetime2 GENERATED ALWAYS AS ROW START` followed by `hidden: PRINT 1`, and a
+key `WITH SORTED_DATA` or `WITH FILLFACTOR = 80` followed by `sorted_data: PRINT 1`, are two
+statements to the engine (asked through `sqlcmd`), but here the optional took the word. The fixes
+are `Trailing("HIDDEN"i)` and `?!Label` in front of `SortedData`, with a row for each. The round
+trip over the corpus is unchanged at 7,716 of 7,716.
+
+**A refusal behind a call: 29 places, all cured in the grammar.** The optional begins with a
+refusal of `name :`, but the analysis compares first tokens and does not look into the call that
+holds the refusal. Two shapes:
+
+- The lookahead is written inline and its body is a call: `?!Label & X` in `TranMark` and in
+  `SimpleCommand`'s `RETURN` and `THROW`.
+- The refusal sits at the start of the rule being called: `CorrelationName` and `TSqlAsClause`
+  (the aliases in `TSqlSelectSublist`, `TSqlTablePrimary`, `VariableSource` and `OutputItem`),
+  `OptionUnit`, `ColumnTail` (five spellings), `Enforced` (three), `SortedData`, and every
+  `Trailing(word)`. `Trailing(word)` covers `XmlDirective`, `OutputWord`, `ColumnTrait`'s
+  `HIDDEN` (three), `CreateHash`, `CreateHashed`, `PasswordWords` (three) and `HashedWords`.
+
+To see these, `Leading` would have to open a call, read a negative lookahead there two tokens
+deep, and take the refused `word :` out of what the optional can take. It would do that against
+this grammar's follow, where the label is the only thing that begins with the word.
+
+**A positive lookahead in front of the call fixes the extent: 2 places.** `OptionSetting`'s
+`tail: OptionTail?` (`ON`, `OFF`) and `u: SampleUnit?` (`PERCENT`, `ROWS`). Nearly every use
+of `OptionSetting` sits behind `?=(… & OptionEnds)`, which has already read the whole option.
+The analysis walks `OptionSetting` without the lookahead that called it.
+
+**Nothing can follow with the word: 17 places, the analysis's own.**
+
+- The item's lookahead inside the turn: `TableConstraint`'s `?!(WITHOUT OVERLAPS)`.
+- A turn that cannot finish, so it is undone: `NamePart*` before `.` (`TSqlQualifiedName`,
+  `DropLedName`).
+- A trailing `?=(',' | ')')`: `OptionWords`.
+- A word inside a bracketed option list: `Minutes`, `DelayMinutes`, and `SizeUnit` (twice).
+- A reserved word: `HOLDLOCK` (`TextStatement`), `ALL` (`DatabaseWords`), and `ASC`/`DESC`
+  (SQL-92's `SortSpecification`).
+- A literal, a variable or digits, which no statement begins with: `FinalGo`, `TextStatement`
+  (twice), `SequenceOption`'s `CACHE`, and `ScopedConfiguration`'s plan handle.
+- A qualifier after a time zone's primary, which no sentence of the BNF produces:
+  `IntervalPrimary`.
+
+**Not yet explained: 1 place.** `AuditAction = … & ','?` is said to take `,`. The rule that
+reads it is `AuditAction*` followed by `AuditStateWith?`, and nothing there begins with a comma.
+Wherever the analysis's comma comes from, it is not in this call.

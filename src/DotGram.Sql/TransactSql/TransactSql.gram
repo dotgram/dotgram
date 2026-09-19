@@ -3972,7 +3972,7 @@ ColumnTrait : @Clause
 		=> @(new Clause.ColumnOption("IDENTITY", a ?? Expression.None, Clause.None, null))
 	| t: ("NOT"i & "FOR"i & "REPLICATION"i) => @(Clause.Optioned(t))
 	| s: NullSpec                     => @(Clause.Optioned(s))
-	| t: ("GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen) & h: "HIDDEN"i?
+	| t: ("GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen) & h: Trailing("HIDDEN"i)?
 		=> @(new Clause.ColumnOption(Syntax.Squared(t), Expression.None, Syntax.Unit(h), null))
 	| t: "ROWGUIDCOL"i                => @(Clause.Optioned(t))
 	| "ENCRYPTED"i & "WITH"i & '(' & first: EncryptionOption & (',' & rest: EncryptionOption)* & ')'
@@ -4250,8 +4250,10 @@ BareKeyOption : @Clause
 	| ?=FillFactor & o: OptionSetting => @(o)
 
 // The key's two are the old words alone: `pad_index` and `statistics_norecompute` are
-// `Msg 102` there even by themselves, the bracketed catalogue being the brackets' own.
-SortedData : @string = t: ("SORTED_DATA_REORG"i | "SORTED_DATA"i) & ?!'=' => @(t)
+// `Msg 102` there even by themselves, the bracketed catalogue being the brackets' own. Neither
+// is reserved, so either may be the label of the statement after: `… WITH FILLFACTOR = 80` and
+// then `sorted_data: PRINT 1` is two statements.
+SortedData : @string = ?!Label & t: ("SORTED_DATA_REORG"i | "SORTED_DATA"i) & ?!'=' => @(t)
 
 BareKeyOptions : @Clause[]
 	= first: BareKeyOption & rest: BareKeyOption? & when @(Syntax.Paired(first, rest))
