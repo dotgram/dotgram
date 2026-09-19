@@ -649,6 +649,14 @@ then release per turn after step 3. expr carries it beside performance-ff's step
 takes the Finance-side items of the anatomy (the tag parsed twice, `Create` searching `=` again,
 two constructions a field). D14 waits.
 
+**Step 5, first slices (expr):** the reader's access through the machine's helpers (`964e1f26`,
+byte-identical); a buffered character `parse` read by the same reader as its string form, where
+that form is a reader (`d994009a`) — bytes, `yield`/`find`, deep recursion, release-as-you-read and
+externals stay on the engine for now. Found on the way: the reader refuses inside a multi-character
+literal at the literal's start, the engine and flat where it broke off; by the rule that a refusal
+is where the parse refused, the reader is wrong, and `RefusalTests` will hold the three renderings
+to one answer (performance-ff, after C1).
+
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
 0.67 of the hand parser and 1.1-1.2 of the ideal, allocating exactly what the generated parser

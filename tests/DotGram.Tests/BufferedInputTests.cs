@@ -316,6 +316,43 @@ public sealed class BufferedInputTests
 		}
 	}
 
+	/// <summary>
+	/// A publication whose string form is read by methods is read by methods over a buffer too,
+	/// and answers as the string form does however the input arrives.
+	/// </summary>
+	[Theory]
+	[InlineData(
+		"Start = Item & (',' & Item)*\nItem = Word & '=' & Word | Word\nWord = ['a'..'z']+",
+		new[] { "a", "a=b", "a,b=c,d", "ab=cd,ef", "a=", "a,,b", "a=b=c", "", "=" })]
+	[InlineData(
+		"Start : @string = n: Name & '!' => @(n) | n: Name & '?' => @(n + \"?\")\nName : @string = t: ['a'..'z']+ & ('.' & ['a'..'z']+)* => @(t)",
+		new[] { "ab!", "ab.cd?", "ab.", "ab.cd", "ab!!", "a.b.c!", "" })]
+	public void A_buffered_form_is_read_by_the_reader_the_string_form_is_read_by(string grammar, string[] inputs)
+	{
+		var compilation = GramCompiler.Compile(grammar + "\nparse Start stream", new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape,
+		});
+		EmittedCode.Quiet(compilation.Diagnostics);
+		var source = Assert.Single(compilation.Sources).Text;
+
+		Assert.Contains("private ref struct Reader_DotGram_Buffered_", source, StringComparison.Ordinal);
+
+		var assembly = EmittedCode.Compile(source);
+		foreach (var input in inputs)
+		{
+			var expected = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+			for (var split = 1; split <= input.Length + 1; split++)
+			{
+				using var reader = new ShortReader(input, split);
+				var actual = Read(assembly, reader, 1);
+				Assert.True(expected.IsSuccess == actual.Success, $"\"{input}\" split {split}: {expected.IsSuccess} against {actual.Success}");
+				Assert.Equal(expected.Position, actual.Position);
+				if (expected.IsSuccess) Assert.Equal(expected.Value, actual.Value);
+			}
+		}
+	}
+
 	[Fact]
 	public void Guards_are_not_reexecuted_for_each_refill()
 	{

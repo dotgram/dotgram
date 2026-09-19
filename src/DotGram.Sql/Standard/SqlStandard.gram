@@ -398,7 +398,7 @@ MethodName                      : @Identifier = i: Identifier => @(i)
 
 // <data type>, with <collection type>'s `ARRAY` and `MULTISET` written after it as often as they
 // stand there: the BNF says `<data type> ARRAY`, which recurses through itself on the left.
-DataType             : @DataType = b: DataTypeBase & (trivia & s: CollectionTypeSuffix)* => @(Nodes.Collected(b, s))
+DataType             : @DataType = b: DataTypeBase & { (trivia & s: CollectionTypeSuffix)* } => @(Nodes.Collected(b, s))
 DataTypeBase         : @DataType
 	= t: PredefinedType => @(t)
 	| t: RowType => @(t)
