@@ -75,6 +75,38 @@ public sealed class ReaderTests
 	public void A_choice_of_alternatives_that_begin_alike(string input) =>
 		Both("Start = (Lexical.Name & Lexical.Digits | Lexical.Name) & eof", input);
 
+	/// <summary>
+	/// Alternatives that begin alike over more characters than a switch names: `Wide` begins
+	/// with 426 of them, and `Latin` with 128 that `Wide` also begins with. Valued, so that the
+	/// reader writes it: a recognition over characters alone is lowered instead.
+	/// </summary>
+	const string WideChoice =
+		"Start : @int = w: Wide & '!' & eof => @(1) | l: Latin & '?' & eof => @(2) | '#' & w: Wide & eof => @(3)\n" +
+		"Wide = ['a'..'z' | '\\u00C0'..'\\u024F']+\n" +
+		"Latin = ['\\u0100'..'\\u017F']+\n";
+
+	/// <summary>
+	/// A choice too wide for a switch on its characters is found by a table of its groups,
+	/// and reads what the alternatives tried in order read.
+	/// </summary>
+	[Theory]
+	[InlineData("ab!")]
+	[InlineData("\u0100\u0101!")]
+	[InlineData("\u0100\u0101?")]
+	[InlineData("\u0180?")]
+	[InlineData("#ab")]
+	[InlineData("#")]
+	[InlineData("?")]
+	[InlineData("")]
+	[InlineData("ab?")]
+	public void A_choice_too_wide_to_switch_on_is_found_by_a_table(string input)
+	{
+		var whole = WideChoice + "parse Start";
+
+		Assert.Contains("_Groups", Written(whole, reader: true, lexical: false), StringComparison.Ordinal);
+		Assert.Equal(Reads(whole, input, reader: false, lexical: false), Reads(whole, input, reader: true, lexical: false));
+	}
+
 	[Theory]
 	[InlineData("a")]
 	[InlineData("1")]

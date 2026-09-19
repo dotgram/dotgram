@@ -48,6 +48,18 @@ namespace DotGram.Compatibility
 	{
 	}
 
+	// A choice whose alternatives begin alike over more characters than a switch names, so
+	// that the reader finds its groups by a table: a span over a byte literal, which the floor
+	// has to lower to the assembly's data with the span System.Memory gives it.
+	[Gram(
+		"Start : @int = Wide & '!' & eof => @(1) | Latin & '?' & eof => @(2) | '#' & Wide & eof => @(3)\n" +
+		"Wide = ['a'..'z' | '\\u00C0'..'\\u024F']+\n" +
+		"Latin = ['\\u0100'..'\\u017F']+\n" +
+		"parse Start")]
+	public partial class WideChoice
+	{
+	}
+
 	// One grammar reaching for as much of the language as fits in a few lines, so that the
 	// generated file exercises the shapes the emitter has to be careful about: a declared
 	// type built from captures, a construction expression, a guard, a repetition collecting

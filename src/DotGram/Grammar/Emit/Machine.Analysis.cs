@@ -596,8 +596,15 @@ sealed partial class Machine
 		return [.. chain.OrderBy(static one => one.Width).ThenBy(static one => one.Index).Select(static one => (one.Set, one.Node))];
 	}
 
-	List<(FirstSets.First Set, List<Node> Members)>? Dispatchable(IReadOnlyList<Node> alternatives, int least = Grouped)
+	/// <param name="named">
+	/// How many characters the groups may name together: <see cref="Switched"/> for a switch
+	/// on the characters, more where the switch is on a table of them (<see cref="KindTable"/>).
+	/// </param>
+	List<(FirstSets.First Set, List<Node> Members)>? Dispatchable(
+		IReadOnlyList<Node> alternatives, int least = Grouped, int named = Switched)
 	{
+		var cap = named;
+
 		if (alternatives.Count < least)
 			return null;
 
@@ -625,8 +632,9 @@ sealed partial class Machine
 		// stretches that chose it, in the order the characters come.
 		var groups = new List<(List<CharRange> Ranges, List<Node> Members)>();
 		var index  = new Dictionary<string, int>(StringComparer.Ordinal);
-		var named  = 0;
 		var from   = -1;
+
+		named = 0;
 
 		foreach (var cut in cuts)
 		{
@@ -646,7 +654,7 @@ sealed partial class Machine
 				{
 					named += cut - from;
 
-					if (named > Switched)
+					if (named > cap)
 						return null;
 
 					if (!index.TryGetValue(key, out var at))

@@ -5264,6 +5264,75 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// The table a choice's groups are found by, one byte a character: the group's number
+	/// from one, and nought for a character no group begins with. Null where the groups reach
+	/// past <see cref="KindTableSize"/> or are more than a byte can number.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What a switch on the characters cannot name (<see cref="Switched"/>): on a token path the
+	/// kinds an identifier begins with are every word the grammar does not reserve, hundreds of
+	/// them, and a choice among alternatives that begin with a name was tried alternative by
+	/// alternative, each a call that refused the token in hand. The table names them all in one
+	/// load, and the switch is then on the group, a handful of labels.
+	/// </para>
+	/// <para>
+	/// A span over a literal, which the compiler lowers to the assembly's own data, so reading it
+	/// is neither a field load nor an allocation. DotGram.Compatibility builds it at the floor,
+	/// where <c>System.Memory</c> gives the span the constructor that lowering needs.
+	/// </para>
+	/// </remarks>
+	internal (string Name, int From)? KindTable(List<(FirstSets.First Set, List<Node> Members)> groups)
+	{
+		if (groups.Count > byte.MaxValue)
+			return null;
+
+		// From the first character a group begins with to the last: below it the table would be
+		// noughts, and on a token path the kinds of punctuation and literals come first.
+		var from = int.MaxValue;
+		var to   = 0;
+
+		foreach (var (set, _) in groups)
+			foreach (var range in set.Ranges)
+			{
+				from = global::System.Math.Min(from, range.From);
+				to   = global::System.Math.Max(to, range.To);
+			}
+
+		if (to - from + 1 > KindTableSize)
+			return null;
+
+		var table = new byte[to - from + 1];
+
+		for (var g = 0; g < groups.Count; g++)
+			foreach (var range in groups[g].Set.Ranges)
+				for (int c = range.From; c <= range.To; c++)
+					table[c - from] = (byte)(g + 1);
+
+		var items = string.Join(",", table);
+
+		if (_kindTables.TryGetValue(items, out var already))
+		{
+			_classesUsed.Add(already);
+
+			return (already, from);
+		}
+
+		var name = $"Recognize_DotGram{_tag}_Groups" + _kindTables.Count;
+
+		_kindTables[items] = name;
+		_classesUsed.Add(name);
+		_classes.Add((name, $"static global::System.ReadOnlySpan<byte> {name} => new byte[] {{ {items} }};"));
+
+		return (name, from);
+	}
+
+	/// <summary>How far a group table reaches: past the kinds of the largest token path, short of a Unicode category.</summary>
+	internal const int KindTableSize = 4096;
+
+	readonly Dictionary<string, string> _kindTables = new(StringComparer.Ordinal);
+
+	/// <summary>
 	/// The name of an array holding a set's ranges, for a set too wide to write out and too
 	/// wide to tabulate.
 	/// </summary>

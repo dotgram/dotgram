@@ -1910,11 +1910,7 @@ sealed partial class Machine
 				// its guard would let it read: tried in order, that alternative would have asked
 				// and been told no, and said nothing. Asked on the way out only, where one such
 				// group stands; with more, each would want its own set, and all are named.
-				var guarded = groups.Where(one => one.Members.Count == 1 && LeadingGuard(one.Members[0]) is not null).ToList();
-				var asked   = guarded.Count == 1
-					? (Guard: LeadingGuard(guarded[0].Members[0])!, Without: machine.DeclareExpected(machine.PredictedDisplays(
-						alternatives.Where(one => !ReferenceEquals(one, guarded[0].Members[0])).ToList())))
-					: ((Node.Guard Guard, string Without)?)null;
+				var asked = Asked(alternatives, groups);
 
 				_character = true;
 
@@ -1969,10 +1965,7 @@ sealed partial class Machine
 							// what the other groups would have taken there is what the choice
 							// wanted: tried in order, their refusals would have said so.
 							var refused = _guardRefuses;
-							_guardRefuses = group.Members.Any(LeadsWithGuard)
-								? machine.DeclareExpected(machine.PredictedDisplays(
-									alternatives.Where(one => !group.Members.Contains(one)).ToList()))
-								: null;
+							_guardRefuses = GuardRefuses(alternatives, group.Members);
 							_dispatched = group.Set;
 							EmitAmong(code, group.Members, following, loaded: true);
 							_dispatched = null;
@@ -2030,8 +2023,108 @@ sealed partial class Machine
 				return;
 			}
 
+			if (machine.Dispatchable(alternatives, least: 2, named: Machine.KindTableSize) is { } wide &&
+				machine.KindTable(wide) is { } table)
+			{
+				EmitGroupTable(code, alternatives, wide, table, following);
+
+				return;
+			}
+
 			EmitAmong(code, alternatives, following);
 		}
+
+		/// <summary>
+		/// Groups too wide for a switch to name their characters, found by a table: the switch is
+		/// on the group the table gives, and inside a group its members are tried in order, as
+		/// inside a group of the switch.
+		/// </summary>
+		/// <remarks>
+		/// What a token path's choices among names are: `CAST (…)`, `a0` and `f(x)` begin with
+		/// kinds that overlap, and all the kinds that are not reserved words begin a name. Tried in
+		/// order, each alternative was a call that refused a token its first set does not hold.
+		/// Found by the table, only the alternatives that can begin with the token are tried, and
+		/// a token none of them begins with refuses the choice at once.
+		/// </remarks>
+		void EmitGroupTable(
+			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, List<Node> Members)> groups,
+			(string Name, int From) table, FollowSets.Continuation following)
+		{
+			var name  = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+			var asked = Asked(alternatives, groups);
+
+			_character = true;
+
+			using (code.Block($"if ({machine.Past("p")})"))
+				RefusedAsking(code, name, asked);
+
+			code.Line($"c = {machine.ReadAt("p")};");
+
+			// Two choices share a table where its bytes are the same, each from its own start.
+			var at = table.From == 0 ? "c" : $"c - {table.From}";
+
+			using (code.Block($"switch ((uint)({at}) < (uint){table.Name}.Length ? {table.Name}[{at}] : 0)"))
+			{
+				for (var g = 0; g < groups.Count; g++)
+				{
+					code.Line($"case {g + 1}:");
+
+					using (code.Indent())
+					using (code.Block(""))
+					{
+						var refused = _guardRefuses;
+						_guardRefuses = GuardRefuses(alternatives, groups[g].Members);
+						_dispatched   = groups[g].Set;
+						EmitAmong(code, groups[g].Members, following, loaded: true);
+						_dispatched   = null;
+						_guardRefuses = refused;
+						code.Line("break;");
+					}
+				}
+
+				code.Line("default:");
+
+				using (code.Indent())
+					RefusedAsking(code, name, asked);
+			}
+		}
+
+		/// <summary>
+		/// The guard a dispatched choice asks before a refusal names the group it leads: where one
+		/// group is a single alternative led by a guard, that guard, and what the choice wanted
+		/// without it. Asked on the way out only; with more such groups, each would want its own
+		/// set, and all are named.
+		/// </summary>
+		(Node.Guard Guard, string Without)? Asked(
+			IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, List<Node> Members)> groups)
+		{
+			var guarded = groups.Where(one => one.Members.Count == 1 && LeadingGuard(one.Members[0]) is not null).ToList();
+
+			return guarded.Count == 1
+				? (LeadingGuard(guarded[0].Members[0])!, machine.DeclareExpected(machine.PredictedDisplays(
+					alternatives.Where(one => !ReferenceEquals(one, guarded[0].Members[0])).ToList())))
+				: null;
+		}
+
+		/// <summary>The refusal of a dispatched choice, asking its guarded group's guard where there is one (<see cref="Asked"/>).</summary>
+		void RefusedAsking(Writer code, string name, (Node.Guard Guard, string Without)? asked)
+		{
+			if (asked is { } one)
+				RefusedUnless(code, name, one.Guard, one.Without);
+			else
+				Refused(code, name);
+		}
+
+		/// <summary>
+		/// What a guard beginning a dispatched group refuses with: the first tokens of the other
+		/// groups, which tried in order would have said what they wanted. Null where no member
+		/// begins with a guard.
+		/// </summary>
+		string? GuardRefuses(IReadOnlyList<Node> alternatives, List<Node> members) =>
+			members.Any(LeadsWithGuard)
+				? machine.DeclareExpected(machine.PredictedDisplays(
+					alternatives.Where(one => !members.Contains(one)).ToList()))
+				: null;
 
 		/// <summary>
 		/// Alternatives the first character tells apart, but too widely for a switch to name:
