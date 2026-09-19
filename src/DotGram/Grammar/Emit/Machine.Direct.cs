@@ -44,7 +44,9 @@ sealed partial class Machine
 
 		foreach (var publication in publications)
 		{
-			if (publication.Kind != PublishKind.Parse)
+			// A yield over a buffer is stepped by its driver one element a call, and the reader
+			// reads that step (EmitYieldStep); over a string its driver is the engine's still.
+			if (publication.Kind != PublishKind.Parse && !(publication.Kind == PublishKind.Yield && BufferedInput))
 				return Refused(publication.Rule, $"it is published with '{Directive(publication.Kind)}'");
 
 			if (!DirectReachable(publication.Rule))
@@ -176,7 +178,7 @@ sealed partial class Machine
 	/// </summary>
 	/// <remarks>
 	/// What the reader does not yet do is refused here and kept by the engine: a recovery
-	/// with no <c>=&gt;</c>, or one whose elements nothing collects; a yielded one; a factory
+	/// with no <c>=&gt;</c>, or one whose elements nothing collects; a factory
 	/// that asks for the input, the state or the marks; a repetition in a rule the publication
 	/// does not read first. Either carrier reads the rest: the tape writes the element as a record
 	/// of its own, and the immediate carrier builds it where it is stepped over, where it is let
@@ -189,7 +191,7 @@ sealed partial class Machine
 		if (rule != root || !_recoveries.TryGetValue(node, out var plan))
 			return Why;
 
-		if (plan.Recovery.Factory is null || plan.Slot < 0 || plan.Recovery.YieldStep ||
+		if (plan.Recovery.Factory is null || plan.Slot < 0 ||
 			plan.Recovery.Asks.Any(name => name is "parserInput" or "parserState" or "parserMarks"))
 			return Why;
 

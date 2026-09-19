@@ -143,6 +143,68 @@ public sealed class RecoveringReaderTests
 		static string Log(string name, string value) { Logs.Add(name); return value; }
 		""";
 
+	/// <summary>
+	/// A repetition marked <c>recover</c> published as a <c>yield</c> over a reader: the driver asks the
+	/// reader for one turn at a time (Machine.Reader EmitYieldStep), and the elements it hands out,
+	/// the recovered ones with the ordinal the driver counts, are the engine's, one for one.
+	/// </summary>
+	[Theory]
+	[InlineData("a=1;b=2;")]
+	[InlineData("a=1;bad;c=3;")]
+	[InlineData("=;x=9;")]
+	[InlineData("a=1;b=")]
+	[InlineData("bad;bad;a=1;")]
+	[InlineData("")]
+	public void The_reader_yields_as_the_engine(string input)
+	{
+		const string grammar = """
+			Field : @string = t: ['a'..'z']+ & '=' & v: ['0'..'9']+ & ';' => @(Text(t) + Text(v))
+			Fields : @string[] = Field* recover ';' => @(Bad(parserText, parserOrdinal, parserLine, parserSpan, parserMessage))
+			parse Fields as ReadStart stream yield : @string
+			""";
+
+		var reader = Yielded(grammar, direct: true, input);
+		var engine = Yielded(grammar, direct: false, input);
+
+		Assert.Equal(engine, reader);
+	}
+
+	/// <summary>What a yield over a reader hands out, joined, or the exception it ends in.</summary>
+	static string Yielded(string grammar, bool direct, string input)
+	{
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName = "Grammar", Direct = direct, BufferedInput = true, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var source = Assert.Single(result.Sources).Text;
+
+		// Held to what it is about: the step is the reader's where the reader was asked for.
+		Assert.Equal(direct, source.Contains("public int Read_Fields_YieldStep", StringComparison.Ordinal));
+
+		var host   = EmittedCode.Compile(source, declarationMembers: Helpers).GetType("Grammar")!;
+		var method = host.GetMethods().Single(one => one.Name == "ReadStart" && one.GetParameters()[0].ParameterType == typeof(System.IO.TextReader));
+		var told   = new List<string>();
+
+		try
+		{
+			foreach (var one in (IEnumerable)method.Invoke(null, [new System.IO.StringReader(input), 1, 1 << 16])!)
+				told.Add(one?.ToString() ?? "<null>");
+		}
+		catch (TargetInvocationException error)
+		{
+			told.Add(error.InnerException!.GetType().Name);
+		}
+		catch (Exception error)
+		{
+			told.Add(error.GetType().Name);
+		}
+
+		return string.Join(" | ", told);
+	}
+
 	/// <summary>The factories a parse ran, counted by name.</summary>
 	static string Built(Assembly assembly, string input)
 	{

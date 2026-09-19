@@ -745,15 +745,28 @@ public sealed class RecognitionGraph(
 				continue;
 
 			foreach (var body in ReachableBodies(rule))
-				foreach (var node in NodeWalk.Descendants(body))
-					if (node is Node.Call(var called, _))
-						pending.Push(called);
+				Walk(body);
 		}
 
 		if (root is not null)
 			(_reachable ??= [])[root] = seen;
 
 		return seen;
+
+		// A repetition marked `recover` reads its synchronization as much as its body: a rule
+		// called only from there is reached, and every question asked of what a publication
+		// reaches - the rules a machine is made of, whether any of them looks behind - asks it.
+		void Walk(Node body)
+		{
+			foreach (var node in NodeWalk.Descendants(body))
+			{
+				if (node is Node.Call(var called, _))
+					pending.Push(called);
+
+				if (Recoveries.TryGetValue(node, out var recovery))
+					Walk(recovery.Sync);
+			}
+		}
 
 		IEnumerable<Node> ReachableBodies(RuleSymbol rule)
 		{

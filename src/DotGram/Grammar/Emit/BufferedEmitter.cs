@@ -64,7 +64,7 @@ public static partial class CSharpEmitter
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
 		Dictionary<string, (string Name, string Declaration)>? expectedTables,
-		CarrierKind carrier, Replay.Report? replay, bool reporting)
+		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed)
 	{
 		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
 		// made without them it read on the tape whatever those said.
@@ -119,8 +119,11 @@ public static partial class CSharpEmitter
 			// reading the input through its view may make the buffer fetch more under the reader,
 			// which is safe because nothing is let go here and the reader holds positions, never
 			// spans, across anything that can fetch (the contract at BufferedText.Fill).
-			var readable = publication.Kind == PublishKind.Parse &&
-				machines.Exists(one => one.Direct && one.Publications.Contains(publication)) &&
+			// A yield has no string form to follow: it is read by methods where its own machine can
+			// be, the step being one turn of the reader (EmitYieldStep).
+			var readable = (publication.Kind == PublishKind.Parse &&
+					machines.Exists(one => one.Direct && one.Publications.Contains(publication)) ||
+				publication.Kind == PublishKind.Yield && directAllowed) &&
 				machine!.CanDirect([publication]) && !machine.CanReleaseBuffered;
 			var direct = readable && !machine!.Probes;
 

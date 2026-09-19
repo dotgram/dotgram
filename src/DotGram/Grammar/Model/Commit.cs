@@ -158,7 +158,10 @@ public static class Commit
 	/// nothing takes a completed turn back, and its end is a point (<see cref="Kind.Turn"/>).
 	/// </para>
 	/// <para>
-	/// A repetition with a bound, or whose element can be empty, is not taken.
+	/// A repetition with a bound, or whose element can be empty, is not taken - except the step a
+	/// <c>yield</c> is lowered to, a <c>recover</c> repetition of exactly one turn marked as the
+	/// step: its continuation is the next step the driver asks for, and past its one turn the
+	/// driver has handed the element out.
 	/// </para>
 	/// </remarks>
 	public static Node[]? Recovering(RecognitionGraph graph, RuleSymbol rule, Node node)
@@ -173,7 +176,8 @@ public static class Commit
 
 	static Node[]? Recovering(RecognitionGraph graph, RuleSymbol rule, Node node, bool called)
 	{
-		if (called || node is not Node.Repeat { Max: null } repeat || !graph.Recoveries.ContainsKey(node) ||
+		if (called || node is not Node.Repeat repeat || !graph.Recoveries.TryGetValue(node, out var recovery) ||
+			!(repeat.Max is null || recovery.YieldStep && repeat is { Min: 1, Max: 1 }) ||
 			FirstSets.Nullable(repeat.Body, graph) || !graph.Bodies.TryGetValue(rule, out var top))
 			return null;
 

@@ -914,7 +914,10 @@ sealed partial class Machine
 			yield return "ways.Put(pos, to);";
 			yield return "ways.Put(reach, ordinal);";
 			yield return "ways.End(ways.RefsCount);";
-			yield return PushRecord(slot, element);
+
+			// A yield's step keeps its element as the item it hands out, gathering nothing.
+			if (!plan.Recovery.YieldStep)
+				yield return PushRecord(slot, element);
 		}
 
 		public override string Materialize(string record, string sinceMark) =>

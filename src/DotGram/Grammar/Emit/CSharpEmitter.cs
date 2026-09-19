@@ -318,7 +318,7 @@ public static partial class CSharpEmitter
 
 		AddBufferedMachines(
 			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
-			carrier, replay, carriers is not null);
+			carrier, replay, carriers is not null, directAllowed);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds

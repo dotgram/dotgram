@@ -325,8 +325,12 @@ sealed partial class Machine
 				if (!seen.Add(publication.Rule))
 					continue;
 
-				entryPoints.Add((publication.Rule, true));
-				RenderReaderEntryBody(file, publication.Rule, ends: true);
+				// A yield's step is read from where the driver stands and ends where the element
+				// does: the positional entry, and not one that asks for the end.
+				var ends = publication.Kind != PublishKind.Yield;
+
+				entryPoints.Add((publication.Rule, ends));
+				RenderReaderEntryBody(file, publication.Rule, ends);
 
 				// And the entry that begins where it is told and demands no end, which is what a
 				// positional overload calls. Only for a whole parse: `find` already reads from a
@@ -3329,6 +3333,13 @@ sealed partial class Machine
 			var slot   = plan.Slot - machine._captureOffsets[owner];
 			var began  = $"m{_ways++}";
 
+			if (plan.Recovery.YieldStep)
+			{
+				EmitYieldStep(code, body, read, slot, inside);
+
+				return;
+			}
+
 			// What an element opened on the ways is dropped at its commit. A reader carrying
 			// immediately has ways only where something opens one, and then only an element that
 			// can open one has anything to drop.
@@ -3415,6 +3426,46 @@ sealed partial class Machine
 				// the end, by a method of its own that only a failure calls.
 				code.Line($"p = {Broken(read, slot, out var handed)}(p, {turn}{handed});");
 				code.Line($"{turn}++;");
+			}
+		}
+
+		/// <summary>
+		/// The step a <c>yield</c> is lowered to (GrammarNormalizer.LowerYieldPublications): one turn
+		/// of a repetition marked <c>recover</c>, read each time the driver is asked for the next
+		/// element. The next step is the continuation, so nothing is tried before the element; where
+		/// the element fails and input remains, the bad element is stepped over, numbered by the
+		/// driver's own count (Failure.RecoveryOrdinal), and where nothing remains there is no element.
+		/// </summary>
+		void EmitYieldStep(Writer code, Node body, RecoveryRead read, int slot, FollowSets.Continuation inside)
+		{
+			var ways  = machine.Carrier is not ImmediateCarrier || machine.Opens(body);
+			var mark  = $"k{_ways++}";
+
+			code.Line("failure.Reach = p;");
+
+			var taken = Attempt(code, body, inside, ways ? mark : null);
+
+			code.Line($"if ({taken} >= 0)");
+
+			using (code.Block(""))
+			{
+				if (ways)
+					code.Line($"ways.Count = ways.Cursor = {mark};");
+
+				code.Line($"p = {taken};");
+			}
+
+			code.Line("else");
+
+			using (code.Block(""))
+			{
+				code.Line($"if ({machine.Past("p")})");
+				code.Then("return -1;");
+				code.Line();
+				code.Line($"p = {Broken(read, slot, out var handed)}(p, failure.RecoveryOrdinal{handed});");
+
+				// The step's element is what it recovered: the item, as a read one would have been.
+				code.Line($"r{slot} = {machine.Carrier.Last(RuleOfSlot(slot))};");
 			}
 		}
 
