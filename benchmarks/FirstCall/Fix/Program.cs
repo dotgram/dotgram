@@ -161,7 +161,7 @@ static string Guard(Func<object> call)
 // and the checksum (10) is the sum of every byte before it, modulo 256.
 static string OrderWire()
 {
-	var body   = "35=D\u000111=ORDER\u000121=1\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u0001";
+	var body   = "35=D\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000111=ORDER\u000121=1\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u0001";
 	var header = $"8=FIX.4.4\u00019={body.Length}\u0001";
 	var sum    = 0;
 

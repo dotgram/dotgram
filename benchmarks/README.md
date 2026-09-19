@@ -83,6 +83,13 @@ afternoon; this is the line that would have caught it in the first run after it.
 `--stand-gate now.json previous.json` prints it for two results already taken. It needs the
 reports of a complete build, so a run for the record is `--rebuild`.
 
+That comparison is history, not the gate to quote: the generator's milliseconds move with the
+machine — the morning's base commit, rebuilt that evening, read 22-39% above its own report — so
+a head is held to a base rebuilt in the same run. `benchmarks/Gate-Generation.ps1 -Base <commit>
+[-Head <commit>]` rebuilds DotGram.Sql and DotGram.Examples in a worktree of each, base, head, base,
+head, on the same cores, and names every host whose ratio of medians is more than 20% from 1 by at
+least 100 ms. It is a timing run: take it in a window.
+
 ### The base of a row, and the regular expression
 
 Every ratio in the report is taken against the row's first reading, which is the hand-written
@@ -110,6 +117,7 @@ Beside the parsers, a regular expression, where one can be written honestly:
 
 | family | regex reading | what the pattern does less |
 | --- | --- | --- |
+| `fixmsg/Order.{parse,build}` | N/A | the schema-checked message layer, generated alone (there is no hand layer; the paired stand holds this tree's own layer as the control) |
 | `fix/*.text` (plain rows and `slope-N`) | `regex-lesser`, `regex-compiled-lesser`: `(\d+)=([^\x01]*)\x01` | only the split into tag and value: no typed value, no length/data pair, no recovery. Held to the hand parser by field count, tag and where each value sits; a row with a binary pair or a malformed field has none |
 | `web/url.*` | `regex`, `regex-compiled`: the pattern of `UrlBenchmarks` | three schemes, no relative references; held to RFC 3986's parser part by part |
 | `web/date-time.*` | the ABNF of RFC 3339 §5.6 | no calendar and no leap-second rule (§5.7): it says yes to the thirtieth of February |

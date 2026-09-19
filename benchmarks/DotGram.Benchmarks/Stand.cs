@@ -281,6 +281,9 @@ static partial class Stand
 			// A stock count, hand and generated (finance-24, for performance-ff's C2).
 			.. FeedWorkloads(),
 
+			// The FIX message layer: Parse and Build of a NewOrderSingle, generated alone.
+			.. FixMessageWorkloads(),
+
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
 			Expression("nest7",         "(int x) => (((((((x)))))))"),
@@ -520,6 +523,9 @@ static partial class Stand
 		readonly Type _elState;
 		readonly Type _fix;
 		readonly Type _fixOptions;
+		readonly Type _fixMessages;
+		readonly Type _fixParseMode;
+		readonly Type _fixParseOptions;
 
 		public PairedSide(string name, string directory)
 		{
@@ -544,6 +550,9 @@ static partial class Stand
 			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
 			_fix         = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser");
 			_fixOptions  = Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
+			_fixMessages = Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages");
+			_fixParseMode = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseMode");
+			_fixParseOptions = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseOptions");
 		}
 
 		public Func<int> Sql(string method, string text)
@@ -573,6 +582,27 @@ static partial class Stand
 
 				return IsSuccess(call.Invoke(null, [text, state])!);
 			};
+		}
+
+		/// <summary>FixMessages.Parse of a wire message, strict, by reflection: what it read, as 1.</summary>
+		public Func<int> FixMessageParse(string wire)
+		{
+			var call   = _fixMessages.GetMethod("Parse", [typeof(string), _fixParseMode])
+				?? throw new InvalidOperationException("FixMessages.Parse(string, FixParseMode) not found");
+			var strict = Enum.ToObject(_fixParseMode, 0);
+
+			return () => call.Invoke(null, [wire, strict]) is null ? 0 : 1;
+		}
+
+		/// <summary>FixMessages.Build over the fields this side's FixParser reads from the wire, by reflection.</summary>
+		public Func<int> FixMessageBuild(string wire)
+		{
+			var fields = FixCall("Parse", [typeof(string), _fixOptions], [wire, null]);
+			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod(_fix.Assembly.GetType("DotGram.Finance.Fix.FixField")!);
+			var build  = _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions])
+				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[], FixParseOptions) not found");
+
+			return () => build.Invoke(null, [wire, array.Invoke(null, [fields()]), null]) is null ? 0 : 1;
 		}
 
 		public Func<int> FixText(string text) => FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, null]));
@@ -657,6 +687,8 @@ static partial class Stand
 				before.FixText(FixSlopeText(n)),
 				after.FixText(FixSlopeText(n)))),
 
+			.. PairedFixMessages(before, after),
+
 			PairedExpression("floor",         "(int x) => x", before, after),
 			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),
 			PairedExpression("nest7",         "(int x) => (((((((x)))))))", before, after),
@@ -696,6 +728,30 @@ static partial class Stand
 	/// <see cref="FixForm"/> makes — the same trade as <see cref="PairedSql"/>, for the same
 	/// cross-ALC reason.
 	/// </summary>
+	/// <summary>
+	/// The message layer's Parse and Build of a NewOrderSingle, before and after, with this tree's own
+	/// FixMessages as the control where the hand parser is elsewhere. The first reading is called
+	/// "hand" because the paired report's ratios are taken against it; it is not a hand-written layer.
+	/// </summary>
+	static IEnumerable<Workload> PairedFixMessages(PairedSide before, PairedSide after)
+	{
+		var wire = FixMessageWire();
+
+		yield return PairedFixMessage("Order.parse", () => FixMessages.Parse(wire) is null ? 0 : 1, before.FixMessageParse(wire), after.FixMessageParse(wire));
+		yield return PairedFixMessage("Order.build", () => FixMessages.Build(wire, [.. FixParser.Parse(wire)]) is null ? 0 : 1, before.FixMessageBuild(wire), after.FixMessageBuild(wire));
+	}
+
+	static Workload PairedFixMessage(string name, Func<int> control, Func<int> before, Func<int> after)
+	{
+		return new Workload(
+			"fixmsg",
+			name,
+			[new Reading("hand", control), new Reading("before", before), new Reading("after", after)],
+			() => control() == 1 && before() == 1 && after() == 1
+				? null
+				: $"  every side must read the wire: control {control()}, before {before()}, after {after()}");
+	}
+
 	static Workload PairedFixForm(string name, Func<IEnumerable<FixField>> hand, Func<int> before, Func<int> after)
 	{
 		return new Workload(
@@ -1250,7 +1306,7 @@ static partial class Stand
 		var text = new StringBuilder();
 
 		text.AppendLine();
-		text.AppendLine("Generator time against the previous base:");
+		text.AppendLine("Generator time against the previous base, as history: the milliseconds move with the machine (the morning's base, rebuilt that evening, read 22-39% higher), so the gate to quote is `benchmarks/Gate-Generation.ps1`, which rebuilds the base alternately with the head in one run and holds their ratio:");
 		text.AppendLine();
 
 		var path = against ?? PreviousBase(root);
