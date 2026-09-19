@@ -1136,6 +1136,12 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   C2-C4c went to the whole-stream form, 57 ns a field, which the public API does not use. **Igor:
   the `yield` form on the reader next for FIX**, after C4c's second step and before the log form —
   performance-ff, with expr's driver and step-5 patch, a design first; expected 55-60 ns a field.
+  **Design agreed:** `yield` is lowered to a step rule, one recovering turn, which the driver
+  calls once per element and the engine reads today. The step is admitted as the recovery scenario
+  with its turn as its point; the reader writes it without a loop or a continuation, since the next
+  step is the continuation; a yield publication is read by methods wherever its machine can be; the
+  existing carrier gates then carry FIX's step immediately. The driver stays, making a reader frame
+  per step; nothing is allocated per element. Expected: FIX's stream rows 213 to 55-60 ns a field.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
