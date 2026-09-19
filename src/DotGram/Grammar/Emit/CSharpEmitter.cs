@@ -174,7 +174,7 @@ public static partial class CSharpEmitter
 		string? languageClassifications = null, string? languageRecognitionContract = null,
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
-		int maxRetained = int.MaxValue, int bufferSize = 4096)
+		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null)
 	{
 		statics ??= [];
 
@@ -213,7 +213,7 @@ public static partial class CSharpEmitter
 
 		// What the graph says about readings that may not stand, asked once for every machine
 		// left to choose its own carrier, and not at all where the author chose.
-		var replay = carrier == CarrierKind.Auto ? Replay.Of(graph) : null;
+		var replay = carrier == CarrierKind.Auto ? Replay.Of(graph, sites: carriers is not null) : null;
 
 		// A `find` over text tries every start and throws each failure away, and a parse of text in
 		// memory reads quietly first where it may; so their machines are written to ask before they
@@ -231,7 +231,10 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets)
+			{
+				Reporting = carriers is not null,
+			};
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -862,12 +865,18 @@ public static partial class CSharpEmitter
 					GramSeverity.Info));
 			}
 
+			if (carriers is not null)
+				Carriers(carriers, machines, replay, graph);
+
 			static List<string> Named(IEnumerable<RuleSymbol> rules) =>
 				[.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
 
 			static string Listed(List<string> names) =>
 				string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
 		}
+
+		if (carriers is not null && carrier != CarrierKind.Auto)
+			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}, the author's");
 
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
@@ -2967,6 +2976,103 @@ public static partial class CSharpEmitter
 				return true;
 
 		return false;
+	}
+
+	/// <summary>
+	/// What GRAM5012 decided, as lines of the report a build writes on request: which carrier
+	/// <see cref="CarrierKind.Auto"/> took, which gate kept the grammar on the tape, and for each
+	/// rule it kept there, why.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The first gate is <see cref="Replay"/>: a building rule read where the reading may not
+	/// stand. A rule with a cause of its own is given the place it was found — the rule it was read
+	/// in and what around it says so — and one under another is given the replayed rule that calls
+	/// it. The second gate is the reader's: a rule that can be read again after it answered, which
+	/// is only asked where the first let everything through. A rule that opened a way of its own
+	/// is said so, and one that did so through a call is given the call.
+	/// </para>
+	/// <para>
+	/// Lines, not a table: `--carriers` in DotGram.Benchmarks gathers them into docs/carriers.md.
+	/// </para>
+	/// </remarks>
+	static void Carriers(ICollection<string> lines, List<Compiled> machines, Replay.Report? replay, RecognitionGraph graph)
+	{
+		var direct    = machines.Where(static one => one.Direct).ToList();
+		var kept      = direct.Select(static one => one.Machine.KeptOnTape).OfType<Machine.Kept>().ToList();
+		var immediate = direct.Exists(static one => one.Machine.CarriesImmediately);
+		var building  = kept.SelectMany(static one => one.Building).Distinct().ToList();
+		var replayed  = kept.SelectMany(static one => one.Replayed).Distinct().ToList();
+		var again     = kept.SelectMany(static one => one.Again).Distinct().ToList();
+		var opened    = new HashSet<RuleSymbol>(direct.SelectMany(static one => one.Machine.OpenedHere ?? []));
+
+		var gate = replayed.Count > 0 ? "replay" : again.Count > 0 ? "read again" : "none";
+		var by   = immediate && kept.Count == 0 ? "immediate" : kept.Count > 0 ? "tape" : "nothing to choose";
+
+		lines.Add(kept.Count == 0
+			? $"carrier: {by}; gate: {gate}"
+			: $"carrier: {by}; gate: {gate}; building: {building.Count}; replayed: {replayed.Count}; " +
+				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}");
+
+		foreach (var rule in replayed.OrderBy(static rule => rule.Name, StringComparer.Ordinal))
+		{
+			var because = replay is not null && replay.Rules.TryGetValue(rule, out var why) ? why.ToString() : "?";
+			var site    = replay?.Sites?.LastOrDefault(one => ReferenceEquals(one.Called, rule) && one.Because.ToString() == because);
+
+			lines.Add(site is not null && because != nameof(Replay.Because.Under)
+				? $"replay {Name(rule)}: {because} in {Name(site.Owner)}{Around(site)}"
+				: $"replay {Name(rule)}: under {Caller(rule, replayed) ?? "?"}");
+		}
+
+		foreach (var rule in again.OrderBy(static rule => rule.Name, StringComparer.Ordinal))
+			lines.Add(opened.Contains(rule)
+				? $"again {Name(rule)}: opens a way"
+				: $"again {Name(rule)}: through {Caller(rule, again, calls: true) ?? "?"}");
+
+		// What around the site says the reading may be replaced, and what after it can refuse, as
+		// the grammar's author wrote it: over kinds a token is its kind's name, not its number.
+		string Around(Replay.Site site)
+		{
+			var said = site.Around is null ? "" : " " + site.Around;
+
+			if (site.Failing is null)
+				return said;
+
+			var failing = Shown(site.Failing);
+
+			return said + ", then " + (failing.Length > 70 ? failing.Substring(0, 70) + "…" : failing);
+		}
+
+		// A capture, a repetition or a look around what the machine can say.
+		string Shown(Node node) => node switch
+		{
+			Node.Capture(_, var body)         => Shown(body),
+			Node.Construct(var body, _)       => Shown(body),
+			Node.Repeat(var body, _, _)       => Shown(body) + " …",
+			Node.Lookahead(var positive, var body) => (positive ? "?=" : "?!") + Shown(body),
+			Node.Call(var called, _)          => Name(called),
+			_ => direct.Count > 0 ? direct[0].Machine.Display(node) : node.ToString(),
+		};
+
+		bool Own(RuleSymbol rule) =>
+			replay is not null && replay.Rules.TryGetValue(rule, out var why) && why != Replay.Because.Under;
+
+		// A rule of the set that calls this one, or with `calls`, one this one calls.
+		string? Caller(RuleSymbol rule, List<RuleSymbol> among, bool calls = false)
+		{
+			foreach (var other in among)
+			{
+				var (from, to) = calls ? (rule, other) : (other, rule);
+
+				if (!ReferenceEquals(other, rule) && graph.Bodies.TryGetValue(from, out var body) &&
+					NodeWalk.Descendants(body).Any(node => node is Node.Call(var called, _) && ReferenceEquals(called, to)))
+					return Name(other);
+			}
+
+			return null;
+		}
+
+		static string Name(RuleSymbol rule) => rule.Declaration?.Name ?? rule.Name;
 	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>

@@ -67,6 +67,13 @@ public static class Replay
 	/// <summary>What the graph says about every rule in it.</summary>
 	public sealed record Report(IReadOnlyDictionary<RuleSymbol, Because> Rules)
 	{
+		/// <summary>
+		/// Where each rule with a cause of its own was first given one, where they were asked for
+		/// (<see cref="Of(RecognitionGraph, bool)"/>): the report a build writes on request, and
+		/// nothing a parser is generated from.
+		/// </summary>
+		public IReadOnlyList<Site>? Sites { get; init; }
+
 		/// <summary>Whether this rule's reading always stands, so its value may be built where it is read.</summary>
 		public bool Stands(RuleSymbol rule) =>
 			!Rules.TryGetValue(rule, out var because) || because == Because.Stands;
@@ -95,14 +102,28 @@ public static class Replay
 		}
 	}
 
+	/// <summary>
+	/// One place a reading was found not to stand: the rule it was read in, the rule read, why,
+	/// and what around it says so — <c>[choice]</c>, <c>[turn]</c> or <c>[lookahead]</c> — and the
+	/// part after it that can refuse, where one does.
+	/// </summary>
+	public sealed record Site(RuleSymbol Owner, RuleSymbol Called, Because Because, string? Around, Node? Failing);
+
 	/// <summary>Every rule of the graph, and whether a reading of it can fail to stand.</summary>
-	public static Report Of(RecognitionGraph graph)
+	public static Report Of(RecognitionGraph graph) => Of(graph, sites: false);
+
+	/// <summary>
+	/// The same, and where <paramref name="sites"/> is asked, where each cause was found. Kept only
+	/// on request: a generated parser needs the answers, and the places are for a report.
+	/// </summary>
+	public static Report Of(RecognitionGraph graph, bool sites)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
 		var found  = new Dictionary<RuleSymbol, Because>();
 		var follow = FollowSets.Of(graph);
+		var places = sites ? new List<Site>() : null;
 
 		foreach (var rule in graph.Rules)
 			found[rule] = Because.Stands;
@@ -112,11 +133,11 @@ public static class Replay
 				Walk(
 					body, Because.Stands, elsewhere: false,
 					follow.TryGetValue(rule, out var after) ? after : FollowSets.Continuation.All,
-					FollowSets.SeamOf(rule, graph), graph, found);
+					FollowSets.SeamOf(rule, graph), graph, found, new Where(rule, places, null));
 
 		Spread(graph, found);
 
-		return new Report(found);
+		return new Report(found) { Sites = places };
 	}
 
 	/// <summary>
@@ -129,16 +150,19 @@ public static class Replay
 	/// </summary>
 	static void Walk(
 		Node node, Because taken, bool elsewhere, FollowSets.Continuation after, RuleSymbol? seam,
-		RecognitionGraph graph, Dictionary<RuleSymbol, Because> found)
+		RecognitionGraph graph, Dictionary<RuleSymbol, Because> found, Where where)
 	{
 		switch (node)
 		{
 			case Node.Call(var called, var arguments):
 				if (taken != Because.Stands && found.TryGetValue(called, out var was) && Weaker(was, taken))
+				{
 					found[called] = taken;
+					where.Places?.Add(new Site(where.Owner, called, taken, where.Why, where.Failing));
+				}
 
 				foreach (var argument in arguments)
-					Walk(argument, taken, elsewhere, FollowSets.Continuation.All, seam, graph, found);
+					Walk(argument, taken, elsewhere, FollowSets.Continuation.All, seam, graph, found, where);
 
 				break;
 
@@ -150,7 +174,8 @@ public static class Replay
 				// turn that gives it up and lets the parse go on.
 				for (var i = 0; i < parts.Count; i++)
 				{
-					var put = taken;
+					var put     = taken;
+					var failing = -1;
 
 					for (var j = i + 1; j < parts.Count; j++)
 						if (CanFail(parts[j], graph))
@@ -158,12 +183,17 @@ public static class Replay
 							var here = elsewhere ? Because.Follows : Because.Losing;
 
 							if (Weaker(put, here))
+							{
 								put = here;
+								failing = j;
+							}
 
 							break;
 						}
 
-					Walk(parts[i], put, elsewhere, Next(parts, i + 1, after, seam, graph), seam, graph, found);
+					Walk(
+						parts[i], put, elsewhere, Next(parts, i + 1, after, seam, graph), seam, graph, found,
+						failing >= 0 && where.Places is not null ? where with { Failing = parts[failing] } : where);
 				}
 
 				break;
@@ -176,9 +206,13 @@ public static class Replay
 				// Where no later alternative can, the choice fails with this one, and what that
 				// means is the answer of whatever holds the choice — `elsewhere` from above.
 				for (var i = 0; i < alternatives.Count; i++)
+				{
+					var replaced = !elsewhere && Replaced(alternatives, i, after.Plain, graph);
+
 					Walk(
-						alternatives[i], taken, elsewhere || Replaced(alternatives, i, after.Plain, graph),
-						after, seam, graph, found);
+						alternatives[i], taken, elsewhere || replaced, after, seam, graph, found,
+						replaced && where.Places is not null ? where with { Why = "[choice]" } : where);
+				}
 
 				break;
 
@@ -199,33 +233,37 @@ public static class Replay
 					? Begins(past, after.AfterSeam, graph) is not { } beyond || !after.AfterSeam.IsKnown || beyond.Overlaps(after.AfterSeam)
 					: Begins(body, after.Plain, graph) is not { } begins || !after.Plain.IsKnown || begins.Overlaps(after.Plain);
 
-				Walk(body, taken, elsewhere || stops, after, seam, graph, found);
+				Walk(
+					body, taken, elsewhere || stops, after, seam, graph, found,
+					!elsewhere && stops && where.Places is not null ? where with { Why = "[turn]" } : where);
 
 				break;
 			}
 
 			case Node.Lookahead(_, var body):
-				Walk(body, Worse(taken, Because.Lookahead), elsewhere: true, FollowSets.Continuation.All, seam, graph, found);
+				Walk(
+					body, Worse(taken, Because.Lookahead), elsewhere: true, FollowSets.Continuation.All, seam, graph, found,
+					where.Places is not null && where.Why is null ? where with { Why = "[lookahead]" } : where);
 
 				break;
 
 			case Node.Atomic(var body):
-				Walk(body, taken, elsewhere, after, seam, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found, where);
 
 				break;
 
 			case Node.Capture(_, var body):
-				Walk(body, taken, elsewhere, after, seam, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found, where);
 
 				break;
 
 			case Node.Marked(var body, _):
-				Walk(body, taken, elsewhere, after, seam, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found, where);
 
 				break;
 
 			case Node.Construct(var body, _):
-				Walk(body, taken, elsewhere, after, seam, graph, found);
+				Walk(body, taken, elsewhere, after, seam, graph, found, where);
 
 				break;
 		}
@@ -334,6 +372,12 @@ public static class Replay
 
 		return true;
 	}
+
+	/// <summary>
+	/// The rule being walked, where to put what is found, and what around the walk so far says a
+	/// reading may be replaced — kept only where the places were asked for.
+	/// </summary>
+	readonly record struct Where(RuleSymbol Owner, List<Site>? Places, string? Why, Node? Failing = null);
 
 	/// <summary>The reason already known, or the new one where nothing was known.</summary>
 	static Because Worse(Because taken, Because other) => taken == Because.Stands ? other : taken;

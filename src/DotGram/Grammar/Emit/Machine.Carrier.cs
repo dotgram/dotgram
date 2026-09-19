@@ -39,6 +39,15 @@ sealed partial class Machine
 	/// </summary>
 	internal Kept? KeptOnTape { get; private set; }
 
+	/// <summary>
+	/// Whether a build asked for the carriers report: then <see cref="OpenedHere"/> is kept, and
+	/// otherwise nothing is.
+	/// </summary>
+	internal bool Reporting;
+
+	/// <summary>The rules whose own reading opened a way back, before their callers were added: the report's.</summary>
+	internal HashSet<RuleSymbol>? OpenedHere { get; private set; }
+
 	/// <summary>The tape a machine choosing its carrier reads with until it knows enough to choose.</summary>
 	TapeCarrier? _provisional;
 

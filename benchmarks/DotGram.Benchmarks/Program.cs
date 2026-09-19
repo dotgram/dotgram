@@ -394,6 +394,16 @@ static class Program
 			return;
 		}
 
+		// `--carriers [output]` is not a benchmark: it gathers what the last build with
+		// `-p:DotGramReportGeneration=true` said about each grammar's carrier — which one `Auto`
+		// took, and why a grammar is on the tape — into docs/carriers.md. See Carriers.cs.
+		if (args.Length >= 1 && args[0] == "--carriers")
+		{
+			Carriers.Run(args.Length > 1 ? args[1] : null);
+
+			return;
+		}
+
 		// `--coverage sql-docs [output]` asks the engine and this grammar about every example of
 		// Microsoft's T-SQL reference, at every level, and writes up how much of each page is
 		// read beside the grammar's documentation: the map of what is left of the language,

@@ -5354,7 +5354,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>
-	string Display(Node node) => string.Join(" or ", Displays(node));
+	internal string Display(Node node) => string.Join(" or ", Displays(node));
 
 	/// <summary>
 	/// The kinds an element over kinds admits, its complement where it is negated, as a mask

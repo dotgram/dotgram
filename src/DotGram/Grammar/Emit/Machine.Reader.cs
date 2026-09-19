@@ -191,6 +191,9 @@ sealed partial class Machine
 				opens.Add(rule);
 		}
 
+		if (Reporting)
+			OpenedHere = [.. opens];
+
 		_opens = Opens(rules, opens);
 
 		// And a machine left to choose its carrier chooses now, knowing which rules open a way.

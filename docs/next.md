@@ -23747,3 +23747,14 @@ The steady state did not move: the message rows -0.9 to -1.9 per cent inside spr
 the field rows flat but for Orders128.stream at +5.6 per cent against a spread of 2, one pair
 with no mechanism behind it (IsData went from one array load to one). Rerun, it was -0.9 per
 cent, and Order.stream +1.3 against a spread of 3: layout in the first pair.
+
+## What keeps each grammar on the tape, written down
+
+A build with `-p:DotGramReportGeneration=true` now writes, under the line it already wrote for each
+grammar, what GRAM5012 rested on: the carrier `Auto` took, the gate that kept a grammar on the tape,
+and every rule kept there — for `Replay`, the rule it was read in, what around it lets the reading be
+replaced (`[choice]`, `[turn]`, `[lookahead]`) and what after it can refuse, by the grammar's own
+names; for the reader, whether a rule opened a way itself or through a call. `--carriers` gathers
+the lot into docs/carriers.md. Kept only on request: `Replay` keeps no places and a machine no
+openers otherwise, and the generated parsers are the same either way. First run: 84 grammars, 53 on
+the tape; SQL:2023 327 of 556 building rules held, 29 with a cause of their own.

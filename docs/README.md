@@ -26,6 +26,7 @@ what the next document is for.
 | [`diagnostics.md`](diagnostics.md) | Every message the generator reports, by identifier. |
 | [`ast.md`](ast.md) | The tree the SQL parsers build, and the specification each node is named from. |
 | [`coverage.md`](coverage.md) | How much of Microsoft's T-SQL reference the T-SQL grammar reads, page by page, as SQL Server answers every example of it at every level. |
+| [`carriers.md`](carriers.md) | Which carrier `Auto` took for every grammar of the solution, and for one on the tape, the gate that kept it and each rule held there with its cause. |
 
 These describe what is true today. A disagreement between one of these and `syntax.md`
 is not a contradiction — it is the gap the pair exists to measure. A disagreement between
@@ -34,6 +35,10 @@ it.
 
 `coverage.md` is a measurement rather than a text: `--coverage` writes it, nobody edits it,
 and it is out of date from the first change to the grammar until it is run again.
+
+`carriers.md` is one too: `--carriers` writes it from the reports a build with
+`-p:DotGramReportGeneration=true` leaves, nobody edits it, and it is a run behind main by
+construction. A change meant to move a grammar off the tape is measured by its difference.
 
 ## Repository conventions
 

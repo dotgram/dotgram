@@ -490,6 +490,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
+
+			// The report asked for is the carriers' too: what GRAM5012 decided, rule by rule.
+			ReportCarriers = reporting,
 		});
 
 		timer?.Stop();
@@ -511,7 +514,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 					Encoding.UTF8.GetByteCount(result.Sources[0].Text), timer.Elapsed.TotalMilliseconds,
 					result.UsesLexical ? "lexical" : "characters", host.Lexical,
 					(CarrierKind)host.Carrier,
-					host.BufferedInput, host.BufferedBytes, host.SpanCaptures)
+					host.BufferedInput, host.BufferedBytes, host.SpanCaptures) +
+					string.Concat((result.Carriers ?? []).Select(static line => "\n// " + line))
 				: null);
 	}
 

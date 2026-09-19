@@ -15,6 +15,12 @@ public sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IRea
 	/// <summary>Whether recognition uses the lexical split after fallback checks.</summary>
 	public bool UsesLexical { get; init; }
 
+	/// <summary>
+	/// What the carrier's choice rested on, line by line, where <see cref="GramCompilerOptions.ReportCarriers"/>
+	/// asked for it; null otherwise.
+	/// </summary>
+	public IReadOnlyList<string>? Carriers { get; init; }
+
 	public bool HasErrors
 	{
 		get
@@ -183,6 +189,13 @@ public sealed class GramCompilerOptions
 	/// author's, and a grammar a chosen carrier cannot carry is compiled on the tape instead.
 	/// </summary>
 	public CarrierKind Carrier { get; set; } = CarrierKind.Auto;
+
+	/// <summary>
+	/// Whether to say, in <see cref="GramCompilation.Carriers"/>, why the carrier is the one it is:
+	/// the rules the tape keeps and the place each was found. For a report; a parse is generated the
+	/// same either way, and without it nothing of this is kept.
+	/// </summary>
+	public bool ReportCarriers { get; set; }
 
 	/// <summary>
 	/// Typed value storage for all direct tape readers in this compilation. Other
