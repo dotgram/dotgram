@@ -179,8 +179,9 @@ T-SQL parse.
 Until then the lever remains the one AtomicBody pulled: take away the Replay causes that hold the
 value tower. Of the three heaviest, `TSqlPrimaryCore`'s choice (40 rules) is the language's,
 `JoinedRight`'s (29) is the analysis's — a call needs no way back where every shortening of it
-resumes on a token the continuation cannot take — and `InlineReturn`'s (26) is a trade-off against
-over-acceptance that has not been taken. Each cause that goes makes the hot rules settled, whatever
+resumes on a token the continuation cannot take — and `InlineReturn`'s (26) would cost
+over-acceptance, which Igor has declined: accuracy to the published syntax and to the server comes
+before speed, so those rules stay on the tape. Each cause that goes makes the hot rules settled, whatever
 carrier reads them.
 
 ## 5. Proposed steps

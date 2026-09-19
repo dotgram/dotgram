@@ -128,8 +128,12 @@ wrong word for a cause that our own rule's shape creates and that folding the ex
 bracketed query would remove. It is a trade-off between a cause and over-acceptance, and naming it
 that way is the objection's, not mine to close: it goes to the grammar's owner and to Igor.
 
-Cause 1 stands. So of the three, one is the language, one is the analysis's, and one is a
-trade-off we have not taken.
+Cause 1 stands. So of the three, one is the language, one is the analysis's, and one was a
+trade-off — which Igor has since decided, through the architect: the parser follows the published
+syntax and the server as closely as it can, so no reading is widened for speed. `InlineReturn`'s 27
+rules stay on the tape, and the rule is general: a change after which a parser accepts what the
+server or the published syntax refuses is declined whatever it gains. Where one would gain a lot, it
+goes to Igor with the number and the price in accuracy beside it, and the default is no.
 
 ## Q3 (2026-09-19). "FIX is faster than the hand parser" is one input form of three, and names the weaker of the two yardsticks we have
 

@@ -24264,3 +24264,15 @@ The stand, paired, medians of five:
 
 The accepted rows, which were the control, are flat or better: date-time between -17 and -26
 per cent (the span captures of 4f4d4d37 are in that too), the rest within a few per cent.
+
+## Accuracy before speed: no reading is widened to take a cause away
+
+Igor, through the architect, on the trade-off `InlineReturn` offered: the parser is to follow the
+published syntax and the server as closely as it can, so its 27 rules stay on the tape and the
+extras are not folded into the bracketed query. The rule is general and holds for T-SQL and
+SQL:2023 alike — a change after which a parser accepts what the server or the published syntax
+refuses is declined whatever it gains. Where such a change would gain a lot, it goes to the
+architect with the number and the price in accuracy beside it, for Igor; the default is no.
+
+What is left for the value tower is what costs no accuracy: the analysis (`JoinedRight`'s 29 rules,
+a call that needs no way back), and the shape of the code the materializer and the reader emit.
