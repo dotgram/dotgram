@@ -183,7 +183,7 @@ static partial class Stand
 		var workloads = PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir));
 
 		if (only is not null)
-			workloads = [.. workloads.Where(one => one.Id.Contains(only, StringComparison.Ordinal))];
+			workloads = [.. workloads.Where(one => Matches(one.Id, only))];
 
 		const int runs = 5;
 

@@ -114,9 +114,7 @@ static partial class Stand
 
 		if (only is not null)
 		{
-			var pieces = only.Split(',');
-
-			workloads = [.. workloads.Where(one => pieces.Any(piece => one.Id.Contains(piece, StringComparison.Ordinal)))];
+			workloads = [.. workloads.Where(one => Matches(one.Id, only))];
 
 			if (workloads.Length == 0)
 				throw new ArgumentException($"No row has an id containing '{only}'.");
@@ -165,6 +163,9 @@ static partial class Stand
 	/// <summary>What <see cref="GenerationGate"/> says of a result already taken, against another.</summary>
 	public static void Gate(string now, string against) =>
 		Console.WriteLine(GenerationGate(JsonSerializer.Deserialize<Result>(File.ReadAllText(now), Json)!, null, against));
+
+	/// <summary>Whether a row's id contains any of the comma-separated pieces of an `--only`.</summary>
+	static bool Matches(string id, string only) => only.Split(',').Any(piece => id.Contains(piece, StringComparison.Ordinal));
 
 	static Workload[] Agreed()
 	{
@@ -798,7 +799,7 @@ static partial class Stand
 		var workloads = PairedWorkloads(before, after);
 
 		if (only is not null)
-			workloads = [.. workloads.Where(one => one.Id.Contains(only, StringComparison.Ordinal))];
+			workloads = [.. workloads.Where(one => Matches(one.Id, only))];
 
 		foreach (var workload in workloads)
 			if (workload.Disagreement() is { } disagreement)
