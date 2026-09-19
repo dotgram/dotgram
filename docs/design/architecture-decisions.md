@@ -1007,7 +1007,13 @@ one string per set split on first use; the int-to-int switches stay; no static a
 no initializer. Verified by dumps before and after for every id, the Finance suites, and the
 stand's first Build and steady-state message rows. finance-24 also found and fixes a
 double-encoding of every non-ASCII character in nine files it wrote through a helper, and the
-two FIX design documents of 2026-09-17 in the same commit.
+two FIX design documents of 2026-09-17 in the same commit. **Landed `da7e5a81`:** each array keeps its source form as a property filling a null slot,
+rather than a table of triples, so the file stays readable as the schema it is; the slot is
+published by `Interlocked.CompareExchange`, since `FixSemantics` keys a `ConditionalWeakTable`
+by the array; the type initializer is gone; every answer of the schema dumped identical before
+and after. The encoding repair is `b74ff7fd` (eleven files, mojibake of cp1251 through UTF-8);
+`HandUrl` builds its record once (`7068ae0e`) and is now below the generated parser on every
+URL shape, 176-336 B against 320-480.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
