@@ -2541,7 +2541,15 @@ arithmetic also gives 0.7-1.2% rather than 1-2%, and the fourth edge, dismissed 
 The number is taken again, weighted, after the prologue lands. Of the three ambiguities only the
 bracketed value against a subquery has a witness: the join's turn has none, and if none is found it
 is a question for the analysis and 29 rules come back; the inline return is our own rule, removable
-at a named price, which makes it Igor's trade-off and not a fact about T-SQL. **Answered by sql-39
+at a named price, which makes it Igor's trade-off and not a fact about T-SQL. **The door tried and
+shut (sql-39):** one alternative with optional brackets and a guard pairing them does remove the
+cause from the report, and frees nothing — the same rules are held by the subquery's cause, and
+the reason is the one the critic named: a guard refuses a reading, it does not make anything try
+another, so what is wanted is the same possessive form the join's turn wants. The analysis now has
+two clients rather than one. **And a gap in fidelity found while checking it:** the server reads
+`CREATE FUNCTION … RETURNS TABLE AS RETURN (SELECT 1 AS a) UNION ALL SELECT 2 AS a` and we refuse
+at the token after the brackets, though the query rule alone reads it. Under D22 that is a defect
+and goes before the anatomy. **Answered by sql-39
 the same evening (`0ab26872`):** there is no witness for the join's turn, so the 29 rules are back
 in the work, and the cure cannot be said in the grammar today — an atomic group round the tails or
 round the call changes nothing, because the cause means "the caller may ask the rule again" and a
@@ -2567,7 +2575,8 @@ that number rests on, so the next measurement can be held against it rather than
 ## D22. A parser answers as the specification and the server do, before it answers fast
 
 Decided 2026-09-19 by Igor, asked about one trade-off and answered as a rule. T-SQL's inline
-return could be written so that a cause of `Replay` disappears and 27 rules leave the tape, at the
+return could be written so that a cause of `Replay` disappears and 26 rules under it leave the tape
+(27 with the rule itself), at the
 price of accepting a `WITH` and an order inside brackets that the server rejects. The price is not
 paid. Any change that would have a parser accept what the published syntax or the server refuses is
 declined however much it buys; where one buys a great deal it comes to Igor with its number and
