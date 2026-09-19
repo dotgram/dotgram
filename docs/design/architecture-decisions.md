@@ -2444,3 +2444,30 @@ tests; the cost in emitted size is stated; a pair compares the two branches on o
 than two commits; one item at a time, each with its pair. performance-ff designs it after FIX's log
 form, with the stand's measure of what compiling for the newer framework already buys our own
 libraries as the ceiling to expect.
+
+## D21. A session that argues: the critic
+
+Decided 2026-09-19 by Igor, on the architect's account of its own day: the architect makes the
+decisions and no one reviews them, and it showed — a directive proposed without noticing the
+language already had the form, a conclusion drawn from a report that was miscounting, a commit
+allowed to land without its pair which cost a factor of eight in the expression language. Each was
+caught by the session doing the work, not by the architect. And the one idea of the day that
+looked outward — that emitted code may take what the consumer's framework offers (D20) — came
+from Igor: five sessions were executing and none was looking around.
+
+So a session named `critic`, reporting to Igor directly and not through the architect.
+
+- **It writes no product code and takes no measurements.** It reads the repository, this journal,
+  the designs and what the sessions report. It needs no timing window, so it does not lengthen the
+  stand's queue.
+- **Three duties.** To argue with the architect's decisions before they reach Igor or the work; to
+  hunt for what is not being used — a framework's newer API, an algorithm, the shape of the public
+  API, something done by hand that could be generated; and to check the claims plans rest on, of
+  the kind "this is the language's own ambiguity" or "4.8% of the records are in settled
+  subtrees", by its own reading rather than by trust.
+- **It writes one file**, `docs/design/open-questions.md`: each objection with its date, what it
+  rests on, and the answer it was given, so that an objection cannot be quietly dropped.
+- **An objection comes with evidence** — a place in the code, a number, or a reproduction — and no
+  more than two or three at a time.
+- **It may speak to any session and to Igor directly**, including where it holds the architect
+  wrong, which is the point of it.
