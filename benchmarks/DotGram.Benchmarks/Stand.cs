@@ -167,13 +167,43 @@ static partial class Stand
 	/// <summary>Whether a row's id contains any of the comma-separated pieces of an `--only`.</summary>
 	static bool Matches(string id, string only) => only.Split(',').Any(piece => id.Contains(piece, StringComparison.Ordinal));
 
+	/// <summary>
+	/// Before a row is timed: each reading on its own does what the row says (a row whose name says
+	/// "refused" is refused by every reading, any other is accepted by every one), and then the readings agree.
+	/// The first "good" stock count was a thousand lines that both parsers refused, and nothing said so.
+	/// </summary>
+	static void Check(Workload workload)
+	{
+		if (Unasserted(workload) is { } wrong)
+			throw new InvalidOperationException($"{workload.Id}: a reading does not do what the row says.\n{wrong}");
+
+		if (workload.Disagreement() is { } disagreement)
+			throw new InvalidOperationException($"{workload.Id}: the readings disagree, so no ratio would mean anything.\n{disagreement}");
+	}
+
+	/// <summary>An empty input is read to nothing: the slope's first row answers zero and is still an acceptance.</summary>
+	static string? Unasserted(Workload workload)
+	{
+		var refuses = workload.Name.Contains("refused", StringComparison.Ordinal);
+		var empty   = workload.Name.Contains("slope-0", StringComparison.Ordinal);
+
+		foreach (var reading in workload.Readings)
+		{
+			var accepted = reading.Run() != 0 || empty;
+
+			if (accepted == refuses)
+				return $"  the {reading.Name} reading {(accepted ? "accepts" : "refuses")} it, and the row says it {(refuses ? "refuses" : "accepts")}";
+		}
+
+		return null;
+	}
+
 	static Workload[] Agreed()
 	{
 		var workloads = Workloads();
 
 		foreach (var workload in workloads)
-			if (workload.Disagreement() is { } disagreement)
-				throw new InvalidOperationException($"{workload.Id}: the readings disagree, so no ratio would mean anything.\n{disagreement}");
+			Check(workload);
 
 		return workloads;
 	}
@@ -244,14 +274,14 @@ static partial class Stand
 
 		return
 		[
-			.. Fix("One",        "55=ABC\u0001", regex: true),
-			.. Fix("Order",      order, regex: true),
-			.. Fix("BinaryMany", string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64))),
-			.. Fix("Orders128",  string.Concat(Enumerable.Repeat(order, 128)), regex: true),
+			.. Fix("One",        "55=ABC\u0001", 1, regex: true),
+			.. Fix("Order",      order, 11, regex: true),
+			.. Fix("BinaryMany", string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64)), 64),
+			.. Fix("Orders128",  string.Concat(Enumerable.Repeat(order, 128)), 11 * 128, regex: true),
 
 			// Q7.2 (expr-2d, 2026-09-18): a malformed field late in the message, not the
 			// first one — the recovery rule catches it mid-message, past what already read.
-			.. Fix("OrderMalformed", orderMalformed),
+			.. Fix("OrderMalformed", orderMalformed, 11, 1),
 
 			// D13 (Igor, 2026-09-18): the same field repeated N times, string form only, so a
 			// least-squares fit over these six points separates a parse's fixed cost from what
@@ -269,7 +299,8 @@ static partial class Stand
 				() => HandFixParser.Parse(FixSlopeText(n)),
 				() => FixParser.Parse(FixSlopeText(n)),
 				() => IdealFixParser.Parse(FixSlopeText(n)),
-				FixSlopeText(n))),
+				FixSlopeText(n),
+				(n, 0))),
 
 			// The web's formats (architect for Igor, 2026-09-18): generated, and a regular
 			// expression where one can be written honestly. Their base is the generated reading.
@@ -326,22 +357,43 @@ static partial class Stand
 	/// <summary>
 	/// One FIX input three ways: a string, bytes already in memory, and a stream read lazily.
 	/// </summary>
-	static IEnumerable<Workload> Fix(string name, string text, bool regex = false)
+	static IEnumerable<Workload> Fix(string name, string text, int fields, int invalid = 0, bool regex = false)
 	{
 		var bytes = Encoding.Latin1.GetBytes(text);
 
 		yield return FixForm(name + ".text",
 			() => HandFixParser.Parse(text),
 			() => FixParser.Parse(text),
-			regexText: regex ? text : null);
+			regexText: regex ? text : null,
+			expected: (fields, invalid));
 
 		yield return FixForm(name + ".bytes",
 			() => HandFixParser.Parse(bytes),
-			() => FixParser.Parse(bytes));
+			() => FixParser.Parse(bytes),
+			expected: (fields, invalid));
 
 		yield return FixForm(name + ".stream",
 			() => HandFixParser.Parse(new MemoryStream(bytes, false)),
-			() => FixParser.Parse(new MemoryStream(bytes, false)));
+			() => FixParser.Parse(new MemoryStream(bytes, false)),
+			expected: (fields, invalid));
+	}
+
+	/// <summary>
+	/// What the input of a FIX row says of itself, held to each reading on its own: how many fields it has and
+	/// how many of them are invalid. Two readings agreeing that an input has no fields at all proved nothing.
+	/// </summary>
+	static string? FixNotWhatItSays(string name, (int Fields, int Invalid) expected, (string Reading, Func<IEnumerable<FixField>> Read)[] readings)
+	{
+		foreach (var (reading, read) in readings)
+		{
+			var fields  = read().ToArray();
+			var invalid = fields.Count(static one => one is FixField.Invalid);
+
+			if (fields.Length != expected.Fields || invalid != expected.Invalid)
+				return $"  {name}: the {reading} reading finds {fields.Length} fields, {invalid} invalid, and the row says {expected.Fields}, {expected.Invalid}";
+		}
+
+		return null;
 	}
 
 	static Workload FixForm(
@@ -349,7 +401,8 @@ static partial class Stand
 		Func<IEnumerable<FixField>> hand,
 		Func<IEnumerable<FixField>> generated,
 		Func<IEnumerable<FixField>>? ideal = null,
-		string? regexText = null)
+		string? regexText = null,
+		(int Fields, int Invalid)? expected = null)
 	{
 		var readings = new List<Reading>
 		{
@@ -372,7 +425,8 @@ static partial class Stand
 			[.. readings],
 			() => Differ(hand().Select(Describe), generated().Select(Describe))
 				?? (ideal is null ? null : Differ(hand().Select(Describe), ideal().Select(Describe))?.Replace("generated", "ideal    "))
-				?? (regexText is null ? null : FixRegexDisagreement(regexText, hand(), FixSplit.Compiled.Value)));
+				?? (regexText is null ? null : FixRegexDisagreement(regexText, hand(), FixSplit.Compiled.Value))
+				?? (expected is null ? null : FixNotWhatItSays(name, expected.Value, [("hand", hand), ("generated", generated), .. ideal is null ? Array.Empty<(string, Func<IEnumerable<FixField>>)>() : [("ideal", ideal)]])));
 
 		static int Count(IEnumerable<FixField> fields)
 		{
@@ -901,8 +955,7 @@ static partial class Stand
 			workloads = [.. workloads.Where(one => Matches(one.Id, only))];
 
 		foreach (var workload in workloads)
-			if (workload.Disagreement() is { } disagreement)
-				throw new InvalidOperationException($"{workload.Id}: the readings disagree, so no ratio would mean anything.\n{disagreement}");
+			Check(workload);
 
 		Console.WriteLine($"{workloads.Length} rows, every reading agreeing. Timing {Rounds} rounds.");
 
