@@ -10,7 +10,7 @@ using Xunit;
 
 namespace DotGram.Tests;
 
-public sealed class BufferedInputTests
+public sealed partial class BufferedInputTests
 {
 	[Fact]
 	public void Large_buffered_parse_and_yield_share_machines_and_preserve_recovery()
@@ -249,41 +249,6 @@ public sealed class BufferedInputTests
 		}
 	}
 
-	[Fact]
-	public void Large_split_dispatch_keeps_char_and_byte_backtracking_correct()
-	{
-		const int count = 912;
-		var rules = Enumerable.Range(0, count).Select(i => $"R{i} : @int = \"{i}=\" & ['0'..'9']+ & ';' => @({i})");
-		var grammar = string.Join("\n", rules) + "\nItem : @int = (" +
-			string.Join(" | ", Enumerable.Range(0, count).Select(i => $"v: R{i}")) +
-			") => @(v)\nStart : @int[] = Item+\nparse Start stream bytes";
-		var options = new GramCompilerOptions
-		{
-			BufferedInput = true, Direct = false, PartSize = 128, CSharpScanner = RoslynCSharpScanner.Instance,
-		};
-		var single = GramCompiler.Compile(grammar, options);
-		EmittedCode.Quiet(single.Diagnostics);
-		Assert.Single(single.Sources);
-		options.SourceFileSize = 2_000_000;
-		var compilation = GramCompiler.Compile(grammar, options);
-		EmittedCode.Quiet(compilation.Diagnostics);
-		Assert.True(compilation.Sources.Count > 1);
-		var source = compilation.Sources[0].Text;
-		Assert.Contains("_Dispatch = new int[]", source);
-		Assert.All(compilation.Sources, part => Assert.DoesNotContain("switch (chosen)", part.Text));
-		var assembly = EmittedCode.Compile(source, sourceParts: compilation.Sources.Skip(1).Select(part => part.Text));
-		var expected = Enumerable.Range(0, count).Reverse().ToArray();
-		var text = string.Concat(expected.Select(i => $"{i}=123;"));
-		Assert.Equal(expected, Assert.IsType<int[]>(EmittedCode.Match(assembly, "Grammar", "TryParseStart", text).Value));
-		Assert.Equal(expected, Assert.IsType<int[]>(Read(assembly, new ShortReader(text, 3), 2).Value));
-		using var bytes = new ShortStream(text.Select(c => (byte)c).ToArray());
-		var method = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!;
-		var result = method.Invoke(null, [bytes, 2, text.Length + 1])!;
-		Assert.True((bool)result.GetType().GetProperty("IsSuccess")!.GetValue(result)!);
-		Assert.Equal(expected, Assert.IsType<int[]>(result.GetType().GetProperty("Value")!.GetValue(result)));
-		Assert.False(Read(assembly, new ShortReader(text + "599=bad;", 3), 2).Success);
-	}
-
 	[Theory]
 	[InlineData("Start = \"abcdef\" | \"abcxyz\"", "abcdef", "abcxyz", "abcxef")]
 	[InlineData("Start = 'a'* & \"ab\"", "aaaab", "ab", "aaaa")]
@@ -456,11 +421,6 @@ public sealed class BufferedInputTests
 		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [stream, 2, int.MaxValue])!;
 		Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
 		Assert.Equal(input, (byte[])match.GetType().GetProperty("Value")!.GetValue(match)!);
-	}
-
-	sealed class ShortStream(byte[] bytes) : MemoryStream(bytes)
-	{
-		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, 1));
 	}
 
 	[Theory]
@@ -659,26 +619,5 @@ public sealed class BufferedInputTests
 		var measure = assembly.GetType("Grammar")!.GetMethod("Allocated")!;
 		Assert.Equal(0L, (long)measure.Invoke(null, [true])!);
 		Assert.True((long)measure.Invoke(null, [false])! >= 32000);
-	}
-
-	static (bool Success, object? Value, long Position) Read(Assembly assembly, TextReader reader, int capacity, int limit = int.MaxValue)
-	{
-		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int?), typeof(int?)])!.Invoke(null, [reader, capacity, limit])!;
-		object? Get(string property) => match.GetType().GetProperty(property)!.GetValue(match);
-		return ((bool)Get("IsSuccess")!, Get("Value"), (long)Get("Position")!);
-	}
-
-	sealed class ShortReader(string text, int chunk) : TextReader
-	{
-		int _position;
-		public bool Disposed { get; private set; }
-		public override int Read(char[] buffer, int index, int count)
-		{
-			var length = Math.Min(Math.Min(chunk, count), text.Length - _position);
-			text.CopyTo(_position, buffer, index, length);
-			_position += length;
-			return length;
-		}
-		protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
 	}
 }

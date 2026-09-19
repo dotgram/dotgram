@@ -80,7 +80,8 @@ tests/
 	                      spellings an example would only repeat
 	DotGram.Tests.Slow/   what is paid for on request and in CI rather than on every run
 	                      of DotGram.Tests (D12): the whole refusal record, of which
-	                      DotGram.Tests holds a sample, and the memory bounds of streaming
+	                      DotGram.Tests holds a sample, the memory bounds of streaming,
+	                      GRAM5003's parts at every size, and a nine-hundred-rule split
 	DotGram.Sql.Tests/    the SQL parsers held to what SQL Server answers, and the tree, its
 	                      writer and walker
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
