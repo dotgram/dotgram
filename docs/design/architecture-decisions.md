@@ -1369,6 +1369,12 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    `with state @(Region(w))` naming a capture of its own alternative breaks the consumer's
    build instead of a diagnostic — expr, with `lm`; whether a mark may name a capture is read
    from §7.8, and asked of Igor if the text is silent.
+   Read: §7.8 already says a mark's value is "what stands over a construction and never
+   which", the same every time the site is reached, which a value built from a capture cannot
+   be. So the answer is a GRAM error at the site, a line in `diagnostics.md`, and one sentence
+   in §7.8 making the rule explicit — a clarification of the text, not a change to the language.
+   `lm` is reproduced on all three renderings and fixed (a part receives only the marks
+   declared for it; a theory of six cases); both land after C.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
