@@ -715,6 +715,14 @@ already hold 100 inputs where the reader and the engine disagree — the expecte
 trailing character. Rule: the engine is the reference reading unless shown wrong; a disagreement
 in the position of a refusal is a correctness defect and goes before C2, one in the wording
 only goes after it.
+Answered: none of the hundred differ in position or outcome; all are wording (58 the same
+one — the reader names the trivia class where the engine names the literal, or splits a class,
+or says "Expected X" for "Input does not match 'Start'"), and they go after C2. The helper is
+written only inside the refusal branch, and the run's walk only where the whole run failed;
+a count from the generated FixGrammar confirms it before C1 goes in. Found on the rebase: with
+comments now read through the search, C1 wrote U+0085/U+2028/U+2029 raw into a C# literal,
+where C# reads them as line breaks — spelled through the emitter's character escaping now, a
+test in `DelimiterScanTests`.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
@@ -903,6 +911,21 @@ fresh processes):** first call SQL literal 79 to 16 ms (-80%), one select 127 to
 parser's first call 5.0 ms). Steady state within 2.6% everywhere, allocation identical. The split
 is now a net gain on the first call too; FIX's first-call gap to the hand parser is 2.5 ms and
 lies elsewhere than the type initializer.
+
+**FIX's first call by phase (sql-39, 2026-09-18, fresh process, three runs; the answer to D13's
+question about initialization).** Load 1 ms and the initializers under 1 ms on both sides; the
+first parse is JIT: generated 86 methods, 25.7 KB IL, 12.6-13.7 ms; hand 40 methods, 18.2 KB,
+5.6 ms; the second parse 0.4 ms on both. The largest single method is shared and is not the
+generator's: `FixSchema.Type`, a 903-arm switch from tag to type name, 13.8 KB IL — over half
+of the generated side's IL and three quarters of the hand side's — and `FixFieldOptions` calls
+it for every tag of the range to build its data-tag table. Only in the generated one: the
+recognizer (5.4 KB), the materializer (1.5 KB) and about forty small methods of the machine's
+support (arena, pool, reset, construct, read, scan, guard), about 1 KB together but a JIT each,
+3-4 ms in all. Decisions: `FixSchema` goes to tables — a type code per tag as RVA data and one
+table of names by code, `IsData` read from the codes — finance-24, paired on first call and
+steady state, both parsers; the method count of the support set is C2's first-call baseline
+(86 to 40 is the gap); the phase tool goes from sql-39 to the stand's kit as the first-call
+anatomy, run for C2 before and after.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
