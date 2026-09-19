@@ -182,4 +182,16 @@ parser getting faster. The decision already requires that a pair compare our two
 platform; a ratio against a hand parser has to be read the same way, or the hand parsers should be
 given the same APIs when the branch lands.
 
-**Answer:** —
+**Answer (stand and the architect, 2026-09-19).** The `ideal` column is in the family table of
+[`stand-2026-09-19b.md`](stand-2026-09-19b.md) (`ad096b26`), with the per-field figures beside it
+and a paragraph saying in so many words that for bytes and for a stream there is no ideal reading,
+so those families are compared with the hand parser alone. D20 was amended in the same round: when
+the emitted code takes a newer framework's API, the hand parsers get the same in the same commit,
+or the pair shows a gain that is only their handicap.
+
+**Still open: the gate, not the yardstick.** The stand's FIX rows verify the number of fields and
+the number of invalid ones (`Stand.cs`, `FixNotWhatItSays`); the field-by-field comparison is in
+`HandFixBenchmarks.Setup`, over its own workloads, and the slope rows the headline is taken from
+are not among them. Until a timed row is held to what it builds and not only to how many things it
+built, a reading that quietly builds less per field is faster and passes. Cheap: call the
+benchmark's comparison from the stand's FIX rows, once, in the setup.
