@@ -1026,7 +1026,10 @@ published by `Interlocked.CompareExchange`, since `FixSemantics` keys a `Conditi
 by the array; the type initializer is gone; every answer of the schema dumped identical before
 and after. The encoding repair is `b74ff7fd` (eleven files, mojibake of cp1251 through UTF-8);
 `HandUrl` builds its record once (`7068ae0e`) and is now below the generated parser on every
-URL shape, 176-336 B against 320-480.
+URL shape, 176-336 B against 320-480. **Measured (stand, window 5, five fresh processes a side):** the initializer 24.2 ms and
+85.6 KB of IL to 0.29 ms; the first message parse 41.0 to 18.8 ms (-54%), the first build 40.8
+to 19.0 (-53%); steady state and allocation unchanged. The type tables alone: the field parsers'
+first call -7% (hand -17%), 13.8 KB less IL, steady flat.
 
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
@@ -1448,6 +1451,9 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    docs index): a table per grammar — building, kept, held by `Replay`, direct causes, second
    gate, carrier — then each grammar's causes by owner. C and the seam rewrite are measured
    by its diff.
+   C's gate (stand): T-SQL generation 1.04x, located 1.03x, SQL:2023 1.00x, inside tolerance;
+   a quiet machine reads T-SQL at 4.4 s, which the morning's 4.1 and the evening's 4.6-5.7
+   bracket.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
