@@ -826,6 +826,14 @@ after on the SQL, FIX and EL rows — every parser pays this initializer, and D1
 FIX's first call on small inputs. The deeper form, a set of kinds per position and one table of
 names, so that the arrays leave the assembly's code altogether, is performance-ff's after C4.**
 
+Landed 46eba522 (sql-39), one method changed (`Machine.DeclareExpected`): a property over a field
+filled by `Interlocked.CompareExchange`, so that one instance per set survives — the refusal
+tells sets apart by reference. Snapshots differ only in those declarations; the compatibility
+project builds at C# 8; generation of DotGram.Sql no worse (four hosts 14-16 s either way),
+files +5%. sql-39's own figure, loaded cores: the initializer 84 to 10 ms, a first literal parse
+about 26 ms against 35 before the split. The stand's paired first-call figures for SQL, FIX and
+EL are the record.
+
 **The architect's review.** The estimate counts the word layer's own costs (bucket crowding,
 trivia), not what reading over kinds does to the machine: over kinds a rule's answer stands, so
 there is no tape of ways and no replay, and each choice is a switch on one token. On SQL-92 the
