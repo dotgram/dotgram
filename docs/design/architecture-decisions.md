@@ -684,13 +684,21 @@ interpolation row 28%), and a change counts only outside it.
   the scan of the separator is now expected of C2, where the reader with `recover` reads the
   field. C1 lands as it is; the EL interpolation row's +17% is inside its spread and is re-read
   at C2's pair, not rerun alone.
-- The FIX anatomy items (finance-24), measured one on top of the other: item 1 (the tag read
-  once) +4..+13% on 10 of 12 rows, slower; item 2 (`Create` not searching `=` again) -5..-13% on
-  all 12, on top of item 1; item 3 (one construction a field) -0.4..-13% on the string, order and
-  128-order rows but +5..+10% on the many-binary row. Decision: item 1 is reverted and item 2
-  paired alone against `42a99dca` before it lands; item 3 does not land while the many-binary row
-  pays — finance-24 says why that row differs (a separate path, or the construction moved into a
-  loop) or drops it. Allocation unchanged by all three.
+- The FIX anatomy items (finance-24), measured one on top of the other, in finance-24's order
+  (the stand's numbering was its commit order; corrected by finance-24 the same evening):
+  `a8d8952a`, `Create` not searching `=` again and not reading the data tag twice, +4..+13% on
+  10 of 12 rows — it replaced the search by a `value:` capture, and a capture costs arena
+  records on every field, more than the search did; `80d1704b`, one construction a field,
+  -5..-13% on all 12, on main; `7141660c`, the digits read in the guard, faster everywhere but
+  the many-binary row (+5..+10%): on a length/data pair the binary arm's guard still needs the
+  size and the data tag as numbers, so the value tables stay and the tag is read a third time.
+  Done as ruled: the capture is withdrawn (`98d230dc`, the data-tag part kept, paired against
+  main); the digits form reworked to slice the value right after the digits and `=` with no
+  search and no capture (`0b2b8e08`, paired against `98d230dc`; dropped if the many-binary row
+  is still outside its spread). Allocation unchanged by all three. The lesson is the generator's:
+  on the engine a capture is not free, it is arena records per occurrence, and a grammar author
+  trading a scan for a capture loses. `JsonValue`'s depth defect in `ToString`/`Equals`/
+  `GetHashCode` is fixed on main (`817ef9bd`, a 100,000-deep test).
 
 **The literal refusal (performance-ff, on top of C1).** The reader now refuses as the engine does,
 for a lone literal and for a choice of them: at the deepest character any of them agreed with,
