@@ -1,0 +1,71 @@
+name: publish
+
+# A release is a tag. Pushing `v0.2.0` builds the repository at that commit, checks that the
+# tag and the version in Directory.Build.props are the same thing, packs the five packages and
+# publishes them. Everything up to the push happens whether or not the account's API key is
+# configured: without it the packages are still built, checked and uploaded as artifacts of the
+# run, so a dry run is the same run with the last step skipped.
+#
+# It does not build the Visual Studio extension: that is Windows, and the VSIX goes to the
+# Marketplace by hand from the `windows` job's artifact of the same commit.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No version here either: global.json pins the SDK, as in the build workflow.
+      - uses: actions/setup-dotnet@v4
+
+      - run: dotnet restore DotGram.slnx
+
+      - name: Build
+        run: dotnet build DotGram.slnx --no-restore --configuration Linux -warnaserror
+
+      - name: Test
+        run: dotnet test DotGram.slnx --no-build --configuration Linux
+
+      # A tag that says one version and a package that says another is the one mistake this
+      # workflow can make that nobody can take back, so it is checked before anything is packed.
+      - name: The tag is the version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          packed=$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props)
+          if [ "$tagged" != "$packed" ]; then
+            echo "The tag says $tagged and Directory.Build.props says $packed."; exit 1
+          fi
+
+      - name: Pack
+        run: |
+          dotnet pack src/DotGram/DotGram.csproj         --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Sql/DotGram.Sql.csproj         --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg
+
+      # The only step that leaves the machine. It is skipped until the repository has the
+      # account's API key as a secret, so this workflow can be run and read before it can
+      # publish anything. `--skip-duplicate` makes a re-run of a finished release harmless.
+      - name: Push to nuget.org
+        if: env.NUGET_API_KEY != ''
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: >
+          dotnet nuget push 'artifacts/*.nupkg'
+          --api-key "$NUGET_API_KEY"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
