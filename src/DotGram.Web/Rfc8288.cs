@@ -51,6 +51,7 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 	public bool Equals(WebLink? other) =>
 		other is not null && string.Equals(Target, other.Target, StringComparison.Ordinal) && Structural.Same(Parameters, other.Parameters);
 
+	/// <summary>A hash over the target and the parameters.</summary>
 	public override int GetHashCode() => Structural.Combine(StringComparer.Ordinal.GetHashCode(Target), Structural.Hash(Parameters));
 
 	/// <summary>The relation types of the first <c>rel</c> (§3.3), which later ones do not replace.</summary>

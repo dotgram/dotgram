@@ -18,6 +18,8 @@ namespace DotGram.Web;
 /// compared in order.
 /// </para>
 /// </remarks>
+/// <param name="Type">The type, as written.</param>
+/// <param name="Subtype">The subtype, as written.</param>
 /// <param name="Parameters">In the order written, values unquoted, empty parameters left out.</param>
 public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaType.Parameter> Parameters)
 {
@@ -56,6 +58,10 @@ public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaT
 	public string? Suffix =>
 		Subtype.LastIndexOf('+') is var plus && plus >= 0 && plus < Subtype.Length - 1 ? Subtype.Substring(plus + 1) : null;
 
+	/// <summary>
+	/// Whether the other has the same type and subtype, letter case aside, and the same
+	/// parameters, their names letter case aside and their values as written.
+	/// </summary>
 	public bool Equals(MediaType? other)
 	{
 		if (other is null ||
@@ -81,6 +87,10 @@ public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaT
 		return true;
 	}
 
+	/// <summary>
+	/// A hash over the type, the subtype and the parameters, as <see cref="Equals(MediaType?)"/>
+	/// reads them.
+	/// </summary>
 	public override int GetHashCode()
 	{
 		var hash = Structural.Combine(

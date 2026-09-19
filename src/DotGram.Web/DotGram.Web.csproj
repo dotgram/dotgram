@@ -12,6 +12,11 @@
 		<PackageTags>parser;rfc3339;timestamp;date-time;uri;rfc3986;email;email-address;mailbox;rfc5322;bcp47;language-tag;rfc5646;cookie;set-cookie;rfc6265;content-disposition;filename;rfc6266;uri-template;rfc6570;json-pointer;rfc6901;json-patch;rfc6902;forwarded;proxy;rfc7239;json;rfc8259;link-header;web-linking;rfc8288;media-type;mime;content-type;accept;rfc9110;http;structured-fields;rfc9651;web;dotgram</PackageTags>
 		<PackageReleaseNotes>First release: JsonValue (RFC 8259), JsonPointer (RFC 6901) and JsonPatch (RFC 6902); MediaType and MediaRange (RFC 9110), StructuredField (RFC 9651), WebLink (RFC 8288), ContentDisposition (RFC 6266), SetCookie, CookiePair and CookieDate (RFC 6265), ForwardedElement (RFC 7239); UriReference (RFC 3986), UriTemplate (RFC 6570), AddrSpec and EmailAddress (RFC 5322); Timestamp (RFC 3339) and LanguageTag (RFC 5646).</PackageReleaseNotes>
 
+		<!-- What a caller reads in the editor: every public member of this package has a comment,
+		     and a build without one fails here rather than shipping a package that answers nothing
+		     to IntelliSense. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->
 		<DebugType>embedded</DebugType>

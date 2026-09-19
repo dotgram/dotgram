@@ -11,7 +11,8 @@ namespace DotGram.Web;
 /// <summary>A URI Template as RFC 6570 divides it: literal text, and expressions between braces.</summary>
 /// <remarks>
 /// What a template <i>is</i> comes from <see cref="Parse(string)"/>; what it
-/// <i>becomes</i> for a set of values is <see cref="Expand"/>. The two are apart because a
+/// <i>becomes</i> for a set of values is <see cref="Expand(IReadOnlyDictionary{string, object?})"/>.
+/// The two are apart because a
 /// template is written once and expanded many times.
 /// </remarks>
 public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
@@ -39,11 +40,17 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 
 	/// <summary>§2.2: an operator, or none, and the variables it expands.</summary>
 	/// <param name="Operator">One of <c>+ # . / ; ? &amp;</c>, or null for simple string expansion.</param>
+	/// <param name="Variables">In the order written; one expression may expand several.</param>
 	public sealed record Expression(char? Operator, IReadOnlyList<Variable> Variables) : Part
 	{
+		/// <summary>
+		/// Whether the other expression has the same operator and the same variables in the same
+		/// order.
+		/// </summary>
 		public bool Equals(Expression? other) =>
 			other is not null && Operator == other.Operator && Structural.Same(Variables, other.Variables);
 
+		/// <summary>A hash over the operator and the variables.</summary>
 		public override int GetHashCode() => Structural.Combine(Operator.GetHashCode(), Structural.Hash(Variables));
 	}
 
@@ -56,6 +63,7 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 	/// <summary>Equal to another template made of equal parts in the same order.</summary>
 	public bool Equals(UriTemplate? other) => other is not null && Structural.Same(Parts, other.Parts);
 
+	/// <summary>A hash over the template's parts, literal and expression alike.</summary>
 	public override int GetHashCode() => Structural.Hash(Parts);
 
 	/// <summary>The URI reference this template stands for, given the values of its variables.</summary>
@@ -300,6 +308,8 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 	}
 
 	/// <summary>A value as a URI may hold it: what the allowed set holds as it is, the rest as UTF-8 triplets.</summary>
+	/// <param name="result">Where the encoded value is written.</param>
+	/// <param name="value">The value as the caller gave it.</param>
 	/// <param name="reserved">
 	/// Appendix A's U+R: reserved characters and pct-encoded triplets pass through too. Otherwise
 	/// only unreserved characters do, and a <c>%</c> is <c>%25</c>.

@@ -20,8 +20,10 @@ public sealed record Item(BareItem Value, OrderedMap<BareItem> Parameters) : Mem
 /// <remarks>Equal to another with equal items in the same order and equal parameters.</remarks>
 public sealed record InnerList(IReadOnlyList<Item> Items, OrderedMap<BareItem> Parameters) : Member(Parameters)
 {
+	/// <summary>Whether the other list has the same items in the same order and the same parameters.</summary>
 	public bool Equals(InnerList? other) => base.Equals(other) && Structural.Same(Items, other!.Items);
 
+	/// <summary>A hash over the items and the parameters.</summary>
 	public override int GetHashCode() => Structural.Combine(base.GetHashCode(), Structural.Hash(Items));
 }
 
@@ -124,16 +126,20 @@ public abstract record BareItem
 	/// <remarks>Equal to another holding the same bytes.</remarks>
 	public sealed record ByteSequence(byte[] Value) : BareItem
 	{
+		/// <summary>Whether the other sequence holds the same bytes.</summary>
 		public bool Equals(ByteSequence? other) => other is not null && Structural.Same(Value, other.Value);
 
+		/// <summary>A hash over the bytes.</summary>
 		public override int GetHashCode() => Structural.Hash(Value);
 	}
 
 	/// <summary>§3.3.6.</summary>
 	public sealed record Boolean(bool Value) : BareItem
 	{
+		/// <summary>The true value, which §3.3.6 writes <c>?1</c>.</summary>
 		public static Boolean True { get; } = new(true);
 
+		/// <summary>The false value, which §3.3.6 writes <c>?0</c>.</summary>
 		public static Boolean False { get; } = new(false);
 	}
 
@@ -171,8 +177,13 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 		return true;
 	}
 
+	/// <summary>
+	/// Whether the other is a map of the same kind with the same keys and values in the same
+	/// order.
+	/// </summary>
 	public override bool Equals(object? other) => Equals(other as OrderedMap<T>);
 
+	/// <summary>A hash over the keys and the values, in order.</summary>
 	public override int GetHashCode()
 	{
 		var hash = _entries.Count;
@@ -204,16 +215,20 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 			Set(entry.Key ?? throw new ArgumentException("A key is null.", nameof(entries)), entry.Value);
 	}
 
+	/// <summary>How many entries the map holds.</summary>
 	public int Count => _entries.Count;
 
+	/// <summary>The entry at a place, counting from zero in the order the entries were written.</summary>
 	public KeyValuePair<string, T> this[int index] => _entries[index];
 
 	/// <exception cref="KeyNotFoundException">The key is not in the map.</exception>
 	public T this[string key] =>
 		TryGetValue(key, out var value) ? value : throw new KeyNotFoundException($"'{key}' is not in the map.");
 
+	/// <summary>Whether a key is one of the map's, compared as it was written.</summary>
 	public bool ContainsKey(string key) => _places.ContainsKey(key);
 
+	/// <summary>The value a key names, or false where the map has no such key.</summary>
 	public bool TryGetValue(string key, [MaybeNullWhen(false)] out T value)
 	{
 		if (_places.TryGetValue(key, out var place))
@@ -226,6 +241,7 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 		return false;
 	}
 
+	/// <summary>The entries in the order they were written.</summary>
 	public IEnumerator<KeyValuePair<string, T>> GetEnumerator() => _entries.GetEnumerator();
 
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

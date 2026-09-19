@@ -60,9 +60,14 @@ public sealed record LanguageTag(
 	/// <remarks>Equal to another whatever the case of either, as a tag is (§2.1.1).</remarks>
 	public sealed record Extension(char Singleton, IReadOnlyList<string> Subtags)
 	{
+		/// <summary>
+		/// Whether the other extension has the same singleton and the same subtags, letter case
+		/// aside.
+		/// </summary>
 		public bool Equals(Extension? other) =>
 			other is not null && Lower(Singleton) == Lower(other.Singleton) && Structural.Same(Subtags, other.Subtags, Cases);
 
+		/// <summary>A hash over the singleton and the subtags, letter case aside.</summary>
 		public override int GetHashCode() => Structural.Combine(Lower(Singleton), Structural.Hash(Subtags, Cases));
 	}
 
@@ -79,6 +84,7 @@ public sealed record LanguageTag(
 		Structural.Same(PrivateUse, other.PrivateUse, Cases) &&
 		Cases.Equals(Grandfathered, other.Grandfathered);
 
+	/// <summary>A hash over every part of the tag, letter case aside.</summary>
 	public override int GetHashCode()
 	{
 		var hash = Cases.GetHashCode(Language ?? "");

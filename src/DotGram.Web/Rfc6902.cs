@@ -41,6 +41,7 @@ public sealed record JsonPatch(IReadOnlyList<JsonPatch.Operation> Operations)
 	/// <summary>Equal to another patch with equal operations in the same order.</summary>
 	public bool Equals(JsonPatch? other) => other is not null && Structural.Same(Operations, other.Operations);
 
+	/// <summary>A hash over the operations, in order.</summary>
 	public override int GetHashCode() => Structural.Hash(Operations);
 
 	/// <summary>One of §4's six operations. A closed set: the six are nested here and nothing outside can add a seventh.</summary>

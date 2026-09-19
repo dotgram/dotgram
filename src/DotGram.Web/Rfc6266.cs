@@ -24,6 +24,8 @@ namespace DotGram.Web;
 public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDisposition.Parameter> Parameters)
 {
 	/// <summary>A disposition parameter: its name as written, its value after unquoting, and its RFC 8187 value where it has one.</summary>
+	/// <param name="Name">As it was written, including a trailing <c>*</c> where it has one.</param>
+	/// <param name="Value">Unquoted, with its escapes undone.</param>
 	/// <param name="Extended">
 	/// For an ext-token, a name ending in <c>*</c>, the ext-value decoded as RFC 8187 says; null for any other name.
 	/// </param>
@@ -74,6 +76,10 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 	/// </remarks>
 	public string? Filename => Find("filename*")?.Extended?.Value ?? Find("filename")?.Value;
 
+	/// <summary>
+	/// Whether the other has the same disposition type and the same parameters, the type and a
+	/// parameter's name letter case aside and a value as it was written.
+	/// </summary>
 	public bool Equals(ContentDisposition? other)
 	{
 		if (other is null ||
@@ -93,6 +99,10 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 		return true;
 	}
 
+	/// <summary>
+	/// A hash over the type and the parameters, as <see cref="Equals(ContentDisposition?)"/>
+	/// reads them.
+	/// </summary>
 	public override int GetHashCode()
 	{
 		var hash = StringComparer.OrdinalIgnoreCase.GetHashCode(Type);

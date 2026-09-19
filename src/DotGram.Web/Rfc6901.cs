@@ -55,6 +55,7 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	/// <summary>Equal to another pointer with the same tokens in the same order.</summary>
 	public bool Equals(JsonPointer? other) => other is not null && Structural.Same(Tokens, other.Tokens);
 
+	/// <summary>A hash over the reference tokens.</summary>
 	public override int GetHashCode() => Structural.Hash(Tokens);
 
 	/// <summary>The pointer as a JSON string holds it (§5): each token after a <c>/</c>, escaped.</summary>

@@ -160,6 +160,7 @@ public abstract record EmailAddress
 	/// The phrase as it reads: comments dropped, each run of whitespace one space, quoted strings unquoted; null where
 	/// there was none.
 	/// </param>
+	/// <param name="Address">The addr-spec itself, its local part and domain as they were written.</param>
 	public sealed record Mailbox(string? DisplayName, AddrSpec Address) : EmailAddress
 	{
 		/// <summary>A mailbox as a receiver reads it (§3.4, §4.4).</summary>
@@ -196,9 +197,14 @@ public abstract record EmailAddress
 	/// <summary>A group: a display name and its mailboxes, of which there may be none.</summary>
 	public sealed record Group(string DisplayName, IReadOnlyList<Mailbox> Members) : EmailAddress
 	{
+		/// <summary>
+		/// Whether the other group has the same display name and the same members in the same
+		/// order.
+		/// </summary>
 		public bool Equals(Group? other) =>
 			other is not null && DisplayName == other.DisplayName && Structural.Same(Members, other.Members);
 
+		/// <summary>A hash over the display name and the members.</summary>
 		public override int GetHashCode() => Structural.Combine(DisplayName.GetHashCode(), Structural.Hash(Members));
 	}
 

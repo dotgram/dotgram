@@ -143,6 +143,10 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 		return Expires;
 	}
 
+	/// <summary>
+	/// Whether the other cookie has the same name and value, written as they were, and the same
+	/// attributes in the same order, an attribute's name letter case aside.
+	/// </summary>
 	public bool Equals(SetCookie? other)
 	{
 		if (other is null ||
@@ -163,6 +167,10 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 		return true;
 	}
 
+	/// <summary>
+	/// A hash over the name, the value and the attributes, as <see cref="Equals(SetCookie?)"/>
+	/// reads them.
+	/// </summary>
 	public override int GetHashCode()
 	{
 		var hash = Structural.Combine(StringComparer.Ordinal.GetHashCode(Name), StringComparer.Ordinal.GetHashCode(Value));
@@ -224,6 +232,7 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 }
 
 /// <summary>A cookie-pair of a Cookie header field (RFC 6265 §4.2.1): a name and its value as written.</summary>
+/// <param name="Name">As it was sent.</param>
 /// <param name="Value">With its double quotes where it had them: §4.1.1 makes them part of the cookie-value.</param>
 public sealed record CookiePair(string Name, string Value)
 {

@@ -125,7 +125,11 @@ static partial class Rfc3339
 		return utc == 23 * 60 + 59;
 	}
 
+	/// <param name="hour">Two digits.</param>
+	/// <param name="minute">Two digits.</param>
+	/// <param name="second">Two digits, 60 among them where the time is a leap second.</param>
 	/// <param name="fraction">The fraction with its point, or nothing where none was written.</param>
+	/// <param name="offset">A <c>Z</c>, or a sign and an hour and minute.</param>
 	internal static FullTime Time(ReadOnlySpan<char> hour, ReadOnlySpan<char> minute, ReadOnlySpan<char> second, ReadOnlySpan<char> fraction, ReadOnlySpan<char> offset)
 	{
 		var digits = fraction.Length == 0 ? null : fraction.Slice(1).ToString();
@@ -203,11 +207,14 @@ public sealed record FullDate(int Year, int Month, int Day)
 		return read;
 	}
 
+	/// <summary>The date as §5.6 writes one: four digits, a month and a day.</summary>
 	public override string ToString() =>
 		string.Format(CultureInfo.InvariantCulture, "{0:D4}-{1:D2}-{2:D2}", Year, Month, Day);
 }
 
 /// <summary>A full-time (RFC 3339 §5.6): a time of day and the offset from UTC it was written in.</summary>
+/// <param name="Hour">00 to 23.</param>
+/// <param name="Minute">00 to 59.</param>
 /// <param name="Second">00 to 59, or 60 for a leap second.</param>
 /// <param name="Fraction">The digits after the point as written, however many, or null.</param>
 /// <param name="Offset">What to add to UTC to get this time: zero for <c>Z</c>, <c>+00:00</c> and <c>-00:00</c>.</param>
@@ -231,6 +238,10 @@ public sealed record FullTime(int Hour, int Minute, int Second, string? Fraction
 		return read;
 	}
 
+	/// <summary>
+	/// The time as §5.6 writes one: the fraction as it was read, <c>Z</c> where the offset is
+	/// zero, and <c>-00:00</c> where the local offset was not known.
+	/// </summary>
 	public override string ToString()
 	{
 		var text = string.Format(CultureInfo.InvariantCulture, "{0:D2}:{1:D2}:{2:D2}", Hour, Minute, Second);

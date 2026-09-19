@@ -64,6 +64,10 @@ public sealed record ForwardedElement(IReadOnlyList<ForwardedElement.Pair> Pairs
 	/// <summary>§5.4: the URI scheme of the protocol the request was made with, or null.</summary>
 	public string? Proto => Find("proto");
 
+	/// <summary>
+	/// Whether the other element has the same parameters in the same order, a name letter case
+	/// aside and a value as it was written.
+	/// </summary>
 	public bool Equals(ForwardedElement? other)
 	{
 		if (other is null || Pairs.Count != other.Pairs.Count)
@@ -79,6 +83,7 @@ public sealed record ForwardedElement(IReadOnlyList<ForwardedElement.Pair> Pairs
 		return true;
 	}
 
+	/// <summary>A hash over the parameters, as <see cref="Equals(ForwardedElement?)"/> reads them.</summary>
 	public override int GetHashCode()
 	{
 		var hash = Pairs.Count;

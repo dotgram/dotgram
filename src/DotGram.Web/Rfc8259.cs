@@ -44,11 +44,16 @@ public abstract record JsonValue
 	/// <remarks>Equal to another with the same members in the same order, a name written twice counted twice.</remarks>
 	public sealed record Object(IReadOnlyList<KeyValuePair<string, JsonValue>> Members) : JsonValue
 	{
+		/// <summary>
+		/// Whether the other object has the same members in the same order, a name written twice
+		/// counted twice.
+		/// </summary>
 		public bool Equals(Object? other)
 		{
 			return other is not null && Same(this, other);
 		}
 
+		/// <summary>A hash over the members, in the order they were written.</summary>
 		public override int GetHashCode()
 		{
 			return Hash(this);
@@ -59,11 +64,13 @@ public abstract record JsonValue
 	/// <remarks>Equal to another with equal elements in the same order.</remarks>
 	public sealed record Array(IReadOnlyList<JsonValue> Items) : JsonValue
 	{
+		/// <summary>Whether the other array has equal elements in the same order.</summary>
 		public bool Equals(Array? other)
 		{
 			return other is not null && Same(this, other);
 		}
 
+		/// <summary>A hash over the elements, in order.</summary>
 		public override int GetHashCode()
 		{
 			return Hash(this);
@@ -190,14 +197,17 @@ public abstract record JsonValue
 	/// <summary>§3: <c>true</c> or <c>false</c>.</summary>
 	public sealed record Boolean(bool Value) : JsonValue
 	{
+		/// <summary>The literal name <c>true</c>.</summary>
 		public static Boolean True { get; } = new(true);
 
+		/// <summary>The literal name <c>false</c>.</summary>
 		public static Boolean False { get; } = new(false);
 	}
 
 	/// <summary>§3: <c>null</c>.</summary>
 	public sealed record Null : JsonValue
 	{
+		/// <summary>The literal name <c>null</c>.</summary>
 		public static Null Instance { get; } = new();
 	}
 
