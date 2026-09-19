@@ -2365,6 +2365,10 @@ is what gets built: a form that moves the caller's position and answers yes or n
 leaving the trivia after the rule for the caller. Lazy tokens belong to the first step, not a
 later one: a loop of readings over one long text must not cost the square of it. The text of §6.3
 says what the finished set is; expr writes the design, and §6.3's wording goes to Igor before code.
+**Igor, 2026-09-19: a break in shipped behaviour is not a concern at this stage** — the releases
+are trials and there are no users. So the positional forms all stop where the rule stops, one
+behaviour rather than two; the expression language's one caller, which measures a lambda's body by
+the match's length, is fixed in the same commit, and the release notes carry the line.
 Checked against the SQL grammars (sql-39): over tokens the positional form already ends at the end
 of the last token, so the trivia after a rule is no difference at all; what it cannot do is begin
 where no token begins — a comment, for instance — and the host is then made to implement the
