@@ -1147,6 +1147,13 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   step is the continuation; a yield publication is read by methods wherever its machine can be; the
   existing carrier gates then carry FIX's step immediately. The driver stays, making a reader frame
   per step; nothing is allocated per element. Expected: FIX's stream rows 213 to 55-60 ns a field.
+  Found writing it: the graph's reachability skipped a recovery's synchronization, so a rule called
+  only from there was missing from buffered machines — and the emitter builds every machine's rules
+  and asks the release checks from it, so a lookbehind there would go unseen and a form release
+  when it must not. Fixed in the graph, in the `yield` commit. The call graph `Replay` reads skips
+  synchronizations too, so a rule read only there is answered "stands" by default and `Auto` could
+  build a reading that is thrown away; fixed in its own commit right after, with a count of the
+  grammars where a synchronization calls a building rule.
   **A correctness defect found on main while writing C4b:** the immediate carrier merges two
   members of one rule gathered onto one stack — `a: X* & ';' & b: X* & eof` over "ab;cd" gives
   a=[a,b,c,d] and b=[] where the tape gives [a,b] and [c,d]; `Auto` picks immediate there. Fixed
