@@ -189,9 +189,24 @@ so those families are compared with the hand parser alone. D20 was amended in th
 the emitted code takes a newer framework's API, the hand parsers get the same in the same commit,
 or the pair shows a gain that is only their handicap.
 
-**Still open: the gate, not the yardstick.** The stand's FIX rows verify the number of fields and
-the number of invalid ones (`Stand.cs`, `FixNotWhatItSays`); the field-by-field comparison is in
-`HandFixBenchmarks.Setup`, over its own workloads, and the slope rows the headline is taken from
-are not among them. Until a timed row is held to what it builds and not only to how many things it
-built, a reading that quietly builds less per field is faster and passes. Cheap: call the
-benchmark's comparison from the stand's FIX rows, once, in the setup.
+**The gate: the objection was half wrong, and the half that held is fixed.** As written above and
+first sent to the stand, this said the stand's FIX rows are gated on counts alone. That is wrong of
+`--stand`, and the mistake is the critic's: `FixNotWhatItSays` is the last link of the check, not
+the check. `FixForm` builds it as `Differ(hand().Select(Describe), generated().Select(Describe))`,
+then hand against ideal, then the regex, then the counts, and it runs before any row is timed —
+`Describe` being an invalid field by position, length and raw text and any other by its type name
+and every property. The objection was raised after reading the readings list and
+`FixNotWhatItSays`, and not the `Workload` the same method returns twenty lines below. Evidence
+half read is evidence not read.
+
+What did hold was the paired stand, which this session had not looked at at all: `PairedFixForm`
+compared the two sides by the sum of their tags, because the sides' field types do not belong to
+the process doing the timing, so a side that built less per field would have passed. Fixed by the
+stand in `2410830e`: both sides are now held field by field to this process's hand-written parser
+before anything is timed, on five inputs and three forms, each form against the hand parser's same
+form — which caught, on its first run, that an invalid field of the bytes form carries no raw text
+and so must be compared with the bytes form and not the text one. The stand also tested the
+unpaired gate rather than asserting it, by making the generated reading answer `ABD` for `ABC` and
+watching `--stand-check` throw. So: `0.73x` and the `ideal` column stand on gated rows; the pairs
+taken before `2410830e` stand on tag sums, and `--stand-paired-check` re-checks any of them field
+by field in a few minutes without a window.
