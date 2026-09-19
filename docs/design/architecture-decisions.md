@@ -832,6 +832,22 @@ conditions: a literal synchronization is found by the C1 search, not by an attem
 character; and the reader with `recover` over the buffered forms (FIX over a stream, D5/D7) is
 the next slice, expr's search-branch patch in hand, owner to be agreed. The pair: slope,
 One/Order, stock-count in three forms, first calls with the methods/IL column; push after it.
+**C2 measured (stand, window 9, medians of five, paired; raw under
+`benchmarks/results/pairs-2026-09-19`).** FIX's string form faster on every row: one field -18%
+(198 to 162 ns), an order -14%, the slope rows -9..-19%, so about 102 ns a field against the hand
+parser's 51 and step 1's target of 36; allocation identical; the first call nine methods fewer,
+an empty message's 4.3 to 2.6 ms. StockCount's four-line case -26..-43%. Controls flat. Accepted,
+to land; the byte forms, which C2 also changed and the stand did not measure, are paired next
+and the byte part reverted if they lose. What remains of the gap is C3 and C4 — the arena and
+the second pass the anatomy put at 85 of 131 ns.
+**Found by the same window: StockCount is quadratic.** Nanoseconds a line, generated string
+form, no broken lines: 196 at 4 lines, 433 at 100, 1,479 at 1,000, 22,008 at 10,000 — n^2.2
+(the stream form n^2.3); the hand parser linear. The same with broken lines, so not recovery;
+the same before C2; the continuation fails on its first character, so not that. A parser that
+reads a feed in quadratic time breaks D5's premise outright: it goes to performance-ff ahead of
+C3, with a test in the slow project that holds the ratio of 10,000 lines to 1,000 below 15, and
+FIX checked on long messages for the same. The stand gains a linearity family: every parser
+with a long input at 1x, 10x and 100x, its exponent in a column, flagged above 1.2.
 
 **Step 1's number (stand, 2026-09-18 18:17).** The target code, written by hand as the design
 says the reader would emit it, per field: generated 185 ns, hand 53, ideal 33, **target 36** —
