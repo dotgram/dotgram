@@ -27,6 +27,11 @@ FIX, Web and the rest) may be improved by the session that owns it without askin
 work on a parser, not on the generator. A change to the language itself (`syntax.md`: its
 notation, what a construct means, what hooks can see) is discussed with Igor first, before a
 design is written, let alone code.
+**A language change only when nothing else will do, Igor 2026-09-19.** And only after it is
+discussed with him. Any edit to `syntax.md`, and anything that changes what a grammar may say,
+goes to Igor with the alternatives before it is written; the architect does not decide that an
+edit is "only a clarification". The one case this was not followed in: GRAM4030 and its
+sentence in §7.8 (`bdef4949`), put to Igor after the fact.
 
 **Main is linear, 2026-09-18.** A session lands by rebasing onto `origin/main` and pushing
 `HEAD:main` (CLAUDE.md: no branches). Five merge commits reached main on 2026-09-18
