@@ -1401,7 +1401,7 @@ namespace DotGram.Snapshots
 					goto Accept;
 				}
 				expected = Recognize_DotGram_D_Expected0;
-				p = Recognize_DotGram_D_Sharpen1(text, p, ref expected);
+				p = Recognize_DotGram_D_Sharpen0(text, p, ref expected);
 				goto Fail;
 			}
 
@@ -4672,46 +4672,6 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_F_Expected0 => Recognize_DotGram_F_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_F_Expected0_Built, new string[] { "\"http\"" }, null) ?? Recognize_DotGram_F_Expected0_Built!;
 
 		static int Recognize_DotGram_D_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
-		{
-			if ((uint)p < (uint)text.Length && text[p] == 'h')
-			{
-				p += 1;
-				expected = Recognize_DotGram_D_Expected1;
-				if ((uint)p < (uint)text.Length && text[p] == 't')
-				{
-					p += 1;
-					if ((uint)p < (uint)text.Length && text[p] == 't')
-					{
-						p += 1;
-						if ((uint)p < (uint)text.Length && text[p] == 'p')
-						{
-							p += 1;
-							if ((uint)p < (uint)text.Length && text[p] == 's')
-							{
-								p += 1;
-								expected = Recognize_DotGram_C_Expected2;
-							}
-						}
-					}
-				}
-			}
-			else if ((uint)p < (uint)text.Length && text[p] == 'f')
-			{
-				p += 1;
-				expected = Recognize_DotGram_C_Expected3;
-				if ((uint)p < (uint)text.Length && text[p] == 't')
-				{
-					p += 1;
-					if ((uint)p < (uint)text.Length && text[p] == 'p')
-					{
-						p += 1;
-					}
-				}
-			}
-			return p;
-		}
-
-		static int Recognize_DotGram_D_Sharpen1(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == 'h')
 			{

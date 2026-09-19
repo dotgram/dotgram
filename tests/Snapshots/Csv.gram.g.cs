@@ -87,7 +87,6 @@ namespace DotGram.Snapshots
 					case 28: goto S28;
 					case 29: goto S29;
 					case 30: goto S30;
-					case 31: goto S31;
 					default: expected = null; goto Fail;
 				}
 
@@ -451,28 +450,6 @@ namespace DotGram.Snapshots
 					goto S29;
 				}
 
-				S31:
-				{
-					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
-					{
-						p += 2;
-						goto Return;
-					}
-					if ((uint)p < (uint)text.Length && text[p] == '\n')
-					{
-						p += 1;
-						goto Return;
-					}
-					if ((uint)p < (uint)text.Length && text[p] == '\r')
-					{
-						p += 1;
-						goto Return;
-					}
-					expected = Recognize_DotGram_Expected1;
-					p = Recognize_DotGram_Sharpen1(text, p, ref expected);
-					goto Fail;
-				}
-
 				Return:
 				global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
 				var returned = entries[call];
@@ -689,7 +666,7 @@ namespace DotGram.Snapshots
 		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
-			var end = Recognize_DotGram(text, pos, 31, -1, false, true, ref failure, out recognized);
+			var end = Recognize_DotGram(text, pos, 19, -1, false, true, ref failure, out recognized);
 			return end;
 		}
 
@@ -717,26 +694,6 @@ namespace DotGram.Snapshots
 #line 25 "Csv.gram"
                                                       (text.Length <= 16);
 #line default
-
-		static int Recognize_DotGram_Sharpen1(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
-		{
-			if ((uint)p < (uint)text.Length && text[p] == '\r')
-			{
-				p += 1;
-				expected = Recognize_DotGram_Expected2;
-				if ((uint)p < (uint)text.Length && text[p] == '\n')
-				{
-					p += 1;
-					expected = Recognize_DotGram_Expected3;
-				}
-			}
-			else if ((uint)p < (uint)text.Length && text[p] == '\n')
-			{
-				p += 1;
-				expected = Recognize_DotGram_Expected4;
-			}
-			return p;
-		}
 
 		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{

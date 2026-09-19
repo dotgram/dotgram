@@ -751,8 +751,16 @@ namespace DotGram.Snapshots
 			public int Read_eol_Feed_Part0(int pos)
 			{
 				var p = pos;
-				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+				if ((uint)(p + 2) > (uint)text.Length)
 				{
+					failure.OutOfInput = p + 1;
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected5);
+					return -1;
+				}
+				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\u000D\u000A")))
+				{
+					if (!failure.Quiet)
+						p = Recognize_DotGram_Feed_Agreeing(text, p, "\u000D\u000A", false);
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected5);
 					return -1;
 				}
@@ -2127,24 +2135,14 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static int Recognize_DotGram_Feed_Sharpen1(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		static int Recognize_DotGram_Feed_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
 		{
-			if ((uint)p < (uint)text.Length && text[p] == '\r')
-			{
-				p += 1;
-				expected = Recognize_DotGram_Feed_Expected4;
-				if ((uint)p < (uint)text.Length && text[p] == '\n')
-				{
-					p += 1;
-					expected = Recognize_DotGram_Feed_Expected5;
-				}
-			}
-			else if ((uint)p < (uint)text.Length && text[p] == '\n')
-			{
-				p += 1;
-				expected = Recognize_DotGram_Feed_Expected6;
-			}
-			return p;
+			var i = 0;
+
+			while (i < value.Length - 1 && (fold ? global::System.Char.ToUpperInvariant(text[p + i]) == global::System.Char.ToUpperInvariant(value[i]) : text[p + i] == value[i]))
+				i++;
+
+			return p + i;
 		}
 
 		static string[]? Recognize_DotGram_Feed_Expected0_Built;

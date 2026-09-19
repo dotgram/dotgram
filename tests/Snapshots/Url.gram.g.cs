@@ -3493,46 +3493,6 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static int Recognize_DotGram_Sharpen1(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
-		{
-			if ((uint)p < (uint)text.Length && text[p] == 'h')
-			{
-				p += 1;
-				expected = Recognize_DotGram_Expected11;
-				if ((uint)p < (uint)text.Length && text[p] == 't')
-				{
-					p += 1;
-					if ((uint)p < (uint)text.Length && text[p] == 't')
-					{
-						p += 1;
-						if ((uint)p < (uint)text.Length && text[p] == 'p')
-						{
-							p += 1;
-							if ((uint)p < (uint)text.Length && text[p] == 's')
-							{
-								p += 1;
-								expected = Recognize_DotGram_Expected12;
-							}
-						}
-					}
-				}
-			}
-			else if ((uint)p < (uint)text.Length && text[p] == 'f')
-			{
-				p += 1;
-				expected = Recognize_DotGram_Expected13;
-				if ((uint)p < (uint)text.Length && text[p] == 't')
-				{
-					p += 1;
-					if ((uint)p < (uint)text.Length && text[p] == 'p')
-					{
-						p += 1;
-					}
-				}
-			}
-			return p;
-		}
-
 		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{
 			var values = parser.Materialization(entries.Count);

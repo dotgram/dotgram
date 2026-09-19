@@ -593,6 +593,41 @@ public sealed class ReaderTests
 			Assert.Equal((false, 1L), engine);
 	}
 
+	/// <summary>A literal refused where the input stops fitting it, by the reader as by the engine.</summary>
+	/// <remarks>
+	/// The refusal is where the parse refused: four characters into <c>abcxyz</c> on
+	/// <c>abcxef</c>, not at the literal's start, which is where the reader used to put it while
+	/// the engine and flat said four (found by expr). And input that ends inside a literal is
+	/// input that ran out, which the reader did not say. <c>Start</c> calls itself so that the
+	/// grammar is not lowered to one flat method; the emitted text is checked for the reader.
+	/// </remarks>
+	[Theory]
+	[InlineData("abcxef")]
+	[InlineData("abcdez")]
+	[InlineData("[abcxyq]")]
+	[InlineData("abc")]
+	[InlineData("[abcde")]
+	public void A_literal_is_refused_where_it_stops_fitting(string input)
+	{
+		const string Grammar =
+			"Start = Word | '[' & Start & ']'\n" +
+			"Word = \"abcdef\" | \"abcxyz\"\n" +
+			"parse Start";
+
+		(bool IsSuccess, long Position, string? Error) Refused(bool reader)
+		{
+			var written = Written(Grammar, reader, lexical: false);
+
+			Assert.Equal(reader, written.Contains("ref struct Reader_", StringComparison.Ordinal));
+
+			var match = EmittedCode.Match(EmittedCode.Compile(written), "Grammar", "TryParseStart", input);
+
+			return (match.IsSuccess, match.Position, match.Error);
+		}
+
+		Assert.Equal(Refused(reader: false), Refused(reader: true));
+	}
+
 	static string Built(string grammar, string input, bool reader)
 	{
 		var match = EmittedCode.Match(

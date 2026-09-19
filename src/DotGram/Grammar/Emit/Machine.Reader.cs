@@ -1492,7 +1492,33 @@ sealed partial class Machine
 			if (text.Length == 0)
 				return;
 
-			var name = machine.DeclareExpected(machine.Displays(node));
+			var name    = machine.DeclareExpected(machine.Displays(node));
+			var closing = _closing;
+
+			_closing = null;
+
+			// A literal of a run records nothing of its own, and the last of them refuses for
+			// the run (RefusedRun).
+			if (closing is not null || ReferenceEquals(node, _quiet))
+			{
+				var mismatch = text.Length == 1
+					? $"{machine.ReadAt("p")} != {CSharpEmitter.Char(text[0])}"
+					: machine.BufferedBytes
+					? $"!text.Matches(p, {Quoted(text)})"
+					: $"!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {text.Length}), {Spanned(text)})";
+
+				using (code.Block($"if ({machine.LacksRoom(text.Length)} || {mismatch})"))
+				{
+					if (closing is not null)
+						RefusedRun(code, closing);
+					else
+						code.Line("return -1;");
+				}
+
+				code.Line($"p += {text.Length};");
+
+				return;
+			}
 
 			if (text.Length == 1)
 			{
@@ -1524,19 +1550,123 @@ sealed partial class Machine
 				return;
 			}
 
-			var comparison = folded
+			// Bytes compare with a literal written in characters one by one, which the buffer does
+			// where it holds them (byte literals are case-sensitive values below 256).
+			var comparison = machine.BufferedBytes
+				? $"!text.Matches(p, {Quoted(text)})"
+				: folded
 				? $"!global::System.MemoryExtensions.Equals(text.Slice(p, {text.Length}), " +
 					$"{Spanned(text)}, global::System.StringComparison.OrdinalIgnoreCase)"
 				: $"!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {text.Length}), {Spanned(text)})";
 
-			// Bytes compare with a literal written in characters one by one, which the buffer does
-			// where it holds them (byte literals are case-sensitive values below 256).
-			using (code.Block(machine.BufferedBytes
-				? $"if (!text.Matches(p, {Quoted(text)}))"
-				: $"if ({machine.LacksRoom(text.Length)} || {comparison})"))
+			// As the engine answers, so that the renderings of one grammar name one place: input
+			// that ends inside the literal is refused where it began and says the input ran out;
+			// a character that does not fit is refused where it is, the literal's matching
+			// beginning read on the failing branch alone (Machine.Sharpen).
+			using (code.Block($"if ({machine.LacksRoom(text.Length)})"))
+			{
+				code.Line("failure.OutOfInput = p + 1;");
 				Refused(code, name);
+			}
+
+			using (code.Block($"if ({comparison})"))
+			{
+				Sharpened(code, text, folded);
+				Refused(code, name);
+			}
 
 			code.Line($"p += {text.Length};");
+		}
+
+		/// <summary>The texts of the run the literal being written closes, where it closes one.</summary>
+		List<string>? _closing;
+
+		/// <summary>The literal this part is, where it is one of a run and so records nothing.</summary>
+		Node? _quiet;
+
+		/// <summary>Whether alternative <paramref name="at"/> is one of the run <paramref name="closing"/> names.</summary>
+		static bool Quiet(List<string>? closing, IReadOnlyList<Node> alternatives, int at) =>
+			closing is not null && at >= alternatives.Count - closing.Count;
+
+		/// <summary>
+		/// The texts of the alternatives that end a choice, where they are two or more literals
+		/// never come back to — the run the engine compiles as one (Machine.CompileLiterals).
+		/// </summary>
+		List<string>? Closing(IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
+		{
+			var run = LiteralRun(alternatives, alternatives.Count - 1, following.Plain);
+
+			if (run == 0)
+				return null;
+
+			var texts = new List<string>(run);
+
+			foreach (var node in alternatives.Skip(alternatives.Count - run))
+				if (node is Node.Literal(var text))
+					texts.Add(text);
+
+			return texts;
+		}
+
+		/// <summary>
+		/// The refusal of a run of literals, written where the last of them has failed: at the
+		/// deepest character any of them agreed with, naming the ones still agreeing there,
+		/// as the engine places it. The literals themselves record nothing (<see cref="_quiet"/>),
+		/// so what the message says, and in what order, is what the engine's does.
+		/// </summary>
+		void RefusedRun(Writer code, List<string> texts)
+		{
+			var displays = texts.Select(text => machine.Display(new Node.Literal(text))).ToList();
+			var all      = machine.DeclareExpected(displays);
+			var shared   = texts[0];
+
+			foreach (var text in texts)
+			{
+				var common = 0;
+
+				while (common < shared.Length && common < text.Length && shared[common] == text[common])
+					common++;
+
+				shared = shared.Substring(0, common);
+			}
+
+			// Input that ends inside what they all begin with ran out where the run began.
+			if (shared.Length > 1)
+				using (code.Block($"if ({machine.LacksRoom(shared.Length)})"))
+				{
+					code.Line("failure.OutOfInput = p + 1;");
+					Refused(code, all);
+				}
+
+			var narrowed = $"narrowed{_calls++}";
+
+			machine._expectedUsed.Add(all);
+
+			code.Line($"string[]? {narrowed} = {all};");
+
+			if (machine.Quiets)
+				code.Line("if (!failure.Quiet)");
+
+			code.Then($"p = {machine.Sharpening(texts, displays)}(text, p, ref {narrowed});");
+			code.Line(Refusal(narrowed));
+			code.Line("return -1;");
+		}
+
+		/// <summary>
+		/// Moves <c>p</c> to the character of <paramref name="text"/> that did not fit, on a branch
+		/// already refusing — and only where the refusal is recorded: a quiet one is not read.
+		/// </summary>
+		void Sharpened(Writer code, string text, bool folded)
+		{
+			if (machine.Quiets)
+				code.Line("if (!failure.Quiet)");
+
+			var step = $"p = {machine.Agreeing()}(text, p, {Quoted(text)}, {(folded ? "true" : "false")});";
+
+			if (machine.Quiets)
+				code.Then(step);
+			else
+				code.Line(step);
 		}
 
 		/// <summary>
@@ -1912,9 +2042,13 @@ sealed partial class Machine
 				}
 			}
 
+			// Where the last alternatives are all text, the last of them refuses for all of
+			// them where they have all failed (RefusedRun).
+			var closing = Closing(alternatives, following);
+
 			for (var i = 0; i < alternatives.Count - 1; i++)
 			{
-				var (part, undo, _) = Called(alternatives[i], following);
+				var (part, undo, _) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
 
 				// The first attempt is made; each after it, only where the one before failed.
 				using (i == 0 ? null : code.Block($"if ({tried} < 0)"))
@@ -1964,7 +2098,10 @@ sealed partial class Machine
 			{
 				// The one written in place, and the only one that can still use the token
 				// the dispatch read: what came before it was a method, which reads its own.
+				_closing = closing;
 				Emit(code, alternatives[alternatives.Count - 1], following, loaded);
+				_closing = null;
+
 				code.Line($"{tried} = p;");
 			}
 
@@ -2047,6 +2184,10 @@ sealed partial class Machine
 			code.Line();
 			code.Line($"var {tried} = -1;");
 
+			// Where the last alternatives are all text, they refuse together once they have all
+			// failed (RefusedRun).
+			var closing = Closing(alternatives, following);
+
 			for (var i = 0; i < alternatives.Count; i++)
 			{
 				using (code.Block($"if ({tried} < 0 && {took} <= {i})"))
@@ -2065,7 +2206,7 @@ sealed partial class Machine
 						code.Line(line);
 					code.Line();
 
-					var (call, undo, opens) = Called(alternatives[i], following);
+					var (call, undo, opens) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
 
 					if (opens)
 					{
@@ -2118,8 +2259,24 @@ sealed partial class Machine
 			}
 
 			code.Line();
-			code.Line($"if ({tried} < 0)");
-			code.Then("return -1;");
+
+			if (closing is not null)
+				using (code.Block($"if ({tried} < 0)"))
+				{
+					// A reading that is a replay asking for another alternative entered the run
+					// past its first text, where the engine, which has no way back into a run,
+					// is not asked at all: nothing is recorded.
+					code.Line($"if ({took} > {alternatives.Count - closing.Count})");
+					code.Then("return -1;");
+					code.Line();
+					RefusedRun(code, closing);
+				}
+			else
+			{
+				code.Line($"if ({tried} < 0)");
+				code.Then("return -1;");
+			}
+
 			code.Line();
 			code.Line($"p = {tried};");
 		}
@@ -2154,7 +2311,7 @@ sealed partial class Machine
 		/// Leaving it is the defect this exists for: the alternative after it writes a
 		/// record naming the position, and gets the abandoned one.
 		/// </remarks>
-		(string Call, string Undo, bool Opens) Called(Node part, FollowSets.Continuation following)
+		(string Call, string Undo, bool Opens) Called(Node part, FollowSets.Continuation following, bool quiet = false)
 		{
 			var (captured, used) = Reaches(part);
 			var elsewhere        = Elsewhere(part);
@@ -2184,6 +2341,8 @@ sealed partial class Machine
 
 			var name  = machine.ReaderOf(owner) + "_Part" + machine._readerPart++;
 			var apart = new ReaderWriter(machine, owner, given, taken, _folds, analyzing);
+
+			apart._quiet = quiet ? part : null;
 
 			var written = apart.Render(part, following);
 			ObservedOpen |= apart.ObservedOpen;

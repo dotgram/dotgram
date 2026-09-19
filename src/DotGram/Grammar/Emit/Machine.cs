@@ -287,6 +287,8 @@ sealed partial class Machine
 	int _guards;
 	readonly Dictionary<Node, (Node.SwitchSelection Selection, int[] Targets)> _switches = new(NodeIdentity.Instance);
 	int _sharpens;
+	string? _agreeing;
+	readonly Dictionary<string, string> _sharpenings = [];
 	int _captures;
 
 	/// <summary>
@@ -4937,8 +4939,23 @@ sealed partial class Machine
 	/// them. On the failing branch only, like everything else here.
 	/// </para>
 	/// </remarks>
-	void SharpenAll(Writer writer, IReadOnlyList<string> texts, IReadOnlyList<string> displays)
+	void SharpenAll(Writer writer, IReadOnlyList<string> texts, IReadOnlyList<string> displays) =>
+		writer.Line($"p = {Sharpening(texts, displays)}(text, p, ref expected);");
+
+	/// <summary>
+	/// The walk <see cref="SharpenAll"/> calls, written out of line and named: from <c>p</c> to
+	/// the deepest character any of <paramref name="texts"/> agrees with, narrowing
+	/// <c>expected</c> to the ones still agreeing there. The reader calls it too, so that the
+	/// renderings refuse a run of literals at one place.
+	/// </summary>
+	string Sharpening(IReadOnlyList<string> texts, IReadOnlyList<string> displays)
 	{
+		// One walk for one set of texts, whichever rendering asked for it first.
+		var key = string.Concat(texts.Select(text => text.Length + ":" + text));
+
+		if (_sharpenings.TryGetValue(key, out var written))
+			return written;
+
 		// Out of line, and that is a measurement rather than tidiness. Written into the
 		// recognizer, this cold walk sat between hot states and cost the URL corpus five
 		// per cent on inputs that never reach it — a method of ten thousand lines has
@@ -4962,8 +4979,9 @@ sealed partial class Machine
 		}
 
 		_extra.Add(helper.ToString());
+		_sharpenings.Add(key, method);
 
-		writer.Line($"p = {method}(text, p, ref expected);");
+		return method;
 
 		void Deepest(IReadOnlyList<int> here, int depth, Writer writer)
 		{
@@ -5044,6 +5062,44 @@ sealed partial class Machine
 			writer.Line("else");
 			writer.Then($"p += {value.Length - 1};");
 		}
+	}
+
+	/// <summary>
+	/// <see cref="Sharpen"/> out of line, for the reader: one method for the whole file, called
+	/// with the literal, where the ladder would be written once per literal. The reader tests a
+	/// keyword wherever it may stand, and a ladder at each of those places put a fifth on the
+	/// size of the SQL:2023 parser for a branch that is only ever taken when failing.
+	/// </summary>
+	/// <remarks>Called where there is room for the whole literal, which the method takes on trust.</remarks>
+	string Agreeing()
+	{
+		if (_agreeing is not null)
+			return _agreeing;
+
+		_agreeing = $"Recognize_DotGram{_tag}_Agreeing";
+
+		var helper = new Writer(0);
+		// A byte is widened to the character it spells: `char.ToUpperInvariant` takes nothing else.
+		var read   = BufferedBytes ? $"(char){ReadAt("p + i")}" : ReadAt("p + i");
+
+		helper.Line($"static int {_agreeing}({InputType} text, int p, string value, bool fold)");
+
+		using (helper.Block(""))
+		{
+			helper.Line("var i = 0;");
+			helper.Line();
+			helper.Line(
+				"while (i < value.Length - 1 && (fold " +
+				$"? global::System.Char.ToUpperInvariant({read}) == global::System.Char.ToUpperInvariant(value[i]) " +
+				$": {read} == value[i]))");
+			helper.Then("i++;");
+			helper.Line();
+			helper.Line("return p + i;");
+		}
+
+		_extra.Add(helper.ToString());
+
+		return _agreeing;
 	}
 
 	/// <summary>A character read, folded where the literal ignores case.</summary>

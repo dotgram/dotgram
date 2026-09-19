@@ -2464,3 +2464,129 @@ a look ahead | immediate over tokens | "a = b!" | NoMatch at 5: Input does not m
 a look ahead | immediate over tokens | "a = bb" | accepted
 a look ahead | immediate over tokens | "a!" | NoMatch at 1: Input does not match 'Start'.
 a look ahead | immediate over tokens | "aa" | accepted
+literals that part late | engine | "" | Starved at 0: Expected ['a' | '[' | 'l'].
+literals that part late | engine | "a" | Starved at 0: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "ab" | Starved at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "abc" | Starved at 3: Expected "abcdef" or "abcxyz".
+literals that part late | engine | "abcd" | Starved at 4: Expected "abcdef".
+literals that part late | engine | "abcde" | Starved at 5: Expected "abcdef".
+literals that part late | engine | "bcdef" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | engine | "acdef" | NoMatch at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "abdef" | NoMatch at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "abcef" | NoMatch at 3: Expected "abcdef" or "abcxyz".
+literals that part late | engine | "abcdf" | NoMatch at 4: Expected "abcdef".
+literals that part late | engine | "abcdef!" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | engine | "abcdeff" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | engine | "[" | Starved at 1: Expected ['a' | '[' | 'l'].
+literals that part late | engine | "[a" | Starved at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "[ab" | Starved at 3: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "[abc" | Starved at 4: Expected "abcdef" or "abcxyz".
+literals that part late | engine | "[abcx" | Starved at 5: Expected "abcxyz".
+literals that part late | engine | "[abcxy" | Starved at 6: Expected "abcxyz".
+literals that part late | engine | "[abcxyz" | Starved at 7: Expected ']'.
+literals that part late | engine | "abcxyz]" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | engine | "[bcxyz]" | NoMatch at 1: Expected ['a' | '[' | 'l'].
+literals that part late | engine | "[acxyz]" | NoMatch at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "[abxyz]" | NoMatch at 3: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "[abcyz]" | NoMatch at 4: Expected "abcdef" or "abcxyz".
+literals that part late | engine | "[abcxz]" | NoMatch at 5: Expected "abcxyz".
+literals that part late | engine | "[abcxy]" | NoMatch at 6: Expected "abcxyz".
+literals that part late | engine | "[abcxyz]!" | NoMatch at 8: Input does not match 'Start'.
+literals that part late | engine | "[abcxyz]]" | NoMatch at 8: Input does not match 'Start'.
+literals that part late | engine | "bq" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | engine | "aq" | NoMatch at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | engine | "abq!" | NoMatch at 3: Input does not match 'Start'.
+literals that part late | engine | "abqq" | NoMatch at 3: Input does not match 'Start'.
+literals that part late | engine | "l" | Starved at 0: Expected "lone!".
+literals that part late | engine | "lo" | Starved at 0: Expected "lone!".
+literals that part late | engine | "lon" | Starved at 0: Expected "lone!".
+literals that part late | engine | "lone" | Starved at 0: Expected "lone!".
+literals that part late | engine | "one!" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | engine | "lne!" | Starved at 0: Expected "lone!".
+literals that part late | engine | "loe!" | Starved at 0: Expected "lone!".
+literals that part late | engine | "lon!" | Starved at 0: Expected "lone!".
+literals that part late | engine | "lone!!" | NoMatch at 5: Input does not match 'Start'.
+literals that part late | tape | "" | Starved at 0: Expected ['a' | '[' | 'l'].
+literals that part late | tape | "a" | Starved at 0: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "ab" | Starved at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "abc" | Starved at 3: Expected "abcdef" or "abcxyz".
+literals that part late | tape | "abcd" | Starved at 4: Expected "abcdef".
+literals that part late | tape | "abcde" | Starved at 5: Expected "abcdef".
+literals that part late | tape | "bcdef" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | tape | "acdef" | NoMatch at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "abdef" | NoMatch at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "abcef" | NoMatch at 3: Expected "abcdef" or "abcxyz".
+literals that part late | tape | "abcdf" | NoMatch at 4: Expected "abcdef".
+literals that part late | tape | "abcdef!" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | tape | "abcdeff" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | tape | "[" | Starved at 1: Expected ['a' | '[' | 'l'].
+literals that part late | tape | "[a" | Starved at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "[ab" | Starved at 3: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "[abc" | Starved at 4: Expected "abcdef" or "abcxyz".
+literals that part late | tape | "[abcx" | Starved at 5: Expected "abcxyz".
+literals that part late | tape | "[abcxy" | Starved at 6: Expected "abcxyz".
+literals that part late | tape | "[abcxyz" | Starved at 7: Expected ']'.
+literals that part late | tape | "abcxyz]" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | tape | "[bcxyz]" | NoMatch at 1: Expected ['a' | '[' | 'l'].
+literals that part late | tape | "[acxyz]" | NoMatch at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "[abxyz]" | NoMatch at 3: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "[abcyz]" | NoMatch at 4: Expected "abcdef" or "abcxyz".
+literals that part late | tape | "[abcxz]" | NoMatch at 5: Expected "abcxyz".
+literals that part late | tape | "[abcxy]" | NoMatch at 6: Expected "abcxyz".
+literals that part late | tape | "[abcxyz]!" | NoMatch at 8: Input does not match 'Start'.
+literals that part late | tape | "[abcxyz]]" | NoMatch at 8: Input does not match 'Start'.
+literals that part late | tape | "bq" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | tape | "aq" | NoMatch at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | tape | "abq!" | NoMatch at 3: Input does not match 'Start'.
+literals that part late | tape | "abqq" | NoMatch at 3: Input does not match 'Start'.
+literals that part late | tape | "l" | Starved at 0: Expected "lone!".
+literals that part late | tape | "lo" | Starved at 0: Expected "lone!".
+literals that part late | tape | "lon" | Starved at 0: Expected "lone!".
+literals that part late | tape | "lone" | Starved at 0: Expected "lone!".
+literals that part late | tape | "one!" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | tape | "lne!" | Starved at 0: Expected "lone!".
+literals that part late | tape | "loe!" | Starved at 0: Expected "lone!".
+literals that part late | tape | "lon!" | Starved at 0: Expected "lone!".
+literals that part late | tape | "lone!!" | NoMatch at 5: Input does not match 'Start'.
+literals that part late | immediate | "" | Starved at 0: Expected ['a' | '[' | 'l'].
+literals that part late | immediate | "a" | Starved at 0: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "ab" | Starved at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "abc" | Starved at 3: Expected "abcdef" or "abcxyz".
+literals that part late | immediate | "abcd" | Starved at 4: Expected "abcdef".
+literals that part late | immediate | "abcde" | Starved at 5: Expected "abcdef".
+literals that part late | immediate | "bcdef" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | immediate | "acdef" | NoMatch at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "abdef" | NoMatch at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "abcef" | NoMatch at 3: Expected "abcdef" or "abcxyz".
+literals that part late | immediate | "abcdf" | NoMatch at 4: Expected "abcdef".
+literals that part late | immediate | "abcdef!" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | immediate | "abcdeff" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | immediate | "[" | Starved at 1: Expected ['a' | '[' | 'l'].
+literals that part late | immediate | "[a" | Starved at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "[ab" | Starved at 3: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "[abc" | Starved at 4: Expected "abcdef" or "abcxyz".
+literals that part late | immediate | "[abcx" | Starved at 5: Expected "abcxyz".
+literals that part late | immediate | "[abcxy" | Starved at 6: Expected "abcxyz".
+literals that part late | immediate | "[abcxyz" | Starved at 7: Expected ']'.
+literals that part late | immediate | "abcxyz]" | NoMatch at 6: Input does not match 'Start'.
+literals that part late | immediate | "[bcxyz]" | NoMatch at 1: Expected ['a' | '[' | 'l'].
+literals that part late | immediate | "[acxyz]" | NoMatch at 2: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "[abxyz]" | NoMatch at 3: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "[abcyz]" | NoMatch at 4: Expected "abcdef" or "abcxyz".
+literals that part late | immediate | "[abcxz]" | NoMatch at 5: Expected "abcxyz".
+literals that part late | immediate | "[abcxy]" | NoMatch at 6: Expected "abcxyz".
+literals that part late | immediate | "[abcxyz]!" | NoMatch at 8: Input does not match 'Start'.
+literals that part late | immediate | "[abcxyz]]" | NoMatch at 8: Input does not match 'Start'.
+literals that part late | immediate | "bq" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | immediate | "aq" | NoMatch at 1: Expected "abcdef", "abcxyz" or "abq".
+literals that part late | immediate | "abq!" | NoMatch at 3: Input does not match 'Start'.
+literals that part late | immediate | "abqq" | NoMatch at 3: Input does not match 'Start'.
+literals that part late | immediate | "l" | Starved at 0: Expected "lone!".
+literals that part late | immediate | "lo" | Starved at 0: Expected "lone!".
+literals that part late | immediate | "lon" | Starved at 0: Expected "lone!".
+literals that part late | immediate | "lone" | Starved at 0: Expected "lone!".
+literals that part late | immediate | "one!" | NoMatch at 0: Expected ['a' | '[' | 'l'].
+literals that part late | immediate | "lne!" | Starved at 0: Expected "lone!".
+literals that part late | immediate | "loe!" | Starved at 0: Expected "lone!".
+literals that part late | immediate | "lon!" | Starved at 0: Expected "lone!".
+literals that part late | immediate | "lone!!" | NoMatch at 5: Input does not match 'Start'.

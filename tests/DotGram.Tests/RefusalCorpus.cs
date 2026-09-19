@@ -72,6 +72,14 @@ static class RefusalCorpus
 			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
 			"parse Start\n",
 			["a = b", "a"]),
+
+		// A choice of literals is refused at the deepest character any of them agreed with,
+		// naming those still agreeing there; a lone literal, where it stopped fitting.
+		("literals that part late",
+			"Start = Word | '[' & Start & ']' | \"lone\" & '!'\n" +
+			"Word = \"abcdef\" | \"abcxyz\" | \"abq\"\n" +
+			"parse Start\n",
+			["abcdef", "[abcxyz]", "abq", "lone!"]),
 	];
 
 	static readonly (string Name, bool Direct, CarrierKind Carrier)[] Renderings =

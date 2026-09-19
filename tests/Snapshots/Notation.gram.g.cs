@@ -2964,8 +2964,16 @@ namespace DotGram.Snapshots
 				if (q0 < 0) return -1;
 				p = q0;
 				r0 = ways.Last;
-				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
+				if ((uint)(p + 2) > (uint)text.Length)
 				{
+					failure.OutOfInput = p + 1;
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
+					return -1;
+				}
+				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
+				{
+					if (!failure.Quiet)
+						p = Recognize_DotGram_Primary_Agreeing(text, p, "()", false);
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
 					return -1;
 				}
@@ -3020,8 +3028,16 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var rb = ways.RefsCount;
-				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
+				if ((uint)(p + 2) > (uint)text.Length)
 				{
+					failure.OutOfInput = p + 1;
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
+					return -1;
+				}
+				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
+				{
+					if (!failure.Quiet)
+						p = Recognize_DotGram_Primary_Agreeing(text, p, "()", false);
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
 					return -1;
 				}
@@ -3601,6 +3617,16 @@ namespace DotGram.Snapshots
 
 		static string[]? Recognize_DotGram_Ab_Expected0_Built;
 		static string[] Recognize_DotGram_Ab_Expected0 => Recognize_DotGram_Ab_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Ab_Expected0_Built, new string[] { "['a'..'b']" }, null) ?? Recognize_DotGram_Ab_Expected0_Built!;
+
+		static int Recognize_DotGram_Primary_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		{
+			var i = 0;
+
+			while (i < value.Length - 1 && (fold ? global::System.Char.ToUpperInvariant(text[p + i]) == global::System.Char.ToUpperInvariant(value[i]) : text[p + i] == value[i]))
+				i++;
+
+			return p + i;
+		}
 
 		static string[]? Recognize_DotGram_Primary_Expected0_Built;
 		static string[] Recognize_DotGram_Primary_Expected0 => Recognize_DotGram_Primary_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Primary_Expected0_Built, new string[] { "\"()\"" }, null) ?? Recognize_DotGram_Primary_Expected0_Built!;
