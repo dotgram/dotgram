@@ -23885,3 +23885,51 @@ a rewrite of the graph, like the seam; a reader change, like `eol`; or intended.
 inside an atomic group or a lookahead, or the rule is an entry. Whatever a caller does, nobody
 reads them again, so the gate should not count them. It does today, because it asks whether a
 rule opens a way and not whether anything can come back into it.
+
+## A long SQL:2023 condition, linear again (the value store)
+
+The stand's linearity run found SQL:2023's search condition growing faster than its input: 62 ms for
+a thousand predicates, 112 times the hand parser. `a0 + a1 + …` did the same, so the cause was not
+`AND`. It was the towers, whose guards are handed the whole list of operands.
+
+There were two causes, one after the other. The first was the walk: a guard's list was built an
+element at a time, and each walk read the log from the start of the expression, n × O(n).
+performance-ff fixed that in 584a7c1f. The second was the store, and this entry is about it.
+Machines whose guards build while they read index their value tables by record. Room made every
+table as long as the log before each walk, one table per type: 302 in SQL:2023. The thread let a
+store go once all its tables added together passed a million cells. So after about 3,500 records
+every parse rented an empty store and grew all 302 tables again: 164 MB for a thousand
+predicates, 328 MB for two thousand.
+
+The first answer was to index those machines densely, as the others already are. It was linear,
+but the stand's pair turned it down. Every short parse on the tape got slower: all of EL by 10 to
+23 per cent, `sql/column` by 42, `select1` by 20, `tsql/comment` by 25. In the profile the cost sat
+in the walk's arms. A dense arm calls `Add` for every value it writes and reads every value
+through Starts, which is one call and one indirection a record against a record-indexed store's
+cached array. In a materializer too large for the jit to inline, that is a fifth of a short parse.
+
+What went in instead keeps the record index. A table is grown where a value is written into it
+(`DirectGrow`, `values.GrowN`), no longer by Room ahead of the walk, so only a type that is
+written as far as the log is ever as long as the log. Return lets the store go table by table,
+and looks only at the tables that were written to, which the marks D2 left say: a table of
+values over 65,536, or an array indexed by record over 1,048,576, is replaced with a small one,
+and the rest of the store is kept. The mixed store's Return used to add up all 302 lengths on
+every parse; it no longer adds up anything, so the short parses got faster too.
+
+On the stand's rows, alternating with 584a7c1f in the same run, `.work/small` and `.work/lin` on cores
+16-31:
+
+| Input | Before | After |
+| --- | --- | --- |
+| `sql/column` | 1,230 ns | 1,040-1,090 ns |
+| `sql/select1` | 6,590-6,780 ns | 5,876 ns |
+| `el/floor`, `el/ladder` | 930 / 2,170 ns | 922-938 / 2,156-2,179 ns |
+| `and`, 1,000 predicates | 35.2 ms, 164 MB | 4.4 ms, 1.6 MB |
+| `and`, 2,000 predicates | 78.6 ms, 328 MB | 8.8 ms, 3.2 MB |
+| `plus`, 2,000 terms | 42.2 ms, 163 MB | 3.8 ms, 1.2 MB |
+
+Every exponent is now at most 1.08. The hand parser takes 0.55 ms for a thousand predicates, so
+about eight times remains, and it no longer grows with the input. `SqlConditionScalingTests` in
+DotGram.Tests.Slow holds the time to linear and a predicate to 8 KB. Against main's generator it
+fails at 168 KB a predicate and 27.8 times the time for ten times the input. Only the store that
+holds dense tables changes; a small grammar's store, and so every snapshot, is as it was.

@@ -687,6 +687,31 @@ sealed partial class Machine
 			? $"if ({index} >= values.N{TableName(type)}) values.N{TableName(type)} = {index} + 1;"
 			: "";
 
+	/// <summary>
+	/// What a record-indexed write into a store that also holds dense tables does first: grows
+	/// the one table it writes, where the table is too short for the record.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The same store as <see cref="DirectMark"/>'s. Room used to make every table as long as the
+	/// log before a walk, and in SQL:2023 that is three hundred tables for the few a guard asks
+	/// about: a thousand predicates grew 164 MB of them, and the thread let so large a store go,
+	/// so that every long parse after it grew them all again. A table grown where it is written
+	/// is as long as the log only where its type is written that far on, and a type nothing
+	/// writes stays as it was rented.
+	/// </para>
+	/// <para>
+	/// Grown here and not where values are read: a value is read by the record that wrote it,
+	/// after it was written, so the table already reaches it. Dense indexing would have bounded
+	/// the tables too, but it costs every value a map read and every write a call, and a short
+	/// parse is mostly that: it made them a fifth to two fifths slower.
+	/// </para>
+	/// </remarks>
+	string DirectGrow(string type, string index) =>
+		!DenseDirectValues && _denseStore && TableFor(type) >= 0 && Carrier is not TapeCarrier { AdaptiveStore: true }
+			? $"if ((uint){index} >= (uint)values{TableName(type)}.Length) values{TableName(type)} = values.Grow{TableName(type)}({index});"
+			: "";
+
 	/// <summary>The materializer for one direct machine: a walk over the log, a switch per rule.</summary>
 	/// <remarks>
 	/// Written twice where once will not do. The walk around the arms is half of what the
@@ -1102,6 +1127,9 @@ sealed partial class Machine
 			if (DenseDirectValues)
 				file.Line($"var valueSlot = values.Add{TableName(type)}(slot);");
 
+			if (DirectGrow(type, "slot") is { Length: > 0 } grown)
+				file.Line(grown);
+
 			if (_reread is not null && _reread.Contains(rule))
 			{
 				// A terminal that builds: the lexer measured it, and the character machine of its
@@ -1176,6 +1204,9 @@ sealed partial class Machine
 
 			if (DenseDirectValues)
 				file.Line($"var valueSlot = values.Add{TableName(type)}(slot);");
+
+			if (DirectGrow(type, "slot") is { Length: > 0 } grown)
+				file.Line(grown);
 
 			var arguments = new List<string>();
 

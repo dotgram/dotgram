@@ -1315,6 +1315,15 @@ public static partial class CSharpEmitter
 	/// The check was a tenth of what building a tree cost. An array of structs is not
 	/// covariant, and a store into a field of one asks nothing.
 	/// </remarks>
+	/// <summary>The longest table of values a thread keeps for its next parse.</summary>
+	const int TableKept = 65536;
+
+	/// <summary>
+	/// And the longest of the arrays indexed by record — the flags and the maps every walk reads —
+	/// which are as long as the log, not as the values of one type.
+	/// </summary>
+	const int RecordsKept = 1048576;
+
 	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false, bool markPositions = false)
 	{
 		var text = new StringBuilder();
@@ -1350,20 +1359,41 @@ public static partial class CSharpEmitter
 		Spares(text, "DirectValues");
 		text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 
-		var capacities = Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
-			.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
-		if (stateType is not null)
-			capacities.Add("values.MarkState.Length");
-		if (stateType is not null && markPositions)
-			capacities.Add("values.MarkAt.Length");
-		text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
-		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
+		if (dense)
+		{
+			// Table by table, and only the tables written to: the store holds a table per value
+			// type, three hundred for SQL:2023, and a bound on them summed was passed by the first
+			// long parse, after which every parse rented an empty store and grew it again. An
+			// oversized table is let go and the store with the rest is kept.
+			text.Append("\t\t// An oversized table is let go instead of retained by the thread; the rest are kept.\n");
+			text.Append("\t\tif (values.Live.Length > ").Append(RecordsKept).Append(" || values.Starts.Length > ").Append(RecordsKept)
+				.Append(" || values.Built.Length > ").Append(RecordsKept).Append(")\n\t\t{\n");
+			text.Append("\t\t\tvalues.Live   = new bool[16];\n\t\t\tvalues.Starts = new int[16];\n\t\t\tvalues.Built  = new bool[16];\n\t\t\tvalues._used  = 0;\n\t\t}\n");
+			if (stateType is not null)
+				text.Append("\t\tif (values.MarkState.Length > ").Append(TableKept).Append(") values.MarkState = new ").Append(stateType).Append("[8];\n");
+			if (stateType is not null && markPositions)
+				text.Append("\t\tif (values.MarkAt.Length > ").Append(TableKept).Append(") values.MarkAt = new int[8];\n");
+			text.Append("\n");
+		}
+		else
+		{
+			var capacities = Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
+				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
+			if (stateType is not null)
+				capacities.Add("values.MarkState.Length");
+			if (stateType is not null && markPositions)
+				capacities.Add("values.MarkAt.Length");
+			text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
+			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
+		}
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (dense)
 			{
 				text.Append("\t\tif (values.N").Append(i).Append(" > 0)\n\t\t{\n");
-				text.Append("\t\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values.N").Append(i).Append(", values.V").Append(i).Append(".Length));\n");
+				text.Append("\t\t\tif (values.V").Append(i).Append(".Length > ").Append(TableKept).Append(") values.V").Append(i)
+					.Append(" = new Held<").Append(valueTypes[i]).Append(">[16];\n");
+				text.Append("\t\t\telse global::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values.N").Append(i).Append(", values.V").Append(i).Append(".Length));\n");
 				text.Append("\t\t\tvalues.N").Append(i).Append(" = 0;\n\t\t}\n");
 			}
 			else if (adaptive)
@@ -1389,10 +1419,13 @@ public static partial class CSharpEmitter
 		{
 			// The marks are raised where a value is stored, not here: making room for a record
 			// in every table says nothing about which tables the walk will write.
+			// Nor are the tables made long here: a machine that writes by record grows the table
+			// it writes, where it writes (Machine.DirectGrow), so that a type nothing wrote that
+			// far is not as long as the log.
 			text.Append("\t\tif (dense) return;\n\t\tif (Built.Length < count) global::System.Array.Resize(ref Built, Live.Length);\n");
 		}
 
-		for (var i = 0; i < valueTypes.Count; i++)
+		for (var i = 0; i < valueTypes.Count && !dense; i++)
 			if (adaptive)
 				text.Append("\t\tif (V").Append(i).Append(".First.Length < count && V").Append(i).Append(".First.Length < 256) V").Append(i).Append(".Room(count);\n");
 			else
@@ -1408,6 +1441,11 @@ public static partial class CSharpEmitter
 				text.Append("\t\tvar index = N").Append(i).Append("++;\n");
 				text.Append("\t\tif (index == V").Append(i).Append(".Length) global::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(16, index * 2));\n");
 				text.Append("\t\tStarts[record] = index;\n\t\treturn index;\n\t}\n");
+
+				// The table a record-indexed write reaches past, grown to reach it.
+				text.Append("\tinternal Held<").Append(valueTypes[i]).Append(">[] Grow").Append(i).Append("(int record)\n\t{\n");
+				text.Append("\t\tglobal::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(record + 1, V").Append(i).Append(".Length * 2));\n");
+				text.Append("\t\treturn V").Append(i).Append(";\n\t}\n");
 			}
 		text.Append("}\n\n");
 

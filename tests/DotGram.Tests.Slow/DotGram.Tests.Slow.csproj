@@ -21,6 +21,8 @@
 		<!-- The generator is called here, not run over this project. -->
 		<!-- The examples, for what is held to a bound over a whole grammar: StockCountScalingTests. -->
 		<ProjectReference Include="..\..\examples\DotGram.Examples\DotGram.Examples.csproj" />
+		<!-- And SQL, for the long condition a shipped parser has to read in linear time: SqlConditionScalingTests. -->
+		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
 
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
