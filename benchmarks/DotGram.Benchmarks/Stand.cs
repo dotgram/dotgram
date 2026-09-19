@@ -920,6 +920,9 @@ static partial class Stand
 			PairedExpression("nest7",         "(int x) => (((((((x)))))))", before, after),
 			PairedExpression("block",         "(int x) => { x += 1; x *= 2; return x; }", before, after),
 			PairedExpression("loop",          "(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }", before, after),
+			// The linearity family's chain, at the sizes where a walk of the log from its start shows: a term is `+ x`.
+			PairedExpression("terms100",      "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", 100)), before, after),
+			PairedExpression("terms1000",     "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", 1000)), before, after),
 			PairedExpression("overloads",     "(int x) => System.Math.Max(x, 1)", before, after),
 			PairedExpression("string",        "(int x) => \"a plain string literal, with no escape in it\"", before, after),
 			PairedExpression("interpolation", "(int x) => $\"{x,5:D3} and {x + 1}\"", before, after),

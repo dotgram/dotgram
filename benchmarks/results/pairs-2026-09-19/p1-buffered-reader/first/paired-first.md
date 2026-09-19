@@ -1,0 +1,63 @@
+# Paired first calls, 2026-09-19 08:36
+
+First call in a fresh process, median of 5: milliseconds, methods the runtime compiled during it, and the time it spent compiling them (JitInfo, no events). The hand reading is this build's own.
+
+| row | reading | ms | methods | JIT ms |
+| --- | --- | ---: | ---: | ---: |
+| fix/One.text | hand | 4.32 | 42 | 4.10 |
+| fix/One.text | before | 6.23 | 77 | 6.05 |
+| fix/One.text | after | 6.16 | 77 | 5.98 |
+| fix/One.bytes | hand | 4.24 | 42 | 4.02 |
+| fix/One.bytes | before | 6.72 | 86 | 6.47 |
+| fix/One.bytes | after | 6.75 | 86 | 6.50 |
+| fix/One.stream | hand | 4.59 | 51 | 4.48 |
+| fix/One.stream | before | 7.70 | 105 | 7.34 |
+| fix/One.stream | after | 7.78 | 107 | 7.43 |
+| fix/Order.text | hand | 5.84 | 78 | 5.41 |
+| fix/Order.text | before | 7.70 | 117 | 7.42 |
+| fix/Order.text | after | 7.61 | 117 | 7.34 |
+| fix/Order.bytes | hand | 5.92 | 78 | 5.50 |
+| fix/Order.bytes | before | 8.45 | 126 | 8.11 |
+| fix/Order.bytes | after | 8.39 | 126 | 8.05 |
+| fix/Order.stream | hand | 5.79 | 85 | 5.62 |
+| fix/Order.stream | before | 9.14 | 139 | 8.65 |
+| fix/Order.stream | after | 9.06 | 141 | 8.59 |
+| fix/slope-0.text | hand | 1.75 | 14 | 1.59 |
+| fix/slope-0.text | before | 2.65 | 33 | 2.56 |
+| fix/slope-0.text | after | 2.65 | 33 | 2.57 |
+| fix/slope-4.text | hand | 4.33 | 42 | 4.10 |
+| fix/slope-4.text | before | 6.19 | 78 | 5.99 |
+| fix/slope-4.text | after | 6.28 | 78 | 6.08 |
+| fix/slope-16.text | hand | 4.50 | 44 | 4.16 |
+| fix/slope-16.text | before | 6.49 | 84 | 6.24 |
+| fix/slope-16.text | after | 6.38 | 84 | 6.14 |
+| fix/slope-0.bytes | hand | 1.75 | 14 | 1.59 |
+| fix/slope-0.bytes | before | 3.26 | 40 | 3.15 |
+| fix/slope-0.bytes | after | 3.26 | 40 | 3.15 |
+| fix/slope-4.bytes | hand | 4.32 | 42 | 4.09 |
+| fix/slope-4.bytes | before | 6.86 | 87 | 6.61 |
+| fix/slope-4.bytes | after | 6.85 | 87 | 6.59 |
+| fix/slope-16.bytes | hand | 4.55 | 44 | 4.20 |
+| fix/slope-16.bytes | before | 7.02 | 93 | 6.74 |
+| fix/slope-16.bytes | after | 7.08 | 93 | 6.79 |
+| fix/slope-0.stream | hand | 1.96 | 22 | 1.91 |
+| fix/slope-0.stream | before | 2.12 | 29 | 1.96 |
+| fix/slope-0.stream | after | 2.12 | 29 | 1.96 |
+| fix/slope-4.stream | hand | 4.56 | 51 | 4.43 |
+| fix/slope-4.stream | before | 7.67 | 106 | 7.29 |
+| fix/slope-4.stream | after | 7.62 | 108 | 7.24 |
+| fix/slope-16.stream | hand | 4.57 | 51 | 4.43 |
+| fix/slope-16.stream | before | 7.58 | 106 | 7.19 |
+| fix/slope-16.stream | after | 7.74 | 108 | 7.34 |
+| feeds/stock-count.small.reader | hand | 1.25 | 22 | 1.08 |
+| feeds/stock-count.small.reader | before | 4.07 | 67 | 3.72 |
+| feeds/stock-count.small.reader | after | 4.11 | 68 | 3.77 |
+| feeds/stock-count.small.reader64 | hand | 1.22 | 22 | 1.07 |
+| feeds/stock-count.small.reader64 | before | 4.04 | 67 | 3.70 |
+| feeds/stock-count.small.reader64 | after | 4.07 | 68 | 3.73 |
+| feeds/stock-count.good.reader | hand | 1.51 | 21 | 1.08 |
+| feeds/stock-count.good.reader | before | 4.35 | 65 | 3.63 |
+| feeds/stock-count.good.reader | after | 4.30 | 65 | 3.59 |
+| feeds/stock-count.good.reader64 | hand | 1.51 | 21 | 1.07 |
+| feeds/stock-count.good.reader64 | before | 4.32 | 65 | 3.58 |
+| feeds/stock-count.good.reader64 | after | 4.29 | 65 | 3.57 |
