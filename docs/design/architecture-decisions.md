@@ -216,6 +216,11 @@ timing on 0-15 beyond its spread — generated readings -0.7..+0.4%, the hand pa
 their 5-14%, the stand's control +1.4%. The rule stands as amended: builds and tests pinned to
 16-31 while the stand times; an unpinned build is not, it took an earlier window to pieces.
 
+**Asked by Igor 2026-09-19, when there is time:** the same rows on net8.0 against net10.0 — the
+generated and the hand parsers apart, since the ratio between them may move with the runtime's
+JIT; every family, the first call and its compiled methods beside the steady state, default PGO
+with a twin if there is room. What is wanted from it is whether net8 is worth measuring on at all.
+
 **The full baseline of 2026-09-18 evening (stand, medians of five, every family; the doc is
 `docs/design/stand-2026-09-18b.md` with the raw results).** What it settled:
 - Every generated-to-hand ratio is quoted **with default tiered PGO**, and the PGO=0 run is kept
