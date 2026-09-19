@@ -1436,6 +1436,18 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    them into names where `AS` follows), which is a rewrite with a guard beside a group. All
    three are recorded as intentional, like the six atomic ones, and not touched; the third is
    taken up only when C has brought the cycle to one or two causes and it is the one left.
+   **The causes report (sql-39's form, approved 2026-09-18):** what GRAM5012 decides goes into
+   the existing `*.DotGramReport.g.cs`, under the same MSBuild property, as rows — the carrier
+   `Auto` chose and the gate, each building rule the tape keeps with its `Replay.Because` and,
+   for a direct cause, its site (the owner rule; which later alternative overlaps on which
+   token, or what fails after a turn, or the lookahead), for an `Under` the direct cause it
+   hangs under, and for the second gate the rules the reader can read again with the node that
+   opened the way. Sites are kept only under the property, so the ordinary generation carries
+   nothing. `--carriers` in the benchmarks project collects the reports and writes
+   `docs/carriers.md` ("written by --carriers, never edited"; a line in the layout and in the
+   docs index): a table per grammar — building, kept, held by `Replay`, direct causes, second
+   gate, carrier — then each grammar's causes by owner. C and the seam rewrite are measured
+   by its diff.
 2. **Diagnostics off the hot path** — go. Where recording the furthest failure stands in the way of
    a faster reading, it leaves the fast path: the fast reading records nothing, and a refused
    input is read again with recording on, which gives the same message. Where a second reading is
