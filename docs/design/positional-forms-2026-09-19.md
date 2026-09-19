@@ -17,7 +17,8 @@ Match<R> TryParseR(string input, int at);              // begins at `at`, need n
 Match<R> TryParseR(string input, int at, int length);  // and sees nothing from `at + length` on
 ```
 
-Four things are missing, and one is wrong.
+Four things are missing, one is wrong, and one place a host is sent away it should not be
+(§1.5, sql-39's on real SQL scripts).
 
 ### 1.1 The form that moves a position and says nothing
 
@@ -47,6 +48,10 @@ The positional and window forms read the trivia after the rule, as the whole for
 position that comes back is past it, and `Match.Length` counts it. That is wrong for the thing
 these forms are for: a value's extent ends where the value ends, and a host reading a piece of a
 text it holds wants exactly that piece.
+
+**Over a grammar cut into tokens this is already so**: the lexer eats the trivia, the entry is
+the rule alone, and the reading ends at the end of its last token. So this is a change over
+characters, and it makes the two halves answer alike.
 
 **Proposal: the positional and window forms stop where the rule ends, and read no trivia after
 it.** Not an option, not a modifier, not a parameter — the other behaviour is not wanted by
@@ -83,6 +88,27 @@ a reading that deepens onto a second thread, an external recognizer taking `Pars
 construction reading `parserInput`. Where it does, the span forms are left out, as §6.3 leaves
 out the forms a machine cannot offer. Positions and the rule are the same; a captured text is cut
 from the span.
+
+### 1.5 Where a reading may begin
+
+Over a grammar cut into tokens the positional form refuses an `at` that is not the start of a
+token of the whole text. A host reading a SQL script one statement at a time — sql-39's case —
+hands in the position after the previous statement, which is a newline, a line comment, or a
+block comment, and is sent away to implement the language's trivia itself: line comments, nested
+block comments, and what is a space in this dialect. That is the whole of what the third
+directive was wanted for, and the window form does not answer it, because it asks for a length
+and the length is what the host is trying to find out.
+
+**Proposal: the reading skips the trivia at `at` and begins at the first token at or after it,
+and `Match.Position` says where it really began.** Over characters that is what the entry already
+does with the leading trivia; over tokens it falls out of tokenizing from `at` (section 2): the
+lexer starts there, skips what is trivia to it, and the first token it makes is the first token
+at or after `at`. Where nothing but trivia is left, the reading refuses as an empty input does.
+
+`Match.Position` therefore becomes where the value begins rather than the `at` it was handed, and
+`Match.Length` its own extent — with §1.2, exactly the value and neither the trivia before it nor
+the trivia after. The `ref` forms move `at` to the end of the value. The whole-input form is
+unchanged: its `Position` is 0 and its `Length` the whole input.
 
 ## 2. Lazy tokens over a split grammar: an acceptance condition
 
@@ -125,6 +151,9 @@ window form already has it.
   §6.3.
 - The block is a count of tokens, not of characters, and its size is an implementation choice;
   it never changes an answer.
+- Tokenizing from `at` is also what lets a reading begin between tokens of the whole text
+  (§1.5): the lexer is asked to begin there, so where the whole text sees one token a positional
+  reading may see the beginning of another, which is what a host reading a piece of a text means.
 
 Cost of the loop after this: each reading lexes the tokens it reads, plus at most one block, so a
 loop over a text costs the text once.
@@ -145,7 +174,8 @@ from a position is. Draft for Igor:
 > ```
 >
 > This is how one value is read from a place in a text: the rest of the input is not the reading's
-> business. The `bool` forms are the `bool` form of §6.1 with a position: one quiet reading, no
+> business. `Position` is where the value begins — the trivia at `at` is skipped — and `Length` is
+> its own extent. The `bool` forms are the `bool` form of §6.1 with a position: one quiet reading, no
 > message, and `at` moved to the end of what was read, or left where it was and `false`.
 >
 > **Where such a reading ends.** It reads the trivia at `at`, then one `R`, and stops where the
@@ -161,10 +191,15 @@ from a position is. Draft for Igor:
 > What comes back says where the reading began and how far it got, and every position in it — and
 > in whatever the reading builds — is an offset into `input`, so a host reading a piece of a text
 > it holds keeps what those positions mean. The first form has to begin where a token of the text
-> begins, and is refused elsewhere; the window form cuts only the window into tokens, so it may
-> begin anywhere, and a character no token begins with ends the tokens rather than refusing the
-> reading: a hole in an interpolated string, read up to the `:` its format begins with, is the
-> shape it is for. A publication compiled as a plain method, with the one entry a whole parse
+> begins; where `at` is inside trivia — a newline, a comment — the reading begins at the first
+> token after it, and `Position` says where. The window form cuts only the window into tokens, so
+> it may begin anywhere, and a character no token begins with ends the tokens rather than refusing
+> the reading: a hole in an interpolated string, read up to the `:` its format begins with, is the
+> shape it is for.
+>
+> **What `eof` means here.** A reading from a position ends where the rule ends, not where the
+> input does, so `eof` written in a rule (§7.4) is still the end of the whole input; inside a
+> window it is the end of the window, which is the whole of what a window is. A publication compiled as a plain method, with the one entry a whole parse
 > needs, gets none of them: its rules were proved to need nothing else only against the end of
 > the input.
 
@@ -179,7 +214,10 @@ The bytes and span forms belong in the same paragraph in one sentence each, once
   engine's registered entry, and the lowered form, which has neither today and keeps none.
 - **Nothing about the analysis changes.** The positional entry is the one that exists; its rule
   is analyzed with the follow a `parse` seeds (`Continuation.End`), which is what these forms
-  already read under. No carrier gate moves, and `carriers.md` does not change.
+  already read under — decided, no seed of its own. No carrier gate moves, and `carriers.md` does
+  not change.
+- **`TokenAt`** (the binary search for a token beginning exactly at `at`) goes: the lexer begins
+  at `at` and the first token it makes is the answer (§1.5).
 - **The `bool` forms** are the quiet reading of 9acc28ac with `pos` at `at` and the end written
   back, and they recycle the tokens on every path.
 - **`BufferedKinds`** (section 2) is the one new piece of support, emitted for a split grammar
@@ -193,6 +231,11 @@ The bytes and span forms belong in the same paragraph in one sentence each, once
 - The end of a reading: trailing trivia left where it is (`Match.Length` and the moved `at`), in
   the positional, window and `bool` forms; the expression language's hole unchanged.
 - PEG order: `'a' | 'ab'` over `ab`; `?!` as the boundary; over kinds the end of the last token.
+- Beginning inside trivia: a SQL script of several statements read one at a time, where the
+  position handed in is a newline, a line comment and a block comment in turn; `Position` says
+  where each statement began; a tail of nothing but trivia refuses.
+- `eof` in a rule read from a position is the end of the input, and inside a window the end of the
+  window.
 - Lazy tokens: a text of N values read in a loop costs time linear in N (the shape of the curve,
   as `--big` does it, not a wall-clock bound); a value at the end of a long text is read without
   tokenizing what is after it (a counter in the test's own lexer, or the block count); the answers
@@ -207,8 +250,12 @@ The bytes and span forms belong in the same paragraph in one sentence each, once
 
 ## 6. Open, for Igor
 
-1. **The trailing trivia** (§1.2): a behaviour change to the positional and window forms, with no
-   option offered. I recommend it; the alternative is a second pair of names, which is worse.
-2. **Bytes without `stream`** (§1.3): a notation question, left out of this design.
-3. **A reading session** that keeps a tokenization across readings (section 2): an API question,
+1. **The trailing trivia** (§1.2): a behaviour change to the positional and window forms over
+   characters, with no option offered; over tokens it is already so. I recommend it; the
+   alternative is a second pair of names, which is worse.
+2. **Where a reading begins** (§1.5): `at` inside trivia is a refusal today and becomes the first
+   token after it, with `Position` saying where. §6.3 says "refused elsewhere" today, so this is
+   a change to the specification as well as to the forms.
+3. **Bytes without `stream`** (§1.3): a notation question, left out of this design.
+4. **A reading session** that keeps a tokenization across readings (section 2): an API question,
    left out; `BufferedKinds` makes the loop linear without it.
