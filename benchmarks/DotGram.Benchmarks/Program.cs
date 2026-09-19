@@ -220,6 +220,15 @@ static class Program
 			return;
 		}
 
+		// `--el-terms dir...` reads the expression language's tape at a thousand terms in each directory's build, unpinned:
+		// a rough figure for a bisection on a busy machine, good for an eightfold effect and for nothing finer.
+		if (args.Length >= 2 && args[0] == "--el-terms")
+		{
+			Stand.ElTerms(args[1..]);
+
+			return;
+		}
+
 		if (args.Length == 4 && args[0] == "--stand-held-one")
 		{
 			Stand.HeldOne(args[1], args[2], args[3]);
