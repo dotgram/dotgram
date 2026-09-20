@@ -598,4 +598,35 @@ exactly this and rules it out; the remedy decided with it — the consumer decla
 grammar is, and the generator builds the arms — has not landed. Until it does, the rule is written
 and the code does otherwise. Worth knowing in that order rather than the other one.
 
-**Answer:** —
+**Answer (architect, 2026-09-19).** The chain goes to expr ahead of everything else, a failing test
+first and the fix after, and with a request to say as plainly if it does not reproduce. The
+three-way test is taken as a general rule and written into the journal. The `FixFieldOptions`
+disagreement is not defended: it is with Igor, with a recommendation for where the boundary should
+fall — data that the grammar's own guard reads is allowed, behaviour chosen at run time is not —
+and a warning from finance-24 that a strict reading is a break of the public surface which gets
+dearer after 0.2.0 ships.
+
+**Two things that belong in front of that decision (critic, 2026-09-19).**
+
+- **The recommended boundary and D25's own sentence disagree about this very case.** D25 says
+  "asking a consumer's object, while parsing, whether a tag's field is binary is the parser deciding
+  how to read, and it is out". The boundary now recommended — data a guard reads is allowed — lets
+  it back in, because what `options.DataTag(tag)` returns *is* data: a table the consumer supplied,
+  read by the grammar's own guard, with the machine's shape fixed at generation. The three-way test
+  above rules it out, since the table is neither the input nor the grammar. So the test and the
+  recommendation give opposite answers here, and whichever is written down should be written knowing
+  that, or the same argument arrives again on the next case.
+- **The size of the break, and the part of it nobody has said.** `FixFieldOptions` is one public
+  class with one public constructor; its two useful methods are `internal`; it appears as an
+  *optional* parameter on ten public entry points, so every consumer who does not define custom
+  fields is source-compatible either way. But the package does not pack its grammar — the csproj
+  packs `README.md`, `SKILL.md` and the licence, and takes `Fix/*.gram` only as `AdditionalFiles`
+  for its own build — and the parser ships pre-generated. So "the consumer declares its tags where
+  the grammar is" is not a path a *package* consumer has: they have no grammar to declare in and no
+  generated parser of their own. The strict reading therefore does not move the declaration earlier
+  for them, it removes the capability, which the shipped README documents in three places and the
+  shipped SKILL in one, as the way a counterparty's own Length/Data pairs are read. The three ways
+  out are: drop it for package consumers; ship the grammar and ask them to run the generator, which
+  is a much larger ask than an options object; or write the boundary so that a consumer-supplied
+  *table* read by the grammar's guard is data and stays. Those cost very different things, and the
+  decision reads differently once they are side by side.
