@@ -6233,3 +6233,38 @@ confirmed.
 
 And Q25 does not close Q20: it holds the *tables* equal, while what a parse says when it refuses
 is still held for one input form and for none of the others.
+
+## D72. Igor: a plain array of validation delegates, replaceable at any moment, 2026-09-20
+
+The build-time road must produce **code**, not arrays: if compiling a dictionary only builds the
+same tables earlier, loading covers it entirely and there is no second road. So a compiled
+dictionary generates validation as straight-line code per message type, and the difference between
+the two roads becomes real rather than a matter of when a table is filled.
+
+**Overriding is a delegate, not inheritance.** Our field classes and message models are sealed and
+an exhaustive switch over them is something a consumer relies on; opening the hierarchy takes that
+from everyone, and it would need a second seam so that the builder constructs a consumer's
+subclass. A replaceable delegate keeps the types sealed, keeps the pattern match exhaustive, and
+needs no seam.
+
+**The shape, decided: a plain array on the validator, written at any moment.** No immutability, no
+copy on first write, no meaning attached to null, no restore. The validator holds its own array
+from construction, a slot is a reference and its replacement is atomic, and loading an external
+dictionary is simply a method that writes many slots. **Last write wins, and restoring anything is
+the consumer's business, because the consumer controls all of it.**
+
+The constraint I had proposed — immutable after construction — was inherited from the parse
+options' shape rather than derived from this one's need, and it is withdrawn. Reading a slot
+concurrently with replacing it is safe: a reader sees one delegate or the other. The one hazard is
+order, and it needs a sentence rather than a rule: a dictionary loaded after an override overwrites
+it.
+
+**One thing follows if restoring is the consumer's business: they must be able to.** The generated
+defaults are a table we ship, so it is readable and a consumer can put an entry back. Otherwise
+"you control all of it" is not true.
+
+**Custom messages use the same mechanism in the shape already chosen next door**: a dense array by
+number for what we compiled in, a rare map by type code for what we did not — the slow branch
+reached only by what was never described. And "custom" is a state rather than a property: undescribed,
+described at run time by a loaded dictionary, or described at build time and no longer custom at
+all. One delegate shape throughout, taking the base message, since a table can hold only one.
