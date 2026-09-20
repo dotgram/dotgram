@@ -4417,3 +4417,21 @@ And the two measurements that disagreed by 193,487 now agree to the byte: 730,67
 1,682 = 924,160. Each had answered its own question correctly all along — one counting what is in
 the metadata, the other what the file loses — and the disagreement was between the questions, not
 between the numbers. That is the sentence to keep from the whole episode.
+
+**D36's flush is fixed (`fc0bb08f`) and was not the cause.** Merged walks over the corpus went from
+45 to 57, 3.1% to 4.0%. sql-39 counted 45% of asks as second or later in one guard's run; between
+that and four per cent lies something other than the flush, and expr declines to call either figure
+"the share the change takes" until the two methods are one. The candidates are named: the counters
+may count different things — asks on a build without the change against merges on a build with it —
+or the samples differ, two hundred files split on the batch separator against the whole corpus of
+7,716 statements.
+
+**That reconciliation is now the interesting question, not a tidiness.** If 45% of asks really are
+non-first in a run while only 4% merge, then nine tenths of the clusters are not being merged for
+some reason nobody has named, and that reason is worth ten times the change already written. If it
+is the sample, the static and dynamic counts agree after all and the change takes what it takes.
+Either answer is worth having, and it costs one run: the same counter, on the current build, over
+the same named set of files. Ordered from sql-39, who has the counter.
+
+The pair does not wait on it: the new criterion names `sql/select20`, which merges 107 of 194
+walks, and the SQL:2023 rows.
