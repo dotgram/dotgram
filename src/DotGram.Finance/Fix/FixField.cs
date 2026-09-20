@@ -228,13 +228,20 @@ public abstract class FixField : IFixLocation
 	/// Represents a tag without a dedicated field class, retaining its value as bytes.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The numeric tag is preserved. A configured custom length/data pair also produces this
 	/// case when its data tag is unknown. Byte input is copied unchanged; character input
 	/// uses the same octet conversion and validity reporting as binary field values.
+	/// </para>
+	/// <para>
+	/// This is what the package builds for a tag it was told nothing about. A consumer who
+	/// supplies <see cref="FixCustomFields"/> builds their own field for such a tag instead,
+	/// and then this case does not arise for it at all.
+	/// </para>
 	/// </remarks>
-	public sealed class Unknown : Typed<ReadOnlyMemory<byte>>
+	public sealed class Custom : Typed<ReadOnlyMemory<byte>>
 	{
-		internal Unknown(int tag, (bool Valid, ReadOnlyMemory<byte> Value) parsed)
+		internal Custom(int tag, (bool Valid, ReadOnlyMemory<byte> Value) parsed)
 			: base(tag, parsed)
 		{
 		}

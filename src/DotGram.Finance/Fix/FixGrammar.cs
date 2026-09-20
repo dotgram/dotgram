@@ -79,12 +79,12 @@ sealed partial class FixGrammar
 		// than captured, because a capture costs the engine more on every field than this search.
 		public FixField Text(int tag, ReadOnlySpan<char> wire)
 		{
-			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf('=') + 1));
+			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf('=') + 1), options.CustomFields);
 		}
 
 		public FixField Text(int tag, ReadOnlySpan<byte> wire)
 		{
-			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf((byte)'=') + 1));
+			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf((byte)'=') + 1), options.CustomFields);
 		}
 
 		// A length/data pair, whose data tag the grammar has read: the payload follows the second
@@ -95,7 +95,7 @@ sealed partial class FixGrammar
 			var payload = second + wire.Slice(second).IndexOf('=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 
-			return FixFieldFactory.Binary(dataTag, value.Data).WithBinary(value, start);
+			return FixFieldFactory.Binary(dataTag, value.Data, options.CustomFields).WithBinary(value, start);
 		}
 
 		public FixField Binary(int dataTag, ReadOnlySpan<byte> wire, int start)
@@ -104,7 +104,7 @@ sealed partial class FixGrammar
 			var payload = second + wire.Slice(second).IndexOf((byte)'=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire[payload..]), start + payload);
 
-			return FixFieldFactory.Binary(dataTag, value.Data).WithBinary(value, start);
+			return FixFieldFactory.Binary(dataTag, value.Data, options.CustomFields).WithBinary(value, start);
 		}
 	}
 }

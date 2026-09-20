@@ -109,7 +109,7 @@ public static partial class FixMessages
 		if (!CheckSyntax(fields, out error))
 			return false;
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
-		return FixSemantics.TryBuild(input, type, Nodes(input, fields), mode, options, out message, out error);
+		return FixSemantics.TryBuild(input, type, Nodes(input, fields, Custom(options)), mode, options, out message, out error);
 	}
 
 	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
@@ -159,7 +159,7 @@ public static partial class FixMessages
 			return false;
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
 		var wire = FixConvert.Text(input);
-		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields), mode, options, out message, out error);
+		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields, Custom(options)), mode, options, out message, out error);
 	}
 
 	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
@@ -220,7 +220,7 @@ public static partial class FixMessages
 		}
 		if (position != source.Length) return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
 		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error)) return false;
-		return FixSemantics.TryBuild(source, type, Nodes(source, fields), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
+		return FixSemantics.TryBuild(source, type, Nodes(source, fields, Custom(options)), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
 	}
 
 	// Whether text is exactly the decimal digits of tag, as ToString writes them: no sign, and
@@ -252,7 +252,7 @@ public static partial class FixMessages
 		return true;
 	}
 
-	static FixNode[] Nodes(string source, FixField[] values)
+	static FixNode[] Nodes(string source, FixField[] values, FixCustomFields custom)
 	{
 		var count = values.Length;
 
@@ -270,7 +270,7 @@ public static partial class FixMessages
 				var header = source.AsSpan(value.Position, value.DataPosition - value.Position - 1);
 				var equals = header.IndexOf('=');
 				var tag    = FixConvert.Tag(header.Slice(0, equals));
-				var length = LengthField(tag, header.Slice(equals + 1));
+				var length = LengthField(tag, header.Slice(equals + 1), custom);
 
 				length.Locate(value.Position, value.DataPosition - value.Position);
 
@@ -284,7 +284,7 @@ public static partial class FixMessages
 	}
 
 	// The optional message model exposes both wire fields; the parser returns only data.
-	static FixField LengthField(int tag, ReadOnlySpan<char> value) => tag switch
+	static FixField LengthField(int tag, ReadOnlySpan<char> value, FixCustomFields custom) => tag switch
 	{
 		 90 => new FixField.SecureDataLen                   (FixConvert.Integer(value)),
 		 93 => new FixField.SignatureLength                 (FixConvert.Integer(value)),
@@ -302,8 +302,12 @@ public static partial class FixMessages
 		445 => new FixField.EncodedListStatusTextLen        (FixConvert.Integer(value)),
 		618 => new FixField.EncodedLegIssuerLen             (FixConvert.Integer(value)),
 		621 => new FixField.EncodedLegSecurityDescLen       (FixConvert.Integer(value)),
-		_   => new FixField.Unknown                         (tag, FixConvert.Data(value)),
+		_   => custom.Text(tag, value),
 	};
+
+	// Never null, so that the one path holds here as it does in the reader.
+	static FixCustomFields Custom(FixParseOptions? options) =>
+		options?.FieldOptions.CustomFields ?? FixSpareFields.Instance;
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
 	{

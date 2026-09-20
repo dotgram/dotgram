@@ -28,7 +28,7 @@ public sealed class FixTests
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 		var fields = FixParser.ParseLog(stream, options, bufferSize: 3).ToArray();
 		Assert.Equal(new[] { 55, 5001, 55 }, fields.Select(field => field.Tag));
-		var binary = Assert.IsType<FixField.Unknown>(fields[1]);
+		var binary = Assert.IsType<FixField.Custom>(fields[1]);
 		Assert.Equal(Encoding.Latin1.GetBytes(payload), binary.Value.ToArray());
 		Assert.Equal(7, binary.Position);
 		Assert.Equal(input.IndexOf("5001=", StringComparison.Ordinal) + 5, binary.ValuePosition);
@@ -83,7 +83,7 @@ public sealed class FixTests
 		var options = new FixFieldOptions(new Dictionary<int, int> { [int.MaxValue - 1] = int.MaxValue });
 		var wire = "2147483646=3|2147483647=a|b|55=END";
 		var expected = FixParser.ParseLog(wire, options);
-		var binary = Assert.IsType<FixField.Unknown>(expected[0]);
+		var binary = Assert.IsType<FixField.Custom>(expected[0]);
 		Assert.Equal(int.MaxValue, binary.Tag);
 		Assert.Equal("a|b", Encoding.Latin1.GetString(binary.Value.Span));
 		Assert.Equal(0, binary.Position);

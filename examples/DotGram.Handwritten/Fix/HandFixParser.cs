@@ -175,7 +175,7 @@ public static class HandFixParser
 		if (!Separator(input, log, ref position) && input.Peek(position) >= 0)
 			return null;
 
-		var field = Create(input, dataTag == 0 ? tag : dataTag, valueStart, end, start, dataTag != 0);
+		var field = Create(input, dataTag == 0 ? tag : dataTag, valueStart, end, start, dataTag != 0, options.CustomFields);
 		field.WithTerminator(position - end).Locate(start, position - start);
 		error = null;
 		return field;
@@ -246,7 +246,7 @@ public static class HandFixParser
 		return position;
 	}
 
-	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, int start, bool binary)
+	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, int start, bool binary, FixCustomFields custom)
 		where T : unmanaged
 	{
 		var value = input.Slice(valueStart, end - valueStart);
@@ -254,19 +254,19 @@ public static class HandFixParser
 		{
 			var chars = MemoryMarshal.Cast<T, char>(value);
 			if (!binary)
-				return FixFieldFactory.Value(tag, chars);
+				return FixFieldFactory.Value(tag, chars, custom);
 
 			var data = new FixBinaryValue(FixConvert.Data(chars), valueStart);
-			return FixFieldFactory.Binary(tag, data.Data).WithBinary(data, start);
+			return FixFieldFactory.Binary(tag, data.Data, custom).WithBinary(data, start);
 		}
 		else
 		{
 			var bytes = MemoryMarshal.Cast<T, byte>(value);
 			if (!binary)
-				return FixFieldFactory.Value(tag, bytes);
+				return FixFieldFactory.Value(tag, bytes, custom);
 
 			var data = new FixBinaryValue(FixConvert.Data(bytes), valueStart);
-			return FixFieldFactory.Binary(tag, data.Data).WithBinary(data, start);
+			return FixFieldFactory.Binary(tag, data.Data, custom).WithBinary(data, start);
 		}
 	}
 

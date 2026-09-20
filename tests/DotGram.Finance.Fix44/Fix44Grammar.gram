@@ -1,4 +1,4 @@
-@using DotGram.Finance.Fix;
+﻿@using DotGram.Finance.Fix;
 @using DotGram.Finance.Fix44;
 using Known;
 
@@ -48,7 +48,7 @@ CustomFiled : @FixField = any & when @(false) => @(null!)
 
 Unknown : @FixField =
 	tag: Digits & when @(Fix44Context.IsUnknownText(tag)) & '=' & value: ValueText
-	=> @(new FixField.Unknown(Fix44Context.Tag(tag), FixConvert.Data(value)))
+	=> @(new FixField.Custom(Fix44Context.Tag(tag), FixConvert.Data(value)))
 
 Field : @FixField =
 	{ ?=any } & (v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))

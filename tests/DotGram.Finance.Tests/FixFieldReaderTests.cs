@@ -157,7 +157,7 @@ public abstract class FixFieldReaderTests
 			var fields = parser.ParseLog("9000=3|9001=abc|");
 
 			Assert.Equal(new[] { 9000, 9001 }, fields.Select(f => f.Tag));
-			Assert.All(fields, field => Assert.IsType<FixField.Unknown>(field));
+			Assert.All(fields, field => Assert.IsType<FixField.Custom>(field));
 			Assert.Contains(parser.ParseLog("9000=3|9001=a|b|"), field => field is FixField.Invalid);
 
 			using var stream = new ShortStream(Encoding.Latin1.GetBytes("9000=3|9001=a|b|"));
@@ -450,7 +450,7 @@ public abstract class FixFieldReaderTests
 
 				Assert.False(invalid.TryGetValue(out _));
 				Assert.Throws<InvalidOperationException>(() => invalid.Value);
-				Assert.Equal(Latin1("vendor"), Assert.IsType<FixField.Unknown>(fields[3]).Value.ToArray());
+				Assert.Equal(Latin1("vendor"), Assert.IsType<FixField.Custom>(fields[3]).Value.ToArray());
 			}
 		});
 	}

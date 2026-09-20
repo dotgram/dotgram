@@ -131,8 +131,11 @@ The difference is not a detail; it decides what may be compared.
 | session layer | none | included, separable — parsing does not depend on it | included, separable |
 
 The row that matters most is the third. **QuickFIX/n parsed without a dictionary does less work
-than we do**, because it does not find the groups. The guard is `if (msgMap is not null &&
-msgMap.IsGroup(f.Tag))`, and `msgMap` comes from the application dictionary. And `validate: true`
+than we do**, because it does not find the groups. In `Message.FromString` the guard is
+`if (msgMap is not null && msgMap.IsGroup(f.Tag))`, and `msgMap` comes from the application
+dictionary. (Everything quoted from their source here was read from `QuickFIXn.Core` at 1.14.1,
+`connamara/quickfixn` on 2026-09-19. The names will outlive their next release; the line numbers
+would not, so there are none.) And `validate: true`
 inside `FromString` is not dictionary validation either — it checks that the first three header
 fields are in order and nothing else; the full check is a separate `DataDictionary.Validate` the
 caller makes. So there are three readings, not one, and each does a different amount of work:

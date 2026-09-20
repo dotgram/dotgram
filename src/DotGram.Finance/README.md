@@ -116,12 +116,13 @@ var options = new FixFieldOptions(new Dictionary<int, int>
 var custom = FixParser.ParseLog("5000=3 | 5001=a|b | ", options);
 ```
 
-A supplied length/data dictionary **replaces** the standard pairs and is copied
-at construction. Omit it to use the standard dictionary. `FixParseOptions` takes the same object for
-message parsing. Each length tag must
+A supplied length/data dictionary **adds to** the standard's sixteen pairs and is copied
+at construction; the standard's own pairs always hold, so neither tag of a supplied pair may be one
+the standard already defines. Omit it to use the standard pairs alone. `FixParseOptions` takes the
+same object for message parsing. Each length tag must
 immediately precede its configured data tag. The pair produces one binary field;
-unknown data tags produce `FixField.Unknown` with binary metadata. Standalone data
-tags are rejected. The parser recognizes binary boundaries; message and business
+data tags the package does not define produce `FixField.Custom` with binary metadata. Standalone
+data tags are rejected. The parser recognizes binary boundaries; message and business
 validation remain in the explicitly called semantic API.
 
 ## Explicit message semantics
@@ -296,7 +297,10 @@ Trailing fractional zeros do not cause a loss of precision.
 The source-backed semantic model retains malformed primitive text in Lenient mode. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
-Unknown tags use `FixField.Unknown` with their original value octets.
+Tags the package does not define use `FixField.Custom` with their original value octets, unless
+a `FixCustomFields` was supplied — then that builds them, typed as the consumer likes. It builds
+field objects and nothing more: a tag outside FIX 4.4 is still unknown to the message schema, so
+`FixParseMode.Strict` refuses it whoever built the field.
 
 ## Pipe-delimited logs
 

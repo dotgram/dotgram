@@ -61,8 +61,13 @@ public sealed class FixFieldOptions
 	/// A tag is not positive, a pair names one tag twice, a data tag is declared twice, a data tag
 	/// is also a length tag, or either tag is one the standard already defines.
 	/// </exception>
-	public FixFieldOptions(IReadOnlyDictionary<int, int>? lengthDataPairs)
+	/// <param name="customFields">
+	/// Builds the fields of tags this package does not define; null builds what it builds today.
+	/// </param>
+	public FixFieldOptions(IReadOnlyDictionary<int, int>? lengthDataPairs, FixCustomFields? customFields = null)
 	{
+		CustomFields = customFields ?? FixSpareFields.Instance;
+
 		if (lengthDataPairs is null || lengthDataPairs.Count == 0)
 		{
 			_kinds = Standard;
@@ -128,6 +133,13 @@ public sealed class FixFieldOptions
 				(far ??= [])[tag] = kind;
 		}
 	}
+
+	/// <summary>Builds the fields of tags this package does not define.</summary>
+	/// <remarks>
+	/// Never null: where a consumer supplied nothing this is the package's own, so the reader has
+	/// one path and never asks whether anybody supplied anything.
+	/// </remarks>
+	public FixCustomFields CustomFields { get; }
 
 	/// <summary>What the reader does with a tag: 1 a length/data pair, -1 no field, 0 an ordinary value.</summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]

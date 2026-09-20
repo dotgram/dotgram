@@ -80,7 +80,12 @@ foreach (var field in FixParser.Parse(wire))
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
-- A tag the package does not know comes back as `FixField.Unknown`, its value as bytes.
+- A tag the package does not know comes back as `FixField.Custom`, its value as bytes.
+  Supply a `FixCustomFields` to `FixFieldOptions` to build your own field for such a tag
+  instead — three methods, because a field is built from characters, from bytes and from the
+  payload of a length/data pair, and answering one of them and not the others gives you two
+  parses of one message that disagree. It builds field objects only: the tag stays unknown to
+  the message schema, so the strict mode still refuses it.
 - A syntax error does not throw. It becomes one `FixField.Invalid`, and reading
   resumes after the next separator.
 

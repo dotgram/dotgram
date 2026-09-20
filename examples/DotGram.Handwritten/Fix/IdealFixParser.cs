@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using DotGram.Finance.Fix;
 
@@ -71,7 +71,7 @@ public static class IdealFixParser
 
 			p = found < 0 ? end : end + 1;
 
-			var field = FixFieldFactory.Value(tag, text.Slice(value, end - value));
+			var field = FixFieldFactory.Value(tag, text.Slice(value, end - value), known.CustomFields);
 
 			field.WithTerminator(p - end).Locate(start, p - start);
 
