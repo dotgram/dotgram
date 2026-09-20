@@ -3405,3 +3405,19 @@ carrier, a measured time or a measured size. Twenty-three causes that change no 
 nothing, and one cause that moves T-SQL onto the immediate carrier is worth the work on its own.
 sql-39 offered to come and propose closing it rather than push on; that offer is accepted in
 advance, and closing it after the fixpoint is a result, not a failure.
+
+**D30 landed (`9ce9058f`), and it found a second place while being written.** The parser returns
+only the data half of a pair; the length half is built by the message layer, in its own default
+arm. Left alone, a consumer's own pair would have come back half theirs and half ours, which is
+exactly the divergence of forms the seam has three members to prevent. finance-24 threaded the seam
+there too and judged it the finishing of its own change rather than a widening of scope, since the
+divergence would have been created by that change. The judgement is right, and the boundary D30
+draws is unaffected: building the length field is not the schema knowing the tag, and the strict
+mode still rejects a consumer's tag inside a message.
+
+The rename to `FixField.Custom` went through the package, the oracle grammar, the tests, the README
+and the skill, and it turned up a README that had been wrong since the morning — it still said a
+supplied dictionary replaces the standard pairs, which D27 reversed. Both documents now carry the
+sentence saying what the seam does not do. The rename is a break and belongs in 0.2.0's notes as
+one, which is what makes doing it before the release the cheap moment rather than merely the tidy
+one.
