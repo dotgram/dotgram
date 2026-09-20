@@ -75,6 +75,15 @@ reading of tens of nanoseconds, and is not to be read as the cost of the parser;
 times it, and `--only` on one cheap row is the case where a short run is still not a full run's number. Read another session's short probe with
 that in mind.
 
+### What an order for a pair is asked, and what the report says when the answer is no
+
+Before a pair is taken on a change to a named place (a walk, a clear, the comparison of a literal), four things are asked of whoever orders it, and the report says what was not answered:
+
+1. **The commits, read from git at the moment they are written.** The parent of `sha` is `git log -1 --format=%P sha`, and the range between the two is checked for other commits that touch `src/`; a pair against a commit that is not the parent carries the others' changes (2026-09-20: 39d7d356 was named against a commit three source commits earlier).
+2. **How many times the rows reach the place.** A row that reaches it twice can move by nothing whatever the change does, and its zero is no result. 7f59a2d2 (guards named in one walk) was ordered with T-SQL rows as its criterion, and those rows ask the guards two or three times a parse, none merged; the zero of the pair meant "nothing here to measure" and would have been read as "the change does not work" (D45). A count costs minutes and a window costs tens of them. If there is no answer, the header of the report says that reachability was not checked, so that a zero is not read as a negative result; and a row that does not reach the place is written in the report as "does not reach", not left as a number.
+3. **Which rows are controls by construction** (their emitted code is byte for byte the same on both sides), so that a movement there is read as the floor of the window and not as an effect.
+4. **The order of the sides is the order of the commits**, before the parent and after the change, and a pair of two branches of one commit is made with `Build-Side.ps1` and carries its emitted-code hash in the header.
+
 ### Small whole numbers: the range, and no ratio between overlapping ranges
 
 A figure that is a small whole number (kilobytes held above the live heap, methods compiled by a first
