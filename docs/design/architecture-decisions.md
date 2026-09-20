@@ -3024,3 +3024,43 @@ move a reading to a different position, every row earns its place. The ruling is
 a shared list that refuses a little too often costs a few causes, and two lists that drift cost
 correctness. If a row ever has to differ, the narrower list gets a name of its own and a sentence
 saying why, rather than a second copy of the table.
+
+## D29. A guard's value at the capture's close, approved, and the arms stay where they are
+
+expr's design (`docs/design/guard-values-at-close-2026-09-19.md`): a `when` that names a captured
+value asks the tape for it while the text is still being read, and the tape answers by walking the
+log from the rule's mark. The proposal hands the value over at the moment the capture closes, so
+the guard reads a slot and no walk runs. Approved to build, on four conditions, with the size of
+the emitted code as the first number and a right to stop there.
+
+**The set is the one the immediate carrier is chosen by.** Not "wherever it is convenient" but
+"where the reading can no longer be given up", which is the same `Commit` proof. §3.7 is the
+constraint: a construction is deferred until the accepted derivation is selected, and an
+abandoned alternative must not invoke an unrequested construction. A guard that reads the value
+is itself a reason the construction runs anyway, so what has to be proved is only that this
+reading is the accepted one.
+
+**The conditions.** (1) The watch list is taken from sql-39 by reference, not copied (D28), and
+expr needs all five rows, not the narrower reading: at a close the question is a *moment* and not
+a position, and undoing what was built costs the very pass this removes. (2) A lookahead's body is
+excluded by construction and not by proof: `Commit` inside one holds and tells the truth, while
+the derivation under it never becomes the accepted one. (3) A repetition's turn is answered by a
+named test written before the change, three turns with different values, a guard that rejects the
+wrong one, and a turn read, given back and read again; the last-turn guard defect closed itself
+once, which is worse than having been fixed. (4) No commit lands without its pair, and the pair
+carries size-growing rows on every guarded family, not only SQL, with linearity at the end of the
+window. The order of work: size first, then the count of factory calls on accepted and refused
+input, and only then a window on the machine.
+
+**And the answer to the condition that worried me.** I required the arms to become static methods
+so that the reader could call one at a close, and said the price was file size, a signature and a
+prologue per rule. expr's counter is better: the close enters the *same* walk by a second door,
+which does what the fast path does without what that path pays to prove it — no clearing from the
+watermark, no scan over the flags from the rule's mark, which is the pass being removed. The arms
+stay local functions, the file grows by a parameter and a branch rather than by a signature per
+rule, and the price is one switch dispatch instead of a direct call to a known arm. Size stays the
+first number, now as a *check*: the expectation is near zero, and a growth proportional to the
+number of rules would mean the arms multiplied after all. The condition that replaces mine: the
+second door must not restate the fast path's test in a second place, and the branch must not be
+paid for by a grammar that has no guard at all — the generator emits the door where a guard needs
+it, which is D25 applied to this.
