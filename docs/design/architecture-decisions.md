@@ -6182,3 +6182,54 @@ the last step skipped, which is how it can be read before it can publish.
 already fixed in the file, so what is wanted is the secret, not a decision about naming. The
 version is a line in the build properties and a tag that matches it, and the workflow refuses the
 pair if they disagree.
+
+## D71. The FIX engines divide by when the dictionary is read, and our road is the majority one
+
+The survey came back (critic, at Igor's asking, on the `critic` branch and unpushed while the
+network is down). **The families divide by *when* the dictionary is read, not by speed.** One reads
+it at run time; one reads it at build time and generates code, which is what the throughput engines
+do — a codec generator run before compilation, a schema compiled statically, a typed-class
+generator shipped beside a run-time dictionary; and one lets the schema decide the wire itself. **We
+are in the second family**, which is worth recording because a critic saying the road is right is
+rarer than one saying it is wrong.
+
+**Run-time loading is not barred by D25**, and the objection I would have made from memory is
+wrong. D25 allows a fork the *consumer* owns, a dictionary they supply being their data, and it
+even prescribes the shape: not a dictionary consulted per field but a table merged when the options
+are built, one cell read per field afterwards — which is what `FixFieldOptions` was already
+changed into.
+
+**The plan's hinge, and it is a measurement rather than an argument: the two roads need not be two
+implementations.** If build-time generation and run-time loading fill *the same table shape*, there
+is one reader and two ways to fill it. What decides it is whether those tables can be filled at run
+time without losing what a compile-time constant buys on the hot path — one measurement, taken
+before anything is written, and the answer is the difference between one implementation and two.
+
+**Q25, the mutual check, is decided now rather than by the order of the work.** The idea is
+Igor's: a loaded dictionary can verify the built-in tables, and the target is real, the schema
+being tables already so the comparison is a walk rather than a parse. The objection is that the
+economical build has *one* reader serving both roads, and then the two tables agree by
+construction and the check verifies that a function equals itself. **So: one reader, and the check
+is named a staleness guard rather than a verification of our reading.** That is honest about what
+it proves and keeps the use that makes it worth having — a consumer built against one dictionary,
+a counterparty issuing a newer one, and the disagreement firing at start-up instead of becoming
+wrong parses hours later. What to do on a disagreement — refuse to start, believe the file, believe
+the tables — is Igor's.
+
+**The schema deciding the wire is a grammar, not an engine.** For tag-and-value it does not arise,
+the sender fixing the order rather than the schema; for the binary wire the language already has
+counted repetition and a byte of `any`, so a fixed-width field is expressible today. What that
+format buys beyond decoding — reaching a field by computed offset without touching the bytes
+between — is layout and not parsing.
+
+**Two things to carry into the pages, neither covered before.** The licence obligation moves to the
+*consumer* the moment a dictionary is an input to their build: the file sits in their repository
+and their compiler reads it, so the page saying we ship none must say that in the same breath —
+including that a diagnostic quoting a dictionary's text puts somebody else's words in their build
+output. And the claim that nothing on this platform generates the codec *inside* the consumer's
+compilation is marked searched-and-not-found rather than read-and-confirmed; if it holds it is a
+better front page than any throughput number, and it may not be written anywhere until it is
+confirmed.
+
+And Q25 does not close Q20: it holds the *tables* equal, while what a parse says when it refuses
+is still held for one input form and for none of the others.
