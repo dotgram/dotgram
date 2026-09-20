@@ -293,7 +293,13 @@ public abstract record EmailAddress
 	Ctext    = ['!'..'\'' | '*'..'[' | ']'..'~'] | ObsNoWsCtl
 	Ccontent = Ctext | QuotedPair | Comment
 	Comment  = '(' & (Fws? & Ccontent)* & Fws? & ')'
-	Cfws     = (Fws? & Comment)+ & Fws? | Fws
+	// The run of comments is sealed for the same reason the run of whitespace is, and it is the
+	// second way into the same ambiguity: `ObsRoute` repeats over `Cfws`, `Cfws` repeats over
+	// comments, and what follows the inner run is only a nullable `Fws?`, so n comments can be cut
+	// between the two repetitions n ways. Sealing the whitespace did not close this: measured
+	// after that, a refused address whose route carried twenty comments took 311 ms and twelve
+	// took 6.6. A run of comments cut in two is the same run.
+	Cfws     = { (Fws? & Comment)+ } & Fws? | Fws
 
 	// ── §3.2.3, §3.2.4, §3.2.5 ───────────────────────────────────────────────────
 

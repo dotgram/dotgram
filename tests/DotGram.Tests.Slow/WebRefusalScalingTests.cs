@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -25,7 +26,9 @@ namespace DotGram.Tests;
 /// over `AtomText = Atext+`: sixteen characters before a bad `@` took 78 ms and twenty-eight took
 /// **107 seconds**. And `ObsRoute` repeats over `Cfws`, which repeats over
 /// `Fws = (Crlf? & Wsp)+`, so a run of folding whitespace inside angle brackets was the same
-/// shape a third time: twenty spaces, 189 ms. All three runs are atomic now.
+/// shape a third time: twenty spaces, 189 ms. And `Cfws` repeats over comments as well as over
+/// folding, so sealing the folding closed one of the two ways in and left the other: twenty
+/// comments in the same route, 311 ms. All four runs are atomic now.
 /// </para>
 /// <para>
 /// <strong>The budget, and why it is a budget rather than a ratio.</strong> The first version of
@@ -51,6 +54,7 @@ public sealed class WebRefusalScalingTests
 	[InlineData("a URI template whose brace never closes")]
 	[InlineData("an address list whose domain holds a space")]
 	[InlineData("an obsolete route made of folding whitespace")]
+	[InlineData("an obsolete route made of comments")]
 	public async Task A_refusal_after_a_long_run_does_not_double_with_its_length(string shape)
 	{
 		var refuse = Reader(shape);
@@ -85,7 +89,10 @@ public sealed class WebRefusalScalingTests
 	{
 		"a URI te" => length => UriTemplate.TryParse(new string('a', length) + "{unclosed", out _),
 		"an addre" => length => EmailAddress.TryParseList(new string('a', length) + "@ex ample.com", out _),
-		_          => length => EmailAddress.TryParseList("<" + new string(' ', length) + "@a:b@c.d", out _),
+		"an obsol" when shape.EndsWith("whitespace", StringComparison.Ordinal)
+		           => length => EmailAddress.TryParseList("<" + new string(' ', length) + "@a:b@c.d", out _),
+		_          => length => EmailAddress.TryParseList(
+		                  "<" + string.Concat(Enumerable.Repeat("(a)", length)) + "@a:b@c.d", out _),
 	};
 
 	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
