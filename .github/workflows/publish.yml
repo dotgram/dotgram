@@ -52,6 +52,37 @@ jobs:
           dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
 
+      # What `build.yml` does between packing and keeping, done here too, and for the reason the
+      # gate cannot cover: that workflow proves a pack passed, and this one packs AGAIN and sends
+      # what it packed. A branch rule would say some pack was checked, not that this one was. So
+      # the files that are about to leave are the files that are checked, and a failure here means
+      # nothing is uploaded and nothing is pushed.
+      - name: Check the shape of the packages
+        shell: bash
+        run: .github/scripts/check-packages.sh
+
+      - name: The package, in somebody else's build
+        run: dotnet run --project tests/DotGram.PackageSmoke/DotGram.PackageSmoke.csproj --configuration Release
+
+      # Required rather than tidy: the library smokes run on net8.0 as well as net10.0, and this
+      # job installs one SDK. Without it those legs fail on a clean runner — or pass on one that
+      # happens to have .NET 8 already, which is the kind of green that means nothing. global.json
+      # still selects SDK 10 for everything else.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: The library packages, in somebody else's build
+        shell: bash
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/dotgram-library-smoke
+        run: |
+          for library in Sql Web ExpressionLanguage Finance; do
+            for framework in net8.0 net10.0; do
+              dotnet run --project "tests/DotGram.$library.PackageSmoke/DotGram.$library.PackageSmoke.csproj" --configuration Release --framework "$framework"
+            done
+          done
+
       - uses: actions/upload-artifact@v4
         with:
           name: nupkg
