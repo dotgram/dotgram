@@ -163,6 +163,14 @@ payload may contain. Neither number is then measuring the other's work, and the 
 This belongs in the account rather than in a table, and it is stated as what it is: a difference
 in what is read, established by reading their file, not a verdict on their library.
 
+It also settles a question that was open here for a day. D25's first wording would have removed
+`FixFieldOptions` — a consumer declaring length/data pairs of their own — as the parser being
+told how to read. But the most widely used FIX engine on .NET has no general reading of data
+fields **at all**, for the standard's sixteen pairs let alone a counterparty's. So that capability
+is not an untidiness a stricter rule would have swept away; on this platform it is the only way
+anyone has it. Igor's second wording, which kept it, was the right way round. (critic's, from
+reading the same file independently.)
+
 ## 5. What I propose to give the stand
 
 Following the rule the stand adopted for the Web libraries this week: another library's reader is
