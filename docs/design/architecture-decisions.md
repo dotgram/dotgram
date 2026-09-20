@@ -5905,3 +5905,33 @@ it fails at the parent too. **A test that contradicts a decided design change lo
 test that caught a regression, and the only thing telling them apart is knowing which way the
 decision went.** So it is rewritten to the policy chosen rather than deleted, and the lesson is
 that the commit which inverts a test's premise should carry the test with it.
+
+## D67. A cliff wearing an exponent: the superlinear rows need the same recount as the quadratic ones
+
+Every point of the case-arms row was printed. Below about 1,391 arms it is flat in both senses —
+constant bytes a call per arm and constant time per arm, matching the four structural counts
+exactly. Between 1,391 and 1,738 arms the bytes jump elevenfold for a quarter more input. The
+arithmetic points at the parser pool's retention bound, the same mechanism found on another row
+earlier and already recorded in the performance notes as an oversized store read as a quadratic
+when it is a cliff. **The fitted exponent reads the last sixteenth of the ladder, so two points
+above the bound produced the 1.49.**
+
+**So the superlinear seven need the recount the quadratic sixteen got, and it is cheaper.** A cliff
+and a slope are told apart by a number every series already has — bytes a call per unit of input,
+flat and then jumping against rising steadily — with no structural counting at all. If the joins
+row and the two predicate rows are cliffs, the seven is not seven defects.
+
+**Twice now a row count has been an over-count, from a different cause each time**: one case
+wearing four rows, and a machine bound wearing an exponent. A row is not a defect, and the number
+of rows is the least reliable summary of a table we have.
+
+**What it does not break:** the guard still behaves correctly, because a new cliff appears as a
+worse class and fails, and a cured one appears as better and tightens the baseline. What it costs
+is naming — a cliff baselined as a slope is a true classification of the wrong thing — so the
+report prints the discriminator beside the exponent rather than adding a class to the guard.
+
+**And a self-correction worth the same weight as the finding.** The earlier report said every count
+in that case was flat per arm; that was true of the range measured, eight to sixty-four arms, and
+was stated of the row. The cliff is twenty times further out than anything the probe reached. The
+conclusion stands — under the bound the row is structurally linear — but **the range belonged in
+the claim**, and a claim without its range is how a measured fact becomes a wrong one.
