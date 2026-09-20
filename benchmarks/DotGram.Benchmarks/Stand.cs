@@ -1054,9 +1054,25 @@ static partial class Stand
 			var owner = (_uri ?? throw new InvalidOperationException("The side has no DotGram.Web.dll")).Assembly.GetType("DotGram.Web." + type)
 				?? throw new InvalidOperationException($"DotGram.Web.{type} not found");
 			var call = owner.GetMethods()
-				.First(one => one.Name == method && one.GetParameters() is [{ ParameterType.Name: "String" }, { IsOut: true }]);
+				.FirstOrDefault(one => one.Name == method && one.GetParameters() is [{ ParameterType.Name: "String" }, { IsOut: true }]);
 
-			return () => (bool)call.Invoke(null, [text, null])! ? 1 : 0;
+			if (call is not null)
+				return () => (bool)call.Invoke(null, [text, null])! ? 1 : 0;
+
+			// A format with no non-throwing text form (JSON Patch): its Parse, refused when it throws.
+			var parse = owner.GetMethod(method, [typeof(string)]) ?? throw new InvalidOperationException($"DotGram.Web.{type}.{method}(string) not found");
+
+			return () =>
+			{
+				try
+				{
+					return parse.Invoke(null, [text]) is null ? 0 : 1;
+				}
+				catch (TargetInvocationException)
+				{
+					return 0;
+				}
+			};
 		}
 
 		/// <summary>JsonValue.TryParse(string, out JsonValue) of this side, by reflection: whether it read the text.</summary>
@@ -2296,7 +2312,7 @@ static partial class Stand
 
 				foreach (var reading in row.Readings.Skip(1))
 					text.AppendLine(CultureInfo.InvariantCulture,
-						$"| {row.Id} | {first.Nanoseconds:F1} | {reading.Reading} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / first.Nanoseconds:F2}x | {first.Bytes:F0} | {reading.Bytes:F0} | {row.HandSpread:P0} |");
+						$"| {row.Id} | {first.Nanoseconds:F1} | {reading.Reading} | {reading.Nanoseconds:F1} | {(reading.Reading.StartsWith("reference", StringComparison.Ordinal) ? "reference" : $"{reading.Nanoseconds / first.Nanoseconds:F2}x")} | {first.Bytes:F0} | {reading.Bytes:F0} | {row.HandSpread:P0} |");
 			}
 		}
 

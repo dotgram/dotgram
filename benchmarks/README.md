@@ -117,6 +117,14 @@ token scanner, looped over a text: how many tokens), `fixmsg/Order.parse-stream`
 `MethodInfo.Invoke`, so the two span forms are called through a dynamic method that makes the span from a string first.
 The base of these rows is a `control`, this process's own build of the same form, and no reference (two are a `hand` parser and one is `scriptdom`, by what each constant is).
 
+The five Web formats that had no row (finance-24, the critic's Q5) have one accepted and one refused row each in both stands,
+`web/content-disposition.{full,refused}` (RFC 6266), `uri-template` (RFC 6570), `forwarded` (RFC 7239), `link` (RFC 8288), and a
+`web/json-patch.full` (RFC 6902) with no refused one, since a JSON Patch has no non-throwing text form and a refusal would time the
+exception; `web/cookie.refused` too. The framework's own parsers are read beside the generated ones in the plain stand as
+**references**: `reference-MailAddress` on `web/addr-spec.*`, `reference-MediaTypeHeaderValue` on `web/media-type.*` and
+`reference-CookieContainer` on `web/cookie.*`. A reference does other work (`MailAddress` normalizes, a jar keeps the cookie) and
+the report prints the word `reference` where a ratio would be, so that no one reads a yardstick out of it.
+
 `--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while
 it is walked: the live heap above what was live before, after a full collection, sampled eight
 times over a walk, each input of each side in a process of its own (it times nothing, so it needs

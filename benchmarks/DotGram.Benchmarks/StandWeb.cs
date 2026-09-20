@@ -55,6 +55,28 @@ static partial class Stand
 
 	const string CookieShort = "id=a3fWa";
 
+	// The formats that had no row (finance-24, from the critic's Q5): one accepted and one refused text each, the refused one refused early.
+	// A JSON Patch has no non-throwing text form, so it has an accepted row alone.
+	const string DispositionFull = "attachment; filename=\"report-2026.pdf\"; filename*=UTF-8''r%C3%A9sum%C3%A9.pdf; size=10240";
+
+	const string DispositionRefused = "; filename=\"x\"";
+
+	const string TemplateFull = "https://api.example.com/v2/{+path}/items{?page,per_page,sort*}{#fragment}";
+
+	const string TemplateRefused = "https://api.example.com/{unclosed";
+
+	const string PatchFull = "[{\"op\":\"add\",\"path\":\"/a/b\",\"value\":{\"c\":[1,2,3]}},{\"op\":\"remove\",\"path\":\"/d\"},{\"op\":\"replace\",\"path\":\"/e\",\"value\":\"x\"},{\"op\":\"move\",\"from\":\"/f\",\"path\":\"/g\"},{\"op\":\"test\",\"path\":\"/h\",\"value\":true}]";
+
+	const string ForwardedFull = "for=192.0.2.60;proto=http;by=203.0.113.43, for=\"[2001:db8:cafe::17]:4711\";host=example.com";
+
+	const string ForwardedRefused = "for==1";
+
+	const string LinkFull = "<https://example.com/page/2>; rel=\"next\"; title=\"Next page\", <https://example.com/page/1>; rel=\"prev\", <https://example.com/>; rel=\"index\"; type=\"text/html\"";
+
+	const string LinkRefused = "https://example.com/>; rel=next";
+
+	const string CookieRefused = "=novalue";
+
 	const string PointerFull = "/definitions/item/properties/0/a~1b/c~0d";
 
 	const string PointerShort = "/a";
@@ -109,9 +131,20 @@ static partial class Stand
 			.. WebAddresses(),
 			.. WebMediaTypes(),
 
-			// RFC 6265 and RFC 6901: read by the generated parser alone, as the structured fields are.
-			WebGenerated("cookie.full", CookieFull, static text => SetCookie.TryParse(text, out _)),
-			WebGenerated("cookie.short", CookieShort, static text => SetCookie.TryParse(text, out _)),
+			// RFC 6265 and RFC 6901: read by the generated parser alone, as the structured fields are; the cookie also by the
+			// framework's CookieContainer, as a reference and no yardstick.
+			.. WebCookies(),
+
+			// RFC 6266, 6570, 6902, 7239 and 8288, which had no row: one accepted and one refused text each.
+			WebGenerated("content-disposition.full", DispositionFull, static text => ContentDisposition.TryParse(text, out _)),
+			WebGenerated("content-disposition.refused", DispositionRefused, static text => ContentDisposition.TryParse(text, out _), accepted: false),
+			WebGenerated("uri-template.full", TemplateFull, static text => UriTemplate.TryParse(text, out _)),
+			WebGenerated("uri-template.refused", TemplateRefused, static text => UriTemplate.TryParse(text, out _), accepted: false),
+			WebGenerated("json-patch.full", PatchFull, static text => JsonPatchParses(text)),
+			WebGenerated("forwarded.full", ForwardedFull, static text => ForwardedElement.TryParseField(text, out _)),
+			WebGenerated("forwarded.refused", ForwardedRefused, static text => ForwardedElement.TryParseField(text, out _), accepted: false),
+			WebGenerated("link.full", LinkFull, static text => WebLink.TryParseField(text, out _)),
+			WebGenerated("link.refused", LinkRefused, static text => WebLink.TryParseField(text, out _), accepted: false),
 			WebGenerated("pointer.full", PointerFull, static text => JsonPointer.TryParse(text, out _)),
 			WebGenerated("pointer.short", PointerShort, static text => JsonPointer.TryParse(text, out _)),
 
@@ -384,6 +417,9 @@ static partial class Stand
 					new Reading("generated",      () => AddressGenerated(text)),
 					new Reading("regex",          () => AddressRegex(interpreted.Value, text)),
 					new Reading("regex-compiled", () => AddressRegex(compiled.Value, text)),
+
+					// The framework's address parser: a reference and no yardstick (it normalizes, and reads more forms than the addr-spec of section 3).
+					new Reading("reference-MailAddress", () => System.Net.Mail.MailAddress.TryCreate(text, out var mail) ? mail.Address.Length : 0),
 				],
 				() =>
 				{
@@ -397,6 +433,53 @@ static partial class Stand
 						? Parts(text, ("local part", address!.LocalPart, match.Groups["local"].Value), ("domain", address.Domain, match.Groups["domain"].Value))
 						: null;
 				});
+		}
+	}
+
+	/// <summary>A Set-Cookie value read by the generated parser and, as a reference, by the framework's <c>CookieContainer</c>.</summary>
+	static IEnumerable<Workload> WebCookies()
+	{
+		var uri = new Uri("https://example.com/docs");
+
+		foreach (var (name, text) in new[] { ("cookie.full", CookieFull), ("cookie.short", CookieShort), ("cookie.refused", CookieRefused) })
+		{
+			yield return Web(name,
+				[
+					new Reading("generated", () => SetCookie.TryParse(text, out _) ? 1 : 0),
+
+					// A jar keeps the cookie it is given, which the parser does not: a reference and no yardstick.
+					new Reading("reference-CookieContainer", () => JarAccepts(uri, text) ? 1 : 0),
+				],
+				() => SetCookie.TryParse(text, out _) == !name.Contains("refused", StringComparison.Ordinal) ? null : $"  '{text}': the parser answers the other way");
+		}
+	}
+
+	/// <summary>Whether the jar took the cookie: no exception, and a cookie held.</summary>
+	static bool JarAccepts(Uri uri, string text)
+	{
+		var jar = new System.Net.CookieContainer();
+
+		try
+		{
+			jar.SetCookies(uri, text);
+		}
+		catch (System.Net.CookieException)
+		{
+			return false;
+		}
+
+		return jar.GetCookies(uri).Count > 0;
+	}
+
+	static bool JsonPatchParses(string text)
+	{
+		try
+		{
+			return JsonPatch.Parse(text) is not null;
+		}
+		catch (Exception)
+		{
+			return false;
 		}
 	}
 
@@ -437,6 +520,9 @@ static partial class Stand
 					new Reading("generated",      () => MediaTypeGenerated(text)),
 					new Reading("regex",          () => MediaTypeRegex(interpreted.Value, text)),
 					new Reading("regex-compiled", () => MediaTypeRegex(compiled.Value, text)),
+
+					// The framework's Content-Type parser: a reference and no yardstick (it keeps the header's own model).
+					new Reading("reference-MediaTypeHeaderValue", () => System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(text, out var header) ? header.MediaType!.Length : 0),
 				],
 				() => MediaTypeDisagreement(compiled.Value, text));
 		}
