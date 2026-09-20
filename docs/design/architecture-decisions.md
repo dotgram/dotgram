@@ -5028,3 +5028,17 @@ To expr, who found it and offered: the helper, and its own package's pages broug
 same helper is pointed at the other three, whose owners fix what it finds. And the one-sentence
 answer to the question that prompted it — whether a page may assume a modern SDK's defaults — is
 no, and it is now written down rather than left for the next person to decide again.
+
+**The second lever is measured and does not exist.** Counting a repeat as the same ask asked again
+— the record's root together with the rule's mark — over the same named corpus: T-SQL has 201
+repeats of 16,350 asks, 1.2%, with fourteen asks in the whole corpus asked more than twice;
+SQL:2023's `select20` has none at all. So remembering an answer would save about one ask in eighty
+on one grammar and nothing on the other. The question closes not on "cheaper or dearer" but on
+"the phenomenon is not there". The bound is stated with it: an ask that returns under a different
+root is not recognised by that key, so 1.2% is a floor — and with zero repeats on one grammar and
+fourteen on the whole corpus of the other, there is little room for anything to hide in.
+
+**That closes the whole line.** D29 refused; D36 explained structurally, built, and then withdrawn
+by its own number; the discarded fifth accounted for by the price of asking; the second lever
+measured and absent. Four questions, four answers, no code left behind except the snapshot grammar
+that keeps a guard naming two values.
