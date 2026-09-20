@@ -5452,3 +5452,46 @@ otherwise.
 The streaming half stays open and goes to Igor *with* the proposal: the probe on every level for
 the in-memory readings, and an honest statement of what a streamed reading can promise, so that a
 declared limit is not offered in the one mode where it cannot be kept.
+
+## D59. Four corrections, one of them to a permission I had already given, 2026-09-20
+
+**1. D58's number is withdrawn and my permission to land on it goes with it.** Two runs produced
+output that looked like an answer: one died partway and printed only the baseline; the other
+printed both sides while the "every level" side was *the baseline binary measured twice*, its build
+having failed on a file lock left by the first run. **The tell is worth keeping: all eighteen rows
+came out one to three per cent faster, uniformly — the signature of a warm second pass of one
+binary rather than of a change.** A uniform small gain across every row is evidence of a harness
+fault before it is evidence of an improvement. The class is fixed rather than the instance: a
+failed build now aborts the run, and the flip must be visible in the *generated parser* before any
+row is measured — a check which immediately caught a third error, the probe being looked for in the
+wrong project's output. So the claim that probing every level is free rests on one shape only, and
+nothing lands until the corrected run. I approved landing without a window on those numbers; that
+approval is withdrawn with them.
+
+**2. The chain of members is not a quadratic, and my filing of it was wrong.** Measured: 2.6 s at
+two thousand, and at eight thousand it burned nineteen minutes of processor without finishing — a
+fourfold input for at least four hundred and thirty-eight times the work, which is nowhere near
+quadratic. It is also a repeated chain on a parse that *refuses*, which is the shape of D57's
+second source. **It is run as a calibration case against the committed probe before step three**: if
+the probe does not name a case we have in hand, the diagnostic would ship blind to it.
+
+**3. A real retention defect, found while writing the design rather than by it.** In the emitted
+return, the branch for a store past the bound ends before the clearing loop, so an outsized value
+store is never cleared: it sits in a strong slot for eight parses and in a weak reference after,
+holding every value the last parse built. Severity by pool, stated precisely rather than uniformly:
+real for the two whose tables hold constructed values; **not** for the one whose arrays are
+integers, where pinning numbers is the memory we meant to keep; unknown for the parser's arena
+until it is read. **This makes D34's emptying a fix rather than a tidying**, and it names what the
+operation actually is: drop the contents, keep the capacity — which is neither of the two
+operations that exist, since the return's clearing and the demotion each keep both together.
+
+**4. And a revision of my own ruling: unify the rule, not the text.** I had decided the retention
+rule should be emitted once as one shape all four pools and a sibling could use. Three of the four
+already go through the emitter's shared helpers; the other two are hand-written copies of the same
+forty-line shape inside a literal block, differing in a prefix, a bound, an expression and a reset.
+Unifying that text means turning two readable literal blocks into append calls, which is exactly
+what the conventions' handwritten-and-emitted distinction exists to prevent. **The drift we fear is
+behavioural, and a test catches behavioural drift**: the scaling tests are extended to cover all
+four pools, so a copy that loses the ladder fails rather than passes a review. The condition that
+came with D34 survives in a better form — the fifth tenant does not get a policy of its own, it
+gets the same test.
