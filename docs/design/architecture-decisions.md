@@ -6690,3 +6690,22 @@ to three times, and is called worse only if it was worse every time; a series wo
 and not on others is named as unstable, which is itself a fact about that series worth having.
 Nothing in this is a reason to stop measuring — it is a reason to stop pretending a measurement is
 a verdict.
+
+**Corrected the same evening, and the correction is ours.** The stand then measured what this
+entry said had never been measured: five runs of the ladders alone, on one unchanged build. One
+series of a hundred and one changed class, the median range of the exponent over five runs was
+0.02, the widest 0.30 — and against the guard's own margins that set would have failed nothing.
+So the ladders are not what is unstable, and the sentence above that reasons from "a measurement
+of time" to "cannot be reproducible" proves too much: on a quiet ladder the measurement
+reproduces, and had we measured before generalizing we would have known that.
+
+**What the two readings together say.** Something about running the guard *inside the whole slow
+suite* — in one process, after the streaming and memory tests, against a baseline taken on a tree
+before the retention work — produced eleven failures where the ladders alone produce none. That
+is a fact about the setting, not about timing as such, and which part of the setting is doing it
+is now the measurement to take rather than the conclusion to state.
+
+**The rule survives, on narrower ground.** What gates a build must be reproducible in the
+condition it gates in, and reproducibility there is shown, not assumed. The reporting form and
+the repetition stand for that reason alone; if the cause turns out to be a stale baseline, the
+right repair is a fresh baseline, and the guard may gate again.
