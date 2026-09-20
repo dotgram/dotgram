@@ -2897,6 +2897,17 @@ declared. The critic's three-way test keeps its shape with that third clause add
 allocation is housekeeping; the same answers in fewer steps by a rule fixed when generating is
 memoization; different steps for a reason the user did not declare is strategy, and is out.
 
+**The compromise, Igor the same evening: user code may settle its own fork early.** A fork the
+user owns need not be asked on every field — it can be answered once, where the user's code is
+cheap to ask, and read from a table afterwards. For FIX: when the options are built, the
+package's table and the consumer's pairs are merged into one byte a tag, indexed by the tag, with
+a sparse dictionary only beyond the array; then the grammar's guard reads one cell a field, with
+no dictionary, no set and no branch on whether the consumer supplied anything. The fork stays the
+user's, the grammar and the generator are untouched, and the main path keeps an array read. The
+price is stated in the package's own documentation: to change the pairs, build new options. The
+move generalizes — wherever a user's fork is asked during a parse, the question to put first is
+whether it can be a table built when the options are.
+
 ## D26. FIX: two things Igor asked for, 2026-09-19
 
 **Compared with the libraries that already exist**, QuickFIX and whatever else the platform has,
