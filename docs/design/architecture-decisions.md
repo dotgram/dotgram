@@ -4467,3 +4467,26 @@ two machines differ in bytes, so "packed again from the same commit" cannot be c
 the other half of the hole the publishing workflow's smoke closed. Whether mapping the paths makes
 two builds byte-identical in every other respect is a separate check, by comparing two builds and
 not by reasoning; finance-24 says so itself rather than claiming it.
+
+**D47's choice, narrowed by reading the code.** The path reaches the generator as a piece's own and
+goes straight into the line map; nothing in the generator reads a path map, a project directory or
+the CI flag today. The compilation does carry the compiler's own map, and applying it is a few
+lines on the Roslyn side of the seam, where that knowledge should stop anyway. **But it closes one
+of the three things, not three.** A map exists only where something sets it, so agreeing with the
+compiler neutralises exactly the builds whose document table was already neutral, and leaves every
+other build absolute — which means two builds of one commit still differ off CI, and the rule about
+comparing sizes only inside one worktree still cannot be lifted, because the person comparing sizes
+is running a local build.
+
+So the choice is: agree with the compiler and close one, or write a path of our own and close all
+three. **Approved in principle: the path of our own**, on the condition performance-ff set itself —
+that navigation from an emitted file to its grammar is tried in an editor before it is claimed, not
+reasoned about. The specific thing to try, because it decides whether the shape works at all: a
+generated file sits under the intermediate directory, and a relative directive is resolved against
+a base the reader chooses, so a path relative to the project may resolve from the wrong place
+exactly where a person clicks it.
+
+**And the third shape is rejected for the right reason** — map where a map exists and go relative
+otherwise makes the emitted bytes depend on the build's flags, which is the reproducibility hole
+being closed, wearing a hat. Emitted output that differs between a local build and a CI build is
+the defect, not the workaround.
