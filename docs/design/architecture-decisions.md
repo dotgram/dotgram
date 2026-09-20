@@ -5351,3 +5351,24 @@ somebody else's compiler. And the allocation benchmark's fix has no permanent gu
 having no test project; rather than copy the grammar into a test, the answer is to make the static
 probe itself the guard — a test asserting that its list holds nothing but the entries judged safe,
 each with its reason — which covers the benchmarks, the examples and every future grammar at once.
+
+**The two sources turn out to be one question asked twice.** "Alternatives that cannot read the
+same text" was one of the safety filters that made the diagnostic plausibly quiet; its *negation*,
+inside a repeated group, is the second source of the exponent. So disjointness is asked once and
+read in both directions — where it holds the place is safe, where it fails inside a repetition the
+place is a candidate of the second kind — and the second source needs no analysis we do not have.
+The scope claim that six of ten fall to existing filters is withdrawn by its author as a statement
+about the item: it is true of the first source and silent about the second.
+
+**And the guard takes its final shape: the file records a place, a verdict and a reason, and
+*unjudged* is a failing state rather than a line.** A tool that records places becomes one that
+refuses unjudged ones, which is what the process actually needs; and a walk over all the grammars
+guards the originals where a copy in a test would have guarded the copy. Today's five defects were
+found because somebody looked; the guard is what looks when nobody does.
+
+The capture-inside-an-atomic-group question is deferred into the pass over the two uncompilable
+configurations, with a prior and its evidence stated rather than a verdict: the specification's own
+streaming proof accepts a collection inside atomic groups, which reads as the language not treating
+an atomic wrapper as turning a collection into text. If it is intended it is a third instance of
+that family — our diagnosis delivered by somebody else's compiler — and a third instance is itself
+evidence about the cause.
