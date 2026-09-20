@@ -3132,3 +3132,18 @@ is an older third-party repack and is not this package, and the package names lo
 
 The work is finance-24's, as the owner of the FIX benchmarks, with critic's write-up as its input;
 the account of the libraries that D26 asks for is still owed and is not replaced by the row.
+
+**Correction to the third form, in one word, and it matters: a count, not a watermark.** Written
+above as "a watermark of contiguity", which is what expr proposed and what I approved; expr found
+it wrong on sitting down to write the code, and says so rather than quietly writing something
+else. There is no contiguous run of built records to mark. Records below the guarded rule's mark
+belong to rules above it and are lawfully unbuilt, so a watermark counted from zero would answer
+"no" to every ask. The question is relative to the mark. A count answers it: `Ways` holds how many
+records are written and not yet built; the mark saves that number beside what it already saves,
+and an ask compares — everything from the mark is built exactly when the count is what it was at
+the mark. Writing a record raises it, building one lowers it, a rewind restores what the mark
+saved. The rewind is what makes the count better than a watermark rather than merely equal to it:
+a watermark would have to find its new place by a scan, and the count does not. The check of the
+previous paragraph is unchanged and now holds the count against the honest scan, which is what
+makes the cheaper mechanism safe to have. A grammar with no building guard emits none of it, by
+the same condition under which it emits no `ways.Built` today.
