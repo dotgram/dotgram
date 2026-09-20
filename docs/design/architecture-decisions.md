@@ -2726,4 +2726,6 @@ a length, that a reader's input is the caller's to dispose, that an enumeration 
 stopping early leaves read-ahead in the buffer. What a rule means stays the author's: the
 templates say a rule is parsed, never what it is, and expr says plainly that this will not read as
 written prose. Whether an author may supply that text in the grammar is a change to the language
-and goes to Igor on its own; the templates reserve nothing for it.
+and goes to Igor on its own; the templates reserve nothing for it. **Igor, 2026-09-19: not now —
+there is more important work — but kept as a question for later.** So the emitted documentation
+stays the generator's own words until someone asks for the author's.
