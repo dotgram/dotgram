@@ -4259,3 +4259,21 @@ invisibly, so a consumer meets our decision about their data as a performance fi
 months later. Handing back bytes is quieter and makes one grammar mean two things depending on how
 it was compiled. Refusing is the only answer that decides nothing on the author's behalf, and the
 diagnostic naming the capture is what turns it from an obstruction into an instruction.
+
+**D43 has its number: about 5% of the built assembly, not half** (stand,
+`benchmarks/results/portable-size-2026-09-20/`, `392329b8`). Built release once each from one
+commit, the option written off on every grammar host: the SQL assembly falls by 924,160 bytes of
+19,811,840, 4.7%, and by 5.8% compressed, which is the figure a package carries; the expression
+language by 87,552 of 1,651,200, 5.3%, and 5.8% compressed. The two frameworks agree to a kilobyte.
+
+Two qualifications the measurement was asked for and gives. For the expression language the option
+removes the *second* copy only: the grammar is also the argument of the attribute that declares it,
+which stays whatever the option says, so 5.3% is all it can ever save there. And for SQL the
+difference is 226 KB **larger** than the three grammar texts together, which is about the size of
+the standard's text — so something travels once more than counted, a second class of one grammar
+or a nested one. That was not chased, the order having been for an order of magnitude.
+
+**The recommendation to Igor: keep the default.** Single digits of an assembly do not pay for
+surprising a consumer who builds a dialect on our grammar and finds the text absent, which is the
+case the option exists for. The 226 KB is a separate question and a better one: a grammar's text
+emitted more than once is a defect rather than a design cost, and it is ordered.
