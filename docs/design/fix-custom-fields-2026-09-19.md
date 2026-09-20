@@ -71,8 +71,57 @@ generator over a definition of their own.
 `Build`. *Cost:* a second pass over the fields, and the consumer writes the conversion themselves.
 *Price:* nothing in the package — it works today, and owes one paragraph of documentation.
 
-These are not exclusive. **D** is what a consumer can do this evening, **A** or **B** is what makes
-the parser do it for them, and **C** is what makes it typed with no seam at run time.
+**E. A class the consumer inherits.** The package publishes one class — say `FixFields` — whose
+members answer the questions the package answers for its own tags, each with the present answer as
+its default:
+
+```csharp
+public class FixFields
+{
+    public static FixFields Standard { get; }
+
+    protected virtual FixField Unknown(int tag, ReadOnlySpan<char> value);   // now: FixField.Unknown
+    protected virtual FixField Unknown(int tag, ReadOnlySpan<byte> value);
+    protected virtual FixField Unknown(int tag, FixBinaryValue value);
+    // and, if question 2 is answered yes, later and without new API:
+    // protected virtual string? TypeOf(int tag);   // now: the schema's table
+    // protected virtual int      DataTag(int tag); // now: the sixteen standard pairs
+}
+```
+
+A consumer writes `sealed class MyFields : FixFields`, overrides the three members with a switch of
+their own and calls `base` for what they do not claim, and hands an instance to the options. The
+package's own switch over its 912 tags stays where it is, static and sealed; the instance is
+consulted only where that switch falls through — so a known tag pays nothing, and an unknown one
+pays a null check and one virtual call, against an allocation it already pays.
+
+*What inheritance buys over the table and the interface.* The fallback is the language's:
+`base.Unknown(tag, value)` is how a consumer says "the rest is yours", where a table needs a
+convention for absence and an interface needs the consumer to hold our default themselves. One
+object carries state — their own schema, their own tables — instead of a delegate per tag. And it
+is the only shape that can answer question 2 later *without a second seam*: the day the strict
+mode has to accept a consumer's tag, `TypeOf` is one more virtual member on the class that is
+already there, rather than a new option beside the old one.
+
+*What it costs.* A protected surface is API: every member we add is a promise, and every member we
+change is a consumer's override that no longer overrides what it did. An interface has the same
+problem in a harsher form (a new member breaks every implementer), a table has it least. The class
+must be constructible by us for the standard case and by them for theirs, so its constructor is
+public and its default instance is ours. And it invites the question the table does not: if
+`Unknown` is virtual, why not `Text`, why not `Kind` — the answer has to be written down, or the
+seam widens by itself until the hot path is virtual.
+
+*Against C.* Where the consumer can run the generator, **C** gives typed sealed classes and no
+seam at all; **E** is for the consumer who has a jar of private tags and a NuGet reference.
+
+These are not exclusive. **D** is what a consumer can do this evening, **A**, **B** or **E** is what
+makes the parser do it for them, and **C** is what makes it typed with no seam at run time.
+
+| | how a consumer says "the rest is yours" | state | answers question 2 later | new members break |
+| --- | --- | --- | --- | --- |
+| A, a table | absent from the table | a delegate a tag | a second option | nothing |
+| B, an interface | returns null | their object | a second interface, or a breaking member | every implementer |
+| E, a base class | `base.Unknown(…)` | their object | one more virtual member | only an override of that member |
 
 ## 4. The questions to settle before any of it is built
 
@@ -96,7 +145,7 @@ the parser do it for them, and **C** is what makes it typed with no seam at run 
 
 ## 5. The opening position I would put to Igor
 
-**A** or **B** in the options, add-only, with the message layer left alone in the first step: the
+**E** in the options — a class with our answers as its defaults — add-only, with the message layer left alone in the first step: the
 parser builds the consumer's field, the strict mode still refuses an unknown tag inside a message,
 and a consumer who wants it there uses the lenient mode or builds the message from their own array.
 That is one seam, nothing on the known path, and it leaves questions 2 and 3 — the ones that decide
