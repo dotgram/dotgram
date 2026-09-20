@@ -1427,3 +1427,62 @@ is a size-against-speed trade between two paths that both already exist, the siz
 (`DotGram.CodeSize`) and no measurement, and the speed half is a byte load against a shift — which
 is why this file will not guess it. The number to take first is what these tables total in the
 packages' generated code, which needs a build and so is not this session's.
+
+## Q14 (2026-09-20). Optimisations by target framework: how many buckets, and what holds them equal
+
+Igor asked for the options sketched. Read at `f6ce6662`. Our own libraries target
+`netstandard2.0;net10.0`; the generator is netstandard2.0; and the emitted code is held to
+netstandard2.0, net472 and net8.0 by `DotGram.Compatibility`, at the C# 8 floor. What follows is
+about the *emitted* code, which is compiled in the consumer's project and so sees the consumer's
+framework, not ours.
+
+**The buckets worth having, and the one that is not.**
+
+- **The floor — netstandard2.0, net472, C# 8.** Unchanged byte for byte, which D20 already requires.
+  It has `Span` through the `System.Memory` package we already reference, and `IndexOf` of one to
+  three characters. Everything below is measured against it.
+- **net8.0, where nearly all of the value is.** `SearchValues<char>` and `SearchValues<byte>`, which
+  retire our own rule that a stop set of more than five characters is read one character at a time;
+  `IndexOfAnyExcept`, which is the mechanism under Q13's second item — the star over a class that
+  the automaton spins in, at 58 seam places; `FrozenDictionary`/`FrozenSet` for a grammar over
+  tokens, where SQL has 410 words; and the `Ascii` helpers for comparisons that ignore case.
+- **A later bucket — net9.0 or net10.0 — for recognising a keyword from a span without making a
+  string**, through an alternate lookup keyed on `ReadOnlySpan<char>`, and for searching many
+  strings at once. **The exact boundary between 9 and 10 is what this session would not swear to**:
+  the sources disagree about which of them carried `SearchValues<string>`, and it decides which
+  bucket the keyword work lands in. To be read off the API reference before anything is built, not
+  off a blog and not off this file.
+- **Not a bucket: netstandard2.1.** net472 does not reach it, and a consumer on 2.1 alone is rare
+  enough that the branch would double the matrix for almost nobody.
+
+**The shape this should take, which is the part worth arguing about.** Emit **capability switches,
+not framework switches** — `#if DOTGRAM_HAS_SEARCHVALUES` rather than `#if NET8_0_OR_GREATER` — with
+one place mapping a framework to its capabilities. Three reasons, in the order they bite: a framework
+test scattered across five emission sites multiplies by the number of buckets, while a capability
+name stays one word wherever it is written; the consumer's framework set is not ours to predict, and
+a package that multi-targets gets every branch compiled whether we thought about it or not; and D10
+already establishes the shape for this — unsafe code and skipping locals' initialisation are the
+consumer's option rather than our default, so a consumer who wants the floor on a new framework can
+have it, which a raw `NET8_0_OR_GREATER` cannot express.
+
+**Two things must exist before the first branch lands, and neither does.**
+
+- **Nothing asserts the branches answer alike.** `DotGram.Compatibility` builds the emitted code for
+  netstandard2.0, net472 and net8.0, and building *is* its assertion — it proves the code compiles on
+  three frameworks and says nothing about what it reads. The moment a branch changes how a stop set
+  is searched, the thing to hold is that every bucket returns the same values, the same refusals and
+  the same positions. The material is all here — the refusal record, the corpora, the snapshot
+  baseline — and what is missing is running it per bucket rather than per commit.
+- **The stand cannot pair two branches.** D20 asks for a pair comparing the two branches on one
+  platform rather than two commits; the stand pairs two *builds of two commits*. Building one grammar
+  twice with different capabilities, in one run, is a stand feature that does not exist, and the
+  measurement D20 requires cannot be taken until it does.
+
+**And the order I would put them in**, since each bucket costs a branch to write, to test and to
+pair: `SearchValues` for stop sets first, because it retires a rule of our own and the places are
+already counted; the star-over-class search second, because Q13 names where it lands; frozen tables
+third, because they pay only for a grammar over tokens and SQL is the one that has them; and the
+ASCII helpers last, being the smallest. The keyword-from-a-span work waits on the version question
+above.
+
+**Answer:** —
