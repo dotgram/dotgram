@@ -3846,3 +3846,36 @@ correctness line belongs in the code beside the emitted test rather than in a co
 character above 127 takes its "no" from the range comparison and never from the mask. It is one
 comparison replacing a bounds check, so it costs nothing, and it is the kind of thing that is
 obvious while writing and invisible afterwards.
+
+## D40. Per-framework emission: capabilities, and two things that must exist first, 2026-09-20
+
+critic's Q14, at Igor's asking. Three buckets, not four: the floor — netstandard2.0, net472, C# 8 —
+byte for byte unchanged as D20 requires; net8.0, where nearly all the value is (`SearchValues` for
+char and byte, which retires our own rule that a stop set of more than five characters is read one
+character at a time; `IndexOfAnyExcept`, the mechanism under the seam work, landing on 58 places;
+frozen tables for a grammar over tokens, where SQL has 410 words; the `Ascii` helpers); and a later
+bucket for recognising a keyword from a span without making a string. netstandard2.1 is not a
+bucket, net472 not reaching it. The version in which `SearchValues<string>` arrived decides which
+bucket the keyword work lands in and the sources disagree, so it is read off the API reference
+before anything is built rather than guessed.
+
+**Capability switches, not framework tests** — `#if DOTGRAM_HAS_SEARCHVALUES`, with one place
+mapping a framework to its capabilities. A framework test scattered over five emission sites
+multiplies by the buckets while a capability name stays one word, a consumer's framework set is not
+ours to predict, and D10 already has this shape, unsafe code and skipped initialisation being the
+consumer's option rather than our default. Approved.
+
+**And two conditions before the first branch lands, because neither exists.** First, nothing
+asserts that the branches *answer alike*: `DotGram.Compatibility` builds three frameworks and
+building is its whole assertion, so it proves compilation and says nothing about what is read. The
+material is already here — the refusal record and the corpora — run per bucket rather than per
+commit. Second, the stand cannot pair two branches: D20 asks for a pair comparing them on one
+platform, and the stand pairs two builds of two commits, so the measurement D20 itself requires
+cannot be taken. A branch that is faster and reads differently is worse than no branch, and a
+branch whose speed nobody can measure is a guess, so both come before the first `#if`.
+
+**A detail for whoever writes D39**, checked by critic after the reframing: the comparison the third
+form needs is already emitted. `TableTest` writes `c <= 255 && table[c] != 0`, so an all-ASCII class
+becomes `c <= 127 && …` — the same single comparison, and a tighter one, with a shift and a mask
+where an indexed load stood, whose bounds check the JIT must otherwise eliminate from the comparison
+and the array's length. One comparison as today, minus a memory access.
