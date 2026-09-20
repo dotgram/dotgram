@@ -156,6 +156,14 @@ SqlWalker.Walk(statement, node =>
 });
 ```
 
+**Walk it all, not the branches where the thing is expected.** A subquery stands wherever a
+value or a condition may stand — in a `WHERE`, in a column, under `OFFSET`/`FETCH`, in the
+arguments of a table function — so the tables a statement reads are not only under its `FROM`,
+its joins and its common table expressions. A consumer that visits the places a reference
+usually sits will not name a table that is not there; it will quietly miss the ones that are.
+`SqlWalker.Walk` is what covers a statement whole, and a check written over it is right where
+the same check written over chosen branches is not.
+
 A check sees what the tree keeps and nothing else. Where a statement keeps what followed its
 name as `Tail`, the words are there and their parts are not — unless the statement keeps its
 settings as `Options` beside them, which the keys and certificates do: a repeated `SUBJECT`
