@@ -5786,3 +5786,28 @@ explosive class, which is refused whole. **What has not been seen fire is the as
 explosive series itself** — read rather than observed — so it is calibrated against a tree from
 before the seals, ten minutes and one build. A checker that has never failed is not checked, and
 that rule does not stop applying because the rest of the checker has been proved.
+
+## D64. The class is re-reading, and its degree is the nesting of ambiguous choices
+
+The quadratic SQL row was taken and answers more than it was asked. First a fact about the list:
+**all four quadratic SQL rows are one case in two grammars at two entry points** — nested
+parentheses — so there was no other to pick, and a count of rows overstates the number of distinct
+defects. The row taken is the steepest of the whole audit, at 2.68.
+
+**The product is there exactly, and it is not the top term.** Per rule, at four sizes, the ratios
+are 1.0000 to three formulas: one pair of rules at four thirds of n(n+1)(n+2), another at four
+times n(n+1), a third at four times (n+1) squared. A square and a cube in one reading. **Two nested
+ambiguous choices make a square; three make a cube**, and T-SQL's query expression sits one level
+deeper than SQL:2023's, which is why the exponent is 2.68 and not 2.
+
+**So the class is not "the quadratics" — it is re-reading, and the exponent is its symptom.**
+Grouping the audit's rows by exponent was a proxy for the thing itself, which is the same habit this
+journal has spent three days naming: a likeness counted in place of the construct. The correction
+does not move the superlinear rows, which showed no re-reading at all in any count; it moves the
+ceiling, because a cure aimed at squares would have been measured against a row that is a cube.
+
+**And two facts strengthen the remedy rather than complicate it.** Nothing is materialised in this
+case at all — the walk's listing loop runs zero times at every size — so the whole cost is
+re-reading and the records given back are linear beside it. And a memory of a rule's refusal at a
+position removes the cube as well as the square, and removes more of it: the deeper the nesting,
+the more it saves. That is an argument for the remedy already named, not a new one.
