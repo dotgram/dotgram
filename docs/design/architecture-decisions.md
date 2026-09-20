@@ -1231,7 +1231,16 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   goes on linearly at the new level; raised in a throwaway build, the cliff disappears and the
   line is straight to eighty thousand. So there are two bounds of one kind, the tape's and the
   reader's, and performance-ff designs for both at once — one rule for keeping, not two numbers
-  with separate fates. The buffered reader's pair passed (the
+  with separate fates. **The rule, approved:** a pool never drops what it has grown; past its bound
+  it holds it weakly instead of strongly — three places of one shape, the parser's recycling and
+  the two reader pools' returns. The reader pool needs no rule of its own: the check on return is
+  the one it already makes, and only the branch that does nothing today stores into the weak slot;
+  the weak slot is read only when the strong spares are empty, which a loop of ordinary parses
+  never reaches. Being shared by every form argues for one rule rather than against it. Refused and
+  recorded rather than rediscovered: handing the outsized arrays to the runtime's shared array pool
+  would be writing "drop it" in more words, its own maximum pooled array being the same million
+  elements these bounds are written in. Each bound's comment is rewritten to say what now happens
+  past it, keeping the history of why the number is what it is. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
