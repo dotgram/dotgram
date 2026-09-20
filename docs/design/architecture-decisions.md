@@ -6562,3 +6562,38 @@ One condition on the shape: if both survive, they are named apart — the type b
 name by another — rather than distinguished by return type. Breaking either is free until the
 release is cut, which is one more reason to get the naming right now rather than to add a second
 way later.
+
+## D77. The generator works end to end, and the test that makes it a test of the generator
+
+A real dictionary, a real analyzer, a real build: a class of three lines becomes a hundred and
+thirty-one thousand lines of rules, and nothing generated is committed. **Both roads are given the
+same file**, which is what turns the comparison from another reading of two dictionaries into a
+test of two implementations: a disagreement is then a defect in one of them and never a difference
+in the data. On all 186 fixtures they now agree exactly.
+
+**And getting there found a defect that only that shape could find.** The walk distinguishes "the
+schema has no such tag" from "it has it, but not in this region"; the generated code said one
+sentence for both. Two roads over one dictionary answering in different words is a difference a
+reader would see and could not explain, so **the wording turned out to be part of what has to
+agree** — which a comparison by rule and tag would never have reported.
+
+**A duplication was prevented rather than found.** The mapping from the dictionary's spelling to a
+type nearly existed twice, once for each road, and the two would have drifted *silently* — a tag
+left unchecked rather than a break. It is one file compiled by both, which is D76 applied before
+the fact instead of after.
+
+**And one rule reads from the dictionary rather than from us**, correctly: the encoding rule takes
+its set of encoded fields from the file, because for a venue that set is theirs. For the standard
+version the two coincide, and the cross-check says so.
+
+**A sixth package means three lists must grow, and nothing says so when they do not.** The publish
+workflow packs five projects by name, the shape check names the libraries one by one, and the
+library smoke loops over four of them. A package missing from those lists is not packed, not
+checked and not smoked, and the failure is silence. The smoke for the new package therefore comes
+before the remaining work of the line rather than after it: a package that has never been installed
+by somebody else is the one thing we know breaks at publishing time.
+
+Then the time is taken again, the walk having got eight per cent faster this morning and the
+generated form sharing the repair, so the ratio measured before it is no longer the ratio. The
+second argument of the attribute — generating only the types a consumer names — stays last: the
+arithmetic already says it is not needed to make the shape affordable.
