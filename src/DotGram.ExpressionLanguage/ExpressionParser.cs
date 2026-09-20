@@ -312,12 +312,17 @@ namespace DotGram.ExpressionLanguage;
 
 		// `{{` and `}}` are a brace each, and a hole is everything between one brace and its
 		// match. An escape means what it means in any string.
+		//
+		// The run of plain text is atomic. It stops at the first character another alternative
+		// or the closing quote reads, so the longest reading is the only right one — and without
+		// the braces an unclosed string is read every way the run can be cut into pieces, which
+		// is every composition of its length: twenty-four characters took twenty seconds.
 		InterpolatedPiece : @Segment
-			= "{{"                           => @(Segment.Of("{"))
-			| "}}"                           => @(Segment.Of("}"))
-			| e: Escape                      => @(Segment.Of(e))
-			| t: [^ '"' | '\\' | '{' | '}']+ => @(Segment.Of(t))
-			| '{' & h: Hole & '}'            => @(h)
+			= "{{"                               => @(Segment.Of("{"))
+			| "}}"                               => @(Segment.Of("}"))
+			| e: Escape                          => @(Segment.Of(e))
+			| t: { [^ '"' | '\\' | '{' | '}']+ } => @(Segment.Of(t))
+			| '{' & h: Hole & '}'                => @(h)
 
 		InterpolatedBody : @Segment[] = parts: InterpolatedPiece* & '"' => @(parts)
 
@@ -331,11 +336,12 @@ namespace DotGram.ExpressionLanguage;
 		// for a quote, and the holes and braces of the other. A rule of its own rather than an
 		// alternative of `Interpolated`, because what the lexer begins and a rule ends is a
 		// beginning and then that rule — one sequence, which a choice of two is not.
+		// The run is atomic for the reason the other one is.
 		VerbatimInterpolatedPiece : @Segment
 			= "{{"                        => @(Segment.Of("{"))
 			| "}}"                        => @(Segment.Of("}"))
 			| "\"\""                      => @(Segment.Of("\""))
-			| t: [^ '"' | '{' | '}']+      => @(Segment.Of(t))
+			| t: { [^ '"' | '{' | '}']+ } => @(Segment.Of(t))
 			| '{' & h: Hole & '}'         => @(h)
 
 		VerbatimInterpolatedBody : @Segment[] = parts: VerbatimInterpolatedPiece* & '"' => @(parts)
@@ -371,18 +377,18 @@ namespace DotGram.ExpressionLanguage;
 
 		// With one dollar a brace always opens a hole, and a closing one outside a hole is refused.
 		RawPiece(close) : @Segment
-			= ?!close & '"'           => @(Segment.Of("\""))
-			| t: [^ '"' | '{' | '}']+ => @(Segment.Of(t))
-			| '{' & h: Hole & '}'     => @(h)
+			= ?!close & '"'               => @(Segment.Of("\""))
+			| t: { [^ '"' | '{' | '}']+ } => @(Segment.Of(t))
+			| '{' & h: Hole & '}'         => @(h)
 
 		// With two, a single brace is text, and a run of three is one of text and a hole's two.
 		RawDoublePiece(close) : @Segment
-			= ?!close & '"'           => @(Segment.Of("\""))
-			| t: [^ '"' | '{' | '}']+ => @(Segment.Of(t))
-			| '{' & ?!'{'             => @(Segment.Of("{"))
-			| '{' & ?=("{{" & ?!'{')  => @(Segment.Of("{"))
-			| "{{" & h: Hole & "}}"   => @(h)
-			| '}' & ?!'}'             => @(Segment.Of("}"))
+			= ?!close & '"'               => @(Segment.Of("\""))
+			| t: { [^ '"' | '{' | '}']+ } => @(Segment.Of(t))
+			| '{' & ?!'{'                 => @(Segment.Of("{"))
+			| '{' & ?=("{{" & ?!'{')      => @(Segment.Of("{"))
+			| "{{" & h: Hole & "}}"       => @(h)
+			| '}' & ?!'}'                 => @(Segment.Of("}"))
 
 		RawBody(close)       : @Segment[] = parts: RawPiece(close)* & close       => @(parts)
 		RawDoubleBody(close) : @Segment[] = parts: RawDoublePiece(close)* & close => @(parts)
