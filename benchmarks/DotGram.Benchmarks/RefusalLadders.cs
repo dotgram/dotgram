@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -37,6 +38,15 @@ namespace DotGram.Refusals;
 internal static class RefusalLadders
 {
 	internal static string Id(Series series) => series.Parser + " | " + series.Shape;
+
+	/// <summary>
+	/// The readings of the expression language the series run over. The public entry reads the tape, and that is all the slow suite can reach; the stand, which the language
+	/// makes its internals visible to, adds the immediate reading ("immediate") before it lists the series, so that the audit covers both machines and the guard the tape.
+	/// </summary>
+	internal static List<(string Form, Func<string, bool> Accepts)> ExpressionForms { get; } =
+	[
+		("tape", static t => ExpressionParser.TryParse(t, typeof(RefusalLadders).Assembly).IsSuccess),
+	];
 
 	/// <summary>The exponent above which the time of a refusal is a defect.</summary>
 	internal const double Threshold = 1.10;
@@ -160,12 +170,8 @@ internal static class RefusalLadders
 		yield return R("SQL:2023 search condition", "predicates, then an unclosed (", "predicates", 4096, n => Conditions(n) + " AND (a = 1", static t => SqlStandardParser.TryParseSearchCondition(t).IsSuccess);
 		yield return R("SQL:2023 search condition", "nested parentheses, never closed (the closed form is as dear: a cost of nesting)", "levels", 300, n => new string('(', n) + "a = 1", static t => SqlStandardParser.TryParseSearchCondition(t).IsSuccess);
 
-		// ── the expression language: the tape and the immediate reading are two machines over one grammar ──
-		foreach (var (form, accepts) in new (string, Func<string, bool>)[]
-		{
-			("tape",      static t => ExpressionParser.TryParseLambda(t, new ExpressionParser.State(typeof(RefusalLadders).Assembly) { Text = t }).IsSuccess),
-			("immediate", static t => ExpressionParser.Immediate.TryParseLambda(t, new ExpressionParser.State(typeof(RefusalLadders).Assembly) { Text = t }).IsSuccess),
-		})
+		// ── the expression language: the public reading everywhere (the tape), and whatever machines a caller with access to the internals adds ──
+		foreach (var (form, accepts) in ExpressionForms)
 		{
 			yield return R("expression, " + form, "terms, then a dangling +", "terms", 4096, n => "(int x) => x" + Copies(" + x", n) + " +", accepts);
 			yield return R("expression, " + form, "parentheses opened and not closed", "levels", 300, n => "(int x) => " + new string('(', n) + "x", accepts);

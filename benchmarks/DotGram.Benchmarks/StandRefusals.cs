@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
+using DotGram.ExpressionLanguage;
 using DotGram.Refusals;
 
 namespace DotGram.Benchmarks;
@@ -28,6 +29,10 @@ static partial class Stand
 		Console.WriteLine();
 		Console.WriteLine("| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | projected at 64 KiB | KB a call at the largest | allocation exponent | |");
 		Console.WriteLine("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
+
+		// The stand can reach the immediate reading of the expression language through the internals; the slow suite cannot, and reads the tape alone.
+		if (RefusalLadders.ExpressionForms.All(static one => one.Form != "immediate"))
+			RefusalLadders.ExpressionForms.Add(("immediate", static text => ExpressionParser.Immediate.TryParseLambda(text, new ExpressionParser.State(Caller) { Text = text }).IsSuccess));
 
 		var problems = new List<string>();
 		var lines    = new List<string>();

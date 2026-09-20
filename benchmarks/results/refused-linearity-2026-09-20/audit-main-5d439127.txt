@@ -1,0 +1,245 @@
+Built from 5d439127: the libraries measured are this build's own (DotGram.Web, DotGram.Sql, DotGram.ExpressionLanguage, DotGram.Finance, the examples).
+
+Refused inputs: a growing head and a tail no reader can finish; each series asserts that the input is refused. The exponent is the slope of log time on log size over the largest sixteenth of the ladder (at least four points); above 1.10 a refusal is a defect, from 1.5 quadratic, from 3.0 explosive. A ladder ends at the first call over 20 ms.
+
+| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | projected at 64 KiB | KB a call at the largest | allocation exponent | |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| UriTemplate | a literal run, then an unclosed { | characters | 4 - 3,393 | 33 | 3,402 | 23.6 us | 0.70 | 453.8 us | 6.8 | 0.89 |  |
+| UriTemplate | literals and expressions, then an unclosed { | expressions | 4 - 3,393 | 33 | 13,584 | 204.1 us | 1.00 | 987.3 us | 636.3 | 1.00 |  |
+| UriTemplate | an expression of n variables, unclosed | variables | 4 - 3,393 | 33 | 6,797 | 52.3 us | 0.96 | 504.2 us | 212.2 | 1.00 |  |
+| EmailAddress.TryParseList | a long atom, then a bare @ | characters | 4 - 3,393 | 33 | 3,394 | 3.8 us | 0.86 | 72.7 us | 0.0 | 0.86 |  |
+| EmailAddress.TryParseList | words, then an unclosed < | words | 4 - 1,391 | 29 | 2,786 | 24.3 ms | 1.98 | 12.7 s | 0.0 | 1.56 | QUADRATIC, stopped at 1,391 (24 ms) |
+| EmailAddress.TryParseList | addresses, then a bare @ | addresses | 4 - 713 | 26 | 10,697 | 23.2 ms | 1.97 | 822.8 ms | 0.0 | 2.55 | QUADRATIC, stopped at 713 (23 ms) |
+| EmailAddress.TryParseList | an unclosed quoted string | characters | 4 - 1,738 | 30 | 1,739 | 27.9 ms | 1.99 | 38.1 s | 0.0 | 1.50 | QUADRATIC, stopped at 1,738 (28 ms) |
+| EmailAddress.TryParseList | comments nested and unclosed | levels | 4 - 457 | 24 | 460 | 46.6 us | 0.94 | 6.6 ms | 0.0 | 0.94 |  |
+| EmailAddress.TryParseList | an unclosed domain literal | characters | 4 - 3,393 | 33 | 3,396 | 17.7 ms | 1.99 | 6.4 s | 0.0 | 1.56 | QUADRATIC |
+| AddrSpec.TryParseStrict | a long local part, then @@ | characters | 4 - 3,393 | 33 | 3,406 | 1.2 us | 0.79 | 22.3 us | 0.0 | 0.79 |  |
+| MediaType | parameters, then an unclosed quoted string | parameters | 4 - 891 | 27 | 4,470 | 27.4 ms | 1.97 | 5.4 s | 0.0 | 1.82 | QUADRATIC, stopped at 891 (27 ms) |
+| MediaType | an unclosed quoted string | characters | 4 - 3,393 | 33 | 3,407 | 3.7 us | 0.68 | 70.3 us | 0.0 | 0.68 |  |
+| MediaType | a long subtype, then a slash | characters | 4 - 3,393 | 33 | 3,400 | 5.7 ms | 1.91 | 1.6 s | 0.0 | 1.84 | QUADRATIC |
+| MediaRange.TryParseAccept | ranges, then a range with no weight | ranges | 4 - 3,393 | 33 | 50,904 | 4.3 ms | 1.09 | 5.6 ms | 14168.3 | 1.27 |  |
+| MediaRange.TryParseAccept | a long token, then a weight with no value | characters | 4 - 3,393 | 33 | 3,401 | 549.1 us | 1.16 | 17.2 ms | 11627.1 | 1.87 | SUPERLINEAR |
+| StructuredField.TryParseList | items, then an unclosed ( | items | 4 - 1,113 | 28 | 3,340 | 24.2 ms | 2.00 | 9.2 s | 0.0 | 0.79 | QUADRATIC, stopped at 1,113 (24 ms) |
+| StructuredField.TryParseList | an unclosed string | characters | 4 - 3,393 | 33 | 3,394 | 8.4 us | 0.97 | 162.9 us | 0.0 | 0.97 |  |
+| StructuredField.TryParseList | an inner list, unclosed | items | 4 - 3,393 | 33 | 6,787 | 116.7 us | 1.00 | 1.1 ms | 0.0 | 1.66 |  |
+| StructuredField.TryParseDictionary | members, then an unclosed string | members | 4 - 713 | 26 | 3,569 | 27.7 ms | 1.99 | 9.0 s | 0.0 | 1.49 | QUADRATIC, stopped at 713 (28 ms) |
+| StructuredField.TryParseItem | parameters, then a parameter with no value | parameters | 4 - 3,393 | 33 | 13,576 | 81.3 us | 1.00 | 392.7 us | 0.0 | 1.00 |  |
+| ForwardedElement.TryParseField | elements, then for= with no value | elements | 4 - 235 | 21 | 6,349 | 29.7 ms | 1.49 | 954.9 ms | 0.0 | 1.95 | SUPERLINEAR, stopped at 235 (30 ms) |
+| ForwardedElement.TryParseField | an unclosed quoted string | characters | 4 - 3,393 | 33 | 3,398 | 3.4 us | 0.85 | 65.9 us | 0.3 | 0.00 |  |
+| WebLink.TryParseField | links, then an unclosed < | links | 4 - 293 | 22 | 10,851 | 23.6 ms | 1.35 | 267.6 ms | 0.0 | 1.91 | SUPERLINEAR, stopped at 293 (24 ms) |
+| WebLink.TryParseField | an unclosed URI reference | characters | 4 - 3,393 | 33 | 3,414 | 10.5 us | 0.89 | 201.4 us | 13.6 | 0.89 |  |
+| WebLink.TryParseField | parameters, then an unclosed quoted string | parameters | 4 - 1,113 | 28 | 5,581 | 28.4 ms | 1.93 | 3.3 s | 0.0 | 1.00 | QUADRATIC, stopped at 1,113 (28 ms) |
+| CookiePair.TryParseField | pairs, then a control character | pairs | 4 - 3,393 | 33 | 16,968 | 58.0 us | 0.85 | 224.1 us | 8.3 | 2.38 |  |
+| LanguageTag | variants, then a bare hyphen | variants | 4 - 1,738 | 30 | 8,693 | 20.9 ms | 1.98 | 1.1 s | 0.0 | 1.20 | QUADRATIC, stopped at 1,738 (21 ms) |
+| LanguageTag | extension subtags, then a doubled hyphen | subtags | 4 - 2,172 | 31 | 10,866 | 25.4 ms | 1.97 | 879.4 ms | 0.0 | 1.54 | QUADRATIC, stopped at 2,172 (25 ms) |
+| ContentDisposition | parameters, then an unclosed quoted string | parameters | 4 - 891 | 27 | 4,471 | 29.9 ms | 2.02 | 6.8 s | 0.0 | 1.98 | QUADRATIC, stopped at 891 (30 ms) |
+| ContentDisposition | an extended value, then a cut percent-encoding | octets | 4 - 3,393 | 33 | 10,210 | 7.8 us | 0.93 | 50.2 us | 50.0 | 0.98 |  |
+| JsonPointer | segments, then a bad escape | segments | 4 - 3,393 | 33 | 6,787 | 54.7 us | 1.00 | 527.8 us | 106.1 | 1.00 |  |
+| JsonPointer | escapes, then a bad escape | escapes | 4 - 3,393 | 33 | 6,788 | 36.9 us | 0.98 | 356.5 us | 20.0 | 0.98 |  |
+| JsonPatch | operations, then a cut one | operations | 4 - 3,393 | 33 | 95,011 | 976.3 us | 0.99 | 673.5 us | 3075.6 | 1.00 |  |
+| JsonValue | an array, unclosed | elements | 4 - 3,393 | 33 | 6,788 | 64.2 us | 0.99 | 620.0 us | 212.2 | 1.00 |  |
+| JsonValue | an object, cut at a value | members | 4 - 3,393 | 33 | 20,363 | 123.0 us | 1.00 | 396.8 us | 450.7 | 1.00 |  |
+| JsonValue | an unclosed string | characters | 4 - 3,393 | 33 | 3,394 | 7.8 us | 0.98 | 150.8 us | 0.0 | 0.98 |  |
+| JsonValue | a long number, then a bare point | digits | 4 - 3,393 | 33 | 3,395 | 1.5 us | 0.84 | 28.6 us | 6.7 | 0.97 |  |
+| JsonValue | arrays nested and unclosed | levels | 4 - 293 | 22 | 293 | 2.2 us | 0.98 | 495.9 us | 0.0 | 0.98 |  |
+| JsonValue | objects nested and unclosed | levels | 4 - 293 | 22 | 1,465 | 3.3 us | 0.99 | 147.5 us | 0.0 | 0.99 |  |
+| UriReference | segments, then a bad percent-encoding | segments | 4 - 3,393 | 33 | 13,595 | 33.1 us | 0.97 | 159.7 us | 0.0 | 0.97 |  |
+| UriReference | a query, then a bad percent-encoding | pairs | 4 - 3,393 | 33 | 13,594 | 40.3 us | 0.97 | 194.4 us | 0.0 | 0.97 |  |
+| UriReference | an unclosed IPv6 literal | groups | 4 - 3,393 | 33 | 6,794 | 685 ns | 0.00 | 6.6 us | 0.0 | 0.00 |  |
+| UriReference | a long host, then a bracket | characters | 4 - 3,393 | 33 | 3,402 | 20.3 us | 0.96 | 390.1 us | 0.0 | 0.96 |  |
+| FixMessages.TryParse | fields, then a checksum cut short | fields | 4 - 3,393 | 33 | 27,170 | 5.1 us | 0.93 | 12.3 us | 0.1 | 0.00 |  |
+| FixMessages.TryParse | one value never terminated | characters | 4 - 3,393 | 33 | 3,415 | 706 ns | 0.67 | 13.5 us | 0.1 | 0.00 |  |
+| FeedReader | records, then a cut record | records | 4 - 3,393 | 33 | 74,675 | 200.1 us | 0.96 | 175.6 us | 0.6 | 0.00 |  |
+| StockCountReader | lines, then no closing count | lines | 4 - 3,393 | 33 | 39,674 | 121.0 us | 1.00 | 200.0 us | 341.8 | 1.00 |  |
+| T-SQL statement | columns, then a FROM with nothing after it | columns | 4 - 3,393 | 33 | 22,651 | 1.2 ms | 0.45 | 3.6 ms | 1325.7 | 1.00 |  |
+| T-SQL statement | an unclosed string | characters | 4 - 3,393 | 33 | 3,401 | 1.4 us | 0.78 | 26.1 us | 0.2 | 0.00 |  |
+| T-SQL statement | an unclosed comment | characters | 4 - 3,393 | 33 | 3,405 | 6.7 us | 0.61 | 129.0 us | 0.6 | 0.00 |  |
+| T-SQL statement | an unclosed bracketed identifier | characters | 4 - 3,393 | 33 | 3,401 | 1.4 us | 0.80 | 26.2 us | 0.1 | 0.00 |  |
+| T-SQL statement | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 293 | 22 | 301 | 305.9 us | 1.83 | 5.7 s | 0.0 | 1.82 | QUADRATIC |
+| T-SQL statement | subqueries opened and not closed | levels | 4 - 188 | 20 | 2,835 | 55.3 us | 0.91 | 1.3 ms | 32.7 | 0.95 |  |
+| T-SQL statement | CASE arms, no END | arms | 4 - 3,393 | 33 | 61,085 | 824.0 us | 1.00 | 884.1 us | 0.1 | 0.01 |  |
+| T-SQL statement | rows, then a cut row | rows | 4 - 3,393 | 33 | 27,175 | 1.4 ms | 0.99 | 3.3 ms | 1961.7 | 1.00 |  |
+| T-SQL search condition | predicates, then a dangling AND | predicates | 4 - 3,393 | 33 | 46,391 | 827.9 us | 1.00 | 1.2 ms | 212.2 | 1.00 |  |
+| T-SQL search condition | predicates, then an unclosed ( | predicates | 4 - 3,393 | 33 | 46,398 | 837.4 us | 0.99 | 1.2 ms | 212.4 | 0.99 |  |
+| T-SQL search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 188 | 20 | 193 | 30.9 ms | 2.68 | over a day | 0.0 | 0.91 | QUADRATIC, stopped at 188 (31 ms) |
+| SQL:2023 query | columns, then a FROM with nothing after it | columns | 4 - 3,393 | 33 | 22,651 | 5.2 ms | 0.82 | 14.9 ms | 5885.1 | 1.00 |  |
+| SQL:2023 query | an unclosed string | characters | 4 - 3,393 | 33 | 3,401 | 29.2 us | 0.85 | 563.3 us | 0.2 | -0.01 |  |
+| SQL:2023 query | an unclosed comment | characters | 4 - 3,393 | 33 | 3,405 | 6.6 us | 0.60 | 127.2 us | 0.8 | 0.00 |  |
+| SQL:2023 query | an unclosed quoted identifier | characters | 4 - 3,393 | 33 | 3,401 | 1.5 us | 0.78 | 29.5 us | 0.1 | 0.00 |  |
+| SQL:2023 query | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 293 | 22 | 301 | 394.9 us | 1.55 | 1.7 s | 1.6 | 0.00 | QUADRATIC |
+| SQL:2023 query | subqueries opened and not closed | levels | 4 - 188 | 20 | 2,835 | 25.7 us | 0.88 | 595.2 us | 0.1 | 0.01 |  |
+| SQL:2023 query | CASE arms, no END | arms | 4 - 2,715 | 32 | 48,881 | 39.6 ms | 1.49 | 61.4 ms | 0.0 | 1.66 | SUPERLINEAR, stopped at 2,715 (40 ms) |
+| SQL:2023 query | joins, then a JOIN with nothing after it | joins | 4 - 2,172 | 31 | 34,772 | 22.9 ms | 1.27 | 51.3 ms | 0.0 | 1.45 | SUPERLINEAR, stopped at 2,172 (23 ms) |
+| SQL:2023 search condition | predicates, then a dangling AND | predicates | 4 - 3,393 | 33 | 46,391 | 28.0 ms | 1.20 | 42.3 ms | 0.0 | 1.00 | SUPERLINEAR, stopped at 3,393 (28 ms) |
+| SQL:2023 search condition | predicates, then an unclosed ( | predicates | 4 - 3,393 | 33 | 46,398 | 23.4 ms | 1.17 | 35.1 ms | 0.0 | 1.00 | SUPERLINEAR, stopped at 3,393 (23 ms) |
+| SQL:2023 search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 293 | 22 | 298 | 395.3 us | 1.55 | 1.7 s | 3.3 | 0.00 | QUADRATIC |
+| expression, tape | terms, then a dangling + | terms | 4 - 3,393 | 33 | 13,586 | 2.4 ms | 0.85 | 11.4 ms | 584.1 | 1.00 |  |
+| expression, tape | parentheses opened and not closed | levels | 4 - 293 | 22 | 305 | 45.5 us | 0.65 | 9.8 ms | 1.0 | 0.00 |  |
+| expression, tape | an unclosed string | characters | 4 - 3,393 | 33 | 3,405 | 1.4 us | 0.72 | 27.3 us | 0.3 | 0.00 |  |
+| expression, tape | an unclosed verbatim string | characters | 4 - 3,393 | 33 | 3,406 | 1.4 us | 0.74 | 27.6 us | 0.3 | 0.00 |  |
+| expression, tape | an unclosed interpolated string | characters | 4 - 3,393 | 33 | 3,406 | 547 ns | 0.09 | 10.5 us | 0.3 | 0.00 |  |
+| expression, tape | an interpolated string, an unclosed hole | characters | 4 - 3,393 | 33 | 3,408 | 508 ns | 0.09 | 9.8 us | 0.3 | 0.00 |  |
+| expression, tape | an unclosed interpolated verbatim string | characters | 4 - 3,393 | 33 | 3,407 | 368 ns | 0.06 | 7.1 us | 0.3 | 0.00 |  |
+| expression, tape | an interpolated verbatim string, an unclosed hole | characters | 4 - 3,393 | 33 | 3,409 | 487 ns | 0.04 | 9.4 us | 0.3 | 0.00 |  |
+| expression, tape | an unclosed raw interpolated string | characters | 4 - 3,393 | 33 | 3,408 | 277 ns | 0.07 | 5.3 us | 0.3 | 0.00 |  |
+| expression, tape | a raw interpolated string, an unclosed hole | characters | 4 - 3,393 | 33 | 3,410 | 419 ns | 0.05 | 8.0 us | 0.3 | 0.00 |  |
+| expression, tape | an unclosed raw interpolated string, two dollars | characters | 4 - 3,393 | 33 | 3,409 | 404 ns | 0.05 | 7.8 us | 0.3 | 0.00 |  |
+| expression, tape | an interpolated string ending in a backslash | characters | 4 - 3,393 | 33 | 3,407 | 516 ns | 0.10 | 9.9 us | 0.3 | 0.00 |  |
+| expression, tape | an interpolated string with holes, then no closing quote | holes | 4 - 3,393 | 33 | 13,585 | 546.3 us | 1.00 | 2.6 ms | 0.3 | 0.00 |  |
+| expression, tape | an unclosed character literal | characters | 4 - 3,393 | 33 | 3,405 | 101 ns | -0.00 | 1.9 us | 0.3 | -0.00 |  |
+| expression, tape | member accesses, then a dangling . | members | 4 - 3,393 | 33 | 37,339 | 217.9 us | 0.97 | 382.4 us | 1.2 | 0.00 |  |
+| expression, tape | conditionals, then a cut one | levels | 4 - 293 | 22 | 2,356 | 129.1 us | 0.95 | 3.6 ms | 101.3 | 0.97 |  |
+| expression, immediate | terms, then a dangling + | terms | 4 - 3,393 | 33 | 13,586 | 876.5 us | 0.98 | 4.2 ms | 1168.1 | 0.99 |  |
+| expression, immediate | parentheses opened and not closed | levels | 4 - 293 | 22 | 305 | 49.5 us | 0.94 | 10.6 ms | 1.1 | 0.00 |  |
+| expression, immediate | an unclosed string | characters | 4 - 3,393 | 33 | 3,405 | 1.4 us | 0.73 | 27.2 us | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed verbatim string | characters | 4 - 3,393 | 33 | 3,406 | 1.4 us | 0.72 | 27.2 us | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed interpolated string | characters | 4 - 3,393 | 33 | 3,406 | 568 ns | 0.08 | 10.9 us | 0.3 | 0.00 |  |
+| expression, immediate | an interpolated string, an unclosed hole | characters | 4 - 3,393 | 33 | 3,408 | 517 ns | 0.10 | 9.9 us | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed interpolated verbatim string | characters | 4 - 3,393 | 33 | 3,407 | 380 ns | 0.06 | 7.3 us | 0.3 | 0.00 |  |
+| expression, immediate | an interpolated verbatim string, an unclosed hole | characters | 4 - 3,393 | 33 | 3,409 | 496 ns | 0.04 | 9.5 us | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed raw interpolated string | characters | 4 - 3,393 | 33 | 3,408 | 298 ns | 0.13 | 5.7 us | 0.3 | 0.00 |  |
+| expression, immediate | a raw interpolated string, an unclosed hole | characters | 4 - 3,393 | 33 | 3,410 | 429 ns | 0.04 | 8.2 us | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed raw interpolated string, two dollars | characters | 4 - 3,393 | 33 | 3,409 | 417 ns | 0.06 | 8.0 us | 0.3 | 0.00 |  |
+| expression, immediate | an interpolated string ending in a backslash | characters | 4 - 3,393 | 33 | 3,407 | 509 ns | 0.09 | 9.8 us | 0.3 | 0.00 |  |
+| expression, immediate | an interpolated string with holes, then no closing quote | holes | 4 - 3,393 | 33 | 13,585 | 551.3 us | 0.99 | 2.7 ms | 0.3 | -0.17 |  |
+| expression, immediate | an unclosed character literal | characters | 4 - 3,393 | 33 | 3,405 | 112 ns | 0.00 | 2.2 us | 0.3 | 0.00 |  |
+| expression, immediate | member accesses, then a dangling . | members | 4 - 3,393 | 33 | 37,339 | 1.7 ms | 0.93 | 3.0 ms | 4879.5 | 1.00 |  |
+| expression, immediate | conditionals, then a cut one | levels | 4 - 293 | 22 | 2,356 | 134.8 us | 0.99 | 3.8 ms | 170.7 | 0.97 |  |
+
+101 series, 23 defective or faulty:
+- EmailAddress.TryParseList, words, then an unclosed <: QUADRATIC, stopped at 1,391 (24 ms), time exponent 1.98, 12.7 s at 64 KiB
+- EmailAddress.TryParseList, addresses, then a bare @: QUADRATIC, stopped at 713 (23 ms), time exponent 1.97, 822.8 ms at 64 KiB
+- EmailAddress.TryParseList, an unclosed quoted string: QUADRATIC, stopped at 1,738 (28 ms), time exponent 1.99, 38.1 s at 64 KiB
+- EmailAddress.TryParseList, an unclosed domain literal: QUADRATIC, time exponent 1.99, 6.4 s at 64 KiB
+- MediaType, parameters, then an unclosed quoted string: QUADRATIC, stopped at 891 (27 ms), time exponent 1.97, 5.4 s at 64 KiB
+- MediaType, a long subtype, then a slash: QUADRATIC, time exponent 1.91, 1.6 s at 64 KiB
+- MediaRange.TryParseAccept, a long token, then a weight with no value: SUPERLINEAR, time exponent 1.16, 17.2 ms at 64 KiB
+- StructuredField.TryParseList, items, then an unclosed (: QUADRATIC, stopped at 1,113 (24 ms), time exponent 2.00, 9.2 s at 64 KiB
+- StructuredField.TryParseDictionary, members, then an unclosed string: QUADRATIC, stopped at 713 (28 ms), time exponent 1.99, 9.0 s at 64 KiB
+- ForwardedElement.TryParseField, elements, then for= with no value: SUPERLINEAR, stopped at 235 (30 ms), time exponent 1.49, 954.9 ms at 64 KiB
+- WebLink.TryParseField, links, then an unclosed <: SUPERLINEAR, stopped at 293 (24 ms), time exponent 1.35, 267.6 ms at 64 KiB
+- WebLink.TryParseField, parameters, then an unclosed quoted string: QUADRATIC, stopped at 1,113 (28 ms), time exponent 1.93, 3.3 s at 64 KiB
+- LanguageTag, variants, then a bare hyphen: QUADRATIC, stopped at 1,738 (21 ms), time exponent 1.98, 1.1 s at 64 KiB
+- LanguageTag, extension subtags, then a doubled hyphen: QUADRATIC, stopped at 2,172 (25 ms), time exponent 1.97, 879.4 ms at 64 KiB
+- ContentDisposition, parameters, then an unclosed quoted string: QUADRATIC, stopped at 891 (30 ms), time exponent 2.02, 6.8 s at 64 KiB
+- T-SQL statement, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, time exponent 1.83, 5.7 s at 64 KiB
+- T-SQL search condition, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, stopped at 188 (31 ms), time exponent 2.68, over a day at 64 KiB
+- SQL:2023 query, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, time exponent 1.55, 1.7 s at 64 KiB
+- SQL:2023 query, CASE arms, no END: SUPERLINEAR, stopped at 2,715 (40 ms), time exponent 1.49, 61.4 ms at 64 KiB
+- SQL:2023 query, joins, then a JOIN with nothing after it: SUPERLINEAR, stopped at 2,172 (23 ms), time exponent 1.27, 51.3 ms at 64 KiB
+- SQL:2023 search condition, predicates, then a dangling AND: SUPERLINEAR, stopped at 3,393 (28 ms), time exponent 1.20, 42.3 ms at 64 KiB
+- SQL:2023 search condition, predicates, then an unclosed (: SUPERLINEAR, stopped at 3,393 (23 ms), time exponent 1.17, 35.1 ms at 64 KiB
+- SQL:2023 search condition, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, time exponent 1.55, 1.7 s at 64 KiB
+
+Not covered by a refusal ladder:
+- Timestamp (RFC 3339): a fixed-length form, there is no head that grows before a refusal.
+- SetCookie: the reader is lenient, and every tail tried (a control character in a value or in an attribute) was accepted, so the series that asserted a refusal was a fault and was dropped; a refused shape with a growing head is not known.
+- The reader, stream and span forms of every grammar above: the ladders read a string, and the driver that pulls a TextReader or a Stream in pieces is a different piece of code over the same rules.
+- FixParser.Parse and the streaming FIX forms: they yield fields lazily and do not report a refusal as a value, so a ladder has nothing to read a refusal from.
+- SQL and T-SQL entry points other than a statement, a query expression and a search condition (scripts, the positional forms, expressions alone).
+- Rules that are reachable only from a start the ladders do not use: a shape whose bad tail sits inside a rule no series begins in is not seen here, and the static probe is the way to find it.
+- The examples under examples/ (not shipped), and the hand-written parsers (not a grammar's).
+
+Baseline, as the guard reads it (one series a line, `parser | shape = class`; a series that is an explosion, not refused or threw is commented out and fails the guard until it is fixed):
+UriTemplate | a literal run, then an unclosed { = Linear
+UriTemplate | literals and expressions, then an unclosed { = Linear
+UriTemplate | an expression of n variables, unclosed = Linear
+EmailAddress.TryParseList | a long atom, then a bare @ = Linear
+EmailAddress.TryParseList | words, then an unclosed < = Quadratic
+EmailAddress.TryParseList | addresses, then a bare @ = Quadratic
+EmailAddress.TryParseList | an unclosed quoted string = Quadratic
+EmailAddress.TryParseList | comments nested and unclosed = Linear
+EmailAddress.TryParseList | an unclosed domain literal = Quadratic
+AddrSpec.TryParseStrict | a long local part, then @@ = Linear
+MediaType | parameters, then an unclosed quoted string = Quadratic
+MediaType | an unclosed quoted string = Linear
+MediaType | a long subtype, then a slash = Quadratic
+MediaRange.TryParseAccept | ranges, then a range with no weight = Linear
+MediaRange.TryParseAccept | a long token, then a weight with no value = Superlinear
+StructuredField.TryParseList | items, then an unclosed ( = Quadratic
+StructuredField.TryParseList | an unclosed string = Linear
+StructuredField.TryParseList | an inner list, unclosed = Linear
+StructuredField.TryParseDictionary | members, then an unclosed string = Quadratic
+StructuredField.TryParseItem | parameters, then a parameter with no value = Linear
+ForwardedElement.TryParseField | elements, then for= with no value = Superlinear
+ForwardedElement.TryParseField | an unclosed quoted string = Linear
+WebLink.TryParseField | links, then an unclosed < = Superlinear
+WebLink.TryParseField | an unclosed URI reference = Linear
+WebLink.TryParseField | parameters, then an unclosed quoted string = Quadratic
+CookiePair.TryParseField | pairs, then a control character = Linear
+LanguageTag | variants, then a bare hyphen = Quadratic
+LanguageTag | extension subtags, then a doubled hyphen = Quadratic
+ContentDisposition | parameters, then an unclosed quoted string = Quadratic
+ContentDisposition | an extended value, then a cut percent-encoding = Linear
+JsonPointer | segments, then a bad escape = Linear
+JsonPointer | escapes, then a bad escape = Linear
+JsonPatch | operations, then a cut one = Linear
+JsonValue | an array, unclosed = Linear
+JsonValue | an object, cut at a value = Linear
+JsonValue | an unclosed string = Linear
+JsonValue | a long number, then a bare point = Linear
+JsonValue | arrays nested and unclosed = Linear
+JsonValue | objects nested and unclosed = Linear
+UriReference | segments, then a bad percent-encoding = Linear
+UriReference | a query, then a bad percent-encoding = Linear
+UriReference | an unclosed IPv6 literal = Linear
+UriReference | a long host, then a bracket = Linear
+FixMessages.TryParse | fields, then a checksum cut short = Linear
+FixMessages.TryParse | one value never terminated = Linear
+FeedReader | records, then a cut record = Linear
+StockCountReader | lines, then no closing count = Linear
+T-SQL statement | columns, then a FROM with nothing after it = Linear
+T-SQL statement | an unclosed string = Linear
+T-SQL statement | an unclosed comment = Linear
+T-SQL statement | an unclosed bracketed identifier = Linear
+T-SQL statement | nested parentheses, never closed (the closed form is as dear: a cost of nesting) = Quadratic
+T-SQL statement | subqueries opened and not closed = Linear
+T-SQL statement | CASE arms, no END = Linear
+T-SQL statement | rows, then a cut row = Linear
+T-SQL search condition | predicates, then a dangling AND = Linear
+T-SQL search condition | predicates, then an unclosed ( = Linear
+T-SQL search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) = Quadratic
+SQL:2023 query | columns, then a FROM with nothing after it = Linear
+SQL:2023 query | an unclosed string = Linear
+SQL:2023 query | an unclosed comment = Linear
+SQL:2023 query | an unclosed quoted identifier = Linear
+SQL:2023 query | nested parentheses, never closed (the closed form is as dear: a cost of nesting) = Quadratic
+SQL:2023 query | subqueries opened and not closed = Linear
+SQL:2023 query | CASE arms, no END = Superlinear
+SQL:2023 query | joins, then a JOIN with nothing after it = Superlinear
+SQL:2023 search condition | predicates, then a dangling AND = Superlinear
+SQL:2023 search condition | predicates, then an unclosed ( = Superlinear
+SQL:2023 search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) = Quadratic
+expression, tape | terms, then a dangling + = Linear
+expression, tape | parentheses opened and not closed = Linear
+expression, tape | an unclosed string = Linear
+expression, tape | an unclosed verbatim string = Linear
+expression, tape | an unclosed interpolated string = Linear
+expression, tape | an interpolated string, an unclosed hole = Linear
+expression, tape | an unclosed interpolated verbatim string = Linear
+expression, tape | an interpolated verbatim string, an unclosed hole = Linear
+expression, tape | an unclosed raw interpolated string = Linear
+expression, tape | a raw interpolated string, an unclosed hole = Linear
+expression, tape | an unclosed raw interpolated string, two dollars = Linear
+expression, tape | an interpolated string ending in a backslash = Linear
+expression, tape | an interpolated string with holes, then no closing quote = Linear
+expression, tape | an unclosed character literal = Linear
+expression, tape | member accesses, then a dangling . = Linear
+expression, tape | conditionals, then a cut one = Linear
+expression, immediate | terms, then a dangling + = Linear
+expression, immediate | parentheses opened and not closed = Linear
+expression, immediate | an unclosed string = Linear
+expression, immediate | an unclosed verbatim string = Linear
+expression, immediate | an unclosed interpolated string = Linear
+expression, immediate | an interpolated string, an unclosed hole = Linear
+expression, immediate | an unclosed interpolated verbatim string = Linear
+expression, immediate | an interpolated verbatim string, an unclosed hole = Linear
+expression, immediate | an unclosed raw interpolated string = Linear
+expression, immediate | a raw interpolated string, an unclosed hole = Linear
+expression, immediate | an unclosed raw interpolated string, two dollars = Linear
+expression, immediate | an interpolated string ending in a backslash = Linear
+expression, immediate | an interpolated string with holes, then no closing quote = Linear
+expression, immediate | an unclosed character literal = Linear
+expression, immediate | member accesses, then a dangling . = Linear
+expression, immediate | conditionals, then a cut one = Linear
+exit 1 after 81.3034825 s
