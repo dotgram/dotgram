@@ -226,21 +226,32 @@ public sealed class ExponentialShapeProbe
 		_                            => node,
 	};
 
+	/// <summary>Build output and the scratch directory, neither of which is the repository's.</summary>
+	static bool Scratch(string path) =>
+		path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+		path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+		path.Contains($"{Path.DirectorySeparatorChar}.work{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+
 	static string Describe(Node.Repeat repeat) =>
 		(repeat.Min == 0 ? "(…)*" : "(…)+") + " of " + Unwrapped(repeat.Body).GetType().Name.Replace("Node+", "");
 
 	/// <summary>Every grammar in the repository: the files, and the text of every attribute.</summary>
+	/// <remarks>
+	/// The repository's grammars, which is not the same as every grammar file on the disk. Build
+	/// output is skipped for the obvious reason, and `.work` because it is scratch: a grammar left
+	/// there by an experiment is nobody's to give a verdict on, and one of them makes this guard
+	/// fail for the person who ran the experiment and pass for everybody else — which reads as a
+	/// grammar that grew a shape and is a directory nobody meant to be read.
+	/// </remarks>
 	static IEnumerable<(string Name, string Text)> Grammars(string root)
 	{
 		foreach (var path in Directory.EnumerateFiles(root, "*.gram", SearchOption.AllDirectories))
-			if (!path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") &&
-				!path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+			if (!Scratch(path))
 				yield return (Path.GetFileName(path), File.ReadAllText(path));
 
 		foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
 		{
-			if (path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") ||
-				path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+			if (Scratch(path))
 				continue;
 
 			var source = File.ReadAllText(path);

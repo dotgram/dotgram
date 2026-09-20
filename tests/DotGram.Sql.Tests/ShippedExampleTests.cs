@@ -69,9 +69,6 @@ public sealed class ShippedExampleTests
 	[MemberData(nameof(Pages))]
 	public void Every_block_of_a_page_compiles_as_it_is_written(string page, int block)
 	{
-		// The package's own assembly is among the references only once something has loaded it.
-		_ = typeof(SqlWriter).Assembly.FullName;
-
 		var blocks = ShippedPages.Blocks(page);
 		var code   = ShippedPages.Inherited(blocks, block) + blocks[block];
 
