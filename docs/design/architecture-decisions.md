@@ -4243,3 +4243,19 @@ diagnostic naming the capture, and a default conversion, if one is ever wanted, 
 a grammar means and therefore Igor's. To performance-ff, with the diagnostics document gaining the
 number in the same commit, and expr's `Buffered` grammar noting in its header why it has no
 captures.
+
+**Two sentences from D44 worth keeping past it.** The snapshots were argued for on the ground that
+an implementation no diff shows is unheld whatever its tests say — that it would catch a *change*
+nobody could see. The first file a new snapshot produced showed a configuration that ships and does
+not compile: it caught a *state* nobody could see, which is the stronger case and not the one that
+was made for it. And on the neighbour check: if a declared type over bytes has the same hole it
+closes with the same refusal rather than a second one, because two diagnostics for one confusion
+teach a consumer that we do not understand our own boundary.
+
+Beside them, the reason refusing beat being helpful, in the words of the session that had to resist
+it: decoding silently would look like the accommodating choice and is the worst of the three — it
+picks an encoding nobody named, allocates where the grammar promised not to, and does both
+invisibly, so a consumer meets our decision about their data as a performance figure or as mojibake
+months later. Handing back bytes is quieter and makes one grammar mean two things depending on how
+it was compiled. Refusing is the only answer that decides nothing on the author's behalf, and the
+diagnostic naming the capture is what turns it from an obstruction into an instruction.
