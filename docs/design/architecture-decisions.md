@@ -3839,3 +3839,10 @@ reading what stands per machine rather than per grammar. No such consumer exists
 number has nothing to be spent on. And `JoinedRight`, the cause the work began for, survives the
 honest version too: what the paths inside the rule read again meets the continuation on one token
 kind. Where to start if it is ever reopened is therefore written down rather than rediscovered.
+
+D39's expectation, named before the pair in performance-ff's own words: smaller for certain, and
+quite possibly not slower — a direction promised no further than it has been earned. And the
+correctness line belongs in the code beside the emitted test rather than in a commit message: a
+character above 127 takes its "no" from the range comparison and never from the mask. It is one
+comparison replacing a bounds check, so it costs nothing, and it is the kind of thing that is
+obvious while writing and invisible afterwards.
