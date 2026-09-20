@@ -4955,3 +4955,20 @@ person does not "fix" it back. **It goes to performance-ff beside D44**, both be
 a configuration that emits code which does not compile — and one pass over that question is worth
 more than two. The pass should say whether the two share a cause: both appear where a capture's
 value has to be handed something the ordinary path supplies and the special path does not.
+
+**The hypothesis the one pass will test, stated before it starts.** Both defects sit where **the
+emitted call's argument list is built by one path and the factory's signature by another**, the two
+agreeing only along the ordinary path: in one the signature says string fields while the argument
+is a span of bytes, in the other the signature declares a location first and the argument list does
+not have it. Different symptoms, one shape — two descriptions of a single call, produced
+independently, checked against each other by nothing but the C# compiler in a consumer's build. If
+that is the cause the fix is one place deriving the signature and the arguments together rather
+than two guards, and the work after it is looking for the third such path, a fourth otherwise being
+found by a consumer instead of by us. If they turn out not to share a cause that is said plainly,
+because "one pass, one fix" is the tidy answer and tidiness is what should not be trusted here.
+
+**And the second confirmation in a day of something worth keeping:** the case for a check is made
+from the failures one can imagine, and those are not the ones it finds. Both of these were states
+that had already shipped rather than changes that slipped in. The first argument for the snapshots
+was that a change no diff shows is unheld; what they have actually caught twice is a configuration
+that was already broken and had never been looked at.
