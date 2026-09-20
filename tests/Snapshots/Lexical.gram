@@ -1,4 +1,4 @@
-﻿// A grammar read over kinds rather than characters (docs/syntax.md §4).
+// A grammar read over kinds rather than characters (docs/syntax.md §4).
 //
 // The lexical half is a property of how a grammar is compiled, not of what it says, so
 // no other snapshot can hold it: `Lexical.gram.g.cs` is where the tokenizer lives, and

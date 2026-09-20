@@ -1,4 +1,4 @@
-﻿// The reader over buffered input, which no other snapshot holds.
+// The reader over buffered input, which no other snapshot holds.
 //
 // A grammar does not ask for this: the host does, with `BufferedInput` and
 // `BufferedBytes` (docs/syntax.md §6.3), so it cannot be reached by writing another

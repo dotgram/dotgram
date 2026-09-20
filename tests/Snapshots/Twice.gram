@@ -1,4 +1,4 @@
-﻿// One grammar rendered twice, which is what a package ships and what the stand measures.
+// One grammar rendered twice, which is what a package ships and what the stand measures.
 //
 // The expression language ships `ExpressionParser` and `ExpressionParser.Immediate`:
 // the same grammar compiled again with a suffix of its own and a carrier that builds
