@@ -3959,3 +3959,28 @@ the guard added for that then captured the `else` belonging to the gathering bra
 ordinary ask down the side stack with −1. The tests caught both, and expr's own comment is the
 right one: caught by tests is not an excuse when the edit was five lines and reading the next line
 was cheaper than two runs.
+
+**D40 said "before the first branch", and there are already two.** critic's Q15, confirmed here at
+`5eb63fa3`: `BufferedEmitter.MoveLine` emits a `NET8_0_OR_GREATER` branch, added yesterday, and
+`Machine.Reader`'s stack probe emits a `NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER` one
+whose own emitted remark names what the floor pays, an exception on one probe in sixty-four. Those
+are the only two. So the capability rule arrives with two sites to convert rather than none, and
+D20's promise that the floor may not regress already has two cases nobody has measured. Both are
+converted when the capability mapping lands; neither is grandfathered, because the reason for the
+form — a framework test at five sites multiplies by the buckets — applies to them exactly as to a
+third.
+
+**And D40's first condition is much cheaper than its wording.** `EmittedCode.Compile` parses
+emitted source with *no* preprocessor symbols defined — nothing in the repository calls
+`WithPreprocessorSymbols` — against references taken from the test process's own net10 assemblies.
+So the whole in-memory level, the refusal sample, the slow suite's whole record, the buffered input
+tests and the carrier shapes, has been compiling the **floor** branch and running it on net10 all
+along, while the packages and the stand run the capable one. Both branches are already exercised by
+different levels of one suite, and nothing anywhere says so. What is missing is one argument and a
+second pass, not a test run per bucket. That is the shape to build, and the fact that it was true
+by accident for a year is itself worth the sentence.
+
+**The measurement switch can be made a fact rather than a promise.** Declare the compiler-visible
+property in `Directory.Build.props` rather than in the package's own build asset, which the
+repository reads through its own targets: the pair works and a consumer's build cannot set it at
+all. A rule enforced by where a line sits beats a rule enforced by a sentence in a document.
