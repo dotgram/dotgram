@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -144,6 +145,55 @@ public sealed class ExpressionShippedExampleTests
 
 		Assert.Equal(5, total([1, 2, 3]));
 	}
+
+	// ── The pages themselves, compiled as they are written ──────────────────────
+
+	/// <summary>
+	/// Every fenced block of both pages compiles on its own, with the usings it shows and no
+	/// others (D56).
+	/// </summary>
+	/// <remarks>
+	/// The tests above run the examples, and they run inside a project where implicit usings are
+	/// on — so a page that forgets <c>using System;</c> passes them. This package ships for
+	/// <c>netstandard2.0</c> and <c>net472</c> too, where there are no implicit usings, and a
+	/// reader aiming at the floor is the reader the floor exists for.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Pages))]
+	public void Every_block_of_a_page_compiles_as_it_is_written(string page, int block)
+	{
+		var blocks = ShippedPages.Blocks(page);
+		var code   = ShippedPages.Inherited(blocks, block) + blocks[block];
+
+		if (Fragments.TryGetValue((Path.GetFileName(page), block), out var why))
+		{
+			// A fragment is not a compilation unit and is not asked to be one. Why each is here
+			// stands beside it: a page says what a fragment of it is missing (D37), and the
+			// smallest whole form of it is one of the tests above.
+			Assert.NotNull(why);
+
+			return;
+		}
+
+		var said = ShippedPages.Compiles(code);
+
+		// The code as the page shows it goes into the message: a block that does not compile is
+		// read here, not hunted for in the page.
+		Assert.True(said is null, said + Environment.NewLine + "----" + Environment.NewLine + code);
+	}
+
+	public static TheoryData<string, int> Pages => ShippedPages.Every(
+		ShippedPages.PageOf(typeof(ExpressionParser), "README.md"),
+		ShippedPages.PageOf(typeof(ExpressionParser), "SKILL.md"));
+
+	/// <summary>The blocks that are not files of their own, and why each one is not.</summary>
+	static readonly Dictionary<(string Page, int Block), string> Fragments = new()
+	{
+		[("SKILL.md", 1)] =
+			"A field and a statement: the page is showing where the assembly comes from, and a field " +
+			"cannot stand among top-level statements. The whole form of it is " +
+			nameof(ExpressionShippedExampleTests.A_rule_over_a_type_of_the_calling_assembly) + ".",
+	};
 }
 
 /// <summary>The type the skill's fragment stands for: a consumer's own, in their own assembly.</summary>

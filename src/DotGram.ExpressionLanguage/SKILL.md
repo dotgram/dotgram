@@ -21,6 +21,9 @@ for each. This is the order to decide things in, and the mistakes that are easy 
 ## Choose the entry point
 
 ```csharp
+using System;
+using System.Linq.Expressions;
+
 using DotGram.ExpressionLanguage;
 
 // A delegate of your own type: the usual case.

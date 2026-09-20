@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Agents: the skill for this package is SKILL.md, beside this file in the package
   directory — which entry point to use, who is calling, how names are found, what a text
   may say and where it is not C#. Read it before writing code against the package. In a
@@ -14,6 +14,8 @@ compiled, so nothing here carries a parser runtime, and neither does anything th
 references it.
 
 ```csharp
+using System;
+
 using DotGram.ExpressionLanguage;
 
 var square = ExpressionParser.Compile<Func<int, int>>("(int x) => x * x - 1");
@@ -55,8 +57,8 @@ declares or an operator its operands do not support.
 ```csharp
 var match = ExpressionParser.TryParse("(string s) => s - 1");
 
-match.IsSuccess;   // false: there is no minus over a string
-match.Error;       // what Expression.Subtract said about String and Int32
+if (!match.IsSuccess)                    // there is no minus over a string
+    Console.WriteLine(match.Error);      // what Expression.Subtract said about String and Int32
 ```
 
 A type named rather than spelled as a keyword is found the way C# finds one: written whole,
@@ -66,6 +68,8 @@ name is what C# written in the calling assembly could: public types, and that as
 own internal types and members.
 
 ```csharp
+using System.Collections.Generic;
+
 var count = ExpressionParser.Compile<Func<IList<int>, int>>(
     """
     using System.Collections.Generic;
