@@ -6536,3 +6536,29 @@ was right about the order and wrong about the size, for exactly that reason.
 The correction was added to the document as its own section rather than rewritten over the first
 reading, which is the practice this journal has been keeping all day: a number that was wrong is
 marked, not deleted, so the next person sees the road as well as the destination.
+
+**Two shapes settled inside D75, and one public member that follows from D76.**
+
+**The generator compiles the reader's source rather than loading the library beside itself.** The
+obvious move is to put the library's assembly next to the analyzer; the better one is to compile
+the same file into both. A second assembly loaded in another context turns "the two packages
+version in lockstep" from a requirement on packages into a requirement on a loader, and **one
+source compiled twice cannot drift at all**. That is the stronger form of the same guarantee and it
+costs a file being linked rather than a dependency being carried.
+
+**And the public member is granted, because refusing it forces the thing D76 forbids.** Generated
+code lives in the consumer's assembly and cannot call an internal check; the only alternative is
+emitting a copy of that check's semantics, which is exactly what the measurement said not to do —
+three quarters of its cost is reading characters, so a copy would be both risky and pointless. So
+the check gets a public entry: an enum of value types rather than the byte the schema carries
+internally, a validity call, and a tag's type by number.
+
+It earns its place without the generator too. A consumer writing one rule of their own has no way
+today to ask whether a value fits its FIX type except by writing it again, and the only public
+way to ask a tag's type returns the *name* — the string that was taken off the hot path this
+morning — so the fast form being internal and the slow one public is backwards.
+
+One condition on the shape: if both survive, they are named apart — the type by one name and its
+name by another — rather than distinguished by return type. Breaking either is free until the
+release is cut, which is one more reason to get the naming right now rather than to add a second
+way later.
