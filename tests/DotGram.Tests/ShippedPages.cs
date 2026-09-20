@@ -38,6 +38,13 @@ namespace DotGram.Tests;
 /// uses this, with a reason each, and they are not marked in the page: a shipped document does not
 /// carry scaffolding for our tests.
 /// </para>
+/// <para>
+/// **This file is a shared agreement, and is linked into the test project of every package rather
+/// than copied.** What it accepts and rejects is the rule about pages, so changing that is changing
+/// the rule: mending a mistake in it is mending, but moving the line between a page that passes and
+/// a page that does not goes past the architect first. Otherwise the rule belongs to whoever
+/// touched the file last, and the pages of four packages are held to it.
+/// </para>
 /// </remarks>
 static class ShippedPages
 {
