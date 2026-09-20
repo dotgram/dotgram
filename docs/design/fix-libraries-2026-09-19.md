@@ -127,7 +127,7 @@ The difference is not a detail; it decides what may be compared.
 | what a parse returns | `FixField[]`, one typed object a field, values converted | `Message : FieldMap` over `SortedDictionary<int, IField>`, values as strings | an index into the byte buffer; values fetched on demand |
 | typed messages | `FixMessages.Build`, a second step | generated classes, only if an `IMessageFactory` is supplied, from a separate package | separate |
 | dictionary needed to parse | no — only the length/data pairs, from compiled tables | no — and **without one, repeating groups are not recognised at all** | no — group indexing is a separate opt-in call |
-| validation while parsing | none; strict checks are the message layer's | header field order only; full validation is a separate `DataDictionary.Validate` | none at the raw entry point |
+| validation while parsing | none; strict checks are the message layer's | with `validate: true`: header field order, then BodyLength and CheckSum. Dictionary validation is a separate `DataDictionary.Validate` | none at the raw entry point |
 | session layer | none | included, separable — parsing does not depend on it | included, separable |
 
 The row that matters most is the third. **QuickFIX/n parsed without a dictionary does less work
@@ -136,10 +136,15 @@ than we do**, because it does not find the groups. In `Message.FromString` the g
 dictionary. (Everything quoted from their source here was read from `QuickFIXn.Core` at 1.14.1,
 `connamara/quickfixn` on 2026-09-19. The names will outlive their next release; the line numbers
 would not, so there are none.) And `validate: true`
-inside `FromString` is not dictionary validation either — it checks that the first three header
-fields are in order and nothing else; the full check is a separate `DataDictionary.Validate` the
+inside `FromString` is not dictionary validation: it checks that the first three header fields are
+in order and then calls the instance `Validate()`, which checks BodyLength and CheckSum — the
+framing, not the schema. The schema check is a separate static `DataDictionary.Validate` the
 caller makes. So there are three readings, not one, and each does a different amount of work:
 without a dictionary, with one, and with one plus the explicit validation.
+
+*(This paragraph said "the first three header fields and nothing else" until the readings were
+built and a hand-made message was refused for its BodyLength. Reading their file told me what
+`validate` is tested against; only running it showed what it then calls. Both are needed.)*
 
 ### The one difference that is not about speed
 
@@ -188,7 +193,12 @@ it is, and the ratio cell prints `reference` so that no ratio exists to misread.
   - against `FixMessages` — `FromString(msgstr, transportDict, appDict, validate: true)` followed
     by an explicit `DataDictionary.Validate`. Only in this form do their groups get assembled, so
     only in this form is the comparison honest. It makes `QuickFIXn.FIX44` a requirement rather
-    than an option.
+    than an option — and that package **ships `DataDictionary/FIX44.xml` inside itself**, so the
+    dictionary arrives with the reference and no third-party file enters this repository. Both
+    forms were built and run before this was written; the dictionary one accepts a correctly
+    framed `NewOrderSingle` and its `DataDictionary.Validate` returns without throwing. Note the
+    package version: `QuickFIXn.Core` is 1.14.1 and `QuickFIXn.FIX44` is **1.14.0** — 1.13.0 does
+    not exist for it, and asking for 1.13.0 silently resolves 1.14.0 with an NU1603 warning.
   - against `FixParser.Parse` — the dictionary-less form, with the row saying that it assembles
     no groups and builds no typed values.
 - FIX Antenna, if taken: `RawFixUtil.GetFixMessage(byte[])`.
