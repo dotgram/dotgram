@@ -6356,6 +6356,26 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
+			/// <summary>A tape too large for the ordinary slot, kept while the work still wants it.</summary>
+			[global::System.ThreadStatic]
+			static Ways? _large;
+
+			/// <summary>Rentals since the large one was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+			[global::System.ThreadStatic]
+			static int _largeIdle;
+
+			/// <summary>And where it goes then: reachable while nothing else wants the memory.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<Ways>? _largeLetGo;
+
+			/// <summary>
+			/// Eight is a claim, not a taste: if eight parses in a row have not wanted the large
+			/// tape, this thread's work has changed and the next parse is unlikely to want it
+			/// either. Holding it through a few small parses costs the memory we were holding a
+			/// moment ago anyway; holding it through a hundred would be hoarding.
+			/// </summary>
+			const int LargeIdle = 8;
+
 			internal static Ways Rent()
 			{
 				var spare = _spare;
@@ -6367,8 +6387,30 @@ namespace DotGram.Snapshots
 					spare = _deeper![--_deeperCount]!;
 					_deeper![_deeperCount] = null;
 				}
+				else if (_large != null)
+				{
+					spare = _large;
+					_large = null;
+					_largeIdle = 0;
+				}
+				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
+				{
+					spare = letGo;
+					_largeLetGo.SetTarget(null!);
+					_largeIdle = 0;
+				}
 				else
 					return new Ways();
+
+				// A large tape nobody has wanted for a while stops being held against the
+				// collector's wishes, without being thrown away: what the work stopped needing
+				// is still there if the work comes back before the memory is wanted elsewhere.
+				if (_large != null && ++_largeIdle >= LargeIdle)
+				{
+					(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+					_large = null;
+					_largeIdle = 0;
+				}
 
 				spare.Count = 0;
 				spare.Cursor = 0;
@@ -6383,9 +6425,26 @@ namespace DotGram.Snapshots
 
 			internal static void Return(Ways ways)
 			{
-				// Bound retained capacity, including an earlier parse's high-water size.
+				// Bound retained capacity, including an earlier parse's high-water size. Past it
+				// the tape is not thrown away — that was a cliff rather than a bound: one entry
+				// over and the next parse of a document that size grew everything again from
+				// nothing, which cost twenty times the memory of a document a third smaller.
+				// It goes to a slot of its own instead, held while the work keeps wanting it
+				// (Rent, LargeIdle) and let go of by the collector afterwards. Handing it to
+				// ArrayPool<T>.Shared instead was considered and is not the same thing: that
+				// pool's largest kept array is 2^20 elements, the very number this bound is
+				// written in, so it would decline exactly these arrays and "pool it" would mean
+				// "drop it" in more words.
 				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
+				{
+					if (_large != null && !ReferenceEquals(_large, ways))
+						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+
+					_large = ways;
+					_largeIdle = 0;
+
 					return;
+				}
 
 				if (_spare == null)
 					_spare = ways;
@@ -6690,6 +6749,26 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
+			/// <summary>A store past the bound, kept while this thread's work still wants it.</summary>
+			[global::System.ThreadStatic]
+			static DirectValues? _large;
+
+			/// <summary>Rentals since it was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+			[global::System.ThreadStatic]
+			static int _largeIdle;
+
+			/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<DirectValues>? _largeLetGo;
+
+			/// <summary>
+			/// Eight is a claim rather than a taste: if eight parses in a row have not wanted
+			/// the large store, this thread's work has changed and the next parse is unlikely
+			/// to want it either. Carrying it through a few small parses costs the memory this
+			/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.
+			/// </summary>
+			const int LargeIdle = 8;
+
 			internal static DirectValues Rent()
 			{
 				var spare = _spare;
@@ -6701,22 +6780,57 @@ namespace DotGram.Snapshots
 					spare = _deeper![--_deeperCount]!;
 					_deeper![_deeperCount] = null;
 				}
+				else if (_large != null)
+				{
+					spare = _large;
+					_large = null;
+					_largeIdle = 0;
+				}
+				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
+				{
+					spare = letGo;
+					_largeLetGo.SetTarget(null!);
+					_largeIdle = 0;
+				}
 				else
 					return new DirectValues();
+
+				// A large store nobody has wanted for a while stops being held against the
+				// collector, without being thrown away: what the work stopped needing is still
+				// there if the work comes back before the memory is wanted elsewhere.
+				if (_large != null && ++_largeIdle >= LargeIdle)
+				{
+					(_largeLetGo ??= new global::System.WeakReference<DirectValues>(_large)).SetTarget(_large);
+					_large = null;
+					_largeIdle = 0;
+				}
 
 				return spare;
 			}
 
 			internal static void Return(DirectValues values)
 			{
-				// Oversized stores are collected instead of retained by the thread.
-				if (0L + values.V0.Length + values.V1.Length + values.V2.Length + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576) return;
-
 				global::System.Array.Clear(values.V0, 0, global::System.Math.Min(values._used, values.V0.Length));
 				global::System.Array.Clear(values.V1, 0, global::System.Math.Min(values._used, values.V1.Length));
 				global::System.Array.Clear(values.V2, 0, global::System.Math.Min(values._used, values.V2.Length));
 				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
 				values._used = 0;
+
+				// Past the bound the store is not thrown away - that was a cliff
+				// and not a bound - it is kept while the work keeps wanting it, and handed
+				// to the collector once it stops (CSharpEmitter.Outsized). It is emptied
+				// first, above: what is kept is the room, never what was built in it.
+				if (0L + values.V0.Length + values.V1.Length + values.V2.Length + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576)
+				{
+					if (_large != null && !ReferenceEquals(_large, values))
+						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(_large)).SetTarget(_large);
+
+					_large = values;
+					_largeIdle = 0;
+
+					return;
+				}
+
 				if (_spare == null)
 					_spare = values;
 				else if (_deeperCount < 3)
@@ -7027,8 +7141,8 @@ namespace DotGram.Snapshots
 		/// <para>
 		/// One slot, taken out of the field while it is in use, so a parse reached from
 		/// inside another — a guard that parses, a value that does — gets its own rather
-		/// than sharing. A parser larger than <c>KeptEntries</c> is let go instead of kept,
-		/// so a truly outsized input does not leave every thread holding its arena for
+		/// than sharing. A parser larger than <c>KeptEntries</c> does not go in it, so a
+		/// truly outsized input does not leave every thread holding its arena for
 		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
 		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
 		/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
@@ -7037,6 +7151,18 @@ namespace DotGram.Snapshots
 		/// allocation, once per parse. At 65,536 entries the retained machinery is a few
 		/// megabytes — the working set of a parser whose documents are that size — and
 		/// anything past it is the pathology the letting-go is for.
+		/// </para>
+		/// <para>
+		/// What "let go" meant was thrown away, and that was a cliff rather than a bound: a
+		/// document one entry past it rebuilt the whole machinery on every parse, growing it
+		/// from nothing by doubling, so a third more input cost twenty times the memory
+		/// (measured, 2026-09-19). An outsized parser now goes to <see cref="_largeParser"/>
+		/// instead, held while this thread's work keeps wanting it and passed to the collector
+		/// when it stops. Both halves matter: held, because a tight loop of large parses must
+		/// reuse deterministically rather than when a collection happens not to have
+		/// intervened, and an intermittent twentyfold jump is worse to diagnose than a
+		/// reliable one; passed on, because the sentence above — no thread holds an outsized
+		/// arena for ever — is still the rule.
 		/// </para>
 		/// </remarks>
 		[global::System.ThreadStatic]
@@ -7051,6 +7177,26 @@ namespace DotGram.Snapshots
 
 		const int KeptEntries = 65536;
 
+		/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
+		[global::System.ThreadStatic]
+		static Parser? _largeParser;
+
+		/// <summary>Parses since it was last taken; at <see cref="LargeParserIdle"/> it is let go of.</summary>
+		[global::System.ThreadStatic]
+		static int _largeParserIdle;
+
+		/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
+		[global::System.ThreadStatic]
+		static global::System.WeakReference<Parser>? _largeParserLetGo;
+
+		/// <summary>
+		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
+		/// large arena, this thread's work has changed and the next parse is unlikely to want
+		/// it either. Carrying it through a few small parses costs the memory this thread held
+		/// a moment ago anyway; carrying it through a hundred would be hoarding.
+		/// </summary>
+		const int LargeParserIdle = 8;
+
 		static Parser Recycled()
 		{
 			var spare = _spareParser;
@@ -7062,8 +7208,30 @@ namespace DotGram.Snapshots
 				spare = _deeperParsers![--_deeperParserCount]!;
 				_deeperParsers![_deeperParserCount] = null;
 			}
+			else if (_largeParser != null)
+			{
+				spare = _largeParser;
+				_largeParser = null;
+				_largeParserIdle = 0;
+			}
+			else if (_largeParserLetGo != null && _largeParserLetGo.TryGetTarget(out var letGo))
+			{
+				spare = letGo;
+				_largeParserLetGo.SetTarget(null!);
+				_largeParserIdle = 0;
+			}
 			else
 				return new Parser();
+
+			// A large arena nobody has wanted for eight parses stops being held against the
+			// collector, without being thrown away: what the work stopped needing is still
+			// there if the work comes back before the memory is wanted elsewhere.
+			if (_largeParser != null && ++_largeParserIdle >= LargeParserIdle)
+			{
+				(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+				_largeParser = null;
+				_largeParserIdle = 0;
+			}
 
 			return spare;
 		}
@@ -7071,7 +7239,15 @@ namespace DotGram.Snapshots
 		static void Recycle(Parser parser)
 		{
 			if (parser.Entries.Capacity > KeptEntries)
+			{
+				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+
+				_largeParser = parser;
+				_largeParserIdle = 0;
+
 				return;
+			}
 
 			if (_spareParser == null)
 				_spareParser = parser;

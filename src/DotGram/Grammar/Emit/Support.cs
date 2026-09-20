@@ -1075,8 +1075,8 @@ public static partial class CSharpEmitter
 		/// <para>
 		/// One slot, taken out of the field while it is in use, so a parse reached from
 		/// inside another — a guard that parses, a value that does — gets its own rather
-		/// than sharing. A parser larger than <c>KeptEntries</c> is let go instead of kept,
-		/// so a truly outsized input does not leave every thread holding its arena for
+		/// than sharing. A parser larger than <c>KeptEntries</c> does not go in it, so a
+		/// truly outsized input does not leave every thread holding its arena for
 		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
 		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
 		/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
@@ -1085,6 +1085,18 @@ public static partial class CSharpEmitter
 		/// allocation, once per parse. At 65,536 entries the retained machinery is a few
 		/// megabytes — the working set of a parser whose documents are that size — and
 		/// anything past it is the pathology the letting-go is for.
+		/// </para>
+		/// <para>
+		/// What "let go" meant was thrown away, and that was a cliff rather than a bound: a
+		/// document one entry past it rebuilt the whole machinery on every parse, growing it
+		/// from nothing by doubling, so a third more input cost twenty times the memory
+		/// (measured, 2026-09-19). An outsized parser now goes to <see cref="_largeParser"/>
+		/// instead, held while this thread's work keeps wanting it and passed to the collector
+		/// when it stops. Both halves matter: held, because a tight loop of large parses must
+		/// reuse deterministically rather than when a collection happens not to have
+		/// intervened, and an intermittent twentyfold jump is worse to diagnose than a
+		/// reliable one; passed on, because the sentence above — no thread holds an outsized
+		/// arena for ever — is still the rule.
 		/// </para>
 		/// </remarks>
 		[global::System.ThreadStatic]
@@ -1099,6 +1111,26 @@ public static partial class CSharpEmitter
 
 		const int KeptEntries = 65536;
 
+		/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
+		[global::System.ThreadStatic]
+		static Parser? _largeParser;
+
+		/// <summary>Parses since it was last taken; at <see cref="LargeParserIdle"/> it is let go of.</summary>
+		[global::System.ThreadStatic]
+		static int _largeParserIdle;
+
+		/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
+		[global::System.ThreadStatic]
+		static global::System.WeakReference<Parser>? _largeParserLetGo;
+
+		/// <summary>
+		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
+		/// large arena, this thread's work has changed and the next parse is unlikely to want
+		/// it either. Carrying it through a few small parses costs the memory this thread held
+		/// a moment ago anyway; carrying it through a hundred would be hoarding.
+		/// </summary>
+		const int LargeParserIdle = 8;
+
 		static Parser Recycled()
 		{
 			var spare = _spareParser;
@@ -1110,8 +1142,30 @@ public static partial class CSharpEmitter
 				spare = _deeperParsers![--_deeperParserCount]!;
 				_deeperParsers![_deeperParserCount] = null;
 			}
+			else if (_largeParser != null)
+			{
+				spare = _largeParser;
+				_largeParser = null;
+				_largeParserIdle = 0;
+			}
+			else if (_largeParserLetGo != null && _largeParserLetGo.TryGetTarget(out var letGo))
+			{
+				spare = letGo;
+				_largeParserLetGo.SetTarget(null!);
+				_largeParserIdle = 0;
+			}
 			else
 				return new Parser();
+
+			// A large arena nobody has wanted for eight parses stops being held against the
+			// collector, without being thrown away: what the work stopped needing is still
+			// there if the work comes back before the memory is wanted elsewhere.
+			if (_largeParser != null && ++_largeParserIdle >= LargeParserIdle)
+			{
+				(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+				_largeParser = null;
+				_largeParserIdle = 0;
+			}
 
 			return spare;
 		}
@@ -1119,7 +1173,15 @@ public static partial class CSharpEmitter
 		static void Recycle(Parser parser)
 		{
 			if (parser.Entries.Capacity > KeptEntries)
+			{
+				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+
+				_largeParser = parser;
+				_largeParserIdle = 0;
+
 				return;
+			}
 
 			if (_spareParser == null)
 				_spareParser = parser;
@@ -1311,10 +1373,54 @@ public static partial class CSharpEmitter
 		text.Append("\t/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic ").Append(type).Append("?[]? _deeper;\n\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _deeperCount;\n\n");
+		text.Append("\t/// <summary>A store past the bound, kept while this thread's work still wants it.</summary>\n");
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic ").Append(type).Append("? _large;\n\n");
+		text.Append("\t/// <summary>Rentals since it was last taken; at <c>LargeIdle</c> it is let go of.</summary>\n");
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _largeIdle;\n\n");
+		text.Append("\t/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>\n");
+		text.Append("\t[global::System.ThreadStatic]\n\tstatic global::System.WeakReference<").Append(type).Append(">? _largeLetGo;\n\n");
+		text.Append("\t/// <summary>\n");
+		text.Append("\t/// Eight is a claim rather than a taste: if eight parses in a row have not wanted\n");
+		text.Append("\t/// the large store, this thread's work has changed and the next parse is unlikely\n");
+		text.Append("\t/// to want it either. Carrying it through a few small parses costs the memory this\n");
+		text.Append("\t/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.\n");
+		text.Append("\t/// </summary>\n");
+		text.Append("\tconst int LargeIdle = 8;\n\n");
 		text.Append("\tinternal static ").Append(type).Append(" Rent()\n\t{\n\t\tvar spare = _spare;\n\n");
 		text.Append("\t\tif (spare != null)\n\t\t\t_spare = null;\n");
 		text.Append("\t\telse if (_deeperCount > 0)\n\t\t{\n\t\t\tspare = _deeper![--_deeperCount]!;\n\t\t\t_deeper![_deeperCount] = null;\n\t\t}\n");
-		text.Append("\t\telse\n\t\t\treturn new ").Append(type).Append("();\n\n\t\treturn spare;\n\t}\n\n");
+		text.Append("\t\telse if (_large != null)\n\t\t{\n\t\t\tspare = _large;\n\t\t\t_large = null;\n\t\t\t_largeIdle = 0;\n\t\t}\n");
+		text.Append("\t\telse if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))\n\t\t{\n");
+		text.Append("\t\t\tspare = letGo;\n\t\t\t_largeLetGo.SetTarget(null!);\n\t\t\t_largeIdle = 0;\n\t\t}\n");
+		text.Append("\t\telse\n\t\t\treturn new ").Append(type).Append("();\n\n");
+		text.Append("\t\t// A large store nobody has wanted for a while stops being held against the\n");
+		text.Append("\t\t// collector, without being thrown away: what the work stopped needing is still\n");
+		text.Append("\t\t// there if the work comes back before the memory is wanted elsewhere.\n");
+		text.Append("\t\tif (_large != null && ++_largeIdle >= LargeIdle)\n\t\t{\n");
+		text.Append("\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(_large)).SetTarget(_large);\n");
+		text.Append("\t\t\t_large = null;\n\t\t\t_largeIdle = 0;\n\t\t}\n\n");
+		text.Append("\t\treturn spare;\n\t}\n\n");
+	}
+
+	/// <summary>
+	/// Where a store too large for the ordinary slot goes: held while this thread's work keeps
+	/// wanting it, and handed to the collector once it does not.
+	/// </summary>
+	/// <remarks>
+	/// Written by <see cref="Spares"/>'s <c>Rent</c> and by the caller's <c>Return</c>, which
+	/// owns the test of what "too large" means for its own arrays. Throwing it away instead —
+	/// which is what this did until 2026-09-19 — made a bound into a cliff: a document one
+	/// element past it grew the whole store again on every parse, so a third more input cost
+	/// twenty times the memory. Handing it to <c>ArrayPool&lt;T&gt;.Shared</c> is not the
+	/// alternative it looks like: that pool's largest kept array is 2^20 elements, the same
+	/// number this bound is written in, so it declines exactly these arrays.
+	/// </remarks>
+	internal static void Outsized(StringBuilder text, string type, string store)
+	{
+		text.Append("\t\t{\n");
+		text.Append("\t\t\tif (_large != null && !ReferenceEquals(_large, ").Append(store).Append("))\n");
+		text.Append("\t\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(_large)).SetTarget(_large);\n\n");
+		text.Append("\t\t\t_large = ").Append(store).Append(";\n\t\t\t_largeIdle = 0;\n\n\t\t\treturn;\n\t\t}\n\n");
 	}
 
 	/// <summary>The last lines of a <c>Return</c> written by <see cref="Spares"/>: the store goes back.</summary>
@@ -1399,17 +1505,6 @@ public static partial class CSharpEmitter
 				text.Append("\t\tif (values.MarkAt.Length > ").Append(TableKept).Append(") values.MarkAt = new int[8];\n");
 			text.Append("\n");
 		}
-		else
-		{
-			var capacities = Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
-				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
-			if (stateType is not null)
-				capacities.Add("values.MarkState.Length");
-			if (stateType is not null && markPositions)
-				capacities.Add("values.MarkAt.Length");
-			text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
-			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
-		}
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (dense)
@@ -1430,6 +1525,28 @@ public static partial class CSharpEmitter
 		text.Append("\t\tglobal::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));\n");
 
 		text.Append("\t\tvalues._used = 0;\n");
+
+		if (!dense)
+		{
+			// After the tables are emptied and not before. The branch below returns, so a store
+			// that goes past the bound never reaches any line after it - and a store parked with
+			// its tables still full held every value of the last parse for as long as the thread
+			// held the store: eight rentals in the slot, and a weak reference after that. Kept
+			// capacity is what the bound is for; kept contents were never part of it.
+			var capacities = Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
+				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
+			if (stateType is not null)
+				capacities.Add("values.MarkState.Length");
+			if (stateType is not null && markPositions)
+				capacities.Add("values.MarkAt.Length");
+			text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
+			text.Append("\t\t// and not a bound - it is kept while the work keeps wanting it, and handed\n");
+			text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
+			text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
+			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
+			Outsized(text, "DirectValues", "values");
+		}
+
 		Spared(text, "DirectValues", "values");
 		text.Append("\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
@@ -1682,6 +1799,26 @@ public static partial class CSharpEmitter
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
+			/// <summary>A tape too large for the ordinary slot, kept while the work still wants it.</summary>
+			[global::System.ThreadStatic]
+			static Ways? _large;
+
+			/// <summary>Rentals since the large one was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+			[global::System.ThreadStatic]
+			static int _largeIdle;
+
+			/// <summary>And where it goes then: reachable while nothing else wants the memory.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<Ways>? _largeLetGo;
+
+			/// <summary>
+			/// Eight is a claim, not a taste: if eight parses in a row have not wanted the large
+			/// tape, this thread's work has changed and the next parse is unlikely to want it
+			/// either. Holding it through a few small parses costs the memory we were holding a
+			/// moment ago anyway; holding it through a hundred would be hoarding.
+			/// </summary>
+			const int LargeIdle = 8;
+
 			internal static Ways Rent()
 			{
 				var spare = _spare;
@@ -1693,8 +1830,30 @@ public static partial class CSharpEmitter
 					spare = _deeper![--_deeperCount]!;
 					_deeper![_deeperCount] = null;
 				}
+				else if (_large != null)
+				{
+					spare = _large;
+					_large = null;
+					_largeIdle = 0;
+				}
+				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
+				{
+					spare = letGo;
+					_largeLetGo.SetTarget(null!);
+					_largeIdle = 0;
+				}
 				else
 					return new Ways();
+
+				// A large tape nobody has wanted for a while stops being held against the
+				// collector's wishes, without being thrown away: what the work stopped needing
+				// is still there if the work comes back before the memory is wanted elsewhere.
+				if (_large != null && ++_largeIdle >= LargeIdle)
+				{
+					(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+					_large = null;
+					_largeIdle = 0;
+				}
 
 				spare.Count = 0;
 				spare.Cursor = 0;
@@ -1709,9 +1868,26 @@ public static partial class CSharpEmitter
 
 			internal static void Return(Ways ways)
 			{
-				// Bound retained capacity, including an earlier parse's high-water size.
+				// Bound retained capacity, including an earlier parse's high-water size. Past it
+				// the tape is not thrown away — that was a cliff rather than a bound: one entry
+				// over and the next parse of a document that size grew everything again from
+				// nothing, which cost twenty times the memory of a document a third smaller.
+				// It goes to a slot of its own instead, held while the work keeps wanting it
+				// (Rent, LargeIdle) and let go of by the collector afterwards. Handing it to
+				// ArrayPool<T>.Shared instead was considered and is not the same thing: that
+				// pool's largest kept array is 2^20 elements, the very number this bound is
+				// written in, so it would decline exactly these arrays and "pool it" would mean
+				// "drop it" in more words.
 				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
+				{
+					if (_large != null && !ReferenceEquals(_large, ways))
+						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+
+					_large = ways;
+					_largeIdle = 0;
+
 					return;
+				}
 
 				if (_spare == null)
 					_spare = ways;

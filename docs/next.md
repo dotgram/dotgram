@@ -24585,3 +24585,31 @@ first version of it was wrong in a way that would have wasted the window — six
 all false, because an alternative is not one line — and the fix for that was to check a handful by
 hand before believing the list. And asking the server costs nothing on this machine, so the whole
 question was settled to a prediction before a single core was taken.
+## A narrow probe confirmed a narrow claim, and the claim was read as an area
+
+The pool that keeps what it grew past its bound (`c5632c50`, 2026-09-20) parked an oversized
+store by returning early, and the lines it returned past were the ones that empty the tables
+and the one that resets the cursor. `c786d3e8` moved the emptying above the bound and said, in
+its own message, that the defect was retention: a parked store "holds every value of the last
+parse alive", eight rentals and a weak reference long.
+
+That description is softer than the truth and the message still carries it, because three
+sessions cite the sha and trading a wrong sentence for a wrong identifier is a bad trade. What
+actually happened is that the store went to its slot with its tables full *and* its cursor at
+the end of the last parse, and the next rental got it in that state — a store that believes it
+already holds a document. Not a leak: corruption. The suite at the parent failed 453 times
+across 190 distinct tests, in UrlTests, ReaderTests, the recovery, switch and emitter suites,
+none of which have anything to do with pooling; at `0b57634c` it fails 13 times across 2, and
+nothing fails that did not fail before.
+
+What the episode is worth keeping for: the fix was verified, before the suite ran, by a probe
+that parsed a document past the bound, dropped the result, collected three times and asked
+whether a value was still reachable. It answered — collectable after, reachable before — and it
+was right. It was also the whole of the evidence, and it had been built from the description
+rather than from the code, so it could only ever confirm the half of the defect that had been
+noticed. A narrow instrument that agrees with a narrow claim reads, an hour later, as though it
+had covered the area.
+
+The same day produced the general form of this twice more, in timing: what a measurement cannot
+see belongs beside what it says. Here it is the sharper version — what a measurement was *built
+from* bounds what it can find, and a probe written from a hypothesis cannot contradict it.

@@ -12,12 +12,39 @@ namespace DotGram.Tests;
 
 public sealed class PoolRetentionTests
 {
+	/// <summary>
+	/// A store past the bound is kept in a slot of its own, and comes back as new.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// This asserted the opposite until 2026-09-20, and it was right to: an oversized store used
+	/// to be dropped. That was a cliff rather than a bound — one entry over and the next parse of
+	/// a document that size grew everything again from nothing — so the decision was reversed and
+	/// the store is now held while the work keeps wanting it. The test is rewritten to the policy
+	/// that was chosen rather than deleted, because a test contradicting a deliberate change of
+	/// design looks exactly like a test that caught a regression, and only knowing which way the
+	/// decision went tells them apart.
+	/// </para>
+	/// <para>
+	/// The second assertion is the one that was missing. Keeping the store was implemented by
+	/// returning early, which skipped the lines that empty the tables <em>and</em> the line that
+	/// resets the cursor — so a kept store was handed to the next parse still believing it held
+	/// the last one. That is not a leak but corruption, and it failed 190 tests across suites
+	/// with no connection to pooling. A store comes back from its slot indistinguishable from a
+	/// new one in everything but capacity, and that is what is checked here.
+	/// </para>
+	/// <para>
+	/// <c>Tokens_DotGram</c> is <em>not</em> under this policy yet: it still drops what is past
+	/// the bound, which is why it is the one case that passed while the other three failed. It is
+	/// named here rather than left out, so that the gap is visible in the test that owns the rule.
+	/// </para>
+	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues")]
-	[InlineData(CarrierKind.Tape, "Ways")]
-	[InlineData(CarrierKind.Immediate, "ImmediateValues")]
-	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
-	public void Oversized_stores_are_not_retained_or_allowed_to_replace_a_nested_spare(CarrierKind carrier, string name)
+	[InlineData(CarrierKind.Tape, "DirectValues", true)]
+	[InlineData(CarrierKind.Tape, "Ways", true)]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues", true)]
+	[InlineData(CarrierKind.Tape, "Tokens_DotGram", false)]
+	public void An_oversized_store_is_kept_in_a_slot_of_its_own_and_comes_back_as_new(CarrierKind carrier, string name, bool keeps)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
 		const int Budget = 1048576;
@@ -52,7 +79,18 @@ public sealed class PoolRetentionTests
 				arrays[1].SetValue(value, Array.CreateInstance(arrays[1].FieldType.GetElementType()!, count - firstCount));
 		}
 
+		// What a store looks like when it is ready to read: the state every rental must be in,
+		// whichever slot it came from. Read from a new one, so it is the runtime's own answer
+		// rather than a list of field names this test would have to keep in step.
+		int[] Counters(object value) => type.GetFields(Flags)
+			.Where(field => !field.IsStatic && field.FieldType == typeof(int))
+			.OrderBy(field => field.Name, StringComparer.Ordinal)
+			.Select(field => (int)field.GetValue(value)!)
+			.ToArray();
+
 		var ordinary = Rent();
+		var asNew    = Counters(ordinary);
+
 		Return(ordinary);
 		Assert.Same(ordinary, Rent());
 
@@ -60,15 +98,30 @@ public sealed class PoolRetentionTests
 		Return(ordinary);
 		Assert.Same(ordinary, Rent());
 
+		// Past the bound. A second rental while the first is out has nothing to hand back, so
+		// it builds one: that is how this gets two stores to talk about at once.
 		Capacity(ordinary, Budget + 1);
-		Return(ordinary);
-		var fresh = Rent();
-		Assert.NotSame(ordinary, fresh);
+		var nested = Rent();
+		Assert.NotSame(ordinary, nested);
 
-		// A reentrant parse can return a smaller store while the outer one is active.
-		Return(fresh);
 		Return(ordinary);
-		Assert.Same(fresh, Rent());
+
+		if (!keeps)
+		{
+			// Still dropped, and said so out loud: this pool has not been brought under the rule.
+			Assert.NotSame(ordinary, Rent());
+			return;
+		}
+
+		// A reentrant parse returns its smaller store while the large one is already parked.
+		// The ordinary spare is handed back first, and the large one is not lost behind it.
+		Return(nested);
+		Assert.Same(nested, Rent());
+		var fresh = Rent();
+		Assert.Same(ordinary, fresh);
+
+		// And it came back as a new one would: nothing carried over from the parse that grew it.
+		Assert.Equal(asNew, Counters(fresh));
 
 		// Replacing synthetic test buffers with a normal rental leaves parsing usable.
 		var match = EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a a a");

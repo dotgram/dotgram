@@ -71,19 +71,28 @@ sealed partial class Machine
 			// mark includes values discarded by backtracking, so every retained reference
 			// is cleared before the store is made available to another parse.
 			text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
+			Emptied(text, "Text");
+			Emptied(text, "Spans");
+
+			for (var i = 0; i < valueTypes.Count; i++)
+				Emptied(text, TableName(valueTypes[i]));
+
+			// The bound comes after the clearing above, because the branch it opens returns:
+			// a store kept past the bound reaches no line below it, and one parked with its
+			// stacks still full kept every value of the last parse alive for as long as the
+			// thread kept the store - which is the sentence above this method, unmet.
 			var capacities = stacks.OrderBy(stack => stack, StringComparer.Ordinal)
 				.Select(stack => "values.Stack" + stack + ".Length").ToList();
 			if (stateType is not null)
 				capacities.Add("values.MarkState.Length");
 			if (stateType is not null && markPositions)
 				capacities.Add("values.MarkAt.Length");
-			text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
-			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
-			Emptied(text, "Text");
-			Emptied(text, "Spans");
-
-			for (var i = 0; i < valueTypes.Count; i++)
-				Emptied(text, TableName(valueTypes[i]));
+			text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
+			text.Append("\t\t// and not a bound - it is kept while the work keeps wanting it, and handed\n");
+			text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
+			text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
+			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
+			CSharpEmitter.Outsized(text, "ImmediateValues", "values");
 
 			CSharpEmitter.Spared(text, "ImmediateValues", "values");
 			text.Append("\t}\n\n");

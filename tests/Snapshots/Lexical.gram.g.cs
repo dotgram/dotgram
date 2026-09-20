@@ -1497,6 +1497,26 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
+			/// <summary>A tape too large for the ordinary slot, kept while the work still wants it.</summary>
+			[global::System.ThreadStatic]
+			static Ways? _large;
+
+			/// <summary>Rentals since the large one was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+			[global::System.ThreadStatic]
+			static int _largeIdle;
+
+			/// <summary>And where it goes then: reachable while nothing else wants the memory.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<Ways>? _largeLetGo;
+
+			/// <summary>
+			/// Eight is a claim, not a taste: if eight parses in a row have not wanted the large
+			/// tape, this thread's work has changed and the next parse is unlikely to want it
+			/// either. Holding it through a few small parses costs the memory we were holding a
+			/// moment ago anyway; holding it through a hundred would be hoarding.
+			/// </summary>
+			const int LargeIdle = 8;
+
 			internal static Ways Rent()
 			{
 				var spare = _spare;
@@ -1508,8 +1528,30 @@ namespace DotGram.Snapshots
 					spare = _deeper![--_deeperCount]!;
 					_deeper![_deeperCount] = null;
 				}
+				else if (_large != null)
+				{
+					spare = _large;
+					_large = null;
+					_largeIdle = 0;
+				}
+				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
+				{
+					spare = letGo;
+					_largeLetGo.SetTarget(null!);
+					_largeIdle = 0;
+				}
 				else
 					return new Ways();
+
+				// A large tape nobody has wanted for a while stops being held against the
+				// collector's wishes, without being thrown away: what the work stopped needing
+				// is still there if the work comes back before the memory is wanted elsewhere.
+				if (_large != null && ++_largeIdle >= LargeIdle)
+				{
+					(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+					_large = null;
+					_largeIdle = 0;
+				}
 
 				spare.Count = 0;
 				spare.Cursor = 0;
@@ -1524,9 +1566,26 @@ namespace DotGram.Snapshots
 
 			internal static void Return(Ways ways)
 			{
-				// Bound retained capacity, including an earlier parse's high-water size.
+				// Bound retained capacity, including an earlier parse's high-water size. Past it
+				// the tape is not thrown away — that was a cliff rather than a bound: one entry
+				// over and the next parse of a document that size grew everything again from
+				// nothing, which cost twenty times the memory of a document a third smaller.
+				// It goes to a slot of its own instead, held while the work keeps wanting it
+				// (Rent, LargeIdle) and let go of by the collector afterwards. Handing it to
+				// ArrayPool<T>.Shared instead was considered and is not the same thing: that
+				// pool's largest kept array is 2^20 elements, the very number this bound is
+				// written in, so it would decline exactly these arrays and "pool it" would mean
+				// "drop it" in more words.
 				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
+				{
+					if (_large != null && !ReferenceEquals(_large, ways))
+						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+
+					_large = ways;
+					_largeIdle = 0;
+
 					return;
+				}
 
 				if (_spare == null)
 					_spare = ways;
@@ -1864,6 +1923,26 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
+			/// <summary>A store past the bound, kept while this thread's work still wants it.</summary>
+			[global::System.ThreadStatic]
+			static ImmediateValues? _large;
+
+			/// <summary>Rentals since it was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+			[global::System.ThreadStatic]
+			static int _largeIdle;
+
+			/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<ImmediateValues>? _largeLetGo;
+
+			/// <summary>
+			/// Eight is a claim rather than a taste: if eight parses in a row have not wanted
+			/// the large store, this thread's work has changed and the next parse is unlikely
+			/// to want it either. Carrying it through a few small parses costs the memory this
+			/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.
+			/// </summary>
+			const int LargeIdle = 8;
+
 			internal static ImmediateValues Rent()
 			{
 				var spare = _spare;
@@ -1875,21 +1954,56 @@ namespace DotGram.Snapshots
 					spare = _deeper![--_deeperCount]!;
 					_deeper![_deeperCount] = null;
 				}
+				else if (_large != null)
+				{
+					spare = _large;
+					_large = null;
+					_largeIdle = 0;
+				}
+				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
+				{
+					spare = letGo;
+					_largeLetGo.SetTarget(null!);
+					_largeIdle = 0;
+				}
 				else
 					return new ImmediateValues();
+
+				// A large store nobody has wanted for a while stops being held against the
+				// collector, without being thrown away: what the work stopped needing is still
+				// there if the work comes back before the memory is wanted elsewhere.
+				if (_large != null && ++_largeIdle >= LargeIdle)
+				{
+					(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(_large)).SetTarget(_large);
+					_large = null;
+					_largeIdle = 0;
+				}
 
 				return spare;
 			}
 
 			internal static void Return(ImmediateValues values)
 			{
-				// Oversized stores are collected instead of retained by the thread.
-				if (0L + values.Stack1.Length > 1048576) return;
-
 				if (values.High1 > 0)
 				{
 					global::System.Array.Clear(values.Stack1, 0, values.High1);
 					values.Count1 = values.High1 = 0;
+				}
+
+
+				// Past the bound the store is not thrown away - that was a cliff
+				// and not a bound - it is kept while the work keeps wanting it, and handed
+				// to the collector once it stops (CSharpEmitter.Outsized). It is emptied
+				// first, above: what is kept is the room, never what was built in it.
+				if (0L + values.Stack1.Length > 1048576)
+				{
+					if (_large != null && !ReferenceEquals(_large, values))
+						(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(_large)).SetTarget(_large);
+
+					_large = values;
+					_largeIdle = 0;
+
+					return;
 				}
 
 				if (_spare == null)

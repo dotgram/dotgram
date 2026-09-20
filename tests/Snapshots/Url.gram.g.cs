@@ -4708,8 +4708,8 @@ namespace DotGram.Snapshots
 		/// <para>
 		/// One slot, taken out of the field while it is in use, so a parse reached from
 		/// inside another — a guard that parses, a value that does — gets its own rather
-		/// than sharing. A parser larger than <c>KeptEntries</c> is let go instead of kept,
-		/// so a truly outsized input does not leave every thread holding its arena for
+		/// than sharing. A parser larger than <c>KeptEntries</c> does not go in it, so a
+		/// truly outsized input does not leave every thread holding its arena for
 		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
 		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
 		/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
@@ -4718,6 +4718,18 @@ namespace DotGram.Snapshots
 		/// allocation, once per parse. At 65,536 entries the retained machinery is a few
 		/// megabytes — the working set of a parser whose documents are that size — and
 		/// anything past it is the pathology the letting-go is for.
+		/// </para>
+		/// <para>
+		/// What "let go" meant was thrown away, and that was a cliff rather than a bound: a
+		/// document one entry past it rebuilt the whole machinery on every parse, growing it
+		/// from nothing by doubling, so a third more input cost twenty times the memory
+		/// (measured, 2026-09-19). An outsized parser now goes to <see cref="_largeParser"/>
+		/// instead, held while this thread's work keeps wanting it and passed to the collector
+		/// when it stops. Both halves matter: held, because a tight loop of large parses must
+		/// reuse deterministically rather than when a collection happens not to have
+		/// intervened, and an intermittent twentyfold jump is worse to diagnose than a
+		/// reliable one; passed on, because the sentence above — no thread holds an outsized
+		/// arena for ever — is still the rule.
 		/// </para>
 		/// </remarks>
 		[global::System.ThreadStatic]
@@ -4732,6 +4744,26 @@ namespace DotGram.Snapshots
 
 		const int KeptEntries = 65536;
 
+		/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
+		[global::System.ThreadStatic]
+		static Parser? _largeParser;
+
+		/// <summary>Parses since it was last taken; at <see cref="LargeParserIdle"/> it is let go of.</summary>
+		[global::System.ThreadStatic]
+		static int _largeParserIdle;
+
+		/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
+		[global::System.ThreadStatic]
+		static global::System.WeakReference<Parser>? _largeParserLetGo;
+
+		/// <summary>
+		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
+		/// large arena, this thread's work has changed and the next parse is unlikely to want
+		/// it either. Carrying it through a few small parses costs the memory this thread held
+		/// a moment ago anyway; carrying it through a hundred would be hoarding.
+		/// </summary>
+		const int LargeParserIdle = 8;
+
 		static Parser Recycled()
 		{
 			var spare = _spareParser;
@@ -4743,8 +4775,30 @@ namespace DotGram.Snapshots
 				spare = _deeperParsers![--_deeperParserCount]!;
 				_deeperParsers![_deeperParserCount] = null;
 			}
+			else if (_largeParser != null)
+			{
+				spare = _largeParser;
+				_largeParser = null;
+				_largeParserIdle = 0;
+			}
+			else if (_largeParserLetGo != null && _largeParserLetGo.TryGetTarget(out var letGo))
+			{
+				spare = letGo;
+				_largeParserLetGo.SetTarget(null!);
+				_largeParserIdle = 0;
+			}
 			else
 				return new Parser();
+
+			// A large arena nobody has wanted for eight parses stops being held against the
+			// collector, without being thrown away: what the work stopped needing is still
+			// there if the work comes back before the memory is wanted elsewhere.
+			if (_largeParser != null && ++_largeParserIdle >= LargeParserIdle)
+			{
+				(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+				_largeParser = null;
+				_largeParserIdle = 0;
+			}
 
 			return spare;
 		}
@@ -4752,7 +4806,15 @@ namespace DotGram.Snapshots
 		static void Recycle(Parser parser)
 		{
 			if (parser.Entries.Capacity > KeptEntries)
+			{
+				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+
+				_largeParser = parser;
+				_largeParserIdle = 0;
+
 				return;
+			}
 
 			if (_spareParser == null)
 				_spareParser = parser;

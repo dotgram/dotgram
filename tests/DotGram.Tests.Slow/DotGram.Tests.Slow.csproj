@@ -25,7 +25,8 @@
 		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
 		<!-- And the expression language, whose tape reads a long expression in linear time: ExpressionScalingTests. -->
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
-		<!-- The Web readers, for the refusal scaling that holds `(A+)*` out of their grammars. -->
+		<!-- The web formats: the refusal scaling that holds `(A+)*` out of their grammars,
+		     and the accept and address lists where the pools' retention bounds were measured. -->
 		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
 		<!-- And FIX, the last package the refusal ladders read (RefusalGuardTests). -->
 		<ProjectReference Include="..\..\src\DotGram.Finance\DotGram.Finance.csproj" />
