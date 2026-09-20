@@ -1,0 +1,255 @@
+=== run 1 of 9, 02:47:18
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       86.1 ns before      207.0 ns after      223.7 ns  before/hand 2.40x  after/hand 2.60x
+web/url.refused        hand       59.2 ns before      249.1 ns after      197.5 ns  before/hand 4.21x  after/hand 3.34x
+web/url.relative       hand       90.3 ns before      175.8 ns after      183.8 ns  before/hand 1.95x  after/hand 2.04x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       74.9 ns before      153.1 ns after      157.7 ns  before/hand 2.04x  after/hand 2.11x
+web/url.relative-letters hand      120.3 ns before      207.7 ns after      227.8 ns  before/hand 1.73x  after/hand 1.89x
+
+# Paired stand, 2026-09-20 02:47
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 86.1 | 207.0 | 2.40x | 223.7 | 2.60x | +8.1% | 360 | 360 | 3 % |  |
+| web/url.refused | generated | hand | 59.2 | 249.1 | 4.21x | 197.5 | 3.34x | -20.7% | 64 | 64 | 33 % |  |
+| web/url.relative | generated | hand | 90.3 | 175.8 | 1.95x | 183.8 | 2.04x | +4.5% | 312 | 312 | 3 % |  |
+| web/url.relative-dot-colon | generated | hand | 74.9 | 153.1 | 2.04x | 157.7 | 2.11x | +3.0% | 280 | 280 | 4 % |  |
+| web/url.relative-letters | generated | hand | 120.3 | 207.7 | 1.73x | 227.8 | 1.89x | +9.7% | 312 | 312 | 4 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-1
+=== run 2 of 9, 02:47:36
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       85.8 ns before      206.5 ns after      208.4 ns  before/hand 2.41x  after/hand 2.43x
+web/url.refused        hand       57.6 ns before      252.2 ns after      196.6 ns  before/hand 4.38x  after/hand 3.42x
+web/url.relative       hand       90.2 ns before      180.0 ns after      188.0 ns  before/hand 2.00x  after/hand 2.08x
+web/url.relative-dot-colon hand       76.0 ns before      152.9 ns after      164.4 ns  before/hand 2.01x  after/hand 2.16x
+web/url.relative-letters hand      189.0 ns before      329.9 ns after      357.9 ns  before/hand 1.75x  after/hand 1.89x
+
+# Paired stand, 2026-09-20 02:47
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 85.8 | 206.5 | 2.41x | 208.4 | 2.43x | +0.9% | 360 | 360 | 3 % |  |
+| web/url.refused | generated | hand | 57.6 | 252.2 | 4.38x | 196.6 | 3.42x | -22.0% | 64 | 64 | 16 % |  |
+| web/url.relative | generated | hand | 90.2 | 180.0 | 2.00x | 188.0 | 2.08x | +4.4% | 312 | 312 | 20 % |  |
+| web/url.relative-dot-colon | generated | hand | 76.0 | 152.9 | 2.01x | 164.4 | 2.16x | +7.5% | 280 | 280 | 5 % |  |
+| web/url.relative-letters | generated | hand | 189.0 | 329.9 | 1.75x | 357.9 | 1.89x | +8.5% | 312 | 312 | 46 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-2
+=== run 3 of 9, 02:47:55
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       85.8 ns before      211.9 ns after      205.7 ns  before/hand 2.47x  after/hand 2.40x
+web/url.refused        hand       59.9 ns before      243.8 ns after      196.5 ns  before/hand 4.07x  after/hand 3.28x
+web/url.relative       hand       94.1 ns before      187.6 ns after      188.0 ns  before/hand 1.99x  after/hand 2.00x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       75.1 ns before      156.9 ns after      159.6 ns  before/hand 2.09x  after/hand 2.13x
+web/url.relative-letters hand      122.3 ns before      215.1 ns after      231.6 ns  before/hand 1.76x  after/hand 1.89x
+
+# Paired stand, 2026-09-20 02:48
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.8 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 85.8 | 211.9 | 2.47x | 205.7 | 2.40x | -2.9% | 360 | 360 | 3 % |  |
+| web/url.refused | generated | hand | 59.9 | 243.8 | 4.07x | 196.5 | 3.28x | -19.4% | 64 | 64 | 4 % |  |
+| web/url.relative | generated | hand | 94.1 | 187.6 | 1.99x | 188.0 | 2.00x | +0.3% | 312 | 312 | 11 % |  |
+| web/url.relative-dot-colon | generated | hand | 75.1 | 156.9 | 2.09x | 159.6 | 2.13x | +1.7% | 280 | 280 | 5 % |  |
+| web/url.relative-letters | generated | hand | 122.3 | 215.1 | 1.76x | 231.6 | 1.89x | +7.7% | 312 | 312 | 7 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-3
+=== run 4 of 9, 02:48:11
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       86.1 ns before      204.4 ns after      207.0 ns  before/hand 2.37x  after/hand 2.40x
+web/url.refused        hand       59.0 ns before      251.3 ns after      194.4 ns  before/hand 4.26x  after/hand 3.29x
+web/url.relative       hand       88.6 ns before      178.4 ns after      181.0 ns  before/hand 2.01x  after/hand 2.04x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       75.0 ns before      155.2 ns after      160.1 ns  before/hand 2.07x  after/hand 2.13x
+web/url.relative-letters hand      115.3 ns before      210.2 ns after      225.3 ns  before/hand 1.82x  after/hand 1.95x
+
+# Paired stand, 2026-09-20 02:48
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 86.1 | 204.4 | 2.37x | 207.0 | 2.40x | +1.2% | 360 | 360 | 56 % |  |
+| web/url.refused | generated | hand | 59.0 | 251.3 | 4.26x | 194.4 | 3.29x | -22.7% | 64 | 64 | 41 % |  |
+| web/url.relative | generated | hand | 88.6 | 178.4 | 2.01x | 181.0 | 2.04x | +1.5% | 312 | 312 | 3 % |  |
+| web/url.relative-dot-colon | generated | hand | 75.0 | 155.2 | 2.07x | 160.1 | 2.13x | +3.1% | 280 | 280 | 2 % |  |
+| web/url.relative-letters | generated | hand | 115.3 | 210.2 | 1.82x | 225.3 | 1.95x | +7.2% | 312 | 312 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-4
+=== run 5 of 9, 02:48:29
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       86.5 ns before      207.2 ns after      207.9 ns  before/hand 2.39x  after/hand 2.40x
+web/url.refused        hand       56.7 ns before      241.9 ns after      191.3 ns  before/hand 4.27x  after/hand 3.37x
+web/url.relative       hand       88.0 ns before      178.0 ns after      184.2 ns  before/hand 2.02x  after/hand 2.09x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       74.5 ns before      154.7 ns after      161.3 ns  before/hand 2.08x  after/hand 2.17x
+web/url.relative-letters hand      114.3 ns before      212.2 ns after      227.4 ns  before/hand 1.86x  after/hand 1.99x
+
+# Paired stand, 2026-09-20 02:48
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 86.5 | 207.2 | 2.39x | 207.9 | 2.40x | +0.4% | 360 | 360 | 4 % |  |
+| web/url.refused | generated | hand | 56.7 | 241.9 | 4.27x | 191.3 | 3.37x | -20.9% | 64 | 64 | 17 % |  |
+| web/url.relative | generated | hand | 88.0 | 178.0 | 2.02x | 184.2 | 2.09x | +3.5% | 312 | 312 | 1 % |  |
+| web/url.relative-dot-colon | generated | hand | 74.5 | 154.7 | 2.08x | 161.3 | 2.17x | +4.3% | 280 | 280 | 3 % |  |
+| web/url.relative-letters | generated | hand | 114.3 | 212.2 | 1.86x | 227.4 | 1.99x | +7.2% | 312 | 312 | 1 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-5
+=== run 6 of 9, 02:48:46
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       85.9 ns before      212.5 ns after      209.6 ns  before/hand 2.47x  after/hand 2.44x
+web/url.refused        hand       61.6 ns before      250.9 ns after      194.9 ns  before/hand 4.08x  after/hand 3.17x
+web/url.relative       hand       90.7 ns before      177.3 ns after      183.1 ns  before/hand 1.96x  after/hand 2.02x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       76.3 ns before      153.4 ns after      161.7 ns  before/hand 2.01x  after/hand 2.12x
+web/url.relative-letters hand      127.5 ns before      214.0 ns after      227.6 ns  before/hand 1.68x  after/hand 1.79x
+
+# Paired stand, 2026-09-20 02:49
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 85.9 | 212.5 | 2.47x | 209.6 | 2.44x | -1.4% | 360 | 360 | 2 % |  |
+| web/url.refused | generated | hand | 61.6 | 250.9 | 4.08x | 194.9 | 3.17x | -22.3% | 64 | 64 | 9 % |  |
+| web/url.relative | generated | hand | 90.7 | 177.3 | 1.96x | 183.1 | 2.02x | +3.3% | 312 | 312 | 2 % |  |
+| web/url.relative-dot-colon | generated | hand | 76.3 | 153.4 | 2.01x | 161.7 | 2.12x | +5.4% | 280 | 280 | 3 % |  |
+| web/url.relative-letters | generated | hand | 127.5 | 214.0 | 1.68x | 227.6 | 1.79x | +6.3% | 312 | 312 | 5 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-6
+=== run 7 of 9, 02:49:04
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       86.6 ns before      206.8 ns after      207.1 ns  before/hand 2.39x  after/hand 2.39x
+web/url.refused        hand       57.4 ns before      265.6 ns after      191.3 ns  before/hand 4.63x  after/hand 3.34x
+web/url.relative       hand       89.8 ns before      183.7 ns after      194.2 ns  before/hand 2.05x  after/hand 2.16x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       75.8 ns before      156.6 ns after      168.9 ns  before/hand 2.07x  after/hand 2.23x
+web/url.relative-letters hand      117.1 ns before      219.5 ns after      233.7 ns  before/hand 1.87x  after/hand 2.00x
+
+# Paired stand, 2026-09-20 02:49
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 86.6 | 206.8 | 2.39x | 207.1 | 2.39x | +0.1% | 360 | 360 | 2 % |  |
+| web/url.refused | generated | hand | 57.4 | 265.6 | 4.63x | 191.3 | 3.34x | -28.0% | 64 | 64 | 17 % |  |
+| web/url.relative | generated | hand | 89.8 | 183.7 | 2.05x | 194.2 | 2.16x | +5.7% | 312 | 312 | 6 % |  |
+| web/url.relative-dot-colon | generated | hand | 75.8 | 156.6 | 2.07x | 168.9 | 2.23x | +7.8% | 280 | 280 | 50 % |  |
+| web/url.relative-letters | generated | hand | 117.1 | 219.5 | 1.87x | 233.7 | 2.00x | +6.5% | 312 | 312 | 43 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-7
+=== run 8 of 9, 02:49:20
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       86.1 ns before      206.1 ns after      206.4 ns  before/hand 2.39x  after/hand 2.40x
+web/url.refused        hand       56.4 ns before      249.7 ns after      192.9 ns  before/hand 4.43x  after/hand 3.42x
+web/url.relative       hand       94.1 ns before      181.5 ns after      183.1 ns  before/hand 1.93x  after/hand 1.95x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       78.1 ns before      156.0 ns after      159.6 ns  before/hand 2.00x  after/hand 2.04x
+web/url.relative-letters hand      129.2 ns before      216.1 ns after      223.7 ns  before/hand 1.67x  after/hand 1.73x
+
+# Paired stand, 2026-09-20 02:49
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 86.1 | 206.1 | 2.39x | 206.4 | 2.40x | +0.2% | 360 | 360 | 3 % |  |
+| web/url.refused | generated | hand | 56.4 | 249.7 | 4.43x | 192.9 | 3.42x | -22.8% | 64 | 64 | 15 % |  |
+| web/url.relative | generated | hand | 94.1 | 181.5 | 1.93x | 183.1 | 1.95x | +0.9% | 312 | 312 | 4 % |  |
+| web/url.relative-dot-colon | generated | hand | 78.1 | 156.0 | 2.00x | 159.6 | 2.04x | +2.3% | 280 | 280 | 10 % |  |
+| web/url.relative-letters | generated | hand | 129.2 | 216.1 | 1.67x | 223.7 | 1.73x | +3.5% | 312 | 312 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-8
+=== run 9 of 9, 02:49:36
+5 rows, every reading agreeing. Timing 8 rounds.
+web/url.plain          hand       86.7 ns before      204.9 ns after      206.9 ns  before/hand 2.36x  after/hand 2.39x
+web/url.refused        hand       57.8 ns before      243.6 ns after      192.8 ns  before/hand 4.21x  after/hand 3.33x
+web/url.relative       hand       91.5 ns before      184.0 ns after      191.8 ns  before/hand 2.01x  after/hand 2.10x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       76.4 ns before      158.7 ns after      163.6 ns  before/hand 2.08x  after/hand 2.14x
+web/url.relative-letters hand      116.1 ns before      219.2 ns after      227.4 ns  before/hand 1.89x  after/hand 1.96x
+
+# Paired stand, 2026-09-20 02:49
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.6 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 86.7 | 204.9 | 2.36x | 206.9 | 2.39x | +1.0% | 360 | 360 | 3 % |  |
+| web/url.refused | generated | hand | 57.8 | 243.6 | 4.21x | 192.8 | 3.33x | -20.9% | 64 | 64 | 17 % |  |
+| web/url.relative | generated | hand | 91.5 | 184.0 | 2.01x | 191.8 | 2.10x | +4.3% | 312 | 312 | 15 % |  |
+| web/url.relative-dot-colon | generated | hand | 76.4 | 158.7 | 2.08x | 163.6 | 2.14x | +3.1% | 280 | 280 | 2 % |  |
+| web/url.relative-letters | generated | hand | 116.1 | 219.2 | 1.89x | 227.4 | 1.96x | +3.7% | 312 | 312 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\w86\pair\run-9
+
+Median of 9 of 9 runs, each in a process of its own; control 31.5 ns (the runs' controls: 31.3, 31.5, 31.8, 31.5, 31.5, 31.4, 31.7, 31.7, 31.6).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-20 02:49
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/url.plain | generated | hand | 86.1 | 206.8 | 2.40x | 207.1 | 2.41x | +0.1% | 360 | 360 | 1 % | [-2.9%..+8.1%], 7 of 9 positive |
+| web/url.refused | generated | hand | 57.8 | 249.7 | 4.32x | 194.4 | 3.36x | -22.2% | 64 | 64 | 9 % | [-28.0%..-19.4%], 0 of 9 positive |
+| web/url.relative | generated | hand | 90.3 | 180.0 | 1.99x | 184.2 | 2.04x | +2.3% | 312 | 312 | 7 % | [+0.3%..+5.7%], 9 of 9 positive |
+| web/url.relative-dot-colon | generated | hand | 75.8 | 155.2 | 2.05x | 161.3 | 2.13x | +3.9% | 280 | 280 | 5 % | [+1.7%..+7.8%], 9 of 9 positive |
+| web/url.relative-letters | generated | hand | 120.3 | 215.1 | 1.79x | 227.6 | 1.89x | +5.8% | 312 | 312 | 62 % | [+3.5%..+9.7%], 9 of 9 positive |
+
+Written to T:\TEMP\dotgram-stand\w86\pair

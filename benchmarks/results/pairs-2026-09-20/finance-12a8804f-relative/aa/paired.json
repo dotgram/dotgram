@@ -1,0 +1,155 @@
+{
+  "Control": 31.58425,
+  "Rows": [
+    {
+      "Id": "web/url.plain",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 86.05995178222656,
+          "Bytes": 152,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 207.77587890625,
+          "Bytes": 360,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 207.89222717285156,
+          "Bytes": 360,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.01459213390011569,
+      "Ranges": {
+        "": "[-1.3%..\u002B1.9%], 3 of 6 positive"
+      }
+    },
+    {
+      "Id": "web/url.refused",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 59.92846488952637,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 249.74346160888672,
+          "Bytes": 64,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 251.86572074890137,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04183830087898465,
+      "Ranges": {
+        "": "[-2.2%..\u002B3.1%], 4 of 6 positive"
+      }
+    },
+    {
+      "Id": "web/url.relative",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 90.98677635192871,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 183.10785293579102,
+          "Bytes": 312,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 190.16003608703613,
+          "Bytes": 312,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.07885831737967676,
+      "Ranges": {
+        "": "[-2.2%..\u002B4.4%], 4 of 6 positive"
+      }
+    },
+    {
+      "Id": "web/url.relative-dot-colon",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 76.99017524719238,
+          "Bytes": 144,
+          "Warmup": 9,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 160.50848960876465,
+          "Bytes": 280,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 163.4957790374756,
+          "Bytes": 280,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06588996290724458,
+      "Ranges": {
+        "": "[-1.6%..\u002B4.7%], 5 of 6 positive"
+      }
+    },
+    {
+      "Id": "web/url.relative-letters",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 117.44251251220703,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 216.15447998046875,
+          "Bytes": 312,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 226.35149955749512,
+          "Bytes": 312,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.3410425230252527,
+      "Ranges": {
+        "": "[-3.8%..\u002B12.1%], 3 of 6 positive"
+      }
+    }
+  ]
+}
