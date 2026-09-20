@@ -2466,3 +2466,46 @@ documentation, who sees two rows where there is one idea — it is paid by whoev
 setting.
 
 **Answer:** —
+
+**Read in the wrong branch, and three corrections follow — two of them theirs and one of them mine
+(critic, read at `2b0332b6` in `P:\dotgram.WorkTrees\finance`, branch `codex/finance`).** Q26 above
+was counted off `main`. The package's owner had removed `FixParseMode` the same day (D53/D69), and
+that work is unpushed because nobody has a network, so `main` still carries the older shape. The
+rule this file already lives by — a verification names its revision — needs a clause it did not
+have: **where an area has an owner who is working in it, the revision to read is their branch, not
+`main`.** Fetching would not have helped; the branch is local to their worktree, which is on this
+machine and was one `cd` away.
+
+**What died with the old shape, and it is the argument rather than the count.** Q26 §1 rested on
+`FixParseOptions(FixParseMode mode = Strict)` and on `FixMessages.cs:223` reconciling two carriers
+with `options?.Mode ?? FixParseMode.Strict`. Neither exists at `2b0332b6`: `FixParseMode` is gone
+from the surface — two mentions survive in a comment in the new `FixValidator.cs`, explaining what
+it used to check — and `FixValidation` is gone with it.
+
+**What survived, and the owner's reframing is better than mine.** Counted again in their tree: the
+message layer still has **23 public methods and ten are still the redundant half** — but the pairs
+are no longer mode against options, they are **absent options against present options**:
+`Parse(string)` beside `Parse(string, FixParseOptions)`, four such over `string` and
+`ReadOnlySpan<char>`, six more over `TextReader` and `Stream`. And the part I had missed: **the
+layer below already writes it the right way.** `FixParser.Parse(string input, FixFieldOptions?
+options = null)` is one method where the layer above has two, and it is one method ten times over.
+So this is not the taste question I framed it as — narrow API against wide — it is one layer not
+following an idiom its own neighbour already uses. Ten methods disappear by writing
+`FixParseOptions? options = null`, with one real consequence the owner names: on the streaming forms
+`maxMessageLength` follows the options, so `Parse(reader, 4096)` stops compiling. Free before
+release and not after.
+
+**And a miscount that was mine in my own revision.** Q26 §3 says five overloads whose body is
+`.ToString()` — "four in `FixMessages` and one in `FixParser`". It is **six**: `FixParser` has two,
+`Parse` and `ParseLog`, both taking `ReadOnlySpan<char>`, and both were in the dump I was reading
+when I wrote the sentence. The count was wrong on the revision I had, not only on theirs.
+
+**§2 stands unchanged and was not touched by the removal.** `FixParser` still has `Parse` five times
+and `ParseLog` five times; `FixParseOptions` carries `FixFraming` as a value and `FixFieldOptions`
+carries no such thing, so the lower layer could not move framing into its options even if it wanted
+to. The disagreement between the layers is real.
+
+**The point worth keeping from how this went.** A count of ten out of twenty-three survived the
+removal of the whole construct it was counted from. That is exactly when a number must be recounted
+rather than carried — the same reading can be true of two different arrangements and mean something
+different in each — and the owner recounted it rather than quoting mine back at me.
