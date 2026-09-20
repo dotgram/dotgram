@@ -2023,6 +2023,15 @@ same day; each comes back to the architect as a report, with no code changed.
    then a direct path for a guard whose record's children are built — both expr's, the
    materializer's owner, expecting about 20 µs, 3x the hand parser; recognition analysed next by
    sql-39.
+   **Taken again with both constants (sql-39, `62715de4`):** twenty selects 17,862 ns against the
+   hand parser's 6,766 — 2.64x, where the morning's anatomy found 10.6x. A walk costs 27.8 ns and a
+   record 6.0, and the phases now read: the walk a guard runs 8,379 ns and 47% of the parse, the
+   arms' built records 2,394, recognition 4,167 against the hand parser's 4,883, which builds as it
+   reads. So **the lever has moved**: what costs is not what is built but that we come back to
+   build it — 301 walks for 402 records — and that is the materializer's, expr's, with a design
+   asked before code. With the constants carried onto T-SQL's counts, the shelved carrier per
+   construction is closed for good: less than half a per cent of a parse, and it looked larger only
+   while a record still carried an arm's prologue.
    **Recognition, analysed (sql-39, next.md `02035cc7`):** no way is opened, retried or replayed;
    almost all of the difference is the choice over kinds hitting the switch's limit of 128 named
    kinds. A primary's first set is 357 kinds, since an identifier begins with any unreserved word,
