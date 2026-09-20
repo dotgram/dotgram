@@ -5372,3 +5372,33 @@ streaming proof accepts a collection inside atomic groups, which reads as the la
 an atomic wrapper as turning a collection into text. If it is intended it is a third instance of
 that family — our diagnosis delivered by somebody else's compiler — and a third instance is itself
 evidence about the cause.
+
+## D58. A generated reading can kill the process, and the contract does not survive it
+
+Driving the expression language with sixteen ordinary shapes found no more exponents and two
+defects of another class.
+
+**The severe one: depth kills the process.** A lambda nested three hundred deep — two thousand
+characters — overflows the stack, and a stack overflow in .NET is not catchable: not a refusal, not
+an exception, the process dies. So on that input the promise that a try-parse refuses rather than
+throws does not hold at all. The recursion is visible in the trace, twelve frames a level.
+
+**And the numbers do not behave as recursion should.** In a debug build two hundred levels pass and
+three hundred die; in a release build fifty-one thousand pass, and two hundred thousand pass in 86
+seconds without dying, on a megabyte stack and on a quarter of one alike. If depth grew with
+nesting the release build would die in the low thousands. It does not die at all — so under
+optimisation the stack does not grow with the input and in a debug build it does, from one emitted
+reading. **That difference is the first thing to settle, because it decides the severity**: if a
+release build is genuinely bounded, the defect is that a consumer's debug build dies on two
+thousand characters, which is serious; if it is bounded by accident, this is a way to kill a
+shipped process with untrusted input, and it goes to the head of everything.
+
+**The lesser one: a quadratic, not an exponent.** A chain of members at four hundred, eight hundred
+and sixteen hundred links takes 124, 367 and 1,527 ms — four times for twice — and depth behaves the
+same way. Polynomial, and still a slow denial of service on untrusted input. It is a separate
+question from D57 and gets its own decision if it wants one.
+
+**What the answer will have to be, when the investigation names the cause:** a stated bound on depth
+that *refuses* rather than dies. That is a promise in the generated API and therefore Igor's, and it
+is not worth putting to him before the debug-release difference is understood. Everything else the
+sixteen shapes touched was flat under a millisecond.
