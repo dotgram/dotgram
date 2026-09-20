@@ -93,11 +93,21 @@ jobs:
           name: nupkg
           path: artifacts/*.nupkg
 
-      # The only step that leaves the machine. It is skipped until the repository has the
-      # account's API key as a secret, so this workflow can be run and read before it can
-      # publish anything. `--skip-duplicate` makes a re-run of a finished release harmless.
+      # The only step that leaves the machine, and the only one gated twice.
+      #
+      # It is skipped until the repository has the account's API key as a secret, so this workflow
+      # can be run and read before it can publish anything. `--skip-duplicate` makes a re-run of a
+      # finished release harmless.
+      #
+      # It is also skipped unless the run is a tag, and that condition is first because it is the
+      # one that cannot be waived. "The tag is the version" above runs only for a tag, so without
+      # this a manual run would pack whatever version happens to be in Directory.Build.props, from
+      # whatever commit it was started on, with the one check that nobody can take back skipped.
+      # Today the missing key hides that; the day the key arrives is the day nobody rereads this
+      # file. A manual run stays what the first line of this file calls it: the same run with the
+      # last step left off.
       - name: Push to nuget.org
-        if: env.NUGET_API_KEY != ''
+        if: startsWith(github.ref, 'refs/tags/') && env.NUGET_API_KEY != ''
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: >
