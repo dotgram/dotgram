@@ -61,6 +61,14 @@ kind. Such a rule never needs the fourth edge, and nothing under it is taped. Wi
 These are static counts. The file's point column counts calls too, so the constructions were
 counted separately by a local probe over `Commit` and `Demand`, which was not committed.
 
+**The reach here is counted the loose way.** "In settled subtrees" was taken before the fixpoint of
+§4a was written down, so it does not require that every valued call a rule makes be settled as well.
+Counted with it, T-SQL has 115 such rules of the 651 that write a record, not 195 of 654 (§4b). Every
+figure in this table is therefore a ceiling and not an estimate, which is how it should be quoted —
+and it is still the right figure to quote for SQL:2023, whose dynamic zero was taken over a corpus
+of another grammar. Recounting the table under the fixpoint changes no decision while the shelving
+rests on the dynamic count; it is worth an hour when this design is picked up again.
+
 | Grammar | Constructions | With a point | At its rule's end | In settled subtrees | Rules in settled subtrees |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | T-SQL | 1,509 | 1,146 (76%) | 867 (57%) | 399 (26%) | 195 of 654 |
