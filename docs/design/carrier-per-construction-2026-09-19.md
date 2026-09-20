@@ -184,6 +184,37 @@ over-acceptance, which Igor has declined: accuracy to the published syntax and t
 before speed, so those rules stay on the tape. Each cause that goes makes the hot rules settled, whatever
 carrier reads them.
 
+## 4b. The weighted retake (2026-09-19, after the materializer's three commits)
+
+Taken on main with `fa47097e`, `75ed392e` and `b4ad9f4c` in it, by the recipe of §4a: a counter in
+each arm's body, a counter at each walk, the corpus cut as `ScriptDomBenchmarks` cuts it. One round
+of the corpus, 7,716 statements:
+
+| | |
+| --- | ---: |
+| records built | 116,946 |
+| walks of the log | 17,023 (2.2 a statement) |
+| records in settled subtrees | 4,130 (3.5%) |
+| walks whose every record is in a settled subtree | 174 (1.0%), holding 197 records (0.17%) |
+
+**The last row is the weighting.** The anatomy says the greater part of materialization is the
+fixed cost of a walk, not the cost of a record. Step 2 takes the record's cost off 3.5% of the
+records, and the walk's fixed cost off 1% of the walks — every other walk still builds at least one
+taped record and stays whole. Weighted, the number goes down against the unweighted 0.7–1.2%, not
+up. The two constants a share of a parse needs — what a walk costs and what a record costs — are
+being measured; the conclusion is written when they arrive.
+
+**Two numbers, and why they differ.** §4a's count of records in settled subtrees was 5,607 (4.8%);
+today's is 4,130 (3.5%). The counting build behind the first was never committed, so the two cannot
+be compared line by line. The likeliest cause is the definition: today a rule is settled only where
+every valued call it makes is settled too, which is the fixpoint §4a's recipe states. Both numbers
+stand here rather than one replacing the other, because a number that moved when its assumption was
+written down is exactly what the earlier reading of this document got wrong.
+
+For the shape of a parse: 1,160 walks build twenty records or more and hold 38,721 of the records,
+a third of them. Those are the walks at the end of a reading; the rest are small, one to five
+records, and they are what the guards cost.
+
 ## 5. Proposed steps
 
 1. **Measure before building.** Using the tape, over the T-SQL and SQL:2023 corpora, count the
