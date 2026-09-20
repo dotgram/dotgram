@@ -24,9 +24,26 @@ still fails. Only building everything where the reading is proved — the wider
 On SQL:2023 the fast path already works, and what blocks the rest is the other cause, which
 neither shape touches: the root is not the last record.
 
-So this is refused where it would have paid least and cannot pay where the cost is. The next
-number on this line is how many records a slow walk lists, which prices the listing itself; that
-is a different design. **A pair on anything here takes both families** — the two grammars fail the
+So this is refused where it would have paid least and cannot pay where the cost is.
+
+**And the listing, counted next, says where to aim instead.** A slow walk lists 12.3 records on
+`select20` and 14.9 on the T-SQL corpus, and builds 1.8 and 7.4 of them — so it lists 6.9 records
+per record built on SQL:2023 and 2.0 on T-SQL. There are no tens of records listed for one built,
+and what redundancy there is lives on one family only, which is the case sql-39 warned about: a
+change that removes one grammar's cause does nothing on the other.
+
+The part worth keeping from that count is sql-39's caveat rather than the count. The listing loop
+is the cheapest thing in a walk — one store per element — and on the same tally of elements run the
+clearing of `Live` from the mark and the reaching pass backwards over the same list. So 234,089 is
+not the price of listing; it is the scale of what three things touch. **Aim at the walk not
+starting, not at it listing faster** — which is either building earlier, where the reading is
+proved (the wider design), or asking less often.
+
+Asking less often has one shape worth counting before anything else: a guard with several captured
+values materializes each of them with a call of its own from the same place — three in a row is
+visible in the generated SQL:2023. If those are many, the asks are fewer than they look and the
+walks are not, and merging the asks of one guard into one walk takes work away without promising
+anything about §3.7. **A pair on anything here takes both families** — the two grammars fail the
 fast path for opposite reasons, so a measurement on one is a measurement about one.
 
 What follows is the design as it stood, unchanged, because the reasoning in it is what the numbers
