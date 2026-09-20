@@ -152,7 +152,11 @@ schemes keep or break that promise; the third is the one that landed.
   both go as soon as the input is collected or another takes the slot: a thread-static holding a
   document nobody else has is the leak D5 was about. Strings only — what a caller may write into
   between two readings, an array of bytes or a memory, would make a kept tokenization a lie, so
-  the byte forms keep none. **What it does not fix**, and is known and uncovered: one reading of
+  the byte forms keep none. A tokenization that leaves a slot is let go of and never returned to
+  the pool: the reading it was cut for may still be holding it — a factory of that very reading is
+  what pushed it out — and a pooled set is written over by the next tokenization, under the
+  reading, which answers about a text it never read without refusing and without throwing. That is
+  what `TokenizationCacheTests` holds. **What it does not fix**, and is known and uncovered: one reading of
   a short value from a huge text still tokenizes all of it, as it does today.
 
 **The answer if this ever has to be exact: tokens made as they are asked for.** Not built, and

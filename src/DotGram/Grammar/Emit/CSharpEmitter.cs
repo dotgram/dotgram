@@ -2177,6 +2177,8 @@ public static partial class CSharpEmitter
 		file.Line("/// The input is held weakly and the kinds strongly: the kinds are as long as the text,");
 		file.Line("/// and a thread-static holding a document nobody else has is the leak this is not.");
 		file.Line("/// Where the input is gone, so are its kinds, at the next reading that looks.");
+		file.Line("/// A cutting that leaves a slot is let go of and never pooled: the reading it was");
+		file.Line("/// cut for may still be holding it, and a pooled set is written over by the next.");
 		file.Line("/// A string only: what a caller may write into between two readings — an array of");
 		file.Line("/// bytes, a memory — would make a kept cutting a lie, so the byte forms keep none.");
 		file.Line("/// </remarks>");
@@ -2208,9 +2210,8 @@ public static partial class CSharpEmitter
 
 				using (file.Block("if (!held.TryGetTarget(out var was))"))
 				{
-					file.Line("// The text is gone and its kinds go with it.");
-					file.Line("Recycle_DotGram(kept[slot]!);");
-					file.Line();
+					file.Line("// The text is gone and its kinds go with it — dropped and not pooled: a");
+					file.Line("// reading that took these kinds may still be reading them.");
 					file.Line("inputs[slot] = null!;");
 					file.Line("kept[slot]   = null;");
 					file.Line();
@@ -2232,9 +2233,9 @@ public static partial class CSharpEmitter
 			file.Line();
 			file.Line("_cutNext = next + 1 == inputs.Length ? 0 : next + 1;");
 			file.Line();
-			file.Line("if (kept[next] != null)");
-			file.Then("Recycle_DotGram(kept[next]!);");
-			file.Line();
+			file.Line("// What was in the slot is let go of and not pooled. A reading that took it is");
+			file.Line("// still holding it — this very cutting may be one its own factory asked for —");
+			file.Line("// and a pooled set is written over by the next cutting, under the reading.");
 			file.Line("inputs[next] = new global::System.WeakReference<string>(input);");
 			file.Line("kept[next]   = tokens;");
 			file.Line();
