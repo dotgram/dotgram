@@ -4075,8 +4075,9 @@ sealed partial class Machine
 
 				if (member.Rule is null)
 				{
-					Ready();
-
+					// Held back with the reads rather than written here, and what is waiting is not
+					// built on its account: a text capture is cut from positions and builds nothing,
+					// so a guard that names a value, a text and a value is still one walk.
 					var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.IsOptional ? "null" : "string.Empty";
 					var cut     = machine.Cut($"{handed}From", $"{handed}To - {handed}From");
 
@@ -4085,9 +4086,9 @@ sealed partial class Machine
 					// stands on the positions the construction would cut (ImmediateCarrier.PutText).
 					if (machine.Carrier is ImmediateCarrier && !machine.BorrowedCaptures)
 					{
-						code.Line($"{handed}From = {First("a", "a", slots)};");
-						code.Line($"{handed}To   = {First("a", "b", slots)};");
-						code.Line($"{handed} = {handed}From < 0 ? {missing} : {cut};");
+						reading.Add($"{handed}From = {First("a", "a", slots)};");
+						reading.Add($"{handed}To   = {First("a", "b", slots)};");
+						reading.Add($"{handed} = {handed}From < 0 ? {missing} : {cut};");
 
 						_hoisted.Add($"var {handed}From = -1;");
 						_hoisted.Add($"var {handed}To   = -1;");
@@ -4097,9 +4098,9 @@ sealed partial class Machine
 						continue;
 					}
 
-					code.Line($"var {handed}From = {First("a", "a", slots)};");
-					code.Line($"var {handed}To   = {First("a", "b", slots)};");
-					code.Line($"var {handed} = {handed}From < 0 ? {missing} : {cut};");
+					reading.Add($"var {handed}From = {First("a", "a", slots)};");
+					reading.Add($"var {handed}To   = {First("a", "b", slots)};");
+					reading.Add($"var {handed} = {handed}From < 0 ? {missing} : {cut};");
 
 					continue;
 				}
