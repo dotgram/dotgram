@@ -125,6 +125,22 @@ public static class Determinism
 		// A fold's step is its construction around the sequence: what is read is the same.
 		var read = Unbuilt(body);
 
+		// Read until the separator, which is what a scanner mostly is: `(?!Sep & any)+`
+		// before `Sep`, and the same shape in a CSV field, a quoted string and FIX's value.
+		// A turn begins only where the look refused, so `Sep` cannot match there — however
+		// much their first sets overlap, and `' '* & '|' & ' '*` overlaps a turn on the
+		// space honestly. Characters cannot see it; the continuation's lead can, being the
+		// node every way in begins with rather than the characters it begins with.
+		//
+		// Two things make it a proof rather than a likeness. The turn must consume, which
+		// the nullable test above has already settled: the start of a completed turn has
+		// input behind it, so the end of the text is not one of the ways in and a lead of
+		// "that rule, or the end" is as good as the rule alone. And the lead is unknown
+		// wherever a continuation may read nothing (FollowSets.LeadOf), so nothing here
+		// rests on following an empty continuation to whatever stands behind it.
+		if (Leading(read) is Node.Lookahead(false, var refused) && following.Lead.Refuses(refused))
+			return true;
+
 		if (seam is not null &&
 			read is Node.Sequence(var parts) && parts.Count > 1 &&
 			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, seam))
@@ -159,6 +175,17 @@ public static class Determinism
 		Node.Capture(_, var body)   => Unbuilt(body),
 		Node.Construct(var body, _) => Unbuilt(body),
 		_                           => node,
+	};
+
+	/// <summary>What a turn begins with, past what is written around it rather than read.</summary>
+	static Node Leading(Node node) => node switch
+	{
+		Node.Sequence(var parts) when parts.Count > 0 => Leading(parts[0]),
+		Node.Capture(_, var held)                     => Leading(held),
+		Node.Construct(var built, _)                  => Leading(built),
+		Node.Marked(var kept, _)                      => Leading(kept),
+		Node.Atomic(var kept)                         => Leading(kept),
+		_                                             => node,
 	};
 
 	/// <summary>

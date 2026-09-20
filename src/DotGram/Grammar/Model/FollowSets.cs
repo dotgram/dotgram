@@ -52,17 +52,133 @@ public static class FollowSets
 	/// what each reads <em>next</em>. Compared plainly the two overlap on the trivia itself
 	/// and the comparison says nothing.
 	/// </param>
-	public readonly record struct Continuation(FirstSets.First Plain, FirstSets.First AfterSeam)
+	/// <param name="Lead">
+	/// What the continuation begins to <em>consume</em> with, as a node rather than as
+	/// characters: the half of the question characters cannot answer. A turn led by
+	/// <c>?!X</c> begins only where <c>X</c> failed, so a continuation that is <c>X</c>
+	/// cannot match there however much their first sets overlap — and
+	/// <c>' '* &amp; '|' &amp; ' '*</c> overlaps a turn of <c>(?!Sep &amp; any)+</c> on the
+	/// space, honestly and uselessly. Unknown wherever it is not worked out, which is what
+	/// <c>default</c> is, so a continuation built anywhere that has not thought about this
+	/// claims nothing.
+	/// </param>
+	public readonly record struct Continuation(
+		FirstSets.First Plain, FirstSets.First AfterSeam, Lead Lead = default)
 	{
-		public static readonly Continuation All  = new(FirstSets.First.All, FirstSets.First.All);
-		public static readonly Continuation None = new(FirstSets.First.None, FirstSets.First.None);
-		public static readonly Continuation End  = new(FirstSets.First.End, FirstSets.First.End);
+		public static readonly Continuation All  = new(FirstSets.First.All, FirstSets.First.All, Lead.Unknown);
+		public static readonly Continuation None = new(FirstSets.First.None, FirstSets.First.None, Lead.Nothing);
+		public static readonly Continuation End  = new(FirstSets.First.End, FirstSets.First.End, Lead.Ending);
 
 		public Continuation Or(Continuation other) =>
-			new(Plain.Or(other.Plain), AfterSeam.Or(other.AfterSeam));
+			new(Plain.Or(other.Plain), AfterSeam.Or(other.AfterSeam), Lead.Or(other.Lead));
 
 		public bool Covers(Continuation other) =>
-			Plain.Covers(other.Plain) && AfterSeam.Covers(other.AfterSeam);
+			Plain.Covers(other.Plain) && AfterSeam.Covers(other.AfterSeam) && Lead.Covers(other.Lead);
+	}
+
+	/// <summary>
+	/// The node a continuation begins to consume with, joined over the places it can have
+	/// come from: nothing yet, the end of the input, one named rule, one literal, or unknown.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A lattice and not a guess. <c>default</c> is unknown — the top, which claims nothing —
+	/// so a <see cref="Continuation"/> put together by code that has never heard of this is
+	/// as safe as it was. <see cref="Nothing"/> is the bottom, what a continuation that
+	/// cannot be entered at all carries, and it is what lets a choice join its alternatives
+	/// starting from <see cref="Continuation.None"/> without poisoning the answer.
+	/// </para>
+	/// <para>
+	/// Two leads that are not the same node join to unknown, because the question this
+	/// answers — is every way into the continuation the very thing a look refused? — has no
+	/// answer once there are two of them. A rule and a literal are the only keys kept: they
+	/// are what a negative look is written over, and an element written twice is two nodes
+	/// that no comparison of identity would call equal anyway.
+	/// </para>
+	/// </remarks>
+	public readonly record struct Lead
+	{
+		readonly byte _kind;
+
+		Lead(byte kind, RuleSymbol? rule, string? literal, bool ends)
+		{
+			_kind   = kind;
+			Rule    = rule;
+			Literal = literal;
+			Ends    = ends;
+		}
+
+		/// <summary>The rule a continuation leading with a call names, where it leads with one.</summary>
+		public RuleSymbol? Rule { get; }
+
+		/// <summary>The text a continuation leading with a literal reads, where it leads with one.</summary>
+		public string? Literal { get; }
+
+		/// <summary>Whether the end of the input is one of the ways in.</summary>
+		public bool Ends { get; }
+
+		/// <summary>Nothing is known: the top of the lattice, and what <c>default</c> is.</summary>
+		public static readonly Lead Unknown = default;
+
+		/// <summary>There is no way in at all: the bottom, which joins with anything to it.</summary>
+		public static readonly Lead Nothing = new(1, null, null, false);
+
+		/// <summary>The end of the input, and nothing else.</summary>
+		public static readonly Lead Ending = new(2, null, null, true);
+
+		/// <summary>A continuation that begins by calling one named rule.</summary>
+		public static Lead Calling(RuleSymbol rule) => new(2, rule, null, false);
+
+		/// <summary>A continuation that begins by reading one literal.</summary>
+		public static Lead Reading(string literal) => new(2, null, literal, false);
+
+		public bool IsUnknown => _kind == 0;
+
+		public bool IsNothing => _kind == 1;
+
+		/// <summary>The join: what is known of two ways in at once.</summary>
+		public Lead Or(Lead other)
+		{
+			if (IsNothing)  return other;
+			if (other.IsNothing) return this;
+			if (IsUnknown || other.IsUnknown) return Unknown;
+
+			// The end joins with a node rather than fighting it: a continuation may be the
+			// end of the input or that one rule, which is the shape `(Separator | eof)` has.
+			if (ReferenceEquals(Rule, other.Rule) && string.Equals(Literal, other.Literal, StringComparison.Ordinal))
+				return new(2, Rule, Literal, Ends || other.Ends);
+
+			if (Rule is null && Literal is null)      return new(2, other.Rule, other.Literal, true);
+			if (other.Rule is null && other.Literal is null) return new(2, Rule, Literal, true);
+
+			return Unknown;
+		}
+
+		/// <summary>
+		/// Whether this already holds everything that one does — the lattice's <c>≥</c>, and
+		/// not equality: the fixed point stops going round when every contribution is covered,
+		/// so a test that answered "no" to two values whose join is the first of them would
+		/// send the walk round for ever.
+		/// </summary>
+		public bool Covers(Lead other) =>
+			IsUnknown || other.IsNothing ||
+			!IsNothing &&
+			(ReferenceEquals(Rule, other.Rule) && string.Equals(Literal, other.Literal, StringComparison.Ordinal) ||
+				other.Rule is null && other.Literal is null) &&
+			(Ends || !other.Ends);
+
+		/// <summary>
+		/// Whether every way into this continuation is the node a look refused, or the end of
+		/// the input. The end is admitted because the question is asked at the start of a turn
+		/// that consumed: there are characters left there, so the end is not one of them.
+		/// </summary>
+		public bool Refuses(Node refused) => !IsUnknown && !IsNothing && refused switch
+		{
+			Node.Call(var called, { Count: 0 }) => ReferenceEquals(Rule, called),
+			Node.Literal(var text)              => Literal is not null &&
+			                                       string.Equals(Literal, text, StringComparison.Ordinal),
+			_                                   => false,
+		};
 	}
 
 	/// <summary>The rule a namespace applies at its seams, for the rule being walked.</summary>
@@ -242,7 +358,95 @@ public static class FollowSets
 		return result;
 	}
 
+	/// <summary>
+	/// What a continuation that begins with <paramref name="node"/> and goes on as
+	/// <paramref name="after"/> says begins to <em>consume</em>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Two rules hold this to what it can actually prove, and they are the proof itself.
+	/// <b>A node that may read nothing answers unknown</b> rather than handing the question
+	/// on to what follows it: where the continuation can match empty, what decides a
+	/// give-back is whatever stands behind it and in the end the end of the input, and
+	/// chasing that is reasoning nobody here has written down. <b>Only a call and a literal
+	/// are keys</b>, because those are what a negative look is written over; an element is
+	/// a fresh node at every mention, so identity would call two spellings of one class
+	/// different and prove nothing.
+	/// </para>
+	/// <para>
+	/// The other half of the proof lives where the answer is used
+	/// (<see cref="Determinism.NeverGivesBack"/>): the turn must consume, so that the start
+	/// of a completed turn has input left and the end of the text is not one of the ways in.
+	/// </para>
+	/// </remarks>
+	static Lead LeadOf(Node node, Continuation after, RecognitionGraph graph)
+	{
+		if (AtEnd(node, graph))
+			return Lead.Ending;
+
+		switch (node)
+		{
+			// A call of a rule that must read something is the way in, and the rule is the key.
+			case Node.Call(var called, { Count: 0 }):
+				return FirstSets.Nullable(node, graph) ? Lead.Unknown : Lead.Calling(called);
+
+			case Node.Literal(var text):
+				return text.Length == 0 ? after.Lead : Lead.Reading(text);
+
+			// Zero-width: it decides nothing about what is consumed, so the question passes
+			// through to whatever consumes next.
+			case Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
+				return after.Lead;
+
+			case Node.Capture(_, var captured):  return LeadOf(captured, after, graph);
+			case Node.Construct(var built, _):   return LeadOf(built,    after, graph);
+			case Node.Atomic(var kept):          return LeadOf(kept,     after, graph);
+			case Node.Marked(var kept, _):       return LeadOf(kept,     after, graph);
+
+			case Node.Repeat(var body, var min, _):
+				return min == 0 ? Lead.Unknown : LeadOf(body, after, graph);
+
+			case Node.Choice(var alternatives):
+			{
+				var merged = Lead.Nothing;
+
+				foreach (var alternative in alternatives)
+					merged = merged.Or(LeadOf(alternative, after, graph));
+
+				return merged;
+			}
+
+			case Node.Sequence(var parts):
+			{
+				foreach (var part in parts)
+				{
+					if (FirstSets.Nullable(part, graph))
+					{
+						// Zero-width parts are stepped over; a part that may read nothing but
+						// could have read something is the unknown this refuses to guess at.
+						if (part is Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading)
+							continue;
+
+						return Lead.Unknown;
+					}
+
+					return LeadOf(part, after, graph);
+				}
+
+				return after.Lead;
+			}
+
+			default:
+				return Lead.Unknown;
+		}
+	}
+
 	static Continuation ComputePrecedes(
+		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam) =>
+		Characters(node, after, graph, seam) with { Lead = LeadOf(node, after, graph) };
+
+	/// <summary>The two character halves, which is what this answered before there was a third.</summary>
+	static Continuation Characters(
 		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam)
 	{
 		switch (node)

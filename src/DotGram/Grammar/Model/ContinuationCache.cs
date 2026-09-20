@@ -8,12 +8,20 @@ namespace DotGram.Grammar.Model;
 /// <summary>Contextual answers owned by one graph whose FIRST estimates have settled.</summary>
 sealed class ContinuationCache
 {
-	internal readonly record struct Key(Node Node, RuleSymbol? Seam, int Plain, int AfterSeam);
+	/// <remarks>
+	/// The lead belongs in the key as much as the two character halves do: two continuations
+	/// that begin with the same characters and different nodes are different questions, and
+	/// answering the second from the first is how a repetition would be told it never gives
+	/// back on the strength of somebody else's continuation.
+	/// </remarks>
+	internal readonly record struct Key(
+		Node Node, RuleSymbol? Seam, int Plain, int AfterSeam, FollowSets.Lead Lead);
 
 	sealed class Keys : IEqualityComparer<Key>
 	{
 		public bool Equals(Key x, Key y) => ReferenceEquals(x.Node, y.Node) &&
-			ReferenceEquals(x.Seam, y.Seam) && x.Plain == y.Plain && x.AfterSeam == y.AfterSeam;
+			ReferenceEquals(x.Seam, y.Seam) && x.Plain == y.Plain && x.AfterSeam == y.AfterSeam &&
+			x.Lead.Equals(y.Lead);
 
 		public int GetHashCode(Key key)
 		{
@@ -21,7 +29,8 @@ sealed class ContinuationCache
 			{
 				var hash = RuntimeHelpers.GetHashCode(key.Node);
 				hash = hash * 31 + (key.Seam is null ? 0 : RuntimeHelpers.GetHashCode(key.Seam));
-				return (hash * 31 + key.Plain) * 31 + key.AfterSeam;
+				hash = (hash * 31 + key.Plain) * 31 + key.AfterSeam;
+				return hash * 31 + key.Lead.GetHashCode();
 			}
 		}
 	}
@@ -66,5 +75,5 @@ sealed class ContinuationCache
 	}
 
 	internal Key Of(Node node, FollowSets.Continuation following, RuleSymbol? seam) =>
-		new(node, seam, Identify(following.Plain), Identify(following.AfterSeam));
+		new(node, seam, Identify(following.Plain), Identify(following.AfterSeam), following.Lead);
 }
