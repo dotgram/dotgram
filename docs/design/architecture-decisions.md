@@ -6507,3 +6507,32 @@ and the work it points at is taken on the shared code where it pays twice.
 **And the prediction held, with its direction.** 1.3 to 1.8 was named with the likelihood of erring
 high; 1.24 came out just below, and the reasoning under it was right rather than lucky — the second
 prediction of the day and the first whose named direction survived.
+
+**The shared repair paid eight per cent, a third of what the decomposition pointed at, and the
+correction is to the decomposition rather than to the decision.** Two edits paid: a tag's type
+travels as the byte the schema already holds instead of being written out as a name for the check
+to parse back, and a tag's value set is remembered after its first ask instead of a search over
+four hundred branches per field. On the largest fixture the walk went from about 9,850 ns to about
+9,120 — some 750 ns.
+
+**A third idea was mine and was worse.** I wrote that a linearly scanned set is either a switch or
+a sorted search; the cheapest of that family — a sieve on length and first character before
+comparing — came out *slower* than the plain scan, because the sets a message actually meets are
+short, the comparison is already cheap, and the branches that saved comparisons cost more than they
+saved. Reverted, with the reason written at the loop so that nobody tries it twice.
+
+**And the morning's 2,720 ns was misread, by its own author, in a way worth naming.** Three
+quarters of it is the character reading of 391 values — numeric, date, time, letters — which is the
+work itself and does not disappear because it is emitted rather than called. **So the ceiling of
+1.87× does not exist**: the generated form's advantage stays the same absolute 1,900 ns, now
+against a walk of 9,100.
+
+**The rule this leaves: a decomposition of time says where the time is, and says nothing about how
+much of it is movable.** Splitting ten thousand nanoseconds into three true lines is one
+measurement; attributing movability to one of them is another, and the second is taken with a probe
+rather than read off the first. My own preference — "the shared repair gives more and is cheaper" —
+was right about the order and wrong about the size, for exactly that reason.
+
+The correction was added to the document as its own section rather than rewritten over the first
+reading, which is the practice this journal has been keeping all day: a number that was wrong is
+marked, not deleted, so the next person sees the road as well as the destination.
