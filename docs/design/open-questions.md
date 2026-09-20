@@ -728,3 +728,58 @@ grammars — is cheap enough that the number matters less; the valuable half is 
 should be ordered by what people hit.
 
 **Answer:** —
+
+## Q9 (2026-09-19). The FIX libraries other people ship, and the choice our yardstick cannot see
+
+Igor asked whether the ready-made FIX parsing libraries had been looked at. They had not. This is
+the first item of the queued sweep, taken early because it was asked for; the searching was done
+now and nothing in it was run.
+
+**What is out there, and what each is for us.**
+
+- **QuickFIX/n** (`connamara/quickfixn`, quickfixengine.org) — the C# port of QuickFIX, alive: 1.14.1
+  adds .NET 10 and is the last to carry .NET 8. It is what a consumer of ours would otherwise be
+  using, which makes it the external reference for the stand that ScriptDom is for T-SQL and
+  `System.Text.Json` is for JSON. It does more than we do — session layer, dictionary validation,
+  repeating groups — so it is a reference and not a base, and its licence has to be read before it
+  is taken into the benchmarks.
+- **OnixS, B2BITS, Rapid Addition** — commercial .NET engines that publish comparisons against
+  QuickFIX/n. Not takeable as a dependency; useful only as published claims, which are the weakest
+  evidence there is.
+- **Artio** (Real Logic, Java) — the one worth reading rather than timing. Its codecs come in two
+  kinds: the ordinary copying ones, and **flyweight** decoders that "avoid copying out and decoding
+  fields until the accessor method for the respective field is called", valid only while the buffer
+  underneath is unchanged. Their own advice is to use the plain codecs everywhere and the flyweight
+  ones on the critical path.
+- **staffix** (Java) reports under one byte allocated per message and no GC pause in a run, measured
+  against QuickFIX/J and Artio. Java, and a round-trip latency, so not a number of ours — but the
+  allocation figure is the point.
+
+**The finding, which is about our yardstick and not about them.** `FixParser` builds one `FixField`
+per field, always, for every field of the message. So does `HandFixParser`, and so does
+`IdealFixParser`. The stand says so plainly — about 96 B a field on all three readings — and that is
+exactly why it cannot see the choice: **our floor was built to the same design as the thing it is a
+floor for.** `IdealFixParser` is the least a reader *of our shape* can do; it is not the least a FIX
+reader can do. A flyweight reading decodes nothing until asked and allocates nothing per field, and
+against it the interesting comparison is not 0.73x of the hand parser but the 96 bytes.
+
+This is the same shape as Q3 and Q5 one level up. There the yardstick was weaker than our parser
+because it was written less carefully; here the yardstick agrees with our parser because it was
+written to the same plan.
+
+**Where it would touch us, and what it would have to beat.** A field that is a view over the input
+rather than an object is a second entry point, not a change to the one that exists — the package
+already has the parts, since a field carries its position and its terminator, and `FixBinaryValue`
+already names a slice. D25's second wording makes it declarable: a consumer who wants the flyweight
+reading says so, and the generator writes that machine. The repository has the precedent in the
+`.bool` forms landed today — "ask only whether it reads, where only that is wanted" — which is the
+same idea, a reading that does less because less was asked. The number to beat is not the hand
+parser: it is `IdealFixParser`'s 46.8 ns and 96 B a field, and a flyweight reading that does not
+beat the bytes has no reason to exist.
+
+**What this is not.** Not a proposal to take a dependency, not a claim that we are slow — nothing
+here was run, and the comparisons quoted are other people's. It is the answer to "have you looked",
+and the one thing in it that is ours to act on is that we have been measuring a design against
+itself.
+
+**Answer:** —
