@@ -1,0 +1,14 @@
+
+Label            Assembly                   Framework         Bytes    Gzip
+-----            --------                   ---------         -----    ----
+as it is         DotGram.Sql                net10.0        19811840 6564893
+as it is         DotGram.Sql                netstandard2.0 19836416 6587811
+as it is         DotGram.ExpressionLanguage net10.0         1651200  661102
+as it is         DotGram.ExpressionLanguage netstandard2.0  1690112  691832
+Portable = false DotGram.Sql                net10.0        18887680 6182052
+Portable = false DotGram.Sql                netstandard2.0 18913280 6204823
+Portable = false DotGram.ExpressionLanguage net10.0         1563648  622494
+Portable = false DotGram.ExpressionLanguage netstandard2.0  1602560  653455
+
+
+commit 3d0d3434

@@ -1,0 +1,56 @@
+# The architect's order (2026-09-20): what share of the built DotGram.Sql.dll and DotGram.ExpressionLanguage.dll is the grammar text that travels on the class ([GramSource]),
+# measured as the size of the assembly as it is, and of the same with Portable = false on every grammar host of the two projects. Pinned to 16-31: it builds, it times nothing.
+$me = Get-Process -Id $PID
+$me.ProcessorAffinity = [IntPtr]4294901760
+$env:MSBUILDDISABLENODEREUSE = '1'
+$repo = 'P:\dotgram.WorkTrees\stand'
+$tree = 'T:\TEMP\dotgram-stand\wt\portable'
+$out  = 'T:\TEMP\dotgram-stand\portable-sizes.txt'
+$sha  = (git -C $repo rev-parse --short origin/main).Trim()
+
+if (-not (Test-Path $tree)) { git -C $repo worktree add --detach $tree $sha | Out-Null }
+
+$projects = @(@('DotGram.Sql', 'src\DotGram.Sql\DotGram.Sql.csproj'), @('DotGram.ExpressionLanguage', 'src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj'))
+$rows = @()
+
+function Measure-Build([string]$label) {
+	foreach ($p in $projects) {
+		$log = dotnet build (Join-Path $tree $p[1]) -c Release -v:quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false -t:Rebuild 2>&1
+		if ($LASTEXITCODE -ne 0) { throw "$($p[0]) did not build ($label):`n$(($log | Select-Object -Last 12) -join "`n")" }
+
+		foreach ($tfm in 'net10.0', 'netstandard2.0') {
+			$dll = Join-Path (Split-Path (Join-Path $tree $p[1])) "bin\Release\$tfm\$($p[0]).dll"
+			$bytes = (Get-Item $dll).Length
+			$zip = [IO.MemoryStream]::new()
+			$gz = [IO.Compression.GZipStream]::new($zip, [IO.Compression.CompressionLevel]::Optimal, $true)
+			$raw = [IO.File]::ReadAllBytes($dll)
+			$gz.Write($raw, 0, $raw.Length)
+			$gz.Dispose()
+			$script:rows += [pscustomobject]@{ Label = $label; Assembly = $p[0]; Framework = $tfm; Bytes = $bytes; Gzip = $zip.Length }
+		}
+	}
+}
+
+Measure-Build 'as it is'
+
+# Portable = false on every host of the two projects.
+$edits = @(
+	@('src\DotGram.Sql\Standard\Sql92Parser.cs', '[Gram("SqlStandard92.gram", Lexical = true)]', '[Gram("SqlStandard92.gram", Lexical = true, Portable = false)]'),
+	@('src\DotGram.Sql\Standard\SqlStandardParser.cs', '[Gram("SqlStandard.gram", Lexical = true)]', '[Gram("SqlStandard.gram", Lexical = true, Portable = false)]'),
+	@('src\DotGram.Sql\TransactSql\TransactSqlParser.cs', '[Gram("TransactSql.gram", Lexical = true)]', '[Gram("TransactSql.gram", Lexical = true, Portable = false)]'),
+	@('src\DotGram.ExpressionLanguage\ExpressionParser.cs', '""", Lexical = true)]', '""", Lexical = true, Portable = false)]'))
+
+foreach ($e in $edits) {
+	$path = Join-Path $tree $e[0]
+	$text = [IO.File]::ReadAllText($path)
+
+	if (-not $text.Contains($e[1])) { throw "$($e[0]) does not contain the attribute to patch" }
+
+	[IO.File]::WriteAllText($path, $text.Replace($e[1], $e[2]))
+}
+
+Measure-Build 'Portable = false'
+
+$rows | Format-Table -AutoSize | Out-String -Width 200 | Set-Content $out
+"commit $sha" | Add-Content $out
+Get-Content $out
