@@ -158,7 +158,22 @@ two words for one shape and of disagreeing with `CustomFixMessage`.
 6. **Is a binary pair of the consumer's own in scope?** A length/data pair can already be
    configured; a *typed* custom binary field needs the same builder to be asked for the data tag.
 
-## 5. Igor's decision, 2026-09-19
+## 5. Igor's decision, 2026-09-19, and its revision the same evening
+
+**Revised by D25: the generator decides how to read, and the parser is a machine that does as it
+is told.** Asking a consumer's object, while parsing, whether a tag's field is binary is the
+parser choosing how to read, and it is out — and with it the shape below, which was approved an
+hour earlier. What replaces it is declaration: a consumer's tags are declared where a grammar is
+declared, the generator builds their arms and their part of the kind table, and nothing is asked
+of anybody at run time. That is option **C** above, which this document had costed as the
+heaviest and the only one with no seam while parsing. Inheritance stays in it, carrying the types
+and the constructions a consumer writes — not the questions the parser would have asked. The open
+question it inherits is how a consumer declares: a grammar of their own, a table beside it, or
+attributes on their own classes; and §4's questions 2 to 6 stand unchanged.
+
+The shape it replaces, kept because the reasoning in it is still the reasoning for the parts that
+survive:
+
 
 **The inheritance shape (E), tags added and never overridden, with one more member: is this tag's
 field binary.** So the class the consumer inherits answers two questions rather than one — what to
