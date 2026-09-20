@@ -158,6 +158,37 @@ begins. A valid message answers with an empty array and allocates nothing.
 form is `Validate(FixValidator.Standard)`, which is FIX 4.4's schema as this package
 compiles it.
 
+### A counterparty's dictionary
+
+The rules are a table, and it is yours to write. `FixValidator.Standard` is the shared
+default and cannot be written to — a write there would change what `Validate()` answers
+for every caller in the process — so make your own:
+
+```csharp
+using System.IO;
+
+var validator = new FixValidator();
+
+using (var file = File.OpenRead("FIX44-venue.xml"))
+    validator.Load(FixDictionary.Load(file));
+
+validator["D"] = (order, findings) => { /* your rule for NewOrderSingle */ };
+
+var wire    = "8=FIX.4.4\u00019=51\u000135=0\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000110=136\u0001";
+var message = FixMessages.Parse(wire);
+
+foreach (var finding in message.Validate(validator))
+    Console.WriteLine(finding);
+```
+
+`Load` writes an entry for every message type the dictionary describes, a type it does
+not describe keeps whatever it had, and the last write wins — so a dictionary loaded
+after a rule of yours overwrites it. Put an entry back by writing `FixValidator.Compiled`,
+which is the rule this package ships.
+
+This package ships no dictionary of anyone's. The file is yours, in your repository, read
+by your code, and its licence obligations are yours with it.
+
 It is not a trading validator. Sequence numbers, session state and business rules are
 the application's.
 

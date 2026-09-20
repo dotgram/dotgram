@@ -40,10 +40,10 @@ public sealed class FixMessageLayerTests
 
 		seen[55 >> 6] |= 1UL << (55 & 63);
 
-		Assert.True(FixValidator.Has(scope, seen, 55));
-		Assert.False(FixValidator.Has(scope, seen, 56));
-		Assert.True(FixValidator.Has(scope, seen, 5000));
-		Assert.False(FixValidator.Has(scope, seen, 5001));
-		Assert.False(FixValidator.Has(scope, seen, 957));
+		Assert.True(FixRules.Has(scope, seen, 55));
+		Assert.False(FixRules.Has(scope, seen, 56));
+		Assert.True(FixRules.Has(scope, seen, 5000));
+		Assert.False(FixRules.Has(scope, seen, 5001));
+		Assert.False(FixRules.Has(scope, seen, 957));
 	}
 }

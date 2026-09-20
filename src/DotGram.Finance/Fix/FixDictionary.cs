@@ -109,6 +109,12 @@ public sealed class FixDictionary
 	internal SchemaRef[] Header => header;
 	internal SchemaRef[] Trailer => trailer;
 	internal bool Defines(int tag) => fields.ContainsKey(tag);
+	internal bool Describes(string type) => messages.ContainsKey(type);
+
+	// What the public Type and Codes answer, without the interface types: the walk asks these once
+	// a field, and an array it can index beats a list it has to go through an interface to read.
+	internal string?   CodeType(int tag) => fields.TryGetValue(tag, out var field) ? field.Type : null;
+	internal string[]? CodeArray(int tag) => fields.TryGetValue(tag, out var field) ? field.Codes : null;
 
 	/// <summary>Reads a dictionary from a stream, which is left open.</summary>
 	/// <param name="input">The file's octets.</param>

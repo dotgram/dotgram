@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -140,6 +141,64 @@ public sealed class FixDictionaryTests
 		"580 NoDates: the file says INT and the tables say NumInGroup",
 		"674 LegAllocAcctIDSource: the file says STRING and the tables say int",
 	];
+
+	/// <summary>
+	/// The two readings of FIX 4.4 disagree about the code sets of seventy-seven tags.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The set of tags is pinned and not the values, because the values are long and the question
+	/// they raise is the same for all of them: which reading is FIX 4.4. A tag that starts
+	/// disagreeing fails this, and so does one that stops.
+	/// </para>
+	/// <para>
+	/// The disagreements fall into three kinds, and only the third is cosmetic. Ours is richer for
+	/// most of them — the file gives a Boolean no code set at all where we give it Y and N, and it
+	/// leaves out the "other" value (99) that several sets end with. The file is richer for a few:
+	/// SymbolSfx has CD and WI in it and nothing in ours, and so do StipulationValue and
+	/// UnderlyingPutOrCall. And two are spelling: the file writes SHIFT_JIS where we write
+	/// Shift_JIS, and VALUE1_32 where we write VALUE1/32 — which is not nothing, since a value
+	/// that spells differently is a value that fails.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void The_two_readings_disagree_about_the_code_sets_of_seventy_seven_tags()
+	{
+		var dictionary = Load();
+
+		var differ = dictionary.Tags
+			.Where(FixSchema.Defines)
+			.Where(tag => !Same(dictionary.Codes(tag), FixSchema.Codes(tag)))
+			.OrderBy(tag => tag)
+			.ToArray();
+
+		Assert.Equal(CodeDisagreements, differ);
+	}
+
+	static bool Same(IReadOnlyList<string>? file, string[]? ours)
+	{
+		if (file is null || ours is null)
+			return file is null && ours is null;
+
+		return file.Count == ours.Length &&
+			file.OrderBy(v => v, StringComparer.Ordinal)
+				.SequenceEqual(ours.OrderBy(v => v, StringComparer.Ordinal), StringComparer.Ordinal);
+	}
+
+	/// <summary>The tags whose code sets differ; see the test above for the three kinds.</summary>
+	internal static readonly int[] CodeDisagreements =
+	[
+		27, 40, 43, 65, 97, 113, 114, 121, 123, 130, 141, 150,
+		160, 167, 208, 233, 234, 235, 258, 266, 305, 315, 323, 325,
+		326, 328, 329, 347, 368, 372, 377, 378, 411, 456, 459, 464,
+		495, 519, 525, 538, 547, 564, 567, 570, 574, 575, 587, 603,
+		606, 635, 636, 650, 661, 674, 677, 716, 749, 751, 758, 759,
+		761, 776, 783, 784, 786, 796, 803, 805, 807, 847, 852, 875,
+		888, 893, 950, 951, 954,
+	];
+
+	/// <summary>The tags whose declared types differ, as the type test lists them.</summary>
+	internal static readonly int[] TypeDisagreements = [82, 139, 239, 243, 250, 532, 534, 576, 580, 674];
 
 	[Fact]
 	public void Every_tag_the_tables_define_is_in_the_published_dictionary()
