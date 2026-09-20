@@ -3476,3 +3476,22 @@ promise to write into the API, not a rule being broken, and D5 should not be quo
 string forms later on the strength of this item. The bounded form is therefore not a smaller
 version of the item: it is the only version that touches our number, and the count ordered from
 stand decides both.
+
+**The summary that nearly misled, corrected before anyone acted on it (critic, checked here at
+`87fbb326`).** Bundling the three as "knowing about a stretch of the log without listing it"
+invites the reading critic nearly published itself: every record does carry a length — `End` writes
+`Log[Opened] = LogCount - Opened` into the record's first slot (`Emit/Support.cs`), and the walk
+advances by exactly that (`for (var at = from; at < ways.LogCount; at += log[at])`,
+`Emit/Machine.Direct.Values.cs`) — so a reader of those two lines concludes the index is already
+there and stops. It is not the index wanted. `Opened` is one field and not a stack: a record cannot
+be open while another is written, so a construction is emitted as one straight-line block at the
+point it completes, a built member is referred to by record number rather than contained, and the
+log is flat and post-order. A record's length is its own, the walk steps over siblings, and a
+subtree's extent is nowhere written.
+
+So of the three, only the lazy walk needs something recorded that is not, and what it needs is a
+**bound** and not a length: in a post-order log, "from the least record number below this one to
+this one". expr's count from a mark is a live stretch, the mark being on the stack while the parse
+is inside it; sql-39's fast path is a predicate over a stretch, whether a record's children are
+built, and not a way to find its bounds. The three are neighbours in what they want to avoid, not
+in what they need.
