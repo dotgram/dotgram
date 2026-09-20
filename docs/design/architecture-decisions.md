@@ -6324,3 +6324,30 @@ What was done for it now, without inventing an input: the parse builds a tree of
 it in a separate pass rather than filling tables as it goes. A reader of the other format fills the
 same tree and hangs a rule on a member; tables and delegates are built from the tree either way.
 That is the only shape that costs nothing today and saves a rewrite then.
+
+**The cross-check found what it was built for, and in three kinds rather than one** (`9f775b2e`).
+Ten tags disagree on a declared type, as reported before. **Seventy-seven disagree on their value
+sets**, in three sorts of which only the last is cosmetic: more often ours is the richer — the file
+gives a boolean no set at all where we have both values, and omits the "other" entry that ends
+several sets — less often theirs is, and twice it is spelling, where a value written differently is
+a value that does not pass. **And twenty-six disagree on what a message is made of**, all in one
+direction: the file reports what we do not. One group entry holds twenty tags the file does not put
+there, and four messages require something we do not.
+
+**That third kind could only come from the walk**, because the walk had to be right before either
+side could say anything — and getting it right turned up three defects in the new wiring that a
+test over compiled tables could never have reached: membership resolved against the compiled schema
+so a loaded dictionary failed on its first message; type names taken from our vocabulary rather
+than the file's, so every value of every tag read as wrong; and "described with no members" read as
+"no such type", which made a type the file does describe come back unknown.
+
+**So Q25's shape is corrected by its own first run, and this is the rule worth keeping: a check of
+two implementations against each other runs along the path the consumer uses, not over the data
+they are built from.** The table comparison found data. The same comparison driven through the walk
+found data, composition, and the code that walks it.
+
+**All three lists are pinned rather than judged**, and a row appearing or disappearing fails the
+test, which makes them a guard rather than a note. Which reading is the protocol is answered by the
+published specification, which nobody here has read for these rows. One thing is evidence without
+being proof: the twenty-six run entirely in one direction, and a table maintained by hand is likelier
+to omit than to invent.
