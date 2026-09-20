@@ -45,7 +45,7 @@ static partial class Stand
 			{
 				yield return new Workload("tsql", $"script{statements}.bool",
 					[
-						new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
+						new Reading("scriptdom", () => ScriptDomAccepts(script) ? statements : 0),
 						new Reading("before", b),
 						new Reading("after",  quiet),
 					],
@@ -57,7 +57,7 @@ static partial class Stand
 			{
 				yield return new Workload("tsql", $"script{statements}.boolboth",
 					[
-						new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
+						new Reading("scriptdom", () => ScriptDomAccepts(script) ? statements : 0),
 						new Reading("before", quietBefore),
 						new Reading("after",  quietAfter),
 					],
@@ -66,7 +66,7 @@ static partial class Stand
 
 			yield return new Workload("tsql", $"script{statements}",
 				[
-					new Reading("hand",   () => ScriptDomAccepts(script) ? statements : 0),
+					new Reading("scriptdom", () => ScriptDomAccepts(script) ? statements : 0),
 					new Reading("before", b),
 					new Reading("after",  a),
 				],
@@ -86,19 +86,19 @@ static partial class Stand
 		var media  = "text/html" + string.Concat(Enumerable.Range(0, 1000).Select(static i => $"; a{i}=1"));
 		var list   = string.Join(", ", Enumerable.Range(0, 10000));
 
-		yield return PairedWebSweep("json.array10000", () => HandJson.TryParse(array, out _, out _), before.WebJson(array), after.WebJson(array));
-		yield return PairedWebSweep("json.object10000", () => HandJson.TryParse(obj, out _, out _), before.WebJson(obj), after.WebJson(obj));
-		yield return PairedWebSweep("url.path1000", () => HandUrl.TryParseReference(path, out _, out _), before.WebUrl(path), after.WebUrl(path));
-		yield return PairedWebSweep("media-type.params1000", () => MediaType.TryParse(media, out _), before.WebTry("MediaType", "TryParse", media), after.WebTry("MediaType", "TryParse", media));
-		yield return PairedWebSweep("sf.list10000", () => StructuredField.TryParseList(list, out _), before.WebTry("StructuredField", "TryParseList", list), after.WebTry("StructuredField", "TryParseList", list));
+		yield return PairedWebSweep("json.array10000", "hand", () => HandJson.TryParse(array, out _, out _), before.WebJson(array), after.WebJson(array));
+		yield return PairedWebSweep("json.object10000", "hand", () => HandJson.TryParse(obj, out _, out _), before.WebJson(obj), after.WebJson(obj));
+		yield return PairedWebSweep("url.path1000", "hand", () => HandUrl.TryParseReference(path, out _, out _), before.WebUrl(path), after.WebUrl(path));
+		yield return PairedWebSweep("media-type.params1000", "control", () => MediaType.TryParse(media, out _), before.WebTry("MediaType", "TryParse", media), after.WebTry("MediaType", "TryParse", media));
+		yield return PairedWebSweep("sf.list10000", "control", () => StructuredField.TryParseList(list, out _), before.WebTry("StructuredField", "TryParseList", list), after.WebTry("StructuredField", "TryParseList", list));
 	}
 
 	/// <summary>A sweep row of the web: this process's own reading is the constant, and each side must accept the text.</summary>
-	static Workload PairedWebSweep(string name, Func<bool> own, Func<int> before, Func<int> after)
+	static Workload PairedWebSweep(string name, string baseName, Func<bool> own, Func<int> before, Func<int> after)
 	{
 		return new Workload("web", name,
 			[
-				new Reading("hand",   () => own() ? 1 : 0),
+				new Reading(baseName, () => own() ? 1 : 0),
 				new Reading("before", before),
 				new Reading("after",  after),
 			],

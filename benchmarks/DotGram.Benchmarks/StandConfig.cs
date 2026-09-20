@@ -16,7 +16,7 @@ static partial class Stand
 		{
 			yield return new Workload("config", name,
 				[
-					new Reading("hand",   () => Config.Read(text).Length),
+					new Reading("control", () => Config.Read(text).Length),
 					new Reading("before", before.ConfigRead(text)),
 					new Reading("after",  after.ConfigRead(text)),
 				],

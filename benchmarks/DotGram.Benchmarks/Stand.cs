@@ -1354,7 +1354,7 @@ static partial class Stand
 		return new Workload(
 			"fixmsg",
 			name,
-			[new Reading("hand", control), new Reading("before", before), new Reading("after", after)],
+			[new Reading("control", control), new Reading("before", before), new Reading("after", after)],
 			() => control() == 1 && before() == 1 && after() == 1
 				? null
 				: $"  every side must read the wire: control {control()}, before {before()}, after {after()}");
@@ -1431,7 +1431,7 @@ static partial class Stand
 			"tsql",
 			name,
 			[
-				new Reading("hand",   () => ScriptDomAccepts(text) ? 1 : 0),
+				new Reading("scriptdom", () => ScriptDomAccepts(text) ? 1 : 0),
 				new Reading("before", before.Tsql(text)),
 				new Reading("after",  after.Tsql(text)),
 			],
@@ -1516,12 +1516,14 @@ static partial class Stand
 		text.AppendLine(CultureInfo.InvariantCulture,
 			$"{Environment.MachineName}, {(pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {control:F1} ns.");
 		text.AppendLine();
-		text.AppendLine("| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |");
-		text.AppendLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+		text.AppendLine("The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.");
+		text.AppendLine();
+		text.AppendLine("| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |");
+		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var row in rows)
 		{
-			var hand = row.Readings.First(static one => one.Reading == "hand");
+			var hand = row.Readings[0];
 
 			foreach (var reading in row.Readings.Where(static one => one.Reading.StartsWith("before", StringComparison.Ordinal)))
 			{
@@ -1530,7 +1532,7 @@ static partial class Stand
 				var name   = suffix.Length == 0 ? "generated" : suffix.TrimStart('-');
 
 				text.AppendLine(CultureInfo.InvariantCulture,
-					$"| {row.Id} | {name} | {hand.Nanoseconds:F1} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / hand.Nanoseconds:F2}x | " +
+					$"| {row.Id} | {name} | {hand.Reading} | {hand.Nanoseconds:F1} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / hand.Nanoseconds:F2}x | " +
 					$"{after.Nanoseconds:F1} | {after.Nanoseconds / hand.Nanoseconds:F2}x | {Change(reading.Nanoseconds, after.Nanoseconds)} | {reading.Bytes:F0} | {after.Bytes:F0} |");
 			}
 		}

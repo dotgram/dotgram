@@ -49,17 +49,17 @@ static partial class Stand
 		var positions = prefix + select20;
 		var window    = prefix + select20 + "; SELECT 2";
 
-		yield return PairedFormRow("sql", "select20.at", () => HandAccepts("TryParseQueryExpression", select20) ? 1 : 0,
+		yield return PairedFormRow("sql", "select20.at", "hand", () => HandAccepts("TryParseQueryExpression", select20) ? 1 : 0,
 			before.SqlPositional(false, "TryParseQueryExpression", positions, prefix.Length, null),
 			after.SqlPositional(false, "TryParseQueryExpression", positions, prefix.Length, null));
 
-		yield return PairedFormRow("sql", "select20.window", () => HandAccepts("TryParseQueryExpression", select20) ? 1 : 0,
+		yield return PairedFormRow("sql", "select20.window", "hand", () => HandAccepts("TryParseQueryExpression", select20) ? 1 : 0,
 			before.SqlPositional(false, "TryParseQueryExpression", window, prefix.Length, select20.Length),
 			after.SqlPositional(false, "TryParseQueryExpression", window, prefix.Length, select20.Length));
 
 		var insert = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4), (5, 6)";
 
-		yield return PairedFormRow("tsql", "insert-values.at", () => ScriptDomAccepts(insert) ? 1 : 0,
+		yield return PairedFormRow("tsql", "insert-values.at", "scriptdom", () => ScriptDomAccepts(insert) ? 1 : 0,
 			before.SqlPositional(true, "TryParseStatement", prefix + insert, prefix.Length, null),
 			after.SqlPositional(true, "TryParseStatement", prefix + insert, prefix.Length, null));
 
@@ -67,40 +67,40 @@ static partial class Stand
 		var conditions = SqlConditions(100);
 		var ladder     = "(int x, int y) => (x + y) * 3 - x / 5";
 
-		yield return PairedFormRow("sql", "select20.scan", () => ScanCount(SqlStandardParser.Scan, select20), before.Scan("sql", select20), after.Scan("sql", select20));
-		yield return PairedFormRow("sql", "conditions100.scan", () => ScanCount(SqlStandardParser.Scan, conditions), before.Scan("sql", conditions), after.Scan("sql", conditions));
-		yield return PairedFormRow("tsql", "select20.scan", () => ScanCount(TransactSqlParser.Scan, select20), before.Scan("tsql", select20), after.Scan("tsql", select20));
-		yield return PairedFormRow("el", "ladder.scan", () => ScanCount(DotGram.ExpressionLanguage.ExpressionParser.Scan, ladder), before.Scan("el", ladder), after.Scan("el", ladder));
+		yield return PairedFormRow("sql", "select20.scan", "control", () => ScanCount(SqlStandardParser.Scan, select20), before.Scan("sql", select20), after.Scan("sql", select20));
+		yield return PairedFormRow("sql", "conditions100.scan", "control", () => ScanCount(SqlStandardParser.Scan, conditions), before.Scan("sql", conditions), after.Scan("sql", conditions));
+		yield return PairedFormRow("tsql", "select20.scan", "control", () => ScanCount(TransactSqlParser.Scan, select20), before.Scan("tsql", select20), after.Scan("tsql", select20));
+		yield return PairedFormRow("el", "ladder.scan", "control", () => ScanCount(DotGram.ExpressionLanguage.ExpressionParser.Scan, ladder), before.Scan("el", ladder), after.Scan("el", ladder));
 
 		// ── FixMessages: the streams, the readers, the lazy reading and a span ──
 		var wire = FixMessageWire();
 
 		foreach (var form in new[] { "parse-stream", "parse-reader", "parse-span" })
-			yield return PairedFormRow("fixmsg", "Order." + form, () => FixMessages.Parse(wire, default(FixParseMode)) is null ? 0 : 1, before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
+			yield return PairedFormRow("fixmsg", "Order." + form, "control", () => FixMessages.Parse(wire, default(FixParseMode)) is null ? 0 : 1, before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
 
 		var many = string.Concat(Enumerable.Repeat(wire, 100));
 
 		foreach (var form in new[] { "read-stream", "read-reader" })
-			yield return PairedFormRow("fixmsg", "Order." + form + "100", () => FixMessages.ReadMessages(new StringReader(many), default(FixParseMode), 4096).Count(), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
+			yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", () => FixMessages.ReadMessages(new StringReader(many), default(FixParseMode), 4096).Count(), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
 
 		// ── one span row for FIX ──
 		var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
 
-		yield return PairedFormRow("fix", "Order.span", () => HandFixParser.Parse(order).Count(), before.FixSpan(order), after.FixSpan(order));
+		yield return PairedFormRow("fix", "Order.span", "hand", () => HandFixParser.Parse(order).Count(), before.FixSpan(order), after.FixSpan(order));
 
 		// ── the lazy feed of the examples ──
 		if (before.HasStock && after.HasStock)
 		{
 			var feed = "H|2026-08-13|ACME" + (char)10 + string.Concat(Enumerable.Repeat("R|AAPL|100|2026-08-12" + (char)10, 1000)) + "T|1000" + (char)10;
 
-			yield return PairedFormRow("feeds", "streaming.1000", () => StreamingFeedReader.Read(new StringReader(feed)).Count(), before.StreamingFeed(feed), after.StreamingFeed(feed));
+			yield return PairedFormRow("feeds", "streaming.1000", "control", () => StreamingFeedReader.Read(new StringReader(feed)).Count(), before.StreamingFeed(feed), after.StreamingFeed(feed));
 		}
 	}
 
 	/// <summary>A row of a published form: the constant, and the two sides, each asked to give the same answer.</summary>
-	static Workload PairedFormRow(string family, string name, Func<int> hand, Func<int> before, Func<int> after) =>
+	static Workload PairedFormRow(string family, string name, string baseName, Func<int> hand, Func<int> before, Func<int> after) =>
 		new(family, name,
-			[new Reading("hand", hand), new Reading("before", before), new Reading("after", after)],
+			[new Reading(baseName, hand), new Reading("before", before), new Reading("after", after)],
 			() =>
 			{
 				var h = hand();

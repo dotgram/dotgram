@@ -287,8 +287,8 @@ The instrument for a question of the form "is this faster, and than what" is **t
   off the others is dropped.
 - `--stand-paired beforeDir afterDir` reads two builds in one process, round-robin, each loaded
   from its own directory of DLLs: the only way a change to what the generator emits is measured,
-  since it holds a commit against its parent under one runtime and one profile. The hand-written
-  parser is the process's own and is a constant, never a party to the pair. `--stand-paired-check`
+  since it holds a commit against its parent under one runtime and one profile. The base of a
+  row (a hand-written parser, ScriptDom, or this process's own build of the same parser, named `hand`, `scriptdom` or `control`) is the process's own and is a constant, never a party to the pair. `--stand-paired-check`
   holds the rows of a pair to what they say and times nothing; `--stand-held` and
   `--stand-held-whole` read what a stream form holds while it is read.
 - `linearity` times a parser at three sizes ten times apart and flags an exponent above 1.2, and

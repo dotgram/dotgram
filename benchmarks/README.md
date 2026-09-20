@@ -89,8 +89,15 @@ each row in a fresh process each, median of five, before and after.
 `--stand-paired-check beforeDir afterDir [--only a,b]` holds a pair's rows to what they say and to one
 another and times nothing, so it needs no window. A side that was given `DotGram.Benchmarks.dll` has the
 `config/*` rows: the document grammar of `Documents.cs`, at that side's own build of it. Config has no
-hand-written parser, so its "hand" reading is this process's own `Config.Read`, a constant to hold the
+hand-written parser, so its base reading is this process's own `Config.Read`, named `control`: a constant to hold the
 pair against and no reference for the generated code.
+
+**The base of a paired row is named for what it is**, in the `base` column of `paired.md` and in the JSON: `hand` is a
+hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's ScriptDom, and `control` is this process's own
+build of the same generated parser (or of the same form), which no ratio may be read as a comparison with a hand-written
+one. The columns are `before/base` and `after/base`. Until 2026-09-19 the base was called `hand` everywhere and the header said
+so: `web/media-type.params1000 ... 0.98x` under `before/hand` was the generated parser against another build of itself
+(the critic's Q4), and `tsql/columns1000 ... 0.30x` was over ScriptDom. The pairs filed before that day keep the old name in their files.
 
 The largest size of each series of the linearity family is a row of the paired stand too: `fix/orders400.text`,
 `fix/slope-1600.text`, `tsql/columns1000`, `tsql/conditions1000`, `tsql/rows1000`, `web/json.array10000`,
@@ -108,7 +115,7 @@ token scanner, looped over a text: how many tokens), `fixmsg/Order.parse-stream`
 `fixmsg/Order.read-stream100` and `.read-reader100` (`ReadMessages`, lazy, over a hundred concatenated wires),
 `fix/Order.span` and `feeds/streaming.1000` (`StreamingFeedReader.Read(TextReader)`, walked). A span cannot be handed to
 `MethodInfo.Invoke`, so the two span forms are called through a dynamic method that makes the span from a string first.
-The "hand" reading of these rows is this process's own build of the same form, a control and no reference.
+The base of these rows is a `control`, this process's own build of the same form, and no reference (two are a `hand` parser and one is `scriptdom`, by what each constant is).
 
 `--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while
 it is walked: the live heap above what was live before, after a full collection, sampled eight

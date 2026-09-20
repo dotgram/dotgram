@@ -25,7 +25,7 @@ static partial class Stand
 
 			yield return new Workload("feeds", $"recovering.{name}",
 				[
-					new Reading("hand",   () => RecoveringFeedReader.Read(text).Count),
+					new Reading("control", () => RecoveringFeedReader.Read(text).Count),
 					new Reading("before", b),
 					new Reading("after",  a),
 				],

@@ -43,7 +43,7 @@ static partial class Stand
 
 			yield return new Workload("web", name,
 				[
-					new Reading("hand",   () => own(text) ? 1 : 0),
+					new Reading("control", () => own(text) ? 1 : 0),
 					new Reading("before", b),
 					new Reading("after",  a),
 				],
