@@ -160,6 +160,18 @@ two words for one shape and of disagreeing with `CustomFixMessage`.
 
 ## 5. Igor's decision, 2026-09-19, and its revision the same evening
 
+**Settled the same evening, after the revision below: the shape is E, and the consumer's side
+is their program.** Igor drew it: a big switch over tags; the tag that falls through reaches the
+default arm, and there a question — is this tag's field binary — opens two ways of building it;
+and all of that is in the consumer's code. So the package's switch over its 912 tags is untouched
+and its default arm gains one seam, and `IsData(tag)` is a question the consumer's code puts to
+us from inside their own default arm, not one the parser puts to them while reading. D25 holds by
+the direction of the arrow. Framing is the exception and is folded into one table when the
+options are built, where the consumer's pairs *extend* the standard sixteen. All of this is D27
+in the decisions journal, which supersedes both sections below; they are kept for their reasoning.
+
+### The revision this replaced
+
 **Revised by D25: the generator decides how to read, and the parser is a machine that does as it
 is told.** Asking a consumer's object, while parsing, whether a tag's field is binary is the
 parser choosing how to read, and it is out — and with it the shape below, which was approved an
