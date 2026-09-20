@@ -5002,3 +5002,29 @@ The pair keeps running with profiling as a consumer has it; a run with it off is
 take when an effect sits inside the A/A band, not the way pairs are taken. Making the two copies
 compile alike is a stand change nobody has designed — loading each side twice and alternating the
 copies is the one candidate named, and it doubles what is loaded.
+
+## D56. A page's example is compiled as the page shows it, 2026-09-20
+
+A hole in D37's mechanism, found by sql-39 reading rather than testing and confirmed by expr on its
+own package: the tests compile an example inside a project with implicit usings, an environment
+**more permissive than a consumer's**. A page showing a using for our own namespace and then a type
+from the framework's compiles in the test and would not compile for someone who pasted it — and
+our packages ship to the floor, where implicit usings do not exist at all.
+
+**Decided: the pages are copied literally, so the test compiles a block as the page shows it** —
+its own compilation, no implicit usings, with those usings and only those the block itself writes.
+That is the only form that catches this class, and it catches it for every framework we ship to
+rather than for the newest. Values go on being checked by tests written by hand; this checks that
+what is written can be compiled at all.
+
+**The blocks that are not compilation units are fragments, and D37 already says what a fragment
+is.** A page showing one says what it omits, and the smallest complete form of it is held by a
+test. So the helper compiles every block, and the exceptions are named **in the test, with a reason
+each, not marked up in the page**: a shipped document carries no scaffolding for our tests. A block
+that is neither compilable nor a declared fragment is a defect of the page, which is where this
+started.
+
+To expr, who found it and offered: the helper, and its own package's pages brought to it. Then the
+same helper is pointed at the other three, whose owners fix what it finds. And the one-sentence
+answer to the question that prompted it — whether a page may assume a modern SDK's defaults — is
+no, and it is now written down rather than left for the next person to decide again.
