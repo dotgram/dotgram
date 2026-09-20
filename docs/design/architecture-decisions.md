@@ -3502,3 +3502,41 @@ and the same question is already settled next door for the held table in
 is what the mark already covers. A bound may inherit that answer or may not, and the reason it
 might not is worth having before the work starts — a bound is written at `End`, *after* the stretch
 it describes, where the held count is marked before it.
+
+## D34. The value store's clearing: the number first, then a shape that costs nothing, 2026-09-20
+
+expr's anatomy (`docs/design/value-store-clearing-2026-09-20.md`, `7e8f8795`): clearing the value
+store on `Return` costs 1,148 ns of an 18,106 ns reading, 6.3%. On `select20` that is some four
+hundred values across twenty-two tables, five kilobytes in twenty-odd calls — fifty nanoseconds a
+call and 2.5 a slot, an order more than writing five kilobytes costs. So the price is the calls and
+the cold tables, not the bytes, and a cheaper way of clearing the same stretches saves nothing.
+
+**The small levers are small, and one of them is refused for a reason worth keeping.** Skipping
+tables whose type holds no references is sound in itself, but the emitter knows type *names* and
+not what they are made of, and it has to stay free of Roslyn; the framework's own question about it
+sits above our floor and would need a second writing beneath it. And it covers few tables, a tree
+being mostly references.
+
+**The real lever is to stop clearing what the next parse overwrites**, which is true: `Add` hands
+out indices from zero up and the caller writes a slot before reading it, so every slot handed out
+is overwritten before it is read. Only the tail needs clearing, where this parse took fewer slots
+than the last, and with the previous high-water mark remembered that is a comparison which is
+usually false. In a loop of like parses the clearing disappears.
+
+**Its price is retention, and that is the question, not the code.** Between parses the store holds
+the last parse's values, so a thread that parsed a document and went quiet holds a whole tree
+through its pool.
+
+**The order: the number before the decision.** The 1,148 ns covers the tables *and* the `Built`
+flags, because the build measured against had neither, and the flags stay whatever is decided. One
+pair, six minutes, gives the tables alone — and a retention question must not be answered on a
+number that includes something we keep anyway.
+
+**And the shape I would approve, if the number holds up, costs nothing on the hot path.** Not
+"clear the tail on every `Return`" but "clear nothing on `Return`, and clear when the thread goes
+quiet". The pools already have that moment: the retention rule decided for them holds a buffer
+strongly while it is used, releases it after N consecutive unused parses and then keeps only a weak
+reference. Clearing the tables at that same transition makes the hot path free, bounds the
+retention by the thread's own work rather than by the collector's mood, and gives the mechanism its
+second user rather than inventing one. What has to be designed is only the join: the store is
+cleared *before* it is handed to the idle state, so a quiet thread holds no tree at all.
