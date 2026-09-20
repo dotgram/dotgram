@@ -66,11 +66,25 @@ for the same reason, and this would be its second user rather than a new idea. W
 decide that a parse's values may outlive it at all — that is the architect's, and Igor's if it
 reaches what a consumer can observe in a memory profile.
 
-## 4. What I would measure next, and it needs one short slot
+## 4. The tables alone, which is what §3 could save
 
-The 1,148 ns is the value tables *and* the `Built` flags together, since the build I timed removed
-both. The flags are needed whatever happens to the tables, so the number that matters for §3 is the
-tables alone. One more pair — a build that clears the flags and not the tables — splits it, and it
-is six minutes of the machine.
+The 1,148 ns above is the value tables *and* the `Built` flags together, and the flags are needed
+whatever happens to the tables. Split by a second measurement (2026-09-20):
+
+**The first attempt at it was thrown away**, and is recorded because the shape of the mistake
+repeats: a pair of the tree as it is against a build that keeps the flags and drops the tables came
+out at 1,775 ns — *more* than dropping both, which cannot be. Its first run read 27,302 ns against
+17,7–20,3 for the rest: the machine was not quiet. A number that is impossible in its own terms is
+a disturbed measurement, not a finding.
+
+**Taken again without a quiet baseline at all**, which is better anyway: two patched builds whose
+only difference is the flags — one clearing nothing, one clearing the flags and not the tables —
+run in alternating rounds so that drift lands on both sides. Medians 16,980 ns and 17,303 ns over
+four rounds each (16,755–17,531 and 16,917–17,326; three rounds of four leaned the same way, the
+fourth the other way, and the spreads overlap).
+
+**So the flags cost about 320 ns — 1.8% — and the value tables about 825 ns, 4.5% of a reading.**
+That, and not 6.3%, is what §3's retention would buy. The figure is an order, not a precision: the
+sides overlap, and a tighter one would need an A/A floor first.
 
 Nothing is proposed for the code until §3's question is answered.
