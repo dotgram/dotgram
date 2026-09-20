@@ -2922,6 +2922,17 @@ price is stated in the package's own documentation: to change the pairs, build n
 move generalizes — wherever a user's fork is asked during a parse, the question to put first is
 whether it can be a table built when the options are.
 
+**The audit under the first wording, and a defect it turned up (critic, expr).** Nothing emitted
+asks a type what it is, asks the hardware what it supports or reads a policy from settings; the
+kept tokenization is memoization and the pools are housekeeping. But under the first of those sat
+a real defect, reasoned out by the critic and said to be unreproduced: an eviction handed a live
+reading's token arrays to the thread's spares, and the next tokenization wrote over them — three
+nested readings inside one outer reading reach it, a level deeper than the two slots were written
+for. Confirmed and fixed (`9428418d`), test first, and the test failed silently: a reading answered
+`true` with a value cut from another text's offsets. Tokens leaving a slot are no longer pooled,
+at an eviction or when the text is collected; the price is garbage at an eviction, which two slots
+make rare.
+
 Found while checking the code against that wish (critic): the two halves of the FIX options are
 written the two opposite ways. Whether a tag carries data asks the package's table first and the
 consumer's set after; finding a tag's pair does not consult the package's table at all once a
