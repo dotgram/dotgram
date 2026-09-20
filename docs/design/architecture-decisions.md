@@ -5735,3 +5735,25 @@ every position, and the objection that most refusals arrive on the first token d
 **Two things are not claimed**, and the session counting them said so: three of the web's cases are
 counted and none of SQL's, that being the other session's one case — whose 1,056 is already twice
 the triangular number of 32 and fits; and a count says where the work goes, not what the fix is.
+
+**A counter-case, and reading it carefully narrows D63 rather than breaking it.** sql-39 counted
+SQL:2023's "case arms with no end" and found every count linear over an eightfold range — calls,
+entries into the materialiser's walk, the walk's listing iterations, and the cells zeroed — with
+records never given back, so nothing is re-read there at all. Divided by the product, the calls
+halve at every doubling, which is a plain no to the test.
+
+**But that row is one of the audit's *superlinear* seven at 1.49, not one of its sixteen
+quadratics.** So it does not contradict the class: it shows that a superlinear row need not be
+structural at all. Whatever bends its time is per-record work no count sees — allocation and
+collection, cache, an arena growing — or the measurement itself, and the session said plainly that
+it cannot separate those three by counting and will not publish a time from an instrumented build.
+
+**So the decisive SQL case is still to be taken, and it must be a quadratic one** — the query or
+the search condition at 1.9 to 2.0 — because that is what decides whether D63's arithmetic reaches
+beyond the web package. A second superlinear case would answer a different question. The case-arms
+row goes back to the stand to be retaken with allocation counted, since the question there has
+turned from a structural one into a question about time.
+
+**And the three things counted beside the calls are why the no is trustworthy**: the walk's count,
+its length, and the zeroing were each a candidate for making the work grow while the call count
+stayed linear, and each was measured flat rather than argued away.
