@@ -1,0 +1,36 @@
+﻿// A grammar read over kinds rather than characters (docs/syntax.md §4).
+//
+// The lexical half is a property of how a grammar is compiled, not of what it says, so
+// no other snapshot can hold it: `Lexical.gram.g.cs` is where the tokenizer lives, and
+// the kept cutting with its two slots, and the scanners the seam is skipped with, and
+// the entries that read a token rather than a character.
+//
+// The shape is the smallest one that can be cut: a namespace with no trivia, whose
+// rules are the tokens, and above it a syntax that never names a character of its own.
+// `wordboundary` is what keeps `ifx` one name rather than a keyword and a name.
+
+wordboundary = ['a'..'z'] | ['0'..'9'] | '_'
+
+trivia = { (' ' | '\t' | '\r' | '\n' | Token.Comment)* }
+
+namespace Token
+{
+	trivia = none
+
+	// A comment reaches to the end of its line, which the trivia above skips whole.
+	Comment = "--" & [^ '\n']*
+
+	Name    = (['a'..'z'] | '_') & (['a'..'z'] | ['0'..'9'] | '_')*
+	Number  = ['0'..'9']+
+}
+
+Program   : @string[] = Statement* & eof
+
+Statement : @string = "let" & name: Token.Name & '=' & value: Expression & ';' => @(name + "=" + value)
+
+Expression : @string
+	= left: Token.Number & '+' & right: Token.Number => @(left + "+" + right)
+	| one: Token.Number                              => @(one)
+	| named: Token.Name                              => @(named)
+
+parse Program

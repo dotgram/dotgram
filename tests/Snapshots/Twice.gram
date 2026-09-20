@@ -1,0 +1,30 @@
+﻿// One grammar rendered twice, which is what a package ships and what the stand measures.
+//
+// The expression language ships `ExpressionParser` and `ExpressionParser.Immediate`:
+// the same grammar compiled again with a suffix of its own and a carrier that builds
+// where it reads. Every paired run on the stand reads both, and until this snapshot
+// existed neither the suffixed naming nor the immediate carrier appeared in any file a
+// change is reviewed in — the carrier is chosen per compilation, not per grammar, so no
+// grammar could bring it here.
+//
+// Two files stand beside this one: Twice.gram.g.cs, carried on the tape by `Auto`, and
+// Twice.Immediate.gram.g.cs, which builds each value as its rule accepts. They are the
+// same language and the same answers; the diff between them is the carrier itself.
+//
+// A guard is what makes the two differ where it matters: a value a guard names has to
+// exist while the text is still being read, which the tape builds from the log and the
+// immediate carrier already has in a register.
+
+trivia = { ' '* }
+
+Sum : @int = first: Term & rest: More* & when @(first >= 0) => @(first + rest.Length)
+
+More : @int = '+' & value: Term => @(value)
+
+Term : @int
+	= '(' & inner: Sum & ')' => @(inner)
+	| digits: Digits         => @(digits)
+
+Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))
+
+parse Sum

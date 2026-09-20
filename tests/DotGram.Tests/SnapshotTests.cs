@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -6,6 +7,7 @@ using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Emit;
 
 using Xunit;
 
@@ -36,38 +38,51 @@ public sealed class SnapshotTests
 	[MemberData(nameof(Snapshots))]
 	public void Generated_code_matches_what_is_checked_in(string name)
 	{
-		var text   = File.ReadAllText(Path.Combine(Directory, name + ".gram"));
-		var result = GramCompiler.Compile(
-			text,
-			new GramCompilerOptions
-			{
-				ClassName = name,
-				Namespace = Namespace,
+		var text = File.ReadAllText(Path.Combine(Directory, name + ".gram"));
 
-				// A grammar here may hand C# across, and an inline `@(...)` needs the
-				// scanner to find where it ends.
-				CSharpScanner = RoslynCSharpScanner.Instance,
+		foreach (var options in Renderings(name, text))
+		{
+			var result = GramCompiler.Compile(text, options);
 
-				// The file name alone, not where this checkout happens to be: a snapshot
-				// holding an absolute path would differ on every machine that read it.
-				LineMap   = new GrammarLineMap(text, name + ".gram"),
-			});
+			EmittedCode.Quiet(result.Diagnostics);
 
-		EmittedCode.Quiet(result.Diagnostics);
+			var sources = result.Sources;
 
-		var actual   = Assert.Single(result.Sources).Text;
-		var expected = Path.Combine(Directory, name + ".gram.g.cs");
+			Assert.NotEmpty(sources);
 
-		// Compiled first: a snapshot that matches but does not build is worse than no
-		// snapshot, because it makes the wrong thing look approved.
-		EmittedCode.Compile(actual, name, Namespace);
+			// Compiled first, and the parts of a split file together, since they are one
+			// compilation where they land: a snapshot that matches but does not build is worse
+			// than no snapshot, because it makes the wrong thing look approved.
+			EmittedCode.Compile(
+				sources[0].Text, options.ClassName, options.Namespace,
+				sourceParts: sources.Skip(1).Select(static source => source.Text));
+
+			foreach (var source in sources)
+				Held(source.HintName, source.Text);
+		}
+	}
+
+	/// <summary>
+	/// The file a source is checked in as, written where there is none and compared where
+	/// there is.
+	/// </summary>
+	/// <remarks>
+	/// Named after the hint name the generator gave it, which is what a consumer’s build calls
+	/// it: <c>Name.gram.g.cs</c> for one file, <c>Name.Suffix.gram.g.cs</c> for a second
+	/// rendering of the same grammar, and <c>…part-0001.g.cs</c> for what a split file adds.
+	/// So a grammar that produces several files is snapshot in several, without the harness
+	/// inventing a naming of its own.
+	/// </remarks>
+	static void Held(string hint, string actual)
+	{
+		var expected = Path.Combine(Directory, hint);
 
 		if (!File.Exists(expected))
 		{
 			File.WriteAllText(expected, actual, CSharpFile);
 
 			Assert.Fail(
-				$"No snapshot for '{name}'; wrote one to {expected}. Read it, and commit it if it is right.");
+				$"No snapshot for '{hint}'; wrote one to {expected}. Read it, and commit it if it is right.");
 		}
 
 		if (Normalize(File.ReadAllText(expected)) == Normalize(actual))
@@ -80,6 +95,96 @@ public sealed class SnapshotTests
 		File.WriteAllText(rejected, actual, CSharpFile);
 
 		Assert.Fail($"Generated code differs from the snapshot. Diff {expected} against {rejected}.");
+	}
+
+	/// <summary>
+	/// What a grammar here is compiled with: the defaults, unless the grammar is one of the few
+	/// that exist to hold a path the defaults do not reach.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Until this was written every snapshot was taken with four options — the class name, the
+	/// namespace, the scanner and the line map — and everything else at its default. So the
+	/// buffered reader, the byte machine, the lexical half and a second rendering of one grammar
+	/// could not appear in any diff, however many grammars were added: they are not a property of
+	/// a grammar but of what it is compiled with. Two changes to emitted code went unseen that
+	/// way in one day.
+	/// </para>
+	/// <para>
+	/// **A line per path, not a matrix.** Each of these grammars is small and holds one thing;
+	/// there is no sweep over the options, because a set that runs for minutes stops being read,
+	/// and a snapshot nobody reads is the same defect wearing a test’s coat.
+	/// </para>
+	/// </remarks>
+	static IEnumerable<GramCompilerOptions> Renderings(string name, string text)
+	{
+		GramCompilerOptions Options() => new()
+		{
+			ClassName = name,
+			Namespace = Namespace,
+
+			// A grammar here may hand C# across, and an inline `@(...)` needs the
+			// scanner to find where it ends.
+			CSharpScanner = RoslynCSharpScanner.Instance,
+
+			// The file name alone, not where this checkout happens to be: a snapshot
+			// holding an absolute path would differ on every machine that read it.
+			LineMap = new GrammarLineMap(text, name + ".gram"),
+		};
+
+		switch (name)
+		{
+			// The reader over buffered input, over characters and over bytes, with a retention
+			// bound small enough to be read in the file rather than taken on trust.
+			case "Buffered":
+			{
+				var buffered = Options();
+
+				buffered.BufferedInput = true;
+				buffered.BufferedBytes = true;
+				buffered.MaxRetained   = 4096;
+
+				yield return buffered;
+
+				break;
+			}
+
+			// One grammar rendered twice, which is what the expression language ships and what
+			// the stand measures in every paired run: the second carries a suffix of its own and
+			// builds where it reads.
+			case "Twice":
+			{
+				yield return Options();
+
+				var immediate = Options();
+
+				immediate.Suffix         = "Immediate";
+				immediate.SuffixDeclared = true;
+				immediate.Carrier        = CarrierKind.Immediate;
+
+				yield return immediate;
+
+				break;
+			}
+
+			// Read over kinds rather than characters: the tokenizer, the kept cutting and the
+			// scanners of the seam are all in the file only here.
+			case "Lexical":
+			{
+				var lexical = Options();
+
+				lexical.Lexical = true;
+
+				yield return lexical;
+
+				break;
+			}
+
+			default:
+				yield return Options();
+
+				break;
+		}
 	}
 
 	/// <summary>
