@@ -114,7 +114,7 @@ static partial class Stand
 			.Select(i => JsonSerializer.Deserialize<Taken>(File.ReadAllText(Path.Combine(output, $"run-{i}", "paired.json")), Json)!)
 			.ToArray();
 		var pooled = Pool(runs, output);
-		var report = pooled.Note + PairedMarkdown(true, pooled.Control, pooled.Rows);
+		var report = pooled.Note + PairedMarkdown(true, pooled.Control, pooled.Rows, SideNote(beforeDir, afterDir));
 
 		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(pooled.Control, pooled.Rows), Json));
 		File.WriteAllText(Path.Combine(output, "paired.md"), report);

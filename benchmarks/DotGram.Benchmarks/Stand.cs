@@ -1515,7 +1515,7 @@ static partial class Stand
 			Console.WriteLine(Describe(rows[^1]));
 		}
 
-		var text = PairedMarkdown(pinned, Median(controls), [.. rows]);
+		var text = PairedMarkdown(pinned, Median(controls), [.. rows], SideNote(beforeDir, afterDir));
 
 		File.WriteAllText(Path.Combine(output, "paired.md"), text);
 		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(Median(controls), [.. rows]), Json));
@@ -1525,7 +1525,27 @@ static partial class Stand
 		Console.WriteLine($"Written to {output}");
 	}
 
-	static string PairedMarkdown(bool pinned, double control, Row[] rows)
+	/// <summary>
+	/// What the two sides of a pair are, from the <c>build.txt</c> that <c>benchmarks/Build-Side.ps1</c> writes into a side's folder (its commit and the
+	/// build properties it was given): a pair of two branches of one commit differs by those properties and nothing else, and the report says so.
+	/// Empty where a folder has no such file.
+	/// </summary>
+	static string SideNote(string beforeDir, string afterDir)
+	{
+		static string Read(string directory)
+		{
+			var path = Path.Combine(directory, "build.txt");
+
+			return File.Exists(path) ? string.Join(", ", File.ReadAllLines(path).Where(static line => line.Length > 0)) : "no build.txt";
+		}
+
+		var before = Read(beforeDir);
+		var after  = Read(afterDir);
+
+		return before == "no build.txt" && after == "no build.txt" ? "" : $"Sides: before ({before}); after ({after}).";
+	}
+
+	static string PairedMarkdown(bool pinned, double control, Row[] rows, string sides = "")
 	{
 		var text = new StringBuilder();
 
@@ -1534,6 +1554,13 @@ static partial class Stand
 		text.AppendLine(CultureInfo.InvariantCulture,
 			$"{Environment.MachineName}, {(pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {control:F1} ns.");
 		text.AppendLine();
+
+		if (sides.Length > 0)
+		{
+			text.AppendLine(sides);
+			text.AppendLine();
+		}
+
 		text.AppendLine("The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.");
 		text.AppendLine();
 		text.AppendLine("| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |");

@@ -96,6 +96,14 @@ another short run and never with a full one. `--stand-check` times nothing and h
 row's readings to one another. `--stand-paired --first` takes the first call of each reading of
 each row in a fresh process each, median of five, before and after.
 
+**A pair of two branches, not of two commits.** A folder of DLLs is made by `benchmarks/Build-Side.ps1 -Name x -Commit sha [-Property Name=value ...]`,
+which builds the five libraries of a commit in a worktree of its own, with the build properties given (rebuilt from scratch, so that the generator runs
+again with them), pinned to 16-31, and writes `build.txt` beside the DLLs: the commit and the properties. Two folders of one commit built with one
+property flipped are a pair of the emitted code's two branches on one platform, in one process and one profile, with nothing else different, which is
+what a platform-dependent branch has to carry (the architect, 2026-09-20; a pair of the netstandard2.0 and net10.0 builds differs by polyfills and
+other conditional code too, and is not offered as the price of a branch). The report of a pair prints both sides' `build.txt` in its header. The generator
+reads such a property only where a branch is written to; the name of the first is not yet chosen.
+
 `--stand-paired-check beforeDir afterDir [--only a,b]` holds a pair's rows to what they say and to one
 another and times nothing, so it needs no window. A side that was given `DotGram.Benchmarks.dll` has the
 `config/*` rows: the document grammar of `Documents.cs`, at that side's own build of it. Config has no
