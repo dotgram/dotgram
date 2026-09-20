@@ -2323,3 +2323,59 @@ on a platform without a vector search — Q23's item 2 remains the only candidat
 and it is from a blog with a measurement on another architecture.
 
 **Answer:** —
+
+## Q25 (2026-09-20). A loadable dictionary can verify the built-in validation — and one economy would make that verification prove nothing
+
+Igor's, and the objection is not to the idea. It is to the shape the idea will take if nobody
+decides the one thing below, because the cheaper engineering choice is the one that empties it.
+Read at `182ab30b`.
+
+**The proposal.** Both ways of reading a dictionary are to exist: compiled into the parser at build
+time, and loaded at run time. Then the loaded one can **verify the built-in validation** — two
+sources for one dictionary, each a check on the other.
+
+**Why it has a real target rather than being an idea about the future.** `FixSchema` is already
+tables and nothing else: `SchemaRef(tag, required, group)` in an array per component, per group and
+per message, each published lazily on its first read. So the comparison is a walk over arrays, not
+a parse, and it is cheap enough to run where it is most useful — at start-up, in the consumer's
+process — rather than only in a test.
+
+**The objection: two readers prove something only where they are two.** The economical way to build
+this is one reader for the dictionary's XML, called by the generator at build time and by the
+loader at run time. Built that way the two tables agree **by construction**, the comparison passes
+for every dictionary ever written, and what it verifies is that a function is equal to itself. That
+is the failure family this file has spent two days on in other guises — a count taken off something
+that resembles the answer, a ratio measured on one material applied to another, a difference of two
+builds attributed to the one thing that was changed. Here it would be: a check whose two sides
+share the code that could be wrong.
+
+**So the conclusion, and it is a decision to take now rather than later.** Either the two roads stay
+genuinely separate — the build-time reading and the run-time loading share no code below the
+dictionary's text — and the check is worth what it appears to be worth; or they share a reader,
+and then the check must be **described as what it is**: a guard against a stale build and a
+mismatched file, not a verification of our reading. Both are defensible. What is not defensible is
+building the shared version and keeping the sentence written for the separate one. And the order of
+work decides it by default if nobody decides it deliberately, because whoever writes the second
+reader will reach for the first.
+
+**What it verifies even at its best, said so that it is not over-claimed.** Our transcription of
+the dictionary, a build gone stale against the file beside it, and a disagreement about required-ness
+or a default. **Not** whether the dictionary is right, and not a misunderstanding of the format that
+both readers share.
+
+**The use that is worth more than the testing one.** A consumer builds against a dictionary, the
+counterparty issues a new one, and the file loaded at run time is the new one. The comparison then
+fires **at start-up** instead of becoming wrong parses in production hours later. That is the thing
+neither way of reading gives on its own — it exists only because both exist — and it is a better
+argument for having both than that both can be built.
+
+**One decision this raises that is Igor's and not a design question.** On disagreement: refuse to
+start, believe the loaded file, or believe the compiled tables. For a trading application refusing
+to start is the conservative answer, but it is a product decision and it should be made rather than
+defaulted into.
+
+**And it does not close Q20.** This holds the *tables* equal. What a parse *says* when it refuses
+is still held by the refusal record for string input only, and by nothing at all for the buffered
+and byte forms.
+
+**Answer:** —
