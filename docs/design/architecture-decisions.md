@@ -3879,3 +3879,28 @@ form needs is already emitted. `TableTest` writes `c <= 255 && table[c] != 0`, s
 becomes `c <= 127 && …` — the same single comparison, and a tighter one, with a shift and a mask
 where an indexed load stood, whose bounds check the JIT must otherwise eliminate from the comparison
 and the array's length. One comparison as today, minus a memory access.
+
+**D40's second condition, answered: hours, and mostly not the stand's.** `--stand-paired` already
+loads two folders of assemblies into two isolated contexts of one process, on one runtime and one
+profile, reads every row round-robin and holds the answers equal before timing anything. It does
+not care what makes the folders differ — two commits is only how they have been filled. So a pair
+of two branches is any two folders built from one commit whose emitted code differs by the branch.
+
+Two ways to fill them, and the choice matters. **By target framework** — the netstandard build
+against the net10 build of one commit, run on one runtime — costs nothing and is *not* all else
+equal: those two builds already differ by polyfills and by the conditionals they carry, so the
+difference is the branch plus whatever else. A first look, never the pair a branch must carry.
+**By a property of the generator**, a named switch the emitter reads and a build can set from its
+command line, gives the same grammar built twice, same framework, same commit, differing by the
+branch alone. That is the requirement: about an hour on the stand's side for a parameter on the
+side builder, and the switch itself on the generator's side.
+
+**And the switch has to be decided rather than acquired.** A property a build can set is a knob a
+consumer can set too, so the design says which it is: a measurement switch, documented as one, or a
+consumer's option in the shape D10 already has for unsafe code and skipped initialisation. A knob
+that exists by accident becomes API by accident.
+
+The first look by framework is declined for now: no branch exists to look at, and a number that
+conflates the branch with everything else those builds differ by is exactly the kind this
+repository has spent two days learning not to quote. It is taken later if the branch's design
+stalls, and the header of any such report names both sides' build properties.
