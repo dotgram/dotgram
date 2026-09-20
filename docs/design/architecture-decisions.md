@@ -5214,3 +5214,27 @@ remedy. Two checks of different kinds against one class beat one.
 looking not out of diligence but because the first was found by someone else, which meant it did
 not know how many there were. **When a defect is found by somebody else, the honest conclusion is
 that one's own review did not see it, and the answer is to measure rather than to reason.**
+
+**The reverse calibration did not come back clean, which is the useful outcome.** Eighteen places
+became fifteen: three went, not five. Gone as expected is the template rule, and one of the two
+entries each for the phrase and the route — the list held each twice because each rule reaches the
+shape by two different paths, which the first report called "four places" without noticing.
+
+**What remains are the other paths, and they are not what was fixed.** The fix sealed the run of
+*folding whitespace*, which is the input measured at 189 ms for twenty spaces. The walk still sees
+a path through an unbounded run of **comments** inside the same outer repetitions, with only a
+nullable piece after it: structurally the same ambiguity over a different repeated thing. So
+neither guess was right — the predicate is not seeing a shape the seal fails to remove, and the fix
+is not wrong; **the fix is partial**, sealing one of two ways into one shape, and the second way
+was never driven because the input that drives it is a run of comments rather than of spaces.
+
+**That is the triage finding arriving from the other side**: there, one input of four was slow;
+here, one path of two is sealed, and what tells them apart is an input rather than a reading. The
+input to try is named — a refused address whose phrase or route carries a long run of comments, at
+twelve, sixteen and twenty, the same ladder that showed the doubling for spaces. If it doubles, the
+comment rule wants the same seal; if it does not, this becomes the first entry in the list judged
+safe rather than assumed safe.
+
+**And the probe now has calibration in both directions** — it finds a known presence and it saw a
+known absence — and earned its keep a third time by showing that a fix removed three entries and
+not five, which nobody would have checked by hand.
