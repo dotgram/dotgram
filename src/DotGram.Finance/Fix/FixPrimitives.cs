@@ -4,94 +4,44 @@ namespace DotGram.Finance.Fix;
 
 static class FixPrimitives
 {
-	/// <summary>
-	/// The type codes, as <c>FixSchema.TypeCode</c> answers them, plus the two a dictionary can
-	/// name that the standard's own tables never carry. Nested so that <c>Types.String</c> is a
-	/// constant and not the type of the same name.
-	/// </summary>
-	public static class Types
-	{
-		public const byte
-			Amt = 1, Boolean = 2, Char = 3, Country = 4, Currency = 5, Data = 6, Exchange = 7,
-			Float = 8, Int = 9, Length = 10, LocalMktDate = 11, MonthYear = 12,
-			MultipleValueString = 13, NumInGroup = 14, Percentage = 15, Price = 16,
-			PriceOffset = 17, Qty = 18, SeqNum = 19, String = 20, UTCDateOnly = 21,
-			UTCTimeOnly = 22, UTCTimestamp = 23, TagNum = 24, DayOfMonth = 25;
-	}
-
-	/// <summary>The code of a type named as this package spells it, or zero for one it does not model.</summary>
-	/// <remarks>
-	/// Only a loaded dictionary needs this, and it needs it once a tag rather than once a field:
-	/// the name is the file's and the code is what every check reads.
-	/// </remarks>
-	public static byte Code(string? type) => type switch
-	{
-		"Amt"                 => Types.Amt,
-		"Boolean"             => Types.Boolean,
-		"char"                => Types.Char,
-		"Country"             => Types.Country,
-		"Currency"            => Types.Currency,
-		"data"                => Types.Data,
-		"Exchange"            => Types.Exchange,
-		"float"               => Types.Float,
-		"int"                 => Types.Int,
-		"Length"              => Types.Length,
-		"LocalMktDate"        => Types.LocalMktDate,
-		"MonthYear"           => Types.MonthYear,
-		"MultipleValueString" => Types.MultipleValueString,
-		"NumInGroup"          => Types.NumInGroup,
-		"Percentage"          => Types.Percentage,
-		"Price"               => Types.Price,
-		"PriceOffset"         => Types.PriceOffset,
-		"Qty"                 => Types.Qty,
-		"SeqNum"              => Types.SeqNum,
-		"String"              => Types.String,
-		"UTCDateOnly"         => Types.UTCDateOnly,
-		"UTCTimeOnly"         => Types.UTCTimeOnly,
-		"UTCTimestamp"        => Types.UTCTimestamp,
-		"TagNum"              => Types.TagNum,
-		"DayOfMonth"          => Types.DayOfMonth,
-		_                     => 0,
-	};
-
 	/// <summary>Whether a value fits its tag's type, and is one of its code set where it has one.</summary>
 	/// <remarks>
-	/// The type arrives as a code and not as a name. The schema holds it as a byte, and spelling it
+	/// The type arrives as itself and not as a name. The schema holds it as a code, and spelling it
 	/// so that this could parse the spelling back was a string switch on every field of every
 	/// message — work that only existed because the two halves disagreed about the currency.
 	/// </remarks>
-	public static bool Valid(FixFieldView field, byte type, string[]? codes)
+	public static bool Valid(FixFieldView field, FixValueType type, string[]? codes)
 	{
 		var value = field.Value;
-		if (type == 0) return false;
-		if (type == Types.Data) return true;
+		if (type == FixValueType.None) return false;
+		if (type == FixValueType.Data) return true;
 		if (value.IsEmpty) return false;
 		foreach (var c in value)
 			if (c < 32 || c > 126) return false;
 		var valid = type switch
 		{
-			Types.Int => Numeric(value, false, true),
-			Types.Length or Types.NumInGroup => Numeric(value, false, false),
-			Types.SeqNum or Types.TagNum => Numeric(value, false, false) && Nonzero(value),
-			Types.DayOfMonth => Numeric(value, false, false) && FixConvert.Tag(value) is >= 1 and <= 31,
-			Types.Float or Types.Qty or Types.Price or Types.PriceOffset or Types.Amt or Types.Percentage => Numeric(value, true, true),
-			Types.Char => value.Length == 1,
-			Types.Boolean => value.Length == 1 && value[0] is 'Y' or 'N',
-			Types.Currency => Letters(value, 3),
-			Types.Country => Letters(value, 2),
-			Types.Exchange => Market(value),
-			Types.UTCTimestamp => value.Length >= 17 && Date(value.Slice(0, 8)) && value[8] == '-' && Time(value.Slice(9)),
-			Types.UTCTimeOnly => Time(value),
-			Types.UTCDateOnly or Types.LocalMktDate => Date(value),
-			Types.MonthYear => MonthYear(value),
-			Types.MultipleValueString => Multiple(value),
-			Types.String => true,
+			FixValueType.Int => Numeric(value, false, true),
+			FixValueType.Length or FixValueType.NumInGroup => Numeric(value, false, false),
+			FixValueType.SeqNum or FixValueType.TagNum => Numeric(value, false, false) && Nonzero(value),
+			FixValueType.DayOfMonth => Numeric(value, false, false) && FixConvert.Tag(value) is >= 1 and <= 31,
+			FixValueType.Float or FixValueType.Qty or FixValueType.Price or FixValueType.PriceOffset or FixValueType.Amt or FixValueType.Percentage => Numeric(value, true, true),
+			FixValueType.Char => value.Length == 1,
+			FixValueType.Boolean => value.Length == 1 && value[0] is 'Y' or 'N',
+			FixValueType.Currency => Letters(value, 3),
+			FixValueType.Country => Letters(value, 2),
+			FixValueType.Exchange => Market(value),
+			FixValueType.UTCTimestamp => value.Length >= 17 && Date(value.Slice(0, 8)) && value[8] == '-' && Time(value.Slice(9)),
+			FixValueType.UTCTimeOnly => Time(value),
+			FixValueType.UTCDateOnly or FixValueType.LocalMktDate => Date(value),
+			FixValueType.MonthYear => MonthYear(value),
+			FixValueType.MultipleValueString => Multiple(value),
+			FixValueType.String => true,
 			_ => false,
 		};
 		if (!valid || codes == null) return valid;
 		// IOIQty explicitly permits either a numeric quantity or a relative-size code.
 		if (field.Tag == 27 && Numeric(value, true, false)) return true;
-		if (type == Types.MultipleValueString)
+		if (type == FixValueType.MultipleValueString)
 		{
 			for (var i = 0; i < value.Length; i += 2)
 				if (!Code(value.Slice(i, 1), codes)) return false;

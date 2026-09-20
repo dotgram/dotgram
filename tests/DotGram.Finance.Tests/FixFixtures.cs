@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
+using DotGram.Finance.Fix;
+
 namespace DotGram.Finance.Tests;
 
 /// <summary>
@@ -22,6 +24,19 @@ public static class FixFixtures
 
 		foreach (var item in fixtures.RootElement.EnumerateArray())
 			yield return new object[] { item.GetProperty("name").GetString()!, item.GetProperty("wire").GetString()! };
+	}
+
+	/// <summary>A message built from a body written with '|' for SOH, framed and parsed.</summary>
+	public static FixMessage Message(string body)
+	{
+		var fields = body.Replace('|', (char)1);
+		var head   = "8=FIX.4.4" + (char)1 + "9=" + fields.Length + (char)1;
+		var sum    = 0;
+
+		foreach (var c in head + fields)
+			sum += c;
+
+		return FixMessages.Parse(head + fields + "10=" + (sum % 256).ToString("D3", CultureInfo.InvariantCulture) + (char)1);
 	}
 
 	/// <summary>

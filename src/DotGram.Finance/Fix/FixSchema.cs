@@ -4973,7 +4973,7 @@ static class FixSchema
 	// The name of a code in TypeCodes; zero is a tag the standard does not define. A switch and not
 	// an array, so that asking a type reads no static field and does not run this class's static
 	// constructor, which builds every component, group and code set the message layer uses.
-	static string? TypeName(byte code)
+	static string? Spelling(byte code)
 	{
 		return code switch
 		{
@@ -5006,17 +5006,23 @@ static class FixSchema
 
 	const byte DataType = 6;
 
-	/// <summary>The standard wire type of a tag, or null where the standard does not define it.</summary>
-	public static string? Type(int tag)
-	{
-		return (uint)tag < (uint)TypeCodes.Length ? TypeName(TypeCodes[tag]) : null;
-	}
+	/// <summary>The standard wire type of a tag.</summary>
+	/// <param name="tag">The numeric FIX tag.</param>
+	/// <returns><see cref="FixValueType.None"/> where the standard does not define the tag.</returns>
+	/// <remarks>
+	/// The type and its spelling are two members with two names, not one member answering in two
+	/// currencies: this is what every check reads, and <see cref="TypeName"/> is for a message to
+	/// a reader or a comparison with somebody else's vocabulary.
+	/// </remarks>
+	public static FixValueType Type(int tag) =>
+		(uint)tag < (uint)TypeCodes.Length ? (FixValueType)TypeCodes[tag] : FixValueType.None;
 
-	// What Type answers before it is spelled. Holding a value to its type reads this and never the
-	// name: the schema knows the type as a number, and turning it into a string so that the check
-	// can parse the string back is work that should not exist.
-	internal static byte TypeCode(int tag) =>
-		(uint)tag < (uint)TypeCodes.Length ? TypeCodes[tag] : (byte)0;
+	/// <summary>The standard wire type of a tag as this package spells it, or null where it defines none.</summary>
+	/// <param name="tag">The numeric FIX tag.</param>
+	public static string? TypeName(int tag)
+	{
+		return (uint)tag < (uint)TypeCodes.Length ? Spelling(TypeCodes[tag]) : null;
+	}
 
 	/// <summary>Whether a tag is one the standard types <c>data</c>, read from the codes without a string.</summary>
 	public static bool IsData(int tag)

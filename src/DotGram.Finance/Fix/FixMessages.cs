@@ -314,10 +314,3 @@ public static partial class FixMessages
 		return false;
 	}
 }
-
-readonly struct SchemaRef(int id, bool required, int kind)
-{
-	public readonly int  Id       = id;
-	public readonly bool Required = required;
-	public readonly int  Kind     = kind;
-}

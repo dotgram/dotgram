@@ -1,0 +1,82 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<RootNamespace>DotGram.Finance.Generator</RootNamespace>
+		<Description>Compiles a FIX dictionary into validation code, for DotGram.Finance.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>fix;finance;trading;validation;source-generator;roslyn;analyzer;codegen;csharp</PackageTags>
+
+		<!-- A package apart from DotGram.Finance, and not an analyzer inside it: most consumers
+		     ship no dictionary of anyone's — FIX 4.4 is already compiled into the library — and an
+		     analyzer in the library package is a tax every one of them pays on every build (D75).
+		     The two versions go in step, and the README says so: this fills tables the library
+		     reads, so a version behind it is found in the worst place. -->
+		<VersionPrefix>$(VersionPrefix)</VersionPrefix>
+
+		<DebugType>embedded</DebugType>
+		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+		<!-- Roslyn component: runs inside the compiler, ships as an analyzer. -->
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<DevelopmentDependency>true</DevelopmentDependency>
+		<NoWarn>$(NoWarn);NU5128</NoWarn>
+	</PropertyGroup>
+
+	<!-- Optimized whatever the consumer's configuration is, for the reason DotGram.csproj gives:
+	     an analyzer is built in the configuration of the project referencing it, and the
+	     consumer's configuration should change nothing about what it emits or how long it takes. -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug' and '$(DebugGenerator)' != 'true'">
+		<Optimize>true</Optimize>
+		<DefineConstants>$(DefineConstants.Replace('DEBUG', ''))</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Label="Enabled Polyfills">
+		<Polyfill></Polyfill>
+		<Polyfill>$(Polyfill)|T:System.HashCode</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Index</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Range</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Diagnostics.CodeAnalysis</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.IsExternalInit</Polyfill>
+		<MeziantouPolyfill_IncludedPolyfills>$(Polyfill)</MeziantouPolyfill_IncludedPolyfills>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+	</ItemGroup>
+
+	<!-- THE READER IS SHARED AS SOURCE, NOT AS AN ASSEMBLY.
+	     An analyzer has to be self-contained, and the obvious way to give it the dictionary reader
+	     is to put DotGram.Finance.dll beside it in analyzers/dotnet/cs. That is a second copy of an
+	     assembly loaded in another context, and it turns "the versions go in step" from a rule
+	     about packages into a rule about a loader. Compiling the same source instead leaves one
+	     reader and two compilations, with nothing that can fall out of step (D71). -->
+	<ItemGroup>
+		<Compile Include="..\DotGram.Finance\Fix\FixDictionary.cs" Link="Shared\FixDictionary.cs" />
+		<Compile Include="..\DotGram.Finance\Fix\SchemaRef.cs" Link="Shared\SchemaRef.cs" />
+		<Compile Include="..\DotGram.Finance\Fix\FixValueType.cs" Link="Shared\FixValueType.cs" />
+		<Compile Include="..\DotGram.Finance\Fix\FixVocabulary.cs" Link="Shared\FixVocabulary.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Remove="AnalyzerReleases.*.md" />
+
+		<None Include="README.md" Pack="true" PackagePath="\" />
+		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackGeneratorAsAnalyzer</TargetsForTfmSpecificContentInPackage>
+	</PropertyGroup>
+
+	<Target Name="PackGeneratorAsAnalyzer">
+		<ItemGroup>
+			<TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="analyzers/dotnet/cs" />
+		</ItemGroup>
+	</Target>
+
+</Project>

@@ -171,7 +171,7 @@ public sealed class FixConvertFastPathTests
 		var options = new FixFieldOptions();
 
 		for (var tag = -2; tag < 2000; tag++)
-			Assert.Equal(tag > 0 && FixSchema.Type(tag) == "data", options.IsData(tag));
+			Assert.Equal(tag > 0 && FixSchema.Type(tag) == FixValueType.Data, options.IsData(tag));
 
 		Assert.False(options.IsData(int.MaxValue));
 		Assert.False(options.IsData(int.MinValue));
@@ -183,7 +183,7 @@ public sealed class FixConvertFastPathTests
 	{
 		var options = new FixFieldOptions(new System.Collections.Generic.Dictionary<int, int> { [5000] = 5001 });
 
-		Assert.Null(FixSchema.Type(5001));
+		Assert.Equal(FixValueType.None, FixSchema.Type(5001));
 		Assert.True(options.IsData(5001));
 		Assert.False(options.IsData(5000));
 		Assert.True(options.IsData(96));

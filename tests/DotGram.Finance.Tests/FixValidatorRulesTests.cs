@@ -118,7 +118,8 @@ public sealed class FixValidatorRulesTests
 		Assert.Throws<ArgumentNullException>(() => validator[null!]);
 		Assert.Throws<ArgumentNullException>(() => validator[null!] = FixValidator.Compiled);
 		Assert.Throws<ArgumentNullException>(() => validator["D"] = null!);
-		Assert.Throws<ArgumentNullException>(() => validator.Load(null!));
+		Assert.Throws<ArgumentNullException>(() => validator.Load((FixDictionary)null!));
+		Assert.Throws<ArgumentNullException>(() => validator.Load((IReadOnlyDictionary<string, FixMessageRule>)null!));
 	}
 
 	[Fact]

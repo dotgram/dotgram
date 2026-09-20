@@ -120,9 +120,9 @@ public sealed class FixDictionaryTests
 
 		var wrong = dictionary.Tags
 			.Where(tag => FixSchema.Defines(tag) && dictionary.Type(tag) != null)
-			.Where(tag => !string.Equals(dictionary.Type(tag), FixSchema.Type(tag), StringComparison.OrdinalIgnoreCase))
+			.Where(tag => !string.Equals(dictionary.Type(tag), FixSchema.TypeName(tag), StringComparison.OrdinalIgnoreCase))
 			.OrderBy(tag => tag)
-			.Select(tag => $"{tag} {dictionary.Name(tag)}: the file says {dictionary.Type(tag)} and the tables say {FixSchema.Type(tag)}")
+			.Select(tag => $"{tag} {dictionary.Name(tag)}: the file says {dictionary.Type(tag)} and the tables say {FixSchema.TypeName(tag)}")
 			.ToArray();
 
 		Assert.Equal(Disagreements, wrong);

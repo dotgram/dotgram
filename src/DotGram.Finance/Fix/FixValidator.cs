@@ -144,6 +144,33 @@ public sealed class FixValidator
 			rules[type] = (message, findings) => FixRules.Check(tables, message, findings);
 	}
 
+	/// <summary>Writes a rule for every entry of a table, replacing what was there.</summary>
+	/// <param name="rules">A table of rules, by MsgType.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="rules"/> is null.</exception>
+	/// <exception cref="InvalidOperationException">
+	/// The validator is <see cref="Standard"/>, which is shared and cannot be written to.
+	/// </exception>
+	/// <remarks>
+	/// What a generated table is loaded through, and the only way to put two schemas into one
+	/// validator: load the first, load the second, and where they describe the same type the
+	/// second wins.
+	/// </remarks>
+	public void Load(IReadOnlyDictionary<string, FixMessageRule> rules)
+	{
+		if (rules is null)
+			throw new ArgumentNullException(nameof(rules));
+
+		Mine();
+
+		foreach (var rule in rules)
+		{
+			if (rule.Key is null || rule.Value is null)
+				throw new ArgumentException("A table holds no null type and no null rule.", nameof(rules));
+
+			this.rules[rule.Key] = rule.Value;
+		}
+	}
+
 	void Mine()
 	{
 		if (shared)

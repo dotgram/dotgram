@@ -33,7 +33,7 @@ abstract class FixTables
 	public abstract int         Counter(int id);
 	public abstract SchemaRef[] Header  { get; }
 	public abstract SchemaRef[] Trailer { get; }
-	public abstract byte        Type(int tag);
+	public abstract FixValueType Type(int tag);
 	public abstract string[]?   Codes(int tag);
 	public abstract int         LengthTag(int dataTag);
 	public abstract int         DataTag(int lengthTag);
@@ -109,7 +109,7 @@ sealed class CompiledTables : FixTables
 	public override int         Counter(int id) => FixSchema.Counter(id);
 	public override SchemaRef[] Header  => FixSchema.Component(1024);
 	public override SchemaRef[] Trailer => FixSchema.Component(1025);
-	public override byte        Type(int tag) => FixSchema.TypeCode(tag);
+	public override FixValueType Type(int tag) => FixSchema.Type(tag);
 	public override string[]?   Codes(int tag) => FixSchema.Codes(tag);
 	public override int         LengthTag(int dataTag) => FixSchema.LengthTag(dataTag);
 	public override int         DataTag(int lengthTag) => FixSchema.DataTag(lengthTag);
@@ -133,24 +133,14 @@ sealed class DictionaryTables(FixDictionary dictionary) : FixTables
 	public override int         Counter(int id) => dictionary.Counter(id);
 	public override SchemaRef[] Header  => dictionary.Header;
 	public override SchemaRef[] Trailer => dictionary.Trailer;
-	/// <summary>
-	/// The file's type name in this package's vocabulary, or null where it has no counterpart.
-	/// </summary>
-	/// <remarks>
-	/// A dictionary spells its types its own way — <c>UTCTIMESTAMP</c> where we write
-	/// <c>UTCTimestamp</c> — and holding a value to a name we do not know would call every value
-	/// of that tag wrong. Where there is no counterpart the answer is null and the value is not
-	/// checked, which is the honest answer: we cannot say a value is wrong against a type we do
-	/// not model. <c>TZTIMEONLY</c> and <c>TZTIMESTAMP</c> are the two FIX 4.4 names that land
-	/// there.
-	/// </remarks>
 	// One read a tag at construction, not a name parsed a field: loading is where a dictionary is
-	// allowed to be slow, and checking is not.
-	readonly byte[] types = Codes(dictionary);
+	// allowed to be slow, and checking is not. The spelling is turned into a type by FixVocabulary,
+	// which the generator compiles too, so there is one map and not two.
+	readonly FixValueType[] types = Read(dictionary);
 
-	public override byte Type(int tag) => (uint)tag < (uint)types.Length ? types[tag] : (byte)0;
+	public override FixValueType Type(int tag) => (uint)tag < (uint)types.Length ? types[tag] : FixValueType.None;
 
-	static byte[] Codes(FixDictionary dictionary)
+	static FixValueType[] Read(FixDictionary dictionary)
 	{
 		var widest = 0;
 
@@ -158,43 +148,14 @@ sealed class DictionaryTables(FixDictionary dictionary) : FixTables
 			if (tag > widest)
 				widest = tag;
 
-		var codes = new byte[widest + 1];
+		var types = new FixValueType[widest + 1];
 
 		foreach (var tag in dictionary.Tags)
-			codes[tag] = FixPrimitives.Code(Vocabulary(dictionary.CodeType(tag)));
+			types[tag] = FixVocabulary.Of(dictionary.CodeType(tag));
 
-		return codes;
+		return types;
 	}
 
-	internal static string? Vocabulary(string? declared) => declared?.ToUpperInvariant() switch
-	{
-		"STRING" or "LANGUAGE"             => "String",
-		"CHAR"                             => "char",
-		"INT"                              => "int",
-		"LENGTH"                           => "Length",
-		"NUMINGROUP"                       => "NumInGroup",
-		"SEQNUM"                           => "SeqNum",
-		"TAGNUM"                           => "TagNum",
-		"DAYOFMONTH"                       => "DayOfMonth",
-		"FLOAT"                            => "float",
-		"QTY"                              => "Qty",
-		"PRICE"                            => "Price",
-		"PRICEOFFSET"                      => "PriceOffset",
-		"AMT"                              => "Amt",
-		"PERCENTAGE"                       => "Percentage",
-		"BOOLEAN"                          => "Boolean",
-		"CURRENCY"                         => "Currency",
-		"COUNTRY"                          => "Country",
-		"EXCHANGE"                         => "Exchange",
-		"MONTHYEAR"                        => "MonthYear",
-		"LOCALMKTDATE"                     => "LocalMktDate",
-		"UTCDATEONLY" or "UTCDATE"         => "UTCDateOnly",
-		"UTCTIMEONLY"                      => "UTCTimeOnly",
-		"UTCTIMESTAMP"                     => "UTCTimestamp",
-		"MULTIPLEVALUESTRING" or "MULTIPLESTRINGVALUE" or "MULTIPLECHARVALUE" => "MultipleValueString",
-		"DATA" or "XMLDATA"                => "data",
-		_                                  => null,
-	};
 	public override string[]?   Codes(int tag) => dictionary.CodeArray(tag);
 	public override bool        Defines(int tag) => dictionary.Defines(tag);
 
@@ -329,7 +290,7 @@ static class FixRules
 			// not know: there is no type to hold the value to.
 			var type = tables.Type(node.Tag);
 
-			if (type != 0 && !FixPrimitives.Valid(field, type, tables.Codes(node.Tag)))
+			if (type != FixValueType.None && !FixPrimitives.Valid(field, type, tables.Codes(node.Tag)))
 				found.Add(Wrong(FixRule.InvalidValue, where, field, groupTag, entryIndex,
 					"The value does not fit the field's type, or is not one of its code set."));
 		}

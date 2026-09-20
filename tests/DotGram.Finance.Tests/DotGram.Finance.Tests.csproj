@@ -11,6 +11,7 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
+		<ProjectReference Include="../DotGram.Finance.Generated/DotGram.Finance.Generated.csproj" />
 		<None Include="Fixtures.json" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="FieldCases.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>

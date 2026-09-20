@@ -22,7 +22,7 @@ sealed class Fix44Context
 		return size >= 0;
 	}
 
-	static bool IsUnknownText(int tag) => tag > 0 && FixSchema.Type(tag) == null;
+	static bool IsUnknownText(int tag) => tag > 0 && FixSchema.Type(tag) == FixValueType.None;
 	public static bool IsUnknownText(ReadOnlySpan<char> tag) => IsUnknownText(Tag(tag));
 	public static bool IsUnknownText(ReadOnlySpan<byte> tag) => IsUnknownText(Tag(tag));
 	public static int Tag(ReadOnlySpan<char> value) => FixConvert.Tag(value);
