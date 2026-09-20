@@ -3749,3 +3749,23 @@ decides whether it is a cost to remove or the price of asking.
 
 **The scale of the walk, for the record:** `select20` in SQL:2023 reaches 91 nodes and builds 93,
 so the guards' 8.4 µs is about 90 ns for each node built.
+
+**D36's benefit, now counted dynamically — and a misreading of mine, corrected.** sql-39's counter
+sits where a guard's code is emitted and rises on each *execution* of it, so an ask is compared
+with the last execution: the first ask after one counts as a new guard and every ask before the
+next execution is "the same". The number is therefore the share of asks that are the second and
+later *value of one execution of one guard* — exactly what D36 merges. 108 of 301 on `select20`,
+7,736 of 17,023 on the T-SQL corpus: a third and nearly a half of all asks are walks that merging
+removes. That is the strongest evidence D36 has, and it is dynamic rather than static.
+
+I read the column's name, "asks of the same guard", as repeated asks by one guard at different
+times and wrote to expr that a second lever might be hiding there — memoizing a guard's answer. It
+was not there; the column was D36's own number under an ambiguous name. Recorded because the
+misreading travelled: I told another session to look for something on the strength of a column
+heading, which is the same error as counting a likeness, one level up. A count is read by what it
+counts, not by what its column is called.
+
+A repeat of the same guard at a *different* execution was not counted at all — such asks fall under
+"a new guard" — so whether that second lever exists is still unknown rather than answered. It is a
+cheap count, by the pair of rule and mark rather than by an execution counter, and it sits behind
+the fixpoint and the discard bound.
