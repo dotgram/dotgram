@@ -3495,3 +3495,10 @@ this one". expr's count from a mark is a live stretch, the mark being on the sta
 is inside it; sql-39's fast path is a predicate over a stretch, whether a record's children are
 built, and not a way to find its bounds. The three are neighbours in what they want to avoid, not
 in what they need.
+
+**One pointer left for whoever takes the lazy walk.** Unwinding is where it is likeliest to hurt,
+and the same question is already settled next door for the held table in
+`carrier-per-construction` §2: the held count is marked and unwound with the records, because that
+is what the mark already covers. A bound may inherit that answer or may not, and the reason it
+might not is worth having before the work starts — a bound is written at `End`, *after* the stretch
+it describes, where the held count is marked before it.
