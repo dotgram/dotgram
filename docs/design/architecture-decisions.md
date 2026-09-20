@@ -3380,3 +3380,28 @@ does not read, which is a defect in any outcome. The positional form ends its to
 as the window form already does. expr takes it next, `ScriptScalingTests` stays on the static
 positional calls and is not rewritten. The single short reading out of a huge text stays as it is,
 known and written down: it is the one thing only lazy cutting would fix, and it does not buy 6.3 MB.
+
+## D32. The owning continuation: a threshold named before the answer, 2026-09-20
+
+sql-39's prototype on T-SQL removes 23 of 83 own causes and 18 of 321 replaceable rules, and it
+arrives with three qualifications, two of which are the report's value. The cause the analysis was
+built for, `JoinedRight`, survives; the recursion is handled by returning an empty set on a cycle
+and caching what was computed with that stub, which is an *under*estimate and therefore an error
+in the direction of "there is no way back", which is the direction of incorrectness; and the
+generator takes 201 s against about 60 on `DotGram.Sql`, three times over.
+
+**The order stands as proposed, with one interleave.** Print the set beside the cause first and
+find out why `then ')'` and `JoinedRight` survive, since that decides whether the analysis is worth
+anything at all; then the real fixpoint; then the generation time. The interleave: the fast-path
+share that D29 waits on is taken after that first step, not after all three, because it costs no
+machine and another session's decision hangs on it, while steps two and three are days.
+
+**The threshold, named now rather than after the numbers are known.** Generation time is a gate and
+not a trade: D11 B put T-SQL from 4 s to 86 s and had to be taken out, so an analysis that triples
+`DotGram.Sql` does not land whatever it buys, and the version that goes to a pair costs single
+percents. And the benefit is not counted in causes. A count of removed causes is a likeness of the
+thing wanted, the same error this repository has spent two days naming: what has to move is a
+carrier, a measured time or a measured size. Twenty-three causes that change no carrier are worth
+nothing, and one cause that moves T-SQL onto the immediate carrier is worth the work on its own.
+sql-39 offered to come and propose closing it rather than push on; that offer is accepted in
+advance, and closing it after the fixpoint is a result, not a failure.
