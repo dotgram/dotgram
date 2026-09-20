@@ -67,6 +67,38 @@ SQL:2023 is being retaken on the same commits, so both numbers come from one cos
 stops being noise on the stand's rows and starts being worth a second carrier in one machine. Below
 it the fourth edge is the better bet, and it is the one this document already prices at 3.4-5.7%.
 
+**The retake, read (critic, 2026-09-19; §4b of the design, `a0b1a664`).** The half that needs no
+profile is taken and its direction is right: 3.5% of records in settled subtrees, and only 0.17% of
+them in walks that would go entirely, so a weighting that charges a walk's fixed cost where the walk
+survives lowers the number rather than raising it. Q1 stays open until the two constants arrive, and
+two things should go into that last step.
+
+- **§4b inverts the anatomy in one sentence.** "The anatomy says the greater part of materialization
+  is the fixed cost of a walk, not the cost of a record" — the anatomy charges the arms' prologues
+  per record (402 records at about 85 ns each, 46%) and the guard's walk per walk (301 walks, 30%),
+  so per record is the larger of the two. The argument does not need that sentence: what makes the
+  weighted number smaller is that a walk keeping one taped record keeps all of its fixed cost, and
+  almost no settled record sits in a walk that would go. Written the other way, the next reader
+  takes away the wrong model.
+- **How much the weighting moves the number depends on records a walk, and the two figures come
+  from workloads five times apart.** The anatomy is twenty SQL:2023 selects: 402 records, 301 walks,
+  1.3 records a walk. The count is T-SQL's corpus: 116,946 records, 17,023 walks, 6.9 records a
+  walk. Take the anatomy's constants (a walk's setup about 0.87 of a record's cost, 70.8 ns against
+  85) and apply them to T-SQL's own counts, and the per-walk part is 11% of materialization, not
+  30%; the weighted share is then 0.035 × 0.89 + 0.010 × 0.11 = 3.2% against the unweighted 3.5%,
+  which is 0.92x. Carrying SQL:2023's shares over unchanged would say 0.72x — the same direction and
+  three times the size. So report the two constants in nanoseconds with the workload they were taken
+  on, and apply them to each grammar's own record and walk counts; never carry a share across. (This
+  session has just carried constants across workloads to make the point: constants travel better
+  than shares, and even they deserve the caveat that a record's cost is not one number, since the
+  frames differ by part method, which is the finding all of this rests on.)
+
+On the fixpoint, which sql-39 asked to have checked: the recipe's definition is the right one, and
+tightening to it explains the direction of 5,607 to 4,130 — fewer rules qualify, so fewer records.
+Not re-run here. A coherence check that costs nothing: §3's static table was taken under that same
+definition and says 195 of 654 rules; if today's counting build reports the same rule set, the two
+are one reading and the 5,607 was the loose one.
+
 ## Q2 (2026-09-19). Of T-SQL's three heaviest causes, one has a witness and two have prose
 
 **The claim.** "So the three heaviest causes in T-SQL's value tower are ambiguities of unbounded
