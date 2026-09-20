@@ -5255,3 +5255,27 @@ an instrument of a different nature is needed, which is what the static probe wa
 found by a different route than the first. That is exactly why yesterday's work ended in honest
 confidence: an input was measured, found, fixed, and re-measured flat, and every step confirmed
 success while none of them asked how many paths lead to the shape.
+
+**Calibration on absence passes, and the list is five.** Both rules of the address grammar and the
+template rule are gone from the walk entirely, both paths of each; the probe now has all three
+calibrations — it found the known cases while they were there, and it stopped naming each as it was
+sealed. Meanwhile expr sealed eight of the expression language's ten in parallel, so what remains is
+one rule in an allocation example, two in the expression language (`Text` and `Verbatim`), and one
+each in the markdown and xml examples.
+
+**And the two remaining expression-language entries are the question, not the remainder.** Eight
+went and two did not: that is either judgement — they were driven, found flat and left deliberately
+— or it is eight done and two not yet, and **a list cannot tell the difference**. The day's own
+lesson is exactly that gap: a seal closed one path of two and the second went unnoticed because
+nobody asked whether the fix was complete. So it is a question to their author rather than an
+assumption either way, and if they were judged, they become the first entries recorded as *judged
+safe* rather than merely listed.
+
+**The probe's job description, revised by the rule it was given.** Its obvious use is finding
+places; its more valuable one is confirming absences, because that is the claim nobody else in the
+process can make — a ladder says "this input is fast now" and a walk says "the shape is not there
+any more", and neither sentence implies the other.
+
+**And step three's shape is settled by the same evidence:** twice out of twice the slow input was
+not the likely-looking one, so the diagnostic says "here is the form, drive it" and does not
+pronounce on whether a given site can be driven.
