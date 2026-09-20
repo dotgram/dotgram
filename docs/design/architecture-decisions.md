@@ -5935,3 +5935,28 @@ in that case was flat per arm; that was true of the range measured, eight to six
 was stated of the row. The cliff is twenty times further out than anything the probe reached. The
 conclusion stands — under the bound the row is structurally linear — but **the range belonged in
 the claim**, and a claim without its range is how a measured fact becomes a wrong one.
+
+**The discriminator is in and it separates the seven: four are cliffs, three are not.** Each series
+now prints, beside its exponent, the shape of the bytes a call per unit and of the time per unit —
+a step of two and a half or more between sizes a quarter apart is a cliff, otherwise rising or
+flat — with the class and therefore the guard unchanged.
+
+**The four cliffs are all one mechanism.** They are SQL:2023's rows, flat and then stepping, and
+each step sits at the same product against the pool's bound of 65,536 cells. So those four are not
+four defects but one, and it is the one the retention fix is aimed at — which also makes them the
+natural rows of that fix's pair, each step bracketed by two sizes. The three that are not cliffs
+are slopes of allocation with a mild slope of time, and one row sits on the class's edge at 1.49
+then 1.50 across two runs, so it is read as unstable rather than as either.
+
+**And the sixteen quadratics gain a caution that matters more than the four.** On ten of them the
+bytes *also* jump in one place — an allocation cliff sitting underneath a real quadratic in time —
+while three show bytes flat with time rising, which is exactly what the call counts said. **The
+quadratic does not go away with the cliff.** So when the retention fix lands and those ten improve,
+that improvement is not the re-reading being cured, and nobody may read it as such: the reader
+change's acceptance remains the counts, which do not move for an allocation bound at all.
+
+**The caveat is stated by its author rather than left to be found:** the shape column is a rule of
+thumb over ladders of twenty to thirty points, a cliff smaller than the threshold reads as flat or
+rising, and a tier change or a collection mid-ladder could in principle fake one. The four are each
+bracketed by two sizes and repeat at the same places across two runs; a fifth from a single run
+would be checked against the every-point dump before being named.
