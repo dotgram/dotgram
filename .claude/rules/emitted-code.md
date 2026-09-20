@@ -39,6 +39,18 @@ target framework, next to the consumer's own code. That changes the rules.
   they do observe — the shape of an emitted type (a `record` and a class differ in equality
   and `ToString`), a signature, a diagnostic's text. Vary one of those by language version
   and the same grammar really does mean two different things.
+
+  One consequence, worth having written down because it is what makes the two spellings
+  checkable against each other. A choice confined to a body cannot reach the analyses: it
+  is made after they have run, from what they decided, so no such flag can move a flag of
+  theirs. That matters most for what a refusal names, which the analyses settle — whether a
+  rule is read as a scan, whether it records, and so which of a repetition's doors are
+  unconditional. So two compilations of one grammar differing only in a body must agree on
+  the refusals they report, word for word, and a disagreement there is a defect in the
+  branch rather than a property of it. Refusals across two *input forms* are a different
+  question and not this one: the analyses genuinely differ between a string machine and a
+  buffered one, neither names a superset of the other, and `syntax.md` §7.5 says what is
+  promised there.
 - **The consumer's build configuration changes nothing that runs.** Diagnostics and
   the like may differ between Debug and Release; algorithms and behaviour may not.
   A generated parser is one parser, and the one stepped through in a debugger has to
