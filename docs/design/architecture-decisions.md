@@ -207,7 +207,14 @@ nothing — or `start /affinity FFFF0000`). The pinned case itself is rerun once
 2026-09-18) loads both builds into two `AssemblyLoadContext`s and alternates hand, before and
 after in every round, so that what moved the machine moved both sides. Two separate processes
 had shown +10-13% where the paired run showed +4% steady, and once the cause was fixed, noise;
-the paired form is what a before/after is quoted from. Over SQL it compares acceptance and not
+the paired form is what a before/after is quoted from. **A ratio needs ranges that do not
+overlap (2026-09-19).** Held memory of FIX after the carrier change read as falls and one rise
+until the stand printed a smallest and largest beside each median: the figure takes three values
+and nothing between, so a median of five is a vote between two of them, and the ratios moved to
+other rows entirely on a rerun. Where two sides' ranges overlap the ratio is not quoted at all —
+it is not a small effect, it is no effect — and only what does not depend on it is said; here, that
+neither side's memory grows with the input at any cap, which is what D5 asks. Every median in a
+table of small whole numbers carries its range. Over SQL it compares acceptance and not
 trees, since types from two contexts are never equal.
 
 **The pinned-load experiment (stand, 2026-09-19, rerun with a sustained load):** repeated rebuilds
