@@ -2545,3 +2545,44 @@ this entry, because it generalises past FIX: **a chosen answer is designed, a re
 verified, and the second is cheaper and more honest.** The staleness guard is built against a reader
 that exists, so the first thing to do is read what that reader already does when the file and the
 tables disagree — not to design what it should do.
+
+## Q27 (2026-09-20). Is `FixFieldOptions` needed at all — and the question points at the wrong type
+
+Igor's, asked as whether `FixFieldOptions` earns its place. Read at `f99beb6f`, `codex/finance`,
+which is where the package is being changed.
+
+**The answer is the other way round.** `FixFieldOptions` is the one that must exist, and
+`FixParseOptions` is the one that today carries almost nothing.
+
+- **`FixFieldOptions` holds computed state and is the only place it can live.** Its internals are
+  `Kind(tag)`, `DataTag(lengthTag)` and `IsData(tag)` over the per-tag table that D25's compromise
+  exists for: the package's sixteen length/data pairs merged with the consumer's, once, when the
+  options are built, so the grammar's guard reads one cell a field instead of asking a dictionary.
+  Remove the type and the table has nowhere to be built once; it would be rebuilt per parse or
+  passed as loose arguments. It earns its place.
+- **`FixParseOptions` is thirty-four lines that compute nothing.** Two constructors, one range check
+  on an enum, two auto-properties: `Framing` and a reference to a `FixFieldOptions`. Its entire
+  content beyond the other type is **one enum value**.
+
+**And merging it would settle Q26 §2 in passing.** Framing is a wire concern — `FixFraming` exists
+to yield a separator — so it belongs where the field reader can see it. Put it on `FixFieldOptions`
+and the field layer gains framing as a value, which is exactly what it lacks today: `FixParser`
+spells the choice as a method name instead, five `Parse` and five `ParseLog`. One options type for
+the package, one place to add the third setting, and the layer disagreement disappears rather than
+being argued about. The cost is 23 public signatures — 10 taking `FixFieldOptions`, 13 taking
+`FixParseOptions` — and Q26 §1 already proposes rewriting those ten.
+
+**The argument against, which is the one worth weighing, and it is about a fortnight from now.**
+D71 is about to give the package a loadable dictionary and a staleness guard. That is schema-level
+and not field-level: where the dictionary came from, what to do when it disagrees with the compiled
+tables, which schema to validate against. If that lands on `FixParseOptions`, the type stops being
+an empty wrapper and earns its name. **So the question is not "delete it" but "is it empty or is it
+early".** Whoever owns D71 knows where that state is going to live, and that answer settles this one
+— which is cheaper than deciding it on today's emptiness and re-splitting the type in a fortnight.
+
+**What would settle it.** One sentence from the dictionary work: does the loaded dictionary and its
+guard hang off the parse options, or off the validator? If the parse options, this entry closes with
+nothing to do. If the validator, `FixParseOptions` is one enum in a class of its own and should be
+folded.
+
+**Answer:** —
