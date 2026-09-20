@@ -1,0 +1,192 @@
+=== run 1 of 5, 02:17:54
+9 rows, every reading agreeing. Timing 8 rounds.
+web/url.path1000       hand     5218.9 ns before    10568.0 ns after    10545.3 ns  before/hand 2.02x  after/hand 2.02x
+web/url.plain          hand       96.3 ns before      213.4 ns after      219.3 ns  before/hand 2.21x  after/hand 2.28x
+web/url.full           hand      166.9 ns before      286.3 ns after      287.6 ns  before/hand 1.72x  after/hand 1.72x
+  web/url.ipv4: 1 round(s) redone after a gen1/gen2 collection
+web/url.ipv4           hand      112.7 ns before      218.6 ns after      220.7 ns  before/hand 1.94x  after/hand 1.96x
+web/url.long-path      hand      177.4 ns before      414.0 ns after      405.4 ns  before/hand 2.33x  after/hand 2.29x
+  web/url.refused: 1 round(s) redone after a gen1/gen2 collection
+web/url.refused        hand       67.9 ns before      249.4 ns after      196.7 ns  before/hand 3.68x  after/hand 2.90x
+web/url.relative       hand       77.0 ns before      182.0 ns after      186.5 ns  before/hand 2.36x  after/hand 2.42x
+web/url.relative-dot-colon hand       63.5 ns before      155.9 ns after      158.1 ns  before/hand 2.45x  after/hand 2.49x
+web/url.relative-letters hand      105.8 ns before      208.7 ns after      231.6 ns  before/hand 1.97x  after/hand 2.19x
+
+# Paired stand, 2026-09-20 02:18
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| web/url.path1000 | generated | hand | 5218.9 | 10568.0 | 2.02x | 10545.3 | 2.02x | -0.2% | 8384 | 8384 |
+| web/url.plain | generated | hand | 96.3 | 213.4 | 2.21x | 219.3 | 2.28x | +2.8% | 360 | 360 |
+| web/url.full | generated | hand | 166.9 | 286.3 | 1.72x | 287.6 | 1.72x | +0.5% | 536 | 536 |
+| web/url.ipv4 | generated | hand | 112.7 | 218.6 | 1.94x | 220.7 | 1.96x | +1.0% | 384 | 384 |
+| web/url.long-path | generated | hand | 177.4 | 414.0 | 2.33x | 405.4 | 2.29x | -2.1% | 512 | 512 |
+| web/url.refused | generated | hand | 67.9 | 249.4 | 3.68x | 196.7 | 2.90x | -21.1% | 64 | 64 |
+| web/url.relative | generated | hand | 77.0 | 182.0 | 2.36x | 186.5 | 2.42x | +2.4% | 312 | 312 |
+| web/url.relative-dot-colon | generated | hand | 63.5 | 155.9 | 2.45x | 158.1 | 2.49x | +1.4% | 280 | 280 |
+| web/url.relative-letters | generated | hand | 105.8 | 208.7 | 1.97x | 231.6 | 2.19x | +10.9% | 312 | 312 |
+
+Written to T:\TEMP\dotgram-stand\w73\pair\run-1
+=== run 2 of 5, 02:18:28
+9 rows, every reading agreeing. Timing 8 rounds.
+web/url.path1000       hand     5272.7 ns before    10536.7 ns after    10430.0 ns  before/hand 2.00x  after/hand 1.98x
+web/url.plain          hand       96.4 ns before      214.6 ns after      212.9 ns  before/hand 2.23x  after/hand 2.21x
+web/url.full           hand      169.6 ns before      275.0 ns after      283.7 ns  before/hand 1.62x  after/hand 1.67x
+  web/url.ipv4: 1 round(s) redone after a gen1/gen2 collection
+web/url.ipv4           hand      112.8 ns before      225.9 ns after      230.4 ns  before/hand 2.00x  after/hand 2.04x
+web/url.long-path      hand      185.7 ns before      429.1 ns after      432.7 ns  before/hand 2.31x  after/hand 2.33x
+  web/url.refused: 1 round(s) redone after a gen1/gen2 collection
+web/url.refused        hand       71.4 ns before      260.9 ns after      221.4 ns  before/hand 3.66x  after/hand 3.10x
+web/url.relative       hand       78.6 ns before      183.0 ns after      188.9 ns  before/hand 2.33x  after/hand 2.40x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       64.2 ns before      155.4 ns after      163.9 ns  before/hand 2.42x  after/hand 2.56x
+web/url.relative-letters hand      192.5 ns before      365.6 ns after      350.8 ns  before/hand 1.90x  after/hand 1.82x
+
+# Paired stand, 2026-09-20 02:19
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.6 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| web/url.path1000 | generated | hand | 5272.7 | 10536.7 | 2.00x | 10430.0 | 1.98x | -1.0% | 8384 | 8384 |
+| web/url.plain | generated | hand | 96.4 | 214.6 | 2.23x | 212.9 | 2.21x | -0.8% | 360 | 360 |
+| web/url.full | generated | hand | 169.6 | 275.0 | 1.62x | 283.7 | 1.67x | +3.2% | 536 | 536 |
+| web/url.ipv4 | generated | hand | 112.8 | 225.9 | 2.00x | 230.4 | 2.04x | +2.0% | 384 | 384 |
+| web/url.long-path | generated | hand | 185.7 | 429.1 | 2.31x | 432.7 | 2.33x | +0.8% | 512 | 512 |
+| web/url.refused | generated | hand | 71.4 | 260.9 | 3.66x | 221.4 | 3.10x | -15.1% | 64 | 64 |
+| web/url.relative | generated | hand | 78.6 | 183.0 | 2.33x | 188.9 | 2.40x | +3.2% | 312 | 312 |
+| web/url.relative-dot-colon | generated | hand | 64.2 | 155.4 | 2.42x | 163.9 | 2.56x | +5.5% | 280 | 280 |
+| web/url.relative-letters | generated | hand | 192.5 | 365.6 | 1.90x | 350.8 | 1.82x | -4.0% | 312 | 312 |
+
+Written to T:\TEMP\dotgram-stand\w73\pair\run-2
+=== run 3 of 5, 02:19:05
+9 rows, every reading agreeing. Timing 8 rounds.
+web/url.path1000       hand     5398.5 ns before    10719.0 ns after    10708.5 ns  before/hand 1.99x  after/hand 1.98x
+web/url.plain          hand      169.0 ns before      353.6 ns after      335.9 ns  before/hand 2.09x  after/hand 1.99x
+  web/url.full: 1 round(s) redone after a gen1/gen2 collection
+web/url.full           hand      305.2 ns before      417.4 ns after      476.5 ns  before/hand 1.37x  after/hand 1.56x
+web/url.ipv4           hand      114.5 ns before      238.9 ns after      228.9 ns  before/hand 2.09x  after/hand 2.00x
+web/url.long-path      hand      174.6 ns before      409.5 ns after      404.8 ns  before/hand 2.35x  after/hand 2.32x
+  web/url.refused: 1 round(s) redone after a gen1/gen2 collection
+web/url.refused        hand       67.7 ns before      249.6 ns after      194.6 ns  before/hand 3.69x  after/hand 2.87x
+web/url.relative       hand       78.0 ns before      185.6 ns after      183.4 ns  before/hand 2.38x  after/hand 2.35x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       63.5 ns before      154.9 ns after      159.2 ns  before/hand 2.44x  after/hand 2.51x
+web/url.relative-letters hand      105.3 ns before      209.7 ns after      222.1 ns  before/hand 1.99x  after/hand 2.11x
+
+# Paired stand, 2026-09-20 02:19
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| web/url.path1000 | generated | hand | 5398.5 | 10719.0 | 1.99x | 10708.5 | 1.98x | -0.1% | 8384 | 8384 |
+| web/url.plain | generated | hand | 169.0 | 353.6 | 2.09x | 335.9 | 1.99x | -5.0% | 360 | 360 |
+| web/url.full | generated | hand | 305.2 | 417.4 | 1.37x | 476.5 | 1.56x | +14.2% | 536 | 536 |
+| web/url.ipv4 | generated | hand | 114.5 | 238.9 | 2.09x | 228.9 | 2.00x | -4.2% | 384 | 384 |
+| web/url.long-path | generated | hand | 174.6 | 409.5 | 2.35x | 404.8 | 2.32x | -1.2% | 512 | 512 |
+| web/url.refused | generated | hand | 67.7 | 249.6 | 3.69x | 194.6 | 2.87x | -22.0% | 64 | 64 |
+| web/url.relative | generated | hand | 78.0 | 185.6 | 2.38x | 183.4 | 2.35x | -1.2% | 312 | 312 |
+| web/url.relative-dot-colon | generated | hand | 63.5 | 154.9 | 2.44x | 159.2 | 2.51x | +2.8% | 280 | 280 |
+| web/url.relative-letters | generated | hand | 105.3 | 209.7 | 1.99x | 222.1 | 2.11x | +6.0% | 312 | 312 |
+
+Written to T:\TEMP\dotgram-stand\w73\pair\run-3
+=== run 4 of 5, 02:19:41
+9 rows, every reading agreeing. Timing 8 rounds.
+web/url.path1000       hand     5238.3 ns before    10535.7 ns after    10565.3 ns  before/hand 2.01x  after/hand 2.02x
+web/url.plain          hand       94.6 ns before      214.9 ns after      212.2 ns  before/hand 2.27x  after/hand 2.24x
+web/url.full           hand      158.4 ns before      290.1 ns after      280.8 ns  before/hand 1.83x  after/hand 1.77x
+  web/url.ipv4: 1 round(s) redone after a gen1/gen2 collection
+web/url.ipv4           hand      109.5 ns before      222.1 ns after      223.4 ns  before/hand 2.03x  after/hand 2.04x
+web/url.long-path      hand      163.0 ns before      407.2 ns after      411.9 ns  before/hand 2.50x  after/hand 2.53x
+  web/url.refused: 1 round(s) redone after a gen1/gen2 collection
+web/url.refused        hand       60.7 ns before      250.0 ns after      195.5 ns  before/hand 4.12x  after/hand 3.22x
+web/url.relative       hand       78.5 ns before      199.3 ns after      193.1 ns  before/hand 2.54x  after/hand 2.46x
+web/url.relative-dot-colon hand       65.6 ns before      170.2 ns after      168.3 ns  before/hand 2.59x  after/hand 2.56x
+web/url.relative-letters hand      108.2 ns before      225.6 ns after      232.0 ns  before/hand 2.09x  after/hand 2.14x
+
+# Paired stand, 2026-09-20 02:20
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| web/url.path1000 | generated | hand | 5238.3 | 10535.7 | 2.01x | 10565.3 | 2.02x | +0.3% | 8384 | 8384 |
+| web/url.plain | generated | hand | 94.6 | 214.9 | 2.27x | 212.2 | 2.24x | -1.2% | 360 | 360 |
+| web/url.full | generated | hand | 158.4 | 290.1 | 1.83x | 280.8 | 1.77x | -3.2% | 536 | 536 |
+| web/url.ipv4 | generated | hand | 109.5 | 222.1 | 2.03x | 223.4 | 2.04x | +0.6% | 384 | 384 |
+| web/url.long-path | generated | hand | 163.0 | 407.2 | 2.50x | 411.9 | 2.53x | +1.2% | 512 | 512 |
+| web/url.refused | generated | hand | 60.7 | 250.0 | 4.12x | 195.5 | 3.22x | -21.8% | 64 | 64 |
+| web/url.relative | generated | hand | 78.5 | 199.3 | 2.54x | 193.1 | 2.46x | -3.1% | 312 | 312 |
+| web/url.relative-dot-colon | generated | hand | 65.6 | 170.2 | 2.59x | 168.3 | 2.56x | -1.1% | 280 | 280 |
+| web/url.relative-letters | generated | hand | 108.2 | 225.6 | 2.09x | 232.0 | 2.14x | +2.8% | 312 | 312 |
+
+Written to T:\TEMP\dotgram-stand\w73\pair\run-4
+=== run 5 of 5, 02:20:16
+9 rows, every reading agreeing. Timing 8 rounds.
+web/url.path1000       hand     5502.3 ns before    10940.7 ns after    10862.1 ns  before/hand 1.99x  after/hand 1.97x
+web/url.plain          hand       98.1 ns before      221.9 ns after      218.5 ns  before/hand 2.26x  after/hand 2.23x
+web/url.full           hand      171.5 ns before      298.2 ns after      282.7 ns  before/hand 1.74x  after/hand 1.65x
+  web/url.ipv4: 2 round(s) redone after a gen1/gen2 collection
+web/url.ipv4           hand      116.9 ns before      226.3 ns after      232.9 ns  before/hand 1.94x  after/hand 1.99x
+web/url.long-path      hand      181.1 ns before      423.4 ns after      417.5 ns  before/hand 2.34x  after/hand 2.31x
+  web/url.refused: 1 round(s) redone after a gen1/gen2 collection
+web/url.refused        hand       74.8 ns before      253.9 ns after      200.6 ns  before/hand 3.39x  after/hand 2.68x
+web/url.relative       hand       85.4 ns before      181.2 ns after      183.1 ns  before/hand 2.12x  after/hand 2.14x
+  web/url.relative-dot-colon: 1 round(s) redone after a gen1/gen2 collection
+web/url.relative-dot-colon hand       66.3 ns before      157.7 ns after      160.0 ns  before/hand 2.38x  after/hand 2.41x
+web/url.relative-letters hand      110.3 ns before      216.7 ns after      223.2 ns  before/hand 1.97x  after/hand 2.02x
+
+# Paired stand, 2026-09-20 02:20
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| web/url.path1000 | generated | hand | 5502.3 | 10940.7 | 1.99x | 10862.1 | 1.97x | -0.7% | 8384 | 8384 |
+| web/url.plain | generated | hand | 98.1 | 221.9 | 2.26x | 218.5 | 2.23x | -1.5% | 360 | 360 |
+| web/url.full | generated | hand | 171.5 | 298.2 | 1.74x | 282.7 | 1.65x | -5.2% | 536 | 536 |
+| web/url.ipv4 | generated | hand | 116.9 | 226.3 | 1.94x | 232.9 | 1.99x | +2.9% | 384 | 384 |
+| web/url.long-path | generated | hand | 181.1 | 423.4 | 2.34x | 417.5 | 2.31x | -1.4% | 512 | 512 |
+| web/url.refused | generated | hand | 74.8 | 253.9 | 3.39x | 200.6 | 2.68x | -21.0% | 64 | 64 |
+| web/url.relative | generated | hand | 85.4 | 181.2 | 2.12x | 183.1 | 2.14x | +1.1% | 312 | 312 |
+| web/url.relative-dot-colon | generated | hand | 66.3 | 157.7 | 2.38x | 160.0 | 2.41x | +1.4% | 280 | 280 |
+| web/url.relative-letters | generated | hand | 110.3 | 216.7 | 1.97x | 223.2 | 2.02x | +3.0% | 312 | 312 |
+
+Written to T:\TEMP\dotgram-stand\w73\pair\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 31.7 ns (the runs' controls: 31.4, 31.6, 31.7, 31.7, 31.7).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-20 02:20
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| web/url.path1000 | generated | hand | 5272.7 | 10568.0 | 2.00x | 10565.3 | 2.00x | 0.0% | 8384 | 8384 |
+| web/url.plain | generated | hand | 96.4 | 214.9 | 2.23x | 218.5 | 2.27x | +1.7% | 360 | 360 |
+| web/url.full | generated | hand | 169.6 | 290.1 | 1.71x | 283.7 | 1.67x | -2.2% | 536 | 536 |
+| web/url.ipv4 | generated | hand | 112.8 | 225.9 | 2.00x | 228.9 | 2.03x | +1.4% | 384 | 384 |
+| web/url.long-path | generated | hand | 177.4 | 414.0 | 2.33x | 411.9 | 2.32x | -0.5% | 512 | 512 |
+| web/url.refused | generated | hand | 67.9 | 250.0 | 3.68x | 196.7 | 2.90x | -21.3% | 64 | 64 |
+| web/url.relative | generated | hand | 78.5 | 183.0 | 2.33x | 186.5 | 2.37x | +1.9% | 312 | 312 |
+| web/url.relative-dot-colon | generated | hand | 64.2 | 155.9 | 2.43x | 160.0 | 2.49x | +2.6% | 280 | 280 |
+| web/url.relative-letters | generated | hand | 108.2 | 216.7 | 2.00x | 231.6 | 2.14x | +6.8% | 312 | 312 |
+
+Written to T:\TEMP\dotgram-stand\w73\pair
