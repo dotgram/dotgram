@@ -4972,3 +4972,33 @@ from the failures one can imagine, and those are not the ones it finds. Both of 
 that had already shipped rather than changes that slipped in. The first argument for the snapshots
 was that a change no diff shows is unheld; what they have actually caught twice is a configuration
 that was already broken and had never been looked at.
+
+## D55. The floor of the paired method is the runtime's profile, not the machine, 2026-09-20
+
+stand fixed a positional asymmetry in the paired form — a round read forward and the next
+backward, which put one side of a pair in the middle of every round and the other at the ends —
+and the readings now rotate a place each round with the order reversing every n rounds, over a
+multiple of 2n rounds, so each reading stands in each place equally often. Rows measured before
+today were read the old way.
+
+**It was not the main cause.** An A/A of one build after the fix still gives +1.5% to +3.4% on
+several URL rows, with the sign holding in seven or eight runs of nine. With tiered profiling
+turned off the same A/A falls to roughly zero on those rows. So the bias mostly goes with the
+dynamic profile: the two sides of a pair are two loaded copies of one assembly, each compiled and
+profiled by itself, and a copy's code can settle a few per cent away from its twin's. One
+experiment stands behind that, and the result says so. It also matches what expr saw in three arms,
+the second and third equal to the nanosecond and the first apart, if the first is the arm that
+reads while the profile is still forming.
+
+**What follows, and it is a bound on what this method can ever say.** An effect is read as its
+excess over the A/A of the same rows in the same slot at the same profile setting — which is D50,
+now earning itself rather than being a precaution. **A change worth a per cent or two on a row
+whose A/A is three is not measurable by this method at all**, and no number of rounds fixes that,
+because the two sides differ in what the runtime made of them. So a small change is argued from
+something exact instead: bytes allocated, emitted size, a count of calls or of records. That is
+what the last three days have in fact been doing, and it is now the rule rather than the habit.
+
+The pair keeps running with profiling as a consumer has it; a run with it off is a cross-check to
+take when an effect sits inside the A/A band, not the way pairs are taken. Making the two copies
+compile alike is a stand change nobody has designed — loading each side twice and alternating the
+copies is the one candidate named, and it doubles what is loaded.
