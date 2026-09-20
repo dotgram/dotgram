@@ -1766,3 +1766,65 @@ different reason — an element too large to drop makes the window large — and
 feed buffered, but a streaming parse **that asks nothing at all** against the same parse with the
 drop's counting removed. That is the one every streaming row of the stand would show, and the stock
 rows are where it is already read.
+
+## Q17 (2026-09-20). What the snapshots do not emit, and therefore do not hold
+
+The architect's, after two misses in one evening — the line-moving code and then a whole byte
+machine, both invisible to a count taken off the snapshots. A sample whose coverage nobody knows is
+not a sample of anything. Read at `ca5cb587`, counted off the emitter's templates and then tested
+against the five checked-in snapshots by a marker each, so that every row below can be re-counted.
+
+**First, why the set is shaped as it is, because it is not an oversight in any one grammar.**
+`SnapshotTests` compiles each `.gram` with `GramCompilerOptions` carrying four things — the class
+name, the namespace, the Roslyn C# scanner and a line map — and every other option at its default.
+So no snapshot can exercise an option-driven path at all: not `Lexical`, not `LocationType`, not
+`PartSize`, not `SourceFileSize`, not `Portable`, and nothing from `[GramOptions]`, which the
+snapshot path does not use — `BufferedInput`, `BufferedBytes`, `SpanCaptures`, `Carrier`,
+`MaxRetained`, `BufferSize`, `Stacks`, `Suffix`. And `Assert.Single(result.Sources)` makes it
+structural rather than incidental: a grammar that compiles into more than one file cannot be a
+snapshot as the harness is written.
+
+**Ranked as Q16 was: at the top, where two renderings of one grammar disagree, or where a decision
+already taken was not carried across.**
+
+1. **The buffered and byte input half, entire.** `class BufferedText`, `class BufferedBytes`,
+   `ReadBuffered_…`, `IParserInputSource`, `DefaultMaxRetained` and `DefaultBufferSize`,
+   `ArrayPool`, `System.IO.Stream` and `ReadOnlyMemory<byte>` overloads: zero in all five. *What no
+   diff checks:* a reader whose whole job is holding and releasing input under a retention bound —
+   D7's read-in-place, the pooling, the compaction — and the two places this file has already found
+   in it, `MoveLine`'s framework branch and `Matches`'s per-byte loop. Character streaming through
+   a window *is* covered (`TextReader` overloads are in four of five); it is the buffered and byte
+   forms that are not.
+2. **A second reading of one grammar.** `[GramOptions(Suffix = …)]` — `class Immediate`, `class
+   State`: zero. *What no diff checks:* how a second compilation of one grammar is scoped, named
+   and reached, which is what the expression language ships and what the stand times on every
+   paired run.
+3. **The lexical half.** `Lexical` is never set, so `Tokens_DotGram`, the scanner the seam asks
+   for and the whole machine over kinds: zero. *What no diff checks:* one of the three ways the
+   generator writes a way in, and the one with the largest measured effect on SQL.
+4. **Prefix tables.** `PrefixTables` defaults to on, but no snapshot grammar triggers one:
+   `Prefix_DotGram…`, zero. *What no diff checks:* a table built at generation to choose between
+   literal alternatives — built, named and indexed, with no file showing it.
+5. **Locations as an option.** `LocationType` is never set. `Located_DotGram` appears once, in
+   `Minimal`, because a recovery there asks for `parserLine`. *What no diff checks:* the per-rule
+   range offering a grammar opts into, which is a shipped feature with a measured price.
+6. **A carrier the author asked for.** No snapshot names one, so every carrier in the set is what
+   `Auto` chose. *What no diff checks:* the refusal path — a carrier asked for and not given, and
+   the parser the tape writes instead, which is where GRAM5007 and GRAM5012 are said.
+7. **The symbol resolver.** The snapshots wire the Roslyn *scanner* and leave the resolver
+   permissive. *What no diff checks:* what `@Name` compiles into when a real resolver answers,
+   which is the seam the Web package exercises and the reason it exists.
+8. **Several files out of one grammar.** `SourceFileSize` is never set and the harness asserts one
+   source. *What no diff checks:* how a divided file names and reaches what is in its other halves.
+9. **`Portable`, `Stacks`, `PartSize` at anything but their defaults**, each changing emission and
+   each with no file to read. Part *division* itself is covered — `…_Part…` is in three of five —
+   so this is the sizes, not the mechanism.
+
+**What this does not say.** None of these is untested: the buffered reader has its own tests, the
+lexical half has a package, locations have a measurement. The claim is narrower and is the one the
+architect asked for — no *diff* shows them, so a change to what they emit is reviewed by nobody,
+and a count taken off the snapshots reads as zero where the truth is "not emitted here". That is
+the shape of both of this evening's misses, and it is why the answer to "how many places does X" is
+wrong by construction when X is taken off this set.
+
+**Answer:** —
