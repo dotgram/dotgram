@@ -146,8 +146,7 @@ payload may contain separators. It comes back as one field, the data field, whos
 ```csharp
 var pairs = new FixFieldOptions(new Dictionary<int, int>
 {
-    [95]   = 96,                                  // a supplied dictionary replaces the standard one
-    [5000] = 5001,
+    [5000] = 5001,   // added to the standard's sixteen pairs, which hold and may not be redeclared
 });
 
 var fields  = FixParser.Parse(wire, pairs);

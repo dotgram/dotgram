@@ -75,7 +75,7 @@ Concatenated messages are read as one ordered field sequence.
 `FixParser.Parse` reads SOH-delimited wire input. `FixParser.ParseLog` reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
 spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
-`FixFieldOptions` configures only replacement Length/Data pairs, not the delimiter.
+`FixFieldOptions` declares length/data pairs of your own, not the delimiter.
 
 The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
 before or after a pipe belong to that separator. Spaces inside text values are
@@ -110,8 +110,7 @@ It is not included in the Finance package.
 var fields = FixParser.ParseLog("55=ABC|38=100|");
 var options = new FixFieldOptions(new Dictionary<int, int>
 {
-    [95] = 96,
-    [5000] = 5001,
+    [5000] = 5001,   // the standard's own sixteen pairs hold as well, and may not be redeclared
 });
 var custom = FixParser.ParseLog("5000=3 | 5001=a|b | ", options);
 ```
