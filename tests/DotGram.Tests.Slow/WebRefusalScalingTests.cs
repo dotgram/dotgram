@@ -23,7 +23,9 @@ namespace DotGram.Tests;
 /// with twenty-four literal characters before the brace took 3.2 seconds, and each further
 /// character doubled it. `EmailAddress.ParseList` was `ObsPhrase = WordText & (WordText | …)*`
 /// over `AtomText = Atext+`: sixteen characters before a bad `@` took 78 ms and twenty-eight took
-/// **107 seconds**. Both runs are atomic now.
+/// **107 seconds**. And `ObsRoute` repeats over `Cfws`, which repeats over
+/// `Fws = (Crlf? & Wsp)+`, so a run of folding whitespace inside angle brackets was the same
+/// shape a third time: twenty spaces, 189 ms. All three runs are atomic now.
 /// </para>
 /// <para>
 /// <strong>The budget, and why it is a budget rather than a ratio.</strong> The first version of
@@ -48,6 +50,7 @@ public sealed class WebRefusalScalingTests
 	[Theory]
 	[InlineData("a URI template whose brace never closes")]
 	[InlineData("an address list whose domain holds a space")]
+	[InlineData("an obsolete route made of folding whitespace")]
 	public async Task A_refusal_after_a_long_run_does_not_double_with_its_length(string shape)
 	{
 		var refuse = Reader(shape);
@@ -78,10 +81,12 @@ public sealed class WebRefusalScalingTests
 			$"({shorter:F0} µs against {longer:F0} µs).");
 	}
 
-	static Func<int, bool> Reader(string shape) =>
-		shape.StartsWith("a URI", StringComparison.Ordinal)
-			? length => UriTemplate.TryParse(new string('a', length) + "{unclosed", out _)
-			: length => EmailAddress.TryParseList(new string('a', length) + "@ex ample.com", out _);
+	static Func<int, bool> Reader(string shape) => shape[..8] switch
+	{
+		"a URI te" => length => UriTemplate.TryParse(new string('a', length) + "{unclosed", out _),
+		"an addre" => length => EmailAddress.TryParseList(new string('a', length) + "@ex ample.com", out _),
+		_          => length => EmailAddress.TryParseList("<" + new string(' ', length) + "@a:b@c.d", out _),
+	};
 
 	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
 	static double Best(Func<int, bool> refuse, int length)

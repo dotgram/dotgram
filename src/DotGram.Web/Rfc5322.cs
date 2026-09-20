@@ -280,8 +280,13 @@ public abstract record EmailAddress
 
 	// FWS = ([*WSP CRLF] 1*WSP) / obs-FWS, and obs-FWS = 1*([CRLF] WSP) (erratum 1908) holds the first.
 	Fws        = ObsFws
-	CurrentFws = (Wsp* & Crlf)? & Wsp+
-	ObsFws     = (Crlf? & Wsp)+
+	// Atomic for the same reason as the atoms below: folding whitespace is one run, and a run cut
+	// in two is the same folding. `Cfws` repeats over `Fws`, and `ObsRoute` repeats over `Cfws`,
+	// so without this a run of n spaces inside angle brackets can be cut many ways and a refused
+	// address tries them all — measured at twenty spaces, 189 ms, doubling about every character
+	// and a third.
+	CurrentFws = (Wsp* & Crlf)? & { Wsp+ }
+	ObsFws     = { (Crlf? & Wsp)+ }
 
 	QuotedPair = '\\' & ['!'..'~' | ' ' | '\t'] | ObsQp
 
