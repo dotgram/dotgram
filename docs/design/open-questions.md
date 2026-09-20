@@ -535,19 +535,23 @@ and no more than two or three at a time.
 Asked by the architect: walk the sources against D25 — the generator decides, the parser is a dumb
 machine — and judge two candidates on their merits rather than on his reading of them.
 
-**The test the audit was run with**, offered because it is the part that outlives this sweep. Hold
-the input and the grammar fixed and take the mechanism away. Three outcomes, and only the third is
-what D25 forbids:
+**The test the audit was run with**, offered because it is the part that outlives this sweep, and
+restated here as Igor's second wording of D25 leaves it: what the generator can settle statically it
+settles itself; a fork the user controls is lawful and the parser must read it. Hold the input, the
+grammar and what the user declared fixed, and take the mechanism away. Three outcomes, and only the
+third is forbidden:
 
-- **Housekeeping.** The steps are the same and only allocation differs: the spare parsers and the
-  `_deeper` stacks, `DeeperSpares = 3`, the retention cap, `ValueTable`'s flat prefix and pages,
-  the 1 MB ceiling on what is worth recycling. None of these can change an answer or a step. The
-  file `Support.Adaptive.cs` is named for capacity and not for strategy; it grows a table, it does
-  not choose one.
+- **Housekeeping, and the user's own declarations.** The steps are the same and only allocation
+  differs: the spare parsers and the `_deeper` stacks, `DeeperSpares = 3`, the retention cap,
+  `ValueTable`'s flat prefix and pages, the 1 MB ceiling on what is worth recycling. The file
+  `Support.Adaptive.cs` is named for capacity and not for strategy; it grows a table, it does not
+  choose one. Here too belongs a table the user declared and the machine reads, which is the user's
+  fork and not the parser's — with the standing wish that it be read off the main path: our own
+  tables first, and the user asked where they are silent.
 - **Memoization.** The answer is identical and some steps are elided, by a rule fixed in the emitted
   code. Admissible, but only while the rule is fixed at generation *and* its cost is bounded.
-- **Strategy.** Which steps are taken depends on something that is neither the input nor the
-  grammar. Out.
+- **Strategy.** Which steps are taken depends on something the user did not declare and the grammar
+  and the input do not say. Out.
 
 **Swept and clean.** No emitted code asks a type what it is, asks the hardware what it supports, or
 reads a policy out of settings: `GetType`, `IsSupported`, `IsHardwareAccelerated` and
@@ -592,11 +596,12 @@ allocation? If the retention limit is ever derived from what the parser has seen
 because inputs have been large — that is the third category and it is out; a limit that is a
 constant, or one the consumer declares (D9), is the first.
 
-**And one place where the rule and the code disagree today.** `FixGrammar.cs:62` and `:68` ask a
-consumer's `FixFieldOptions` while reading, whether a tag carries a length-and-data pair. D25 names
-exactly this and rules it out; the remedy decided with it — the consumer declares its tags where the
-grammar is, and the generator builds the arms — has not landed. Until it does, the rule is written
-and the code does otherwise. Worth knowing in that order rather than the other one.
+**And one place where the rule and the code disagreed.** `FixGrammar.cs:62` and `:68` ask a
+consumer's `FixFieldOptions` while reading, whether a tag carries a length-and-data pair. D25's first
+wording named exactly this and ruled it out; the remedy decided with it — the consumer declares its
+tags where the grammar is — could not be walked by a consumer of the package, which has no grammar
+to declare in. Igor's second wording settles it the other way: a fork the user controls is lawful
+and the parser reads it. The options stay, and nothing is broken before the release.
 
 **Answer (architect, 2026-09-19).** The chain goes to expr ahead of everything else, a failing test
 first and the fix after, and with a request to say as plainly if it does not reproduce. The
@@ -606,16 +611,43 @@ fall — data that the grammar's own guard reads is allowed, behaviour chosen at
 and a warning from finance-24 that a strict reading is a break of the public surface which gets
 dearer after 0.2.0 ships.
 
-**Two things that belong in front of that decision (critic, 2026-09-19).**
+**Decided (Igor, 2026-09-19, D25's second wording).** What the generator can settle statically it
+settles; a fork the user controls is lawful, and the parser is obliged to read it — kept off the
+main path where it can be, our own tables first and the user asked where they are silent. So
+`FixFieldOptions` stays and there is nothing to break before the release. The contradiction below
+is what the restatement removed, and the second point below — that a consumer of the package has no
+grammar to declare in — is what made the strict reading unworkable in practice, though the decision
+was taken on its own ground.
 
-- **The recommended boundary and D25's own sentence disagree about this very case.** D25 says
+**Where the new wording disagrees with the code, which is what was asked next (critic,
+2026-09-19).** One place, and it is the sentence about the main path.
+
+- **The user's table replaces ours rather than being asked where ours is silent.**
+  `FixFieldOptions.DataTag` reads `_pairs == null ? FixSchema.DataTag(tag) : _pairs.TryGetValue(…)`:
+  where the consumer supplied a dictionary, the generated table — 42 standard length/data pairs, a
+  `switch` in `FixSchema` — is not consulted at all. It is deliberate and documented ("A supplied
+  dictionary replaces it"), and it is the opposite of what the new wording asks for. It also costs
+  the consumer: adding one counterparty pair drops all 42 unless they are re-listed. `IsData` is
+  already the shape the wording wants — `FixSchema.IsData(tag) || _dataTags?.Contains(tag) == true`,
+  ours first and the user's after.
+- **And the user's fork is on the main path for every field, not off it.** The guard's first act for
+  every tag is a call into the consumer's object, which then reaches the generated `switch`; the
+  wording asks for the switch first and the consumer's table only where it says nothing. That is
+  the same edit as the first point, from the other side.
+
+Neither is a defect and both are small; they are named because the wording is new and the code is
+what it will be read against.
+
+**Two things that belonged in front of that decision, kept for the record (critic, 2026-09-19).**
+
+- **The recommended boundary and D25's first wording disagreed about this very case.** D25 said
   "asking a consumer's object, while parsing, whether a tag's field is binary is the parser deciding
   how to read, and it is out". The boundary now recommended — data a guard reads is allowed — lets
   it back in, because what `options.DataTag(tag)` returns *is* data: a table the consumer supplied,
   read by the grammar's own guard, with the machine's shape fixed at generation. The three-way test
-  above rules it out, since the table is neither the input nor the grammar. So the test and the
-  recommendation give opposite answers here, and whichever is written down should be written knowing
-  that, or the same argument arrives again on the next case.
+  ruled it out as first written, since the table is neither the input nor the grammar. The second
+  wording settles which one governs — the user's declaration is lawful — and the test's third part
+  now says "something the user did not declare", which is the same repair in one clause.
 - **The size of the break, and the part of it nobody has said.** `FixFieldOptions` is one public
   class with one public constructor; its two useful methods are `internal`; it appears as an
   *optional* parameter on ten public entry points, so every consumer who does not define custom
