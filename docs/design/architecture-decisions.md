@@ -1206,7 +1206,20 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   how to keep both properties: a repeated large parse reusing its parser, a single one not holding
   it for ever. performance-ff designs it (his suggestion: hold an oversized parser weakly), after
   the refusal's rent and before the lazy form; the scaling test is his, at the generator's level,
-  so that it fails on his own code. **A separate finding beside it:** the address list is linear in
+  so that it fails on his own code. **The design, decided:** an outsized parser is kept by a weak
+  reference per thread rather than dropped, and looked for after the strong slots. A repeated large
+  parse finds it and the cliff goes; a single one leaves it to the next collection, so no thread
+  retains anything, which is what the bound was for. Its limit is named rather than hidden: the
+  parser survives only to the next gen2, so a large parse once a minute still rebuilds — and that
+  is not the workload that hurts. Raising the constant is refused (it moves the cliff and buys the
+  move with retention), trimming on return is refused (the comment beside the constant already
+  measured that as slower), and a second bounded slot is written down as where this extends if a
+  parse ever grows so large that even a weak reference to it matters. The test is an allocation
+  ratio rather than a time: the same document parsed twice on one thread, the second parse
+  allocating a fraction of the first, with the twin below the bound to catch a regression the other
+  way. **And the stand corrected its own word for it:** three points ten times apart measure a
+  slope, not a shape, and a cliff between them reads as a square; a flagged series is now retaken
+  with points in between before its exponent is believed. **A separate finding beside it:** the address list is linear in
   memory and superlinear in time from a thousand addresses on, before any collection happens, so it
   is an algorithm and not the collector; suspected in the arena's removals, profile to come. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
