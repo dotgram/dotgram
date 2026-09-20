@@ -6129,3 +6129,11 @@ session already knew about another engine's validation was sent ahead and handed
 nothing. The readings go across platforms rather than around one, with one questionnaire each —
 the model, the API's verb and what a fault carries, and the licence read from the file — and one
 engine whose validation the existing account does not cover at all is named as the gap it is.
+
+**The three cliffs named as pending are confirmed on their own dumps**, at the same places as the
+first run: each of the four SQL rows now has flat per-unit bytes and time below its step and a
+jump of four to eleven times across it, the case-arms row seen three times and the others twice.
+**And the joins row is not one cliff but two** — a step in bytes between one pair of sizes and a
+step in time between a later pair — which a single exponent could never have shown and which the
+shape column separates only because it prints both quantities. Nothing changes class, and the guard
+is untouched.
