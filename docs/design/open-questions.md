@@ -2190,3 +2190,66 @@ readings and D26 all stand. And one thing improved: `QuickFIXn.FIX44` carries
 `DataDictionary/FIX44.xml` itself, so the dictionary arrives with the reference and no file of
 theirs enters the repository — the question this file raised about their text is answered by the
 package.
+
+## Q23 (2026-09-20). The outward sweep, actually outward this time — and one fact that settles a deferred question
+
+**First, a correction about this file.** The standing work Igor set is "a sweep of the literature and
+of other people's parsers … the outward half: what has been published or built elsewhere that would
+pay here". Q11 and Q13 are titled "the outward sweep, first three" and "the sweep's second three",
+and **neither read anything outside this repository**. They were audits of our own tree, and useful
+as that, but the title said one thing and the contents another — the mislabel this file has spent
+two days catching in other people's work. This entry is the first one that went outside.
+
+**1. `SearchValues<string>` is net9.0, and this settles what Q14 refused to swear to.** Read off the
+API reference, as D40 required — "the sources disagree about which of them carried
+`SearchValues<string>`, and it decides which bucket the keyword work lands in. To be read off the
+API reference before anything is built, not off a blog and not off this file."
+
+| overload | applies to |
+| --- | --- |
+| `SearchValues.Create(ReadOnlySpan<byte>)` | net8.0, net9.0, net10.0, net11.0 |
+| `SearchValues.Create(ReadOnlySpan<char>)` | net8.0, net9.0, net10.0, net11.0 |
+| `SearchValues.Create(ReadOnlySpan<string>, StringComparison)` | **net9.0**, net10.0, net11.0 |
+
+So D40's "a later bucket — net9.0 or net10.0 — for recognising a keyword from a span without making
+a string" is **net9.0**, and the third bucket's floor is settled. Two details that matter for us
+beyond the version: the string overload takes `StringComparison` and accepts **`Ordinal` or
+`OrdinalIgnoreCase` only**, which is exactly the comparison a keyword list wants and exactly the one
+`Machine.cs` already chose for a single literal; and the byte and char overloads being net8.0 means
+D40's first bucket needs no revision. *Source:* the `SearchValues.Create` reference page, moniker
+ranges per overload.
+
+**2. A floor-side answer to the seam, from someone who measured it.** "Beating the fastest lexer
+generator in Rust" (alic.dev) reports 20–35% over `logos` on an M1 — 118,476 ns against 174,476 on
+synthetic input, 89,151 against 108,257 on real code — from three things, of which two are already
+ours and one is not. Ours: a keyword compared as a machine word rather than character by character,
+which is what `Machine.cs`'s own comment describes for a literal; and an ASCII fast path, which is
+D39. Not ours: **replacing the skip loop's table lookup with a word-at-a-time comparison**, which
+the author puts as substituting a control dependency for the jump table's data dependency. *Where
+it touches:* the 58 seam places the reader's gate found — and pointedly the **floor** branch there,
+which D20 forbids to regress and which keeps its per-character loop when the capable branch takes
+`IndexOfAnyExcept`. This is the only candidate anyone has named for making that loop faster without
+an API. *The caveat, stated because the article does not:* it is aarch64, it is Rust, its gain
+shrinks on realistic input by its own numbers, and its cleanest case is a star over **one**
+character, where SQL's trivia is a braced set holding spacing and two comment forms. What transfers
+is the word-at-a-time idea, not the measurement. *The number it would have to beat:* the floor
+branch of the seam, per family, which D40's pair can take once it exists.
+
+**3. Recovery sets computed rather than written, and it is a language question, not a generator
+one.** `lelwel`, a resilient LL(1) generator for Rust, computes each rule's recovery set
+automatically — the follow sets of the dominators in the rule graph — where our `recover` clause is
+written by the grammar's author and names its own token (`recover ';'`, `recover eol`). The
+machinery it needs we have: the graph, the follow sets, the dominator relation is one pass over
+them. *Where it touches:* `recover`, which is `syntax.md`, so it goes to Igor through the architect
+before a line is written, and it is raised here as a question and not a proposal. *The question it
+answers:* whether a `recover` that names nothing could be as good as one that names a token, which
+is worth knowing before the editor side asks for recovery everywhere.
+
+**And one refused, with its reason, because a rejected item saves the next reader.** Pika parsing
+reformulates packrat as dynamic programming and solves left recursion and error recovery together.
+It is refused here on our own numbers rather than on its merits: Q13 already priced memoizing a
+rule's refusal against the recognition anatomy — 1,381 refusals of 2,023 rule calls, each on the
+first token, so each costs a call and a test where a memo table costs a hash and a write. A
+formulation that memoizes *everything* is further from our shape, not nearer it.
+
+**Answer:** —
