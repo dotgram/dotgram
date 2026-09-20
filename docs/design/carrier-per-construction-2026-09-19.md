@@ -206,8 +206,11 @@ of the corpus, 7,716 statements:
 | walks whose every record is in a settled subtree | 174 (1.0%), holding 197 records (0.17%) |
 
 **The last row is the weighting.** Materialization is paid twice over: per record, in the arm that
-builds it — the larger part in the anatomy, 46% of a SQL:2023 parse against the walk's 30% — and per
-walk, in the setup each one pays. Step 2 takes the record's cost off 3.5% of the records. It takes a
+builds it, and per walk, in the setup each one pays. Which of the two weighs more depends on the
+build: in the anatomy of the morning of 2026-09-19, before the arms' prologue was taken out, the
+record carried the larger part — 46% of a SQL:2023 parse against the walk's 30% — and in the anatomy
+of that evening, with the prologue gone, a record costs 6.0 ns and a walk 27.8 (below). Both
+readings are of this document's subject, and neither is true of the other's build. Step 2 takes the record's cost off 3.5% of the records. It takes a
 walk's setup off almost nothing: a walk that keeps one taped record keeps all of its setup, and only
 0.17% of the records sit in walks that would go entirely. So the weighted share is a shade below the
 unweighted 3.5%, not above it, and the unweighted 0.7–1.2% of a parse is an upper bound rather than
@@ -222,7 +225,10 @@ these travel as an estimate and not as a measurement of T-SQL.
 Carried to T-SQL's own counts, materialization over a corpus round is 116,946 × 6.0 + 17,023 × 27.8
 = about 1.18 ms, of which the records are 60% and the walks 40%. What step 2 could take off it is
 4,130 × 6.0 + 174 × 27.8 = 29.6 µs, **2.5% of materialization**; at the 0.3–0.5 a construction saves
-built in place, **0.8–1.3% of what materializing costs**, and under half a per cent of a parse.
+built in place, **0.8–1.3% of what materializing costs**. As a share of a whole T-SQL parse that is
+under half a per cent, reached through the Q4.2 profile's 46% — which was measured before the three
+commits that took the prologue out, so materialization is a smaller part of a parse now and the
+figure is if anything smaller than this.
 
 **The shelving is final under this cost model, and the lever has moved.** Step 2 was worth one to
 two per cent when a record carried the arms' prologue; it is worth less now that the prologue is
