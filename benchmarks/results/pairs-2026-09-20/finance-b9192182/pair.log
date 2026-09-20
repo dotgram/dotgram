@@ -1,0 +1,387 @@
+=== run 1 of 5, 03:15:17
+24 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       74.1 ns before       79.5 ns after       77.8 ns  before/hand 1.07x  after/hand 1.05x
+fix/One.bytes          hand       75.3 ns before       94.9 ns after       95.9 ns  before/hand 1.26x  after/hand 1.27x
+fix/One.stream         hand      150.4 ns before      328.5 ns after      334.5 ns  before/hand 2.18x  after/hand 2.22x
+  fix/Order.text: 2 round(s) redone after a gen1/gen2 collection
+fix/Order.text         hand      687.6 ns before      673.5 ns after      642.0 ns  before/hand 0.98x  after/hand 0.93x
+fix/Order.bytes        hand      703.0 ns before      755.8 ns after      740.6 ns  before/hand 1.08x  after/hand 1.05x
+fix/Order.stream       hand      847.7 ns before     1086.3 ns after     1067.0 ns  before/hand 1.28x  after/hand 1.26x
+fix/slope-16.text      hand      916.0 ns before      811.9 ns after      761.1 ns  before/hand 0.89x  after/hand 0.83x
+fix/Order.span         hand      692.0 ns before      547.3 ns after      513.4 ns  before/hand 0.79x  after/hand 0.74x
+fix/One.log-text       hand       82.2 ns before       84.3 ns after       86.3 ns  before/hand 1.03x  after/hand 1.05x
+fix/One.log-bytes      hand       83.2 ns before      112.9 ns after      105.3 ns  before/hand 1.36x  after/hand 1.27x
+  fix/One.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/One.log-stream     hand       84.4 ns before      359.8 ns after      365.7 ns  before/hand 4.26x  after/hand 4.33x
+fix/Order.log-text     hand      765.4 ns before      685.8 ns after      652.5 ns  before/hand 0.90x  after/hand 0.85x
+fix/Order.log-bytes    hand      728.6 ns before      874.2 ns after      828.2 ns  before/hand 1.20x  after/hand 1.14x
+  fix/Order.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-stream   hand      768.4 ns before     1245.8 ns after     1196.3 ns  before/hand 1.62x  after/hand 1.56x
+  fix/One.yield-reader: 32 round(s) redone after a gen1/gen2 collection
+fix/One.yield-reader   hand      211.3 ns before      364.4 ns after      347.7 ns  before/hand 1.72x  after/hand 1.65x
+fix/One.yield-string   hand       78.2 ns before      229.0 ns after      221.3 ns  before/hand 2.93x  after/hand 2.83x
+fix/One.yield-memory   hand       80.2 ns before      127.3 ns after      120.7 ns  before/hand 1.59x  after/hand 1.50x
+  fix/One.whole-stream: 5 round(s) redone after a gen1/gen2 collection
+fix/One.whole-stream   hand      159.1 ns before      222.3 ns after      224.1 ns  before/hand 1.40x  after/hand 1.41x
+  fix/One.whole-reader: 5 round(s) redone after a gen1/gen2 collection
+fix/One.whole-reader   hand      155.4 ns before      228.8 ns after      236.0 ns  before/hand 1.47x  after/hand 1.52x
+  fix/Order.yield-reader: 5 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-reader hand      902.1 ns before     1157.3 ns after     1080.9 ns  before/hand 1.28x  after/hand 1.20x
+fix/Order.yield-string hand      679.6 ns before     2158.1 ns after     2095.7 ns  before/hand 3.18x  after/hand 3.08x
+fix/Order.yield-memory hand      691.4 ns before      802.2 ns after      786.0 ns  before/hand 1.16x  after/hand 1.14x
+fix/Order.whole-stream hand      888.5 ns before      969.8 ns after      921.4 ns  before/hand 1.09x  after/hand 1.04x
+  fix/Order.whole-reader: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-reader hand      878.2 ns before      946.7 ns after      921.6 ns  before/hand 1.08x  after/hand 1.05x
+
+# Paired stand, 2026-09-20 03:16
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 74.1 | 79.5 | 1.07x | 77.8 | 1.05x | -2.2% | 192 | 192 |
+| fix/One.bytes | generated | hand | 75.3 | 94.9 | 1.26x | 95.9 | 1.27x | +1.0% | 248 | 248 |
+| fix/One.stream | generated | hand | 150.4 | 328.5 | 2.18x | 334.5 | 2.22x | +1.8% | 888 | 888 |
+| fix/Order.text | generated | hand | 687.6 | 673.5 | 0.98x | 642.0 | 0.93x | -4.7% | 1096 | 1096 |
+| fix/Order.bytes | generated | hand | 703.0 | 755.8 | 1.08x | 740.6 | 1.05x | -2.0% | 1152 | 1152 |
+| fix/Order.stream | generated | hand | 847.7 | 1086.3 | 1.28x | 1067.0 | 1.26x | -1.8% | 1712 | 1712 |
+| fix/slope-16.text | generated | hand | 916.0 | 811.9 | 0.89x | 761.1 | 0.83x | -6.3% | 1752 | 1752 |
+| fix/Order.span | generated | hand | 692.0 | 547.3 | 0.79x | 513.4 | 0.74x | -6.2% | 1008 | 1008 |
+| fix/One.log-text | generated | hand | 82.2 | 84.3 | 1.03x | 86.3 | 1.05x | +2.3% | 192 | 192 |
+| fix/One.log-bytes | generated | hand | 83.2 | 112.9 | 1.36x | 105.3 | 1.27x | -6.7% | 248 | 248 |
+| fix/One.log-stream | generated | hand | 84.4 | 359.8 | 4.26x | 365.7 | 4.33x | +1.6% | 888 | 888 |
+| fix/Order.log-text | generated | hand | 765.4 | 685.8 | 0.90x | 652.5 | 0.85x | -4.9% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | hand | 728.6 | 874.2 | 1.20x | 828.2 | 1.14x | -5.3% | 1152 | 1152 |
+| fix/Order.log-stream | generated | hand | 768.4 | 1245.8 | 1.62x | 1196.3 | 1.56x | -4.0% | 1712 | 1712 |
+| fix/One.yield-reader | generated | hand | 211.3 | 364.4 | 1.72x | 347.7 | 1.65x | -4.6% | 856 | 856 |
+| fix/One.yield-string | generated | hand | 78.2 | 229.0 | 2.93x | 221.3 | 2.83x | -3.4% | 272 | 272 |
+| fix/One.yield-memory | generated | hand | 80.2 | 127.3 | 1.59x | 120.7 | 1.50x | -5.2% | 352 | 352 |
+| fix/One.whole-stream | generated | hand | 159.1 | 222.3 | 1.40x | 224.1 | 1.41x | +0.8% | 448 | 448 |
+| fix/One.whole-reader | generated | hand | 155.4 | 228.8 | 1.47x | 236.0 | 1.52x | +3.2% | 416 | 416 |
+| fix/Order.yield-reader | generated | hand | 902.1 | 1157.3 | 1.28x | 1080.9 | 1.20x | -6.6% | 1680 | 1680 |
+| fix/Order.yield-string | generated | hand | 679.6 | 2158.1 | 3.18x | 2095.7 | 3.08x | -2.9% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | hand | 691.4 | 802.2 | 1.16x | 786.0 | 1.14x | -2.0% | 1176 | 1176 |
+| fix/Order.whole-stream | generated | hand | 888.5 | 969.8 | 1.09x | 921.4 | 1.04x | -5.0% | 1352 | 1352 |
+| fix/Order.whole-reader | generated | hand | 878.2 | 946.7 | 1.08x | 921.6 | 1.05x | -2.7% | 1320 | 1320 |
+
+Written to T:\TEMP\dotgram-stand\w81\pair\run-1
+=== run 2 of 5, 03:16:33
+24 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       73.9 ns before       81.1 ns after       79.8 ns  before/hand 1.10x  after/hand 1.08x
+fix/One.bytes          hand       77.6 ns before      100.0 ns after       98.3 ns  before/hand 1.29x  after/hand 1.27x
+fix/One.stream         hand      145.5 ns before      349.5 ns after      341.0 ns  before/hand 2.40x  after/hand 2.34x
+  fix/Order.text: 2 round(s) redone after a gen1/gen2 collection
+fix/Order.text         hand      703.5 ns before      674.4 ns after      647.2 ns  before/hand 0.96x  after/hand 0.92x
+fix/Order.bytes        hand      711.2 ns before      753.0 ns after      757.9 ns  before/hand 1.06x  after/hand 1.07x
+fix/Order.stream       hand      844.0 ns before     1105.9 ns after     1081.3 ns  before/hand 1.31x  after/hand 1.28x
+  fix/slope-16.text: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-16.text      hand      922.4 ns before      857.9 ns after      786.6 ns  before/hand 0.93x  after/hand 0.85x
+fix/Order.span         hand      668.3 ns before      514.1 ns after      511.3 ns  before/hand 0.77x  after/hand 0.77x
+fix/One.log-text       hand       84.1 ns before       88.1 ns after       85.7 ns  before/hand 1.05x  after/hand 1.02x
+fix/One.log-bytes      hand       85.0 ns before      108.7 ns after      106.4 ns  before/hand 1.28x  after/hand 1.25x
+  fix/One.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/One.log-stream     hand       84.8 ns before      408.9 ns after      350.4 ns  before/hand 4.82x  after/hand 4.13x
+fix/Order.log-text     hand      741.8 ns before      658.0 ns after      668.0 ns  before/hand 0.89x  after/hand 0.90x
+fix/Order.log-bytes    hand      742.7 ns before      863.8 ns after      854.2 ns  before/hand 1.16x  after/hand 1.15x
+fix/Order.log-stream   hand      740.5 ns before     1238.0 ns after     1185.8 ns  before/hand 1.67x  after/hand 1.60x
+  fix/One.yield-reader: 32 round(s) redone after a gen1/gen2 collection
+fix/One.yield-reader   hand      190.2 ns before      349.1 ns after      341.6 ns  before/hand 1.84x  after/hand 1.80x
+fix/One.yield-string   hand       79.7 ns before      237.3 ns after      234.3 ns  before/hand 2.98x  after/hand 2.94x
+fix/One.yield-memory   hand       79.4 ns before      126.0 ns after      120.9 ns  before/hand 1.59x  after/hand 1.52x
+  fix/One.whole-stream: 24 round(s) redone after a gen1/gen2 collection
+fix/One.whole-stream   hand      145.5 ns before      223.7 ns after      217.5 ns  before/hand 1.54x  after/hand 1.49x
+  fix/One.whole-reader: 24 round(s) redone after a gen1/gen2 collection
+fix/One.whole-reader   hand      144.8 ns before      244.1 ns after      229.3 ns  before/hand 1.69x  after/hand 1.58x
+  fix/Order.yield-reader: 4 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-reader hand      873.1 ns before     1076.3 ns after     1110.5 ns  before/hand 1.23x  after/hand 1.27x
+fix/Order.yield-string hand      696.1 ns before     2208.6 ns after     2225.9 ns  before/hand 3.17x  after/hand 3.20x
+fix/Order.yield-memory hand      691.4 ns before      788.2 ns after      773.5 ns  before/hand 1.14x  after/hand 1.12x
+  fix/Order.whole-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-stream hand      827.1 ns before      906.8 ns after      897.0 ns  before/hand 1.10x  after/hand 1.08x
+  fix/Order.whole-reader: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-reader hand      820.7 ns before      903.8 ns after      936.8 ns  before/hand 1.10x  after/hand 1.14x
+
+# Paired stand, 2026-09-20 03:17
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.6 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 73.9 | 81.1 | 1.10x | 79.8 | 1.08x | -1.6% | 192 | 192 |
+| fix/One.bytes | generated | hand | 77.6 | 100.0 | 1.29x | 98.3 | 1.27x | -1.7% | 248 | 248 |
+| fix/One.stream | generated | hand | 145.5 | 349.5 | 2.40x | 341.0 | 2.34x | -2.4% | 888 | 888 |
+| fix/Order.text | generated | hand | 703.5 | 674.4 | 0.96x | 647.2 | 0.92x | -4.0% | 1096 | 1096 |
+| fix/Order.bytes | generated | hand | 711.2 | 753.0 | 1.06x | 757.9 | 1.07x | +0.6% | 1152 | 1152 |
+| fix/Order.stream | generated | hand | 844.0 | 1105.9 | 1.31x | 1081.3 | 1.28x | -2.2% | 1712 | 1712 |
+| fix/slope-16.text | generated | hand | 922.4 | 857.9 | 0.93x | 786.6 | 0.85x | -8.3% | 1752 | 1752 |
+| fix/Order.span | generated | hand | 668.3 | 514.1 | 0.77x | 511.3 | 0.77x | -0.5% | 1008 | 1008 |
+| fix/One.log-text | generated | hand | 84.1 | 88.1 | 1.05x | 85.7 | 1.02x | -2.7% | 192 | 192 |
+| fix/One.log-bytes | generated | hand | 85.0 | 108.7 | 1.28x | 106.4 | 1.25x | -2.1% | 248 | 248 |
+| fix/One.log-stream | generated | hand | 84.8 | 408.9 | 4.82x | 350.4 | 4.13x | -14.3% | 888 | 888 |
+| fix/Order.log-text | generated | hand | 741.8 | 658.0 | 0.89x | 668.0 | 0.90x | +1.5% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | hand | 742.7 | 863.8 | 1.16x | 854.2 | 1.15x | -1.1% | 1152 | 1152 |
+| fix/Order.log-stream | generated | hand | 740.5 | 1238.0 | 1.67x | 1185.8 | 1.60x | -4.2% | 1712 | 1712 |
+| fix/One.yield-reader | generated | hand | 190.2 | 349.1 | 1.84x | 341.6 | 1.80x | -2.1% | 856 | 856 |
+| fix/One.yield-string | generated | hand | 79.7 | 237.3 | 2.98x | 234.3 | 2.94x | -1.3% | 272 | 272 |
+| fix/One.yield-memory | generated | hand | 79.4 | 126.0 | 1.59x | 120.9 | 1.52x | -4.0% | 352 | 352 |
+| fix/One.whole-stream | generated | hand | 145.5 | 223.7 | 1.54x | 217.5 | 1.49x | -2.8% | 448 | 448 |
+| fix/One.whole-reader | generated | hand | 144.8 | 244.1 | 1.69x | 229.3 | 1.58x | -6.1% | 416 | 416 |
+| fix/Order.yield-reader | generated | hand | 873.1 | 1076.3 | 1.23x | 1110.5 | 1.27x | +3.2% | 1680 | 1680 |
+| fix/Order.yield-string | generated | hand | 696.1 | 2208.6 | 3.17x | 2225.9 | 3.20x | +0.8% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | hand | 691.4 | 788.2 | 1.14x | 773.5 | 1.12x | -1.9% | 1176 | 1176 |
+| fix/Order.whole-stream | generated | hand | 827.1 | 906.8 | 1.10x | 897.0 | 1.08x | -1.1% | 1352 | 1352 |
+| fix/Order.whole-reader | generated | hand | 820.7 | 903.8 | 1.10x | 936.8 | 1.14x | +3.6% | 1320 | 1320 |
+
+Written to T:\TEMP\dotgram-stand\w81\pair\run-2
+=== run 3 of 5, 03:17:58
+24 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       74.9 ns before       79.4 ns after       79.5 ns  before/hand 1.06x  after/hand 1.06x
+fix/One.bytes          hand       75.1 ns before       96.9 ns after       96.4 ns  before/hand 1.29x  after/hand 1.28x
+fix/One.stream         hand      151.5 ns before      343.0 ns after      343.1 ns  before/hand 2.26x  after/hand 2.26x
+  fix/Order.text: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.text         hand      702.0 ns before      640.2 ns after      634.9 ns  before/hand 0.91x  after/hand 0.90x
+fix/Order.bytes        hand      677.7 ns before      737.6 ns after      752.7 ns  before/hand 1.09x  after/hand 1.11x
+fix/Order.stream       hand      803.4 ns before     1098.3 ns after     1080.8 ns  before/hand 1.37x  after/hand 1.35x
+fix/slope-16.text      hand      924.1 ns before      812.7 ns after      765.0 ns  before/hand 0.88x  after/hand 0.83x
+fix/Order.span         hand      690.3 ns before      509.3 ns after      494.0 ns  before/hand 0.74x  after/hand 0.72x
+fix/One.log-text       hand       82.9 ns before       84.3 ns after       84.5 ns  before/hand 1.02x  after/hand 1.02x
+fix/One.log-bytes      hand       82.9 ns before      129.0 ns after      104.9 ns  before/hand 1.56x  after/hand 1.26x
+  fix/One.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/One.log-stream     hand       83.6 ns before      358.6 ns after      355.7 ns  before/hand 4.29x  after/hand 4.25x
+fix/Order.log-text     hand      797.6 ns before      676.8 ns after      653.9 ns  before/hand 0.85x  after/hand 0.82x
+fix/Order.log-bytes    hand      782.4 ns before      973.5 ns after      849.1 ns  before/hand 1.24x  after/hand 1.09x
+  fix/Order.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-stream   hand      770.6 ns before     1244.8 ns after     1240.4 ns  before/hand 1.62x  after/hand 1.61x
+  fix/One.yield-reader: 32 round(s) redone after a gen1/gen2 collection
+fix/One.yield-reader   hand      213.7 ns before      373.0 ns after      351.6 ns  before/hand 1.75x  after/hand 1.65x
+fix/One.yield-string   hand       79.1 ns before      222.7 ns after      228.5 ns  before/hand 2.81x  after/hand 2.89x
+fix/One.yield-memory   hand       80.9 ns before      125.8 ns after      123.9 ns  before/hand 1.55x  after/hand 1.53x
+  fix/One.whole-stream: 5 round(s) redone after a gen1/gen2 collection
+fix/One.whole-stream   hand      155.4 ns before      224.6 ns after      223.6 ns  before/hand 1.45x  after/hand 1.44x
+  fix/One.whole-reader: 5 round(s) redone after a gen1/gen2 collection
+fix/One.whole-reader   hand      158.1 ns before      236.2 ns after      234.3 ns  before/hand 1.49x  after/hand 1.48x
+  fix/Order.yield-reader: 5 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-reader hand      923.4 ns before     1170.7 ns after     1091.5 ns  before/hand 1.27x  after/hand 1.18x
+fix/Order.yield-string hand      741.3 ns before     2231.1 ns after     2207.2 ns  before/hand 3.01x  after/hand 2.98x
+fix/Order.yield-memory hand      729.3 ns before      863.3 ns after      809.6 ns  before/hand 1.18x  after/hand 1.11x
+  fix/Order.whole-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-stream hand      833.7 ns before      926.7 ns after      947.9 ns  before/hand 1.11x  after/hand 1.14x
+  fix/Order.whole-reader: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-reader hand      845.1 ns before      961.4 ns after      933.5 ns  before/hand 1.14x  after/hand 1.10x
+
+# Paired stand, 2026-09-20 03:19
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 74.9 | 79.4 | 1.06x | 79.5 | 1.06x | +0.1% | 192 | 192 |
+| fix/One.bytes | generated | hand | 75.1 | 96.9 | 1.29x | 96.4 | 1.28x | -0.5% | 248 | 248 |
+| fix/One.stream | generated | hand | 151.5 | 343.0 | 2.26x | 343.1 | 2.26x | 0.0% | 888 | 888 |
+| fix/Order.text | generated | hand | 702.0 | 640.2 | 0.91x | 634.9 | 0.90x | -0.8% | 1096 | 1096 |
+| fix/Order.bytes | generated | hand | 677.7 | 737.6 | 1.09x | 752.7 | 1.11x | +2.0% | 1152 | 1152 |
+| fix/Order.stream | generated | hand | 803.4 | 1098.3 | 1.37x | 1080.8 | 1.35x | -1.6% | 1712 | 1712 |
+| fix/slope-16.text | generated | hand | 924.1 | 812.7 | 0.88x | 765.0 | 0.83x | -5.9% | 1752 | 1752 |
+| fix/Order.span | generated | hand | 690.3 | 509.3 | 0.74x | 494.0 | 0.72x | -3.0% | 1008 | 1008 |
+| fix/One.log-text | generated | hand | 82.9 | 84.3 | 1.02x | 84.5 | 1.02x | +0.2% | 192 | 192 |
+| fix/One.log-bytes | generated | hand | 82.9 | 129.0 | 1.56x | 104.9 | 1.26x | -18.7% | 248 | 248 |
+| fix/One.log-stream | generated | hand | 83.6 | 358.6 | 4.29x | 355.7 | 4.25x | -0.8% | 888 | 888 |
+| fix/Order.log-text | generated | hand | 797.6 | 676.8 | 0.85x | 653.9 | 0.82x | -3.4% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | hand | 782.4 | 973.5 | 1.24x | 849.1 | 1.09x | -12.8% | 1152 | 1152 |
+| fix/Order.log-stream | generated | hand | 770.6 | 1244.8 | 1.62x | 1240.4 | 1.61x | -0.4% | 1712 | 1712 |
+| fix/One.yield-reader | generated | hand | 213.7 | 373.0 | 1.75x | 351.6 | 1.65x | -5.7% | 856 | 856 |
+| fix/One.yield-string | generated | hand | 79.1 | 222.7 | 2.81x | 228.5 | 2.89x | +2.6% | 272 | 272 |
+| fix/One.yield-memory | generated | hand | 80.9 | 125.8 | 1.55x | 123.9 | 1.53x | -1.6% | 352 | 352 |
+| fix/One.whole-stream | generated | hand | 155.4 | 224.6 | 1.45x | 223.6 | 1.44x | -0.4% | 448 | 448 |
+| fix/One.whole-reader | generated | hand | 158.1 | 236.2 | 1.49x | 234.3 | 1.48x | -0.8% | 416 | 416 |
+| fix/Order.yield-reader | generated | hand | 923.4 | 1170.7 | 1.27x | 1091.5 | 1.18x | -6.8% | 1680 | 1680 |
+| fix/Order.yield-string | generated | hand | 741.3 | 2231.1 | 3.01x | 2207.2 | 2.98x | -1.1% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | hand | 729.3 | 863.3 | 1.18x | 809.6 | 1.11x | -6.2% | 1176 | 1176 |
+| fix/Order.whole-stream | generated | hand | 833.7 | 926.7 | 1.11x | 947.9 | 1.14x | +2.3% | 1352 | 1352 |
+| fix/Order.whole-reader | generated | hand | 845.1 | 961.4 | 1.14x | 933.5 | 1.10x | -2.9% | 1320 | 1320 |
+
+Written to T:\TEMP\dotgram-stand\w81\pair\run-3
+=== run 4 of 5, 03:19:16
+24 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       75.3 ns before       80.8 ns after       78.2 ns  before/hand 1.07x  after/hand 1.04x
+fix/One.bytes          hand       79.7 ns before       97.3 ns after       98.0 ns  before/hand 1.22x  after/hand 1.23x
+fix/One.stream         hand      150.2 ns before      333.2 ns after      340.3 ns  before/hand 2.22x  after/hand 2.27x
+  fix/Order.text: 2 round(s) redone after a gen1/gen2 collection
+fix/Order.text         hand      707.9 ns before      645.8 ns after      641.5 ns  before/hand 0.91x  after/hand 0.91x
+fix/Order.bytes        hand      682.4 ns before      766.4 ns after      772.9 ns  before/hand 1.12x  after/hand 1.13x
+fix/Order.stream       hand      828.5 ns before     1113.7 ns after     1105.2 ns  before/hand 1.34x  after/hand 1.33x
+fix/slope-16.text      hand      952.9 ns before      812.4 ns after      779.5 ns  before/hand 0.85x  after/hand 0.82x
+fix/Order.span         hand      726.9 ns before      509.2 ns after      496.3 ns  before/hand 0.70x  after/hand 0.68x
+fix/One.log-text       hand       83.2 ns before       84.4 ns after       89.6 ns  before/hand 1.01x  after/hand 1.08x
+fix/One.log-bytes      hand       84.3 ns before      109.3 ns after      107.2 ns  before/hand 1.30x  after/hand 1.27x
+  fix/One.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/One.log-stream     hand       84.2 ns before      390.7 ns after      356.4 ns  before/hand 4.64x  after/hand 4.23x
+fix/Order.log-text     hand      773.1 ns before      663.1 ns after      643.5 ns  before/hand 0.86x  after/hand 0.83x
+fix/Order.log-bytes    hand      775.3 ns before      873.2 ns after      846.6 ns  before/hand 1.13x  after/hand 1.09x
+  fix/Order.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-stream   hand      755.9 ns before     1247.1 ns after     1212.8 ns  before/hand 1.65x  after/hand 1.60x
+  fix/One.yield-reader: 32 round(s) redone after a gen1/gen2 collection
+fix/One.yield-reader   hand      206.7 ns before      362.4 ns after      357.1 ns  before/hand 1.75x  after/hand 1.73x
+fix/One.yield-string   hand       82.6 ns before      240.6 ns after      221.9 ns  before/hand 2.91x  after/hand 2.69x
+fix/One.yield-memory   hand       80.5 ns before      124.6 ns after      122.2 ns  before/hand 1.55x  after/hand 1.52x
+  fix/One.whole-stream: 22 round(s) redone after a gen1/gen2 collection
+fix/One.whole-stream   hand      149.3 ns before      228.2 ns after      226.9 ns  before/hand 1.53x  after/hand 1.52x
+  fix/One.whole-reader: 24 round(s) redone after a gen1/gen2 collection
+fix/One.whole-reader   hand      150.1 ns before      238.0 ns after      235.4 ns  before/hand 1.58x  after/hand 1.57x
+  fix/Order.yield-reader: 4 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-reader hand      908.0 ns before     1087.4 ns after     1093.2 ns  before/hand 1.20x  after/hand 1.20x
+fix/Order.yield-string hand      716.7 ns before     2223.0 ns after     2091.6 ns  before/hand 3.10x  after/hand 2.92x
+fix/Order.yield-memory hand      696.3 ns before      796.9 ns after      797.7 ns  before/hand 1.14x  after/hand 1.15x
+  fix/Order.whole-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-stream hand      829.9 ns before      902.2 ns after      903.7 ns  before/hand 1.09x  after/hand 1.09x
+  fix/Order.whole-reader: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-reader hand      824.1 ns before      943.1 ns after      909.8 ns  before/hand 1.14x  after/hand 1.10x
+
+# Paired stand, 2026-09-20 03:20
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 75.3 | 80.8 | 1.07x | 78.2 | 1.04x | -3.2% | 192 | 192 |
+| fix/One.bytes | generated | hand | 79.7 | 97.3 | 1.22x | 98.0 | 1.23x | +0.8% | 248 | 248 |
+| fix/One.stream | generated | hand | 150.2 | 333.2 | 2.22x | 340.3 | 2.27x | +2.1% | 888 | 888 |
+| fix/Order.text | generated | hand | 707.9 | 645.8 | 0.91x | 641.5 | 0.91x | -0.7% | 1096 | 1096 |
+| fix/Order.bytes | generated | hand | 682.4 | 766.4 | 1.12x | 772.9 | 1.13x | +0.8% | 1152 | 1152 |
+| fix/Order.stream | generated | hand | 828.5 | 1113.7 | 1.34x | 1105.2 | 1.33x | -0.8% | 1712 | 1712 |
+| fix/slope-16.text | generated | hand | 952.9 | 812.4 | 0.85x | 779.5 | 0.82x | -4.0% | 1752 | 1752 |
+| fix/Order.span | generated | hand | 726.9 | 509.2 | 0.70x | 496.3 | 0.68x | -2.5% | 1008 | 1008 |
+| fix/One.log-text | generated | hand | 83.2 | 84.4 | 1.01x | 89.6 | 1.08x | +6.2% | 192 | 192 |
+| fix/One.log-bytes | generated | hand | 84.3 | 109.3 | 1.30x | 107.2 | 1.27x | -1.8% | 248 | 248 |
+| fix/One.log-stream | generated | hand | 84.2 | 390.7 | 4.64x | 356.4 | 4.23x | -8.8% | 888 | 888 |
+| fix/Order.log-text | generated | hand | 773.1 | 663.1 | 0.86x | 643.5 | 0.83x | -3.0% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | hand | 775.3 | 873.2 | 1.13x | 846.6 | 1.09x | -3.0% | 1152 | 1152 |
+| fix/Order.log-stream | generated | hand | 755.9 | 1247.1 | 1.65x | 1212.8 | 1.60x | -2.7% | 1712 | 1712 |
+| fix/One.yield-reader | generated | hand | 206.7 | 362.4 | 1.75x | 357.1 | 1.73x | -1.5% | 856 | 856 |
+| fix/One.yield-string | generated | hand | 82.6 | 240.6 | 2.91x | 221.9 | 2.69x | -7.8% | 272 | 272 |
+| fix/One.yield-memory | generated | hand | 80.5 | 124.6 | 1.55x | 122.2 | 1.52x | -2.0% | 352 | 352 |
+| fix/One.whole-stream | generated | hand | 149.3 | 228.2 | 1.53x | 226.9 | 1.52x | -0.5% | 448 | 448 |
+| fix/One.whole-reader | generated | hand | 150.1 | 238.0 | 1.58x | 235.4 | 1.57x | -1.1% | 416 | 416 |
+| fix/Order.yield-reader | generated | hand | 908.0 | 1087.4 | 1.20x | 1093.2 | 1.20x | +0.5% | 1680 | 1680 |
+| fix/Order.yield-string | generated | hand | 716.7 | 2223.0 | 3.10x | 2091.6 | 2.92x | -5.9% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | hand | 696.3 | 796.9 | 1.14x | 797.7 | 1.15x | +0.1% | 1176 | 1176 |
+| fix/Order.whole-stream | generated | hand | 829.9 | 902.2 | 1.09x | 903.7 | 1.09x | +0.2% | 1352 | 1352 |
+| fix/Order.whole-reader | generated | hand | 824.1 | 943.1 | 1.14x | 909.8 | 1.10x | -3.5% | 1320 | 1320 |
+
+Written to T:\TEMP\dotgram-stand\w81\pair\run-4
+=== run 5 of 5, 03:20:38
+24 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       73.6 ns before       78.2 ns after       78.2 ns  before/hand 1.06x  after/hand 1.06x
+fix/One.bytes          hand       76.0 ns before       98.3 ns after      100.0 ns  before/hand 1.29x  after/hand 1.32x
+fix/One.stream         hand      146.3 ns before      325.4 ns after      347.9 ns  before/hand 2.22x  after/hand 2.38x
+  fix/Order.text: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.text         hand      674.0 ns before      666.8 ns after      649.3 ns  before/hand 0.99x  after/hand 0.96x
+fix/Order.bytes        hand      686.3 ns before      751.8 ns after      737.3 ns  before/hand 1.10x  after/hand 1.07x
+fix/Order.stream       hand      809.3 ns before     1101.5 ns after     1085.2 ns  before/hand 1.36x  after/hand 1.34x
+fix/slope-16.text      hand      899.2 ns before      804.5 ns after      779.7 ns  before/hand 0.89x  after/hand 0.87x
+fix/Order.span         hand      665.0 ns before      521.6 ns after      500.4 ns  before/hand 0.78x  after/hand 0.75x
+fix/One.log-text       hand       81.4 ns before       81.7 ns after       82.5 ns  before/hand 1.00x  after/hand 1.01x
+fix/One.log-bytes      hand       81.6 ns before      110.0 ns after      106.6 ns  before/hand 1.35x  after/hand 1.31x
+  fix/One.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/One.log-stream     hand       81.0 ns before      371.9 ns after      366.8 ns  before/hand 4.59x  after/hand 4.53x
+fix/Order.log-text     hand      724.0 ns before      677.9 ns after      661.7 ns  before/hand 0.94x  after/hand 0.91x
+fix/Order.log-bytes    hand      733.9 ns before      871.1 ns after      828.4 ns  before/hand 1.19x  after/hand 1.13x
+fix/Order.log-stream   hand      725.9 ns before     1293.8 ns after     1179.6 ns  before/hand 1.78x  after/hand 1.62x
+  fix/One.yield-reader: 34 round(s) redone after a gen1/gen2 collection
+fix/One.yield-reader   hand      192.3 ns before      324.6 ns after      339.0 ns  before/hand 1.69x  after/hand 1.76x
+fix/One.yield-string   hand       76.7 ns before      231.3 ns after      225.0 ns  before/hand 3.01x  after/hand 2.93x
+fix/One.yield-memory   hand       77.0 ns before      120.8 ns after      118.4 ns  before/hand 1.57x  after/hand 1.54x
+  fix/One.whole-stream: 25 round(s) redone after a gen1/gen2 collection
+fix/One.whole-stream   hand      147.0 ns before      220.6 ns after      221.7 ns  before/hand 1.50x  after/hand 1.51x
+  fix/One.whole-reader: 24 round(s) redone after a gen1/gen2 collection
+fix/One.whole-reader   hand      149.1 ns before      235.1 ns after      225.3 ns  before/hand 1.58x  after/hand 1.51x
+  fix/Order.yield-reader: 5 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-reader hand      880.3 ns before     1096.0 ns after     1093.8 ns  before/hand 1.25x  after/hand 1.24x
+fix/Order.yield-string hand      695.8 ns before     2279.2 ns after     2320.5 ns  before/hand 3.28x  after/hand 3.33x
+fix/Order.yield-memory hand      670.5 ns before      813.9 ns after      815.8 ns  before/hand 1.21x  after/hand 1.22x
+  fix/Order.whole-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-stream hand      824.2 ns before      928.6 ns after      912.0 ns  before/hand 1.13x  after/hand 1.11x
+  fix/Order.whole-reader: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.whole-reader hand      826.4 ns before      947.8 ns after      934.6 ns  before/hand 1.15x  after/hand 1.13x
+
+# Paired stand, 2026-09-20 03:21
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 73.6 | 78.2 | 1.06x | 78.2 | 1.06x | 0.0% | 192 | 192 |
+| fix/One.bytes | generated | hand | 76.0 | 98.3 | 1.29x | 100.0 | 1.32x | +1.7% | 248 | 248 |
+| fix/One.stream | generated | hand | 146.3 | 325.4 | 2.22x | 347.9 | 2.38x | +6.9% | 888 | 888 |
+| fix/Order.text | generated | hand | 674.0 | 666.8 | 0.99x | 649.3 | 0.96x | -2.6% | 1096 | 1096 |
+| fix/Order.bytes | generated | hand | 686.3 | 751.8 | 1.10x | 737.3 | 1.07x | -1.9% | 1152 | 1152 |
+| fix/Order.stream | generated | hand | 809.3 | 1101.5 | 1.36x | 1085.2 | 1.34x | -1.5% | 1712 | 1712 |
+| fix/slope-16.text | generated | hand | 899.2 | 804.5 | 0.89x | 779.7 | 0.87x | -3.1% | 1752 | 1752 |
+| fix/Order.span | generated | hand | 665.0 | 521.6 | 0.78x | 500.4 | 0.75x | -4.1% | 1008 | 1008 |
+| fix/One.log-text | generated | hand | 81.4 | 81.7 | 1.00x | 82.5 | 1.01x | +1.0% | 192 | 192 |
+| fix/One.log-bytes | generated | hand | 81.6 | 110.0 | 1.35x | 106.6 | 1.31x | -3.0% | 248 | 248 |
+| fix/One.log-stream | generated | hand | 81.0 | 371.9 | 4.59x | 366.8 | 4.53x | -1.4% | 888 | 888 |
+| fix/Order.log-text | generated | hand | 724.0 | 677.9 | 0.94x | 661.7 | 0.91x | -2.4% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | hand | 733.9 | 871.1 | 1.19x | 828.4 | 1.13x | -4.9% | 1152 | 1152 |
+| fix/Order.log-stream | generated | hand | 725.9 | 1293.8 | 1.78x | 1179.6 | 1.62x | -8.8% | 1712 | 1712 |
+| fix/One.yield-reader | generated | hand | 192.3 | 324.6 | 1.69x | 339.0 | 1.76x | +4.4% | 856 | 856 |
+| fix/One.yield-string | generated | hand | 76.7 | 231.3 | 3.01x | 225.0 | 2.93x | -2.7% | 272 | 272 |
+| fix/One.yield-memory | generated | hand | 77.0 | 120.8 | 1.57x | 118.4 | 1.54x | -2.0% | 352 | 352 |
+| fix/One.whole-stream | generated | hand | 147.0 | 220.6 | 1.50x | 221.7 | 1.51x | +0.5% | 448 | 448 |
+| fix/One.whole-reader | generated | hand | 149.1 | 235.1 | 1.58x | 225.3 | 1.51x | -4.2% | 416 | 416 |
+| fix/Order.yield-reader | generated | hand | 880.3 | 1096.0 | 1.25x | 1093.8 | 1.24x | -0.2% | 1680 | 1680 |
+| fix/Order.yield-string | generated | hand | 695.8 | 2279.2 | 3.28x | 2320.5 | 3.33x | +1.8% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | hand | 670.5 | 813.9 | 1.21x | 815.8 | 1.22x | +0.2% | 1176 | 1176 |
+| fix/Order.whole-stream | generated | hand | 824.2 | 928.6 | 1.13x | 912.0 | 1.11x | -1.8% | 1352 | 1352 |
+| fix/Order.whole-reader | generated | hand | 826.4 | 947.8 | 1.15x | 934.6 | 1.13x | -1.4% | 1320 | 1320 |
+
+Written to T:\TEMP\dotgram-stand\w81\pair\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 31.4 ns (the runs' controls: 31.4, 31.6, 31.4, 31.4, 31.4).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-20 03:22
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 74.1 | 79.5 | 1.07x | 78.2 | 1.06x | -1.6% | 192 | 192 |
+| fix/One.bytes | generated | hand | 76.0 | 97.3 | 1.28x | 98.0 | 1.29x | +0.8% | 248 | 248 |
+| fix/One.stream | generated | hand | 150.2 | 333.2 | 2.22x | 341.0 | 2.27x | +2.3% | 888 | 888 |
+| fix/Order.text | generated | hand | 702.0 | 666.8 | 0.95x | 642.0 | 0.91x | -3.7% | 1096 | 1096 |
+| fix/Order.bytes | generated | hand | 686.3 | 753.0 | 1.10x | 752.7 | 1.10x | 0.0% | 1152 | 1152 |
+| fix/Order.stream | generated | hand | 828.5 | 1101.5 | 1.33x | 1081.3 | 1.31x | -1.8% | 1712 | 1712 |
+| fix/slope-16.text | generated | hand | 922.4 | 812.4 | 0.88x | 779.5 | 0.85x | -4.0% | 1752 | 1752 |
+| fix/Order.span | generated | hand | 690.3 | 514.1 | 0.74x | 500.4 | 0.73x | -2.7% | 1008 | 1008 |
+| fix/One.log-text | generated | hand | 82.9 | 84.3 | 1.02x | 85.7 | 1.03x | +1.7% | 192 | 192 |
+| fix/One.log-bytes | generated | hand | 83.2 | 110.0 | 1.32x | 106.4 | 1.28x | -3.2% | 248 | 248 |
+| fix/One.log-stream | generated | hand | 84.2 | 371.9 | 4.42x | 356.4 | 4.23x | -4.2% | 888 | 888 |
+| fix/Order.log-text | generated | hand | 765.4 | 676.8 | 0.88x | 653.9 | 0.85x | -3.4% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | hand | 742.7 | 873.2 | 1.18x | 846.6 | 1.14x | -3.0% | 1152 | 1152 |
+| fix/Order.log-stream | generated | hand | 755.9 | 1245.8 | 1.65x | 1196.3 | 1.58x | -4.0% | 1712 | 1712 |
+| fix/One.yield-reader | generated | hand | 206.7 | 362.4 | 1.75x | 347.7 | 1.68x | -4.1% | 856 | 856 |
+| fix/One.yield-string | generated | hand | 79.1 | 231.3 | 2.92x | 225.0 | 2.84x | -2.7% | 272 | 272 |
+| fix/One.yield-memory | generated | hand | 80.2 | 125.8 | 1.57x | 120.9 | 1.51x | -3.9% | 352 | 352 |
+| fix/One.whole-stream | generated | hand | 149.3 | 223.7 | 1.50x | 223.6 | 1.50x | -0.1% | 448 | 448 |
+| fix/One.whole-reader | generated | hand | 150.1 | 236.2 | 1.57x | 234.3 | 1.56x | -0.8% | 416 | 416 |
+| fix/Order.yield-reader | generated | hand | 902.1 | 1096.0 | 1.21x | 1093.2 | 1.21x | -0.3% | 1680 | 1680 |
+| fix/Order.yield-string | generated | hand | 696.1 | 2223.0 | 3.19x | 2207.2 | 3.17x | -0.7% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | hand | 691.4 | 802.2 | 1.16x | 797.7 | 1.15x | -0.6% | 1176 | 1176 |
+| fix/Order.whole-stream | generated | hand | 829.9 | 926.7 | 1.12x | 912.0 | 1.10x | -1.6% | 1352 | 1352 |
+| fix/Order.whole-reader | generated | hand | 826.4 | 946.7 | 1.15x | 933.5 | 1.13x | -1.4% | 1320 | 1320 |
+
+Written to T:\TEMP\dotgram-stand\w81\pair
