@@ -175,6 +175,11 @@ static partial class Stand
 		return true;
 	}
 
+	/// <summary>The value of the control on the machines the stand is taken on, and how far from it a run may read (a fifth).</summary>
+	static readonly Dictionary<string, double> KnownControls = new(StringComparer.OrdinalIgnoreCase) { ["IGOR-DESKTOP"] = 31.5 };
+
+	const double KnownControlTolerance = 0.20;
+
 	static Pooled Pool(Taken[] runs, string output)
 	{
 		var controls = runs.Select(static one => one.Control).ToList();
@@ -190,6 +195,14 @@ static partial class Stand
 
 		var kept    = keep.Select(i => runs[i]).ToArray();
 		var control = Median([.. kept.Select(static one => one.Control)]);
+
+		// The control has a known value on a known machine, which an ordinary row has not: the runs agreeing with each other proves consistency and not that they are right
+		// (finance-24, 2026-09-20: a one-row run read the control at 130.6 ns against 31.6, five runs alike). A machine that is listed is held to its value; DOTGRAM_ANY_CONTROL=1 lifts it.
+		if (KnownControls.TryGetValue(Environment.MachineName, out var known) && Math.Abs(control / known - 1) > KnownControlTolerance && Environment.GetEnvironmentVariable("DOTGRAM_ANY_CONTROL") is not "1")
+			throw new InvalidOperationException(
+				$"The control reads {control:F1} ns on {Environment.MachineName}, where it reads {known:F1} ns (more than {KnownControlTolerance:P0} off): the runs agree with each other ({listed}) and are not comparable with the runs of other days. " +
+				"A run of one or two rows reads its control before the process is warm (2026-09-20: 130.6 ns alone, 31.6 in a run of three), and a machine that is busy or in another power state reads it high. " +
+				"Take more rows, or set DOTGRAM_ANY_CONTROL=1 to take the numbers knowing that. The runs are in " + output + ".");
 		var rows    = kept[0].Rows.Select(row => Merge(row, kept)).ToArray();
 
 		var note = new StringBuilder();

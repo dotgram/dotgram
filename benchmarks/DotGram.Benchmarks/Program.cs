@@ -173,7 +173,7 @@ static class Program
 		// (2026-09-18, Q7.3's Fix44 stream form). See Stand.Paired.
 		// `--repeat N` takes it N times in processes of their own and reports medians; `--first`
 		// takes the first call of each reading in a fresh process instead, and nothing else.
-		if (args.Length is >= 3 and <= 11 && args[0] == "--stand-paired")
+		if (args.Length >= 3 && args[0] == "--stand-paired")
 		{
 			var rest  = args.Skip(1).ToList();
 			var only  = (string?)null;
