@@ -6351,3 +6351,27 @@ test, which makes them a guard rather than a note. Which reading is the protocol
 published specification, which nobody here has read for these rows. One thing is evidence without
 being proof: the twenty-six run entirely in one direction, and a table maintained by hand is likelier
 to omit than to invent.
+
+**Before the size is measured, a count reshapes the question.** The published dictionary writes
+3,225 members across its 93 messages; expanded through components, 12,532. The multiplier of just
+under four is not an implementation choice but what expansion *means*: one component named in
+twenty messages becomes twenty copies. **So expanding and sharing the components are opposites
+rather than independent knobs** — sharing gives almost all of the size back, and with it much of
+the benefit, because the indirection through a component is a good part of what the walk pays for.
+
+Two forms are therefore measured from one emitter: fully expanded, and shared methods per
+component. A single number would have answered the wrong question, since which of the two it
+described depends on the decision it was taken to inform.
+
+**One thing to measure beside the size, or the choice is made on an unconfirmed benefit.** The
+shared form is not the walk: it replaces a table read, a loop and a branch per member with a call
+and constants. If it comes within noise of the expanded form in speed, it wins outright and the
+size question does not arise. So the pair of sizes is taken with a cheap comparison of the two on
+one representative message — otherwise we would be paying a doubled assembly for something nobody
+showed was faster.
+
+The expectation is named first, with the direction of its likely error, and what the measurement
+excludes is named with it: the per-tag checks of type and value set are shared by both forms, so
+leaving them out lowers both absolute figures and leaves the ratio alone. And the third variant —
+generating only the types a consumer names — becomes arithmetic once the cost of one type is
+known.
