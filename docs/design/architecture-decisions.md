@@ -4592,3 +4592,39 @@ this journal has been naming for three days, now in its own measurements. What c
 reducing two counts to one method, which was ordered to settle a disagreement and settled something
 else instead. Both wrong numbers had travelled further than the session that made them, which is
 why they are recorded here and not only fixed.
+
+## D49. The first sweep that actually went outside, 2026-09-20
+
+critic's Q23, opening with what the two earlier sweeps were not: both were titled "the outward
+sweep" and read nothing outside this repository. That is said in the entry rather than quietly
+fixed, and it is the right way round — a survey of what the outside does is worth having only if
+someone went there.
+
+**The deferred version question is settled by reading the reference, as D40 required.** The
+byte and char forms of the platform's value-set search are available from net8.0; the *string*
+form, with its comparison argument, is net9.0. So D40's third bucket — recognising a keyword from a
+span without making a string — is net9.0 and not net10.0, and the first bucket needs no revision.
+Two details beyond the version: the string form takes a comparison and accepts ordinal and
+ordinal-ignoring-case only, which is exactly what a keyword list wants and exactly what the
+emitter already chose for a single literal.
+
+**One item lands where D20 is strictest.** A published account of beating a fast Rust lexer
+generator attributes its 20 to 35% to three things, two of which are already ours: a keyword
+compared as a machine word, and an ASCII fast path, which is D39. The third is not — replacing the
+skip loop's table lookup with a word-at-a-time comparison, trading a jump table's data dependency
+for a control dependency. It lands on the 58 seam places and specifically on the **floor** branch,
+the one D20 forbids to regress and which keeps its per-character loop where the capable branch
+takes the platform's search. It is the only candidate anyone has named for making that loop faster
+with no API at all. The caveats are in the entry because the source does not carry them for us: a
+different architecture, a different language, a gain that shrinks on realistic input by its own
+numbers, and a clean case of a star over one character where our trivia is a braced set with two
+comment forms. **What transfers is the idea and not the measurement**, which is the condition on
+taking it further.
+
+**And one refused on our numbers rather than its merits.** A formulation that memoizes every
+position is further from our shape, not nearer: the anatomy has 1,381 refusals of 2,023 calls, each
+on the first token, so what we would be memoizing is answers we reach immediately.
+
+The computed recovery sets stay where D33 put them — Igor's, because they change what a grammar
+says — with the mechanism now named: follow sets of the dominators, and dominators are one pass
+over a graph we already build.
