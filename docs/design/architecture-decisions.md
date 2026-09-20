@@ -4001,3 +4001,19 @@ does not work" — which no compiler catches, because the half is not what anybo
 
 The fragment on the page is fixed by naming the namespace in the text, one line, which is the
 smallest complete form the test already holds.
+
+**Why the accidental check was worth nothing until it was written down (performance-ff).** The
+in-memory level has been reading the floor branch on net10 for a year while the packages read the
+capable one, so the comparison D40 asks for has been running all along and could never have been
+quoted, because nobody knew it was happening. A check nobody knows about is not a weaker check, it
+is not a check at all: it constrains nothing, because the first person to change what it happens to
+cover will change it without knowing they had to keep it true. That is the sentence worth keeping,
+not the curiosity that it existed.
+
+And the same session names the other half of the day's lesson: it proposed to make the switch a
+measurement switch by naming and documenting it, which is a promise, and the placement in
+`Directory.Build.props` makes it a fact held by the position of a line. After a day in which a
+promise about the floor turned out to have two unmeasured cases under it, the fact is worth more.
+The branch of the wrong form in `BufferedEmitter` is that session's own, written yesterday without
+a thought, and it goes over with the other rather than staying as legacy: the multiplying argument
+is about the second and third bucket and does not care which branch was written first.
