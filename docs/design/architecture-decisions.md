@@ -4680,3 +4680,30 @@ streaming rows: inside noise, take it, because an incomplete expectation is not 
 names fewer alternatives than are true, and a reader fixing their input is misled by the omission.
 Materially costly, keep the door and write the difference down where the forms are described, with
 the cause rather than the symptom. Either way the test holding both exact strings stays.
+
+**The second fix was built, run and refused: it does not produce agreement, it reverses the
+disagreement.** With the door removed where every reading records, the pinned difference vanished
+and a new one appeared the other way — over one grammar the buffered form now names an alternative
+the string form does not. The cause, read off both renderings of one grammar in their built form:
+the door's condition depends on whether the machine has a quiet reading *and* on whether a refusal
+in that rule is recorded at all, and the second flag is legitimately different between the two
+machines of one grammar. **The renderings' messages depend on analyses that differ by construction,
+so word-for-word equality is not reachable by a change in one place.**
+
+**Ruling, and it dissolves most of the problem rather than paying for it.** D40's condition is
+untouched: that check compares one build against *itself compiled differently* — the same grammar,
+the same rendering, the same analyses, one capability flipped — so verbatim equality is exactly the
+right check there, and a difference between *input forms* is not a branch difference and never
+enters it. Nothing has to be excluded by name, and no filter is needed.
+
+What the specification promises about a refusal is therefore **soundness and not completeness**: an
+alternative a message names is one that would have been accepted at that position, and the set may
+be smaller in one input form than another because the two read the input differently. That is
+written where the forms are described, with the cause. The differential keeps holding outcome,
+position and value exactly — those agree and must — and stops requiring the message to be equal,
+while expr's test keeps both exact strings so that a change to either is seen.
+
+**Unifying the analyses is refused for now**: it is days, it touches what counts as a scan and how
+far the seam reaches in each rendering, and it would be paid on the hot path of both forms to make
+a refusal message longer. If an editor ever needs the complete set over a stream, that is the
+reason to reopen it, and it will be a reason about a consumer rather than about symmetry.
