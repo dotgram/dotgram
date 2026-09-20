@@ -4824,3 +4824,26 @@ list the regions are cut from. And the reader's list living per thread rather th
 **not a separate question**: it is the retention boundary again, it holds references to fields, and
 it joins the mechanism performance-ff is writing — a third user of it, under the same rule and
 cleared at the same idle transition — rather than growing a policy of its own.
+
+**D52's third user changes where the retention rule lives.** Asked whether a consumer in another
+package could plug into it, performance-ff answers in two halves that go opposite ways. **Across
+assemblies it is impossible, and not because of the mechanism**: nothing of ours ships at run time,
+every support type is emitted into the consumer's own compilation and nested inside the generated
+host class, so a stranger cannot reference them at all. If the third user were in another package
+the answer would be no, and the remedy would not be a change to the mechanism but a change to what
+ships, which is a far larger decision. **Within one assembly it is possible and the mechanism as
+built would still refuse it**: the slot, the counter and the weak cell are written *inside* each
+pool, by hand into four of them, so a sibling class could not reach any of it and would have to
+grow its own copy of the policy — exactly what was forbidden.
+
+**So the rule is emitted once, as one internal shape the four pools use and a sibling of the host
+can use too**, parameterised by what it holds, with D34's quench belonging to the shape rather than
+to each pool. Four hand-written copies cannot take a fifth user; one shape can. The approved rule
+does not change — what moves is where it lives — and the design comes to the architect before it is
+written, being larger than what was approved.
+
+**One condition, because the shape becomes reachable by hand-written code in the consumer's own
+assembly whether we mean it or not.** It is not documented and not offered: it carries no promise,
+and our own message layer using it as a sibling is a risk taken inside this repository and pinned
+by our own tests, not a surface a consumer is invited to write against. The day we want to offer
+it, that is its own decision with its own reasoning.
