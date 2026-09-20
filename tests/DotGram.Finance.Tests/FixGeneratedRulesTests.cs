@@ -59,14 +59,18 @@ public sealed class FixGeneratedRulesTests
 			if (read.SequenceEqual(written))
 				continue;
 
-			foreach (var one in read.Except(written))
-				differ.Add($"{data[0]} loaded only: {one}");
+			// Position by position, not as sets. An earlier version narrowed its message by taking
+			// the set difference and, in doing so, stopped noticing order at all — and the two
+			// roads did differ in order. A printout found that; this did not, because narrowing
+			// what a failure SAYS had quietly narrowed what it ASKS.
+			for (var i = 0; i < Math.Max(read.Length, written.Length); i++)
+			{
+				var one = i < read.Length ? read[i] : "(nothing)";
+				var two = i < written.Length ? written[i] : "(nothing)";
 
-			foreach (var one in written.Except(read))
-				differ.Add($"{data[0]} generated only: {one}");
-
-			if (read.Length != written.Length)
-				differ.Add($"{data[0]} counts: loaded {read.Length}, generated {written.Length}");
+				if (one != two)
+					differ.Add($"{data[0]} [{i}] loaded {one} | generated {two}");
+			}
 		}
 
 		Assert.True(differ.Count == 0, differ.Count + " differences ||| " + string.Join(" ||| ", differ.Distinct().Take(8)));

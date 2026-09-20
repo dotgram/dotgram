@@ -185,7 +185,6 @@ static class Emitter
 			body.AppendLine("\t\t}");
 			body.AppendLine();
 
-			Required(body, members.Required, "\t\t");
 			Calls(body, members, "\t\t");
 
 			body.AppendLine("\t}");
@@ -216,7 +215,6 @@ static class Emitter
 				.AppendLine("(FixFieldSet scope, FixScope area, int groupTag, int entry, ReadOnlySpan<ulong> seen, List<FixFinding> found)");
 			body.AppendLine("\t{");
 
-			Required(body, members.Required, "\t\t");
 			Calls(body, members, "\t\t");
 
 			body.AppendLine("\t}");
@@ -225,39 +223,54 @@ static class Emitter
 			text.Append(body);
 		}
 
-		void Required(StringBuilder body, IEnumerable<int> required, string pad)
-		{
-			foreach (var tag in required)
-			{
-				body.Append(pad).Append("if (!Seen(seen, ").Append(tag).AppendLine("))");
-				body.Append(pad).Append("\tfound.Add(new FixFinding(FixRule.RequiredFieldMissing, area, ").Append(tag)
-					.AppendLine(", groupTag, entry, 0,");
-				body.Append(pad).AppendLine("\t\t\"The schema requires this tag in this scope.\"));");
-				body.AppendLine();
-			}
-		}
-
+		// In the schema's own order, interleaved as the walk does it, so that the two roads report
+		// the same findings in the same sequence and not merely the same set.
 		void Calls(StringBuilder body, Members members, string pad)
 		{
-			foreach (var part in members.Parts)
+			foreach (var step in members.Steps)
 			{
-				body.Append(pad).Append("if (").Append(part.Any).AppendLine(")");
-				body.Append(pad).Append('\t').Append(part.Name).AppendLine("(scope, area, groupTag, entry, seen, found);");
-
-				if (part.Required)
+				if (step.Part is { } part)
 				{
-					body.Append(pad).AppendLine("else");
-					body.Append(pad).AppendLine("\tfound.Add(new FixFinding(FixRule.RequiredComponentMissing, area, null, groupTag, entry, 0,");
-					body.Append(pad).Append("\t\t\"A component the schema requires has none of its fields; its first is tag ")
-						.Append(part.First).AppendLine(".\"));");
+					body.Append(pad).Append("if (").Append(part.Any).AppendLine(")");
+					body.Append(pad).Append('\t').Append(part.Name).AppendLine("(scope, area, groupTag, entry, seen, found);");
+
+					if (part.Required)
+					{
+						body.Append(pad).AppendLine("else");
+						body.Append(pad).AppendLine("\tfound.Add(new FixFinding(FixRule.RequiredComponentMissing, area, null, groupTag, entry, 0,");
+						body.Append(pad).Append("\t\t\"A component the schema requires has none of its fields; its first is tag ")
+							.Append(part.First).AppendLine(".\"));");
+					}
+
+					body.AppendLine();
+
+					continue;
 				}
 
-				body.AppendLine();
-			}
+				body.Append(pad).Append("if (!Seen(seen, ").Append(step.Tag).AppendLine("))");
+				body.Append(pad).AppendLine("{");
 
-			foreach (var one in members.Groups)
-			{
-				body.Append(pad).Append("if (Seen(seen, ").Append(one.Counter).AppendLine("))");
+				if (step.Required)
+				{
+					body.Append(pad).Append("\tfound.Add(new FixFinding(FixRule.RequiredFieldMissing, area, ").Append(step.Tag)
+						.AppendLine(", groupTag, entry, 0,");
+					body.Append(pad).AppendLine("\t\t\"The schema requires this tag in this scope.\"));");
+				}
+				else
+				{
+					body.Append(pad).AppendLine("\t// nothing: the schema does not require it");
+				}
+
+				body.Append(pad).AppendLine("}");
+
+				if (step.Group is not { } one)
+				{
+					body.AppendLine();
+
+					continue;
+				}
+
+				body.Append(pad).AppendLine("else");
 				body.Append(pad).AppendLine("{");
 				body.Append(pad).Append("\tvar g = scope.GetGroup(").Append(one.Counter).AppendLine(");");
 				body.Append(pad).Append("\tvar c = scope.GetField(").Append(one.Counter).AppendLine(")!.Value;");
@@ -384,11 +397,13 @@ static class Emitter
 	/// <summary>What one scope holds, flattened the way form B needs it.</summary>
 	sealed class Members
 	{
-		public readonly List<int>    Tags     = [];
-		public readonly List<int>    Required = [];
-		public readonly List<Part>   Parts    = [];
-		public readonly List<Group>  Groups   = [];
+		public readonly List<int>  Tags  = [];
+		public readonly List<Step> Steps = [];
 		public readonly Dictionary<int, int> Rank = [];
+
+		/// <summary>The components and groups, for writing their methods before this one.</summary>
+		public IEnumerable<Part>  Parts  => Steps.Select(step => step.Part).Where(part => part is not null)!;
+		public IEnumerable<Group> Groups => Steps.Select(step => step.Group).Where(one => one is not null)!;
 
 		public Members(FixDictionary dictionary, SchemaRef[] schema)
 		{
@@ -398,8 +413,7 @@ static class Emitter
 
 			Order(dictionary, schema, ref ordinal);
 
-			Tags     = Tags.Distinct().OrderBy(t => t).ToList();
-			Required = Required.Distinct().OrderBy(t => t).ToList();
+			Tags = Tags.Distinct().OrderBy(t => t).ToList();
 		}
 
 		void Flatten(FixDictionary dictionary, SchemaRef[] schema)
@@ -417,7 +431,7 @@ static class Emitter
 						? "false"
 						: string.Join(" || ", own.Distinct().OrderBy(t => t).Select(t => "Seen(seen, " + t + ")"));
 
-					Parts.Add(new Part("C_" + reference.Id, reference.Id, any, own.Count == 0 ? 0 : own[0], reference.Required));
+					Steps.Add(new Step(new Part("C_" + reference.Id, reference.Id, any, own.Count == 0 ? 0 : own[0], reference.Required), null, 0, false));
 
 					continue;
 				}
@@ -426,11 +440,11 @@ static class Emitter
 
 				Tags.Add(tag);
 
-				if (reference.Required)
-					Required.Add(tag);
-
-				if (reference.Kind == 2)
-					Groups.Add(new Group(tag, "G_" + reference.Id, reference.Id));
+				Steps.Add(new Step(
+					null,
+					reference.Kind == 2 ? new Group(tag, "G_" + reference.Id, reference.Id) : null,
+					tag,
+					reference.Required));
 			}
 		}
 
@@ -462,6 +476,25 @@ static class Emitter
 				ordinal++;
 			}
 		}
+	}
+
+	/// <summary>
+	/// One reference of a scope, in the order the schema writes it.
+	/// </summary>
+	/// <remarks>
+	/// In ORDER, and that is the point. The walk reports as it reads the schema — a required field
+	/// missing, a component's own findings, a group's entries — interleaved exactly as the members
+	/// are written. Emitting all the required checks, then all the components, then all the groups
+	/// gives the same findings in a different sequence, which two roads over one dictionary must
+	/// not do. It was found by printing both answers for one message, not by the test that was
+	/// meant to catch it: that one had been narrowed to compare sets.
+	/// </remarks>
+	sealed class Step(Part? part, Group? group, int tag, bool required)
+	{
+		public readonly Part?  Part     = part;
+		public readonly Group? Group    = group;
+		public readonly int    Tag      = tag;
+		public readonly bool   Required = required;
 	}
 
 	sealed class Part(string name, int id, string any, int first, bool required)
