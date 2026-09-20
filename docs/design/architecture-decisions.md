@@ -2874,41 +2874,28 @@ is neither tiering nor the collector — the same row measured last in the same 
 final speed from the first repeat. A short probe on a cold process overstates its first row about
 fivefold; finance-24's own first numbers were retracted for exactly that.
 
-## D25. The generator decides; the parser is a machine that does as it is told
+## D25. What the generator can settle, it settles; a fork the user owns stays a fork
 
-Igor, 2026-09-19, stated as a rule rather than about one case: **every decision about how to read
-is taken while generating, and the emitted parser is a dumb hard-coded machine.** It may branch on
-the input, because that is what a parser is, and it may branch on what the grammar's own host code
-answers, because the grammar says so; what it may not do is choose between ways of doing its work.
-Anything that looks like a strategy at run time — a shape asked of an object, a policy read from
-options, an adaptation to what has been seen — belongs at generation time, where it is decided
-once, proved once and written into the code.
+Igor, 2026-09-19, and restated by him the same evening after the first wording was read too
+widely. The rule is about **static choices**: wherever the generator can decide, while building
+the parser, which way of working is better, it decides — the emitted parser does not carry the
+choice to run time and pick. That is what makes it a machine that does as it is told.
 
-The immediate consequence is for the FIX fields a consumer defines (the discussion of the same
-day): asking a consumer's object, while parsing, whether a tag's field is binary is the parser
-deciding how to read, and it is out. What is left is declaration — the consumer's tags are
-declared where the grammar is, the generator builds their arms and their part of the kind table,
-and nothing is asked of anybody at run time. Inheritance then carries the types and the
-constructions, not the questions.
+A fork the *user* controls is another matter and is legitimate: the parser must read what the
+user's code or the user's data says, because the grammar asked for it. What is asked of it is
+the preference, not a prohibition: **keep such a fork off the main path** — decide from the
+generator's own tables first and ask the user only where they say nothing, as with a tag outside
+the standard set. How far that can go depends on the grammar: our short FIX grammar is written
+without knowing which tag it is reading, so its guard is asked for every field by construction,
+and no rule of ours changes that — only a different grammar would.
 
-This does not touch what a grammar's own guard or switch asks of its host: there the machine's
-shape is fixed when it is generated and the input picks an arm, which is the grammar speaking, not
-the parser choosing. Nor does it touch how much memory a pool keeps, which is housekeeping rather
-than an algorithm — though where housekeeping starts to look like a strategy, it is worth asking
-again. **Audited (critic, Q7), with the test that is now the rule:** hold the input and the
-grammar, take the mechanism away, and see what changes — only allocation is housekeeping; the same
-answer in fewer steps by a rule fixed when generating is memoization, admissible while its cost is
-bounded; different steps for a reason that is neither the input nor the grammar is strategy, and
-out. Nothing emitted asks a type what it is, asks the hardware what it supports, or reads a policy
-from settings. The kept tokenization is memoization and the pools are housekeeping, as expected —
-but the rule that keeps it is decided once and not proved once, blanket for every positional entry
-of every grammar, so for the opposite caller it cuts a whole document to read a few tokens; that
-is the same shape the FIX fields settled one level up, and it should be declared by whoever knows
-how they will read. **And a defect under it, not about D25 at all:** eviction recycles a
-reading's own token arrays into the thread's spares while that reading still holds them, which
-three nested readings inside one outer reading would reach — a level deeper than the two slots
-were written for, and reaching both carriers. Unreproduced and said to be unreproduced; expr takes
-it before anything else, a failing test first.
+So the earlier consequence drawn from the first wording is withdrawn: the FIX options a consumer
+supplies, read by the grammar's own guard, are a fork the user owns and they stay. What the rule
+does forbid is the parser choosing *behaviour* for itself — which factory, which reading, which
+strategy — on anything that is neither the input, nor the grammar, nor something the user
+declared. The critic's three-way test keeps its shape with that third clause added: only
+allocation is housekeeping; the same answers in fewer steps by a rule fixed when generating is
+memoization; different steps for a reason the user did not declare is strategy, and is out.
 
 ## D26. FIX: two things Igor asked for, 2026-09-19
 
