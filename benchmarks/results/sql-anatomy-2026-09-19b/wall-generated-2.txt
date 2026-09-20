@@ -1,0 +1,1 @@
+generated: 400000 calls in 7.08 s, 17711 ns a call, 21328 B a call (sink 547568)

@@ -1,0 +1,148 @@
+=== run 1 of 5, 23:02:07
+6 rows, every reading agreeing. Timing 8 rounds.
+fix/OrderMalformed.text hand      645.2 ns before      597.9 ns after      627.6 ns  before/hand 0.93x  after/hand 0.97x
+fix/OrderMalformed.bytes hand      679.8 ns before      742.9 ns after      757.0 ns  before/hand 1.09x  after/hand 1.11x
+fix/OrderMalformed.stream hand      818.1 ns before     1097.5 ns after     1102.2 ns  before/hand 1.34x  after/hand 1.35x
+  fix/OrderMalformed.log-text: 2 round(s) redone after a gen1/gen2 collection
+fix/OrderMalformed.log-text hand      752.0 ns before     1252.0 ns after     1299.0 ns  before/hand 1.66x  after/hand 1.73x
+fix/OrderMalformed.log-bytes hand      763.4 ns before     1447.8 ns after     1498.9 ns  before/hand 1.90x  after/hand 1.96x
+fix/OrderMalformed.log-stream hand      761.1 ns before     2202.4 ns after     2233.4 ns  before/hand 2.89x  after/hand 2.93x
+
+# Paired stand, 2026-09-19 23:02
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/OrderMalformed.text | generated | hand | 645.2 | 597.9 | 0.93x | 627.6 | 0.97x | +5.0% | 1248 | 1248 |
+| fix/OrderMalformed.bytes | generated | hand | 679.8 | 742.9 | 1.09x | 757.0 | 1.11x | +1.9% | 1304 | 1304 |
+| fix/OrderMalformed.stream | generated | hand | 818.1 | 1097.5 | 1.34x | 1102.2 | 1.35x | +0.4% | 1864 | 1864 |
+| fix/OrderMalformed.log-text | generated | hand | 752.0 | 1252.0 | 1.66x | 1299.0 | 1.73x | +3.8% | 1256 | 1256 |
+| fix/OrderMalformed.log-bytes | generated | hand | 763.4 | 1447.8 | 1.90x | 1498.9 | 1.96x | +3.5% | 1312 | 1312 |
+| fix/OrderMalformed.log-stream | generated | hand | 761.1 | 2202.4 | 2.89x | 2233.4 | 2.93x | +1.4% | 1872 | 1872 |
+
+Written to T:\TEMP\dotgram-stand\w74\aa\run-1
+=== run 2 of 5, 23:02:26
+6 rows, every reading agreeing. Timing 8 rounds.
+fix/OrderMalformed.text hand      652.1 ns before      612.1 ns after      599.9 ns  before/hand 0.94x  after/hand 0.92x
+fix/OrderMalformed.bytes hand      673.9 ns before      768.9 ns after      734.1 ns  before/hand 1.14x  after/hand 1.09x
+fix/OrderMalformed.stream hand      810.8 ns before     1076.1 ns after     1080.3 ns  before/hand 1.33x  after/hand 1.33x
+fix/OrderMalformed.log-text hand      763.0 ns before     1273.0 ns after     1296.3 ns  before/hand 1.67x  after/hand 1.70x
+fix/OrderMalformed.log-bytes hand      783.6 ns before     1452.7 ns after     1468.9 ns  before/hand 1.85x  after/hand 1.87x
+fix/OrderMalformed.log-stream hand      783.8 ns before     2217.8 ns after     2285.9 ns  before/hand 2.83x  after/hand 2.92x
+
+# Paired stand, 2026-09-19 23:02
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/OrderMalformed.text | generated | hand | 652.1 | 612.1 | 0.94x | 599.9 | 0.92x | -2.0% | 1248 | 1248 |
+| fix/OrderMalformed.bytes | generated | hand | 673.9 | 768.9 | 1.14x | 734.1 | 1.09x | -4.5% | 1304 | 1304 |
+| fix/OrderMalformed.stream | generated | hand | 810.8 | 1076.1 | 1.33x | 1080.3 | 1.33x | +0.4% | 1864 | 1864 |
+| fix/OrderMalformed.log-text | generated | hand | 763.0 | 1273.0 | 1.67x | 1296.3 | 1.70x | +1.8% | 1256 | 1256 |
+| fix/OrderMalformed.log-bytes | generated | hand | 783.6 | 1452.7 | 1.85x | 1468.9 | 1.87x | +1.1% | 1312 | 1312 |
+| fix/OrderMalformed.log-stream | generated | hand | 783.8 | 2217.8 | 2.83x | 2285.9 | 2.92x | +3.1% | 1872 | 1872 |
+
+Written to T:\TEMP\dotgram-stand\w74\aa\run-2
+=== run 3 of 5, 23:02:44
+6 rows, every reading agreeing. Timing 8 rounds.
+fix/OrderMalformed.text hand      656.7 ns before      614.6 ns after      607.2 ns  before/hand 0.94x  after/hand 0.92x
+fix/OrderMalformed.bytes hand      670.4 ns before      774.9 ns after      745.1 ns  before/hand 1.16x  after/hand 1.11x
+fix/OrderMalformed.stream hand      806.6 ns before     1086.9 ns after     1138.8 ns  before/hand 1.35x  after/hand 1.41x
+  fix/OrderMalformed.log-text: 2 round(s) redone after a gen1/gen2 collection
+fix/OrderMalformed.log-text hand      783.8 ns before     1260.1 ns after     1256.5 ns  before/hand 1.61x  after/hand 1.60x
+fix/OrderMalformed.log-bytes hand      771.1 ns before     1443.5 ns after     1448.6 ns  before/hand 1.87x  after/hand 1.88x
+fix/OrderMalformed.log-stream hand      780.1 ns before     2234.6 ns after     2205.4 ns  before/hand 2.86x  after/hand 2.83x
+
+# Paired stand, 2026-09-19 23:03
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/OrderMalformed.text | generated | hand | 656.7 | 614.6 | 0.94x | 607.2 | 0.92x | -1.2% | 1248 | 1248 |
+| fix/OrderMalformed.bytes | generated | hand | 670.4 | 774.9 | 1.16x | 745.1 | 1.11x | -3.9% | 1304 | 1304 |
+| fix/OrderMalformed.stream | generated | hand | 806.6 | 1086.9 | 1.35x | 1138.8 | 1.41x | +4.8% | 1864 | 1864 |
+| fix/OrderMalformed.log-text | generated | hand | 783.8 | 1260.1 | 1.61x | 1256.5 | 1.60x | -0.3% | 1256 | 1256 |
+| fix/OrderMalformed.log-bytes | generated | hand | 771.1 | 1443.5 | 1.87x | 1448.6 | 1.88x | +0.4% | 1312 | 1312 |
+| fix/OrderMalformed.log-stream | generated | hand | 780.1 | 2234.6 | 2.86x | 2205.4 | 2.83x | -1.3% | 1872 | 1872 |
+
+Written to T:\TEMP\dotgram-stand\w74\aa\run-3
+=== run 4 of 5, 23:03:03
+6 rows, every reading agreeing. Timing 8 rounds.
+fix/OrderMalformed.text hand      669.7 ns before      611.7 ns after      638.4 ns  before/hand 0.91x  after/hand 0.95x
+fix/OrderMalformed.bytes hand      668.9 ns before      754.5 ns after      750.6 ns  before/hand 1.13x  after/hand 1.12x
+fix/OrderMalformed.stream hand      810.7 ns before     1055.7 ns after     1108.8 ns  before/hand 1.30x  after/hand 1.37x
+fix/OrderMalformed.log-text hand      794.0 ns before     1300.5 ns after     1278.8 ns  before/hand 1.64x  after/hand 1.61x
+fix/OrderMalformed.log-bytes hand      783.3 ns before     1458.2 ns after     1472.9 ns  before/hand 1.86x  after/hand 1.88x
+fix/OrderMalformed.log-stream hand      782.3 ns before     2165.8 ns after     2175.6 ns  before/hand 2.77x  after/hand 2.78x
+
+# Paired stand, 2026-09-19 23:03
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/OrderMalformed.text | generated | hand | 669.7 | 611.7 | 0.91x | 638.4 | 0.95x | +4.4% | 1248 | 1248 |
+| fix/OrderMalformed.bytes | generated | hand | 668.9 | 754.5 | 1.13x | 750.6 | 1.12x | -0.5% | 1304 | 1304 |
+| fix/OrderMalformed.stream | generated | hand | 810.7 | 1055.7 | 1.30x | 1108.8 | 1.37x | +5.0% | 1864 | 1864 |
+| fix/OrderMalformed.log-text | generated | hand | 794.0 | 1300.5 | 1.64x | 1278.8 | 1.61x | -1.7% | 1256 | 1256 |
+| fix/OrderMalformed.log-bytes | generated | hand | 783.3 | 1458.2 | 1.86x | 1472.9 | 1.88x | +1.0% | 1312 | 1312 |
+| fix/OrderMalformed.log-stream | generated | hand | 782.3 | 2165.8 | 2.77x | 2175.6 | 2.78x | +0.5% | 1872 | 1872 |
+
+Written to T:\TEMP\dotgram-stand\w74\aa\run-4
+=== run 5 of 5, 23:03:21
+6 rows, every reading agreeing. Timing 8 rounds.
+fix/OrderMalformed.text hand      674.1 ns before      619.3 ns after      612.3 ns  before/hand 0.92x  after/hand 0.91x
+fix/OrderMalformed.bytes hand      675.1 ns before      751.4 ns after      744.4 ns  before/hand 1.11x  after/hand 1.10x
+fix/OrderMalformed.stream hand      821.4 ns before     1107.3 ns after     1081.7 ns  before/hand 1.35x  after/hand 1.32x
+fix/OrderMalformed.log-text hand      792.7 ns before     1275.6 ns after     1252.9 ns  before/hand 1.61x  after/hand 1.58x
+fix/OrderMalformed.log-bytes hand      782.8 ns before     1454.9 ns after     1440.5 ns  before/hand 1.86x  after/hand 1.84x
+fix/OrderMalformed.log-stream hand      808.9 ns before     2210.7 ns after     2193.9 ns  before/hand 2.73x  after/hand 2.71x
+
+# Paired stand, 2026-09-19 23:03
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/OrderMalformed.text | generated | hand | 674.1 | 619.3 | 0.92x | 612.3 | 0.91x | -1.1% | 1248 | 1248 |
+| fix/OrderMalformed.bytes | generated | hand | 675.1 | 751.4 | 1.11x | 744.4 | 1.10x | -0.9% | 1304 | 1304 |
+| fix/OrderMalformed.stream | generated | hand | 821.4 | 1107.3 | 1.35x | 1081.7 | 1.32x | -2.3% | 1864 | 1864 |
+| fix/OrderMalformed.log-text | generated | hand | 792.7 | 1275.6 | 1.61x | 1252.9 | 1.58x | -1.8% | 1256 | 1256 |
+| fix/OrderMalformed.log-bytes | generated | hand | 782.8 | 1454.9 | 1.86x | 1440.5 | 1.84x | -1.0% | 1312 | 1312 |
+| fix/OrderMalformed.log-stream | generated | hand | 808.9 | 2210.7 | 2.73x | 2193.9 | 2.71x | -0.8% | 1872 | 1872 |
+
+Written to T:\TEMP\dotgram-stand\w74\aa\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 31.4 ns (the runs' controls: 31.2, 31.3, 31.4, 31.5, 31.5).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-19 23:03
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/OrderMalformed.text | generated | hand | 656.7 | 612.1 | 0.93x | 612.3 | 0.93x | 0.0% | 1248 | 1248 |
+| fix/OrderMalformed.bytes | generated | hand | 673.9 | 754.5 | 1.12x | 745.1 | 1.11x | -1.3% | 1304 | 1304 |
+| fix/OrderMalformed.stream | generated | hand | 810.8 | 1086.9 | 1.34x | 1102.2 | 1.36x | +1.4% | 1864 | 1864 |
+| fix/OrderMalformed.log-text | generated | hand | 783.8 | 1273.0 | 1.62x | 1278.8 | 1.63x | +0.5% | 1256 | 1256 |
+| fix/OrderMalformed.log-bytes | generated | hand | 782.8 | 1452.7 | 1.86x | 1468.9 | 1.88x | +1.1% | 1312 | 1312 |
+| fix/OrderMalformed.log-stream | generated | hand | 782.3 | 2210.7 | 2.83x | 2205.4 | 2.82x | -0.2% | 1872 | 1872 |
+
+Written to T:\TEMP\dotgram-stand\w74\aa

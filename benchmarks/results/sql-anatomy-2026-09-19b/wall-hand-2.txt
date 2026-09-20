@@ -1,0 +1,1 @@
+hand: 1000000 calls in 6.82 s, 6817 ns a call, 23976 B a call (sink 1409395)
