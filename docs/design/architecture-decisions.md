@@ -4932,3 +4932,26 @@ landed on one number. **The rule: the order of the arms is rotated between round
 property of the form, not of one measurement, so it reaches back: every number taken in this form
 today is to be re-read with it, the clearing of the value store among them, where there was no
 third arm at all and the figure attributed to the flags should be read again.
+
+**D42 is closed (`9317a022`), and the second of its new grammars found the second shippable-broken
+configuration.** The last six rows are covered by three grammars: locations as an option together
+with a carrier the author names and a real symbol resolver, since a grammar naming the host's types
+is only tested under one; several files out of one grammar with the sizes that divide them, both
+parts compiled as one compilation, as they land for a consumer; and the reading over kinds with
+transition tables turned off, which is the only way to show what they replace. The harness grew one
+thing: a snapshot may bring declarations of the host, compiled beside the emitted file and resolved
+over, without which the locations grammar would have named nothing.
+
+**The defect.** With a location type set, a value the engine builds inline from ranges recorded by
+their place receives no location at all — the arguments are the captured texts and nothing else —
+while the factory is declared with a span as its first parameter, so the file does not compile. It
+needs a location type and a rule whose value is built straight from characters rather than through
+another rule. It never surfaced on a shipped grammar because the located T-SQL builds such values
+as strings, and a string does not implement the location interface.
+
+**Not fixed by its finder, rightly: a snapshot that does not compile is worse than none.** The
+grammar avoids the branch, builds through a rule, and says in its own text why, so that the next
+person does not "fix" it back. **It goes to performance-ff beside D44**, both being one question —
+a configuration that emits code which does not compile — and one pass over that question is worth
+more than two. The pass should say whether the two share a cause: both appear where a capture's
+value has to be handed something the ordinary path supplies and the special path does not.
