@@ -1,0 +1,1050 @@
+=== run 1 of 5, 19:59:28
+71 rows, every reading agreeing. Timing 8 rounds.
+  tsql/script100.bool: 1 round(s) redone after a gen1/gen2 collection
+tsql/script100.bool    hand   710368.8 ns before  1226240.6 ns after   129484.4 ns  before/hand 1.73x  after/hand 0.18x
+  tsql/script100.boolboth: 8 round(s) redone after a gen1/gen2 collection
+tsql/script100.boolboth hand   690103.1 ns before  1186743.0 ns after   130010.9 ns  before/hand 1.72x  after/hand 0.19x
+  tsql/script100: 3 round(s) redone after a gen1/gen2 collection
+tsql/script100         hand   670159.4 ns before  1193431.2 ns after   131223.4 ns  before/hand 1.78x  after/hand 0.20x
+  tsql/script400.bool: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.bool    hand  2702953.1 ns before 17152225.0 ns after   511015.6 ns  before/hand 6.35x  after/hand 0.19x
+  tsql/script400.boolboth: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.boolboth hand  2719746.9 ns before 16910843.8 ns after   502609.4 ns  before/hand 6.22x  after/hand 0.18x
+  tsql/script400: 7 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2689915.6 ns before 17188868.8 ns after   498331.2 ns  before/hand 6.39x  after/hand 0.19x
+  tsql/columns1000: 5 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  1697843.8 ns before   190254.7 ns after   190042.2 ns  before/hand 0.11x  after/hand 0.11x
+  tsql/conditions1000: 30 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    hand   872286.7 ns before   330678.9 ns after   336010.9 ns  before/hand 0.38x  after/hand 0.39x
+  tsql/rows1000: 23 round(s) redone after a gen1/gen2 collection
+tsql/rows1000          hand   572648.4 ns before   235522.7 ns after   242089.1 ns  before/hand 0.41x  after/hand 0.42x
+  web/json.array10000: 96 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   168342.0 ns before   200331.4 ns after   200372.1 ns  before/hand 1.19x  after/hand 1.19x
+  web/json.object10000: 91 round(s) redone after a gen1/gen2 collection
+web/json.object10000   hand   793443.0 ns before  1550736.7 ns after  1210500.0 ns  before/hand 1.95x  after/hand 1.53x
+web/url.path1000       hand     9149.2 ns before    10764.8 ns after    10758.6 ns  before/hand 1.18x  after/hand 1.18x
+web/media-type.params1000 hand    48128.4 ns before    47353.4 ns after    48074.5 ns  before/hand 0.98x  after/hand 1.00x
+web/sf.list10000       hand  1177559.4 ns before  1220393.8 ns after  1146031.2 ns  before/hand 1.04x  after/hand 0.97x
+el/refused-early.bool  hand      346.7 ns before     1103.8 ns after      549.5 ns  before/hand 3.18x  after/hand 1.58x
+el/refused-late.bool   hand     1247.0 ns before     1792.2 ns after      940.6 ns  before/hand 1.44x  after/hand 0.75x
+el/ladder.bool         hand     1112.2 ns before     1826.5 ns after     1816.6 ns  before/hand 1.64x  after/hand 1.63x
+sql/refused-late.bool  hand     2658.2 ns before    11988.7 ns after     6071.9 ns  before/hand 4.51x  after/hand 2.28x
+sql/select20.bool      hand     6997.9 ns before    18498.0 ns after    19043.2 ns  before/hand 2.64x  after/hand 2.72x
+web/url.plain          hand       96.9 ns before      228.6 ns after      223.7 ns  before/hand 2.36x  after/hand 2.31x
+web/url.full           hand      165.8 ns before      326.1 ns after      294.1 ns  before/hand 1.97x  after/hand 1.77x
+web/url.ipv4           hand      116.1 ns before      242.3 ns after      223.0 ns  before/hand 2.09x  after/hand 1.92x
+  web/url.long-path: 1 round(s) redone after a gen1/gen2 collection
+web/url.long-path      hand      175.7 ns before      430.2 ns after      411.8 ns  before/hand 2.45x  after/hand 2.34x
+web/url.refused        hand       69.0 ns before      275.4 ns after      258.3 ns  before/hand 3.99x  after/hand 3.74x
+  web/json.object: 1 round(s) redone after a gen1/gen2 collection
+web/json.object        hand      572.8 ns before      925.4 ns after      912.5 ns  before/hand 1.62x  after/hand 1.59x
+web/json.array         hand      573.7 ns before      718.5 ns after      718.8 ns  before/hand 1.25x  after/hand 1.25x
+web/cookie.full        hand      308.2 ns before      335.2 ns after      345.2 ns  before/hand 1.09x  after/hand 1.12x
+  web/cookie.short: 1 round(s) redone after a gen1/gen2 collection
+web/cookie.short       hand       53.3 ns before       75.5 ns after       86.1 ns  before/hand 1.42x  after/hand 1.61x
+web/pointer.full       hand      212.6 ns before      200.9 ns after      216.5 ns  before/hand 0.95x  after/hand 1.02x
+web/pointer.short      hand       36.2 ns before       56.0 ns after       56.0 ns  before/hand 1.55x  after/hand 1.55x
+  web/media-type.plain: 1 round(s) redone after a gen1/gen2 collection
+web/media-type.plain   hand      158.3 ns before      204.0 ns after      199.4 ns  before/hand 1.29x  after/hand 1.26x
+web/media-type.quoted  hand      251.4 ns before      298.2 ns after      283.0 ns  before/hand 1.19x  after/hand 1.13x
+web/media-type.refused hand       65.0 ns before       91.0 ns after       91.7 ns  before/hand 1.40x  after/hand 1.41x
+  web/addr-spec.plain: 1 round(s) redone after a gen1/gen2 collection
+web/addr-spec.plain    hand       89.1 ns before      116.1 ns after      118.8 ns  before/hand 1.30x  after/hand 1.33x
+web/addr-spec.refused  hand       45.4 ns before       80.1 ns after       76.5 ns  before/hand 1.76x  after/hand 1.69x
+web/date-time.utc      hand       49.9 ns before       63.0 ns after       63.8 ns  before/hand 1.26x  after/hand 1.28x
+web/date-time.offset   hand       77.6 ns before       90.7 ns after       94.5 ns  before/hand 1.17x  after/hand 1.22x
+web/language-tag.plain hand      116.3 ns before      155.7 ns after      157.6 ns  before/hand 1.34x  after/hand 1.35x
+web/language-tag.full  hand      419.2 ns before      480.9 ns after      488.9 ns  before/hand 1.15x  after/hand 1.17x
+web/language-tag.refused hand      111.2 ns before      148.8 ns after      161.7 ns  before/hand 1.34x  after/hand 1.45x
+web/date-time.refused  hand       37.4 ns before       51.5 ns after       51.4 ns  before/hand 1.38x  after/hand 1.38x
+web/sf.item            hand      247.8 ns before      309.1 ns after      298.6 ns  before/hand 1.25x  after/hand 1.20x
+web/sf.list            hand     1172.0 ns before     1234.9 ns after     1251.4 ns  before/hand 1.05x  after/hand 1.07x
+  web/sf.dictionary: 1 round(s) redone after a gen1/gen2 collection
+web/sf.dictionary      hand     1187.1 ns before     1217.2 ns after     1217.8 ns  before/hand 1.03x  after/hand 1.03x
+el/floor               hand      315.9 ns before      816.3 ns after      804.7 ns before-immediate      486.3 ns after-immediate      507.1 ns  before/hand 2.58x  after/hand 2.55x  before-immediate/hand 1.54x  after-immediate/hand 1.61x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1054.2 ns before     1855.3 ns after     1823.0 ns before-immediate     1188.3 ns after-immediate     1232.3 ns  before/hand 1.76x  after/hand 1.73x  before-immediate/hand 1.13x  after-immediate/hand 1.17x
+el/nest7               hand      735.4 ns before     1747.0 ns after     1741.9 ns before-immediate     1089.7 ns after-immediate     1113.5 ns  before/hand 2.38x  after/hand 2.37x  before-immediate/hand 1.48x  after-immediate/hand 1.51x
+el/block               hand     1105.6 ns before     1863.0 ns after     1900.4 ns before-immediate     1204.9 ns after-immediate     1222.5 ns  before/hand 1.69x  after/hand 1.72x  before-immediate/hand 1.09x  after-immediate/hand 1.11x
+  el/loop: 1 round(s) redone after a gen1/gen2 collection
+el/loop                hand     2291.6 ns before     3846.7 ns after     3799.6 ns before-immediate     2632.2 ns after-immediate     2637.0 ns  before/hand 1.68x  after/hand 1.66x  before-immediate/hand 1.15x  after-immediate/hand 1.15x
+  el/terms100: 1 round(s) redone after a gen1/gen2 collection
+el/terms100            hand    11921.2 ns before    16686.4 ns after    16565.9 ns before-immediate    13295.0 ns after-immediate    13074.1 ns  before/hand 1.40x  after/hand 1.39x  before-immediate/hand 1.12x  after-immediate/hand 1.10x
+  el/terms1000: 12 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   113632.5 ns before   155780.0 ns after   153242.1 ns before-immediate   127531.1 ns after-immediate   122392.9 ns  before/hand 1.37x  after/hand 1.35x  before-immediate/hand 1.12x  after-immediate/hand 1.08x
+el/overloads           hand     1859.2 ns before     2535.6 ns after     2575.6 ns before-immediate     2018.1 ns after-immediate     2016.7 ns  before/hand 1.36x  after/hand 1.39x  before-immediate/hand 1.09x  after-immediate/hand 1.08x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      291.9 ns before      965.2 ns after      969.2 ns before-immediate      657.9 ns after-immediate      667.1 ns  before/hand 3.31x  after/hand 3.32x  before-immediate/hand 2.25x  after-immediate/hand 2.29x
+  el/interpolation: 1 round(s) redone after a gen1/gen2 collection
+el/interpolation       hand     1920.4 ns before     5177.6 ns after     5181.7 ns before-immediate     4783.3 ns after-immediate     4663.7 ns  before/hand 2.70x  after/hand 2.70x  before-immediate/hand 2.49x  after-immediate/hand 2.43x
+el/untyped             hand    30635.2 ns before    33191.1 ns after    30837.2 ns  before/hand 1.08x  after/hand 1.01x
+  el/refused-early: 1 round(s) redone after a gen1/gen2 collection
+el/refused-early       hand      501.2 ns before     1276.7 ns after     1285.2 ns before-immediate     1291.3 ns after-immediate     1303.6 ns  before/hand 2.55x  after/hand 2.56x  before-immediate/hand 2.58x  after-immediate/hand 2.60x
+el/refused-late        hand     1492.6 ns before     1850.2 ns after     1990.5 ns before-immediate     3343.9 ns after-immediate     3238.5 ns  before/hand 1.24x  after/hand 1.33x  before-immediate/hand 2.24x  after-immediate/hand 2.17x
+sql/literal            hand       65.1 ns before      149.0 ns after      155.8 ns  before/hand 2.29x  after/hand 2.39x
+  sql/comment: 1 round(s) redone after a gen1/gen2 collection
+sql/comment            hand     2868.7 ns before     5320.5 ns after     5347.0 ns  before/hand 1.85x  after/hand 1.86x
+sql/conditions100      hand    76260.1 ns before   141998.9 ns after   145099.5 ns  before/hand 1.86x  after/hand 1.90x
+sql/conditions1000     hand   722910.9 ns before  1450634.4 ns after  1527503.9 ns  before/hand 2.01x  after/hand 2.11x
+tsql/comment           hand    26795.1 ns before     1571.2 ns after     1549.2 ns  before/hand 0.06x  after/hand 0.06x
+sql/column             hand      201.9 ns before      389.5 ns after      389.1 ns  before/hand 1.93x  after/hand 1.93x
+sql/arithmetic         hand     2270.5 ns before     4610.9 ns after     4798.7 ns  before/hand 2.03x  after/hand 2.11x
+sql/nest8              hand     3558.2 ns before    11817.3 ns after    11872.8 ns  before/hand 3.32x  after/hand 3.34x
+sql/condition          hand     2674.2 ns before     5074.7 ns after     5000.9 ns  before/hand 1.90x  after/hand 1.87x
+sql/select1            hand      852.5 ns before     1709.9 ns after     1768.5 ns  before/hand 2.01x  after/hand 2.07x
+  sql/select20: 1 round(s) redone after a gen1/gen2 collection
+sql/select20           hand    10385.6 ns before    21203.4 ns after    22333.1 ns  before/hand 2.04x  after/hand 2.15x
+sql/values             hand      717.9 ns before     1993.3 ns after     2025.8 ns  before/hand 2.78x  after/hand 2.82x
+  sql/create: 1 round(s) redone after a gen1/gen2 collection
+sql/create             hand      976.4 ns before     2841.7 ns after     2844.2 ns  before/hand 2.91x  after/hand 2.91x
+sql/refused-late       hand     3864.8 ns before    13873.9 ns after    14173.9 ns  before/hand 3.59x  after/hand 3.67x
+
+# Paired stand, 2026-09-19 20:04
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tsql/script100.bool | generated | 710368.8 | 1226240.6 | 1.73x | 129484.4 | 0.18x | -89.4% | 113600 | 105600 |
+| tsql/script100.boolboth | generated | 690103.1 | 1186743.0 | 1.72x | 130010.9 | 0.19x | -89.0% | 105600 | 105600 |
+| tsql/script100 | generated | 670159.4 | 1193431.2 | 1.78x | 131223.4 | 0.20x | -89.0% | 113600 | 113600 |
+| tsql/script400.bool | generated | 2702953.1 | 17152225.0 | 6.35x | 511015.6 | 0.19x | -97.0% | 454400 | 422403 |
+| tsql/script400.boolboth | generated | 2719746.9 | 16910843.8 | 6.22x | 502609.4 | 0.18x | -97.0% | 422403 | 422403 |
+| tsql/script400 | generated | 2689915.6 | 17188868.8 | 6.39x | 498331.2 | 0.19x | -97.1% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1697843.8 | 190254.7 | 0.11x | 190042.2 | 0.11x | -0.1% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 872286.7 | 330678.9 | 0.38x | 336010.9 | 0.39x | +1.6% | 424424 | 424424 |
+| tsql/rows1000 | generated | 572648.4 | 235522.7 | 0.41x | 242089.1 | 0.42x | +2.8% | 296472 | 296472 |
+| web/json.array10000 | generated | 168342.0 | 200331.4 | 1.19x | 200372.1 | 1.19x | 0.0% | 720048 | 720048 |
+| web/json.object10000 | generated | 793443.0 | 1550736.7 | 1.95x | 1210500.0 | 1.53x | -21.9% | 1599240 | 1599240 |
+| web/url.path1000 | generated | 9149.2 | 10764.8 | 1.18x | 10758.6 | 1.18x | -0.1% | 8384 | 8384 |
+| web/media-type.params1000 | generated | 48128.4 | 47353.4 | 0.98x | 48074.5 | 1.00x | +1.5% | 151472 | 151472 |
+| web/sf.list10000 | generated | 1177559.4 | 1220393.8 | 1.04x | 1146031.2 | 0.97x | -6.1% | 2720056 | 2720056 |
+| el/refused-early.bool | generated | 346.7 | 1103.8 | 3.18x | 549.5 | 1.58x | -50.2% | 1064 | 624 |
+| el/refused-late.bool | generated | 1247.0 | 1792.2 | 1.44x | 940.6 | 0.75x | -47.5% | 1064 | 624 |
+| el/ladder.bool | generated | 1112.2 | 1826.5 | 1.64x | 1816.6 | 1.63x | -0.5% | 1776 | 1720 |
+| sql/refused-late.bool | generated | 2658.2 | 11988.7 | 4.51x | 6071.9 | 2.28x | -49.4% | 13552 | 6616 |
+| sql/select20.bool | generated | 6997.9 | 18498.0 | 2.64x | 19043.2 | 2.72x | +2.9% | 21448 | 21392 |
+| web/url.plain | generated | 96.9 | 228.6 | 2.36x | 223.7 | 2.31x | -2.2% | 360 | 360 |
+| web/url.full | generated | 165.8 | 326.1 | 1.97x | 294.1 | 1.77x | -9.8% | 536 | 536 |
+| web/url.ipv4 | generated | 116.1 | 242.3 | 2.09x | 223.0 | 1.92x | -8.0% | 384 | 384 |
+| web/url.long-path | generated | 175.7 | 430.2 | 2.45x | 411.8 | 2.34x | -4.3% | 512 | 512 |
+| web/url.refused | generated | 69.0 | 275.4 | 3.99x | 258.3 | 3.74x | -6.2% | 64 | 64 |
+| web/json.object | generated | 572.8 | 925.4 | 1.62x | 912.5 | 1.59x | -1.4% | 2584 | 2584 |
+| web/json.array | generated | 573.7 | 718.5 | 1.25x | 718.8 | 1.25x | 0.0% | 2400 | 2400 |
+| web/cookie.full | generated | 308.2 | 335.2 | 1.09x | 345.2 | 1.12x | +3.0% | 2136 | 2136 |
+| web/cookie.short | generated | 53.3 | 75.5 | 1.42x | 86.1 | 1.61x | +14.0% | 336 | 336 |
+| web/pointer.full | generated | 212.6 | 200.9 | 0.95x | 216.5 | 1.02x | +7.8% | 440 | 440 |
+| web/pointer.short | generated | 36.2 | 56.0 | 1.55x | 56.0 | 1.55x | 0.0% | 144 | 144 |
+| web/media-type.plain | generated | 158.3 | 204.0 | 1.29x | 199.4 | 1.26x | -2.3% | 448 | 448 |
+| web/media-type.quoted | generated | 251.4 | 298.2 | 1.19x | 283.0 | 1.13x | -5.1% | 816 | 816 |
+| web/media-type.refused | generated | 65.0 | 91.0 | 1.40x | 91.7 | 1.41x | +0.9% | 64 | 64 |
+| web/addr-spec.plain | generated | 89.1 | 116.1 | 1.30x | 118.8 | 1.33x | +2.3% | 176 | 176 |
+| web/addr-spec.refused | generated | 45.4 | 80.1 | 1.76x | 76.5 | 1.69x | -4.4% | 64 | 64 |
+| web/date-time.utc | generated | 49.9 | 63.0 | 1.26x | 63.8 | 1.28x | +1.3% | 176 | 176 |
+| web/date-time.offset | generated | 77.6 | 90.7 | 1.17x | 94.5 | 1.22x | +4.1% | 208 | 208 |
+| web/language-tag.plain | generated | 116.3 | 155.7 | 1.34x | 157.6 | 1.35x | +1.2% | 360 | 360 |
+| web/language-tag.full | generated | 419.2 | 480.9 | 1.15x | 488.9 | 1.17x | +1.7% | 720 | 720 |
+| web/language-tag.refused | generated | 111.2 | 148.8 | 1.34x | 161.7 | 1.45x | +8.7% | 64 | 64 |
+| web/date-time.refused | generated | 37.4 | 51.5 | 1.38x | 51.4 | 1.38x | -0.2% | 96 | 96 |
+| web/sf.item | generated | 247.8 | 309.1 | 1.25x | 298.6 | 1.20x | -3.4% | 800 | 800 |
+| web/sf.list | generated | 1172.0 | 1234.9 | 1.05x | 1251.4 | 1.07x | +1.3% | 3064 | 3064 |
+| web/sf.dictionary | generated | 1187.1 | 1217.2 | 1.03x | 1217.8 | 1.03x | +0.1% | 3280 | 3280 |
+| el/floor | generated | 315.9 | 816.3 | 2.58x | 804.7 | 2.55x | -1.4% | 1104 | 1104 |
+| el/floor | immediate | 315.9 | 486.3 | 1.54x | 507.1 | 1.61x | +4.3% | 1120 | 1120 |
+| el/ladder | generated | 1054.2 | 1855.3 | 1.76x | 1823.0 | 1.73x | -1.7% | 1776 | 1776 |
+| el/ladder | immediate | 1054.2 | 1188.3 | 1.13x | 1232.3 | 1.17x | +3.7% | 1784 | 1784 |
+| el/nest7 | generated | 735.4 | 1747.0 | 2.38x | 1741.9 | 2.37x | -0.3% | 1152 | 1152 |
+| el/nest7 | immediate | 735.4 | 1089.7 | 1.48x | 1113.5 | 1.51x | +2.2% | 1120 | 1120 |
+| el/block | generated | 1105.6 | 1863.0 | 1.69x | 1900.4 | 1.72x | +2.0% | 2344 | 2344 |
+| el/block | immediate | 1105.6 | 1204.9 | 1.09x | 1222.5 | 1.11x | +1.5% | 2440 | 2440 |
+| el/loop | generated | 2291.6 | 3846.7 | 1.68x | 3799.6 | 1.66x | -1.2% | 4776 | 4776 |
+| el/loop | immediate | 2291.6 | 2632.2 | 1.15x | 2637.0 | 1.15x | +0.2% | 4880 | 4880 |
+| el/terms100 | generated | 11921.2 | 16686.4 | 1.40x | 16565.9 | 1.39x | -0.7% | 17904 | 17904 |
+| el/terms100 | immediate | 11921.2 | 13295.0 | 1.12x | 13074.1 | 1.10x | -1.7% | 18720 | 18720 |
+| el/terms1000 | generated | 113632.5 | 155780.0 | 1.37x | 153242.1 | 1.35x | -1.6% | 169104 | 169131 |
+| el/terms1000 | immediate | 113632.5 | 127531.1 | 1.12x | 122392.9 | 1.08x | -4.0% | 177120 | 177120 |
+| el/overloads | generated | 1859.2 | 2535.6 | 1.36x | 2575.6 | 1.39x | +1.6% | 4248 | 4248 |
+| el/overloads | immediate | 1859.2 | 2018.1 | 1.09x | 2016.7 | 1.08x | -0.1% | 4200 | 4200 |
+| el/string | generated | 291.9 | 965.2 | 3.31x | 969.2 | 3.32x | +0.4% | 1056 | 1056 |
+| el/string | immediate | 291.9 | 657.9 | 2.25x | 667.1 | 2.29x | +1.4% | 1032 | 1032 |
+| el/interpolation | generated | 1920.4 | 5177.6 | 2.70x | 5181.7 | 2.70x | +0.1% | 2368 | 2392 |
+| el/interpolation | immediate | 1920.4 | 4783.3 | 2.49x | 4663.7 | 2.43x | -2.5% | 2424 | 2424 |
+| el/untyped | generated | 30635.2 | 33191.1 | 1.08x | 30837.2 | 1.01x | -7.1% | 16424 | 16424 |
+| el/refused-early | generated | 501.2 | 1276.7 | 2.55x | 1285.2 | 2.56x | +0.7% | 1064 | 1064 |
+| el/refused-early | immediate | 501.2 | 1291.3 | 2.58x | 1303.6 | 2.60x | +0.9% | 1944 | 1944 |
+| el/refused-late | generated | 1492.6 | 1850.2 | 1.24x | 1990.5 | 1.33x | +7.6% | 1064 | 1064 |
+| el/refused-late | immediate | 1492.6 | 3343.9 | 2.24x | 3238.5 | 2.17x | -3.2% | 3928 | 3928 |
+| sql/literal | generated | 65.1 | 149.0 | 2.29x | 155.8 | 2.39x | +4.5% | 160 | 160 |
+| sql/comment | generated | 2868.7 | 5320.5 | 1.85x | 5347.0 | 1.86x | +0.5% | 5136 | 5136 |
+| sql/conditions100 | generated | 76260.1 | 141998.9 | 1.86x | 145099.5 | 1.90x | +2.2% | 161736 | 161736 |
+| sql/conditions1000 | generated | 722910.9 | 1450634.4 | 2.01x | 1527503.9 | 2.11x | +5.3% | 1616136 | 1616136 |
+| tsql/comment | generated | 26795.1 | 1571.2 | 0.06x | 1549.2 | 0.06x | -1.4% | 1192 | 1192 |
+| sql/column | generated | 201.9 | 389.5 | 1.93x | 389.1 | 1.93x | -0.1% | 392 | 392 |
+| sql/arithmetic | generated | 2270.5 | 4610.9 | 2.03x | 4798.7 | 2.11x | +4.1% | 3472 | 3472 |
+| sql/nest8 | generated | 3558.2 | 11817.3 | 3.32x | 11872.8 | 3.34x | +0.5% | 6504 | 6504 |
+| sql/condition | generated | 2674.2 | 5074.7 | 1.90x | 5000.9 | 1.87x | -1.5% | 4928 | 4928 |
+| sql/select1 | generated | 852.5 | 1709.9 | 2.01x | 1768.5 | 2.07x | +3.4% | 1688 | 1688 |
+| sql/select20 | generated | 10385.6 | 21203.4 | 2.04x | 22333.1 | 2.15x | +5.3% | 21448 | 21448 |
+| sql/values | generated | 717.9 | 1993.3 | 2.78x | 2025.8 | 2.82x | +1.6% | 1904 | 1904 |
+| sql/create | generated | 976.4 | 2841.7 | 2.91x | 2844.2 | 2.91x | +0.1% | 1568 | 1568 |
+| sql/refused-late | generated | 3864.8 | 13873.9 | 3.59x | 14173.9 | 3.67x | +2.2% | 13552 | 13552 |
+
+Written to T:\TEMP\dotgram-stand\w60\pair\run-1
+=== run 2 of 5, 20:04:46
+71 rows, every reading agreeing. Timing 8 rounds.
+  tsql/script100.bool: 2 round(s) redone after a gen1/gen2 collection
+tsql/script100.bool    hand   663834.4 ns before  1150150.0 ns after   124668.8 ns  before/hand 1.73x  after/hand 0.19x
+  tsql/script100.boolboth: 6 round(s) redone after a gen1/gen2 collection
+tsql/script100.boolboth hand   646503.9 ns before  1202347.7 ns after   122182.0 ns  before/hand 1.86x  after/hand 0.19x
+  tsql/script100: 4 round(s) redone after a gen1/gen2 collection
+tsql/script100         hand   645033.6 ns before  1176001.6 ns after   124400.8 ns  before/hand 1.82x  after/hand 0.19x
+  tsql/script400.bool: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.bool    hand  2698490.6 ns before 18085456.2 ns after   512887.5 ns  before/hand 6.70x  after/hand 0.19x
+  tsql/script400.boolboth: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.boolboth hand  2676159.4 ns before 18152743.8 ns after   522171.9 ns  before/hand 6.78x  after/hand 0.20x
+  tsql/script400: 5 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2675343.8 ns before 17848212.5 ns after   517928.1 ns  before/hand 6.67x  after/hand 0.19x
+  tsql/columns1000: 6 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  1747806.2 ns before   194681.2 ns after   187270.3 ns  before/hand 0.11x  after/hand 0.11x
+  tsql/conditions1000: 35 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    hand   883994.5 ns before   337554.7 ns after   348915.6 ns  before/hand 0.38x  after/hand 0.39x
+  tsql/rows1000: 22 round(s) redone after a gen1/gen2 collection
+tsql/rows1000          hand   612659.4 ns before   243397.7 ns after   254430.5 ns  before/hand 0.40x  after/hand 0.42x
+  web/json.array10000: 96 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   180532.8 ns before   206379.3 ns after   217924.8 ns  before/hand 1.14x  after/hand 1.21x
+  web/json.object10000: 96 round(s) redone after a gen1/gen2 collection
+web/json.object10000   hand   893983.6 ns before  1323522.7 ns after  1401821.1 ns  before/hand 1.48x  after/hand 1.57x
+web/url.path1000       hand     9510.7 ns before    11052.7 ns after    11160.9 ns  before/hand 1.16x  after/hand 1.17x
+web/media-type.params1000 hand    50610.8 ns before    51298.5 ns after    46439.8 ns  before/hand 1.01x  after/hand 0.92x
+web/sf.list10000       hand  1278734.4 ns before  1232034.4 ns after  1253846.9 ns  before/hand 0.96x  after/hand 0.98x
+el/refused-early.bool  hand      346.6 ns before     1173.7 ns after      579.2 ns  before/hand 3.39x  after/hand 1.67x
+el/refused-late.bool   hand     1225.6 ns before     1865.7 ns after      938.2 ns  before/hand 1.52x  after/hand 0.77x
+el/ladder.bool         hand     1106.0 ns before     1885.3 ns after     1831.8 ns  before/hand 1.70x  after/hand 1.66x
+sql/refused-late.bool  hand     2836.5 ns before    12534.2 ns after     6268.9 ns  before/hand 4.42x  after/hand 2.21x
+sql/select20.bool      hand     6919.9 ns before    18123.3 ns after    19268.4 ns  before/hand 2.62x  after/hand 2.78x
+  web/url.plain: 1 round(s) redone after a gen1/gen2 collection
+web/url.plain          hand       96.1 ns before      226.0 ns after      216.5 ns  before/hand 2.35x  after/hand 2.25x
+web/url.full           hand      165.5 ns before      292.3 ns after      281.3 ns  before/hand 1.77x  after/hand 1.70x
+web/url.ipv4           hand      110.0 ns before      234.7 ns after      234.0 ns  before/hand 2.13x  after/hand 2.13x
+  web/url.long-path: 1 round(s) redone after a gen1/gen2 collection
+web/url.long-path      hand      174.3 ns before      411.1 ns after      409.4 ns  before/hand 2.36x  after/hand 2.35x
+web/url.refused        hand       68.5 ns before      248.0 ns after      257.8 ns  before/hand 3.62x  after/hand 3.76x
+web/json.object        hand      578.8 ns before      940.4 ns after      924.3 ns  before/hand 1.62x  after/hand 1.60x
+web/json.array         hand      599.8 ns before      732.6 ns after      747.3 ns  before/hand 1.22x  after/hand 1.25x
+web/cookie.full        hand      310.9 ns before      330.3 ns after      345.4 ns  before/hand 1.06x  after/hand 1.11x
+  web/cookie.short: 1 round(s) redone after a gen1/gen2 collection
+web/cookie.short       hand       52.4 ns before       77.1 ns after       87.5 ns  before/hand 1.47x  after/hand 1.67x
+web/pointer.full       hand      203.9 ns before      202.4 ns after      197.1 ns  before/hand 0.99x  after/hand 0.97x
+web/pointer.short      hand       37.0 ns before       57.9 ns after       57.6 ns  before/hand 1.56x  after/hand 1.56x
+  web/media-type.plain: 1 round(s) redone after a gen1/gen2 collection
+web/media-type.plain   hand      165.1 ns before      200.4 ns after      189.0 ns  before/hand 1.21x  after/hand 1.14x
+web/media-type.quoted  hand      276.3 ns before      307.6 ns after      291.6 ns  before/hand 1.11x  after/hand 1.06x
+web/media-type.refused hand       63.4 ns before       93.2 ns after       92.1 ns  before/hand 1.47x  after/hand 1.45x
+web/addr-spec.plain    hand       90.9 ns before      113.3 ns after      114.4 ns  before/hand 1.25x  after/hand 1.26x
+web/addr-spec.refused  hand       46.4 ns before       77.8 ns after       76.4 ns  before/hand 1.68x  after/hand 1.65x
+web/date-time.utc      hand       51.7 ns before       65.3 ns after       65.2 ns  before/hand 1.26x  after/hand 1.26x
+web/date-time.offset   hand       79.3 ns before       94.1 ns after       96.2 ns  before/hand 1.19x  after/hand 1.21x
+web/language-tag.plain hand      115.3 ns before      164.8 ns after      152.5 ns  before/hand 1.43x  after/hand 1.32x
+web/language-tag.full  hand      420.6 ns before      490.7 ns after      493.0 ns  before/hand 1.17x  after/hand 1.17x
+web/language-tag.refused hand      112.2 ns before      148.7 ns after      153.5 ns  before/hand 1.33x  after/hand 1.37x
+web/date-time.refused  hand       37.5 ns before       50.3 ns after       50.2 ns  before/hand 1.34x  after/hand 1.34x
+web/sf.item            hand      253.4 ns before      287.1 ns after      297.7 ns  before/hand 1.13x  after/hand 1.17x
+web/sf.list            hand     1146.6 ns before     1258.0 ns after     1233.5 ns  before/hand 1.10x  after/hand 1.08x
+web/sf.dictionary      hand     1188.4 ns before     1217.2 ns after     1210.8 ns  before/hand 1.02x  after/hand 1.02x
+el/floor               hand      323.5 ns before      822.7 ns after      788.9 ns before-immediate      465.8 ns after-immediate      474.9 ns  before/hand 2.54x  after/hand 2.44x  before-immediate/hand 1.44x  after-immediate/hand 1.47x
+el/ladder              hand     1022.8 ns before     1748.4 ns after     1753.6 ns before-immediate     1157.8 ns after-immediate     1147.8 ns  before/hand 1.71x  after/hand 1.71x  before-immediate/hand 1.13x  after-immediate/hand 1.12x
+  el/nest7: 1 round(s) redone after a gen1/gen2 collection
+el/nest7               hand      644.8 ns before     1716.8 ns after     1678.9 ns before-immediate     1018.6 ns after-immediate     1012.8 ns  before/hand 2.66x  after/hand 2.60x  before-immediate/hand 1.58x  after-immediate/hand 1.57x
+el/block               hand     1029.7 ns before     1769.2 ns after     1747.1 ns before-immediate     1144.6 ns after-immediate     1137.4 ns  before/hand 1.72x  after/hand 1.70x  before-immediate/hand 1.11x  after-immediate/hand 1.10x
+el/loop                hand     2225.0 ns before     3723.4 ns after     3741.1 ns before-immediate     2517.4 ns after-immediate     2632.5 ns  before/hand 1.67x  after/hand 1.68x  before-immediate/hand 1.13x  after-immediate/hand 1.18x
+  el/terms100: 1 round(s) redone after a gen1/gen2 collection
+el/terms100            hand    11874.9 ns before    16000.4 ns after    16260.7 ns before-immediate    12440.8 ns after-immediate    12613.7 ns  before/hand 1.35x  after/hand 1.37x  before-immediate/hand 1.05x  after-immediate/hand 1.06x
+  el/terms1000: 12 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   113302.3 ns before   149317.4 ns after   153642.9 ns before-immediate   119256.4 ns after-immediate   122766.0 ns  before/hand 1.32x  after/hand 1.36x  before-immediate/hand 1.05x  after-immediate/hand 1.08x
+el/overloads           hand     1860.5 ns before     2547.4 ns after     2535.6 ns before-immediate     2053.8 ns after-immediate     2042.1 ns  before/hand 1.37x  after/hand 1.36x  before-immediate/hand 1.10x  after-immediate/hand 1.10x
+el/string              hand      269.6 ns before      951.2 ns after      958.4 ns before-immediate      661.3 ns after-immediate      655.1 ns  before/hand 3.53x  after/hand 3.55x  before-immediate/hand 2.45x  after-immediate/hand 2.43x
+el/interpolation       hand     1635.1 ns before     4819.9 ns after     4733.6 ns before-immediate     4196.1 ns after-immediate     4345.0 ns  before/hand 2.95x  after/hand 2.89x  before-immediate/hand 2.57x  after-immediate/hand 2.66x
+el/untyped             hand    29396.7 ns before    28224.2 ns after    31188.1 ns  before/hand 0.96x  after/hand 1.06x
+el/refused-early       hand      470.2 ns before     1243.9 ns after     1241.8 ns before-immediate     1201.6 ns after-immediate     1241.4 ns  before/hand 2.65x  after/hand 2.64x  before-immediate/hand 2.56x  after-immediate/hand 2.64x
+el/refused-late        hand     1419.8 ns before     1863.8 ns after     1950.8 ns before-immediate     3080.8 ns after-immediate     3123.1 ns  before/hand 1.31x  after/hand 1.37x  before-immediate/hand 2.17x  after-immediate/hand 2.20x
+  sql/literal: 1 round(s) redone after a gen1/gen2 collection
+sql/literal            hand       62.6 ns before      137.0 ns after      143.3 ns  before/hand 2.19x  after/hand 2.29x
+sql/comment            hand     2717.2 ns before     5135.7 ns after     5410.1 ns  before/hand 1.89x  after/hand 1.99x
+sql/conditions100      hand    68792.3 ns before   135923.1 ns after   135790.7 ns  before/hand 1.98x  after/hand 1.97x
+sql/conditions1000     hand   737176.6 ns before  1353990.6 ns after  1408596.9 ns  before/hand 1.84x  after/hand 1.91x
+tsql/comment           hand    24663.0 ns before     1603.6 ns after     1596.1 ns  before/hand 0.07x  after/hand 0.06x
+sql/column             hand      175.3 ns before      377.7 ns after      384.4 ns  before/hand 2.16x  after/hand 2.19x
+sql/arithmetic         hand     2048.2 ns before     4425.0 ns after     4705.2 ns  before/hand 2.16x  after/hand 2.30x
+sql/nest8              hand     3414.6 ns before    11637.3 ns after    11748.7 ns  before/hand 3.41x  after/hand 3.44x
+sql/condition          hand     2497.7 ns before     4780.5 ns after     4957.5 ns  before/hand 1.91x  after/hand 1.98x
+sql/select1            hand      807.1 ns before     1670.4 ns after     1751.5 ns  before/hand 2.07x  after/hand 2.17x
+sql/select20           hand     9579.6 ns before    20395.1 ns after    20968.4 ns  before/hand 2.13x  after/hand 2.19x
+  sql/values: 1 round(s) redone after a gen1/gen2 collection
+sql/values             hand      624.1 ns before     1846.3 ns after     1941.6 ns  before/hand 2.96x  after/hand 3.11x
+sql/create             hand      936.1 ns before     2745.4 ns after     2831.5 ns  before/hand 2.93x  after/hand 3.02x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     3876.2 ns before    14210.2 ns after    14740.1 ns  before/hand 3.67x  after/hand 3.80x
+
+# Paired stand, 2026-09-19 20:10
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tsql/script100.bool | generated | 663834.4 | 1150150.0 | 1.73x | 124668.8 | 0.19x | -89.2% | 113600 | 105600 |
+| tsql/script100.boolboth | generated | 646503.9 | 1202347.7 | 1.86x | 122182.0 | 0.19x | -89.8% | 105600 | 105600 |
+| tsql/script100 | generated | 645033.6 | 1176001.6 | 1.82x | 124400.8 | 0.19x | -89.4% | 113600 | 113600 |
+| tsql/script400.bool | generated | 2698490.6 | 18085456.2 | 6.70x | 512887.5 | 0.19x | -97.2% | 454400 | 422403 |
+| tsql/script400.boolboth | generated | 2676159.4 | 18152743.8 | 6.78x | 522171.9 | 0.20x | -97.1% | 422400 | 422403 |
+| tsql/script400 | generated | 2675343.8 | 17848212.5 | 6.67x | 517928.1 | 0.19x | -97.1% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1747806.2 | 194681.2 | 0.11x | 187270.3 | 0.11x | -3.8% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 883994.5 | 337554.7 | 0.38x | 348915.6 | 0.39x | +3.4% | 424424 | 424424 |
+| tsql/rows1000 | generated | 612659.4 | 243397.7 | 0.40x | 254430.5 | 0.42x | +4.5% | 296472 | 296472 |
+| web/json.array10000 | generated | 180532.8 | 206379.3 | 1.14x | 217924.8 | 1.21x | +5.6% | 720048 | 720048 |
+| web/json.object10000 | generated | 893983.6 | 1323522.7 | 1.48x | 1401821.1 | 1.57x | +5.9% | 1599240 | 1599240 |
+| web/url.path1000 | generated | 9510.7 | 11052.7 | 1.16x | 11160.9 | 1.17x | +1.0% | 8384 | 8384 |
+| web/media-type.params1000 | generated | 50610.8 | 51298.5 | 1.01x | 46439.8 | 0.92x | -9.5% | 151472 | 151472 |
+| web/sf.list10000 | generated | 1278734.4 | 1232034.4 | 0.96x | 1253846.9 | 0.98x | +1.8% | 2720056 | 2720056 |
+| el/refused-early.bool | generated | 346.6 | 1173.7 | 3.39x | 579.2 | 1.67x | -50.7% | 1064 | 624 |
+| el/refused-late.bool | generated | 1225.6 | 1865.7 | 1.52x | 938.2 | 0.77x | -49.7% | 1088 | 624 |
+| el/ladder.bool | generated | 1106.0 | 1885.3 | 1.70x | 1831.8 | 1.66x | -2.8% | 1800 | 1720 |
+| sql/refused-late.bool | generated | 2836.5 | 12534.2 | 4.42x | 6268.9 | 2.21x | -50.0% | 13552 | 6616 |
+| sql/select20.bool | generated | 6919.9 | 18123.3 | 2.62x | 19268.4 | 2.78x | +6.3% | 21448 | 21392 |
+| web/url.plain | generated | 96.1 | 226.0 | 2.35x | 216.5 | 2.25x | -4.2% | 360 | 360 |
+| web/url.full | generated | 165.5 | 292.3 | 1.77x | 281.3 | 1.70x | -3.8% | 536 | 536 |
+| web/url.ipv4 | generated | 110.0 | 234.7 | 2.13x | 234.0 | 2.13x | -0.3% | 384 | 384 |
+| web/url.long-path | generated | 174.3 | 411.1 | 2.36x | 409.4 | 2.35x | -0.4% | 512 | 512 |
+| web/url.refused | generated | 68.5 | 248.0 | 3.62x | 257.8 | 3.76x | +4.0% | 64 | 64 |
+| web/json.object | generated | 578.8 | 940.4 | 1.62x | 924.3 | 1.60x | -1.7% | 2584 | 2584 |
+| web/json.array | generated | 599.8 | 732.6 | 1.22x | 747.3 | 1.25x | +2.0% | 2400 | 2400 |
+| web/cookie.full | generated | 310.9 | 330.3 | 1.06x | 345.4 | 1.11x | +4.6% | 2136 | 2136 |
+| web/cookie.short | generated | 52.4 | 77.1 | 1.47x | 87.5 | 1.67x | +13.5% | 336 | 336 |
+| web/pointer.full | generated | 203.9 | 202.4 | 0.99x | 197.1 | 0.97x | -2.6% | 440 | 440 |
+| web/pointer.short | generated | 37.0 | 57.9 | 1.56x | 57.6 | 1.56x | -0.5% | 144 | 144 |
+| web/media-type.plain | generated | 165.1 | 200.4 | 1.21x | 189.0 | 1.14x | -5.7% | 448 | 448 |
+| web/media-type.quoted | generated | 276.3 | 307.6 | 1.11x | 291.6 | 1.06x | -5.2% | 816 | 816 |
+| web/media-type.refused | generated | 63.4 | 93.2 | 1.47x | 92.1 | 1.45x | -1.2% | 64 | 64 |
+| web/addr-spec.plain | generated | 90.9 | 113.3 | 1.25x | 114.4 | 1.26x | +0.9% | 176 | 176 |
+| web/addr-spec.refused | generated | 46.4 | 77.8 | 1.68x | 76.4 | 1.65x | -1.8% | 64 | 64 |
+| web/date-time.utc | generated | 51.7 | 65.3 | 1.26x | 65.2 | 1.26x | -0.2% | 176 | 176 |
+| web/date-time.offset | generated | 79.3 | 94.1 | 1.19x | 96.2 | 1.21x | +2.2% | 208 | 208 |
+| web/language-tag.plain | generated | 115.3 | 164.8 | 1.43x | 152.5 | 1.32x | -7.5% | 360 | 360 |
+| web/language-tag.full | generated | 420.6 | 490.7 | 1.17x | 493.0 | 1.17x | +0.5% | 720 | 720 |
+| web/language-tag.refused | generated | 112.2 | 148.7 | 1.33x | 153.5 | 1.37x | +3.2% | 64 | 64 |
+| web/date-time.refused | generated | 37.5 | 50.3 | 1.34x | 50.2 | 1.34x | -0.2% | 96 | 96 |
+| web/sf.item | generated | 253.4 | 287.1 | 1.13x | 297.7 | 1.17x | +3.7% | 800 | 800 |
+| web/sf.list | generated | 1146.6 | 1258.0 | 1.10x | 1233.5 | 1.08x | -1.9% | 3064 | 3064 |
+| web/sf.dictionary | generated | 1188.4 | 1217.2 | 1.02x | 1210.8 | 1.02x | -0.5% | 3280 | 3280 |
+| el/floor | generated | 323.5 | 822.7 | 2.54x | 788.9 | 2.44x | -4.1% | 1104 | 1104 |
+| el/floor | immediate | 323.5 | 465.8 | 1.44x | 474.9 | 1.47x | +2.0% | 1120 | 1120 |
+| el/ladder | generated | 1022.8 | 1748.4 | 1.71x | 1753.6 | 1.71x | +0.3% | 1776 | 1776 |
+| el/ladder | immediate | 1022.8 | 1157.8 | 1.13x | 1147.8 | 1.12x | -0.9% | 1784 | 1784 |
+| el/nest7 | generated | 644.8 | 1716.8 | 2.66x | 1678.9 | 2.60x | -2.2% | 1152 | 1152 |
+| el/nest7 | immediate | 644.8 | 1018.6 | 1.58x | 1012.8 | 1.57x | -0.6% | 1120 | 1120 |
+| el/block | generated | 1029.7 | 1769.2 | 1.72x | 1747.1 | 1.70x | -1.2% | 2344 | 2344 |
+| el/block | immediate | 1029.7 | 1144.6 | 1.11x | 1137.4 | 1.10x | -0.6% | 2440 | 2440 |
+| el/loop | generated | 2225.0 | 3723.4 | 1.67x | 3741.1 | 1.68x | +0.5% | 4776 | 4776 |
+| el/loop | immediate | 2225.0 | 2517.4 | 1.13x | 2632.5 | 1.18x | +4.6% | 4880 | 4880 |
+| el/terms100 | generated | 11874.9 | 16000.4 | 1.35x | 16260.7 | 1.37x | +1.6% | 17904 | 17904 |
+| el/terms100 | immediate | 11874.9 | 12440.8 | 1.05x | 12613.7 | 1.06x | +1.4% | 18720 | 18720 |
+| el/terms1000 | generated | 113302.3 | 149317.4 | 1.32x | 153642.9 | 1.36x | +2.9% | 169107 | 169128 |
+| el/terms1000 | immediate | 113302.3 | 119256.4 | 1.05x | 122766.0 | 1.08x | +2.9% | 177120 | 177120 |
+| el/overloads | generated | 1860.5 | 2547.4 | 1.37x | 2535.6 | 1.36x | -0.5% | 4248 | 4248 |
+| el/overloads | immediate | 1860.5 | 2053.8 | 1.10x | 2042.1 | 1.10x | -0.6% | 4200 | 4200 |
+| el/string | generated | 269.6 | 951.2 | 3.53x | 958.4 | 3.55x | +0.8% | 1056 | 1056 |
+| el/string | immediate | 269.6 | 661.3 | 2.45x | 655.1 | 2.43x | -0.9% | 1032 | 1032 |
+| el/interpolation | generated | 1635.1 | 4819.9 | 2.95x | 4733.6 | 2.89x | -1.8% | 2368 | 2368 |
+| el/interpolation | immediate | 1635.1 | 4196.1 | 2.57x | 4345.0 | 2.66x | +3.6% | 2424 | 2424 |
+| el/untyped | generated | 29396.7 | 28224.2 | 0.96x | 31188.1 | 1.06x | +10.5% | 16424 | 16424 |
+| el/refused-early | generated | 470.2 | 1243.9 | 2.65x | 1241.8 | 2.64x | -0.2% | 1064 | 1064 |
+| el/refused-early | immediate | 470.2 | 1201.6 | 2.56x | 1241.4 | 2.64x | +3.3% | 1944 | 1944 |
+| el/refused-late | generated | 1419.8 | 1863.8 | 1.31x | 1950.8 | 1.37x | +4.7% | 1064 | 1064 |
+| el/refused-late | immediate | 1419.8 | 3080.8 | 2.17x | 3123.1 | 2.20x | +1.4% | 3928 | 3928 |
+| sql/literal | generated | 62.6 | 137.0 | 2.19x | 143.3 | 2.29x | +4.6% | 160 | 160 |
+| sql/comment | generated | 2717.2 | 5135.7 | 1.89x | 5410.1 | 1.99x | +5.3% | 5136 | 5136 |
+| sql/conditions100 | generated | 68792.3 | 135923.1 | 1.98x | 135790.7 | 1.97x | -0.1% | 161736 | 161736 |
+| sql/conditions1000 | generated | 737176.6 | 1353990.6 | 1.84x | 1408596.9 | 1.91x | +4.0% | 1616136 | 1616136 |
+| tsql/comment | generated | 24663.0 | 1603.6 | 0.07x | 1596.1 | 0.06x | -0.5% | 1192 | 1192 |
+| sql/column | generated | 175.3 | 377.7 | 2.16x | 384.4 | 2.19x | +1.8% | 416 | 416 |
+| sql/arithmetic | generated | 2048.2 | 4425.0 | 2.16x | 4705.2 | 2.30x | +6.3% | 3496 | 3496 |
+| sql/nest8 | generated | 3414.6 | 11637.3 | 3.41x | 11748.7 | 3.44x | +1.0% | 6504 | 6504 |
+| sql/condition | generated | 2497.7 | 4780.5 | 1.91x | 4957.5 | 1.98x | +3.7% | 4928 | 4928 |
+| sql/select1 | generated | 807.1 | 1670.4 | 2.07x | 1751.5 | 2.17x | +4.9% | 1688 | 1688 |
+| sql/select20 | generated | 9579.6 | 20395.1 | 2.13x | 20968.4 | 2.19x | +2.8% | 21448 | 21448 |
+| sql/values | generated | 624.1 | 1846.3 | 2.96x | 1941.6 | 3.11x | +5.2% | 1904 | 1904 |
+| sql/create | generated | 936.1 | 2745.4 | 2.93x | 2831.5 | 3.02x | +3.1% | 1568 | 1568 |
+| sql/refused-late | generated | 3876.2 | 14210.2 | 3.67x | 14740.1 | 3.80x | +3.7% | 13552 | 13552 |
+
+Written to T:\TEMP\dotgram-stand\w60\pair\run-2
+=== run 3 of 5, 20:10:03
+71 rows, every reading agreeing. Timing 8 rounds.
+  tsql/script100.bool: 1 round(s) redone after a gen1/gen2 collection
+tsql/script100.bool    hand   708693.8 ns before  1188628.1 ns after   123921.9 ns  before/hand 1.68x  after/hand 0.17x
+  tsql/script100.boolboth: 7 round(s) redone after a gen1/gen2 collection
+tsql/script100.boolboth hand   671625.8 ns before  1158691.4 ns after   121492.2 ns  before/hand 1.73x  after/hand 0.18x
+  tsql/script100: 4 round(s) redone after a gen1/gen2 collection
+tsql/script100         hand   648186.7 ns before  1140522.7 ns after   122696.9 ns  before/hand 1.76x  after/hand 0.19x
+  tsql/script400.bool: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.bool    hand  2624696.9 ns before 16808287.5 ns after   477093.8 ns  before/hand 6.40x  after/hand 0.18x
+  tsql/script400.boolboth: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.boolboth hand  2647837.5 ns before 16807915.6 ns after   494159.4 ns  before/hand 6.35x  after/hand 0.19x
+  tsql/script400: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2641131.2 ns before 16833993.8 ns after   495337.5 ns  before/hand 6.37x  after/hand 0.19x
+  tsql/columns1000: 5 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  1739187.5 ns before   187734.4 ns after   190571.9 ns  before/hand 0.11x  after/hand 0.11x
+  tsql/conditions1000: 32 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    hand   873779.7 ns before   325598.4 ns after   323360.2 ns  before/hand 0.37x  after/hand 0.37x
+  tsql/rows1000: 36 round(s) redone after a gen1/gen2 collection
+tsql/rows1000          hand   575420.7 ns before   235021.5 ns after   236623.4 ns  before/hand 0.41x  after/hand 0.41x
+  web/json.array10000: 96 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   166441.0 ns before   200813.9 ns after   201058.0 ns  before/hand 1.21x  after/hand 1.21x
+  web/json.object10000: 96 round(s) redone after a gen1/gen2 collection
+web/json.object10000   hand   863238.3 ns before  1481922.7 ns after  1410892.2 ns  before/hand 1.72x  after/hand 1.63x
+web/url.path1000       hand     9723.0 ns before    11133.2 ns after    11169.1 ns  before/hand 1.15x  after/hand 1.15x
+web/media-type.params1000 hand    49921.5 ns before    48308.8 ns after    49960.5 ns  before/hand 0.97x  after/hand 1.00x
+web/sf.list10000       hand  1141706.2 ns before  1289946.9 ns after  1159531.2 ns  before/hand 1.13x  after/hand 1.02x
+  el/refused-early.bool: 1 round(s) redone after a gen1/gen2 collection
+el/refused-early.bool  hand      335.5 ns before     1131.3 ns after      572.4 ns  before/hand 3.37x  after/hand 1.71x
+el/refused-late.bool   hand     1193.1 ns before     1768.8 ns after      929.5 ns  before/hand 1.48x  after/hand 0.78x
+el/ladder.bool         hand     1088.2 ns before     1780.1 ns after     1783.4 ns  before/hand 1.64x  after/hand 1.64x
+  sql/refused-late.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late.bool  hand     2473.0 ns before    11974.7 ns after     5781.4 ns  before/hand 4.84x  after/hand 2.34x
+sql/select20.bool      hand     6667.8 ns before    17900.4 ns after    18170.9 ns  before/hand 2.68x  after/hand 2.73x
+web/url.plain          hand       97.0 ns before      219.1 ns after      212.2 ns  before/hand 2.26x  after/hand 2.19x
+web/url.full           hand      174.3 ns before      274.8 ns after      278.5 ns  before/hand 1.58x  after/hand 1.60x
+web/url.ipv4           hand      120.1 ns before      221.8 ns after      223.7 ns  before/hand 1.85x  after/hand 1.86x
+web/url.long-path      hand      187.6 ns before      401.0 ns after      398.7 ns  before/hand 2.14x  after/hand 2.12x
+web/url.refused        hand       67.8 ns before      247.3 ns after      239.7 ns  before/hand 3.65x  after/hand 3.53x
+  web/json.object: 1 round(s) redone after a gen1/gen2 collection
+web/json.object        hand      581.3 ns before      896.7 ns after      938.8 ns  before/hand 1.54x  after/hand 1.62x
+web/json.array         hand      582.7 ns before      732.7 ns after      748.7 ns  before/hand 1.26x  after/hand 1.28x
+web/cookie.full        hand      299.7 ns before      332.0 ns after      323.3 ns  before/hand 1.11x  after/hand 1.08x
+web/cookie.short       hand       51.5 ns before       73.6 ns after       72.2 ns  before/hand 1.43x  after/hand 1.40x
+web/pointer.full       hand      203.6 ns before      193.6 ns after      198.3 ns  before/hand 0.95x  after/hand 0.97x
+web/pointer.short      hand       36.1 ns before       53.8 ns after       54.3 ns  before/hand 1.49x  after/hand 1.50x
+web/media-type.plain   hand      162.2 ns before      188.4 ns after      195.6 ns  before/hand 1.16x  after/hand 1.21x
+  web/media-type.quoted: 1 round(s) redone after a gen1/gen2 collection
+web/media-type.quoted  hand      251.1 ns before      291.2 ns after      291.4 ns  before/hand 1.16x  after/hand 1.16x
+web/media-type.refused hand       62.2 ns before       88.4 ns after       87.3 ns  before/hand 1.42x  after/hand 1.40x
+web/addr-spec.plain    hand       87.6 ns before      107.5 ns after      108.1 ns  before/hand 1.23x  after/hand 1.23x
+  web/addr-spec.refused: 1 round(s) redone after a gen1/gen2 collection
+web/addr-spec.refused  hand       46.1 ns before       71.6 ns after       71.9 ns  before/hand 1.55x  after/hand 1.56x
+web/date-time.utc      hand       50.3 ns before       61.3 ns after       64.1 ns  before/hand 1.22x  after/hand 1.28x
+web/date-time.offset   hand       77.3 ns before       88.6 ns after       91.6 ns  before/hand 1.15x  after/hand 1.18x
+  web/language-tag.plain: 1 round(s) redone after a gen1/gen2 collection
+web/language-tag.plain hand      116.4 ns before      144.7 ns after      147.7 ns  before/hand 1.24x  after/hand 1.27x
+web/language-tag.full  hand      408.4 ns before      455.2 ns after      477.6 ns  before/hand 1.11x  after/hand 1.17x
+web/language-tag.refused hand      109.3 ns before      143.7 ns after      143.5 ns  before/hand 1.31x  after/hand 1.31x
+  web/date-time.refused: 1 round(s) redone after a gen1/gen2 collection
+web/date-time.refused  hand       35.3 ns before       46.7 ns after       50.5 ns  before/hand 1.33x  after/hand 1.43x
+web/sf.item            hand      265.2 ns before      297.1 ns after      295.1 ns  before/hand 1.12x  after/hand 1.11x
+web/sf.list            hand     1173.0 ns before     1249.4 ns after     1230.9 ns  before/hand 1.07x  after/hand 1.05x
+web/sf.dictionary      hand     1194.0 ns before     1185.4 ns after     1199.2 ns  before/hand 0.99x  after/hand 1.00x
+el/floor               hand      311.6 ns before      826.0 ns after      784.2 ns before-immediate      471.0 ns after-immediate      471.3 ns  before/hand 2.65x  after/hand 2.52x  before-immediate/hand 1.51x  after-immediate/hand 1.51x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1052.8 ns before     1787.4 ns after     1715.9 ns before-immediate     1152.3 ns after-immediate     1146.1 ns  before/hand 1.70x  after/hand 1.63x  before-immediate/hand 1.09x  after-immediate/hand 1.09x
+el/nest7               hand      698.4 ns before     1757.4 ns after     1715.9 ns before-immediate     1037.8 ns after-immediate     1031.2 ns  before/hand 2.52x  after/hand 2.46x  before-immediate/hand 1.49x  after-immediate/hand 1.48x
+el/block               hand     1036.9 ns before     1789.5 ns after     1795.2 ns before-immediate     1153.3 ns after-immediate     1139.5 ns  before/hand 1.73x  after/hand 1.73x  before-immediate/hand 1.11x  after-immediate/hand 1.10x
+  el/loop: 1 round(s) redone after a gen1/gen2 collection
+el/loop                hand     2187.2 ns before     3680.0 ns after     3705.5 ns before-immediate     2621.8 ns after-immediate     2547.4 ns  before/hand 1.68x  after/hand 1.69x  before-immediate/hand 1.20x  after-immediate/hand 1.16x
+  el/terms100: 1 round(s) redone after a gen1/gen2 collection
+el/terms100            hand    12292.0 ns before    17401.3 ns after    17588.5 ns before-immediate    14153.3 ns after-immediate    14378.9 ns  before/hand 1.42x  after/hand 1.43x  before-immediate/hand 1.15x  after-immediate/hand 1.17x
+  el/terms1000: 11 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   114050.8 ns before   160463.1 ns after   164153.9 ns before-immediate   134893.6 ns after-immediate   135586.5 ns  before/hand 1.41x  after/hand 1.44x  before-immediate/hand 1.18x  after-immediate/hand 1.19x
+el/overloads           hand     1951.9 ns before     2766.2 ns after     2706.3 ns before-immediate     2193.2 ns after-immediate     2166.4 ns  before/hand 1.42x  after/hand 1.39x  before-immediate/hand 1.12x  after-immediate/hand 1.11x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      278.4 ns before     1021.5 ns after      956.8 ns before-immediate      661.4 ns after-immediate      675.2 ns  before/hand 3.67x  after/hand 3.44x  before-immediate/hand 2.38x  after-immediate/hand 2.43x
+el/interpolation       hand     2190.5 ns before     4897.4 ns after     4624.0 ns before-immediate     4391.7 ns after-immediate     4920.9 ns  before/hand 2.24x  after/hand 2.11x  before-immediate/hand 2.00x  after-immediate/hand 2.25x
+el/untyped             hand    28776.1 ns before    32534.8 ns after    31360.0 ns  before/hand 1.13x  after/hand 1.09x
+  el/refused-early: 1 round(s) redone after a gen1/gen2 collection
+el/refused-early       hand      469.1 ns before     1232.8 ns after     1237.5 ns before-immediate     1297.6 ns after-immediate     1232.3 ns  before/hand 2.63x  after/hand 2.64x  before-immediate/hand 2.77x  after-immediate/hand 2.63x
+el/refused-late        hand     1582.7 ns before     1919.3 ns after     1998.7 ns before-immediate     3238.4 ns after-immediate     3360.0 ns  before/hand 1.21x  after/hand 1.26x  before-immediate/hand 2.05x  after-immediate/hand 2.12x
+sql/literal            hand       65.2 ns before      152.9 ns after      144.7 ns  before/hand 2.35x  after/hand 2.22x
+  sql/comment: 1 round(s) redone after a gen1/gen2 collection
+sql/comment            hand     2729.2 ns before     5459.9 ns after     5334.9 ns  before/hand 2.00x  after/hand 1.95x
+sql/conditions100      hand    76495.5 ns before   146809.6 ns after   143020.8 ns  before/hand 1.92x  after/hand 1.87x
+  sql/conditions1000: 1 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   802899.2 ns before  1430337.5 ns after  1492138.3 ns  before/hand 1.78x  after/hand 1.86x
+tsql/comment           hand    26558.4 ns before     1622.9 ns after     1558.9 ns  before/hand 0.06x  after/hand 0.06x
+sql/column             hand      182.2 ns before      389.3 ns after      392.9 ns  before/hand 2.14x  after/hand 2.16x
+sql/arithmetic         hand     2354.5 ns before     4706.5 ns after     4544.1 ns  before/hand 2.00x  after/hand 1.93x
+sql/nest8              hand     3583.5 ns before    11913.7 ns after    11906.5 ns  before/hand 3.32x  after/hand 3.32x
+sql/condition          hand     2604.5 ns before     5188.9 ns after     5032.6 ns  before/hand 1.99x  after/hand 1.93x
+sql/select1            hand      944.9 ns before     1902.6 ns after     1801.2 ns  before/hand 2.01x  after/hand 1.91x
+  sql/select20: 1 round(s) redone after a gen1/gen2 collection
+sql/select20           hand    11500.2 ns before    23254.8 ns after    23483.3 ns  before/hand 2.02x  after/hand 2.04x
+sql/values             hand      731.3 ns before     2106.4 ns after     2067.4 ns  before/hand 2.88x  after/hand 2.83x
+sql/create             hand      996.3 ns before     2774.9 ns after     2786.5 ns  before/hand 2.79x  after/hand 2.80x
+sql/refused-late       hand     3813.7 ns before    14062.8 ns after    14394.5 ns  before/hand 3.69x  after/hand 3.77x
+
+# Paired stand, 2026-09-19 20:15
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tsql/script100.bool | generated | 708693.8 | 1188628.1 | 1.68x | 123921.9 | 0.17x | -89.6% | 113600 | 105603 |
+| tsql/script100.boolboth | generated | 671625.8 | 1158691.4 | 1.73x | 121492.2 | 0.18x | -89.5% | 105600 | 105600 |
+| tsql/script100 | generated | 648186.7 | 1140522.7 | 1.76x | 122696.9 | 0.19x | -89.2% | 113600 | 113600 |
+| tsql/script400.bool | generated | 2624696.9 | 16808287.5 | 6.40x | 477093.8 | 0.18x | -97.2% | 454400 | 422403 |
+| tsql/script400.boolboth | generated | 2647837.5 | 16807915.6 | 6.35x | 494159.4 | 0.19x | -97.1% | 422403 | 422403 |
+| tsql/script400 | generated | 2641131.2 | 16833993.8 | 6.37x | 495337.5 | 0.19x | -97.1% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1739187.5 | 187734.4 | 0.11x | 190571.9 | 0.11x | +1.5% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 873779.7 | 325598.4 | 0.37x | 323360.2 | 0.37x | -0.7% | 424424 | 424424 |
+| tsql/rows1000 | generated | 575420.7 | 235021.5 | 0.41x | 236623.4 | 0.41x | +0.7% | 296472 | 296472 |
+| web/json.array10000 | generated | 166441.0 | 200813.9 | 1.21x | 201058.0 | 1.21x | +0.1% | 720048 | 720048 |
+| web/json.object10000 | generated | 863238.3 | 1481922.7 | 1.72x | 1410892.2 | 1.63x | -4.8% | 1599240 | 1599240 |
+| web/url.path1000 | generated | 9723.0 | 11133.2 | 1.15x | 11169.1 | 1.15x | +0.3% | 8384 | 8384 |
+| web/media-type.params1000 | generated | 49921.5 | 48308.8 | 0.97x | 49960.5 | 1.00x | +3.4% | 151472 | 151472 |
+| web/sf.list10000 | generated | 1141706.2 | 1289946.9 | 1.13x | 1159531.2 | 1.02x | -10.1% | 2720056 | 2720056 |
+| el/refused-early.bool | generated | 335.5 | 1131.3 | 3.37x | 572.4 | 1.71x | -49.4% | 1064 | 624 |
+| el/refused-late.bool | generated | 1193.1 | 1768.8 | 1.48x | 929.5 | 0.78x | -47.4% | 1064 | 624 |
+| el/ladder.bool | generated | 1088.2 | 1780.1 | 1.64x | 1783.4 | 1.64x | +0.2% | 1776 | 1720 |
+| sql/refused-late.bool | generated | 2473.0 | 11974.7 | 4.84x | 5781.4 | 2.34x | -51.7% | 13552 | 6616 |
+| sql/select20.bool | generated | 6667.8 | 17900.4 | 2.68x | 18170.9 | 2.73x | +1.5% | 21448 | 21392 |
+| web/url.plain | generated | 97.0 | 219.1 | 2.26x | 212.2 | 2.19x | -3.1% | 360 | 360 |
+| web/url.full | generated | 174.3 | 274.8 | 1.58x | 278.5 | 1.60x | +1.4% | 536 | 536 |
+| web/url.ipv4 | generated | 120.1 | 221.8 | 1.85x | 223.7 | 1.86x | +0.9% | 384 | 384 |
+| web/url.long-path | generated | 187.6 | 401.0 | 2.14x | 398.7 | 2.12x | -0.6% | 512 | 512 |
+| web/url.refused | generated | 67.8 | 247.3 | 3.65x | 239.7 | 3.53x | -3.1% | 64 | 64 |
+| web/json.object | generated | 581.3 | 896.7 | 1.54x | 938.8 | 1.62x | +4.7% | 2584 | 2584 |
+| web/json.array | generated | 582.7 | 732.7 | 1.26x | 748.7 | 1.28x | +2.2% | 2400 | 2400 |
+| web/cookie.full | generated | 299.7 | 332.0 | 1.11x | 323.3 | 1.08x | -2.6% | 2136 | 2136 |
+| web/cookie.short | generated | 51.5 | 73.6 | 1.43x | 72.2 | 1.40x | -1.9% | 336 | 336 |
+| web/pointer.full | generated | 203.6 | 193.6 | 0.95x | 198.3 | 0.97x | +2.4% | 440 | 440 |
+| web/pointer.short | generated | 36.1 | 53.8 | 1.49x | 54.3 | 1.50x | +0.8% | 144 | 144 |
+| web/media-type.plain | generated | 162.2 | 188.4 | 1.16x | 195.6 | 1.21x | +3.8% | 448 | 448 |
+| web/media-type.quoted | generated | 251.1 | 291.2 | 1.16x | 291.4 | 1.16x | +0.1% | 816 | 816 |
+| web/media-type.refused | generated | 62.2 | 88.4 | 1.42x | 87.3 | 1.40x | -1.2% | 64 | 64 |
+| web/addr-spec.plain | generated | 87.6 | 107.5 | 1.23x | 108.1 | 1.23x | +0.6% | 176 | 176 |
+| web/addr-spec.refused | generated | 46.1 | 71.6 | 1.55x | 71.9 | 1.56x | +0.3% | 64 | 64 |
+| web/date-time.utc | generated | 50.3 | 61.3 | 1.22x | 64.1 | 1.28x | +4.7% | 176 | 176 |
+| web/date-time.offset | generated | 77.3 | 88.6 | 1.15x | 91.6 | 1.18x | +3.4% | 208 | 208 |
+| web/language-tag.plain | generated | 116.4 | 144.7 | 1.24x | 147.7 | 1.27x | +2.1% | 360 | 360 |
+| web/language-tag.full | generated | 408.4 | 455.2 | 1.11x | 477.6 | 1.17x | +4.9% | 720 | 720 |
+| web/language-tag.refused | generated | 109.3 | 143.7 | 1.31x | 143.5 | 1.31x | -0.2% | 64 | 64 |
+| web/date-time.refused | generated | 35.3 | 46.7 | 1.33x | 50.5 | 1.43x | +8.1% | 96 | 96 |
+| web/sf.item | generated | 265.2 | 297.1 | 1.12x | 295.1 | 1.11x | -0.7% | 800 | 800 |
+| web/sf.list | generated | 1173.0 | 1249.4 | 1.07x | 1230.9 | 1.05x | -1.5% | 3064 | 3064 |
+| web/sf.dictionary | generated | 1194.0 | 1185.4 | 0.99x | 1199.2 | 1.00x | +1.2% | 3280 | 3280 |
+| el/floor | generated | 311.6 | 826.0 | 2.65x | 784.2 | 2.52x | -5.1% | 1104 | 1104 |
+| el/floor | immediate | 311.6 | 471.0 | 1.51x | 471.3 | 1.51x | +0.1% | 1120 | 1120 |
+| el/ladder | generated | 1052.8 | 1787.4 | 1.70x | 1715.9 | 1.63x | -4.0% | 1776 | 1776 |
+| el/ladder | immediate | 1052.8 | 1152.3 | 1.09x | 1146.1 | 1.09x | -0.5% | 1784 | 1784 |
+| el/nest7 | generated | 698.4 | 1757.4 | 2.52x | 1715.9 | 2.46x | -2.4% | 1152 | 1152 |
+| el/nest7 | immediate | 698.4 | 1037.8 | 1.49x | 1031.2 | 1.48x | -0.6% | 1120 | 1120 |
+| el/block | generated | 1036.9 | 1789.5 | 1.73x | 1795.2 | 1.73x | +0.3% | 2344 | 2344 |
+| el/block | immediate | 1036.9 | 1153.3 | 1.11x | 1139.5 | 1.10x | -1.2% | 2440 | 2440 |
+| el/loop | generated | 2187.2 | 3680.0 | 1.68x | 3705.5 | 1.69x | +0.7% | 4776 | 4776 |
+| el/loop | immediate | 2187.2 | 2621.8 | 1.20x | 2547.4 | 1.16x | -2.8% | 4880 | 4880 |
+| el/terms100 | generated | 12292.0 | 17401.3 | 1.42x | 17588.5 | 1.43x | +1.1% | 17904 | 17904 |
+| el/terms100 | immediate | 12292.0 | 14153.3 | 1.15x | 14378.9 | 1.17x | +1.6% | 18720 | 18720 |
+| el/terms1000 | generated | 114050.8 | 160463.1 | 1.41x | 164153.9 | 1.44x | +2.3% | 169104 | 169150 |
+| el/terms1000 | immediate | 114050.8 | 134893.6 | 1.18x | 135586.5 | 1.19x | +0.5% | 177144 | 177120 |
+| el/overloads | generated | 1951.9 | 2766.2 | 1.42x | 2706.3 | 1.39x | -2.2% | 4248 | 4248 |
+| el/overloads | immediate | 1951.9 | 2193.2 | 1.12x | 2166.4 | 1.11x | -1.2% | 4200 | 4200 |
+| el/string | generated | 278.4 | 1021.5 | 3.67x | 956.8 | 3.44x | -6.3% | 1056 | 1056 |
+| el/string | immediate | 278.4 | 661.4 | 2.38x | 675.2 | 2.43x | +2.1% | 1032 | 1032 |
+| el/interpolation | generated | 2190.5 | 4897.4 | 2.24x | 4624.0 | 2.11x | -5.6% | 2368 | 2368 |
+| el/interpolation | immediate | 2190.5 | 4391.7 | 2.00x | 4920.9 | 2.25x | +12.0% | 2424 | 2424 |
+| el/untyped | generated | 28776.1 | 32534.8 | 1.13x | 31360.0 | 1.09x | -3.6% | 16424 | 16424 |
+| el/refused-early | generated | 469.1 | 1232.8 | 2.63x | 1237.5 | 2.64x | +0.4% | 1064 | 1064 |
+| el/refused-early | immediate | 469.1 | 1297.6 | 2.77x | 1232.3 | 2.63x | -5.0% | 1944 | 1944 |
+| el/refused-late | generated | 1582.7 | 1919.3 | 1.21x | 1998.7 | 1.26x | +4.1% | 1064 | 1064 |
+| el/refused-late | immediate | 1582.7 | 3238.4 | 2.05x | 3360.0 | 2.12x | +3.8% | 3928 | 3928 |
+| sql/literal | generated | 65.2 | 152.9 | 2.35x | 144.7 | 2.22x | -5.4% | 160 | 160 |
+| sql/comment | generated | 2729.2 | 5459.9 | 2.00x | 5334.9 | 1.95x | -2.3% | 5136 | 5136 |
+| sql/conditions100 | generated | 76495.5 | 146809.6 | 1.92x | 143020.8 | 1.87x | -2.6% | 161736 | 161736 |
+| sql/conditions1000 | generated | 802899.2 | 1430337.5 | 1.78x | 1492138.3 | 1.86x | +4.3% | 1616203 | 1616203 |
+| tsql/comment | generated | 26558.4 | 1622.9 | 0.06x | 1558.9 | 0.06x | -3.9% | 1192 | 1192 |
+| sql/column | generated | 182.2 | 389.3 | 2.14x | 392.9 | 2.16x | +0.9% | 416 | 416 |
+| sql/arithmetic | generated | 2354.5 | 4706.5 | 2.00x | 4544.1 | 1.93x | -3.5% | 3472 | 3472 |
+| sql/nest8 | generated | 3583.5 | 11913.7 | 3.32x | 11906.5 | 3.32x | -0.1% | 6504 | 6504 |
+| sql/condition | generated | 2604.5 | 5188.9 | 1.99x | 5032.6 | 1.93x | -3.0% | 4928 | 4928 |
+| sql/select1 | generated | 944.9 | 1902.6 | 2.01x | 1801.2 | 1.91x | -5.3% | 1688 | 1688 |
+| sql/select20 | generated | 11500.2 | 23254.8 | 2.02x | 23483.3 | 2.04x | +1.0% | 21448 | 21448 |
+| sql/values | generated | 731.3 | 2106.4 | 2.88x | 2067.4 | 2.83x | -1.9% | 1904 | 1904 |
+| sql/create | generated | 996.3 | 2774.9 | 2.79x | 2786.5 | 2.80x | +0.4% | 1568 | 1568 |
+| sql/refused-late | generated | 3813.7 | 14062.8 | 3.69x | 14394.5 | 3.77x | +2.4% | 13552 | 13552 |
+
+Written to T:\TEMP\dotgram-stand\w60\pair\run-3
+=== run 4 of 5, 20:15:24
+71 rows, every reading agreeing. Timing 8 rounds.
+  tsql/script100.bool: 1 round(s) redone after a gen1/gen2 collection
+tsql/script100.bool    hand   666459.4 ns before  1150293.8 ns after   121218.8 ns  before/hand 1.73x  after/hand 0.18x
+  tsql/script100.boolboth: 6 round(s) redone after a gen1/gen2 collection
+tsql/script100.boolboth hand   645960.9 ns before  1154603.9 ns after   122093.0 ns  before/hand 1.79x  after/hand 0.19x
+  tsql/script100: 8 round(s) redone after a gen1/gen2 collection
+tsql/script100         hand   646936.7 ns before  1162953.1 ns after   122234.4 ns  before/hand 1.80x  after/hand 0.19x
+  tsql/script400.bool: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.bool    hand  2624190.6 ns before 16992281.2 ns after   499146.9 ns  before/hand 6.48x  after/hand 0.19x
+  tsql/script400.boolboth: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.boolboth hand  2621850.0 ns before 16610550.0 ns after   490618.8 ns  before/hand 6.34x  after/hand 0.19x
+  tsql/script400: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2612596.9 ns before 16844521.9 ns after   491834.4 ns  before/hand 6.45x  after/hand 0.19x
+  tsql/columns1000: 7 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  1712112.5 ns before   189260.9 ns after   184942.2 ns  before/hand 0.11x  after/hand 0.11x
+  tsql/conditions1000: 31 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    hand   867893.8 ns before   322580.5 ns after   319509.4 ns  before/hand 0.37x  after/hand 0.37x
+  tsql/rows1000: 21 round(s) redone after a gen1/gen2 collection
+tsql/rows1000          hand   595473.4 ns before   239541.4 ns after   237662.5 ns  before/hand 0.40x  after/hand 0.40x
+  web/json.array10000: 96 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   166911.7 ns before   186971.5 ns after   198250.4 ns  before/hand 1.12x  after/hand 1.19x
+  web/json.object10000: 93 round(s) redone after a gen1/gen2 collection
+web/json.object10000   hand   725562.5 ns before  1238985.9 ns after  1218659.4 ns  before/hand 1.71x  after/hand 1.68x
+web/url.path1000       hand     9659.9 ns before    11090.5 ns after    11245.6 ns  before/hand 1.15x  after/hand 1.16x
+web/media-type.params1000 hand    49965.0 ns before    45955.9 ns after    50795.1 ns  before/hand 0.92x  after/hand 1.02x
+web/sf.list10000       hand  1210187.5 ns before  1265284.4 ns after  1282365.6 ns  before/hand 1.05x  after/hand 1.06x
+  el/refused-early.bool: 1 round(s) redone after a gen1/gen2 collection
+el/refused-early.bool  hand      348.4 ns before     1113.7 ns after      669.9 ns  before/hand 3.20x  after/hand 1.92x
+el/refused-late.bool   hand     1220.1 ns before     1787.6 ns after     1060.9 ns  before/hand 1.47x  after/hand 0.87x
+el/ladder.bool         hand     1031.4 ns before     1807.8 ns after     1762.6 ns  before/hand 1.75x  after/hand 1.71x
+  sql/refused-late.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late.bool  hand     2597.8 ns before    12283.3 ns after     5992.5 ns  before/hand 4.73x  after/hand 2.31x
+sql/select20.bool      hand     7460.5 ns before    18869.2 ns after    19735.5 ns  before/hand 2.53x  after/hand 2.65x
+web/url.plain          hand       97.2 ns before      223.6 ns after      227.3 ns  before/hand 2.30x  after/hand 2.34x
+web/url.full           hand      172.3 ns before      296.3 ns after      292.0 ns  before/hand 1.72x  after/hand 1.69x
+web/url.ipv4           hand      113.1 ns before      228.6 ns after      236.9 ns  before/hand 2.02x  after/hand 2.09x
+  web/url.long-path: 1 round(s) redone after a gen1/gen2 collection
+web/url.long-path      hand      181.4 ns before      416.1 ns after      426.5 ns  before/hand 2.29x  after/hand 2.35x
+web/url.refused        hand       67.7 ns before      250.1 ns after      246.4 ns  before/hand 3.70x  after/hand 3.64x
+  web/json.object: 1 round(s) redone after a gen1/gen2 collection
+web/json.object        hand      602.9 ns before      934.5 ns after      952.4 ns  before/hand 1.55x  after/hand 1.58x
+web/json.array         hand      608.1 ns before      767.8 ns after      755.2 ns  before/hand 1.26x  after/hand 1.24x
+web/cookie.full        hand      303.0 ns before      332.5 ns after      345.1 ns  before/hand 1.10x  after/hand 1.14x
+  web/cookie.short: 1 round(s) redone after a gen1/gen2 collection
+web/cookie.short       hand       53.0 ns before       75.1 ns after       74.7 ns  before/hand 1.42x  after/hand 1.41x
+web/pointer.full       hand      210.8 ns before      195.8 ns after      196.2 ns  before/hand 0.93x  after/hand 0.93x
+web/pointer.short      hand       36.5 ns before       54.2 ns after       53.6 ns  before/hand 1.48x  after/hand 1.47x
+web/media-type.plain   hand      159.5 ns before      182.5 ns after      197.1 ns  before/hand 1.14x  after/hand 1.24x
+web/media-type.quoted  hand      251.7 ns before      271.1 ns after      302.0 ns  before/hand 1.08x  after/hand 1.20x
+web/media-type.refused hand       69.9 ns before       92.8 ns after       88.3 ns  before/hand 1.33x  after/hand 1.26x
+web/addr-spec.plain    hand       90.0 ns before      110.9 ns after      109.1 ns  before/hand 1.23x  after/hand 1.21x
+web/addr-spec.refused  hand       47.2 ns before       75.7 ns after       73.9 ns  before/hand 1.60x  after/hand 1.56x
+web/date-time.utc      hand       50.5 ns before       60.8 ns after       61.6 ns  before/hand 1.20x  after/hand 1.22x
+web/date-time.offset   hand       78.7 ns before       90.4 ns after       90.6 ns  before/hand 1.15x  after/hand 1.15x
+web/language-tag.plain hand      113.7 ns before      156.7 ns after      156.1 ns  before/hand 1.38x  after/hand 1.37x
+web/language-tag.full  hand      406.3 ns before      483.7 ns after      472.1 ns  before/hand 1.19x  after/hand 1.16x
+web/language-tag.refused hand      111.0 ns before      151.2 ns after      155.8 ns  before/hand 1.36x  after/hand 1.40x
+web/date-time.refused  hand       35.8 ns before       47.3 ns after       47.2 ns  before/hand 1.32x  after/hand 1.32x
+web/sf.item            hand      265.9 ns before      296.6 ns after      309.1 ns  before/hand 1.12x  after/hand 1.16x
+web/sf.list            hand     1161.1 ns before     1232.4 ns after     1239.1 ns  before/hand 1.06x  after/hand 1.07x
+web/sf.dictionary      hand     1238.3 ns before     1271.4 ns after     1282.9 ns  before/hand 1.03x  after/hand 1.04x
+el/floor               hand      329.1 ns before      849.6 ns after      856.9 ns before-immediate      488.6 ns after-immediate      491.9 ns  before/hand 2.58x  after/hand 2.60x  before-immediate/hand 1.48x  after-immediate/hand 1.49x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1018.2 ns before     1751.9 ns after     1781.2 ns before-immediate     1193.8 ns after-immediate     1187.8 ns  before/hand 1.72x  after/hand 1.75x  before-immediate/hand 1.17x  after-immediate/hand 1.17x
+el/nest7               hand      652.5 ns before     1713.2 ns after     1764.2 ns before-immediate     1042.5 ns after-immediate     1073.1 ns  before/hand 2.63x  after/hand 2.70x  before-immediate/hand 1.60x  after-immediate/hand 1.64x
+el/block               hand     1071.0 ns before     1860.5 ns after     1876.8 ns before-immediate     1185.0 ns after-immediate     1185.8 ns  before/hand 1.74x  after/hand 1.75x  before-immediate/hand 1.11x  after-immediate/hand 1.11x
+el/loop                hand     2260.7 ns before     3755.9 ns after     3711.1 ns before-immediate     2537.4 ns after-immediate     2617.6 ns  before/hand 1.66x  after/hand 1.64x  before-immediate/hand 1.12x  after-immediate/hand 1.16x
+  el/terms100: 1 round(s) redone after a gen1/gen2 collection
+el/terms100            hand    11481.2 ns before    16190.8 ns after    16543.4 ns before-immediate    12695.8 ns after-immediate    12971.3 ns  before/hand 1.41x  after/hand 1.44x  before-immediate/hand 1.11x  after-immediate/hand 1.13x
+  el/terms1000: 13 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   109547.9 ns before   150663.3 ns after   151277.9 ns before-immediate   118689.1 ns after-immediate   123264.3 ns  before/hand 1.38x  after/hand 1.38x  before-immediate/hand 1.08x  after-immediate/hand 1.13x
+el/overloads           hand     1853.0 ns before     2598.6 ns after     2588.9 ns before-immediate     2048.4 ns after-immediate     2055.0 ns  before/hand 1.40x  after/hand 1.40x  before-immediate/hand 1.11x  after-immediate/hand 1.11x
+el/string              hand      288.8 ns before      984.0 ns after      991.3 ns before-immediate      691.8 ns after-immediate      685.4 ns  before/hand 3.41x  after/hand 3.43x  before-immediate/hand 2.40x  after-immediate/hand 2.37x
+el/interpolation       hand     2171.0 ns before     4949.6 ns after     4801.1 ns before-immediate     4480.3 ns after-immediate     4268.1 ns  before/hand 2.28x  after/hand 2.21x  before-immediate/hand 2.06x  after-immediate/hand 1.97x
+el/untyped             hand    27913.0 ns before    29676.7 ns after    31721.1 ns  before/hand 1.06x  after/hand 1.14x
+  el/refused-early: 1 round(s) redone after a gen1/gen2 collection
+el/refused-early       hand      560.2 ns before     1224.2 ns after     1305.8 ns before-immediate     1262.1 ns after-immediate     1350.9 ns  before/hand 2.19x  after/hand 2.33x  before-immediate/hand 2.25x  after-immediate/hand 2.41x
+el/refused-late        hand     1538.4 ns before     1980.7 ns after     1815.2 ns before-immediate     3410.9 ns after-immediate     3335.0 ns  before/hand 1.29x  after/hand 1.18x  before-immediate/hand 2.22x  after-immediate/hand 2.17x
+sql/literal            hand       64.9 ns before      150.7 ns after      169.9 ns  before/hand 2.32x  after/hand 2.62x
+sql/comment            hand     2825.9 ns before     5258.8 ns after     5492.1 ns  before/hand 1.86x  after/hand 1.94x
+  sql/conditions100: 1 round(s) redone after a gen1/gen2 collection
+sql/conditions100      hand    71581.0 ns before   138454.6 ns after   143750.4 ns  before/hand 1.93x  after/hand 2.01x
+sql/conditions1000     hand   693440.6 ns before  1503016.4 ns after  1448771.1 ns  before/hand 2.17x  after/hand 2.09x
+tsql/comment           hand    25890.1 ns before     1687.2 ns after     1551.0 ns  before/hand 0.07x  after/hand 0.06x
+sql/column             hand      183.9 ns before      417.2 ns after      422.2 ns  before/hand 2.27x  after/hand 2.30x
+  sql/arithmetic: 1 round(s) redone after a gen1/gen2 collection
+sql/arithmetic         hand     2142.4 ns before     4586.4 ns after     4567.9 ns  before/hand 2.14x  after/hand 2.13x
+sql/nest8              hand     3772.7 ns before    12629.5 ns after    12296.8 ns  before/hand 3.35x  after/hand 3.26x
+  sql/condition: 1 round(s) redone after a gen1/gen2 collection
+sql/condition          hand     2508.5 ns before     4974.1 ns after     5001.2 ns  before/hand 1.98x  after/hand 1.99x
+sql/select1            hand      835.1 ns before     1649.2 ns after     1768.4 ns  before/hand 1.97x  after/hand 2.12x
+sql/select20           hand     9950.8 ns before    20726.3 ns after    21149.6 ns  before/hand 2.08x  after/hand 2.13x
+sql/values             hand      640.0 ns before     1841.2 ns after     1934.7 ns  before/hand 2.88x  after/hand 3.02x
+sql/create             hand      955.6 ns before     2707.4 ns after     2772.1 ns  before/hand 2.83x  after/hand 2.90x
+sql/refused-late       hand     3669.9 ns before    13980.8 ns after    14824.7 ns  before/hand 3.81x  after/hand 4.04x
+
+# Paired stand, 2026-09-19 20:20
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tsql/script100.bool | generated | 666459.4 | 1150293.8 | 1.73x | 121218.8 | 0.18x | -89.5% | 113600 | 105600 |
+| tsql/script100.boolboth | generated | 645960.9 | 1154603.9 | 1.79x | 122093.0 | 0.19x | -89.4% | 105600 | 105600 |
+| tsql/script100 | generated | 646936.7 | 1162953.1 | 1.80x | 122234.4 | 0.19x | -89.5% | 113600 | 113600 |
+| tsql/script400.bool | generated | 2624190.6 | 16992281.2 | 6.48x | 499146.9 | 0.19x | -97.1% | 454400 | 422403 |
+| tsql/script400.boolboth | generated | 2621850.0 | 16610550.0 | 6.34x | 490618.8 | 0.19x | -97.0% | 422400 | 422403 |
+| tsql/script400 | generated | 2612596.9 | 16844521.9 | 6.45x | 491834.4 | 0.19x | -97.1% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1712112.5 | 189260.9 | 0.11x | 184942.2 | 0.11x | -2.3% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 867893.8 | 322580.5 | 0.37x | 319509.4 | 0.37x | -1.0% | 424424 | 424424 |
+| tsql/rows1000 | generated | 595473.4 | 239541.4 | 0.40x | 237662.5 | 0.40x | -0.8% | 296472 | 296472 |
+| web/json.array10000 | generated | 166911.7 | 186971.5 | 1.12x | 198250.4 | 1.19x | +6.0% | 720048 | 720048 |
+| web/json.object10000 | generated | 725562.5 | 1238985.9 | 1.71x | 1218659.4 | 1.68x | -1.6% | 1599240 | 1599240 |
+| web/url.path1000 | generated | 9659.9 | 11090.5 | 1.15x | 11245.6 | 1.16x | +1.4% | 8384 | 8384 |
+| web/media-type.params1000 | generated | 49965.0 | 45955.9 | 0.92x | 50795.1 | 1.02x | +10.5% | 151472 | 151472 |
+| web/sf.list10000 | generated | 1210187.5 | 1265284.4 | 1.05x | 1282365.6 | 1.06x | +1.3% | 2720056 | 2720056 |
+| el/refused-early.bool | generated | 348.4 | 1113.7 | 3.20x | 669.9 | 1.92x | -39.8% | 1064 | 624 |
+| el/refused-late.bool | generated | 1220.1 | 1787.6 | 1.47x | 1060.9 | 0.87x | -40.7% | 1064 | 624 |
+| el/ladder.bool | generated | 1031.4 | 1807.8 | 1.75x | 1762.6 | 1.71x | -2.5% | 1800 | 1720 |
+| sql/refused-late.bool | generated | 2597.8 | 12283.3 | 4.73x | 5992.5 | 2.31x | -51.2% | 13552 | 6616 |
+| sql/select20.bool | generated | 7460.5 | 18869.2 | 2.53x | 19735.5 | 2.65x | +4.6% | 21448 | 21392 |
+| web/url.plain | generated | 97.2 | 223.6 | 2.30x | 227.3 | 2.34x | +1.7% | 360 | 360 |
+| web/url.full | generated | 172.3 | 296.3 | 1.72x | 292.0 | 1.69x | -1.4% | 536 | 536 |
+| web/url.ipv4 | generated | 113.1 | 228.6 | 2.02x | 236.9 | 2.09x | +3.6% | 384 | 384 |
+| web/url.long-path | generated | 181.4 | 416.1 | 2.29x | 426.5 | 2.35x | +2.5% | 512 | 512 |
+| web/url.refused | generated | 67.7 | 250.1 | 3.70x | 246.4 | 3.64x | -1.5% | 64 | 64 |
+| web/json.object | generated | 602.9 | 934.5 | 1.55x | 952.4 | 1.58x | +1.9% | 2584 | 2584 |
+| web/json.array | generated | 608.1 | 767.8 | 1.26x | 755.2 | 1.24x | -1.6% | 2400 | 2400 |
+| web/cookie.full | generated | 303.0 | 332.5 | 1.10x | 345.1 | 1.14x | +3.8% | 2136 | 2136 |
+| web/cookie.short | generated | 53.0 | 75.1 | 1.42x | 74.7 | 1.41x | -0.6% | 336 | 336 |
+| web/pointer.full | generated | 210.8 | 195.8 | 0.93x | 196.2 | 0.93x | +0.2% | 440 | 440 |
+| web/pointer.short | generated | 36.5 | 54.2 | 1.48x | 53.6 | 1.47x | -1.2% | 144 | 144 |
+| web/media-type.plain | generated | 159.5 | 182.5 | 1.14x | 197.1 | 1.24x | +8.0% | 448 | 448 |
+| web/media-type.quoted | generated | 251.7 | 271.1 | 1.08x | 302.0 | 1.20x | +11.4% | 816 | 816 |
+| web/media-type.refused | generated | 69.9 | 92.8 | 1.33x | 88.3 | 1.26x | -4.9% | 64 | 64 |
+| web/addr-spec.plain | generated | 90.0 | 110.9 | 1.23x | 109.1 | 1.21x | -1.7% | 176 | 176 |
+| web/addr-spec.refused | generated | 47.2 | 75.7 | 1.60x | 73.9 | 1.56x | -2.4% | 64 | 64 |
+| web/date-time.utc | generated | 50.5 | 60.8 | 1.20x | 61.6 | 1.22x | +1.3% | 176 | 176 |
+| web/date-time.offset | generated | 78.7 | 90.4 | 1.15x | 90.6 | 1.15x | +0.2% | 208 | 208 |
+| web/language-tag.plain | generated | 113.7 | 156.7 | 1.38x | 156.1 | 1.37x | -0.4% | 360 | 360 |
+| web/language-tag.full | generated | 406.3 | 483.7 | 1.19x | 472.1 | 1.16x | -2.4% | 720 | 720 |
+| web/language-tag.refused | generated | 111.0 | 151.2 | 1.36x | 155.8 | 1.40x | +3.0% | 64 | 64 |
+| web/date-time.refused | generated | 35.8 | 47.3 | 1.32x | 47.2 | 1.32x | -0.2% | 96 | 96 |
+| web/sf.item | generated | 265.9 | 296.6 | 1.12x | 309.1 | 1.16x | +4.2% | 800 | 800 |
+| web/sf.list | generated | 1161.1 | 1232.4 | 1.06x | 1239.1 | 1.07x | +0.5% | 3064 | 3064 |
+| web/sf.dictionary | generated | 1238.3 | 1271.4 | 1.03x | 1282.9 | 1.04x | +0.9% | 3280 | 3280 |
+| el/floor | generated | 329.1 | 849.6 | 2.58x | 856.9 | 2.60x | +0.9% | 1104 | 1104 |
+| el/floor | immediate | 329.1 | 488.6 | 1.48x | 491.9 | 1.49x | +0.7% | 1120 | 1120 |
+| el/ladder | generated | 1018.2 | 1751.9 | 1.72x | 1781.2 | 1.75x | +1.7% | 1776 | 1776 |
+| el/ladder | immediate | 1018.2 | 1193.8 | 1.17x | 1187.8 | 1.17x | -0.5% | 1784 | 1784 |
+| el/nest7 | generated | 652.5 | 1713.2 | 2.63x | 1764.2 | 2.70x | +3.0% | 1152 | 1152 |
+| el/nest7 | immediate | 652.5 | 1042.5 | 1.60x | 1073.1 | 1.64x | +2.9% | 1120 | 1120 |
+| el/block | generated | 1071.0 | 1860.5 | 1.74x | 1876.8 | 1.75x | +0.9% | 2344 | 2344 |
+| el/block | immediate | 1071.0 | 1185.0 | 1.11x | 1185.8 | 1.11x | +0.1% | 2440 | 2440 |
+| el/loop | generated | 2260.7 | 3755.9 | 1.66x | 3711.1 | 1.64x | -1.2% | 4776 | 4776 |
+| el/loop | immediate | 2260.7 | 2537.4 | 1.12x | 2617.6 | 1.16x | +3.2% | 4880 | 4880 |
+| el/terms100 | generated | 11481.2 | 16190.8 | 1.41x | 16543.4 | 1.44x | +2.2% | 17904 | 17904 |
+| el/terms100 | immediate | 11481.2 | 12695.8 | 1.11x | 12971.3 | 1.13x | +2.2% | 18720 | 18720 |
+| el/terms1000 | generated | 109547.9 | 150663.3 | 1.38x | 151277.9 | 1.38x | +0.4% | 169128 | 169131 |
+| el/terms1000 | immediate | 109547.9 | 118689.1 | 1.08x | 123264.3 | 1.13x | +3.9% | 177120 | 177120 |
+| el/overloads | generated | 1853.0 | 2598.6 | 1.40x | 2588.9 | 1.40x | -0.4% | 4248 | 4248 |
+| el/overloads | immediate | 1853.0 | 2048.4 | 1.11x | 2055.0 | 1.11x | +0.3% | 4200 | 4200 |
+| el/string | generated | 288.8 | 984.0 | 3.41x | 991.3 | 3.43x | +0.7% | 1056 | 1056 |
+| el/string | immediate | 288.8 | 691.8 | 2.40x | 685.4 | 2.37x | -0.9% | 1032 | 1032 |
+| el/interpolation | generated | 2171.0 | 4949.6 | 2.28x | 4801.1 | 2.21x | -3.0% | 2368 | 2368 |
+| el/interpolation | immediate | 2171.0 | 4480.3 | 2.06x | 4268.1 | 1.97x | -4.7% | 2424 | 2424 |
+| el/untyped | generated | 27913.0 | 29676.7 | 1.06x | 31721.1 | 1.14x | +6.9% | 16424 | 16424 |
+| el/refused-early | generated | 560.2 | 1224.2 | 2.19x | 1305.8 | 2.33x | +6.7% | 1064 | 1064 |
+| el/refused-early | immediate | 560.2 | 1262.1 | 2.25x | 1350.9 | 2.41x | +7.0% | 1944 | 1944 |
+| el/refused-late | generated | 1538.4 | 1980.7 | 1.29x | 1815.2 | 1.18x | -8.4% | 1064 | 1064 |
+| el/refused-late | immediate | 1538.4 | 3410.9 | 2.22x | 3335.0 | 2.17x | -2.2% | 3928 | 3928 |
+| sql/literal | generated | 64.9 | 150.7 | 2.32x | 169.9 | 2.62x | +12.7% | 160 | 160 |
+| sql/comment | generated | 2825.9 | 5258.8 | 1.86x | 5492.1 | 1.94x | +4.4% | 5136 | 5136 |
+| sql/conditions100 | generated | 71581.0 | 138454.6 | 1.93x | 143750.4 | 2.01x | +3.8% | 161736 | 161736 |
+| sql/conditions1000 | generated | 693440.6 | 1503016.4 | 2.17x | 1448771.1 | 2.09x | -3.6% | 1616136 | 1616136 |
+| tsql/comment | generated | 25890.1 | 1687.2 | 0.07x | 1551.0 | 0.06x | -8.1% | 1192 | 1192 |
+| sql/column | generated | 183.9 | 417.2 | 2.27x | 422.2 | 2.30x | +1.2% | 416 | 416 |
+| sql/arithmetic | generated | 2142.4 | 4586.4 | 2.14x | 4567.9 | 2.13x | -0.4% | 3472 | 3472 |
+| sql/nest8 | generated | 3772.7 | 12629.5 | 3.35x | 12296.8 | 3.26x | -2.6% | 6504 | 6504 |
+| sql/condition | generated | 2508.5 | 4974.1 | 1.98x | 5001.2 | 1.99x | +0.5% | 4928 | 4928 |
+| sql/select1 | generated | 835.1 | 1649.2 | 1.97x | 1768.4 | 2.12x | +7.2% | 1688 | 1688 |
+| sql/select20 | generated | 9950.8 | 20726.3 | 2.08x | 21149.6 | 2.13x | +2.0% | 21448 | 21448 |
+| sql/values | generated | 640.0 | 1841.2 | 2.88x | 1934.7 | 3.02x | +5.1% | 1904 | 1904 |
+| sql/create | generated | 955.6 | 2707.4 | 2.83x | 2772.1 | 2.90x | +2.4% | 1568 | 1568 |
+| sql/refused-late | generated | 3669.9 | 13980.8 | 3.81x | 14824.7 | 4.04x | +6.0% | 13552 | 13552 |
+
+Written to T:\TEMP\dotgram-stand\w60\pair\run-4
+=== run 5 of 5, 20:20:39
+71 rows, every reading agreeing. Timing 8 rounds.
+  tsql/script100.bool: 1 round(s) redone after a gen1/gen2 collection
+tsql/script100.bool    hand   668481.2 ns before  1173800.0 ns after   124071.9 ns  before/hand 1.76x  after/hand 0.19x
+  tsql/script100.boolboth: 7 round(s) redone after a gen1/gen2 collection
+tsql/script100.boolboth hand   660082.8 ns before  1153674.2 ns after   123869.5 ns  before/hand 1.75x  after/hand 0.19x
+  tsql/script100: 3 round(s) redone after a gen1/gen2 collection
+tsql/script100         hand   646725.8 ns before  1171857.0 ns after   125650.0 ns  before/hand 1.81x  after/hand 0.19x
+  tsql/script400.bool: 5 round(s) redone after a gen1/gen2 collection
+tsql/script400.bool    hand  2855087.5 ns before 17318381.2 ns after   511587.5 ns  before/hand 6.07x  after/hand 0.18x
+  tsql/script400.boolboth: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400.boolboth hand  2799493.8 ns before 17302156.2 ns after   499462.5 ns  before/hand 6.18x  after/hand 0.18x
+  tsql/script400: 6 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2649756.2 ns before 17285303.1 ns after   501653.1 ns  before/hand 6.52x  after/hand 0.19x
+  tsql/columns1000: 6 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  1730131.2 ns before   188826.6 ns after   193318.8 ns  before/hand 0.11x  after/hand 0.11x
+  tsql/conditions1000: 34 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    hand   873714.1 ns before   323368.8 ns after   334087.5 ns  before/hand 0.37x  after/hand 0.38x
+  tsql/rows1000: 27 round(s) redone after a gen1/gen2 collection
+tsql/rows1000          hand   591751.6 ns before   239332.8 ns after   240982.0 ns  before/hand 0.40x  after/hand 0.41x
+  web/json.array10000: 96 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   177994.7 ns before   202963.3 ns after   219185.4 ns  before/hand 1.14x  after/hand 1.23x
+  web/json.object10000: 94 round(s) redone after a gen1/gen2 collection
+web/json.object10000   hand   850606.2 ns before  1302474.2 ns after  1297279.7 ns  before/hand 1.53x  after/hand 1.53x
+web/url.path1000       hand     9398.2 ns before    10937.4 ns after    10912.4 ns  before/hand 1.16x  after/hand 1.16x
+  web/media-type.params1000: 15 round(s) redone after a gen1/gen2 collection
+web/media-type.params1000 hand    49353.1 ns before    47747.3 ns after    50656.4 ns  before/hand 0.97x  after/hand 1.03x
+  web/sf.list10000: 16 round(s) redone after a gen1/gen2 collection
+web/sf.list10000       hand  1107565.6 ns before  1180734.4 ns after  1227371.9 ns  before/hand 1.07x  after/hand 1.11x
+el/refused-early.bool  hand      328.4 ns before     1094.3 ns after      551.3 ns  before/hand 3.33x  after/hand 1.68x
+el/refused-late.bool   hand     1227.0 ns before     1821.7 ns after      932.3 ns  before/hand 1.48x  after/hand 0.76x
+  el/ladder.bool: 1 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1066.7 ns before     1914.1 ns after     1841.6 ns  before/hand 1.79x  after/hand 1.73x
+sql/refused-late.bool  hand     2857.7 ns before    12855.0 ns after     6191.5 ns  before/hand 4.50x  after/hand 2.17x
+  sql/select20.bool: 2 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     7510.9 ns before    19646.0 ns after    18954.7 ns  before/hand 2.62x  after/hand 2.52x
+web/url.plain          hand      104.5 ns before      236.5 ns after      237.4 ns  before/hand 2.26x  after/hand 2.27x
+web/url.full           hand      170.5 ns before      313.1 ns after      295.3 ns  before/hand 1.84x  after/hand 1.73x
+web/url.ipv4           hand      117.2 ns before      234.0 ns after      248.5 ns  before/hand 2.00x  after/hand 2.12x
+web/url.long-path      hand      178.0 ns before      411.7 ns after      417.8 ns  before/hand 2.31x  after/hand 2.35x
+  web/url.refused: 1 round(s) redone after a gen1/gen2 collection
+web/url.refused        hand       68.0 ns before      255.7 ns after      254.2 ns  before/hand 3.76x  after/hand 3.74x
+  web/json.object: 1 round(s) redone after a gen1/gen2 collection
+web/json.object        hand      616.3 ns before      917.9 ns after      937.3 ns  before/hand 1.49x  after/hand 1.52x
+  web/json.array: 1 round(s) redone after a gen1/gen2 collection
+web/json.array         hand      615.5 ns before      736.0 ns after      760.7 ns  before/hand 1.20x  after/hand 1.24x
+web/cookie.full        hand      300.7 ns before      326.5 ns after      328.2 ns  before/hand 1.09x  after/hand 1.09x
+web/cookie.short       hand       51.5 ns before       71.9 ns after       71.7 ns  before/hand 1.40x  after/hand 1.39x
+web/pointer.full       hand      203.6 ns before      192.8 ns after      186.9 ns  before/hand 0.95x  after/hand 0.92x
+  web/pointer.short: 1 round(s) redone after a gen1/gen2 collection
+web/pointer.short      hand       35.7 ns before       52.8 ns after       52.8 ns  before/hand 1.48x  after/hand 1.48x
+web/media-type.plain   hand      157.2 ns before      186.6 ns after      192.3 ns  before/hand 1.19x  after/hand 1.22x
+web/media-type.quoted  hand      239.1 ns before      273.5 ns after      283.7 ns  before/hand 1.14x  after/hand 1.19x
+  web/media-type.refused: 1 round(s) redone after a gen1/gen2 collection
+web/media-type.refused hand       63.0 ns before       88.3 ns after       91.3 ns  before/hand 1.40x  after/hand 1.45x
+web/addr-spec.plain    hand       87.9 ns before      107.1 ns after      109.8 ns  before/hand 1.22x  after/hand 1.25x
+web/addr-spec.refused  hand       44.4 ns before       70.9 ns after       71.1 ns  before/hand 1.60x  after/hand 1.60x
+web/date-time.utc      hand       50.2 ns before       60.4 ns after       60.8 ns  before/hand 1.20x  after/hand 1.21x
+web/date-time.offset   hand       76.3 ns before       87.7 ns after       88.6 ns  before/hand 1.15x  after/hand 1.16x
+web/language-tag.plain hand      111.6 ns before      140.7 ns after      145.2 ns  before/hand 1.26x  after/hand 1.30x
+web/language-tag.full  hand      400.4 ns before      469.5 ns after      462.7 ns  before/hand 1.17x  after/hand 1.16x
+web/language-tag.refused hand      107.3 ns before      138.4 ns after      143.4 ns  before/hand 1.29x  after/hand 1.34x
+web/date-time.refused  hand       35.8 ns before       45.9 ns after       46.2 ns  before/hand 1.28x  after/hand 1.29x
+web/sf.item            hand      250.8 ns before      291.3 ns after      274.7 ns  before/hand 1.16x  after/hand 1.10x
+  web/sf.list: 1 round(s) redone after a gen1/gen2 collection
+web/sf.list            hand     1124.9 ns before     1220.8 ns after     1220.1 ns  before/hand 1.09x  after/hand 1.08x
+  web/sf.dictionary: 1 round(s) redone after a gen1/gen2 collection
+web/sf.dictionary      hand     1176.8 ns before     1214.9 ns after     1194.3 ns  before/hand 1.03x  after/hand 1.01x
+el/floor               hand      288.9 ns before      769.7 ns after      780.2 ns before-immediate      472.9 ns after-immediate      467.0 ns  before/hand 2.66x  after/hand 2.70x  before-immediate/hand 1.64x  after-immediate/hand 1.62x
+el/ladder              hand      966.9 ns before     1703.6 ns after     1690.6 ns before-immediate     1146.2 ns after-immediate     1130.1 ns  before/hand 1.76x  after/hand 1.75x  before-immediate/hand 1.19x  after-immediate/hand 1.17x
+el/nest7               hand      706.9 ns before     1736.6 ns after     1686.3 ns before-immediate     1062.1 ns after-immediate     1056.9 ns  before/hand 2.46x  after/hand 2.39x  before-immediate/hand 1.50x  after-immediate/hand 1.50x
+el/block               hand     1063.3 ns before     1777.7 ns after     1752.5 ns before-immediate     1135.3 ns after-immediate     1162.4 ns  before/hand 1.67x  after/hand 1.65x  before-immediate/hand 1.07x  after-immediate/hand 1.09x
+el/loop                hand     2216.1 ns before     3651.1 ns after     3703.0 ns before-immediate     2505.6 ns after-immediate     2487.0 ns  before/hand 1.65x  after/hand 1.67x  before-immediate/hand 1.13x  after-immediate/hand 1.12x
+  el/terms100: 1 round(s) redone after a gen1/gen2 collection
+el/terms100            hand    11335.6 ns before    16288.7 ns after    16410.2 ns before-immediate    12828.7 ns after-immediate    12701.0 ns  before/hand 1.44x  after/hand 1.45x  before-immediate/hand 1.13x  after-immediate/hand 1.12x
+  el/terms1000: 12 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   109620.1 ns before   154765.7 ns after   155499.9 ns before-immediate   123622.2 ns after-immediate   123300.1 ns  before/hand 1.41x  after/hand 1.42x  before-immediate/hand 1.13x  after-immediate/hand 1.12x
+  el/overloads: 1 round(s) redone after a gen1/gen2 collection
+el/overloads           hand     1840.1 ns before     2559.7 ns after     2533.2 ns before-immediate     2037.0 ns after-immediate     2007.9 ns  before/hand 1.39x  after/hand 1.38x  before-immediate/hand 1.11x  after-immediate/hand 1.09x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      260.8 ns before      930.1 ns after      931.3 ns before-immediate      665.8 ns after-immediate      665.6 ns  before/hand 3.57x  after/hand 3.57x  before-immediate/hand 2.55x  after-immediate/hand 2.55x
+el/interpolation       hand     1656.4 ns before     4537.3 ns after     4782.8 ns before-immediate     4015.6 ns after-immediate     3992.3 ns  before/hand 2.74x  after/hand 2.89x  before-immediate/hand 2.42x  after-immediate/hand 2.41x
+  el/untyped: 1 round(s) redone after a gen1/gen2 collection
+el/untyped             hand    27838.5 ns before    29847.5 ns after    29747.9 ns  before/hand 1.07x  after/hand 1.07x
+el/refused-early       hand      434.9 ns before     1210.9 ns after     1223.3 ns before-immediate     1172.4 ns after-immediate     1210.8 ns  before/hand 2.78x  after/hand 2.81x  before-immediate/hand 2.70x  after-immediate/hand 2.78x
+el/refused-late        hand     1451.8 ns before     1806.2 ns after     1896.1 ns before-immediate     3213.9 ns after-immediate     3034.6 ns  before/hand 1.24x  after/hand 1.31x  before-immediate/hand 2.21x  after-immediate/hand 2.09x
+sql/literal            hand       58.9 ns before      141.3 ns after      149.3 ns  before/hand 2.40x  after/hand 2.54x
+sql/comment            hand     2590.6 ns before     4986.7 ns after     5078.0 ns  before/hand 1.92x  after/hand 1.96x
+sql/conditions100      hand    67539.4 ns before   134111.4 ns after   129105.4 ns  before/hand 1.99x  after/hand 1.91x
+  sql/conditions1000: 1 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   723438.3 ns before  1343156.2 ns after  1346043.8 ns  before/hand 1.86x  after/hand 1.86x
+tsql/comment           hand    24901.7 ns before     1635.5 ns after     1597.1 ns  before/hand 0.07x  after/hand 0.06x
+sql/column             hand      178.3 ns before      372.2 ns after      377.3 ns  before/hand 2.09x  after/hand 2.12x
+  sql/arithmetic: 1 round(s) redone after a gen1/gen2 collection
+sql/arithmetic         hand     1979.1 ns before     4372.3 ns after     4327.3 ns  before/hand 2.21x  after/hand 2.19x
+sql/nest8              hand     3276.2 ns before    11238.6 ns after    11197.6 ns  before/hand 3.43x  after/hand 3.42x
+  sql/condition: 1 round(s) redone after a gen1/gen2 collection
+sql/condition          hand     2475.2 ns before     4655.5 ns after     4707.0 ns  before/hand 1.88x  after/hand 1.90x
+sql/select1            hand      787.8 ns before     1655.7 ns after     1608.9 ns  before/hand 2.10x  after/hand 2.04x
+  sql/select20: 1 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     9149.3 ns before    20053.1 ns after    20402.9 ns  before/hand 2.19x  after/hand 2.23x
+sql/values             hand      591.0 ns before     1872.2 ns after     1809.5 ns  before/hand 3.17x  after/hand 3.06x
+sql/create             hand      895.7 ns before     2641.6 ns after     2662.1 ns  before/hand 2.95x  after/hand 2.97x
+sql/refused-late       hand     3330.6 ns before    13075.7 ns after    13247.4 ns  before/hand 3.93x  after/hand 3.98x
+
+# Paired stand, 2026-09-19 20:25
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tsql/script100.bool | generated | 668481.2 | 1173800.0 | 1.76x | 124071.9 | 0.19x | -89.4% | 113600 | 105600 |
+| tsql/script100.boolboth | generated | 660082.8 | 1153674.2 | 1.75x | 123869.5 | 0.19x | -89.3% | 105600 | 105600 |
+| tsql/script100 | generated | 646725.8 | 1171857.0 | 1.81x | 125650.0 | 0.19x | -89.3% | 113600 | 113600 |
+| tsql/script400.bool | generated | 2855087.5 | 17318381.2 | 6.07x | 511587.5 | 0.18x | -97.0% | 454400 | 422403 |
+| tsql/script400.boolboth | generated | 2799493.8 | 17302156.2 | 6.18x | 499462.5 | 0.18x | -97.1% | 422403 | 422400 |
+| tsql/script400 | generated | 2649756.2 | 17285303.1 | 6.52x | 501653.1 | 0.19x | -97.1% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1730131.2 | 188826.6 | 0.11x | 193318.8 | 0.11x | +2.4% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 873714.1 | 323368.8 | 0.37x | 334087.5 | 0.38x | +3.3% | 424424 | 424424 |
+| tsql/rows1000 | generated | 591751.6 | 239332.8 | 0.40x | 240982.0 | 0.41x | +0.7% | 296472 | 296472 |
+| web/json.array10000 | generated | 177994.7 | 202963.3 | 1.14x | 219185.4 | 1.23x | +8.0% | 720048 | 720048 |
+| web/json.object10000 | generated | 850606.2 | 1302474.2 | 1.53x | 1297279.7 | 1.53x | -0.4% | 1599240 | 1599240 |
+| web/url.path1000 | generated | 9398.2 | 10937.4 | 1.16x | 10912.4 | 1.16x | -0.2% | 8384 | 8384 |
+| web/media-type.params1000 | generated | 49353.1 | 47747.3 | 0.97x | 50656.4 | 1.03x | +6.1% | 151472 | 151472 |
+| web/sf.list10000 | generated | 1107565.6 | 1180734.4 | 1.07x | 1227371.9 | 1.11x | +3.9% | 2720056 | 2720056 |
+| el/refused-early.bool | generated | 328.4 | 1094.3 | 3.33x | 551.3 | 1.68x | -49.6% | 1064 | 624 |
+| el/refused-late.bool | generated | 1227.0 | 1821.7 | 1.48x | 932.3 | 0.76x | -48.8% | 1064 | 624 |
+| el/ladder.bool | generated | 1066.7 | 1914.1 | 1.79x | 1841.6 | 1.73x | -3.8% | 1776 | 1720 |
+| sql/refused-late.bool | generated | 2857.7 | 12855.0 | 4.50x | 6191.5 | 2.17x | -51.8% | 13552 | 6616 |
+| sql/select20.bool | generated | 7510.9 | 19646.0 | 2.62x | 18954.7 | 2.52x | -3.5% | 21448 | 21392 |
+| web/url.plain | generated | 104.5 | 236.5 | 2.26x | 237.4 | 2.27x | +0.4% | 360 | 360 |
+| web/url.full | generated | 170.5 | 313.1 | 1.84x | 295.3 | 1.73x | -5.7% | 536 | 536 |
+| web/url.ipv4 | generated | 117.2 | 234.0 | 2.00x | 248.5 | 2.12x | +6.2% | 384 | 384 |
+| web/url.long-path | generated | 178.0 | 411.7 | 2.31x | 417.8 | 2.35x | +1.5% | 512 | 512 |
+| web/url.refused | generated | 68.0 | 255.7 | 3.76x | 254.2 | 3.74x | -0.6% | 64 | 64 |
+| web/json.object | generated | 616.3 | 917.9 | 1.49x | 937.3 | 1.52x | +2.1% | 2584 | 2584 |
+| web/json.array | generated | 615.5 | 736.0 | 1.20x | 760.7 | 1.24x | +3.4% | 2400 | 2400 |
+| web/cookie.full | generated | 300.7 | 326.5 | 1.09x | 328.2 | 1.09x | +0.5% | 2136 | 2136 |
+| web/cookie.short | generated | 51.5 | 71.9 | 1.40x | 71.7 | 1.39x | -0.3% | 336 | 336 |
+| web/pointer.full | generated | 203.6 | 192.8 | 0.95x | 186.9 | 0.92x | -3.0% | 440 | 440 |
+| web/pointer.short | generated | 35.7 | 52.8 | 1.48x | 52.8 | 1.48x | 0.0% | 144 | 144 |
+| web/media-type.plain | generated | 157.2 | 186.6 | 1.19x | 192.3 | 1.22x | +3.1% | 448 | 448 |
+| web/media-type.quoted | generated | 239.1 | 273.5 | 1.14x | 283.7 | 1.19x | +3.7% | 816 | 816 |
+| web/media-type.refused | generated | 63.0 | 88.3 | 1.40x | 91.3 | 1.45x | +3.4% | 64 | 64 |
+| web/addr-spec.plain | generated | 87.9 | 107.1 | 1.22x | 109.8 | 1.25x | +2.6% | 176 | 176 |
+| web/addr-spec.refused | generated | 44.4 | 70.9 | 1.60x | 71.1 | 1.60x | +0.3% | 64 | 64 |
+| web/date-time.utc | generated | 50.2 | 60.4 | 1.20x | 60.8 | 1.21x | +0.7% | 176 | 176 |
+| web/date-time.offset | generated | 76.3 | 87.7 | 1.15x | 88.6 | 1.16x | +1.1% | 208 | 208 |
+| web/language-tag.plain | generated | 111.6 | 140.7 | 1.26x | 145.2 | 1.30x | +3.2% | 360 | 360 |
+| web/language-tag.full | generated | 400.4 | 469.5 | 1.17x | 462.7 | 1.16x | -1.5% | 720 | 720 |
+| web/language-tag.refused | generated | 107.3 | 138.4 | 1.29x | 143.4 | 1.34x | +3.6% | 64 | 64 |
+| web/date-time.refused | generated | 35.8 | 45.9 | 1.28x | 46.2 | 1.29x | +0.7% | 96 | 96 |
+| web/sf.item | generated | 250.8 | 291.3 | 1.16x | 274.7 | 1.10x | -5.7% | 800 | 800 |
+| web/sf.list | generated | 1124.9 | 1220.8 | 1.09x | 1220.1 | 1.08x | -0.1% | 3064 | 3064 |
+| web/sf.dictionary | generated | 1176.8 | 1214.9 | 1.03x | 1194.3 | 1.01x | -1.7% | 3280 | 3280 |
+| el/floor | generated | 288.9 | 769.7 | 2.66x | 780.2 | 2.70x | +1.4% | 1104 | 1104 |
+| el/floor | immediate | 288.9 | 472.9 | 1.64x | 467.0 | 1.62x | -1.3% | 1120 | 1120 |
+| el/ladder | generated | 966.9 | 1703.6 | 1.76x | 1690.6 | 1.75x | -0.8% | 1776 | 1776 |
+| el/ladder | immediate | 966.9 | 1146.2 | 1.19x | 1130.1 | 1.17x | -1.4% | 1784 | 1784 |
+| el/nest7 | generated | 706.9 | 1736.6 | 2.46x | 1686.3 | 2.39x | -2.9% | 1152 | 1152 |
+| el/nest7 | immediate | 706.9 | 1062.1 | 1.50x | 1056.9 | 1.50x | -0.5% | 1120 | 1120 |
+| el/block | generated | 1063.3 | 1777.7 | 1.67x | 1752.5 | 1.65x | -1.4% | 2344 | 2344 |
+| el/block | immediate | 1063.3 | 1135.3 | 1.07x | 1162.4 | 1.09x | +2.4% | 2440 | 2440 |
+| el/loop | generated | 2216.1 | 3651.1 | 1.65x | 3703.0 | 1.67x | +1.4% | 4776 | 4776 |
+| el/loop | immediate | 2216.1 | 2505.6 | 1.13x | 2487.0 | 1.12x | -0.7% | 4880 | 4880 |
+| el/terms100 | generated | 11335.6 | 16288.7 | 1.44x | 16410.2 | 1.45x | +0.7% | 17904 | 17904 |
+| el/terms100 | immediate | 11335.6 | 12828.7 | 1.13x | 12701.0 | 1.12x | -1.0% | 18720 | 18720 |
+| el/terms1000 | generated | 109620.1 | 154765.7 | 1.41x | 155499.9 | 1.42x | +0.5% | 169131 | 169128 |
+| el/terms1000 | immediate | 109620.1 | 123622.2 | 1.13x | 123300.1 | 1.12x | -0.3% | 177120 | 177120 |
+| el/overloads | generated | 1840.1 | 2559.7 | 1.39x | 2533.2 | 1.38x | -1.0% | 4248 | 4248 |
+| el/overloads | immediate | 1840.1 | 2037.0 | 1.11x | 2007.9 | 1.09x | -1.4% | 4200 | 4200 |
+| el/string | generated | 260.8 | 930.1 | 3.57x | 931.3 | 3.57x | +0.1% | 1056 | 1080 |
+| el/string | immediate | 260.8 | 665.8 | 2.55x | 665.6 | 2.55x | 0.0% | 1032 | 1032 |
+| el/interpolation | generated | 1656.4 | 4537.3 | 2.74x | 4782.8 | 2.89x | +5.4% | 2368 | 2368 |
+| el/interpolation | immediate | 1656.4 | 4015.6 | 2.42x | 3992.3 | 2.41x | -0.6% | 2424 | 2424 |
+| el/untyped | generated | 27838.5 | 29847.5 | 1.07x | 29747.9 | 1.07x | -0.3% | 16424 | 16424 |
+| el/refused-early | generated | 434.9 | 1210.9 | 2.78x | 1223.3 | 2.81x | +1.0% | 1064 | 1064 |
+| el/refused-early | immediate | 434.9 | 1172.4 | 2.70x | 1210.8 | 2.78x | +3.3% | 1944 | 1944 |
+| el/refused-late | generated | 1451.8 | 1806.2 | 1.24x | 1896.1 | 1.31x | +5.0% | 1064 | 1064 |
+| el/refused-late | immediate | 1451.8 | 3213.9 | 2.21x | 3034.6 | 2.09x | -5.6% | 3928 | 3928 |
+| sql/literal | generated | 58.9 | 141.3 | 2.40x | 149.3 | 2.54x | +5.7% | 160 | 160 |
+| sql/comment | generated | 2590.6 | 4986.7 | 1.92x | 5078.0 | 1.96x | +1.8% | 5136 | 5136 |
+| sql/conditions100 | generated | 67539.4 | 134111.4 | 1.99x | 129105.4 | 1.91x | -3.7% | 161736 | 161736 |
+| sql/conditions1000 | generated | 723438.3 | 1343156.2 | 1.86x | 1346043.8 | 1.86x | +0.2% | 1616136 | 1616136 |
+| tsql/comment | generated | 24901.7 | 1635.5 | 0.07x | 1597.1 | 0.06x | -2.3% | 1192 | 1192 |
+| sql/column | generated | 178.3 | 372.2 | 2.09x | 377.3 | 2.12x | +1.4% | 392 | 392 |
+| sql/arithmetic | generated | 1979.1 | 4372.3 | 2.21x | 4327.3 | 2.19x | -1.0% | 3472 | 3472 |
+| sql/nest8 | generated | 3276.2 | 11238.6 | 3.43x | 11197.6 | 3.42x | -0.4% | 6504 | 6504 |
+| sql/condition | generated | 2475.2 | 4655.5 | 1.88x | 4707.0 | 1.90x | +1.1% | 4928 | 4928 |
+| sql/select1 | generated | 787.8 | 1655.7 | 2.10x | 1608.9 | 2.04x | -2.8% | 1688 | 1688 |
+| sql/select20 | generated | 9149.3 | 20053.1 | 2.19x | 20402.9 | 2.23x | +1.7% | 21448 | 21448 |
+| sql/values | generated | 591.0 | 1872.2 | 3.17x | 1809.5 | 3.06x | -3.4% | 1904 | 1904 |
+| sql/create | generated | 895.7 | 2641.6 | 2.95x | 2662.1 | 2.97x | +0.8% | 1568 | 1568 |
+| sql/refused-late | generated | 3330.6 | 13075.7 | 3.93x | 13247.4 | 3.98x | +1.3% | 13552 | 13552 |
+
+Written to T:\TEMP\dotgram-stand\w60\pair\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 31.3 ns (the runs' controls: 31.2, 31.3, 31.3, 31.4, 31.1).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-19 20:25
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tsql/script100.bool | generated | 668481.2 | 1173800.0 | 1.76x | 124071.9 | 0.19x | -89.4% | 113600 | 105600 |
+| tsql/script100.boolboth | generated | 660082.8 | 1158691.4 | 1.76x | 122182.0 | 0.19x | -89.5% | 105600 | 105600 |
+| tsql/script100 | generated | 646936.7 | 1171857.0 | 1.81x | 124400.8 | 0.19x | -89.4% | 113600 | 113600 |
+| tsql/script400.bool | generated | 2698490.6 | 17152225.0 | 6.36x | 511015.6 | 0.19x | -97.0% | 454400 | 422403 |
+| tsql/script400.boolboth | generated | 2676159.4 | 16910843.8 | 6.32x | 499462.5 | 0.19x | -97.0% | 422403 | 422403 |
+| tsql/script400 | generated | 2649756.2 | 17188868.8 | 6.49x | 498331.2 | 0.19x | -97.1% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1730131.2 | 189260.9 | 0.11x | 190042.2 | 0.11x | +0.4% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 873714.1 | 325598.4 | 0.37x | 334087.5 | 0.38x | +2.6% | 424424 | 424424 |
+| tsql/rows1000 | generated | 591751.6 | 239332.8 | 0.40x | 240982.0 | 0.41x | +0.7% | 296472 | 296472 |
+| web/json.array10000 | generated | 168342.0 | 200813.9 | 1.19x | 201058.0 | 1.19x | +0.1% | 720048 | 720048 |
+| web/json.object10000 | generated | 850606.2 | 1323522.7 | 1.56x | 1297279.7 | 1.53x | -2.0% | 1599240 | 1599240 |
+| web/url.path1000 | generated | 9510.7 | 11052.7 | 1.16x | 11160.9 | 1.17x | +1.0% | 8384 | 8384 |
+| web/media-type.params1000 | generated | 49921.5 | 47747.3 | 0.96x | 49960.5 | 1.00x | +4.6% | 151472 | 151472 |
+| web/sf.list10000 | generated | 1177559.4 | 1232034.4 | 1.05x | 1227371.9 | 1.04x | -0.4% | 2720056 | 2720056 |
+| el/refused-early.bool | generated | 346.6 | 1113.7 | 3.21x | 572.4 | 1.65x | -48.6% | 1064 | 624 |
+| el/refused-late.bool | generated | 1225.6 | 1792.2 | 1.46x | 938.2 | 0.77x | -47.6% | 1064 | 624 |
+| el/ladder.bool | generated | 1088.2 | 1826.5 | 1.68x | 1816.6 | 1.67x | -0.5% | 1776 | 1720 |
+| sql/refused-late.bool | generated | 2658.2 | 12283.3 | 4.62x | 6071.9 | 2.28x | -50.6% | 13552 | 6616 |
+| sql/select20.bool | generated | 6997.9 | 18498.0 | 2.64x | 19043.2 | 2.72x | +2.9% | 21448 | 21392 |
+| web/url.plain | generated | 97.0 | 226.0 | 2.33x | 223.7 | 2.31x | -1.0% | 360 | 360 |
+| web/url.full | generated | 170.5 | 296.3 | 1.74x | 292.0 | 1.71x | -1.4% | 536 | 536 |
+| web/url.ipv4 | generated | 116.1 | 234.0 | 2.02x | 234.0 | 2.02x | 0.0% | 384 | 384 |
+| web/url.long-path | generated | 178.0 | 411.7 | 2.31x | 411.8 | 2.31x | 0.0% | 512 | 512 |
+| web/url.refused | generated | 68.0 | 250.1 | 3.68x | 254.2 | 3.74x | +1.6% | 64 | 64 |
+| web/json.object | generated | 581.3 | 925.4 | 1.59x | 937.3 | 1.61x | +1.3% | 2584 | 2584 |
+| web/json.array | generated | 599.8 | 732.7 | 1.22x | 748.7 | 1.25x | +2.2% | 2400 | 2400 |
+| web/cookie.full | generated | 303.0 | 332.0 | 1.10x | 345.1 | 1.14x | +4.0% | 2136 | 2136 |
+| web/cookie.short | generated | 52.4 | 75.1 | 1.43x | 74.7 | 1.42x | -0.6% | 336 | 336 |
+| web/pointer.full | generated | 203.9 | 195.8 | 0.96x | 197.1 | 0.97x | +0.7% | 440 | 440 |
+| web/pointer.short | generated | 36.2 | 54.2 | 1.50x | 54.3 | 1.50x | +0.1% | 144 | 144 |
+| web/media-type.plain | generated | 159.5 | 188.4 | 1.18x | 195.6 | 1.23x | +3.8% | 448 | 448 |
+| web/media-type.quoted | generated | 251.4 | 291.2 | 1.16x | 291.4 | 1.16x | +0.1% | 816 | 816 |
+| web/media-type.refused | generated | 63.4 | 91.0 | 1.44x | 91.3 | 1.44x | +0.4% | 64 | 64 |
+| web/addr-spec.plain | generated | 89.1 | 110.9 | 1.25x | 109.8 | 1.23x | -1.0% | 176 | 176 |
+| web/addr-spec.refused | generated | 46.1 | 75.7 | 1.64x | 73.9 | 1.60x | -2.4% | 64 | 64 |
+| web/date-time.utc | generated | 50.3 | 61.3 | 1.22x | 63.8 | 1.27x | +4.2% | 176 | 176 |
+| web/date-time.offset | generated | 77.6 | 90.4 | 1.16x | 91.6 | 1.18x | +1.3% | 208 | 208 |
+| web/language-tag.plain | generated | 115.3 | 155.7 | 1.35x | 152.5 | 1.32x | -2.1% | 360 | 360 |
+| web/language-tag.full | generated | 408.4 | 480.9 | 1.18x | 477.6 | 1.17x | -0.7% | 720 | 720 |
+| web/language-tag.refused | generated | 111.0 | 148.7 | 1.34x | 153.5 | 1.38x | +3.2% | 64 | 64 |
+| web/date-time.refused | generated | 35.8 | 47.3 | 1.32x | 50.2 | 1.40x | +6.1% | 96 | 96 |
+| web/sf.item | generated | 253.4 | 296.6 | 1.17x | 297.7 | 1.17x | +0.4% | 800 | 800 |
+| web/sf.list | generated | 1161.1 | 1234.9 | 1.06x | 1233.5 | 1.06x | -0.1% | 3064 | 3064 |
+| web/sf.dictionary | generated | 1188.4 | 1217.2 | 1.02x | 1210.8 | 1.02x | -0.5% | 3280 | 3280 |
+| el/floor | generated | 315.9 | 822.7 | 2.60x | 788.9 | 2.50x | -4.1% | 1104 | 1104 |
+| el/floor | immediate | 315.9 | 472.9 | 1.50x | 474.9 | 1.50x | +0.4% | 1120 | 1120 |
+| el/ladder | generated | 1022.8 | 1751.9 | 1.71x | 1753.6 | 1.71x | +0.1% | 1776 | 1776 |
+| el/ladder | immediate | 1022.8 | 1157.8 | 1.13x | 1147.8 | 1.12x | -0.9% | 1784 | 1784 |
+| el/nest7 | generated | 698.4 | 1736.6 | 2.49x | 1715.9 | 2.46x | -1.2% | 1152 | 1152 |
+| el/nest7 | immediate | 698.4 | 1042.5 | 1.49x | 1056.9 | 1.51x | +1.4% | 1120 | 1120 |
+| el/block | generated | 1063.3 | 1789.5 | 1.68x | 1795.2 | 1.69x | +0.3% | 2344 | 2344 |
+| el/block | immediate | 1063.3 | 1153.3 | 1.08x | 1162.4 | 1.09x | +0.8% | 2440 | 2440 |
+| el/loop | generated | 2225.0 | 3723.4 | 1.67x | 3711.1 | 1.67x | -0.3% | 4776 | 4776 |
+| el/loop | immediate | 2225.0 | 2537.4 | 1.14x | 2617.6 | 1.18x | +3.2% | 4880 | 4880 |
+| el/terms100 | generated | 11874.9 | 16288.7 | 1.37x | 16543.4 | 1.39x | +1.6% | 17904 | 17904 |
+| el/terms100 | immediate | 11874.9 | 12828.7 | 1.08x | 12971.3 | 1.09x | +1.1% | 18720 | 18720 |
+| el/terms1000 | generated | 113302.3 | 154765.7 | 1.37x | 153642.9 | 1.36x | -0.7% | 169107 | 169131 |
+| el/terms1000 | immediate | 113302.3 | 123622.2 | 1.09x | 123264.3 | 1.09x | -0.3% | 177120 | 177120 |
+| el/overloads | generated | 1859.2 | 2559.7 | 1.38x | 2575.6 | 1.39x | +0.6% | 4248 | 4248 |
+| el/overloads | immediate | 1859.2 | 2048.4 | 1.10x | 2042.1 | 1.10x | -0.3% | 4200 | 4200 |
+| el/string | generated | 278.4 | 965.2 | 3.47x | 958.4 | 3.44x | -0.7% | 1056 | 1056 |
+| el/string | immediate | 278.4 | 661.4 | 2.38x | 667.1 | 2.40x | +0.9% | 1032 | 1032 |
+| el/interpolation | generated | 1920.4 | 4897.4 | 2.55x | 4782.8 | 2.49x | -2.3% | 2368 | 2368 |
+| el/interpolation | immediate | 1920.4 | 4391.7 | 2.29x | 4345.0 | 2.26x | -1.1% | 2424 | 2424 |
+| el/untyped | generated | 28776.1 | 29847.5 | 1.04x | 31188.1 | 1.08x | +4.5% | 16424 | 16424 |
+| el/refused-early | generated | 470.2 | 1232.8 | 2.62x | 1241.8 | 2.64x | +0.7% | 1064 | 1064 |
+| el/refused-early | immediate | 470.2 | 1262.1 | 2.68x | 1241.4 | 2.64x | -1.6% | 1944 | 1944 |
+| el/refused-late | generated | 1492.6 | 1863.8 | 1.25x | 1950.8 | 1.31x | +4.7% | 1064 | 1064 |
+| el/refused-late | immediate | 1492.6 | 3238.4 | 2.17x | 3238.5 | 2.17x | 0.0% | 3928 | 3928 |
+| sql/literal | generated | 64.9 | 149.0 | 2.30x | 149.3 | 2.30x | +0.2% | 160 | 160 |
+| sql/comment | generated | 2729.2 | 5258.8 | 1.93x | 5347.0 | 1.96x | +1.7% | 5136 | 5136 |
+| sql/conditions100 | generated | 71581.0 | 138454.6 | 1.93x | 143020.8 | 2.00x | +3.3% | 161736 | 161736 |
+| sql/conditions1000 | generated | 723438.3 | 1430337.5 | 1.98x | 1448771.1 | 2.00x | +1.3% | 1616136 | 1616136 |
+| tsql/comment | generated | 25890.1 | 1622.9 | 0.06x | 1558.9 | 0.06x | -3.9% | 1192 | 1192 |
+| sql/column | generated | 182.2 | 389.3 | 2.14x | 389.1 | 2.14x | -0.1% | 416 | 416 |
+| sql/arithmetic | generated | 2142.4 | 4586.4 | 2.14x | 4567.9 | 2.13x | -0.4% | 3472 | 3472 |
+| sql/nest8 | generated | 3558.2 | 11817.3 | 3.32x | 11872.8 | 3.34x | +0.5% | 6504 | 6504 |
+| sql/condition | generated | 2508.5 | 4974.1 | 1.98x | 5000.9 | 1.99x | +0.5% | 4928 | 4928 |
+| sql/select1 | generated | 835.1 | 1670.4 | 2.00x | 1768.4 | 2.12x | +5.9% | 1688 | 1688 |
+| sql/select20 | generated | 9950.8 | 20726.3 | 2.08x | 21149.6 | 2.13x | +2.0% | 21448 | 21448 |
+| sql/values | generated | 640.0 | 1872.2 | 2.93x | 1941.6 | 3.03x | +3.7% | 1904 | 1904 |
+| sql/create | generated | 955.6 | 2745.4 | 2.87x | 2786.5 | 2.92x | +1.5% | 1568 | 1568 |
+| sql/refused-late | generated | 3813.7 | 13980.8 | 3.67x | 14394.5 | 3.77x | +3.0% | 13552 | 13552 |
+
+Written to T:\TEMP\dotgram-stand\w60\pair
