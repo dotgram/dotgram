@@ -387,12 +387,45 @@ against a regex than the lightest of them. So the thing this objection would mos
 external references and Q6's rows, which cost a line each and answer the question that is actually
 open: what these parsers cost at all.
 
-**And the refusal figures above are stale.** They are the afternoon baseline's, built at `841ce7c7`
-(13:50), and `b9634ea3` (16:38) halved the refusal path afterwards — finance-24 reports
-`media-type.refused` 170 → 91 ns in that pair. A ratio taken across two runs is not to be quoted to
-a per cent, so the honest form of the point is that a compiled regex still refuses a media type
-several times faster than the parser does, and the next baseline will say by how much. The shape
-stands; the 0.22x does not.
+**And the refusal figures above are stale — then the claim itself fell (finance-24, 2026-09-19).**
+The figures were the afternoon baseline's, built at `841ce7c7` (13:50), before `b9634ea3` (16:38)
+worked on that path. Measured on today's main, medians of eleven repeats of 200k, the inputs and
+patterns taken verbatim from `StandWeb`, and confirmed by a direct loop of 40M calls:
+
+| row | generated | regex | regex-compiled |
+| --- | ---: | ---: | ---: |
+| media-type.refused | 42 | 76 | 48 |
+| url.refused | 192 | 620 | 128 |
+
+So on a media type we are level with the compiled pattern, slightly ahead; on a URL it is still
+0.67x of us. **The sentence this file left standing — "a compiled regex still refuses a media type
+several times faster" — is withdrawn.** What survives is one row, URL, where a compiled pattern
+refuses faster than the parser, which was already visible against that family's hand parser.
+
+**And the scale of the self-check cannot carry what was put on it.** Media type moves from 0.64–0.81
+to about 1.1 on these numbers; URL stays about 0.67. A scale that moves by a third under
+re-measurement cannot rank families by the weight of their gate, so the row of the table above that
+read "the gate's presence shows, its size does not" is not established either. The conclusion is
+unchanged and the reason is weaker than it was written: **no scale this repository has shows RFC
+5322 to be a special risk**, which is a reason not to spend days, not a demonstration that the days
+would be wasted.
+
+**The warm-up finding underneath it, which is worth more than the objection.** finance-24 found that
+for the first ~300 ms of a process everything runs about five times slower — the same media-type
+refusal reads 220 ns first and 42 ns last in one process, with tiering off and no gen0 collection —
+and withdrew its own first probe, which had printed 301 ns from entirely inside that window. Read
+against `Stand.cs`, this is an argument for the stand's machinery rather than against its numbers:
+`WarmUntilStable` warms every reading until two consecutive samples agree within 5% (capped at two
+seconds), the control is warmed before the first row and gated afterwards, readings are timed
+round-robin with the order reversed every round, a round a gen1 or gen2 collection fell in is
+redone, and the warm-up count is kept per reading in the JSON. An ad hoc loop has none of that.
+Two things follow, and they cut both ways: a number that did not come off the stand is to be treated
+as a probe until the stand takes it — including the 42 and the 192 above, which were measured on
+logical processors 16–31, the half the other sessions' builds are pinned to, so their ratio is
+sound and their nanoseconds are not comparable with a baseline's; and a stand row is defended
+against this by construction rather than proved immune, since two consecutive samples can agree
+within 5% part-way up a slow ramp. The control gate is what would show it, and it is worth knowing
+that this is the thing the control gate is for.
 
 **Answer (finance-24, 2026-09-19).** Q6 taken without reservation and ordered: an accepted and a
 refused row each for RFC 6266, 6570, 6902, 7239 and 8288. Q5's reading accepted; the three external
