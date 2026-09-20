@@ -890,11 +890,25 @@ sealed partial class Machine
 			// The store is rented where the entry builds, and also where the reader is handed
 			// one anyway: a carrier that builds as it reads hands its reader the store in every
 			// entry of a machine that builds anywhere, a recognizing one included.
-			var renting = valued || Carrier.ReaderState.Any(static one => one.Name == "values");
-			var returning = renting ? Carrier.Return().ToList() : new List<string>();
-			var cleanup = _readerWays || returning.Count > 0;
+			var handed = Carrier.ReaderState.Any(static one => one.Name == "values");
+			var renting = valued || handed;
 
-			if (renting)
+			// Where the reader is not handed the store, nothing touches it until the walk at
+			// the end, and a refusal never reaches that walk: it leaves at `if (end < 0)`
+			// having read, recorded and decided without a table. Renting it before the read
+			// therefore costs every refusal a rent and a return of a store it does not see —
+			// about 20 ns of a 42 ns refusal of a media type, measured — so it is rented
+			// after the reading stands instead, and returned by a `finally` of its own so
+			// that a construction which throws still hands the pool back.
+			var returning = renting ? Carrier.Return().ToList() : new List<string>();
+
+			// And only where there is a store to rent at all: a carrier that builds as it
+			// reads may need none — it keeps what it built in the reader's own locals — and
+			// moving nothing later would buy nothing and write an empty `finally` for it.
+			var late = renting && !handed && returning.Count > 0;
+			var cleanup = _readerWays || returning.Count > 0 && !late;
+
+			if (renting && !late)
 				foreach (var line in Carrier.Rent())
 					file.Line(line);
 
@@ -921,12 +935,43 @@ sealed partial class Machine
 					}
 
 					file.Line();
-					foreach (var line in Carrier.BuildRoot(rule, type!, IsExtent(rule)))
-						file.Line(line);
+
+					if (late)
+					{
+						foreach (var line in Carrier.Rent())
+							file.Line(line);
+
+						file.Line();
+					}
+
+					using (late ? file.Block("try") : null)
+					{
+						foreach (var line in Carrier.BuildRoot(rule, type!, IsExtent(rule)))
+							file.Line(line);
+
+						if (late)
+						{
+							file.Line();
+							file.Line("return end;");
+						}
+					}
+
+					if (late)
+					{
+						file.Line("finally");
+
+						using (file.Block(""))
+						{
+							foreach (var line in returning)
+								file.Line(line);
+						}
+					}
+
 					file.Line();
 				}
 
-				file.Line("return end;");
+				if (!(valued && late))
+					file.Line("return end;");
 			}
 
 			if (cleanup)
@@ -938,8 +983,11 @@ sealed partial class Machine
 					if (_readerWays)
 						file.Line($"{WaysType}.Return(ways);");
 
-					foreach (var line in returning)
-						file.Line(line);
+					// A store rented late is handed back by the `finally` that stands with
+					// its rent, inside the reading that stands; nothing is owed here.
+					if (!late)
+						foreach (var line in returning)
+							file.Line(line);
 				}
 			}
 		}

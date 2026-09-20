@@ -3469,7 +3469,6 @@ namespace DotGram.Snapshots
 		static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 		{
 			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
 
 			try
 			{
@@ -3488,15 +3487,24 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0, 0);
-				value = values.V1[ways.Last].Value;
+				var values = DirectValues.Rent();
 
-				return end;
+				try
+				{
+					Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0, 0);
+					value = values.V1[ways.Last].Value;
+
+					return end;
+				}
+				finally
+				{
+					DirectValues.Return(values);
+				}
+
 			}
 			finally
 			{
 				Ways.Return(ways);
-				DirectValues.Return(values);
 			}
 		}
 
@@ -3504,7 +3512,6 @@ namespace DotGram.Snapshots
 		static int Recognize_Sum(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 		{
 			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
 
 			try
 			{
@@ -3523,15 +3530,24 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0, 0);
-				value = values.V1[ways.Last].Value;
+				var values = DirectValues.Rent();
 
-				return end;
+				try
+				{
+					Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0, 0);
+					value = values.V1[ways.Last].Value;
+
+					return end;
+				}
+				finally
+				{
+					DirectValues.Return(values);
+				}
+
 			}
 			finally
 			{
 				Ways.Return(ways);
-				DirectValues.Return(values);
 			}
 		}
 

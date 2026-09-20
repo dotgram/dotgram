@@ -1330,7 +1330,6 @@ namespace DotGram.Snapshots
 		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
 			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
 
 			try
 			{
@@ -1349,15 +1348,24 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0, 0);
-				value = values.V0[ways.Last].Value;
+				var values = DirectValues.Rent();
 
-				return end;
+				try
+				{
+					Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0, 0);
+					value = values.V0[ways.Last].Value;
+
+					return end;
+				}
+				finally
+				{
+					DirectValues.Return(values);
+				}
+
 			}
 			finally
 			{
 				Ways.Return(ways);
-				DirectValues.Return(values);
 			}
 		}
 
@@ -1365,7 +1373,6 @@ namespace DotGram.Snapshots
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
 			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
 
 			try
 			{
@@ -1384,15 +1391,24 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0, 0);
-				value = values.V0[ways.Last].Value;
+				var values = DirectValues.Rent();
 
-				return end;
+				try
+				{
+					Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0, 0);
+					value = values.V0[ways.Last].Value;
+
+					return end;
+				}
+				finally
+				{
+					DirectValues.Return(values);
+				}
+
 			}
 			finally
 			{
 				Ways.Return(ways);
-				DirectValues.Return(values);
 			}
 		}
 
