@@ -27,8 +27,8 @@ static partial class Stand
 		Console.WriteLine("Refused inputs: a growing head and a tail no reader can finish; each series asserts that the input is refused. The exponent is the slope of log time on log size over the largest sixteenth of the ladder (at least four points); above " +
 			RefusalLadders.Threshold.ToString("F2", invariant) + " a refusal is a defect, from " + RefusalLadders.Quadratic.ToString("F1", invariant) + " quadratic, from " + RefusalLadders.Explosive.ToString("F1", invariant) + " explosive. A ladder ends at the first call over " + RefusalLadders.BudgetMilliseconds + " ms.");
 		Console.WriteLine();
-		Console.WriteLine("| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | projected at 64 KiB | KB a call at the largest | allocation exponent | |");
-		Console.WriteLine("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
+		Console.WriteLine("| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | shape of the growth | projected at 64 KiB | KB a call at the largest | allocation exponent | |");
+		Console.WriteLine("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- |");
 
 		// The stand can reach the immediate reading of the expression language through the internals; the slow suite cannot, and reads the tape alone.
 		if (RefusalLadders.ExpressionForms.All(static one => one.Form != "immediate"))
@@ -66,7 +66,7 @@ static partial class Stand
 				: RefusalLadders.Duration(last.Ns * Math.Pow(65536.0 / result.Length, Math.Max(exponent, 1)));
 
 			if (flag.Length > 0 && !flag.StartsWith("large and linear", StringComparison.Ordinal))
-				problems.Add($"{one.Parser}, {one.Shape}: {flag}" + (double.IsNaN(exponent) ? "" : $", time exponent {exponent.ToString("F2", invariant)}, {projected} at 64 KiB"));
+				problems.Add($"{one.Parser}, {one.Shape}: {flag}" + (double.IsNaN(exponent) ? "" : $", time exponent {exponent.ToString("F2", invariant)}, {result.Shape}, {projected} at 64 KiB"));
 
 			// Only what may be held to a baseline: an explosion, a series that is not refused and one that threw are never written down as normal.
 			lines.Add(result.Thrown is not null || result.Faulty || result.Class == RefusalLadders.Class.Explosive || double.IsNaN(exponent)
@@ -75,7 +75,7 @@ static partial class Stand
 
 			Console.WriteLine(string.Create(invariant,
 				$"| {one.Parser} | {one.Shape} | {one.Unit} | {(result.Points.Count == 0 ? "-" : result.Points[0].N.ToString("N0", invariant) + " - " + last.N.ToString("N0", invariant))} | {result.Points.Count} | {result.Length:N0} | " +
-				$"{(double.IsNaN(last.Ns) ? "-" : RefusalLadders.Duration(last.Ns))} | {(double.IsNaN(exponent) ? "-" : exponent.ToString("F2", invariant))} | {projected} | " +
+				$"{(double.IsNaN(last.Ns) ? "-" : RefusalLadders.Duration(last.Ns))} | {(double.IsNaN(exponent) ? "-" : exponent.ToString("F2", invariant))} | {result.Shape} | {projected} | " +
 				$"{(double.IsNaN(last.Bytes) ? "-" : (last.Bytes / 1024).ToString("F1", invariant))} | {(double.IsNaN(result.Allocation) ? "-" : result.Allocation.ToString("F2", invariant))} | {flag} |"));
 
 			// With a filter the reader is looking at one curve: give every point of it, time and bytes a call, and what each costs per unit of the head.

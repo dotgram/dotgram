@@ -62,6 +62,11 @@ internal static class RefusalLadders
 	/// <summary>The time a first call at a size is given, in milliseconds, before it is abandoned and the series is called explosive.</summary>
 	internal const int WatchdogMilliseconds = 2000;
 
+	/// <summary>The step, in bytes or time a unit of the head between two sizes a quarter apart, from which a series is said to have a cliff, and the rise over the last sixteenth from which it is said to be a slope.</summary>
+	internal const double CliffFactor = 2.5;
+
+	internal const double SlopeFactor = 1.5;
+
 	internal sealed record Series(string Parser, string Shape, string Unit, int Largest, Func<int, string> Text, Func<string, bool> Accepts);
 
 	static string Copies(string text, int count) => string.Concat(Enumerable.Repeat(text, count));
@@ -357,6 +362,44 @@ internal static class RefusalLadders
 			: Exponent >= Quadratic ? Class.Quadratic
 			: Exponent > Threshold ? Class.Superlinear
 			: Class.Linear;
+
+		/// <summary>
+		/// A cliff or a slope, told apart by the number every series already has (architect, D67): the bytes a call per unit of the head, and the time a call per unit.
+		/// Flat and then a jump is a CLIFF (a bound somewhere in the parser, a pool that stops keeping what it built, a list that grows by doubling), and the fitted
+		/// exponent over the last sixteenth of the ladder turns the two points above it into a slope that is not there; a steady rise is a SLOPE. The class of the series
+		/// is not changed by this: a cliff arrives as a worse class and fails the guard, a cured one arrives as a better one. What it corrects is the name.
+		/// </summary>
+		internal string Shape => Describe("bytes", Points.Where(static p => p.N >= 32 && p.Bytes > 0).Select(static p => (p.N, p.Bytes / p.N)).ToList())
+			+ "; " + Describe("time", Points.Where(static p => p.N >= 32).Select(static p => (p.N, p.Ns / p.N)).ToList());
+
+		static string Describe(string what, List<(int N, double PerUnit)> series)
+		{
+			if (series.Count < 3)
+				return what + " -";
+
+			var jump = 0.0;
+			var at   = 0;
+
+			for (var i = 1; i < series.Count; i++)
+			{
+				var step = series[i].PerUnit / series[i - 1].PerUnit;
+
+				if (step > jump)
+				{
+					jump = step;
+					at   = i;
+				}
+			}
+
+			if (jump >= CliffFactor)
+				return what + string.Create(System.Globalization.CultureInfo.InvariantCulture, $" CLIFF x{jump:F1} between {series[at - 1].N:N0} and {series[at].N:N0}");
+
+			var top  = series[^1].N;
+			var tail = series.Where(p => p.N * 16L >= top).ToList();
+			var rise = tail.Count < 2 ? 1.0 : tail[^1].PerUnit / tail[0].PerUnit;
+
+			return what + (rise >= SlopeFactor ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $" rising x{rise:F1}") : " flat");
+		}
 
 		internal (int N, double Ns, double Bytes) Last => Points.Count == 0 ? (0, double.NaN, double.NaN) : Points[^1];
 	}
