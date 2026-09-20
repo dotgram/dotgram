@@ -2729,3 +2729,24 @@ written prose. Whether an author may supply that text in the grammar is a change
 and goes to Igor on its own; the templates reserve nothing for it. **Igor, 2026-09-19: not now —
 there is more important work — but kept as a question for later.** So the emitted documentation
 stays the generator's own words until someone asks for the author's.
+
+## D24. What a refusal costs, measured
+
+The critic's objection that a compiled regular expression refuses faster than the generated parser
+sent finance-24 to measure it on today's main, twice by different means, with a profile. The
+premise half held: on a media type the compiled expression is level with us (48 ns against 42),
+on a URL it is faster (128 against 192), and the interpreted one is slower than us everywhere.
+Where the time goes is not what either of us assumed: recording what was expected costs nothing,
+since a quiet reading writes nothing and both refusal rows allocate nothing at all. It goes on two
+things. The entry rents the value store before it reads and returns it in a finally, though a
+refusal never touches it — 20 ns of a 42 ns refusal, and the return sums eight lengths and clears
+eight empty arrays even when nothing was used (performance-ff, after his queue: rent it only where
+a reading succeeds, or leave early on return, chosen by the numbers, with the accepted rows as the
+control). And a URL's refusal reads the input twice, since a reference is a URI or a relative one
+and both start from the beginning: a fifth of the run, and reading the common beginning once would
+take the refusal to about 145 ns, level with the compiled expression (asked of expr's fold
+first; a grammar edit if the fold cannot take it).
+**A measurement rule came with it:** the first 300 ms of a process runs five times slower, and it
+is neither tiering nor the collector — the same row measured last in the same process is at its
+final speed from the first repeat. A short probe on a cold process overstates its first row about
+fivefold; finance-24's own first numbers were retracted for exactly that.
