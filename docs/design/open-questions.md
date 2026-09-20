@@ -2531,3 +2531,17 @@ staleness guard is built, it is built against something that already exists. Wor
 the plan was being discussed in stages as though all three lay ahead.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D80).** The correction taken in a more general form than it was
+raised in: a review of an area that changed underneath it is **recounted by its numbers, not
+re-read by its conclusion** — the count survived, the argument did not, and the area's owner
+recounted and gave a better formulation than either of us had. The clause about revisions is
+confirmed: where an area has an owner working in it, read their branch, not `main`, because the
+network fell over for hours today and half the work lives in local branches on this machine — one
+`cd` rather than a fetch.
+
+And on the generator already existing, the consequence the architect drew is worth keeping beside
+this entry, because it generalises past FIX: **a chosen answer is designed, a read answer is
+verified, and the second is cheaper and more honest.** The staleness guard is built against a reader
+that exists, so the first thing to do is read what that reader already does when the file and the
+tables disagree — not to design what it should do.
