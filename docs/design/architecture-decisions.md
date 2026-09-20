@@ -5987,3 +5987,38 @@ The rest as proposed: rebase, retest, hand the stand the sha for the pair, push 
 and never let the pooling change ride under a newer commit ungated. And the suite was re-run after
 the commit because the message claimed it was green when only one class had been run — an inference
 in a commit message being exactly what the day has taught.
+
+## D68. Igor: FIX is the priority now, 2026-09-20
+
+The order is to move faster on FIX, to have somebody survey the libraries of the same kind and
+compare against them, and to find out what a validation dictionary is — **all of it to be built,
+not only studied**.
+
+**Two of the three already exist as studies and neither has become work.** There is an account of
+the libraries, taken from the source of one of them rather than from its description, and a study
+of validation dictionaries — both formats, what our schema already holds, what it does not, and
+where the line between build time and run time falls. What is missing is implementation and
+numbers, and that is what the order converts them into.
+
+**The work, in this order.** The validating layer first, because D53 settled its shape and it needs
+no new machinery: a validator object holding a dictionary, every finding rather than the first, a
+finding naming the entry's index in a repeating group as well as the tag, and validation against
+our own compiled schema when no dictionary is supplied. Then the reader of a counterparty's
+dictionary — run time for what is checked, build time for what is *constructed*, since a type is
+not data. Then the comparison's numbers, which the layer makes like-for-like by construction: the
+other engine parses in one call and validates in another, and after this so do we.
+
+**The survey widens and goes to the critic**, whose business is reading and whose licence work on
+the first library was exactly this. Not only the one engine on this platform: what else exists
+here and elsewhere, what each one's model is, how each expresses a dictionary, and what licence
+each carries — read from the file, as before, because a shipped package may carry nobody's data
+but its own.
+
+**Four questions the dictionary study left open are answered so that nobody waits on them.** The
+build-time reader is in scope for this repository, a generator over a foreign input being what this
+repository is. It produces, in order, the length/data pairs and the schema tables first and the
+typed field classes second, the third being the one that answers a real venue and also the largest.
+Requiredness stays binary until something needs more; widening it later goes to the five the trade
+body's own format uses and not to a vocabulary of ours. And whether the empty specification
+directory was a place prepared for this is a question for the package's owner rather than a
+decision.
