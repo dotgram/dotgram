@@ -56,5 +56,5 @@ public sealed class PrimitiveTests
 	[InlineData(27, "12345", true)]
 	public void Primitive_boundaries(int tag, string value, bool expected) => Assert.Equal(expected, Valid(tag, value));
 
-	static bool Valid(int tag, string value) => FixPrimitives.Valid(new FixFieldView(value, tag, 0, 0, value.Length), FixSchema.Type(tag), FixSchema.Codes(tag));
+	static bool Valid(int tag, string value) => FixPrimitives.Valid(new FixFieldView(value, tag, 0, 0, value.Length), FixSchema.TypeCode(tag), FixSchema.Codes(tag));
 }

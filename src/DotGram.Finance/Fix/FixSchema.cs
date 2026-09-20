@@ -5012,6 +5012,12 @@ static class FixSchema
 		return (uint)tag < (uint)TypeCodes.Length ? TypeName(TypeCodes[tag]) : null;
 	}
 
+	// What Type answers before it is spelled. Holding a value to its type reads this and never the
+	// name: the schema knows the type as a number, and turning it into a string so that the check
+	// can parse the string back is work that should not exist.
+	internal static byte TypeCode(int tag) =>
+		(uint)tag < (uint)TypeCodes.Length ? TypeCodes[tag] : (byte)0;
+
 	/// <summary>Whether a tag is one the standard types <c>data</c>, read from the codes without a string.</summary>
 	public static bool IsData(int tag)
 	{
@@ -7996,7 +8002,32 @@ static class FixSchema
 		"99", // Other
 	]);
 
-	public static string[]? Codes(int tag) => tag switch
+	static readonly string[] NoCodes = [];
+
+	static string[]?[]? codesByTag;
+
+	/// <summary>The code set of a tag, or null where the standard gives it none.</summary>
+	/// <remarks>
+	/// Remembered a tag after the first ask. The arms below are a binary search over some four
+	/// hundred cases, and validation asks this of every field of every message; the table makes
+	/// the steady state one array read and keeps the laziness, since a set is still built only
+	/// when its tag is first seen.
+	/// </remarks>
+	public static string[]? Codes(int tag)
+	{
+		if ((uint)tag >= (uint)TypeCodes.Length)
+			return null;
+
+		var table = codesByTag ??= new string[TypeCodes.Length][];
+		var found = table[tag];
+
+		if (found == null)
+			table[tag] = found = CodeSet(tag) ?? NoCodes;
+
+		return ReferenceEquals(found, NoCodes) ? null : found;
+	}
+
+	static string[]? CodeSet(int tag) => tag switch
 	{
 		  4 => AdvSideCodeSet,
 		  5 => AdvTransTypeCodeSet,

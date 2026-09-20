@@ -60,12 +60,46 @@ exactly, including `IOIQty` accepting either a quantity or a code and `MultipleV
 its codes a character at a time, and any divergence there breaks the equality the comparison rests
 on.
 
+## Correction, taken the same day by doing it
+
+The 2,720 ns above was read as "what the road has not touched yet", and the reading was wrong. It
+is the value check's **whole** cost, and most of it is not lookup overhead at all.
+
+Fixing the shared implementation, which is what that reading argued for, was done and measured on
+the same message with the same instrument. Two changes paid and one cost:
+
+| | the walk |
+| --- | ---: |
+| before | 9,792–9,910 ns |
+| the type as a code instead of a name | 9,451–9,568 ns |
+| the code set remembered a tag instead of searched for | 9,038–9,201 ns |
+| *filtering the scan on length and first character* | *9,340–9,376 ns — **reverted*** |
+
+So the dispatch and the two lookups were worth **about 750 ns**, not 2,720. The rest of the value
+check is `Numeric`, `Date`, `Time`, `Letters` and `Market` reading the characters of 391 values,
+which is the work itself and does not go away by being emitted rather than called.
+
+The filter is the more useful of the three. A ninety-four-value linear scan looks like the thing to
+fix, and it is not: the sets a message actually meets are short, `SequenceEqual` is already cheap,
+and the branches that skipped comparisons cost more than the comparisons. It is reverted, and the
+reason is written where the loop is so that nobody tries it twice.
+
+**What this does to the ceiling.** The earlier 1.87× rested on the 2,720 ns being removable by
+emitting the checks. It is not, so the ceiling is much nearer than it looked: with the shared fixes
+in, the walk is about 9,100 ns and the generated form's advantage is still roughly the same
+absolute 1,900 ns, which is where it will stay until something removes character work rather than
+dispatch.
+
 ## The answer to the question that was asked
 
-The build-time road buys **speed as well as types, but a quarter and not a multiple** — with the
-larger half of the remaining cost sitting in the one place the road has not been pointed at yet.
-Whether to point it there is a separate decision with its own risk, and it should be taken on a
-measurement of its own rather than on the ceiling above.
+The build-time road buys **speed as well as types, but a quarter and not a multiple**.
+
+As first written this section went on to say that the larger half of the remaining cost sat
+somewhere the road had not been pointed at yet. The correction above is the measured answer to
+that, and it is no: three quarters of what looked available was never dispatch, it was reading the
+characters of the values, and emitting the checks instead of calling them does not touch it. What
+the shared fixes took — about 750 ns, or eight per cent of the walk — is most of what was there,
+and both roads got it at once.
 
 ## Expectation against outcome
 

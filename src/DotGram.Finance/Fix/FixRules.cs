@@ -33,7 +33,7 @@ abstract class FixTables
 	public abstract int         Counter(int id);
 	public abstract SchemaRef[] Header  { get; }
 	public abstract SchemaRef[] Trailer { get; }
-	public abstract string?     Type(int tag);
+	public abstract byte        Type(int tag);
 	public abstract string[]?   Codes(int tag);
 	public abstract int         LengthTag(int dataTag);
 	public abstract int         DataTag(int lengthTag);
@@ -109,7 +109,7 @@ sealed class CompiledTables : FixTables
 	public override int         Counter(int id) => FixSchema.Counter(id);
 	public override SchemaRef[] Header  => FixSchema.Component(1024);
 	public override SchemaRef[] Trailer => FixSchema.Component(1025);
-	public override string?     Type(int tag) => FixSchema.Type(tag);
+	public override byte        Type(int tag) => FixSchema.TypeCode(tag);
 	public override string[]?   Codes(int tag) => FixSchema.Codes(tag);
 	public override int         LengthTag(int dataTag) => FixSchema.LengthTag(dataTag);
 	public override int         DataTag(int lengthTag) => FixSchema.DataTag(lengthTag);
@@ -144,7 +144,27 @@ sealed class DictionaryTables(FixDictionary dictionary) : FixTables
 	/// not model. <c>TZTIMEONLY</c> and <c>TZTIMESTAMP</c> are the two FIX 4.4 names that land
 	/// there.
 	/// </remarks>
-	public override string? Type(int tag) => Vocabulary(dictionary.CodeType(tag));
+	// One read a tag at construction, not a name parsed a field: loading is where a dictionary is
+	// allowed to be slow, and checking is not.
+	readonly byte[] types = Codes(dictionary);
+
+	public override byte Type(int tag) => (uint)tag < (uint)types.Length ? types[tag] : (byte)0;
+
+	static byte[] Codes(FixDictionary dictionary)
+	{
+		var widest = 0;
+
+		foreach (var tag in dictionary.Tags)
+			if (tag > widest)
+				widest = tag;
+
+		var codes = new byte[widest + 1];
+
+		foreach (var tag in dictionary.Tags)
+			codes[tag] = FixPrimitives.Code(Vocabulary(dictionary.CodeType(tag)));
+
+		return codes;
+	}
 
 	internal static string? Vocabulary(string? declared) => declared?.ToUpperInvariant() switch
 	{
@@ -309,7 +329,7 @@ static class FixRules
 			// not know: there is no type to hold the value to.
 			var type = tables.Type(node.Tag);
 
-			if (type != null && !FixPrimitives.Valid(field, type, tables.Codes(node.Tag)))
+			if (type != 0 && !FixPrimitives.Valid(field, type, tables.Codes(node.Tag)))
 				found.Add(Wrong(FixRule.InvalidValue, where, field, groupTag, entryIndex,
 					"The value does not fit the field's type, or is not one of its code set."));
 		}
