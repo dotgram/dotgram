@@ -1648,6 +1648,19 @@ static partial class Stand
 	/// beside it — so a row that turns out bimodal (2026-09-18: sql/arithmetic, el/interpolation)
 	/// is visible in the json without a second, diagnostic-only run.
 	/// </summary>
+	/// <summary>
+	/// Which reading is taken k-th in a round: the readings rotate by one place each round, and every n rounds the order is reversed, so that over 2n rounds every reading
+	/// has stood in every place the same number of times. It used to be forward in one round and reversed in the next, which for three readings (the base, before, after)
+	/// puts `before` in the middle of every round and `after` at the two ends: the position of a reading was then a difference between the sides, and the A/A of one build
+	/// against itself read a few percent apart (D50, 2026-09-20). Measured with an A/A of one build after the change.
+	/// </summary>
+	static int InRound(int round, int k, int n)
+	{
+		var place = (k + round % n) % n;
+
+		return (round / n) % 2 == 0 ? place : n - 1 - place;
+	}
+
 	static Row Measure(Workload workload, List<double> controls)
 	{
 		var iterations = Iterations(workload.Readings[0].Run);
@@ -1671,13 +1684,16 @@ static partial class Stand
 		var taken  = workload.Readings.Select(_ => new List<RoundSample>()).ToArray();
 		var redone = 0;
 
-		for (var round = 0; round < Rounds; round++)
+		// At least Rounds rounds, and a multiple of 2n so that every reading stands in every place equally (InRound).
+		var rounds = (Rounds + 2 * workload.Readings.Length - 1) / (2 * workload.Readings.Length) * 2 * workload.Readings.Length;
+
+		for (var round = 0; round < rounds; round++)
 		{
 			controls.Add(Time(Control, ControlIterations));
 
 			for (var k = 0; k < workload.Readings.Length; k++)
 			{
-				var i = round % 2 == 0 ? k : workload.Readings.Length - 1 - k;
+				var i = InRound(round, k, workload.Readings.Length);
 
 				taken[i].Add(TimeSteady(workload.Readings[i].Run, each[i], ref redone));
 			}
