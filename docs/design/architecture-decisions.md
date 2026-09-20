@@ -6437,3 +6437,34 @@ floor rather than a comparison. Validation speed being what matters, the compari
 anything is the *whole* job — generated code with those checks against the walk with them — and
 that number does not exist yet. It is the one to take next, and it needs no window if it comes out
 the way the last one did.
+
+## D75. Where the dictionary's generator lives, how it is asked for, and what it may say
+
+**It is a package of its own**, installed beside the library rather than inside it. Most consumers
+ship no dictionary — the standard schema is already compiled in — and an analyzer inside the library
+package is a tax every one of them pays on every build. It also keeps the repository's own shape,
+where an analyzer package is an analyzer package. The price is a name, a page and a skill, and one
+condition: the two version in lockstep, and the generator's page says so, because a generator that
+fills tables the library reads cannot be a version behind it.
+
+**It is asked for exactly as a grammar is.** The dictionary is an additional file of the
+compilation and an attribute on a partial class names it, so the path is fixed at build time and
+nothing is asked of a consumer's object while parsing — D25 satisfied by construction rather than
+by care. The generated class carries a ready validator as a property for the ordinary case and the
+table beside it for someone mixing two dictionaries, which is D72's "the defaults must be
+reachable" one level up. The name should read as the grammar attribute does. One member is added to
+the public surface, a validator taking a prepared table, and it is wanted with or without the
+generator: today two dictionaries cannot be mixed at all.
+
+**And the rule about diagnostics is corrected rather than adopted.** The proposal was that a
+diagnostic may name an element, a line and a tag but never quote the file, on the grounds that it
+would put somebody else's words in the consumer's build output. **That reasoning is wrong, and it
+is mine to correct because the sentence it came from is in D71.** The file in that build is the
+*consumer's*: they hold it, their compiler reads it, and quoting a line of it back to them
+redistributes nothing. The constraint that does hold is about *us* — nothing we ship or commit may
+carry a dictionary's text, which is why the corpus copy is a corpus copy and why generated output
+over it must not be checked in.
+
+So the practice stands for a better reason: name the element, the line and the tag because that is
+the more useful diagnostic, not because quoting is forbidden. Where quoting the text genuinely
+helps a consumer fix their own file, it is allowed.
