@@ -12,8 +12,8 @@ namespace DotGram.Benchmarks;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A build with <c>-p:DotGramReportGeneration=true</c> writes beside each grammar's generated file
-/// a <c>*.DotGramReport.g.cs</c>: a line of what was generated, and under it what GRAM5012 rested
+/// A build with <c>-p:DotGramReportGeneration=full</c> writes beside each grammar's generated file
+/// a <c>*.DotGramReportDetail.g.cs</c>: a line of what it was given, and under it what GRAM5012 rested
 /// on — the carrier, the gate that kept the grammar on the tape, and each rule kept there with its
 /// cause. `Replay`'s gate names the place a cause was found and what around it lets the reading be
 /// replaced; the reader's gate names the rules that can be read again after answering. This builds
@@ -53,7 +53,7 @@ static class Carriers
 
 		var grammars = new List<Grammar>();
 
-		foreach (var file in Directory.EnumerateFiles(root, "*.DotGramReport.g.cs", SearchOption.AllDirectories))
+		foreach (var file in Directory.EnumerateFiles(root, "*.DotGramReportDetail.g.cs", SearchOption.AllDirectories))
 		{
 			if (!file.Replace('\\', '/').Contains("/obj/GeneratedFiles/", StringComparison.Ordinal))
 				continue;
@@ -76,7 +76,7 @@ static class Carriers
 
 		if (grammars.Count == 0)
 		{
-			Console.WriteLine("No reports. Build with -p:DotGramReportGeneration=true first.");
+			Console.WriteLine("No reports. Build with -p:DotGramReportGeneration=full first.");
 
 			return;
 		}
@@ -85,7 +85,7 @@ static class Carriers
 
 		text.AppendLine("# Which carrier each grammar is read with, and why");
 		text.AppendLine();
-		text.AppendLine("Every grammar of the solution, as the last build with `-p:DotGramReportGeneration=true` compiled");
+		text.AppendLine("Every grammar of the solution, as the last build with `-p:DotGramReportGeneration=full` compiled");
 		text.AppendLine("it: the carrier `Auto` took (GRAM5012), and for a grammar kept on the tape, the gate that kept it");
 		text.AppendLine("and each rule held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`)");
 		text.AppendLine("from the reports that build left; run again rather than edited.");

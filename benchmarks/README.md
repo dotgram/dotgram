@@ -314,7 +314,7 @@ dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll 
 ```
 
 Not a benchmark: it times nothing and builds nothing. It gathers, from the `*.DotGramReport.g.cs`
-files that a build with `-p:DotGramReportGeneration=true` writes beside every grammar's generated
+files that a build with `-p:DotGramReportGeneration=full` writes beside every grammar's generated
 file, which carrier `Auto` took for each grammar of the solution (GRAM5012) and, for a grammar kept
 on the tape, the gate that kept it (`Replay` or the reader's) and each rule held there with its
 cause, and writes them into `docs/carriers.md` (or to `output`). Run it after such a build: it reads

@@ -20,6 +20,15 @@ namespace DotGram.Tests;
 /// "The type or namespace name 'ExpressionLanguage' does not exist in the namespace 'DotGram'" —
 /// which is the failure the architect saw on twenty-three page blocks of a merged tree.
 /// </para>
+/// <para>
+/// **Why the defect was green in one place and red in another, on the same commit.** An ordinary
+/// page class loads the assembly its pages name, because it reaches for it itself —
+/// <c>PageOf(typeof(ExpressionParser), …)</c> — so the check passes for whoever is looking at it.
+/// Only a class naming a package it never touches can be in the wrong order, and no ordinary page
+/// class has that shape. So a full run could be red where a single class was green, and a suite red
+/// on one machine green on another. Anyone who cannot reproduce a red run here should look at what
+/// loaded first rather than for a flake.
+/// </para>
 /// </remarks>
 public sealed class ShippedPagesReferenceTests
 {

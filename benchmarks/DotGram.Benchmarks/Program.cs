@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using BenchmarkDotNet.Running;
 
@@ -558,7 +558,7 @@ static class Program
 		}
 
 		// `--carriers [output]` is not a benchmark: it gathers what the last build with
-		// `-p:DotGramReportGeneration=true` said about each grammar's carrier — which one `Auto`
+		// `-p:DotGramReportGeneration=full` said about each grammar's carrier — which one `Auto`
 		// took, and why a grammar is on the tape — into docs/carriers.md. See Carriers.cs.
 		if (args.Length >= 1 && args[0] == "--carriers")
 		{
