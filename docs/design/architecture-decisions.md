@@ -4380,3 +4380,27 @@ embedding the sources is what buys stepping into generated code — so the savin
 may cost less than the reason it would seem to contradict. Igor's, with the number first: a read of
 the debug directory and the symbol file's document table, both through metadata, two numbers and no
 build.
+
+**D46 counted, and my estimate of it was wrong** (stand, `488a7216`, read from metadata, no build).
+The embedded symbol file of the SQL assembly is 3,544,414 bytes in the file, 17.9% of it, and
+7,208,884 decompressed. Of its 29 documents, 13 carry their source, all generated or written by the
+build: 39,044,259 bytes of text stored as 2,839,013 — **14.3% of the assembly**, compressed about
+fourteen to one. I had estimated seven to nine megabytes by applying the assembly's own ratio to the
+source; the ratio is the deflate ratio, not the assembly's, and the whole symbol file is 3.5 MB.
+The residue closes too: each grammar text deflated on its own is 191,805, and 730,673 + 191,805 +
+1,682 is exactly the 924,160 the two builds differed by, the 1,682 being what escaping a text into
+a C# literal costs. The expression language agrees to 83 bytes.
+
+**So the trade Igor is offered is smaller than it looked**: embedded sources cost 14.3% of the
+assembly, not a third of it, against stepping through generated code without a symbol server. The
+number belongs in the sentence; the recommendation is to keep them.
+
+**What the code-size harness must say from now on.** A change that shrinks emitted code shows in an
+assembly twice: as its IL, and again as about a fifteenth of its source through the symbols. Every
+size taken so far includes both, which makes none of them wrong and all of them a different
+quantity from "how much IL did this add".
+
+**And one thing found on the way that is not about size.** The documents carry the absolute path of
+the tree that built them. A shipped package should not name a build machine's directories, and a
+build meant to be reproducible must map them; whether the packing workflow does is a question with
+a yes-or-no answer, and it goes to finance-24 with the release mechanics.
