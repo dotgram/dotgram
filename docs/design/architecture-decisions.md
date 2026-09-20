@@ -5969,3 +5969,21 @@ pending their own dumps. **That distinction is exactly the kind that evaporates 
 "repeated across two runs" was true of the row that prompted it and became a sentence about four —
 and the correction arrived before the sentence had been used, which is the only time a correction
 is cheap.
+
+**Squash it: main may not carry a commit that corrupts reused stores.** The earlier instruction not
+to amend rested on a reason that no longer holds — the chain is thirty commits behind, so a rebase
+rewrites every identifier in it whatever we choose, and the citations die either way. What is left
+to decide is only what main ends up containing, and there the answer is plain: **every commit on
+main is a bisect target**, so a state that fails four hundred and fifty-three tests is not a record
+of how we got here, it is a trap for whoever bisects through it for something unrelated.
+
+The record lives in the diary and in this journal, which describe the episode without leaning on
+identifiers; the diary entry is rewritten accordingly. And the squashed commit's message carries
+what the intermediate state had done wrong, so that the knowledge does not leave with the commits
+that held it. Against this stands a real position — that history and record agree if both hold the
+defect and its fix — and it loses to the cost of a poisoned bisect, not to a rule.
+
+The rest as proposed: rebase, retest, hand the stand the sha for the pair, push after it passes,
+and never let the pooling change ride under a newer commit ungated. And the suite was re-run after
+the commit because the message claimed it was green when only one class had been run — an inference
+in a commit message being exactly what the day has taught.
