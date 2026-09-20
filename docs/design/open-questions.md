@@ -1052,3 +1052,63 @@ first.
   "the tokenizer has to become resumable, which is more work than `Over` costs to build" overstates
   it: the work is to build a designed thing, not to invent one. What that costs is still expr's to
   say and not mine.
+
+## Q11 (2026-09-20). The outward sweep, first three: what others do that we do by hand
+
+The queued sweep, taken at Igor's word. Read at `91544ed4`. Three items, the limit this file keeps;
+each with what it is, the place here it would touch, and the question a number would have to answer.
+Nothing was run, and the first thing the sweep produced is the list of what we already have, because
+two of the obvious proposals died against the code before they were written.
+
+**What the literature would suggest and we already do.** Precedence climbing for a tower of binary
+operators — `graph.Climbing` (`Model/ExecutionPlan.cs`, `Model/FirstSets.cs`); the T-SQL tower is
+declared left-recursive with explicit levels (`TransactSql.gram:282`–286, `<< 1`, `<< 2`) and the
+generator compiles the climb. Progress assertions, the technique matklad's 2025 post advocates
+(a parser that asserts it advanced, with fuel as the fallback): we prove it at generation instead —
+a rule that can read nothing is a diagnostic, not a run-time crash, which is D25's side of the same
+question and the better one for a generator. Neither is worth proposing; both were nearly proposed.
+
+**1. Recovery sets computed from the grammar, instead of written on one repetition.** Today `recover`
+is the author's: it marks a repetition and names the synchronization expression itself
+(`recover eol`, §8.2), it exists only on repetitions, and nothing else in a grammar tolerates an
+error — a failed parse yields no structure at all. Outside, `lelwel` is a resilient LL(1) generator
+whose recovery sets are *computed*: the follow sets of the dominators of the graph the grammar
+induces. We already compute both halves of the input to that — `Model/FirstSets.cs` and
+`Model/FollowSets.cs` — and have no dominators. Matklad's resilient LL parsing tutorial is the
+design that generator implements, and Pika parsing is the other road to the same place, packrat
+reformulated so that error recovery falls out of the dynamic-programming table.
+*Where it touches:* `Machine.Recovery.cs`, `Model/FollowSets.cs`, and §8.2, since it changes what a
+grammar has to say. *The question a number answers:* of a file whose first error is at line N, how
+much structure does the reader still return — today, zero past the failure unless the author marked
+a repetition; the number to beat is the fraction of rules that keep their extent.
+
+**2. Incremental re-parsing, which nothing here does.** `GramLanguageService.Analyze(grammarSource)`
+takes a document and analyses it whole; the extension calls it from the classifier, the embedded-site
+analysis and the diagnostics, and there is no word for "incremental", "reparse" or a reused tree
+anywhere in `DotGram/Language` or `DotGram.VisualStudio`. The marketplace page answers the cost with
+"responsive background analysis for large grammar files" — which is backgrounding, not incrementality.
+`TransactSql.gram` is 7,264 lines. Outside, tree-sitter is the canonical answer, a sentential-form
+incremental LR after Wagner and Graham, reusing subtrees across an edit.
+*Where it touches:* `DotGram/Language`, and only the editor — a generated parser is not asked to be
+incremental. *The question a number answers:* what one keystroke in the middle of a 7,000-line
+grammar costs now, and what it would cost re-using the unedited subtrees. **Nobody has the first
+number**, and it should be taken before any of this is designed, because backgrounding may already
+have made it a non-question.
+
+**3. A tree built where it is asked for, not everywhere.** Every construction a parse records is
+materialized: the walk after the parse builds all of it, a guard's walk builds some of it early, and
+`Locations are opt-in` is the only thing a consumer can decline. sql-39's anatomy puts the walk the
+guards run at 8.4 µs of select20's 17.9 — the largest single item in that parse — and Q1 closed with
+the lever being the walk rather than the record. Outside, two well-tried shapes: Roslyn's green and
+red trees, where the persistent green nodes are the parse and a red node is created when someone
+touches it, and Artio's flyweight FIX codecs, which decode a field only when its accessor is called
+(Q9). Both are the same idea against our largest number, and the second is already in this file for
+FIX.
+*Where it touches:* `Machine.Direct.Values.cs` and the materializer, `docs/design/sql-ast.md`, and
+the shape of what a `parse` hands back. *The question a number answers:* what fraction of the nodes
+a real consumer touches. For `--roundtrip` it is all of them and this buys nothing; for a consumer
+who asks a script for its statement kinds it is a few per statement. **That fraction is not known
+here**, and it decides the whole item, which is why it is the number to take first and not the
+design.
+
+**Answer:** —
