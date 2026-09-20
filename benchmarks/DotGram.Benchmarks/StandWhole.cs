@@ -38,6 +38,16 @@ static partial class Stand
 				before.FixYieldReader(text),
 				after.FixYieldReader(text));
 
+			// The lazy form over memory, the string and the bytes: FixGrammar.ReadFields, where the engine or methods run it by what it is given.
+			foreach (var (form, memory) in new[] { ("yield-string", false), ("yield-memory", true) })
+			{
+				var beforeYield = before.FixYieldMemory(memory, bytes, text);
+				var afterYield  = after.FixYieldMemory(memory, bytes, text);
+
+				if (beforeYield is not null && afterYield is not null)
+					yield return PairedFixForm($"{name}.{form}", () => HandFixParser.Parse(text), beforeYield, afterYield);
+			}
+
 			foreach (var (form, reader) in new[] { ("whole-stream", false), ("whole-reader", true) })
 			{
 				yield return PairedFixForm($"{name}.{form}",

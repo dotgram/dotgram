@@ -979,6 +979,29 @@ static partial class Stand
 			return input => method.Invoke(null, [input, make.Invoke([options]), null, null])!;
 		}
 
+		/// <summary>
+		/// The lazy form of this side's FIX grammar over memory, <c>FixGrammar.ReadFields(string | ReadOnlyMemory&lt;byte&gt;, context)</c>
+		/// (the architect and performance-ff, 2026-09-19: over a string the yield publication is run by the engine, over a stream by
+		/// methods, and the one that is read more often is the slow one), by reflection over the internal grammar class. Null where
+		/// the side has no such publication.
+		/// </summary>
+		public Func<int>? FixYieldMemory(bool memory, byte[] bytes, string text)
+		{
+			var grammar = _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") ?? throw new InvalidOperationException("FixGrammar not found");
+			var context = grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixContext not found");
+			var options = _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null);
+			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixFieldOptions) not found");
+			var method  = grammar.GetMethod("ReadFields", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
+				[memory ? typeof(ReadOnlyMemory<byte>) : typeof(string), context], null);
+
+			if (method is null)
+				return null;
+
+			object input = memory ? new ReadOnlyMemory<byte>(bytes) : text;
+
+			return FixCount(() => method.Invoke(null, [input, make.Invoke([options])])!);
+		}
+
 		/// <summary>The whole-stream form (<see cref="FixWhole"/>) over the bytes or the text, its fields' tags summed as every FIX row does.</summary>
 		public Func<int> FixWholeCount(bool textReader, byte[] bytes, string text)
 		{
