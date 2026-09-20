@@ -35,9 +35,29 @@ stand within three lines of the next one, so in one guard's run):
 | the expression language | 62 | 46 | 16 | 32 (51%) | 2 |
 
 So between a third and a half of the places that ask stand in a run with others, and merging a run
-of `n` into one walk removes `n - 1` of them. What that is worth dynamically is a count sql-39 can
-take on the corpora — asks that belong to a multi-value guard, rather than sites — and it should be
-taken before any code.
+of `n` into one walk removes `n - 1` of them.
+
+**And what it is worth dynamically, counted by sql-39 on the corpora**, with each ask marked by the
+guard that made it rather than by the rule's mark — so "the same guard" means the same guard and
+not a neighbour in the same rule:
+
+| | asks | guards | second or later from the same guard | walks after merging |
+| --- | --- | --- | --- | --- |
+| SQL:2023, `select20` | 301 | 193 | 108 (36%) | 301 → 193 |
+| T-SQL, the corpus | 17,023 | 9,287 | 7,736 (45%) | 17,023 → 9,287 |
+
+An earlier count of sql-39's, by the rule's mark rather than by the guard, made this look three
+times larger — 301 → 25 asks on `select20`. The difference is asks of *different* guards standing
+in a row, and merging those is not sound: the first guard may refuse, and its neighbour's values
+would then have been built for a derivation that is never accepted, which is what the tape is
+chosen to prevent. Merging them would need a proof that nothing between them can refuse — the rent
+that closed the last design. **So the reachable gain is the table above, and the larger number is
+not ours.**
+
+Two caveats sql-39 names and I keep: the count merges only *consecutive* asks of one guard, so a
+guard whose asks are separated by another's is not counted though it might still merge — the
+figures are a floor; and what a merge saves is a walk's fixed part, which on T-SQL is nearly a
+whole walk (7.8% of asks take the fast path) and on SQL:2023 is mostly a preamble (56% do).
 
 ## 2. That the walk already does it
 
@@ -54,6 +74,32 @@ emits a run today.
 
 Everything after the marking is unchanged: one listing, one reaching pass, one dispatch per record,
 the same `built` flags and the same watermark.
+
+## 2.1 What order things are built in, which is the one thing to hold rather than assert
+
+A merged walk builds the union in log order. Two questions follow, and the answer is different for
+each.
+
+**Captures beside one another — the ordinary case — build in exactly the order they build in
+today.** A rule reads its parts in sequence, so the records of one capture all stand before the
+records of the next: their ranges of the log are disjoint and ordered. Log order over the union is
+therefore the first capture's records followed by the second's, which is what two walks do one
+after the other. Nothing can be observed to differ, because nothing differs.
+
+**A capture that is an ancestor of another is the case where the order moves.** A guard may name
+both a rule and something inside it. Today the inner walk builds the inner subtree whole, and the
+outer walk then builds what is left of the outer one — so a record standing *before* the inner
+subtree is built *after* it. Merged, everything is built in log order. The set is the same, every
+child is still built before its parent, and the difference is only the order of two constructions
+neither of which is the other's child.
+
+Can that be seen? Not through the values: a factory is handed its own children and nothing else.
+Only a factory with a side effect — one that counts, logs, or writes through `parserState` — could
+tell, and the specification promises no order between two constructions that are not related
+(§7.2 promises that guards run in written order and that `=>` runs after the match). So the merge
+is allowed to take log order, and **the design says so rather than leaving it to be discovered**:
+where a guard names a value inside another, the two are built in the order the input has them,
+which is the order everything else is built in.
 
 ## 3. What it does not change
 
@@ -77,9 +123,20 @@ not anything per rule.
   SQL:2023 on "the root is not the last record", T-SQL on "something below is unbuilt". A
   measurement on one is a measurement about one.
 - **A size-growing row on every guarded family**, the standing rule for a change to the walk.
+- **The emitted size quoted beside the time.** A walk that takes several roots where it took one is
+  a wider signature on a hot path, and this is exactly the shape where the time improves, the file
+  grows and nobody looks. One worktree, and say whether the BOM is in the figure.
 - **The corpora and the refusal record unchanged**, since nothing about what is built should move.
-- **My expectation, stated before the pair**: the T-SQL rows move, because 92% of its asks walk
-  slowly and nearly half its sites stand in runs; the SQL:2023 rows move less, because more than
-  half of its asks take the fast path, where the preamble is all there is to save; the expression
-  language moves least of all. If the T-SQL rows do not move, the merge is not worth its entry and
-  is refused, as the last design was.
+- **My expectation, stated before the pair**: the T-SQL rows move most — 45% of its asks are a
+  second or later from the same guard, and 92% of its asks walk slowly, so a merged ask saves most
+  of a walk rather than a preamble. SQL:2023 moves less: 36% of its asks merge, and more than half
+  of them take the fast path, where only the preamble is saved. The expression language moves least
+  of all. This is the opposite of what sql-39's first count suggested, and it is the guard-marked
+  count that decides.
+
+  Built from the frequency of the run lengths and not from the longest one: the runs reach seven on
+  T-SQL, but 1.83 asks a guard means the weight sits on pairs, so the expectation is about half the
+  merged asks' walks and not six in seven.
+
+  If the T-SQL rows do not move, the merge is not worth its entry and is refused, as the last
+  design was.
