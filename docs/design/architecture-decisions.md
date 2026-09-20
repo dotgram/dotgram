@@ -2499,7 +2499,11 @@ the start cut too much and threw below the first token; nothing in the solution 
 Left over and decided: over characters the position reported is still the one handed in, so a value
 with trivia before it carries it. That is done next, in its own commit before the release chores,
 because §6.3 now promises the position is where the value begins and a promise kept for tokens
-only is two behaviours again; until it lands the text says plainly what the character path does.
+only is two behaviours again. **Done (`6faa6e83`):** one field on the record a failure already
+carries, written by the reader's entry between the trivia and the rule; the engine reads the
+trivia as a reading of its own and so skips it at a position, which it never did, and a test holds
+the two renderings to the same answers. The caveat is out of §6.3: the position is where the value
+begins and the length its own extent, in both halves.
 
 ## D19. What 0.2.0 owes before it is cut
 
