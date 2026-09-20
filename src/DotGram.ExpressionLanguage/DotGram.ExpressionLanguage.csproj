@@ -9,7 +9,7 @@
 		<Description>A C#-style expression language written in .gram, compiled straight into System.Linq.Expressions trees.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>expressions;expression-tree;linq;linq-expressions;parser;csharp;dsl;dotgram</PackageTags>
-		<PackageReleaseNotes>First release. A C#-style expression language — C#'s operators and literals, locals, blocks, loops, switch, try, members, calls and new — read by a generated parser that calls the System.Linq.Expressions factories directly.</PackageReleaseNotes>
+		<PackageReleaseNotes>Since 0.1.0. Lambdas whose parameters say no types, read where the types are known; interpolated strings, verbatim and raw; a resolver of its own that a host can hand in, so what a name means is the host's to decide. Parse, TryParse and Compile are what is public, and TryParse now also answers whether without a message. Faster: an expression of a thousand terms no longer costs the square of its length.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, and paths normalized on CI only: both as
 		     DotGram.Web has them, and the reasons are written there. -->
