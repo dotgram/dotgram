@@ -5562,3 +5562,32 @@ bodies; the quadratic findings live in files no seal touched and are expected to
 expectation stated as one, with the rerun to speak for itself. The baseline the guard starts from
 is generated from *that* run and not from this one, which is the right way round: a baseline built
 on a stale binary would grandfather what has already been fixed.
+
+## D61. Nested parentheses cost a cube, on accepted input too, and it may be one cause for twenty
+
+sql-39 took the stand's row about unclosed parentheses apart and found it is not a property of
+refusal at all. On T-SQL's search condition: refused, 64 levels 1.1 ms, 128 9.1, 300 125; **accepted
+— closed parentheses — 64 levels 2.7 ms, 128 19.2, 300 65.** Both curves about n^2.8.
+
+**The cause is counted rather than timed**, which is why it is worth trusting: at 32 levels three
+rules are each called 1,056 times, and 1,056 is 32 × 33 — exactly the square of the depth. At every
+opening parenthesis the reader asks whether this is a subquery or a parenthesised value, and the
+attempt re-reads the whole remaining nesting. The ambiguity is the language's; **the square is
+ours** — an ordered choice with no memory of failure re-reads what it has already read.
+
+**So the consequence is the D57 family's, not a new one:** nothing at ordinary depths, seconds at
+two thousand levels, and on untrusted input a slow denial of service. The difference is that it
+costs on *correct* text as well, which the exponentials did not.
+
+**Not started as a project, and deliberately.** The stand's audit has just found about twenty
+quadratic refusals across the web and SQL packages, and the obvious question is whether they share
+this cause — an ordered choice re-reading a stretch it has already read — in which case one
+reader-level answer addresses all of them and a grammar-level answer addresses none. That is a
+hypothesis with a cheap test: count calls on two or three of the twenty and see whether the same
+square appears. **It is asked once, for the class, after the rerun on main** — not twenty times.
+
+The level is the reader's, as sql-39 says: fixing the grammar would cost fidelity, which D22
+forbids. And the remedy, if the class is one, is narrower than the packrat that was refused
+earlier: remembering that a rule *failed* at a position is not memoizing everything, and the
+objection recorded against full memoization — that most refusals are reached on the first token —
+does not apply to a failure remembered after a long re-read.
