@@ -6022,3 +6022,23 @@ Requiredness stays binary until something needs more; widening it later goes to 
 body's own format uses and not to a vocabulary of ours. And whether the empty specification
 directory was a place prepared for this is a question for the package's owner rather than a
 decision.
+
+**The empty specification directory is a leftover, and its history matters more than the answer.**
+It held a thirty-three thousand line dictionary of somebody else's and a generation step over it
+built on a template engine, and both were removed on 16 September under the heading of maintaining
+the definitions by hand. **So reading a dictionary at build time has been in this package before,
+and was taken out** — which is a sentence someone will reach for the moment this work is proposed.
+
+**What was taken out is not what is proposed.** What went was a generator living in an editor
+rather than ours, and a vendored copy of a third party's file inside our source tree, which is
+exactly the licence problem the dictionary study describes. What is proposed is our own generator
+over the *consumer's* file, with nothing of anyone else's in the repository. The shape is the same
+and the substance is the opposite, and saying so now is cheaper than answering "we tried that"
+later.
+
+**The first step is split in two, which is right.** The layer arrives beside the existing
+behaviour — findings, a validator, the standard instance over our compiled schema — changing
+nothing; then building becomes unconditional and the modes leave. The second changes the answer
+for messages the strict mode rejects today, and mixing that with the appearance of new code would
+lose which of the two moved what. Without the first there is also nothing to check the second
+with.
