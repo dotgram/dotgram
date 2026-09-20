@@ -1,0 +1,15 @@
+First call of fixmsg/Order44.strict in a fresh process, milliseconds, seven each, alternating (window 89). The reference-QuickFIXn reading includes building the data dictionary: the cost of starting to use that reader, paid once per process and not per message.
+generated 14.1214
+reference-QuickFIXn 39.582
+generated 14.0409
+reference-QuickFIXn 39.6234
+generated 14.026
+reference-QuickFIXn 39.4819
+generated 14.0143
+reference-QuickFIXn 39.4048
+generated 14.0872
+reference-QuickFIXn 39.7744
+generated 14.2905
+reference-QuickFIXn 39.759
+generated 14.2443
+reference-QuickFIXn 39.4024
