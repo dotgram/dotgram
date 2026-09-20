@@ -3105,3 +3105,30 @@ crash in code they did not write. The switch is ours, beside the one that alread
 generation report, and off by default. If the second emission turns out not to be cheap, the
 answer is to narrow what is checked — rewinds, where the watermark will be wrong if it is wrong —
 and not to move it into a run on the side.
+
+**D26, the external reference, taken: `QuickFIXn.Core` 1.14.1** (critic's Q9,
+`docs/design/open-questions.md`, `b6b58c0a`). It holds the status ScriptDom holds for T-SQL: what
+a consumer of ours would otherwise be running, doing more than we do, quoted as a reference and
+never as a base for a ratio. It is the one FIX number this repository can have that does not come
+from a parser we wrote, and Q3, Q5 and Q9 each turned out to need exactly that.
+
+The licence was read from the file rather than assumed: the QuickFIX Software License 1.0,
+BSD-three-clause in shape, whose two obligations — carrying the notice and acknowledging
+quickfixengine.org in an end-user document — are untriggered, because nothing is redistributed.
+The benchmarks project is not packed, no package of ours references it, no copy of its source
+enters the repository and CI restores from NuGet. We name it anyway, in `benchmarks/README.md`
+and in every results document carrying the row, as we already name ScriptDom in every table: it
+costs a line and makes the question unarguable rather than merely answerable. The row is
+`reference-QuickFIXn`, by the naming convention stand adopted the same day.
+
+**The condition that decides whether the number means anything.** It is paired against
+`FixMessages`, not against the field reader: `Message.FromString` splits the wire, validates
+against a dictionary and assembles repeating groups, so setting it beside `FixParser.Parse` would
+be the regex comparison in reverse, a reading that does much more quoted against one that does
+less. A field-level row may be taken as well, and then the difference is said in the row, not only
+in the prose around it. Two traps recorded so nobody falls in them twice: `QuickFix.Net.NETCore`
+is an older third-party repack and is not this package, and the package names lost a full stop at
+1.14, so Core is 1.14.1 while the message packages are still 1.13.0.
+
+The work is finance-24's, as the owner of the FIX benchmarks, with critic's write-up as its input;
+the account of the libraries that D26 asks for is still owed and is not replaced by the row.
