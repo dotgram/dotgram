@@ -24341,3 +24341,27 @@ it is worth more than anything left in recognition: 8.4 µs against recognition'
 The two constants are SQL:2023's, taken over that grammar's arms on select20. T-SQL's arms are not
 these arms and its walks are longer — 6.9 records a walk over the corpus against 1.3 here — so a
 T-SQL number wants a T-SQL profile, and the figures carried into §4b are marked as carried.
+## The inline return reads its union: the bare query first (the gap of 0389cfac closed)
+
+The reader opens no way at all — `ways.Open` does not appear once in T-SQL's generated file — so a
+choice there is ordered and the first alternative that succeeds wins. `InlineReturn` asked for the
+bracketed form first, and on `RETURN (SELECT 1 AS a) UNION ALL SELECT 2 AS a` that form succeeds on
+`(SELECT 1 AS a)`; the union was then nobody's, and the statement refused. The analysis records the
+rule as replayable, which is about what the tape may rebuild and not about a second reading being
+tried here.
+
+The two alternatives are now written the other way round: the bare query first, the bracketed one
+after it. The bracketed alternative is reached exactly where the bare one fails — where the
+brackets hold a `WITH` or an order, which no query expression takes inside them — so nothing is
+accepted that was not accepted before, and the union is read.
+
+Held against SQL Server with `SET PARSEONLY ON`, twelve forms, the control (`RETURN (SELECT 1 AS a)
+FROM;`) giving Msg 102 so that the probe is known to catch a refusal: ten read by both, two refused
+by both. `SqlWriter` prints each of the ten back as its text. The corpus round-trip is 7,716 of
+7,716, 100%, and every suite passes. The report moves only in that `TSqlQueryExpression` is no
+longer replayed for this cause — it stays replayed under `TSqlSubquery`'s, so `replayed` is 321
+either way.
+
+The same shape was looked for elsewhere: `TSqlSubquery` has one alternative, and on `SEND`'s four
+shapes (`(1)`, `(1) + 2`, `1 + 2`, `(1), (2)`) the parser and the server already agree. That is what
+was checked, not a proof that no other rule has it.
