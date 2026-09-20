@@ -1599,3 +1599,88 @@ declare the measurement switch where the package cannot carry it. None of the th
 measurement.
 
 **Answer:** —
+
+## Q16 (2026-09-20). One question is counted three ways, and the platform at the floor already answers two of them
+
+The architect's, after Q15: read the two existing framework branches as content rather than form —
+are there places where the emitted code writes a loop and the platform **on the floor** also does
+better, a gain that needs no branch at all? Read at `3638853f`.
+
+**The whole of the character-at-a-time scanning in emitted code.** Taken from the five checked-in
+snapshots and from the templates they come out of, and it is a short list:
+
+- `Window.LineAt` and `Window.ColumnAt` (`Support.cs`, `WindowClass`) — `_buffer[at]`, twice;
+- `Located_DotGram.Move` (`Support.cs`, `LocateHelper`) — `text[_at]` going forward, `text[at]` going
+  back, `text[_start - 1]` walking to the line's beginning;
+- `Reach_DotGram` (`DirectSupport`) — `text[pos + at]`, how far a literal run agreed;
+- `…_Agreeing` (the recognizer) — `text[p + i]`, the same question with case folding.
+
+Nothing else reads input a character at a time. Everything else already calls the platform:
+`SequenceEqual` and `MemoryExtensions.Equals` with `OrdinalIgnoreCase` for a literal, `IndexOf` and
+`IndexOfAny` for a stop set, `Array.Copy`, `Array.Resize`, `Array.Clear`. The repertoire is mostly
+taken, as Q13 found for recognition.
+
+**And the first two are the same question, counted three ways in one tree.**
+
+- **The fixed one.** `LocatedMembers` (`BufferedEmitter`), the buffered window: it keeps `_lineAt`,
+  `_lines` and `_lineStart`, and moves them with `LastIndexOf` and a count. Its own comment says why
+  — "Searched for, not read a character at a time: a feed asking for lines had a branch on every
+  character it read counted again." This is the code Q15 is about, the `#if NET8_0_OR_GREATER` one.
+- **The incremental one.** `Located_DotGram`, the whole-text path: it keeps the last place asked
+  about, so each question costs what lies between it and the one before — its remark argues the case
+  in full, "a parse that asks about every bad line of a feed pays for the feed once, where counting
+  from the start paid for it once a line" — and then it counts that distance a character at a time.
+- **The one that got neither.** `Window.LineAt` and `Window.ColumnAt`, which streaming uses: a
+  per-character loop **from the window's start on every call**. Not incremental, not searched for.
+  It is exactly the algorithm `Located_DotGram`'s remark was written against, in the one form where
+  the input is longest.
+
+**Where it is reached from, and what that bounds.** `StreamingEmitter` maps the host variables
+`parserLine` and `parserColumn` to `window.LineAt(from)` and `window.ColumnAt(from)`;
+`Machine.Recovery` reports a recovered item's line and column the same way. So the cost is paid by a
+grammar that asks — and a feed that asks per record pays the window once per record, which is a
+shape and not a constant. A grammar that never asks pays nothing at run time, and pays anyway in
+code: `CSharpEmitter` writes `WindowClass` whenever a grammar streams, with no gate, two lines below
+the buffered classes, which are gated on `Locating(graph)`. The asymmetry is visible in the three
+lines that emit them.
+
+**What the floor has.** `MemoryExtensions.IndexOf` and `LastIndexOf` are on netstandard2.0 through
+`System.Memory`, which emitted code already requires for the span itself — the same argument
+`Machine.cs` makes where it decided `MemoryExtensions.Equals` with `OrdinalIgnoreCase` was the right
+call there. No capability, no bucket, no `#if`.
+
+**So, ranked.**
+
+1. **Give the streaming window what the buffered one already has.** Both halves are written twice
+   over in the tree — the incremental state in `Located_DotGram`, the searched-for move in
+   `LocatedMembers` — and the streaming window has neither. *Where it touches:* `WindowClass` in
+   `Support.cs`, and the `Locating` gate two lines above it in `CSharpEmitter` if the members are to
+   stop being emitted where nothing calls them. *The question a number answers:* what a streaming
+   parse that asks for a line per record costs now against the same parse over a buffered feed,
+   which has the fixed one — a comparison available today, without writing anything.
+2. **Search backwards as well as forwards.** Both incremental implementations vectorized the forward
+   direction and left the backward one a character at a time: `MoveLine`'s `for (var at = _lineAt -
+   1; at >= position; at--)` and its walk to `_lineStart`, and `Located_DotGram.Move`'s two backward
+   loops. `LastIndexOf` is the same floor API. *The question a number answers:* how often a parse
+   asks about a place behind the one before — unknown here, and cheap to count.
+3. **The pooled link reset, and it is the weakest of the three.** `DirectValues.Return` clears its
+   value tables with `Array.Clear`, but resets the link chains with a loop —
+   `_linkHeads[i] = -1; _linkNexts[i] = -1` over `_valuesUsed`. `Span<int>.Fill(-1)` is on the floor
+   where `Array.Fill` is not. The caution belongs with it:
+   [`value-store-clearing-2026-09-20.md`](value-store-clearing-2026-09-20.md) measured that what
+   `Return` pays is calls and cold tables rather than bytes, so a vectorized fill of the same region
+   may buy very little. Unmeasured, and named only because it is the one clearing there that is
+   still a loop.
+
+**Rejected, with the reason, because a rejected item saves the next reader the walk.**
+`Reach_DotGram` and `…_Agreeing` are the two remaining per-character scans and neither belongs here:
+they answer "how far did this literal agree", the floor has no common-prefix API at all, and
+`CommonPrefixLength` is net8 — so they are an item for Q14's net8 bucket, and the case-folded one
+has no API on any framework. A star over a class needs `IndexOfAnyExcept`, which is also not on the
+floor; that is D20's, and Q13 named where it lands.
+
+**And one thing this makes visible about the record.** No checked-in snapshot emits `MoveLine` at
+all, while four of the five carry the naive pair. The fixed implementation — the one with the
+framework branch — appears in no diff anybody reads, and the unfixed one appears in four.
+
+**Answer:** —
