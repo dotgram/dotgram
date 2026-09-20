@@ -6290,3 +6290,37 @@ about material we read here, which is the same treatment the ISO grammar and som
 corpus already have. Hand-written fixtures are still wanted beside it: a small dictionary written
 here drives the cases a test needs, and the published one is the thing the reader is held to
 because we did not shape it.
+
+## D73. The reader lands, and the published dictionary disagrees with our tables in ten places
+
+**Ten tags where a published dictionary and our compiled schema say different things.** Every tag
+our tables define exists in the file and every other type agrees; these ten do not. Four we call a
+number and it calls a character or a string, three we call a group count and it calls an integer,
+and the rest go the other way. **Neither side is an authority**: the file is one reading of the
+protocol and ours is another, and what decides is the published specification, which nobody has
+read for these ten. Two of them *look* like the other side's defect — a type that cannot hold
+values the same file lists for it, and a counter that counts answers rather than entries — but
+"looks like" is not a reading, so they are pinned with the rest. The test fixes the list rather
+than a verdict: a new disagreement fails it, and closing an old one fails it too, so the list is
+corrected in the commit that corrects the tables. **It goes to Igor as a question about authority,
+not as a defect report.**
+
+**And a correction to figures I published myself.** I counted the dictionary by grepping its
+elements and quoted 3,783 fields and 451 components. Those are *references* from inside messages
+and components; the declarations are 916 fields and 24 components, with 93 message types. The
+corpus page is corrected. The figure nobody counted is the one that shaped the reader: **59 group
+names used in 226 places** — this format declares a group where it is used, so one name carries a
+different membership in different messages, and a reader keying a group by name would merge two
+shapes into one. The identifier is by place.
+
+**This format has no conditional rules at all.** Its whole vocabulary is eleven element names and
+none of them is a rule or a condition, which agrees with what the earlier study found. So the
+instruction to design the reader so that conditional rules can be handed out as text has no input
+today: there is nothing to hand out. **Igor's idea about using our expression language is not
+withdrawn — it is aimed at the other format**, where rules are written in a language of that body's
+own, and there a rule compiled into a delegate *is* D72's cell.
+
+What was done for it now, without inventing an input: the parse builds a tree of names and resolves
+it in a separate pass rather than filling tables as it goes. A reader of the other format fills the
+same tree and hangs a rule on a member; tables and delegates are built from the tree either way.
+That is the only shape that costs nothing today and saves a rewrite then.
