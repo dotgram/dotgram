@@ -1196,3 +1196,65 @@ describes rather than before it.
 
 *Not taken further here: the architect asked for the number first, and this file does not start work
 it was told to wait on.*
+
+## Q12 (2026-09-20). 0.2.0's readiness, checked by someone who did not build it
+
+Asked by the architect: do the five packages promise what they do. Read at `87fbb326`; nothing was
+built or run, and where the answer is "in order" it is said, because a readiness check that lists
+only defects is not one.
+
+**One class of defect, three places, all in Finance's shipped pages and all made by D27.** The
+decision that a supplied length/data dictionary *adds to* the standard's sixteen pairs rather than
+replacing them reached the code, the constructor's own documentation and the release notes. It did
+not reach the two pages the package ships.
+
+- **The first example of the feature does not run.** `README.md:109` and `SKILL.md:145` both open
+  with `new FixFieldOptions(new Dictionary<int, int> { [95] = 96, [5000] = 5001 })`. `95 => 96` is
+  one of the standard sixteen (`FixSchema.DataTag`), and the constructor now throws
+  `ArgumentException` where "either tag is one the standard already defines" — its own XML comment
+  says so. So both shipped pages open with a call that throws on the package they ship with. The
+  release notes even predict this exact mistake in a reader: "a dictionary that repeated a standard
+  pair to keep it is now refused with the tag named".
+- **The SKILL states the reversed rule in so many words.** The line beside `[95] = 96` reads
+  `// a supplied dictionary replaces the standard one`. That is the sentence D27 overturned,
+  shipped in the file written for an agent to follow.
+- **The README contradicts itself within forty lines.** `:78` — "`FixFieldOptions` configures only
+  replacement Length/Data pairs" — against `:120` — "A supplied length/data dictionary **adds to**
+  the standard's sixteen pairs … neither tag of a supplied pair may be one the standard defines".
+
+Both examples are fixed by dropping `[95] = 96`, which is also the honest fix: the pair exists to
+show a counterparty's own tags, and the standard pair in it was never the point.
+
+**What was checked and is in order.**
+
+- **Release notes.** All five packages carry `PackageReleaseNotes`. This session first concluded
+  there were none — there is no changelog file — and found them by looking for the property instead,
+  which is the second road this file now owes every count. The two breaks the architect named are
+  both there with what to do: `FixField.Unknown` → `Custom` and the supplied dictionary, in
+  Finance's; the trivia after a rule and the positional reading no longer refused by an unread
+  character, in DotGram's. No third break was found unrecorded: Finance's withdrawal of the typed
+  entry classes is stated in its notes, and the expression language's narrowing to `Parse`,
+  `TryParse` and `Compile` is stated in its own.
+- **What a package carries besides code.** `Directory.Build.props` gives every packable project the
+  MIT licence expression, the repository and project URLs, authors, copyright and the icon; the
+  icon is packed by a shared item. Nothing is missing package by package.
+- **XML documentation.** No page of any package promises it. The expression language, Finance and
+  Web generate it; `DotGram` and `DotGram.Sql` do not, and the SQL package says so in its own pages.
+  Nothing promises what it does not carry.
+- **Nobody else's text in a package.** The five pack `README.md`, `SKILL.md` and the icon, and
+  Finance also packs our own `LICENSE`. The grammars are `AdditionalFiles`, which are compiler
+  inputs and not packed, so `TransactSql/Specification/` and `Standard/Specification/` — Microsoft's
+  published syntax and the ISO BNF — reach no package. No package references anything taken for the
+  benchmarks: the only `PackageReference`s are `System.Memory` and, with `PrivateAssets="all"`,
+  `Meziantou.Polyfill` and the Roslyn packages.
+- **The specification followed the positional change.** §6.3 now says that a character no token
+  begins with ends the tokens rather than refusing the reading "in all of these forms … a reading
+  must not be refused by what it never read", with the script example. The page and the behaviour
+  agree.
+
+**One line outside the scope I was given, and a stop.** The ISO BNF and Microsoft's published syntax
+sit in the repository itself, at `src/DotGram.Sql/*/Specification/`. They reach no package, which is
+the question I was asked; whether they may sit in a public repository is a different one, and not
+mine to answer.
+
+**Answer:** —
