@@ -1,34 +1,58 @@
 ﻿<Project>
-	<PropertyGroup Condition="'$(DotGramReportGeneration)' == 'true'">
+	<!-- What the generator says about itself: `none`, `summary` or `full`. `true` is the older
+	     spelling of `full` and `false` of `none`, so a script that set either keeps working.
+	     Nothing is said unless asked: a consumer who sets nothing gets a silent build.
+
+	     MSBuild compares strings without regard to case, so these three conditions accept
+	     `Full` and `FULL` as well. Anything else is `none` — a build property is not the place
+	     to report a typo, and a silent generator is what the unset property already means. -->
+	<PropertyGroup>
+		<_DotGramReport>none</_DotGramReport>
+		<_DotGramReport Condition="'$(DotGramReportGeneration)' == 'summary'">summary</_DotGramReport>
+		<_DotGramReport Condition="'$(DotGramReportGeneration)' == 'full' or '$(DotGramReportGeneration)' == 'true'">full</_DotGramReport>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(_DotGramReport)' != 'none'">
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$(IntermediateOutputPath)DotGramGenerated</CompilerGeneratedFilesOutputPath>
 	</PropertyGroup>
 	<ItemGroup>
 		<CompilerVisibleProperty Include="DotGramReportGeneration" />
 		<CompilerVisibleProperty Include="DesignTimeBuild" />
-		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(DotGramReportGeneration)' == 'true'" />
+		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(_DotGramReport)' != 'none'" />
 	</ItemGroup>
 
 	<!-- Only reports from this compiler invocation may be printed. A skipped compile
 	     therefore prints nothing, and removed hosts cannot leave stale messages. -->
 	<Target Name="DotGramPrepareGenerationReports" BeforeTargets="CoreCompile"
-	        Condition="'$(DotGramReportGeneration)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+	        Condition="'$(_DotGramReport)' != 'none' and '$(DesignTimeBuild)' != 'true'">
 		<ItemGroup>
 			<_DotGramOldReports Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReport.g.cs" />
+			<_DotGramOldReports Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReportDetail.g.cs" />
 		</ItemGroup>
 		<Delete Files="@(_DotGramOldReports)" />
 	</Target>
 
+	<!-- One line a parser at high importance, which is what a quiet or minimal build shows,
+	     and everything else at normal, which `-v:n` and above show. The line says the
+	     generator ran and what it produced; what it decided on the way is detail, and detail
+	     in a build nobody asked a question of is noise. -->
 	<Target Name="DotGramPrintGenerationReports" AfterTargets="CoreCompile"
-	        Condition="'$(DotGramReportGeneration)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+	        Condition="'$(_DotGramReport)' != 'none' and '$(DesignTimeBuild)' != 'true'">
 		<ItemGroup>
 			<_DotGramReports Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReport.g.cs" />
-			<FileWrites Include="@(_DotGramReports)" />
+			<_DotGramDetails Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReportDetail.g.cs" />
+			<FileWrites Include="@(_DotGramReports);@(_DotGramDetails)" />
 		</ItemGroup>
 		<ReadLinesFromFile File="%(_DotGramReports.Identity)" Condition="'@(_DotGramReports)' != ''">
 			<Output TaskParameter="Lines" ItemName="_DotGramReportLines" />
 		</ReadLinesFromFile>
+		<ReadLinesFromFile File="%(_DotGramDetails.Identity)" Condition="'@(_DotGramDetails)' != ''">
+			<Output TaskParameter="Lines" ItemName="_DotGramDetailLines" />
+		</ReadLinesFromFile>
 		<Message Text="@(_DotGramReportLines->Replace('// ', ''), '%0A')" Importance="High"
 		         Condition="'@(_DotGramReportLines)' != ''" />
+		<Message Text="@(_DotGramDetailLines->Replace('// ', ''), '%0A')" Importance="Normal"
+		         Condition="'@(_DotGramDetailLines)' != ''" />
 	</Target>
 </Project>

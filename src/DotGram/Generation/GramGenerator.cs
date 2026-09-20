@@ -101,10 +101,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 			.WithTrackingName(AnsweredStage);
 
 		var reporting = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
-			options.GlobalOptions.TryGetValue("build_property.DotGramReportGeneration", out var enabled) &&
-			string.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase) &&
-			!(options.GlobalOptions.TryGetValue("build_property.DesignTimeBuild", out var designTime) &&
-				string.Equals(designTime, "true", StringComparison.OrdinalIgnoreCase)));
+			options.GlobalOptions.TryGetValue("build_property.DesignTimeBuild", out var designTime) &&
+			string.Equals(designTime, "true", StringComparison.OrdinalIgnoreCase)
+				? Reporting.None
+				: options.GlobalOptions.TryGetValue("build_property.DotGramReportGeneration", out var asked)
+					? Asked(asked)
+					: Reporting.None);
 
 		context.RegisterSourceOutput(
 			answered.Combine(reporting)
@@ -155,7 +157,24 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 	}
 
-	static Parser CompileSafely(Grammar grammar, bool reporting)
+	/// <summary>
+	/// What `DotGramReportGeneration` asked for, with the two older spellings it had.
+	/// </summary>
+	/// <remarks>
+	/// Anything else is <see cref="Reporting.None"/>, which is also what an unset property means.
+	/// A generator has no good way to complain about a build property — it would have to raise a
+	/// diagnostic in every compilation that set it, which is the noise this level exists to
+	/// remove — so an unrecognized word is silence rather than a message.
+	/// </remarks>
+	static Reporting Asked(string asked) =>
+		asked.Trim().ToLowerInvariant() switch
+		{
+			"full" or "true" => Reporting.Full,
+			"summary"        => Reporting.Summary,
+			_                => Reporting.None,
+		};
+
+	static Parser CompileSafely(Grammar grammar, Reporting reporting)
 	{
 		try
 		{
@@ -195,6 +214,20 @@ public sealed class GramGenerator : IIncrementalGenerator
 		};
 	}
 
+	/// <summary>How much a build asked the generator to say about what it did.</summary>
+	/// <remarks>
+	/// Three levels and not a switch, because the two answers people want are different: a build
+	/// wants to know the generator ran, and a measurement wants everything it decided. The middle
+	/// one is what a repository leaves on, and the last costs analysis — the carriers are worked
+	/// out for the report and for nothing else.
+	/// </remarks>
+	enum Reporting
+	{
+		None,
+		Summary,
+		Full,
+	}
+
 	/// <summary>
 	/// Everything one host produced, as values: the file to add and the diagnostics to
 	/// report.
@@ -205,7 +238,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// as is not this file's business to depend on. The pieces are strings and numbers,
 	/// which compare the way arithmetic does.
 	/// </remarks>
-	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null)
+	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null)
 	{
 		public void Deliver(SourceProductionContext context)
 		{
@@ -229,6 +262,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 					if (Summary is not null)
 						context.AddSource(HintName + ".DotGramReport.g.cs", "// " + Summary + "\n");
+
+					// A file of its own rather than more lines in that one, so that the build can
+					// print the two at two importances without reading what it prints.
+					if (Detail is not null)
+						context.AddSource(HintName + ".DotGramReportDetail.g.cs", "// " + Detail + "\n");
 				}
 				catch (Exception exception) when (Recoverable(exception))
 				{
@@ -427,7 +465,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, bool reporting)
+	static Parser Compile(Grammar grammar, Reporting reporting)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(null, null, grammar.Reports);
@@ -447,7 +485,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// well went silently missing until it was looked for.
 		reports.AddRange(grammar.Reports.Items);
 
-		var timer = reporting ? Stopwatch.StartNew() : null;
+		var timer = reporting != Reporting.None ? Stopwatch.StartNew() : null;
 		var result = GramCompiler.Compile(text, new GramCompilerOptions
 		{
 			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
@@ -492,7 +530,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
 
 			// The report asked for is the carriers' too: what GRAM5012 decided, rule by rule.
-			ReportCarriers = reporting,
+			// Only the full one — this is analysis nobody pays for who is not reading it.
+			ReportCarriers = reporting == Reporting.Full,
 		});
 
 		timer?.Stop();
@@ -505,13 +544,21 @@ public sealed class GramGenerator : IIncrementalGenerator
 			result.Sources.Count > 0 ? result.Sources[0].Text  : null,
 			Values(reports),
 			new EquatableArray<GeneratedSource>([.. result.Sources.Skip(1)]),
+			// The one line a quiet build shows: the generator ran, on this host, and this is what
+			// came out of it. What it decided on the way — the mode, the options it was given,
+			// and the carrier of every machine — is the detail beside it, which only a build that
+			// asked for the full report has at all.
 			timer is not null && result.Sources.Count > 0
 				? string.Format(CultureInfo.InvariantCulture,
-					"DotGram: {0}, {1} normalized rules, {2} bytes UTF-8 C#, {3:F2} ms generation, " +
-					"mode={4}, options: Lexical={5}, " +
-					"Carrier={6}, BufferedInput={7}, BufferedBytes={8}, SpanCaptures={9}",
+					"DotGram: {0}, {1} normalized rules, {2} bytes UTF-8 C#, {3:F2} ms generation",
 					host.HintName, result.NormalizedRuleCount,
-					Encoding.UTF8.GetByteCount(result.Sources[0].Text), timer.Elapsed.TotalMilliseconds,
+					Encoding.UTF8.GetByteCount(result.Sources[0].Text), timer.Elapsed.TotalMilliseconds)
+				: null,
+			reporting == Reporting.Full && result.Sources.Count > 0
+				? string.Format(CultureInfo.InvariantCulture,
+					"DotGram: {0}, mode={1}, options: Lexical={2}, " +
+					"Carrier={3}, BufferedInput={4}, BufferedBytes={5}, SpanCaptures={6}",
+					host.HintName,
 					result.UsesLexical ? "lexical" : "characters", host.Lexical,
 					(CarrierKind)host.Carrier,
 					host.BufferedInput, host.BufferedBytes, host.SpanCaptures) +

@@ -13,7 +13,11 @@
 		     fails on the machine that wrote the code rather than on the server. -->
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
-		<DotGramReportGeneration>true</DotGramReportGeneration>
+		<!-- `summary`: one line a parser, saying the generator ran and what came out. The rest —
+		     the mode, the options, the carrier of every machine — is `full`, which the runs that
+		     read it ask for: `-p:DotGramReportGeneration=full`, as the carriers run needs. An
+		     ordinary build here is not a measurement and should not read like one. -->
+		<DotGramReportGeneration>summary</DotGramReportGeneration>
 	</PropertyGroup>
 
 	<PropertyGroup>

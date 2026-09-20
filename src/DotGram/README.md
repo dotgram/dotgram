@@ -39,27 +39,34 @@ Enable a per-parser build message in the consuming project:
 
 ```xml
 <PropertyGroup>
-  <DotGramReportGeneration>true</DotGramReportGeneration>
+  <DotGramReportGeneration>summary</DotGramReportGeneration>
 </PropertyGroup>
 ```
 
-Or run `dotnet build -p:DotGramReportGeneration=true`. The NuGet package imports
+Or run `dotnet build -p:DotGramReportGeneration=summary`. The NuGet package imports
 its MSBuild target automatically; direct analyzer references need to import
-`build/DotGram.targets` from the source project. This repository does that centrally.
+`build/DotGram.targets` from the source project.
 
-Each message includes the host (and named variant), normalized rule count,
-generated C# size in UTF-8 bytes, generation time, actual lexical/character mode,
-and requested strategy options. Rule counts include normalized specializations
-and library rules. Individual publications may fall back from the requested
-options; their existing diagnostics remain authoritative.
+The property takes three values. `none` is the default and says nothing at all.
+`summary` prints one line per parser, at an importance a minimal build shows: the host
+(and named variant), the normalized rule count, the generated C# size in UTF-8 bytes,
+and the generation time. `full` prints, beside each of those, the actual
+lexical/character mode, the requested strategy options and the carrier of every machine
+in the grammar — at an importance `-v:normal` and above show, so a quiet build stays
+quiet whichever is set. `true` and `false` are the older spellings of `full` and `none`.
+
+Rule counts include normalized specializations and library rules. Individual
+publications may fall back from the requested options; their existing diagnostics remain
+authoritative.
 
 Time measures grammar compilation and emission, excluding C# compilation, host
 discovery and symbol queries. A cached generator result retains its original timing.
 A build that skips compilation prints no summary. Design-time builds do not report.
 
-Reporting is off by default. It enables compiler-generated files on disk and adds
-a comment-only report file containing timing; keep it off for reproducible artifacts.
-The option does not change parser behavior or turn messages into warnings.
+Anything above `none` enables compiler-generated files on disk and adds a comment-only
+report file; `full` also costs the analysis that decides the carriers, which is worked
+out for the report and for nothing else. Keep the default for reproducible artifacts.
+No value changes parser behavior or turns messages into warnings.
 
 ## One grammar, three parsers
 
