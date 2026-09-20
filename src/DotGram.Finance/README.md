@@ -328,8 +328,38 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 
 ## Custom fields
 
-Unknown tags are read as delimiter-terminated text unless their binary length/data
-pair is configured through `FixFieldOptions` as described above.
+A tag the package does not define is read as delimiter-terminated text, unless its binary
+length/data pair is declared through `FixFieldOptions` as described above.
+
+What is built for such a tag is a `FixField.Custom` carrying the octets. To build your own field
+instead, derive from `FixCustomFields` and pass it to `FixFieldOptions`:
+
+```csharp
+sealed class Venue : FixCustomFields
+{
+    public override FixField Text(int tag, ReadOnlySpan<char> value) =>
+        tag == 25005 ? new Status(value.ToString()) : Spare(tag, value);
+
+    public override FixField Text(int tag, ReadOnlySpan<byte> value) =>
+        tag == 25005 ? new Status(Encoding.Latin1.GetString(value)) : Spare(tag, value);
+
+    public override FixField Binary(int tag, ReadOnlyMemory<byte> value) => Spare(tag, value);
+}
+
+var options = new FixFieldOptions(pairs, new Venue());
+```
+
+Three methods, because a field is built from the characters of a text field, from its bytes, and
+from the payload of a length/data pair. Answer one and not the others and the same message read
+two ways gives two different answers, so they are abstract rather than virtual. `Spare` builds
+what the package builds, for a tag your own switch does not recognise either. A value arrives as a
+span and may not be kept: copy what you need before returning.
+
+**This builds field objects and nothing else.** The tag stays unknown to the message schema, which
+is FIX 4.4's, so `FixMessages` in `FixParseMode.Strict` still refuses a message carrying it — the
+field being one of yours changes nothing about that. The message layer builds the length half of a
+declared pair through the same seam, so that both halves of your pair are yours; that too is
+construction and not schema knowledge.
 
 ## Definition maintenance
 
