@@ -21,24 +21,42 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class TokenizationCacheTests
 {
-	/// <summary>Ten words, and the same text as many characters as <see cref="Deeper"/>'s last.</summary>
+	/// <summary>Ten words, and no fewer characters than the last text the factory reads.</summary>
 	const string Outer = "aaa bbb ccc ddd eee fff ggg hhh iii jjj";
+
+	/// <summary>
+	/// The last of the texts read inside: no more characters than <see cref="Outer"/>, and
+	/// twice as many words.
+	/// </summary>
+	/// <remarks>
+	/// Both halves matter, and the test is only a test while they hold. The characters, because
+	/// a cutting asks for room from the count of characters: a text long enough resizes the arrays,
+	/// which makes new ones and leaves the reading that was pushed out holding the old — nothing
+	/// is written over and the defect does not show. The words, because what is written over has
+	/// to reach past the tokens the outer reading has already read.
+	/// </remarks>
+	const string Last = "z z z z z z z z z z z z z z z z z z z";
 
 	[Theory]
 	[InlineData(CarrierKind.Tape)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_reading_inside_another_does_not_take_the_cutting_it_is_reading(CarrierKind carrier)
 	{
+		// What the remark on `Last` says, held here so that a change to either text is caught
+		// as a broken test rather than quietly passing one.
+		Assert.True(Last.Length <= Outer.Length);
+		Assert.True(Last.Split(' ').Length > Outer.Split(' ').Length);
+
 		// Three readings inside the outer one: the first two take the two slots, and the third
 		// pushes the outer reading's own cutting out of the one it took.
-		const string Deeper = """
+		var deeper = $$"""
 			public static bool Nested;
 
 			public static readonly string[] Inner =
 			{
 				"bb",
 				"cc",
-				"z z z z z z z z z z z z z z z z z z z",
+				"{{Last}}",
 			};
 
 			public static string Read(string token)
@@ -83,7 +101,7 @@ public sealed class TokenizationCacheTests
 		// The grammar is read over kinds, so there is a cutting to keep in the first place.
 		Assert.Contains("Tokenized_DotGram", source);
 
-		var assembly = EmittedCode.Compile(source, declarationMembers: Deeper);
+		var assembly = EmittedCode.Compile(source, declarationMembers: deeper);
 		var answer   = EmittedCode.Answered(assembly, "Grammar", "TryParseStart", Outer, 0);
 
 		Assert.True(answer.Read);
