@@ -5305,3 +5305,23 @@ not picked.
 
 The rule about confirming with the same input is taken into the follow-up work: the four sealed
 places will be driven with several shapes of input rather than the one that found them.
+
+**And the criterion reshapes the diagnostic from "truthful but tiresome" to "plausibly silent".** Of
+the ten places in one package, six fall to things the generator already knows: four to the lexical
+split — a whole lexeme is read by an automaton that has no way back — and two to analyses already
+carried, a repetition of a single character having nothing to cut and alternatives that cannot read
+the same text being first-set disjointness. False positives had been treated as the risk that might
+sink the item, with a warning honest enough to live with noise as the plan. If most safe places are
+filterable by what is already computed, **a warning that is silent where it should be is a
+different proposition from one that is right but tiresome.**
+
+So the design asks four questions in order — is the form here, who reads it, is there anything to
+cut, can the alternatives read the same text — and only what survives all four is named; and what
+is named is still "here is the form, drive it", because twice out of twice a verdict from reading
+would have been wrong.
+
+**On suppression, a position worth recording as a standard rather than as a preference:** the
+analysis should see the automaton itself rather than give the author something to say back. An
+author annotating a safe place is paying for our imprecision, and the reason for one such place is
+already written in a grammar — if the diagnostic fired there anyway we would have turned a comment
+into an obligation. An author-facing escape is the fallback that means we failed, not the plan.
