@@ -4101,3 +4101,19 @@ the same gap D41 is already fixing for the line-moving code, one size up. Two in
 evening make it a question rather than two fixes: which emission paths does the snapshot set never
 exercise? That audit is ordered, because a sample whose coverage nobody knows is not a sample of
 anything.
+
+**D41's own first item, corrected by its author, and the correction inverts its priority.** "A
+shape, not a constant" was wrong: the streaming window's `Extend` counts the newlines it drops, so
+asking for a line walks the live window and not the input, and the quadratic that wording described
+was found and fixed before — a scaling test holds it, linear from a string and from a reader both,
+with a remark naming the old defect. What is wrong is one line above: the *counting*, a
+per-character loop over everything the window drops, emitted with no gate although the two fields
+it fills are read only by the line and column questions. The buffered window decides both halves
+the other way and says so in its own comment — the span search on release, and no counting at all
+where nothing locates. So the same two classes disagree twice about the same two decisions.
+
+**So what was filed as a size defect is a time defect first**: one branch for every character of
+every streaming parse that never asks a question. That is the part to do first, and the number is a
+streaming parse that asks nothing, with the counting and without — every streaming row of the stand
+shows it. The line-moving work stands behind it, and the snapshot that covers it stands with
+whichever lands first.
