@@ -3233,3 +3233,60 @@ is not out, so it costs nothing today and costs a deprecated synonym and a major
 seam lets a consumer build their own field objects; the strict mode still rejects such a tag,
 because the schema is silent about its type. That is the next question, it rests on a dictionary
 read when the parser is generated, and it stays out of this change.
+
+## D31. The kept tokenization: a cure, and the cause it cures, 2026-09-20
+
+Two proposals now stand against the same symptom, and they are not rivals: one cures it and the
+other removes what causes it. Both are Igor's, because both change what a consumer sees.
+
+**The symptom.** Over a grammar cut into tokens, the positional form tokenizes the whole input on
+every call, so a loop of readings over one text costs its square. Measured and ours:
+`ScriptScalingTests` has 10, 100 and 400 statements at 56 µs, 1.9 ms and 30.3 ms, an exponent of
+1.99 against about 2.2 ms if it were linear.
+
+**The cure that landed** is a kept tokenization: the whole text is cut once and kept for the next
+reading that arrives with the same string. Two slots per thread, the text held weakly and the
+tokens strongly, a slot taken by the next text. It works, and it is where the eviction defect
+lived — a live reading's tokens went back to the pool and the next tokenization wrote over them.
+
+**expr's proposal** gives the kept tokenization a home the host holds: `TransactSqlParser.Over(text)`,
+and the tokens belong to that object. Slots, eviction, weak references and the thread field all go,
+and so does the class of defect. It costs a public type on every parser, for ever.
+
+**critic's, written as an objection to it, and it names the cause.** The whole text is cut because
+of what the non-windowed positional form *means*. I read the emitter rather than take it: at
+`CSharpEmitter.cs:1594` and `:1690` the emitted path cuts the input and then refuses on
+`tokens.Stopped >= 0`, where `Stopped` is wherever the scan met a character that begins no token,
+anywhere in the text. So a form that "need not reach the end" is refused by what it does not read:
+one bad character in the last line of a script makes the first statement unreadable. The window
+form is deliberately the other way, and the emitter says so in a comment beside it — inside a
+window, a character no token begins with is where the tokens end. Give the non-windowed form that
+same meaning and it can cut from `at` on demand, as far as the reading goes: a loop is then linear
+because each call cuts what it consumes, and there is nothing to keep, nothing to evict and no new
+public type. The token search goes too, since a cut beginning at `at` begins at the token asked for.
+
+**What the two proposals share, which neither letter said.** The on-demand cutting is not new
+machinery to invent: it is `BufferedKinds`, the third scheme in expr's own positional-forms design,
+which that document already calls "the answer if this ever has to be exact" and parks because the
+kept tokenization was cheaper. critic's contribution is not the scheme, it is the reason the scheme
+was not needed: the refusal semantics. Removing the refusal makes the parked scheme the whole
+answer. So the question to Igor is not "which of two mechanisms" but "do we change what the
+positional form refuses, and then build the resumable tokenizer, or do we keep the meaning and pay
+for it with a public type".
+
+**Conditions, whichever way it goes.** `Over` can exist only where the machine is over kinds and
+the input is a string, so it is absent from byte and memory forms — and absent with the sting
+drawn, since a public shape following an internal analysis means adding a `find` to a grammar
+deletes a public type from a consumer's API. Present and inert is worse: it re-introduces the
+square silently for the callers who believe they have avoided it. And the gate stays where the
+danger is: `ScriptScalingTests` asserts an exponent of at most 1.1 over the *static* positional
+calls, and if `Over` becomes the cured path that test must not be rewritten to `Over` and must not
+be deleted. It stays on the static calls, a second one is added for `Over`, and if the static calls
+are then knowingly quadratic that is written into §6.3 where the forms are described, rather than
+found by whoever loops first.
+
+**What is not known, and is said rather than dressed up.** The price of `Over` in practice cannot
+be given: every call of a positional form in this tree is ours, in the tests and the stand's script
+rows. No package, no example and no Web, SQL or Finance test calls one. So "a naive loop goes
+quadratic" is a claim about how a stranger writes code, not a measurement, and critic declined to
+present it as one.
