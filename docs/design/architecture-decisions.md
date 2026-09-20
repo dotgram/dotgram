@@ -4794,3 +4794,33 @@ the sentence ISO publishes it under; Microsoft's syntax stays under its own lice
 attribution and the changes named, which is what that licence asks. The question was raised because
 a public repository redistributes where that sentence speaks of use; it is weighed and answered.
 Nothing follows for the packages, which never carried either file.
+
+## D52. What the FIX message layer's bytes are, and the row that must come first, 2026-09-20
+
+finance-24's account (`docs/design/fix-message-bytes-2026-09-20.md`, `a2aba2c6`). The nodes are 63%
+of everything and are allocated in three places that are two mechanisms: one flat array of every
+node, and a slice cut *per region* — header, body, trailer, and one for every entry of every group
+— out of a list the reader grows from nothing on each message. So every node exists at least twice
+and the list it is copied from is a third place. A node is two references and five integers, forty
+bytes, so seventeen with a header is 704, which is exactly the measured figure for the flat array.
+
+**The doubling was measured, not inferred from the type's name.** A ladder by field count puts the
+cost per field at its lowest at 16, 32 and 64 — where a doubling list has just filled exactly — and
+at its worst at 17, the step from sixteen fields to seventeen costing 1,456 bytes, which is a
+thirty-two slot array with its header.
+
+**The frame holds and the account applies it.** What is necessary is the per-region arrays: handing
+out header, body and trailer as separate sets is what a message *is*, not scaffolding for building
+one. What is not necessary is the intermediate flat array and the list. And the constraint any
+change must answer before it starts: a region's nodes stop being a contiguous run of the flat array
+as soon as there is a group, because entries are cut out and hung on their count — which is what
+the list exists for. A message without groups could be sliced; FIX messages have groups.
+
+**Ruled, and the third question is the one that governs.** No change lands on this document alone:
+**the message layer has no row on the stand at all**, so we would be repairing something whose cost
+we cannot state — the same mistake refused this morning in the field-level comparison. The row is
+ordered first. Then the intermediate flat array may be designed away, writing straight into the
+list the regions are cut from. And the reader's list living per thread rather than per message is
+**not a separate question**: it is the retention boundary again, it holds references to fields, and
+it joins the mechanism performance-ff is writing — a third user of it, under the same rule and
+cleared at the same idle transition — rather than growing a policy of its own.
