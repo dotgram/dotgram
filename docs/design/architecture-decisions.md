@@ -5874,3 +5874,34 @@ binary by an edit that silently did not take, and it was caught because **the fa
 were the ones that had been tampered with rather than the explosive ones** — the shape of the
 failure did not match the experiment. A wrong answer that fails in the wrong *place* is a cheaper
 warning than one that fails plausibly.
+
+## D66. The retention defect was corruption, not a leak, and the commit message understates it
+
+Run at the parent of the retention work and at its head, because fifteen failures had appeared in
+classes unrelated to clearing: **the parent fails 453 times over 190 distinct tests; the head fails
+13 over 2, and nothing fails at the head that passed at the parent.** So the two commits introduced
+nothing and removed a hundred and eighty-eight distinct tests' worth of breakage.
+
+**And the defect is worse than it was reported.** The early return skips more than the clearing: it
+also skips resetting the cursor, so an oversized store went to its slot with its tables full *and*
+its position still at the end of the last parse, and the next rental received it in that state.
+That is not a store that holds memory too long; **it is a store the next parse reads as though it
+already held a document**. A hundred and ninety tests across unrelated suites is what stale reused
+state looks like.
+
+**Why it was reported as a leak: the probe answered the question it was asked.** A reachability
+check said the values were no longer reachable, which was true, and said nothing about a cursor
+nobody had thought to ask about. The full suite found the rest an hour later. A narrow instrument
+confirms a narrow claim, and the confirmation reads as if it covered the area.
+
+**The record is corrected in the diary rather than by amending the commit**, which is right: the
+sha is cited in three sessions' messages, and rewriting it to fix a sentence trades a wrong
+description for a wrong identifier. The diary is where what we believed at the time belongs, with
+both shas and the dates.
+
+**And one general note worth keeping, from the test still failing at the head.** It asserts the
+*old* policy — that an oversized store is not retained — which the deliberate change inverted, and
+it fails at the parent too. **A test that contradicts a decided design change looks exactly like a
+test that caught a regression, and the only thing telling them apart is knowing which way the
+decision went.** So it is rewritten to the policy chosen rather than deleted, and the lesson is
+that the commit which inverts a test's premise should carry the test with it.
