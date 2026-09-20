@@ -24388,3 +24388,23 @@ first in each round, took all of it.
 What the episode is worth keeping for: the emitted file's difference was read as an explanation. It
 was a fact — the tables are renumbered, the bytes are the same — and facts about what changed do not
 become causes until something is measured twice.
+
+## The store's return costs the same sixteenth in both grammars
+
+Two measurements of one property, taken apart and agreeing. On SQL:2023's select20, expr timed a
+pair of builds — one clearing the value store on return, one not — and got 1,148 ns of 18,106, or
+**6.3%**. On T-SQL's corpus (benchmarks/results/tsql-anatomy-2026-09-20), the profile's own time for
+`DirectValues.Return`, `SpanHelpers.ClearWithReferences` and `ValueTable.Clear` together is 6.6% of
+the sum, which scales to about **205 ns of the 3,086** a statement costs.
+
+Different grammars, different workloads, different instruments — a paired build against a share of
+a profile — so the agreement says what neither says alone: the price of handing the store back is a
+property of the store, not of what is being read.
+
+Two things the second number is not. It is a share of a profile whose unresolved bucket is 37.6%
+(`[Native or optimized code]`, the frames dotTrace could not name, which since the arms became
+methods of their own is where much of the materializer now sits), so it is a share of a whole that
+includes what was not named; if the bucket holds clearing of its own, the true figure is higher, not
+lower. And it is not the constant this corpus was profiled for: what a walk costs and what a record
+costs, T-SQL's own rather than carried from SQL:2023, cannot be read while a third of the profile
+has no names.
