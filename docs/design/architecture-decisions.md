@@ -3181,3 +3181,14 @@ diagnosing a "divergence" that is a documented difference.
 The correction is finance-24's, made by reading the source rather than taking the condition it was
 given. The error travelled through me: I wrote it into D26 from Q9's summary without opening the
 file, on a question where the whole condition rests on what that file does.
+
+**A consequence of that reading which is not about numbers at all** (critic, checked
+independently before building on it): QuickFIX/n's dictionary has no data-field set, no
+`IsDataField` and no mapping from a length tag to its data tag. So the capability D25's first
+wording would have taken from us — a consumer declaring its own length/data pairs — is one the
+most used .NET FIX engine does not have in any form, for the standard fields let alone a
+counterparty's. `FixFieldOptions` is therefore not an untidiness that a stricter rule would have
+swept away; it is the only way anyone gets that reading on this platform. Which is the evidence
+for Igor's second wording being the right way round, and for D27's "extends": the thing being
+extended is the only one of its kind, and losing the standard sixteen by omission would have been
+losing them from the only place they exist.
