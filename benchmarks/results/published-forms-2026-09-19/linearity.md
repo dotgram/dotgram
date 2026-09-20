@@ -1,4 +1,4 @@
-| parser | form | unit | sizes | чs at each size | exponents | KB a call | gen2 a call at the largest | |
+| parser | form | unit | sizes | µs at each size | exponents | KB a call | gen2 a call at the largest | |
 | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
 | stock count | generated text | lines | 100 / 1,000 / 10,000 | 13.7 / 62.7 / 293.5 | 0.66 / 0.67 | 11 / 109 / 1,086 | 0.00 |  |
 | stock count | hand text | lines | 100 / 1,000 / 10,000 | 15.5 / 36.4 / 2002.2 | 0.37 / 1.74 | 20 / 193 / 2,042 | 0.10 | GC |
