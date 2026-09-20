@@ -24365,3 +24365,26 @@ either way.
 The same shape was looked for elsewhere: `TSqlSubquery` has one alternative, and on `SEND`'s four
 shapes (`(1)`, `(1) + 2`, `1 + 2`, `(1), (2)`) the parser and the server already agree. That is what
 was checked, not a proof that no other rule has it.
+
+## Renumbering the tables moves nothing, and the 6-11% was a disturbance
+
+A pair of `InlineReturn` (window 63) showed three T-SQL rows of a thousand elements falling 6.2%,
+8.4% and 11.2%, none of the five runs positive. The rows do not go through the rule; the only
+difference in the emitted file outside it was that one new bit table took a number and pushed every
+later table's number up by one, with the same bytes in each. So it was called placement, and the
+reading was wrong.
+
+Two runs settle it. The repeat of the same pair on the same two sides (window 71) is flat:
+columns1000 +0.2%, conditions1000 +1.8%, rows1000 +0.8%. And a commit made for the question alone —
+one bit table of a single byte that nothing reads, ahead of the others, so every number moves by one
+and the code around them is line for line the same (275,596 lines each side) — moves nothing either
+(window 72): columns1000 -1.1%, conditions1000 +2.8%, rows1000 -0.9%, every range crossing zero.
+
+So a commit that renumbers tables is not shown to carry an effect nobody made, and the fall in
+window 63 was the stand's own build running on the same cores inside that window — which is why the
+rows that allocate hundreds of kilobytes a call were the ones that felt it, and why the base, run
+first in each round, took all of it.
+
+What the episode is worth keeping for: the emitted file's difference was read as an explanation. It
+was a fact — the tables are renumbered, the bytes are the same — and facts about what changed do not
+become causes until something is measured twice.
