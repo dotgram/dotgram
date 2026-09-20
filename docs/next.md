@@ -24571,6 +24571,14 @@ the bare key now goes first, and the top of the clause has a rule of its own tha
 list at all. All seventeen agree afterwards, the writer prints each back unchanged, the corpus
 round-trip is 7,716 of 7,716 either side, and the tests are 14,780 with none failing.
 
+One of the seventeen has no oracle but the server. Held against ScriptDom 180 one statement at a
+time, twelve of the thirteen readable forms come back as the same statement — and `GROUP BY CUBE
+((c1 + c2) * 2)` is refused by ScriptDom altogether, though SQL Server reads it. So the corpus
+round trip can say nothing about that form, and the test is the only place it is held. It is the
+mirror of `INNER LOCAL MERGE JOIN`, which ScriptDom reads and the server refuses: two parsers
+disagree with the server in both directions, which is the whole reason three sources are compared
+and not two.
+
 Worth keeping from the method rather than the defect. The desk scan is cheap enough to run again
 whenever the shape is found somewhere new, and its answer is a short list a person can read. The
 first version of it was wrong in a way that would have wasted the window — sixty-nine candidates,

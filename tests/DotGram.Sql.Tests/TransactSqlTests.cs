@@ -14305,6 +14305,9 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT c1 FROM t1 GROUP BY c1, (c2 + c3) * 2, c4")]
 	[InlineData("SELECT c1 FROM t1 GROUP BY (c1 + c2) * 2, (c3)")]
 	[InlineData("SELECT c1 FROM t1 GROUP BY (((c1)))")]
+	// The last one is read by SQL Server and refused by ScriptDom 180, so the corpus round trip
+	// can say nothing about it and this is the only place it is held: an expression is a grouping
+	// key inside CUBE as much as outside it.
 	[InlineData("SELECT c1 FROM t1 GROUP BY CUBE ((c1 + c2) * 2)")]
 	public void The_published_clauses_read(string input)
 	{
