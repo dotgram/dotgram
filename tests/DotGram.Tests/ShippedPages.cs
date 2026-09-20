@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 using Microsoft.CodeAnalysis;
@@ -137,20 +138,68 @@ static class ShippedPages
 			: string.Join("\n", complaints.Select(static one => one.ToString()));
 	}
 
-	/// <summary>Every assembly this process has loaded, which is what a block of a page may name.</summary>
+	/// <summary>Everything this test assembly names, which is what a block of a page may name.</summary>
 	/// <remarks>
+	/// <para>
 	/// Its own rather than the emitter harness's, which answers the same question for another
-	/// reason: this file is linked into DotGram.Finance.Tests, whose process loads other assemblies
-	/// and which does not carry that harness. A shared answer here would have tied two test projects
-	/// together to save four lines.
+	/// reason: this file is linked into other packages' test projects, whose processes load other
+	/// assemblies and which do not carry that harness. A shared answer here would have tied two test
+	/// projects together to save four lines.
+	/// </para>
+	/// <para>
+	/// **What this must not be is "every assembly the process has loaded".** It was that, and it
+	/// made the answer depend on which test ran first: a reference assembly is loaded lazily, at its
+	/// first use, so whether the assembly a page names was in the list depended on whether some
+	/// earlier test in the same process had happened to touch it. The check then answered a question
+	/// about load order rather than about the page, and passed by luck — which is a failure waiting
+	/// for the day someone else's change reorders the run, and it would be looked for in their
+	/// change.
+	/// </para>
+	/// <para>
+	/// So the set is named rather than gathered: everything the test assembly references,
+	/// transitively, is loaded first, and the list is taken after that. What a page may name is what
+	/// its own test project was built against, which is the same set on every run and in every
+	/// order.
+	/// </para>
 	/// </remarks>
-	static ImmutableArray<MetadataReference> References { get; } =
-	[
-		.. AppDomain.CurrentDomain
-			.GetAssemblies()
-			.Where(static assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
-			.Select(static assembly => (MetadataReference)MetadataReference.CreateFromFile(assembly.Location)),
-	];
+	static ImmutableArray<MetadataReference> References { get; } = Named();
+
+	static ImmutableArray<MetadataReference> Named()
+	{
+		var seen  = new HashSet<string>(StringComparer.Ordinal);
+		var queue = new Queue<Assembly>();
+
+		queue.Enqueue(typeof(ShippedPages).Assembly);
+
+		while (queue.Count > 0)
+		{
+			var one = queue.Dequeue();
+
+			if (!seen.Add(one.FullName ?? one.ToString()))
+				continue;
+
+			foreach (var named in one.GetReferencedAssemblies())
+			{
+				try
+				{
+					queue.Enqueue(Assembly.Load(named));
+				}
+				catch (Exception)
+				{
+					// A reference the runtime cannot resolve is one no page can name either, so it
+					// is not this check's business to fail over it.
+				}
+			}
+		}
+
+		return
+		[
+			.. AppDomain.CurrentDomain
+				.GetAssemblies()
+				.Where(static assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
+				.Select(static assembly => (MetadataReference)MetadataReference.CreateFromFile(assembly.Location)),
+		];
+	}
 
 	/// <summary>The grammar a block holds inside its <c>[Gram(…)]</c>, or null where it holds none.</summary>
 	/// <remarks>
