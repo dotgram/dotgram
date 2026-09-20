@@ -337,12 +337,24 @@ public sealed partial class BufferedInputTests
 	/// would have accepted and the buffered reading does not.
 	/// </para>
 	/// <para>
-	/// What is known about it: it is not the refill, because it is the same at every split; and it
-	/// is not the end of the input, because a refusal with input still to come says the same. What
-	/// is not known is why the turn's expectation is not recorded over a buffer. Written down as it
-	/// stands rather than smoothed over, because the check that both halves of a platform branch
-	/// answer alike is the check this repository leans on (D40), and a differential that quietly
-	/// accepted a shorter message would be that check with a hole in it.
+	/// Why. A repetition whose turn begins with a known character is read through a door: the
+	/// character is looked at, and where it cannot begin a turn the turn is not read at all. A
+	/// turn that was not read says nothing about what would have ended it, so the door is put
+	/// under <c>failure.Quiet</c> — a quiet reading takes it, a recording one reads the turn and
+	/// records what it wanted. That condition is emitted only where the machine HAS a quiet
+	/// reading; a buffered or streamed machine has none, because it cannot read its input twice,
+	/// so its door stands unconditionally and the turn is never read.
+	/// </para>
+	/// <para>
+	/// It is not fixed, and the reason is worth as much as the cause. Taking the door away where
+	/// every reading records does not make the two agree: the string rendering of the same
+	/// grammar also takes an unconditional door wherever its own analysis says the rule records
+	/// nothing — read as a scan, or reached by the seam — and those flags differ between the two
+	/// machines of one grammar by construction. Built and measured: the difference then appears
+	/// in the other direction, the buffered reading naming more than the string one. So the two
+	/// forms name sound sets of different width, neither covering the other, which is what
+	/// docs/syntax.md §7.5 now says. The outcome, the position and the value are held equal
+	/// above; only this is not.
 	/// </para>
 	/// </remarks>
 	[Fact]

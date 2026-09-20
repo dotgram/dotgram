@@ -2509,6 +2509,14 @@ from the one reading a finished document. Both are exact: the furthest position 
 parse reached is either the end of the input, or a place where something wanted more
 characters than remained.
 
+**What `Error` names is sound, not complete.** An alternative it names would have been
+accepted where it says; the set of them may be narrower in one form of the input than in
+another. A reading over a buffer or a stream cannot read its input twice, so it records
+while it reads, and a repetition whose next turn cannot begin here is left untried in one
+form and tried in another — a turn not tried says nothing about what would have ended it.
+The outcome, the position and the value do not vary this way: those are the same in every
+form, and what a host branches on.
+
 **A rule's own `on fail` (§4) is what `Error` says, where that rule is the refusal.** The
 rule has to have been entered where the parse stopped and read nothing: a rule that read
 part of what it wanted and failed further in is not what went wrong here, and what it
