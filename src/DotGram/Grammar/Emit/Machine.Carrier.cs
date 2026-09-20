@@ -695,6 +695,17 @@ sealed partial class Machine
 		/// <summary>A record built into a value where the reader is, for a guard that asks (§3.6); nothing where it already is one.</summary>
 		public abstract string Materialize(string record, string sinceMark);
 
+		/// <summary>How many records past the first one call may build, for a guard that names several.</summary>
+		/// <remarks>
+		/// Zero where a carrier builds one at a time, which is every carrier but the tape: the reader
+		/// then writes what it wrote before, a call to a record.
+		/// </remarks>
+		public virtual int MergedRoots => 0;
+
+		/// <summary>One call that builds all of them, where <see cref="MergedRoots"/> allows it.</summary>
+		public virtual string Materialize(IReadOnlyList<string> records, string sinceMark) =>
+			Materialize(records[0], sinceMark);
+
 		/// <summary>The value a record holds, as a guard sees it.</summary>
 		public abstract string ValueOf(RuleSymbol rule, string record);
 
@@ -932,6 +943,19 @@ sealed partial class Machine
 		public override string Materialize(string record, string sinceMark) =>
 			$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
 			$"{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});";
+
+		/// <summary>A guard naming several values builds them in one walk, not one walk each.</summary>
+		/// <remarks>
+		/// The walk lists the records since the rule’s mark, marks what the roots reach and builds
+		/// front to back; done once for the union of the roots, it lists once instead of once a value
+		/// (docs/design/one-walk-per-guard-2026-09-20.md).
+		/// </remarks>
+		public override int MergedRoots => machine.MergedRoots;
+
+		public override string Materialize(IReadOnlyList<string> records, string sinceMark) =>
+			$"{machine.DirectMaterializer}(ways, text, values, {records[0]}, {sinceMark}, {sinceMark}R" +
+			$"{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument}" +
+			string.Concat(records.Skip(1).Select((one, at) => $", also{at + 1}: {one}")) + ");";
 
 		/// <summary>From the tables, or for an extent the record itself.</summary>
 		public override string ValueOf(RuleSymbol rule, string record) =>

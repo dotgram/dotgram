@@ -4034,6 +4034,35 @@ sealed partial class Machine
 				arguments.Add("context");
 			}
 
+			// A guard that names several built values asks for all of them in one walk where the
+			// carrier can (Carrier.MergedRoots): the records are taken first, one call builds the union
+			// of what they reach, and the values are read after it. Where the carrier builds one at a
+			// time this writes what it wrote before — a call to a record.
+			var waiting = new List<(RuleSymbol Rule, string At)>();
+			var reading = new List<string>();
+
+			// What is waiting is built, and then what was held back to be read after it.
+			void Ready()
+			{
+				var together = 1 + machine.Carrier.MergedRoots;
+
+				for (var at = 0; at < waiting.Count; at += together)
+				{
+					var these = waiting.Skip(at).Take(together).ToList();
+
+					code.Line(
+						$"if ({string.Join(" || ", these.Select(one => $"!({machine.Carrier.Absent(one.Rule, one.At)})"))}) " +
+						machine.Carrier.Materialize(these.Select(static one => one.At).ToList(), mark));
+				}
+
+				waiting.Clear();
+
+				foreach (var line in reading)
+					code.Line(line);
+
+				reading.Clear();
+			}
+
 			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
 			{
 				var handed = $"g{_guardLocals++}";
@@ -4046,6 +4075,8 @@ sealed partial class Machine
 
 				if (member.Rule is null)
 				{
+					Ready();
+
 					var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.IsOptional ? "null" : "string.Empty";
 					var cut     = machine.Cut($"{handed}From", $"{handed}To - {handed}From");
 
@@ -4082,19 +4113,23 @@ sealed partial class Machine
 					code.Line($"var {handed}At = {machine.Carrier.FirstRecord(slots, member.Rule!)};");
 
 					if (build.Length > 0)
-						code.Line($"if (!({machine.Carrier.Absent(member.Rule!, handed + "At")})) {string.Format(build, handed + "At")}");
+						waiting.Add((member.Rule!, handed + "At"));
 
-					code.Line(member.IsOptional
+					reading.Add(member.IsOptional
 						? $"{type}? {handed} = {machine.Carrier.Absent(member.Rule!, handed + "At")} ? default({type}?) : {ValueAt(member.Rule!, handed + "At")};"
 						: $"var {handed} = {ValueAt(member.Rule!, handed + "At")};");
 
 					continue;
 				}
 
+				Ready();
+
 				// Gathered turn by turn on the tape, and collected here the way the rule's end
 				// would collect them.
 				machine.Carrier.Gathered(code, Refs, slots, handed, type, build, member.Rule is null);
 			}
+
+			Ready();
 
 			if (selection is null)
 			{

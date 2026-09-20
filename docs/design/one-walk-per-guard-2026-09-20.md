@@ -1,4 +1,4 @@
-# One walk per guard, not one per value it names (2026-09-20)
+﻿# One walk per guard, not one per value it names (2026-09-20)
 
 For the architect. This replaces `guard-values-at-close-2026-09-19.md`, which its own numbers
 refused. It asks for nothing from §3.7: the same records are built, by the same factories, at the
@@ -75,6 +75,17 @@ emits a run today.
 Everything after the marking is unchanged: one listing, one reaching pass, one dispatch per record,
 the same `built` flags and the same watermark.
 
+**And the fast path survives the merge, which is what keeps it from ever being slower.** The fast
+path builds a record where it stands when it is the last one written and everything since the mark
+is built. Given several roots, the captures are read in order, so the last of them is the largest —
+and if the test passes for it, *the others are already built*, because the test says everything
+below it since the mark is. So the merged entry runs the same test on the last root and returns as
+it does today; only when it fails does one general pass replace several. The other early return —
+"the root is already built" — asks it of every root instead of one, which is a flag read each.
+
+That matters for SQL:2023 in particular, where 56% of asks take the fast path: a merge there saves a
+preamble and cannot cost a walk.
+
 ## 2.1 What order things are built in, which is the one thing to hold rather than assert
 
 A merged walk builds the union in log order. Two questions follow, and the answer is different for
@@ -116,6 +127,34 @@ An entry that takes a few roots rather than one. The number of them is a choice:
 most three on SQL:2023 and seven on T-SQL, and a variant taking four with the rest falling back to
 today's one-at-a-time covers everything measured. Emitted size is a signature and a marking loop,
 not anything per rule.
+
+## 4.1 Written, and what it came to
+
+Built on 2026-09-20. The walk takes three further records beside its root, and the reader writes
+one call where it wrote a run. A machine no guard of which names two built values emits none of
+it — not the parameters, not the marking, not the largest-of-them — so the three snapshots of
+grammars without the case are byte for byte what they were.
+
+**The size, measured in one worktree, before and after, with the BOM counted:**
+
+| | before | after | |
+| --- | --- | --- | --- |
+| T-SQL | 14,445,514 | 14,437,306 | −8,208 bytes, 48 merged calls |
+| SQL:2023 | 8,765,495 | 8,760,323 | −5,172 bytes, 40 merged calls |
+| the expression language | — | 1,915,111 | 16 merged calls |
+
+So the file does not grow: one call in place of two or three is shorter than what it replaces, and
+the parameters it carries are cheaper than the call sites it removes. The condition that the size
+be quoted beside the time is met with a negative number, which is the answer nobody expected.
+
+Two defects of my own, found by the tests and recorded because both are the same mistake in two
+shapes. The first: a guard whose first value is absent asks with -1 in its place, and the walk
+marked `live[-1]`. The second, after guarding it: the guard I added made the `else` of the
+gathered branch bind to my `if`, so a plain ask walked the side stack from -1. Both were an
+out-of-bounds read within a minute of each other, and both came of editing a branch without
+reading what its `else` belonged to.
+
+Tests: DotGram.Tests 9,390 and DotGram.Sql.Tests 14,774 green, the three snapshots unchanged.
 
 ## 5. What it must be held to
 
