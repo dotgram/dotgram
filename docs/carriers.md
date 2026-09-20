@@ -80,8 +80,8 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Languages.SqlDialect | 1 | 0 | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | 1 | 1 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | 1 | 0 | immediate | none |  |  |  |  |  |  | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | 2 | 2 | tape | replay | 137 | 131 | 18 | 0 | 0 | 0 | 18/850 |
-| DotGram.ExpressionLanguage.ExpressionParser.Immediate |  |  | immediate (author) |  |  |  |  |  |  |  | 18/850 |
+| DotGram.ExpressionLanguage.ExpressionParser | 2 | 2 | tape | replay | 137 | 131 | 16 | 0 | 0 | 0 | 18/844 |
+| DotGram.ExpressionLanguage.ExpressionParser.Immediate |  |  | immediate (author) |  |  |  |  |  |  |  | 18/844 |
 | DotGram.Finance.Fix.FixGrammar | 10 | 0 | immediate | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Finance.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1910/1910 |
 | DotGram.Finance.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
@@ -169,8 +169,8 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Languages.SqlDialect | ParseOld, ParseNew, ParseAny | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | ParseQuery | whole | tape | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | ParseQuery | whole | immediate | none | 0 | 0 | 0 | 0 | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 84 | 81 | 0 | 0 | 9/425 |
-| DotGram.ExpressionLanguage.ExpressionParser | ParseAsciiLambda, ParseHole_With2, ParseBody_With3 | whole | tape | replay | 84 | 81 | 0 | 0 | 9/425 |
+| DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 84 | 81 | 0 | 0 | 9/422 |
+| DotGram.ExpressionLanguage.ExpressionParser | ParseAsciiLambda, ParseHole_With2, ParseBody_With3 | whole | tape | replay | 84 | 81 | 0 | 0 | 9/422 |
 | DotGram.Finance.Fix.FixGrammar | ParseFields | whole | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
 | DotGram.Finance.Fix.FixGrammar | ParseLogFields | whole | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
 | DotGram.Finance.Fix.FixGrammar | ParseFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
@@ -627,10 +627,8 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
-- machine ParseLambda, ParseHole, ParseBody [whole]: carrier: tape; gate: replay; building: 84; replayed: 81; read again: 0; refused: 0; points: 9/425
-- machine ParseAsciiLambda, ParseHole_With2, ParseBody_With3 [whole]: carrier: tape; gate: replay; building: 84; replayed: 81; read again: 0; refused: 0; points: 9/425
-- replay Catch: Follows in Try [choice], then "finally"
-- replay Catch: Follows in Try [choice], then "finally"
+- machine ParseLambda, ParseHole, ParseBody [whole]: carrier: tape; gate: replay; building: 84; replayed: 81; read again: 0; refused: 0; points: 9/422
+- machine ParseAsciiLambda, ParseHole_With2, ParseBody_With3 [whole]: carrier: tape; gate: replay; building: 84; replayed: 81; read again: 0; refused: 0; points: 9/422
 - replay Conditional: Follows in Conditional [turn], then ':'
 - replay Conditional: Follows in Conditional [turn], then ':'
 - replay Core: Follows in Primary [choice], then '.'
@@ -660,12 +658,14 @@ or which nothing calls, so that no caller asks it again.
 - replay Binding: under Bindings
 - replay Bindings: under Primary
 - replay Bindings: under Primary
-- replay Block: under Catch
-- replay Block: under Catch
+- replay Block: under Body
+- replay Block: under Body
 - replay Body: under Inner
 - replay Body: under Inner
 - replay Case: under Switch
 - replay Case: under Switch
+- replay Catch: under Try
+- replay Catch: under Try
 - replay Char: under Primary
 - replay Coalesce: under Conditional
 - replay Coalesce: under Conditional
