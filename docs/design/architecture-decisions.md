@@ -5698,3 +5698,40 @@ unclosed quote is a run of *one character*, while the media type's is a repeated
 audit gives them the same exponent. If one arithmetic covers both, that is strong evidence for the
 reader; if they differ, the list holds two diseases under one number and they must be cured apart.
 Measuring that pair first decides more than any other pair would.
+
+## D63. One illness, in the reader: the quadratics are a re-read prefix, 2026-09-20
+
+Three shapes, chosen to be as unlike one another as the list allowed — a run of one character, a
+repeating unit, a flat list — counted on one instrument at two sizes each. Every one lands exactly
+on the triangular number with a small integer multiplier: three times it, twice it plus n+1, and it
+plus one. **The multipliers differ because the grammars put different numbers of reader methods on
+the re-read path; the function is the same, which is what the question asked.** The qualification
+is given with the result: total call ratios drift because totals carry linear terms too, so the
+exact figures are the per-rule ones, and two sizes were taken because one size cannot tell a
+triangular number from any other quadratic.
+
+**And the hypothesis is confirmed by exactly the sign its author named.** At sixty-four, the
+repetition is entered 3n+3 times while the four rules beneath it are entered three times the
+triangular number: linear give-backs, each re-reading a prefix that grows. A greedy repetition that
+cannot finish gives back one element at a time and retries the continuation, and giving back costs
+what has already been eaten rather than a constant. The one-character run now has a mechanism as
+well as an absence: nothing is choosing between readings there, it is re-reading what it read.
+
+**Decided.** The twenty-odd quadratics are one illness rather than several under one exponent, and
+**the cure belongs to the reader**. The polynomial diagnostic is not designed and not needed: a
+diagnostic warns about a shape an author could avoid, and this is not one. What is commissioned is
+a design for the reader — after the two uncompilable configurations and the paths, and above the
+speed items, because polynomial on untrusted input across twenty shipped entry points outranks
+constants.
+
+**Conditions on that design, set before it is written.** This count is its before-picture and
+re-running it is the after-picture, in counts rather than times, so it needs no window. Remembering
+a failed prefix must not cost an accepted parse, which is the common case and the one the whole
+year's work is about. Whatever is remembered is bounded and released, joining the retention rule
+rather than growing a policy of its own. And the earlier refusal of wholesale memoization stands
+untouched: remembering that a rule failed at a position, after a long re-read, is not memoizing
+every position, and the objection that most refusals arrive on the first token does not reach it.
+
+**Two things are not claimed**, and the session counting them said so: three of the web's cases are
+counted and none of SQL's, that being the other session's one case — whose 1,056 is already twice
+the triangular number of 32 and fits; and a count says where the work goes, not what the fix is.
