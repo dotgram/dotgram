@@ -3,6 +3,38 @@ using System.Text;
 using Mono.Cecil;
 
 // attrcount <dll>...: every attribute whose name is GramSource or Gram (or GramInclude, GramOptions), on every type, with the length of each string argument (characters and UTF-8 bytes).
+if (args.Length > 0 && args[0] == "--deflate")
+{
+	// The grammar texts on the classes, each deflated on its own (what the embedded PDB does to a generated source that carries it), and the sum.
+	long sum = 0, raw = 0;
+
+	foreach (var type in ModuleDefinition.ReadModule(args[1]).GetTypes())
+		foreach (var attribute in type.CustomAttributes.Where(static one => one.AttributeType.Name == "GramSourceAttribute"))
+		{
+			var text = Encoding.UTF8.GetBytes((string)attribute.ConstructorArguments[0].Value);
+			using var packed = new MemoryStream();
+
+			using (var deflate = new System.IO.Compression.DeflateStream(packed, System.IO.Compression.CompressionLevel.Optimal, true))
+				deflate.Write(text, 0, text.Length);
+
+			Console.WriteLine($"  {type.Name,-24} {text.Length,10:N0} bytes, deflated {packed.Length,9:N0} ({100.0 * packed.Length / text.Length:F1}%)");
+			sum += packed.Length;
+			raw += text.Length;
+		}
+
+	Console.WriteLine($"  together {raw:N0} bytes, deflated {sum:N0} ({100.0 * sum / raw:F1}%)");
+
+	return;
+}
+
+if (args.Length > 0 && args[0] == "--pdb")
+{
+	foreach (var one in args.Skip(1))
+		Pdb.Run(one);
+
+	return;
+}
+
 foreach (var path in args)
 {
 	var module = ModuleDefinition.ReadModule(path);

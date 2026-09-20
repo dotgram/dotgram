@@ -1,0 +1,37 @@
+== DotGram.Sql.dll: 19,815,936 bytes on disk
+  debug directory: CodeView               data           40 bytes
+  debug directory: PdbChecksum            data           39 bytes
+  debug directory: Reproducible           data            0 bytes
+  debug directory: EmbeddedPortablePdb    data    3,544,414 bytes
+  the embedded PDB, decompressed: 7,208,884 bytes (in the file, compressed: 3,544,414)
+  documents: 29; with their source embedded 13, without 16
+  embedded source: 39,044,259 bytes as text, 2,839,013 bytes as stored in the PDB (compressed)
+      14,826,513 text   1,004,580 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs
+      14,470,825 text   1,117,656 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.TransactSql.TransactSqlParser.g.cs
+       8,784,007 text     624,540 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.Standard.SqlStandardParser.g.cs
+         883,611 text      73,471 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.Standard.Sql92Parser.g.cs
+          19,006 text       5,540 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Attributes.g.cs
+          18,518 text       3,871 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.TransactSql.TransactSqlParser.Located.g.cs.DotGramReport.g.cs
+          18,510 text       3,867 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.TransactSql.TransactSqlParser.g.cs.DotGramReport.g.cs
+          18,499 text       3,749 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.Standard.SqlStandardParser.g.cs.DotGramReport.g.cs
+           2,785 text         811 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Sql.Standard.Sql92Parser.g.cs.DotGramReport.g.cs
+           1,389 text         518 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\Release\net10.0\DotGram.Sql.AssemblyInfo.cs
+             239 text         111 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\Release\net10.0\DotGram.Sql.GlobalUsings.g.cs
+             200 text         158 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.Sql\obj\Release\net10.0\.NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+== DotGram.ExpressionLanguage.dll: 1,651,712 bytes on disk
+  debug directory: CodeView               data           55 bytes
+  debug directory: PdbChecksum            data           39 bytes
+  debug directory: Reproducible           data            0 bytes
+  debug directory: EmbeddedPortablePdb    data      380,271 bytes
+  the embedded PDB, decompressed: 717,948 bytes (in the file, compressed: 380,271)
+  documents: 19; with their source embedded 9, without 10
+  embedded source: 3,561,589 bytes as text, 278,700 bytes as stored in the PDB (compressed)
+       1,924,590 text     152,410 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.ExpressionLanguage.ExpressionParser.g.cs
+       1,609,747 text     118,458 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs
+          19,006 text       5,540 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.Attributes.g.cs
+           5,693 text       1,094 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.ExpressionLanguage.ExpressionParser.g.cs.DotGramReport.g.cs
+           1,650 text         559 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\Release\net10.0\DotGram.ExpressionLanguage.AssemblyInfo.cs
+             307 text         229 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs.DotGramReport.g.cs
+             239 text         111 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\Release\net10.0\DotGram.ExpressionLanguage.GlobalUsings.g.cs
+             200 text         158 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\Release\net10.0\.NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+             157 text         141 stored   T:\TEMP\dotgram-stand\wt\n1-1-39d7d356\src\DotGram.ExpressionLanguage\obj\GeneratedFiles\DotGram\DotGram.Generation.GramGenerator\Microsoft.CodeAnalysis.EmbeddedAttribute.cs

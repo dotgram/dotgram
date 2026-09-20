@@ -1,0 +1,68 @@
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+
+// pdb <dll>...: the embedded portable PDB of an assembly: its size in the file and out of it, and the source documents it holds with the length of each.
+static class Pdb
+{
+	static readonly Guid EmbeddedSource = new("0E8A571B-6926-466E-B4AD-8AB04611F5FE");
+
+	public static void Run(string path)
+	{
+		using var stream = File.OpenRead(path);
+		using var pe     = new PEReader(stream);
+
+		Console.WriteLine($"== {Path.GetFileName(path)}: {new FileInfo(path).Length:N0} bytes on disk");
+
+		foreach (var entry in pe.ReadDebugDirectory())
+			Console.WriteLine($"  debug directory: {entry.Type,-22} data {entry.DataSize,12:N0} bytes");
+
+		var embedded = pe.ReadDebugDirectory().FirstOrDefault(static entry => entry.Type == DebugDirectoryEntryType.EmbeddedPortablePdb);
+
+		if (embedded.Type != DebugDirectoryEntryType.EmbeddedPortablePdb)
+		{
+			Console.WriteLine("  no embedded portable PDB");
+
+			return;
+		}
+
+		using var provider = pe.ReadEmbeddedPortablePdbDebugDirectoryData(embedded);
+		var reader = provider.GetMetadataReader();
+
+		Console.WriteLine($"  the embedded PDB, decompressed: {reader.MetadataLength:N0} bytes (in the file, compressed: {embedded.DataSize:N0})");
+
+		var documents = new List<(string Name, long Uncompressed, long Stored)>();
+		long uncompressed = 0, stored = 0, without = 0;
+
+		foreach (var handle in reader.Documents)
+		{
+			var document = reader.GetDocument(handle);
+			var name     = reader.GetString(document.Name);
+			var found    = false;
+
+			foreach (var infoHandle in reader.GetCustomDebugInformation(handle))
+			{
+				var info = reader.GetCustomDebugInformation(infoHandle);
+
+				if (reader.GetGuid(info.Kind) != EmbeddedSource)
+					continue;
+
+				var blob = reader.GetBlobBytes(info.Value);
+				var size = BitConverter.ToInt32(blob, 0);   // 0: stored as it is; otherwise the size once decompressed, the rest a deflate stream
+
+				documents.Add((name, size == 0 ? blob.Length - 4 : size, blob.Length));
+				uncompressed += size == 0 ? blob.Length - 4 : size;
+				stored += blob.Length;
+				found = true;
+			}
+
+			if (!found)
+				without++;
+		}
+
+		Console.WriteLine($"  documents: {reader.Documents.Count:N0}; with their source embedded {documents.Count:N0}, without {without:N0}");
+		Console.WriteLine($"  embedded source: {uncompressed:N0} bytes as text, {stored:N0} bytes as stored in the PDB (compressed)");
+
+		foreach (var (name, size, kept) in documents.OrderByDescending(static one => one.Uncompressed).Take(12))
+			Console.WriteLine($"    {size,12:N0} text {kept,11:N0} stored   {name}");
+	}
+}

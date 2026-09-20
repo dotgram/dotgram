@@ -1,0 +1,6 @@
+  TransactSqlParser           474,107 bytes, deflated   128,767 (27.2%)
+  Sql92Parser                  32,871 bytes, deflated     9,529 (29.0%)
+  SqlStandardParser           223,695 bytes, deflated    53,509 (23.9%)
+  together 730,673 bytes, deflated 191,805 (26.3%)
+  ExpressionParser             67,567 bytes, deflated    19,902 (29.5%)
+  together 67,567 bytes, deflated 19,902 (29.5%)
