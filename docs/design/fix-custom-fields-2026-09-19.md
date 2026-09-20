@@ -158,7 +158,29 @@ two words for one shape and of disagreeing with `CustomFixMessage`.
 6. **Is a binary pair of the consumer's own in scope?** A length/data pair can already be
    configured; a *typed* custom binary field needs the same builder to be asked for the data tag.
 
-## 5. The opening position I would put to Igor
+## 5. Igor's decision, 2026-09-19
+
+**The inheritance shape (E), tags added and never overridden, with one more member: is this tag's
+field binary.** So the class the consumer inherits answers two questions rather than one — what to
+build for a tag the package does not know, and whether that tag begins a length-and-data pair —
+and both defaults are the package's present answers.
+
+What the second member changes, and why it has to be designed rather than added: the framing
+question is asked *before* the value is read, on every field, through the context's `Kind`. So the
+rule that keeps the first member free must hold for it too — the package answers from its own
+tables first, and the consumer's object is asked only where those answer nothing. A known tag then
+pays what it pays today; an unknown one pays one virtual call before its value is read.
+
+It also decides what becomes of `FixFieldOptions`'s dictionary of pairs, which today replaces the
+standard sixteen rather than extending them. Either the dictionary stays as the simple way to say
+the same thing and the class is the general one, or the class subsumes it and the dictionary
+becomes a convenience built on it. Add-only makes the second easier to explain: nothing a
+consumer supplies can take a tag the package already knows, whether it is a type or a pair.
+
+Not started, and not urgent. The design goes to finance-24 as the package's owner when there is
+room for it; §4's questions 2 to 6 are still open, and question 1 is now answered.
+
+## 6. The position this replaces
 
 **E** in the options — a class with our answers as its defaults — add-only, with the message layer left alone in the first step: the
 parser builds the consumer's field, the strict mode still refuses an unknown tag inside a message,
