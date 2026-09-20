@@ -4526,3 +4526,33 @@ And a trap caught by the trap: the message package's version is 1.14.0, 1.13.0 d
 asking for 1.13.0 resolves silently upward with a warning. The rule that follows is general —
 **check the version that was restored, not the one that was requested** — and it applies to every
 reference this repository pins.
+
+**The agreement check decided D26's rows before any of them were timed.** finance-24 ran both
+readings over every FIX input the stand already carries and reports, without taking a number:
+
+**The message-level pair holds.** A properly framed order — body length and checksum computed, not
+written — is accepted by our strict mode and by their dictionary form followed by the explicit
+validation, both saying the same thing. It needs a new input, none of the present ones serving.
+
+**The field-level pair cannot exist, and not through a defect.** Their message holds fields in a
+dictionary sorted by tag, so wire order is lost — we hand back the tags in the order they arrived,
+they hand them back sorted within each region — and **repeated tags collapse**: on an input of
+sixteen fields carrying one repeated tag we return sixteen and they return one, the second
+occurrence overwriting the first. Without a dictionary that is true of the members of a repeating
+group as well, which is the ordinary case in this protocol. So on such an input their reading does
+a fraction of the work — a sixteenth here — and a row would show them faster by exactly that
+factor. **That is not "they are faster", it is "they read less", and in a number the two are
+indistinguishable.**
+
+**Decided: no field-level row at all**, rather than a row with a caveat. A caveat does not travel
+with a figure, and the difference in work reaches sixteenfold and depends on the input. Only the
+message-level pair is taken. If a field-level figure is ever wanted it can only be without an
+agreement check and on an input with no repeated tags, no data fields and no damage — which is an
+input with almost nothing to compare.
+
+Of the five present inputs, one passes the field-level agreement check. The rest differ by order,
+by our recovering where they throw, by a data field they have no notion of, and by the collapse.
+Those differences belong in D26's account of the libraries, which is what that account was asked
+for: their model keyed by tag against ours keeping the wire. And one thing is stated as unchecked
+rather than assumed — whether order and repeats survive when their message is read *with* a
+dictionary and a factory, the store being the same but groups then assembled apart.
