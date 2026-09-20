@@ -1331,3 +1331,21 @@ such example survived in two files until the first check made before a release, 
 owner had edited those files the same week; and a reader's audit of the other 39 could not be made
 reliable in two tries, while a compiler does it correctly every time and at the keystroke. The rule
 costs one test per package, and finance-24 has written the first one, so the shape is known.
+
+**Answer (architect, 2026-09-20, D37 `f6ce6662`).** The rule is taken — an example on a page a
+package ships exists as a test that compiles and runs it — one per package, handed to the owners.
+The publishing gap is closed by copying the smoke between packing and pushing rather than by a
+branch rule, and for a better reason than this file gave: a branch rule proves that *some* packing
+passed, not that this one did, since publishing packs again. The caveat about an API baseline is
+recorded separately, so that adopting one does not close the class in anyone's mind.
+
+**What must travel with those steps, read at `f6ce6662` so that the copy is not tried twice.**
+`build.yml` has four things between Pack and the artifact upload, not one: the `check_library` block
+that reads each packed `.nuspec` and fails where the newest target is not dependency-free; the
+generator's smoke; an `actions/setup-dotnet@v4` pinned to `8.0.x`, **which is required**, since the
+library smokes run `--framework net8.0` and `publish.yml` installs only one SDK; and the library
+smoke with `NUGET_PACKAGES` pointed at a scratch directory. The feed is safe without anything else:
+each smoke project carries its own `nuget.config` that clears the sources and maps `DotGram` and
+`DotGram.*` to `../../artifacts`, so a floating `Version="*-*"` cannot quietly take a published
+package from nuget.org — and the comment there says exactly that, which is the third time in this
+audit that the surprising thing was commented where it surprises.
