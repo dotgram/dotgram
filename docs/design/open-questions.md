@@ -692,9 +692,9 @@ the generated symbols and embedded-DSL support. Every standard editor feature ex
 Nothing is promised that is not there — the marketplace page lists exactly what exists — so this is
 a hole and not a defect.
 
-**Why it is conspicuous.** We ship an analyzer package that reports 98 diagnostics into a consumer's
+**Why it is conspicuous.** We ship an analyzer package that reports 84 diagnostics into a consumer's
 build. Shipping fixes beside an analyzer is the convention of that package shape, and
-`docs/diagnostics.md` already carries a "what to do" column for every one of the 98, written by
+`docs/diagnostics.md` already carries a "what to do" column for every one of them, written by
 hand. For a handful the column *is* the fix: `GRAM0002` add `partial` to the class, `GRAM1010` `'ab'`
 → `"ab"`, `GRAM0003` add the `<AdditionalFiles>` entry, `GRAM2008` and `GRAM4029` declare the thing
 that is missing. For others it must never be one: `GRAM5011` and `GRAM4024` ask for judgement, and a
@@ -721,7 +721,7 @@ So:
 *Stated by construction and not tested: this session read how the locations are made and did not put
 an external-file diagnostic in front of a light bulb to watch it not appear.*
 
-**What should be known before anyone spends on it.** Which of the 98 a user actually meets, and how
+**What should be known before anyone spends on it.** Which of the 84 a user actually meets, and how
 often. Nobody has that number, and without it a fix would be written for whichever diagnostic is
 easiest rather than whichever is met. The cheap half — the five or so mechanical ones, for inline
 grammars — is cheap enough that the number matters less; the valuable half is extension work, and it
@@ -910,3 +910,23 @@ reading the construct rather than the construct, which is the same error as the 
 it, a day later and in a smaller place. D27's "augments" reads on the true number: sixteen is few
 enough that re-listing them is not the burden, and being the only place on this platform where they
 exist is.
+
+**A second count of mine corrected, 2026-09-20, and the method that found it.** Q8 said the package
+reports 98 diagnostics into a consumer's build. It reports **84**. The 98 is the number of rows in
+`docs/diagnostics.md`, which is the catalogue and rightly holds more than that: eight of the rows
+are its "Retired numbers" section, listed so that a suppression written against a dead one is
+recognizable, and six are `GRAM6xxx`, reported by the Visual Studio extension and not by the
+generator at all. 98 − 8 − 6 = 84.
+
+The correction came from applying the architect's test rather than from anyone noticing: a number
+got by counting something that resembles the answer — rows in a document — needs a second count by
+another road. The other road was the ids in `src/DotGram/`, which gave 89 distinct ones. The two
+disagreed, and the disagreement is what carried the information: the nine in the document and not in
+the generator are the three retired ids that no longer appear in the source at all and the six the
+extension owns, and the five retired ids the source still mentions are in doc-comments that say
+"Retired". 84 live, 89 mentioned, 98 catalogued, and every one of the three numbers is right about a
+different question. **One count could not have told me which question I was answering.**
+
+Nothing in Q8's argument moves: 84 diagnostics with a hand-written "what to do" for each is the same
+case for a quick fix that 98 was. The number was doing rhetorical work, which is the kind that has
+to be right.
