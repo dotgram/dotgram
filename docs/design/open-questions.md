@@ -2155,3 +2155,38 @@ two measurements never disagreed. **The questions disagreed.** The count answere
 grammar text are in the metadata; the subtraction answered how much the file loses with the option
 off. Each was right about its own question for as long as it had been quoted, and the 193,487 was
 the distance between two questions rather than an error in either.
+
+**Q9 corrected twice more (2026-09-20), and the second one is mine.** finance-24 assembled both
+readings and *ran* them, and two things this file carries turned out wrong.
+
+- **The version trap is wrong, and wrong in the way it was written to prevent.** Q9 says "the
+  package names lost a full stop at 1.14, so Core is 1.14.1 while the message packages are still
+  1.13.0". `QuickFIXn.FIX44` has no 1.13.0: *checked here independently against the package page* —
+  it exists at 1.14.0 and 1.14.1 only, and 1.13.0 belongs to the **old** id, `QuickFIXn.FIX4.4`,
+  which is exactly what the rename separated. finance-24 saw a request for 1.13.0 resolve silently
+  to 1.14.0 with `NU1603` while restoring. So a trap written against a silent version substitution
+  induced one. The mechanism is the one this file has now recorded four times: the figure was taken
+  off a listing that showed the old-named package, which resembles the answer and is not it.
+  **Both message packages are 1.14.1 beside Core's 1.14.1**, and the trap is now only the rename.
+- **`validate: true` does more than the order of three header fields.** The correction this file
+  took on 2026-09-19 said it checks that and nothing else; it also calls the message's own
+  `Validate()`, which checks `BodyLength` and `CheckSum`. Validation *against the dictionary* is
+  still the separate static `DataDictionary.Validate`, so the three readings remain three and the
+  pairing stands — but the first framing in Q9, that the third reading "does more than we do", was
+  closer to true than the correction that replaced it: it does more on the **frame** and not on the
+  **schema**.
+
+**And the method, which is a refinement of this file's own rule.** Reading the source says what a
+flag is *tested against*; running says what it then *calls*. `if (validate) { Validate(); }` is
+plain once you are looking at it, and neither of us was, because we had each read the line the flag
+appears on. Reading is necessary and it is not sufficient — finance-24 found it from a refusal
+naming `Expected BodyLength=119, Received BodyLength=118` with `Message.Validate()` in the stack,
+and only then went back to the file. This file will keep insisting on the source over a summary, and
+will stop treating a read as the end of the question where running is available to whoever owns the
+work.
+
+**What this does not change.** The licence reading, the pairing against `FixMessages`, the three
+readings and D26 all stand. And one thing improved: `QuickFIXn.FIX44` carries
+`DataDictionary/FIX44.xml` itself, so the dictionary arrives with the reference and no file of
+theirs enters the repository — the question this file raised about their text is answered by the
+package.
