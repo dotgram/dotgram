@@ -7,6 +7,14 @@ an answer, not by silence — an entry with no answer is one nobody has replied 
 Nothing here is measured by this session. Every number below is read out of the repository, and
 the place it is read from is named so that it can be checked.
 
+**How a citation here is to be read.** The name is the citation and the line number is a
+convenience: a method, a rule or a publication survives other people's commits, and a line number
+does not — it moves within hours, and a check made against a checkout that has not fetched reads
+real lines of a file that no longer exists. So a line number in this file is true at the commit
+named beside it, and anyone relying on one fetches and looks for the name. The entries written
+before this paragraph carry line numbers without a commit; where one of them is still load-bearing
+it has been re-read since, and where it has not, the name is what to search for.
+
 ## Q1 (2026-09-19). Shelving the carrier per construction rests on a cost model the next measurement contradicted
 
 **The claim.** "The time share is the count share … that puts step 2 at about 0.46 × 0.05 ×
@@ -1028,7 +1036,7 @@ first.
 
 - **The name in D31 is wrong and should be `Tokenized_DotGram`.** The journal has
   `Tokenize_DotGram`. Both exist and they are different things: `Tokenized_DotGram(string input)`,
-  defined at `CSharpEmitter.cs:2196` and called at `:1668` and `:1809`, is the kept cutting — look
+  defined at `CSharpEmitter.cs:2196` and called at `:1668` and `:1809`, all three re-read at `91544ed4`, is the kept cutting — look
   in it and you find the slots, the weak reference and the eviction; `Tokenize_DotGram(input)` and
   `(input, from, to)` are the tokenizer it calls. The `kept` branch of those two call sites, which
   is the only branch this objection is about, emits the one with the `d`. Someone reading D31 and
