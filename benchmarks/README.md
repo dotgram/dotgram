@@ -65,6 +65,19 @@ control and still have one row 50% off, which is what the other runs are for. Th
 column of such a report is the base reading's spread between runs, which is the one to hold a
 change against.
 
+### Small whole numbers: the range, and no ratio between overlapping ranges
+
+A figure that is a small whole number (kilobytes held above the live heap, methods compiled by a first
+call) moves in steps of a few units, and the median of five is then a vote between two values that both
+sides produce, not a measurement: on 2026-09-19 the same pair, 55c46da6 against 6f3fa138, read the
+held memory of a stream twice and gave a ratio of 1.23 on one row the first time and 1.00 the second, and
+1.53 and 0.46 on two others (`benchmarks/results/pairs-2026-09-19/fix-off-tape-6f3fa138/`). So
+`--stand-held`, `--stand-held-whole` and the paired first calls print each such cell as the median and then the
+smallest and the largest of the runs. **When the ranges of the two sides overlap, the ratio is not quoted at all**: it
+is not a small effect but no effect, and the held tables leave the cell blank there. What is quoted instead is
+the claim that does not depend on it (for held memory, that no side's figure grows with the input). The code
+sizes of `DotGram.CodeSize` are the same on every run and have no range.
+
 `--only a,b` keeps the rows whose id contains any of the pieces, and leaves out the first
 calls, the streamed run and the generator's reports, so that some rows can be looked at in a
 minute. Its absolute numbers are not a full run's: the hand FIX parser reads `fix/Order.text`

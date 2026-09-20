@@ -116,7 +116,7 @@ static partial class Stand
 
 		text.AppendLine(CultureInfo.InvariantCulture, $"Held while the stream form is walked, median of {repeat} processes each (kilobytes above the live heap before the walk):");
 		text.AppendLine();
-		text.AppendLine("The figure of a small stream moves in steps of a few kilobytes, so the median of five can be a draw between two levels: each cell is the median, then the smallest and the largest of the runs.");
+		text.AppendLine("The figure of a small stream moves in steps of a few kilobytes, so the median of five can be a draw between two levels: each cell is the median, then the smallest and the largest of the runs, and the ratio is left blank where the two ranges overlap.");
 		text.AppendLine();
 		text.AppendLine("| input | fields | hand | before | after | after / before |");
 		text.AppendLine("| --- | ---: | ---: | ---: | ---: | ---: |");
@@ -125,6 +125,8 @@ static partial class Stand
 		{
 			var kilobytes = new double[sides.Length];
 			var ranges    = new string[sides.Length];
+			var lowest    = new double[sides.Length];
+			var highest   = new double[sides.Length];
 
 			for (var s = 0; s < sides.Length; s++)
 			{
@@ -141,12 +143,17 @@ static partial class Stand
 				}
 
 				kilobytes[s] = Median(taken);
+				lowest[s]    = taken.Min();
+				highest[s]   = taken.Max();
 				ranges[s]    = string.Create(CultureInfo.InvariantCulture, $"{kilobytes[s]:N0} ({taken.Min():N0}-{taken.Max():N0})");
 			}
 
 			var ratio = kilobytes[1] > 0 ? kilobytes[2] / kilobytes[1] : double.NaN;
 
-			text.AppendLine(CultureInfo.InvariantCulture, $"| {input} | {expected:N0} | {ranges[0]} | {ranges[1]} | {ranges[2]} | {ratio:0.000} |");
+			// No ratio between figures whose ranges overlap: that is no effect, and a number nobody may use is worse than a blank.
+			var overlap = lowest[1] <= highest[2] && lowest[2] <= highest[1];
+
+			text.AppendLine(CultureInfo.InvariantCulture, $"| {input} | {expected:N0} | {ranges[0]} | {ranges[1]} | {ranges[2]} | {(overlap ? "" : ratio.ToString("0.000", CultureInfo.InvariantCulture))} |");
 		}
 
 		Console.Write(text);

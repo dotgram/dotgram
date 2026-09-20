@@ -248,7 +248,7 @@ static partial class Stand
 
 		text.AppendLine(CultureInfo.InvariantCulture, $"# Paired first calls, {DateTime.Now:yyyy-MM-dd HH:mm}");
 		text.AppendLine();
-		text.AppendLine($"First call in a fresh process, median of {runs}: milliseconds, methods the runtime compiled during it, and the time it spent compiling them (JitInfo, no events). The hand reading is this build's own.");
+		text.AppendLine($"First call in a fresh process, median of {runs}: milliseconds, methods the runtime compiled during it (the median, then the smallest and the largest of the runs: a count of a few dozen moves in steps, and a median of five is then a vote between two values), and the time it spent compiling them (JitInfo, no events). The hand reading is this build's own.");
 		text.AppendLine();
 		text.AppendLine("| row | reading | ms | methods | JIT ms |");
 		text.AppendLine("| --- | --- | ---: | ---: | ---: |");
@@ -267,7 +267,7 @@ static partial class Stand
 
 			for (var i = 0; i < workload.Readings.Length; i++)
 				text.AppendLine(CultureInfo.InvariantCulture,
-					$"| {workload.Id} | {workload.Readings[i].Name} | {Median([.. taken[i].Select(static one => one.Ms)]):F2} | {Median([.. taken[i].Select(static one => one.Methods)]):F0} | {Median([.. taken[i].Select(static one => one.Jit)]):F2} |");
+					$"| {workload.Id} | {workload.Readings[i].Name} | {Median([.. taken[i].Select(static one => one.Ms)]):F2} | {Median([.. taken[i].Select(static one => one.Methods)]):F0} ({taken[i].Min(static one => one.Methods):F0}-{taken[i].Max(static one => one.Methods):F0}) | {Median([.. taken[i].Select(static one => one.Jit)]):F2} |");
 		}
 
 		File.WriteAllText(Path.Combine(output, "paired-first.md"), text.ToString());

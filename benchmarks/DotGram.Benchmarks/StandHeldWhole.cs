@@ -92,7 +92,7 @@ static partial class Stand
 	{
 		var text = new StringBuilder();
 
-		text.AppendLine(CultureInfo.InvariantCulture, $"Held while the whole-stream form of FIX reads, median of {repeat} processes each (kilobytes above the live heap before the read, sampled inside the stream's reads):");
+		text.AppendLine(CultureInfo.InvariantCulture, $"Held while the whole-stream form of FIX reads, median of {repeat} processes each (kilobytes above the live heap before the read, sampled inside the stream's reads), then the smallest and the largest of the runs; the ratio is left blank where the two ranges overlap:");
 		text.AppendLine();
 		text.AppendLine("| input | fields read | before KB | after KB | after / before |");
 		text.AppendLine("| --- | ---: | ---: | ---: | ---: |");
@@ -100,6 +100,9 @@ static partial class Stand
 		foreach (var (input, _) in HeldWholeInputs)
 		{
 			var kilobytes = new double[2];
+			var ranges    = new string[2];
+			var lowest    = new double[2];
+			var highest   = new double[2];
 			var fields    = 0;
 
 			for (var s = 0; s < 2; s++)
@@ -132,9 +135,14 @@ static partial class Stand
 				}
 
 				kilobytes[s] = Median(taken);
+				lowest[s]    = taken.Min();
+				highest[s]   = taken.Max();
+				ranges[s]    = string.Create(CultureInfo.InvariantCulture, $"{kilobytes[s]:N0} ({lowest[s]:N0}-{highest[s]:N0})");
 			}
 
-			text.AppendLine(CultureInfo.InvariantCulture, $"| {input} | {fields:N0} | {kilobytes[0]:N0} | {kilobytes[1]:N0} | {(kilobytes[0] > 0 ? kilobytes[1] / kilobytes[0] : double.NaN):0.000} |");
+			var overlap = lowest[0] <= highest[1] && lowest[1] <= highest[0];
+
+			text.AppendLine(CultureInfo.InvariantCulture, $"| {input} | {fields:N0} | {ranges[0]} | {ranges[1]} | {(overlap || kilobytes[0] <= 0 ? "" : (kilobytes[1] / kilobytes[0]).ToString("0.000", CultureInfo.InvariantCulture))} |");
 		}
 
 		Console.Write(text);
