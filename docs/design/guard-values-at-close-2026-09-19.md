@@ -142,6 +142,39 @@ when both have passed.
 If the SQL rows do not move, this design is refused on its own evidence, whatever the file size
 turns out to be. If a growing row bends, it is refused whatever the flat rows say.
 
+## 3.1 A third shape, which may make all of this unnecessary
+
+Found after the second shape was accepted, and put before any code was written.
+
+The walk's fast path already builds the record where it stands. What is expensive in it is not the
+building but what it spends proving its own right to build: `IndexOf` over the `built` flags from
+the rule's mark to the root — the very pass this design exists to remove. That question — "is every
+record since the mark built?" — can be answered in constant time by a **watermark of contiguity**
+in `Ways`: raised by one where a record is built, lowered on a rewind exactly where `ways.Built` is
+lowered already (`UnwindRecords`). The check becomes a comparison.
+
+What that buys, and it is the whole argument: **the factories run exactly when they run today** —
+only where a guard asked. §3.7 is not touched at any point. No watch list, no lookahead bodies to
+exclude, no turn of a repetition to hold a test against, no point to prove. The change is a field,
+a line where a record is built, a line where the log is put back, and a comparison in place of a
+scan. The architect's rule on it, recorded as D29: where two designs answer the same measurement,
+the one that does not touch what the specification promises wins even on equal numbers, because
+the other's proof is rent and not a price.
+
+**What it does not cover.** Beside the `IndexOf` a guard's ask pays two more linear things:
+`values.Room(…)`, which clears `Live` from `from`, and `Array.Clear(built, ways.Built, …)`. If the
+cost is spread over all three, making one of them constant does not save it, and building at the
+close — the second shape — is still the answer, with this as a cheap part of it. So the breakdown
+of sql-39's anatomy into those four terms decides which design survives, and it is asked for
+before any code.
+
+**The condition, whichever shape carries it (the architect's, and hard).** A watermark is a cache
+of a property that is computed honestly today. An off-by-one answers "all built" where not all are,
+and the building is then skipped in silence — no refusal and no exception, which is the shape of
+the eviction defect. So it owes a test that holds the watermark against the honest scan over the
+corpora, not over three cases, and over input that is given up and re-read, since the lowering is
+where it will be wrong if it is wrong.
+
 ## 4. Where it meets the other design
 
 `carrier-per-construction-2026-09-19.md` proposes deciding per construction, by the same proof,
