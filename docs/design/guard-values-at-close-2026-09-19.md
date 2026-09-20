@@ -65,13 +65,30 @@ skips it, as it does today for what a guard built.
 
 Three consequences, all of which have to be paid for or refused:
 
-- **The arms must be callable from the reader.** Today an arm is a case of the walk's switch, or
-  a local function of it (`CallDirectArm`). Calling one at a capture's close means they become
-  static methods taking what they read. That is the architect's condition, and its price is file
-  size: a static method carries its own signature and prologue where a switch case carried
-  neither. **To report before anything else: the emitted size of T-SQL, SQL:2023 and the
-  expression language, before and against.** If the growth is not small, this design stops here
-  and the walk stays.
+- **The arms must be reachable from the close.** Today an arm is a case of the walk's switch, or
+  a local function of it (`CallDirectArm`), and a local function of the walk cannot be called from
+  the reader. **Two shapes, and I propose the second.**
+
+  *The arms become methods of their own.* The reader then calls exactly the arm it just closed,
+  with no switch at all, because at the close the rule and the factory are known where the code is
+  written. The price is file size — a signature and a prologue an arm did not have, on every arm
+  of the grammar — and, because `text` may be a span, a frame they are methods of rather than free
+  statics with six parameters each. This is the shape the condition named.
+
+  *The close enters the walk, which already has the arms.* A second entry — `record` is the last,
+  complete, all its children built, and proved — that does the little the walk's fast path does
+  without what that path spends proving it: no clearing from the watermark, and no `IndexOf` over
+  the flags from the rule's mark, which is the pass this design exists to remove. What is left is
+  `values.Room`, one flag, the switch and the return. The arms stay where they are, so **the file
+  grows by one parameter and one branch and by nothing per rule**, and the whole size question the
+  first shape raises does not arise. What is given up against the first shape is one switch on the
+  kind per close, which is a jump table.
+
+  I propose the second and would measure the first only if the second's numbers disappoint, since
+  the second is the one that can be refused cheaply. **The size is still the first number
+  reported** — T-SQL, SQL:2023 and the expression language, before and against — but under the
+  second shape I expect it to be near zero, and that expectation is itself the check: a growth per
+  rule would mean the arms were duplicated after all.
 - **A record built at the close and then given up** must be undone, or must never happen. The
   proof above is what makes it never happen; where the proof does not hold, the close does not
   build and the guard walks as today. There is no third answer: clearing a built flag on a rewind
