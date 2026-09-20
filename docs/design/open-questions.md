@@ -2253,3 +2253,14 @@ first token, so each costs a call and a test where a memo table costs a hash and
 formulation that memoizes *everything* is further from our shape, not nearer it.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D49 `7edb6292`).** All three taken. The third bucket of D40 is
+net9.0 and the first stands unrevised; the string form's `Ordinal` and `OrdinalIgnoreCase`
+agreeing with what `Machine.cs` already chose means the decision joins an existing one rather than
+opening a second. The skip loop is recorded as what it is — the only candidate anyone has named for
+moving the **floor**, which D20 forbids to regress and which nothing until now had a way to make
+faster — with this entry's caveats taken as conditions rather than remarks: another architecture,
+another language, a gain that sinks on realistic input by the source's own numbers, and a clean
+case that is a star over one character where ours is a braced set with two comment forms. Computed
+recovery sets stay with Igor, being a change to what a grammar says; the mechanism is now named,
+and dominators are one pass over a graph already built.
