@@ -783,3 +783,53 @@ and the one thing in it that is ours to act on is that we have been measuring a 
 itself.
 
 **Answer:** —
+
+**A reference for FIX, proposed with its licence read (critic, 2026-09-19, at Igor's instruction).**
+
+**Take `QuickFIXn.Core` 1.14.1 as a reference reading in `benchmarks/DotGram.Finance.Benchmarks`**,
+with the status ScriptDom has for T-SQL: the thing a consumer of ours would otherwise be running,
+which does more than we do, quoted as a reference and never as a base.
+
+*The licence, read rather than summarised.* QuickFIX/n is under **the QuickFIX Software License,
+Version 1.0** — BSD-three-clause in shape, with two clauses that matter and one that does not:
+
+- **Redistribution**, source or binary, must carry the notice, the conditions and the disclaimer.
+  We redistribute neither: the benchmarks project is not packed, no package of ours references it,
+  and no copy of its source enters the repository. CI restores it from NuGet and builds. So the
+  clause is not triggered — and the cheapest way to keep it untriggered *and* be straightforward is
+  to name it anyway, one line in `benchmarks/README.md` and in the results document that carries the
+  row: what the reading is, whose it is, and under what licence. That is what we already do for
+  ScriptDom by naming it in every table.
+- **Attribution**: end-user documentation of a redistribution must acknowledge
+  "software developed by quickfixengine.org". Same answer: nothing of ours is a redistribution, and
+  the line above is the acknowledgment if anyone ever argues it is.
+- **Naming**: "QuickFIX" may not be used to endorse or promote, and a derived product may not be
+  called QuickFIX. A reading in our table is descriptive and neither — and the name the stand
+  already adopted for this shape, `reference-QuickFIXn`, settles it without needing the argument.
+
+Ours is MIT and this is permissive, so there is no incompatibility to manage; the only obligations
+are conditional on redistribution, and we do none.
+
+*What to take, exactly.* `QuickFIXn.Core` from NuGet — the official package, 1.14.1, which adds
+.NET 10 and is the last to carry .NET 8 — and a message-definition package (`QuickFIXn.FIX4.4`)
+only if the comparison needs the dictionary. Two traps: `QuickFix.Net.NETCore` on NuGet is an older
+third-party repack and is not it; and the package names lost a full stop at 1.14, so Core is 1.14.1
+while the message packages are still 1.13.0. It pulls in `Microsoft.Extensions.Logging.Abstractions`,
+which is a dependency the benchmarks project gains and nothing else does.
+
+*Which rows, and this is the part that decides whether the number means anything.* Not the field
+reader. `Message.FromString` splits the wire, validates against a dictionary and assembles
+repeating groups; put beside `FixParser.Parse` it is the regex problem in reverse — a reading that
+does much more, quoted against one that does less. The honest pairing is **our `FixMessages` layer**,
+where a message is built over the fields, against `Message.FromString`, on the same wire; and if a
+field-level row is wanted too, it is quoted with the difference stated in the row and not only in the
+document.
+
+*What it costs and what it buys.* A development-time package reference, a row or two on an existing
+baseline, no new window. It buys the one FIX number in this repository that does not come from a
+parser we wrote — which is exactly what Q3, Q5 and Q9 have each turned out to need.
+
+*If the licence is judged not worth it,* the fallback is not another dependency: it is to keep
+Artio as reading only — it is Java and would never be linked, so its terms do not arise — and to
+accept that FIX keeps no external reference, which should then be said in the baseline where the
+FIX families are summarised, rather than left to be noticed.
