@@ -65,7 +65,7 @@ static partial class Stand
 
 	sealed record Timed(string Reading, double Nanoseconds, double Bytes, int Warmup, RoundSample[] Rounds);
 
-	sealed record Row(string Id, Timed[] Readings, double HandSpread);
+	sealed record Row(string Id, Timed[] Readings, double HandSpread, Dictionary<string, string>? Ranges = null);
 
 	sealed record FirstCall(string Id, string Reading, double Milliseconds);
 
@@ -1582,8 +1582,10 @@ static partial class Stand
 
 		text.AppendLine("The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.");
 		text.AppendLine();
-		text.AppendLine("| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |");
-		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+		text.AppendLine("The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).");
+		text.AppendLine();
+		text.AppendLine("| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |");
+		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
 
 		foreach (var row in rows)
 		{
@@ -1597,7 +1599,7 @@ static partial class Stand
 
 				text.AppendLine(CultureInfo.InvariantCulture,
 					$"| {row.Id} | {name} | {hand.Reading} | {hand.Nanoseconds:F1} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / hand.Nanoseconds:F2}x | " +
-					$"{after.Nanoseconds:F1} | {after.Nanoseconds / hand.Nanoseconds:F2}x | {Change(reading.Nanoseconds, after.Nanoseconds)} | {reading.Bytes:F0} | {after.Bytes:F0} |");
+					$"{after.Nanoseconds:F1} | {after.Nanoseconds / hand.Nanoseconds:F2}x | {Change(reading.Nanoseconds, after.Nanoseconds)} | {reading.Bytes:F0} | {after.Bytes:F0} | {row.HandSpread:P0} | {(row.Ranges is { } ranges && ranges.TryGetValue(suffix, out var range) ? range : "")} |");
 			}
 		}
 

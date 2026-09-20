@@ -185,7 +185,26 @@ static partial class Stand
 
 		var baseline = others.Select(static other => other.Readings[0].Nanoseconds).ToArray();
 
-		return new Row(row.Id, readings, (baseline.Max() - baseline.Min()) / Median([.. baseline]));
+		// The change of each run, before to after: its smallest and largest and how many were positive, for the report to print beside the median.
+		var ranges = new Dictionary<string, string>();
+
+		for (var i = 0; i < row.Readings.Length; i++)
+		{
+			if (!row.Readings[i].Reading.StartsWith("before", StringComparison.Ordinal))
+				continue;
+
+			var suffix = row.Readings[i].Reading["before".Length..];
+			var j      = Array.FindIndex(row.Readings, one => one.Reading == "after" + suffix);
+
+			if (j < 0)
+				continue;
+
+			var changes = others.Select(other => other.Readings[j].Nanoseconds / other.Readings[i].Nanoseconds - 1).ToArray();
+
+			ranges[suffix] = string.Create(CultureInfo.InvariantCulture, $"[{changes.Min():+0.0%;-0.0%}..{changes.Max():+0.0%;-0.0%}], {changes.Count(static one => one > 0)} of {changes.Length} positive");
+		}
+
+		return new Row(row.Id, readings, (baseline.Max() - baseline.Min()) / Median([.. baseline]), ranges);
 	}
 
 	/// <summary>Runs this program again with these arguments, as a process of its own, and waits.</summary>
