@@ -227,7 +227,15 @@ their 5-14%, the stand's control +1.4%. The rule stands as amended: builds and t
 generated and the hand parsers apart, since the ratio between them may move with the runtime's
 JIT; every family, the first call and its compiled methods beside the steady state, default PGO
 with a twin if there is room. Narrowed the same evening: measurements stay on net10, since net8 leaves support in a month, so
-the comparison is a one-off curiosity — one run, one row a family, nothing added to the kit.
+the comparison is a one-off curiosity — one run, one row a family, nothing added to the kit. **Taken
+(`benchmarks/results/net8-net10-2026-09-19/`), four legs, drift within 5%.** The generated readings
+barely move between the runtimes (a FIX message +2.9% on the string form, a T-SQL statement -0.0%,
+twenty selects -3.0%); what moves is everything else — ScriptDom is 82% slower on the older
+runtime, so T-SQL reads at 0.14x of it there against 0.26x here with the generated parser
+unchanged. The third leg, the same older build on the newer runtime, is 9-22% faster than the
+newer build on every family, hand and generated alike, so the ratios hold; why is untested and
+left untested. The rule taken from it: a ratio to a hand parser is comparable only between runs of
+one build.
 
 **The full baseline of 2026-09-18 evening (stand, medians of five, every family; the doc is
 `docs/design/stand-2026-09-18b.md` with the raw results).** What it settled:
