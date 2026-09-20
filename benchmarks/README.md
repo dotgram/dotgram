@@ -87,6 +87,16 @@ tenth shows in the pair of the commit that does it: 584a7c1f made the tape quadr
 saw it because no row was longer than twenty terms. `--el-terms dir...` reads the tape at a thousand terms of each
 directory's build, unpinned, for a bisection on a busy machine (good for an eightfold effect and for nothing finer).
 
+The forms of the published API that no row read (`StandForms.cs`) are rows of the paired stand, and the paired stand
+only, so a baseline of one is a pair of a side against itself: `sql/select20.at` and `sql/select20.window` (the
+positional `(string, at)` and window `(string, at, length)` forms, over a text with a statement before the one read),
+`tsql/insert-values.at`, `sql/select20.scan`, `sql/conditions100.scan`, `tsql/select20.scan` and `el/ladder.scan` (the
+token scanner, looped over a text: how many tokens), `fixmsg/Order.parse-stream`, `.parse-reader` and `.parse-span`,
+`fixmsg/Order.read-stream100` and `.read-reader100` (`ReadMessages`, lazy, over a hundred concatenated wires),
+`fix/Order.span` and `feeds/streaming.1000` (`StreamingFeedReader.Read(TextReader)`, walked). A span cannot be handed to
+`MethodInfo.Invoke`, so the two span forms are called through a dynamic method that makes the span from a string first.
+The "hand" reading of these rows is this process's own build of the same form, a control and no reference.
+
 `--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while
 it is walked: the live heap above what was live before, after a full collection, sampled eight
 times over a walk, each input of each side in a process of its own (it times nothing, so it needs
@@ -180,7 +190,7 @@ from the runtime's events, which cost time of their own — the anatomy, not the
 
 `linearity` (`StandLinearity.cs`) times every parser that reads a long input at three sizes ten
 times apart — the stock count, FIX orders and fields, JSON, a URL path, media-type parameters, a
-structured list, a feed, SQL conditions, rows and columns, an expression — and prints the exponent
+structured list, the lists and fields of the Web (email addresses, `Accept`, `Forwarded`, `Link`, cookies), a feed, SQL conditions, rows and columns, an expression — and prints the exponent
 of each step, `log(t2/t1) / log(n2/n1)`, flagging a series above 1.2. Rough: one process, no
 window, a few hundred milliseconds a cell. It exists because the stock count's generated parser
 counted newlines from the start of the input for every rejected line and no row noticed until one

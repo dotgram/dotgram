@@ -89,6 +89,13 @@ static partial class Stand
 		yield return new Series("media type parameters", "generated", "parameters", [10, 100, 1000], n => { var t = "text/html" + string.Concat(Enumerable.Range(0, n).Select(static i => $"; a{i}=1")); return () => MediaType.TryParse(t, out _); });
 		yield return new Series("structured list", "generated", "items", [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n)); return () => StructuredField.TryParseList(t, out _); });
 
+		// The Web's lists and fields, one publication each (docs/design/stand-coverage-2026-09-19.md): a loop in the grammar, so a curve.
+		yield return new Series("email address list",   "generated", "addresses", [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"a{i}@example.com")); return () => EmailAddress.TryParseList(t, out _); });
+		yield return new Series("accept",               "generated", "ranges",    [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"text/x{i};q=0.5")); return () => MediaRange.TryParseAccept(t, out _); });
+		yield return new Series("forwarded",            "generated", "elements",  [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"for=192.0.2.{i % 250};proto=https")); return () => ForwardedElement.TryParseField(t, out _); });
+		yield return new Series("link",                 "generated", "links",     [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"<https://example.com/{i}>; rel=\"next\"")); return () => WebLink.TryParseField(t, out _); });
+		yield return new Series("cookie",               "generated", "pairs",     [100, 1000, 10000], n => { var t = string.Join("; ", Enumerable.Range(0, n).Select(static i => $"a{i}=1")); return () => CookiePair.TryParseField(t, out _); });
+
 		// ── a feed ──
 		yield return new Series("feed", "generated", "records", [100, 1000, 10000], n =>
 		{
