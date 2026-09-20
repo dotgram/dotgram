@@ -146,6 +146,46 @@ without a dictionary, with one, and with one plus the explicit validation.
 built and a hand-made message was refused for its BodyLength. Reading their file told me what
 `validate` is tested against; only running it showed what it then calls. Both are needed.)*
 
+### What a field map keyed by its tag cannot keep
+
+`QuickFix.Message` derives from `FieldMap`, whose storage is a `SortedDictionary<int, IField>`.
+Two consequences follow from the key being the tag, and both were read off a running comparison
+rather than argued from the type:
+
+**The wire's order is gone.** On a `NewOrderSingle` both sides accept, we return the tags as the
+wire had them and they return them sorted within each scope:
+
+```
+ours    8 9 35 49 56 34 52 | 11 21 55 54 60 38 40 44 59 | 10
+theirs  8 9 34 35 49 52 56 | 11 21 38 40 44 54 55 59 60 | 10
+```
+
+**A repeated tag is one entry.** Sixteen fields of tag 58 come back from us as sixteen fields and
+from them as **one**: the second entry replaces the first. Without a dictionary that is also what
+becomes of every member of a repeating group, which is the ordinary case in FIX rather than a
+corner of it.
+
+The second is why there can be no field-level row against this reference. Their reading of such an
+input does a fraction of the work — a sixteenth, on that input — and a number cannot tell "faster"
+from "read less". The caveat would not travel with the ratio, and the size of the difference
+depends on the input, so even a careful reader could not correct for it in their head. The error
+is in the flattering direction, and nobody goes looking behind a flattering number.
+
+### The rest of what differs, from the same comparison
+
+- **Where we recover, they throw.** A field with a malformed tag comes back from us as one
+  `FixField.Invalid` with reading resumed after the next separator; `FromString` raises
+  `FormatException` and there is no message.
+- **A data field is not a concept there** — see below — so an input carrying one is refused
+  outright rather than read differently.
+- **Framing is required.** They need `8=`/`9=`/`10=` around anything; we read a bare run of
+  fields, which is what a log line or a fragment is.
+
+Of the five FIX inputs the stand already carries, exactly **one** passes a field-by-field
+agreement check between the two sides, and it is the one with a single field in it. That is the
+whole argument for checking agreement before timing rather than after: measuring first would have
+produced five numbers, four of them comparing different work.
+
 ### The one difference that is not about speed
 
 **QuickFIX/n has no general reading of data fields.** The .NET port special-cases exactly one
@@ -199,13 +239,19 @@ it is, and the ratio cell prints `reference` so that no ratio exists to misread.
     framed `NewOrderSingle` and its `DataDictionary.Validate` returns without throwing. Note the
     package version: `QuickFIXn.Core` is 1.14.1 and `QuickFIXn.FIX44` is **1.14.0** — 1.13.0 does
     not exist for it, and asking for 1.13.0 silently resolves 1.14.0 with an NU1603 warning.
-  - against `FixParser.Parse` — the dictionary-less form, with the row saying that it assembles
-    no groups and builds no typed values.
+  - **against `FixParser.Parse` — not taken.** It was in this document's first draft and the
+    agreement check killed it: their field map sorts by tag and collapses repeats, so the row
+    would compare a reading of sixteen fields with a reading of one. See "What a field map keyed
+    by its tag cannot keep" above.
 - FIX Antenna, if taken: `RawFixUtil.GetFixMessage(byte[])`.
-- **Inputs are chosen around the data-field difference above**: the ordinary rows carry no
-  standard binary field other than `XmlData`, so that "both sides answer the same" means
-  something; the divergence on `RawData` gets a paragraph of its own rather than being quietly
-  excluded.
+- **The input is built for the row rather than borrowed from the existing ones.** None of the
+  five the stand carries will do: `Order` differs by field order, `OrderMalformed` by recovery
+  against an exception, `BinaryMany` is `RawData` and they refuse it, `slope-16` collapses
+  sixteen fields into one, and `One` is a single field with no framing. What both sides accept is
+  a correctly framed `NewOrderSingle` with no repeated tag outside a group and no data field —
+  built with its BodyLength and CheckSum computed rather than written, since a hand-made frame is
+  refused by their `Validate()` and the failure looks like a disagreement about parsing when it is
+  arithmetic.
 - **The check each row must carry**, and this is mine to write before the stand times anything:
   both sides answer the same thing on the same input. For a reference that returns strings and
   ours that returns typed values, "the same" is the tag sequence and the field text — so the row
