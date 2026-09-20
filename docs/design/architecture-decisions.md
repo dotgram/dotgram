@@ -6068,3 +6068,18 @@ worth more than another argument, because a consumer arriving from one of them b
 What does not change: every finding rather than the first, a finding naming the entry's index in a
 repeating group as well as the tag, no validating overload on the parse, and validation without a
 dictionary against our own schema.
+
+**A correction from Igor about the critic's role, and it is about my behaviour rather than the
+critic's.** The FIX survey is withdrawn from it: that session's job is to argue with the
+architect's decisions and to find better ways of doing the work, and answering the architect's
+research questions is neither. Looking back at the evening, four of its entries were "the
+architect asked, the critic went and found out" — useful findings, and the queue was mine.
+**A critic working from my list cannot object to my priorities, which is most of what it is for.**
+
+So the exchange keeps its shape — answers to objections, disagreements, corrections, in both
+directions — and I send no tasks, and relay none as Igor's. Where FIX is genuinely the subject, what
+comes back should be an argument about how it is being approached or a better road, not a survey to
+my specification. Nothing already recorded changes; the entries and the answers against them stand.
+
+The survey itself is still wanted, so it goes to a session that takes work: it is reading and
+writing, its own area's line is closed, and the priority is FIX.
