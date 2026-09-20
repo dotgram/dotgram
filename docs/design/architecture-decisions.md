@@ -2896,3 +2896,24 @@ shape is fixed when it is generated and the input picks an arm, which is the gra
 the parser choosing. Nor does it touch how much memory a pool keeps, which is housekeeping rather
 than an algorithm — though where housekeeping starts to look like a strategy, it is worth asking
 again. The rest of the sources are to be audited against this.
+
+## D26. FIX: two things Igor asked for, 2026-09-19
+
+**Compared with the libraries that already exist**, QuickFIX and whatever else the platform has,
+free or not. What is wanted first is an account of them — what each does, what its model is, where
+it differs from reading a wire into typed fields — and only then numbers. The rule that governs
+the numbers is the one the stand already follows for the SQL and JSON references: like is compared
+with like, and where a library does more on the way (validating against a dictionary, keeping a
+session) that is said in words rather than hidden inside a ratio. A licence is checked before
+anything is referenced, and nothing of the kind enters a shipped package: this repository has just
+finished removing somebody else's notices from one.
+
+**Validation dictionaries.** What FIX calls a data dictionary — fields and their types, value sets,
+components, groups, which fields a message requires — and what the trade body now publishes as
+Orchestra. The account wanted: what such a dictionary holds, what of it the package already has in
+its schema and its strict and lenient modes, what it does not, and what a dictionary would buy
+that we cannot do at all — a venue's own extensions above all. The design question is set by D25
+before it is asked: a dictionary that changes how the wire is read is compiled when the parser is
+generated, while a dictionary that only checks a message already built may be data at run time,
+because checking is not reading. Where that line falls exactly, with examples, is what the design
+has to say. finance-24, both to the architect before code.
