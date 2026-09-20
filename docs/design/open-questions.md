@@ -641,10 +641,10 @@ was taken on its own ground.
 
 - **The user's table replaces ours rather than being asked where ours is silent.**
   `FixFieldOptions.DataTag` reads `_pairs == null ? FixSchema.DataTag(tag) : _pairs.TryGetValue(…)`:
-  where the consumer supplied a dictionary, the generated table — 42 standard length/data pairs, a
+  where the consumer supplied a dictionary, the generated table — sixteen standard length/data pairs, a
   `switch` in `FixSchema` — is not consulted at all. It is deliberate and documented ("A supplied
   dictionary replaces it"), and it is the opposite of what the new wording asks for. It also costs
-  the consumer: adding one counterparty pair drops all 42 unless they are re-listed. `IsData` is
+  the consumer: adding one counterparty pair drops all sixteen unless they are re-listed. `IsData` is
   already the shape the wording wants — `FixSchema.IsData(tag) || _dataTags?.Contains(tag) == true`,
   ours first and the user's after.
 - **And the user's fork is on the main path for every field, not off it.** The guard's first act for
@@ -901,3 +901,12 @@ is one the most widely used .NET FIX engine does not have in any form, for the s
 alone a counterparty's. `FixFieldOptions` is not a wart that a stricter rule would have tidied away;
 it is the only way anyone gets that reading in .NET. Igor's second wording keeps it, and this is
 the evidence for why that was the right way round.
+
+**A count of mine corrected, 2026-09-20.** Q7 said the generated length/data table holds 42 standard
+pairs. It holds **sixteen**: the arms of `FixSchema.DataTag`'s switch, counted from the method
+itself, are eighteen `=>` of which one is the method's own arrow and one the `_ => 0` default. The 42
+came from counting `=>` over a line range that ran past the method into its neighbours — a proxy for
+reading the construct rather than the construct, which is the same error as the one corrected above
+it, a day later and in a smaller place. D27's "augments" reads on the true number: sixteen is few
+enough that re-listing them is not the burden, and being the only place on this platform where they
+exist is.
