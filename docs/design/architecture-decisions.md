@@ -4644,3 +4644,12 @@ performance-ff**, whose area it is and whose queue is three deep. It matters bey
 condition is that the branches of a capability answer alike, the only branch we have lives in the
 buffered reader, and a message that differs by input form is exactly the class of difference that
 condition must be able to see.
+
+**And a rule for the first time D40's condition disagrees.** That check compares one build against
+itself compiled differently, over the refusal record. If a message already differs by input form
+for a reason that is not branching, the first run reports a disagreement, and **the obvious wrong
+move at that moment is to accept it as pre-existing and filter it out** — which quietly widens what
+the check is allowed not to see, for as long as the filter lives. So the order is: the message
+difference is explained before condition 1's second pass is built, or, if it is not, the readings
+it affects are named exactly and the check excludes those by name rather than by symptom. A filter
+written by symptom hides the next defect that wears the same symptom.
