@@ -1,0 +1,49 @@
+Built from 0b02f2af: the libraries measured are this build's own (DotGram.Web, DotGram.Sql, DotGram.ExpressionLanguage, DotGram.Finance, the examples).
+
+Refused inputs: a growing head and a tail no reader can finish; each series asserts that the input is refused. The exponent is the slope of log time on log size over the largest sixteenth of the ladder (at least four points); above 1.10 a refusal is a defect, from 1.5 quadratic, from 3.0 explosive. A ladder ends at the first call over 20 ms.
+
+| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | shape of the growth | projected at 64 KiB | KB a call at the largest | allocation exponent | |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- |
+| SQL:2023 query | joins, then a JOIN with nothing after it | joins | 4 - 2,172 | 31 | 34,772 | 36.2 ms | 0.81 | bytes CLIFF x4.3 between 891 and 1,113; time CLIFF x4.2 between 1,738 and 2,172 | 68.2 ms | 0.0 | 1.59 | large and linear, stopped at 2,172 (36 ms) |
+           4 joins               54.08 us      13.30 KB      13520.6 ns per joins       3404.1 B per joins
+           5 joins               66.05 us      16.58 KB      13210.5 ns per joins       3395.3 B per joins
+           6 joins               77.59 us      19.86 KB      12931.9 ns per joins       3389.4 B per joins
+           7 joins               89.49 us      23.15 KB      12783.7 ns per joins       3386.1 B per joins
+           8 joins               98.28 us      26.42 KB      12284.5 ns per joins       3382.1 B per joins
+          10 joins              119.91 us      32.98 KB      11991.5 ns per joins       3377.7 B per joins
+          12 joins              143.18 us      39.55 KB      11932.0 ns per joins       3374.7 B per joins
+          15 joins              169.19 us      49.39 KB      11279.0 ns per joins       3371.8 B per joins
+          18 joins              196.37 us      59.24 KB      10909.2 ns per joins       3369.8 B per joins
+          22 joins              239.24 us      72.36 KB      10874.3 ns per joins       3368.1 B per joins
+          27 joins              291.93 us      88.77 KB      10812.0 ns per joins       3366.6 B per joins
+          33 joins              356.84 us     122.48 KB      10813.4 ns per joins       3800.5 B per joins
+          41 joins              443.39 us     134.71 KB      10814.4 ns per joins       3364.3 B per joins
+          51 joins              551.29 us     167.52 KB      10809.5 ns per joins       3363.5 B per joins
+          63 joins              672.27 us     206.89 KB      10670.9 ns per joins       3362.8 B per joins
+          78 joins              825.64 us     256.11 KB      10585.1 ns per joins       3362.3 B per joins
+          97 joins             1026.47 us     318.46 KB      10582.2 ns per joins       3361.9 B per joins
+         121 joins             1282.76 us     397.21 KB      10601.3 ns per joins       3361.5 B per joins
+         151 joins             2129.65 us     495.65 KB      14103.6 ns per joins       3361.2 B per joins
+         188 joins             1398.82 us     617.05 KB       7440.5 ns per joins       3361.0 B per joins
+         235 joins             1723.54 us     771.27 KB       7334.2 ns per joins       3360.8 B per joins
+         293 joins             1962.74 us     961.59 KB       6698.8 ns per joins       3360.6 B per joins
+         366 joins             2377.93 us    1201.12 KB       6497.1 ns per joins       3360.5 B per joins
+         457 joins             2802.20 us    1499.72 KB       6131.7 ns per joins       3360.4 B per joins
+         571 joins             2922.47 us    1873.78 KB       5118.2 ns per joins       3360.3 B per joins
+         713 joins             2609.22 us    2339.71 KB       3659.5 ns per joins       3360.3 B per joins
+         891 joins             3004.00 us    2923.78 KB       3371.5 ns per joins       3360.2 B per joins
+       1,113 joins             4577.65 us   15565.84 KB       4112.9 ns per joins      14321.1 B per joins
+       1,391 joins             5860.00 us   19509.26 KB       4212.8 ns per joins      14362.0 B per joins
+       1,738 joins             6919.95 us   20647.85 KB       3981.6 ns per joins      12165.4 B per joins
+       2,172 joins            36177.10 us       0.00 KB      16656.1 ns per joins          0.0 B per joins
+
+1 series, none above the exponent 1.10.
+
+Not covered by a refusal ladder:
+- Timestamp (RFC 3339): a fixed-length form, there is no head that grows before a refusal.
+- SetCookie: the reader is lenient, and every tail tried (a control character in a value or in an attribute) was accepted, so the series that asserted a refusal was a fault and was dropped; a refused shape with a growing head is not known.
+- The reader, stream and span forms of every grammar above: the ladders read a string, and the driver that pulls a TextReader or a Stream in pieces is a different piece of code over the same rules.
+- FixParser.Parse and the streaming FIX forms: they yield fields lazily and do not report a refusal as a value, so a ladder has nothing to read a refusal from.
+- SQL and T-SQL entry points other than a statement, a query expression and a search condition (scripts, the positional forms, expressions alone).
+- Rules that are reachable only from a start the ladders do not use: a shape whose bad tail sits inside a rule no series begins in is not seen here, and the static probe is the way to find it.
+- The examples under examples/ (not shipped), and the hand-written parsers (not a grammar's).
