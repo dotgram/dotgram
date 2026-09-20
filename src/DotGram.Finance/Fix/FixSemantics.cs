@@ -6,18 +6,13 @@ namespace DotGram.Finance.Fix;
 /// <summary>Interprets a flat sequence of fields using the FIX message schema.</summary>
 static class FixSemantics
 {
-	public static bool TryBuild(string source, string type, FixNode[] fields, FixParseMode mode, FixParseOptions? options, out FixMessage? message, out FixParseError? error)
+	public static bool TryBuild(string source, string type, FixNode[] fields, FixParseOptions? options, out FixMessage? message, out FixParseError? error)
 	{
 		message = null;
 
-		var reader = new Reader(source, type, fields, mode, options);
-		var header = reader.Scope(FixSchema.Component(1024));
-		var schema = FixSchema.Message(type);
-
-		if (schema.Length == 0 && mode == FixParseMode.Strict)
-			reader.Fail(35, 0, "Unknown FIX 4.4 message type.");
-
-		var body    = reader.Scope(schema, body: true, custom: schema.Length == 0);
+		var reader  = new Reader(source, type, fields, options);
+		var header  = reader.Scope(FixSchema.Component(1024));
+		var body    = reader.Scope(FixSchema.Message(type), body: true);
 		var trailer = reader.Scope(FixSchema.Component(1025));
 
 		if (reader.Position != fields.Length && reader.Error == null)
@@ -31,19 +26,16 @@ static class FixSemantics
 		if (error != null)
 			return false;
 
-		var result = FixMessageFactory.Message(type, source, header, body, trailer);
-
-		if (!FixValidation.Validate(result, mode, options, out error))
-			return false;
-
-		message = result;
+		message = FixMessageFactory.Message(type, source, header, body, trailer);
 
 		return true;
 	}
 
 	static readonly ConditionalWeakTable<SchemaRef[], Dictionary<int, int>> scopes = new();
 
-	static Dictionary<int, int> Members(SchemaRef[] schema)
+	// Also what the validator asks whether a tag belongs in a scope. One map, so construction and
+	// checking cannot disagree about what a scope contains.
+	internal static Dictionary<int, int> Members(SchemaRef[] schema)
 	{
 		return scopes.GetValue(schema, CreateMembers);
 	}
@@ -83,7 +75,6 @@ static class FixSemantics
 		readonly string source;
 		readonly string type;
 		readonly FixNode[] fields;
-		readonly FixParseMode mode;
 		readonly FixParseOptions? options;
 
 		// The nodes of every scope still open, innermost last. A scope reads onto the top and
@@ -91,44 +82,52 @@ static class FixSemantics
 		// One per reader, and a reader per message: nothing is kept between messages.
 		readonly List<FixNode> stack = new();
 
+		// The membership map of every scope still open, innermost last, alongside the nodes. A
+		// group entry ends when it meets a tag that an ENCLOSING scope claims; a tag nobody claims
+		// stays where it was written, because ending an entry early loses the entries after it.
+		readonly List<Dictionary<int, int>> open = new();
+
 		public int Position { get; private set; }
 		public FixParseError? Error { get; private set; }
 
-		public Reader(string source, string type, FixNode[] fields, FixParseMode mode, FixParseOptions? options)
+		public Reader(string source, string type, FixNode[] fields, FixParseOptions? options)
 		{
 			this.source = source;
 			this.type = type;
 			this.fields = fields;
-			this.mode = mode;
 			this.options = options;
 		}
 
 		public void Fail(int tag, int position, string reason) => Error ??= new FixParseError(position, tag, type, reason);
 
-		public FixNode[] Scope(SchemaRef[] schema, bool body = false, bool custom = false)
+		public FixNode[] Scope(SchemaRef[] schema, bool body = false)
 		{
-			return Scope(Members(schema), body, custom, 0);
+			return Scope(Members(schema), body, 0);
 		}
 
-		FixNode[] Scope(Dictionary<int, int> members, bool body, bool custom, int delimiter)
+		// `body` is true for the body and for every group entry inside it: what a scope does with
+		// a field it does not list depends on whether the body is still to come.
+		FixNode[] Scope(Dictionary<int, int> members, bool body, int delimiter)
 		{
 			var start = stack.Count;
+
+			open.Add(members);
+
 			while (Position < fields.Length && Error == null)
 			{
 				var field = fields[Position];
+
 				if (delimiter != 0 && stack.Count > start && field.Tag == delimiter) break;
-				if (!members.TryGetValue(field.Tag, out var group))
-				{
-					// Header extensions start the body; unknown group fields remain in
-					// the current entry until a known delimiter or enclosing field.
-					var extension = FixSchema.Type(field.Tag) == null &&
-						mode == FixParseMode.Lenient;
-					if (!(body || delimiter != 0) || field.Tag is 10 or 89 or 93 || !(extension || custom)) break;
-				}
+
+				if (!members.TryGetValue(field.Tag, out var group) && Ends(field.Tag, body, delimiter))
+					break;
+
 				Position++;
-				if (group != 0) field = Group(field, group);
+				if (group != 0) field = Group(field, group, body);
 				stack.Add(field);
 			}
+
+			open.RemoveAt(open.Count - 1);
 
 			var nodes = new FixNode[stack.Count - start];
 
@@ -138,7 +137,39 @@ static class FixSemantics
 			return nodes;
 		}
 
-		FixNode Group(FixNode counter, int id)
+		// Whether a field the open scope does not list ends it. Construction asks where a field
+		// goes; whether it should be there is a finding (D53), so the body takes everything and
+		// only a boundary that nothing else can draw is kept.
+		bool Ends(int tag, bool body, int delimiter)
+		{
+			// The trailer ends whatever is open. Its fields belong to no other scope, and a group
+			// running to the end of the message would otherwise swallow them.
+			if (tag is 10 or 89 or 93)
+				return true;
+
+			// The header ends at its first non-member, and so does a group entry inside it: what
+			// follows the header is the body, whose membership is not open yet and so can claim
+			// nothing. Reading NoHops was what found this — without it a hop entry ran on and
+			// swallowed the body.
+			if (!body)
+				return true;
+
+			// The body runs from the header to the trailer and takes every field between, listed
+			// or not: a message the reader will not build is a message the layer never sees.
+			if (delimiter == 0)
+				return false;
+
+			// A group entry under the body ends only at a tag an enclosing scope claims; a tag
+			// nobody claims stays where it was written, because ending an entry early would lose
+			// the entries after it. The entry itself is the last map open.
+			for (var i = 0; i < open.Count - 1; i++)
+				if (open[i].ContainsKey(tag))
+					return true;
+
+			return false;
+		}
+
+		FixNode Group(FixNode counter, int id, bool body)
 		{
 			if (!counter.Field(source).TryGetInt64(out var count) || count < 0 || count > fields.Length - Position)
 			{
@@ -162,7 +193,7 @@ static class FixSemantics
 					break;
 				}
 
-				scopes[filled++] = new FixFieldSet(source, Scope(members, false, false, delimiter));
+				scopes[filled++] = new FixFieldSet(source, Scope(members, body, delimiter));
 			}
 
 			if (filled < scopes.Length)

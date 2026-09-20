@@ -186,13 +186,14 @@ var next = FixMessages.Parse(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
-with a `FixParseMode` or `FixParseOptions`. Byte streams use the generated native
+with an optional `FixParseOptions`. Byte streams use the generated native
 byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preserve
 the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
 synchronous and leave the input open, including when enumeration stops early.
 
 The adapter frames messages using `BodyLength`, then performs the same complete
-checksum, grammar, schema, raw-data and group validation as the string API.
+checksum, grammar, raw-data and group recognition as the string API. Checking a
+message against the schema is a separate call: see **Validation** below.
 It reuses a growing buffer across `ReadMessages` iterations and creates an owned
 source string for each result. Buffering is bounded by the largest frame seen,
 not the length of the stream. Keeping all returned messages also keeps all their
@@ -308,13 +309,13 @@ arbitrary precision. Decimal values must fit `System.Decimal` exactly: overflow
 and loss of fractional precision set `IsValid` to false rather than rounding.
 Trailing fractional zeros do not cause a loss of precision.
 
-The source-backed semantic model retains malformed primitive text in Lenient mode. Such a field has
+The source-backed semantic model retains malformed primitive text. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
 Tags the package does not define use `FixField.Custom` with their original value octets, unless
 a `FixCustomFields` was supplied — then that builds them, typed as the consumer likes. It builds
 field objects and nothing more: a tag outside FIX 4.4 is still unknown to the message schema, so
-`FixParseMode.Strict` refuses it whoever built the field.
+`Validate` reports it whoever built the field.
 
 ## Pipe-delimited logs
 
@@ -323,7 +324,7 @@ var logLine   = "55=ABC | 38=100";
 using var logReader = new StringReader(logLine);
 
 var message = FixMessages.ParseLog(logLine);
-var options = new FixParseOptions(FixFraming.Log, FixParseMode.Lenient);
+var options = new FixParseOptions(FixFraming.Log);
 foreach (var item in FixMessages.ReadMessages(logReader, options))
     Console.WriteLine(item.MessageType);
 ```
@@ -378,8 +379,8 @@ what the package builds, for a tag your own switch does not recognise either. A 
 span and may not be kept: copy what you need before returning.
 
 **This builds field objects and nothing else.** The tag stays unknown to the message schema, which
-is FIX 4.4's, so `FixMessages` in `FixParseMode.Strict` still refuses a message carrying it — the
-field being one of yours changes nothing about that. The message layer builds the length half of a
+is FIX 4.4's, so `Validate` still reports a message carrying it — the field being one of yours
+changes nothing about that. The message layer builds the length half of a
 declared pair through the same seam, so that both halves of your pair are yours; that too is
 construction and not schema knowledge.
 

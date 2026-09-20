@@ -3,19 +3,6 @@ using System.Globalization;
 
 namespace DotGram.Finance.Fix;
 
-/// <summary>The validation policy applied after wire recognition.</summary>
-public enum FixParseMode
-{
-	/// <summary>
-	/// Enforces the FIX 4.4 schema: required fields, group order and duplicates, primitive syntax and code sets; unknown tags and message types are rejected.
-	/// </summary>
-	Strict,
-	/// <summary>
-	/// Checks the envelope, length/data pairs and group structure, but preserves unknown tags and message types, reordered or duplicate fields and malformed values.
-	/// </summary>
-	Lenient,
-}
-
 /// <summary>
 /// How the input separates one field from the next.
 /// </summary>

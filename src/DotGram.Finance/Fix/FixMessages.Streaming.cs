@@ -8,17 +8,17 @@ public static partial class FixMessages
 	public const int DefaultMaxMessageLength = 16 * 1024 * 1024;
 
 	/// <summary>Read exactly one message without closing or reading beyond it.</summary>
-	public static FixMessage Parse(TextReader input, FixParseMode mode = FixParseMode.Strict, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage Parse(TextReader input, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		if (TryParse(input, out var message, out var error, mode, maxMessageLength)) return message!;
+		if (TryParse(input, out var message, out var error, maxMessageLength)) return message!;
 		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Read one message; malformed or incomplete input returns a diagnostic. I/O exceptions propagate.</summary>
-	public static bool TryParse(TextReader input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict, int maxMessageLength = DefaultMaxMessageLength)
+	public static bool TryParse(TextReader input, out FixMessage? message, out FixParseError? error, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		ValidateStreamArguments(mode, maxMessageLength);
+		ValidateStreamArguments(maxMessageLength);
 		message = null;
 		var reader = new FrameReader(input, maxMessageLength);
 		if (!reader.TryRead(out var wire, out error))
@@ -26,15 +26,15 @@ public static partial class FixMessages
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseFrame(wire, out message, out error, mode, null);
+		return TryParseFrame(wire, out message, out error, null);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
-	public static IEnumerable<FixMessage> ReadMessages(TextReader input, FixParseMode mode = FixParseMode.Strict, int maxMessageLength = DefaultMaxMessageLength)
+	public static IEnumerable<FixMessage> ReadMessages(TextReader input, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		ValidateStreamArguments(mode, maxMessageLength);
-		return ReadFrames(new FrameReader(input, maxMessageLength), mode, null);
+		ValidateStreamArguments(maxMessageLength);
+		return ReadFrames(new FrameReader(input, maxMessageLength), null);
 	}
 
 	/// <summary>Read exactly one message without closing or reading beyond it.</summary>
@@ -49,7 +49,7 @@ public static partial class FixMessages
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
-		ValidateStreamArguments(options.Mode, maxMessageLength);
+		ValidateStreamArguments(maxMessageLength);
 		message = null;
 		var reader = new FrameReader(input, maxMessageLength, options.Framing.Separator());
 		if (!reader.TryRead(out var wire, out error))
@@ -57,7 +57,7 @@ public static partial class FixMessages
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseFrame(wire, out message, out error, options.Mode, options);
+		return TryParseFrame(wire, out message, out error, options);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
@@ -65,22 +65,22 @@ public static partial class FixMessages
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
-		ValidateStreamArguments(options.Mode, maxMessageLength);
-		return ReadFrames(new FrameReader(input, maxMessageLength, options.Framing.Separator()), options.Mode, options);
+		ValidateStreamArguments(maxMessageLength);
+		return ReadFrames(new FrameReader(input, maxMessageLength, options.Framing.Separator()), options);
 	}
 
 	/// <summary>Read exactly one message without closing or reading beyond it.</summary>
-	public static FixMessage Parse(Stream input, FixParseMode mode = FixParseMode.Strict, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage Parse(Stream input, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		if (TryParse(input, out var message, out var error, mode, maxMessageLength)) return message!;
+		if (TryParse(input, out var message, out var error, maxMessageLength)) return message!;
 		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Read one message; malformed or incomplete input returns a diagnostic. I/O exceptions propagate.</summary>
-	public static bool TryParse(Stream input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict, int maxMessageLength = DefaultMaxMessageLength)
+	public static bool TryParse(Stream input, out FixMessage? message, out FixParseError? error, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		ValidateStreamArguments(mode, maxMessageLength);
+		ValidateStreamArguments(maxMessageLength);
 		message = null;
 		var reader = new FrameReader(input, maxMessageLength);
 		if (!reader.TryRead(out var wire, out error))
@@ -88,15 +88,15 @@ public static partial class FixMessages
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseFrame(wire, out message, out error, mode, null);
+		return TryParseFrame(wire, out message, out error, null);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
-	public static IEnumerable<FixMessage> ReadMessages(Stream input, FixParseMode mode = FixParseMode.Strict, int maxMessageLength = DefaultMaxMessageLength)
+	public static IEnumerable<FixMessage> ReadMessages(Stream input, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		ValidateStreamArguments(mode, maxMessageLength);
-		return ReadFrames(new FrameReader(input, maxMessageLength), mode, null);
+		ValidateStreamArguments(maxMessageLength);
+		return ReadFrames(new FrameReader(input, maxMessageLength), null);
 	}
 
 	/// <summary>Read exactly one message without closing or reading beyond it.</summary>
@@ -111,7 +111,7 @@ public static partial class FixMessages
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
-		ValidateStreamArguments(options.Mode, maxMessageLength);
+		ValidateStreamArguments(maxMessageLength);
 		message = null;
 		var reader = new FrameReader(input, maxMessageLength, options.Framing.Separator());
 		if (!reader.TryRead(out var wire, out error))
@@ -119,7 +119,7 @@ public static partial class FixMessages
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseFrame(wire, out message, out error, options.Mode, options);
+		return TryParseFrame(wire, out message, out error, options);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
@@ -127,17 +127,16 @@ public static partial class FixMessages
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
-		ValidateStreamArguments(options.Mode, maxMessageLength);
-		return ReadFrames(new FrameReader(input, maxMessageLength, options.Framing.Separator()), options.Mode, options);
+		ValidateStreamArguments(maxMessageLength);
+		return ReadFrames(new FrameReader(input, maxMessageLength, options.Framing.Separator()), options);
 	}
 
-	static void ValidateStreamArguments(FixParseMode mode, int maxMessageLength)
+	static void ValidateStreamArguments(int maxMessageLength)
 	{
-		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) throw new ArgumentOutOfRangeException(nameof(mode));
 		if (maxMessageLength < 1) throw new ArgumentOutOfRangeException(nameof(maxMessageLength));
 	}
 
-	static IEnumerable<FixMessage> ReadFrames(FrameReader reader, FixParseMode mode, FixParseOptions? options)
+	static IEnumerable<FixMessage> ReadFrames(FrameReader reader, FixParseOptions? options)
 	{
 		while (true)
 		{
@@ -146,7 +145,7 @@ public static partial class FixMessages
 				if (error != null) throw new FormatException(error.ToString());
 				yield break;
 			}
-			if (!TryParseFrame(wire, out var message, out error, mode, options)) throw new FormatException(error!.ToString());
+			if (!TryParseFrame(wire, out var message, out error, options)) throw new FormatException(error!.ToString());
 			yield return message!;
 		}
 	}
@@ -158,8 +157,8 @@ public static partial class FixMessages
 		public byte[]? Bytes { get; }
 	}
 
-	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, FixParseMode mode, FixParseOptions? options)
-		=> frame.Bytes != null ? TryParseBytes(frame.Bytes, out message, out error, mode, options) : TryParseCore(frame.Text, out message, out error, mode, options);
+	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, FixParseOptions? options)
+		=> frame.Bytes != null ? TryParseBytes(frame.Bytes, out message, out error, options) : TryParseCore(frame.Text, out message, out error, options);
 
 	sealed class FrameReader
 	{

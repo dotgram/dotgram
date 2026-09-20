@@ -136,13 +136,29 @@ switch (message)
 
 ## Validation
 
-`FixParseMode.Strict`, the default, enforces the schema: required fields, the order and
-uniqueness of fields in groups, primitive syntax and code sets. Unknown tags and message
-types are rejected. `FixParseMode.Lenient` still checks the envelope, length/data pairs
-and group structure, but keeps unknown tags, unknown message types, reordered or repeated
-fields and malformed values.
+Reading and checking are two acts. `Parse` recognises the wire — framing, `BodyLength`,
+`CheckSum`, length/data pairs, group structure — and builds whatever it can read, keeping
+unknown tags, unknown message types, reordered or repeated fields and malformed values.
+Holding the result to the schema is then one call:
 
-Neither is a trading validator. Sequence numbers, session state and business rules are
+```csharp
+var wire    = "8=FIX.4.4\u00019=51\u000135=0\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000110=136\u0001";
+var message = FixMessages.Parse(wire);
+
+foreach (var finding in message.Validate())
+    Console.WriteLine(finding);   // Body/453[1] tag 452 at 187: InvalidValue: ...
+```
+
+`Validate()` answers with every finding, not the first, because a built message is fully
+known and every rule can be asked of it independently. A finding names its rule, the
+scope, the tag, the entry of the repeating group it is in, and where in the source it
+begins. A valid message answers with an empty array and allocates nothing.
+
+`message.Validate(validator)` checks against a `FixValidator` instead; the no-argument
+form is `Validate(FixValidator.Standard)`, which is FIX 4.4's schema as this package
+compiles it.
+
+It is not a trading validator. Sequence numbers, session state and business rules are
 the application's.
 
 ## Binary data

@@ -1,8 +1,11 @@
 # Validation as a layer over a built message (2026-09-20)
 
 D53: all FIX validation becomes a layer that works on an already-built message. This answers the
-four questions the architect put with it. No code is changed; the order stands — the slope first,
-then the intermediate array, then this.
+four questions the architect put with it.
+
+Written as a plan and kept as a record: §§1-6 are the reasoning, and where a decision moved after
+them the section says so above itself rather than being rewritten to have been right. §7 is what
+shipped, in two steps, on 2026-09-20.
 
 It closes the line the dictionary study drew: what is *read* and what is *checked* may both be
 run-time tables, and what is *constructed* — a class a tag, a factory arm, a message model — stays
@@ -52,7 +55,21 @@ has to be stated per scope, and this is the shape:
 | header | at the first field that is not a header member — unchanged |
 | trailer | at `10`, `89`, `93` — unchanged, already special-cased |
 | body | nowhere: **every field between the header and the trailer belongs to the body**, known or not, permitted or not |
-| group entry | at the delimiter, or at a tag that is neither a member of the entry nor of an enclosing scope — **membership stays**, because there is nothing else that can end an entry |
+| group entry, under the body | at the delimiter, or at a tag an **enclosing** scope claims — membership stays, because there is nothing else that can end an entry |
+| group entry, in the header | at the delimiter, or at any tag the entry does not claim — as the header itself does |
+
+**The last two rows were one row, and the one row was wrong.** Written as "neither a member of
+the entry nor of an enclosing scope" it silently assumes every enclosing scope is open, and for a
+group in the *header* the body is not: it is a sibling read afterwards, so its membership can
+claim nothing yet. `NoHops` is such a group, it stands in the standard header of every message,
+and under the single rule its last entry ran on and swallowed the body — `NoPartyIDs`, `NoLegs`,
+`NoUnderlyings` and `NoMDEntries` stopped being cut into entries and lay flat inside a hop.
+
+Nothing in the suite said so. The fixtures still parsed, and the round-trip test still passed,
+because `AllFields` flattens the tree and a group that was never cut flattens to the same
+sequence. What caught it was a count: a test that asserts 91 distinct group definitions are
+reached across the fixtures answered 26. That is the whole argument for counting something a
+change is not about — the assertion that failed was the one nobody wrote for this.
 
 So construction keeps exactly one use of the schema, and it keeps it where no policy can replace
 it. The body's membership check disappears and "this field is not permitted here" becomes a
@@ -70,6 +87,15 @@ Cheap for a trading session, where a rejected message is an event; not free for 
 tool, where it may be most of the input. Worth naming rather than discovering.
 
 ## 2. A method on the message, or a validator object
+
+> **Superseded by D69 (2026-09-20).** Igor set the form from above: validation is a method that
+> each message is asked. The objection below survived inside it rather than losing — the method
+> *takes* the validator, so the dictionary still lives in one object that is loaded once and read
+> many times, and the no-argument form needs no global state because the shared instance is built
+> from our own compiled tables. What is shipped is `message.Validate()` and
+> `message.Validate(FixValidator)`, with `FixValidator.Standard` for the empty form; the method on
+> the validator is internal, so there is one public way and it reads as the consumer says it. The
+> rest of this section is the reasoning that shaped the parameter, and is kept for that.
 
 **A validator object**, and the dictionary is why. A dictionary is loaded once and read many
 times — QuickFIX's own is about a megabyte of XML — so it has to live somewhere that is not a
@@ -166,7 +192,43 @@ they arrive as one string.
 So a finding is at least: the rule, the path (scope, and the group entry's index where there is
 one), the tag, the position in the source, and what is wrong.
 
-## 7. Still open
+## 7. The break, as a list
+
+Landed in two steps: 1a put the layer beside the reader with nothing else changed; 1b took
+`FixParseMode` out and made construction unconditional. What follows is the second step's
+behaviour change, and it is held by `FixValidatorTests.What_the_strict_mode_refused_is_now_built_and_reported`
+and by the rewritten cases in `Fix44Tests` — every row here is a test, not a claim.
+
+**Gone from the API.** `FixParseMode`; the `mode` parameter of `FixMessages.Parse`, `TryParse`,
+`ParseLog` and `ReadMessages` in every form; `FixParseOptions(FixParseMode)` and
+`FixParseOptions.Mode`. The same calls without it do what `Lenient` did, and
+`message.Validate()` does what `Strict` checked.
+
+**Now built and reported instead of refused.** A required field absent; a required component with
+none of its fields; a value outside its type or code set; a tag twice in one scope; a tag the
+schema does not define; a tag the schema defines but not in that scope; a group's fields out of
+the schema order; an unknown `MsgType` (which builds as `CustomFixMessage`); `MessageEncoding`
+absent where an `Encoded` field is present.
+
+**Still refused, and the line is not arbitrary.** Framing, `BodyLength`, `CheckSum`, a field the
+parser could not read, a length/data pair that does not measure its data, a `NumInGroup` that
+sizes an array past the fields left, and a group entry that does not begin with its delimiter.
+All of these are how the reader finds where a message *ends*; none of them can wait for a message
+to exist.
+
+**One rule of the layer was nearly dead before the move, and still is.** `GroupCountMismatch` has
+exactly one reachable branch — a required group that announces no entries. A count that disagrees
+with the entries after it cannot reach the layer at all, because the entries are cut *by* the
+count and the wire is turned away first. The check stood in the strict mode from the beginning and
+could only ever fire on that one case. Seeing it took moving it.
+
+**What it costs, measured rather than guessed:** nothing for a message that was valid anyway. For
+a message the strict mode used to refuse, the whole construction is now paid before anything is
+reported — about 2,500 B of `FixNode[]` for an ordinary order. Cheap for a trading session, where
+a rejected message is an event; not free for a log-scanning tool, where it may be most of the
+input.
+
+## 8. Still open
 
 1. A retained validator over a dictionary holds the dictionary for as long as it lives. That is
    the point, and it is also the same retention question as everything else this package holds

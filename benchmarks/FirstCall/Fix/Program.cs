@@ -124,8 +124,22 @@ switch (mode)
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 
-		var parse = messages.GetMethod("Parse", [typeof(string), finance.GetType("DotGram.Finance.Fix.FixParseMode")!])!;
-		var call  = () => parse.Invoke(null, [order, Enum.ToObject(finance.GetType("DotGram.Finance.Fix.FixParseMode")!, 0)])!;
+		// A build before D53 takes a FixParseMode and checks the schema inside the parse; a build
+		// after it takes none and the schema is a separate call. Both are asked for the work the
+		// other does, so what this harness times is the same on either side of the change.
+		var parseMode = finance.GetType("DotGram.Finance.Fix.FixParseMode");
+		var parse     = messages.GetMethod("Parse", parseMode == null ? [typeof(string)] : [typeof(string), parseMode])!;
+		var arguments = parseMode == null ? new object[] { order } : [order, Enum.ToObject(parseMode, 0)];
+		var validate  = parseMode != null ? null : finance.GetType("DotGram.Finance.Fix.FixMessage")!.GetMethod("Validate", Type.EmptyTypes)!;
+
+		var call = () =>
+		{
+			var message = parse.Invoke(null, arguments)!;
+
+			validate?.Invoke(message, null);
+
+			return message;
+		};
 
 		var first = Guard(call);
 

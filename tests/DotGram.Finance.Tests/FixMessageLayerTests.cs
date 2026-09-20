@@ -22,12 +22,11 @@ public sealed class FixMessageLayerTests
 	{
 		var wire = FixFixtures.Wire("W", "55=ABC|262=REQ|268=" + count + "|269=0|270=1|271=1|");
 
-		foreach (var mode in new[] { FixParseMode.Strict, FixParseMode.Lenient })
-		{
-			Assert.False(FixMessages.TryParse(wire, out _, out var error, mode));
-			Assert.Equal(268, error!.Tag);
-			Assert.Contains("NumInGroup", error.Reason);
-		}
+		// A count sizes an array before anything is read into it, so this is recognition and
+		// stays a refusal however the schema is read.
+		Assert.False(FixMessages.TryParse(wire, out _, out var error));
+		Assert.Equal(268, error!.Tag);
+		Assert.Contains("NumInGroup", error.Reason);
 	}
 
 	/// <summary>The mask answers for standard tags; any other tag is looked for among the fields.</summary>
@@ -41,10 +40,10 @@ public sealed class FixMessageLayerTests
 
 		seen[55 >> 6] |= 1UL << (55 & 63);
 
-		Assert.True(FixValidation.Has(scope, seen, 55));
-		Assert.False(FixValidation.Has(scope, seen, 56));
-		Assert.True(FixValidation.Has(scope, seen, 5000));
-		Assert.False(FixValidation.Has(scope, seen, 5001));
-		Assert.False(FixValidation.Has(scope, seen, 957));
+		Assert.True(FixValidator.Has(scope, seen, 55));
+		Assert.False(FixValidator.Has(scope, seen, 56));
+		Assert.True(FixValidator.Has(scope, seen, 5000));
+		Assert.False(FixValidator.Has(scope, seen, 5001));
+		Assert.False(FixValidator.Has(scope, seen, 957));
 	}
 }

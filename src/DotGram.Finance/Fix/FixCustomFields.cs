@@ -24,9 +24,10 @@ namespace DotGram.Finance.Fix;
 /// </para>
 /// <para>
 /// <strong>This builds field objects; it does not make a tag known to the message layer.</strong>
-/// <see cref="FixMessages"/> reads the schema, the schema is FIX 4.4's, and a tag outside it is
-/// still refused by <see cref="FixParseMode.Strict"/> whoever built the field. Reading a
-/// counterparty's dictionary is a separate question.
+/// The schema is FIX 4.4's, so a tag outside it is still a finding of
+/// <see cref="FixMessage.Validate()"/> whoever built the field — the message carries it, and the
+/// standard schema has nowhere to put it. Reading a counterparty's dictionary is a separate
+/// question.
 /// </para>
 /// </remarks>
 public abstract class FixCustomFields

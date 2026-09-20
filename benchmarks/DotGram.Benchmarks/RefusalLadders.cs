@@ -133,14 +133,14 @@ internal static class RefusalLadders
 		yield return R("UriReference", "an unclosed IPv6 literal", "groups", 4096, n => "http://[" + Copies("1:", n), static t => UriReference.TryParse(t, out _));
 		yield return R("UriReference", "a long host, then a bracket", "characters", 4096, n => "https://" + new string('a', n) + "[", static t => UriReference.TryParse(t, out _));
 
-		// ── FIX: the message layer, lenient, over a head that grows and a wire cut where a field or the checksum would end ──
+		// ── FIX: the message layer over a head that grows and a wire cut where a field or the checksum would end ──
 		yield return R("FixMessages.TryParse", "fields, then a checksum cut short", "fields", 4096, n =>
 		{
 			var body = "35=3" + soh + Copies("58=text" + soh, n);
 
 			return "8=FIX.4.4" + soh + "9=" + body.Length + soh + body + "10=";
-		}, static t => FixMessages.TryParse(t, out _, out _, new FixParseOptions(FixParseMode.Lenient)));
-		yield return R("FixMessages.TryParse", "one value never terminated", "characters", 4096, n => "8=FIX.4.4" + soh + "9=5" + soh + "35=3" + soh + "58=" + new string('a', n), static t => FixMessages.TryParse(t, out _, out _, new FixParseOptions(FixParseMode.Lenient)));
+		}, static t => FixMessages.TryParse(t, out _, out _, new FixParseOptions()));
+		yield return R("FixMessages.TryParse", "one value never terminated", "characters", 4096, n => "8=FIX.4.4" + soh + "9=5" + soh + "35=3" + soh + "58=" + new string('a', n), static t => FixMessages.TryParse(t, out _, out _, new FixParseOptions()));
 
 		// ── the feeds ──
 		yield return R("FeedReader", "records, then a cut record", "records", 4096, n => "H|2026-08-13|ACME\n" + Copies("R|AAPL|100|2026-08-12\n", n) + "R|AAPL|100|", static t => FeedAccepts(t));

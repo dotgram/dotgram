@@ -7,15 +7,15 @@ namespace DotGram.Finance.Fix;
 public static partial class FixMessages
 {
 	/// <summary>Parse a lossless octet string: each character must be in U+0000..U+00FF.</summary>
-	public static FixMessage Parse(string input, FixParseMode mode = FixParseMode.Strict)
+	public static FixMessage Parse(string input)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		if (TryParse(input, out var message, out var error, mode)) return message!;
+		if (TryParse(input, out var message, out var error)) return message!;
 		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Copies the contiguous input once so the result owns its source.</summary>
-	public static FixMessage Parse(ReadOnlySpan<char> input, FixParseMode mode = FixParseMode.Strict) => Parse(input.ToString(), mode);
+	public static FixMessage Parse(ReadOnlySpan<char> input) => Parse(input.ToString());
 
 	/// <summary>
 	/// Parses one complete message under the given options.
@@ -53,12 +53,12 @@ public static partial class FixMessages
 	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixParseOptions options)
 	{
 		if (options == null) throw new ArgumentNullException(nameof(options));
-		return TryParseCore(input, out message, out error, options.Mode, options);
+		return TryParseCore(input, out message, out error, options);
 	}
 
 	/// <summary>Returns false and diagnostic context for malformed or incomplete input.</summary>
-	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict)
-		=> TryParseCore(input, out message, out error, mode, null);
+	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error)
+		=> TryParseCore(input, out message, out error, null);
 
 	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
 	{
@@ -95,12 +95,11 @@ public static partial class FixMessages
 		return true;
 	}
 
-	static bool TryParseCore(string? input, out FixMessage? message, out FixParseError? error, FixParseMode mode, FixParseOptions? options)
+	static bool TryParseCore(string? input, out FixMessage? message, out FixParseError? error, FixParseOptions? options)
 	{
 		message = null;
 		error = null;
 		if (input == null) return Fail(0, null, null, "Input is null.", out error);
-		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) return Fail(0, null, null, "Unknown parsing mode.", out error);
 		var framing = options?.Framing ?? FixFraming.Wire;
 		if (!Envelope(input, framing, null, out var type, out error)) return false;
 		var fields = framing == FixFraming.Log
@@ -109,7 +108,7 @@ public static partial class FixMessages
 		if (!CheckSyntax(fields, out error))
 			return false;
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
-		return FixSemantics.TryBuild(input, type, Nodes(input, fields, Custom(options)), mode, options, out message, out error);
+		return FixSemantics.TryBuild(input, type, Nodes(input, fields, Custom(options)), options, out message, out error);
 	}
 
 	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
@@ -147,7 +146,7 @@ public static partial class FixMessages
 		return checksum == expected || Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
 	}
 
-	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixParseMode mode, FixParseOptions? options)
+	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixParseOptions? options)
 	{
 		message = null;
 		var framing = options?.Framing ?? FixFraming.Wire;
@@ -159,11 +158,11 @@ public static partial class FixMessages
 			return false;
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
 		var wire = FixConvert.Text(input);
-		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields, Custom(options)), mode, options, out message, out error);
+		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields, Custom(options)), options, out message, out error);
 	}
 
 	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
-	public static FixMessage ParseLog(string input, FixParseMode mode = FixParseMode.Strict) => Parse(input, new FixParseOptions(FixFraming.Log, mode));
+	public static FixMessage ParseLog(string input) => Parse(input, new FixParseOptions(FixFraming.Log));
 
 	/// <summary>
 	/// Tries to parse one complete wire message from a copy of the input.
@@ -172,9 +171,9 @@ public static partial class FixMessages
 	/// <remarks>
 	/// The message keeps its source, so the input is copied into a string once.
 	/// </remarks>
-	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict) => TryParse(input.ToString(), out message, out error, mode);
+	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error) => TryParse(input.ToString(), out message, out error);
 
-	/// <summary>Validate and build one message from fields already parsed from the supplied source.</summary>
+	/// <summary>Build one message from fields already parsed from the supplied source.</summary>
 	public static FixMessage Build(string source, FixField[] fields, FixParseOptions? options = null)
 	{
 		if (TryBuild(source, fields, out var message, out var error, options)) return message!;
@@ -182,7 +181,7 @@ public static partial class FixMessages
 	}
 
 	/// <summary>
-	/// Tries to validate and build one message from fields already parsed from the supplied source.
+	/// Tries to build one message from fields already parsed from the supplied source.
 	/// </summary>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	public static bool TryBuild(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixParseOptions? options = null)
@@ -220,7 +219,7 @@ public static partial class FixMessages
 		}
 		if (position != source.Length) return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
 		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error)) return false;
-		return FixSemantics.TryBuild(source, type, Nodes(source, fields, Custom(options)), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
+		return FixSemantics.TryBuild(source, type, Nodes(source, fields, Custom(options)), options, out message, out error);
 	}
 
 	// Whether text is exactly the decimal digits of tag, as ToString writes them: no sign, and
@@ -321,158 +320,4 @@ readonly struct SchemaRef(int id, bool required, int kind)
 	public readonly int  Id       = id;
 	public readonly bool Required = required;
 	public readonly int  Kind     = kind;
-}
-
-static class FixValidation
-{
-	public static bool Validate(FixMessage message, FixParseMode mode, FixParseOptions? options, out FixParseError? error)
-	{
-		error = null;
-		if (mode == FixParseMode.Strict && message.Header.GetField(347) == null && (Encoded(message.Header) || Encoded(message)))
-			return Missing(message.Header, message.MessageType, 347, "MessageEncoding is required when Encoded fields are present.", out error);
-		if (!Scope(message.Header, FixSchema.Component(1024), message.MessageType, mode, options, out error)) return false;
-		if (!Scope(message.Trailer, FixSchema.Component(1025), message.MessageType, mode, options, out error)) return false;
-		var schema = FixSchema.Message(message.MessageType);
-		return Scope(message, schema, message.MessageType, mode, options, out error);
-	}
-
-	static bool Encoded(FixFieldSet scope)
-	{
-		foreach (var node in scope.Nodes)
-		{
-			if (FixSchema.RequiresEncoding(node.Tag)) return true;
-			if (node.Entries != null)
-				foreach (var entry in node.Entries)
-					if (Encoded(entry)) return true;
-		}
-		return false;
-	}
-
-	static bool Scope(FixFieldSet scope, SchemaRef[] schema, string type, FixParseMode mode, FixParseOptions? options, out FixParseError? error, bool ordered = false)
-	{
-		error = null;
-
-		Span<ulong> seen = stackalloc ulong[15];
-		var           previousRank = -1;
-		HashSet<int>? extendedSeen = null;
-
-		seen.Clear();
-
-		for (var i = 0; i < scope.Nodes.Length; i++)
-		{
-			var node  = scope.Nodes[i];
-			var field = node.Field(scope.Source);
-
-			if (ordered && mode == FixParseMode.Strict)
-			{
-				var ordinal = 0;
-				var rank    = Rank(schema, node.Tag, ref ordinal);
-
-				switch (rank)
-				{
-					case >= 0 when rank < previousRank: return Fail(field, type, "Repeating group fields are out of schema order.", out error);
-					case >= 0                         : previousRank = rank; break;
-				}
-			}
-
-			if (node.Tag is < 957 and > 0)
-			{
-				var bit = 1UL << (node.Tag & 63);
-
-				if ((seen[node.Tag >> 6] & bit) != 0 && mode == FixParseMode.Strict)
-					return Fail(field, type, "Duplicate field in the same scope.", out error);
-
-				seen[node.Tag >> 6] |= bit;
-			}
-			else if (mode == FixParseMode.Strict && !(extendedSeen ??= new HashSet<int>()).Add(node.Tag))
-			{
-				return Fail(field, type, "Duplicate extension field in the same scope.", out error);
-			}
-
-			var lengthTag = FixSchema.LengthTag(node.Tag);
-
-			if (lengthTag != 0 && (i == 0 || scope.Nodes[i - 1].Tag != lengthTag || !scope.Nodes[i - 1].Field(scope.Source).TryGetInt64(out var count) || count != node.Length))
-				return Fail(field, type, "Data field must immediately follow its matching length field.", out error);
-
-			var dataTag = FixSchema.DataTag(node.Tag);
-
-			if (dataTag != 0 && (i + 1 == scope.Nodes.Length || scope.Nodes[i + 1].Tag != dataTag)) return Fail(field, type, "Length field must immediately precede its matching data field.", out error);
-			if (mode == FixParseMode.Strict && !FixPrimitives.Valid(field, FixSchema.Type(node.Tag), FixSchema.Codes(node.Tag))) return Fail(field, type, "Invalid FIX primitive value or code set value.", out error);
-		}
-		return References(scope, seen, schema, type, mode, options, out error);
-	}
-
-	// Whether a scope holds a tag. Its standard tags are in the mask its fields marked; any
-	// other tag is looked for among the fields themselves.
-	internal static bool Has(FixFieldSet scope, ReadOnlySpan<ulong> seen, int tag)
-	{
-		return tag is > 0 and < 957 ? (seen[tag >> 6] & 1UL << (tag & 63)) != 0 : scope.GetField(tag) != null;
-	}
-
-	static bool References(FixFieldSet scope, ReadOnlySpan<ulong> seen, SchemaRef[] schema, string type, FixParseMode mode, FixParseOptions? options, out FixParseError? error)
-	{
-		error = null;
-		foreach (var reference in schema)
-		{
-			if (reference.Kind == 1)
-			{
-				if (reference.Id is 1024 or 1025) continue;
-				var child = FixSchema.Component(reference.Id);
-				var present = Present(scope, seen, child);
-				if (mode == FixParseMode.Strict && reference.Required && !present) return Missing(scope, type, null, "Required component is missing.", out error);
-				if (present && !References(scope, seen, child, type, mode, options, out error)) return false;
-				continue;
-			}
-			var tag = reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id;
-			if (!Has(scope, seen, tag))
-			{
-				if (reference.Required && mode == FixParseMode.Strict) return Missing(scope, type, tag, "Required field is missing.", out error);
-				continue;
-			}
-			if (reference.Kind != 2) continue;
-			var field = scope.GetField(tag)!.Value;
-			var entries = scope.GetGroup(tag);
-			if (!field.TryGetInt64(out var count) || count != entries.Count || count < 0 || reference.Required && count == 0 && mode == FixParseMode.Strict) return Fail(field, type, "NumInGroup does not match the number of group entries.", out error);
-			foreach (var entry in entries)
-				if (!Scope(entry, FixSchema.Group(reference.Id), type, mode, options, out error, ordered: true)) return false;
-		}
-		return true;
-	}
-
-	static bool Present(FixFieldSet scope, ReadOnlySpan<ulong> seen, SchemaRef[] schema)
-	{
-		foreach (var reference in schema)
-			if (reference.Kind == 1 ? Present(scope, seen, FixSchema.Component(reference.Id)) : Has(scope, seen, reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id)) return true;
-		return false;
-	}
-
-	static int Rank(SchemaRef[] schema, int tag, ref int ordinal)
-	{
-		foreach (var reference in schema)
-		{
-			if (reference.Kind == 1)
-			{
-				var rank = Rank(FixSchema.Component(reference.Id), tag, ref ordinal);
-				if (rank >= 0) return rank;
-			}
-			else
-			{
-				if ((reference.Kind == 2 ? FixSchema.Counter(reference.Id) : reference.Id) == tag) return ordinal;
-				ordinal++;
-			}
-		}
-		return -1;
-	}
-
-	static bool Fail(FixFieldView field, string type, string reason, out FixParseError? error)
-	{
-		error = new FixParseError(field.ValuePosition, field.Tag, type, reason);
-		return false;
-	}
-
-	static bool Missing(FixFieldSet scope, string type, int? tag, string reason, out FixParseError? error)
-	{
-		error = new FixParseError(scope.Nodes.Length == 0 ? 0 : scope.Nodes[scope.Nodes.Length - 1].ValuePosition + scope.Nodes[scope.Nodes.Length - 1].Length + 1, tag, type, reason);
-		return false;
-	}
 }

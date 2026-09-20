@@ -28,7 +28,7 @@ public sealed class Fix44Tests
 	{
 		var original = FixMessages.Parse(wire);
 		var flat = original.AllFields.Select(f => new FixNode(f.Tag, f.Position, f.ValuePosition, f.Length)).ToArray();
-		Assert.True(FixSemantics.TryBuild(wire, original.MessageType, flat, FixParseMode.Strict, null, out var rebuilt, out var error), error?.ToString());
+		Assert.True(FixSemantics.TryBuild(wire, original.MessageType, flat, null, out var rebuilt, out var error), error?.ToString());
 		Assert.Equal(name, rebuilt!.GetType().Name);
 		Assert.Equal(original.AllFields.Select(f => f.Wire.ToString()), rebuilt.AllFields.Select(f => f.Wire.ToString()));
 		Compare(original.Header, rebuilt.Header);
@@ -90,27 +90,42 @@ public sealed class Fix44Tests
 		}
 	}
 
+	/// <summary>What breaks the schema builds, and the layer names it (D53).</summary>
 	[Theory]
-	[InlineData("1", "")]
-	[InlineData("0", "112=A|112=B|")]
-	[InlineData("A", "98=999|108=30|")]
-	[InlineData("D", "11=X|55=ABC|54=Z|60=20260915-12:00:00|38=1|40=1|")]
-	[InlineData("D", "11=X|55=ABC|54=1|60=20260230-12:00:00|38=1|40=1|")]
-	[InlineData("D", "11=X|453=2|448=P1|447=D|452=1|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|")]
-	public void Invalid_schema_is_rejected(string type, string body)
+	[InlineData("1", "", FixRule.RequiredFieldMissing)]
+	[InlineData("0", "112=A|112=B|", FixRule.DuplicateField)]
+	[InlineData("A", "98=999|108=30|", FixRule.InvalidValue)]
+	[InlineData("D", "11=X|55=ABC|54=Z|60=20260915-12:00:00|38=1|40=1|", FixRule.InvalidValue)]
+	[InlineData("D", "11=X|55=ABC|54=1|60=20260230-12:00:00|38=1|40=1|", FixRule.InvalidValue)]
+	public void Invalid_schema_builds_and_is_reported(string type, string body, FixRule rule)
 	{
-		Assert.False(FixMessages.TryParse(FixFixtures.Wire(type, body), out _, out var error));
+		Assert.True(FixMessages.TryParse(FixFixtures.Wire(type, body), out var message, out var error), error?.ToString());
+		Assert.Contains(message!.Validate(), f => f.Rule == rule);
+	}
+
+	/// <summary>A count that does not match the entries after it is still recognition.</summary>
+	[Fact]
+	public void A_group_with_fewer_entries_than_its_count_is_rejected()
+	{
+		var wire = FixFixtures.Wire("D", "11=X|453=2|448=P1|447=D|452=1|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
+
+		Assert.False(FixMessages.TryParse(wire, out _, out var error));
 		Assert.NotNull(error);
-		Assert.Equal(type, error.MessageType);
+		Assert.Equal("D", error.MessageType);
 	}
 
 	[Fact]
-	public void Lenient_preserves_unknown_fields_in_order()
+	public void Unknown_fields_are_preserved_in_order_and_reported()
 	{
 		var wire = FixFixtures.Wire("0", "9001=A|112=TEST|9002=B|");
-		Assert.False(FixMessages.TryParse(wire, out _, out _));
-		Assert.True(FixMessages.TryParse(wire, out var result, out var error, FixParseMode.Lenient), error?.ToString());
+
+		Assert.True(FixMessages.TryParse(wire, out var result, out var error), error?.ToString());
 		Assert.Equal(new[] { 9001, 112, 9002 }, result!.Fields.Select(f => f.Tag));
+
+		// The strict mode refused this message. The reader builds it and the layer names the tags.
+		Assert.Equal(
+			new[] { 9001, 9002 },
+			result.Validate().Where(f => f.Rule == FixRule.FieldNotInScope).Select(f => f.Tag!.Value));
 	}
 
 	[Fact]
@@ -139,10 +154,11 @@ public sealed class Fix44Tests
 	[InlineData("98=0|108=30|95=2|96=ABC|")]
 	[InlineData("98=0|108=30|95=999999999999999999999999|96=A|")]
 	[InlineData("98=0|108=30|96=A|")]
-	public void Invalid_length_data_pairs_fail_in_both_modes(string body)
+	public void Invalid_length_data_pairs_are_refused(string body)
 	{
-		foreach (var mode in new[] { FixParseMode.Strict, FixParseMode.Lenient })
-			Assert.False(FixMessages.TryParse(FixFixtures.Wire("A", body), out _, out _, mode));
+		// A length and the data it measures are how the reader knows where a field ends, so this
+		// stays a refusal and does not become a finding: there is no message to have one about.
+		Assert.False(FixMessages.TryParse(FixFixtures.Wire("A", body), out _, out _));
 	}
 
 	[Fact]
@@ -155,27 +171,31 @@ public sealed class Fix44Tests
 	public void Custom_fields_inside_groups_are_preserved()
 	{
 		var wire = FixFixtures.Wire("D", "11=ORDER|453=1|448=P1|9001=X|447=D|452=1|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
-		Assert.True(FixMessages.TryParse(wire, out var message, out var error, FixParseMode.Lenient), error?.ToString());
+		Assert.True(FixMessages.TryParse(wire, out var message, out var error), error?.ToString());
 		Assert.Equal("X", message!.GetGroup(453)[0].GetField(9001)!.Value.ToString());
 		Assert.Equal(wire, string.Concat(message.AllFields.Select(f => f.Tag.ToString(CultureInfo.InvariantCulture) + "=" + f.Value.ToString() + "\u0001")));
 	}
 
 	[Fact]
-	public void Strict_group_order_and_lenient_group_order_are_distinct()
+	public void Group_fields_out_of_the_schema_order_build_and_are_a_finding()
 	{
 		var wire = FixFixtures.Wire("D", "11=ORDER|453=1|448=P1|452=1|447=D|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
-		Assert.False(FixMessages.TryParse(wire, out _, out _));
-		Assert.True(FixMessages.TryParse(wire, out _, out var error, FixParseMode.Lenient), error?.ToString());
+
+		// The strict mode refused this message; the order of a group's fields is now a finding.
+		Assert.True(FixMessages.TryParse(wire, out var message, out var error), error?.ToString());
+		Assert.Contains(message!.Validate(), f => f.Rule == FixRule.FieldOutOfOrder && f.GroupTag == 453);
 	}
 
 	[Fact]
-	public void Vendor_message_types_have_a_lossless_lenient_result()
+	public void Vendor_message_types_have_a_lossless_result()
 	{
 		var wire = FixFixtures.Wire("U1", "9001=X|9002=Y|");
-		Assert.False(FixMessages.TryParse(wire, out _, out _));
-		Assert.True(FixMessages.TryParse(wire, out var result, out var error, FixParseMode.Lenient), error?.ToString());
+
+		// The strict mode refused an unknown MsgType; it is now a finding about a built message.
+		Assert.True(FixMessages.TryParse(wire, out var result, out var error), error?.ToString());
 		Assert.IsType<CustomFixMessage>(result);
 		Assert.Equal(wire, result!.OriginalWire);
+		Assert.Contains(result.Validate(), f => f.Rule == FixRule.UnknownMessageType);
 	}
 
 	[Fact]
@@ -187,7 +207,7 @@ public sealed class Fix44Tests
 		{
 			var body = new char[random.Next(1, 150)];
 			for (var i = 0; i < body.Length; i++) body[i] = alphabet[random.Next(alphabet.Length)];
-			FixMessages.TryParse(FixFixtures.Wire("0", new string(body)), out _, out _, FixParseMode.Lenient);
+			FixMessages.TryParse(FixFixtures.Wire("0", new string(body)), out _, out _);
 		}
 	}
 
@@ -195,17 +215,20 @@ public sealed class Fix44Tests
 	public void Unregistered_binary_pairs_are_not_inferred()
 	{
 		var wire = FixFixtures.Wire("0", "9000=3\u00019001=A\u0001B\u0001");
-		Assert.False(FixMessages.TryParse(wire, out _, out _, FixParseMode.Strict));
-		Assert.False(FixMessages.TryParse(wire, out _, out _, FixParseMode.Lenient));
+
+		// Nothing declares 9000 to measure 9001, so the SOH inside the value ends the field and
+		// the wire does not read. That is recognition, not schema, and stays a refusal.
+		Assert.False(FixMessages.TryParse(wire, out _, out _));
 	}
 
 	[Fact]
-	public void Encoded_fields_require_message_encoding_in_strict_mode()
+	public void Encoded_fields_without_message_encoding_are_a_finding()
 	{
 		var order = FixFixtures.Wire("D", "11=X|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|354=1|355=X|");
-		Assert.False(FixMessages.TryParse(order, out _, out var error));
-		Assert.Equal(347, error!.Tag);
-		Assert.True(FixMessages.TryParse(order, out _, out _, FixParseMode.Lenient));
+
+		// The strict mode refused this with tag 347; the layer names the same tag.
+		Assert.True(FixMessages.TryParse(order, out var message, out var error), error?.ToString());
+		Assert.Contains(message!.Validate(), f => f.Rule == FixRule.MessageEncodingMissing && f.Tag == 347);
 	}
 
 	[Fact]

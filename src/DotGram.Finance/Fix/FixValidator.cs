@@ -96,6 +96,10 @@ public sealed class FixValidator
 		var           previousRank = -1;
 		HashSet<int>? extended     = null;
 
+		// Where a message names a type the schema does not know there is nothing to be out of
+		// place against, and saying so of every field would bury the one finding that matters.
+		var members = schema.Length == 0 ? null : FixSemantics.Members(schema);
+
 		seen.Clear();
 
 		for (var i = 0; i < scope.Nodes.Length; i++)
@@ -146,6 +150,15 @@ public sealed class FixValidator
 			if (dataTag != 0 && (i + 1 == scope.Nodes.Length || scope.Nodes[i + 1].Tag != dataTag))
 				Add(ref found, Wrong(FixRule.LengthFieldNotBeforeData, where, field, groupTag, entryIndex,
 					$"A length field must immediately precede tag {dataTag}, which it measures."));
+
+			// Construction asks where a field goes and puts it in the scope it was written in;
+			// whether it belongs there is this question, and it is the one the strict mode used to
+			// answer by refusing to build the message at all.
+			if (members != null && !members.ContainsKey(node.Tag))
+				Add(ref found, Wrong(FixRule.FieldNotInScope, where, field, groupTag, entryIndex,
+					FixSchema.Type(node.Tag) == null
+						? "The schema defines no such tag."
+						: "The schema defines this tag, but not in this scope."));
 
 			if (!FixPrimitives.Valid(field, FixSchema.Type(node.Tag), FixSchema.Codes(node.Tag)))
 				Add(ref found, Wrong(FixRule.InvalidValue, where, field, groupTag, entryIndex,
@@ -235,7 +248,7 @@ public sealed class FixValidator
 
 	// A scope's standard tags are in the mask its fields marked; any other tag is looked for
 	// among the fields themselves.
-	static bool Has(FixFieldSet scope, ReadOnlySpan<ulong> seen, int tag) =>
+	internal static bool Has(FixFieldSet scope, ReadOnlySpan<ulong> seen, int tag) =>
 		tag is > 0 and < 957 ? (seen[tag >> 6] & 1UL << (tag & 63)) != 0 : scope.GetField(tag) != null;
 
 	static bool Present(FixFieldSet scope, ReadOnlySpan<ulong> seen, SchemaRef[] schema)

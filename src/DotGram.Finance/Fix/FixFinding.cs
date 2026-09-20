@@ -22,6 +22,9 @@ public enum FixRule
 	/// <summary>A tag appears twice in one scope.</summary>
 	DuplicateField,
 
+	/// <summary>The schema does not place this tag in the scope the message puts it in.</summary>
+	FieldNotInScope,
+
 	/// <summary>The fields of a group entry are not in the order the schema gives them.</summary>
 	FieldOutOfOrder,
 

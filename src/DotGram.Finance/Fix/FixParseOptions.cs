@@ -6,25 +6,22 @@ namespace DotGram.Finance.Fix;
 public sealed class FixParseOptions
 {
 	/// <summary>
-	/// Reads wire framing under the given validation policy.
+	/// Reads wire framing with the standard length/data dictionary.
 	/// </summary>
-	public FixParseOptions(FixParseMode mode = FixParseMode.Strict) : this(FixFraming.Wire, mode) { }
+	public FixParseOptions() : this(FixFraming.Wire) { }
 
 	/// <summary>
-	/// Reads the given framing under the given validation policy.
+	/// Reads the given framing.
 	/// </summary>
 	/// <param name="framing">Wire framing for SOH-separated input, log framing for a lossless pipe rendering.</param>
-	/// <param name="mode">The validation policy applied after wire recognition.</param>
 	/// <param name="fieldOptions">Null uses the standard length/data dictionary.</param>
-	public FixParseOptions(FixFraming framing, FixParseMode mode = FixParseMode.Strict, FixFieldOptions? fieldOptions = null)
+	public FixParseOptions(FixFraming framing, FixFieldOptions? fieldOptions = null)
 	{
-		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) throw new ArgumentOutOfRangeException(nameof(mode));
 		if (framing != FixFraming.Wire && framing != FixFraming.Log)
 			throw new ArgumentOutOfRangeException(nameof(framing));
 
 		Framing      = framing;
 		FieldOptions = fieldOptions ?? FixFieldOptions.Default;
-		Mode         = mode;
 	}
 
 	/// <summary>
@@ -35,8 +32,4 @@ public sealed class FixParseOptions
 	/// How the input separates one field from the next.
 	/// </summary>
 	public FixFraming      Framing      { get; }
-	/// <summary>
-	/// The validation policy applied after recognition.
-	/// </summary>
-	public FixParseMode    Mode         { get; }
 }

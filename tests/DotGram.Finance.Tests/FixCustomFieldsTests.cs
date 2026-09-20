@@ -113,7 +113,7 @@ public sealed class FixCustomFieldsTests
 		// the other ours.
 		var venue  = new Venue();
 		var wire   = Framed("35=0|49=A|56=B|34=1|52=20260919-12:00:00|25000=3|25001=xyz|");
-		var read   = FixMessages.TryParse(wire, out _, out var error, new FixParseOptions(FixFraming.Wire, FixParseMode.Lenient, Options(venue, pairs: true)));
+		var read   = FixMessages.TryParse(wire, out _, out var error, new FixParseOptions(FixFraming.Wire, Options(venue, pairs: true)));
 
 		Assert.True(read, error?.Reason);
 		Assert.Contains("char 25000", venue.Asked);

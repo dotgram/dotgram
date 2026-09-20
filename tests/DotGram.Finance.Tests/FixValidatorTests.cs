@@ -33,13 +33,10 @@ public sealed class FixValidatorTests
 		return head + fields + "10=" + (sum % 256).ToString("D3") + "\u0001";
 	}
 
-	/// <summary>Built leniently, because what is being tested is the layer and not the building.</summary>
+	/// <summary>Built, which is now unconditional: the schema is read by the layer, not the reader.</summary>
 	static FixMessage Message(string body)
 	{
-		Assert.True(
-			FixMessages.TryParse(Framed(body), out var message, out var error,
-				new FixParseOptions(FixFraming.Wire, FixParseMode.Lenient)),
-			error?.Reason);
+		Assert.True(FixMessages.TryParse(Framed(body), out var message, out var error), error?.Reason);
 
 		return message!;
 	}
@@ -189,30 +186,57 @@ public sealed class FixValidatorTests
 	}
 
 	/// <summary>
-	/// The move itself: what the strict mode refuses, the layer finds.
+	/// The break, as a list: what the strict mode refused, the reader now builds and the layer
+	/// reports.
 	/// </summary>
 	/// <remarks>
-	/// This is the assertion that makes D53 safe to land in two steps. Until building stops
-	/// refusing (1b), the strict mode and the layer are two readings of one schema, and they must
-	/// agree about every message: anything the mode turns away, the layer has something to say
-	/// about.
+	/// <para>
+	/// Every row here is a message that <c>FixParseMode.Strict</c> turned away and that
+	/// <c>FixMessages.Parse</c> now returns. That is the behaviour change of D53, and this is the
+	/// assertion that it lost nothing: the reader stopped refusing and the layer started saying,
+	/// about the same input, with a rule a caller can act on.
+	/// </para>
+	/// <para>
+	/// What is NOT here is as much of the statement as what is. Recognition still refuses:
+	/// framing, <c>BodyLength</c>, <c>CheckSum</c>, a field the parser could not read, a
+	/// length/data pair that does not measure, a <c>NumInGroup</c> that sizes an array past the
+	/// fields left, and a group entry that does not begin with its delimiter. Those are how the
+	/// reader finds where a message ends, so they cannot wait for one to exist.
+	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("a required field is gone", Header, "21=1|55=AAPL|54=1|60=20260920-12:00:00|38=100|40=2|44=150.25|59=0|")]
-	[InlineData("a required component is empty", Header, "11=ORDER123|21=1|54=1|60=20260920-12:00:00|38=100|40=2|44=150.25|59=0|")]
-	[InlineData("a value is not of its code set", Header, "11=ORDER123|21=1|55=AAPL|54=Z|60=20260920-12:00:00|38=100|40=2|44=150.25|59=0|")]
-	[InlineData("a tag appears twice", Header, Order + "59=0|")]
-	public void What_the_strict_mode_refuses_the_layer_finds(string shape, string header, string body)
+	[InlineData("a required field is gone", FixRule.RequiredFieldMissing,
+		"21=1|55=AAPL|54=1|60=20260920-12:00:00|38=100|40=2|44=150.25|59=0|")]
+	[InlineData("a required component is empty", FixRule.RequiredComponentMissing,
+		"11=ORDER123|21=1|54=1|60=20260920-12:00:00|38=100|40=2|44=150.25|59=0|")]
+	[InlineData("a value is not of its code set", FixRule.InvalidValue,
+		"11=ORDER123|21=1|55=AAPL|54=Z|60=20260920-12:00:00|38=100|40=2|44=150.25|59=0|")]
+	[InlineData("a tag appears twice", FixRule.DuplicateField, Order + "59=0|")]
+	[InlineData("a tag the schema does not define", FixRule.FieldNotInScope, Order + "9001=X|")]
+	[InlineData("a tag the schema defines elsewhere", FixRule.FieldNotInScope, Order + "269=0|")]
+	[InlineData("a group's fields are out of order", FixRule.FieldOutOfOrder,
+		Order + "453=1|448=A|452=1|447=D|")]
+	public void What_the_strict_mode_refused_is_now_built_and_reported(string shape, FixRule rule, string body)
 	{
-		var wire = Framed(header + body);
+		// Message() asserts that it builds, which is the half of the break the reader owns.
+		var found = Message(Header + body).Validate();
 
-		var strict = FixMessages.TryParse(wire, out _, out var error, new FixParseOptions(FixParseMode.Strict));
+		Assert.True(
+			Array.Exists(found, one => one.Rule == rule),
+			$"{shape}: expected {rule}, got [{string.Join("; ", found)}].");
+	}
 
-		Assert.False(strict, $"{shape}: the strict mode accepted it, so there is nothing to compare.");
+	/// <summary>An unknown message type, which the strict mode refused before a message existed.</summary>
+	[Fact]
+	public void An_unknown_message_type_is_built_and_reported()
+	{
+		var message = Message("35=ZZ|49=S|56=T|34=1|52=20260920-12:00:00|");
 
-		var found = Message(header + body).Validate();
+		Assert.IsType<CustomFixMessage>(message);
+		Assert.Contains(message.Validate(), one => one.Rule == FixRule.UnknownMessageType);
 
-		Assert.True(found.Length > 0,
-			$"{shape}: the strict mode refused it ({error!.Reason}) and the layer found nothing.");
+		// And nothing else: there is no schema to be out of place against, so saying so of every
+		// field would bury the one finding that matters.
+		Assert.DoesNotContain(message.Validate(), one => one.Rule == FixRule.FieldNotInScope);
 	}
 }
