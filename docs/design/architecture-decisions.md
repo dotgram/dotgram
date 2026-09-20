@@ -4912,3 +4912,23 @@ than by a sum of capacities, so the bound belongs to the tenant and not to the s
 quench matters far more for it, a quiet thread otherwise holding a whole message's nodes instead of
 some empty arrays. D34's seam living in the shape is what makes that automatic for a tenant that
 has not thought about it.
+
+## D54. D36 withdrawn by its own number, and a bias found in the form that withdrew it
+
+Measured in the form that does not depend on the machine being quiet — six rounds, three arms taken
+in turn, on the row where 107 of 194 walks merge: with merging 17,928 ns, without it 18,040, and
+the same build as a third arm 18,040. **Merging is worth 0.6%, and so is the floor.** Zero within
+the spread is what expr undertook to withdraw on, and the change is out (`6ebdbfa7`): the emitter's
+edit, the tests that held it, and the merged call in the snapshot. What stays is the guard naming
+two values in that snapshot, useful whether one walk or several serve it, and the design with the
+numbers written into it so that the next attempt starts from them. The mechanism was real — 107 of
+194 did merge — and the walks it removes are simply not where this reading spends its time.
+
+**And the method finding is worth more than the result.** The first arm of a round is
+systematically faster than the two that follow, and the second and third agree to the nanosecond.
+So the form has a positional bias, and a floor taken as "the same build as a third arm" measures
+the position rather than the floor. It was seen only because an untouched arm and a changed one
+landed on one number. **The rule: the order of the arms is rotated between rounds.** This is a
+property of the form, not of one measurement, so it reaches back: every number taken in this form
+today is to be re-read with it, the clearing of the value store among them, where there was no
+third arm at all and the figure attributed to the flags should be read again.
