@@ -3348,3 +3348,35 @@ direct pair of builds. expr's two models of the same thing said 126 and 211, and
 erred the same way. A clear is the kind of cost a model underestimates by five to nine times,
 because what it costs is not instructions. The rule both have taken, and it belongs here: an
 anatomy carries no modelled number without a measured one beside it.
+
+**D31's third path, priced (expr, `docs/design/lazy-kinds-cost-2026-09-20.md`, `dcef8892`), and the
+price decides it.** Cutting on demand is not a helper added to the reader: over a split grammar the
+kinds are a `char[]` and the reader reads them as a span, which is why there is one rendering and
+it costs nothing. Making the end of the input a *question* rather than a length is a property of
+the machine, chosen once per machine, so a grammar with positional forms over lazy kinds is
+rendered twice. Two ways round it were tried and both fail: a span refreshed after lexing more
+does not reach the recursion's copies, and an array sized to the input and filled lazily cannot let
+the reader tell "not cut yet" from "did not match", which is a wrong answer rather than a slow one.
+
+Measured in that tree: the reader and the walk are 33% and 12% of T-SQL's emitted code (14.17 MB),
+31% and 28% of SQL:2023's (8.56), 26% and 33% of the expression language's (1.87). A second
+rendering adds about as much again: **+44% and some 6.3 MB for T-SQL**, +59% for the other two.
+The ratio is not an estimate — `DotGram.Examples.Feeds.StockCountReader` already carries both
+renderings of one grammar. And the generator is the slowest thing that builds the solution, so a
+second rendering of the reader and the walk is close to a second pass of what takes the time in it,
+paid by every consumer on every build, for a symptom only a host reading from a position feels.
+
+**So the third path is refused as the general answer**, and the choice is between keeping the
+hidden cache and taking `Over`. My recommendation to Igor is to keep the cache. Its defect is
+found, fixed and covered by a test; a loop is linear today; and `Over`'s cost is not the type but
+*where the type is not*: it can exist only over kinds and only over a string, so adding a `find` to
+a grammar would delete a public type from a consumer's API. A public shape that follows an internal
+analysis is a worse hazard than a hidden mechanism with a test on it. `Over` is revisited when a
+consumer needs a reading it controls, rather than to cure a square that only our own tests have
+ever met.
+
+**What lands regardless: the refusal.** A form that need not reach the end is refused by what it
+does not read, which is a defect in any outcome. The positional form ends its tokens at `Stopped`,
+as the window form already does. expr takes it next, `ScriptScalingTests` stays on the static
+positional calls and is not rewritten. The single short reading out of a huge text stays as it is,
+known and written down: it is the one thing only lazy cutting would fix, and it does not buy 6.3 MB.
