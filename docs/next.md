@@ -24474,3 +24474,42 @@ these counts can see — allocation, collection, the arena's growth — or in th
 from an instrumented build cannot tell those apart, and a time from one is not worth publishing.
 What is settled is the shape of the question: a product is found by dividing by n(n+1) at two or
 three sizes, and this case answers no.
+
+## The same parentheses, one grammar further: a cube, exactly
+
+All four quadratic SQL rows of the stand's audit are one case, nested parentheses, in two grammars
+and two entry points; only SQL:2023's was counted, where three rules came to 1,056 = 32 × 33. The
+steepest row of the whole audit is T-SQL's search condition at 2.68, and counting it says why the
+exponent is not two. `(`×n before `a = 1`, never closed, through `TryParseSearchCondition`:
+
+| levels | calls | refusals | given back |
+| ---: | ---: | ---: | ---: |
+| 8 | 5,042 | 4,344 | 192 |
+| 16 | 22,818 | 21,480 | 384 |
+| 32 | 129,538 | 126,920 | 768 |
+| 64 | 857,026 | 851,848 | 1,536 |
+
+Calls multiply by 4.5, 5.7, 6.6 at each doubling — past four, and still climbing, so not a square.
+Per rule it is exact, and three different shapes sit in the one reading:
+
+| rule | 8 | 16 | 32 | 64 | is exactly |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `TSqlQueryExpression`, `Sql92_QueryPrimary` | 960 | 6,528 | 47,872 | 366,080 | 4/3 · n(n+1)(n+2) |
+| `TSqlSubquery`, `TSqlQuerySpecification` | 288 | 1,088 | 4,224 | 16,640 | 4 · n(n+1) |
+| `TSqlValueExpression`, `ValuePrimary`, `PrimaryCore` | 324 | 1,156 | 4,356 | 16,900 | 4 · (n+1)² |
+
+Not "about": the ratio is 1.0000 at every size for each row.
+
+So the product is there — the square is the same arithmetic SQL:2023's parentheses showed, four
+times over — but it is not the top term. The query expression is entered a *third* power of the
+depth, and 4/3 · n(n+1)(n+2) is eight times the number of ways to choose three of the levels, which
+is what a rule re-reading a rule that re-reads comes to. Two nested ambiguous choices make a square;
+three make a cube, and T-SQL's query expression is under one more than SQL:2023's.
+
+Nothing is materialized here at all — the listing loop runs zero times at every size, because the
+reading refuses — so the whole of it is re-reading, and the 1,536 records given back at 64 levels
+are linear beside it.
+
+What this settles for the audit: the sixteen quadratic rows need not be one power, even when they
+are one case. What removes a cube is what removes a square, a memory of a rule's refusal at a
+position, and it removes more of it.
