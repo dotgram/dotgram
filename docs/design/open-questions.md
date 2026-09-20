@@ -99,6 +99,22 @@ Not re-run here. A coherence check that costs nothing: §3's static table was ta
 definition and says 195 of 654 rules; if today's counting build reports the same rule set, the two
 are one reading and the 5,607 was the loose one.
 
+**The coherence check answered the other way (sql-39, `2912486e`).** The counting build settles 115
+of the 651 rules that write a record; §3 says 195 of 654. So it is §3's static table that was taken
+under the loose definition, not the dynamic count, and the 5,607 to 4,130 is that same tightening:
+80 rules leave because a rule is settled only where its every valued call is settled too. Two
+consequences worth writing down rather than fixing tonight.
+
+- **§3 is the table the next reader will quote**, and the journal already quotes it — "static reach:
+  T-SQL 26% of its constructions (195 of 654 rules), SQL:2023 7%". Both should say, where they
+  stand, that the reach is counted the loose way. Recomputing §3 under the fixpoint is an hour and
+  changes no decision today, since the shelving now rests on the dynamic count; the hour is worth
+  spending when the design is next picked up, which is the moment the number has to be right.
+- **The advice this file gave about SQL:2023 survives, and for a stated reason.** Q1 said to quote
+  §3's static figure as the ceiling rather than the dynamic zero. A loose definition overstates the
+  reach, so an overstated figure is still a ceiling — it is not a tight one, and it should not be
+  read as an estimate.
+
 ## Q2 (2026-09-19). Of T-SQL's three heaviest causes, one has a witness and two have prose
 
 **The claim.** "So the three heaviest causes in T-SQL's value tower are ambiguities of unbounded
