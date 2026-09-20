@@ -15,7 +15,12 @@ namespace DotGram.Benchmarks;
 	@using System.Linq;
 
 	Sum     : @int = (n: Number & ' '?)+ => @(n.Sum())
-	Number  : @int = d: ['0'..'9']+ => @int.Parse(d)
+
+	// Atomic: a number is read to the end of its digits, as anyone writing this by hand
+	// would read it. Without the braces, the repetition above reads a text it cannot
+	// finish — digits and then a letter — as every way of cutting the digits into numbers:
+	// twenty-four of them took seventeen seconds, and each further digit doubled it.
+	Number  : @int = d: { ['0'..'9']+ } => @int.Parse(d)
 	parse Sum
 	""")]
 public static partial class Numbers;

@@ -35,13 +35,21 @@ namespace DotGram.Tests.ExpressionLanguage;
 public sealed class ExpressionBlowUpTests
 {
 	[Theory]
-	[InlineData("$\"")]
-	[InlineData("$@\"")]
-	[InlineData("$\"\"\"")]
-	[InlineData("$$\"\"\"")]
-	public void An_unclosed_string_is_refused_at_once(string opens)
+	// The four beginnings, with a plain run after each.
+	[InlineData("$\"", "a")]
+	[InlineData("$@\"", "a")]
+	[InlineData("$\"\"\"", "a")]
+	[InlineData("$$\"\"\"", "a")]
+	// And doubled braces, which are a second shape and not the first one's input: `{{a}}` is
+	// two escaped braces around a run, and it was also a hole holding `{a}` until the hole was
+	// told it cannot begin with a brace. Found by driving the fixed places with texts other
+	// than the one the first defect was found with, which is the only thing that shows a shape
+	// is gone rather than an input.
+	[InlineData("$\"", "{{a}}")]
+	[InlineData("$@\"", "{{a}}")]
+	public void An_unclosed_string_is_refused_at_once(string opens, string piece)
 	{
-		var text  = "(int x) => " + opens + new string('a', 64);
+		var text  = "(int x) => " + opens + Repeated(piece, 64);
 		var watch = Stopwatch.StartNew();
 
 		var match = ExpressionParser.TryParse(text);
@@ -49,6 +57,16 @@ public sealed class ExpressionBlowUpTests
 		Assert.False(match.IsSuccess);
 		Assert.True(
 			watch.Elapsed.TotalSeconds < 5,
-			$"{opens} with 64 characters after it took {watch.Elapsed.TotalSeconds:F1} s.");
+			$"{opens} with 64 of `{piece}` after it took {watch.Elapsed.TotalSeconds:F1} s.");
+	}
+
+	static string Repeated(string piece, int times)
+	{
+		var built = new System.Text.StringBuilder(piece.Length * times);
+
+		for (var at = 0; at < times; at++)
+			built.Append(piece);
+
+		return built.ToString();
 	}
 }

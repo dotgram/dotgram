@@ -327,12 +327,18 @@ namespace DotGram.ExpressionLanguage;
 		// or the closing quote reads, so the longest reading is the only right one — and without
 		// the braces an unclosed string is read every way the run can be cut into pieces, which
 		// is every composition of its length: twenty-four characters took twenty seconds.
+		//
+		// And a hole cannot begin with a brace, which is what `?!'{'` says. `{{a}}` is two
+		// escaped braces around a run, and it was also a brace opening a hole that held `{a}`:
+		// two readings of every such group, so a string of them that never closes was read
+		// every way too — twenty-four groups took sixty-two seconds. C# has no expression that
+		// begins with `{`, so the guard takes nothing away (D57).
 		InterpolatedPiece : @Segment
 			= "{{"                               => @(Segment.Of("{"))
 			| "}}"                               => @(Segment.Of("}"))
 			| e: Escape                          => @(Segment.Of(e))
 			| t: { [^ '"' | '\\' | '{' | '}']+ } => @(Segment.Of(t))
-			| '{' & h: Hole & '}'                => @(h)
+			| '{' & ?!'{' & h: Hole & '}'        => @(h)
 
 		InterpolatedBody : @Segment[] = parts: InterpolatedPiece* & '"' => @(parts)
 
@@ -346,13 +352,14 @@ namespace DotGram.ExpressionLanguage;
 		// for a quote, and the holes and braces of the other. A rule of its own rather than an
 		// alternative of `Interpolated`, because what the lexer begins and a rule ends is a
 		// beginning and then that rule — one sequence, which a choice of two is not.
-		// The run is atomic for the reason the other one is.
+		// The run is atomic, and the hole cannot begin with a brace, both for the reasons the
+		// other one is: the same two shapes were driven here and answered the same way.
 		VerbatimInterpolatedPiece : @Segment
 			= "{{"                        => @(Segment.Of("{"))
 			| "}}"                        => @(Segment.Of("}"))
 			| "\"\""                      => @(Segment.Of("\""))
 			| t: { [^ '"' | '{' | '}']+ } => @(Segment.Of(t))
-			| '{' & h: Hole & '}'         => @(h)
+			| '{' & ?!'{' & h: Hole & '}' => @(h)
 
 		VerbatimInterpolatedBody : @Segment[] = parts: VerbatimInterpolatedPiece* & '"' => @(parts)
 

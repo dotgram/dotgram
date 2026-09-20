@@ -44,7 +44,12 @@ namespace DotGram.Examples.Formats;
 
 	// One `Bullet+` is one list. The next blank line or ordinary line ends it, because
 	// neither starts with "- ".
-	Bullets : @MarkdownBlock = items: Bullet+ => @(new MarkdownList(items))
+	//
+	// Atomic, and that is what makes it one list: a run of bullets is read to its end and
+	// never handed back. Without the braces, `Block*` above reads a document that fails
+	// later — one whose last line has no newline — as every way of cutting its bullets into
+	// lists: sixteen of them took twelve seconds, and each further one doubled it.
+	Bullets : @MarkdownBlock = { items: Bullet+ } => @(new MarkdownList(items))
 
 	Bullet : @string = "- " & text: Line & eol => @(text)
 

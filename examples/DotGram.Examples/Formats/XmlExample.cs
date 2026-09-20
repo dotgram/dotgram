@@ -39,7 +39,12 @@ namespace DotGram.Examples.Formats;
 		NameText = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']*
 		Space    = [' ' | '\t' | '\r' | '\n']*
 		Quoted   = [^ '"' | '\'']*
-		Chars    = [^ '<']+
+
+		// Atomic: a run of text stops at the `<` that ends it, so the longest reading is the
+		// only right one. Without the braces, `Content*` around it reads an element that never
+		// closes every way its text can be cut into nodes — twenty-four characters after `<a>`
+		// took thirty-five seconds, and each further one doubled it.
+		Chars    = { [^ '<']+ }
 	}
 
 	// None, and that is the point. trivia is inserted between the operands of a sequence
