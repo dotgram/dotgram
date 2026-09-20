@@ -1,0 +1,39 @@
+using System.Text;
+
+using Mono.Cecil;
+
+// attrcount <dll>...: every attribute whose name is GramSource or Gram (or GramInclude, GramOptions), on every type, with the length of each string argument (characters and UTF-8 bytes).
+foreach (var path in args)
+{
+	var module = ModuleDefinition.ReadModule(path);
+	long total = 0;
+
+	Console.WriteLine($"== {Path.GetFileName(path)} ({new FileInfo(path).Length:N0} bytes on disk)");
+
+	foreach (var type in module.GetTypes())
+	{
+		foreach (var attribute in type.CustomAttributes)
+		{
+			var name = attribute.AttributeType.Name;
+
+			if (name is not ("GramSourceAttribute" or "GramAttribute"))
+				continue;
+
+			foreach (var argument in attribute.ConstructorArguments.Where(static one => one.Value is string))
+			{
+				var text  = (string)argument.Value;
+				var bytes = Encoding.UTF8.GetByteCount(text);
+
+				if (bytes > 200 || name == "GramSourceAttribute")
+				{
+					Console.WriteLine($"  {name,-20} on {type.FullName,-60} {text.Length,9:N0} chars {bytes,9:N0} bytes UTF-8   {text[..Math.Min(48, text.Length)].Replace('\n', ' ').Replace('\r', ' ')}...");
+
+					if (name == "GramSourceAttribute")
+						total += bytes;
+				}
+			}
+		}
+	}
+
+	Console.WriteLine($"  GramSource bytes in total: {total:N0}");
+}
