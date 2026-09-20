@@ -5591,3 +5591,36 @@ forbids. And the remedy, if the class is one, is narrower than the packrat that 
 earlier: remembering that a rule *failed* at a position is not memoizing everything, and the
 objection recorded against full memoization — that most refusals are reached on the first token —
 does not apply to a failure remembered after a long re-read.
+
+**The retention defect is fixed by reordering rather than by a seam (`c786d3e8`, verification
+pending).** Both value stores empty before the bound is tested, so a parked store is already empty
+and the demotion has nothing to do — which means D34's emptying method would have had one caller
+and no second meaning. **The fifth tenant inherits the order, not a method**, and the order is held
+by a test: a value of a finished parse of twenty thousand addresses survived three forced
+collections before the change and does not after, while below the bound it never did. That test
+asks whether an object is reachable rather than how long anything took, so it is indifferent to
+what else is on the machine — the only thing measured today that is.
+
+**And the sentence the code was violating was written directly above it:** every retained reference
+is cleared before the store is made available to another parse. The early return was an exception
+nobody had written down, and the comment had been true when it was written. The two pools whose
+arrays hold integers are deliberately untouched, read rather than assumed.
+
+**On whether the probe misses the interpolated strings: not chargeable, and said before the idea
+spread.** The audit's build is an ancestor of the guard's commit, so its expression language
+predates the sealing the guard records; the question is open until the rerun rather than answered
+either way, and ancestry was checked rather than inferred from clocks.
+
+**The larger point, which belongs before the diagnostic's design and not after it: the probe finds
+exponentials and says nothing about quadratics**, and the audit's twenty project from 1.2 seconds
+to over a day at sixty-four kilobytes. A diagnostic that names exponential shapes and is silent
+about a refusal that takes a day would be read as a clean bill of health it was never asked to
+give.
+
+**Ruled: D61's cheap test comes before any widening.** Count calls on two or three of the twenty and
+see whether the same square appears. If it does, the class is a property of the reader — an ordered
+choice re-reading what it has read — and the answer is one change to the reader, after which there
+is nothing for a diagnostic to warn about. If they turn out to be heterogeneous, the question of a
+polynomial diagnostic reopens with evidence. **Either way the diagnostic's own text says what it
+does not cover**, so that its silence is never read as a verdict; that costs a sentence and is not
+contingent on anything.
