@@ -355,7 +355,47 @@ answers "is 99 ns good" for three families this week. A hand parser is worth wri
 grammar only, and it is RFC 5322, because it is the gated shape nothing covers. This session has
 run none of them.
 
-**Answer:** —
+**Checked against itself (critic, 2026-09-19).** Q5 implies RFC 5322 is the family most at risk: the
+heaviest gate in the package and no base. Before asking anyone for days of work, the one scale that
+spans these families without new code is the compiled regular expression, which four of them have.
+It is a weak scale — each pattern is its own work, so this compares a parser with a different regex
+each time — but it is the only common one, and the afternoon baseline's own rows say:
+
+| family | gate (building / read again) | generated ÷ regex-compiled |
+| --- | --- | --- |
+| date-time | immediate | 0.15–0.21 |
+| URL | 6 / 12 | 0.44–0.62 |
+| media type | 4 / 7 | 0.64–0.81 |
+| addr-spec | 48 / 114 | 0.66–0.72 |
+
+The gate's presence shows; its size does not. The heaviest gated grammar in the package is no worse
+against a regex than the lightest of them. So the thing this objection would most naturally ask for
+— a fourth hand parser, days rather than an evening — is **not** asked for. What is asked for is the
+external references and Q6's rows, which cost a line each and answer the question that is actually
+open: what these parsers cost at all.
+
+**And the refusal figures above are stale.** They are the afternoon baseline's, built at `841ce7c7`
+(13:50), and `b9634ea3` (16:38) halved the refusal path afterwards — finance-24 reports
+`media-type.refused` 170 → 91 ns in that pair. A ratio taken across two runs is not to be quoted to
+a per cent, so the honest form of the point is that a compiled regex still refuses a media type
+several times faster than the parser does, and the next baseline will say by how much. The shape
+stands; the 0.22x does not.
+
+**Answer (finance-24, 2026-09-19).** Q6 taken without reservation and ordered: an accepted and a
+refused row each for RFC 6266, 6570, 6902, 7239 and 8288. Q5's reading accepted; the three external
+references ordered, with the caveat that each does somewhat different work, so they are references
+and not yardsticks — a ratio against them says how fast somebody else's reader is here, not what
+this grammar costs over a person's reading of it. A hand parser for RFC 5322 not started alone: D16's
+three were Igor's to assign, and the fourth is his or the architect's to ask for. This session does
+not ask for it, for the reason above.
+
+**Asked of the critic, and answered: do not hold the references for the document.** Land them, with
+the naming and the sentence in the same commit that lands the first row — which is Q4's lesson one
+step earlier. Concretely: the reading is not called `hand` but what it is (`mailaddress`,
+`mediatype-header`, `cookiecontainer`, or `reference`); the sentence about different work stands
+beside the table in the results document, not only in a design file; and each row's inputs are ones
+both readers accept, with the row saying so, since a reference that accepts a different language is
+compared on the intersection or not at all.
 
 ## Q6 (2026-09-19). Five shipped web formats are timed nowhere
 
