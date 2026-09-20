@@ -350,6 +350,9 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT trim(*) FROM t")]
 	[InlineData("SELECT c1 FROM t1 AS a WITH (NOLOCK) TABLESAMPLE (10 PERCENT)")]
 	[InlineData("SELECT SUM (c) OVER (w) FROM t WINDOW w AS (PARTITION BY c)")]
+	// A list of columns standing as one grouping is read inside ROLLUP, CUBE and GROUPING SETS
+	// and nowhere else: at the top of the clause the server answers Msg 102 at the comma.
+	[InlineData("SELECT c1 FROM t1 GROUP BY (c1, c2)")]
 	public void What_the_engine_refuses_this_refuses_too(string input) =>
 		Assert.False(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
 
@@ -14295,6 +14298,14 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT c1 FROM t1 GROUP BY ROLLUP ((c1, c2), c3)")]
 	[InlineData("SELECT c1 FROM t1 GROUP BY GROUPING SETS ((CUBE (c1), ROLLUP (c1), c1), (c1), ())")]
 	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH (DISTRIBUTED_AGG)")]
+	// A grouping key is an expression, and an expression may open with a bracket. The bracketed
+	// list of columns was read before the bare key once, so these gave up their `(c1 + c2)` and
+	// left the rest of the expression to nobody. The server reads every one of them.
+	[InlineData("SELECT c1 FROM t1 GROUP BY (c1 + c2) * 2")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1, (c2 + c3) * 2, c4")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY (c1 + c2) * 2, (c3)")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY (((c1)))")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY CUBE ((c1 + c2) * 2)")]
 	public void The_published_clauses_read(string input)
 	{
 		var match = TransactSqlParser.TryParseSelect(input);
