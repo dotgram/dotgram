@@ -1,0 +1,25 @@
+1086 files; 7,694 statements read by this grammar and written by the writer (665 refused, 0 threw).
+
+nodes built while parsing            61,171
+nodes reachable in the trees         48,248   (78.9% of built; the rest was built and thrown away)
+fetched by the writer                47,471   (98.4% of reachable, 77.6% of built)
+touched by a kinds host               7,694   (15.95% of reachable, 12.58% of built)
+
+per statement, median: built 4, reachable 4, fetched by the writer 4
+statements with 20 nodes or fewer: 7,419 of 7,694
+writer fetched less than reachable in 165 statements; more in 0
+== select20 (the stand row)
+built 47, reachable 46, fetched by the writer 46, touched by a kinds host 1 (2.2% of reachable, 2.1% of built)
+== select-join (the stand row)
+built 41, reachable 37, fetched by the writer 37, touched by a kinds host 1 (2.7% of reachable, 2.4% of built)
+== insert-values, three rows
+built 12, reachable 12, fetched by the writer 12, touched by a kinds host 1 (8.3% of reachable, 8.3% of built)
+== a comment-heavy select
+built 16, reachable 14, fetched by the writer 14, touched by a kinds host 1 (7.1% of reachable, 6.2% of built)
+== SQL:2023 select20
+Select: built 93, reachable 91, fetched by the writer 91, touched by a kinds host 1 (1.1% of reachable, 1.1% of built)
+== SQL:2023 conditions100
+Select: built 908, reachable 708, fetched by the writer 708, touched by a kinds host 1 (0.1% of reachable, 0.1% of built)
+== T-SQL columns1000
+built 2003, reachable 2003, fetched by the writer 2003, touched by a kinds host 1 (0.0% of reachable, 0.0% of built)
+statements with more than 20 nodes: 275; they built 11,949 nodes, 9,157 reachable, so a kinds host touches 3.00% of their reachable nodes (2.30% of built)   [a second run of the corpus, with that line added]

@@ -1,0 +1,43 @@
+using System.Collections;
+
+namespace NodeCount;
+
+/// <summary>What a rewritten DotGram.Sql reports: nodes built (a root's constructor ran) and nodes fetched (a property getter returned them).</summary>
+public static class Counter
+{
+	public static long Built;
+
+	public static bool On;
+
+	public static HashSet<object> Fetched = new(ReferenceEqualityComparer.Instance);
+
+	public static Func<object, bool> IsNode = static _ => false;
+
+	public static void Construct() => Built++;
+
+	public static void Got(object? value)
+	{
+		if (On && value is not null)
+			Add(value);
+	}
+
+	public static void Touch(object node) => Fetched.Add(node);
+
+	static void Add(object value)
+	{
+		if (value is string)
+			return;
+
+		if (value is IEnumerable sequence && !IsNode(value))
+		{
+			foreach (var one in sequence)
+				if (one is not null)
+					Add(one);
+
+			return;
+		}
+
+		if (IsNode(value))
+			Fetched.Add(value);
+	}
+}

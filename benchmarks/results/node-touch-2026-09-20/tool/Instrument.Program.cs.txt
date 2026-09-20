@@ -1,0 +1,95 @@
+using Mono.Cecil;
+using Mono.Cecil.Cil;
+
+// instrument <in DotGram.Sql.dll> <out dir> <NodeCounter.dll>
+// Every property getter of a node type that returns a reference type reports its value to NodeCount.Counter.Got, and every constructor of a root
+// (Statement, Query, Expression, TableReference, Clause, SetExpression) reports a node built.
+var input  = args[0];
+var output = args[1];
+var counterPath = args[2];
+
+var resolver = new DefaultAssemblyResolver();
+
+resolver.AddSearchDirectory(Path.GetDirectoryName(input)!);
+resolver.AddSearchDirectory(Path.GetDirectoryName(counterPath)!);
+resolver.AddSearchDirectory(Path.GetDirectoryName(typeof(object).Assembly.Location)!);
+
+var module  = ModuleDefinition.ReadModule(input, new ReaderParameters { AssemblyResolver = resolver });
+var counter = ModuleDefinition.ReadModule(counterPath, new ReaderParameters { AssemblyResolver = resolver });
+var type    = counter.GetType("NodeCount.Counter");
+var got     = module.ImportReference(type.Methods.First(one => one.Name == "Got"));
+var made    = module.ImportReference(type.Methods.First(one => one.Name == "Construct"));
+
+var roots = new HashSet<string> { "Statement", "Query", "Expression", "TableReference", "Clause", "SetExpression" };
+
+bool DirectlyNode(TypeDefinition t) => t.Interfaces.Any(static one => one.InterfaceType.FullName == "DotGram.Sql.Ast.ISqlNode");
+
+bool IsRoot(TypeDefinition t)
+{
+	// The T-SQL tree: five roots and SetExpression, by name. The SQL:2023 tree: a type that lists ISqlNode itself and derives from no node.
+	if (t.Namespace == "DotGram.Sql" && !t.IsNested && roots.Contains(t.Name))
+		return true;
+
+	return DirectlyNode(t) && (t.BaseType is null || !IsNodeChain(t.BaseType.Resolve()));
+}
+
+bool IsNodeChain(TypeDefinition? t)
+{
+	for (var current = t; current is not null; current = current.BaseType?.Resolve())
+		if ((current.Namespace == "DotGram.Sql" && !current.IsNested && roots.Contains(current.Name)) || DirectlyNode(current))
+			return true;
+
+	return false;
+}
+
+bool IsNode(TypeDefinition t) => IsNodeChain(t);
+
+int getters = 0, constructors = 0;
+
+foreach (var t in module.GetTypes().ToArray())
+{
+	if (!IsNode(t))
+		continue;
+
+	foreach (var method in t.Methods)
+	{
+		if (!method.HasBody)
+			continue;
+
+		if (method.IsGetter && !method.IsStatic && !method.ReturnType.IsValueType && method.ReturnType.FullName != "System.String")
+		{
+			var il = method.Body.GetILProcessor();
+
+			foreach (var ret in method.Body.Instructions.Where(static one => one.OpCode == OpCodes.Ret).ToArray())
+			{
+				var dup  = il.Create(OpCodes.Dup);
+				var call = il.Create(OpCodes.Call, got);
+
+				il.InsertBefore(ret, dup);
+				il.InsertBefore(ret, call);
+
+				// A branch that went to the ret now goes to the report.
+				foreach (var other in method.Body.Instructions)
+					if (other.Operand == ret)
+						other.Operand = dup;
+					else if (other.Operand is Instruction[] targets)
+						for (var i = 0; i < targets.Length; i++)
+							if (targets[i] == ret)
+								targets[i] = dup;
+			}
+
+			getters++;
+		}
+		else if (method.IsConstructor && !method.IsStatic && IsRoot(t))
+		{
+			var il = method.Body.GetILProcessor();
+
+			il.InsertBefore(method.Body.Instructions[0], il.Create(OpCodes.Call, made));
+			constructors++;
+		}
+	}
+}
+
+Directory.CreateDirectory(output);
+module.Write(Path.Combine(output, Path.GetFileName(input)));
+Console.WriteLine($"{getters} getters and {constructors} root constructors instrumented in {Path.GetFileName(input)}");

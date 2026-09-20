@@ -1,0 +1,224 @@
+using System.Reflection;
+
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
+
+using Microsoft.SqlServer.TransactSql.ScriptDom;
+
+using NodeCount;
+
+// How much of what a parse builds a consumer touches, on ScriptDom's own corpus (tests/Corpus/ScriptDom), by the statements this grammar reads:
+//   built     nodes constructed while parsing (a root's constructor ran), the ones a failed alternative built and threw away included;
+//   reachable nodes in the returned tree (a walk over its properties, by reflection, with the counter off);
+//   fetched   nodes a consumer got hold of through a property getter (counter on only around the consumer).
+// Consumers: the writer (SqlWriter.Write, what --roundtrip runs, which reads everything by definition: the control), and a host that asks a script the kind
+// of each statement and does not go inside (the statement is touched, nothing under it).
+
+var root = args.Length > 0 ? args[0] : @"P:\dotgram.WorkTrees\stand\tests\Corpus\ScriptDom";
+
+Counter.IsNode = static value => value is ISqlSpan;
+
+// `--text <sql>` counts one statement given on the command line instead of the corpus.
+if (args.Length > 1 && args[0] == "--text")
+{
+	Counter.On = false;
+	Counter.Fetched.Clear();
+	Counter.Built = 0;
+
+	var one = TransactSqlParser.TryParseStatement(args[1]);
+
+	if (!one.IsSuccess || one.Value is not Statement tree)
+	{
+		Console.WriteLine("refused");
+
+		return;
+	}
+
+	var madeHere = Counter.Built;
+	var here     = new HashSet<object>(ReferenceEqualityComparer.Instance);
+
+	Walk(tree, here);
+	Counter.Fetched.Clear();
+	Counter.On = true;
+	SqlWriter.Write(tree);
+	Counter.On = false;
+	Counter.Fetched.Add(tree);
+
+	Console.WriteLine($"built {madeHere}, reachable {here.Count}, fetched by the writer {Counter.Fetched.Count}, touched by a kinds host 1 ({100.0 / here.Count:F1}% of reachable, {100.0 / madeHere:F1}% of built)");
+
+	return;
+}
+
+// `--sql2023 <sql>`: the same for a query expression read by SqlStandardParser (the stand's sql/select20 row).
+if (args.Length > 1 && args[0] == "--sql2023")
+{
+	Counter.On = false;
+	Counter.Fetched.Clear();
+	Counter.Built = 0;
+
+	var one = DotGram.Sql.Standard.SqlStandardParser.TryParseQueryExpression(args[1]);
+
+	if (!one.IsSuccess || one.Value is not { } tree)
+	{
+		Console.WriteLine("refused");
+
+		return;
+	}
+
+	var madeHere = Counter.Built;
+	var here     = new HashSet<object>(ReferenceEqualityComparer.Instance);
+
+	Walk(tree, here);
+	Counter.Fetched.Clear();
+	Counter.On = true;
+	DotGram.Sql.Ast.Sql2023Writer.Write(tree);
+	Counter.On = false;
+	Counter.Fetched.Add(tree);
+
+	Console.WriteLine($"{tree.GetType().Name}: built {madeHere}, reachable {here.Count}, fetched by the writer {Counter.Fetched.Count}, touched by a kinds host 1 ({100.0 / here.Count:F1}% of reachable, {100.0 / madeHere:F1}% of built)");
+
+	return;
+}
+
+long statements = 0, built = 0, reachable = 0, writerFetched = 0, kindsFetched = 0;
+var perStatement = new List<(long Built, long Reachable, long Writer)>();
+var files = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+var parser = new TSql180Parser(true);
+var refused = 0;
+var thrown = 0;
+
+foreach (var file in files)
+{
+	string text;
+
+	try
+	{
+		text = File.ReadAllText(file);
+	}
+	catch (Exception)
+	{
+		continue;
+	}
+
+	using var whole = new StringReader(text);
+
+	if (parser.Parse(whole, out var errors) is not TSqlScript script || errors.Count > 0)
+		continue;
+
+	foreach (var statement in script.Batches.SelectMany(static batch => batch.Statements))
+	{
+		var original = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
+
+		Counter.On = false;
+		Counter.Fetched.Clear();
+		Counter.Built = 0;
+
+		Statement? made;
+
+		try
+		{
+			var match = TransactSqlParser.TryParseStatement(original);
+
+			made = match.IsSuccess ? match.Value as Statement : null;
+		}
+		catch (Exception)
+		{
+			thrown++;
+
+			continue;
+		}
+
+		if (made is null)
+		{
+			refused++;
+
+			continue;
+		}
+
+		var constructed = Counter.Built;
+		var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
+
+		Walk(made, seen);
+
+		// The writer: what --roundtrip does with the tree.
+		Counter.Fetched.Clear();
+		Counter.On = true;
+
+		try
+		{
+			SqlWriter.Write(made);
+		}
+		catch (Exception)
+		{
+			Counter.On = false;
+			thrown++;
+
+			continue;
+		}
+
+		Counter.On = false;
+
+		// The writer gets the statement itself from the caller: the node it was handed is touched.
+		Counter.Fetched.Add(made);
+
+		var writer = Counter.Fetched.Count;
+
+		// A host that reads the kind of the statement and stops: the statement, and nothing under it.
+		Counter.Fetched.Clear();
+		Counter.Touch(made);
+
+		var kinds = Counter.Fetched.Count;
+
+		statements++;
+		built += constructed;
+		reachable += seen.Count;
+		writerFetched += writer;
+		kindsFetched += kinds;
+		perStatement.Add((constructed, seen.Count, writer));
+	}
+}
+
+Console.WriteLine($"{files.Length} files; {statements:N0} statements read by this grammar and written by the writer ({refused:N0} refused, {thrown:N0} threw).");
+Console.WriteLine();
+Console.WriteLine($"nodes built while parsing        {built,10:N0}");
+Console.WriteLine($"nodes reachable in the trees     {reachable,10:N0}   ({100.0 * reachable / built:F1}% of built; the rest was built and thrown away)");
+Console.WriteLine($"fetched by the writer            {writerFetched,10:N0}   ({100.0 * writerFetched / reachable:F1}% of reachable, {100.0 * writerFetched / built:F1}% of built)");
+Console.WriteLine($"touched by a kinds host          {kindsFetched,10:N0}   ({100.0 * kindsFetched / reachable:F2}% of reachable, {100.0 * kindsFetched / built:F2}% of built)");
+Console.WriteLine();
+
+var sorted = perStatement.OrderBy(static one => one.Reachable).ToArray();
+
+Console.WriteLine($"per statement, median: built {sorted[sorted.Length / 2].Built}, reachable {sorted[sorted.Length / 2].Reachable}, fetched by the writer {sorted[sorted.Length / 2].Writer}");
+
+var short100 = perStatement.Count(static one => one.Reachable <= 20);
+
+Console.WriteLine($"statements with 20 nodes or fewer: {short100:N0} of {statements:N0}");
+Console.WriteLine($"writer fetched less than reachable in {perStatement.Count(static one => one.Writer < one.Reachable):N0} statements; more in {perStatement.Count(static one => one.Writer > one.Reachable):N0}");
+
+var large = perStatement.Where(static one => one.Reachable > 20).ToArray();
+
+Console.WriteLine($"statements with more than 20 nodes: {large.Length:N0}; they built {large.Sum(static one => one.Built):N0} nodes, {large.Sum(static one => one.Reachable):N0} reachable, so a kinds host touches {100.0 * large.Length / large.Sum(static one => one.Reachable):F2}% of their reachable nodes ({100.0 * large.Length / large.Sum(static one => one.Built):F2}% of built)");
+
+static void Walk(object value, HashSet<object> seen)
+{
+	if (value is not ISqlSpan && value is System.Collections.IEnumerable sequence && value is not string)
+	{
+		foreach (var one in sequence)
+			if (one is not null)
+				Walk(one, seen);
+
+		return;
+	}
+
+	if (value is not ISqlSpan || !seen.Add(value))
+		return;
+
+	foreach (var property in value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+	{
+		if (property.GetIndexParameters().Length != 0 || property.PropertyType.IsValueType || property.PropertyType == typeof(string))
+			continue;
+
+		if (property.GetValue(value) is { } child)
+			Walk(child, seen);
+	}
+}
