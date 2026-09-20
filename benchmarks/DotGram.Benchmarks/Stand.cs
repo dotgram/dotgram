@@ -1539,10 +1539,29 @@ static partial class Stand
 			return File.Exists(path) ? string.Join(", ", File.ReadAllLines(path).Where(static line => line.Length > 0)) : "no build.txt";
 		}
 
+		static string Line(string directory, string key)
+		{
+			var path = Path.Combine(directory, "build.txt");
+
+			return File.Exists(path) ? File.ReadAllLines(path).FirstOrDefault(line => line.StartsWith(key + " ", StringComparison.Ordinal)) ?? "" : "";
+		}
+
 		var before = Read(beforeDir);
 		var after  = Read(afterDir);
 
-		return before == "no build.txt" && after == "no build.txt" ? "" : $"Sides: before ({before}); after ({after}).";
+		if (before == "no build.txt" && after == "no build.txt")
+			return "";
+
+		var note = $"Sides: before ({before}); after ({after}). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)";
+
+		// Two sides given different properties that emitted the same code are not a pair of branches: no generator read the property.
+		var propertiesBefore = Line(beforeDir, "properties");
+		var propertiesAfter  = Line(afterDir, "properties");
+
+		if (propertiesBefore != propertiesAfter && Line(beforeDir, "emitted").Length > 0 && Line(beforeDir, "emitted") == Line(afterDir, "emitted"))
+			note += " **THE TWO SIDES EMITTED THE SAME CODE (byte for byte, worktree paths aside) although their properties differ: the generator read none of them, and this is not a pair of two branches.**";
+
+		return note;
 	}
 
 	static string PairedMarkdown(bool pinned, double control, Row[] rows, string sides = "")
