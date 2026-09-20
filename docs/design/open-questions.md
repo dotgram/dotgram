@@ -1957,3 +1957,110 @@ denominator that holds T-SQL twice, which is the design's choice — the comment
 sentence with the percentage.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D43 `a37f4a3d`).** Taken as counted: one attribute per
+compilation, the spliced text by design and its 32,871 named in the figure rather than left to
+surprise, the remaining ~193,500 not something the emitter can produce, and therefore the
+measurement is the suspect — a count of the attribute rows ordered from the stand. The
+denominator's caveat goes with the percentage wherever it is quoted.
+
+## Q20 (2026-09-20). Two records hold a refusal, and between them nobody holds what a buffered parse says
+
+Proposed. Read at `a37f4a3d`.
+
+**The claim.** "A publication whose string form is read by methods is read by methods over a buffer
+too, **and answers as the string form does** however the input arrives."
+(`BufferedInputTests.A_buffered_form_is_read_by_the_reader_the_string_form_is_read_by`, and the
+byte form beside it.)
+
+**What it rests on, and it is a strong check.** For every input and **every split point of it** —
+`ShortReader` hands the reader one character at a time, then two, and so on — the buffered answer
+is held to the string answer on `IsSuccess`, on `Position`, and on `Value` where it succeeded. Read
+at `a37f4a3d`, `Read` in `BufferedInputTests.Input.cs` fetches exactly those three off the `Match`.
+
+**The objection is the fourth property.** `Match` also carries `Error`, the message, and nothing
+compares it. The other record — `RefusalCorpus` — is explicitly about that message: "the outcome,
+the position and **the whole message, which carries every set expected there and every set tied
+with it**". It compiles each shape in every rendering, under each carrier, split and unsplit, and
+calls `TryParseStart(string)`. So the two records divide the ground like this, and leave a strip
+between them:
+
+- the **message** is held for string input, across renderings, carriers and the lexical split;
+- the **outcome, position and value** are held for buffered and byte input, across every split;
+- **what a buffered or byte parse says when it refuses is held by neither.**
+
+**Why that strip is where a difference would live rather than anywhere else.** The buffered path
+has failure paths written for it — `failure.Starved`, `failure.OutOfInput = p + 1`, `RefusedRun` —
+and over bytes a literal is compared by `Matches`, which answers whether it matched and not how far
+it agreed, where the character path has `Reach_DotGram` and the recognizer's `…_Agreeing` for
+exactly that. "How far it got" is therefore computed by different code on the two sides, and the
+message is where how far it got is spoken. Position is held, so a divergence there would be caught;
+the wording of the expectation is not.
+
+**What it would take.** `Read` already reads three properties off the `Match` and `RefusalCorpus`
+reads this one. A fourth field and one assertion, in a test that already runs every split of every
+input. **And it is worth doing whichever way it comes out**: equal, and the strip is closed for one
+line; not equal, and we have learned that a refusal reads differently depending on how its input
+arrived — which is a thing to decide deliberately rather than to find out from somebody's bug
+report.
+
+**And it is owed sooner than it looks.** D40's first condition is that the branches of a
+per-framework emission answer alike, and the material named for it is the refusal record. The one
+framework branch that exists today, `MoveLine`, is inside the buffered reader — which the refusal
+record does not reach.
+
+**Answer:** —
+
+## Q21 (2026-09-20). The option's second ride, and what every shipped assembly carries besides its code
+
+The architect's, after the count confirmed the emission to eighteen bytes: what else does `Portable`
+pull along, since turning it off shrank the file by 193,487 bytes more than the attributes hold?
+Read at `a37f4a3d`.
+
+**In the emitter, nothing.** `grammarSource` reaches exactly one line — the `[GramSourceAttribute]`
+of Q19 — and `Portable` is read nowhere else in `Grammar/Emit`. Its other uses are all at
+generation and none of them changes what is written: `GramGenerator` decides the flag from the
+attribute, an inherited one, or `Visible(type)`, and reads a *referenced* assembly's carried text
+when an included grammar's file cannot be found. So the answer to the question as put is that the
+option pulls nothing else along **in the emitted code**. The 193,487 bytes are somewhere else, and
+they are.
+
+**The explanation is beside the code, as it was three times yesterday.** `DotGram.Sql.csproj`:
+"Symbols inside the assembly, as the generator carries them: a stack trace from a parser here has
+line numbers without a symbol server." — `<DebugType>embedded</DebugType>`, which every one of the
+five packages sets, and `Directory.Build.props` sets `<EmbedUntrackedSources>true</EmbedUntrackedSources>`
+beside its SourceLink block. So each shipped assembly carries its own symbols, and the symbols
+carry source that a debugger cannot find on disk — which is what generated code is.
+
+**Which means the grammar rides twice.** Once as the attribute blob, raw UTF-8, 730,673 bytes by
+the count. And once inside the embedded symbols, as the *escaped C# literal* that
+`CSharpEmitter.Quoted` wrote — `"` to `\"`, `\` to `\`, `\r` and `\n` to two characters each — as
+part of the generated source. Embedded source is deflated, and grammar text deflates the way
+repetitive BNF does: **730,673 × 26.5% is 193,600, against the 193,487 that was missing.** The two
+numbers were never in conflict; they answer different questions. The count answers "how many bytes
+of grammar text are in the metadata", and the subtraction answers "how many bytes does the file
+lose if the option is turned off" — which is the question Igor is actually being asked, so **the
+figure to quote him is the subtraction one**, 4.7% and 5.3%, not 3.7% and 4.1%.
+
+**And the consequence is larger than the option.** If the symbols carry the generated source, they
+carry *all* of it: `sql-code-size-2026-09-17.json` puts `TransactSqlParser.g.cs` at 22,026,182
+bytes and `SqlStandardParser.g.cs` at 13,791,317, with `Sql92Parser.g.cs` at 780,755 — **36.6
+megabytes of generated C#**, compressed, inside a 19.8-megabyte assembly. At the same deflate ratio
+that is seven to nine megabytes, which would be a third to a half of `DotGram.Sql.dll` and would
+explain its size better than its IL does. Every size this repository has taken of a shipped
+assembly includes it, `DotGram.CodeSize` among them.
+
+**The check that settles both, and it is a read rather than a build.** The debug directory of
+`DotGram.Sql.dll` says how large the embedded PDB is, and the PDB's document table says which
+sources it holds and how long each one is: `System.Reflection.Metadata` opens both. Two numbers
+come out — the embedded symbols' share of the assembly, and the grammar text's share of the
+symbols — and they close this question and correct every assembly figure taken so far. Building
+once with `DebugType` set to nothing would answer the first alone, and is the cruder of the two.
+
+**Said plainly, because it is the part worth acting on.** Nothing here is wrong: symbols in the
+assembly are a decision with a reason written beside it, and a stack trace through generated code
+without a symbol server is worth paying for. What is wrong is that no figure this repository quotes
+says it is being paid. A percentage whose denominator holds a compressed copy of the whole
+generated source is not the percentage anybody thinks they are reading.
+
+**Answer:** —
