@@ -1,0 +1,111 @@
+Median of 4 of 4 runs, each in a process of its own; control 31.4 ns (the runs' controls: 31.1, 31.6, 31.4, 31.3).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-19 22:30
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 75.5 | 78.7 | 1.04x | 81.6 | 1.08x | +3.7% | 192 | 192 |
+| fix/One.bytes | generated | hand | 77.5 | 97.0 | 1.25x | 97.8 | 1.26x | +0.9% | 248 | 248 |
+| fix/One.stream | generated | hand | 156.7 | 334.7 | 2.14x | 329.6 | 2.10x | -1.5% | 888 | 888 |
+| fix/Order.text | generated | hand | 696.6 | 649.3 | 0.93x | 662.6 | 0.95x | +2.0% | 1096 | 1096 |
+| fix/Order.bytes | generated | hand | 673.4 | 740.6 | 1.10x | 746.7 | 1.11x | +0.8% | 1152 | 1152 |
+| fix/Order.stream | generated | hand | 827.9 | 1096.1 | 1.32x | 1097.7 | 1.33x | +0.1% | 1712 | 1712 |
+| fix/BinaryMany.text | generated | hand | 3720.7 | 3936.1 | 1.06x | 3888.9 | 1.05x | -1.2% | 7256 | 7256 |
+| fix/BinaryMany.bytes | generated | hand | 3780.6 | 4657.0 | 1.23x | 4611.5 | 1.22x | -1.0% | 7312 | 7312 |
+| fix/BinaryMany.stream | generated | hand | 4857.1 | 5329.0 | 1.10x | 5274.5 | 1.09x | -1.0% | 7448 | 7448 |
+| fix/Orders128.text | generated | hand | 83154.4 | 77402.8 | 0.93x | 77439.7 | 0.93x | 0.0% | 129112 | 129112 |
+| fix/Orders128.bytes | generated | hand | 81842.3 | 88379.0 | 1.08x | 88111.7 | 1.08x | -0.3% | 129168 | 129168 |
+| fix/Orders128.stream | generated | hand | 118145.4 | 96043.6 | 0.81x | 95801.7 | 0.81x | -0.3% | 118552 | 118552 |
+| fix/OrderMalformed.text | generated | hand | 705.6 | 651.0 | 0.92x | 667.2 | 0.95x | +2.5% | 1248 | 1248 |
+| fix/OrderMalformed.bytes | generated | hand | 693.4 | 756.6 | 1.09x | 760.8 | 1.10x | +0.6% | 1304 | 1304 |
+| fix/OrderMalformed.stream | generated | hand | 839.7 | 1096.8 | 1.31x | 1115.8 | 1.33x | +1.7% | 1864 | 1864 |
+| fix/slope-0.text | generated | hand | 26.8 | 27.9 | 1.04x | 30.2 | 1.13x | +8.6% | 64 | 64 |
+| fix/slope-1.text | generated | hand | 94.4 | 81.9 | 0.87x | 85.4 | 0.90x | +4.2% | 192 | 192 |
+| fix/slope-2.text | generated | hand | 163.6 | 129.5 | 0.79x | 132.7 | 0.81x | +2.5% | 296 | 296 |
+| fix/slope-4.text | generated | hand | 293.6 | 236.1 | 0.80x | 235.7 | 0.80x | -0.1% | 504 | 504 |
+| fix/slope-8.text | generated | hand | 523.5 | 431.6 | 0.82x | 428.6 | 0.82x | -0.7% | 920 | 920 |
+| fix/slope-16.text | generated | hand | 1016.7 | 809.3 | 0.80x | 803.5 | 0.79x | -0.7% | 1752 | 1752 |
+| fix/slope-0.bytes | generated | hand | 32.0 | 35.1 | 1.10x | 37.4 | 1.17x | +6.5% | 120 | 120 |
+| fix/slope-1.bytes | generated | hand | 97.5 | 95.8 | 0.98x | 98.4 | 1.01x | +2.7% | 248 | 248 |
+| fix/slope-2.bytes | generated | hand | 164.7 | 149.4 | 0.91x | 152.7 | 0.93x | +2.2% | 352 | 352 |
+| fix/slope-4.bytes | generated | hand | 289.9 | 267.4 | 0.92x | 269.1 | 0.93x | +0.6% | 560 | 560 |
+| fix/slope-8.bytes | generated | hand | 518.4 | 483.6 | 0.93x | 491.7 | 0.95x | +1.7% | 976 | 976 |
+| fix/slope-16.bytes | generated | hand | 990.9 | 909.1 | 0.92x | 910.2 | 0.92x | +0.1% | 1808 | 1808 |
+| fix/slope-0.stream | generated | hand | 99.6 | 227.9 | 2.29x | 229.1 | 2.30x | +0.5% | 792 | 792 |
+| fix/slope-1.stream | generated | hand | 178.5 | 326.0 | 1.83x | 319.4 | 1.79x | -2.0% | 888 | 888 |
+| fix/slope-2.stream | generated | hand | 251.6 | 394.8 | 1.57x | 385.9 | 1.53x | -2.3% | 984 | 984 |
+| fix/slope-4.stream | generated | hand | 383.5 | 522.7 | 1.36x | 511.4 | 1.33x | -2.2% | 1176 | 1176 |
+| fix/slope-8.stream | generated | hand | 653.6 | 753.9 | 1.15x | 745.2 | 1.14x | -1.2% | 1560 | 1560 |
+| fix/slope-16.stream | generated | hand | 1205.7 | 1227.7 | 1.02x | 1220.8 | 1.01x | -0.6% | 2328 | 2328 |
+| fix/orders400.text | generated | hand | 259511.4 | 241275.2 | 0.93x | 237088.4 | 0.91x | -1.7% | 403288 | 403288 |
+| fix/slope-1600.text | generated | hand | 82420.2 | 74562.4 | 0.90x | 74533.3 | 0.90x | 0.0% | 166488 | 166488 |
+| tsql/columns1000 | generated | scriptdom | 1742765.6 | 185112.5 | 0.11x | 170856.2 | 0.10x | -7.7% | 200489 | 200489 |
+| sql/select20.at | generated | hand | 6928.6 | 17664.7 | 2.55x | 17616.9 | 2.54x | -0.3% | 21441 | 21441 |
+| sql/select20.window | generated | hand | 6881.5 | 18377.3 | 2.67x | 18136.2 | 2.64x | -1.3% | 21440 | 21440 |
+| sql/select20.scan | generated | control | 390.9 | 385.2 | 0.99x | 387.5 | 0.99x | +0.6% | 0 | 0 |
+| tsql/select20.scan | generated | control | 380.0 | 383.6 | 1.01x | 387.3 | 1.02x | +0.9% | 0 | 0 |
+| el/ladder.scan | generated | control | 138.6 | 138.3 | 1.00x | 137.4 | 0.99x | -0.7% | 0 | 0 |
+| fix/Order.span | generated | hand | 688.7 | 507.2 | 0.74x | 510.3 | 0.74x | +0.6% | 1008 | 1008 |
+| fix/One.log-text | generated | hand | 82.2 | 165.7 | 2.02x | 84.4 | 1.03x | -49.1% | 192 | 192 |
+| fix/One.log-bytes | generated | hand | 82.5 | 193.9 | 2.35x | 107.8 | 1.31x | -44.4% | 248 | 248 |
+| fix/One.log-stream | generated | hand | 82.3 | 483.2 | 5.87x | 349.6 | 4.25x | -27.6% | 888 | 888 |
+| fix/Order.log-text | generated | hand | 748.7 | 1297.1 | 1.73x | 661.2 | 0.88x | -49.0% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | hand | 745.1 | 1507.8 | 2.02x | 861.0 | 1.16x | -42.9% | 1152 | 1152 |
+| fix/Order.log-stream | generated | hand | 748.8 | 2218.4 | 2.96x | 1185.8 | 1.58x | -46.5% | 1712 | 1712 |
+| fix/Orders128.log-text | generated | hand | 89459.5 | 152483.8 | 1.70x | 77160.6 | 0.86x | -49.4% | 129112 | 129112 |
+| fix/Orders128.log-bytes | generated | hand | 90007.7 | 175035.9 | 1.94x | 101381.9 | 1.13x | -42.1% | 129168 | 129168 |
+| fix/Orders128.log-stream | generated | hand | 90107.0 | 237335.4 | 2.63x | 107929.4 | 1.20x | -54.5% | 118552 | 118552 |
+| fix/slope-0.log-text | generated | hand | 23.7 | 65.5 | 2.76x | 29.7 | 1.25x | -54.6% | 88 | 64 |
+| fix/slope-0.log-bytes | generated | hand | 23.8 | 71.9 | 3.02x | 37.1 | 1.56x | -48.4% | 144 | 120 |
+| fix/slope-0.log-stream | generated | hand | 23.7 | 232.2 | 9.80x | 232.4 | 9.80x | +0.1% | 792 | 792 |
+| fix/slope-4.log-text | generated | hand | 254.8 | 470.9 | 1.85x | 238.2 | 0.94x | -49.4% | 504 | 504 |
+| fix/slope-4.log-bytes | generated | hand | 255.0 | 536.4 | 2.10x | 303.2 | 1.19x | -43.5% | 560 | 560 |
+| fix/slope-4.log-stream | generated | hand | 256.6 | 951.8 | 3.71x | 564.7 | 2.20x | -40.7% | 1176 | 1176 |
+| fix/slope-16.log-text | generated | hand | 939.7 | 1685.9 | 1.79x | 824.1 | 0.88x | -51.1% | 1752 | 1752 |
+| fix/slope-16.log-bytes | generated | hand | 954.8 | 1913.2 | 2.00x | 1072.8 | 1.12x | -43.9% | 1808 | 1808 |
+| fix/slope-16.log-stream | generated | hand | 945.8 | 2717.2 | 2.87x | 1386.6 | 1.47x | -49.0% | 2328 | 2328 |
+| el/ladder.bool | generated | hand | 971.8 | 1744.1 | 1.79x | 1700.7 | 1.75x | -2.5% | 1776 | 1720 |
+| sql/select20.bool | generated | hand | 6769.8 | 18291.1 | 2.70x | 18025.7 | 2.66x | -1.5% | 21448 | 21392 |
+| fix/One.yield-reader | generated | hand | 205.5 | 350.5 | 1.71x | 337.1 | 1.64x | -3.8% | 856 | 856 |
+| fix/One.yield-string | generated | hand | 78.5 | 248.5 | 3.17x | 252.8 | 3.22x | +1.7% | 272 | 272 |
+| fix/One.yield-memory | generated | hand | 77.5 | 119.0 | 1.54x | 120.4 | 1.55x | +1.2% | 352 | 352 |
+| fix/One.whole-stream | generated | hand | 159.5 | 222.1 | 1.39x | 217.3 | 1.36x | -2.1% | 448 | 448 |
+| fix/One.whole-reader | generated | hand | 160.9 | 237.2 | 1.47x | 229.4 | 1.43x | -3.3% | 416 | 416 |
+| fix/Order.yield-reader | generated | hand | 909.5 | 1096.6 | 1.21x | 1082.6 | 1.19x | -1.3% | 1680 | 1680 |
+| fix/Order.yield-string | generated | hand | 693.7 | 2186.0 | 3.15x | 2283.7 | 3.29x | +4.5% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | hand | 693.1 | 791.9 | 1.14x | 783.3 | 1.13x | -1.1% | 1176 | 1176 |
+| fix/Order.whole-stream | generated | hand | 827.8 | 915.1 | 1.11x | 909.6 | 1.10x | -0.6% | 1352 | 1352 |
+| fix/Order.whole-reader | generated | hand | 824.1 | 942.9 | 1.14x | 918.9 | 1.12x | -2.5% | 1320 | 1320 |
+| fix/BinaryMany.yield-reader | generated | hand | 5004.5 | 5700.0 | 1.14x | 5670.6 | 1.13x | -0.5% | 7416 | 7416 |
+| fix/BinaryMany.yield-string | generated | hand | 3602.5 | 16055.3 | 4.46x | 15547.1 | 4.32x | -3.2% | 6832 | 6832 |
+| fix/BinaryMany.yield-memory | generated | hand | 3685.9 | 4875.4 | 1.32x | 4827.6 | 1.31x | -1.0% | 6912 | 6912 |
+| fix/BinaryMany.whole-stream | generated | hand | 4860.8 | 4818.8 | 0.99x | 4819.4 | 0.99x | 0.0% | 7512 | 7512 |
+| fix/BinaryMany.whole-reader | generated | hand | 4840.8 | 5367.3 | 1.11x | 5279.0 | 1.09x | -1.6% | 7480 | 7480 |
+| fix/Orders128.yield-reader | generated | hand | 139938.7 | 98456.4 | 0.70x | 99407.4 | 0.71x | +1.0% | 118520 | 118520 |
+| fix/Orders128.yield-string | generated | hand | 83807.6 | 279049.1 | 3.33x | 271988.4 | 3.25x | -2.5% | 117936 | 117936 |
+| fix/Orders128.yield-memory | generated | hand | 83454.3 | 91453.8 | 1.10x | 91817.0 | 1.10x | +0.4% | 118016 | 118016 |
+| fix/Orders128.whole-stream | generated | hand | 119275.1 | 89137.5 | 0.75x | 88250.0 | 0.74x | -1.0% | 129368 | 129368 |
+| fix/Orders128.whole-reader | generated | hand | 120298.0 | 90283.6 | 0.75x | 90760.0 | 0.75x | +0.5% | 129336 | 129336 |
+| fix/slope-0.yield-reader | generated | hand | 140.7 | 250.2 | 1.78x | 247.5 | 1.76x | -1.1% | 760 | 760 |
+| fix/slope-0.yield-string | generated | hand | 24.6 | 52.3 | 2.13x | 52.2 | 2.12x | -0.2% | 176 | 176 |
+| fix/slope-0.yield-memory | generated | hand | 24.1 | 63.3 | 2.63x | 64.8 | 2.70x | +2.4% | 256 | 256 |
+| fix/slope-0.whole-stream | generated | hand | 93.8 | 145.1 | 1.55x | 144.2 | 1.54x | -0.6% | 320 | 320 |
+| fix/slope-0.whole-reader | generated | hand | 93.4 | 153.8 | 1.65x | 153.1 | 1.64x | -0.5% | 288 | 288 |
+| fix/slope-16.yield-reader | generated | hand | 1227.5 | 1333.7 | 1.09x | 1344.3 | 1.10x | +0.8% | 2296 | 2296 |
+| fix/slope-16.yield-string | generated | hand | 872.0 | 2922.1 | 3.35x | 2951.8 | 3.39x | +1.0% | 1712 | 1712 |
+| fix/slope-16.yield-memory | generated | hand | 879.2 | 995.8 | 1.13x | 980.3 | 1.12x | -1.6% | 1792 | 1792 |
+| fix/slope-16.whole-stream | generated | hand | 1080.4 | 1065.7 | 0.99x | 1061.4 | 0.98x | -0.4% | 2008 | 2008 |
+| fix/slope-16.whole-reader | generated | hand | 1076.3 | 1090.6 | 1.01x | 1101.4 | 1.02x | +1.0% | 1976 | 1976 |
+| web/url.full | generated | hand | 157.2 | 282.5 | 1.80x | 288.9 | 1.84x | +2.2% | 536 | 536 |
+| el/ladder | generated | hand | 990.7 | 1762.2 | 1.78x | 1734.6 | 1.75x | -1.6% | 1776 | 1776 |
+| el/ladder | immediate | hand | 990.7 | 1184.9 | 1.20x | 1196.6 | 1.21x | +1.0% | 1784 | 1784 |
+| el/string | generated | hand | 306.0 | 987.5 | 3.23x | 1001.9 | 3.27x | +1.5% | 1056 | 1056 |
+| el/string | immediate | hand | 306.0 | 690.2 | 2.26x | 684.8 | 2.24x | -0.8% | 1032 | 1032 |
+| sql/column | generated | hand | 140.6 | 339.6 | 2.42x | 347.0 | 2.47x | +2.2% | 392 | 392 |
+| sql/select20 | generated | hand | 6865.7 | 18421.9 | 2.68x | 18260.9 | 2.66x | -0.9% | 21448 | 21448 |
