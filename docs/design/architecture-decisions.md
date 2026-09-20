@@ -2616,7 +2616,15 @@ round the call changes nothing, because the cause means "the caller may ask the 
 group does not take that away. It is the analysis's, in the words he gave it: a call needs no way
 back where any shortening of its reading would resume on a token the continuation cannot accept.
 sql-39 takes it after the anatomy. The shelved carrier is marked provisional, its arithmetic
-corrected, and it is re-derived weighted from one cost model together with the anatomy. On FIX the comparison
+corrected, and it is re-derived weighted from one cost model together with the anatomy. **Half of that
+re-derivation is in (sql-39, on today's main):** the recipe reproduces the record count exactly,
+and of 116,946 records 4,130 are in settled subtrees — 3.5%, against the 4.8% written before,
+the difference being that a rule now counts as settled only where every call it makes is settled
+too; both numbers stay in the document with that reason. The weighting itself is the line that
+matters: of 17,023 walks only 174, one per cent, build nothing but settled records, so the fixed
+cost of a walk — which the anatomy says is most of materialization — is removed almost nowhere.
+Weighted, the estimate falls rather than rises. The two constants come from the profile, and the
+conclusion then says plainly whether the shelf is final. On FIX the comparison
 is honest — the stand holds both parsers to the same answers before timing — but the stronger
 sentence was left out of the table: against the ideal reader we built as a floor, the generated
 parser is 1.04x (48.9 ns a field against 46.8), where it was 3.1x the day before by the stand's own
