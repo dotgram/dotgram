@@ -95,7 +95,14 @@ public sealed class ExponentialShapeProbe
 			Assert.Fail($"No list yet; wrote {found} places to {expected}. Read it, and commit it if it is right.");
 		}
 
-		if (File.ReadAllText(expected).Replace("\r\n", "\n") == actual)
+		// The recorded file carries a verdict and its reason beside each place; only the places
+		// themselves are compared, so a judgement can be written without the walk parsing it.
+		var recorded = string.Concat(
+			File.ReadAllLines(expected)
+				.Where(line => !line.TrimStart().StartsWith("#", StringComparison.Ordinal) && line.Length > 0)
+				.Select(line => line + "\n"));
+
+		if (recorded == actual)
 			return;
 
 		var rejected = expected + ".actual";

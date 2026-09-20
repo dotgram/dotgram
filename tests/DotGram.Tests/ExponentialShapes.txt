@@ -1,5 +1,19 @@
-  Allocation.cs  Sum: (…)+ of Sequence over (…)+ of Element (Element)
+# Where a repetition can begin a repetition with nothing after it that must be read.
+#
+# Every line without a '#' is a place the walk found. A place stays here only with a verdict
+# and a reason; a place with neither fails this test until somebody drives it with an input and
+# writes one. The walk cannot judge, and a verdict reached by reading has been wrong every time
+# it was checked: of eight places driven, the slow input was never the likely-looking one.
+#
+# Sealed since this list began: a URI template's Part*, four paths through Rfc5322's ObsPhrase
+# and ObsRoute (two over folding whitespace, two over runs of comments), eight of the expression
+# language's string bodies, and three in the examples - twelve, thirty-five and seventeen
+# seconds before they were sealed.
+#
+# SAFE, and the reason is who reads it: both are whole lexemes taken by the lexer's automaton,
+# which has no way back, so the form cannot be cut more than one way. The same form one call
+# further out - a lexeme the automaton only begins and a rule finishes - took twenty seconds on
+# twenty-four characters, and those places were sealed. Driven by expr through twelve input
+# forms: flat at every length.
   ExpressionParser.cs  Text: (…)* of Call over (…)+ of Element (Element)
   ExpressionParser.cs  Verbatim: (…)* of Call over (…)+ of Element (Element)
-  MarkdownExample.cs  Doc: (…)* of Call over (…)+ of Call (Bullet)
-  XmlExample.cs  Element: (…)* of Call over (…)+ of Element (Element)
