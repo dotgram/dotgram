@@ -24440,3 +24440,37 @@ reader's ground and not the grammar's — the grammar's own way out would be to 
 server does, which D22 forbids. Not checked: whether the web and expression grammars have the same
 square, and whether an atomic group changes anything (`JoinedRight` says it would not: the cost is
 re-reading, not a way back).
+
+## A flat list is not a square: the CASE arms count linear
+
+The square above is a product — a rule entered depth × (depth+1) times — so the question D61 asks
+is whether the twenty-odd superlinear refusals on the stand's ladders are one arithmetic or several.
+One SQL case, deliberately unlike the parentheses: a flat list, nothing nested.
+`"SELECT CASE" + " WHEN 1 = 1 THEN 1"×n`, through `SqlStandardParser.TryParseQueryExpression`,
+whose time exponent on the stand's ladder is 1.49.
+
+| arms | calls | walks | listed | cleared | calls / n(n+1) |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 | 1,192 | 480 | 1,664 | 4,472 | 16.56 |
+| 16 | 2,344 | 960 | 3,328 | 8,954 | 8.62 |
+| 32 | 4,648 | 1,920 | 6,656 | 17,915 | 4.40 |
+| 64 | 9,256 | 3,840 | 13,312 | 35,819 | 2.23 |
+
+Per arm: 149 calls, 60 walks, 208 listing iterations, 560 cleared cells — flat over eight times the
+input. The ratio to n(n+1) halves at every doubling, which is the test failing to find a product.
+The most-entered rule is 194 at 32 arms, about six an arm, where the parentheses had three rules at
+exactly 1,056. Nothing is given back at any size, so nothing is read twice.
+
+Three places a square could have hidden without touching the call count, counted because a linear
+call count alone does not settle it. The *number* of materializer walks, which stays at 60 an arm.
+The *length* of one walk — its listing loop, which could scan further as records accumulate while
+the walks themselves stayed linear; 208 an arm, and most walks take a fast path before reaching it
+at all. And the cells zeroed by `Room(…, from: first)` and by `Array.Clear(built, ways.Built, …)`,
+both of which clear from a rule's mark forward and so are incremental, not cumulative: 560 and 78 an
+arm.
+
+So the refusals are not one class. Where this one's time bends, if it bends, is in work none of
+these counts can see — allocation, collection, the arena's growth — or in the measurement; counts
+from an instrumented build cannot tell those apart, and a time from one is not worth publishing.
+What is settled is the shape of the question: a product is found by dividing by n(n+1) at two or
+three sizes, and this case answers no.
