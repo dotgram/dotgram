@@ -1,4 +1,38 @@
-# A guard's value at the capture's close: a design (for review)
+# A guard's value at the capture's close: a design, refused by its own numbers
+
+**Refused on 2026-09-20, in both of the shapes it ended with, and kept as the record of why.**
+sql-39 counted, on an instrumented parser and without a machine, why a guard's ask does not take
+the walk's fast path:
+
+| | SQL:2023, `select20`, 301 asks | T-SQL, 7,716 statements, 17,023 asks |
+| --- | --- | --- |
+| the fast path | 170 (56%) | 1,322 (7.8%) |
+| the root is not the last record | 107 (36%) | 1,110 (6.5%) |
+| something below it is unbuilt | 24 (8%) | **13,300 (78%)** |
+| a list of roots | 0 | 1,291 (7.6%) |
+| asks that list the log | 131 | 15,701 (92%) |
+
+What that says. **The count (§3.1)** answers "is everything since the mark built?" in constant
+time — and on T-SQL the answer is *no* in 78% of asks. A cheap "no" is still a "no": the walk
+happens anyway, and the listing, the clearing and the reaching pass all remain. What is saved is
+the `IndexOf`, which is 6% of a walk. **And the close (§2) does not help either**, which I had not
+seen until the causes were counted: "something below is unbuilt" is a record *no guard asked for*,
+and by §3.7 a close builds only what a guard names, so that record stays unbuilt and the fast path
+still fails. Only building everything where the reading is proved — the wider
+`carrier-per-construction` design — reaches that cause.
+
+On SQL:2023 the fast path already works, and what blocks the rest is the other cause, which
+neither shape touches: the root is not the last record.
+
+So this is refused where it would have paid least and cannot pay where the cost is. The next
+number on this line is how many records a slow walk lists, which prices the listing itself; that
+is a different design. **A pair on anything here takes both families** — the two grammars fail the
+fast path for opposite reasons, so a measurement on one is a measurement about one.
+
+What follows is the design as it stood, unchanged, because the reasoning in it is what the numbers
+are answering.
+
+---
 
 A `when` that names a captured value asks the tape for it while the text is still being read.
 The tape answers by walking: `Materialize(record, sinceMark)` from the rule's mark, which lists
