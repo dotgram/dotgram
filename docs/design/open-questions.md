@@ -2113,3 +2113,32 @@ is a request that the lever and its price be named beside the percentage, and th
 sentence from here on say whether it was made from the file or from the IL.
 
 **Answer:** —
+
+**Counted, and it corrects a number of mine (critic, read at `3334ca1e`).** The symbols were read
+rather than estimated, and the estimate in Q21 — "seven to nine megabytes" — was wrong by three and
+a half times. The count: `DotGram.Sql.dll`'s embedded symbol file is 3,544,414 bytes in the file
+(17.9% of it) and 7,208,884 unpacked; of its 29 documents 13 carry source, all of them generated,
+holding 39,044,259 bytes of text stored as **2,839,013 — 14.3% of the assembly**. And the residue
+closes exactly: the grammar texts alone deflate to 191,805, and 730,673 + 191,805 + 1,682 = 924,160,
+the difference of the two builds to the byte, the 1,682 being what escaping the text into a C#
+literal costs. The expression language agrees to 83 bytes.
+
+**The mistake is worth naming because this file has spent two days on its family.** I took the
+deflate ratio measured on *grammar text* — 730,673 raw against 193,487 compressed, about 3.8 to 1 —
+and applied it to *generated C#*, which is a different material and compresses 13.75 to 1. That is
+the same move as counting off something that resembles the answer: a ratio is a measurement of one
+thing, and carrying it to another is a guess wearing a measurement's clothes. The right ratio was
+one read away, in the same file that answered the question.
+
+**What changes in Q22 and what does not.** The conclusion about the instrument stands: `ILBytes` is
+untouched, statements made from it hold, and the overlap between the source figure and the file
+figure still has to be named. The lever stands and is exactly as described —
+`EmbedUntrackedSources`, one property, whose removal takes the generated source out of every
+shipped assembly and leaves every line number in every stack trace. What was wrong was the scale.
+It is not two orders of magnitude above the decision being taken; it is **14.3% against 4.7%** —
+three times, not a hundred. Still worth standing on the same page as the `Portable` figure, because
+both answer the one question a consumer asks, and no longer worth the word "dwarfs".
+
+**And one thing the count found that is not about size at all.** The symbol documents carry the
+absolute path of the machine that built them. That is a question about what a shipped package says
+of the disk it was made on, not about bytes, and it belongs with whoever owns reproducible packing.
