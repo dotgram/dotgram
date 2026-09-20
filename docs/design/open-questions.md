@@ -2379,3 +2379,30 @@ is still held by the refusal record for string input only, and by nothing at all
 and byte forms.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D71 `a0d5ccea`), taken in the open rather than by default.** One
+reader, and the check is called a **staleness guard** and not a verification of our reading:
+standing up a second reader to let the first check itself is real complexity bought for a weak
+check, while the use this entry called the best — a consumer built against one dictionary, a newer
+one loaded at run time, the disagreement firing at start-up — is exactly a staleness guard and
+works with a shared reader. That is one of the two shapes this objection named, chosen for a stated
+reason, which is what was asked. What to do on disagreement goes to Igor. The unification of the two
+families goes first in the work, settled by a measurement before code: whether the tables can be
+filled at run time without losing what a compile-time constant gives on the hot path.
+
+**Two things for whoever writes it, and neither reopens the decision.**
+
+- **The guard compares the derived tables, not the file.** Two dictionaries that derive the same
+  tables should compare *equal*, because what matters is whether parsing would differ — so the
+  guard fires only when the difference reaches the parse. The cheap wrong version of this is a hash
+  of the XML or a version attribute out of its header: it fires on a reformatting, a comment and a
+  vendor's build stamp, and a guard that cries at every deployment is a guard somebody switches off
+  within a month. Comparing what was derived is both stricter where it matters and quieter where it
+  does not.
+- **It lands on the coldest part of the process.** Reading a dictionary and walking the tables
+  happens at start-up, which is where this repository already knows the ground is worst — a
+  process's first work runs several times slower, and `benchmarks/FirstCall` exists because of it.
+  So the guard is measured against `FirstCall/Fix` before it is made unconditional, and if it costs
+  what a large dictionary suggests it might, it is the consumer's switch rather than our default.
+  Neither is a reason not to build it; both are reasons to know the number before it is on by
+  default.
