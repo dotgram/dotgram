@@ -258,6 +258,9 @@ public static partial class CSharpEmitter
 		var value = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : type ?? (bytes ? "byte[]" : "string");
 		var match = $"{MatchType}<{value}>";
 		var method = publication.MethodName;
+		// What the author called the rule, which is what its documentation names — not the name a
+		// publication carrying `with (...)` gave the clone it reads.
+		var name   = publication.Rule.Declaration?.Name ?? publication.Rule.Name;
 		var context = machine.UsesContext ? $", {graph.Context} context" : "";
 		var hands = (graph.Climbing.ContainsKey(publication.Rule) ? ", 0" : "") +
 			", ref failure" + (type is null ? "" : ", out var value") +
@@ -299,6 +302,16 @@ public static partial class CSharpEmitter
 				return $"{AccessOf(publication)} static {returns} {method}({inputType} input{context})";
 
 			var iterator = "Iterate_DotGram_" + method;
+
+			// The overload the caller sees, in front of the iterator: what it says is what the
+			// iterator would have said, and the iterator is private.
+			file.Line($"/// <summary>Reads <c>{name}</c> from the input, one at a time as they are asked for.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// The input is the caller's and is left open. It is read through a buffer of");
+			file.Line("/// <paramref name=\"bufferSize\"/>, holding no more than <paramref name=\"maxRetained\"/>");
+			file.Line("/// at once, so what is held is what is being read and not the input (§6.3).");
+			file.Line("/// Stopping early leaves whatever was read ahead in that buffer.");
+			file.Line("/// </remarks>");
 
 			using (file.Block($"{AccessOf(publication)} static {returns} {method}({inputType} input{context}{parameters})"))
 			{
@@ -385,6 +398,11 @@ public static partial class CSharpEmitter
 			}
 			file.Line($"return {match}.Success({(type is null ? bytes ? "text.Slice(0, end).ToArray()" : "text.Slice(0, end).ToString()" : "value")}, 0, end);");
 		}
+		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
+		file.Line("/// <exception cref=\"global::System.FormatException\">");
+		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
+		file.Line("/// </exception>");
+
 		using (file.Block($"{AccessOf(publication)} static {value} {method}(" +
 			$"{inputType} input{context}{parameters})"))
 		{

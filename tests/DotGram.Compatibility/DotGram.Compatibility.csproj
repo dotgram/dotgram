@@ -41,11 +41,12 @@
 		     once — two comments the generator wrote sat on a local function, which C# has no
 		     documentation for, and the consumer's build failed on a file they did not write
 		     (CS1587). Here it fails in ours, on three frameworks, which is what this project
-		     is for. CS1591 is off: what the generated file leaves undocumented is a question
-		     about the documentation we ship, not about whether it compiles. -->
+		     is for. CS1591 is on as well: every public member of a generated parser carries
+		     its documentation, and a member that stops carrying it fails here rather than in a
+		     consumer's build. The consumer's own classes in Consumer.cs are documented for the
+		     same reason — the check is worth nothing if it is switched off where it complains. -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">

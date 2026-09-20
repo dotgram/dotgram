@@ -4,12 +4,14 @@ using DotGram;
 
 namespace DotGram.Compatibility
 {
+	/// <summary>A publication yielded from a reader, and the same over bytes.</summary>
 	[Gram("Item : @int = 'a' & ';' => @(1)\nFeed : @int[] = { Item* }\n" +
 		"parse Feed as Array stream\nparse Feed as Rows stream yield : @int\nparse Feed as Bytes stream bytes yield : @int")]
 	public partial class YieldInput
 	{
 	}
 
+	/// <summary>Captures taken as spans, over a buffer and over bytes.</summary>
 	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start\nparse Start as Boxed : @object", BufferedInput = true, BufferedBytes = true, SpanCaptures = true)]
 	public partial class NativeCapture
 	{
@@ -28,21 +30,25 @@ namespace DotGram.Compatibility
 		}
 	}
 
+	/// <summary>A parse of buffered input, over characters and over bytes.</summary>
 	[Gram("Start : @int = \"ab\"* & '!' => @(42)\nparse Start", BufferedInput = true, BufferedBytes = true)]
 	public partial class BufferedInput
 	{
 	}
 
+	/// <summary>A choice the host computes, read over a byte stream.</summary>
 	[Gram("Start : @int = switch @(1) { case 1: 'a' => @(1) default: 'b' => @(2) }\nparse Start stream bytes")]
 	public partial class ComputedDispatch
 	{
 	}
 
+	/// <summary>A yielded element that recovers, so a broken one is handed over in its place.</summary>
 	[Gram("Item : @int = { ?=any } & 'a' & ';' => @(1)\nItems : @int[] = Item* recover ';' => @(0)\nparse Items stream bytes yield : @int")]
 	public partial class RecoveringYield
 	{
 	}
 
+	/// <summary>A capture of everything, read through a buffer.</summary>
 	[Gram("Start : @string = text: any* => @(text)\nparse Start stream")]
 	public partial class BufferedCapture
 	{
@@ -51,6 +57,7 @@ namespace DotGram.Compatibility
 	// A choice whose alternatives begin alike over more characters than a switch names, so
 	// that the reader finds its groups by a table: a span over a byte literal, which the floor
 	// has to lower to the assembly's data with the span System.Memory gives it.
+	/// <summary>A choice too wide for a switch, found by a table of its groups.</summary>
 	[Gram(
 		"Start : @int = Wide & '!' & eof => @(1) | Latin & '?' & eof => @(2) | '#' & Wide & eof => @(3)\n" +
 		"Wide = ['a'..'z' | '\\u00C0'..'\\u024F']+\n" +
@@ -75,6 +82,7 @@ namespace DotGram.Compatibility
 	// the generated one can be judged. That is exactly what happened the first time this
 	// was measured: the grammar below used to be a raw string literal, the file failed to
 	// parse, the attribute went unrecognized, and the generator produced nothing to check.
+	/// <summary>A document of several publications: parses, a find, and a rule that recurses.</summary>
 	[Gram(
 		"@using System;\n" +
 		"@using DotGram.Compatibility;\n" +
@@ -109,6 +117,7 @@ namespace DotGram.Compatibility
 	// who generates the documentation of their own assembly compiles our file with that switch
 	// on, and the compiler refuses it (CS1587). This project builds with it on, so it refuses
 	// here instead.
+	/// <summary>A guard naming a value built under a mark, carried on the tape.</summary>
 	[Gram(
 		"state : @int\n" +
 		"Digits : @int  = d: ['0'..'9']+ => @(ToInt(d))\n" +
@@ -135,14 +144,17 @@ namespace DotGram.Compatibility
 	/// <summary>What the grammar above builds, filled from captures by name (§7.3).</summary>
 	public sealed class Entry
 	{
+		/// <summary>An entry of the key and the value the grammar read.</summary>
 		public Entry(string key, string value)
 		{
 			Key   = key;
 			Value = value;
 		}
 
+		/// <summary>What the entry is called.</summary>
 		public string Key { get; }
 
+		/// <summary>What it is set to.</summary>
 		public string Value { get; }
 	}
 }
