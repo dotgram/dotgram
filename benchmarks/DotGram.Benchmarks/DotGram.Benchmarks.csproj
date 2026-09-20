@@ -30,6 +30,12 @@
 		     syntax, which needs no schema and runs nothing (Engine.cs). Benchmarks only,
 		     like ScriptDom, and the harness says so and moves on where no server answers. -->
 		<PackageReference Include="Microsoft.Data.SqlClient" />
+
+		<!-- A reference reading of the FIX message layer (StandFixMessages.cs), which nothing that ships depends on. The dictionary
+		     the package carries is copied beside the program, where the row reads it. -->
+		<PackageReference Include="QuickFIXn.Core" />
+		<PackageReference Include="QuickFIXn.FIX44" />
+		<None Include="$([MSBuild]::EnsureTrailingSlash($(NuGetPackageRoot)))quickfixn.fix44/1.14.1/DataDictionary/FIX44.xml" Link="FIX44.xml" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -30,9 +30,62 @@ static partial class Stand
 		return $"{header}{body}10={sum % 256:D3}\u0001";
 	}
 
+	/// <summary>
+	/// A message both this layer and QuickFIX/n accept (finance-24, D26): framed correctly, no tag repeated outside a group and no data field, so
+	/// that their validation and ours can be asked the same question. BodyLength and CheckSum are computed, not written by hand: theirs checks both,
+	/// and wrong arithmetic would read as a disagreement about parsing.
+	/// </summary>
+	static string FixAgreedWire()
+	{
+		var fields = "35=D|49=SENDER|56=TARGET|34=1|52=20260920-12:00:00|11=ORDER123|21=1|55=AAPL|54=1|60=20260920-12:00:00|38=100|40=2|44=150.25|59=0|".Replace('|', (char)1);
+		var head   = "8=FIX.4.4" + (char)1 + "9=" + fields.Length + (char)1;
+		var sum    = 0;
+
+		foreach (var octet in System.Text.Encoding.Latin1.GetBytes(head + fields))
+			sum += octet;
+
+		return head + fields + "10=" + (sum % 256).ToString("D3", System.Globalization.CultureInfo.InvariantCulture) + (char)1;
+	}
+
+	static readonly Lazy<QuickFix.DataDictionary.DataDictionary> QuickFixDictionary = new(static () => new QuickFix.DataDictionary.DataDictionary(System.IO.Path.Combine(AppContext.BaseDirectory, "FIX44.xml")));
+
+	/// <summary>Whether QuickFIX/n accepts the wire as a session would take it: parsed with the dictionary and validated against it.</summary>
+	static bool QuickFixAccepts(string wire)
+	{
+		try
+		{
+			var dictionary = QuickFixDictionary.Value;
+			var message    = new QuickFix.Message();
+
+			message.FromString(wire, true, dictionary, dictionary, new QuickFix.FIX44.MessageFactory());
+			QuickFix.DataDictionary.DataDictionary.Validate(message, dictionary, dictionary, "FIX.4.4", message.Header.GetString(35));
+
+			return true;
+		}
+		catch (Exception)
+		{
+			return false;
+		}
+	}
+
 	static IEnumerable<Workload> FixMessageWorkloads()
 	{
 		var wire = FixMessageWire();
+		var agreed = FixAgreedWire();
+
+		// The message layer against QuickFIX/n on a message both accept. The second reading is a reference: another library's reader, doing the work a
+		// session needs (a dictionary, BodyLength and CheckSum checked). It says how fast that reader is here, and not what this grammar costs against a hand
+		// reading; there is no field row, since QuickFIX/n's message is a sorted map that drops the order of the wire and folds a repeated tag.
+		yield return new Workload(
+			"fixmsg",
+			"Order44.strict",
+			[
+				new Reading("generated", () => FixMessages.TryParse(agreed, out _, out _, new FixParseOptions(FixParseMode.Strict)) ? 1 : 0),
+				new Reading("reference-QuickFIXn", () => QuickFixAccepts(agreed) ? 1 : 0),
+			],
+			() => FixMessages.TryParse(agreed, out _, out var error, new FixParseOptions(FixParseMode.Strict))
+				? (QuickFixAccepts(agreed) ? null : "  the message layer accepts the wire and QuickFIX/n does not")
+				: $"  the message layer refuses the wire: {error}");
 
 		yield return new Workload(
 			"fixmsg",

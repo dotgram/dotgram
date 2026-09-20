@@ -46,6 +46,11 @@
 		     about what the language is, and neither ships. -->
 		<PackageVersion Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.102.0" />
 		<PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+
+		<!-- The other FIX engine on .NET, a reference reading beside the message layer's (D26): what it costs to read a
+		     NewOrderSingle with the checks a session needs. FIX44 carries the data dictionary. Benchmarks only. -->
+		<PackageVersion Include="QuickFIXn.Core" Version="1.14.1" />
+		<PackageVersion Include="QuickFIXn.FIX44" Version="1.14.1" />
 	</ItemGroup>
 
 	<ItemGroup Label="What older frameworks are missing">
