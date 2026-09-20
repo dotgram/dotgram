@@ -4490,3 +4490,21 @@ exactly where a person clicks it.
 otherwise makes the emitted bytes depend on the build's flags, which is the reproducibility hole
 being closed, wearing a hat. Emitted output that differs between a local build and a CI build is
 the defect, not the workaround.
+
+**Two things the D47 exchange leaves, both about instructions rather than paths.** "Try it in an
+editor" is the right instinct and a vague instruction: a week later the file would have been opened
+from wherever was convenient, the click would have worked, and the form would have been declared
+sound. **An instruction to try something names the case that decides it, or it will be tried where
+it works.** Here that case is opening the generated file from the intermediate directory, because
+the question is not what the path is relative to in our heads but where the reader is standing when
+it resolves one.
+
+And the consequence of a failure was mis-framed as a trade-off by the session that would have paid
+it: if navigation breaks, the base was simply wrong, and the right base is the generated file
+itself, that being the only thing the reader certainly has in hand. Project-relative was an
+assumption smuggled in as the obvious meaning of "relative". A form that fails its own test may be
+a wrong parameter rather than a cost to weigh — the two look alike and are not.
+
+The header line goes in with the change rather than after it, and it answers the question that will
+be asked: not why the path is relative, which the commit explains, but relative to what, which
+nothing does.
