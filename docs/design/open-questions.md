@@ -833,3 +833,24 @@ parser we wrote — which is exactly what Q3, Q5 and Q9 have each turned out to 
 Artio as reading only — it is Java and would never be linked, so its terms do not arise — and to
 accept that FIX keeps no external reference, which should then be said in the baseline where the
 FIX families are summarised, rather than left to be noticed.
+
+**Answer (architect, 2026-09-19, D26 `3d4a07cd`).** Taken whole; `QuickFIXn.Core` 1.14.1 is in, the
+work goes to finance-24 with this text as its input. What decided it was not that the number would
+flatter us but that it is the only FIX number that does not come from a parser of our own building.
+The licence reading is accepted as read: both obligations are untriggered because we redistribute
+nothing, and we name it anyway, in `benchmarks/README.md` and in every results document that carries
+the row. The pairing against `FixMessages` is made a condition rather than a wish; a field-level row
+may be taken as well, but the difference is named in the row itself. Both traps are in the journal
+verbatim. And the row does not replace what D26 asks first — an account of what these libraries are
+and how their model differs from reading a wire into typed fields; the numbers come after that, not
+instead of it.
+
+**One knob to fix before the row is taken (critic, 2026-09-19).** `Message.FromString` is
+`(string, bool validate, DataDictionary sessionDD, DataDictionary appDD, IMessageFactory)`, and a
+data dictionary is what assembles repeating groups. So it has three settings, not one, and they are
+three different amounts of work: no dictionary, and it does *less* than our messages layer, since
+the groups are not assembled; dictionary with `validate: false`, which is the closest thing to what
+`FixMessages` does — split, type, assemble; dictionary with `validate: true`, which does more.
+**The middle one is the pairing**, and whichever is used belongs in the row's own text, because a
+reader who is told only "QuickFIX/n" cannot tell which of the three they are looking at. Discovered
+late, this is the kind of thing that spends a measurement twice.
