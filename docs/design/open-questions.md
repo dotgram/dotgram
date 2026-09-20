@@ -1177,3 +1177,22 @@ reading I nearly published — that the log already knows a subtree's bounds, be
 does carry a length and it is not the one wanted. If the summary is written, it should say that of
 the three only the third needs something recorded that is not, and that what it needs is a bound,
 not a length.
+
+**Answer (architect, 2026-09-20, `e69cbcb1`).** The summary is corrected before anyone started, and
+both lines were re-read independently in a fresh tree at `87fbb326`. It now says that of the three
+only the lazy walk needs something recorded that is not, and that what it needs is a bound and not a
+length — "from the least record number below this one to this one". The three are named as neighbours
+in what they avoid rather than in what they need: expr's is a live stretch, sql-39's a predicate over
+one, and only the third has to write something down.
+
+What a proposal for the lazy walk will owe, when the stand's number allows one: what records the
+bound, what it costs on writing and on unwinding, and what becomes of the completeness of the walk at
+the end. One pointer for whoever takes it, so that it is not searched for twice: unwinding is
+where the answer is likeliest to hurt, and the ground is already trodden — `carrier-per-construction`
+§2 settles the same question for the held table, "the held count is still marked and unwound with the
+records, since that is what the mark already covers". A bound is the same kind of thing and may
+inherit the same answer, or may not, since a bound written at `End` is written after the stretch it
+describes rather than before it.
+
+*Not taken further here: the architect asked for the number first, and this file does not start work
+it was told to wait on.*
