@@ -1,0 +1,272 @@
+=== run 1 of 5, 21:03:43
+10 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      644.7 ns generated      505.6 ns regex-lesser     1243.5 ns regex-compiled-lesser      996.7 ns  generated/hand 0.78x  regex-lesser/hand 1.93x  regex-compiled-lesser/hand 1.55x
+fix/Order.bytes        hand      661.3 ns generated      645.4 ns  generated/hand 0.98x
+fix/Order.stream       hand      745.5 ns generated     2278.2 ns  generated/hand 3.06x
+  web/url.full: 1 round(s) redone after a gen1/gen2 collection
+web/url.full           hand      143.5 ns generated      219.6 ns regex      975.6 ns regex-compiled      382.2 ns  generated/hand 1.53x  regex/hand 6.80x  regex-compiled/hand 2.66x
+web/json.object        hand      468.3 ns generated      780.2 ns system-text-json      495.1 ns  generated/hand 1.67x  system-text-json/hand 1.06x
+  web/date-time.utc: 1 round(s) redone after a gen1/gen2 collection
+web/date-time.utc      hand       24.5 ns generated       43.8 ns regex      408.6 ns regex-compiled      319.5 ns  generated/hand 1.78x  regex/hand 16.65x  regex-compiled/hand 13.02x
+tsql/select-join       scriptdom    58121.1 ns generated     8142.0 ns located    12345.3 ns  generated/scriptdom 0.14x  located/scriptdom 0.21x
+feeds/stock-count.good.text hand    33376.6 ns generated    29607.2 ns  generated/hand 0.89x
+el/ladder              hand     1105.8 ns tape     1906.1 ns immediate     1197.5 ns  tape/hand 1.72x  immediate/hand 1.08x
+  sql/select20: 1 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     5866.1 ns generated    70220.8 ns  generated/hand 11.97x
+
+# Stand, 161d7641, 2026-09-19 21:04
+
+IGOR-DESKTOP, .NET 8.0.31, pinned to 0-15, high priority, control 30.2 ns.
+
+| row | hand ns | reading | ns | /hand | hand B | B | hand spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fix/Order.text | 644.7 | generated | 505.6 | 0.78x | 1184 | 832 | 8 % |
+| fix/Order.text | 644.7 | regex-lesser | 1243.5 | 1.93x | 1184 | 5960 | 8 % |
+| fix/Order.text | 644.7 | regex-compiled-lesser | 996.7 | 1.55x | 1184 | 5960 | 8 % |
+| fix/Order.bytes | 661.3 | generated | 645.4 | 0.98x | 1184 | 888 | 6 % |
+| fix/Order.stream | 745.5 | generated | 2278.2 | 3.06x | 5088 | 992 | 16 % |
+| web/url.full | 143.5 | generated | 219.6 | 1.53x | 328 | 472 | 6 % |
+| web/url.full | 143.5 | regex | 975.6 | 6.80x | 328 | 1336 | 6 % |
+| web/url.full | 143.5 | regex-compiled | 382.2 | 2.66x | 328 | 1336 | 6 % |
+| web/json.object | 468.3 | generated | 780.2 | 1.67x | 1976 | 2520 | 17 % |
+| web/json.object | 468.3 | system-text-json | 495.1 | 1.06x | 1976 | 72 | 17 % |
+| web/date-time.utc | 24.5 | generated | 43.8 | 1.78x | 112 | 112 | 6 % |
+| web/date-time.utc | 24.5 | regex | 408.6 | 16.65x | 112 | 1192 | 6 % |
+| web/date-time.utc | 24.5 | regex-compiled | 319.5 | 13.02x | 112 | 1192 | 6 % |
+| feeds/stock-count.good.text | 33376.6 | generated | 29607.2 | 0.89x | 197664 | 111168 | 4 % |
+| el/ladder | 1105.8 | tape | 1906.1 | 1.72x | 1712 | 1616 | 7 % |
+| el/ladder | 1105.8 | immediate | 1197.5 | 1.08x | 1712 | 1624 | 7 % |
+| sql/select20 | 5866.1 | generated | 70220.8 | 11.97x | 24680 | 21328 | 2 % |
+
+Rows with no hand-written parser, so the base is the scriptdom reading:
+
+| row | scriptdom ns | reading | ns | /scriptdom | scriptdom B | B | scriptdom spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| tsql/select-join | 58121.1 | generated | 8142.0 | 0.14x | 62800 | 3280 | 15 % |
+| tsql/select-join | 58121.1 | located | 12345.3 | 0.21x | 62800 | 3280 | 15 % |
+
+Written to T:\TEMP\dotgram-stand\w56\net8\run-1
+=== run 2 of 5, 21:04:15
+10 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      650.5 ns generated      508.9 ns regex-lesser     1241.2 ns regex-compiled-lesser      999.9 ns  generated/hand 0.78x  regex-lesser/hand 1.91x  regex-compiled-lesser/hand 1.54x
+fix/Order.bytes        hand      686.1 ns generated      662.1 ns  generated/hand 0.97x
+fix/Order.stream       hand      721.6 ns generated     2261.7 ns  generated/hand 3.13x
+web/url.full           hand      149.1 ns generated      219.5 ns regex      957.7 ns regex-compiled      392.5 ns  generated/hand 1.47x  regex/hand 6.42x  regex-compiled/hand 2.63x
+web/json.object        hand      463.3 ns generated      789.2 ns system-text-json      508.9 ns  generated/hand 1.70x  system-text-json/hand 1.10x
+web/date-time.utc      hand       25.1 ns generated       45.0 ns regex      410.3 ns regex-compiled      318.9 ns  generated/hand 1.79x  regex/hand 16.34x  regex-compiled/hand 12.70x
+tsql/select-join       scriptdom    58723.6 ns generated     8214.5 ns located    12390.7 ns  generated/scriptdom 0.14x  located/scriptdom 0.21x
+feeds/stock-count.good.text hand    35960.4 ns generated    29363.5 ns  generated/hand 0.82x
+el/ladder              hand     1090.7 ns tape     1892.2 ns immediate     1204.9 ns  tape/hand 1.73x  immediate/hand 1.10x
+sql/select20           hand     5892.5 ns generated    70185.3 ns  generated/hand 11.91x
+
+# Stand, 161d7641, 2026-09-19 21:04
+
+IGOR-DESKTOP, .NET 8.0.31, pinned to 0-15, high priority, control 30.6 ns.
+
+| row | hand ns | reading | ns | /hand | hand B | B | hand spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fix/Order.text | 650.5 | generated | 508.9 | 0.78x | 1184 | 832 | 6 % |
+| fix/Order.text | 650.5 | regex-lesser | 1241.2 | 1.91x | 1184 | 5960 | 6 % |
+| fix/Order.text | 650.5 | regex-compiled-lesser | 999.9 | 1.54x | 1184 | 5960 | 6 % |
+| fix/Order.bytes | 686.1 | generated | 662.1 | 0.97x | 1184 | 888 | 17 % |
+| fix/Order.stream | 721.6 | generated | 2261.7 | 3.13x | 5088 | 992 | 16 % |
+| web/url.full | 149.1 | generated | 219.5 | 1.47x | 328 | 472 | 8 % |
+| web/url.full | 149.1 | regex | 957.7 | 6.42x | 328 | 1336 | 8 % |
+| web/url.full | 149.1 | regex-compiled | 392.5 | 2.63x | 328 | 1336 | 8 % |
+| web/json.object | 463.3 | generated | 789.2 | 1.70x | 1976 | 2520 | 5 % |
+| web/json.object | 463.3 | system-text-json | 508.9 | 1.10x | 1976 | 72 | 5 % |
+| web/date-time.utc | 25.1 | generated | 45.0 | 1.79x | 112 | 112 | 16 % |
+| web/date-time.utc | 25.1 | regex | 410.3 | 16.34x | 112 | 1192 | 16 % |
+| web/date-time.utc | 25.1 | regex-compiled | 318.9 | 12.70x | 112 | 1192 | 16 % |
+| feeds/stock-count.good.text | 35960.4 | generated | 29363.5 | 0.82x | 197664 | 111168 | 3 % |
+| el/ladder | 1090.7 | tape | 1892.2 | 1.73x | 1712 | 1616 | 7 % |
+| el/ladder | 1090.7 | immediate | 1204.9 | 1.10x | 1712 | 1624 | 7 % |
+| sql/select20 | 5892.5 | generated | 70185.3 | 11.91x | 24680 | 21328 | 4 % |
+
+Rows with no hand-written parser, so the base is the scriptdom reading:
+
+| row | scriptdom ns | reading | ns | /scriptdom | scriptdom B | B | scriptdom spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| tsql/select-join | 58723.6 | generated | 8214.5 | 0.14x | 62800 | 3280 | 4 % |
+| tsql/select-join | 58723.6 | located | 12390.7 | 0.21x | 62800 | 3280 | 4 % |
+
+Written to T:\TEMP\dotgram-stand\w56\net8\run-2
+=== run 3 of 5, 21:04:44
+10 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      647.6 ns generated      502.2 ns regex-lesser     1230.9 ns regex-compiled-lesser      988.6 ns  generated/hand 0.78x  regex-lesser/hand 1.90x  regex-compiled-lesser/hand 1.53x
+fix/Order.bytes        hand      648.6 ns generated      634.1 ns  generated/hand 0.98x
+fix/Order.stream       hand      693.9 ns generated     2246.8 ns  generated/hand 3.24x
+  web/url.full: 1 round(s) redone after a gen1/gen2 collection
+web/url.full           hand      143.6 ns generated      218.2 ns regex      952.1 ns regex-compiled      426.3 ns  generated/hand 1.52x  regex/hand 6.63x  regex-compiled/hand 2.97x
+web/json.object        hand      447.9 ns generated      762.9 ns system-text-json      483.8 ns  generated/hand 1.70x  system-text-json/hand 1.08x
+  web/date-time.utc: 1 round(s) redone after a gen1/gen2 collection
+web/date-time.utc      hand       25.7 ns generated       44.3 ns regex      405.7 ns regex-compiled      310.7 ns  generated/hand 1.72x  regex/hand 15.79x  regex-compiled/hand 12.09x
+tsql/select-join       scriptdom    59825.3 ns generated     8403.7 ns located    12322.0 ns  generated/scriptdom 0.14x  located/scriptdom 0.21x
+feeds/stock-count.good.text hand    34497.7 ns generated    30510.4 ns  generated/hand 0.88x
+el/ladder              hand     1106.7 ns tape     1962.4 ns immediate     1232.3 ns  tape/hand 1.77x  immediate/hand 1.11x
+  sql/select20: 1 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6058.4 ns generated    71161.8 ns  generated/hand 11.75x
+
+# Stand, 161d7641, 2026-09-19 21:05
+
+IGOR-DESKTOP, .NET 8.0.31, pinned to 0-15, high priority, control 30.7 ns.
+
+| row | hand ns | reading | ns | /hand | hand B | B | hand spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fix/Order.text | 647.6 | generated | 502.2 | 0.78x | 1184 | 832 | 12 % |
+| fix/Order.text | 647.6 | regex-lesser | 1230.9 | 1.90x | 1184 | 5960 | 12 % |
+| fix/Order.text | 647.6 | regex-compiled-lesser | 988.6 | 1.53x | 1184 | 5960 | 12 % |
+| fix/Order.bytes | 648.6 | generated | 634.1 | 0.98x | 1184 | 888 | 8 % |
+| fix/Order.stream | 693.9 | generated | 2246.8 | 3.24x | 5088 | 992 | 8 % |
+| web/url.full | 143.6 | generated | 218.2 | 1.52x | 328 | 472 | 13 % |
+| web/url.full | 143.6 | regex | 952.1 | 6.63x | 328 | 1336 | 13 % |
+| web/url.full | 143.6 | regex-compiled | 426.3 | 2.97x | 328 | 1336 | 13 % |
+| web/json.object | 447.9 | generated | 762.9 | 1.70x | 1976 | 2520 | 10 % |
+| web/json.object | 447.9 | system-text-json | 483.8 | 1.08x | 1976 | 72 | 10 % |
+| web/date-time.utc | 25.7 | generated | 44.3 | 1.72x | 112 | 112 | 7 % |
+| web/date-time.utc | 25.7 | regex | 405.7 | 15.79x | 112 | 1192 | 7 % |
+| web/date-time.utc | 25.7 | regex-compiled | 310.7 | 12.09x | 112 | 1192 | 7 % |
+| feeds/stock-count.good.text | 34497.7 | generated | 30510.4 | 0.88x | 197664 | 111168 | 28 % |
+| el/ladder | 1106.7 | tape | 1962.4 | 1.77x | 1712 | 1616 | 13 % |
+| el/ladder | 1106.7 | immediate | 1232.3 | 1.11x | 1712 | 1624 | 13 % |
+| sql/select20 | 6058.4 | generated | 71161.8 | 11.75x | 24680 | 21328 | 16 % |
+
+Rows with no hand-written parser, so the base is the scriptdom reading:
+
+| row | scriptdom ns | reading | ns | /scriptdom | scriptdom B | B | scriptdom spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| tsql/select-join | 59825.3 | generated | 8403.7 | 0.14x | 62800 | 3280 | 5 % |
+| tsql/select-join | 59825.3 | located | 12322.0 | 0.21x | 62800 | 3280 | 5 % |
+
+Written to T:\TEMP\dotgram-stand\w56\net8\run-3
+=== run 4 of 5, 21:05:16
+10 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      658.2 ns generated      508.9 ns regex-lesser     1243.9 ns regex-compiled-lesser      994.6 ns  generated/hand 0.77x  regex-lesser/hand 1.89x  regex-compiled-lesser/hand 1.51x
+fix/Order.bytes        hand      673.1 ns generated      633.5 ns  generated/hand 0.94x
+fix/Order.stream       hand      706.4 ns generated     2377.7 ns  generated/hand 3.37x
+  web/url.full: 1 round(s) redone after a gen1/gen2 collection
+web/url.full           hand      144.9 ns generated      214.9 ns regex      955.0 ns regex-compiled      397.1 ns  generated/hand 1.48x  regex/hand 6.59x  regex-compiled/hand 2.74x
+web/json.object        hand      449.9 ns generated      786.3 ns system-text-json      498.2 ns  generated/hand 1.75x  system-text-json/hand 1.11x
+  web/date-time.utc: 1 round(s) redone after a gen1/gen2 collection
+web/date-time.utc      hand       24.6 ns generated       44.3 ns regex      423.6 ns regex-compiled      326.6 ns  generated/hand 1.80x  regex/hand 17.26x  regex-compiled/hand 13.30x
+tsql/select-join       scriptdom    58729.9 ns generated     8352.4 ns located    12253.6 ns  generated/scriptdom 0.14x  located/scriptdom 0.21x
+feeds/stock-count.good.text hand    33052.5 ns generated    29201.2 ns  generated/hand 0.88x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1079.6 ns tape     1964.3 ns immediate     1208.6 ns  tape/hand 1.82x  immediate/hand 1.12x
+sql/select20           hand     6005.7 ns generated    70814.3 ns  generated/hand 11.79x
+
+# Stand, 161d7641, 2026-09-19 21:05
+
+IGOR-DESKTOP, .NET 8.0.31, pinned to 0-15, high priority, control 30.3 ns.
+
+| row | hand ns | reading | ns | /hand | hand B | B | hand spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fix/Order.text | 658.2 | generated | 508.9 | 0.77x | 1184 | 832 | 7 % |
+| fix/Order.text | 658.2 | regex-lesser | 1243.9 | 1.89x | 1184 | 5960 | 7 % |
+| fix/Order.text | 658.2 | regex-compiled-lesser | 994.6 | 1.51x | 1184 | 5960 | 7 % |
+| fix/Order.bytes | 673.1 | generated | 633.5 | 0.94x | 1184 | 888 | 56 % |
+| fix/Order.stream | 706.4 | generated | 2377.7 | 3.37x | 5088 | 992 | 5 % |
+| web/url.full | 144.9 | generated | 214.9 | 1.48x | 328 | 472 | 8 % |
+| web/url.full | 144.9 | regex | 955.0 | 6.59x | 328 | 1336 | 8 % |
+| web/url.full | 144.9 | regex-compiled | 397.1 | 2.74x | 328 | 1336 | 8 % |
+| web/json.object | 449.9 | generated | 786.3 | 1.75x | 1976 | 2520 | 8 % |
+| web/json.object | 449.9 | system-text-json | 498.2 | 1.11x | 1976 | 72 | 8 % |
+| web/date-time.utc | 24.6 | generated | 44.3 | 1.80x | 112 | 112 | 18 % |
+| web/date-time.utc | 24.6 | regex | 423.6 | 17.26x | 112 | 1192 | 18 % |
+| web/date-time.utc | 24.6 | regex-compiled | 326.6 | 13.30x | 112 | 1192 | 18 % |
+| feeds/stock-count.good.text | 33052.5 | generated | 29201.2 | 0.88x | 197664 | 111168 | 4 % |
+| el/ladder | 1079.6 | tape | 1964.3 | 1.82x | 1712 | 1616 | 7 % |
+| el/ladder | 1079.6 | immediate | 1208.6 | 1.12x | 1712 | 1624 | 7 % |
+| sql/select20 | 6005.7 | generated | 70814.3 | 11.79x | 24680 | 21328 | 3 % |
+
+Rows with no hand-written parser, so the base is the scriptdom reading:
+
+| row | scriptdom ns | reading | ns | /scriptdom | scriptdom B | B | scriptdom spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| tsql/select-join | 58729.9 | generated | 8352.4 | 0.14x | 62800 | 3280 | 6 % |
+| tsql/select-join | 58729.9 | located | 12253.6 | 0.21x | 62800 | 3280 | 6 % |
+
+Written to T:\TEMP\dotgram-stand\w56\net8\run-4
+=== run 5 of 5, 21:05:50
+10 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      641.1 ns generated      506.4 ns regex-lesser     1215.9 ns regex-compiled-lesser      975.8 ns  generated/hand 0.79x  regex-lesser/hand 1.90x  regex-compiled-lesser/hand 1.52x
+fix/Order.bytes        hand      641.7 ns generated      623.9 ns  generated/hand 0.97x
+fix/Order.stream       hand      703.5 ns generated     2306.0 ns  generated/hand 3.28x
+  web/url.full: 1 round(s) redone after a gen1/gen2 collection
+web/url.full           hand      143.9 ns generated      227.1 ns regex      973.7 ns regex-compiled      423.2 ns  generated/hand 1.58x  regex/hand 6.77x  regex-compiled/hand 2.94x
+web/json.object        hand      463.9 ns generated      798.8 ns system-text-json      492.4 ns  generated/hand 1.72x  system-text-json/hand 1.06x
+web/date-time.utc      hand       24.4 ns generated       44.0 ns regex      399.1 ns regex-compiled      316.8 ns  generated/hand 1.80x  regex/hand 16.34x  regex-compiled/hand 12.97x
+tsql/select-join       scriptdom    60103.1 ns generated     8358.2 ns located    12458.7 ns  generated/scriptdom 0.14x  located/scriptdom 0.21x
+feeds/stock-count.good.text hand    36985.0 ns generated    29366.4 ns  generated/hand 0.79x
+el/ladder              hand     1052.6 ns tape     1877.9 ns immediate     1159.4 ns  tape/hand 1.78x  immediate/hand 1.10x
+sql/select20           hand     5865.6 ns generated    70427.7 ns  generated/hand 12.01x
+
+# Stand, 161d7641, 2026-09-19 21:06
+
+IGOR-DESKTOP, .NET 8.0.31, pinned to 0-15, high priority, control 30.1 ns.
+
+| row | hand ns | reading | ns | /hand | hand B | B | hand spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fix/Order.text | 641.1 | generated | 506.4 | 0.79x | 1184 | 832 | 2 % |
+| fix/Order.text | 641.1 | regex-lesser | 1215.9 | 1.90x | 1184 | 5960 | 2 % |
+| fix/Order.text | 641.1 | regex-compiled-lesser | 975.8 | 1.52x | 1184 | 5960 | 2 % |
+| fix/Order.bytes | 641.7 | generated | 623.9 | 0.97x | 1184 | 888 | 4 % |
+| fix/Order.stream | 703.5 | generated | 2306.0 | 3.28x | 5088 | 992 | 14 % |
+| web/url.full | 143.9 | generated | 227.1 | 1.58x | 328 | 472 | 13 % |
+| web/url.full | 143.9 | regex | 973.7 | 6.77x | 328 | 1336 | 13 % |
+| web/url.full | 143.9 | regex-compiled | 423.2 | 2.94x | 328 | 1336 | 13 % |
+| web/json.object | 463.9 | generated | 798.8 | 1.72x | 1976 | 2520 | 7 % |
+| web/json.object | 463.9 | system-text-json | 492.4 | 1.06x | 1976 | 72 | 7 % |
+| web/date-time.utc | 24.4 | generated | 44.0 | 1.80x | 112 | 112 | 5 % |
+| web/date-time.utc | 24.4 | regex | 399.1 | 16.34x | 112 | 1192 | 5 % |
+| web/date-time.utc | 24.4 | regex-compiled | 316.8 | 12.97x | 112 | 1192 | 5 % |
+| feeds/stock-count.good.text | 36985.0 | generated | 29366.4 | 0.79x | 197664 | 111168 | 4 % |
+| el/ladder | 1052.6 | tape | 1877.9 | 1.78x | 1712 | 1616 | 6 % |
+| el/ladder | 1052.6 | immediate | 1159.4 | 1.10x | 1712 | 1624 | 6 % |
+| sql/select20 | 5865.6 | generated | 70427.7 | 12.01x | 24680 | 21328 | 4 % |
+
+Rows with no hand-written parser, so the base is the scriptdom reading:
+
+| row | scriptdom ns | reading | ns | /scriptdom | scriptdom B | B | scriptdom spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| tsql/select-join | 60103.1 | generated | 8358.2 | 0.14x | 62800 | 3280 | 42 % |
+| tsql/select-join | 60103.1 | located | 12458.7 | 0.21x | 62800 | 3280 | 42 % |
+
+Written to T:\TEMP\dotgram-stand\w56\net8\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 30.3 ns (the runs' controls: 30.2, 30.6, 30.7, 30.3, 30.1).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Stand, 161d7641, 2026-09-19 21:04
+
+IGOR-DESKTOP, .NET 8.0.31, pinned to 0-15, high priority, control 30.3 ns.
+
+| row | hand ns | reading | ns | /hand | hand B | B | hand spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fix/Order.text | 647.6 | generated | 506.4 | 0.78x | 1184 | 832 | 3 % |
+| fix/Order.text | 647.6 | regex-lesser | 1241.2 | 1.92x | 1184 | 5960 | 3 % |
+| fix/Order.text | 647.6 | regex-compiled-lesser | 994.6 | 1.54x | 1184 | 5960 | 3 % |
+| fix/Order.bytes | 661.3 | generated | 634.1 | 0.96x | 1184 | 888 | 7 % |
+| fix/Order.stream | 706.4 | generated | 2278.2 | 3.22x | 5088 | 992 | 7 % |
+| web/url.full | 143.9 | generated | 219.5 | 1.52x | 328 | 472 | 4 % |
+| web/url.full | 143.9 | regex | 957.7 | 6.65x | 328 | 1336 | 4 % |
+| web/url.full | 143.9 | regex-compiled | 397.1 | 2.76x | 328 | 1336 | 4 % |
+| web/json.object | 463.3 | generated | 786.3 | 1.70x | 1976 | 2520 | 4 % |
+| web/json.object | 463.3 | system-text-json | 495.1 | 1.07x | 1976 | 72 | 4 % |
+| web/date-time.utc | 24.6 | generated | 44.3 | 1.80x | 112 | 112 | 5 % |
+| web/date-time.utc | 24.6 | regex | 408.6 | 16.64x | 112 | 1192 | 5 % |
+| web/date-time.utc | 24.6 | regex-compiled | 318.9 | 12.99x | 112 | 1192 | 5 % |
+| feeds/stock-count.good.text | 34497.7 | generated | 29366.4 | 0.85x | 197664 | 111168 | 11 % |
+| el/ladder | 1090.7 | tape | 1906.1 | 1.75x | 1712 | 1616 | 5 % |
+| el/ladder | 1090.7 | immediate | 1204.9 | 1.10x | 1712 | 1624 | 5 % |
+| sql/select20 | 5892.5 | generated | 70427.7 | 11.95x | 24680 | 21328 | 3 % |
+
+Rows with no hand-written parser, so the base is the scriptdom reading:
+
+| row | scriptdom ns | reading | ns | /scriptdom | scriptdom B | B | scriptdom spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| tsql/select-join | 58729.9 | generated | 8352.4 | 0.14x | 62800 | 3280 | 3 % |
+| tsql/select-join | 58729.9 | located | 12345.3 | 0.21x | 62800 | 3280 | 3 % |
+
+Written to T:\TEMP\dotgram-stand\w56\net8
