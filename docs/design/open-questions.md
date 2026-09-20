@@ -1567,18 +1567,35 @@ is a branch that needs an API the floor lacks; there the capable side will not c
 netstandard reference set, but the check wanted here is the other direction, and the net10 reference
 set compiles both.
 
-**And the knob may be smaller than D40 fears.** D40 asks for a property of the generator, decided
-rather than acquired, because "a knob that exists by accident becomes API by accident". If the one
-place that maps a framework to its capabilities is emitted as `#if NET8_0_OR_GREATER &&
-!DOTGRAM_NO_SEARCHVALUES` — beside the marker attributes, once per compilation — then the suppressor
-is an ordinary `DefineConstants` symbol. The stand's two folders are then one commit built twice
-with different `DefineConstants` on one framework, the consumer's opt-out at the floor on a new
-framework is the same symbol, and the generator reads no property at all. It is still a knob and
-still has to be documented as one; it is just a knob C# already has, and it makes D40's two
-conditions one mechanism rather than two.
+**And the measurement switch can be made unreachable rather than merely undocumented.** D40's
+amendment (`97cefaa4`) settles that it is a measurement switch and not a consumer's option, for a
+reason this session has nothing to add to: on a platform that has the capability the fast branch
+should always be right, and where it is not, that is our defect and not their setting. There is a
+mechanism that makes that true instead of stating it, and one hazard before it.
 
-**What would settle it.** Name the two existing branches in D40 — converted or grandfathered — and
-say which side of the `#if` the in-memory level compiles, in `EmittedCode` where the answer lives.
-Neither costs a measurement.
+The hazard first. `Build-Side.ps1` (`5c60d6ee`) passes the switch as an MSBuild property —
+`-Property DotGramSearchValues=off`, its own example. A property reaches a source generator only as
+`build_property.…` in the analyzer config, and only where something declares
+`<CompilerVisibleProperty Include="…" />`. Two are declared today, `DotGramReportGeneration` and
+`DesignTimeBuild`, and until a third joins them the example is a no-op: both sides build the same
+emitted code, the pair reads as "the branch costs nothing", and nothing in the run says why. A side
+builder that can silently build the wrong side deserves a guard — the switch's own name in
+`build.txt` is not enough, since that is what it was *asked* for, not what the generator read. The
+generation report (`DotGramReportGeneration`, which this repository turns on for every project) is
+where the generator can be made to say which branch it wrote.
+
+Then the mechanism. Both declarations live in `src/DotGram/build/DotGram.targets`, which is the
+package's own build asset, and the repository's projects read that same file because
+`Directory.Build.targets` imports it wherever a project references the generator as an analyzer. So
+a third declaration written where the two are ships. Written in `Directory.Build.props` instead, the
+pair works exactly as before and a consumer's build cannot set the switch at all — the property is
+not visible to their compiler, so setting it does nothing. That turns "supported for taking a pair
+and unsupported as a way to run" from a sentence in a document into a fact of the build, and it
+costs one line in a different file.
+
+**What would settle it.** Name the two existing branches in D40 — converted or grandfathered — say
+which side of the `#if` the in-memory level compiles, in `EmittedCode` where the answer lives, and
+declare the measurement switch where the package cannot carry it. None of the three costs a
+measurement.
 
 **Answer:** —
