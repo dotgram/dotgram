@@ -6617,3 +6617,28 @@ was served beside the new generator and the rules referred to types it did not h
 artifact of the right name does not look stale; it looks like the thing you just wrote is broken**,
 and half a minute went into believing that. It is written into the development page with the shape
 of the failure named, next to the half that was already there.
+
+## D78. Igor: the published specification is the authority, and it is read
+
+The three lists of disagreement between a published dictionary and our compiled tables are settled
+by reading the specification, not by preferring either reading. Neither the file nor our tables is
+evidence about the protocol; both are readings of it.
+
+**Order by consequence rather than by list.** Two of the seventy-seven are *spellings* — a value
+written one way here and another there — and a value spelled differently is a value that does not
+pass, so they are false rejections of correct messages and go first; they are also minutes of work.
+Then the twenty-six on composition, because a message required or not required is an accept or a
+reject of real traffic. Then the ten types, which decide how a value is checked. Then the rest of
+the code sets, where ours is mostly the richer and the failure is under-strictness rather than a
+wrong answer.
+
+**Each row closed carries its citation.** The section of the specification that decided it goes
+beside the row, in the same commit that corrects the tables and the list — otherwise the next
+person who doubts a row reads the specification again, and the one after that does it a third
+time. That is the rule this repository already keeps for the SQL grammars: a rule written from the
+published syntax says where it came from, and a transcription from somebody else's parser proves
+nothing.
+
+**And a row may close in either direction, including neither.** Ours right, theirs right, or the
+specification saying something neither says — the last is the interesting case and the one a list
+of two readings cannot reach on its own.
