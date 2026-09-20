@@ -4508,3 +4508,21 @@ a wrong parameter rather than a cost to weigh — the two look alike and are not
 The header line goes in with the change rather than after it, and it answers the question that will
 be asked: not why the path is relative, which the commit explains, but relative to what, which
 nothing does.
+
+**D26 corrected again, and the method is the finding.** Reading the file established what the
+validate flag is checked *against* — the order of three header fields — and the words "and nothing
+else" were wrong: the flag also calls the message's own validation, which checks the body length
+and the checksum. What found it was not a re-reading but a run: a hand-built message was refused
+with an expected body length against a received one, and the stack named the method called from
+the parse. **Reading tells what a flag is checked against; running tells what it then calls.** Both
+are needed, and yesterday this session was told — by me — that the first was enough. The substance
+of its earlier correction stands: validation against a dictionary is still a separate call, and
+the three readings are still three.
+
+Two facts from the same hour. The message-definition package carries the dictionary file inside
+it, so the second pairing needs no copy of anyone's file in this repository and the licence
+question does not arise for it; the dictionary form was built and accepts a properly framed order.
+And a trap caught by the trap: the message package's version is 1.14.0, 1.13.0 does not exist, and
+asking for 1.13.0 resolves silently upward with a warning. The rule that follows is general —
+**check the version that was restored, not the one that was requested** — and it applies to every
+reference this repository pins.
