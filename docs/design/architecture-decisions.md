@@ -3192,3 +3192,44 @@ swept away; it is the only way anyone gets that reading on this platform. Which 
 for Igor's second wording being the right way round, and for D27's "extends": the thing being
 extended is the only one of its kind, and losing the standard sixteen by omission would have been
 losing them from the only place they exist.
+
+## D30. The FIX seam: one call where there were thirty-three, 2026-09-20
+
+finance-24's design (`docs/design/fix-custom-seam-2026-09-20.md`, `1850398c`), approved as
+written, with the three open points settled below.
+
+**What opening the factory showed.** The default arm is not one place. `FixFieldFactory` dispatches
+in two levels — `Value(tag, span)` switches on `tag / 64` into fifteen `PartN` methods, each
+switching on the tag inside its block of 64 — and a default exists at *both* levels, because a tag
+the standard does not define inside a block falls into its own block's default and never reaches
+the outer one. Counting both span forms and the binary one, thirty-three places construct the
+fallback field today. The seam turns them into one call, which is less repetition than the package
+has now, not more.
+
+**The object is threaded through the two levels as a parameter**, thirty-two signatures changed
+mechanically. Approved: at run time a reference travels in a register and a known tag never reads
+it. The alternative finance-24 rejected — `PartN` returns null and the outer level sorts it out —
+would put a test on every field including the 912 known ones to save one argument, which gives
+away exactly what the change is for. Two conditions: no per-field null test on the known path
+either, so where no object is supplied the package's own instance stands in and the arm has one
+shape; and the package's standard instance is a sealed internal derivation of the class, since its
+members are abstract.
+
+**Three abstract members, not one**, one per form: a span of characters, a span of bytes, a binary
+pair. A consumer who answered only one would have forms that disagree, which is the defect we
+spent a day removing elsewhere, and abstract rather than virtual puts that question to the
+compiler instead of to operations. They return a field rather than null, so the arm is one virtual
+call and not a call plus a test, and a consumer who does not recognise a tag calls a `protected`
+helper that builds what we would have built. `ReadOnlySpan` holds D5 by the type in two of three.
+
+**The name is settled, and now is when it is free.** Igor chose `Custom` over `Unknown`;
+finance-24's observation removes the last objection to it, that `Custom` would carry two meanings
+— a tag nobody declared and a tag the consumer declared. The two never meet: if the consumer
+declared the tag, they returned their own field and ours was never built. The rename is a break,
+and `FixField.Unknown` is named in six places outside the package in this repository alone. 0.2.0
+is not out, so it costs nothing today and costs a deprecated synonym and a major version after.
+
+**A consumer's tag does not become known to the message layer, and that is said out loud.** The
+seam lets a consumer build their own field objects; the strict mode still rejects such a tag,
+because the schema is silent about its type. That is the next question, it rests on a dictionary
+read when the parser is generated, and it stays out of this change.
