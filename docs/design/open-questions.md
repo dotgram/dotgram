@@ -1684,3 +1684,46 @@ all, while four of the five carry the naive pair. The fixed implementation — t
 framework branch — appears in no diff anybody reads, and the unfixed one appears in four.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D41 `5b883f1f`).** Item 1 approved to design, with the size defect
+beside it and a snapshot covering the line-moving code, all in one commit; items 2 and 3 parked in
+the order given; the refusal-path walks refused with the reasons as stated. To performance-ff.
+
+**The count was wrong, and it is mine to correct: five places, not four (critic, read at
+`5b883f1f`).** A second count, taken off the emitter's templates rather than off the snapshots,
+found one the snapshots cannot show — no checked-in snapshot emits a byte machine at all.
+
+`BufferedBytes.Matches(int position, string literal)`, written by `BufferedEmitter` into the byte
+window, is a per-byte loop: `for (var i = 0; i < literal.Length; i++) if (_buffer[position - _start
++ i] != literal[i]) return false;`. Six emission sites call it — a literal, a literal in a run, a
+shared prefix and the residue after one, in `Machine.cs` and `Machine.Reader.cs` — and every one of
+them is the place where the character path calls `SequenceEqual` or `MemoryExtensions.Equals`
+instead. So it is not a scan the platform cannot do; it is the one comparison in emitted code where
+the decision `Machine.cs` took for characters was not taken for bytes.
+
+**And the argument for taking it is `Machine.cs`'s own**, written where it chose the span for
+characters: `SequenceEqual` against a constant is folded by the JIT into word-sized compares —
+"abcd" becomes a single 64-bit `cmp` — and it is bounds-checked once, where the chain it replaces
+was checked once per character. Nothing in that reasoning is about `char` rather than `byte`; four
+bytes are one 32-bit compare on the same ground.
+
+**What it would take, and the two things that make it sound.** The literal is known at generation,
+so it is emitted as `static ReadOnlySpan<byte> … => new byte[] { … };` — an RVA constant since C#
+7.3, no allocation, under the C# 8 floor — and `Matches` takes a span and calls
+`MemoryExtensions.SequenceEqual` after its own `Ensure`, which is where the buffer can still move.
+`ByteRefusal` already guarantees the conversion: a byte machine refuses a case-insensitive literal
+and any character above 255, in so many words — "byte literals must be case-sensitive values in
+0..255" — so every literal reaching `Matches` is a byte string, and the comment at
+`Machine.Reader.cs` that states this as an assumption is in fact enforced. I checked that before
+writing this, because the same code read the other way would have been a correctness defect: a
+case-insensitive literal over bytes comparing exactly.
+
+**Where it would pay, said honestly.** The byte path is FIX's, and FIX's literals are short — the
+4.4 field grammar is hundreds of tags spelled `"956="`, two to five bytes, and much of the dispatch
+goes through a shared prefix so what reaches `Matches` is the residue, often one or two bytes. At
+that length a loop and a call are close, and this is not the streaming window's shape argument; it
+is a constant-factor claim that has to be paired like one. What makes it worth raising anyway is
+that it is the only comparison left where two renderings of one grammar disagree about a decision
+already taken. *Where it touches:* `BufferedEmitter`'s `Matches`, the six call sites, and a byte
+literal's emission. *The question a number answers:* the Fix44 and byte rows of the stand, paired —
+and a snapshot with a byte machine in it, which does not exist either.
