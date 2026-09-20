@@ -1,0 +1,19 @@
+  shallow misses T2 in Select: SELECT *  FROM T  ORDER BY a  OFFSET (SELECT count(*)          FROM T2) ROWS FETCH NEXT (-1) ROWS ONLY;
+  shallow misses T2 in Select: SELECT *  FROM T  ORDER BY a  OFFSET 5 ROWS FETCH NEXT (SELECT count(*)                            FROM T2) RO
+  shallow misses src in Merge: MERGE INTO Production.ProductInventory   AS pi  USING (SELECT *         FROM someTable) AS src ON (pi.ProductI
+  shallow misses Tab2 in Select: SELECT Tab1.name  FROM Tab1  WHERE Tab1.name IS DISTINCT FROM ANY (SELECT Tab2.name                           
+  shallow misses Tab2 in Select: SELECT Tab1.name  FROM Tab1  WHERE Tab1.name IS DISTINCT FROM ANY (SELECT Tab2.name                           
+  shallow misses Tab2 in Select: SELECT Tab1.name  FROM Tab1  WHERE Tab1.name IS DISTINCT FROM ALL (SELECT Tab2.name                           
+  shallow misses Tab2 in Select: SELECT Tab1.name  FROM Tab1  WHERE Tab1.name IS NOT DISTINCT FROM ANY (SELECT Tab2.name                       
+  shallow misses Tab2 in Select: SELECT Tab1.name  FROM Tab1  WHERE Tab1.name IS NOT DISTINCT FROM ANY (SELECT Tab2.name                       
+7,694 statements read by this grammar; 2,250 of them are a kind the scanners have a case for (1,202 refer to at least one table).
+
+nodes reachable                                      48,248
+fetched by the oracle (every node, by reflection)    48,248   (100.0% of reachable)
+fetched by the deep scanner                          27,278   (56.5% of reachable)
+fetched by the shallow scanner                       12,711   (26.3% of reachable)
+on the handled statements alone: reachable 22,379; the deep scanner fetched 21,834 (97.6%), the shallow scanner 7,267 (32.5%)
+
+table names found on the handled statements: oracle 1,654, deep 1,654, shallow 1,562
+names the deep scanner misses 0 in 0 statements, names it adds that the oracle does not have 0
+names the shallow scanner misses 92 in 78 statements, names it adds that the oracle does not have 0

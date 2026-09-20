@@ -1,0 +1,533 @@
+using System.Collections;
+using System.Reflection;
+
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
+
+using Microsoft.SqlServer.TransactSql.ScriptDom;
+
+using NodeCount;
+
+using TableReference = DotGram.Sql.TableReference;
+
+// A dependency scanner (the architect's middle consumer): for each statement of a script, the names of the tables it refers to, and nothing else.
+//   shallow: descends only where a table reference can stand by the tree's shape: the sources of a query, the target of an insert, update, delete and merge, joins (not their conditions),
+//            derived tables and the common table expressions in front. It reads no select list, no condition and no value.
+//   deep:    the same, and every expression too, because a subquery can stand in any of them (EXISTS, IN, a scalar) and a scanner that does not look there misses its tables.
+//   oracle:  every node of the tree, by reflection; the names the two are held against.
+// Fetched is counted by the instrumented getters, so it is what each scanner really got hold of.
+static class Scan
+{
+	public static void Run(string root)
+	{
+		var files = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var parser = new TSql180Parser(true);
+
+		long statements = 0, handled = 0, reachable = 0, shallowFetched = 0, deepFetched = 0, oracleFetched = 0;
+		long handledReach = 0, handledShallow = 0, handledDeep = 0;
+		long shallowNames = 0, deepNames = 0, oracleNames = 0, shallowMissing = 0, deepMissing = 0, shallowWrong = 0, deepWrong = 0;
+		var shallowMiss = 0;
+		var deepMiss = 0;
+		var withTables = 0;
+
+		foreach (var file in files)
+		{
+			string text;
+
+			try
+			{
+				text = File.ReadAllText(file);
+			}
+			catch (Exception)
+			{
+				continue;
+			}
+
+			using var whole = new StringReader(text);
+
+			if (parser.Parse(whole, out var errors) is not TSqlScript script || errors.Count > 0)
+				continue;
+
+			foreach (var statement in script.Batches.SelectMany(static batch => batch.Statements))
+			{
+				var original = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
+
+				Counter.On = false;
+
+				Statement? tree;
+
+				try
+				{
+					var match = TransactSqlParser.TryParseStatement(original);
+
+					tree = match.IsSuccess ? match.Value as Statement : null;
+				}
+				catch (Exception)
+				{
+					continue;
+				}
+
+				if (tree is null)
+					continue;
+
+				var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
+
+				Program_Walk(tree, seen);
+				statements++;
+				reachable += seen.Count;
+
+				// The oracle: every node, by reflection.
+				var oracle = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+				Counter.Fetched.Clear();
+				Counter.On = true;
+				Everywhere(tree, oracle, new HashSet<object>(ReferenceEqualityComparer.Instance));
+				Counter.On = false;
+				oracleFetched += Counter.Fetched.Count + 1;
+				var reach = seen.Count;
+
+				var shallow = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+				Counter.Fetched.Clear();
+				Counter.On = true;
+				Tables(tree, shallow, deep: false);
+				Counter.On = false;
+				shallowFetched += Counter.Fetched.Count + 1;
+				var shallowHere = Counter.Fetched.Count + 1;
+
+				var deepFound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+				Counter.Fetched.Clear();
+				Counter.On = true;
+				Tables(tree, deepFound, deep: true);
+				Counter.On = false;
+				deepFetched += Counter.Fetched.Count + 1;
+				var deepHere = Counter.Fetched.Count + 1;
+
+				// The names are compared only on the statements the scanner has a case for (a DML statement or a block of them): a CREATE PROCEDURE has queries in its body
+				// that neither scanner was written to reach, and that would be the scanner's gap and not the tree's.
+				if (!Handles(tree))
+					continue;
+
+				handled++;
+				handledReach += reach;
+				handledShallow += shallowHere;
+				handledDeep += deepHere;
+
+				if (oracle.Count > 0)
+					withTables++;
+
+				oracleNames += oracle.Count;
+				shallowNames += shallow.Count;
+				deepNames += deepFound.Count;
+
+				var lostShallow = oracle.Count(name => !shallow.Contains(name));
+				var lostDeep    = oracle.Count(name => !deepFound.Contains(name));
+
+				shallowMissing += lostShallow;
+				deepMissing += lostDeep;
+				shallowWrong += shallow.Count(name => !oracle.Contains(name));
+				deepWrong += deepFound.Count(name => !oracle.Contains(name));
+
+				if (lostShallow > 0)
+				{
+					shallowMiss++;
+
+					if (shallowMiss <= 8)
+						Console.WriteLine($"  shallow misses {string.Join(", ", oracle.Where(name => !shallow.Contains(name)))} in {tree.GetType().Name}: {Flat(original)}");
+				}
+
+				if (lostDeep > 0)
+				{
+					deepMiss++;
+
+					if (deepMiss <= 8)
+						Console.WriteLine($"  deep misses {string.Join(", ", oracle.Where(name => !deepFound.Contains(name)))} in {tree.GetType().Name}: {Flat(original)}");
+				}
+			}
+		}
+
+		Console.WriteLine($"{statements:N0} statements read by this grammar; {handled:N0} of them are a kind the scanners have a case for ({withTables:N0} refer to at least one table).");
+		Console.WriteLine();
+		Console.WriteLine($"nodes reachable                                  {reachable,10:N0}");
+		Console.WriteLine($"fetched by the oracle (every node, by reflection){oracleFetched,10:N0}   ({100.0 * oracleFetched / reachable:F1}% of reachable)");
+		Console.WriteLine($"fetched by the deep scanner                      {deepFetched,10:N0}   ({100.0 * deepFetched / reachable:F1}% of reachable)");
+		Console.WriteLine($"fetched by the shallow scanner                   {shallowFetched,10:N0}   ({100.0 * shallowFetched / reachable:F1}% of reachable)");
+		Console.WriteLine($"on the handled statements alone: reachable {handledReach:N0}; the deep scanner fetched {handledDeep:N0} ({100.0 * handledDeep / handledReach:F1}%), the shallow scanner {handledShallow:N0} ({100.0 * handledShallow / handledReach:F1}%)");
+		Console.WriteLine();
+		Console.WriteLine($"table names found on the handled statements: oracle {oracleNames:N0}, deep {deepNames:N0}, shallow {shallowNames:N0}");
+		Console.WriteLine($"names the deep scanner misses {deepMissing:N0} in {deepMiss:N0} statements, names it adds that the oracle does not have {deepWrong:N0}");
+		Console.WriteLine($"names the shallow scanner misses {shallowMissing:N0} in {shallowMiss:N0} statements, names it adds that the oracle does not have {shallowWrong:N0}");
+	}
+
+	static string Flat(string text) => text.Replace((char)13, ' ').Replace((char)10, ' ')[..Math.Min(110, text.Length)];
+
+	static bool Handles(Statement statement) => statement switch
+	{
+		Statement.Select or Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge => true,
+		Statement.Compound or Statement.If or Statement.While or Statement.TryCatch => true,
+		_ => false,
+	};
+
+	static void Tables(Statement statement, HashSet<string> found, bool deep)
+	{
+		switch (statement)
+		{
+			case Statement.Select select:
+				With(select.With, found, deep);
+				Query(select.Of, found, deep);
+
+				if (deep)
+				{
+					Inside(select.OrderBy, found);
+					Inside(select.For, found);
+					Inside(select.Options, found);
+				}
+
+				break;
+
+			case Statement.Insert insert:
+				Reference(insert.Target, found, deep);
+				Query(insert.Rows, found, deep);
+				With(insert.With, found, deep);
+
+				if (deep)
+				{
+					Inside(insert.Top, found);
+					Inside(insert.Output, found);
+					Inside(insert.Options, found);
+				}
+
+				break;
+
+			case Statement.Update update:
+				Reference(update.Target, found, deep);
+
+				foreach (var from in update.From)
+					Reference(from, found, deep);
+
+				With(update.With, found, deep);
+
+				if (deep)
+				{
+					Inside(update.Set, found);
+					Inside(update.Where, found);
+					Inside(update.Top, found);
+					Inside(update.Output, found);
+					Inside(update.Options, found);
+				}
+
+				break;
+
+			case Statement.Delete delete:
+				Reference(delete.Target, found, deep);
+
+				foreach (var from in delete.From)
+					Reference(from, found, deep);
+
+				With(delete.With, found, deep);
+
+				if (deep)
+				{
+					Inside(delete.Where, found);
+					Inside(delete.Top, found);
+					Inside(delete.Output, found);
+					Inside(delete.Options, found);
+				}
+
+				break;
+
+			case Statement.Merge merge:
+				Reference(merge.Target, found, deep);
+				Reference(merge.Using, found, deep);
+				With(merge.With, found, deep);
+
+				if (deep)
+				{
+					Inside(merge.On, found);
+					Inside(merge.Whens, found);
+					Inside(merge.Top, found);
+					Inside(merge.Output, found);
+					Inside(merge.Options, found);
+				}
+
+				break;
+
+			case Statement.Compound compound:
+				foreach (var one in compound.Statements)
+					Tables(one, found, deep);
+
+				break;
+
+			case Statement.If conditional:
+				if (deep)
+					Inside(conditional.Condition, found);
+
+				Tables(conditional.Then, found, deep);
+
+				if (conditional.Else is { } otherwise)
+					Tables(otherwise, found, deep);
+
+				break;
+
+			case Statement.While loop:
+				if (deep)
+					Inside(loop.Condition, found);
+
+				Tables(loop.Body, found, deep);
+
+				break;
+
+			case Statement.TryCatch attempt:
+				foreach (var one in attempt.Tried)
+					Tables(one, found, deep);
+
+				foreach (var one in attempt.Caught)
+					Tables(one, found, deep);
+
+				break;
+		}
+	}
+
+	static void With(Clause[]? clauses, HashSet<string> found, bool deep)
+	{
+		if (clauses is null)
+			return;
+
+		foreach (var clause in clauses)
+			if (clause is Clause.CommonTableExpression named)
+				Query(named.Query, found, deep);
+	}
+
+	static void Query(Query? query, HashSet<string> found, bool deep)
+	{
+		switch (query)
+		{
+			case Query.Specification specification:
+				foreach (var from in specification.From)
+					Reference(from, found, deep);
+
+				if (deep)
+				{
+					Inside(specification.Columns, found);
+					Inside(specification.Where, found);
+					Inside(specification.GroupBy, found);
+					Inside(specification.Having, found);
+					Inside(specification.Top, found);
+					Inside(specification.Into, found);
+					Inside(specification.Windows, found);
+				}
+
+				break;
+
+			case Query.Parenthesized parenthesized:
+				Query(parenthesized.Query, found, deep);
+
+				break;
+
+			case Query.Ordered ordered:
+				Query(ordered.Query, found, deep);
+
+				if (deep)
+				{
+					Inside(ordered.By, found);
+					Inside(ordered.For, found);
+				}
+
+				break;
+
+			case Query.Union union:
+				Query(union.Left, found, deep);
+				Query(union.Right, found, deep);
+
+				break;
+
+			case Query.Except except:
+				Query(except.Left, found, deep);
+				Query(except.Right, found, deep);
+
+				break;
+
+			case Query.Intersect intersect:
+				Query(intersect.Left, found, deep);
+				Query(intersect.Right, found, deep);
+
+				break;
+
+			case Query.TableValueConstructor rows:
+				if (deep)
+					Inside(rows.Rows, found);
+
+				break;
+		}
+	}
+
+	static void Reference(TableReference? reference, HashSet<string> found, bool deep)
+	{
+		switch (reference)
+		{
+			case TableReference.Named named:
+				found.Add(named.Table);
+
+				if (deep)
+				{
+					Inside(named.SystemTime, found);
+					Inside(named.Sample, found);
+					Inside(named.Hints, found);
+					Inside(named.Server, found);
+				}
+
+				break;
+
+			case TableReference.Joined joined:
+				Reference(joined.Left, found, deep);
+				Reference(joined.Right, found, deep);
+
+				if (deep)
+					Inside(joined.On, found);
+
+				break;
+
+			case TableReference.Derived derived:
+				Query(derived.Query, found, deep);
+
+				break;
+
+			case TableReference.Pivot pivot:
+				Reference(pivot.Of, found, deep);
+
+				if (deep)
+					Inside(pivot.Aggregate, found);
+
+				break;
+
+			case TableReference.Unpivot unpivot:
+				Reference(unpivot.Of, found, deep);
+
+				break;
+
+			case TableReference.Parenthesized parenthesized:
+				Reference(parenthesized.Of, found, deep);
+
+				break;
+
+			case TableReference.OdbcJoin odbc:
+				Reference(odbc.Of, found, deep);
+
+				break;
+
+			case TableReference.FunctionCall call:
+				if (deep)
+				{
+					Inside(call.Function, found);
+					Inside(call.Schema, found);
+				}
+
+				break;
+
+			case TableReference.Changed changed:
+				Tables(changed.Statement, found, deep);
+
+				break;
+		}
+	}
+
+	/// <summary>The deep scanner inside an expression, a clause or a list of them: every child, looking for a query or a table reference to hand to the scanner proper.</summary>
+	static void Inside(object? node, HashSet<string> found)
+	{
+		switch (node)
+		{
+			case null:
+				return;
+
+			case Query query:
+				Query(query, found, deep: true);
+
+				return;
+
+			case TableReference reference:
+				Reference(reference, found, deep: true);
+
+				return;
+
+			case Statement statement:
+				Tables(statement, found, deep: true);
+
+				return;
+
+			case string:
+				return;
+
+			case IEnumerable sequence when node is not ISqlSpan:
+				foreach (var one in sequence)
+					Inside(one, found);
+
+				return;
+		}
+
+		if (node is not ISqlSpan)
+			return;
+
+		foreach (var property in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+		{
+			if (property.GetIndexParameters().Length != 0 || property.PropertyType.IsValueType || property.PropertyType == typeof(string))
+				continue;
+
+			Inside(property.GetValue(node), found);
+		}
+	}
+
+	/// <summary>The oracle: every node, and the name of every named table reference in it.</summary>
+	static void Everywhere(object? node, HashSet<string> found, HashSet<object> seen)
+	{
+		switch (node)
+		{
+			case null or string:
+				return;
+
+			case IEnumerable sequence when node is not ISqlSpan:
+				foreach (var one in sequence)
+					Everywhere(one, found, seen);
+
+				return;
+		}
+
+		if (node is not ISqlSpan || !seen.Add(node))
+			return;
+
+		if (node is TableReference.Named named)
+			found.Add(named.Table);
+
+		foreach (var property in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+		{
+			if (property.GetIndexParameters().Length != 0 || property.PropertyType.IsValueType || property.PropertyType == typeof(string))
+				continue;
+
+			Everywhere(property.GetValue(node), found, seen);
+		}
+	}
+
+	static void Program_Walk(object value, HashSet<object> seen)
+	{
+		if (value is not ISqlSpan && value is IEnumerable sequence && value is not string)
+		{
+			foreach (var one in sequence)
+				if (one is not null)
+					Program_Walk(one, seen);
+
+			return;
+		}
+
+		if (value is not ISqlSpan || !seen.Add(value))
+			return;
+
+		foreach (var property in value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+		{
+			if (property.GetIndexParameters().Length != 0 || property.PropertyType.IsValueType || property.PropertyType == typeof(string))
+				continue;
+
+			if (property.GetValue(value) is { } child)
+				Program_Walk(child, seen);
+		}
+	}
+}
