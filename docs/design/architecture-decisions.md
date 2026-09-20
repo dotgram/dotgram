@@ -1146,7 +1146,13 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   pairs, on the consistency of what a publication means and measured by size rather than by a time
   nobody here would see; if the automaton does leave, FIX becomes the first of our grammars with
   none. The speed of it belongs to a consumer calling the in-memory lazy form of their own grammar. **And a gap in the stand found
-  by it:** there were no rows for the log form at all,
+  by it:** — and, landed as `d6fad9e1`, it did what was promised before it was seen: the log rows'
+  slope -8.0% on the string form, -5.1% on bytes, -4.4% over a stream, against a named -3 to -8%,
+  and whole messages better still at -6.5..-10.6%; about nine nanoseconds a field. The plain FIX
+  rows did not move, and allocation is identical to the byte on all forty rows, which answers
+  whether anything began building early: it did not. A control that read +5% was settled without a
+  run, since the Web parsers' emitted code is byte-for-byte the same on both sides and identical
+  code cannot be slower. **And a gap in the stand found by it:** there were no rows for the log form at all,
   so nothing measured the form this work is about until the stand added eighteen. The rule that
   follows: before a form is optimized, it has a row.
   **The whole coverage counted (stand, `docs/design/stand-coverage-2026-09-19.md`):** no span form
