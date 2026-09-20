@@ -1,0 +1,175 @@
+=== run 1 of 7, 03:13:50
+3 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/Order44.strict  generated     1910.2 ns reference-QuickFIXn     2905.9 ns  reference-QuickFIXn/generated 1.52x
+fixmsg/Order.parse     generated     1734.2 ns
+fixmsg/Order.build     generated     1896.1 ns
+
+# Stand, 003a79af, 2026-09-20 03:14
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.4 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 1910.2 | reference-QuickFIXn | 2905.9 | reference | 4192 | 6808 | 5 % |
+| fixmsg/Order.parse | 1734.2 | - (N/A) | | | 3360 | | 3 % |
+| fixmsg/Order.build | 1896.1 | - (N/A) | | | 3512 | | 11 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand\run-1
+=== run 2 of 7, 03:14:03
+3 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/Order44.strict  generated     1956.7 ns reference-QuickFIXn     2829.7 ns  reference-QuickFIXn/generated 1.45x
+fixmsg/Order.parse     generated     1727.5 ns
+fixmsg/Order.build     generated     1883.2 ns
+
+# Stand, 003a79af, 2026-09-20 03:14
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.5 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 1956.7 | reference-QuickFIXn | 2829.7 | reference | 4192 | 6808 | 42 % |
+| fixmsg/Order.parse | 1727.5 | - (N/A) | | | 3360 | | 3 % |
+| fixmsg/Order.build | 1883.2 | - (N/A) | | | 3512 | | 8 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand\run-2
+=== run 3 of 7, 03:14:15
+3 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/Order44.strict  generated     1949.0 ns reference-QuickFIXn     2897.1 ns  reference-QuickFIXn/generated 1.49x
+fixmsg/Order.parse     generated     1762.3 ns
+fixmsg/Order.build     generated     2044.6 ns
+
+# Stand, 1587b364, 2026-09-20 03:14
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 33.4 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 1949.0 | reference-QuickFIXn | 2897.1 | reference | 4192 | 6808 | 11 % |
+| fixmsg/Order.parse | 1762.3 | - (N/A) | | | 3360 | | 5 % |
+| fixmsg/Order.build | 2044.6 | - (N/A) | | | 3512 | | 53 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand\run-3
+=== run 4 of 7, 03:14:28
+3 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/Order44.strict  generated     1905.6 ns reference-QuickFIXn     2850.4 ns  reference-QuickFIXn/generated 1.50x
+fixmsg/Order.parse     generated     1686.7 ns
+fixmsg/Order.build     generated     1866.0 ns
+
+# Stand, 1587b364, 2026-09-20 03:14
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.5 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 1905.6 | reference-QuickFIXn | 2850.4 | reference | 4192 | 6808 | 68 % |
+| fixmsg/Order.parse | 1686.7 | - (N/A) | | | 3360 | | 9 % |
+| fixmsg/Order.build | 1866.0 | - (N/A) | | | 3512 | | 13 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand\run-4
+=== run 5 of 7, 03:14:40
+3 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/Order44.strict  generated     1927.9 ns reference-QuickFIXn     2962.9 ns  reference-QuickFIXn/generated 1.54x
+fixmsg/Order.parse     generated     1751.3 ns
+fixmsg/Order.build     generated     1858.4 ns
+
+# Stand, 1587b364, 2026-09-20 03:14
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.4 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 1927.9 | reference-QuickFIXn | 2962.9 | reference | 4192 | 6808 | 6 % |
+| fixmsg/Order.parse | 1751.3 | - (N/A) | | | 3360 | | 15 % |
+| fixmsg/Order.build | 1858.4 | - (N/A) | | | 3512 | | 1 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand\run-5
+=== run 6 of 7, 03:14:52
+3 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/Order44.strict  generated     1905.9 ns reference-QuickFIXn     2833.1 ns  reference-QuickFIXn/generated 1.49x
+fixmsg/Order.parse     generated     1721.3 ns
+fixmsg/Order.build     generated     1916.9 ns
+
+# Stand, 1587b364, 2026-09-20 03:15
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.5 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 1905.9 | reference-QuickFIXn | 2833.1 | reference | 4192 | 6808 | 15 % |
+| fixmsg/Order.parse | 1721.3 | - (N/A) | | | 3360 | | 7 % |
+| fixmsg/Order.build | 1916.9 | - (N/A) | | | 3512 | | 41 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand\run-6
+=== run 7 of 7, 03:15:05
+3 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/Order44.strict  generated     2611.2 ns reference-QuickFIXn     2797.3 ns  reference-QuickFIXn/generated 1.07x
+fixmsg/Order.parse     generated     1725.6 ns
+fixmsg/Order.build     generated     1860.5 ns
+
+# Stand, 1587b364, 2026-09-20 03:15
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.7 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 2611.2 | reference-QuickFIXn | 2797.3 | reference | 4192 | 6808 | 439 % |
+| fixmsg/Order.parse | 1725.6 | - (N/A) | | | 3360 | | 13 % |
+| fixmsg/Order.build | 1860.5 | - (N/A) | | | 3512 | | 3 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand\run-7
+
+Median of 6 of 7 runs, each in a process of its own; control 31.5 ns (the runs' controls: 31.4, 31.5, 33.4, 31.5, 31.4, 31.5, 31.7).
+Dropped for a control more than 5% off the median: run 3.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Stand, 003a79af, 2026-09-20 03:14
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.5 ns.
+
+A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/Order44.strict | 1919.0 | reference-QuickFIXn | 2841.7 | reference | 4192 | 6808 | 37 % |
+| fixmsg/Order.parse | 1726.6 | - (N/A) | | | 3360 | | 4 % |
+| fixmsg/Order.build | 1874.6 | - (N/A) | | | 3512 | | 3 % |
+
+Written to T:\TEMP\dotgram-stand\w88\stand
