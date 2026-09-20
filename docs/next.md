@@ -24522,3 +24522,45 @@ are linear beside it.
 What this settles for the audit: the sixteen quadratic rows need not be one power, even when they
 are one case. What removes a cube is what removes a square, a memory of a rule's refusal at a
 position, and it removes more of it.
+
+## Two errors in one rule, and the scan that found them without the machine
+
+The inline return's fix has a shape: a bracketed alternative ahead of a bare one, in a choice
+that is ordered and opens no way, where the bare form may itself open with a bracket. The first
+alternative then takes the bracket, stops at its close, and leaves the rest to nobody. That is a
+shape a grammar can be read for, and reading costs no machine — which is what it was, since the
+stand was measuring.
+
+Two scans over all three SQL grammars, 1,967 alternatives in T-SQL, 839 in SQL:2023, 129 in
+SQL-92. An alternative that is a strict token prefix of a later one: none anywhere, once
+alternatives are joined across the lines they are written on — the first pass, which read only the
+first physical line of each, produced sixty-nine and every one was an artefact. A bracketed
+alternative ahead of a bare one sharing a symbol: nine in T-SQL, three in SQL:2023, none in SQL-92.
+Of the twelve, eleven cannot bite — what follows is a column name, a `@variable`, a `{`, a `ROW`,
+or, in `SemanticArgument`, a lookahead already written to forbid exactly this (`?!('*' | '(')`).
+
+The twelfth is `GroupByExpression`, and the server was asked before anything was changed —
+seventeen forms, one statement a batch, `PARSEONLY`, with a control that answers Msg 102. It
+answered that the rule is wrong in both directions at once:
+
+| form | server | before the fix |
+| --- | --- | --- |
+| `GROUP BY (a+b)*2` | reads | refused |
+| `GROUP BY a, (b+c)*2, d` | reads | refused |
+| `GROUP BY (a+b)*2, (c)` | reads | refused |
+| `GROUP BY (a, b)` | Msg 102 at the comma | read |
+| the other thirteen | reads | read |
+
+Three refusals of what the server takes, and one acceptance of what it does not, from one
+alternative sitting in one place too many. The bracketed list is a grouping only inside `ROLLUP`,
+`CUBE` and `GROUPING SETS`; at the top of the clause a bracket opens an ordinary expression. So
+the bare key now goes first, and the top of the clause has a rule of its own that has no bracketed
+list at all. All seventeen agree afterwards, the writer prints each back unchanged, the corpus
+round-trip is 7,716 of 7,716 either side, and the tests are 14,780 with none failing.
+
+Worth keeping from the method rather than the defect. The desk scan is cheap enough to run again
+whenever the shape is found somewhere new, and its answer is a short list a person can read. The
+first version of it was wrong in a way that would have wasted the window — sixty-nine candidates,
+all false, because an alternative is not one line — and the fix for that was to check a handful by
+hand before believing the list. And asking the server costs nothing on this machine, so the whole
+question was settled to a prediction before a single core was taken.
