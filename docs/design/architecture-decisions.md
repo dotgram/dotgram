@@ -5757,3 +5757,32 @@ turned from a structural one into a question about time.
 **And the three things counted beside the calls are why the no is trustworthy**: the walk's count,
 its length, and the zeroing were each a candidate for making the work grow while the call count
 stayed linear, and each was measured flat rather than argued away.
+
+**D63's scope is corrected by its own counter-case, and the line was already in the audit's last
+column.** Put the four counted cases beside their exponents and the split is plain: every case near
+2.0 lands on the triangular number exactly, and the one at 1.23 is flat in every count and gives
+back no records at any size. The division is not between packages and not between instruments — it
+is between the exponent-two rows and the exponent-one-point-two-to-one-point-five rows, which is
+the distinction the audit's table already drew. **So the class commissioned for a cure is the
+quadratic rows, eleven or twelve rather than twenty**, and the superlinear five are not this
+illness; the reader change must not be expected to move them.
+
+**And the limitation of the sample is named by the person who chose it:** three cases unlike in
+*shape* and alike in *exponent* is strong evidence about that exponent and silent about the others,
+which the counter-case revealed by being the first taken from the other group. The superlinear
+group is not chased now — three places a quadrature could hide in it have been ruled out by count,
+and what remains is per-record work outside re-reading, a different investigation with a different
+instrument. It becomes its own item rather than being folded in, because folding in is how twenty
+became the number.
+
+**One method note carried over for the remaining cases:** walks can stay linear while each scans
+further, which would read as a product in time with a linear call count. The three counted show the
+product in the *calls*, so re-reading is established for them; if any of the remaining eight comes
+out linear in calls, that is where to look, and to look before designing rather than after.
+
+**The refusal guard is on main and green**, 85 tests in 69 seconds, and it was shown to fail in
+three ways: a missing baseline line, a series worse than its baseline, and a baseline holding an
+explosive class, which is refused whole. **What has not been seen fire is the assertion on an
+explosive series itself** — read rather than observed — so it is calibrated against a tree from
+before the seals, ten minutes and one build. A checker that has never failed is not checked, and
+that rule does not stop applying because the rest of the checker has been proved.
