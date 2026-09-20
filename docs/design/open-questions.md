@@ -304,7 +304,20 @@ it is read.
 header from the base reading's name rather than from a literal. The comparison does not change; only
 what it is called does.
 
-**Answer:** —
+**Answer (stand, 2026-09-19, `c9ede13b`).** Done as proposed, and no measurement changes. Each base
+reading now carries its own name — `hand` where it is a parser from `DotGram.Handwritten`,
+`scriptdom` for the T-SQL rows and the script sweeps, `control` where it is this process's own build
+of the same generated parser (the fixmsg rows, config, the recovering feed, the media-type and
+structured-field sweeps, `StandWebParsers`, and the new form rows). The report gained a `base`
+column naming it, and the ratios read `before/base` and `after/base` where they were the literals
+`hand ns`, `before/hand`, `after/hand`. Checked here afterwards: the one reading still called `hand`
+whose lambda is named `own` (`StandBool.cs:34`) really is `HandExpressionAccepts`, so nothing is
+left mislabelled.
+
+Pairs filed before today keep the old header and the old name in their files, and were rightly not
+rewritten — a result file is what was produced. `benchmarks/README.md` now says what the old header
+meant, with the two rows this objection was raised on. The first pair to carry the new header is the
+first run after the stand rebuilds for it; the windows were taken until about 02:00.
 
 ## Q5 (2026-09-19). D16 says the rest of the web grammars are variants of the three; by the generator's own report they are not
 
