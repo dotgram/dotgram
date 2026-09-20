@@ -3638,3 +3638,33 @@ rows were predicted to move most when they had never been on the tape at all; th
 taken through the tape and could not see the immediate carrier's store. Both are one grep from
 being avoided. Beside it, in the same session's own words: three named predictions on that commit,
 one right, and the number belongs in the record rather than a tidy account of a good result.
+
+## D36. One walk for a guard that names several values, 2026-09-20
+
+expr's replacement for the closed D29 (`docs/design/one-walk-per-guard-2026-09-20.md`,
+`5f39c600`), and its virtue is that it asks nothing of §3.7. A guard naming several captured values
+materializes each by its own walk — three calls in a row from one point in generated SQL:2023 — and
+every one pays the whole prologue, and when the fast path misses, the listing over the records from
+the mark and the marking pass back. sql-39's numbers put the slow walk at 12 to 15 records listed,
+with the clearing and the marking over the same elements, so three walks from one guard list three
+times. Taken statically over this tree's generated code, the sites standing in a run with their
+neighbours are 40% for SQL:2023, 46% for T-SQL with the longest run at seven, and 51% for the
+expression language. Merging a run of n removes n−1 walks.
+
+It is cheap because the walk already takes several roots: with a side stack it marks every built
+record whose slot is in the mask and then lists, marks and builds once, which is how a guard handed
+a sequence builds it in one pass. The one case not covered is ours, for a small reason — a single
+capture's record is a local of the reader rather than an entry of the side stack, so the mask
+cannot name it.
+
+**Approved to design further, on four conditions.** Which factories run and when does not change,
+and that claim has to be *held* rather than asserted: the merged walk builds the union, so say in
+the document what the order becomes, and whether a value built in one of the old walks could be
+observed by the next — if it could, merging is limited to a run with nothing between the calls that
+can see the intermediate state, and the document says so rather than leaving it to the reader.
+Second, the dynamic count from sql-39 comes first, since the static figure counts places and not
+frequency, and a run that is common in the source and rare in a corpus buys nothing. Third, the
+pair carries emitted size beside time: a walk that takes several roots where it took one is a wider
+signature on a hot path. Fourth, the expectation is written before the pair, as it is: T-SQL moves,
+SQL:2023 less, the expression language least, and if T-SQL does not move the design is refused by
+its own criterion, as its predecessor was.
