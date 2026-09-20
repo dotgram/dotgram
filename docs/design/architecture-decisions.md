@@ -4151,3 +4151,35 @@ generator does not consume, and the list of what the generator reads is the gene
 but a property that does nothing is exactly what the hash comparison catches, loudly, in the report
 that would otherwise carry the number. No requirement on the generator follows from this; a control
 that fires on the failure it guards against is the guard.
+
+## D42. What no snapshot emits, and why that is the harness rather than the grammars, 2026-09-20
+
+critic's Q17, nine rows, each with the marker it was counted by. The finding is structural: the
+snapshot harness compiles each grammar with four options — class name, namespace, the Roslyn
+scanner, a line map — every other option at its default and no per-grammar options at all, and it
+asserts a single source. So a dozen options cannot appear in the set however many grammars are
+added, and a grammar that splits into several files cannot be a snapshot as the harness is written.
+**The set is therefore not a sample of what the generator emits; it is a sample of one
+configuration of it.**
+
+Ranked by the rule the inventory was ordered with. First, the buffered and byte half entire —
+zero in all five snapshots, and it is a reader whose whole job is holding and releasing input under
+a retention bound, which is where both of tonight's misses lived; character streaming through a
+window *is* covered, so it is the buffered and byte forms specifically. Second, a second rendering
+of one grammar: the immediate and state classes are zero, and those are what the expression
+language ships and the stand times on every paired run. Third, the lexical half, one of the three
+ways the generator writes a way in and the one with the largest measured effect on SQL. Then prefix
+tables, locations as an option, a carrier the author asked for, the symbol resolver under a real
+implementation, several files out of one grammar, and the sizes rather than the mechanism of part
+division.
+
+**The qualification matters as much as the list, and its author wrote it in rather than leaving it
+implied:** none of this is untested. The buffered reader has tests, the lexical half has a package,
+locations have a measurement. The claim is only the one asked for — no diff shows them, so a change
+to what they emit is reviewed by nobody, and a count taken off this set reads zero where the truth
+is "not emitted here", which is exactly how tonight's two misses stayed invisible.
+
+**So the harness changes before the grammars do**: snapshots may carry their own options, and a
+grammar that emits several files may be one. Then the first three rows get their files. Not a
+matrix — a few files chosen to cover the rows, because a set that takes minutes to run is a set
+people stop reading. To expr, which is waiting on pairs.
