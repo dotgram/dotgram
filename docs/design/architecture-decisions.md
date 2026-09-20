@@ -3327,3 +3327,24 @@ of `docs/design/open-questions.md` and re-read Q10's three citations at `91544ed
 carry the commit they hold at. The part worth repeating is not "check it twice" but which checkout
 is likeliest to be wrong: a session working in a branch fetches constantly and is usually current,
 while the tree that feels canonical is the one nobody rebases. The main worktree is the stale one.
+
+**D29's decomposition, measured (sql-39), and it moves the answer.** One guard's ask on `select20`,
+301 asks over 402 records, 17,862 ns of wall: the walk's own body 4,892 ns, 16.3 per ask, with
+`Room`, the listing loop and the outer loop inlined into it; the clears 937, 416 and 78;
+`IndexOf` 495; the arms 2,394, that is 6.0 ns a record; plus 649 for marking what is reachable and
+911 for dispatch.
+
+So the scan is 6% of the walk's cost and the listing loop is most of it, and the count answers only
+the scan. The third form alone is therefore not enough, which is what the decomposition was asked
+for. But expr read the code against the numbers and found the sharper question: today's fast path,
+when it fires, does not list at all — it leaves early. So the 8.4 µs is paid by the asks that did
+*not* take the fast path, and what decides the design is not the price of the parts but the share:
+how many of the 301 take it, and which of the three reasons keeps the rest out. sql-39 has taken
+that count, it needs no machine, and it is now what D29 waits on.
+
+**And a measurement that corrects two models, including one of mine by implication.** The store's
+blanket clear in `DirectValues.Return` costs 1,148 ns a parse, 6.3% of the reading, taken by a
+direct pair of builds. expr's two models of the same thing said 126 and 211, and sql-39's estimates
+erred the same way. A clear is the kind of cost a model underestimates by five to nine times,
+because what it costs is not instructions. The rule both have taken, and it belongs here: an
+anatomy carries no modelled number without a measured one beside it.
