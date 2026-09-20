@@ -4066,3 +4066,14 @@ anywhere.
 while four of five carry the naive pair — so the implementation carrying a framework branch appears
 in no diff anybody reads. A snapshot covering it is part of the work, on the principle recorded an
 hour earlier: what nobody reads is not checked.
+
+**Two shapes worth hunting by, drawn from D41 rather than from the fix.** The first: a lesson
+learned twice and not carried to the third place. Two classes here already keep their place and
+move it, one of them with a note explaining why the naive way was abandoned, and the third does
+neither in the form that sees the most input. That is not a constant nobody tuned, and it is
+something to search for rather than wait to be shown. The second is the mirror of the evening's
+other rule: a check nobody knows about constrains nothing, and **an implementation nobody sees is
+the same thing from the other end**. The line-moving code appears in no snapshot, so the branch
+written yesterday in the form D40 now forbids has existed in no diff any human or session reads.
+And beside them a smaller habit: a class emitted without a gate two lines from classes that have
+one reads as deliberate until somebody asks.
