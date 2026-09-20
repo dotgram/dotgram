@@ -31,8 +31,8 @@ be asked for is one of the ways inside `R` retried, and a retried way resumes th
 place that way was opened — so the position afterwards either is the same as before, or its next
 token is in `S(R)`. Where the token is in `S(R)` and `S(R)` misses `First(after)`, `after` refuses
 there exactly as it refused before, so no other reading rescues the parse. Where the position is the
-same, `after` reads the same tokens and refuses the same way — unless a guard in `after` reads what
-`R` built, which is why guards are excluded.
+same, `after` reads the same tokens and refuses the same way — unless something in `after` reads what
+`R` built or what it changed, which is what the watch list of §6 names.
 
 ## 3. What S(R) is, and how it is computed
 
@@ -76,7 +76,34 @@ and a part that fails the test is answered exactly as today.
   is one, whose 27 rules are held by the subquery's cause as well. Fewer causes is not fewer taped
   rules until the last cause on a rule goes.
 
-## 6. The risk, and how it is held
+## 6. The watch list
+
+Three places need the same list and must not keep three copies of it: this analysis, the hoist of a
+seam out of a rule, and expr's "a value to the guard at the close". It is written here once, and
+the others cite it as **the watch list**.
+
+**What is on it.** A node whose answer depends on more than the position it stands at:
+
+| On the list | Why it is there |
+| --- | --- |
+| `when` | it reads what the rule built, so two readings that end alike are not alike to it |
+| a lookahead, `?=` and `?!` | it succeeds or fails on what stands at a position without moving it |
+| a look-behind | the same, backwards |
+| an external or host-measured terminal that may match empty | the host decides it, and the host may read more than the text |
+| `with state` | the host's state is what the reading changed on the way, so a reading cannot be moved away from what steers it |
+
+**One list, and one of the three is stricter than it needs to be.** For the hoist and for the
+close, every row earns its place: they move a reading to another position, and each of these can
+tell one position from another. For §2's question two rows are there out of caution, not necessity.
+Where a reading ends at the position the greedy one ended at, the continuation reads the same text
+from the same place, so a lookahead — either way, and backwards — answers exactly as it did; only
+what depends on the *reading* rather than the *position* can differ, which is `when`, `with state`,
+and a host that may read state behind a terminal. The two are kept anyway: a shared list that
+refuses a little too often costs a few causes, and two lists that drift cost correctness. Where one
+of the three ever needs a row the others must not have, it gets a name of its own and says why,
+rather than a second copy of this table.
+
+## 7. The risk, and how it is held
 
 Soundness rests on §2's argument, and the way it can be wrong is a way inside `R` that resumes the
 reading somewhere `S(R)` does not name. The table above is written to refuse rather than guess: an
