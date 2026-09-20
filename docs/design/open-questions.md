@@ -2406,3 +2406,63 @@ filled at run time without losing what a compile-time constant gives on the hot 
   what a large dictionary suggests it might, it is the consumer's switch rather than our default.
   Neither is a reason not to build it; both are reasons to know the number before it is on by
   default.
+
+## Q26 (2026-09-20). The FIX package's API says one thing two ways, in two places, and a third place says half of it
+
+Igor's, who asked for the package to be read for a redundant API. Read at `5508b1ed`. Counted off
+the public surface only: `FixConvert`, `FixFieldFactory`, `FixPrimitives`, `FixSchema`,
+`FixSemantics` and `FixValidation` are internal, so their members are not surface and are not
+counted, which removes most of what a naive count would have reported.
+
+**1. Two carriers for one setting, and ten public methods exist only to spell the shorter one.**
+`FixParseOptions` has a one-argument constructor, `FixParseOptions(FixParseMode mode =
+FixParseMode.Strict)`. So every public `…(input, mode)` is exactly `…(input, new
+FixParseOptions(mode))`, and the package offers both everywhere:
+
+| | with `FixParseMode` | with `FixParseOptions` |
+| --- | --- | --- |
+| `FixMessages.Parse` / `TryParse` over `string` and `ReadOnlySpan<char>` | 4 | 4 |
+| `FixMessages.Parse` / `TryParse` / `ReadMessages` over `TextReader` and `Stream` | 6 | 6 |
+
+**Ten of the message layer's twenty-three public methods are there to save writing one
+constructor**, and the streaming half is an exact duplication — three verbs over two input types,
+twice. That the options object is the richer carrier is not an opinion: `FixMessages.cs:223` already
+reconciles the two by reading `options?.Mode ?? FixParseMode.Strict`, so one of them is derived from
+the other inside the package.
+
+**2. The same choice is a parameter in one layer and a method name in the other.** Framing —
+wire or log — is a property of `FixParseOptions` (`FixFraming`), and at the message layer
+`ParseLog(string, mode)` is a one-line alias for `Parse(input, new FixParseOptions(FixFraming.Log,
+mode))`. At the field layer it is not a value at all: `FixParser` has `Parse` five times and
+`ParseLog` five times, over `string`, `ReadOnlySpan<char>`, `TextReader`, `Stream` and `byte[]`.
+**Half of `FixParser`'s ten methods are the other half with a different separator**, and the type
+that already models the choice — `FixFieldOptions` — does not carry it, while the type one layer up
+does. Either framing belongs in the options object at both layers, or it belongs in the name at
+both; it is the disagreement that costs.
+
+**3. Five public overloads whose body is `.ToString()`.** Four in `FixMessages` and one in
+`FixParser` take `ReadOnlySpan<char>` and immediately copy it into a string. **They are documented
+as doing it** — "Copies the contiguous input once so the result owns its source", and `FixParser`'s
+remark says the parser reads strings — so this is honest and not a trap, which is why it is third
+and not first. The question is only whether a public overload earns its place when its whole body is
+a call the caller could write, and would then see the cost of at their own call site rather than
+behind ours.
+
+**4. And one that is not redundancy but its opposite, found by the same reading.** `FixNumber`
+exposes three members — `Value`, `TryGetDecimal`, `ToString` — each a delegation to the
+`FixFieldView` it wraps. `FixFieldView` has a fourth, `TryGetInt64`, and `FixNumber` does not
+forward it. The generated accessors that return `FixNumber?` include `BeginSeqNo`, `EndSeqNo`,
+`NewSeqNo`, `RefSeqNum`, `RefTagID`, `EncodedTextLen` — **sequence numbers and lengths, which are
+integers**, and the one accessor an integer wants is the one the wrapper leaves behind. A consumer
+reading a sequence number today goes through `decimal` or through the string. Nothing about that is
+redundant; it is a missing forward in a type whose only job is forwarding, and it turned up in an
+audit for the other thing.
+
+**What would settle 1 and 2, and it is a decision rather than a measurement.** Whether the package's
+API is meant to be small with one configuration object, or wide with a short form for the common
+case. Both are defensible; today it is both at once, and the cost is that every future setting has
+to be added twice, in a table that is already 10 of 23. That cost is not paid by the reader of the
+documentation, who sees two rows where there is one idea — it is paid by whoever adds the third
+setting.
+
+**Answer:** —
