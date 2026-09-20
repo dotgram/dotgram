@@ -2963,3 +2963,43 @@ before it is asked: a dictionary that changes how the wire is read is compiled w
 generated, while a dictionary that only checks a message already built may be data at run time,
 because checking is not reading. Where that line falls exactly, with examples, is what the design
 has to say. finance-24, both to the architect before code.
+
+## D27. FIX: a consumer's tags are a switch in the consumer's own code, 2026-09-19
+
+Igor, asked where a consumer's fields are built, drew the shape: a big switch over tags; the tag
+that falls through reaches the default arm, and there a question — is this tag's field binary —
+opens two ways of building it. And all of that, he said, is in the consumer's code.
+
+So the package keeps exactly what it has. Its own switch over 912 tags is ours, compiled, sealed
+and untouched; a known tag pays nothing it does not pay today. The one thing that changes is what
+its default arm does: instead of always building the fallback field, it hands the tag and its
+value to the consumer's object where one was supplied — one null check and one virtual call, on a
+path that already allocates. That is shape **E** of `fix-custom-fields-2026-09-19.md`, read the way
+Igor reads it: not a table we look things up in, but a seam the consumer's own switch hangs on.
+
+The consumer's side is then their program, not our configuration. Their override is their switch
+over their tags, and their default arm — the tag neither of us knows — asks whether the tag is
+binary and builds one of two things. Which means `IsData(tag)` is a question the *consumer's code*
+puts to the package, a public read of the table we already keep, and not a question the parser
+puts to the consumer. D25 is satisfied by that direction of the arrow: while reading, nobody asks
+a consumer's object how to read; afterwards, a consumer's code asks us what we know.
+
+**Framing is the exception, and it is settled at build time.** Whether a tag begins a length/data
+pair has to be known *before* its value is read, so it cannot be a question asked of anybody in
+the middle of a field. A consumer's pairs are declared when the options are built, and the fork is
+answered once, there: the standard sixteen and the consumer's own are folded into one table
+indexed by the tag, and the parse does a bounds check and a load. finance-24's design has this
+written: `sbyte[]` to 65,536 with a rare dictionary above it, a shared static table when nothing
+was supplied, and `DataTag` off the per-field path into `BeginData`, which is called once a pair.
+
+**The dictionary extends the standard sixteen; it does not replace them.** Architect's ruling,
+Igor to overturn. Replacing is a trap nobody chooses on purpose: adding one counterparty's pair
+silently drops 95/96 and the other fifteen, and the damage surfaces far from its cause — the first
+half reads as an ordinary int, the second half finds no arm, the field is refused and recovery
+resynchronises on a separator that may sit inside binary payload. We are saved from silent
+corruption only by the two halves being written differently, which is luck. Add-only removes it:
+a supplied pair that contradicts the standard is refused in the constructor, by tag, with a
+message — the same constructor already refuses a data tag whose standard type is not `data`, so
+the precedent and the table are both there, and it needs one new question of the schema, "is this
+tag defined by the standard", one byte wide. A consumer who genuinely means to discard the
+standard pairs can be given a named way to say so later; nobody should arrive at it by omission.
