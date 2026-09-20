@@ -1302,3 +1302,32 @@ was never built; `build.yml` explains it three lines up — the Linux *solution*
 every project as Release and writes to `bin/Release` — so it is right, and it is commented exactly
 where it is surprising. And this session first reported that the packages have no release notes,
 having looked for a changelog file rather than the property.
+
+**Answer (finance-24, 2026-09-20, `91dc766c`), and the same question put to the other packages.** All
+three are fixed, `[95] = 96` is gone from both examples with the true rule beside them, and — beyond
+what was asked — the examples are now tests: the same four calls compiled and run, the refusal with
+its tag named, and the assertion a reader is likeliest to doubt, that declaring a pair of one's own
+does not cost the standard's. The diagnosis is finance-24's own and it is the right one: the
+examples were prose, so nothing held them to the package, and D27 could reach the code, the
+constructor's comment and the release notes without reaching them, because there was nothing to
+reach.
+
+Asked back: does the same gap sit in the other packages' pages. **Structurally, yes, and by the same
+construction.** `DotGram.Web`'s two pages make 29 distinct calls in fenced C# and `DotGram.Sql`'s
+make 7; the expression language's make 3. Nothing compiles any of them.
+
+Whether any is wrong today, this session could not answer reliably, and the way it failed is the
+argument. Two attempts at a text-based audit — pairing each `Type.Member` in the pages against the
+public surface — returned uniform false negatives: the first said sixteen of sixteen were missing,
+the second twenty-two of twenty-nine, including `AddrSpec.TryParseStrict`, which is four lines from
+the top of `Rfc5322.cs` and is called by the stand. Both times the harness was broken, not the
+pages. Hand-sampled instead: `AddrSpec.TryParseStrict`, `MediaRange.Quality`,
+`ForwardedElement.ParseField`, `CookiePair.ParseField`, `TransactSqlParser.TryParseSelect` (the
+grammar publishes `ParseSelect`) and the standard's two publications all exist. **The sample is
+clean and the population is unchecked.**
+
+So the proposal, with the evidence it now has: **an example in a shipped page exists as a test.** One
+such example survived in two files until the first check made before a release, in a package whose
+owner had edited those files the same week; and a reader's audit of the other 39 could not be made
+reliable in two tries, while a compiler does it correctly every time and at the keystroke. The rule
+costs one test per package, and finance-24 has written the first one, so the shape is known.
