@@ -1221,7 +1221,17 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   slope, not a shape, and a cliff between them reads as a square; a flagged series is now retaken
   with points in between before its exponent is believed. **A separate finding beside it:** the address list is linear in
   memory and superlinear in time from a thousand addresses on, before any collection happens, so it
-  is an algorithm and not the collector; suspected in the arena's removals, profile to come. The buffered reader's pair passed (the
+  is an algorithm and not the collector; suspected in the arena's removals. **The profile did not
+  support that and finance-24 withdrew it:** there is no arena in that reading at all, and the
+  growth per address fades as the input doubles — 1.35, 1.45, 1.18, 1.08 — which is a working set
+  outgrowing a cache and not a square, which would double and never fade. Said as a reading of
+  numbers rather than a measurement: hardware counters were not used. **But a second cliff of the
+  same kind turned up beyond where the stand measures:** the reader's own pools keep nothing past a
+  million array elements in total, so at twenty thousand addresses the memory jumps fivefold and
+  goes on linearly at the new level; raised in a throwaway build, the cliff disappears and the
+  line is straight to eighty thousand. So there are two bounds of one kind, the tape's and the
+  reader's, and performance-ff designs for both at once — one rule for keeping, not two numbers
+  with separate fates. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
