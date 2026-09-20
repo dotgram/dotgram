@@ -4653,3 +4653,30 @@ the check is allowed not to see, for as long as the filter lives. So the order i
 difference is explained before condition 1's second pass is built, or, if it is not, the readings
 it affects are named exactly and the check excludes those by name rather than by symptom. A filter
 written by symptom hides the next defect that wears the same symptom.
+
+**The buffered refusal's missing expectation, explained.** A repetition whose turn begins with a
+known character gets a door: if the character is wrong the turn is not read at all. But a turn that
+was not read says nothing about what would have refused it, so the emitter puts the door under a
+condition — a quiet reading leaves by the door, a recording one reads the turn and records what it
+wanted — and that condition is emitted *only where the machine has a quiet reading at all*. A
+machine whose every reading records, which is what buffered and streaming are because the input
+cannot be read twice, has no condition and always takes the door. Hence the turn is never tried and
+its expectation never recorded. Affected exactly: readings of machines with no quiet reading, only
+in a repetition whose turn has a door, and only in the message — outcome, position and value agree,
+the differential holding all three. That is the list by name D40's check would exclude by, if it
+ever has to.
+
+**Two fixes, one already disproved by building it.** Recording what the *door* wants is cheap and
+wrong, and expr found that out by assembling it rather than by reasoning: the messages diverged
+further, because the door promises something the turn would not have said — the turn may go deeper
+and record its own, or be displaced by a further position. Not placing the door where every reading
+records is correct by construction and costs buffered and streaming readings their fast exit at
+every repetition end, which is what the door is for.
+
+**Decided by measurement rather than by taste.** The choice is a message that omits an alternative
+against a fast exit on every repetition end of every buffered and streaming parse, and neither side
+of that is obviously worth the other. So build the second fix and pair it on the buffered and
+streaming rows: inside noise, take it, because an incomplete expectation is not merely terser — it
+names fewer alternatives than are true, and a reader fixing their input is misled by the omission.
+Materially costly, keep the door and write the difference down where the forms are described, with
+the cause rather than the symptom. Either way the test holding both exact strings stays.
