@@ -4117,3 +4117,18 @@ every streaming parse that never asks a question. That is the part to do first, 
 streaming parse that asks nothing, with the counting and without — every streaming row of the stand
 shows it. The line-moving work stands behind it, and the snapshot that covers it stands with
 whichever lands first.
+
+**The sharpest form of the evening's heuristic, from performance-ff: when one neighbour has
+recorded its reasoning and the other is silent, the silence is the finding.** Not merely that a
+lesson reached two places of three — the buffered window decided *both* halves the other way and
+wrote down why, so the streaming one differs twice over the same two questions with nothing said
+about either. That is a stronger signal than an unexplained asymmetry, because the explanation
+already exists a few lines away and simply was not applied, and it costs nothing to check: the
+comment is there telling you what the question was.
+
+Beside it, the same session's count of its own day: three things it had reasoned its way to were
+corrected by something written down near the code — the carriers report naming a grammar's worst
+machine, a scaling test documenting the cliff it works around, and now this comment. Each was
+cheaper to read than to derive, and each time it derived first. That is the habit to change, and it
+is not only that session's: the architect spent the day handing out a rule about reading the source
+and then read a checkout a day old.
