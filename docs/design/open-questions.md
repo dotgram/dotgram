@@ -1112,3 +1112,38 @@ here**, and it decides the whole item, which is why it is the number to take fir
 design.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D33 `2457961a`), and a correction of item 3 by this session.**
+The third goes forward and its number is ordered from the stand; the first is parked with its number
+named; the second is parked behind the number this file said to take first. And a cost item 3 did
+not name: deferring construction past the end of the parse means holding what it will be built
+from — the log, and for a value cut from the text, the text.
+
+Read at `6b847f2d`, the cost is real and it is narrower than it sounds, in three parts.
+
+- **It is extent-valued captures that need the text, not the tree.** An extent on the tape is a pair,
+  `Start` and `Length`, and `On(text)` slices the caller's text to read it (`Support.cs`, the extent
+  support). A capture already turned into a value by a factory during the parse needs nothing. So
+  the cost is "the nodes whose values are extents hold the text", and what share of a real tree that
+  is nobody here knows.
+- **D5 is about streams, and for a stream the objection is decisive.** Its binding is that no path
+  reaches a contiguous form and that a streamed `yield` holds only the record being read; the
+  buffered support copies (`Text(from, length)` is `new string(...)`) precisely because the window
+  moves. Deferring past the parse there would hold buffers that D5 forbids growing — so for the
+  streamed forms a tree handed back unbuilt is out, not to be weighed.
+  For a `string` input the text is the caller's own object and holding it is a lifetime, not growth;
+  Artio names the same hazard for its flyweight codecs, valid only while the buffer is unchanged.
+  That is an API promise to write down, not a rule to break.
+- **And item 3 conflated two mechanisms, which is the part worth correcting.** A lazy *value* needs
+  the text. A lazy *node* — Roslyn's red over green — needs none, because the green side is already
+  built; it saves the allocation of wrappers nobody touches. But our number is not allocation: the
+  anatomy puts the factories at about a tenth of materialization and the walk's own machinery at the
+  rest, so deferring the wrapper saves little, since the walk still has to run to know what is there.
+  **What would cut the 8.4 µs is a lazy walk** — not walking a subtree until someone asks for it —
+  and that needs an index from a record to the extent of its subtree in the log, which neither
+  Roslyn nor Artio hands us. So the architect's limited form is not a smaller version of item 3; it
+  is the only version of it that touches our number, and the outside gives it less than item 3
+  implied.
+
+The number the stand is taking — what fraction of the nodes a consumer touches — decides it either
+way, and it is the same number for both forms.
