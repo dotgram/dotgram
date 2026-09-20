@@ -3147,3 +3147,37 @@ a watermark would have to find its new place by a scan, and the count does not. 
 previous paragraph is unchanged and now holds the count against the honest scan, which is what
 makes the cheaper mechanism safe to have. A grammar with no building guard emits none of it, by
 the same condition under which it emits no `ways.Built` today.
+
+**The condition above was written from a claim nobody had read, and finance-24 read it.** It says
+`Message.FromString` "splits the wire, validates against a dictionary and assembles repeating
+groups". That describes one of two ways of calling it, and the difference decides what may be set
+beside what. Read from `Message.cs` of the source itself:
+
+- Groups are assembled only with a dictionary: the guard is `if (msgMap is not null &&
+  msgMap.IsGroup(f.Tag))`, and `msgMap` comes from the application dictionary. Constructed without
+  one, a message keeps the members of a group as flat repeated tags.
+- There is no validation inside `FromString` at all. The `validate` flag checks one thing there,
+  that the first three header fields are in order. Validation against a dictionary is a separate
+  static call the caller makes.
+- The .NET port has no general reading of data fields. One tag is special-cased, `XmlData`, by its
+  length; there is no set of data fields in its dictionary. The C++ and Java engines do this by
+  dictionary, and this one does not.
+
+**So the pairing is two pairings, and each says what it is.** Against `FixMessages`: with both
+dictionaries and `validate: true`, followed by the explicit `DataDictionary.Validate` — which
+makes `QuickFIXn.FIX44` a requirement rather than a maybe. Against `FixParser.Parse`: the
+dictionary-less form, with the row saying that it assembles no groups and builds no typed values.
+Setting the dictionary-less form against `FixMessages` would be the regex comparison inverted in
+our own favour, which is worse than the ordinary kind: it flatters us.
+
+**And the third point chooses the inputs, before the stand does.** Any input carrying a standard
+binary field other than `XmlData` — `RawData`, `SecureData`, `EncodedText`, `Signature` — is read
+differently by the two sides, because ours reads a data field by its length and theirs stops at
+the first separator inside the payload. The stand's check that both sides answer alike fails there,
+and fails justly. Either the inputs carry no such field, or the row says plainly that there is no
+agreement on it and why. This has to be settled before inputs are chosen, or a day goes into
+diagnosing a "divergence" that is a documented difference.
+
+The correction is finance-24's, made by reading the source rather than taking the condition it was
+given. The error travelled through me: I wrote it into D26 from Q9's summary without opening the
+file, on a question where the whole condition rests on what that file does.
