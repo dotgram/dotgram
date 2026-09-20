@@ -2264,3 +2264,62 @@ another language, a gain that sinks on realistic input by the source's own numbe
 case that is a star over one character where ours is a braced set with two comment forms. Computed
 recovery sets stay with Igor, being a change to what a grammar says; the mechanism is now named,
 and dominators are one pass over a graph already built.
+
+## Q24 (2026-09-20). The sweep's second outward round: one question closed by a negative result, one refusal narrowed, one technique placed
+
+Read at `7edb6292`. Three of Igor's list that Q23 did not touch. **What was read and what was not is
+said on each item**, because this file's rule is that an item arrives with evidence, and an abstract
+is not a paper.
+
+**1. Proving a call needs no way back: nobody does it statically, and the boundary has a name.**
+This is the standing item "possessiveness at a call, which `JoinedRight` needs and the grammar
+cannot say today: PEG's cut, ALL(\*)'s prediction, and how other generators prove that a call needs
+no way back". The answer from outside is that they do not prove it.
+
+- **PEG's cut** (Redziejowski, *Cut points in PEG*) gives sufficient conditions for a cut to be
+  sound, and the summaries of it agree on the limit: finding cut points in **non-LL(1)** grammars
+  must largely be done **by hand**. So the inference exists exactly where a decision was already
+  decidable on one token — and stops where a way back actually costs us.
+- **ALL(\*)** (ANTLR) does not prove anything at generation. Its decisions throttle up from fixed
+  lookahead to arbitrary lookahead and **fail over to backtracking**, deciding at run time with a
+  cached automaton.
+
+*What that settles here.* The two industrial answers are an author's annotation and a run-time
+prediction. The first is language surface — it would be a mark a grammar writes, so it goes to Igor
+before a line — and the second is against D25, which says the generator decides and the parser
+obeys, no question asked of the input's shape at run time. This session declined our own no-way-back
+analysis at `0db5c0a8` for moving nothing; the sweep adds the reason it would have gone on moving
+nothing, and that reason is worth more than the decline: **the analysis is bounded by LL(1)-ness,
+and our expensive places are the ones that are not LL(1).** *Read:* the paper's abstract and
+secondary accounts of it; the PDF itself would not open here, and whoever takes this further reads
+it rather than this paragraph.
+
+**2. The lazy tree, refused by D38, is shipped by somebody else — and the difference is the
+consumer, not the technique.** simdjson's **On-Demand** front end (Keiser and Lemire, 2024) is a
+cursor over the document that materializes objects, arrays, strings and numbers lazily instead of
+building a tree, and is reported faster across benchmarks. That is the shape D38 refused, and D38's
+reason was ours and remains right: a kinds-only consumer touches 1–3% of a statement and the middle
+consumer does not exist — **for our grammars**. For JSON the middle consumer is the normal case:
+a large document is read for a few fields. So the refusal is about who reads our parsers, not about
+the technique, and it is worth saying which of our families resembles JSON's case rather than SQL's
+— `DotGram.Web`'s `JsonValue`, which is the one place a caller plausibly wants two fields out of a
+large document. Nothing here asks to reopen D38; it asks that its reason keep the words "for our
+grammars" attached. *Read:* the abstract only. Its numbers are not in it, and the entry claims none.
+
+**3. Reading with the machine: the published shape has a precondition, and it is not ours.** The
+standing item asks what of simdjson's structural indexing survives D20. Everything found is for
+formats whose structure is a **small fixed set of characters** — JSON's braces, brackets, commas,
+colons and quotes; the same technique reported for DNS records at millions a second. That is the
+precondition, and it is a property of the format, not of the machine: SQL's structure is not a
+handful of characters, and neither is the expression language's. The one family of ours that meets
+it is **FIX** — a wire of `tag=value` separated by one byte — which is also the family whose byte
+path Q16's fifth item is about and whose throughput is the hardest yardstick we have. *Where it
+touches:* the byte reader, not the general machine. *What it would have to beat:* the Fix44 rows.
+*Read:* titles and abstracts; no numbers are quoted here and none should be quoted from here.
+
+**And the honest negative.** Nothing was found that offers a general-grammar structural index, an
+automatic proof of possessiveness, or a published account of making a per-character skip loop faster
+on a platform without a vector search — Q23's item 2 remains the only candidate for that last one,
+and it is from a blog with a measurement on another architecture.
+
+**Answer:** —
