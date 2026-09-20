@@ -1137,7 +1137,23 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   conditions before its pair, a carrier change on a shipped grammar being behaviour and not speed:
   a differential against the hand parser over messages including broken ones, the factory counts
   per field against the tape on accepted and refused input, D5's retention under a small window,
-  the locations unmoved, and the first call with its methods and IL. **And a second rendering found
+  the locations unmoved, and the first call with its methods and IL. **Measured (window 65): the log
+  form halves and now costs what the plain form costs** — an order 1,297 to 661 ns against the
+  plain form's 663, a hundred and twenty-eight orders 77,161 against 77,440, the byte and stream
+  forms -40..-54%, every row in one direction, the same direction without the profile's help, and
+  the log rows' first-call method counts falling to the plain rows'. **Two of the three things
+  named in advance were wrong, and the why is the useful part.** The plain rows did not move at
+  all: the carriers report answers whether *any* machine of a grammar is on the tape, and it was
+  read as if it described them all — the plain readings had neither a walk nor a way before the
+  change, every one of the ten in the file belonging to the log machines. And allocation did not
+  fall: the tape's records live in the pooled arrays the reader rents, not in per-call bytes, which
+  is the same code the pool-retention work is about. The rule taken: the report says whether, the
+  emitted file says which, and a prediction needs the second. Not landed until the missing
+  condition is answered — there is no malformed wire for the log form, so "does the immediate
+  carrier build for a reading later given up" has been measured only for the form that did not
+  change carrier. Named for later: the byte and stream log forms remain 13-15% above their plain
+  counterparts where the text forms have converged, which is the multi-character separator and a
+  candidate rather than a defect. **And a second rendering found
   behind it, approved 2026-09-19:** a `yield` publication is read by methods only over a buffer,
   because that is what the driver had been taught first, so `ReadFields` from a reader is carried
   immediately while `ReadFields` from a string runs the engine, with an arena and a materialization
