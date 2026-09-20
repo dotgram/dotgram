@@ -1,5 +1,18 @@
 # A call that needs no way back (design, 2026-09-19)
 
+> **Measured and declined (2026-09-20).** Written, made sound, made cheap, and then refused by what
+> it moved: nothing. Across the five libraries it takes 70 of 222 causes away and 45 of 1,167
+> replayed rules, and **no grammar changes carrier** — 41 on the tape before and after — while
+> `points` stays 2,362/3,146 on T-SQL, so nothing downstream takes up what it frees. Generation is
+> level (62 s against about 60 for `DotGram.Sql`), but the generated files grow: SQL:2023 +6.3%,
+> SQL-92 +4%, T-SQL +0.6%. Fewer causes, more code, one carrier moved by nobody. The prototype is
+> not committed. What is below is the design as it stood, kept because the argument in §2 and the
+> watch list in §6 are cited from elsewhere, and because a later reader should see what was tried.
+>
+> **What would make it pay.** Something downstream that turns a freed cause into a point or a
+> carrier: the fourth edge of `carrier-per-construction`, or a gate that reads `Replay.Keeps` per
+> machine rather than per grammar. Until one of those exists, this buys a number that nobody spends.
+
 For the architect, before any code. It answers the cause the critic reopened: `JoinedRight`'s 29
 rules are replayed for a reading that is never in fact put back, and no form the grammar can write
 says so (an atomic group around the tails and around the call were both built and left the report
