@@ -1501,3 +1501,84 @@ form does not add one. `TableTest` emits `c <= 255 && {name}[c] != 0`, and the s
 shift and a mask instead of an indexed load whose bounds check the JIT must eliminate from the
 comparison and the array's length. So the third form is one comparison, as today, minus a memory
 access — which is why it may win on both counts rather than trading one for the other.
+
+**Answer (architect, 2026-09-20, D40 `6350e1b5` and `d2e10448`).** Taken as written — three buckets,
+capability names rather than framework tests, the `SearchValues<string>` version read off the API
+reference rather than guessed, and both conditions kept as conditions. The second of them is also
+answered rather than merely accepted: `--stand-paired` already loads two directories of assemblies
+into two isolated contexts of one process and holds their answers equal before timing anything, so
+it does not care what makes the two directories differ. The pair a branch must carry is two builds
+of one commit differing by a property of the generator — about an hour on the stand's side — and the
+cheap look, netstandard against net10 of one commit, is declined because those two builds differ by
+more than the branch.
+
+## Q15 (2026-09-20). The first branch has already landed, twice, and neither condition was asked of it
+
+Read at `d2e10448`.
+
+**The claim.** "And two conditions before the first branch lands, because neither exists … A branch
+that is faster and reads differently is worse than no branch, and a branch whose speed nobody can
+measure is a guess, so both come before the first `#if`." (D40.)
+
+**What it rests on.** That per-framework emission has not started.
+
+**The objection: it started on 2026-09-09, and the emitter writes two framework tests today.**
+
+- `BufferedEmitter`, in `MoveLine`, writes `#if NET8_0_OR_GREATER` → `MemoryExtensions.Count(span,
+  '\n')`, `#else` a loop over `IndexOf`. Counting the newlines a buffered feed has gone past is where
+  a reported position's line number comes from. Added yesterday, `64235e43`.
+- `Machine.Reader`, in `EnoughStack_DotGram…`, writes `#if NETCOREAPP2_0_OR_GREATER ||
+  NETSTANDARD2_1_OR_GREATER` → `TryEnsureSufficientExecutionStack()`, `#else` the older pair inside a
+  `try`/`catch`. The remark the emitter writes beside it states the difference in so many words: the
+  floor pays "an exception on the one probe in sixty-four that finds the margin gone". Added
+  `8ec21fe3`, 2026-09-09.
+
+Those are the only two — `OR_GREATER` across `src/DotGram` — and they are exactly the shape D40
+rules out, a raw framework test at the emission site. So the capability rule does not arrive at zero
+sites. It arrives with two to convert, and a decision that binds the next branch should say whether
+these are converted or grandfathered, because the reason given for capability names — a framework
+test multiplies by the buckets while a capability name stays one word — applies to them first.
+
+**What holds them today, which is the opposite of what one would assume.** `EmittedCode.Compile`,
+the in-memory level of the test suite, parses emitted source with
+`CSharpParseOptions.Default.WithLanguageVersion(CSharp8)` and **defines no preprocessor symbols** —
+nothing in the repository calls `WithPreprocessorSymbols` — while its `References` are the test
+process's own loaded assemblies, which are net10.0's. So every test at that level compiles the
+**floor** branch and runs it on net10: the refusal sample, `Tests.Slow`'s whole refusal record,
+`BufferedInputTests`, the carrier shapes, and the twenty-odd other files that call it. The
+analyzer-attached level — this project's own `Url` parser, the shipped packages, the benchmarks and
+the stand — compiles the capable branch. Both branches are therefore already run, by different
+levels of the same suite, and no test, comment or document says so; a reader of `EmittedCode` has no
+way to know which side of the `#if` their test is about.
+
+Compilation is covered, and by `DotGram.Compatibility` rather than by luck: `Consumer.cs` has
+grammars with `BufferedInput = true` and grammars that recurse, so both sides of both branches are
+compiled on their frameworks. The snapshots are not: `tests/Snapshots/Minimal.gram.g.cs` carries the
+stack branch, and no snapshot emits `MoveLine` at all, so a change to the newline branch shows up in
+no diff.
+
+**What follows for D40's first condition, and it is cheaper than the wording suggests.** "Run the
+corpora per bucket rather than per commit" reads as multi-targeting the test projects and running
+them three times. It need not be: the material is already compiled in one process against one
+reference set, and what is missing is the argument that selects the branch. One
+`.WithPreprocessorSymbols(…)` on the parse options, the corpus taken twice, and the two answers held
+equal — in the suite that exists, on the runtime that is already there. What that does *not* cover
+is a branch that needs an API the floor lacks; there the capable side will not compile against a
+netstandard reference set, but the check wanted here is the other direction, and the net10 reference
+set compiles both.
+
+**And the knob may be smaller than D40 fears.** D40 asks for a property of the generator, decided
+rather than acquired, because "a knob that exists by accident becomes API by accident". If the one
+place that maps a framework to its capabilities is emitted as `#if NET8_0_OR_GREATER &&
+!DOTGRAM_NO_SEARCHVALUES` — beside the marker attributes, once per compilation — then the suppressor
+is an ordinary `DefineConstants` symbol. The stand's two folders are then one commit built twice
+with different `DefineConstants` on one framework, the consumer's opt-out at the floor on a new
+framework is the same symbol, and the generator reads no property at all. It is still a knob and
+still has to be documented as one; it is just a knob C# already has, and it makes D40's two
+conditions one mechanism rather than two.
+
+**What would settle it.** Name the two existing branches in D40 — converted or grandfathered — and
+say which side of the `#if` the in-memory level compiles, in `EmittedCode` where the answer lives.
+Neither costs a measurement.
+
+**Answer:** —
