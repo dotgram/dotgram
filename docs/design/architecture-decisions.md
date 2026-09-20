@@ -4556,3 +4556,39 @@ Those differences belong in D26's account of the libraries, which is what that a
 for: their model keyed by tag against ours keeping the wire. And one thing is stated as unchecked
 rather than assumed — whether order and repeats survive when their message is read *with* a
 dictionary and a factory, the store being the same but groups then assembled apart.
+
+## D48. Two counts withdrawn, and what they were withdrawn by, 2026-09-20
+
+sql-39 reduced both counts to one method — one run, the current build, the corpus named exactly
+(every script under the SQL corpus, cut as the reference benchmark cuts it, 7,716 statements, with
+the soundness check that the final walks number exactly the statements) — and the run found two
+errors of its own.
+
+**First, the marker for "built for an ask" was the rule's mark, and an outer rule's mark is zero**,
+so every guard of an outer rule was counted as a final walk. With the marker set at the entry
+point: on T-SQL 70,269 records are built for asks, **60.1%**, against 46,679 at the end; on
+SQL:2023's `select20`, 91% against 9%. The earlier figures were 14.6% and 85.4%. **So D38's
+conclusion is withdrawn**: the price of asking accounts for the whole of the discarded fifth on
+T-SQL as well, and "no less than a third is built by the final walk and replaced above" rested on
+a spoiled marker. Both grammars turn out to be the same case, not opposite ones.
+
+**Second, the 45% that D36 was credited with.** Grouping asks by run attributed each final walk to
+the last guard, so all 7,716 final walks fell into "not first in a run". Corrected: 222 of 8,634
+asks are not first in a run, 2.6% now, about 9.6% before merging — not 45%. **So there is no
+tenfold lever hiding in the gap**, and the gap itself was never real: expr's 4.0% counts merges
+against all walks, the corrected 9.6% counts runs against guard asks, and the denominators differ
+while the phenomenon is one.
+
+**What this leaves D36.** Its benefit is where sql-39's numbers now put the clusters: on T-SQL a
+guard usually asks for one value — 726 merges against 8,634 asks — while SQL:2023 merges 107 of 193
+runs because its guards ask for several. So the expectation written before the first pair, that
+T-SQL would move most, was wrong for a structural reason, and the criterion registered after it,
+naming `select20` and the SQL:2023 rows, is the one that matches where the mechanism lives. The
+change is not weakened by the correction; the reason to expect it anywhere but SQL:2023 is.
+
+**And the shape of both errors is one shape.** A marker standing in for the thing itself — a rule's
+mark for "a guard asked", the last guard of a run for "whose run this is" — which is the family
+this journal has been naming for three days, now in its own measurements. What caught them was
+reducing two counts to one method, which was ordered to settle a disagreement and settled something
+else instead. Both wrong numbers had travelled further than the session that made them, which is
+why they are recorded here and not only fixed.
