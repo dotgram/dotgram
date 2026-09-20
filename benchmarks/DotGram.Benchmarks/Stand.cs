@@ -348,6 +348,7 @@ static partial class Stand
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
 			Expression("nest7",         "(int x) => (((((((x)))))))"),
 			Expression("block",         "(int x) => { x += 1; x *= 2; return x; }"),
+			Expression("try",           "using System; (int n) => { int r = 0; try { r = 10 / n; } catch (DivideByZeroException e) { r = -1; } catch (Exception e) { r = -2; } r }"),
 			Expression("loop",          "(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }"),
 			Expression("overloads",     "(int x) => System.Math.Max(x, 1)"),
 			Expression("string",        "(int x) => \"a plain string literal, with no escape in it\""),
@@ -1310,6 +1311,7 @@ static partial class Stand
 			PairedExpression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5", before, after),
 			PairedExpression("nest7",         "(int x) => (((((((x)))))))", before, after),
 			PairedExpression("block",         "(int x) => { x += 1; x *= 2; return x; }", before, after),
+			PairedExpression("try",           "using System; (int n) => { int r = 0; try { r = 10 / n; } catch (DivideByZeroException e) { r = -1; } catch (Exception e) { r = -2; } r }", before, after),
 			PairedExpression("loop",          "(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }", before, after),
 			// The linearity family's chain, at the sizes where a walk of the log from its start shows: a term is `+ x`.
 			PairedExpression("terms100",      "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", 100)), before, after),
@@ -2286,8 +2288,16 @@ static partial class Stand
 		text.AppendLine(CultureInfo.InvariantCulture,
 			$"{result.Machine}, {result.Runtime}, {(result.Pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {result.Control:F1} ns.");
 		text.AppendLine();
+		var references = result.Rows.Any(static row => row.Readings.Any(static one => one.Reading.StartsWith("reference", StringComparison.Ordinal)));
+
 		// One table per base: the hand-written reading where there is one, and the generated one
 		// on the rows of a format nobody wrote a parser of by hand (the web's).
+		if (references)
+		{
+			text.AppendLine("A `reference-*` reading is another library's reader over the same text. The row's check holds it to what the generated parser does: both accept the input, or, on a `refused` row, both refuse it. It says how fast that reader is here, and not what this grammar costs against a hand-written reader; it has no ratio.");
+			text.AppendLine();
+		}
+
 		foreach (var group in result.Rows.GroupBy(static row => row.Readings[0].Reading))
 		{
 			var @base = group.Key;

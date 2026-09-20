@@ -65,6 +65,16 @@ control and still have one row 50% off, which is what the other runs are for. Th
 column of such a report is the base reading's spread between runs, which is the one to hold a
 change against.
 
+### A short probe in a cold process overstates its first rows
+
+For about the first 300 ms of a process everything runs several times slower: finance-24 measured a refused media type at 220 ns
+there and at 42 ns for the rest of the same process, and the same row put first and last in a list at 222 ns and 51. It is not tiering
+(the picture is the same with `DOTNET_TieredCompilation=0`) and not the collector (no generation 0 collection in the run), and the cheaper
+the reading, the more it suffers. A probe of a second or less on a fresh process therefore overstates its first rows, by about five times on a
+reading of tens of nanoseconds, and is not to be read as the cost of the parser; the stand warms every reading until it is stable before it
+times it, and `--only` on one cheap row is the case where a short run is still not a full run's number. Read another session's short probe with
+that in mind.
+
 ### Small whole numbers: the range, and no ratio between overlapping ranges
 
 A figure that is a small whole number (kilobytes held above the live heap, methods compiled by a first
@@ -122,7 +132,7 @@ The five Web formats that had no row (finance-24, the critic's Q5) have one acce
 `web/json-patch.full` (RFC 6902) with no refused one, since a JSON Patch has no non-throwing text form and a refusal would time the
 exception; `web/cookie.refused` too. The framework's own parsers are read beside the generated ones in the plain stand as
 **references**: `reference-MailAddress` on `web/addr-spec.*`, `reference-MediaTypeHeaderValue` on `web/media-type.*` and
-`reference-CookieContainer` on `web/cookie.*`. A reference does other work (`MailAddress` normalizes, a jar keeps the cookie) and
+`reference-CookieContainer` on `web/cookie.*` (the cookie's Expires is in 2099, since a jar drops an expired cookie and the row must hold on any day). A reference is another library's reader, and it says how fast that reader is here, not what this grammar costs against a hand-written one. It does other work (`MailAddress` normalizes, a jar keeps the cookie) and
 the report prints the word `reference` where a ratio would be, so that no one reads a yardstick out of it.
 
 `--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while

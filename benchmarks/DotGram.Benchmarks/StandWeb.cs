@@ -51,7 +51,9 @@ static partial class Stand
 
 	const string JsonArrayText = "[1, 2.5, -3, \"four\", true, false, null, [5, 6], {\"k\": \"v\"}, 1e3, \"a longer string to read\", 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]";
 
-	const string CookieFull = "sid=38afes7a8; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Max-Age=2592000; Domain=example.com; Path=/docs; Secure; HttpOnly; SameSite=Lax";
+	// The Expires is far ahead on purpose: a cookie jar drops an expired cookie, and the reference reading of this row must accept
+	// what the generated parser accepts on any day the stand is run.
+	const string CookieFull = "sid=38afes7a8; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Max-Age=2592000; Domain=example.com; Path=/docs; Secure; HttpOnly; SameSite=Lax";
 
 	const string CookieShort = "id=a3fWa";
 
@@ -140,6 +142,8 @@ static partial class Stand
 			WebGenerated("content-disposition.refused", DispositionRefused, static text => ContentDisposition.TryParse(text, out _), accepted: false),
 			WebGenerated("uri-template.full", TemplateFull, static text => UriTemplate.TryParse(text, out _)),
 			WebGenerated("uri-template.refused", TemplateRefused, static text => UriTemplate.TryParse(text, out _), accepted: false),
+			// No refused JSON Patch row: its only text form, Parse, throws, and a refusal would time the exception's stack and not the parser.
+			// A non-throwing form (TryRead over a parsed text) is an addition to the package, not to the stand.
 			WebGenerated("json-patch.full", PatchFull, static text => JsonPatchParses(text)),
 			WebGenerated("forwarded.full", ForwardedFull, static text => ForwardedElement.TryParseField(text, out _)),
 			WebGenerated("forwarded.refused", ForwardedRefused, static text => ForwardedElement.TryParseField(text, out _), accepted: false),
