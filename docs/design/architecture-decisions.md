@@ -5110,3 +5110,32 @@ is the right handling, and it makes the helper a shared contract: what it accept
 rule about pages, so a change to that is a change to the rule, not a private convenience. It is
 linked by source into each test project rather than given a project of its own, which keeps one
 copy and no drift.
+
+## D57. Two shipped parsers took seconds and minutes to refuse, and both were found by luck
+
+finance-24 has fixed a refusal in the URI-template reader — a repetition whose body is a repetition
+over overlapping first sets, `(A+)*`, doubling the cuts with every character: eight characters
+0.03 ms, twenty-four characters 3.2 seconds — and, looking for more, found a second in the email
+address list: twenty-eight characters, **one hundred and seven seconds**. Both are atomic now
+(`b3bdc01f`). Two shipped parsers, both exponential on a refusal, neither found by a test or a
+review: the first surfaced because a stand row happened to carry an unclosed template, the second
+because somebody went looking after it.
+
+**The asymmetry is the argument.** We spend measurement windows on twenty-nanosecond constants
+while two shipped parsers took seconds and minutes to say no.
+
+**Three things follow, in this order.** First, before the release, a throwaway probe over every
+grammar here listing the sites of that shape — a repetition inside a repetition, first sets
+overlapping, nothing committing between them. The analyses exist: one already asks whether a
+repetition can be made to give a turn back, another computes exactly the overlap that makes the
+shape ambiguous, and the fix in both cases was the atomic group a third already reasons about. An
+empty list closes the release question; a non-empty one is handed to each grammar's owner.
+
+Second, the guard that would have caught them: the linearity runs cover accepted input, and a
+refusal is where this shape explodes. Refusing inputs belong in that check across the packages.
+
+Third, the diagnostic — **the generator can see this shape and does not say so** — which is the
+same class as the two configurations that ship and do not compile, except that this one compiles
+and then stops responding. It sits above the speed items, it comes as a design before any code,
+and it waits for an undivided head, because a warning that fires on a correct grammar is worse
+than none and that judgement is the whole of the work.
