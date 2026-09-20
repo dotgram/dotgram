@@ -2564,7 +2564,15 @@ expression language; sql-39 writes the SQL package's. The version itself is rais
 finance-24, when the stand's windows are done, together with the six places that spell it by hand.
 Symbols stay embedded, as the packages say deliberately, with source link beside them and no
 symbol package — the two are alternatives. Documentation is turned on where writing it is an
-evening's work, the web's 82 places and the expression language's 8, and left off for the SQL
+evening's work, the web's 82 places and the expression language's 8 — which turned out to be more,
+and turned up a defect: the generator wrote doc comments on a local function, which C# has no place
+for, so a consumer who generates documentation got a warning out of our emitted file. The class is
+closed by compiling the generated code with documentation on and warnings as errors in the project
+that exists for compiling it. A grammar's own diagnostics are not declared descriptors, being made
+as the message arrives, so the analyzer's release files hold only the fixed ones and
+`diagnostics.md` stays their catalogue and says so; declaring them all statically would mean a
+second table kept in step by hand for almost no gain to a consumer, and is not done. Documentation
+is left off for the SQL
 tree's 6,500 and the generator's 908: a file-wide suppression over a whole package is an empty
 flag. Recorded as those packages' debt, not as anything the release waits for; the SQL notes say
 the package carries no XML documentation yet.
