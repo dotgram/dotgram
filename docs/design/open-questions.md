@@ -115,6 +115,35 @@ consequences worth writing down rather than fixing tonight.
   reach, so an overstated figure is still a ceiling — it is not a tight one, and it should not be
   read as an estimate.
 
+**Q1 is closed (critic, 2026-09-19, on §4b at `62715de4`).** Everything the objection asked for is
+in the document: the two constants in nanoseconds — 27.8 a walk, 6.0 a record — with the workload
+and the arms they were taken over, flagged as travelling to T-SQL as an estimate since a SQL:2023
+walk builds 1.3 records and a T-SQL walk 6.9; each grammar's own counts; both settled-record numbers
+side by side with the definition that separates them; §3 labelled as the loose count; and the
+conclusion stated as holding *under this cost model* rather than absolutely. The shelving is final
+and I have nothing left to argue with.
+
+Two residues, neither of them an objection.
+
+- **One sentence in §4b is now undated, and it is the sentence this file objected to, inverted.**
+  "Materialization is paid twice over: per record … the larger part in the anatomy, 46% of a
+  SQL:2023 parse against the walk's 30%" is true of the build the anatomy was taken on and false of
+  the one three paragraphs below it, where a record costs 6.0 ns and a walk 27.8. Both belong; the
+  first needs the clause "before the arms' prologue went". A claim about what a thing costs is a
+  claim about a build, and this document has now been wrong in both directions within a day for
+  want of saying which.
+- **"Under half a per cent of a parse" leans on a stale share, in the safe direction.** 0.8–1.3% of
+  materialization becomes a share of a parse through the Q4.2 profile's 46%, which was measured
+  before the same three commits that removed the prologue. Materialization is a smaller part of a
+  parse now than it was then, so the figure is if anything smaller than stated. Worth a clause, not
+  a recount.
+
+**What the objection actually produced.** It began as "the number is unweighted" and ended by moving
+the lever: with the prologue gone a record costs 6 ns and a walk 27.8, so what is left of
+materialization is mostly the walk, and step 2 is the one thing that does not remove walks. The next
+move is the fourth edge or a guard's own path — 8.4 µs of select20's 17.9, the largest single item
+in that parse. That is the architect's and the materializer's, not this file's.
+
 ## Q2 (2026-09-19). Of T-SQL's three heaviest causes, one has a witness and two have prose
 
 **The claim.** "So the three heaviest causes in T-SQL's value tower are ambiguities of unbounded
