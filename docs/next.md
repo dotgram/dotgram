@@ -24408,3 +24408,35 @@ includes what was not named; if the bucket holds clearing of its own, the true f
 lower. And it is not the constant this corpus was profiled for: what a walk costs and what a record
 costs, T-SQL's own rather than carried from SQL:2023, cannot be read while a third of the profile
 has no names.
+
+## Nested parentheses cost a square, and not because the input is bad
+
+The stand's refusal ladders have a row "parentheses opened and not closed", superlinear where every
+other SQL refusal is linear. It is not about refusing. The same parentheses closed — a reading that
+succeeds — grow the same way.
+
+T-SQL's search condition, `(`×n before `a = 1`, against the same with `)`×n after it (the machine
+was busy with another window, so the shape is what to read, not the milliseconds):
+
+| levels | refused | read |
+| ---: | ---: | ---: |
+| 64 | 1.1 ms | 2.7 ms |
+| 128 | 9.1 | 19.2 |
+| 300 | 125 | 65 |
+
+Both about n^2.8. The cause is a count, not a timing, and the count says it exactly: reading the
+same shape on SQL:2023, at 32 levels `Read_QueryPrimary`, `Read_QueryTerm` and
+`Read_QueryExpressionBody` are each entered 1,056 times, and 1,056 is 32 × 33. Rule calls over the
+whole reading: 566 at 8 levels, 30,750 at 96 refused, 16,718 at 96 read.
+
+The mechanism is the choice this journal once filed as the language's: at each `(` the reader asks
+whether a subquery or a bracketed value begins, and the subquery attempt reads the rest of the
+nesting before it fails. The ambiguity is the language's; the square is ours, because an ordered
+choice with no memory of a failed reading reads again what it has already read.
+
+What it means for a consumer: two thousand nested parentheses are seconds, on correct SQL as much
+as on broken SQL. What would remove it is a memory of a rule's failure at a position, which is the
+reader's ground and not the grammar's — the grammar's own way out would be to accept more than the
+server does, which D22 forbids. Not checked: whether the web and expression grammars have the same
+square, and whether an atomic group changes anything (`JoinedRight` says it would not: the cost is
+re-reading, not a way back).
