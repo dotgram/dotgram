@@ -3984,3 +3984,20 @@ by accident for a year is itself worth the sentence.
 property in `Directory.Build.props` rather than in the package's own build asset, which the
 repository reads through its own targets: the pair works and a consumer's build cannot set it at
 all. A rule enforced by where a line sits beats a rule enforced by a sentence in a document.
+
+**D37 for the expression language (`4b9e7194`), and a clause the doing added.** Eight fenced calls
+across the two pages now compile, run and hold the values their comments claim. All eight passed at
+once — the pages were right — and what the rule bought is not a defect count but the tie: until
+today nothing bound those pages to anything.
+
+One of the eight was not an example but a *fragment*, and that case will recur in every package.
+The skill shows two lines, a static field and a call, and leaves both the type and the text to the
+reader; written out literally it does not work, because the language resolves only what the text
+and the given assembly say, and the text never declares the type. So the first thing a reader
+repeating the page meets is a refusal. **The clause: a page that shows code carries the smallest
+complete form of it as a test, and where a fragment cannot stand alone the page says what it
+omits.** The defect this catches is not "the call throws" but "the page shows half, and the half
+does not work" — which no compiler catches, because the half is not what anybody compiles.
+
+The fragment on the page is fixed by naming the namespace in the text, one line, which is the
+smallest complete form the test already holds.
