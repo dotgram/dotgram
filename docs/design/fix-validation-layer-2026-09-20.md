@@ -146,13 +146,34 @@ reason — their `validate: true` checks the frame inside `FromString` and leave
 separate call. Two libraries arriving at one split independently is the best evidence available
 that the split is in the right place.
 
-## 6. Open
+## 6. Settled with the architect
 
-1. Does `FixMessages.Parse` keep an overload that validates, for the caller who wants one call?
-   It is convenient and it is also how a layer quietly becomes a mode again. I would not, at
-   first, and would let someone ask.
-2. What a finding says about a repeating group — the entry's index as well as the tag, presumably,
-   since "tag 448 is wrong" is useless when there are nine parties.
-3. Conditional rules (`StopPx` required when `OrdType` is `Stop`) are the thing a dictionary buys
-   that our schema cannot express. They need an expression, and Orchestra has one. Out of scope
-   here, but the finding's shape should not make them impossible to add later.
+**No parse-and-validate overload**, now or as a convenience. The argument is the one this document
+made against it: that is how a layer quietly becomes a mode again. Someone who wants one call can
+ask, and then it is a decision rather than a default.
+
+**A finding names the entry's index in a repeating group as well as the tag.** "Tag 448 is wrong"
+is useless where there are nine parties, so the two are not separable features — the index is part
+of what a finding *is*.
+
+**A finding carries the identity of the rule that produced it, and the path, not only the tag.**
+Conditional rules are out of scope here, but they are coming from any dictionary richer than ours,
+and a finding that names its rule can gain them without changing everything that reads a finding.
+The shape pays for itself before the rules arrive: "required field missing" and "value not in the
+code set" about the same tag are two different things to a reader reconciling a session, and today
+they arrive as one string.
+
+So a finding is at least: the rule, the path (scope, and the group entry's index where there is
+one), the tag, the position in the source, and what is wrong.
+
+## 7. Still open
+
+1. A retained validator over a dictionary holds the dictionary for as long as it lives. That is
+   the point, and it is also the same retention question as everything else this package holds
+   per thread — but a validator is the consumer's own object with the consumer's own lifetime, so
+   it is theirs to answer and not ours. Worth one line in the documentation, not a mechanism.
+2. Whether the layer should be able to validate a `FixField[]` that never became a message. Some
+   rules (a duplicate in a scope, a required field) need the scopes; others (a primitive's format,
+   a code set) do not. Splitting them would let a consumer check a field sequence cheaply. I would
+   not do it until somebody wants it, and I note it here so that the finding's shape does not make
+   it impossible.
