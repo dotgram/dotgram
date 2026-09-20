@@ -6468,3 +6468,42 @@ over it must not be checked in.
 So the practice stands for a better reason: name the element, the line and the tag because that is
 the more useful diagnostic, not because quoting is forbidden. Where quoting the text genuinely
 helps a consumer fix their own file, it is allowed.
+
+## D76. Generated validation is a quarter faster, and the rest of it is in one shared place
+
+The whole job, both sides answering alike on all 186 fixtures before anything was timed, one
+process, the largest fixture, three interleaved rounds:
+
+| | ns |
+| --- | ---: |
+| the walk | 9,971 / 10,046 / 10,083 |
+| generated | 8,184 / 8,023 / 8,105 |
+| generated, without the value check | 5,585 / 5,261 / 5,289 |
+
+**So the generated form is 1.24× the walk — a quarter, not a multiple** — and the decomposition
+matters more than the ratio. Of ten thousand nanoseconds: some 1,930 is what the build road has
+already taken, two table lookups a field becoming constants and the question of a length-and-data
+pair disappearing; 2,720 is the value and code-set check, untouched because it is still a shared
+call with a string switch over type names and a linear scan of a set that reaches ninety-four
+entries; and 5,380 is walking the fields and the machinery of findings, which no arrangement
+removes.
+
+**The answer to what the build road buys: types, and a quarter.** The types were always the
+product; the quarter is a bonus, and neither is a multiple. That is enough to write the generator
+and not enough to expect it to change the shape of anything.
+
+**And the largest movable block is in a place that serves both roads, which changes what to do
+next.** Emitting those checks into generated code would mean reproducing the shared
+implementation's semantics exactly — a quantity that may also be a code, a value that takes codes a
+character at a time — and a divergence there breaks the equality everything rests on. **Fixing the
+shared implementation instead has no such risk and makes the walk faster too**: a string switch
+over type names where the schema already knows a tag's type, and a linear scan where a set could
+be a switch. **Prefer repairing the one implementation to emitting a second copy of its
+semantics** — one of them cannot disagree with itself.
+
+So the ceiling of 1.87× is recorded as a ceiling and not a plan, exactly as its author framed it,
+and the work it points at is taken on the shared code where it pays twice.
+
+**And the prediction held, with its direction.** 1.3 to 1.8 was named with the likelihood of erring
+high; 1.24 came out just below, and the reasoning under it was right rather than lucky — the second
+prediction of the day and the first whose named direction survived.
