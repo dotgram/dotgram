@@ -5089,3 +5089,24 @@ two bare expressions, which C# does not accept as statements at all. Four differ
 errors for anyone who copied the page. The rule has now found, in two packages, defects that the
 previous form of the same rule had passed — because the previous form compiled examples in an
 environment more permissive than a consumer's.
+
+**The generator's own pages are closed (`3c541b86`), both halves.** Six grammar blocks are run
+through the generator with no error and no warning and what each compiles into is built beside the
+class the page declares around it; all six passed as they stood. The blocks that *call* what the
+generator made cannot be compiled by the ordinary check, naming members no compiler has seen until
+the grammar above them has been run, so they are compiled together with the page's class, the
+generated file and the marker attributes — and there four of five did not copy: three showed a
+result as a bare expression, which C# does not accept as a statement, and one parsed a name the
+page never declared. Each now binds what it shows and states the answer in a comment, which is what
+the page meant.
+
+**The helper learned two things on the way, and both are general**: a block stands on the usings of
+earlier blocks of its page, and it does not receive them again where it writes its own, since a
+duplicate-using warning reads as a defect of the page when it is a defect of the check.
+
+**And it now has three sessions editing it.** One extended it for two packages while another was
+working in it; the second merged rather than overwrote, and kept the other's list as it was. That
+is the right handling, and it makes the helper a shared contract: what it accepts and refuses is a
+rule about pages, so a change to that is a change to the rule, not a private convenience. It is
+linked by source into each test project rather than given a project of its own, which keeps one
+copy and no drift.
