@@ -39,7 +39,12 @@ public sealed class WebRefusalSweepTests
 	static readonly TimeSpan Budget = TimeSpan.FromMilliseconds(1_500);
 
 	/// <summary>Runs of things a grammar repeats: letters, folding, comments, separators, digits.</summary>
-	static readonly string[] Fillers = ["a", " ", "(a)", ",", "1", "a.", "%41"];
+	/// <remarks>
+	/// `word ` is here because it found what none of the others did: a word may take folding on
+	/// both sides, so the gap between two words belongs to either, and a phrase of n words has
+	/// 2^n readings. A filler that is a unit AND a separator is the shape that finds it.
+	/// </remarks>
+	static readonly string[] Fillers = ["a", " ", "(a)", ",", "1", "a.", "%41", "word "];
 
 	[Theory]
 	[MemberData(nameof(Readers))]
@@ -71,6 +76,7 @@ public sealed class WebRefusalSweepTests
 		["UriReference"]   = run => UriReference      .TryParse("http://" + run + " x", out _),
 		["AddrSpec"]       = run => AddrSpec          .TryParse(run + "@ex ample.com", out _),
 		["AddressList"]    = run => EmailAddress      .TryParseList(run + "x@ex ample.com", out _),
+		["AddressAngle"]   = run => EmailAddress      .TryParseList(run + "<", out _),
 		["AddressRoute"]   = run => EmailAddress      .TryParseList("<" + run + "@a:b@c.d", out _),
 		["LanguageTag"]    = run => LanguageTag       .TryParse(run + "-\u0001", out _),
 		["JsonValue"]      = run => JsonValue         .TryParse("[\"" + run + "\",", out _),

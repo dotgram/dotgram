@@ -327,7 +327,14 @@ public abstract record EmailAddress
 	Phrase        = ObsPhrase
 	CurrentPhrase = WordText+
 	ObsPhrase     = WordText & (WordText | '.' | Cfws)*
-	WordText      = Cfws? & (AtomText | QuotedBody) & Cfws?
+	// Sealed, and for a different ambiguity than the runs above — this one is not `(A+)*`. A word
+	// may take folding on BOTH sides, and `ObsPhrase` repeats words, so the space between two of
+	// them can belong to the left word's trailing `Cfws?` or the right one's leading `Cfws?`:
+	// two readings a gap, 2^n over a phrase of n words, every one of them the same phrase.
+	// Measured before this seal, and after the runs above were sealed: `word ` eight times then
+	// an unclosed `<` took 24 ms and sixteen times took 43 SECONDS. Sealing the word fixes which
+	// side a gap falls on; nothing downstream can tell, because a phrase's value is its text.
+	WordText      = { Cfws? & (AtomText | QuotedBody) & Cfws? }
 
 	// ── §3.4.1 ───────────────────────────────────────────────────────────────────
 
