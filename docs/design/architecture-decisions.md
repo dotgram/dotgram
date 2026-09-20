@@ -6109,3 +6109,23 @@ survey, rather than keeping it: an engine's validation there is a service that t
 *first* fault, which is the opposite of our choice on two of four points. Sending it first means
 the survey can contradict it; keeping it would have meant the survey confirming the person who
 commissioned it.
+
+**D58 closes with a number rather than an ellipsis: the probe on every entry costs about one and a
+half per cent on optimised code**, four clean runs, sixteen measurements, fifteen of one sign, the
+control at unity. The morning's "free" was measured on the unoptimised tier and was wrong by a
+factor of three. The explanation offered for the both-signed pattern is withdrawn with it, there
+being nothing left to explain, and the experiment that was to test it is cancelled as answering a
+question that no longer exists.
+
+**The decision stands at the new number.** One and a half per cent buys the removal of a defect
+that ties a consumer's usable depth to their build configuration, and of the class of constant that
+was wrong twice for the same reason. What changes is only what we write down — and the difference
+between "free" and "one and a half per cent" is exactly the kind of thing a reader finds later and
+is right to mind.
+
+**And the survey is set up so that it can contradict the person who commissioned it.** What one
+session already knew about another engine's validation was sent ahead and handed to the reading as
+*claims to be checked* rather than as data: a survey that repeats what it was told has checked
+nothing. The readings go across platforms rather than around one, with one questionnaire each —
+the model, the API's verb and what a fault carries, and the licence read from the file — and one
+engine whose validation the existing account does not cover at all is named as the gap it is.
