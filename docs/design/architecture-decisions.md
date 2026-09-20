@@ -4707,3 +4707,21 @@ while expr's test keeps both exact strings so that a change to either is seen.
 far the seam reaches in each rendering, and it would be paid on the hot path of both forms to make
 a refusal message longer. If an editor ever needs the complete set over a stream, that is the
 reason to reopen it, and it will be a reason about a consumer rather than about symmetry.
+
+**A guarantee that stays in correspondence becomes an assumption.** The one D40's first condition
+rests on — that two compilations of one grammar differing only in a method body must name the same
+refusals — was stated in a letter and is now written where the sessions read it, under the paragraph
+it follows from, as a consequence rather than a new rule: a choice confined to a body is made after
+the analyses have run and cannot move an analysis flag; the analyses settle what is read as a scan,
+what records, and therefore which of a repetition's doors are unconditional; those decide what a
+refusal names. So a disagreement between the two compilations is a defect in the branch and not a
+property of it, which is what the check must be able to say. Beside it, the boundary, because
+without it the sentence invites the wrong reading: refusals across two *input forms* are a different
+question, the analyses there differ legitimately, and neither form names a superset of the other.
+
+**Two conditions on it, neither about its content.** It lands in its own commit, not folded into
+whatever unrelated work reaches it first: a rule every session follows must be visible as a change
+to the rules, and today's whole theme is that what nobody reads is not held. And the architect
+reads it after it lands rather than before it is written, which is the right order for a consequence
+of an existing paragraph and the wrong one for a new rule — the distinction being exactly what the
+author made when deciding to write rather than to propose.
