@@ -31,9 +31,30 @@ construction runs *anyway* — §3.7 says so in as many words. What must be prov
 reading of it is the accepted one.
 
 **The set this design starts with**: a capture whose record is closed at or past a point of its
-rule, and whose children are all built. That is the shape the fast path already recognizes at
-walk time (`root == ways.Records - 1` and nothing unbuilt since `first`), read back one step
-earlier — at the close, where it is known without looking at the log at all.
+rule, whose children are all built, and which stands under no node of **the watch list**
+(`no-way-back-2026-09-19.md` §6, sql-39's, cited and not copied). That is the shape the fast path
+already recognizes at walk time (`root == ways.Records - 1` and nothing unbuilt since `first`),
+read back one step earlier — at the close, where it is known without looking at the log at all.
+
+### 1.1 A reading that is proved and thrown away anyway
+
+The point proves that this reading will not be given up and replaced. It says nothing about a
+reading that is *read in order to be discarded*, which is what a lookahead is: `?!` succeeds by
+throwing away what it read, and `?=` throws it away too and keeps only the answer. A `Commit`
+inside a lookahead's body holds within that body and is true — and the derivation under it is
+never the accepted one. So the proof does not answer this, and the exclusion cannot come from it:
+**lookahead bodies are out by construction**, both ways and backwards, which is exactly what the
+watch list's second and third rows say.
+
+Every row of that list is needed here, and for the reason sql-39 gives: two of its rows stand out
+of caution for their question, because there a reading ends where another reading ended and the
+text and the position are the same. Here the close of a capture is a *moment* rather than a
+position — the value is built at it and cannot be unbuilt — so a node whose answer depends on
+anything but the position is a node this must not build under. The narrower list sql-39 offers is
+not the one to take, and this design does not name a list of its own.
+
+What a guard still gets under a lookahead is what it gets today: it asks, and `Materialize` walks.
+Nothing there is made worse.
 
 ## 2. What changes
 
@@ -58,23 +79,51 @@ Three consequences, all of which have to be paid for or refused:
 - **What the walk clears is unchanged.** `built` is cleared from `ways.Built` on, and a record
   built at a close moves that watermark exactly as a record built for a guard does.
 
+### 2.1 A capture inside a repetition, turn by turn
+
+A capture in a repetition closes once a turn, and the question is what the guard reads on the
+second turn. What this owes is not a sentence but a test, because a defect of exactly this shape —
+a guard reading the last turn's value rather than its own — was here and closed itself, which is
+worse than having been fixed.
+
+What is intended: each turn writes its own record, and the value built at a close goes to the slot
+of the record just closed (`ways.Last`), which is the one the guard on that turn names. A turn that
+is given up puts its record back with the log, and the `built` flags above `ways.Built` are cleared
+by the watermark the walk already keeps — so a re-read turn builds again rather than reading the
+value of the turn that was given up. A repetition that turns after a proved point is what makes
+this safe to do at all; a repetition without one keeps today's walk.
+
+The test: at least three turns with values that differ, a guard on each turn that refuses unless it
+is handed *its own* turn's value, and a turn that is read, given up and read again with another
+value. It must fail before the change and pass after, and a guard that can see only the last turn
+must not be able to pass it.
+
 ## 3. What has to be measured, and what I expect
 
-Stated before the pair, so that the pair can say no.
+Stated before the pair, so that the pair can say no, and in the order the architect set: the size
+first and without a window, the factory counts second and without a window, and the stand only
+when both have passed.
 
+- **The emitted size, first.** T-SQL, SQL:2023 and the expression language, before and against,
+  counted in one worktree and saying whether the BOM is in the figure (a `#line` carries the
+  grammar's absolute path, so sizes compare only within a tree). If the growth is not small, this
+  stops here and is reported, and no window is asked for.
 - **Factory calls.** A count of factory calls over the SQL corpus and the expression language's,
   on accepted input and on refused input, against the tape as it is today. My expectation:
   **identical on accepted input**, and identical on refused input too — because the set in §1 is
   exactly the set where the reading cannot be given up. A difference on refused input is a defect
   in the proof, not a cost to weigh. This is the check that this design does not sell §3.7.
 - **The corpora and the snapshots**, unchanged but for the arms' new shape.
-- **The stand**, on `sql/*`, `el/*` and the script rows. My expectation: the SQL rows move a
-  little or not at all, because T-SQL's guards are mostly the tower the fast path already serves;
-  the rows that move are the ones sql-39's anatomy found paying for the listing pass. I do not
-  expect the script rows to move at all.
+- **The stand**, on `sql/*`, `el/*` and the script rows, and — the rule since 584a7c1f, because
+  this is a change to the walk — **a size-growing row on every guarded family and not on SQL
+  alone**. The expression language's eightfold loss on the tape came from a change to the walk and
+  showed itself only on input that grew. Linearity is read at the end of the window, over the same
+  rows. My expectation: the SQL rows move a little or not at all, because T-SQL's guards are mostly
+  the tower the fast path already serves; the rows that move are the ones sql-39's anatomy found
+  paying for the listing pass; the growing rows do not bend.
 
 If the SQL rows do not move, this design is refused on its own evidence, whatever the file size
-turns out to be.
+turns out to be. If a growing row bends, it is refused whatever the flat rows say.
 
 ## 4. Where it meets the other design
 
