@@ -6418,3 +6418,22 @@ switch labels are *cheaper* per label than a few dozen, dense integer ranges com
 tables and binary search, and the estimate had extrapolated a per-label cost measured in the small.
 **A per-unit cost measured in the small does not extrapolate** — the third instance today of a
 ratio taken from one material and applied to another.
+
+**Igor: start-up time does not matter, validation speed does.** That settles three things that were
+open or half-open.
+
+**Loading compiles eagerly.** The worry that ninety-three validators built from a dictionary's text
+would cost too much at load is withdrawn: nothing lazy is built, no cell holds a thunk, and a
+delegate is a delegate from the moment the dictionary is read. The same goes for rules compiled
+from the other format's expression language when that reader exists.
+
+**It does not reverse D74.** The expanded form was refused because it bought *nothing* in speed for
+twice the size, not because it cost something elsewhere. The instruction reweights the next such
+choice rather than this one: a form that is genuinely faster may spend freely at load.
+
+**And it names where the next number belongs.** Both generated forms were measured without the
+per-tag checks of type and value set, which is why the walk's ten microseconds was reported as a
+floor rather than a comparison. Validation speed being what matters, the comparison that decides
+anything is the *whole* job — generated code with those checks against the walk with them — and
+that number does not exist yet. It is the one to take next, and it needs no window if it comes out
+the way the last one did.
