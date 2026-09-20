@@ -1486,3 +1486,18 @@ ASCII helpers last, being the smallest. The keyword-from-a-span work waits on th
 above.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D39 `fa731475`), and it is the better question.** Not a threshold
+between the two existing forms but a third that may beat both: a class lying wholly below 128 is two
+`ulong` constants — a comparison, a shift and a mask, with no memory read and no array at all — so
+there may be no size-against-speed trade to argue about. Size first, from the packages' generated
+code rather than the snapshots, with `DotGram.CodeSize` pointed at a question it has never been
+pointed at; then speed, as a pair, on the Url and Web rows. With performance-ff.
+
+**One detail for whoever writes it, read at `fa731475`.** The guard is already there and the third
+form does not add one. `TableTest` emits `c <= 255 && {name}[c] != 0`, and the snapshot shows it as
+`if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S185;`. An all-ASCII class becomes
+`c <= 127 && …`, which is the same single comparison and a *tighter* one, and what follows it is a
+shift and a mask instead of an indexed load whose bounds check the JIT must eliminate from the
+comparison and the array's length. So the third form is one comparison, as today, minus a memory
+access — which is why it may win on both counts rather than trading one for the other.
