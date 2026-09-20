@@ -6709,3 +6709,23 @@ is now the measurement to take rather than the conclusion to state.
 condition it gates in, and reproducibility there is shown, not assumed. The reporting form and
 the repetition stand for that reason alone; if the cause turns out to be a stale baseline, the
 right repair is a fresh baseline, and the guard may gate again.
+
+**And the cause was found the same evening, which closes it.** On a loaded machine a fresh-process
+reading of one series gave 1.19, 1.22, 1.30 — and then 5.2, 45.4, 11.4, 37.2, 3.4. An exponent of
+forty-five is not a series drifting; it is ONE stalled point at the largest size, and a
+least-squares line through a short tail is moved by one point as far as you like. So the eleven
+failures were single outliers, not noise in the measurement, and the earlier reading of them as
+"the measurement cannot be reproducible" was wrong twice over: the quantity is stable, and the
+estimator was what let one bad reading through.
+
+**What that changes.** The repair is the estimator, not the margin: the exponent is now the median
+of the pairwise slopes over the tail, which is unmoved by a third of the points being wrong, and
+each series is walked twice with the second walk read, so a series stops carrying whatever the
+process did before it. A least-squares line over a handful of timed points is the wrong instrument
+for a quantity whose worst error is a stall, and that is worth knowing away from this guard: where
+a measurement's failure mode is a rare huge outlier, an average of any kind is the wrong summary.
+
+**One consequence to carry out, not to forget.** Changing the estimator changes what the baseline
+means, so the baseline is retaken — and it is retaken from the guard's own process, since the same
+series reads differently in a fresh process and in a warm one. The file says which process and
+which estimator produced it, because a baseline that does not is a number nobody can check later.
