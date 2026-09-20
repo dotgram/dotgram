@@ -106,6 +106,19 @@ static partial class Stand
 				() => null);
 		}
 
+		// A relative reference, which begins with no scheme: the second alternative of `URI / relative-ref` (finance-24, 12a8804f made a scheme end
+		// that alternative before it starts). The dot-colon one has a colon after its first segment, which section 4.2 allows and a scheme would not.
+		foreach (var (name, text) in new[] { ("url.relative", "../a/b/c.html?x=1#f"), ("url.relative-dot-colon", "./a:b/c/d?q=1") })
+		{
+			yield return new Workload("web", name,
+				[
+					new Reading("hand",   () => HandUrl.TryParseReference(text, out _, out _) ? 1 : 0),
+					new Reading("before", before.WebUrl(text)),
+					new Reading("after",  after.WebUrl(text)),
+				],
+				() => null);
+		}
+
 		foreach (var (name, text) in new[] { ("json.object", JsonObjectText), ("json.array", JsonArrayText) })
 		{
 			yield return new Workload("web", name,
