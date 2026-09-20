@@ -262,6 +262,32 @@ it is, and the ratio cell prints `reference` so that no ratio exists to misread.
   it defers; QuickFIX/n without a dictionary does not read groups; QuickFIX/n's session layer,
   which we do not have at all, is not in the row and is not in the number either.
 
+## 5a. The first number, and which half of it can be read
+
+Window 88, the plain stand, six runs kept, on the `NewOrderSingle` built for the row:
+
+| | time | allocation |
+| --- | --: | --: |
+| `FixMessages.TryParse`, strict | 1,919 ns | 4,192 B |
+| `reference-QuickFIXn` — `FromString` with the dictionary, then `DataDictionary.Validate` | 2,842 ns | 6,808 B |
+
+**The time is not two numbers to divide.** The base's spread between the runs is 37 %, so the
+runs disagreed by a third of the figure and no A/A was taken. Read it as an order of magnitude —
+both are a couple of microseconds for one message, hundreds of nanoseconds either way — and not
+as a ratio. Saying so is the whole point of the reference having no ratio cell.
+
+**The allocation is exact and is the half worth reading.** Bytes do not move with the machine:
+both sides were measured in the same run on the same input, and 4,192 against 6,808 is what each
+reader asked the heap for. We allocate **38 % less while building more**: a typed value for every
+field, against their strings in a `SortedDictionary` that are converted only when asked for. That
+is the opposite of what Q9's axis predicts for an eager reader against a lazy one, and it is the
+first evidence we have on it from outside this repository.
+
+It also gives our own side something to look at: 4,192 B for a seventeen-field message is about
+246 B a field, where the field reader alone is measured at ~96 B a field. Most of what a strict
+message parse allocates is therefore the message layer and not the fields — which is a question
+for us, not for them, and not one this row was built to answer.
+
 ## 6. What I would not do
 
 - I argued here against a message-layer row until the two validators had been held side by side,
