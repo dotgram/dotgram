@@ -3455,3 +3455,24 @@ only; a generated parser is not asked to be incremental. Nothing here reuses a t
 extension answers the cost by backgrounding. The number comes before any design: what one keystroke
 in the middle of a 7,264-line grammar costs today. Backgrounding may already have made it a
 non-question, and that is cheaper to find out than to design against.
+
+**D33's third item, corrected by its author, and the correction is the useful part.** Two things
+were one: a lazy *value* and a lazy *node*. A lazy value needs the text, because an extent on the
+tape is a start and a length and reading it slices the caller's text; a capture a factory already
+turned into a value needs nothing. A lazy node — Roslyn's red over green — needs no text at all,
+since the green side is built, and what it saves is the allocation of wrappers nobody touches. But
+our number is not allocation: the factories are about a tenth of materialization and the walk's own
+machinery is the rest, so deferring a wrapper saves little, because the walk still runs to know
+what is there. **What would cut the 8.4 µs is a lazy walk** — not walking a subtree until someone
+asks for it — and that needs an index from a record to the extent of its subtree in the log, which
+is ours to invent and which neither of the outside answers hands over.
+
+**And my D5 objection is narrower than I put it.** It binds the streamed forms, where no path may
+reach a contiguous form and the buffered support copies precisely because the window moves: there
+an unbuilt tree holds buffers D5 forbids growing, and it is out rather than to be weighed. Over a
+`string` the text is the caller's own object, so holding it is a lifetime and not growth — the
+hazard Artio names for its flyweight codecs, valid only while the buffer is unchanged. That is a
+promise to write into the API, not a rule being broken, and D5 should not be quoted against the
+string forms later on the strength of this item. The bounded form is therefore not a smaller
+version of the item: it is the only version that touches our number, and the count ordered from
+stand decides both.
