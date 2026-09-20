@@ -1349,3 +1349,54 @@ each smoke project carries its own `nuget.config` that clears the sources and ma
 `DotGram.*` to `../../artifacts`, so a floating `Version="*-*"` cannot quietly take a published
 package from nuget.org — and the comment there says exactly that, which is the third time in this
 audit that the surprising thing was commented where it surprises.
+
+## Q13 (2026-09-20). The sweep's second three, and where the frontier actually is
+
+Read at `f6ce6662`. The first thing to report is that most of the standard repertoire is already
+here, which narrows what is worth proposing and is itself the answer to "what else could we use".
+
+**Already ours, checked before proposing and not proposed.** A switch over kinds where the groups
+are narrow enough (`Dispatchable`); a **group table** where they are not — kind to group, then a
+switch on the group, within a span of 4,096 (`SpansAKindTable`, `KindTable`, `KindTableSize`), which
+is the dense class-dispatch technique in full; a chain of first-character tests, narrowest first,
+where one character decides; **column compression in the lexer**, 128 cells folded into as many as
+the machine can tell apart — 47 for SQL-92 — which is the classic DFA table compression; and
+precedence climbing for an operator tower (`graph.Climbing`). Four of the five things a reading of
+the literature would suggest for recognition are in the tree already.
+
+**1. A character class is a 256-byte array of noughts and ones, and half of it is never read.**
+Measured on the checked-in snapshot `tests/Snapshots/Url.gram.g.cs`: nine tables named
+`Recognize_DotGram_Class0`…`Class8`, each 256 bytes, **2,304 bytes for one small grammar** — and
+every one of the nine is entirely zero above index 127, so 1,152 of those bytes are there to be
+skipped. No two of the nine are identical, so deduplication is not the answer; the representation
+is. The same information is two `ulong`s per class — 16 bytes, no array, no bounds check, no
+indirection — with membership a shift and a mask, and the all-ASCII case is decidable at generation,
+where a class naming a Unicode category keeps the table it needs. 9 × 256 becomes 9 × 16 for this
+grammar. *Where it touches:* `LexerEmitter` and the recognizer's class emission. *The question a
+number answers:* what those tables total across the real grammars and what share of a generated
+assembly they are — `DotGram.CodeSize` weighs assemblies already, and `sql-code-size-2026-09-17`
+counts the lexer's `Scan_Class` but not these. **This is a size claim and not a speed one**: a byte
+load from an L1-hot table is one instruction, and whether the shift is faster is not obvious. The
+saving to claim is bytes and cache, and anyone who takes it should say so in those words.
+
+**2. The algorithm under D20's `IndexOfAnyExcept`, which is not the same as the API.** The reader's
+gate found 58 places where a grammar's own seam rule — `Ows`, `Fws?`, `Blank` — is a greedy star
+over a class, at the head of a turn and of a continuation. A star over a class is a state of the
+automaton that loops on a wide set and leaves on its complement, which is exactly what a regular
+expression engine's *prefilter* is for: where the machine would spin in one state, do not step it,
+search for the first character that leaves. D20 names the API half; the half that is ours is
+recognising the shape in the automaton and emitting the search instead of the loop, which is a
+property of the machine and can be decided at generation, once, for all 58. *Where it touches:*
+the lexer's emission of a star over a class, and D20's floor branch, which must keep its loop.
+*The question a number answers:* what share of a parse is spent in star-over-class states. Not known
+here, and the stand's families differ enough that it should be taken per family.
+
+**3. Looked at and rejected, with the reason, because a rejected item saves the next reader the
+walk.** Memoizing a rule's refusal at a position — packrat's table, in the small — against the
+recognition anatomy's 1,381 refusals of 2,023 rule calls: the refusals are on the *first token*, so
+each costs a call and a test, and a memo table costs a hash and a write. It would buy nothing here,
+and it is the first thing the number tempts one to propose. Deduplicating the class tables above:
+checked, no two of nine are equal. A public-API baseline for the packages: caught the rename that
+already had its own answer, and would not have caught what actually went wrong (Q12).
+
+**Answer:** —
