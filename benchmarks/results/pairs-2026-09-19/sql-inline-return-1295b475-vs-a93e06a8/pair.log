@@ -1,0 +1,279 @@
+=== run 1 of 5, 21:36:02
+16 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       81.6 ns before       84.4 ns after       86.9 ns  before/hand 1.03x  after/hand 1.06x
+tsql/script100         scriptdom   657425.0 ns before  1158918.8 ns after  1166956.2 ns  before/scriptdom 1.76x  after/scriptdom 1.78x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         scriptdom  2661478.1 ns before 17383943.8 ns after 17006862.5 ns  before/scriptdom 6.53x  after/scriptdom 6.39x
+tsql/columns1000       scriptdom  1729009.4 ns before   188773.4 ns after   175664.1 ns  before/scriptdom 0.11x  after/scriptdom 0.10x
+tsql/conditions1000    scriptdom   859415.6 ns before   330853.1 ns after   304858.6 ns  before/scriptdom 0.38x  after/scriptdom 0.35x
+  tsql/rows1000: 1 round(s) redone after a gen1/gen2 collection
+tsql/rows1000          scriptdom   595286.7 ns before   240128.9 ns after   218688.3 ns  before/scriptdom 0.40x  after/scriptdom 0.37x
+sql/select20.at        hand     6974.2 ns before    19053.7 ns after    18451.5 ns  before/hand 2.73x  after/hand 2.65x
+sql/select20.window    hand     6863.0 ns before    18344.1 ns after    18139.7 ns  before/hand 2.67x  after/hand 2.64x
+  tsql/insert-values.at: 1 round(s) redone after a gen1/gen2 collection
+tsql/insert-values.at  scriptdom     8224.4 ns before     1492.3 ns after     1449.3 ns  before/scriptdom 0.18x  after/scriptdom 0.18x
+sql/select20.scan      control      377.8 ns before      381.4 ns after      372.0 ns  before/control 1.01x  after/control 0.98x
+tsql/select20.scan     control      374.0 ns before      378.2 ns after      382.4 ns  before/control 1.01x  after/control 1.02x
+  sql/select20.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6759.5 ns before    18216.8 ns after    18023.6 ns  before/hand 2.70x  after/hand 2.67x
+web/url.full           hand      155.5 ns before      280.3 ns after      273.8 ns  before/hand 1.80x  after/hand 1.76x
+el/string              hand      268.9 ns before      966.8 ns after      960.4 ns before-immediate      672.9 ns after-immediate      716.1 ns  before/hand 3.60x  after/hand 3.57x  before-immediate/hand 2.50x  after-immediate/hand 2.66x
+  tsql/comment: 1 round(s) redone after a gen1/gen2 collection
+tsql/comment           scriptdom    19868.2 ns before     1582.7 ns after     1626.9 ns  before/scriptdom 0.08x  after/scriptdom 0.08x
+sql/select20           hand     6844.8 ns before    18109.1 ns after    18168.2 ns  before/hand 2.65x  after/hand 2.65x
+
+# Paired stand, 2026-09-19 21:36
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.0 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 81.6 | 84.4 | 1.03x | 86.9 | 1.06x | +3.0% | 192 | 192 |
+| tsql/script100 | generated | scriptdom | 657425.0 | 1158918.8 | 1.76x | 1166956.2 | 1.78x | +0.7% | 113600 | 113600 |
+| tsql/script400 | generated | scriptdom | 2661478.1 | 17383943.8 | 6.53x | 17006862.5 | 6.39x | -2.2% | 454400 | 454400 |
+| tsql/columns1000 | generated | scriptdom | 1729009.4 | 188773.4 | 0.11x | 175664.1 | 0.10x | -6.9% | 200464 | 200464 |
+| tsql/conditions1000 | generated | scriptdom | 859415.6 | 330853.1 | 0.38x | 304858.6 | 0.35x | -7.9% | 424424 | 424424 |
+| tsql/rows1000 | generated | scriptdom | 595286.7 | 240128.9 | 0.40x | 218688.3 | 0.37x | -8.9% | 296472 | 296472 |
+| sql/select20.at | generated | hand | 6974.2 | 19053.7 | 2.73x | 18451.5 | 2.65x | -3.2% | 21441 | 21441 |
+| sql/select20.window | generated | hand | 6863.0 | 18344.1 | 2.67x | 18139.7 | 2.64x | -1.1% | 21440 | 21440 |
+| tsql/insert-values.at | generated | scriptdom | 8224.4 | 1492.3 | 0.18x | 1449.3 | 0.18x | -2.9% | 1328 | 1328 |
+| sql/select20.scan | generated | control | 377.8 | 381.4 | 1.01x | 372.0 | 0.98x | -2.5% | 0 | 0 |
+| tsql/select20.scan | generated | control | 374.0 | 378.2 | 1.01x | 382.4 | 1.02x | +1.1% | 0 | 0 |
+| sql/select20.bool | generated | hand | 6759.5 | 18216.8 | 2.70x | 18023.6 | 2.67x | -1.1% | 21448 | 21392 |
+| web/url.full | generated | hand | 155.5 | 280.3 | 1.80x | 273.8 | 1.76x | -2.3% | 536 | 536 |
+| el/string | generated | hand | 268.9 | 966.8 | 3.60x | 960.4 | 3.57x | -0.7% | 1056 | 1056 |
+| el/string | immediate | hand | 268.9 | 672.9 | 2.50x | 716.1 | 2.66x | +6.4% | 1032 | 1032 |
+| tsql/comment | generated | scriptdom | 19868.2 | 1582.7 | 0.08x | 1626.9 | 0.08x | +2.8% | 1192 | 1192 |
+| sql/select20 | generated | hand | 6844.8 | 18109.1 | 2.65x | 18168.2 | 2.65x | +0.3% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w63\pair\run-1
+=== run 2 of 5, 21:36:59
+16 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       75.8 ns before       89.2 ns after       86.2 ns  before/hand 1.18x  after/hand 1.14x
+tsql/script100         scriptdom   668312.5 ns before  1173943.8 ns after  1163168.8 ns  before/scriptdom 1.76x  after/scriptdom 1.74x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         scriptdom  2741953.1 ns before 17636971.9 ns after 17679840.6 ns  before/scriptdom 6.43x  after/scriptdom 6.45x
+tsql/columns1000       scriptdom  1777520.3 ns before   198042.2 ns after   181128.1 ns  before/scriptdom 0.11x  after/scriptdom 0.10x
+tsql/conditions1000    scriptdom   891593.0 ns before   336848.4 ns after   309665.6 ns  before/scriptdom 0.38x  after/scriptdom 0.35x
+tsql/rows1000          scriptdom   597900.0 ns before   250666.4 ns after   228531.2 ns  before/scriptdom 0.42x  after/scriptdom 0.38x
+sql/select20.at        hand     6902.9 ns before    18168.5 ns after    18005.6 ns  before/hand 2.63x  after/hand 2.61x
+sql/select20.window    hand     6802.1 ns before    17982.0 ns after    17917.0 ns  before/hand 2.64x  after/hand 2.63x
+  tsql/insert-values.at: 1 round(s) redone after a gen1/gen2 collection
+tsql/insert-values.at  scriptdom     7994.9 ns before     1443.5 ns after     1438.6 ns  before/scriptdom 0.18x  after/scriptdom 0.18x
+sql/select20.scan      control      391.3 ns before      390.2 ns after      408.6 ns  before/control 1.00x  after/control 1.04x
+tsql/select20.scan     control      383.2 ns before      388.8 ns after      391.2 ns  before/control 1.01x  after/control 1.02x
+  sql/select20.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     7056.2 ns before    18047.7 ns after    18151.7 ns  before/hand 2.56x  after/hand 2.57x
+web/url.full           hand      159.5 ns before      281.6 ns after      283.9 ns  before/hand 1.77x  after/hand 1.78x
+el/string              hand      267.0 ns before      956.6 ns after      977.2 ns before-immediate      654.0 ns after-immediate      663.8 ns  before/hand 3.58x  after/hand 3.66x  before-immediate/hand 2.45x  after-immediate/hand 2.49x
+  tsql/comment: 1 round(s) redone after a gen1/gen2 collection
+tsql/comment           scriptdom    19578.7 ns before     1580.9 ns after     1562.1 ns  before/scriptdom 0.08x  after/scriptdom 0.08x
+sql/select20           hand     7085.3 ns before    18604.5 ns after    18759.4 ns  before/hand 2.63x  after/hand 2.65x
+
+# Paired stand, 2026-09-19 21:37
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.4 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 75.8 | 89.2 | 1.18x | 86.2 | 1.14x | -3.4% | 192 | 192 |
+| tsql/script100 | generated | scriptdom | 668312.5 | 1173943.8 | 1.76x | 1163168.8 | 1.74x | -0.9% | 113600 | 113600 |
+| tsql/script400 | generated | scriptdom | 2741953.1 | 17636971.9 | 6.43x | 17679840.6 | 6.45x | +0.2% | 454400 | 454400 |
+| tsql/columns1000 | generated | scriptdom | 1777520.3 | 198042.2 | 0.11x | 181128.1 | 0.10x | -8.5% | 200464 | 200464 |
+| tsql/conditions1000 | generated | scriptdom | 891593.0 | 336848.4 | 0.38x | 309665.6 | 0.35x | -8.1% | 424424 | 424424 |
+| tsql/rows1000 | generated | scriptdom | 597900.0 | 250666.4 | 0.42x | 228531.2 | 0.38x | -8.8% | 296472 | 296472 |
+| sql/select20.at | generated | hand | 6902.9 | 18168.5 | 2.63x | 18005.6 | 2.61x | -0.9% | 21416 | 21416 |
+| sql/select20.window | generated | hand | 6802.1 | 17982.0 | 2.64x | 17917.0 | 2.63x | -0.4% | 21416 | 21416 |
+| tsql/insert-values.at | generated | scriptdom | 7994.9 | 1443.5 | 0.18x | 1438.6 | 0.18x | -0.3% | 1328 | 1328 |
+| sql/select20.scan | generated | control | 391.3 | 390.2 | 1.00x | 408.6 | 1.04x | +4.7% | 0 | 0 |
+| tsql/select20.scan | generated | control | 383.2 | 388.8 | 1.01x | 391.2 | 1.02x | +0.6% | 0 | 0 |
+| sql/select20.bool | generated | hand | 7056.2 | 18047.7 | 2.56x | 18151.7 | 2.57x | +0.6% | 21448 | 21392 |
+| web/url.full | generated | hand | 159.5 | 281.6 | 1.77x | 283.9 | 1.78x | +0.8% | 536 | 536 |
+| el/string | generated | hand | 267.0 | 956.6 | 3.58x | 977.2 | 3.66x | +2.1% | 1056 | 1056 |
+| el/string | immediate | hand | 267.0 | 654.0 | 2.45x | 663.8 | 2.49x | +1.5% | 1032 | 1032 |
+| tsql/comment | generated | scriptdom | 19578.7 | 1580.9 | 0.08x | 1562.1 | 0.08x | -1.2% | 1192 | 1192 |
+| sql/select20 | generated | hand | 7085.3 | 18604.5 | 2.63x | 18759.4 | 2.65x | +0.8% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w63\pair\run-2
+=== run 3 of 5, 21:37:55
+16 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       74.7 ns before       82.0 ns after       83.2 ns  before/hand 1.10x  after/hand 1.11x
+tsql/script100         scriptdom   710043.8 ns before  1291350.0 ns after  1228418.8 ns  before/scriptdom 1.82x  after/scriptdom 1.73x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         scriptdom  2736093.8 ns before 18355437.5 ns after 17285368.8 ns  before/scriptdom 6.71x  after/scriptdom 6.32x
+tsql/columns1000       scriptdom  1714201.6 ns before   187417.2 ns after   174218.8 ns  before/scriptdom 0.11x  after/scriptdom 0.10x
+tsql/conditions1000    scriptdom   860062.5 ns before   328218.8 ns after   297962.5 ns  before/scriptdom 0.38x  after/scriptdom 0.35x
+tsql/rows1000          scriptdom   589003.1 ns before   243762.5 ns after   216032.8 ns  before/scriptdom 0.41x  after/scriptdom 0.37x
+sql/select20.at        hand     6688.6 ns before    18074.4 ns after    17675.3 ns  before/hand 2.70x  after/hand 2.64x
+sql/select20.window    hand     6798.3 ns before    18583.7 ns after    18160.6 ns  before/hand 2.73x  after/hand 2.67x
+  tsql/insert-values.at: 1 round(s) redone after a gen1/gen2 collection
+tsql/insert-values.at  scriptdom     8140.4 ns before     1466.8 ns after     1409.1 ns  before/scriptdom 0.18x  after/scriptdom 0.17x
+sql/select20.scan      control      371.0 ns before      368.1 ns after      368.6 ns  before/control 0.99x  after/control 0.99x
+tsql/select20.scan     control      371.2 ns before      373.6 ns after      372.3 ns  before/control 1.01x  after/control 1.00x
+sql/select20.bool      hand     7158.4 ns before    19126.5 ns after    18331.5 ns  before/hand 2.67x  after/hand 2.56x
+web/url.full           hand      154.5 ns before      298.6 ns after      273.3 ns  before/hand 1.93x  after/hand 1.77x
+el/string              hand      253.0 ns before      922.2 ns after      924.2 ns before-immediate      655.9 ns after-immediate      657.6 ns  before/hand 3.65x  after/hand 3.65x  before-immediate/hand 2.59x  after-immediate/hand 2.60x
+tsql/comment           scriptdom    19467.6 ns before     1599.6 ns after     1560.0 ns  before/scriptdom 0.08x  after/scriptdom 0.08x
+  sql/select20: 1 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6794.6 ns before    17943.2 ns after    17671.5 ns  before/hand 2.64x  after/hand 2.60x
+
+# Paired stand, 2026-09-19 21:38
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.9 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 74.7 | 82.0 | 1.10x | 83.2 | 1.11x | +1.4% | 192 | 192 |
+| tsql/script100 | generated | scriptdom | 710043.8 | 1291350.0 | 1.82x | 1228418.8 | 1.73x | -4.9% | 113600 | 113600 |
+| tsql/script400 | generated | scriptdom | 2736093.8 | 18355437.5 | 6.71x | 17285368.8 | 6.32x | -5.8% | 454400 | 454400 |
+| tsql/columns1000 | generated | scriptdom | 1714201.6 | 187417.2 | 0.11x | 174218.8 | 0.10x | -7.0% | 200464 | 200464 |
+| tsql/conditions1000 | generated | scriptdom | 860062.5 | 328218.8 | 0.38x | 297962.5 | 0.35x | -9.2% | 424424 | 424424 |
+| tsql/rows1000 | generated | scriptdom | 589003.1 | 243762.5 | 0.41x | 216032.8 | 0.37x | -11.4% | 296472 | 296472 |
+| sql/select20.at | generated | hand | 6688.6 | 18074.4 | 2.70x | 17675.3 | 2.64x | -2.2% | 21416 | 21416 |
+| sql/select20.window | generated | hand | 6798.3 | 18583.7 | 2.73x | 18160.6 | 2.67x | -2.3% | 21416 | 21416 |
+| tsql/insert-values.at | generated | scriptdom | 8140.4 | 1466.8 | 0.18x | 1409.1 | 0.17x | -3.9% | 1328 | 1328 |
+| sql/select20.scan | generated | control | 371.0 | 368.1 | 0.99x | 368.6 | 0.99x | +0.1% | 0 | 0 |
+| tsql/select20.scan | generated | control | 371.2 | 373.6 | 1.01x | 372.3 | 1.00x | -0.3% | 0 | 0 |
+| sql/select20.bool | generated | hand | 7158.4 | 19126.5 | 2.67x | 18331.5 | 2.56x | -4.2% | 21448 | 21392 |
+| web/url.full | generated | hand | 154.5 | 298.6 | 1.93x | 273.3 | 1.77x | -8.5% | 536 | 536 |
+| el/string | generated | hand | 253.0 | 922.2 | 3.65x | 924.2 | 3.65x | +0.2% | 1056 | 1056 |
+| el/string | immediate | hand | 253.0 | 655.9 | 2.59x | 657.6 | 2.60x | +0.3% | 1032 | 1032 |
+| tsql/comment | generated | scriptdom | 19467.6 | 1599.6 | 0.08x | 1560.0 | 0.08x | -2.5% | 1192 | 1192 |
+| sql/select20 | generated | hand | 6794.6 | 17943.2 | 2.64x | 17671.5 | 2.60x | -1.5% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w63\pair\run-3
+=== run 4 of 5, 21:38:50
+16 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       77.3 ns before       87.1 ns after       86.3 ns  before/hand 1.13x  after/hand 1.12x
+tsql/script100         scriptdom   667006.2 ns before  1158206.2 ns after  1161893.8 ns  before/scriptdom 1.74x  after/scriptdom 1.74x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         scriptdom  2656878.1 ns before 17139646.9 ns after 16911962.5 ns  before/scriptdom 6.45x  after/scriptdom 6.37x
+tsql/columns1000       scriptdom  1684728.1 ns before   188967.2 ns after   176982.8 ns  before/scriptdom 0.11x  after/scriptdom 0.11x
+tsql/conditions1000    scriptdom   915203.1 ns before   342258.6 ns after   313779.7 ns  before/scriptdom 0.37x  after/scriptdom 0.34x
+tsql/rows1000          scriptdom   589783.6 ns before   248771.9 ns after   219673.4 ns  before/scriptdom 0.42x  after/scriptdom 0.37x
+sql/select20.at        hand     7489.6 ns before    19823.7 ns after    19500.2 ns  before/hand 2.65x  after/hand 2.60x
+sql/select20.window    hand     6931.9 ns before    18220.5 ns after    18437.0 ns  before/hand 2.63x  after/hand 2.66x
+tsql/insert-values.at  scriptdom     8176.8 ns before     1504.8 ns after     1451.4 ns  before/scriptdom 0.18x  after/scriptdom 0.18x
+sql/select20.scan      control      373.3 ns before      374.1 ns after      374.2 ns  before/control 1.00x  after/control 1.00x
+tsql/select20.scan     control      372.0 ns before      372.0 ns after      375.3 ns  before/control 1.00x  after/control 1.01x
+  sql/select20.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6702.6 ns before    18275.1 ns after    18631.1 ns  before/hand 2.73x  after/hand 2.78x
+web/url.full           hand      161.9 ns before      298.3 ns after      288.6 ns  before/hand 1.84x  after/hand 1.78x
+el/string              hand      264.4 ns before      952.4 ns after      932.8 ns before-immediate      666.3 ns after-immediate      661.5 ns  before/hand 3.60x  after/hand 3.53x  before-immediate/hand 2.52x  after-immediate/hand 2.50x
+tsql/comment           scriptdom    19323.0 ns before     1609.0 ns after     1570.6 ns  before/scriptdom 0.08x  after/scriptdom 0.08x
+sql/select20           hand     6888.0 ns before    18782.6 ns after    18752.7 ns  before/hand 2.73x  after/hand 2.72x
+
+# Paired stand, 2026-09-19 21:39
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 77.3 | 87.1 | 1.13x | 86.3 | 1.12x | -0.9% | 192 | 192 |
+| tsql/script100 | generated | scriptdom | 667006.2 | 1158206.2 | 1.74x | 1161893.8 | 1.74x | +0.3% | 113600 | 113600 |
+| tsql/script400 | generated | scriptdom | 2656878.1 | 17139646.9 | 6.45x | 16911962.5 | 6.37x | -1.3% | 454400 | 454400 |
+| tsql/columns1000 | generated | scriptdom | 1684728.1 | 188967.2 | 0.11x | 176982.8 | 0.11x | -6.3% | 200464 | 200464 |
+| tsql/conditions1000 | generated | scriptdom | 915203.1 | 342258.6 | 0.37x | 313779.7 | 0.34x | -8.3% | 424424 | 424424 |
+| tsql/rows1000 | generated | scriptdom | 589783.6 | 248771.9 | 0.42x | 219673.4 | 0.37x | -11.7% | 296472 | 296472 |
+| sql/select20.at | generated | hand | 7489.6 | 19823.7 | 2.65x | 19500.2 | 2.60x | -1.6% | 21441 | 21441 |
+| sql/select20.window | generated | hand | 6931.9 | 18220.5 | 2.63x | 18437.0 | 2.66x | +1.2% | 21440 | 21440 |
+| tsql/insert-values.at | generated | scriptdom | 8176.8 | 1504.8 | 0.18x | 1451.4 | 0.18x | -3.5% | 1328 | 1328 |
+| sql/select20.scan | generated | control | 373.3 | 374.1 | 1.00x | 374.2 | 1.00x | 0.0% | 0 | 0 |
+| tsql/select20.scan | generated | control | 372.0 | 372.0 | 1.00x | 375.3 | 1.01x | +0.9% | 0 | 0 |
+| sql/select20.bool | generated | hand | 6702.6 | 18275.1 | 2.73x | 18631.1 | 2.78x | +1.9% | 21448 | 21392 |
+| web/url.full | generated | hand | 161.9 | 298.3 | 1.84x | 288.6 | 1.78x | -3.3% | 536 | 536 |
+| el/string | generated | hand | 264.4 | 952.4 | 3.60x | 932.8 | 3.53x | -2.0% | 1056 | 1056 |
+| el/string | immediate | hand | 264.4 | 666.3 | 2.52x | 661.5 | 2.50x | -0.7% | 1032 | 1032 |
+| tsql/comment | generated | scriptdom | 19323.0 | 1609.0 | 0.08x | 1570.6 | 0.08x | -2.4% | 1192 | 1192 |
+| sql/select20 | generated | hand | 6888.0 | 18782.6 | 2.73x | 18752.7 | 2.72x | -0.2% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w63\pair\run-4
+=== run 5 of 5, 21:39:46
+16 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       75.4 ns before       81.4 ns after       87.2 ns  before/hand 1.08x  after/hand 1.16x
+tsql/script100         scriptdom   684250.0 ns before  1166700.0 ns after  1159781.2 ns  before/scriptdom 1.71x  after/scriptdom 1.69x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         scriptdom  2736137.5 ns before 17157243.8 ns after 17663865.6 ns  before/scriptdom 6.27x  after/scriptdom 6.46x
+tsql/columns1000       scriptdom  1708414.1 ns before   188267.2 ns after   178053.1 ns  before/scriptdom 0.11x  after/scriptdom 0.10x
+tsql/conditions1000    scriptdom   875021.1 ns before   332696.1 ns after   302801.6 ns  before/scriptdom 0.38x  after/scriptdom 0.35x
+tsql/rows1000          scriptdom   611559.4 ns before   247314.8 ns after   221308.6 ns  before/scriptdom 0.40x  after/scriptdom 0.36x
+sql/select20.at        hand     7293.5 ns before    19128.1 ns after    19330.1 ns  before/hand 2.62x  after/hand 2.65x
+sql/select20.window    hand     7352.6 ns before    19504.8 ns after    19050.5 ns  before/hand 2.65x  after/hand 2.59x
+  tsql/insert-values.at: 1 round(s) redone after a gen1/gen2 collection
+tsql/insert-values.at  scriptdom     8306.0 ns before     1508.7 ns after     1498.9 ns  before/scriptdom 0.18x  after/scriptdom 0.18x
+sql/select20.scan      control      382.6 ns before      378.7 ns after      383.6 ns  before/control 0.99x  after/control 1.00x
+tsql/select20.scan     control      380.6 ns before      386.3 ns after      379.5 ns  before/control 1.01x  after/control 1.00x
+  sql/select20.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     7014.3 ns before    18128.0 ns after    18173.7 ns  before/hand 2.58x  after/hand 2.59x
+web/url.full           hand      156.5 ns before      284.6 ns after      286.4 ns  before/hand 1.82x  after/hand 1.83x
+el/string              hand      265.9 ns before      972.8 ns after      971.4 ns before-immediate      699.4 ns after-immediate      665.4 ns  before/hand 3.66x  after/hand 3.65x  before-immediate/hand 2.63x  after-immediate/hand 2.50x
+tsql/comment           scriptdom    20403.4 ns before     1757.5 ns after     1639.2 ns  before/scriptdom 0.09x  after/scriptdom 0.08x
+sql/select20           hand     7026.1 ns before    18311.1 ns after    18358.9 ns  before/hand 2.61x  after/hand 2.61x
+
+# Paired stand, 2026-09-19 21:40
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 75.4 | 81.4 | 1.08x | 87.2 | 1.16x | +7.1% | 192 | 192 |
+| tsql/script100 | generated | scriptdom | 684250.0 | 1166700.0 | 1.71x | 1159781.2 | 1.69x | -0.6% | 113600 | 113600 |
+| tsql/script400 | generated | scriptdom | 2736137.5 | 17157243.8 | 6.27x | 17663865.6 | 6.46x | +3.0% | 454400 | 454400 |
+| tsql/columns1000 | generated | scriptdom | 1708414.1 | 188267.2 | 0.11x | 178053.1 | 0.10x | -5.4% | 200464 | 200464 |
+| tsql/conditions1000 | generated | scriptdom | 875021.1 | 332696.1 | 0.38x | 302801.6 | 0.35x | -9.0% | 424424 | 424424 |
+| tsql/rows1000 | generated | scriptdom | 611559.4 | 247314.8 | 0.40x | 221308.6 | 0.36x | -10.5% | 296472 | 296472 |
+| sql/select20.at | generated | hand | 7293.5 | 19128.1 | 2.62x | 19330.1 | 2.65x | +1.1% | 21441 | 21441 |
+| sql/select20.window | generated | hand | 7352.6 | 19504.8 | 2.65x | 19050.5 | 2.59x | -2.3% | 21440 | 21440 |
+| tsql/insert-values.at | generated | scriptdom | 8306.0 | 1508.7 | 0.18x | 1498.9 | 0.18x | -0.6% | 1328 | 1328 |
+| sql/select20.scan | generated | control | 382.6 | 378.7 | 0.99x | 383.6 | 1.00x | +1.3% | 0 | 0 |
+| tsql/select20.scan | generated | control | 380.6 | 386.3 | 1.01x | 379.5 | 1.00x | -1.7% | 0 | 0 |
+| sql/select20.bool | generated | hand | 7014.3 | 18128.0 | 2.58x | 18173.7 | 2.59x | +0.3% | 21448 | 21392 |
+| web/url.full | generated | hand | 156.5 | 284.6 | 1.82x | 286.4 | 1.83x | +0.6% | 536 | 536 |
+| el/string | generated | hand | 265.9 | 972.8 | 3.66x | 971.4 | 3.65x | -0.1% | 1056 | 1056 |
+| el/string | immediate | hand | 265.9 | 699.4 | 2.63x | 665.4 | 2.50x | -4.9% | 1032 | 1032 |
+| tsql/comment | generated | scriptdom | 20403.4 | 1757.5 | 0.09x | 1639.2 | 0.08x | -6.7% | 1192 | 1192 |
+| sql/select20 | generated | hand | 7026.1 | 18311.1 | 2.61x | 18358.9 | 2.61x | +0.3% | 21472 | 21472 |
+
+Written to T:\TEMP\dotgram-stand\w63\pair\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 31.1 ns (the runs' controls: 31.0, 31.4, 30.9, 31.1, 31.5).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-19 21:40
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | hand | 75.8 | 84.4 | 1.11x | 86.3 | 1.14x | +2.3% | 192 | 192 |
+| tsql/script100 | generated | scriptdom | 668312.5 | 1166700.0 | 1.75x | 1163168.8 | 1.74x | -0.3% | 113600 | 113600 |
+| tsql/script400 | generated | scriptdom | 2736093.8 | 17383943.8 | 6.35x | 17285368.8 | 6.32x | -0.6% | 454400 | 454400 |
+| tsql/columns1000 | generated | scriptdom | 1714201.6 | 188773.4 | 0.11x | 176982.8 | 0.10x | -6.2% | 200464 | 200464 |
+| tsql/conditions1000 | generated | scriptdom | 875021.1 | 332696.1 | 0.38x | 304858.6 | 0.35x | -8.4% | 424424 | 424424 |
+| tsql/rows1000 | generated | scriptdom | 595286.7 | 247314.8 | 0.42x | 219673.4 | 0.37x | -11.2% | 296472 | 296472 |
+| sql/select20.at | generated | hand | 6974.2 | 19053.7 | 2.73x | 18451.5 | 2.65x | -3.2% | 21441 | 21441 |
+| sql/select20.window | generated | hand | 6863.0 | 18344.1 | 2.67x | 18160.6 | 2.65x | -1.0% | 21440 | 21440 |
+| tsql/insert-values.at | generated | scriptdom | 8176.8 | 1492.3 | 0.18x | 1449.3 | 0.18x | -2.9% | 1328 | 1328 |
+| sql/select20.scan | generated | control | 377.8 | 378.7 | 1.00x | 374.2 | 0.99x | -1.2% | 0 | 0 |
+| tsql/select20.scan | generated | control | 374.0 | 378.2 | 1.01x | 379.5 | 1.01x | +0.3% | 0 | 0 |
+| sql/select20.bool | generated | hand | 7014.3 | 18216.8 | 2.60x | 18173.7 | 2.59x | -0.2% | 21448 | 21392 |
+| web/url.full | generated | hand | 156.5 | 284.6 | 1.82x | 283.9 | 1.81x | -0.3% | 536 | 536 |
+| el/string | generated | hand | 265.9 | 956.6 | 3.60x | 960.4 | 3.61x | +0.4% | 1056 | 1056 |
+| el/string | immediate | hand | 265.9 | 666.3 | 2.51x | 663.8 | 2.50x | -0.4% | 1032 | 1032 |
+| tsql/comment | generated | scriptdom | 19578.7 | 1599.6 | 0.08x | 1570.6 | 0.08x | -1.8% | 1192 | 1192 |
+| sql/select20 | generated | hand | 6888.0 | 18311.1 | 2.66x | 18358.9 | 2.67x | +0.3% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w63\pair
