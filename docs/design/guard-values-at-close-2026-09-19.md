@@ -149,9 +149,20 @@ Found after the second shape was accepted, and put before any code was written.
 The walk's fast path already builds the record where it stands. What is expensive in it is not the
 building but what it spends proving its own right to build: `IndexOf` over the `built` flags from
 the rule's mark to the root — the very pass this design exists to remove. That question — "is every
-record since the mark built?" — can be answered in constant time by a **watermark of contiguity**
-in `Ways`: raised by one where a record is built, lowered on a rewind exactly where `ways.Built` is
-lowered already (`UnwindRecords`). The check becomes a comparison.
+record since the mark built?" — can be answered in constant time.
+
+**Not by a watermark, which was my first word for it and is wrong.** There is no contiguous run of
+built records to keep the end of: the records below the guard's rule's mark belong to the rules
+above it, they are legitimately unbuilt, and a watermark counted from zero would answer "no" for
+every ask. What is wanted is relative to the mark.
+
+**By a count.** `Ways` keeps how many records are written and not yet built. The mark saves it, as
+it already saves the log's count, the record count and the side stack (`UnwindRecords`), and the
+ask compares: *every record since the mark is built exactly when the count is what it was at the
+mark*. Writing a record raises it by one, building one lowers it by one, and a rewind puts back
+the number the checkpoint saved — which is what makes it free of a scan on the path where the log
+is put back, the path a watermark would have had to scan on. A grammar whose guards build nothing
+emits none of it, as it emits none of `ways.Built` today.
 
 What that buys, and it is the whole argument: **the factories run exactly when they run today** —
 only where a guard asked. §3.7 is not touched at any point. No watch list, no lookahead bodies to
@@ -168,12 +179,25 @@ close — the second shape — is still the answer, with this as a cheap part of
 of sql-39's anatomy into those four terms decides which design survives, and it is asked for
 before any code.
 
-**The condition, whichever shape carries it (the architect's, and hard).** A watermark is a cache
-of a property that is computed honestly today. An off-by-one answers "all built" where not all are,
+**The condition, whichever shape carries it (the architect's, and hard).** The count is a cache of
+a property that is computed honestly today. An off-by-one answers "all built" where not all are,
 and the building is then skipped in silence — no refusal and no exception, which is the shape of
-the eviction defect. So it owes a test that holds the watermark against the honest scan over the
-corpora, not over three cases, and over input that is given up and re-read, since the lowering is
+the eviction defect. So it owes a test that holds the count against the honest scan over the
+corpora, not over three cases, and over input that is given up and re-read, since the rewind is
 where it will be wrong if it is wrong.
+
+**How it is checked**: a second emission, chosen by the generator beside what already turns the
+reports on, off by default, which emits the honest scan next to the comparison at every ask and
+fails where the two disagree. It rides on the corpora that are run anyway, so there is no separate
+run for anyone to forget.
+
+**And a boundary on that, which is a condition of its own.** The check never reaches a consumer's
+build, under any circumstance — in particular it is never put under the consumer's `DEBUG`. Their
+debug build would then pay the linear scan they came here to be rid of, without asking for it or
+being told, and a disagreement would surface as their program failing in code they did not write.
+The switch is ours and lives on the generator's side. Where the second emission turns out to be
+expensive, what narrows is *what* is compared — the rewinds alone, where a mistake would be — and
+not where the checking runs.
 
 ## 4. Where it meets the other design
 
