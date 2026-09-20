@@ -6268,3 +6268,25 @@ number for what we compiled in, a rare map by type code for what we did not — 
 reached only by what was never described. And "custom" is a state rather than a property: undescribed,
 described at run time by a loaded dictionary, or described at build time and no longer custom at
 all. One delegate shape throughout, taking the base message, since a table can hold only one.
+
+**D72 leaves one thing open, and it is the right question: what `Standard` becomes.** The rule that
+a consumer controls all of it holds for a validator the consumer made. The bare form of the call
+goes to a shared instance, and if *that* array were writable, one library inside a process could
+load its counterparty's dictionary and change the answer for every caller that never asked — which
+is the shape D25 keeps out, entering from the other side.
+
+**Decided: the shared standard is not written to.** It is the generated defaults, a validator of
+one's own takes its own array from them, and "the defaults are readable" means a consumer can take
+a cell out of it and put it back into theirs, which is the restoring Igor left to them. The
+alternative — a deliberately writable shared instance, "this process speaks 4.4 plus my venue's
+rules" — is cheaper in code and dearer in explanation, and it would be used by accident. Igor's
+rule survives either way; this only says which object it applies to.
+
+**And the dictionary is in the repository now, by Igor's instruction**, which changes a premise the
+session was reasoning from: a real one is kept beside the SQL corpus, byte for byte, with its
+licence and its provenance, exempt from line-ending normalization, reaching no package. The
+obligation that moves to a consumer is about the *feature* — their file in their build — and not
+about material we read here, which is the same treatment the ISO grammar and somebody else's SQL
+corpus already have. Hand-written fixtures are still wanted beside it: a small dictionary written
+here drives the cases a test needs, and the published one is the thing the reader is held to
+because we did not shape it.
