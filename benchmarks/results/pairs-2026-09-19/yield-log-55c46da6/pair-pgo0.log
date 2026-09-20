@@ -1,0 +1,508 @@
+=== run 1 of 5, 20:48:42
+35 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand      109.7 ns before      121.4 ns after      123.9 ns  before/hand 1.11x  after/hand 1.13x
+fix/One.bytes          hand      117.1 ns before      208.2 ns after      207.3 ns  before/hand 1.78x  after/hand 1.77x
+fix/Order.text         hand     1000.4 ns before     1033.2 ns after     1053.6 ns  before/hand 1.03x  after/hand 1.05x
+  fix/Order.bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.bytes        hand     1030.8 ns before     1998.5 ns after     1982.0 ns  before/hand 1.94x  after/hand 1.92x
+fix/Order.stream       hand     1139.0 ns before     2370.6 ns after     2359.4 ns  before/hand 2.08x  after/hand 2.07x
+fix/BinaryMany.text    hand     5587.2 ns before     5058.0 ns after     5067.4 ns  before/hand 0.91x  after/hand 0.91x
+fix/Orders128.text     hand   121044.6 ns before   124542.5 ns after   126549.4 ns  before/hand 1.03x  after/hand 1.05x
+fix/slope-16.text      hand     1444.8 ns before     1268.6 ns after     1299.6 ns  before/hand 0.88x  after/hand 0.90x
+fix/slope-16.bytes     hand     1561.6 ns before     2322.5 ns after     2353.7 ns  before/hand 1.49x  after/hand 1.51x
+tsql/columns1000       hand  2672996.9 ns before   236081.2 ns after   227618.8 ns  before/hand 0.09x  after/hand 0.09x
+fix/One.log-text       hand      119.4 ns before      228.8 ns after      218.1 ns  before/hand 1.92x  after/hand 1.83x
+fix/One.log-bytes      hand      118.4 ns before      335.6 ns after      328.6 ns  before/hand 2.84x  after/hand 2.78x
+  fix/One.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/One.log-stream     hand      118.7 ns before      651.7 ns after      630.6 ns  before/hand 5.49x  after/hand 5.31x
+fix/Order.log-text     hand     1063.2 ns before     1959.6 ns after     1825.1 ns  before/hand 1.84x  after/hand 1.72x
+  fix/Order.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-bytes    hand     1051.0 ns before     3227.0 ns after     3077.9 ns  before/hand 3.07x  after/hand 2.93x
+fix/Order.log-stream   hand     1038.8 ns before     4136.5 ns after     3922.8 ns  before/hand 3.98x  after/hand 3.78x
+fix/Orders128.log-text hand   128403.9 ns before   235788.4 ns after   221878.0 ns  before/hand 1.84x  after/hand 1.73x
+fix/Orders128.log-bytes hand   129935.2 ns before   397469.1 ns after   376415.6 ns  before/hand 3.06x  after/hand 2.90x
+fix/Orders128.log-stream hand   128271.6 ns before   480690.2 ns after   455257.1 ns  before/hand 3.75x  after/hand 3.55x
+fix/slope-0.log-text   hand       33.3 ns before       85.8 ns after       85.3 ns  before/hand 2.58x  after/hand 2.56x
+fix/slope-0.log-bytes  hand       32.9 ns before       99.8 ns after      100.4 ns  before/hand 3.03x  after/hand 3.05x
+  fix/slope-0.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-stream hand       32.6 ns before      269.0 ns after      272.3 ns  before/hand 8.26x  after/hand 8.36x
+fix/slope-4.log-text   hand      382.9 ns before      688.2 ns after      657.6 ns  before/hand 1.80x  after/hand 1.72x
+fix/slope-4.log-bytes  hand      380.8 ns before     1078.4 ns after     1055.1 ns  before/hand 2.83x  after/hand 2.77x
+fix/slope-4.log-stream hand      378.5 ns before     1560.8 ns after     1513.3 ns  before/hand 4.12x  after/hand 4.00x
+fix/slope-16.log-text  hand     1426.7 ns before     2445.7 ns after     2282.0 ns  before/hand 1.71x  after/hand 1.60x
+fix/slope-16.log-bytes hand     1459.5 ns before     4072.6 ns after     3878.0 ns  before/hand 2.79x  after/hand 2.66x
+fix/slope-16.log-stream hand     1448.3 ns before     5026.8 ns after     4805.5 ns  before/hand 3.47x  after/hand 3.32x
+  el/ladder.bool: 1 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1428.7 ns before     2494.4 ns after     2530.6 ns  before/hand 1.75x  after/hand 1.77x
+sql/select20.bool      hand     8055.1 ns before    22164.1 ns after    22113.7 ns  before/hand 2.75x  after/hand 2.75x
+web/url.full           hand      282.0 ns before      348.3 ns after      345.6 ns  before/hand 1.24x  after/hand 1.23x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1403.2 ns before     2495.3 ns after     2489.4 ns before-immediate     1857.4 ns after-immediate     1832.6 ns  before/hand 1.78x  after/hand 1.77x  before-immediate/hand 1.32x  after-immediate/hand 1.31x
+el/string              hand      380.8 ns before     1090.3 ns after     1078.7 ns before-immediate      769.7 ns after-immediate      770.0 ns  before/hand 2.86x  after/hand 2.83x  before-immediate/hand 2.02x  after-immediate/hand 2.02x
+sql/column             hand      165.1 ns before      435.8 ns after      425.7 ns  before/hand 2.64x  after/hand 2.58x
+sql/select20           hand     8114.0 ns before    22339.3 ns after    22219.9 ns  before/hand 2.75x  after/hand 2.74x
+
+# Paired stand, 2026-09-19 20:51
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 109.7 | 121.4 | 1.11x | 123.9 | 1.13x | +2.0% | 192 | 192 |
+| fix/One.bytes | generated | 117.1 | 208.2 | 1.78x | 207.3 | 1.77x | -0.4% | 248 | 248 |
+| fix/Order.text | generated | 1000.4 | 1033.2 | 1.03x | 1053.6 | 1.05x | +2.0% | 1096 | 1096 |
+| fix/Order.bytes | generated | 1030.8 | 1998.5 | 1.94x | 1982.0 | 1.92x | -0.8% | 1152 | 1152 |
+| fix/Order.stream | generated | 1139.0 | 2370.6 | 2.08x | 2359.4 | 2.07x | -0.5% | 1712 | 1712 |
+| fix/BinaryMany.text | generated | 5587.2 | 5058.0 | 0.91x | 5067.4 | 0.91x | +0.2% | 7256 | 7256 |
+| fix/Orders128.text | generated | 121044.6 | 124542.5 | 1.03x | 126549.4 | 1.05x | +1.6% | 129112 | 129112 |
+| fix/slope-16.text | generated | 1444.8 | 1268.6 | 0.88x | 1299.6 | 0.90x | +2.4% | 1752 | 1752 |
+| fix/slope-16.bytes | generated | 1561.6 | 2322.5 | 1.49x | 2353.7 | 1.51x | +1.3% | 1808 | 1808 |
+| tsql/columns1000 | generated | 2672996.9 | 236081.2 | 0.09x | 227618.8 | 0.09x | -3.6% | 200489 | 200489 |
+| fix/One.log-text | generated | 119.4 | 228.8 | 1.92x | 218.1 | 1.83x | -4.7% | 192 | 192 |
+| fix/One.log-bytes | generated | 118.4 | 335.6 | 2.84x | 328.6 | 2.78x | -2.1% | 248 | 248 |
+| fix/One.log-stream | generated | 118.7 | 651.7 | 5.49x | 630.6 | 5.31x | -3.2% | 888 | 888 |
+| fix/Order.log-text | generated | 1063.2 | 1959.6 | 1.84x | 1825.1 | 1.72x | -6.9% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | 1051.0 | 3227.0 | 3.07x | 3077.9 | 2.93x | -4.6% | 1152 | 1152 |
+| fix/Order.log-stream | generated | 1038.8 | 4136.5 | 3.98x | 3922.8 | 3.78x | -5.2% | 1712 | 1712 |
+| fix/Orders128.log-text | generated | 128403.9 | 235788.4 | 1.84x | 221878.0 | 1.73x | -5.9% | 129112 | 129112 |
+| fix/Orders128.log-bytes | generated | 129935.2 | 397469.1 | 3.06x | 376415.6 | 2.90x | -5.3% | 129168 | 129168 |
+| fix/Orders128.log-stream | generated | 128271.6 | 480690.2 | 3.75x | 455257.1 | 3.55x | -5.3% | 118552 | 118552 |
+| fix/slope-0.log-text | generated | 33.3 | 85.8 | 2.58x | 85.3 | 2.56x | -0.6% | 88 | 88 |
+| fix/slope-0.log-bytes | generated | 32.9 | 99.8 | 3.03x | 100.4 | 3.05x | +0.6% | 144 | 144 |
+| fix/slope-0.log-stream | generated | 32.6 | 269.0 | 8.26x | 272.3 | 8.36x | +1.2% | 792 | 792 |
+| fix/slope-4.log-text | generated | 382.9 | 688.2 | 1.80x | 657.6 | 1.72x | -4.4% | 504 | 504 |
+| fix/slope-4.log-bytes | generated | 380.8 | 1078.4 | 2.83x | 1055.1 | 2.77x | -2.2% | 560 | 560 |
+| fix/slope-4.log-stream | generated | 378.5 | 1560.8 | 4.12x | 1513.3 | 4.00x | -3.0% | 1176 | 1176 |
+| fix/slope-16.log-text | generated | 1426.7 | 2445.7 | 1.71x | 2282.0 | 1.60x | -6.7% | 1752 | 1752 |
+| fix/slope-16.log-bytes | generated | 1459.5 | 4072.6 | 2.79x | 3878.0 | 2.66x | -4.8% | 1808 | 1808 |
+| fix/slope-16.log-stream | generated | 1448.3 | 5026.8 | 3.47x | 4805.5 | 3.32x | -4.4% | 2328 | 2328 |
+| el/ladder.bool | generated | 1428.7 | 2494.4 | 1.75x | 2530.6 | 1.77x | +1.5% | 1328 | 1272 |
+| sql/select20.bool | generated | 8055.1 | 22164.1 | 2.75x | 22113.7 | 2.75x | -0.2% | 21448 | 21392 |
+| web/url.full | generated | 282.0 | 348.3 | 1.24x | 345.6 | 1.23x | -0.8% | 536 | 536 |
+| el/ladder | generated | 1403.2 | 2495.3 | 1.78x | 2489.4 | 1.77x | -0.2% | 1328 | 1328 |
+| el/ladder | immediate | 1403.2 | 1857.4 | 1.32x | 1832.6 | 1.31x | -1.3% | 1208 | 1208 |
+| el/string | generated | 380.8 | 1090.3 | 2.86x | 1078.7 | 2.83x | -1.1% | 1024 | 1024 |
+| el/string | immediate | 380.8 | 769.7 | 2.02x | 770.0 | 2.02x | 0.0% | 1000 | 1000 |
+| sql/column | generated | 165.1 | 435.8 | 2.64x | 425.7 | 2.58x | -2.3% | 392 | 392 |
+| sql/select20 | generated | 8114.0 | 22339.3 | 2.75x | 22219.9 | 2.74x | -0.5% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w61\pair-pgo0\run-1
+=== run 2 of 5, 20:51:10
+35 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand      110.8 ns before      122.7 ns after      125.2 ns  before/hand 1.11x  after/hand 1.13x
+fix/One.bytes          hand      115.8 ns before      207.5 ns after      208.2 ns  before/hand 1.79x  after/hand 1.80x
+fix/Order.text         hand     1013.9 ns before     1059.2 ns after     1058.8 ns  before/hand 1.04x  after/hand 1.04x
+  fix/Order.bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.bytes        hand     1031.0 ns before     1976.8 ns after     1997.7 ns  before/hand 1.92x  after/hand 1.94x
+fix/Order.stream       hand     1154.8 ns before     2391.2 ns after     2388.2 ns  before/hand 2.07x  after/hand 2.07x
+fix/BinaryMany.text    hand     5698.9 ns before     5041.1 ns after     5100.7 ns  before/hand 0.88x  after/hand 0.90x
+fix/Orders128.text     hand   126880.0 ns before   130045.4 ns after   128380.8 ns  before/hand 1.02x  after/hand 1.01x
+fix/slope-16.text      hand     1482.0 ns before     1290.2 ns after     1328.7 ns  before/hand 0.87x  after/hand 0.90x
+fix/slope-16.bytes     hand     1566.6 ns before     2434.4 ns after     2437.8 ns  before/hand 1.55x  after/hand 1.56x
+tsql/columns1000       hand  2814575.0 ns before   233575.0 ns after   234287.5 ns  before/hand 0.08x  after/hand 0.08x
+fix/One.log-text       hand      120.3 ns before      227.3 ns after      215.3 ns  before/hand 1.89x  after/hand 1.79x
+fix/One.log-bytes      hand      119.5 ns before      337.2 ns after      327.9 ns  before/hand 2.82x  after/hand 2.74x
+fix/One.log-stream     hand      121.1 ns before      660.4 ns after      647.4 ns  before/hand 5.45x  after/hand 5.35x
+fix/Order.log-text     hand     1109.1 ns before     2093.5 ns after     1920.9 ns  before/hand 1.89x  after/hand 1.73x
+  fix/Order.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-bytes    hand     1123.7 ns before     3438.9 ns after     3201.6 ns  before/hand 3.06x  after/hand 2.85x
+  fix/Order.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-stream   hand     1096.6 ns before     4280.0 ns after     4118.8 ns  before/hand 3.90x  after/hand 3.76x
+fix/Orders128.log-text hand   131017.9 ns before   245669.7 ns after   225311.1 ns  before/hand 1.88x  after/hand 1.72x
+  fix/Orders128.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Orders128.log-bytes hand   132961.5 ns before   408919.9 ns after   385652.5 ns  before/hand 3.08x  after/hand 2.90x
+fix/Orders128.log-stream hand   134858.2 ns before   495464.1 ns after   481006.2 ns  before/hand 3.67x  after/hand 3.57x
+  fix/slope-0.log-text: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-text   hand       33.8 ns before       88.3 ns after       87.3 ns  before/hand 2.61x  after/hand 2.58x
+fix/slope-0.log-bytes  hand       33.8 ns before      102.2 ns after      102.2 ns  before/hand 3.03x  after/hand 3.03x
+  fix/slope-0.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-stream hand       33.8 ns before      283.8 ns after      283.5 ns  before/hand 8.39x  after/hand 8.38x
+fix/slope-4.log-text   hand      380.5 ns before      681.4 ns after      642.0 ns  before/hand 1.79x  after/hand 1.69x
+  fix/slope-4.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-4.log-bytes  hand      382.6 ns before     1082.3 ns after     1026.2 ns  before/hand 2.83x  after/hand 2.68x
+fix/slope-4.log-stream hand      373.8 ns before     1553.0 ns after     1494.7 ns  before/hand 4.15x  after/hand 4.00x
+  fix/slope-16.log-text: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-16.log-text  hand     1423.3 ns before     2431.2 ns after     2246.3 ns  before/hand 1.71x  after/hand 1.58x
+fix/slope-16.log-bytes hand     1403.0 ns before     3937.9 ns after     3719.5 ns  before/hand 2.81x  after/hand 2.65x
+fix/slope-16.log-stream hand     1408.9 ns before     4938.2 ns after     4782.8 ns  before/hand 3.51x  after/hand 3.39x
+el/ladder.bool         hand     1447.8 ns before     2477.8 ns after     2538.3 ns  before/hand 1.71x  after/hand 1.75x
+sql/select20.bool      hand     8318.8 ns before    22522.0 ns after    22341.2 ns  before/hand 2.71x  after/hand 2.69x
+web/url.full           hand      284.2 ns before      353.0 ns after      358.5 ns  before/hand 1.24x  after/hand 1.26x
+el/ladder              hand     1420.0 ns before     2475.0 ns after     2540.7 ns before-immediate     1842.3 ns after-immediate     1842.2 ns  before/hand 1.74x  after/hand 1.79x  before-immediate/hand 1.30x  after-immediate/hand 1.30x
+el/string              hand      387.9 ns before     1075.1 ns after     1108.8 ns before-immediate      746.9 ns after-immediate      766.4 ns  before/hand 2.77x  after/hand 2.86x  before-immediate/hand 1.93x  after-immediate/hand 1.98x
+sql/column             hand      165.6 ns before      433.3 ns after      429.7 ns  before/hand 2.62x  after/hand 2.59x
+sql/select20           hand     8268.3 ns before    22480.7 ns after    22299.7 ns  before/hand 2.72x  after/hand 2.70x
+
+# Paired stand, 2026-09-19 20:53
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 110.8 | 122.7 | 1.11x | 125.2 | 1.13x | +2.0% | 192 | 192 |
+| fix/One.bytes | generated | 115.8 | 207.5 | 1.79x | 208.2 | 1.80x | +0.3% | 248 | 248 |
+| fix/Order.text | generated | 1013.9 | 1059.2 | 1.04x | 1058.8 | 1.04x | 0.0% | 1096 | 1096 |
+| fix/Order.bytes | generated | 1031.0 | 1976.8 | 1.92x | 1997.7 | 1.94x | +1.1% | 1152 | 1152 |
+| fix/Order.stream | generated | 1154.8 | 2391.2 | 2.07x | 2388.2 | 2.07x | -0.1% | 1712 | 1712 |
+| fix/BinaryMany.text | generated | 5698.9 | 5041.1 | 0.88x | 5100.7 | 0.90x | +1.2% | 7256 | 7256 |
+| fix/Orders128.text | generated | 126880.0 | 130045.4 | 1.02x | 128380.8 | 1.01x | -1.3% | 129112 | 129112 |
+| fix/slope-16.text | generated | 1482.0 | 1290.2 | 0.87x | 1328.7 | 0.90x | +3.0% | 1752 | 1752 |
+| fix/slope-16.bytes | generated | 1566.6 | 2434.4 | 1.55x | 2437.8 | 1.56x | +0.1% | 1808 | 1808 |
+| tsql/columns1000 | generated | 2814575.0 | 233575.0 | 0.08x | 234287.5 | 0.08x | +0.3% | 200464 | 200464 |
+| fix/One.log-text | generated | 120.3 | 227.3 | 1.89x | 215.3 | 1.79x | -5.3% | 192 | 192 |
+| fix/One.log-bytes | generated | 119.5 | 337.2 | 2.82x | 327.9 | 2.74x | -2.7% | 248 | 248 |
+| fix/One.log-stream | generated | 121.1 | 660.4 | 5.45x | 647.4 | 5.35x | -2.0% | 888 | 888 |
+| fix/Order.log-text | generated | 1109.1 | 2093.5 | 1.89x | 1920.9 | 1.73x | -8.2% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | 1123.7 | 3438.9 | 3.06x | 3201.6 | 2.85x | -6.9% | 1152 | 1152 |
+| fix/Order.log-stream | generated | 1096.6 | 4280.0 | 3.90x | 4118.8 | 3.76x | -3.8% | 1712 | 1712 |
+| fix/Orders128.log-text | generated | 131017.9 | 245669.7 | 1.88x | 225311.1 | 1.72x | -8.3% | 129112 | 129112 |
+| fix/Orders128.log-bytes | generated | 132961.5 | 408919.9 | 3.08x | 385652.5 | 2.90x | -5.7% | 129168 | 129168 |
+| fix/Orders128.log-stream | generated | 134858.2 | 495464.1 | 3.67x | 481006.2 | 3.57x | -2.9% | 118552 | 118552 |
+| fix/slope-0.log-text | generated | 33.8 | 88.3 | 2.61x | 87.3 | 2.58x | -1.0% | 88 | 88 |
+| fix/slope-0.log-bytes | generated | 33.8 | 102.2 | 3.03x | 102.2 | 3.03x | -0.1% | 144 | 144 |
+| fix/slope-0.log-stream | generated | 33.8 | 283.8 | 8.39x | 283.5 | 8.38x | -0.1% | 792 | 792 |
+| fix/slope-4.log-text | generated | 380.5 | 681.4 | 1.79x | 642.0 | 1.69x | -5.8% | 504 | 504 |
+| fix/slope-4.log-bytes | generated | 382.6 | 1082.3 | 2.83x | 1026.2 | 2.68x | -5.2% | 560 | 560 |
+| fix/slope-4.log-stream | generated | 373.8 | 1553.0 | 4.15x | 1494.7 | 4.00x | -3.8% | 1176 | 1176 |
+| fix/slope-16.log-text | generated | 1423.3 | 2431.2 | 1.71x | 2246.3 | 1.58x | -7.6% | 1752 | 1752 |
+| fix/slope-16.log-bytes | generated | 1403.0 | 3937.9 | 2.81x | 3719.5 | 2.65x | -5.5% | 1808 | 1808 |
+| fix/slope-16.log-stream | generated | 1408.9 | 4938.2 | 3.51x | 4782.8 | 3.39x | -3.1% | 2328 | 2328 |
+| el/ladder.bool | generated | 1447.8 | 2477.8 | 1.71x | 2538.3 | 1.75x | +2.4% | 1328 | 1272 |
+| sql/select20.bool | generated | 8318.8 | 22522.0 | 2.71x | 22341.2 | 2.69x | -0.8% | 21448 | 21392 |
+| web/url.full | generated | 284.2 | 353.0 | 1.24x | 358.5 | 1.26x | +1.6% | 536 | 536 |
+| el/ladder | generated | 1420.0 | 2475.0 | 1.74x | 2540.7 | 1.79x | +2.7% | 1328 | 1328 |
+| el/ladder | immediate | 1420.0 | 1842.3 | 1.30x | 1842.2 | 1.30x | 0.0% | 1208 | 1208 |
+| el/string | generated | 387.9 | 1075.1 | 2.77x | 1108.8 | 2.86x | +3.1% | 1024 | 1024 |
+| el/string | immediate | 387.9 | 746.9 | 1.93x | 766.4 | 1.98x | +2.6% | 1000 | 1000 |
+| sql/column | generated | 165.6 | 433.3 | 2.62x | 429.7 | 2.59x | -0.8% | 392 | 392 |
+| sql/select20 | generated | 8268.3 | 22480.7 | 2.72x | 22299.7 | 2.70x | -0.8% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w61\pair-pgo0\run-2
+=== run 3 of 5, 20:53:39
+35 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand      110.7 ns before      122.4 ns after      125.6 ns  before/hand 1.11x  after/hand 1.13x
+fix/One.bytes          hand      116.5 ns before      205.6 ns after      208.0 ns  before/hand 1.76x  after/hand 1.78x
+fix/Order.text         hand     1009.3 ns before     1064.9 ns after     1071.7 ns  before/hand 1.06x  after/hand 1.06x
+  fix/Order.bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.bytes        hand     1032.5 ns before     1995.3 ns after     1991.1 ns  before/hand 1.93x  after/hand 1.93x
+fix/Order.stream       hand     1141.9 ns before     2368.3 ns after     2380.4 ns  before/hand 2.07x  after/hand 2.08x
+fix/BinaryMany.text    hand     5593.0 ns before     5074.7 ns after     5107.8 ns  before/hand 0.91x  after/hand 0.91x
+fix/Orders128.text     hand   122790.2 ns before   126377.5 ns after   127676.4 ns  before/hand 1.03x  after/hand 1.04x
+fix/slope-16.text      hand     1455.0 ns before     1297.0 ns after     1313.6 ns  before/hand 0.89x  after/hand 0.90x
+fix/slope-16.bytes     hand     1543.5 ns before     2359.9 ns after     2333.6 ns  before/hand 1.53x  after/hand 1.51x
+  tsql/columns1000: 1 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  2675900.0 ns before   234440.6 ns after   227153.1 ns  before/hand 0.09x  after/hand 0.08x
+fix/One.log-text       hand      121.5 ns before      229.4 ns after      221.2 ns  before/hand 1.89x  after/hand 1.82x
+fix/One.log-bytes      hand      120.3 ns before      340.1 ns after      327.0 ns  before/hand 2.83x  after/hand 2.72x
+fix/One.log-stream     hand      122.1 ns before      642.5 ns after      647.8 ns  before/hand 5.26x  after/hand 5.31x
+fix/Order.log-text     hand     1056.8 ns before     1981.2 ns after     1833.5 ns  before/hand 1.87x  after/hand 1.73x
+  fix/Order.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-bytes    hand     1055.5 ns before     3234.1 ns after     3046.9 ns  before/hand 3.06x  after/hand 2.89x
+  fix/Order.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-stream   hand     1049.6 ns before     4137.5 ns after     3984.2 ns  before/hand 3.94x  after/hand 3.80x
+fix/Orders128.log-text hand   127671.2 ns before   236069.9 ns after   218568.8 ns  before/hand 1.85x  after/hand 1.71x
+fix/Orders128.log-bytes hand   128756.7 ns before   392728.3 ns after   371358.1 ns  before/hand 3.05x  after/hand 2.88x
+fix/Orders128.log-stream hand   129876.3 ns before   490142.4 ns after   463287.4 ns  before/hand 3.77x  after/hand 3.57x
+  fix/slope-0.log-text: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-text   hand       32.2 ns before       85.3 ns after       84.4 ns  before/hand 2.64x  after/hand 2.62x
+fix/slope-0.log-bytes  hand       32.4 ns before       97.7 ns after       97.7 ns  before/hand 3.01x  after/hand 3.01x
+  fix/slope-0.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-stream hand       32.4 ns before      270.5 ns after      274.7 ns  before/hand 8.34x  after/hand 8.47x
+fix/slope-4.log-text   hand      373.2 ns before      678.7 ns after      638.3 ns  before/hand 1.82x  after/hand 1.71x
+  fix/slope-4.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-4.log-bytes  hand      369.2 ns before     1063.0 ns after     1030.4 ns  before/hand 2.88x  after/hand 2.79x
+fix/slope-4.log-stream hand      369.1 ns before     1514.6 ns after     1460.7 ns  before/hand 4.10x  after/hand 3.96x
+fix/slope-16.log-text  hand     1398.9 ns before     2425.9 ns after     2239.2 ns  before/hand 1.73x  after/hand 1.60x
+fix/slope-16.log-bytes hand     1398.6 ns before     3895.4 ns after     3731.8 ns  before/hand 2.79x  after/hand 2.67x
+fix/slope-16.log-stream hand     1398.0 ns before     4933.5 ns after     4716.0 ns  before/hand 3.53x  after/hand 3.37x
+  el/ladder.bool: 1 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1405.3 ns before     2471.0 ns after     2432.0 ns  before/hand 1.76x  after/hand 1.73x
+sql/select20.bool      hand     7961.0 ns before    22061.4 ns after    21821.9 ns  before/hand 2.77x  after/hand 2.74x
+web/url.full           hand      276.7 ns before      341.1 ns after      343.5 ns  before/hand 1.23x  after/hand 1.24x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1426.4 ns before     2499.7 ns after     2457.8 ns before-immediate     1840.6 ns after-immediate     1838.9 ns  before/hand 1.75x  after/hand 1.72x  before-immediate/hand 1.29x  after-immediate/hand 1.29x
+el/string              hand      372.1 ns before     1074.0 ns after     1068.2 ns before-immediate      742.6 ns after-immediate      745.3 ns  before/hand 2.89x  after/hand 2.87x  before-immediate/hand 2.00x  after-immediate/hand 2.00x
+  sql/column: 1 round(s) redone after a gen1/gen2 collection
+sql/column             hand      165.9 ns before      434.4 ns after      446.3 ns  before/hand 2.62x  after/hand 2.69x
+sql/select20           hand     8033.4 ns before    22165.3 ns after    21900.5 ns  before/hand 2.76x  after/hand 2.73x
+
+# Paired stand, 2026-09-19 20:56
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.6 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 110.7 | 122.4 | 1.11x | 125.6 | 1.13x | +2.6% | 192 | 192 |
+| fix/One.bytes | generated | 116.5 | 205.6 | 1.76x | 208.0 | 1.78x | +1.2% | 248 | 248 |
+| fix/Order.text | generated | 1009.3 | 1064.9 | 1.06x | 1071.7 | 1.06x | +0.6% | 1096 | 1096 |
+| fix/Order.bytes | generated | 1032.5 | 1995.3 | 1.93x | 1991.1 | 1.93x | -0.2% | 1152 | 1152 |
+| fix/Order.stream | generated | 1141.9 | 2368.3 | 2.07x | 2380.4 | 2.08x | +0.5% | 1712 | 1712 |
+| fix/BinaryMany.text | generated | 5593.0 | 5074.7 | 0.91x | 5107.8 | 0.91x | +0.7% | 7256 | 7256 |
+| fix/Orders128.text | generated | 122790.2 | 126377.5 | 1.03x | 127676.4 | 1.04x | +1.0% | 129112 | 129112 |
+| fix/slope-16.text | generated | 1455.0 | 1297.0 | 0.89x | 1313.6 | 0.90x | +1.3% | 1752 | 1752 |
+| fix/slope-16.bytes | generated | 1543.5 | 2359.9 | 1.53x | 2333.6 | 1.51x | -1.1% | 1808 | 1808 |
+| tsql/columns1000 | generated | 2675900.0 | 234440.6 | 0.09x | 227153.1 | 0.08x | -3.1% | 200464 | 200464 |
+| fix/One.log-text | generated | 121.5 | 229.4 | 1.89x | 221.2 | 1.82x | -3.6% | 192 | 192 |
+| fix/One.log-bytes | generated | 120.3 | 340.1 | 2.83x | 327.0 | 2.72x | -3.8% | 248 | 248 |
+| fix/One.log-stream | generated | 122.1 | 642.5 | 5.26x | 647.8 | 5.31x | +0.8% | 888 | 888 |
+| fix/Order.log-text | generated | 1056.8 | 1981.2 | 1.87x | 1833.5 | 1.73x | -7.5% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | 1055.5 | 3234.1 | 3.06x | 3046.9 | 2.89x | -5.8% | 1152 | 1152 |
+| fix/Order.log-stream | generated | 1049.6 | 4137.5 | 3.94x | 3984.2 | 3.80x | -3.7% | 1712 | 1712 |
+| fix/Orders128.log-text | generated | 127671.2 | 236069.9 | 1.85x | 218568.8 | 1.71x | -7.4% | 129112 | 129112 |
+| fix/Orders128.log-bytes | generated | 128756.7 | 392728.3 | 3.05x | 371358.1 | 2.88x | -5.4% | 129168 | 129168 |
+| fix/Orders128.log-stream | generated | 129876.3 | 490142.4 | 3.77x | 463287.4 | 3.57x | -5.5% | 118552 | 118552 |
+| fix/slope-0.log-text | generated | 32.2 | 85.3 | 2.64x | 84.4 | 2.62x | -1.0% | 88 | 88 |
+| fix/slope-0.log-bytes | generated | 32.4 | 97.7 | 3.01x | 97.7 | 3.01x | -0.1% | 144 | 144 |
+| fix/slope-0.log-stream | generated | 32.4 | 270.5 | 8.34x | 274.7 | 8.47x | +1.6% | 792 | 792 |
+| fix/slope-4.log-text | generated | 373.2 | 678.7 | 1.82x | 638.3 | 1.71x | -5.9% | 504 | 504 |
+| fix/slope-4.log-bytes | generated | 369.2 | 1063.0 | 2.88x | 1030.4 | 2.79x | -3.1% | 560 | 560 |
+| fix/slope-4.log-stream | generated | 369.1 | 1514.6 | 4.10x | 1460.7 | 3.96x | -3.6% | 1176 | 1176 |
+| fix/slope-16.log-text | generated | 1398.9 | 2425.9 | 1.73x | 2239.2 | 1.60x | -7.7% | 1752 | 1752 |
+| fix/slope-16.log-bytes | generated | 1398.6 | 3895.4 | 2.79x | 3731.8 | 2.67x | -4.2% | 1808 | 1808 |
+| fix/slope-16.log-stream | generated | 1398.0 | 4933.5 | 3.53x | 4716.0 | 3.37x | -4.4% | 2328 | 2328 |
+| el/ladder.bool | generated | 1405.3 | 2471.0 | 1.76x | 2432.0 | 1.73x | -1.6% | 1328 | 1272 |
+| sql/select20.bool | generated | 7961.0 | 22061.4 | 2.77x | 21821.9 | 2.74x | -1.1% | 21448 | 21392 |
+| web/url.full | generated | 276.7 | 341.1 | 1.23x | 343.5 | 1.24x | +0.7% | 536 | 536 |
+| el/ladder | generated | 1426.4 | 2499.7 | 1.75x | 2457.8 | 1.72x | -1.7% | 1328 | 1328 |
+| el/ladder | immediate | 1426.4 | 1840.6 | 1.29x | 1838.9 | 1.29x | -0.1% | 1208 | 1208 |
+| el/string | generated | 372.1 | 1074.0 | 2.89x | 1068.2 | 2.87x | -0.5% | 1024 | 1024 |
+| el/string | immediate | 372.1 | 742.6 | 2.00x | 745.3 | 2.00x | +0.4% | 1000 | 1000 |
+| sql/column | generated | 165.9 | 434.4 | 2.62x | 446.3 | 2.69x | +2.7% | 392 | 392 |
+| sql/select20 | generated | 8033.4 | 22165.3 | 2.76x | 21900.5 | 2.73x | -1.2% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w61\pair-pgo0\run-3
+=== run 4 of 5, 20:56:06
+35 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand      110.6 ns before      121.4 ns after      124.5 ns  before/hand 1.10x  after/hand 1.13x
+fix/One.bytes          hand      118.6 ns before      212.3 ns after      212.7 ns  before/hand 1.79x  after/hand 1.79x
+fix/Order.text         hand      996.9 ns before     1039.9 ns after     1062.0 ns  before/hand 1.04x  after/hand 1.07x
+  fix/Order.bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.bytes        hand     1107.5 ns before     2076.0 ns after     2060.2 ns  before/hand 1.87x  after/hand 1.86x
+fix/Order.stream       hand     1196.6 ns before     2501.4 ns after     2518.8 ns  before/hand 2.09x  after/hand 2.10x
+fix/BinaryMany.text    hand     5946.6 ns before     5345.8 ns after     5310.5 ns  before/hand 0.90x  after/hand 0.89x
+fix/Orders128.text     hand   128824.0 ns before   132567.9 ns after   132956.3 ns  before/hand 1.03x  after/hand 1.03x
+fix/slope-16.text      hand     1455.0 ns before     1286.3 ns after     1308.9 ns  before/hand 0.88x  after/hand 0.90x
+fix/slope-16.bytes     hand     1559.4 ns before     2345.5 ns after     2332.6 ns  before/hand 1.50x  after/hand 1.50x
+  tsql/columns1000: 1 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  2721825.0 ns before   227809.4 ns after   227615.6 ns  before/hand 0.08x  after/hand 0.08x
+fix/One.log-text       hand      120.0 ns before      226.7 ns after      218.9 ns  before/hand 1.89x  after/hand 1.82x
+fix/One.log-bytes      hand      129.7 ns before      356.0 ns after      342.1 ns  before/hand 2.74x  after/hand 2.64x
+fix/One.log-stream     hand      125.2 ns before      675.5 ns after      661.1 ns  before/hand 5.40x  after/hand 5.28x
+fix/Order.log-text     hand     1099.7 ns before     2014.1 ns after     1888.2 ns  before/hand 1.83x  after/hand 1.72x
+  fix/Order.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-bytes    hand     1082.8 ns before     3255.8 ns after     3116.1 ns  before/hand 3.01x  after/hand 2.88x
+  fix/Order.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-stream   hand     1058.4 ns before     4186.9 ns after     4056.0 ns  before/hand 3.96x  after/hand 3.83x
+fix/Orders128.log-text hand   128430.3 ns before   236348.3 ns after   220652.3 ns  before/hand 1.84x  after/hand 1.72x
+  fix/Orders128.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Orders128.log-bytes hand   127838.8 ns before   394324.3 ns after   372938.0 ns  before/hand 3.08x  after/hand 2.92x
+fix/Orders128.log-stream hand   129897.0 ns before   485460.5 ns after   471481.5 ns  before/hand 3.74x  after/hand 3.63x
+  fix/slope-0.log-text: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-text   hand       32.7 ns before       84.0 ns after       83.8 ns  before/hand 2.57x  after/hand 2.56x
+fix/slope-0.log-bytes  hand       32.1 ns before      100.1 ns after       97.7 ns  before/hand 3.12x  after/hand 3.04x
+  fix/slope-0.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-stream hand       33.0 ns before      284.0 ns after      286.5 ns  before/hand 8.60x  after/hand 8.68x
+fix/slope-4.log-text   hand      371.7 ns before      663.0 ns after      625.3 ns  before/hand 1.78x  after/hand 1.68x
+  fix/slope-4.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-4.log-bytes  hand      373.3 ns before     1063.1 ns after     1013.7 ns  before/hand 2.85x  after/hand 2.72x
+fix/slope-4.log-stream hand      376.6 ns before     1532.7 ns after     1464.1 ns  before/hand 4.07x  after/hand 3.89x
+fix/slope-16.log-text  hand     1407.5 ns before     2361.9 ns after     2222.1 ns  before/hand 1.68x  after/hand 1.58x
+fix/slope-16.log-bytes hand     1407.1 ns before     3904.4 ns after     3692.3 ns  before/hand 2.77x  after/hand 2.62x
+fix/slope-16.log-stream hand     1411.4 ns before     4933.2 ns after     4749.4 ns  before/hand 3.50x  after/hand 3.36x
+  el/ladder.bool: 1 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1407.2 ns before     2465.3 ns after     2458.6 ns  before/hand 1.75x  after/hand 1.75x
+sql/select20.bool      hand     8142.7 ns before    21753.9 ns after    22270.0 ns  before/hand 2.67x  after/hand 2.73x
+web/url.full           hand      277.1 ns before      343.1 ns after      355.7 ns  before/hand 1.24x  after/hand 1.28x
+el/ladder              hand     1394.4 ns before     2473.5 ns after     2479.4 ns before-immediate     1840.6 ns after-immediate     1846.1 ns  before/hand 1.77x  after/hand 1.78x  before-immediate/hand 1.32x  after-immediate/hand 1.32x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      372.0 ns before     1065.7 ns after     1134.7 ns before-immediate      766.3 ns after-immediate      754.8 ns  before/hand 2.87x  after/hand 3.05x  before-immediate/hand 2.06x  after-immediate/hand 2.03x
+sql/column             hand      163.4 ns before      439.7 ns after      428.6 ns  before/hand 2.69x  after/hand 2.62x
+sql/select20           hand     8131.6 ns before    22220.0 ns after    22340.4 ns  before/hand 2.73x  after/hand 2.75x
+
+# Paired stand, 2026-09-19 20:58
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.8 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 110.6 | 121.4 | 1.10x | 124.5 | 1.13x | +2.6% | 192 | 192 |
+| fix/One.bytes | generated | 118.6 | 212.3 | 1.79x | 212.7 | 1.79x | +0.2% | 248 | 248 |
+| fix/Order.text | generated | 996.9 | 1039.9 | 1.04x | 1062.0 | 1.07x | +2.1% | 1096 | 1096 |
+| fix/Order.bytes | generated | 1107.5 | 2076.0 | 1.87x | 2060.2 | 1.86x | -0.8% | 1152 | 1152 |
+| fix/Order.stream | generated | 1196.6 | 2501.4 | 2.09x | 2518.8 | 2.10x | +0.7% | 1712 | 1712 |
+| fix/BinaryMany.text | generated | 5946.6 | 5345.8 | 0.90x | 5310.5 | 0.89x | -0.7% | 7256 | 7256 |
+| fix/Orders128.text | generated | 128824.0 | 132567.9 | 1.03x | 132956.3 | 1.03x | +0.3% | 129112 | 129112 |
+| fix/slope-16.text | generated | 1455.0 | 1286.3 | 0.88x | 1308.9 | 0.90x | +1.8% | 1752 | 1752 |
+| fix/slope-16.bytes | generated | 1559.4 | 2345.5 | 1.50x | 2332.6 | 1.50x | -0.5% | 1808 | 1808 |
+| tsql/columns1000 | generated | 2721825.0 | 227809.4 | 0.08x | 227615.6 | 0.08x | -0.1% | 200464 | 200464 |
+| fix/One.log-text | generated | 120.0 | 226.7 | 1.89x | 218.9 | 1.82x | -3.5% | 192 | 192 |
+| fix/One.log-bytes | generated | 129.7 | 356.0 | 2.74x | 342.1 | 2.64x | -3.9% | 248 | 248 |
+| fix/One.log-stream | generated | 125.2 | 675.5 | 5.40x | 661.1 | 5.28x | -2.1% | 888 | 888 |
+| fix/Order.log-text | generated | 1099.7 | 2014.1 | 1.83x | 1888.2 | 1.72x | -6.2% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | 1082.8 | 3255.8 | 3.01x | 3116.1 | 2.88x | -4.3% | 1152 | 1152 |
+| fix/Order.log-stream | generated | 1058.4 | 4186.9 | 3.96x | 4056.0 | 3.83x | -3.1% | 1712 | 1712 |
+| fix/Orders128.log-text | generated | 128430.3 | 236348.3 | 1.84x | 220652.3 | 1.72x | -6.6% | 129112 | 129112 |
+| fix/Orders128.log-bytes | generated | 127838.8 | 394324.3 | 3.08x | 372938.0 | 2.92x | -5.4% | 129168 | 129168 |
+| fix/Orders128.log-stream | generated | 129897.0 | 485460.5 | 3.74x | 471481.5 | 3.63x | -2.9% | 118552 | 118552 |
+| fix/slope-0.log-text | generated | 32.7 | 84.0 | 2.57x | 83.8 | 2.56x | -0.3% | 88 | 88 |
+| fix/slope-0.log-bytes | generated | 32.1 | 100.1 | 3.12x | 97.7 | 3.04x | -2.4% | 144 | 144 |
+| fix/slope-0.log-stream | generated | 33.0 | 284.0 | 8.60x | 286.5 | 8.68x | +0.9% | 792 | 792 |
+| fix/slope-4.log-text | generated | 371.7 | 663.0 | 1.78x | 625.3 | 1.68x | -5.7% | 504 | 504 |
+| fix/slope-4.log-bytes | generated | 373.3 | 1063.1 | 2.85x | 1013.7 | 2.72x | -4.6% | 560 | 560 |
+| fix/slope-4.log-stream | generated | 376.6 | 1532.7 | 4.07x | 1464.1 | 3.89x | -4.5% | 1176 | 1176 |
+| fix/slope-16.log-text | generated | 1407.5 | 2361.9 | 1.68x | 2222.1 | 1.58x | -5.9% | 1752 | 1752 |
+| fix/slope-16.log-bytes | generated | 1407.1 | 3904.4 | 2.77x | 3692.3 | 2.62x | -5.4% | 1808 | 1808 |
+| fix/slope-16.log-stream | generated | 1411.4 | 4933.2 | 3.50x | 4749.4 | 3.36x | -3.7% | 2328 | 2328 |
+| el/ladder.bool | generated | 1407.2 | 2465.3 | 1.75x | 2458.6 | 1.75x | -0.3% | 1328 | 1272 |
+| sql/select20.bool | generated | 8142.7 | 21753.9 | 2.67x | 22270.0 | 2.73x | +2.4% | 21448 | 21392 |
+| web/url.full | generated | 277.1 | 343.1 | 1.24x | 355.7 | 1.28x | +3.7% | 536 | 536 |
+| el/ladder | generated | 1394.4 | 2473.5 | 1.77x | 2479.4 | 1.78x | +0.2% | 1328 | 1328 |
+| el/ladder | immediate | 1394.4 | 1840.6 | 1.32x | 1846.1 | 1.32x | +0.3% | 1208 | 1208 |
+| el/string | generated | 372.0 | 1065.7 | 2.87x | 1134.7 | 3.05x | +6.5% | 1024 | 1049 |
+| el/string | immediate | 372.0 | 766.3 | 2.06x | 754.8 | 2.03x | -1.5% | 1000 | 1000 |
+| sql/column | generated | 163.4 | 439.7 | 2.69x | 428.6 | 2.62x | -2.5% | 392 | 392 |
+| sql/select20 | generated | 8131.6 | 22220.0 | 2.73x | 22340.4 | 2.75x | +0.5% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w61\pair-pgo0\run-4
+=== run 5 of 5, 20:58:35
+35 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand      109.2 ns before      120.4 ns after      124.5 ns  before/hand 1.10x  after/hand 1.14x
+fix/One.bytes          hand      114.0 ns before      204.5 ns after      203.8 ns  before/hand 1.79x  after/hand 1.79x
+fix/Order.text         hand      993.2 ns before     1061.4 ns after     1044.7 ns  before/hand 1.07x  after/hand 1.05x
+  fix/Order.bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.bytes        hand     1061.9 ns before     2010.2 ns after     2008.6 ns  before/hand 1.89x  after/hand 1.89x
+fix/Order.stream       hand     1122.6 ns before     2320.4 ns after     2330.8 ns  before/hand 2.07x  after/hand 2.08x
+fix/BinaryMany.text    hand     5520.2 ns before     4965.2 ns after     4991.8 ns  before/hand 0.90x  after/hand 0.90x
+fix/Orders128.text     hand   121272.9 ns before   125800.7 ns after   126512.9 ns  before/hand 1.04x  after/hand 1.04x
+fix/slope-16.text      hand     1479.5 ns before     1293.5 ns after     1315.4 ns  before/hand 0.87x  after/hand 0.89x
+fix/slope-16.bytes     hand     1537.4 ns before     2335.9 ns after     2340.2 ns  before/hand 1.52x  after/hand 1.52x
+  tsql/columns1000: 1 round(s) redone after a gen1/gen2 collection
+tsql/columns1000       hand  2688896.9 ns before   231521.9 ns after   234343.8 ns  before/hand 0.09x  after/hand 0.09x
+fix/One.log-text       hand      120.3 ns before      227.0 ns after      219.8 ns  before/hand 1.89x  after/hand 1.83x
+fix/One.log-bytes      hand      121.7 ns before      336.1 ns after      328.2 ns  before/hand 2.76x  after/hand 2.70x
+fix/One.log-stream     hand      120.2 ns before      649.0 ns after      637.6 ns  before/hand 5.40x  after/hand 5.30x
+fix/Order.log-text     hand     1062.8 ns before     2012.3 ns after     1848.6 ns  before/hand 1.89x  after/hand 1.74x
+  fix/Order.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-bytes    hand     1053.0 ns before     3228.9 ns after     3122.2 ns  before/hand 3.07x  after/hand 2.96x
+  fix/Order.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.log-stream   hand     1059.8 ns before     4241.7 ns after     3995.0 ns  before/hand 4.00x  after/hand 3.77x
+fix/Orders128.log-text hand   132100.1 ns before   239406.2 ns after   221584.5 ns  before/hand 1.81x  after/hand 1.68x
+fix/Orders128.log-bytes hand   131116.0 ns before   404389.2 ns after   377488.7 ns  before/hand 3.08x  after/hand 2.88x
+fix/Orders128.log-stream hand   130276.3 ns before   489892.6 ns after   455507.1 ns  before/hand 3.76x  after/hand 3.50x
+  fix/slope-0.log-text: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-text   hand       32.3 ns before       84.5 ns after       84.6 ns  before/hand 2.62x  after/hand 2.62x
+fix/slope-0.log-bytes  hand       33.6 ns before      100.6 ns after       98.6 ns  before/hand 2.99x  after/hand 2.93x
+  fix/slope-0.log-stream: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.log-stream hand       32.1 ns before      271.4 ns after      265.5 ns  before/hand 8.44x  after/hand 8.26x
+fix/slope-4.log-text   hand      376.1 ns before      670.2 ns after      633.4 ns  before/hand 1.78x  after/hand 1.68x
+  fix/slope-4.log-bytes: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-4.log-bytes  hand      376.1 ns before     1074.7 ns after     1030.4 ns  before/hand 2.86x  after/hand 2.74x
+fix/slope-4.log-stream hand      371.4 ns before     1543.2 ns after     1473.5 ns  before/hand 4.16x  after/hand 3.97x
+fix/slope-16.log-text  hand     1406.7 ns before     2387.3 ns after     2232.4 ns  before/hand 1.70x  after/hand 1.59x
+fix/slope-16.log-bytes hand     1400.3 ns before     3881.3 ns after     3731.9 ns  before/hand 2.77x  after/hand 2.67x
+fix/slope-16.log-stream hand     1417.8 ns before     5056.8 ns after     4721.1 ns  before/hand 3.57x  after/hand 3.33x
+  el/ladder.bool: 1 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1425.0 ns before     2485.0 ns after     2485.1 ns  before/hand 1.74x  after/hand 1.74x
+sql/select20.bool      hand     7992.1 ns before    21799.2 ns after    21923.4 ns  before/hand 2.73x  after/hand 2.74x
+web/url.full           hand      281.7 ns before      374.4 ns after      353.9 ns  before/hand 1.33x  after/hand 1.26x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1436.1 ns before     2487.0 ns after     2498.4 ns before-immediate     1841.4 ns after-immediate     1820.0 ns  before/hand 1.73x  after/hand 1.74x  before-immediate/hand 1.28x  after-immediate/hand 1.27x
+el/string              hand      363.3 ns before     1080.2 ns after     1081.7 ns before-immediate      751.0 ns after-immediate      757.2 ns  before/hand 2.97x  after/hand 2.98x  before-immediate/hand 2.07x  after-immediate/hand 2.08x
+sql/column             hand      168.6 ns before      463.0 ns after      436.7 ns  before/hand 2.75x  after/hand 2.59x
+sql/select20           hand     8088.5 ns before    22005.7 ns after    22272.0 ns  before/hand 2.72x  after/hand 2.75x
+
+# Paired stand, 2026-09-19 21:01
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.4 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 109.2 | 120.4 | 1.10x | 124.5 | 1.14x | +3.4% | 192 | 192 |
+| fix/One.bytes | generated | 114.0 | 204.5 | 1.79x | 203.8 | 1.79x | -0.3% | 248 | 248 |
+| fix/Order.text | generated | 993.2 | 1061.4 | 1.07x | 1044.7 | 1.05x | -1.6% | 1096 | 1096 |
+| fix/Order.bytes | generated | 1061.9 | 2010.2 | 1.89x | 2008.6 | 1.89x | -0.1% | 1152 | 1152 |
+| fix/Order.stream | generated | 1122.6 | 2320.4 | 2.07x | 2330.8 | 2.08x | +0.4% | 1712 | 1712 |
+| fix/BinaryMany.text | generated | 5520.2 | 4965.2 | 0.90x | 4991.8 | 0.90x | +0.5% | 7256 | 7256 |
+| fix/Orders128.text | generated | 121272.9 | 125800.7 | 1.04x | 126512.9 | 1.04x | +0.6% | 129112 | 129112 |
+| fix/slope-16.text | generated | 1479.5 | 1293.5 | 0.87x | 1315.4 | 0.89x | +1.7% | 1752 | 1752 |
+| fix/slope-16.bytes | generated | 1537.4 | 2335.9 | 1.52x | 2340.2 | 1.52x | +0.2% | 1808 | 1808 |
+| tsql/columns1000 | generated | 2688896.9 | 231521.9 | 0.09x | 234343.8 | 0.09x | +1.2% | 200464 | 200464 |
+| fix/One.log-text | generated | 120.3 | 227.0 | 1.89x | 219.8 | 1.83x | -3.2% | 192 | 192 |
+| fix/One.log-bytes | generated | 121.7 | 336.1 | 2.76x | 328.2 | 2.70x | -2.4% | 248 | 248 |
+| fix/One.log-stream | generated | 120.2 | 649.0 | 5.40x | 637.6 | 5.30x | -1.8% | 888 | 888 |
+| fix/Order.log-text | generated | 1062.8 | 2012.3 | 1.89x | 1848.6 | 1.74x | -8.1% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | 1053.0 | 3228.9 | 3.07x | 3122.2 | 2.96x | -3.3% | 1152 | 1152 |
+| fix/Order.log-stream | generated | 1059.8 | 4241.7 | 4.00x | 3995.0 | 3.77x | -5.8% | 1712 | 1712 |
+| fix/Orders128.log-text | generated | 132100.1 | 239406.2 | 1.81x | 221584.5 | 1.68x | -7.4% | 129112 | 129112 |
+| fix/Orders128.log-bytes | generated | 131116.0 | 404389.2 | 3.08x | 377488.7 | 2.88x | -6.7% | 129168 | 129168 |
+| fix/Orders128.log-stream | generated | 130276.3 | 489892.6 | 3.76x | 455507.1 | 3.50x | -7.0% | 118552 | 118552 |
+| fix/slope-0.log-text | generated | 32.3 | 84.5 | 2.62x | 84.6 | 2.62x | +0.1% | 88 | 88 |
+| fix/slope-0.log-bytes | generated | 33.6 | 100.6 | 2.99x | 98.6 | 2.93x | -2.0% | 144 | 144 |
+| fix/slope-0.log-stream | generated | 32.1 | 271.4 | 8.44x | 265.5 | 8.26x | -2.1% | 792 | 792 |
+| fix/slope-4.log-text | generated | 376.1 | 670.2 | 1.78x | 633.4 | 1.68x | -5.5% | 504 | 504 |
+| fix/slope-4.log-bytes | generated | 376.1 | 1074.7 | 2.86x | 1030.4 | 2.74x | -4.1% | 560 | 560 |
+| fix/slope-4.log-stream | generated | 371.4 | 1543.2 | 4.16x | 1473.5 | 3.97x | -4.5% | 1176 | 1176 |
+| fix/slope-16.log-text | generated | 1406.7 | 2387.3 | 1.70x | 2232.4 | 1.59x | -6.5% | 1752 | 1752 |
+| fix/slope-16.log-bytes | generated | 1400.3 | 3881.3 | 2.77x | 3731.9 | 2.67x | -3.9% | 1808 | 1808 |
+| fix/slope-16.log-stream | generated | 1417.8 | 5056.8 | 3.57x | 4721.1 | 3.33x | -6.6% | 2328 | 2328 |
+| el/ladder.bool | generated | 1425.0 | 2485.0 | 1.74x | 2485.1 | 1.74x | 0.0% | 1328 | 1272 |
+| sql/select20.bool | generated | 7992.1 | 21799.2 | 2.73x | 21923.4 | 2.74x | +0.6% | 21448 | 21392 |
+| web/url.full | generated | 281.7 | 374.4 | 1.33x | 353.9 | 1.26x | -5.5% | 536 | 536 |
+| el/ladder | generated | 1436.1 | 2487.0 | 1.73x | 2498.4 | 1.74x | +0.5% | 1328 | 1328 |
+| el/ladder | immediate | 1436.1 | 1841.4 | 1.28x | 1820.0 | 1.27x | -1.2% | 1208 | 1208 |
+| el/string | generated | 363.3 | 1080.2 | 2.97x | 1081.7 | 2.98x | +0.1% | 1024 | 1024 |
+| el/string | immediate | 363.3 | 751.0 | 2.07x | 757.2 | 2.08x | +0.8% | 1000 | 1000 |
+| sql/column | generated | 168.6 | 463.0 | 2.75x | 436.7 | 2.59x | -5.7% | 392 | 392 |
+| sql/select20 | generated | 8088.5 | 22005.7 | 2.72x | 22272.0 | 2.75x | +1.2% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w61\pair-pgo0\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 30.6 ns (the runs' controls: 30.5, 31.1, 30.6, 30.8, 30.4).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-19 21:01
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.6 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 110.6 | 121.4 | 1.10x | 124.5 | 1.13x | +2.6% | 192 | 192 |
+| fix/One.bytes | generated | 116.5 | 207.5 | 1.78x | 208.0 | 1.78x | +0.2% | 248 | 248 |
+| fix/Order.text | generated | 1000.4 | 1059.2 | 1.06x | 1058.8 | 1.06x | 0.0% | 1096 | 1096 |
+| fix/Order.bytes | generated | 1032.5 | 1998.5 | 1.94x | 1997.7 | 1.93x | 0.0% | 1152 | 1152 |
+| fix/Order.stream | generated | 1141.9 | 2370.6 | 2.08x | 2380.4 | 2.08x | +0.4% | 1712 | 1712 |
+| fix/BinaryMany.text | generated | 5593.0 | 5058.0 | 0.90x | 5100.7 | 0.91x | +0.8% | 7256 | 7256 |
+| fix/Orders128.text | generated | 122790.2 | 126377.5 | 1.03x | 127676.4 | 1.04x | +1.0% | 129112 | 129112 |
+| fix/slope-16.text | generated | 1455.0 | 1290.2 | 0.89x | 1313.6 | 0.90x | +1.8% | 1752 | 1752 |
+| fix/slope-16.bytes | generated | 1559.4 | 2345.5 | 1.50x | 2340.2 | 1.50x | -0.2% | 1808 | 1808 |
+| tsql/columns1000 | generated | 2688896.9 | 233575.0 | 0.09x | 227618.8 | 0.08x | -2.6% | 200464 | 200464 |
+| fix/One.log-text | generated | 120.3 | 227.3 | 1.89x | 218.9 | 1.82x | -3.7% | 192 | 192 |
+| fix/One.log-bytes | generated | 120.3 | 337.2 | 2.80x | 328.2 | 2.73x | -2.7% | 248 | 248 |
+| fix/One.log-stream | generated | 121.1 | 651.7 | 5.38x | 647.4 | 5.35x | -0.7% | 888 | 888 |
+| fix/Order.log-text | generated | 1063.2 | 2012.3 | 1.89x | 1848.6 | 1.74x | -8.1% | 1096 | 1096 |
+| fix/Order.log-bytes | generated | 1055.5 | 3234.1 | 3.06x | 3116.1 | 2.95x | -3.6% | 1152 | 1152 |
+| fix/Order.log-stream | generated | 1058.4 | 4186.9 | 3.96x | 3995.0 | 3.77x | -4.6% | 1712 | 1712 |
+| fix/Orders128.log-text | generated | 128430.3 | 236348.3 | 1.84x | 221584.5 | 1.73x | -6.2% | 129112 | 129112 |
+| fix/Orders128.log-bytes | generated | 129935.2 | 397469.1 | 3.06x | 376415.6 | 2.90x | -5.3% | 129168 | 129168 |
+| fix/Orders128.log-stream | generated | 129897.0 | 489892.6 | 3.77x | 463287.4 | 3.57x | -5.4% | 118552 | 118552 |
+| fix/slope-0.log-text | generated | 32.7 | 85.3 | 2.60x | 84.6 | 2.58x | -0.8% | 88 | 88 |
+| fix/slope-0.log-bytes | generated | 32.9 | 100.1 | 3.05x | 98.6 | 3.00x | -1.5% | 144 | 144 |
+| fix/slope-0.log-stream | generated | 32.6 | 271.4 | 8.34x | 274.7 | 8.44x | +1.2% | 792 | 792 |
+| fix/slope-4.log-text | generated | 376.1 | 678.7 | 1.80x | 638.3 | 1.70x | -5.9% | 504 | 504 |
+| fix/slope-4.log-bytes | generated | 376.1 | 1074.7 | 2.86x | 1030.4 | 2.74x | -4.1% | 560 | 560 |
+| fix/slope-4.log-stream | generated | 373.8 | 1543.2 | 4.13x | 1473.5 | 3.94x | -4.5% | 1176 | 1176 |
+| fix/slope-16.log-text | generated | 1407.5 | 2425.9 | 1.72x | 2239.2 | 1.59x | -7.7% | 1752 | 1752 |
+| fix/slope-16.log-bytes | generated | 1403.0 | 3904.4 | 2.78x | 3731.8 | 2.66x | -4.4% | 1808 | 1808 |
+| fix/slope-16.log-stream | generated | 1411.4 | 4938.2 | 3.50x | 4749.4 | 3.36x | -3.8% | 2328 | 2328 |
+| el/ladder.bool | generated | 1425.0 | 2477.8 | 1.74x | 2485.1 | 1.74x | +0.3% | 1328 | 1272 |
+| sql/select20.bool | generated | 8055.1 | 22061.4 | 2.74x | 22113.7 | 2.75x | +0.2% | 21448 | 21392 |
+| web/url.full | generated | 281.7 | 348.3 | 1.24x | 353.9 | 1.26x | +1.6% | 536 | 536 |
+| el/ladder | generated | 1420.0 | 2487.0 | 1.75x | 2489.4 | 1.75x | +0.1% | 1328 | 1328 |
+| el/ladder | immediate | 1420.0 | 1841.4 | 1.30x | 1838.9 | 1.30x | -0.1% | 1208 | 1208 |
+| el/string | generated | 372.1 | 1075.1 | 2.89x | 1081.7 | 2.91x | +0.6% | 1024 | 1024 |
+| el/string | immediate | 372.1 | 751.0 | 2.02x | 757.2 | 2.04x | +0.8% | 1000 | 1000 |
+| sql/column | generated | 165.6 | 435.8 | 2.63x | 429.7 | 2.59x | -1.4% | 392 | 392 |
+| sql/select20 | generated | 8114.0 | 22220.0 | 2.74x | 22272.0 | 2.74x | +0.2% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w61\pair-pgo0
