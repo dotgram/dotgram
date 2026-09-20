@@ -679,3 +679,52 @@ what it will be read against.
   is a much larger ask than an options object; or write the boundary so that a consumer-supplied
   *table* read by the grammar's guard is data and stays. Those cost very different things, and the
   decision reads differently once they are side by side.
+
+## Q8 (2026-09-19). Ninety-eight diagnostics and not one quick fix, and the reason is a location
+
+Igor asked whether this had been looked at. It had not; here is the reading.
+
+**There is none, anywhere.** `CodeFixProvider`, `CodeAction`, `SuggestedAction` and the words
+"quick fix" appear nowhere in `src/`, `tests/` or `docs/`. The Visual Studio extension has
+classification, live diagnostics, completion, signature help, Quick Info, brace matching, folding,
+the rule list, Go To Definition, Find All References, reference highlighting, Rename, navigation to
+the generated symbols and embedded-DSL support. Every standard editor feature except the light bulb.
+Nothing is promised that is not there — the marketplace page lists exactly what exists — so this is
+a hole and not a defect.
+
+**Why it is conspicuous.** We ship an analyzer package that reports 98 diagnostics into a consumer's
+build. Shipping fixes beside an analyzer is the convention of that package shape, and
+`docs/diagnostics.md` already carries a "what to do" column for every one of the 98, written by
+hand. For a handful the column *is* the fix: `GRAM0002` add `partial` to the class, `GRAM1010` `'ab'`
+→ `"ab"`, `GRAM0003` add the `<AdditionalFiles>` entry, `GRAM2008` and `GRAM4029` declare the thing
+that is missing. For others it must never be one: `GRAM5011` and `GRAM4024` ask for judgement, and a
+light bulb that guesses at those would be worse than none.
+
+**What decides the cost is where a diagnostic lands, and it is split in two by `Report.ToRoslyn`.**
+A grammar written inline in the `[Gram(...)]` attribute is reported into the C# syntax tree —
+`Location.Create(tree, span)`, pointing into the attribute's own string. A grammar in a `.gram` file
+is reported with `Location.Create(FilePath, span, lines)`, an external-file location, which belongs
+to no document in the workspace. Roslyn offers a code fix for the diagnostics of the document being
+edited; a diagnostic that is in no document can have no light bulb, whatever provider is written.
+So:
+
+- **Inline grammars: a code fix works today**, by the ordinary means, in the ordinary
+  `.CodeFixes` package beside the analyzer.
+- **`.gram` files, where the grammars actually live: Roslyn cannot offer one at all.** The fix would
+  have to come from a suggested-actions source in the extension, which does not exist — though the
+  extension has the harder halves already: the editor-neutral analysis in `DotGram/Language` that
+  produces the same diagnostics, and machinery that already edits the buffer, since Rename does.
+- Worth knowing for either: a Roslyn fix *can* change a `.gram` file, through
+  `Solution.WithAdditionalDocumentText`. What is missing is not the ability to edit the file, it is
+  a diagnostic anchored in a document to hang the fix on.
+
+*Stated by construction and not tested: this session read how the locations are made and did not put
+an external-file diagnostic in front of a light bulb to watch it not appear.*
+
+**What should be known before anyone spends on it.** Which of the 98 a user actually meets, and how
+often. Nobody has that number, and without it a fix would be written for whichever diagnostic is
+easiest rather than whichever is met. The cheap half — the five or so mechanical ones, for inline
+grammars — is cheap enough that the number matters less; the valuable half is extension work, and it
+should be ordered by what people hit.
+
+**Answer:** —
