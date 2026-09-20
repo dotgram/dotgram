@@ -299,7 +299,11 @@ The instrument for a question of the form "is this faster, and than what" is **t
   the same run.
 
 **A timing is taken in an announced window**, on logical processors 0-15 at high priority, with
-nothing else timing; builds and tests of others run meanwhile only if they are pinned to 16-31.
+nothing else timing; builds and tests of others run meanwhile only if they are pinned to 16-31. **Two timed loads at
+once are one disturbed measurement, whichever halves of the machine they sit on**: the generation gate times the
+generator on 16-31, and a stand window on 0-15 beside it shares the caches, the memory and the boost, so neither can see
+through the other afterwards (2026-09-19: a window ran through a gate, the gate's `TransactSqlParser.Located` came back
++23%, and it was rerun in a slot with nothing else timing). A timed load asks for the machine, not for cores.
 A before and an after are medians of five runs or more, never one run, and a lean on a row whose
 code did not change is read alone and with `DOTNET_TieredPGO=0` before it is believed. The rows,
 the medians, the paired stand's rules and what was learned of each are in
