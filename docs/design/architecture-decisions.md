@@ -5325,3 +5325,29 @@ analysis should see the automaton itself rather than give the author something t
 author annotating a safe place is paying for our imprecision, and the reason for one such place is
 already written in a grammar — if the diagnostic fired there anyway we would have turned a comment
 into an obligation. An author-facing escape is the fallback that means we failed, not the plan.
+
+**The rule paid for itself within the hour, and what it found was worse than what it confirmed.**
+Driving the four sealed places with twelve shapes of input instead of the one that found them, all
+were flat but one: a repeated escaped brace, twenty-four groups taking **62 seconds against the
+20.6 of the defect just fixed**. Reading would have closed it.
+
+**And its cause is a different class.** The atomic run has nothing to do with it: the text has two
+readings — two escaped braces around a run, or a brace opening a hole — so two readings a group and
+two to the n over n groups. The exponent came from ambiguity *between alternatives*, not inside a
+run, and it is fixed by telling the hole it cannot begin with a brace, which takes nothing away
+because no C# expression begins with one. **So the probe is not complete**: a walk looking for a
+repetition inside a repetition would never have named this, and step three's design must account
+for a second source rather than assume the first is the shape.
+
+**The three example sites were all drivable, and the warning about the unlikely input held three
+more times**: a document that cannot end, an unclosed element, a run of digits followed by a letter
+— twelve, thirty-five and seventeen seconds — while the neighbouring shapes that look at least as
+suspicious stayed flat.
+
+**Two things left open by it.** An atomic group written around a capture yields text where the
+capture wanted a list, and the consumer learns this from a C# conversion error rather than from us
+— which is the class of the two uncompilable configurations again: our diagnosis delivered by
+somebody else's compiler. And the allocation benchmark's fix has no permanent guard, benchmarks
+having no test project; rather than copy the grammar into a test, the answer is to make the static
+probe itself the guard — a test asserting that its list holds nothing but the entries judged safe,
+each with its reason — which covers the benchmarks, the examples and every future grammar at once.
