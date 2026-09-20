@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Finance.Generator.PackageSmoke</RootNamespace>
+
+		<!-- The switch that lets the toolset package below be the compiler rather than
+		     merely be restored; DotGram.PackageSmoke.csproj says why at length. -->
+		<RoslynCompilerType>Package</RoslynCompilerType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The oldest Roslyn the generator claims, so that a green build here is the
+		     floor and not the newest host. -->
+		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.14.0"
+		                  PrivateAssets="all" />
+
+		<!-- Both packages as a consumer gets them: from a feed, by version, with no
+		     project reference anywhere. The generator fills the class; the library is
+		     what the filled class is written against. -->
+		<PackageReference Include="DotGram.Finance" Version="*-*" />
+		<PackageReference Include="DotGram.Finance.Generator" Version="*-*"
+		                  PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- A dictionary of our own, small on purpose. This package ships nobody's
+		     dictionary and this check does not borrow one: what is under test is that
+		     the analyzer loads, finds the attribute, reads the additional file and fills
+		     the class. What the rules SAY about FIX 4.4 is held elsewhere, against the
+		     published dictionary, where it belongs. -->
+		<AdditionalFiles Include="Venue.xml" />
+	</ItemGroup>
+
+</Project>

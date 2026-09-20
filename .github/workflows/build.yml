@@ -1,4 +1,4 @@
-name: build
+﻿name: build
 
 on:
   push:
@@ -51,6 +51,7 @@ jobs:
           dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Finance.Generator/DotGram.Finance.Generator.csproj --no-build --configuration Release --output artifacts
 
       # Each package is the opposite shape of the other, and getting either one wrong
       # is silent: the generator with a lib/ folder would be referenced instead of
@@ -67,6 +68,11 @@ jobs:
       # Roslyn the package claims to support, running the parser that came out.
       - name: The package, in somebody else's build
         run: dotnet run --project tests/DotGram.PackageSmoke/DotGram.PackageSmoke.csproj --configuration Release
+      # The second analyzer, and the same question asked of it: a dictionary named in an attribute
+      # becomes validation during a build that knows nothing of this repository. Its own small
+      # dictionary, because the package ships nobody's and this check borrows none.
+      - name: The generator package, in somebody else's build
+        run: dotnet run --project tests/DotGram.Finance.Generator.PackageSmoke/DotGram.Finance.Generator.PackageSmoke.csproj --configuration Release
 
       # Install .NET 8 explicitly: the net8.0 consumers must run on that runtime,
       # exercising the libraries' netstandard2.0 assets. global.json still selects SDK 10.

@@ -13,13 +13,18 @@ set -euo pipefail
 
 cd artifacts
 
-unzip -o -q DotGram.[0-9]*.nupkg -d generator
-cd generator
-test -f analyzers/dotnet/cs/DotGram.dll || { echo "analyzer assembly missing"; exit 1; }
-test -f README.md                      || { echo "readme missing";            exit 1; }
-test -f SKILL.md                       || { echo "skill missing";             exit 1; }
-if [ -d lib ]; then echo "generator package has a lib/ folder:"; find lib -type f; exit 1; fi
-cd ..
+# An analyzer package is the opposite shape of a library: the assembly is in analyzers/ and there
+# is no lib/ at all. A lib/ here would have the compiler load the generator as a reference, which
+# is a different failure from not loading it and a quieter one.
+check_analyzer() {
+  unzip -o -q "$2".[0-9]*.nupkg -d "$1"
+  test -f "$1/analyzers/dotnet/cs/$2.dll" || { echo "$2: analyzer assembly missing"; exit 1; }
+  test -f "$1/README.md"                  || { echo "$2: readme missing";            exit 1; }
+  test -f "$1/SKILL.md"                   || { echo "$2: skill missing";             exit 1; }
+  if [ -d "$1/lib" ]; then echo "$2 has a lib/ folder:"; find "$1/lib" -type f; exit 1; fi
+}
+
+check_analyzer generator DotGram
 
 # What nuget.org shows before anyone reads a word, and what no later version can
 # change for this one: the icon, where the project lives, and what to search for.
@@ -57,3 +62,8 @@ check_library sql         DotGram.Sql
 check_library web         DotGram.Web
 check_library finance     DotGram.Finance
 check_library expressions DotGram.ExpressionLanguage
+
+# The second analyzer. Its own page and skill, and no lib/ either: it fills tables the library
+# reads and carries nothing a consumer references.
+check_analyzer finance-generator DotGram.Finance.Generator
+check_face finance-generator

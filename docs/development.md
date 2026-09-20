@@ -123,6 +123,25 @@ What it catches is what nothing else can: an analyzer that will not load under t
 an emitted file that only compiles because of a setting this repository happens to have,
 and an analyzer folder the compiler does not look in.
 
+`tests/DotGram.Finance.Generator.PackageSmoke` is the same shape for the second analyzer,
+and asks the second analyzer's question: a dictionary named in an attribute and listed as
+an additional file becomes validation during a build that knows nothing of this
+repository. It carries a dictionary of its own — small, written here, with one of every
+part the generator reads — because the package ships nobody's and this check borrows none.
+Two packages have to be packed before it runs, and two cache entries cleared:
+
+```
+dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --configuration Release --output artifacts
+dotnet pack src/DotGram.Finance.Generator/DotGram.Finance.Generator.csproj --configuration Release --output artifacts
+dotnet run --project tests/DotGram.Finance.Generator.PackageSmoke/DotGram.Finance.Generator.PackageSmoke.csproj --configuration Release
+```
+
+The cache is worth the warning twice over: a package of the same id and version already in
+the global cache is served instead of the one just packed, and what that looks like is not
+a stale result but a wall of "the type could not be found" from a generated file — because
+the library beside the generator is the old one and has none of the types the new rules are
+written against.
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and

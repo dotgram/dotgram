@@ -6,13 +6,13 @@
 		<Description>Compiles a FIX dictionary into validation code, for DotGram.Finance.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>fix;finance;trading;validation;source-generator;roslyn;analyzer;codegen;csharp</PackageTags>
+		<PackageReleaseNotes>The first release. A FIX dictionary named by [FixDictionaryFile] and listed as an AdditionalFiles item is compiled into validation code inside your own build: a rule per message type, a method per component and per repeating group, a FixValidator ready to be asked, and the same rules as a table for putting two dictionaries into one validator. The format read is QuickFIX's. No dictionary of anyone's ships here — the file is yours, read by your compiler, and the path is fixed at build time rather than read at run time. Install it at the same version as DotGram.Finance, whose tables it fills.</PackageReleaseNotes>
 
 		<!-- A package apart from DotGram.Finance, and not an analyzer inside it: most consumers
 		     ship no dictionary of anyone's — FIX 4.4 is already compiled into the library — and an
 		     analyzer in the library package is a tax every one of them pays on every build (D75).
 		     The two versions go in step, and the README says so: this fills tables the library
 		     reads, so a version behind it is found in the worst place. -->
-		<VersionPrefix>$(VersionPrefix)</VersionPrefix>
 
 		<DebugType>embedded</DebugType>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
