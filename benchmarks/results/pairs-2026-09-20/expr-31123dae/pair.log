@@ -1,0 +1,379 @@
+=== run 1 of 5, 00:11:38
+18 rows, every reading agreeing. Timing 8 rounds.
+el/ladder.scan         control      137.4 ns before      138.3 ns after      139.2 ns  before/control 1.01x  after/control 1.01x
+el/refused-early.bool  hand      334.1 ns before     1110.7 ns after      575.7 ns  before/hand 3.32x  after/hand 1.72x
+el/refused-late.bool   hand     1218.4 ns before     1813.0 ns after      935.7 ns  before/hand 1.49x  after/hand 0.77x
+  el/ladder.bool: 1 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1039.7 ns before     1821.7 ns after     1769.3 ns  before/hand 1.75x  after/hand 1.70x
+el/floor               hand      342.3 ns before      836.5 ns after      806.5 ns before-immediate      461.7 ns after-immediate      456.1 ns  before/hand 2.44x  after/hand 2.36x  before-immediate/hand 1.35x  after-immediate/hand 1.33x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1047.8 ns before     1823.8 ns after     1786.9 ns before-immediate     1204.0 ns after-immediate     1203.1 ns  before/hand 1.74x  after/hand 1.71x  before-immediate/hand 1.15x  after-immediate/hand 1.15x
+el/nest7               hand      672.3 ns before     1730.4 ns after     1709.1 ns before-immediate     1029.7 ns after-immediate     1054.1 ns  before/hand 2.57x  after/hand 2.54x  before-immediate/hand 1.53x  after-immediate/hand 1.57x
+el/block               hand     1057.0 ns before     1849.3 ns after     1866.4 ns before-immediate     1153.7 ns after-immediate     1156.5 ns  before/hand 1.75x  after/hand 1.77x  before-immediate/hand 1.09x  after-immediate/hand 1.09x
+  el/try: 1 round(s) redone after a gen1/gen2 collection
+el/try                 hand     3272.0 ns before     6219.1 ns after     4963.7 ns before-immediate     4775.0 ns after-immediate     3255.1 ns  before/hand 1.90x  after/hand 1.52x  before-immediate/hand 1.46x  after-immediate/hand 0.99x
+el/loop                hand     2334.8 ns before     4042.7 ns after     3983.8 ns before-immediate     2657.2 ns after-immediate     2700.1 ns  before/hand 1.73x  after/hand 1.71x  before-immediate/hand 1.14x  after-immediate/hand 1.16x
+el/terms100            hand    11982.6 ns before    16996.7 ns after    17113.8 ns before-immediate    13206.7 ns after-immediate    13303.0 ns  before/hand 1.42x  after/hand 1.43x  before-immediate/hand 1.10x  after-immediate/hand 1.11x
+el/terms1000           hand   113057.5 ns before   159873.8 ns after   155675.9 ns before-immediate   127092.5 ns after-immediate   130292.2 ns  before/hand 1.41x  after/hand 1.38x  before-immediate/hand 1.12x  after-immediate/hand 1.15x
+el/overloads           hand     1883.3 ns before     2622.9 ns after     2580.1 ns before-immediate     2106.0 ns after-immediate     2043.5 ns  before/hand 1.39x  after/hand 1.37x  before-immediate/hand 1.12x  after-immediate/hand 1.09x
+el/string              hand      285.2 ns before      976.5 ns after      972.1 ns before-immediate      689.7 ns after-immediate      682.7 ns  before/hand 3.42x  after/hand 3.41x  before-immediate/hand 2.42x  after-immediate/hand 2.39x
+el/interpolation       hand     1855.9 ns before     4626.5 ns after     4730.6 ns before-immediate     3949.6 ns after-immediate     3942.8 ns  before/hand 2.49x  after/hand 2.55x  before-immediate/hand 2.13x  after-immediate/hand 2.12x
+el/untyped             hand    22919.7 ns before    19699.9 ns after    19752.9 ns  before/hand 0.86x  after/hand 0.86x
+el/refused-early       hand      469.9 ns before     1250.8 ns after     1256.6 ns before-immediate     1181.3 ns after-immediate     1334.2 ns  before/hand 2.66x  after/hand 2.67x  before-immediate/hand 2.51x  after-immediate/hand 2.84x
+el/refused-late        hand     1491.2 ns before     2000.4 ns after     1787.1 ns before-immediate     3410.0 ns after-immediate     3255.8 ns  before/hand 1.34x  after/hand 1.20x  before-immediate/hand 2.29x  after-immediate/hand 2.18x
+
+# Paired stand, 2026-09-20 00:13
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| el/ladder.scan | generated | control | 137.4 | 138.3 | 1.01x | 139.2 | 1.01x | +0.7% | 0 | 0 |
+| el/refused-early.bool | generated | hand | 334.1 | 1110.7 | 3.32x | 575.7 | 1.72x | -48.2% | 1064 | 624 |
+| el/refused-late.bool | generated | hand | 1218.4 | 1813.0 | 1.49x | 935.7 | 0.77x | -48.4% | 1064 | 624 |
+| el/ladder.bool | generated | hand | 1039.7 | 1821.7 | 1.75x | 1769.3 | 1.70x | -2.9% | 1776 | 1720 |
+| el/floor | generated | hand | 342.3 | 836.5 | 2.44x | 806.5 | 2.36x | -3.6% | 1104 | 1104 |
+| el/floor | immediate | hand | 342.3 | 461.7 | 1.35x | 456.1 | 1.33x | -1.2% | 1120 | 1120 |
+| el/ladder | generated | hand | 1047.8 | 1823.8 | 1.74x | 1786.9 | 1.71x | -2.0% | 1776 | 1776 |
+| el/ladder | immediate | hand | 1047.8 | 1204.0 | 1.15x | 1203.1 | 1.15x | -0.1% | 1784 | 1784 |
+| el/nest7 | generated | hand | 672.3 | 1730.4 | 2.57x | 1709.1 | 2.54x | -1.2% | 1152 | 1152 |
+| el/nest7 | immediate | hand | 672.3 | 1029.7 | 1.53x | 1054.1 | 1.57x | +2.4% | 1120 | 1120 |
+| el/block | generated | hand | 1057.0 | 1849.3 | 1.75x | 1866.4 | 1.77x | +0.9% | 2344 | 2344 |
+| el/block | immediate | hand | 1057.0 | 1153.7 | 1.09x | 1156.5 | 1.09x | +0.2% | 2440 | 2440 |
+| el/try | generated | hand | 3272.0 | 6219.1 | 1.90x | 4963.7 | 1.52x | -20.2% | 5632 | 4456 |
+| el/try | immediate | hand | 3272.0 | 4775.0 | 1.46x | 3255.1 | 0.99x | -31.8% | 5752 | 4152 |
+| el/loop | generated | hand | 2334.8 | 4042.7 | 1.73x | 3983.8 | 1.71x | -1.5% | 4776 | 4776 |
+| el/loop | immediate | hand | 2334.8 | 2657.2 | 1.14x | 2700.1 | 1.16x | +1.6% | 4880 | 4880 |
+| el/terms100 | generated | hand | 11982.6 | 16996.7 | 1.42x | 17113.8 | 1.43x | +0.7% | 17904 | 17904 |
+| el/terms100 | immediate | hand | 11982.6 | 13206.7 | 1.10x | 13303.0 | 1.11x | +0.7% | 18720 | 18720 |
+| el/terms1000 | generated | hand | 113057.5 | 159873.8 | 1.41x | 155675.9 | 1.38x | -2.6% | 169104 | 169104 |
+| el/terms1000 | immediate | hand | 113057.5 | 127092.5 | 1.12x | 130292.2 | 1.15x | +2.5% | 177123 | 177120 |
+| el/overloads | generated | hand | 1883.3 | 2622.9 | 1.39x | 2580.1 | 1.37x | -1.6% | 4248 | 4248 |
+| el/overloads | immediate | hand | 1883.3 | 2106.0 | 1.12x | 2043.5 | 1.09x | -3.0% | 4200 | 4200 |
+| el/string | generated | hand | 285.2 | 976.5 | 3.42x | 972.1 | 3.41x | -0.4% | 1056 | 1056 |
+| el/string | immediate | hand | 285.2 | 689.7 | 2.42x | 682.7 | 2.39x | -1.0% | 1032 | 1032 |
+| el/interpolation | generated | hand | 1855.9 | 4626.5 | 2.49x | 4730.6 | 2.55x | +2.3% | 2368 | 2368 |
+| el/interpolation | immediate | hand | 1855.9 | 3949.6 | 2.13x | 3942.8 | 2.12x | -0.2% | 2424 | 2424 |
+| el/untyped | generated | hand | 22919.7 | 19699.9 | 0.86x | 19752.9 | 0.86x | +0.3% | 16424 | 16424 |
+| el/refused-early | generated | hand | 469.9 | 1250.8 | 2.66x | 1256.6 | 2.67x | +0.5% | 1064 | 1064 |
+| el/refused-early | immediate | hand | 469.9 | 1181.3 | 2.51x | 1334.2 | 2.84x | +12.9% | 1944 | 1944 |
+| el/refused-late | generated | hand | 1491.2 | 2000.4 | 1.34x | 1787.1 | 1.20x | -10.7% | 1064 | 1064 |
+| el/refused-late | immediate | hand | 1491.2 | 3410.0 | 2.29x | 3255.8 | 2.18x | -4.5% | 3928 | 3928 |
+
+Written to T:\TEMP\dotgram-stand\w69\pair\run-1
+=== run 2 of 5, 00:13:17
+18 rows, every reading agreeing. Timing 8 rounds.
+el/ladder.scan         control      139.1 ns before      141.3 ns after      139.0 ns  before/control 1.02x  after/control 1.00x
+el/refused-early.bool  hand      342.7 ns before     1116.3 ns after      570.3 ns  before/hand 3.26x  after/hand 1.66x
+el/refused-late.bool   hand     1190.2 ns before     1782.2 ns after      931.6 ns  before/hand 1.50x  after/hand 0.78x
+el/ladder.bool         hand     1012.1 ns before     1811.0 ns after     1832.6 ns  before/hand 1.79x  after/hand 1.81x
+el/floor               hand      318.2 ns before      825.5 ns after      819.0 ns before-immediate      494.4 ns after-immediate      488.0 ns  before/hand 2.59x  after/hand 2.57x  before-immediate/hand 1.55x  after-immediate/hand 1.53x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1012.7 ns before     1780.6 ns after     1771.5 ns before-immediate     1188.1 ns after-immediate     1202.2 ns  before/hand 1.76x  after/hand 1.75x  before-immediate/hand 1.17x  after-immediate/hand 1.19x
+el/nest7               hand      660.0 ns before     1758.8 ns after     1751.6 ns before-immediate     1093.7 ns after-immediate     1089.6 ns  before/hand 2.66x  after/hand 2.65x  before-immediate/hand 1.66x  after-immediate/hand 1.65x
+el/block               hand     1086.3 ns before     1858.3 ns after     1817.1 ns before-immediate     1189.1 ns after-immediate     1186.9 ns  before/hand 1.71x  after/hand 1.67x  before-immediate/hand 1.09x  after-immediate/hand 1.09x
+el/try                 hand     3397.6 ns before     6267.8 ns after     4925.1 ns before-immediate     4917.7 ns after-immediate     3345.0 ns  before/hand 1.84x  after/hand 1.45x  before-immediate/hand 1.45x  after-immediate/hand 0.98x
+el/loop                hand     2252.0 ns before     3849.2 ns after     3901.2 ns before-immediate     2679.0 ns after-immediate     2659.4 ns  before/hand 1.71x  after/hand 1.73x  before-immediate/hand 1.19x  after-immediate/hand 1.18x
+  el/terms100: 1 round(s) redone after a gen1/gen2 collection
+el/terms100            hand    11794.6 ns before    16856.0 ns after    16886.6 ns before-immediate    13392.9 ns after-immediate    13458.7 ns  before/hand 1.43x  after/hand 1.43x  before-immediate/hand 1.14x  after-immediate/hand 1.14x
+el/terms1000           hand   115416.4 ns before   159241.3 ns after   157394.5 ns before-immediate   125442.8 ns after-immediate   126608.7 ns  before/hand 1.38x  after/hand 1.36x  before-immediate/hand 1.09x  after-immediate/hand 1.10x
+  el/overloads: 1 round(s) redone after a gen1/gen2 collection
+el/overloads           hand     1902.3 ns before     2683.0 ns after     2665.0 ns before-immediate     2147.4 ns after-immediate     2152.0 ns  before/hand 1.41x  after/hand 1.40x  before-immediate/hand 1.13x  after-immediate/hand 1.13x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      287.2 ns before      979.7 ns after      981.2 ns before-immediate      703.6 ns after-immediate      701.3 ns  before/hand 3.41x  after/hand 3.42x  before-immediate/hand 2.45x  after-immediate/hand 2.44x
+el/interpolation       hand     1814.5 ns before     5005.9 ns after     4805.8 ns before-immediate     4200.7 ns after-immediate     3710.7 ns  before/hand 2.76x  after/hand 2.65x  before-immediate/hand 2.32x  after-immediate/hand 2.05x
+el/untyped             hand    21564.9 ns before    20252.5 ns after    23109.9 ns  before/hand 0.94x  after/hand 1.07x
+el/refused-early       hand      472.0 ns before     1260.8 ns after     1272.4 ns before-immediate     1295.3 ns after-immediate     1254.7 ns  before/hand 2.67x  after/hand 2.70x  before-immediate/hand 2.74x  after-immediate/hand 2.66x
+el/refused-late        hand     1438.3 ns before     1933.4 ns after     1846.6 ns before-immediate     3267.8 ns after-immediate     3246.8 ns  before/hand 1.34x  after/hand 1.28x  before-immediate/hand 2.27x  after-immediate/hand 2.26x
+
+# Paired stand, 2026-09-20 00:14
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.8 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| el/ladder.scan | generated | control | 139.1 | 141.3 | 1.02x | 139.0 | 1.00x | -1.7% | 0 | 0 |
+| el/refused-early.bool | generated | hand | 342.7 | 1116.3 | 3.26x | 570.3 | 1.66x | -48.9% | 1064 | 624 |
+| el/refused-late.bool | generated | hand | 1190.2 | 1782.2 | 1.50x | 931.6 | 0.78x | -47.7% | 1064 | 624 |
+| el/ladder.bool | generated | hand | 1012.1 | 1811.0 | 1.79x | 1832.6 | 1.81x | +1.2% | 1776 | 1720 |
+| el/floor | generated | hand | 318.2 | 825.5 | 2.59x | 819.0 | 2.57x | -0.8% | 1104 | 1104 |
+| el/floor | immediate | hand | 318.2 | 494.4 | 1.55x | 488.0 | 1.53x | -1.3% | 1120 | 1120 |
+| el/ladder | generated | hand | 1012.7 | 1780.6 | 1.76x | 1771.5 | 1.75x | -0.5% | 1776 | 1776 |
+| el/ladder | immediate | hand | 1012.7 | 1188.1 | 1.17x | 1202.2 | 1.19x | +1.2% | 1784 | 1784 |
+| el/nest7 | generated | hand | 660.0 | 1758.8 | 2.66x | 1751.6 | 2.65x | -0.4% | 1152 | 1152 |
+| el/nest7 | immediate | hand | 660.0 | 1093.7 | 1.66x | 1089.6 | 1.65x | -0.4% | 1120 | 1120 |
+| el/block | generated | hand | 1086.3 | 1858.3 | 1.71x | 1817.1 | 1.67x | -2.2% | 2344 | 2344 |
+| el/block | immediate | hand | 1086.3 | 1189.1 | 1.09x | 1186.9 | 1.09x | -0.2% | 2440 | 2440 |
+| el/try | generated | hand | 3397.6 | 6267.8 | 1.84x | 4925.1 | 1.45x | -21.4% | 5632 | 4456 |
+| el/try | immediate | hand | 3397.6 | 4917.7 | 1.45x | 3345.0 | 0.98x | -32.0% | 5752 | 4152 |
+| el/loop | generated | hand | 2252.0 | 3849.2 | 1.71x | 3901.2 | 1.73x | +1.4% | 4776 | 4776 |
+| el/loop | immediate | hand | 2252.0 | 2679.0 | 1.19x | 2659.4 | 1.18x | -0.7% | 4880 | 4880 |
+| el/terms100 | generated | hand | 11794.6 | 16856.0 | 1.43x | 16886.6 | 1.43x | +0.2% | 17904 | 17904 |
+| el/terms100 | immediate | hand | 11794.6 | 13392.9 | 1.14x | 13458.7 | 1.14x | +0.5% | 18720 | 18720 |
+| el/terms1000 | generated | hand | 115416.4 | 159241.3 | 1.38x | 157394.5 | 1.36x | -1.2% | 169104 | 169104 |
+| el/terms1000 | immediate | hand | 115416.4 | 125442.8 | 1.09x | 126608.7 | 1.10x | +0.9% | 177120 | 177123 |
+| el/overloads | generated | hand | 1902.3 | 2683.0 | 1.41x | 2665.0 | 1.40x | -0.7% | 4248 | 4248 |
+| el/overloads | immediate | hand | 1902.3 | 2147.4 | 1.13x | 2152.0 | 1.13x | +0.2% | 4200 | 4200 |
+| el/string | generated | hand | 287.2 | 979.7 | 3.41x | 981.2 | 3.42x | +0.1% | 1056 | 1056 |
+| el/string | immediate | hand | 287.2 | 703.6 | 2.45x | 701.3 | 2.44x | -0.3% | 1032 | 1032 |
+| el/interpolation | generated | hand | 1814.5 | 5005.9 | 2.76x | 4805.8 | 2.65x | -4.0% | 2368 | 2368 |
+| el/interpolation | immediate | hand | 1814.5 | 4200.7 | 2.32x | 3710.7 | 2.05x | -11.7% | 2424 | 2424 |
+| el/untyped | generated | hand | 21564.9 | 20252.5 | 0.94x | 23109.9 | 1.07x | +14.1% | 16424 | 16424 |
+| el/refused-early | generated | hand | 472.0 | 1260.8 | 2.67x | 1272.4 | 2.70x | +0.9% | 1064 | 1064 |
+| el/refused-early | immediate | hand | 472.0 | 1295.3 | 2.74x | 1254.7 | 2.66x | -3.1% | 1944 | 1944 |
+| el/refused-late | generated | hand | 1438.3 | 1933.4 | 1.34x | 1846.6 | 1.28x | -4.5% | 1064 | 1064 |
+| el/refused-late | immediate | hand | 1438.3 | 3267.8 | 2.27x | 3246.8 | 2.26x | -0.6% | 3928 | 3928 |
+
+Written to T:\TEMP\dotgram-stand\w69\pair\run-2
+=== run 3 of 5, 00:14:59
+18 rows, every reading agreeing. Timing 8 rounds.
+el/ladder.scan         control      140.4 ns before      138.0 ns after      135.4 ns  before/control 0.98x  after/control 0.96x
+el/refused-early.bool  hand      351.1 ns before     1083.9 ns after      546.7 ns  before/hand 3.09x  after/hand 1.56x
+el/refused-late.bool   hand     1184.0 ns before     1755.8 ns after      908.1 ns  before/hand 1.48x  after/hand 0.77x
+el/ladder.bool         hand     1026.0 ns before     1756.9 ns after     1720.2 ns  before/hand 1.71x  after/hand 1.68x
+el/floor               hand      321.5 ns before      815.9 ns after      814.8 ns before-immediate      482.3 ns after-immediate      464.5 ns  before/hand 2.54x  after/hand 2.53x  before-immediate/hand 1.50x  after-immediate/hand 1.44x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1017.2 ns before     1766.0 ns after     1784.3 ns before-immediate     1202.8 ns after-immediate     1160.5 ns  before/hand 1.74x  after/hand 1.75x  before-immediate/hand 1.18x  after-immediate/hand 1.14x
+el/nest7               hand      670.6 ns before     1721.0 ns after     1733.4 ns before-immediate     1094.6 ns after-immediate     1064.1 ns  before/hand 2.57x  after/hand 2.58x  before-immediate/hand 1.63x  after-immediate/hand 1.59x
+el/block               hand     1071.8 ns before     1855.5 ns after     1836.5 ns before-immediate     1201.7 ns after-immediate     1159.8 ns  before/hand 1.73x  after/hand 1.71x  before-immediate/hand 1.12x  after-immediate/hand 1.08x
+el/try                 hand     3233.9 ns before     6229.8 ns after     4791.6 ns before-immediate     4764.6 ns after-immediate     3261.5 ns  before/hand 1.93x  after/hand 1.48x  before-immediate/hand 1.47x  after-immediate/hand 1.01x
+  el/loop: 1 round(s) redone after a gen1/gen2 collection
+el/loop                hand     2252.8 ns before     3716.1 ns after     3743.8 ns before-immediate     2569.2 ns after-immediate     2543.7 ns  before/hand 1.65x  after/hand 1.66x  before-immediate/hand 1.14x  after-immediate/hand 1.13x
+el/terms100            hand    11517.6 ns before    17185.1 ns after    16868.6 ns before-immediate    13425.5 ns after-immediate    13182.4 ns  before/hand 1.49x  after/hand 1.46x  before-immediate/hand 1.17x  after-immediate/hand 1.14x
+  el/terms1000: 3 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   110727.8 ns before   160468.1 ns after   159081.8 ns before-immediate   128961.7 ns after-immediate   126162.0 ns  before/hand 1.45x  after/hand 1.44x  before-immediate/hand 1.16x  after-immediate/hand 1.14x
+el/overloads           hand     1846.9 ns before     2631.7 ns after     2613.6 ns before-immediate     2057.9 ns after-immediate     2018.6 ns  before/hand 1.42x  after/hand 1.42x  before-immediate/hand 1.11x  after-immediate/hand 1.09x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      287.7 ns before     1024.7 ns after     1007.6 ns before-immediate      680.6 ns after-immediate      662.2 ns  before/hand 3.56x  after/hand 3.50x  before-immediate/hand 2.37x  after-immediate/hand 2.30x
+el/interpolation       hand     2059.6 ns before     4645.9 ns after     5078.3 ns before-immediate     4165.2 ns after-immediate     4065.6 ns  before/hand 2.26x  after/hand 2.47x  before-immediate/hand 2.02x  after-immediate/hand 1.97x
+  el/untyped: 1 round(s) redone after a gen1/gen2 collection
+el/untyped             hand    18722.0 ns before    20579.0 ns after    20864.9 ns  before/hand 1.10x  after/hand 1.11x
+el/refused-early       hand      481.1 ns before     1258.3 ns after     1288.3 ns before-immediate     1290.3 ns after-immediate     1285.4 ns  before/hand 2.62x  after/hand 2.68x  before-immediate/hand 2.68x  after-immediate/hand 2.67x
+el/refused-late        hand     1510.0 ns before     2006.5 ns after     1808.5 ns before-immediate     3395.0 ns after-immediate     3181.3 ns  before/hand 1.33x  after/hand 1.20x  before-immediate/hand 2.25x  after-immediate/hand 2.11x
+
+# Paired stand, 2026-09-20 00:16
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| el/ladder.scan | generated | control | 140.4 | 138.0 | 0.98x | 135.4 | 0.96x | -1.8% | 0 | 0 |
+| el/refused-early.bool | generated | hand | 351.1 | 1083.9 | 3.09x | 546.7 | 1.56x | -49.6% | 1064 | 624 |
+| el/refused-late.bool | generated | hand | 1184.0 | 1755.8 | 1.48x | 908.1 | 0.77x | -48.3% | 1064 | 624 |
+| el/ladder.bool | generated | hand | 1026.0 | 1756.9 | 1.71x | 1720.2 | 1.68x | -2.1% | 1776 | 1720 |
+| el/floor | generated | hand | 321.5 | 815.9 | 2.54x | 814.8 | 2.53x | -0.1% | 1104 | 1104 |
+| el/floor | immediate | hand | 321.5 | 482.3 | 1.50x | 464.5 | 1.44x | -3.7% | 1120 | 1120 |
+| el/ladder | generated | hand | 1017.2 | 1766.0 | 1.74x | 1784.3 | 1.75x | +1.0% | 1776 | 1776 |
+| el/ladder | immediate | hand | 1017.2 | 1202.8 | 1.18x | 1160.5 | 1.14x | -3.5% | 1784 | 1784 |
+| el/nest7 | generated | hand | 670.6 | 1721.0 | 2.57x | 1733.4 | 2.58x | +0.7% | 1152 | 1152 |
+| el/nest7 | immediate | hand | 670.6 | 1094.6 | 1.63x | 1064.1 | 1.59x | -2.8% | 1120 | 1120 |
+| el/block | generated | hand | 1071.8 | 1855.5 | 1.73x | 1836.5 | 1.71x | -1.0% | 2344 | 2344 |
+| el/block | immediate | hand | 1071.8 | 1201.7 | 1.12x | 1159.8 | 1.08x | -3.5% | 2440 | 2440 |
+| el/try | generated | hand | 3233.9 | 6229.8 | 1.93x | 4791.6 | 1.48x | -23.1% | 5632 | 4456 |
+| el/try | immediate | hand | 3233.9 | 4764.6 | 1.47x | 3261.5 | 1.01x | -31.5% | 5752 | 4152 |
+| el/loop | generated | hand | 2252.8 | 3716.1 | 1.65x | 3743.8 | 1.66x | +0.7% | 4776 | 4776 |
+| el/loop | immediate | hand | 2252.8 | 2569.2 | 1.14x | 2543.7 | 1.13x | -1.0% | 4880 | 4880 |
+| el/terms100 | generated | hand | 11517.6 | 17185.1 | 1.49x | 16868.6 | 1.46x | -1.8% | 17904 | 17904 |
+| el/terms100 | immediate | hand | 11517.6 | 13425.5 | 1.17x | 13182.4 | 1.14x | -1.8% | 18720 | 18720 |
+| el/terms1000 | generated | hand | 110727.8 | 160468.1 | 1.45x | 159081.8 | 1.44x | -0.9% | 169104 | 169129 |
+| el/terms1000 | immediate | hand | 110727.8 | 128961.7 | 1.16x | 126162.0 | 1.14x | -2.2% | 177123 | 177120 |
+| el/overloads | generated | hand | 1846.9 | 2631.7 | 1.42x | 2613.6 | 1.42x | -0.7% | 4248 | 4248 |
+| el/overloads | immediate | hand | 1846.9 | 2057.9 | 1.11x | 2018.6 | 1.09x | -1.9% | 4200 | 4200 |
+| el/string | generated | hand | 287.7 | 1024.7 | 3.56x | 1007.6 | 3.50x | -1.7% | 1056 | 1056 |
+| el/string | immediate | hand | 287.7 | 680.6 | 2.37x | 662.2 | 2.30x | -2.7% | 1032 | 1032 |
+| el/interpolation | generated | hand | 2059.6 | 4645.9 | 2.26x | 5078.3 | 2.47x | +9.3% | 2368 | 2368 |
+| el/interpolation | immediate | hand | 2059.6 | 4165.2 | 2.02x | 4065.6 | 1.97x | -2.4% | 2424 | 2424 |
+| el/untyped | generated | hand | 18722.0 | 20579.0 | 1.10x | 20864.9 | 1.11x | +1.4% | 16424 | 16424 |
+| el/refused-early | generated | hand | 481.1 | 1258.3 | 2.62x | 1288.3 | 2.68x | +2.4% | 1064 | 1064 |
+| el/refused-early | immediate | hand | 481.1 | 1290.3 | 2.68x | 1285.4 | 2.67x | -0.4% | 1944 | 1944 |
+| el/refused-late | generated | hand | 1510.0 | 2006.5 | 1.33x | 1808.5 | 1.20x | -9.9% | 1064 | 1064 |
+| el/refused-late | immediate | hand | 1510.0 | 3395.0 | 2.25x | 3181.3 | 2.11x | -6.3% | 3928 | 3928 |
+
+Written to T:\TEMP\dotgram-stand\w69\pair\run-3
+=== run 4 of 5, 00:16:35
+18 rows, every reading agreeing. Timing 8 rounds.
+el/ladder.scan         control      138.5 ns before      132.9 ns after      133.4 ns  before/control 0.96x  after/control 0.96x
+el/refused-early.bool  hand      328.7 ns before     1088.2 ns after      568.7 ns  before/hand 3.31x  after/hand 1.73x
+el/refused-late.bool   hand     1178.5 ns before     1789.3 ns after      912.2 ns  before/hand 1.52x  after/hand 0.77x
+  el/ladder.bool: 2 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1036.5 ns before     1788.7 ns after     1761.2 ns  before/hand 1.73x  after/hand 1.70x
+el/floor               hand      345.4 ns before      882.3 ns after      870.0 ns before-immediate      519.2 ns after-immediate      517.4 ns  before/hand 2.55x  after/hand 2.52x  before-immediate/hand 1.50x  after-immediate/hand 1.50x
+el/ladder              hand     1042.7 ns before     1820.8 ns after     1845.7 ns before-immediate     1239.0 ns after-immediate     1210.7 ns  before/hand 1.75x  after/hand 1.77x  before-immediate/hand 1.19x  after-immediate/hand 1.16x
+  el/nest7: 1 round(s) redone after a gen1/gen2 collection
+el/nest7               hand      780.8 ns before     1813.2 ns after     1817.1 ns before-immediate     1099.3 ns after-immediate     1111.8 ns  before/hand 2.32x  after/hand 2.33x  before-immediate/hand 1.41x  after-immediate/hand 1.42x
+el/block               hand     1137.5 ns before     1932.0 ns after     1897.9 ns before-immediate     1261.3 ns after-immediate     1261.2 ns  before/hand 1.70x  after/hand 1.67x  before-immediate/hand 1.11x  after-immediate/hand 1.11x
+  el/try: 1 round(s) redone after a gen1/gen2 collection
+el/try                 hand     3438.6 ns before     6477.9 ns after     5041.2 ns before-immediate     4961.4 ns after-immediate     3455.9 ns  before/hand 1.88x  after/hand 1.47x  before-immediate/hand 1.44x  after-immediate/hand 1.01x
+el/loop                hand     2352.9 ns before     3926.0 ns after     3922.5 ns before-immediate     2632.3 ns after-immediate     2745.0 ns  before/hand 1.67x  after/hand 1.67x  before-immediate/hand 1.12x  after-immediate/hand 1.17x
+  el/terms100: 1 round(s) redone after a gen1/gen2 collection
+el/terms100            hand    12741.6 ns before    16964.8 ns after    17503.9 ns before-immediate    13539.6 ns after-immediate    13398.2 ns  before/hand 1.33x  after/hand 1.37x  before-immediate/hand 1.06x  after-immediate/hand 1.05x
+el/terms1000           hand   122339.9 ns before   160944.3 ns after   161706.7 ns before-immediate   128643.7 ns after-immediate   128565.9 ns  before/hand 1.32x  after/hand 1.32x  before-immediate/hand 1.05x  after-immediate/hand 1.05x
+  el/overloads: 1 round(s) redone after a gen1/gen2 collection
+el/overloads           hand     1920.0 ns before     2725.4 ns after     2652.7 ns before-immediate     2099.3 ns after-immediate     2106.8 ns  before/hand 1.42x  after/hand 1.38x  before-immediate/hand 1.09x  after-immediate/hand 1.10x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      283.0 ns before      997.3 ns after      987.6 ns before-immediate      674.1 ns after-immediate      699.3 ns  before/hand 3.52x  after/hand 3.49x  before-immediate/hand 2.38x  after-immediate/hand 2.47x
+el/interpolation       hand     2176.2 ns before     5109.2 ns after     5217.8 ns before-immediate     3991.1 ns after-immediate     4173.1 ns  before/hand 2.35x  after/hand 2.40x  before-immediate/hand 1.83x  after-immediate/hand 1.92x
+el/untyped             hand    22457.8 ns before    20369.6 ns after    25780.5 ns  before/hand 0.91x  after/hand 1.15x
+  el/refused-early: 1 round(s) redone after a gen1/gen2 collection
+el/refused-early       hand      518.6 ns before     1317.3 ns after     1334.3 ns before-immediate     1356.3 ns after-immediate     1322.1 ns  before/hand 2.54x  after/hand 2.57x  before-immediate/hand 2.62x  after-immediate/hand 2.55x
+el/refused-late        hand     1522.8 ns before     1875.0 ns after     2075.9 ns before-immediate     3306.0 ns after-immediate     3489.1 ns  before/hand 1.23x  after/hand 1.36x  before-immediate/hand 2.17x  after-immediate/hand 2.29x
+
+# Paired stand, 2026-09-20 00:18
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 32.3 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| el/ladder.scan | generated | control | 138.5 | 132.9 | 0.96x | 133.4 | 0.96x | +0.4% | 0 | 0 |
+| el/refused-early.bool | generated | hand | 328.7 | 1088.2 | 3.31x | 568.7 | 1.73x | -47.7% | 1064 | 624 |
+| el/refused-late.bool | generated | hand | 1178.5 | 1789.3 | 1.52x | 912.2 | 0.77x | -49.0% | 1064 | 624 |
+| el/ladder.bool | generated | hand | 1036.5 | 1788.7 | 1.73x | 1761.2 | 1.70x | -1.5% | 1776 | 1720 |
+| el/floor | generated | hand | 345.4 | 882.3 | 2.55x | 870.0 | 2.52x | -1.4% | 1104 | 1104 |
+| el/floor | immediate | hand | 345.4 | 519.2 | 1.50x | 517.4 | 1.50x | -0.4% | 1120 | 1120 |
+| el/ladder | generated | hand | 1042.7 | 1820.8 | 1.75x | 1845.7 | 1.77x | +1.4% | 1776 | 1776 |
+| el/ladder | immediate | hand | 1042.7 | 1239.0 | 1.19x | 1210.7 | 1.16x | -2.3% | 1784 | 1784 |
+| el/nest7 | generated | hand | 780.8 | 1813.2 | 2.32x | 1817.1 | 2.33x | +0.2% | 1152 | 1152 |
+| el/nest7 | immediate | hand | 780.8 | 1099.3 | 1.41x | 1111.8 | 1.42x | +1.1% | 1120 | 1120 |
+| el/block | generated | hand | 1137.5 | 1932.0 | 1.70x | 1897.9 | 1.67x | -1.8% | 2344 | 2344 |
+| el/block | immediate | hand | 1137.5 | 1261.3 | 1.11x | 1261.2 | 1.11x | 0.0% | 2440 | 2440 |
+| el/try | generated | hand | 3438.6 | 6477.9 | 1.88x | 5041.2 | 1.47x | -22.2% | 5632 | 4456 |
+| el/try | immediate | hand | 3438.6 | 4961.4 | 1.44x | 3455.9 | 1.01x | -30.3% | 5752 | 4152 |
+| el/loop | generated | hand | 2352.9 | 3926.0 | 1.67x | 3922.5 | 1.67x | -0.1% | 4776 | 4776 |
+| el/loop | immediate | hand | 2352.9 | 2632.3 | 1.12x | 2745.0 | 1.17x | +4.3% | 4880 | 4880 |
+| el/terms100 | generated | hand | 12741.6 | 16964.8 | 1.33x | 17503.9 | 1.37x | +3.2% | 17904 | 17904 |
+| el/terms100 | immediate | hand | 12741.6 | 13539.6 | 1.06x | 13398.2 | 1.05x | -1.0% | 18720 | 18720 |
+| el/terms1000 | generated | hand | 122339.9 | 160944.3 | 1.32x | 161706.7 | 1.32x | +0.5% | 169104 | 169107 |
+| el/terms1000 | immediate | hand | 122339.9 | 128643.7 | 1.05x | 128565.9 | 1.05x | -0.1% | 177120 | 177120 |
+| el/overloads | generated | hand | 1920.0 | 2725.4 | 1.42x | 2652.7 | 1.38x | -2.7% | 4248 | 4248 |
+| el/overloads | immediate | hand | 1920.0 | 2099.3 | 1.09x | 2106.8 | 1.10x | +0.4% | 4200 | 4200 |
+| el/string | generated | hand | 283.0 | 997.3 | 3.52x | 987.6 | 3.49x | -1.0% | 1056 | 1056 |
+| el/string | immediate | hand | 283.0 | 674.1 | 2.38x | 699.3 | 2.47x | +3.7% | 1032 | 1032 |
+| el/interpolation | generated | hand | 2176.2 | 5109.2 | 2.35x | 5217.8 | 2.40x | +2.1% | 2368 | 2368 |
+| el/interpolation | immediate | hand | 2176.2 | 3991.1 | 1.83x | 4173.1 | 1.92x | +4.6% | 2424 | 2424 |
+| el/untyped | generated | hand | 22457.8 | 20369.6 | 0.91x | 25780.5 | 1.15x | +26.6% | 16424 | 16424 |
+| el/refused-early | generated | hand | 518.6 | 1317.3 | 2.54x | 1334.3 | 2.57x | +1.3% | 1064 | 1064 |
+| el/refused-early | immediate | hand | 518.6 | 1356.3 | 2.62x | 1322.1 | 2.55x | -2.5% | 1944 | 1944 |
+| el/refused-late | generated | hand | 1522.8 | 1875.0 | 1.23x | 2075.9 | 1.36x | +10.7% | 1064 | 1064 |
+| el/refused-late | immediate | hand | 1522.8 | 3306.0 | 2.17x | 3489.1 | 2.29x | +5.5% | 3928 | 3928 |
+
+Written to T:\TEMP\dotgram-stand\w69\pair\run-4
+=== run 5 of 5, 00:18:19
+18 rows, every reading agreeing. Timing 8 rounds.
+el/ladder.scan         control      138.1 ns before      138.8 ns after      138.0 ns  before/control 1.01x  after/control 1.00x
+el/refused-early.bool  hand      331.1 ns before     1093.0 ns after      559.9 ns  before/hand 3.30x  after/hand 1.69x
+el/refused-late.bool   hand     1215.9 ns before     1804.5 ns after      926.4 ns  before/hand 1.48x  after/hand 0.76x
+  el/ladder.bool: 1 round(s) redone after a gen1/gen2 collection
+el/ladder.bool         hand     1052.7 ns before     1856.9 ns after     1781.3 ns  before/hand 1.76x  after/hand 1.69x
+el/floor               hand      327.8 ns before      843.3 ns after      855.9 ns before-immediate      486.6 ns after-immediate      498.1 ns  before/hand 2.57x  after/hand 2.61x  before-immediate/hand 1.48x  after-immediate/hand 1.52x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand     1008.7 ns before     1788.6 ns after     1759.8 ns before-immediate     1223.0 ns after-immediate     1178.7 ns  before/hand 1.77x  after/hand 1.74x  before-immediate/hand 1.21x  after-immediate/hand 1.17x
+el/nest7               hand      722.8 ns before     1726.1 ns after     1729.0 ns before-immediate     1052.6 ns after-immediate     1053.8 ns  before/hand 2.39x  after/hand 2.39x  before-immediate/hand 1.46x  after-immediate/hand 1.46x
+el/block               hand     1078.8 ns before     1918.4 ns after     1870.6 ns before-immediate     1211.6 ns after-immediate     1198.3 ns  before/hand 1.78x  after/hand 1.73x  before-immediate/hand 1.12x  after-immediate/hand 1.11x
+el/try                 hand     3431.2 ns before     6458.5 ns after     4960.9 ns before-immediate     4910.7 ns after-immediate     3440.2 ns  before/hand 1.88x  after/hand 1.45x  before-immediate/hand 1.43x  after-immediate/hand 1.00x
+el/loop                hand     2325.0 ns before     3891.3 ns after     3893.6 ns before-immediate     2701.6 ns after-immediate     2652.0 ns  before/hand 1.67x  after/hand 1.67x  before-immediate/hand 1.16x  after-immediate/hand 1.14x
+el/terms100            hand    12200.6 ns before    16542.7 ns after    16571.0 ns before-immediate    13059.0 ns after-immediate    13394.1 ns  before/hand 1.36x  after/hand 1.36x  before-immediate/hand 1.07x  after-immediate/hand 1.10x
+  el/terms1000: 9 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   110260.6 ns before   156080.0 ns after   155389.9 ns before-immediate   123906.2 ns after-immediate   126728.0 ns  before/hand 1.42x  after/hand 1.41x  before-immediate/hand 1.12x  after-immediate/hand 1.15x
+el/overloads           hand     1901.4 ns before     2705.5 ns after     2659.7 ns before-immediate     2227.8 ns after-immediate     2217.6 ns  before/hand 1.42x  after/hand 1.40x  before-immediate/hand 1.17x  after-immediate/hand 1.17x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      290.2 ns before     1008.6 ns after     1008.0 ns before-immediate      713.1 ns after-immediate      720.0 ns  before/hand 3.48x  after/hand 3.47x  before-immediate/hand 2.46x  after-immediate/hand 2.48x
+el/interpolation       hand     2008.9 ns before     4874.9 ns after     4916.1 ns before-immediate     3906.2 ns after-immediate     3772.8 ns  before/hand 2.43x  after/hand 2.45x  before-immediate/hand 1.94x  after-immediate/hand 1.88x
+el/untyped             hand    26047.6 ns before    20751.2 ns after    20401.5 ns  before/hand 0.80x  after/hand 0.78x
+el/refused-early       hand      474.4 ns before     1301.4 ns after     1345.4 ns before-immediate     1387.6 ns after-immediate     1325.9 ns  before/hand 2.74x  after/hand 2.84x  before-immediate/hand 2.93x  after-immediate/hand 2.80x
+el/refused-late        hand     1548.3 ns before     1891.8 ns after     2033.4 ns before-immediate     3439.3 ns after-immediate     3203.3 ns  before/hand 1.22x  after/hand 1.31x  before-immediate/hand 2.22x  after-immediate/hand 2.07x
+
+# Paired stand, 2026-09-20 00:19
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 32.2 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| el/ladder.scan | generated | control | 138.1 | 138.8 | 1.01x | 138.0 | 1.00x | -0.6% | 0 | 0 |
+| el/refused-early.bool | generated | hand | 331.1 | 1093.0 | 3.30x | 559.9 | 1.69x | -48.8% | 1064 | 624 |
+| el/refused-late.bool | generated | hand | 1215.9 | 1804.5 | 1.48x | 926.4 | 0.76x | -48.7% | 1064 | 624 |
+| el/ladder.bool | generated | hand | 1052.7 | 1856.9 | 1.76x | 1781.3 | 1.69x | -4.1% | 1776 | 1720 |
+| el/floor | generated | hand | 327.8 | 843.3 | 2.57x | 855.9 | 2.61x | +1.5% | 1104 | 1104 |
+| el/floor | immediate | hand | 327.8 | 486.6 | 1.48x | 498.1 | 1.52x | +2.4% | 1120 | 1120 |
+| el/ladder | generated | hand | 1008.7 | 1788.6 | 1.77x | 1759.8 | 1.74x | -1.6% | 1776 | 1776 |
+| el/ladder | immediate | hand | 1008.7 | 1223.0 | 1.21x | 1178.7 | 1.17x | -3.6% | 1784 | 1784 |
+| el/nest7 | generated | hand | 722.8 | 1726.1 | 2.39x | 1729.0 | 2.39x | +0.2% | 1152 | 1152 |
+| el/nest7 | immediate | hand | 722.8 | 1052.6 | 1.46x | 1053.8 | 1.46x | +0.1% | 1120 | 1120 |
+| el/block | generated | hand | 1078.8 | 1918.4 | 1.78x | 1870.6 | 1.73x | -2.5% | 2344 | 2344 |
+| el/block | immediate | hand | 1078.8 | 1211.6 | 1.12x | 1198.3 | 1.11x | -1.1% | 2440 | 2440 |
+| el/try | generated | hand | 3431.2 | 6458.5 | 1.88x | 4960.9 | 1.45x | -23.2% | 5632 | 4456 |
+| el/try | immediate | hand | 3431.2 | 4910.7 | 1.43x | 3440.2 | 1.00x | -29.9% | 5752 | 4152 |
+| el/loop | generated | hand | 2325.0 | 3891.3 | 1.67x | 3893.6 | 1.67x | +0.1% | 4776 | 4776 |
+| el/loop | immediate | hand | 2325.0 | 2701.6 | 1.16x | 2652.0 | 1.14x | -1.8% | 4880 | 4880 |
+| el/terms100 | generated | hand | 12200.6 | 16542.7 | 1.36x | 16571.0 | 1.36x | +0.2% | 17904 | 17904 |
+| el/terms100 | immediate | hand | 12200.6 | 13059.0 | 1.07x | 13394.1 | 1.10x | +2.6% | 18720 | 18720 |
+| el/terms1000 | generated | hand | 110260.6 | 156080.0 | 1.42x | 155389.9 | 1.41x | -0.4% | 169129 | 169129 |
+| el/terms1000 | immediate | hand | 110260.6 | 123906.2 | 1.12x | 126728.0 | 1.15x | +2.3% | 177120 | 177123 |
+| el/overloads | generated | hand | 1901.4 | 2705.5 | 1.42x | 2659.7 | 1.40x | -1.7% | 4248 | 4248 |
+| el/overloads | immediate | hand | 1901.4 | 2227.8 | 1.17x | 2217.6 | 1.17x | -0.5% | 4200 | 4200 |
+| el/string | generated | hand | 290.2 | 1008.6 | 3.48x | 1008.0 | 3.47x | -0.1% | 1056 | 1056 |
+| el/string | immediate | hand | 290.2 | 713.1 | 2.46x | 720.0 | 2.48x | +1.0% | 1032 | 1032 |
+| el/interpolation | generated | hand | 2008.9 | 4874.9 | 2.43x | 4916.1 | 2.45x | +0.8% | 2368 | 2368 |
+| el/interpolation | immediate | hand | 2008.9 | 3906.2 | 1.94x | 3772.8 | 1.88x | -3.4% | 2424 | 2424 |
+| el/untyped | generated | hand | 26047.6 | 20751.2 | 0.80x | 20401.5 | 0.78x | -1.7% | 16424 | 16424 |
+| el/refused-early | generated | hand | 474.4 | 1301.4 | 2.74x | 1345.4 | 2.84x | +3.4% | 1064 | 1064 |
+| el/refused-early | immediate | hand | 474.4 | 1387.6 | 2.93x | 1325.9 | 2.80x | -4.4% | 1944 | 1944 |
+| el/refused-late | generated | hand | 1548.3 | 1891.8 | 1.22x | 2033.4 | 1.31x | +7.5% | 1064 | 1064 |
+| el/refused-late | immediate | hand | 1548.3 | 3439.3 | 2.22x | 3203.3 | 2.07x | -6.9% | 3928 | 3928 |
+
+Written to T:\TEMP\dotgram-stand\w69\pair\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 31.8 ns (the runs' controls: 31.7, 31.8, 31.7, 32.3, 32.2).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-20 00:19
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.8 ns.
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| el/ladder.scan | generated | control | 138.5 | 138.3 | 1.00x | 138.0 | 1.00x | -0.2% | 0 | 0 |
+| el/refused-early.bool | generated | hand | 334.1 | 1093.0 | 3.27x | 568.7 | 1.70x | -48.0% | 1064 | 624 |
+| el/refused-late.bool | generated | hand | 1190.2 | 1789.3 | 1.50x | 926.4 | 0.78x | -48.2% | 1064 | 624 |
+| el/ladder.bool | generated | hand | 1036.5 | 1811.0 | 1.75x | 1769.3 | 1.71x | -2.3% | 1776 | 1720 |
+| el/floor | generated | hand | 327.8 | 836.5 | 2.55x | 819.0 | 2.50x | -2.1% | 1104 | 1104 |
+| el/floor | immediate | hand | 327.8 | 486.6 | 1.48x | 488.0 | 1.49x | +0.3% | 1120 | 1120 |
+| el/ladder | generated | hand | 1017.2 | 1788.6 | 1.76x | 1784.3 | 1.75x | -0.2% | 1776 | 1776 |
+| el/ladder | immediate | hand | 1017.2 | 1204.0 | 1.18x | 1202.2 | 1.18x | -0.2% | 1784 | 1784 |
+| el/nest7 | generated | hand | 672.3 | 1730.4 | 2.57x | 1733.4 | 2.58x | +0.2% | 1152 | 1152 |
+| el/nest7 | immediate | hand | 672.3 | 1093.7 | 1.63x | 1064.1 | 1.58x | -2.7% | 1120 | 1120 |
+| el/block | generated | hand | 1078.8 | 1858.3 | 1.72x | 1866.4 | 1.73x | +0.4% | 2344 | 2344 |
+| el/block | immediate | hand | 1078.8 | 1201.7 | 1.11x | 1186.9 | 1.10x | -1.2% | 2440 | 2440 |
+| el/try | generated | hand | 3397.6 | 6267.8 | 1.84x | 4960.9 | 1.46x | -20.9% | 5632 | 4456 |
+| el/try | immediate | hand | 3397.6 | 4910.7 | 1.45x | 3345.0 | 0.98x | -31.9% | 5752 | 4152 |
+| el/loop | generated | hand | 2325.0 | 3891.3 | 1.67x | 3901.2 | 1.68x | +0.3% | 4776 | 4776 |
+| el/loop | immediate | hand | 2325.0 | 2657.2 | 1.14x | 2659.4 | 1.14x | +0.1% | 4880 | 4880 |
+| el/terms100 | generated | hand | 11982.6 | 16964.8 | 1.42x | 16886.6 | 1.41x | -0.5% | 17904 | 17904 |
+| el/terms100 | immediate | hand | 11982.6 | 13392.9 | 1.12x | 13394.1 | 1.12x | 0.0% | 18720 | 18720 |
+| el/terms1000 | generated | hand | 113057.5 | 159873.8 | 1.41x | 157394.5 | 1.39x | -1.6% | 169104 | 169107 |
+| el/terms1000 | immediate | hand | 113057.5 | 127092.5 | 1.12x | 126728.0 | 1.12x | -0.3% | 177120 | 177120 |
+| el/overloads | generated | hand | 1901.4 | 2683.0 | 1.41x | 2652.7 | 1.40x | -1.1% | 4248 | 4248 |
+| el/overloads | immediate | hand | 1901.4 | 2106.0 | 1.11x | 2106.8 | 1.11x | 0.0% | 4200 | 4200 |
+| el/string | generated | hand | 287.2 | 997.3 | 3.47x | 987.6 | 3.44x | -1.0% | 1056 | 1056 |
+| el/string | immediate | hand | 287.2 | 689.7 | 2.40x | 699.3 | 2.44x | +1.4% | 1032 | 1032 |
+| el/interpolation | generated | hand | 2008.9 | 4874.9 | 2.43x | 4916.1 | 2.45x | +0.8% | 2368 | 2368 |
+| el/interpolation | immediate | hand | 2008.9 | 3991.1 | 1.99x | 3942.8 | 1.96x | -1.2% | 2424 | 2424 |
+| el/untyped | generated | hand | 22457.8 | 20369.6 | 0.91x | 20864.9 | 0.93x | +2.4% | 16424 | 16424 |
+| el/refused-early | generated | hand | 474.4 | 1260.8 | 2.66x | 1288.3 | 2.72x | +2.2% | 1064 | 1064 |
+| el/refused-early | immediate | hand | 474.4 | 1295.3 | 2.73x | 1322.1 | 2.79x | +2.1% | 1944 | 1944 |
+| el/refused-late | generated | hand | 1510.0 | 1933.4 | 1.28x | 1846.6 | 1.22x | -4.5% | 1064 | 1064 |
+| el/refused-late | immediate | hand | 1510.0 | 3395.0 | 2.25x | 3246.8 | 2.15x | -4.4% | 3928 | 3928 |
+
+Written to T:\TEMP\dotgram-stand\w69\pair
