@@ -2064,3 +2064,52 @@ says it is being paid. A percentage whose denominator holds a compressed copy of
 generated source is not the percentage anybody thinks they are reading.
 
 **Answer:** —
+
+## Q22 (2026-09-20). What the size instrument weighs, now that we know what is in the file
+
+Following the trail from Q21, and narrower than the worry it came from. Read at `be243fbd`.
+
+**The instrument is better than the fear.** `DotGram.CodeSize` reports two things per assembly and
+not one: `FileBytes`, the whole file, and `ILBytes`, the sum of every method body it walks the
+metadata for. So the symbols are in the first and cannot be in the second, and any statement made
+from `ILBytes` is untouched by Q21. It also measures the generated *source* twice — `Bytes` and
+`NormalizedBytes`, the second with the repository root replaced by `/_` — so the source figure was
+deliberately made independent of where the checkout sits.
+
+**What needs saying is which of the two a sentence is made from.** A change that removes S bytes of
+generated source removes from the file its own IL **and about a quarter of S again**, through the
+embedded source. The source instrument and the assembly instrument therefore overlap by design:
+they are not two independent readings of one change, and a report that quotes both as if they were
+is counting part of the same bytes twice.
+
+**And the path rule now has its mechanism.** "Compare sizes only within one worktree" has been the
+rule because `#line` directives carry the grammar's absolute path. The tool normalizes that away
+for the source figure and cannot for `FileBytes`, because the text inside the symbols is the
+unnormalized one. The scale: the two large SQL grammars hold 1,463 and 1,196 actions, so a few
+thousand `#line` directives each carrying a path of sixty to eighty characters — hundreds of
+kilobytes in the source, much less in the file since a repeated path deflates almost to nothing,
+and zero in `ILBytes`. Nothing in the tool's output says which of its numbers moved for this
+reason.
+
+**The architect's distinction, checked against the properties, and it holds.** Two separate
+switches are in play. `DebugType=embedded` puts the symbols in the assembly, and that alone is what
+buys the reason written beside it — "a stack trace from a parser here has line numbers without a
+symbol server". Embedding the *source text* is `EmbedUntrackedSources`, set once in
+`Directory.Build.props`, and what it buys is stepping through code the debugger cannot find on
+disk. Handwritten files are tracked and reached through SourceLink, so they were never embedded;
+the untracked files are the generated ones. **So the lever is exact**: turning that one property
+off removes the generated source from every shipped assembly and keeps every line number in every
+stack trace.
+
+**And it is two orders of magnitude larger than the thing being decided.** If the count of the
+symbols confirms Q21's estimate, it is seven to nine megabytes of a 19.8-megabyte assembly, against
+the 4.7% that `Portable` costs. Whoever is choosing about the grammar's text on a figure of 4.7%
+has not been shown the larger number on the same page, and the two are answers to the same
+question — what a consumer downloads.
+
+**What this is not.** Not a proposal to turn it off: the numbers come first, the decision is
+Igor's, and stepping through a generated parser is worth something to whoever is debugging one. It
+is a request that the lever and its price be named beside the percentage, and that every size
+sentence from here on say whether it was made from the file or from the IL.
+
+**Answer:** —
