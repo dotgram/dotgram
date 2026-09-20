@@ -1194,7 +1194,21 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   memory, with no buffer and no copy. Whether the byte overload should then drop its buffer too is
   measured, not assumed, and is a commit of its own. And the header of acceptable media
   types allocates quadratically, 63.8 MB at ten thousand ranges with an exponent of 2.07: a
-  shipped API, and finance-24 takes it ahead of the URL edit, diagnosis first as with the others. The buffered reader's pair passed (the
+  shipped API. **Diagnosed (finance-24), and it is not a curve but a cliff, and not the grammar's
+  but the generator's:** the allocation is exactly linear to three thousand ranges and jumps
+  twentyfold between three and four, then goes on linearly at a worse price. The parser pool keeps
+  a parser only while its arena stays under 65,536 entries; a range costs about eighteen, so the
+  limit runs out exactly there, and every later parse builds its machinery afresh. Not guessed: the
+  constant was raised in a throwaway build and ten thousand ranges went from 63,843 to 5,391 KB and
+  from 18,803 to 3,461 µs, the exponent from 2.07 to 1.00, and the build was thrown away. Raising
+  it is not the fix — the note beside it records that 4,096 was raised to 65,536 for an ordinary
+  document and that trimming the tables instead was measured and was slower — so the question is
+  how to keep both properties: a repeated large parse reusing its parser, a single one not holding
+  it for ever. performance-ff designs it (his suggestion: hold an oversized parser weakly), after
+  the refusal's rent and before the lazy form; the scaling test is his, at the generator's level,
+  so that it fails on his own code. **A separate finding beside it:** the address list is linear in
+  memory and superlinear in time from a thousand addresses on, before any collection happens, so it
+  is an algorithm and not the collector; suspected in the arena's removals, profile to come. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
