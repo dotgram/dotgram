@@ -5018,6 +5018,21 @@ static class FixSchema
 		return (uint)tag < (uint)TypeCodes.Length && TypeCodes[tag] == DataType;
 	}
 
+	/// <summary>One past the largest tag the standard defines, which is how long a table over the codes is.</summary>
+	public static int TagLimit => TypeCodes.Length;
+
+	/// <summary>Whether the standard defines this tag at all, whatever it says about it.</summary>
+	/// <remarks>
+	/// What <see cref="Type"/> answers before it is turned into a name — one bounds check and one
+	/// byte. It tells "the standard says this tag is not data" from "the standard has never heard
+	/// of this tag", which is the difference between a tag whose meaning is settled and a tag a
+	/// consumer may still declare.
+	/// </remarks>
+	public static bool Defines(int tag)
+	{
+		return (uint)tag < (uint)TypeCodes.Length && TypeCodes[tag] != 0;
+	}
+
 	static string[]? advSideCodeSet;
 	static string[] AdvSideCodeSet => advSideCodeSet ?? Publish(ref advSideCodeSet,
 	[

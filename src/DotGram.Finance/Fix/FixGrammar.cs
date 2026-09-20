@@ -57,9 +57,11 @@ sealed partial class FixGrammar
 	{
 		public long DataLimit { get; private set; }
 
+		// One read of a table the tag indexes. Whether a consumer declared pairs of their own was
+		// settled when the options were built, so nothing is asked of anybody here.
 		public int Kind(int tag)
 		{
-			return tag <= 0 ? -1 : options.DataTag(tag) != 0 ? 1 : options.IsData(tag) ? -1 : 0;
+			return tag <= 0 ? -1 : options.Kind(tag);
 		}
 
 		// Captures belonging to only one switch arm are optional in the generated guard.
