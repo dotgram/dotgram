@@ -3629,3 +3629,12 @@ journal exists to encourage.
 **One measurement note that cost a wrong number today.** The +23% on the located T-SQL was the
 stand's window and a generation gate sharing the boards; on a quiet machine it is 1.07x. A gate is a
 timing run and takes the same discipline as any other: pinned, and not inside somebody's window.
+
+**The general form, which performance-ff drew and which is worth more than either instance.** A
+summary that is true about a grammar and false about its parts, and a ladder that is true about one
+carrier and silent about the other, are the same error in different clothes. The carriers report
+named a grammar's worst machine and was read as naming its machines, which is why the plain FIX
+rows were predicted to move most when they had never been on the tape at all; the pool ladders were
+taken through the tape and could not see the immediate carrier's store. Both are one grep from
+being avoided. Beside it, in the same session's own words: three named predictions on that commit,
+one right, and the number belongs in the record rather than a tidy account of a good result.
