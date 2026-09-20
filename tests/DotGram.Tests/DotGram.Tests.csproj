@@ -50,6 +50,14 @@
 		<!-- The hand-written parsers, held here to the grammars they are measured against
 		     (docs/design/architecture-decisions.md, D1). -->
 		<ProjectReference Include="..\..\examples\DotGram.Handwritten\DotGram.Handwritten.csproj" />
+
+		<!-- The one check that has to run in a process of its own: what a text can name
+		     depends on what the process has loaded, and this assembly has loaded everything
+		     it references before the first test runs. `ReferenceOutputAssembly="false"`
+		     fixes the build order without letting this assembly hold its types — holding
+		     them would load them, which is the very thing being checked. -->
+		<ProjectReference Include="..\DotGram.ExpressionLanguage.LoadOrder\DotGram.ExpressionLanguage.LoadOrder.csproj"
+		                  ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

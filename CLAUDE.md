@@ -98,6 +98,10 @@ tests/
 	                      Finance.Tests so that the ordinary tests build in seconds (D12)
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
 	                      net8.0 at the C# 8 floor. Building it is the assertion
+	DotGram.ExpressionLanguage.LoadOrder/ what a text can name depends on what the
+	                      process has loaded, so this is a program and not a test class:
+	                      a test assembly has loaded everything it references before the
+	                      first test runs. DotGram.Tests runs it and reports what it said
 	DotGram.PackageSmoke/ the packed package asked what it promises, under the oldest
 	                      Roslyn it supports. Not in the solution; CI runs it after packing
 	DotGram.Finance.PackageSmoke/ the same for the FIX package, on both frameworks it

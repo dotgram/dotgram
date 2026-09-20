@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.ExpressionLanguage.LoadOrder</RootNamespace>
+		<IsPackable>false</IsPackable>
+
+		<!-- The one thing this program is: a process of its own. Everything it checks is about
+		     what the process has loaded, so it cannot be a test class beside the others — the
+		     test assembly has loaded everything it references before the first test runs. -->
+		<StartupObject>DotGram.ExpressionLanguage.LoadOrder.Probe</StartupObject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The reader under test, and an assembly whose types it will be asked to name. Web is
+		     here because nothing in this program touches it until the probe says to: any package
+		     this one does not use would do, and Web is the one with a public type and a short
+		     name. -->
+		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
+		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
+	</ItemGroup>
+
+</Project>

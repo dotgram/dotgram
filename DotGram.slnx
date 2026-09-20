@@ -107,6 +107,9 @@
 		<Project Path="tests/DotGram.Compatibility/DotGram.Compatibility.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="tests/DotGram.ExpressionLanguage.LoadOrder/DotGram.ExpressionLanguage.LoadOrder.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/Snapshots/Snapshots.csproj">
 			<Build Project="false" />
 		</Project>
