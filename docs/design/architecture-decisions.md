@@ -4761,3 +4761,18 @@ row: a row that will appear in a conclusion carries an A/A, a row printed as con
 An order that names rows gets the A/A on those; an order that is a baseline run gets none, and the
 report says it has none, so that a row from it cannot later be quoted as an effect. Turning it off
 deliberately stays possible and visible in the report.
+
+**The FIX message layer allocates three times what reading the fields does, and nobody has looked.**
+finance-24 split one window's figure with a single run on one input of seventeen fields: reading
+the fields alone is 1,216 bytes, 71.5 a field; the strict message is 4,192; **the lenient message is
+4,192 as well.** So the layer adds 2,976 bytes, 71% of the total and 2.4 times the cost of reading
+the wire — and the third row, taken for nothing, clears the first suspect: the strict mode's checks
+cost no bytes at all, so what is there is the building of a message and not its validation.
+
+A day was spent bringing the fields to 48.9 ns and below the hand-written parser, while the layer
+above them was never in a stand row or a profile. **Approved: an allocation profile and an account
+of what the 2,976 bytes are made of** — nodes, regions, group entries, dictionaries — before any
+change is proposed. It needs no window, it is diagnosis rather than measurement, and the session is
+blocked on other people's work meanwhile. Either answer is worth having: a cliff or a pass nobody
+needed is cheap to remove, and "this is the message graph and it cannot be less" is a result that
+stops the question being asked again.
