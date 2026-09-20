@@ -5495,3 +5495,36 @@ behavioural, and a test catches behavioural drift**: the scaling tests are exten
 four pools, so a copy that loses the ladder fails rather than passes a review. The condition that
 came with D34 survives in a better form — the fifth tenant does not get a policy of its own, it
 gets the same test.
+
+## D60. The refusal audit: ninety-one series, and about twenty quadratics in shipped code
+
+The first audit ran in one process in 67 seconds and is calibrated as D57 requires: its build
+*predates* the two known exponential fixes, and it finds both — a literal run then an unclosed
+brace at exponent 6.27, an atom run then a bare at-sign at 5.96. A rerun on main will show them
+clear, and **until that rerun no result touching those two grammars is a statement about main.**
+
+**The finding is larger than the exponentials.** About twenty refusals in shipped web and SQL code
+are quadratic — media types, structured fields, web links, language tags, content dispositions, all
+at exponents between 1.9 and 2.1, where three to nine kilobytes already cost twenty to thirty
+milliseconds and sixty-four kilobytes projects to seconds. The contrast is measured rather than
+argued: an *accepted* structured list of ten thousand items reads in 1.2 ms, while a *refused* one
+of eleven hundred takes 23. Same head; what differs is the refusal after it. It appears only where
+the head is a repeated unit, and a single unclosed string is linear in every format. Most of the
+ninety-one are linear.
+
+**A conflict to settle before either number is believed.** The audit reports the expression
+language's interpolated string still exponential, at 4.94, and calls it unfixed on main; its author
+measured the same shape at fractions of a millisecond after sealing it. Same claim, two
+measurements — so the rerun on main decides, and neither figure is quoted until it does.
+
+**The guard is approved as proposed, all three parts.** The series table and the ladder move into
+one file with no dependency on the stand, linked into both the stand and the slow suite, so the
+audit and the guard cannot drift. The guard compares each series against a checked-in baseline of
+classes and fails when a series is *worse* than its baseline or stops being refused, reporting when
+it is better, so the baseline only ever tightens. A new series enters at its measured class, and
+**a class above quadratic may not enter the baseline at all**: an explosion cannot be grandfathered.
+At fifteen to twenty seconds trimmed it goes in whole.
+
+The half that is not covered is printed with the table rather than omitted — fixed-length formats,
+a lenient one whose every tail is accepted, the reader and span forms, several entry points, the
+examples and the hand parsers — and that list is what the static probe has to answer for.
