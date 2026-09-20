@@ -5429,3 +5429,26 @@ not chosen.
 a window, the hop is not available at all and the reading throws instead, so for the streaming form
 the bound is the caller's stack and nothing else. **A declared limit that cannot be honoured in one
 mode is worse than no limit**, so the streaming answer comes with the proposal rather than after it.
+
+**Probing every level costs nothing measurable, so the constant is deleted rather than re-derived.**
+Three runs each, generator rebuilt between: at five thousand levels 176.5 ms against 178.3, at
+twenty thousand 776.4 against 775.8, the two arrangements inside each other's spread at both sizes
+and the every-level median faster at the larger one. Sixty-four probes become one and the reading
+does not notice. The author says plainly what the experiment is not — one grammar, one shape, one
+machine, not a pair — and that the decision it supports is not a number but "is this affordable",
+which a difference invisible in three runs at two sizes does not answer with a magic constant.
+
+**Landed without a window, and verified by the next baseline rather than by a pair of its own.** The
+rule that emitted-code changes land with a pair exists to catch a regression the author did not
+expect; here an in-process comparison at two sizes shows none, the change is a correctness fix, and
+the retention pair is worth the window more. The expression-language rows ride the next baseline,
+and if they moved we come back. **What the change removes is the class, not the number**: there is
+no spacing left to be wrong when a frame grows.
+
+**And the practice is worth naming: the constant was flipped to measure, put back, and the file
+checked byte-for-byte rather than trusted.** An edit undone by hand is an edit until something says
+otherwise.
+
+The streaming half stays open and goes to Igor *with* the proposal: the probe on every level for
+the in-memory readings, and an honest statement of what a streamed reading can promise, so that a
+declared limit is not offered in the one mode where it cannot be kept.
