@@ -17,3 +17,5 @@ run 0.70, EmailAddress atom 0.86), the interpolated strings of the expression la
 "words, then an unclosed <", exponential before b3bdc01f's second fix, is quadratic (1.98) after it. The columns: the exponent is the slope of log
 time on log size over the largest sixteenth of the ladder; "projected at 64 KiB" carries the time at the largest size along that exponent to 65,536
 characters. The last section is the baseline the guard (tests/DotGram.Tests.Slow/RefusalBaseline.txt) was written from.
+
+A note on the hash: 5d439127, the commit the binary of the rerun names, was rebased onto a later main before it was pushed and is df2d9e1e there (the same change on a newer parent; the audit was taken before the rebase, on main 35d2d315 plus that change).
