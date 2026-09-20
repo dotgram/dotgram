@@ -4628,3 +4628,19 @@ on the first token, so what we would be memoizing is answers we reach immediatel
 The computed recovery sets stay where D33 put them — Igor's, because they change what a grammar
 says — with the mechanism now named: follow sets of the dominators, and dominators are one pass
 over a graph we already build.
+
+**Q20 closed (`4179707c`), and holding what a refusal *says* found two differences at once.** One
+was an omission and is fixed: over buffered input the message did not name the rule, where the
+string form names it — and the `Buffered` snapshot, one day old, showed the fix as a diff, which is
+what it was added for. The other is named and pinned rather than smoothed: where a repetition
+inside a called rule could take another turn, the string reading names what that turn would accept
+and the buffered one does not. What is known: it is not under-filling, the two agreeing at every
+split from one character to the whole input, and it is not the end of input, a refusal with text
+still after it giving the same. What is not known is why the turn's expectation is not recorded
+over a buffer. A test holds both exact strings, so it cannot drift away quietly.
+
+**That one is the reader's machine rather than the differential, and it goes to expr with notice to
+performance-ff**, whose area it is and whose queue is three deep. It matters beyond itself: D40's
+condition is that the branches of a capability answer alike, the only branch we have lives in the
+buffered reader, and a message that differs by input form is exactly the class of difference that
+condition must be able to see.
