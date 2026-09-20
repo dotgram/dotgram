@@ -3700,3 +3700,24 @@ is not what was smoked — it is packed again by the workflow that publishes it.
 either by a branch rule requiring the build green on the commit a tag is placed on, or by copying
 the smoke between pack and push. The second is the answer to prefer: a branch rule proves that some
 packing passed, not that this packing did.
+
+**D37 is done, and it came back better than it was given.** I said copy the smoke between pack and
+push; finance-24 extracted it instead — fifty lines of package-shape checking became one script
+both workflows call. The reason is the day itself: it had already fixed a README that disagreed
+with a decision and a comment that disagreed with the code beside it, and a checker answering one
+question in two places is that same defect with a longer fuse, at the most expensive point there
+is, where the gate and the release disagree. Short steps are copied as they are, their drift being
+visible; fifty lines of shell are not. Approved as done.
+
+**The checker was proved by a negative control**, which is what makes it a checker: a README was
+cut out of one package and the script failed with that package named and a non-zero code. A checker
+that has never failed is not checked. And critic's note about the runtime was material — the smoke
+runs on the older framework too, while the publishing workflow installs one SDK, so without an
+explicit install those legs either fail on a clean runner or pass on one where that framework
+happened to be present, which is green that means nothing.
+
+**And the rule grew a clause in the doing.** The Web pages became sixteen tests over 29 calls, and
+they hold the *values* the comments claim, not merely that the calls compile. A comment saying
+`0.7` beside a call that returns `0.3` lies to a reader exactly as a call that throws does. All
+sixteen passed first time, which answers the population question critic left open: the sample was
+clean and the population is now checked and clean too.
