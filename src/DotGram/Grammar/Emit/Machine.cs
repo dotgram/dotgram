@@ -856,16 +856,14 @@ sealed partial class Machine
 		// however little of the grammar reaches it.
 		_roots.Add(_entries[root]);
 
-		// A reading that begins where it is told reads the trivia at that place and then the
-		// rule, and stops there (§6.3). The rule's own state is not that, so where the grammar
-		// has trivia the entry is compiled: the reader's is written the same way.
+		// A reading that begins where it is told reads the trivia at that place, then the rule,
+		// and stops there (§6.3). The trivia is a reading of its own so that the wrapper is told
+		// where it ended, which is where the value begins and what `Position` answers with.
 		if (_graph.Trivia.TryGetValue(root, out var leading) && !_leadEntries.ContainsKey(root))
 		{
 			_seam      = FollowSets.SeamOf(root, _graph);
 			_traceRule = root.Name;
-
-			_leadEntries[root] = Compile(
-				new Node.Sequence([leading, _graph.Bodies[root]]), Return, FollowSets.Continuation.All);
+			_leadEntries[root] = Compile(leading, Return, FollowSets.Continuation.All);
 
 			_roots.Add(_leadEntries[root]);
 		}
@@ -1356,8 +1354,8 @@ sealed partial class Machine
 		var file  = new Writer(0);
 		var type  = _results.QualifiedOf(root);
 		var output = type is null ? "" : $", out {type} value";
-		var entry = Numbered(whole ? _wholeEntries[root]
-			: _leadEntries.TryGetValue(root, out var lead) ? lead : _entries[root]);
+		var entry = Numbered(whole ? _wholeEntries[root] : _entries[root]);
+		var lead  = !whole && _leadEntries.TryGetValue(root, out var trivia) ? Numbered(trivia) : (int?)null;
 		var strength = _graph.Climbing.ContainsKey(root) ? ", int power" : "";
 		var enginePower = _graph.Climbing.Count > 0
 			? ", " + (_graph.Climbing.ContainsKey(root) ? "power" : "0")
@@ -1369,14 +1367,29 @@ sealed partial class Machine
 			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
 			file.Line("object? recognized;");
+
+			// The trivia where the reading begins, and then the rule past it: what comes back says
+			// where the value began (§6.3), and the trivia refusing is the trivia reading nothing.
+			if (lead is { } leadEntry)
+			{
+				file.Line(
+					$"var began = {engine}(text, pos, {leadEntry}, -1{enginePower}, " +
+					$"false, true{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out recognized);");
+				file.Line();
+				file.Line("if (began < 0) began = pos;");
+				file.Line();
+				file.Line("failure.Began = began;");
+				file.Line();
+			}
+
 			file.Line(
-				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
+				$"var end = {engine}(text, {(lead is null ? "pos" : "began")}, {entry}, {ValueRule(root)}{enginePower}, " +
 				$"{(whole ? "true" : "false")}, true{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
 			if (IsExtent(root))
-				file.Line($"value = end < 0 ? default : {Span("pos", "end - pos")};");
+				file.Line($"value = end < 0 ? default : {Span(lead is null ? "pos" : "began", lead is null ? "end - pos" : "end - began")};");
 			else if (type is not null)
 				file.Line($"value = end < 0 ? default! : ({type})recognized!;");
 

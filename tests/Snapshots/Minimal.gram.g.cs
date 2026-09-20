@@ -5931,6 +5931,13 @@ namespace DotGram.Snapshots
 			#pragma warning disable 0649
 			public int OutOfInput;
 			#pragma warning restore 0649
+		/// <summary>Where the value begins: past the trivia the reading started on.</summary>
+		// A publication compiled as a plain method has no reading that begins where it is told,
+		// so nothing writes this — and a field nothing assigns is a warning in somebody else's
+		// build, as OutOfInput says above.
+		#pragma warning disable 0649
+		public int Began;
+		#pragma warning restore 0649
 
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;

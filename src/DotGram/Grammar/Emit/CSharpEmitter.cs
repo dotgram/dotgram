@@ -513,7 +513,10 @@ public static partial class CSharpEmitter
 					diagnostics,
 					compiled.Tag,
 					ReadsQuietlyFirst(graph),
-					compiled.Machine.UsesContext && graph.ContextRewinds);
+					compiled.Machine.UsesContext && graph.ContextRewinds,
+					// Whether a reading that begins where it is told writes down where the value began:
+					// over characters it reads the trivia at the position and says where it ended.
+					graph.Trivia.ContainsKey(publication.Rule) && !overKinds);
 
 				file.Line();
 			}
@@ -692,7 +695,11 @@ public static partial class CSharpEmitter
 				looking: machines.Exists(static compiled => compiled.Direct),
 				// A reading whose failure nothing reads records none (Q7.2): a `find` over text, and the
 				// lexer measuring or valuing a token again.
-				quiet: quiets || valuing is not null));
+				quiet: quiets || valuing is not null,
+				// Where the value began, for a reading that begins where it is told over characters
+				// (§6.3): the entry writes it past the trivia it started on.
+				began: graph.Trivia.Count > 0 && !overKinds &&
+					graph.Publications.Any(one => one.Kind == PublishKind.Parse)));
 			file.Line();
 		}
 
@@ -1424,7 +1431,7 @@ public static partial class CSharpEmitter
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
-		string tag = "", bool quietFirst = false, bool rewinds = false)
+		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1471,6 +1478,18 @@ public static partial class CSharpEmitter
 		// Over kinds a position is a token, so what a publication hands back has to be cut
 		// from the text the tokens came from rather than from what the machine was reading —
 		// the same care the machine takes for a capture, taken once more at the edge.
+		// What the value's own beginning is called: `at` where nothing stands between it and the
+		// value, and a local past the trivia where something does.
+		var begun = overKinds || leads ? "began" : "at";
+
+		// Where the value begins, past the trivia the reading started on: over kinds the lexer
+		// skipped it, so it is where the first token it read stands; over characters the entry read
+		// it and wrote down where it ended (§6.3).
+		string Began(bool windowed) =>
+			overKinds
+				? windowed ? "count > 0 ? starts[0] : at" : "starts[from]"
+				: leads ? "failure.Began" : "at";
+
 		string Recognized(string from, string to) =>
 			built is not null ? "recognized" :
 			overKinds        ? $"Text_DotGram{tag}(source, starts, lengths, {from}, {to})" :
@@ -1554,10 +1573,11 @@ public static partial class CSharpEmitter
 
 			begins   = overKinds ? "from" : "at";
 			reader   = MethodOf(publication.Rule);
-			// Over kinds the reading may have begun past the position it was handed, the trivia
-			// between two tokens being nobody's to skip but the lexer's.
-			position = overKinds ? "began" : "at";
-			extent   = overKinds ? "over - began" : "end - at";
+			// The reading may have begun past the position it was handed: over kinds the trivia
+			// between two tokens is the lexer's to skip, and over characters the entry reads the
+			// trivia at the position and says where it ended (§6.3).
+			position = begun;
+			extent   = overKinds ? $"over - {begun}" : $"end - {begun}";
 
 			Asking("string input, int at", positional: true);
 
@@ -1584,11 +1604,11 @@ public static partial class CSharpEmitter
 			}
 			file.Line("/// </remarks>");
 
-			// A window is cut into tokens from its own start, so the reading begins at the
-			// position the caller named, whatever the whole text would have called a token there.
+			// A window is cut into tokens from its own start, so a reading may begin where no
+			// token of the whole text does — and it still begins past the trivia there.
 			begins   = overKinds ? "0" : "at";
-			position = "at";
-			extent   = overKinds ? "over - at" : "end - at";
+			position = begun;
+			extent   = overKinds ? $"over - {begun}" : $"end - {begun}";
 
 			Asking("string input, int at, int length", positional: true, windowed: true);
 
@@ -1720,11 +1740,20 @@ public static partial class CSharpEmitter
 				}
 
 				file.Line();
-				// Over kinds what is cut is named by the tokens it lies between; over characters by
-				// where it began and how long it is.
+
+				// Where the value begins: past the trivia the reading started on, which over kinds the
+				// lexer skipped and over characters the entry wrote down (§6.3).
+				if (positional && begun != "at")
+				{
+					file.Line($"var began = {Began(windowed)};");
+					file.Line();
+				}
+
 				// What is cut is named by where it starts and how much of it there is: tokens over
 				// kinds, characters over characters, and both counted from where the reading began.
-				file.Line($"value = {Recognized(positional ? begins : "0", positional ? $"end - {begins}" : "end")};");
+				var cuts = !positional ? "0" : overKinds ? begins : begun;
+
+				file.Line($"value = {Recognized(cuts, positional ? $"end - {cuts}" : "end")};");
 
 				// Where the reading stopped, said as the caller says positions: an offset into
 				// the input, which over kinds is the end of the last token it read.
@@ -1837,11 +1866,6 @@ public static partial class CSharpEmitter
 						}
 
 						file.Line();
-						// Where the reading begins, which is the first token at or after the position it
-						// was handed: the trivia between them is not its business, and `Position` says
-						// where the value began rather than where the caller was looking (§6.3).
-						file.Line("var began = starts[from];");
-						file.Line();
 					}
 				}
 				else if (positional && !windowed)
@@ -1908,6 +1932,16 @@ public static partial class CSharpEmitter
 					file.Line();
 				}
 
+				// Where the value begins, past the trivia the reading started on: over kinds the
+				// lexer skipped it and `began` is the first token's place, over characters the entry
+				// wrote it down (§6.3). Read before the refusal, which does not use it, so that both
+				// halves of the method see one name.
+				if (positional && begun != "at")
+				{
+					file.Line($"var began = {Began(windowed)};");
+					file.Line();
+				}
+
 				file.Line("if (end < 0)");
 				using (file.Block(""))
 				{
@@ -1970,7 +2004,9 @@ public static partial class CSharpEmitter
 				}
 				else
 				{
-					file.Line($"return {match}.Success({Recognized(begins, extent)}, {position}, {extent});");
+					// Cut from where the value began and not from the position the caller named: the
+					// trivia before it is the reading's to skip and nobody's to carry (§6.3).
+					file.Line($"return {match}.Success({Recognized(positional ? begun : begins, extent)}, {position}, {extent});");
 				}
 			}
 		}

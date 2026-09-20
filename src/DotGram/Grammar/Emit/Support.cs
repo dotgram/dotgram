@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -649,8 +649,11 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false) =>
+		bool looking = false, bool quiet = false, bool began = false) =>
 		Lines.Normalize(FailureStruct)
+			.Replace(
+				"	{{began}}" + Lines.Ending,
+				began ? Lines.Normalize(BeganField) + Lines.Ending : "")
 			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
@@ -670,6 +673,24 @@ public static partial class CSharpEmitter
 			.Replace(
 				"\t{{quiet}}" + Lines.Ending,
 				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "");
+
+	/// <summary>Where a reading that begins where it is told read its value, past the trivia at it.</summary>
+	/// <remarks>
+	/// Not about a failure, and here because this is what every recognizer already carries: a
+	/// field rather than another <c>out</c> on every one of them, which is the whole reason the
+	/// record of a failure is a struct passed by <c>ref</c>. The entry of a reading that begins
+	/// where it is told writes it once, after the trivia and before the rule, and <c>Position</c>
+	/// is read off it (§6.3): a value begins where it begins, not where the caller was looking.
+	/// </remarks>
+	const string BeganField = """
+		/// <summary>Where the value begins: past the trivia the reading started on.</summary>
+		// A publication compiled as a plain method has no reading that begins where it is told,
+		// so nothing writes this — and a field nothing assigns is a warning in somebody else's
+		// build, as OutOfInput says above.
+		#pragma warning disable 0649
+		public int Began;
+		#pragma warning restore 0649
+		""";
 
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
@@ -711,6 +732,7 @@ public static partial class CSharpEmitter
 			#pragma warning disable 0649
 			public int OutOfInput;
 			#pragma warning restore 0649
+			{{began}}
 			{{reach}}
 			{{starved}}
 			{{expected}}

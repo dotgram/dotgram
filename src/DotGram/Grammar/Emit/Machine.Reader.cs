@@ -977,6 +977,12 @@ sealed partial class Machine
 			// it holds is asking for, and the trivia after it is the next reading's leading
 			// trivia.
 			var reader = new ReaderWriter(this, rule);
+
+			// A reading that begins where it is told says where the value began, which is where
+			// the trivia it started on ended: the entry writes it between the two.
+			if (!ends && _graph.Trivia.ContainsKey(rule) && !OverKinds)
+				reader.MarkLead("failure.Began = p;");
+
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
 				? ends
 					? new Node.Sequence([seam, new Node.Call(rule, []), seam])
@@ -1331,6 +1337,15 @@ sealed partial class Machine
 							_stopAfter = (stopped, stop[0], follows[i + 1]);
 
 						Emit(code, parts[i], follows[i], still);
+
+						// Where the value begins, for a reading that begins where it is told: the entry
+						// reads the trivia at the position it was handed and the rule after it, and this
+						// is between the two (§6.3).
+						if (i == 0 && _leadMark is { } mark)
+						{
+							code.Line(mark);
+							_leadMark = null;
+						}
 
 						_stopAfter = null;
 						still = still && parts[i] is Node.Lookahead or Node.Empty;
@@ -2318,6 +2333,11 @@ sealed partial class Machine
 		/// What the next call is to record when it refuses, over what the rule it names
 		/// recorded: set while the group written as <c>default:</c> is being written.
 		/// </summary>
+		/// <summary>The line an entry writes between the trivia it begins with and its rule.</summary>
+		string? _leadMark;
+
+		public void MarkLead(string line) => _leadMark = line;
+
 		string? _refuseWith;
 
 		/// <summary>The call's own first set beside <see cref="_refuseWith"/>, which that one holds.</summary>

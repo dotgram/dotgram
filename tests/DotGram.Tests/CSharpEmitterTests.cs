@@ -1253,11 +1253,12 @@ public sealed class CSharpEmitterTests
 		Assert.True(whole.IsSuccess, whole.Error);
 		Assert.Equal((0L, 5L), (whole.Position, whole.Length));
 
-		// The trivia before the value is read, the trivia after it is not.
+		// The trivia before the value is read and is no part of it either: `Position` says where
+		// the value began, and `Length` is its own extent.
 		var later = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "  ab cd  ef", 0);
 
 		Assert.True(later.IsSuccess, later.Error);
-		Assert.Equal(7L, later.Length);
+		Assert.Equal((2L, 5L), (later.Position, later.Length));
 
 		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd   ", 0, 8);
 
@@ -1278,7 +1279,7 @@ public sealed class CSharpEmitterTests
 		var directly = EmittedCode.Positioned(read, "Grammar", "TryParseStart", "  ab cd  ef", 0);
 
 		Assert.True(directly.IsSuccess, directly.Error);
-		Assert.Equal((0L, 7L), (directly.Position, directly.Length));
+		Assert.Equal((2L, 5L), (directly.Position, directly.Length));
 	}
 
 	/// <summary>
@@ -1311,10 +1312,9 @@ public sealed class CSharpEmitterTests
 			at = one.At;
 		}
 
-		// The trivia a reading begins on is read, and is part of what it hands back, exactly as
-		// the form that answers with a match hands it back: where a value begins is a question
-		// of its own, and the form that answers only whether answers it the same way.
-		Assert.Equal(["ab cd", "  ef gh", "  ij kl"], read);
+		// The trivia between two values is read and belongs to neither: each reading hands back
+		// the value it read and nothing around it.
+		Assert.Equal(["ab cd", "ef gh", "ij kl"], read);
 		Assert.Equal(19, at);
 
 		// A refusal moves nothing and hands nothing back. `12 ab` cannot begin a `Start` at all;
