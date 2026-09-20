@@ -21,6 +21,10 @@ static partial class Stand
 			("One", "55=ABC|"),
 			("Order", order),
 			("Orders128", string.Concat(Enumerable.Repeat(order, 128))),
+
+			// A bad wire for the log form (performance-ff and the architect, 617c68e6): the same Order with the tag of one field malformed, as fix/OrderMalformed
+			// is for the plain forms, so that a carrier which builds while it reads and then gives the reading up is seen on the log forms as well.
+			("OrderMalformed", order.Replace("|40=2|", "|40X=2|")),
 			("slope-0", ""),
 			("slope-4", string.Concat(Enumerable.Repeat("55=ABC|", 4))),
 			("slope-16", string.Concat(Enumerable.Repeat("55=ABC|", 16))),
