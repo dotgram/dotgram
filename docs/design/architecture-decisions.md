@@ -2701,3 +2701,18 @@ declined however much it buys; where one buys a great deal it comes to Igor with
 the exactness it costs, and the default answer is no. This is D13's order of criteria applied to
 acceptance rather than to correctness of construction: first the parser reads what the language
 reads, then it reads it quickly.
+
+## D23. The generator documents what it makes public
+
+Igor, 2026-09-19: every public member the generator emits carries XML documentation. It follows
+the defect of the same evening — a doc comment written where C# has no place for one broke a
+consumer's build — but it is the larger half of the same subject: a consumer who turns
+documentation on today gets a warning for every entry we write, because we write none. The design
+is expr's, before code: which members count as public in emitted code (each publication's entries,
+the types nested in the host, the values a grammar publishes), one template per form rather than
+a sentence per method, what the templates say for the positional forms' position and length and
+for the lazy form's window, and what is not ours to say — the meaning of a particular rule belongs
+to the author, and whether an author may supply that text is a change to the language and Igor's
+to decide separately. Held by compiling the generated code with documentation on and the
+missing-comment warning as an error, so an undocumented member fails here rather than for a
+consumer; the cost in emitted size and the snapshot churn are stated with it.
