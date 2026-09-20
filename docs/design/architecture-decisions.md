@@ -2873,3 +2873,26 @@ same positions, the look never reaching a message.
 is neither tiering nor the collector — the same row measured last in the same process is at its
 final speed from the first repeat. A short probe on a cold process overstates its first row about
 fivefold; finance-24's own first numbers were retracted for exactly that.
+
+## D25. The generator decides; the parser is a machine that does as it is told
+
+Igor, 2026-09-19, stated as a rule rather than about one case: **every decision about how to read
+is taken while generating, and the emitted parser is a dumb hard-coded machine.** It may branch on
+the input, because that is what a parser is, and it may branch on what the grammar's own host code
+answers, because the grammar says so; what it may not do is choose between ways of doing its work.
+Anything that looks like a strategy at run time — a shape asked of an object, a policy read from
+options, an adaptation to what has been seen — belongs at generation time, where it is decided
+once, proved once and written into the code.
+
+The immediate consequence is for the FIX fields a consumer defines (the discussion of the same
+day): asking a consumer's object, while parsing, whether a tag's field is binary is the parser
+deciding how to read, and it is out. What is left is declaration — the consumer's tags are
+declared where the grammar is, the generator builds their arms and their part of the kind table,
+and nothing is asked of anybody at run time. Inheritance then carries the types and the
+constructions, not the questions.
+
+This does not touch what a grammar's own guard or switch asks of its host: there the machine's
+shape is fixed when it is generated and the input picks an arm, which is the grammar speaking, not
+the parser choosing. Nor does it touch how much memory a pool keeps, which is housekeeping rather
+than an algorithm — though where housekeeping starts to look like a strategy, it is worth asking
+again. The rest of the sources are to be audited against this.
