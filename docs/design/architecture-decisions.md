@@ -3916,3 +3916,23 @@ field, it is taken deliberately in D10's form with its own reasoning, not inheri
 needed two folders to measure. Concretely: named as a measurement switch, documented where
 measurement is documented rather than on a package's front page, and its documentation says that
 flipping it is supported for taking a pair and unsupported as a way to run.
+
+**The discarded fifth: both causes, in opposite proportions (sql-39).** The walk marks itself by the
+mark it came from — zero is the final walk, anything else a guard's ask — and the counter sits in
+the arm, with the totals agreeing with the old record count. On T-SQL's corpus 17,079 records are
+built for an ask against 99,869 in the final walk, 14.6% against 85.4%. On SQL:2023's `select20` it
+is the other way: 349 for asks against 53 at the end, 86.8% against 13.2%.
+
+The units differ — the discarded fifth was counted in tree nodes and this in tape records, and a
+record need not build a node while a factory may build several — so the reading is a bound, not an
+equation. On T-SQL the price of asking can account for at most 14.6 points of the 21, so **no less
+than a third of what is discarded is built by the final walk and replaced above**, and since
+building for an ask is not necessarily discarded, that share is probably larger. On SQL:2023 the
+price of asking accounts for everything.
+
+**So the question is answered without the joint hour, and the hour is declined.** An exact number
+in place of "no less than a third" would not change what is decided, which is only whether there is
+a project here. There is, on T-SQL, and the next question is not how much but *what*: which
+constructions are built and then replaced. That names whether it is the shape of the grammar — a
+rule building what the rule above rebuilds — or a cost of the engine, and the two have nothing in
+common but the number. Behind the line for `ast.md` and the repeats count.
