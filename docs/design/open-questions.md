@@ -419,3 +419,38 @@ runs on request. Whether they also deserve a base is Q5's question and can wait 
 with no base still catches a change of its own cost, which is what a pair is for.
 
 **Answer:** —
+
+## Standing work, not yet taken
+
+**A sweep of the literature and of other people's parsers (Igor, 2026-09-19, not first in line).**
+The critic's second duty is hunting for what is not being used, and so far it has been exercised
+only on what the repository already contains. This is the outward half: what has been published or
+built elsewhere that would pay here. Taken when the objection queue is quiet, reported the way an
+objection is — each item with the place in our code it would touch and the number it would have to
+beat, not a reading list.
+
+Where to look first is decided by what is open here, not by what is famous:
+
+- **The value tower.** T-SQL's is 40 rules under one cause and the recognition anatomy says a
+  primary's first set is 357 kinds. Precedence climbing and Pratt parsing exist exactly for that
+  shape; the question is whether a tower declared as rules can be compiled into one, and what that
+  does to the tree and to the refusals.
+- **Possessiveness at a call**, which `JoinedRight` needs and the grammar cannot say today: PEG's
+  cut, ALL(\*)'s prediction, and how other generators prove that a call needs no way back.
+- **Recognition over kinds** past a switch's limit of 128, where 21 alternatives are tried in order:
+  perfect hashing and frozen keyword tables, first-set filters, the way other generators dispatch a
+  wide choice.
+- **The refusal path**, the worst rows we have (`url.refused` was 9.99x the hand parser): how
+  parsers that are fast at saying no are built, and what they give up.
+- **Building the tree**: green and red trees, arenas, index-based nodes and deforestation, against
+  the carrier question this file's Q1 is about.
+- **Reading with the machine**: vectorized classification and structural indexing (simdjson's
+  shape), and what of it survives D20's rule that the floor branch may not regress.
+- **Error recovery and incremental reading**, since the editor side (`Language/`, the extension)
+  will ask for both: resilient LL, tree-sitter's error nodes, Burke-Fisher.
+- **How others are held honest**: differential and grammar-based fuzzing, ambiguity detection,
+  what a published parser generator reports about its own grammar.
+
+The rule this file lives by applies to it: an item arrives with evidence — a paper or an
+implementation that can be read, the place here it would touch, and what it would have to beat —
+and no more than two or three at a time.
