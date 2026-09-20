@@ -3821,3 +3821,21 @@ four of the five snapshots emit none of these tables, so Url is the shape and th
 the real total is; the harness for it exists in `DotGram.CodeSize` and has never been pointed at
 this. Then the speed half, on the stand's Url and Web rows, as a pair. To performance-ff, behind
 the retention work.
+
+**D32 is closed by the threshold named before its numbers.** sql-39 finished the analysis honestly
+— the recursion is a real least fixpoint over a work list rather than a stub, so the underestimate
+that erred toward incorrectness is gone — and made it cheap: 62 s of generation against about 60,
+where the first version was 201. It removes 70 of 222 causes over the five libraries and 45 of
+1,167 replaceable rules, 25 causes on T-SQL. And it moves nothing: 41 grammars on the tape before
+and after, with one grammar's gate changing from replay to read-again and still held; the commit
+points on T-SQL identical at 2,362 of 3,146; and the emitted code *larger*, SQL:2023 by 6.3%,
+SQL-92 by 4%, T-SQL by 0.6%. Fewer causes, more code, no carrier moved. Refused, without
+bargaining, by the rule D32 set in advance: a count of causes is a likeness, and what has to move
+is a carrier, a measured time or a measured size.
+
+What would make it worth having is written beside the refusal: something downstream that turns a
+removed cause into a point or a carrier — a fourth edge of the carrier-per-construction, or a gate
+reading what stands per machine rather than per grammar. No such consumer exists today, so the
+number has nothing to be spent on. And `JoinedRight`, the cause the work began for, survives the
+honest version too: what the paths inside the rule read again meets the continuation on one token
+kind. Where to start if it is ever reopened is therefore written down rather than rediscovered.
