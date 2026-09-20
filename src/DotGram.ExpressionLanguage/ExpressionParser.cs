@@ -872,13 +872,16 @@ namespace DotGram.ExpressionLanguage;
 		| "throw" & value: Expression => @(Expression.Throw(value))
 		| "throw"                     => @(Expression.Rethrow())
 
-	// Three factories and three shapes, so the grammar says which by what is written and
-	// nothing here has to ask. The bodies are blocks and so are worth something, which
-	// `TryCatch` requires them to agree on — the API's rule, in the API's words.
-	Try : @Expression =
-		  "try" & body: Block & handlers: Catch+ & "finally" & final: Block => @(Expression.TryCatchFinally(body, final, handlers))
-		| "try" & body: Block & handlers: Catch+                            => @(Expression.TryCatch(body, handlers))
-		| "try" & body: Block &                    "finally" & final: Block => @(Expression.TryFinally(body, final))
+	// Three shapes and one reading of each part: the handlers are read once, whether or not
+	// a `finally` follows them. Written as three alternatives, the two that begin with
+	// handlers read them twice over a `try` that has no `finally` — the first alternative
+	// reads every handler, asks for `finally`, is refused, and the second reads them again.
+	// The three factories are behind one, which asks what is there; the bodies are blocks and
+	// so are worth something, which `TryCatch` requires them to agree on.
+	Try : @Expression
+		= "try" & body: Block
+		& (handlers: Catch+ & ("finally" & final: Block)? | "finally" & final: Block)
+		=> @(ExpressionParser.Tried(body, handlers, final))
 
 	// The caught variable belongs to the handler and not to what is around it, so the
 	// `catch` records a scope of its own — the `(` it is declared in stands outside the
@@ -2095,6 +2098,23 @@ public static partial class ExpressionParser
 		Common(then, otherwise) is { } type
 			? Expression.Condition(test, Implicitly(then, type)!, Implicitly(otherwise, type)!, type)
 			: Expression.Condition(test, then, otherwise, typeof(void));
+
+	/// <summary>A <c>try</c> of whichever shape was written: handlers, a finally, or both.</summary>
+	/// <remarks>
+	/// Three factories behind one, because the three shapes are one reading (§4.1): what is
+	/// written after the block decides, and the API has a method for each. A <c>try</c> with
+	/// neither handlers nor a <c>finally</c> is not a shape the grammar can reach — the reading
+	/// that gets here read one or the other.
+	/// </remarks>
+	internal static Expression Tried(Expression body, CatchBlock[]? handlers, Expression? final)
+	{
+		if (handlers is null || handlers.Length == 0)
+			return Expression.TryFinally(body, final!);
+
+		return final is null
+			? Expression.TryCatch(body, handlers)
+			: Expression.TryCatchFinally(body, final, handlers);
+	}
 
 	/// <summary>A <c>?:</c> where one was written, and the test alone where none was.</summary>
 	/// <remarks>
