@@ -1261,7 +1261,21 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   the one it already makes, and only the branch that does nothing today stores into the weak slot;
   the weak slot is read only when the strong spares are empty, which a loop of ordinary parses
   never reaches. Being shared by every form argues for one rule rather than against it. Refused and
-  recorded rather than rediscovered: handing the outsized arrays to the runtime's shared array pool
+  **Revised before either was written, on finance-24's objection:** a weak reference is cleared by
+  any collection, and between two parses of a real program there is other work that allocates — so
+  the reuse it promises holds only inside a quiet steady state, and any foreign collection knocks
+  it out, turning a reliable twentyfold jump into an intermittent one, which is worse to diagnose.
+  It is a strict improvement and not a guarantee, and performance-ff said so rather than defending
+  the design he had proposed. Taken instead: the outsized store is held in a slot of its own and
+  released when some small number of consecutive parses have not needed it — retention measured in
+  the thread's own work rather than in the collector's mood — and, when that count expires,
+  downgraded to a weak reference rather than dropped, so that a thread which parses one huge
+  document and falls idle does not hold an arena for ever, which is what the bound was written for.
+  The number is to be justified as a statement — eight consecutive parses that did not touch the
+  large arena mean the work has changed — and the test measures that statement. The test also gains
+  work between the two parses, since one that parses twice back to back cannot tell a mended
+  behaviour from a mended test, and it states what the design does not promise as well as what it
+  does. Refused and recorded rather than rediscovered: handing the outsized arrays to the runtime's shared array pool
   would be writing "drop it" in more words, its own maximum pooled array being the same million
   elements these bounds are written in. Each bound's comment is rewritten to say what now happens
   past it, keeping the history of why the number is what it is. The buffered reader's pair passed (the
