@@ -131,9 +131,37 @@ The difference is not a detail; it decides what may be compared.
 | session layer | none | included, separable — parsing does not depend on it | included, separable |
 
 The row that matters most is the third. **QuickFIX/n parsed without a dictionary does less work
-than we do**, because it does not find the groups; parsed with one, it does more, because it also
-validates on the way. Neither setting is "the same work as ours", and a single number against
-either would be a claim we cannot support.
+than we do**, because it does not find the groups. The guard is `if (msgMap is not null &&
+msgMap.IsGroup(f.Tag))`, and `msgMap` comes from the application dictionary. And `validate: true`
+inside `FromString` is not dictionary validation either — it checks that the first three header
+fields are in order and nothing else; the full check is a separate `DataDictionary.Validate` the
+caller makes. So there are three readings, not one, and each does a different amount of work:
+without a dictionary, with one, and with one plus the explicit validation.
+
+### The one difference that is not about speed
+
+**QuickFIX/n has no general reading of data fields.** The .NET port special-cases exactly one
+tag:
+
+```csharp
+StringField f = fieldTag == Tags.XmlData
+    ? ExtractDataField(msgstr, Header.GetInt(Tags.XmlDataLen), ref pos)
+    : ExtractField(msgstr, ref pos);
+```
+
+There is no `IsDataField` and no set of data fields in its `DataDictionary`. The C++ original and
+QuickFIX/J both do this generally and from the dictionary — `type='DATA'` is what tells them to
+take a value's length from the preceding field — so this is a difference between the ports and
+not a property of QuickFIX.
+
+The consequence is not that one side is slower. It is that **on a message carrying `RawData`,
+`SecureData`, `EncodedText` or `Signature`, the two sides read different things**: we take the
+value's length from its length field, and they scan for the next separator, which a binary
+payload may contain. Neither number is then measuring the other's work, and the stand's own check
+— that both sides answer the same on the same input — would fail, correctly.
+
+This belongs in the account rather than in a table, and it is stated as what it is: a difference
+in what is read, established by reading their file, not a verdict on their library.
 
 ## 5. What I propose to give the stand
 
@@ -143,12 +171,20 @@ it is, and the ratio cell prints `reference` so that no ratio exists to misread.
 
 - Readings named `reference-QuickFIXn` and, if we take it, `reference-FixAntenna` — never `hand`
   and never a bare library name that invites a ratio.
-- Rows: the existing `fix/One.text` and `fix/One.bytes` first. Our reading stays `generated`
-  against `hand` and `ideal`; the reference sits beside them with no ratio.
-- The entry points, so that both sides are asked one thing:
-  - ours `FixParser.Parse(string)` / `Parse(byte[])`;
-  - QuickFIX/n `new QuickFix.Message(raw, validate: false)`, no dictionary, no factory;
-  - FIX Antenna `RawFixUtil.GetFixMessage(byte[])`.
+- **Two pairings, each naming itself in the row**, because a reader who is told only
+  "QuickFIX/n" cannot tell which of the three readings they are looking at, and a row travels
+  further than the document around it:
+  - against `FixMessages` — `FromString(msgstr, transportDict, appDict, validate: true)` followed
+    by an explicit `DataDictionary.Validate`. Only in this form do their groups get assembled, so
+    only in this form is the comparison honest. It makes `QuickFIXn.FIX44` a requirement rather
+    than an option.
+  - against `FixParser.Parse` — the dictionary-less form, with the row saying that it assembles
+    no groups and builds no typed values.
+- FIX Antenna, if taken: `RawFixUtil.GetFixMessage(byte[])`.
+- **Inputs are chosen around the data-field difference above**: the ordinary rows carry no
+  standard binary field other than `XmlData`, so that "both sides answer the same" means
+  something; the divergence on `RawData` gets a paragraph of its own rather than being quietly
+  excluded.
 - **The check each row must carry**, and this is mine to write before the stand times anything:
   both sides answer the same thing on the same input. For a reference that returns strings and
   ours that returns typed values, "the same" is the tag sequence and the field text — so the row
@@ -161,10 +197,15 @@ it is, and the ratio cell prints `reference` so that no ratio exists to misread.
 
 ## 6. What I would not do
 
-- I would not put a message-layer row against QuickFIX/n's `DataDictionary.Validate` yet. Our
-  strict mode and its validation overlap but are not the same set of checks, and until the
-  companion dictionary document has settled what each actually verifies, a row would be comparing
-  two different lists of rules.
+- I argued here against a message-layer row until the two validators had been held side by side,
+  and the decision went the other way: D26 takes it, with the explicit `DataDictionary.Validate`.
+  That is the right call — the alternative, pairing their dictionary-less form against
+  `FixMessages`, is the regex comparison turned in *our* favour, which is worse than the ordinary
+  kind because we would not notice. What survives of the objection is not a reason to refuse the
+  row but something the row must carry: the two strict modes check overlapping and unequal lists
+  (we check group field order and length/data adjacency in both directions; they check
+  out-of-order header fields and a group count against its entries), so the number is two
+  validators, not one validator twice. The companion dictionary document has the two lists.
 - I would not add Geh.Fix in the first pass. Its per-message entry point allocates a
   `MemoryStream` and a `Reader`, and it consults a built-in FIX 5.0SP2 field table, so it is
   neither dictionary-free nor allocation-comparable; it would need its own paragraph of caveats
