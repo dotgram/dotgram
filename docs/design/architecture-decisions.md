@@ -3904,3 +3904,15 @@ The first look by framework is declined for now: no branch exists to look at, an
 conflates the branch with everything else those builds differ by is exactly the kind this
 repository has spent two days learning not to quote. It is taken later if the branch's design
 stalls, and the header of any such report names both sides' build properties.
+
+**The switch is decided, and decided the right way (performance-ff).** It is a measurement switch,
+documented as one, and explicitly not a performance option. D10's form is for choices the consumer
+genuinely owns, where the trade-off is theirs — unsafe code against portability, skipped
+initialisation against a guarantee. This one is not theirs: on a platform that has the capability
+the fast branch should always be right, and where it is not, that is our defect and not their
+setting, so offering it as an option would be offering a workaround for a bug we have not found
+yet, dressed as a choice. If an escape hatch is ever wanted for a capability misbehaving in the
+field, it is taken deliberately in D10's form with its own reasoning, not inherited from having
+needed two folders to measure. Concretely: named as a measurement switch, documented where
+measurement is documented rather than on a package's front page, and its documentation says that
+flipping it is supported for taking a pair and unsupported as a way to run.
