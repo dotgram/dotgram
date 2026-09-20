@@ -163,7 +163,7 @@ static partial class Stand
 		yield return new Series("T-SQL search condition, nested parentheses",   "generated", "levels", [32, 64, 128, 300], n => { var t = Nest(n); return () => TransactSqlParser.TryParseSearchCondition(t).IsSuccess; });
 		yield return new Series("T-SQL statement, nested parentheses",          "generated", "levels", [32, 64, 128, 300], n => { var t = "SELECT " + new string('(', n) + "1" + new string(')', n); return () => TransactSqlParser.TryParseStatement(t).IsSuccess; });
 		yield return new Series("SQL:2023 search condition, nested parentheses", "generated", "levels", [32, 64, 128, 300], n => { var t = Nest(n); return () => SqlStandardParser.TryParseSearchCondition(t).IsSuccess; });
-		yield return new Series("SQL:2023 query, nested parentheses",           "generated", "levels", [32, 64, 128, 300], n => { var t = "SELECT " + new string('(', n) + "1" + new string(')', n); return () => SqlStandardParser.TryParseQueryExpression(t).IsSuccess; });
+		yield return new Series("SQL:2023 query, nested parentheses",           "generated", "levels", [1, 2, 4, 8, 16, 32, 64, 128, 300], n => { var t = "SELECT " + new string('(', n) + "1" + new string(')', n) + " FROM t"; return () => SqlStandardParser.TryParseQueryExpression(t).IsSuccess; });
 		// ── the expression language ──
 		var chain = (int n) => "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", n));
 

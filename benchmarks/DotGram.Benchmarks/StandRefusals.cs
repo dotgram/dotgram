@@ -78,6 +78,13 @@ static partial class Stand
 				$"{(double.IsNaN(last.Ns) ? "-" : RefusalLadders.Duration(last.Ns))} | {(double.IsNaN(exponent) ? "-" : exponent.ToString("F2", invariant))} | {projected} | " +
 				$"{(double.IsNaN(last.Bytes) ? "-" : (last.Bytes / 1024).ToString("F1", invariant))} | {(double.IsNaN(result.Allocation) ? "-" : result.Allocation.ToString("F2", invariant))} | {flag} |"));
 
+			// With a filter the reader is looking at one curve: give every point of it, time and bytes a call, and what each costs per unit of the head.
+			if (only is not null)
+			{
+				foreach (var point in result.Points)
+					Console.WriteLine(string.Create(invariant, $"    {point.N,8:N0} {one.Unit,-12} {point.Ns / 1000.0,12:F2} us {point.Bytes / 1024.0,10:F2} KB   {point.Ns / point.N,10:F1} ns per {one.Unit}   {point.Bytes / point.N,10:F1} B per {one.Unit}"));
+			}
+
 			Console.Out.Flush();
 		}
 
