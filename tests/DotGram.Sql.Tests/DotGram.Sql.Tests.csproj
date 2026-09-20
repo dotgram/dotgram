@@ -13,6 +13,9 @@
 
 	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
+
+		<!-- To compile the fenced C# of the shipped pages, which is what ShippedPages does. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -24,6 +27,12 @@
 		     measured against, held to it here so that a difference between the two fails as a
 		     test rather than as a ratio nobody could explain. -->
 		<ProjectReference Include="..\..\examples\DotGram.Handwritten\DotGram.Handwritten.csproj" />
+	</ItemGroup>
+
+	<!-- D37's page checker, written once for DotGram.Tests and linked rather than copied: two
+	     answers to "does this page compile" would drift, which is the defect it exists to catch. -->
+	<ItemGroup>
+		<Compile Include="..\DotGram.Tests\ShippedPages.cs" Link="ShippedPages.cs" />
 	</ItemGroup>
 
 </Project>

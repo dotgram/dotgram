@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 
 using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
+
+using DotGram.Tests;
 
 using Xunit;
 
@@ -56,6 +59,30 @@ public sealed class ShippedExampleTests
 		Assert.Equal("SELECT name FROM Users WHERE id > @id", text);
 		Assert.Equal(["Users"], tables);
 	}
+
+	/// <summary>
+	/// And every block of both pages compiles as the page writes it: on its own, with the usings it
+	/// and the blocks before it name, and no implicit ones — which is what a consumer aiming at
+	/// netstandard2.0 has (D56).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Pages))]
+	public void Every_block_of_a_page_compiles_as_it_is_written(string page, int block)
+	{
+		// The package's own assembly is among the references only once something has loaded it.
+		_ = typeof(SqlWriter).Assembly.FullName;
+
+		var blocks = ShippedPages.Blocks(page);
+		var code   = ShippedPages.Inherited(blocks, block) + blocks[block];
+
+		var said = ShippedPages.Compiles(code);
+
+		Assert.True(said is null, said + Environment.NewLine + "----" + Environment.NewLine + code);
+	}
+
+	public static TheoryData<string, int> Pages => ShippedPages.Every(
+		ShippedPages.PageOf(typeof(SqlWriter), "README.md"),
+		ShippedPages.PageOf(typeof(SqlWriter), "SKILL.md"));
 
 	/// <summary>The SKILL's second example: the standard's own parser, its writer, and what it refuses.</summary>
 	[Fact]
