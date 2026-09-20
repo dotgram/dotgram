@@ -134,6 +134,13 @@ public sealed record UriReference(
 		// §3.1. A scheme begins with a letter, which is what makes `1a:` not one.
 		SchemeText = Alpha & [ 'a'..'z' | 'A'..'Z' | '0'..'9' | '+' | '-' | '.' ]*
 
+		// What §4.1's two alternatives are told apart by, and nothing reads it for its text.
+		// A scheme holds no `:` and no `/`, so where this matches, the first `:` of the input
+		// ends a scheme — and where it does not, no relative reference could have reached that
+		// colon either: `path-noscheme` (§4.2) forbids one in its first segment, and every
+		// later segment stands behind a `/` this would have stopped at.
+		SchemeMark = SchemeText & ':'
+
 		// §3.2.1 and §3.2.3.
 		UserInfoText = (Unreserved | PctEncoded | SubDelims | ':')*
 		PortText     = Digit*
@@ -191,8 +198,13 @@ public sealed record UriReference(
 	// ── The reference, and the parts it comes back as ───────────────────────────
 
 	// §4.1. A reference is a URI or a relative one, and which it is turns on whether what
-	// stands before the first `:` is a scheme. Ordered choice asks that by trying.
-	Reference : @UriReference = u: Uri => @(u) | r: RelativeRef => @(r)
+	// stands before the first `:` is a scheme. Ordered choice asks that by trying, and the
+	// `?!` says what trying could only find out by reading the whole input twice: where a
+	// scheme and its colon stand, a relative reference is out of the question, so a URI that
+	// fails later fails here and is not read again as one. The lookahead is on the second
+	// alternative and not in front of the first because a URI is then the one reading that
+	// pays nothing for it.
+	Reference : @UriReference = u: Uri => @(u) | ?!SchemeMark & r: RelativeRef => @(r)
 
 	// §3.
 	Uri : @UriReference = scheme: SchemeText & ':' & rest: HierPart & ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
