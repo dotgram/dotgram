@@ -529,3 +529,73 @@ Where to look first is decided by what is open here, not by what is famous:
 The rule this file lives by applies to it: an item arrives with evidence — a paper or an
 implementation that can be read, the place here it would touch, and what it would have to beat —
 and no more than two or three at a time.
+
+## Q7 (2026-09-19). D25's audit: two verdicts, one test, and a hazard under the first candidate
+
+Asked by the architect: walk the sources against D25 — the generator decides, the parser is a dumb
+machine — and judge two candidates on their merits rather than on his reading of them.
+
+**The test the audit was run with**, offered because it is the part that outlives this sweep. Hold
+the input and the grammar fixed and take the mechanism away. Three outcomes, and only the third is
+what D25 forbids:
+
+- **Housekeeping.** The steps are the same and only allocation differs: the spare parsers and the
+  `_deeper` stacks, `DeeperSpares = 3`, the retention cap, `ValueTable`'s flat prefix and pages,
+  the 1 MB ceiling on what is worth recycling. None of these can change an answer or a step. The
+  file `Support.Adaptive.cs` is named for capacity and not for strategy; it grows a table, it does
+  not choose one.
+- **Memoization.** The answer is identical and some steps are elided, by a rule fixed in the emitted
+  code. Admissible, but only while the rule is fixed at generation *and* its cost is bounded.
+- **Strategy.** Which steps are taken depends on something that is neither the input nor the
+  grammar. Out.
+
+**Swept and clean.** No emitted code asks a type what it is, asks the hardware what it supports, or
+reads a policy out of settings: `GetType`, `IsSupported`, `IsHardwareAccelerated` and
+`RuntimeInformation` appear nowhere in what is emitted (only in the generator's own error messages).
+The stop-set rule D20 mentions, the arm-splitting, the carrier, the switch's limit of 128 — all of
+them are decided in the generator and written out as one shape.
+
+**Candidate 1, the kept cuttings (`CSharpEmitter.cs:2124`–2195), is memoization and not a strategy,
+and it has a defect.** `Tokenized_DotGram` keeps the last two tokenizations per thread, the input
+held weakly and the kinds strongly, and hands them back when the next reading arrives with the same
+string by reference. Nothing about the reading changes: the tokens are what `Tokenize_DotGram` would
+have produced. So it passes the test — and `kept = positional && !windowed` is a generation-time
+flag, so the parser is not choosing anything at run time.
+
+Two things about it are worth saying anyway, and the second is a defect rather than a question.
+
+- **It is decided once and not proved once.** The rule is blanket — every non-windowed positional
+  entry of every grammar — and the scenario it was written for is in the comment beside it: a host
+  reading one value after another out of one text. For the opposite caller, one value out of a large
+  document, it cuts the whole text into kinds to read a few tokens of it, and a thread-static then
+  holds those kinds until the string dies. That is the shape D25 resolved for the FIX fields one
+  level up: the consumer declares what it will do, and the generator writes the machine for it.
+- **The eviction can recycle a tokenization that a parse still in progress is reading.** The slots
+  are filled round-robin, and eviction calls `Recycle_DotGram`, which puts the `Tokens_DotGram` —
+  its `Kinds`, `Starts` and `Lengths` arrays — into the thread's spare pool for the next
+  tokenization to overwrite. A parse holds those arrays in locals for the whole of its reading
+  (`var starts = tokens.Starts;`). So: parse A of text A takes slot 0; a factory of A parses text B,
+  slot 1; a factory of A parses text C, slot 0 — A's tokens go to the spare pool while A is still
+  reading them; the next tokenization takes that spare and writes over them. Three inner readings
+  inside one outer reading, which is the very nesting the two slots were introduced for, one level
+  deeper than the comment considers. It reaches both carriers, since the immediate one runs factories
+  while reading and the tape's walk reads starts and lengths after it. **Not reproduced here** — this
+  session does not run code; the chain is exact and cheap to test, and if it holds the fix is to not
+  recycle on eviction, or to keep a reading's tokens off the slots for as long as it is reading.
+
+**Candidate 2, the pools and the weak reference, is housekeeping — with the part I cannot audit
+named.** Every pool in the emitted support passes the test above: take the spares away and the same
+steps run over freshly allocated arrays. The only weak reference on main today is the one in
+candidate 1, so if performance-ff has retention work in flight it is not yet in the tree and I have
+not audited it. The test to put to it when it lands: does removing it change any step, or only the
+allocation? If the retention limit is ever derived from what the parser has seen — a pool that grows
+because inputs have been large — that is the third category and it is out; a limit that is a
+constant, or one the consumer declares (D9), is the first.
+
+**And one place where the rule and the code disagree today.** `FixGrammar.cs:62` and `:68` ask a
+consumer's `FixFieldOptions` while reading, whether a tag carries a length-and-data pair. D25 names
+exactly this and rules it out; the remedy decided with it — the consumer declares its tags where the
+grammar is, and the generator builds the arms — has not landed. Until it does, the rule is written
+and the code does otherwise. Worth knowing in that order rather than the other one.
+
+**Answer:** —
