@@ -9,6 +9,9 @@ using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Emit;
 
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+
 using Xunit;
 
 namespace DotGram.Tests;
@@ -40,7 +43,7 @@ public sealed class SnapshotTests
 	{
 		var text = File.ReadAllText(Path.Combine(Directory, name + ".gram"));
 
-		foreach (var options in Renderings(name, text))
+		foreach (var (options, declarations) in Renderings(name, text))
 		{
 			var result = GramCompiler.Compile(text, options);
 
@@ -52,10 +55,12 @@ public sealed class SnapshotTests
 
 			// Compiled first, and the parts of a split file together, since they are one
 			// compilation where they land: a snapshot that matches but does not build is worse
-			// than no snapshot, because it makes the wrong thing look approved.
+			// than no snapshot, because it makes the wrong thing look approved. A grammar that
+			// names what the host declares is compiled beside those declarations, as it is in a
+			// consumer’s project.
 			EmittedCode.Compile(
-				sources[0].Text, options.ClassName, options.Namespace,
-				sourceParts: sources.Skip(1).Select(static source => source.Text));
+				sources[0].Text, options.ClassName, options.Namespace, declarations,
+				sources.Skip(1).Select(static source => source.Text));
 
 			foreach (var source in sources)
 				Held(source.HintName, source.Text);
@@ -115,8 +120,13 @@ public sealed class SnapshotTests
 	/// there is no sweep over the options, because a set that runs for minutes stops being read,
 	/// and a snapshot nobody reads is the same defect wearing a test’s coat.
 	/// </para>
+	/// <para>
+	/// What comes back is the options and, where the grammar names what the host declares,
+	/// those declarations: they are compiled beside the generated file, as they are in a
+	/// consumer’s project, and a real symbol resolver is built over them.
+	/// </para>
 	/// </remarks>
-	static IEnumerable<GramCompilerOptions> Renderings(string name, string text)
+	static IEnumerable<(GramCompilerOptions Options, string? Declarations)> Renderings(string name, string text)
 	{
 		GramCompilerOptions Options() => new()
 		{
@@ -144,7 +154,7 @@ public sealed class SnapshotTests
 				buffered.BufferedBytes = true;
 				buffered.MaxRetained   = 4096;
 
-				yield return buffered;
+				yield return (buffered, null);
 
 				break;
 			}
@@ -154,7 +164,7 @@ public sealed class SnapshotTests
 			// builds where it reads.
 			case "Twice":
 			{
-				yield return Options();
+				yield return (Options(), null);
 
 				var immediate = Options();
 
@@ -162,7 +172,48 @@ public sealed class SnapshotTests
 				immediate.SuffixDeclared = true;
 				immediate.Carrier        = CarrierKind.Immediate;
 
-				yield return immediate;
+				yield return (immediate, null);
+
+				break;
+			}
+
+			// Where a value was, and a carrier the author asked for rather than `Auto` chose — both
+			// of them the host's to ask for. The declarations beside it are the consumer's own
+			// types, so this is also the snapshot compiled under a real symbol resolver: what a
+			// grammar names is looked up in a compilation rather than taken on trust.
+			case "Located":
+			{
+				var located = Options();
+
+				located.LocationType   = "ILocated";
+				located.Carrier        = CarrierKind.Tape;
+				located.SymbolResolver = new RoslynSymbolResolver(
+					CSharpCompilation.Create(
+						name,
+						[CSharpSyntaxTree.ParseText($"namespace {Namespace} {{ public partial class {name} {{ {Declarations} }} }}")],
+						EmittedCode.References,
+						new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)),
+					$"{Namespace}.{name}");
+
+				yield return (located, Declarations);
+
+				break;
+			}
+
+			// One grammar in several files, and the size that divides them. A part is a complete
+			// group of its own, so a consumer whose compiler chokes on one enormous file gets
+			// several and nothing else changes; the division is a wish and never an error
+			// (`SourceFileSize`, and `PartSize` for how finely a recognizer is cut inside a file).
+			// The number here is small on purpose: the point is that the file divides and that the
+			// parts still compile as one compilation, which is how they land.
+			case "Split":
+			{
+				var split = Options();
+
+				split.SourceFileSize = 20000;
+				split.PartSize       = 400;
+
+				yield return (split, null);
 
 				break;
 			}
@@ -175,13 +226,25 @@ public sealed class SnapshotTests
 
 				lexical.Lexical = true;
 
-				yield return lexical;
+				yield return (lexical, null);
+
+				// And the same again with the transition tables off, which is the chain of
+				// alternatives they replace: the tables are on by default and not offered in the
+				// attribute, so nothing else in this set can show what they are instead of.
+				var chained = Options();
+
+				chained.Lexical      = true;
+				chained.PrefixTables = false;
+				chained.Suffix       = "Chained";
+				chained.SuffixDeclared = true;
+
+				yield return (chained, null);
 
 				break;
 			}
 
 			default:
-				yield return Options();
+				yield return (Options(), null);
 
 				break;
 		}
@@ -199,6 +262,45 @@ public sealed class SnapshotTests
 			.GetFiles(Directory, "*.gram")
 			.Select(Path.GetFileNameWithoutExtension)
 			.OfType<string>());
+
+	/// <summary>
+	/// What the host of <c>Located.gram</c> declares: the interface a reader offers a range to,
+	/// and the two types the grammar builds.
+	/// </summary>
+	/// <remarks>
+	/// Written at the C# 8 floor, like everything else this harness compiles — no records, no
+	/// primary constructors — because the declaration is parsed at the floor beside the generated
+	/// file.
+	/// </remarks>
+	const string Declarations = """
+		public interface ILocated
+		{
+			void Locate(int at, int length);
+		}
+
+		public sealed class Place : ILocated
+		{
+			public Place(string name) { Name = name; }
+
+			public string Name { get; }
+			public int At { get; private set; }
+			public int Length { get; private set; }
+
+			public void Locate(int at, int length) { At = at; Length = length; }
+		}
+
+		public sealed class Entry : ILocated
+		{
+			public Entry(Place key, string value) { Key = key; Value = value; }
+
+			public Place Key { get; }
+			public string Value { get; }
+			public int At { get; private set; }
+			public int Length { get; private set; }
+
+			public void Locate(int at, int length) { At = at; Length = length; }
+		}
+		""";
 
 	static string Normalize(string text) => text.Replace("\r\n", "\n").TrimEnd();
 

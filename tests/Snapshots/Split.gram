@@ -1,0 +1,38 @@
+// One grammar that comes out as several files, and the sizes that divide it.
+//
+// A part is a complete group of its own — the recognizer, its tables, its reader — and a
+// consumer's compiler sees several files where it would otherwise see one enormous one.
+// Until this grammar existed the harness asserted a single source, so neither the division
+// nor the sizes that drive it could appear in a diff: `SourceFileSize` says where a file
+// ends, `PartSize` how finely the recognizer inside one is cut, and both are wishes that no
+// value can turn into an error.
+//
+// The numbers are small so that a grammar this size divides at all. What the snapshot holds
+// is the shape of the division — Split.gram.g.cs and the parts beside it — and that the
+// pieces still compile as one compilation, which is how they land in a consumer's build.
+//
+// A small command language, because what a division needs is many rules rather than deep
+// ones: every command begins with a word of its own, so nothing here is a shared prefix and
+// the file is long for the plainest reason there is.
+
+trivia = { ' '* }
+
+Script : @string[] = Command*
+
+Command : @string
+	= "let"    & name: Word & '=' & value: Word & ';'  => @("let " + name + " " + value)
+	| "print"  & value: Word & ';'                     => @("print " + value)
+	| "call"   & name: Word & '(' & arg: Word & ')' & ';' => @("call " + name + " " + arg)
+	| "while"  & cond: Word & '{' & body: Word & '}'   => @("while " + cond + " " + body)
+	| "unless" & cond: Word & '{' & body: Word & '}'   => @("unless " + cond + " " + body)
+	| "return" & value: Word & ';'                     => @("return " + value)
+	| "raise"  & value: Word & ';'                     => @("raise " + value)
+	| "wait"   & value: Number & ';'                   => @("wait " + value)
+	| "skip"   & ';'                                   => @("skip")
+	| "halt"   & ';'                                   => @("halt")
+
+Word : @string = t: ['a'..'z']+ => @(t)
+
+Number : @string = t: ['0'..'9']+ => @(t)
+
+parse Script

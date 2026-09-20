@@ -1,0 +1,33 @@
+// Where a value was, and a carrier the author asked for (docs/syntax.md, `LocationType`).
+//
+// Two options no other snapshot holds, and both are the host's to ask for rather than the
+// grammar's to say: `LocationType` names an interface of the consumer's, and every rule
+// whose value implements it is told the range it was read over; `Carrier` takes the choice
+// away from `Auto`, which is what an author does when a construction of theirs must not run
+// for input that is refused.
+//
+// The grammar also names what the host declares — `@Place` is the consumer's own type — so
+// this snapshot is the one compiled under a real symbol resolver rather than the permissive
+// one. What that resolver answers is in the file: which constructor of `Place` the captures
+// fit, and that `Entry` may hold it.
+//
+// A configuration of lines, because a location is only interesting where a reader will be
+// sent back to it: a key, a value, and the place of each.
+
+trivia = { ' '* }
+
+Config : @Entry[] = Entry*
+
+Entry : @Entry = key: Name & '=' & value: Rest & eol => @(new Entry(key, value))
+
+// Through a rule rather than straight from the characters. A value the engine builds inline
+// from the spans its site recorded is handed no location at all today — the arguments there
+// are the captured texts and nothing else — and a snapshot that does not compile is worse
+// than no snapshot. Reported rather than carried here.
+Name : @Place = w: Word => @(new Place(w))
+
+Word : @string = t: ['a'..'z']+ => @(t)
+
+Rest : @string = t: [^ '\r' | '\n']* => @(t)
+
+parse Config

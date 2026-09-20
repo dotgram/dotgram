@@ -239,7 +239,8 @@ static class EmittedCode
 		return [.. positions];
 	}
 
-	static ImmutableArray<MetadataReference> References { get; } =
+	/// <summary>Every assembly this process has loaded, which is what a test compilation may name.</summary>
+	internal static ImmutableArray<MetadataReference> References { get; } =
 	[
 		.. AppDomain.CurrentDomain
 			.GetAssemblies()
