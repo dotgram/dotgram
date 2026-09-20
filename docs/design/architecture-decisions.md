@@ -4776,3 +4776,21 @@ change is proposed. It needs no window, it is diagnosis rather than measurement,
 blocked on other people's work meanwhile. Either answer is worth having: a cliff or a pass nobody
 needed is cheap to remove, and "this is the message graph and it cannot be less" is a result that
 stops the question being asked again.
+
+## D51. Igor decides: the kept tokenization stays hidden, and the ISO grammar stays, 2026-09-20
+
+**The kept tokenization keeps its present shape.** No reading object in a generated parser's public
+API: `TransactSqlParser.Over(text)` is declined. The tokenization goes on being kept where it is
+kept now — two slots per thread, the text held weakly and the tokens strongly, a slot taken by the
+next text — and the defect that lived there is found, fixed and covered by a test. What stood
+against the machinery was that it is invisible; what stood against replacing it is that the
+replacement's cost is not the type but the places the type is *not*, a public shape following an
+internal analysis, so that adding a `find` to a grammar would delete a class from a consumer's API.
+The scaling test stays where it is, on the static positional calls, which is the shape a stranger
+writes first. Reopened only if a consumer needs a reading it controls.
+
+**The ISO grammar stays in the repository.** The file is kept as fetched, with its provenance and
+the sentence ISO publishes it under; Microsoft's syntax stays under its own licence with the
+attribution and the changes named, which is what that licence asks. The question was raised because
+a public repository redistributes where that sentence speaks of use; it is weighed and answered.
+Nothing follows for the packages, which never carried either file.
