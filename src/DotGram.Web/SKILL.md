@@ -45,6 +45,8 @@ what the text said, and be refused when it is malformed.
   structured field lines with `StructuredField.Combine`.
 
 ```csharp
+using System;
+
 using DotGram.Web;
 
 var document = (JsonValue.Object)JsonValue.Parse("""{ "price": 19.999999999999999999, "tags": ["a"] }""");
@@ -53,6 +55,8 @@ var price    = (JsonValue.Number)document.Members[0].Value;
 string exact = price.Text;                          // 19.999999999999999999, as written
 double close = price.ToDouble();                    // 20
 bool fits    = price.TryToDecimal(out var amount);  // true: a decimal holds it exactly
+
+string untrusted = Console.ReadLine() ?? "";
 
 if (!JsonValue.TryParse(untrusted, out var value))
     return;                                         // malformed JSON, no exception

@@ -52,7 +52,12 @@ already returned without reading the input again.
 ## Reading fields
 
 ```csharp
+using System;
+
 using DotGram.Finance.Fix;
+
+var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
 foreach (var field in FixParser.Parse(wire))
 {
@@ -92,6 +97,9 @@ foreach (var field in FixParser.Parse(wire))
 ## Reading messages
 
 ```csharp
+var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+
 if (!FixMessages.TryParse(wire, out var message, out var error))
 {
     Console.WriteLine(error);                     // message type, tag, offset and reason
@@ -144,6 +152,11 @@ payload may contain separators. It comes back as one field, the data field, whos
 `Position` covers both. Counterparty-defined pairs go in `FixFieldOptions`:
 
 ```csharp
+using System.Collections.Generic;
+
+var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+
 var pairs = new FixFieldOptions(new Dictionary<int, int>
 {
     [5000] = 5001,   // added to the standard's sixteen pairs, which hold and may not be redeclared

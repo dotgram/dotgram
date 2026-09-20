@@ -7,9 +7,18 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
+		<!-- To compile the fenced C# of the shipped pages, which is what ShippedPages does. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
 		<None Include="Fixtures.json" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="FieldCases.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
+	<!-- D37's page checker, written once for DotGram.Tests and linked rather than copied:
+	     two answers to "does this page compile" would drift, which is the defect it exists to
+	     catch. -->
+	<ItemGroup>
+		<Compile Include="..\DotGram.Tests\ShippedPages.cs" Link="ShippedPages.cs" />
+	</ItemGroup>
+
 </Project>

@@ -14,7 +14,14 @@ grammar files, schema XML, reflection configuration or initialization step.
 ## Flat field parsing
 
 ```csharp
+using System;
+using System.IO;
+
 using DotGram.Finance.Fix;
+
+// One message, with the separator written as a pipe so it can be read on a page.
+var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
 FixField[] fields = FixParser.Parse(wire);
 var logFields = FixParser.ParseLog("55=ABC | 38=100");
@@ -107,6 +114,8 @@ The large `Fix44` grammar is retained in
 It is not included in the Finance package.
 
 ```csharp
+using System.Collections.Generic;
+
 var fields = FixParser.ParseLog("55=ABC|38=100|");
 var options = new FixFieldOptions(new Dictionary<int, int>
 {
@@ -135,6 +144,9 @@ validation and group assembly without parsing it again. `Parse` combines both st
 ```csharp
 using DotGram.Finance.Fix;
 
+var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+
 if (FixMessages.TryParse(wire, out var message, out var error))
 {
     if (message is NewOrderSingle order)
@@ -144,7 +156,7 @@ if (FixMessages.TryParse(wire, out var message, out var error))
         Console.WriteLine(order.Header.SenderCompID);
 
         foreach (var party in order.Parties)
-            Console.WriteLine(party.PartyID);
+            Console.WriteLine(party.GetField(448));   // PartyID
     }
 }
 else
@@ -267,6 +279,9 @@ outside its checks. ISO identifiers are checked for their lexical shape.
 standard tag. Each case declares its tag and primitive type:
 
 ```csharp
+var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+
 var order = (NewOrderSingle)FixMessages.Parse(wire);
 var symbol = (FixField.Symbol)order.GetField(55)!.Value.TypedValue!;
 var quantity = (FixField.OrderQty)order.GetField(38)!.Value.TypedValue!;
@@ -304,6 +319,9 @@ field objects and nothing more: a tag outside FIX 4.4 is still unknown to the me
 ## Pipe-delimited logs
 
 ```csharp
+var logLine   = "55=ABC | 38=100";
+using var logReader = new StringReader(logLine);
+
 var message = FixMessages.ParseLog(logLine);
 var options = new FixParseOptions(FixFraming.Log, FixParseMode.Lenient);
 foreach (var item in FixMessages.ReadMessages(logReader, options))
@@ -334,6 +352,13 @@ What is built for such a tag is a `FixField.Custom` carrying the octets. To buil
 instead, derive from `FixCustomFields` and pass it to `FixFieldOptions`:
 
 ```csharp
+using System.Text;
+
+var pairs   = new Dictionary<int, int> { [25000] = 25001 };
+var options = new FixFieldOptions(pairs, new Venue());
+
+sealed class Status(string value) : FixField.Typed<string>(25005, value);
+
 sealed class Venue : FixCustomFields
 {
     public override FixField Text(int tag, ReadOnlySpan<char> value) =>
@@ -344,8 +369,6 @@ sealed class Venue : FixCustomFields
 
     public override FixField Binary(int tag, ReadOnlyMemory<byte> value) => Spare(tag, value);
 }
-
-var options = new FixFieldOptions(pairs, new Venue());
 ```
 
 Three methods, because a field is built from the characters of a text field, from its bytes, and

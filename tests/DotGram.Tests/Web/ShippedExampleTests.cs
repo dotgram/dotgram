@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 using DotGram.Web;
 
@@ -255,6 +256,43 @@ public sealed class WebShippedExampleTests
 
 		Assert.False(JsonValue.TryParse(untrusted, out _));
 	}
+
+	// ── The pages themselves, compiled as they are written ──────────────────────
+
+	/// <summary>
+	/// Every fenced block of both pages compiles on its own, with the usings it shows and no
+	/// others (D56).
+	/// </summary>
+	/// <remarks>
+	/// The tests above run the examples and hold the values their comments claim — but they run in
+	/// a project where implicit usings are on, so a page that forgets <c>using System;</c> passes
+	/// every one of them. This package ships for <c>netstandard2.0</c> too, where there are none.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Pages))]
+	public void Every_block_of_a_page_compiles_as_it_is_written(string page, int block)
+	{
+		var blocks = ShippedPages.Blocks(page);
+		var code   = ShippedPages.Inherited(blocks, block) + blocks[block];
+
+		if (Fragments.TryGetValue((Path.GetFileName(page), block), out var why))
+		{
+			Assert.NotNull(why);
+
+			return;
+		}
+
+		var said = ShippedPages.Compiles(code);
+
+		Assert.True(said is null, said + Environment.NewLine + "----" + Environment.NewLine + code);
+	}
+
+	public static TheoryData<string, int> Pages => ShippedPages.Every(
+		ShippedPages.PageOf(typeof(JsonValue), "README.md"),
+		ShippedPages.PageOf(typeof(JsonValue), "SKILL.md"));
+
+	/// <summary>The blocks that are not files of their own, and why each one is not.</summary>
+	static readonly Dictionary<(string Page, int Block), string> Fragments = new();
 
 	[Fact]
 	public void The_skill_page_on_strictness_and_quality()

@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using DotGram.Finance.Fix;
+
+using DotGram.Tests;
 
 using Xunit;
 
@@ -52,6 +56,44 @@ public sealed class ShippedExampleTests
 
 		Assert.Contains("95", refused.Message);
 	}
+
+	// ── The pages themselves, compiled as they are written ──────────────────────
+
+	/// <summary>
+	/// Every fenced block of both pages compiles on its own, with the usings it shows and no
+	/// others (D56).
+	/// </summary>
+	/// <remarks>
+	/// The tests above run the examples, and they run inside a project where implicit usings are
+	/// on — so a page that forgets <c>using System;</c> passes them. This package ships for
+	/// <c>netstandard2.0</c> as well, where there are none, and a reader aiming at the floor is
+	/// the reader the floor exists for.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Pages))]
+	public void Every_block_of_a_page_compiles_as_it_is_written(string page, int block)
+	{
+		var blocks = ShippedPages.Blocks(page);
+		var code   = ShippedPages.Inherited(blocks, block) + blocks[block];
+
+		if (Fragments.TryGetValue((Path.GetFileName(page), block), out var why))
+		{
+			Assert.NotNull(why);
+
+			return;
+		}
+
+		var said = ShippedPages.Compiles(code);
+
+		Assert.True(said is null, said + Environment.NewLine + "----" + Environment.NewLine + code);
+	}
+
+	public static TheoryData<string, int> Pages => ShippedPages.Every(
+		ShippedPages.PageOf(typeof(FixField), "README.md"),
+		ShippedPages.PageOf(typeof(FixField), "SKILL.md"));
+
+	/// <summary>The blocks that are not files of their own, and why each one is not.</summary>
+	static readonly Dictionary<(string Page, int Block), string> Fragments = new();
 
 	[Fact]
 	public void The_opening_example_of_the_readme_runs()

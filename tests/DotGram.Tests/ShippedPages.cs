@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -67,7 +68,13 @@ static class ShippedPages
 			.SelectMany(static block => block.Split('\n'))
 			.Select(static line => line.TrimEnd('\r'))
 			.Where(static line =>
-				line.StartsWith("using ", StringComparison.Ordinal) && line.EndsWith(";", StringComparison.Ordinal))
+				line.StartsWith("using ", StringComparison.Ordinal) && line.EndsWith(";", StringComparison.Ordinal) &&
+				// `using var x = ...;` and `using (…)` are statements, not directives. They begin
+				// the same way and carrying them forward makes a later block declare a variable
+				// twice and name types the block never imported — the checker's own errors, read
+				// as the page's.
+				!line.StartsWith("using var ", StringComparison.Ordinal) &&
+				!line.StartsWith("using (", StringComparison.Ordinal))
 			.Distinct()
 			.Select(static line => line + Environment.NewLine));
 
@@ -97,7 +104,7 @@ static class ShippedPages
 		var compilation = CSharpCompilation.Create(
 			"DotGram.Tests.Page",
 			[CSharpSyntaxTree.ParseText(code, cancellationToken: TestContext.Current.CancellationToken)],
-			EmittedCode.References,
+			References,
 			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
 
 		var complaints = compilation
@@ -109,6 +116,21 @@ static class ShippedPages
 			? null
 			: string.Join("\n", complaints.Select(static one => one.ToString()));
 	}
+
+	/// <summary>Every assembly this process has loaded, which is what a block of a page may name.</summary>
+	/// <remarks>
+	/// Its own rather than the emitter harness's, which answers the same question for another
+	/// reason: this file is linked into DotGram.Finance.Tests, whose process loads other assemblies
+	/// and which does not carry that harness. A shared answer here would have tied two test projects
+	/// together to save four lines.
+	/// </remarks>
+	static ImmutableArray<MetadataReference> References { get; } =
+	[
+		.. AppDomain.CurrentDomain
+			.GetAssemblies()
+			.Where(static assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
+			.Select(static assembly => (MetadataReference)MetadataReference.CreateFromFile(assembly.Location)),
+	];
 
 	/// <summary>Where a package's pages are, from a type it ships.</summary>
 	public static string PageOf(Type shipped, string name) =>

@@ -55,14 +55,17 @@ that means the same, and written back by `ToString` in the form the specificatio
 ## JSON
 
 ```csharp
+using System;
+using System.Collections.Generic;
+
 using DotGram.Web;
 
 var value = (JsonValue.Object)JsonValue.Parse("""{ "pi": 3.14159265358979323846, "tags": ["a", "b"] }""");
 
 var pi = (JsonValue.Number)value.Members[0].Value;
-pi.Text;                  // 3.14159265358979323846
-pi.ToDouble();            // 3.141592653589793
-value.ToString();         // {"pi":3.14159265358979323846,"tags":["a","b"]}
+var exact   = pi.Text;         // 3.14159265358979323846
+var approx  = pi.ToDouble();   // 3.141592653589793
+var written = value.ToString();  // {"pi":3.14159265358979323846,"tags":["a","b"]}
 ```
 
 A number keeps the text it was written with, and `ToDouble`, `TryToDecimal` and `TryToInt64`
@@ -76,14 +79,14 @@ as UTF-8, is the caller's, and a byte order mark is refused rather than skipped.
 ```csharp
 var document = JsonValue.Parse("""{ "foo": ["bar", "baz"], "a/b": 1 }""");
 
-JsonPointer.Parse("/foo/1").Resolve(document);   // "baz"
-JsonPointer.Parse("/a~1b").Resolve(document);    // 1
-JsonPointer.Parse("/foo/-").Resolve(document);   // null: the element after the last
+var baz   = JsonPointer.Parse("/foo/1").Resolve(document);   // "baz"
+var one   = JsonPointer.Parse("/a~1b").Resolve(document);    // 1
+var after = JsonPointer.Parse("/foo/-").Resolve(document);   // null: the element after the last
 
-var pointer = JsonPointer.Parse("/a~1b/0");
-pointer.Tokens;                                  // [a/b, 0]
-pointer.ToUriFragment();                         // #/a~1b/0
-JsonPointer.ParseFragment("#/c%25d").Tokens;     // [c%d]
+var pointer  = JsonPointer.Parse("/a~1b/0");
+var tokens   = pointer.Tokens;                               // [a/b, 0]
+var fragment = pointer.ToUriFragment();                      // #/a~1b/0
+var decoded  = JsonPointer.ParseFragment("#/c%25d").Tokens;  // [c%d]
 ```
 
 Escapes are undone in the order the RFC gives, so `~01` is `~1`. `Resolve` answers null where
@@ -118,14 +121,14 @@ Removing the whole document is an error.
 ```csharp
 var type = MediaType.Parse("Text/HTML; Charset=\"UTF-8\"");
 
-type.Charset;                                        // UTF-8
-type == MediaType.Parse("text/html;charset=utf-8");  // true
+var charset = type.Charset;                                   // UTF-8
+var same    = type == MediaType.Parse("text/html;charset=utf-8");  // true
 
 var accept = MediaRange.ParseAccept("text/*;q=0.3, text/plain;q=0.7, */*;q=0.5");
 
-MediaRange.Quality(accept, MediaType.Parse("text/plain"));   // 0.7
-MediaRange.Quality(accept, MediaType.Parse("text/html"));    // 0.3
-MediaRange.Quality(accept, MediaType.Parse("image/png"));    // 0.5
+var plain = MediaRange.Quality(accept, MediaType.Parse("text/plain"));   // 0.7
+var html  = MediaRange.Quality(accept, MediaType.Parse("text/html"));    // 0.3
+var png   = MediaRange.Quality(accept, MediaType.Parse("image/png"));    // 0.5
 ```
 
 A type, a subtype, a parameter name and a `charset` value compare without case; other values
@@ -142,13 +145,13 @@ as the three types RFC 9651 gives them.
 var list = StructuredField.ParseList("text/html;q=1.0, (\"a\" \"b\");lvl=5");
 
 var item = (Item)list[0];
-item.Value;                    // BareItem.Token { Value = "text/html" }
-item.Parameters["q"];          // BareItem.Decimal { Value = 1.0 }
+var value   = item.Value;              // BareItem.Token { Value = "text/html" }
+var quality = item.Parameters["q"];    // BareItem.Decimal { Value = 1.0 }
 
 var dictionary = StructuredField.ParseDictionary("u=3, i");
-dictionary["i"];               // Item { Value = BareItem.Boolean { Value = true } }
+var flag       = dictionary["i"];      // Item { Value = BareItem.Boolean { Value = true } }
 
-StructuredField.SerializeDictionary(dictionary);   // u=3, i
+var written = StructuredField.SerializeDictionary(dictionary);   // u=3, i
 ```
 
 Parameters and Dictionaries are read by position and by key; a key written twice keeps its
@@ -165,10 +168,10 @@ var links = WebLink.ParseField(
     "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, " +
     "</TheBook/chapter4>; rel=\"next\"; title=\"next chapter\"");
 
-links[0].Target;       // /TheBook/chapter2
-links[0].Relations;    // [previous]
-links[0].Title;        // letztes Kapitel
-links[1].Title;        // next chapter
+var target    = links[0].Target;       // /TheBook/chapter2
+var relations = links[0].Relations;    // [previous]
+var german    = links[0].Title;        // letztes Kapitel
+var english   = links[1].Title;        // next chapter
 ```
 
 A link-param's value is the same written as a token or a quoted string. Where RFC 8288 allows a
@@ -182,9 +185,9 @@ written: resolving a relative one needs the URL of the response that carried the
 var field = ContentDisposition.Parse(
     "attachment; filename=\"EURO rates\"; filename*=utf-8''%e2%82%ac%20rates");
 
-field.IsAttachment;               // true
-field.Filename;                   // € rates
-field.Find("filename")!.Value;    // EURO rates
+var attachment = field.IsAttachment;             // true
+var filename   = field.Filename;                 // € rates
+var plain      = field.Find("filename")!.Value;  // EURO rates
 ```
 
 `Filename` prefers a `filename*` that decodes to `filename`. A type other than `inline` is an
@@ -197,13 +200,13 @@ the caller's.
 ```csharp
 var cookie = SetCookie.Parse("SID=31d4d96e407aad42; Path=/; Max-Age=3600; Secure; HttpOnly");
 
-cookie.Name;                                // SID
-cookie.Path;                                // /
-cookie.Secure;                              // true
-cookie.ExpiryTime(DateTimeOffset.UtcNow);   // an hour from now
+var name   = cookie.Name;                              // SID
+var path   = cookie.Path;                              // /
+var secure = cookie.Secure;                            // true
+var expiry = cookie.ExpiryTime(DateTimeOffset.UtcNow); // an hour from now
 
-CookieDate.Parse("Sun, 06-Nov-94 08:49:37 GMT");      // 1994-11-06 08:49:37 +00:00
-CookiePair.ParseField("SID=31d4d96e407aad42; lang=en-US");   // two pairs
+var when  = CookieDate.Parse("Sun, 06-Nov-94 08:49:37 GMT");            // 1994-11-06 08:49:37 +00:00
+var pairs = CookiePair.ParseField("SID=31d4d96e407aad42; lang=en-US");  // two pairs
 ```
 
 `SetCookie.Parse` is the user agent's algorithm of RFC 6265 §5.2, which reads nearly anything:
@@ -220,11 +223,11 @@ the store itself is the caller's.
 var elements = ForwardedElement.ParseField(
     "for=192.0.2.43, for=\"[2001:db8:cafe::17]:4711\";by=_hidden;proto=https;host=example.com");
 
-elements[0].For!.Name;         // 192.0.2.43
-elements[1].For!.Kind;         // ForwardedNode.Kinds.IPv6
-elements[1].For!.PortNumber;   // 4711
-elements[1].By!.Kind;          // ForwardedNode.Kinds.Obfuscated
-elements[1].Proto;             // https
+var client    = elements[0].For!.Name;       // 192.0.2.43
+var kind      = elements[1].For!.Kind;       // ForwardedNode.Kinds.IPv6
+var port      = elements[1].For!.PortNumber; // 4711
+var hidden    = elements[1].By!.Kind;        // ForwardedNode.Kinds.Obfuscated
+var protocol  = elements[1].Proto;           // https
 ```
 
 A `by` or `for` value has to be a node identifier, `host` a host and port, and `proto` a URI
@@ -239,15 +242,15 @@ trusted — any proxy on the way may have written it.
 ```csharp
 var uri = UriReference.ParseUri("https://user@example.com:8080/a/b?q=1#top");
 
-uri.Scheme;    // https
-uri.Host;      // example.com
-uri.Port;      // 8080
-uri.Path;      // /a/b
-uri.Query;     // q=1
-uri.Fragment;  // top
+var scheme   = uri.Scheme;    // https
+var host     = uri.Host;      // example.com
+var port     = uri.Port;      // 8080
+var path     = uri.Path;      // /a/b
+var query    = uri.Query;     // q=1
+var fragment = uri.Fragment;  // top
 
-UriReference.Parse("../images/logo.png?size=2").Path;   // ../images/logo.png
-UriReference.Decode("hello%20world");                    // hello world
+var relative = UriReference.Parse("../images/logo.png?size=2").Path;  // ../images/logo.png
+var decoded  = UriReference.Decode("hello%20world");                  // hello world
 ```
 
 `Parse` reads a URI reference, relative or not; `ParseUri` asks for a scheme. IPv4, IPv6 and
@@ -281,15 +284,15 @@ var list = EmailAddress.ParseList(
     "\"Joe Q. Public\" <john.q.public@example.com>, jdoe@example.org, Undisclosed recipients:;");
 
 var joe = (EmailAddress.Mailbox)list[0];
-joe.DisplayName;          // Joe Q. Public
-joe.Address.LocalPart;    // john.q.public
-joe.Address.Domain;       // example.com
+var display = joe.DisplayName;        // Joe Q. Public
+var local   = joe.Address.LocalPart;  // john.q.public
+var domain  = joe.Address.Domain;     // example.com
 
-var group = (EmailAddress.Group)list[2];
-group.Members.Count;      // 0
+var group   = (EmailAddress.Group)list[2];
+var members = group.Members.Count;    // 0
 
-AddrSpec.Parse("(comment)\"john smith\"@example.com").LocalPart;   // john smith
-AddrSpec.TryParseStrict("john . smith@example.com", out _);        // false: obsolete syntax
+var quoted = AddrSpec.Parse("(comment)\"john smith\"@example.com").LocalPart;  // john smith
+var loose  = AddrSpec.TryParseStrict("john . smith@example.com", out _);       // false: obsolete syntax
 ```
 
 A value is what the address means: comments and folding are gone, a quoted local part is its
@@ -306,13 +309,13 @@ could be delivered to it is not asked.
 ```csharp
 var timestamp = Timestamp.Parse("1996-12-19T16:39:57-08:00");
 
-timestamp.Date;                // FullDate { Year = 1996, Month = 12, Day = 19 }
-timestamp.Time.Offset;         // -08:00:00
-timestamp.ToDateTimeOffset();  // 12/19/1996 4:39:57 PM -08:00
+var date   = timestamp.Date;              // FullDate { Year = 1996, Month = 12, Day = 19 }
+var offset = timestamp.Time.Offset;       // -08:00:00
+var moment = timestamp.ToDateTimeOffset(); // 12/19/1996 4:39:57 PM -08:00
 
-FullDate.Parse("2020-02-29");             // a leap year
-FullDate.TryParse("2021-02-29", out _);   // false
-FullTime.Parse("15:59:60-08:00").Second;  // 60: the leap second, at 23:59:60 UTC
+var leapDay  = FullDate.Parse("2020-02-29");            // a leap year
+var notALeap = FullDate.TryParse("2021-02-29", out _);  // false
+var leapSecond = FullTime.Parse("15:59:60-08:00").Second;  // 60: the leap second, at 23:59:60 UTC
 ```
 
 The date and time format of the Internet, the profile of ISO 8601 that HTTP and JSON Schema
@@ -326,14 +329,14 @@ second, which `DateTimeOffset` cannot hold.
 ```csharp
 var tag = LanguageTag.Parse("zh-cmn-Hans-CN-u-ca-chinese");
 
-tag.Language;            // zh
-tag.ExtendedLanguages;   // [cmn]
-tag.Script;              // Hans
-tag.Region;              // CN
-tag.Extensions[0];       // Extension { Singleton = u, Subtags = [ca, chinese] }
+var language = tag.Language;          // zh
+var extended = tag.ExtendedLanguages; // [cmn]
+var script   = tag.Script;            // Hans
+var region   = tag.Region;            // CN
+var extension = tag.Extensions[0];    // Extension { Singleton = u, Subtags = [ca, chinese] }
 
-LanguageTag.Parse("EN-latn-us").ToString();   // en-Latn-US
-LanguageTag.Parse("i-klingon").Grandfathered; // i-klingon
+var normalised   = LanguageTag.Parse("EN-latn-us").ToString();    // en-Latn-US
+var grandfathered = LanguageTag.Parse("i-klingon").Grandfathered; // i-klingon
 ```
 
 A tag compares without case; its parts are kept as written, and `ToString()` writes the case
