@@ -1122,7 +1122,16 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   conditions before its pair, a carrier change on a shipped grammar being behaviour and not speed:
   a differential against the hand parser over messages including broken ones, the factory counts
   per field against the tape on accepted and refused input, D5's retention under a small window,
-  the locations unmoved, and the first call with its methods and IL. **And a gap in the stand found
+  the locations unmoved, and the first call with its methods and IL. **And a second rendering found
+  behind it, approved 2026-09-19:** a `yield` publication is read by methods only over a buffer,
+  because that is what the driver had been taught first, so `ReadFields` from a reader is carried
+  immediately while `ReadFields` from a string runs the engine, with an arena and a materialization
+  per element — one publication meaning two things, and the slower one is the side a caller with
+  the message already in memory uses. Nothing about a step needs a buffer: it is a repetition of
+  one turn whose continuation is the next request of the driver, and the in-memory driver already
+  exists, since it is what drives the engine today. The condition is lifted after the two pairs
+  land, with a stand row for the in-memory lazy form taken first, the differential given that form,
+  and the same five conditions, a reading moving off the engine being behaviour. **And a gap in the stand found
   by it:** there were no rows for the log form at all,
   so nothing measured the form this work is about until the stand added eighteen. The rule that
   follows: before a form is optimized, it has a row.
