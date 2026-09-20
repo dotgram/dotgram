@@ -6375,3 +6375,46 @@ excludes is named with it: the per-tag checks of type and value set are shared b
 leaving them out lowers both absolute figures and leaves the ratio alone. And the third variant —
 generating only the types a consumer names — becomes arithmetic once the cost of one type is
 known.
+
+## D74. Generated validation shares its components: +17% and nothing lost, 2026-09-20
+
+Both forms emitted from the same schema, compiled and weighed against the package's 811,008 bytes.
+
+| form | methods | positions | added | share |
+| --- | ---: | ---: | ---: | ---: |
+| expanded per message type | 823 | 12,527 | 297,984 B | +36.7% |
+| a method per component | 196 | 2,904 | 138,240 B | +17.0% |
+
+And on the largest fixture — an execution report of 391 fields with nested groups, best of fifteen
+batches, three interleaved rounds in one process — **the expanded form buys nothing**: the shared
+one is within one per cent and lower in every round, so the difference has not even a sign.
+
+**The answer is the shared form, and the answer does not need a window.** A difference invisible
+across three interleaved rounds cannot pay a hundred and fifty-eight kilobytes, whatever a careful
+measurement would eventually say about the last fraction of a per cent. That is the distinction
+this journal has been drawing all day between a number and a decision: the number would need a
+window, the decision does not.
+
+**The walk's column is a floor and not a comparison**, and the report says so: the walk also checks
+every value and code set, which neither generated form does, so what it gives is the level below
+which generated validation starts and above which it must still pay for the per-tag checks.
+
+**And the measurement found what it was not looking for: membership cannot be shared.** A
+component's code can carry its own requiredness, reading the caller's mask, and its own groups; the
+*membership* cannot, because the calling region must list every tag of every component it names.
+That is a property of the task rather than of the emitter, and it relocates where the saving lives:
+in requiredness, group bodies and the number of methods, not in the switch labels, which are as
+wide in both.
+
+**It was caught by the rule that the two forms must answer alike before either is timed** — the
+expanded form reported nothing on a valid message and the shared one reported 1,667. Comparing the
+speed of two things that disagree measures nothing, and here the disagreement was a wrong
+construction rather than a slip in the harness.
+
+**The prediction failed in both size and direction, and is reported as such.** The expanded form
+was put at 380 to 750 kilobytes with the stated likelihood of erring low; it came out at 298, below
+the floor, so the named direction was wrong too. The mechanism is worth keeping: thousands of
+switch labels are *cheaper* per label than a few dozen, dense integer ranges compiling to jump
+tables and binary search, and the estimate had extrapolated a per-label cost measured in the small.
+**A per-unit cost measured in the small does not extrapolate** — the third instance today of a
+ratio taken from one material and applied to another.
