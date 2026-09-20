@@ -3290,3 +3290,31 @@ be given: every call of a positional form in this tree is ours, in the tests and
 rows. No package, no example and no Web, SQL or Finance test calls one. So "a naive loop goes
 quadratic" is a claim about how a stranger writes code, not a measurement, and critic declined to
 present it as one.
+
+**Two corrections to D31, and the second one is mine and is about method.** First, the name:
+`Tokenized_DotGram` is right and my "correction" of it was wrong. Both exist and they are
+different things. `Tokenized_DotGram(string input)` is the kept cutting — the slots, the weak
+reference and the eviction are inside it — and `Tokenize_DotGram(input)` and `(input, from, to)`
+are the tokenizer it calls when the slots miss. The emitted call is a ternary on `kept`, and the
+branch this whole question is about is the one with the `d`. A reader of D31 grepping the shorter
+name would have found the tokenizer, seen no cache in it and concluded the objection described
+something not in the tree.
+
+**How I got it wrong: I verified the claim against a checkout a day old.** `P:\dotgram` stood at
+`b1daccd9` while the work had moved on, so the lines I quoted were real lines of a file that is no
+longer the file. The substance survives — re-read in the current tree, the non-windowed positional
+form still refuses on `tokens.Stopped >= 0` while the window form does not, and the token search
+after it is still there — but that is luck, not method. The rule this session has been handing to
+others all day has a clause I did not apply to myself: reading the source is not enough if the
+source is not the current one. A verification says which revision it was taken at.
+
+**Second, critic's correction of its own claim, which changes what Igor is choosing between.**
+Q10 presented cutting from `at` on demand as a path nobody had seen. It is `BufferedKinds`, in
+expr's positional-forms document at §2 and §4, and its `false` already means "the true end of the
+input, or the first character no token begins with", which is exactly the semantics Q10 asks for,
+written before Q10 was; the document says outright that it makes the loop linear. So Q10's "the
+tokenizer has to become resumable, which is more work than `Over` costs" overstates it in the same
+direction: the work is to build a designed thing, not to invent one. What critic added is not the
+scheme but the reason it looked unnecessary. The choice in front of Igor is therefore not "a new
+public type versus inventing on-demand lexing" but "a new public type versus finishing something
+already designed, whose deferral rested on a semantic nobody had questioned".
