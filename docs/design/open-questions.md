@@ -854,3 +854,50 @@ the groups are not assembled; dictionary with `validate: false`, which is the cl
 **The middle one is the pairing**, and whichever is used belongs in the row's own text, because a
 reader who is told only "QuickFIX/n" cannot tell which of the three they are looking at. Discovered
 late, this is the kind of thing that spends a measurement twice.
+
+**Corrected from the source (finance-24, 2026-09-19), two of those three descriptions being mine
+and wrong.** finance-24 was reading `Message.cs` while this was being written, and reached the same
+three readings independently — the group guard there is literally
+`if (msgMap is not null && msgMap.IsGroup(f.Tag))`. But:
+
+- **`validate: true` is not "more than we do".** Inside `FromString` the flag checks one thing, the
+  order of the first three header fields:
+  `if (validate && (count < 3) && (Header.HEADER_FIELD_ORDER[count++] != f.Tag)) throw …`. Validation
+  against the dictionary is a separate static `DataDictionary.Validate` that a caller makes itself.
+  So the third reading is that call *in addition*, and without it it differs from the second by
+  three comparisons.
+- **The middle reading is not "split, type, assemble".** There is no typing: a `FieldMap` holds
+  `IField` with string values and converts on access, in `GetDecimal` and its like. So even the
+  closest pairing is not our work — we build a typed value for every field at once, they build one
+  for none. Which is the axis this entry ends on, and it turns out to run not only between us and
+  Artio but between us and QuickFIX/n: their `Message` is eager in structure and lazy in values.
+- **And one I did not have at all, which decides the inputs.** QuickFIX/n has no general reading of
+  data fields. The whole of it is one special case,
+  `fieldTag == Tags.XmlData ? ExtractDataField(msgstr, Header.GetInt(Tags.XmlDataLen), ref pos) : …`;
+  their `DataDictionary` has no `IsDataField`, no data-field set and no length-to-data mapping,
+  where the C++ engine and QuickFIX/J have one and drive it from the dictionary. *Checked here
+  independently against `DataDictionary.cs`: none of it exists.* So on any input carrying a standard
+  binary field other than `XmlData` — `RawData`, `SecureData`, `EncodedText`, `Signature` — the two
+  sides read different languages, ours by the declared length and theirs to the first separator
+  inside the payload, and the stand's agreement check would fail, justly. To be known before the
+  inputs are chosen, or a day goes to diagnosing a disagreement that is not a defect.
+
+**Whose error this was, and why it was the dangerous kind.** The description of what
+`Message.FromString` does was this session's, written from search results and recall while the
+licence beside it was read out of the file. It was also the load-bearing claim: D26's one hard
+condition — pair against `FixMessages`, not the field reader — rests entirely on that method doing
+split, validate and assemble. The dictionary-less form does *less* than `FixParser.Parse`, so had
+the condition been applied to it, the comparison would have been the regular-expression problem
+turned in our favour: a flattering number that nobody goes back to check, which is harder to catch
+than an unflattering one. The architect wrote the condition into the journal from this summary
+without opening the file, and has recorded that as his; this half is mine. **The rule to take from
+it is one this file already lives by and did not apply evenly: the claim a condition rests on is
+read from the source, exactly as a licence is.** Two pairs now, each naming itself, and
+`QuickFIXn.FIX44` is required for the first.
+
+**And it reframes Q7's argument, which is worth saying where both threads can see it.** The
+capability D25's first wording would have removed — a consumer declaring its own length/data pairs —
+is one the most widely used .NET FIX engine does not have in any form, for the standard fields let
+alone a counterparty's. `FixFieldOptions` is not a wart that a stricter rule would have tidied away;
+it is the only way anyone gets that reading in .NET. Igor's second wording keeps it, and this is
+the evidence for why that was the right way round.
