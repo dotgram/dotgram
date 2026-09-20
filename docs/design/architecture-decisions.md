@@ -4077,3 +4077,27 @@ the same thing from the other end**. The line-moving code appears in no snapshot
 written yesterday in the form D40 now forbids has existed in no diff any human or session reads.
 And beside them a smaller habit: a class emitted without a gate two lines from classes that have
 one reads as deliberate until somebody asks.
+
+**D41's count is five, not four, and the fifth was invisible to the method that found the others.**
+critic took a second count off the emitter's templates rather than the snapshots and found
+`BufferedBytes.Matches`, a per-byte loop, called from six emission sites — a literal, a literal in
+a run, a shared prefix and the residue after one — every one of them exactly where the character
+path calls `SequenceEqual` or ordinal comparison. It is not a scan the platform cannot do: it is
+the one comparison in emitted code where the decision already taken for characters was never taken
+for bytes, and `Machine.cs`'s own argument for the span — folded into word-sized compares, bounds
+checked once instead of per element — says nothing about `char` rather than `byte`. Soundness was
+checked before it was raised, since read the other way it would have been a correctness defect: a
+byte machine is refused outright for a case-insensitive literal or any character above 255, so
+every literal reaching it is a byte string, and the assumption in the comment is enforced rather
+than assumed.
+
+Priced honestly by its finder and not put above the window: the byte path is FIX's, its literals
+are two to five bytes, and much of the dispatch goes through a shared prefix, so what reaches the
+comparison is often a one or two byte residue. That is a constant-factor claim, paired as one.
+
+**What the fifth place says about the snapshots is larger than the fifth place.** No checked-in
+snapshot emits a byte machine at all, so an entire rendering appears in no diff anybody reads —
+the same gap D41 is already fixing for the line-moving code, one size up. Two instances in one
+evening make it a question rather than two fixes: which emission paths does the snapshot set never
+exercise? That audit is ordered, because a sample whose coverage nobody knows is not a sample of
+anything.
