@@ -1,0 +1,268 @@
+=== run 1 of 7, 03:57:33
+10 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/slope-8         generated      979.2 ns
+fixmsg/slope-12        generated     1754.8 ns
+fixmsg/slope-13        generated     1241.8 ns
+fixmsg/slope-20        generated     2008.9 ns
+fixmsg/slope-21        generated     2923.6 ns
+fixmsg/slope-36        generated     3566.0 ns
+  fixmsg/slope-37: 1 round(s) redone after a gen1/gen2 collection
+fixmsg/slope-37        generated     2961.5 ns
+fixmsg/slope-68        generated     8304.7 ns
+fixmsg/slope-69        generated     8623.0 ns
+fixmsg/slope-132       generated    13231.5 ns
+
+# Stand, d545e05e, 2026-09-20 03:57
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 46.4 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 979.2 | - (N/A) | | | 1920 | | 115 % |
+| fixmsg/slope-12 | 1754.8 | - (N/A) | | | 2904 | | 18 % |
+| fixmsg/slope-13 | 1241.8 | - (N/A) | | | 3728 | | 71 % |
+| fixmsg/slope-20 | 2008.9 | - (N/A) | | | 4896 | | 42 % |
+| fixmsg/slope-21 | 2923.6 | - (N/A) | | | 6368 | | 56 % |
+| fixmsg/slope-36 | 3566.0 | - (N/A) | | | 8888 | | 58 % |
+| fixmsg/slope-37 | 2961.5 | - (N/A) | | | 11640 | | 72 % |
+| fixmsg/slope-68 | 8304.7 | - (N/A) | | | 16848 | | 8 % |
+| fixmsg/slope-69 | 8623.0 | - (N/A) | | | 22160 | | 31 % |
+| fixmsg/slope-132 | 13231.5 | - (N/A) | | | 32744 | | 55 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand\run-1
+=== run 2 of 7, 03:57:58
+10 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/slope-8         generated      764.2 ns
+fixmsg/slope-12        generated     1010.5 ns
+fixmsg/slope-13        generated     1092.6 ns
+fixmsg/slope-20        generated     1611.4 ns
+fixmsg/slope-21        generated     1762.6 ns
+fixmsg/slope-36        generated     2659.9 ns
+fixmsg/slope-37        generated     2760.2 ns
+fixmsg/slope-68        generated     4763.6 ns
+  fixmsg/slope-69: 1 round(s) redone after a gen1/gen2 collection
+fixmsg/slope-69        generated     4784.5 ns
+fixmsg/slope-132       generated     8922.6 ns
+
+# Stand, d545e05e, 2026-09-20 03:58
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.4 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 764.2 | - (N/A) | | | 1920 | | 6 % |
+| fixmsg/slope-12 | 1010.5 | - (N/A) | | | 2904 | | 14 % |
+| fixmsg/slope-13 | 1092.6 | - (N/A) | | | 3728 | | 21 % |
+| fixmsg/slope-20 | 1611.4 | - (N/A) | | | 4896 | | 7 % |
+| fixmsg/slope-21 | 1762.6 | - (N/A) | | | 6368 | | 8 % |
+| fixmsg/slope-36 | 2659.9 | - (N/A) | | | 8888 | | 22 % |
+| fixmsg/slope-37 | 2760.2 | - (N/A) | | | 11640 | | 7 % |
+| fixmsg/slope-68 | 4763.6 | - (N/A) | | | 16848 | | 7 % |
+| fixmsg/slope-69 | 4784.5 | - (N/A) | | | 22160 | | 9 % |
+| fixmsg/slope-132 | 8922.6 | - (N/A) | | | 32744 | | 7 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand\run-2
+=== run 3 of 7, 03:58:18
+10 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/slope-8         generated      804.6 ns
+fixmsg/slope-12        generated     1023.9 ns
+fixmsg/slope-13        generated     1119.4 ns
+fixmsg/slope-20        generated     1656.9 ns
+fixmsg/slope-21        generated     1674.4 ns
+fixmsg/slope-36        generated     2593.1 ns
+fixmsg/slope-37        generated     2711.4 ns
+fixmsg/slope-68        generated     4607.8 ns
+fixmsg/slope-69        generated     4988.3 ns
+  fixmsg/slope-132: 1 round(s) redone after a gen1/gen2 collection
+fixmsg/slope-132       generated     8665.3 ns
+
+# Stand, d545e05e, 2026-09-20 03:58
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.5 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 804.6 | - (N/A) | | | 1920 | | 38 % |
+| fixmsg/slope-12 | 1023.9 | - (N/A) | | | 2904 | | 21 % |
+| fixmsg/slope-13 | 1119.4 | - (N/A) | | | 3728 | | 5 % |
+| fixmsg/slope-20 | 1656.9 | - (N/A) | | | 4896 | | 14 % |
+| fixmsg/slope-21 | 1674.4 | - (N/A) | | | 6368 | | 5 % |
+| fixmsg/slope-36 | 2593.1 | - (N/A) | | | 8888 | | 22 % |
+| fixmsg/slope-37 | 2711.4 | - (N/A) | | | 11640 | | 4 % |
+| fixmsg/slope-68 | 4607.8 | - (N/A) | | | 16848 | | 5 % |
+| fixmsg/slope-69 | 4988.3 | - (N/A) | | | 22160 | | 10 % |
+| fixmsg/slope-132 | 8665.3 | - (N/A) | | | 32744 | | 4 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand\run-3
+=== run 4 of 7, 03:58:37
+10 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/slope-8         generated      777.5 ns
+fixmsg/slope-12        generated     1005.8 ns
+fixmsg/slope-13        generated     1059.2 ns
+fixmsg/slope-20        generated     1534.7 ns
+fixmsg/slope-21        generated     1696.7 ns
+fixmsg/slope-36        generated     2541.6 ns
+fixmsg/slope-37        generated     2657.1 ns
+fixmsg/slope-68        generated     4592.3 ns
+fixmsg/slope-69        generated     4673.3 ns
+fixmsg/slope-132       generated     8494.0 ns
+
+# Stand, d545e05e, 2026-09-20 03:58
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.3 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 777.5 | - (N/A) | | | 1920 | | 10 % |
+| fixmsg/slope-12 | 1005.8 | - (N/A) | | | 2904 | | 7 % |
+| fixmsg/slope-13 | 1059.2 | - (N/A) | | | 3728 | | 2 % |
+| fixmsg/slope-20 | 1534.7 | - (N/A) | | | 4896 | | 8 % |
+| fixmsg/slope-21 | 1696.7 | - (N/A) | | | 6368 | | 9 % |
+| fixmsg/slope-36 | 2541.6 | - (N/A) | | | 8888 | | 7 % |
+| fixmsg/slope-37 | 2657.1 | - (N/A) | | | 11640 | | 8 % |
+| fixmsg/slope-68 | 4592.3 | - (N/A) | | | 16848 | | 13 % |
+| fixmsg/slope-69 | 4673.3 | - (N/A) | | | 22160 | | 3 % |
+| fixmsg/slope-132 | 8494.0 | - (N/A) | | | 32744 | | 4 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand\run-4
+=== run 5 of 7, 03:58:55
+10 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/slope-8         generated      762.2 ns
+fixmsg/slope-12        generated     1019.6 ns
+fixmsg/slope-13        generated     1173.6 ns
+fixmsg/slope-20        generated     1603.5 ns
+fixmsg/slope-21        generated     1688.3 ns
+fixmsg/slope-36        generated     2602.3 ns
+fixmsg/slope-37        generated     2766.0 ns
+fixmsg/slope-68        generated     4838.4 ns
+  fixmsg/slope-69: 1 round(s) redone after a gen1/gen2 collection
+fixmsg/slope-69        generated     4946.4 ns
+fixmsg/slope-132       generated     8979.2 ns
+
+# Stand, d545e05e, 2026-09-20 03:59
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.3 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 762.2 | - (N/A) | | | 1920 | | 6 % |
+| fixmsg/slope-12 | 1019.6 | - (N/A) | | | 2904 | | 4 % |
+| fixmsg/slope-13 | 1173.6 | - (N/A) | | | 3728 | | 17 % |
+| fixmsg/slope-20 | 1603.5 | - (N/A) | | | 4896 | | 8 % |
+| fixmsg/slope-21 | 1688.3 | - (N/A) | | | 6368 | | 3 % |
+| fixmsg/slope-36 | 2602.3 | - (N/A) | | | 8888 | | 2 % |
+| fixmsg/slope-37 | 2766.0 | - (N/A) | | | 11640 | | 5 % |
+| fixmsg/slope-68 | 4838.4 | - (N/A) | | | 16848 | | 14 % |
+| fixmsg/slope-69 | 4946.4 | - (N/A) | | | 22160 | | 11 % |
+| fixmsg/slope-132 | 8979.2 | - (N/A) | | | 32744 | | 4 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand\run-5
+=== run 6 of 7, 03:59:15
+10 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/slope-8         generated      761.7 ns
+fixmsg/slope-12        generated     1016.7 ns
+fixmsg/slope-13        generated     1112.6 ns
+fixmsg/slope-20        generated     1553.7 ns
+fixmsg/slope-21        generated     1709.2 ns
+fixmsg/slope-36        generated     2625.4 ns
+fixmsg/slope-37        generated     2730.0 ns
+fixmsg/slope-68        generated     5004.0 ns
+fixmsg/slope-69        generated     5238.3 ns
+fixmsg/slope-132       generated     9399.5 ns
+
+# Stand, d545e05e, 2026-09-20 03:59
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 35.6 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 761.7 | - (N/A) | | | 1920 | | 6 % |
+| fixmsg/slope-12 | 1016.7 | - (N/A) | | | 2904 | | 31 % |
+| fixmsg/slope-13 | 1112.6 | - (N/A) | | | 3728 | | 9 % |
+| fixmsg/slope-20 | 1553.7 | - (N/A) | | | 4896 | | 5 % |
+| fixmsg/slope-21 | 1709.2 | - (N/A) | | | 6368 | | 8 % |
+| fixmsg/slope-36 | 2625.4 | - (N/A) | | | 8888 | | 7 % |
+| fixmsg/slope-37 | 2730.0 | - (N/A) | | | 11640 | | 12 % |
+| fixmsg/slope-68 | 5004.0 | - (N/A) | | | 16848 | | 15 % |
+| fixmsg/slope-69 | 5238.3 | - (N/A) | | | 22160 | | 27 % |
+| fixmsg/slope-132 | 9399.5 | - (N/A) | | | 32744 | | 23 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand\run-6
+=== run 7 of 7, 03:59:33
+10 rows, every reading agreeing. Timing 8 rounds.
+fixmsg/slope-8         generated      750.0 ns
+fixmsg/slope-12        generated     1000.5 ns
+fixmsg/slope-13        generated     1100.0 ns
+fixmsg/slope-20        generated     1537.2 ns
+fixmsg/slope-21        generated     1616.0 ns
+fixmsg/slope-36        generated     2546.4 ns
+fixmsg/slope-37        generated     2670.8 ns
+fixmsg/slope-68        generated     4698.3 ns
+fixmsg/slope-69        generated     5315.8 ns
+fixmsg/slope-132       generated     9685.5 ns
+
+# Stand, d545e05e, 2026-09-20 03:59
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.8 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 750.0 | - (N/A) | | | 1920 | | 9 % |
+| fixmsg/slope-12 | 1000.5 | - (N/A) | | | 2904 | | 24 % |
+| fixmsg/slope-13 | 1100.0 | - (N/A) | | | 3728 | | 27 % |
+| fixmsg/slope-20 | 1537.2 | - (N/A) | | | 4896 | | 7 % |
+| fixmsg/slope-21 | 1616.0 | - (N/A) | | | 6368 | | 12 % |
+| fixmsg/slope-36 | 2546.4 | - (N/A) | | | 8888 | | 17 % |
+| fixmsg/slope-37 | 2670.8 | - (N/A) | | | 11640 | | 5 % |
+| fixmsg/slope-68 | 4698.3 | - (N/A) | | | 16848 | | 10 % |
+| fixmsg/slope-69 | 5315.8 | - (N/A) | | | 22160 | | 44 % |
+| fixmsg/slope-132 | 9685.5 | - (N/A) | | | 32744 | | 66 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand\run-7
+
+Median of 5 of 7 runs, each in a process of its own; control 31.4 ns (the runs' controls: 46.4, 31.4, 31.5, 31.3, 31.3, 35.6, 31.8).
+Dropped for a control more than 5% off the median: run 1, 6.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Stand, d545e05e, 2026-09-20 03:58
+
+IGOR-DESKTOP, .NET 10.0.12, pinned to 0-15, high priority, control 31.4 ns.
+
+
+Rows with no hand-written parser, so the base is the generated reading:
+
+| row | generated ns | reading | ns | /generated | generated B | B | generated spread |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| fixmsg/slope-8 | 764.2 | - (N/A) | | | 1920 | | 7 % |
+| fixmsg/slope-12 | 1010.5 | - (N/A) | | | 2904 | | 2 % |
+| fixmsg/slope-13 | 1100.0 | - (N/A) | | | 3728 | | 10 % |
+| fixmsg/slope-20 | 1603.5 | - (N/A) | | | 4896 | | 8 % |
+| fixmsg/slope-21 | 1688.3 | - (N/A) | | | 6368 | | 9 % |
+| fixmsg/slope-36 | 2593.1 | - (N/A) | | | 8888 | | 5 % |
+| fixmsg/slope-37 | 2711.4 | - (N/A) | | | 11640 | | 4 % |
+| fixmsg/slope-68 | 4698.3 | - (N/A) | | | 16848 | | 5 % |
+| fixmsg/slope-69 | 4946.4 | - (N/A) | | | 22160 | | 13 % |
+| fixmsg/slope-132 | 8922.6 | - (N/A) | | | 32744 | | 13 % |
+
+Written to T:\TEMP\dotgram-stand\w90\stand
