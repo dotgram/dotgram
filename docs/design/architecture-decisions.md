@@ -6729,3 +6729,33 @@ a measurement's failure mode is a rare huge outlier, an average of any kind is t
 means, so the baseline is retaken — and it is retaken from the guard's own process, since the same
 series reads differently in a fresh process and in a warm one. The file says which process and
 which estimator produced it, because a baseline that does not is a number nobody can check later.
+
+## D80 — The FIX package's framing is a value, not a second set of names
+
+`FixParser` publishes `Parse` five times and `ParseLog` five times: half the methods are the other
+half with a different field separator. One layer down, `FixFieldOptions` is a value passed to one
+method — `Parse(string, FixFieldOptions?)` — and every reading goes through it. So the package
+spells one question two ways: the lower layer holds the choice in a value, the upper one holds it
+in the name of the method.
+
+**The framing moves into the value, and `ParseLog` goes.** Which separator a stream uses is a
+property of the input being read, not of the call the consumer wants to make; a property of the
+input belongs in the options that describe the input. Ten methods become five, and the idiom the
+package already uses one floor down is the one it uses throughout.
+
+**What must survive the move is discoverability, and it can.** `ParseLog(text)` reads well and is
+found by anyone scrolling a completion list; an options flag is not. So the options type carries a
+named value for it — `Parse(text, FixFieldOptions.Log)` — which is as short, as findable, and one
+thing rather than ten.
+
+**The overloads that only copy stay.** Six methods take a `ReadOnlySpan<char>` and call
+`ToString()`. They are documented as copying, and the cost is visible where it is paid; removing
+them would move that cost to the consumer's own `ToString()` without removing it.
+
+**And the lesson the recount taught, which outlives the finding.** The review that produced these
+points was written against the package as it stood before its parse modes were removed. One of its
+arguments no longer existed — and its number, ten methods of twenty-three, came out the same
+anyway. Had the number been carried over rather than counted again, the conclusion would have been
+right by accident, and a week later nobody could tell the accident from the reasoning. A review of
+an area that has changed under it is recounted, number by number; checking that its conclusion
+still sounds right is not the same act.
