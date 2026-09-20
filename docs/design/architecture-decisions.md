@@ -4866,3 +4866,32 @@ which is the reason the sizes are in the order rather than in the account.
 the list exists goes first in the design not to save the next reader a day but so that they
 understand the list is an answer to a problem and not a piece of carelessness — because that
 decides whether they look for a third way or simply delete it.
+
+## D53. Igor: FIX validation is a layer of its own, over a message already built, 2026-09-20
+
+All validation is separated out. It runs over a message that has already been built — or is reached
+as a method on the message itself, `Validate` — and it is not part of reading the wire and not part
+of assembling the message. That settles the shape the dictionary study left open, and it settles it
+the way the study's own line pointed: what is *read* and what is *checked* may be run-time tables,
+while what is *constructed* — a class per tag, a factory arm, a message model — is build time,
+because a type is not data.
+
+**What follows, and what it makes easy.** A dictionary a counterparty hands a consumer becomes data
+loaded at run time and consulted by the validating layer: required fields, code sets, types,
+membership of a message, a group's count against its entries, conditional rules. None of it touches
+the parse, which asks the schema exactly one thing — whether a tag begins a length/data pair — and
+none of it touches building, whose cost D52 is measuring. We ship nobody's dictionary; a consumer
+points at the file their counterparty gave them.
+
+**And it lines the packages up with the comparison.** The external engine already has this shape:
+its parse is one call and its validation against a dictionary is a separate one. So the pairing D26
+takes at the message level compares like with like by construction rather than by argument.
+
+**The questions the decision opens, to finance-24 as a design before code.** What becomes of the
+strict and lenient modes, which today live in building and decide whether an unknown tag is
+admitted — do they move out into the layer, leaving building unconditional, and if they stay, what
+is left for them to do. What a consumer calls, and whether the entry is a method on the message or
+a validator object holding the dictionary. What a failure is: a first refusal with a position, or
+every finding, since a validating layer that stops at the first is of little use to somebody
+reconciling a session. And whether validation may be asked for without a dictionary at all, against
+the schema we already carry, which is what today's strict mode approximates.
