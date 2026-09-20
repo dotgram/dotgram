@@ -3094,3 +3094,14 @@ the clearings, the second stays and the third lands inside it as its cheap part.
 that comes with the watermark, whenever it lands: it is a cache of a property that is otherwise
 computed honestly, so a test must hold it against the honest scan over the corpora, because a
 watermark that is wrong by one answers "all built" and the building is skipped in silence.
+
+**The watermark's check stays on our side of the fence.** expr chose the form at once: where the
+generator emits the comparison, a second emission also performs the honest scan and fails on a
+disagreement, so the check rides every corpus already run, rewinds included, and no separate run
+can be forgotten. The condition that goes with it, held as a condition and not as an intention:
+none of it may reach a consumer's build. Under a consumer's `DEBUG` their debug build would pay
+the very linear cost being removed, unasked and unannounced, and our assertion would surface as a
+crash in code they did not write. The switch is ours, beside the one that already turns on the
+generation report, and off by default. If the second emission turns out not to be cheap, the
+answer is to narrow what is checked — rewinds, where the watermark will be wrong if it is wrong —
+and not to move it into a run on the side.
