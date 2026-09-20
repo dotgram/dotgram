@@ -130,6 +130,17 @@ static class Program
 		if (args.Length == 1 && args[0] == "linearity")
 		{
 			Stand.Linearity();
+			Console.WriteLine();
+			Environment.ExitCode = Stand.RefusedLinearity() == 0 ? 0 : 1;
+
+			return;
+		}
+
+		// `linearity-refused [part of a parser or a shape]` times a refusal after a growing head at sizes a quarter apart, under a budget, and flags an exponent above 1.10
+		// (an accepted input is held to 1.2); the exit code is 1 when a series is a defect or a fault of the series. See StandRefusals.cs.
+		if (args.Length is 1 or 2 && args[0] == "linearity-refused")
+		{
+			Environment.ExitCode = Stand.RefusedLinearity(args.Length == 2 ? args[1] : null) == 0 ? 0 : 1;
 
 			return;
 		}
@@ -731,6 +742,16 @@ static class Program
 			var iterations = args.Length >= 3 && int.TryParse(args[2], out var each) ? each : 200_000;
 
 			Against.Run(rounds, iterations);
+
+			return;
+		}
+
+		// A stand form no branch above took (a mistyped option, more arguments than the form counts) is a failure, not BenchmarkDotNet's usage with an exit code of 0.
+		if (args.Length > 0 && args[0].StartsWith("--stand", StringComparison.Ordinal))
+		{
+			Console.Error.WriteLine($"{args[0]}: no such form of the stand with {args.Length - 1} arguments.");
+
+			Environment.ExitCode = 2;
 
 			return;
 		}
