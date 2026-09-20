@@ -5402,3 +5402,30 @@ question from D57 and gets its own decision if it wants one.
 that *refuses* rather than dies. That is a promise in the generated API and therefore Igor's, and it
 is not worth putting to him before the debug-release difference is understood. Everything else the
 sixteen shapes touched was flat under a millisecond.
+
+**D58 answered, and it is neither possibility: the release build is bounded deliberately, by a
+mechanism of ours, whose margin nobody measured.** Twenty thousand levels pass on a 128 KB stack,
+which no growing stack could do; the listing shows an ordinary call and no tail call, so the JIT is
+not what flattens it. What flattens it is the emitted reader's own stack guard: it asks the runtime
+whether enough stack remains and, when the answer is no, moves the reading onto a fresh thread with
+a large stack and carries on, bounded by the option that says how many such hops are allowed.
+
+**The defect is the spacing, not the mechanism.** The probe is throttled to once every sixty-four
+levels, which at twelve frames a level is seven hundred and sixty-eight frames between checks.
+Between two probes the reading must fit inside whatever margin the runtime's check guarantees — a
+fixed margin against frames that are not fixed. Optimised frames fit; a debug build's frames, with
+every local in memory, do not, and the stack is gone before the next probe asks. **We hold a
+promise by an unmeasured margin, and we would not know if it stopped holding** — the same frames
+could overflow an optimised build on another target without anything of ours changing.
+
+**Ruled: remove the constant rather than re-derive it.** Measure what probing every level costs; if
+it is small, probe every level and the calibration question disappears instead of being answered
+with a better number. A number that is right until a frame grows is the shape of this defect, and a
+second such number would be the same defect with a longer fuse. Only if probing every level is
+genuinely expensive does the spacing get derived — from the measured margin and the measured frame,
+not chosen.
+
+**And one fact has to be known before Igor is asked for a declared depth limit:** where the input is
+a window, the hop is not available at all and the reading throws instead, so for the streaming form
+the bound is the caller's stack and nothing else. **A declared limit that cannot be honoured in one
+mode is worse than no limit**, so the streaming answer comes with the proposal rather than after it.
