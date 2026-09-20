@@ -1184,7 +1184,15 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   message layer about 2 µs a message over a stream or a reader. Two findings came out of rows that
   had never been read. The lazy form over a string costs 2.8-3.2x the same form over bytes held in
   memory — the string side runs the engine and the byte side the methods, which is the change
-  already approved on consistency and size, now with a number. And the header of acceptable media
+  already approved on consistency and size, now with a number — and the number moved the diagnosis:
+  the split is not a stream against memory but characters against bytes, both in memory. The byte
+  overload borrows the caller's array through the buffered input and so got the methods for free;
+  a string cannot be borrowed as an array, so the character overload was left with the engine —
+  nobody decided it. Which rules out the tempting small fix, a memory constructor for buffered
+  text, since that would copy the whole input to reach a path whose purpose is releasing what it
+  has passed. The remedy is the approved one: the ordinary span reader steps the lazy form over
+  memory, with no buffer and no copy. Whether the byte overload should then drop its buffer too is
+  measured, not assumed, and is a commit of its own. And the header of acceptable media
   types allocates quadratically, 63.8 MB at ten thousand ranges with an exponent of 2.07: a
   shipped API, and finance-24 takes it ahead of the URL edit, diagnosis first as with the others. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
