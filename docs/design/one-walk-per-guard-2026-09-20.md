@@ -179,3 +179,18 @@ Tests: DotGram.Tests 9,390 and DotGram.Sql.Tests 14,774 green, the three snapsho
 
   If the T-SQL rows do not move, the merge is not worth its entry and is refused, as the last
   design was.
+
+## 6. The next idea along this line, measured and not worth having
+
+A guard may name a gathered list as well as single values. The list is built by a walk of its own
+already — `roots` and `rootSlots` over the side stack — and the walk marks that and the records
+given as roots independently, so one call could carry both and the two walks would become one. It
+is a smaller change than the merge itself.
+
+**It buys nothing here, counted rather than supposed.** Of the calls in the generated code of this
+tree, 6 are a list on SQL:2023, 35 on T-SQL and 6 in the expression language — and the number of
+places where a list and a single value are asked for together, in one run, is **zero in all
+three**. A guard names a list or it names values; none of ours names both.
+
+Written down so that the next reader does not build it to find out. If a grammar ever holds such a
+guard, the change is one call site and the walk already supports it.
