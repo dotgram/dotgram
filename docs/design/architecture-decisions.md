@@ -4748,3 +4748,16 @@ two builds, differing by one constant, rounds taken in turn — is the same form
 clearing question. And the expectation is now named in *numbers* rather than in rows: zero to three
 per cent on `select20`, and zero within the spread of the rounds withdraws the change. A criterion
 in numbers cannot be satisfied by the floor, which is what both of its predecessors were.
+
+**D50 in the stand, and what it costs.** The paired run now takes, after each run of the pair, a
+run of the parent against itself over the same rows in the same slot, and the pooled result goes
+into the report as a column beside the pair's — "+3% against an A/A of +5% [−4..+9]" on the row
+itself, rather than a paragraph under the table. That placement is the point: a caveat that does
+not sit beside the number does not travel with it.
+
+It doubles the runs, not the builds. On few rows that is minutes; on a whole-stand pair of 150 rows
+it is the stand twice, paid for rows nobody will quote. **So the rule is by use rather than by
+row: a row that will appear in a conclusion carries an A/A, a row printed as context does not.**
+An order that names rows gets the A/A on those; an order that is a baseline run gets none, and the
+report says it has none, so that a row from it cannot later be quoted as an effect. Turning it off
+deliberately stays possible and visible in the report.
