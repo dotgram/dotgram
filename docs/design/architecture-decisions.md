@@ -4847,3 +4847,22 @@ assembly whether we mean it or not.** It is not documented and not offered: it c
 and our own message layer using it as a sibling is a risk taken inside this repository and pinned
 by our own tests, not a surface a consumer is invited to write against. The day we want to offer
 it, that is its own decision with its own reasoning.
+
+**D52 said the message layer has no row on the stand at all; it has rows and no slope.** There are
+paired rows for parsing and building a message, and a plain row added today under the external
+reference. What exists nowhere is an input whose field count varies: the fields have a slope, the
+message layer has none, and that is the axis the question lives on — a cost per field and the steps
+of a doubling list cannot be seen at one size. So what was ordered is a slope, in the plain stand,
+with allocation, those rows' times having arrived with a base wandering by 37% while the bytes are
+exact. My sentence was wrong in a way that would have sent someone to build what is already there.
+
+**And the sizes were chosen so that the result can refute the person who ordered it**: 4, 16, 17,
+32, 33, 64, 65, 128, the pairs straddling each doubling. If the stand sees the same steps the probe
+saw, they are a property of the code; if it does not, the probe is wrong and that must be known
+before anyone repairs anything. A proof nobody else can re-check is a word rather than a proof,
+which is the reason the sizes are in the order rather than in the account.
+
+**One more thing worth keeping, about tone rather than content.** The constraint that explains why
+the list exists goes first in the design not to save the next reader a day but so that they
+understand the list is an answer to a problem and not a piece of carelessness — because that
+decides whether they look for a third way or simply delete it.
