@@ -414,7 +414,14 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 	// §2.1 as erratum 6937 corrects it. Any Unicode character but controls, space, `"`, `%`
 	// outside a triplet, `<`, `>`, `\`, `^`, `` ` ``, `{`, `|` and `}` — the apostrophe is one,
 	// which the RFC's own examples use and its ABNF had left out.
-	Literals : @UriTemplate.Part = (LiteralChar | PctEncoded)+ => @(new UriTemplate.Literal(parserText))
+	// The run is atomic, and that is not a nicety. `Part*` over `Literals+` is `(A+)*`: a run of
+	// n literal characters can be cut into any of 2^(n-1) sequences of runs, and all of them mean
+	// the same template — so when the template is refused for something later, the reader tries
+	// every one of them before saying so. Measured before this group was written: `{unclosed`
+	// after twenty-four literal characters took 3.2 seconds, and each further character doubled
+	// it. Committing the run leaves one way to read it, which is the only way that ever meant
+	// anything.
+	Literals : @UriTemplate.Part = { (LiteralChar | PctEncoded)+ } => @(new UriTemplate.Literal(parserText))
 
 	LiteralChar = ['!' | '#'..'$' | '&'..';' | '=' | '?'..'[' | ']' | '_' | 'a'..'z' | '~'
 	              | '\u00A0'..'\uD7FF' | '\uE000'..'\uFDCF' | '\uFDF0'..'\uFFEF']

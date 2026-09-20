@@ -294,8 +294,15 @@ public abstract record EmailAddress
 
 	Atext = ['a'..'z' | 'A'..'Z' | '0'..'9' | '!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '/' | '=' | '?' | '^' | '_' | '`' | '{' | '|' | '}' | '~']
 
-	AtomText    = Atext+
-	DotAtomText = Atext+ & ('.' & Atext+)*
+	// Both runs are atomic, and the phrase is why. `ObsPhrase` is `WordText & (WordText | …)*`
+	// and a word is an atom with optional folding either side, so a run of n atext characters
+	// could be cut into any of 2^(n-1) sequences of words — every one of them the same phrase.
+	// A mailbox that fails after its phrase then tries all of them: measured before this, a
+	// refused address list took 78 ms with sixteen characters before the `@` and 107 SECONDS
+	// with twenty-eight. Two adjacent atoms with nothing between them are one atom, so the
+	// maximal run is the only reading that ever meant anything.
+	AtomText    = { Atext+ }
+	DotAtomText = { Atext+ } & ('.' & { Atext+ })*
 
 	Qtext      = ['!' | '#'..'[' | ']'..'~'] | ObsNoWsCtl
 	Qcontent   = Qtext | QuotedPair
