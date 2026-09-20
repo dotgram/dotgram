@@ -5075,3 +5075,17 @@ parse, because that is how a layer quietly becomes a mode again; a finding names
 in a repeating group as well as the tag, one being useless without the other; and conditional rules
 stay out of scope while the finding's shape must carry a rule's identity and a path, so that adding
 them later is not a change to everything that reads a finding.
+
+**D56 is built (`0c0a219a`), with one refinement the rule needed and did not have: a later block
+stands on what earlier blocks of the same page imported.** A page is read in order, and a reader
+who copied the first block into a file does not copy its using again for the second; without that,
+seven of eight blocks "failed" on a name the page had already imported, and the test would have
+been lying rather than the page. Fragments are listed in the test with a reason each and not marked
+in the page, as decided.
+
+What it found in its author's own pages was real in every case: a call to a framework type with no
+using for it, twice; a generic collection named without its namespace; and an example written as
+two bare expressions, which C# does not accept as statements at all. Four different compilation
+errors for anyone who copied the page. The rule has now found, in two packages, defects that the
+previous form of the same rule had passed — because the previous form compiled examples in an
+environment more permissive than a consumer's.
