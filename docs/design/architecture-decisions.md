@@ -2922,6 +2922,16 @@ price is stated in the package's own documentation: to change the pairs, build n
 move generalizes — wherever a user's fork is asked during a parse, the question to put first is
 whether it can be a table built when the options are.
 
+Found while checking the code against that wish (critic): the two halves of the FIX options are
+written the two opposite ways. Whether a tag carries data asks the package's table first and the
+consumer's set after; finding a tag's pair does not consult the package's table at all once a
+consumer has supplied a dictionary, because a supplied dictionary replaces the standard
+forty-two — which is deliberate and documented, and a trap of its own: adding one counterparty's
+pair drops all the standard ones unless they are listed again. Merging into one table settles it
+by construction, but changes what the package promises from replacing to extending, so it is
+Igor's: extend, with a consumer's tag that contradicts the standard refused by name, or keep
+replacing and give extending a way of its own. Either way the two halves are written alike.
+
 ## D26. FIX: two things Igor asked for, 2026-09-19
 
 **Compared with the libraries that already exist**, QuickFIX and whatever else the platform has,
