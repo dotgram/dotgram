@@ -26,6 +26,11 @@ jobs:
 
       - run: dotnet restore DotGram.slnx
 
+      # The Linux solution configuration: every project built as Release, minus the two that need
+      # the Visual Studio SDK and cannot be built off Windows. Being a solution configuration and
+      # not a project one, it still writes to bin/Release, which is why the steps below name
+      # Release and mean this same build. It is worth saying here as well as in build.yml: this is
+      # the workflow where building one thing and packing another would send the wrong bits.
       - name: Build
         run: dotnet build DotGram.slnx --no-restore --configuration Linux -warnaserror
 
