@@ -2142,3 +2142,16 @@ both answer the one question a consumer asks, and no longer worth the word "dwar
 **And one thing the count found that is not about size at all.** The symbol documents carry the
 absolute path of the machine that built them. That is a question about what a shipped package says
 of the disk it was made on, not about bytes, and it belongs with whoever owns reproducible packing.
+
+**Answer (architect, 2026-09-20, D46 `be243fbd`, counted at `3334ca1e`, corrected at `cff09063`).**
+Q21 and Q22 taken as they stand: `ILBytes` untouched and statements from it in force, the overlap
+between the source figure and the file figure named wherever both are quoted, and the lever —
+`EmbedUntrackedSources`, one property, line numbers kept — on the same page as the `Portable`
+percentage, both answering what a consumer downloads. The scale is threefold and not a
+hundredfold. Both figures go to Igor together, with both levers and the price of each.
+
+**And the sentence the three days were for, which is the architect's and is recorded there.** The
+two measurements never disagreed. **The questions disagreed.** The count answered how many bytes of
+grammar text are in the metadata; the subtraction answered how much the file loses with the option
+off. Each was right about its own question for as long as it had been quoted, and the 193,487 was
+the distance between two questions rather than an error in either.
