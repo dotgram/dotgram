@@ -2029,7 +2029,17 @@ same day; each comes back to the architect as a report, with no code changed.
    arms' built records 2,394, recognition 4,167 against the hand parser's 4,883, which builds as it
    reads. So **the lever has moved**: what costs is not what is built but that we come back to
    build it — 301 walks for 402 records — and that is the materializer's, expr's, with a design
-   asked before code. With the constants carried onto T-SQL's counts, the shelved carrier per
+   asked before code. **The design, decided:** the guard is handed its value where the value is
+   made. All of SQL:2023's tower guards have one shape — a capture, then a guard naming it, with
+   nothing between that can consume or fail — and for that shape the walk is provably unnecessary,
+   since the guard will ask for that record, at that position, with those children; building it
+   when the capture closes is the same construction moved earlier inside one reading, so §7.3 is
+   untouched and everything no guard names is still deferred. Where the shape does not hold, the
+   walk stays. Refused and recorded: building every record as it closes, which would run factories
+   for readings no guard asks about. First, though, a smaller thing the profile found beside it and
+   unrelated to guards — the value store clears all three hundred tables at the end of every parse,
+   used or not, which is 6% — as its own commit and its own pair. Cutting the walk's constant
+   instead is held back: if the walks go, there is no constant worth cutting. With the constants carried onto T-SQL's counts, the shelved carrier per
    construction is closed for good: less than half a per cent of a parse, and it looked larger only
    while a record still carried an arm's prologue.
    **Recognition, analysed (sql-39, next.md `02035cc7`):** no way is opened, retried or replayed;
