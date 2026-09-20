@@ -1866,8 +1866,9 @@ same day; each comes back to the architect as a report, with no code changed.
    machine can carry both — the reader and the ways do not depend on the carrier, and the tape
    already builds mid-parse for a guard; four edges between parent and child, of which the
    narrowest safe set, a settled subtree (every construction with a point at its rule's end, every
-   building call into the same), needs only a held table and a leaf record. Static reach: T-SQL 26%
-   of its constructions (195 of 654 rules), SQL:2023 7%, EL and the Web's tape grammars nothing —
+   building call into the same), needs only a held table and a leaf record. Static reach, counted under the loose
+   definition and so a ceiling rather than an estimate — the counting build settles 115 of the 651
+   rules that write a record, not 195 — T-SQL 26% of its constructions, SQL:2023 7%, EL and the Web's tape grammars nothing —
    EL is held by `Replay`, Web by the reader's gate. Estimate for T-SQL 7-11% of a parse. Decided:
    step 1, a count of records per rule over the corpora weighted by their materialization cost,
    with no generator change; step 2, two carriers in one machine, is architecture and goes to
