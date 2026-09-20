@@ -1,5 +1,33 @@
 ﻿# One walk per guard, not one per value it names (2026-09-20)
 
+**Withdrawn on 2026-09-20, by the number it named before it was measured.** The change was
+built, held by tests and landed; what it is worth was then taken by the form that does not
+depend on a quiet machine — two builds differing in one constant, rounds in turn so that drift
+lies on both — on `sql-loop generated`, which is `select20` in a loop and the row where 107 of
+194 walks merge:
+
+| | median of six rounds | the rounds |
+| --- | --- | --- |
+| with the merge | 17,928 ns | 17,580 … 18,294 |
+| without it | 18,040 ns | 17,560 … 18,304 |
+| the same build again | 18,040 ns | 17,684 … 18,050 |
+
+The merge is worth 0.6%, and the floor of the method is 0.6%: the third arm, where nothing was
+changed at all, sits exactly where the second does. The rounds of the three sides interleave
+completely. That is zero within the spread, which is what I said would withdraw it, so it is
+withdrawn — the code, its tests and the snapshot that held it.
+
+And one thing about the method, worth more than this result. The first arm of each round is
+systematically faster than the two after it, and the second and third agree to the nanosecond.
+So the form has a *position* bias: a floor taken as "the same build, third" measures the position
+and not the floor. It showed here only because the untouched arm and the changed one landed on
+the same number. Rotate the order of the sides between rounds.
+
+What the document is kept for: it names where the merge would pay and where it cannot, and the
+counts under it are what a next attempt starts from rather than repeats. Nothing here was wrong
+about the mechanism — 107 of 194 walks on `select20` really do merge; the walks they remove are
+simply not where this reading spends its time.
+
 For the architect. This replaces `guard-values-at-close-2026-09-19.md`, which its own numbers
 refused. It asks for nothing from §3.7: the same records are built, by the same factories, at the
 same moment — only in one pass instead of several.

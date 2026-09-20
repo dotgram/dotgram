@@ -758,17 +758,10 @@ sealed partial class Machine
 		// The root is the record whose value is wanted — the last one written, at the end;
 		// a captured rule's, for a guard. `from` is where the walk may begin: a guard's
 		// captures were recorded since its rule began, and nothing before that reaches them.
-		//
-		// A guard that names several values asks for all of them in one call: `also` holds the
-		// other records it named, and the walk does for their union what it does for one root,
-		// in one listing and one pass (docs/design/one-walk-per-guard-2026-09-20.md). A record
-		// the caller does not have is -1 and is ignored, so a guard with fewer values passes
-		// fewer of them.
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
 			$"{WaysType} ways, {InputType} text, DirectValues values, int root, int from, int first" +
-			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int roots = -1, long rootSlots = 0" +
-			string.Concat(Enumerable.Range(1, MergedRoots).Select(one => $", int also{one} = -1")) + ")"))
+			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int roots = -1, long rootSlots = 0)"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
 			// it already built; where no guard builds, nothing is ever built twice and the
@@ -854,38 +847,20 @@ sealed partial class Machine
 				if (alone && strays && !UsesMarks && _recoveryReads.Count == 0)
 				{
 					file.Line();
-					file.Line("if (roots < 0 && root >= first && root < ways.Records && built[root]" +
-						string.Concat(Enumerable.Range(1, MergedRoots).Select(one =>
-							$" && (also{one} < 0 || also{one} >= first && also{one} < ways.Records && built[also{one}])")) + ")");
+					file.Line("if (roots < 0 && root >= first && root < ways.Records && built[root])");
 					using (file.Block(""))
 					{
 						file.Line("ways.Built = ways.Records;");
 						file.Line("return;");
 					}
 
-					// The captures of one guard are read in order, so the last of them is the largest;
-					// and where everything since the mark is built, the earlier ones are built with it.
-					// So the fast path runs on the largest, and a machine that merges nothing has none
-					// of this: its root is its only record.
-					var top = MergedRoots > 0 ? "top" : "root";
-
-					if (MergedRoots > 0)
-					{
-						file.Line("var top = root;");
-
-						foreach (var one in Enumerable.Range(1, MergedRoots))
-							file.Line($"if (also{one} > top) top = also{one};");
-
-						file.Line();
-					}
-
-					file.Line($"if (roots < 0 && {top} >= first && {top} == ways.Records - 1 &&");
-					file.Then($"global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, first, {top} - first), false) < 0)");
+					file.Line("if (roots < 0 && root >= first && root == ways.Records - 1 &&");
+					file.Then("global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, first, root - first), false) < 0)");
 
 					using (file.Block(""))
 					{
 						file.Line("var at    = ways.Opened;");
-						file.Line($"var slot  = {top};");
+						file.Line("var slot  = root;");
 						if (placed)
 						{
 							file.Line("var start = log[at + 2];");
@@ -927,31 +902,14 @@ sealed partial class Machine
 				file.Line();
 				// One root, or every record gathered for the slots asked since `roots`: a guard handed a
 				// list builds all of it in one walk (TapeCarrier.Gathered), not one walk an element.
-				// A guard whose first value is not there asks with -1 in its place and its other
-				// records beside it, so what is named is marked and what is not is passed over.
-				// In a block, because the branch below is the gathered form’s and an `if` without
-				// one would take the `else` for itself.
 				file.Line("if (roots < 0)");
-
-				if (MergedRoots > 0)
-					using (file.Block(""))
-						file.Line("if (root >= 0) live[root] = true;");
-				else
-					file.Then("live[root] = true;");
-
+				file.Then("live[root] = true;");
 				file.Line("else");
 
 				using (file.Block(""))
 				{
 					file.Line("for (var at = roots; at < ways.RefsCount; at += 3)");
 					file.Then("if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;");
-				}
-
-				// And everything else the same guard named, so that one pass builds the union.
-				foreach (var one in Enumerable.Range(1, MergedRoots))
-				{
-					file.Line($"if (also{one} >= 0)");
-					file.Then($"live[also{one}] = true;");
 				}
 				file.Line();
 				using (file.Block("for (var back = listed - 1; back >= 0; back--)"))
@@ -1210,19 +1168,6 @@ sealed partial class Machine
 
 	/// <summary>Arms with this many or more are methods of their own even where the walk is not divided.</summary>
 	const int AloneArms = 16;
-
-	/// <summary>How many further records one call of the walk takes beside its root.</summary>
-	/// <remarks>
-	/// A guard naming more values than this asks in more than one call, which is what every guard
-	/// does today. Three covers what the grammars here hold: the longest run of asks is seven on
-	/// T-SQL and three on SQL:2023, and 1.8 asks a guard is where the weight sits, so the parameters
-	/// past the third would be -1 on nearly every call and cost a push each
-	/// (docs/design/one-walk-per-guard-2026-09-20.md).
-	/// </remarks>
-	const int MergedRootsMost = 3;
-
-	/// <summary>How many further records this machine’s walk takes: none where no guard names two.</summary>
-	int MergedRoots => _directMerges ? MergedRootsMost : 0;
 
 	/// <summary>An arm called where it is a method of its own, and an extent's arm, which builds nothing.</summary>
 	void CallDirectArm(Writer file, RuleSymbol rule, int factory, bool placed)

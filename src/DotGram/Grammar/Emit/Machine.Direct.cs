@@ -345,15 +345,6 @@ sealed partial class Machine
 	bool _directBuilds;
 	internal bool BuildsDuringRecognition => _directBuilds;
 
-	/// <summary>Whether any guard the readers run is handed more than one built value.</summary>
-	/// <remarks>
-	/// One that is builds them in one walk rather than one walk each, and the walk takes the
-	/// other records beside its root to do it (docs/design/one-walk-per-guard-2026-09-20.md).
-	/// Where no guard names two, none of that is written: a grammar without the case does not
-	/// pay a parameter for it.
-	/// </remarks>
-	bool _directMerges;
-
 	/// <summary>Whether any guard the readers run names the context.</summary>
 	bool _directGuardContext;
 
@@ -365,7 +356,7 @@ sealed partial class Machine
 
 	void DirectGuardNeeds(IReadOnlyList<RuleSymbol> rules)
 	{
-		_directBuilds = _directMerges = _directGuardContext = _directGuards = _directGlue = false;
+		_directBuilds = _directGuardContext = _directGuards = _directGlue = false;
 
 		foreach (var rule in rules)
 			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
@@ -384,16 +375,9 @@ sealed partial class Machine
 					if (_graph.ContextOf(rule) is not null && CSharpEmitter.Uses(_graph, guard.Text, "context"))
 						_directGuardContext = true;
 
-					var built = 0;
-
 					foreach (var (member, _) in GuardMembers(rule, guard))
 						if (member.Rule is not null)
-						{
 							_directBuilds = true;
-
-							if (!member.IsSequence && ++built > 1)
-								_directMerges = true;
-						}
 				}
 			}
 	}

@@ -16,10 +16,11 @@
 // immediate carrier already has in a register. Nothing here calls out to C# of its own,
 // because a snapshot is compiled on its own and what it names has to be there.
 //
-// One guard names one value and another names two, because those are two paths and not
-// one: a guard handed several values builds them in a single walk of the log, which is a
-// call shape of its own, and until this grammar had such a guard that shape stood in no
-// file anybody reviews.
+// One guard names one value and another names two, because those are two paths and not one:
+// a guard handed several values asks for each of them, and the calls that do it are worth
+// seeing in a diff. One walk for all of them was tried and withdrawn — it is worth 0.6% on
+// this shape, which is what the same build is worth against itself
+// (docs/design/one-walk-per-guard-2026-09-20.md).
 
 trivia = { ' '* }
 

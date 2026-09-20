@@ -217,25 +217,25 @@ namespace DotGram.Snapshots
 
 		/// <summary>What <c>Sum</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Sum(int first, int[] rest) =>
-#line 26 "Twice.gram"
+#line 27 "Twice.gram"
                                                                 (first + rest.Length);
 #line default
 
 		/// <summary>What <c>More</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_More(int value) =>
-#line 28 "Twice.gram"
+#line 29 "Twice.gram"
                                     (value);
 #line default
 
 		/// <summary>What <c>Term</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Term(int inner) =>
-#line 31 "Twice.gram"
+#line 32 "Twice.gram"
                                                               (inner);
 #line default
 
 		/// <summary>What <c>Term</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Term_1(int high, int low) =>
-#line 32 "Twice.gram"
+#line 33 "Twice.gram"
                                                               (high - low);
 #line default
 
@@ -245,7 +245,7 @@ namespace DotGram.Snapshots
 
 		/// <summary>What <c>Digits</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Digits(string text) =>
-#line 35 "Twice.gram"
+#line 36 "Twice.gram"
                                       (int.Parse(text));
 #line default
 
@@ -616,9 +616,10 @@ namespace DotGram.Snapshots
 				p = q2;
 				r2 = ways.Last;
 				var g0At = r1;
-				var g1At = r2;
-				if (!(g0At < 0) || !(g1At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lmark, lmarkR, also1: g1At);
+				if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lmark, lmarkR);
 				int? g0 = g0At < 0 ? default(int?) : values.V0[g0At].Value;
+				var g1At = r2;
+				if (!(g1At < 0)) Materialize_DotGram_Direct(ways, text, values, g1At, lmark, lmarkR);
 				int? g1 = g1At < 0 ? default(int?) : values.V0[g1At].Value;
 				if (!Recognize_DotGram_Guard5(g0, g1))
 				{
@@ -970,7 +971,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0, int also1 = -1, int also2 = -1, int also3 = -1)
+		static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
 		{
 			values.Room(ways.Records, from: first);
 
@@ -987,20 +988,12 @@ namespace DotGram.Snapshots
 				starts[listed++] = at;
 
 			if (roots < 0)
-			{
-				if (root >= 0) live[root] = true;
-			}
+				live[root] = true;
 			else
 			{
 				for (var at = roots; at < ways.RefsCount; at += 3)
 					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
 			}
-			if (also1 >= 0)
-				live[also1] = true;
-			if (also2 >= 0)
-				live[also2] = true;
-			if (also3 >= 0)
-				live[also3] = true;
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
@@ -1135,32 +1128,32 @@ namespace DotGram.Snapshots
 		}
 
 		static bool Recognize_DotGram_Guard0(int first) =>
-#line 26 "Twice.gram"
+#line 27 "Twice.gram"
                                                (first >= 0);
 #line default
 
 		static bool Recognize_DotGram_Guard1(int? high, int? low) =>
-#line 32 "Twice.gram"
+#line 33 "Twice.gram"
                                             (high >= low);
 #line default
 
 		static bool Recognize_DotGram_Guard2(int first) =>
-#line 26 "Twice.gram"
+#line 27 "Twice.gram"
                                                (first >= 0);
 #line default
 
 		static bool Recognize_DotGram_Guard3(int? high, int? low) =>
-#line 32 "Twice.gram"
+#line 33 "Twice.gram"
                                             (high >= low);
 #line default
 
 		static bool Recognize_DotGram_Guard4(int first) =>
-#line 26 "Twice.gram"
+#line 27 "Twice.gram"
                                                (first >= 0);
 #line default
 
 		static bool Recognize_DotGram_Guard5(int? high, int? low) =>
-#line 32 "Twice.gram"
+#line 33 "Twice.gram"
                                             (high >= low);
 #line default
 
