@@ -1670,6 +1670,12 @@ static partial class Stand
 			text.AppendLine();
 		}
 
+		if (rows.Any(static row => row.Id.EndsWith(".bool", StringComparison.Ordinal) || row.Id.Contains(".bool", StringComparison.Ordinal)))
+		{
+			text.AppendLine("**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**");
+			text.AppendLine();
+		}
+
 		text.AppendLine("The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.");
 		text.AppendLine();
 		text.AppendLine("The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).");
