@@ -2895,7 +2895,20 @@ This does not touch what a grammar's own guard or switch asks of its host: there
 shape is fixed when it is generated and the input picks an arm, which is the grammar speaking, not
 the parser choosing. Nor does it touch how much memory a pool keeps, which is housekeeping rather
 than an algorithm — though where housekeeping starts to look like a strategy, it is worth asking
-again. The rest of the sources are to be audited against this.
+again. **Audited (critic, Q7), with the test that is now the rule:** hold the input and the
+grammar, take the mechanism away, and see what changes — only allocation is housekeeping; the same
+answer in fewer steps by a rule fixed when generating is memoization, admissible while its cost is
+bounded; different steps for a reason that is neither the input nor the grammar is strategy, and
+out. Nothing emitted asks a type what it is, asks the hardware what it supports, or reads a policy
+from settings. The kept tokenization is memoization and the pools are housekeeping, as expected —
+but the rule that keeps it is decided once and not proved once, blanket for every positional entry
+of every grammar, so for the opposite caller it cuts a whole document to read a few tokens; that
+is the same shape the FIX fields settled one level up, and it should be declared by whoever knows
+how they will read. **And a defect under it, not about D25 at all:** eviction recycles a
+reading's own token arrays into the thread's spares while that reading still holds them, which
+three nested readings inside one outer reading would reach — a level deeper than the two slots
+were written for, and reaching both carriers. Unreproduced and said to be unreproduced; expr takes
+it before anything else, a failing test first.
 
 ## D26. FIX: two things Igor asked for, 2026-09-19
 
