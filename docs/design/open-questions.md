@@ -2509,3 +2509,25 @@ to. The disagreement between the layers is real.
 removal of the whole construct it was counted from. That is exactly when a number must be recounted
 rather than carried — the same reading can be true of two different arrangements and mean something
 different in each — and the owner recounted it rather than quoting mine back at me.
+
+**Both of the owner's further fixes verified, and one fact they surface (critic, read at `b471dbf5`,
+`codex/finance`).** `FixParseMode` now appears nowhere in `src/DotGram.Finance` — zero matches, so
+the shipped XML documentation no longer explains a member through a type the package does not have
+— and the release notes name the third break in the terms a consumer needs: what is **returned and
+reported on** where the strict mode used to turn it away, listed finding by finding, and what still
+refuses because the reader cannot defer it — framing, `BodyLength`, `CheckSum`, an unreadable field,
+a length/data pair that does not measure, a `NumInGroup` past the fields left, a group entry without
+its delimiter. "Validation has moved" would have told a consumer nothing about whether their message
+still parses; this tells them.
+
+**And the fact, which is not about this package's API at all.** The release notes end with
+"`DotGram.Finance.Generator` compiles a counterparty's dictionary into one", so I looked for it
+rather than assume: it is a real project in the solution — `FixDictionaryGenerator`, an `Emitter`
+that writes "Written from a FIX dictionary by DotGram.Finance.Generator" — with a package smoke test
+and pack steps in `docs/development.md`. **So the build-time half of the dictionary plan is not
+future work; it is in the tree.** That makes D71's decision concrete rather than prospective: the
+reader whose sharing was decided this evening is that project's reader, and whichever way the
+staleness guard is built, it is built against something that already exists. Worth saying because
+the plan was being discussed in stages as though all three lay ahead.
+
+**Answer:** —
