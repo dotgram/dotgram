@@ -1727,3 +1727,42 @@ that it is the only comparison left where two renderings of one grammar disagree
 already taken. *Where it touches:* `BufferedEmitter`'s `Matches`, the six call sites, and a byte
 literal's emission. *The question a number answers:* the Fix44 and byte rows of the stand, paired —
 and a snapshot with a byte machine in it, which does not exist either.
+
+**And the shape claim in item 1 was wrong, which makes the item better (critic, read at
+`ca5cb587`). Mine to correct, and it moves the cost from the question to the drop.** I wrote that a
+feed asking per record "pays the window per record — a shape, not a constant", and D41 took that
+wording. It is not a shape. `Window.Extend` drops what lies behind the parse's position before
+reading more, and on the way out it counts the newlines it is dropping into `_lines`, so
+`LineAt(position)` walks the *live window* and not the input. A window is bounded by the largest
+element that cannot be dropped, so a feed of ordinary records pays a bounded walk per question — a
+constant factor, and a small one. The quadratic that the wording describes existed and was fixed:
+`StockCountScalingTests` holds a count with a rejection every tenth line linear in its length, from
+a string and from a reader both, and its remark names the defect — "That number used to be counted
+from the start of the input for each of them".
+
+**What is actually wrong there is one line above it, and it is worth more than what I claimed.**
+The counting on the way out is a per-character loop — `for (var at = 0; at < from; at++) if
+(_buffer[at] == '\n')` — over everything the window drops. Each character of the input is dropped
+once, so a streaming parse reads every character a second time, with a branch, to count line
+terminators. **And it is not gated on anything.** `_lines` and `_break` are read only by `LineAt`
+and `ColumnAt`; a grammar that never asks for a line pays the whole scan anyway, because
+`CSharpEmitter` writes `WindowClass` for any streaming grammar with no `Locating` gate.
+
+The buffered window decides both halves of this the other way, and says so in its own words. Its
+release counts through `MoveLine` — `LastIndexOf`, and a count rather than a walk — and `Located`
+strips the counting entirely where nothing locates: "Written only where a recovery asks for a line
+or a column: every other buffer releases without counting anything." So the two classes disagree
+twice about the same two decisions, which is the ranking rule this file used on Q16: not a technique
+to borrow, an answer already given and not carried across.
+
+**So item 1, restated, and it is two things.** For a grammar that does not locate, the drop's
+counting should not be emitted at all — the gate D41 already takes as a size defect is a *time*
+defect first, one branch for every character of every streaming parse that never asks a question.
+For a grammar that does locate, the drop's count is the floor's `IndexOf`, as the buffered window
+already does it. `LineAt` and `ColumnAt` themselves are worth fixing after those two and for a
+different reason — an element too large to drop makes the window large — and not for the one I gave.
+
+*The question a number answers, corrected with it:* not a feed asking per record against the same
+feed buffered, but a streaming parse **that asks nothing at all** against the same parse with the
+drop's counting removed. That is the one every streaming row of the stand would show, and the stock
+rows are where it is already read.
