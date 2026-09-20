@@ -1922,12 +1922,6 @@ end is what they are for. A publication compiled as a plain
 method, with the one entry a whole parse needs, gets neither: its rules were proved to
 need nothing else only against the end of the input.
 
-**This changed.** Until this version both forms read the trivia after the rule as well, so
-the position that came back was past it and `Length` counted it. A caller that went on from
-the position it was handed reads the same values in the same places; a caller that measured
-a value by `Length` reads a shorter extent. A reading from a position is also no longer
-refused by a character no token begins with standing somewhere it never read.
-
 **What a reading from a position still costs, said here rather than discovered.** Over a
 grammar cut into tokens it cuts the whole input, and the cutting is kept for the next
 reading of the same string, so a loop of readings over one text cuts it once. One reading
