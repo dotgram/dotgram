@@ -5279,3 +5279,29 @@ any more", and neither sentence implies the other.
 **And step three's shape is settled by the same evidence:** twice out of twice the slow input was
 not the likely-looking one, so the diagnostic says "here is the form, drive it" and does not
 pronounce on whether a given site can be driven.
+
+**All ten of the expression language's places are settled by driving, and four of them were real.**
+The ones that exploded are the string starts the automaton only *begins* while a rule finishes
+them: twenty-four characters took 20.6 seconds on one, 10.2, 10.8 and 6.8 on the others, each
+character doubling. Sealed at the run of text inside a piece — the run stops at the first character
+another alternative or the closing quote can read, so the longest reading is the only correct one
+and there is nothing to give back — and the same inputs are now fractions of a millisecond, as is a
+hundred thousand characters.
+
+**The six that did not explode have one cause between them, and it is the criterion step three has
+been missing.** `Text` and `Verbatim` are *whole lexemes*, read by the lexer's automaton, which has
+no way back. That is the same shape as the four that exploded and is exactly what separates them —
+so the question a diagnostic must ask is not only "is this shape here" but "who reads it": an
+automaton that cannot give anything back, or a rule that can. The rest are repetitions of a single
+character, where there is no text to cut, or alternatives that cannot read the same text.
+
+**Judged safe rather than listed**, with the reason written into the grammar itself so the next
+reader does not re-derive it. These are the first entries of the list to reach that state.
+
+**And the permanent test's threshold is chosen the right way**: five seconds, a hundred times what
+the fix leaves and a ten-millionth of what the defect cost, so a loaded machine cannot fail it and
+a returning defect cannot pass it. A guard's threshold should be argued from both ends like that,
+not picked.
+
+The rule about confirming with the same input is taken into the follow-up work: the four sealed
+places will be driven with several shapes of input rather than the one that found them.
