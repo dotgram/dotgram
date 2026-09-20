@@ -3769,3 +3769,26 @@ A repeat of the same guard at a *different* execution was not counted at all —
 "a new guard" — so whether that second lever exists is still unknown rather than answered. It is a
 cheap count, by the pair of rule and mark rather than by an execution counter, and it sits behind
 the fixpoint and the discard bound.
+
+**The middle consumer, written and counted (stand, `118b33f9`, `7881b084`), closes the lazy tree.**
+A dependency scanner over the 2,250 statements of the corpus it has a case for, held to an oracle
+that reads everything. Shallow — only where a table reference can stand by the tree's shape —
+fetches 32.5% of those statements' nodes and misses 92 of 1,654 names in 78 statements: tables
+inside a subquery standing in a condition, in `OFFSET`/`FETCH`, in `USING (SELECT …)`. Deep, which
+misses nothing, fetches 97.6%. Getting deep right took five rounds, each a place a subquery turns
+out to stand that the tree's shape does not announce.
+
+So the middle does not exist: a consumer reading part of every statement is either wrong or reads
+nearly everything. **A lazy tree gains for the kinds-only consumer, nothing for a correct scanner,
+and for the cheap scanner it gains by being wrong.** And the kinds-only consumer does not need a
+lazy tree either — a host that wants the kind of each statement wants a publication that reads
+that, which `find` and `yield` already shape. The item is refused as a general lever, and what
+survives of it is not laziness but an index: a partial walk exists only if the parser records where
+the subqueries and table references of a statement are, which moves the work into the parser and is
+a feature to be asked for rather than an optimization.
+
+**And a finding that is not about performance at all.** Nothing in the tree says where a subquery
+may stand, so every consumer who writes a dependency scanner writes the shallow one first and is
+wrong in 3.5% of the statements it handles — silently, and never by naming a table that is not
+there, which is the hardest kind to notice. That belongs in `docs/ast.md` as a sentence: a partial
+walk of a statement is unsound, and the walker is what covers it.
