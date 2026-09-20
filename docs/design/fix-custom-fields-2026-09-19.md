@@ -80,9 +80,9 @@ public class FixFields
 {
     public static FixFields Standard { get; }
 
-    protected virtual FixField Unknown(int tag, ReadOnlySpan<char> value);   // now: FixField.Unknown
-    protected virtual FixField Unknown(int tag, ReadOnlySpan<byte> value);
-    protected virtual FixField Unknown(int tag, FixBinaryValue value);
+    protected virtual FixField Custom(int tag, ReadOnlySpan<char> value);   // now: the fallback field
+    protected virtual FixField Custom(int tag, ReadOnlySpan<byte> value);
+    protected virtual FixField Custom(int tag, FixBinaryValue value);
     // and, if question 2 is answered yes, later and without new API:
     // protected virtual string? TypeOf(int tag);   // now: the schema's table
     // protected virtual int      DataTag(int tag); // now: the sixteen standard pairs
@@ -96,7 +96,7 @@ consulted only where that switch falls through — so a known tag pays nothing, 
 pays a null check and one virtual call, against an allocation it already pays.
 
 *What inheritance buys over the table and the interface.* The fallback is the language's:
-`base.Unknown(tag, value)` is how a consumer says "the rest is yours", where a table needs a
+`base.Custom(tag, value)` is how a consumer says "the rest is yours", where a table needs a
 convention for absence and an interface needs the consumer to hold our default themselves. One
 object carries state — their own schema, their own tables — instead of a delegate per tag. And it
 is the only shape that can answer question 2 later *without a second seam*: the day the strict
@@ -121,7 +121,22 @@ makes the parser do it for them, and **C** is what makes it typed with no seam a
 | --- | --- | --- | --- | --- |
 | A, a table | absent from the table | a delegate a tag | a second option | nothing |
 | B, an interface | returns null | their object | a second interface, or a breaking member | every implementer |
-| E, a base class | `base.Unknown(…)` | their object | one more virtual member | only an override of that member |
+| E, a base class | `base.Custom(…)` | their object | one more virtual member | only an override of that member |
+
+### The name
+
+Igor's: `Custom` rather than `Unknown`. The package already speaks that way — a message whose type
+is not one of the standard 93 comes back as `CustomFixMessage`, built by us, for a type nobody
+declared. So `Custom` means in this package "outside the standard set", whoever ends up building
+it, and the hook and the fallback are the same thing seen from two sides: the consumer's override
+builds their custom field, and the default builds ours. Then the field class is `FixField.Custom`
+and `FixField.Unknown` goes with it, which also removes a smaller oddity — today a tag in a
+consumer's own 5000-range, which they know perfectly well, is handed back under a name that says
+nobody knows it. It costs a rename through the package's documentation (the README and the skill
+name `FixField.Unknown` in four places) and it breaks consumers, which at this stage is free.
+The alternative is to keep `FixField.Unknown` for the fallback and call only the hook `Custom`,
+which reads honestly — unknown is what nobody defined, custom is what you did — at the price of
+two words for one shape and of disagreeing with `CustomFixMessage`.
 
 ## 4. The questions to settle before any of it is built
 
