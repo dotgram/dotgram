@@ -2772,7 +2772,14 @@ rules, and what they share is that they read the same characters under different
 a fact about the language and not a prefix. The cure is the grammar's own — a lookahead for a
 scheme and its colon in front of the first alternative, so that a refusal re-reads the scheme
 rather than the whole input and an accepted relative reference never tries the other alternative
-at all — and it is finance-24's to write and measure.
+at all — and it is finance-24's to write and measure. **Done (`12a8804f`), and better than the
+architect proposed:** the look is a negative one on the second alternative rather than a positive
+one in front of the first, so an accepted URI pays nothing at all and only an accepted relative
+reference walks the scheme text twice; the refusal is 21% faster and the accepted reading
+unmoved. It is a theorem and not a guess, and the reason stands beside the rule: a relative path's
+first segment may not contain a colon, and every later segment is behind a slash where the scheme
+text would have stopped anyway. Six refusals were printed before and after: the same texts and the
+same positions, the look never reaching a message.
 **A measurement rule came with it:** the first 300 ms of a process runs five times slower, and it
 is neither tiering nor the collector — the same row measured last in the same process is at its
 final speed from the first repeat. A short probe on a cold process overstates its first row about
