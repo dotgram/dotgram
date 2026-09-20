@@ -135,6 +135,17 @@ public readonly struct FixNumber
 	/// <returns>False when the number does not fit a decimal; FIX sets no limit on range or precision.</returns>
 	public bool TryGetDecimal(out decimal value) => wireField.TryGetDecimal(out value);
 	/// <summary>
+	/// Reads the number as a 64-bit integer.
+	/// </summary>
+	/// <returns>False when the number is not a whole number that fits a long.</returns>
+	/// <remarks>
+	/// The accessors that answer with a number include the sequence numbers and the lengths —
+	/// <c>BeginSeqNo</c>, <c>EndSeqNo</c>, <c>NewSeqNo</c>, <c>RefSeqNum</c>, <c>RefTagID</c>,
+	/// <c>EncodedTextLen</c> — every one of them an integer. Without this, reading one went
+	/// through a decimal or through the string, in a type whose only job is to forward.
+	/// </remarks>
+	public bool TryGetInt64(out long value) => wireField.TryGetInt64(out value);
+	/// <summary>
 	/// Returns the number as written.
 	/// </summary>
 	public override string ToString() => wireField.ToString();
