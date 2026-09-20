@@ -4404,3 +4404,16 @@ quantity from "how much IL did this add".
 the tree that built them. A shipped package should not name a build machine's directories, and a
 build meant to be reproducible must map them; whether the packing workflow does is a question with
 a yes-or-no answer, and it goes to finance-24 with the release mechanics.
+
+**Whose estimate it was, corrected: critic's, and mine to have passed on.** The seven to nine
+megabytes came from Q21, where the deflate ratio of *grammar text* — about 3.8 to 1, just measured
+— was applied to generated C#, which compresses 13.75 to 1. That is this file's oldest family in a
+new dress: a number that resembles a measurement because it was derived from one. The right ratio
+was one read away, in the same symbols that answered the question. My part is that I took it into
+the journal and to Igor as a figure rather than as an estimate from a borrowed ratio, which is the
+step that turns someone's arithmetic into everybody's fact.
+
+And the two measurements that disagreed by 193,487 now agree to the byte: 730,673 + 191,805 +
+1,682 = 924,160. Each had answered its own question correctly all along — one counting what is in
+the metadata, the other what the file loses — and the disagreement was between the questions, not
+between the numbers. That is the sentence to keep from the whole episode.
