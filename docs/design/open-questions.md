@@ -1400,3 +1400,30 @@ checked, no two of nine are equal. A public-API baseline for the packages: caugh
 already had its own answer, and would not have caught what actually went wrong (Q12).
 
 **Answer:** —
+
+**Item 1 corrected before it was handed over (critic, 2026-09-20, read at `f6ce6662`).** Igor asked
+for it to go to the architect; reading the emitter first shrank it, and two things it said are
+wrong.
+
+- **Bit tables are not absent: they are the path for a class that reaches past 256.** `Machine.cs`
+  emits a byte-per-character table (`TableSize = 256`) for a class that lies entirely below 256, and
+  `Bits(ranges)` — a real bit table, windowed from `from & ~7` and capped at `KindTableSize` — for
+  one that does not. Both representations exist and are written today.
+- **Deduplication is already done, in both paths.** `_classesByRanges` and `_bitTables` key on the
+  emitted text, so an identical table is never emitted twice. Q13 said "no two of nine are
+  identical, so deduplication is not the answer"; the conclusion was right and the reason was wrong —
+  they cannot be identical, because duplicates are collapsed at emission.
+
+**What is left, and it is the real item.** The choice between the two representations is made by
+**reach and never by cost**: a class entirely below 256 always gets the eight-times-larger form, and
+`Bits` is reached only when a class is too wide for it, not when it would be smaller. For the ASCII
+case that is nine tables of 256 bytes in `Url.gram.g.cs` — 2,304 bytes — where the same nine as bit
+tables are 288, and as a pair of `ulong` constants each, with no array and no bounds check, 144. The
+byte table is presumably the deliberate fast path, one load against a shift and a mask; nothing in
+the tree says so, and nothing has measured it.
+
+So the item to hand over is one question, not a design: **is the threshold in the right place?** It
+is a size-against-speed trade between two paths that both already exist, the size half has a harness
+(`DotGram.CodeSize`) and no measurement, and the speed half is a byte load against a shift — which
+is why this file will not guess it. The number to take first is what these tables total in the
+packages' generated code, which needs a build and so is not this session's.
