@@ -29,7 +29,9 @@ public sealed class ShippedExampleTests
 		var select = (Statement.Select)match.Value;
 		var query  = (Query.Specification)select.Of;
 
-		Assert.Equal("Users", Assert.IsType<TableReference.Named>(query.From[0]).Table);
+		var from = (TableReference.Named)query.From[0];   // from.Table is "Users"
+
+		Assert.Equal("Users", from.Table);
 	}
 
 	/// <summary>The SKILL's first example: the match, the writer, and the walk that collects tables.</summary>

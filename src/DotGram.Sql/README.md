@@ -55,7 +55,7 @@ var match = TransactSqlParser.TryParseSelect("select name from Users where id > 
 var select = (Statement.Select)match.Value;
 var query  = (Query.Specification)select.Of;
 
-query.From[0];   // TableReference.Named { Table = "Users" }
+var from = (TableReference.Named)query.From[0];   // from.Table is "Users"
 ```
 
 A database's compatibility level gates a small part of what SQL Server reads — the `WINDOW`
