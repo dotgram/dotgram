@@ -6159,3 +6159,26 @@ short rows — so it is unsupported rather than a price.
 header what the row compares. A row whose name reads as a variant of its neighbour and whose
 meaning is a different API is a trap laid for every future reader, and the person who fell into it
 is the one who built it.
+
+## D70. The publish workflow's one irreversible step is guarded only on a tag, 2026-09-20
+
+Read while reducing Igor's two release decisions to one action each. The workflow runs on a tag and
+on a manual dispatch. The check that the tag and the version in the build properties are the same
+thing — described in the file itself as the one mistake nobody can take back — is conditioned on
+the reference being a tag. **The step that pushes to the gallery is not.** It is conditioned only on
+the API key being present.
+
+So once the key is a secret, a manual dispatch publishes whatever version the build properties
+happen to hold, with the version check skipped, from whatever commit the dispatch runs on. Nothing
+about it is wrong today, because the key is not there yet and the step is skipped; it becomes wrong
+on the day the key is added, which is also the day nobody re-reads the workflow.
+
+**The fix is one condition**: the push runs only for a tag, or the version check runs for a
+dispatch too. The first is smaller and says what we mean — a release is a tag, which is the
+workflow's own first sentence. A dispatch then remains what the file says it is: the same run with
+the last step skipped, which is how it can be read before it can publish.
+
+**And the decisions themselves reduce to actions rather than choices.** The secret's name is
+already fixed in the file, so what is wanted is the secret, not a decision about naming. The
+version is a line in the build properties and a tag that matches it, and the workflow refuses the
+pair if they disagree.
