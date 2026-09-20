@@ -4132,3 +4132,22 @@ machine, a scaling test documenting the cliff it works around, and now this comm
 cheaper to read than to derive, and each time it derived first. That is the habit to change, and it
 is not only that session's: the architect spent the day handing out a rule about reading the source
 and then read a checkout a day old.
+
+**D40's pairing mechanism exists (`5c60d6ee`, `bc1c1492`).** A side builder takes a name, a commit
+and any number of properties, builds the five libraries in a worktree of its own — from scratch
+when a property is given, so the generator runs again — pinned away from the timing cores, and
+writes the commit, the framework, the properties and a hash of the emitted code beside the
+assemblies.
+
+**It was tested by a negative control, which is what makes it a mechanism rather than a script.**
+One commit was built twice, plain and with a property nobody reads, and both sides hashed to the
+same emitted code from two different worktrees — so the hash does not depend on the path, and the
+header of a paired report says in bold that two sides with different properties emitted the same
+code and that this is therefore not a pair of branches. The header also says the check applies only
+to two sides of one commit, so its silence on a pair of commits cannot be read as a positive.
+
+**And that control closes the gap its author reported.** The builder cannot refuse a property the
+generator does not consume, and the list of what the generator reads is the generator's to keep —
+but a property that does nothing is exactly what the hash comparison catches, loudly, in the report
+that would otherwise carry the number. No requirement on the generator follows from this; a control
+that fires on the failure it guards against is the guard.
