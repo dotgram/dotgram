@@ -6655,3 +6655,38 @@ today by luck. The fix is to name what it needs instead of collecting what happe
 type from each shipped assembly, touched before the set is read, or the references gathered from
 the test's own dependencies rather than from the domain. This is the day's own rule arriving in a
 new place: a measurement that takes what it finds is measuring the finder.
+
+## D79 — A check that measures time reports; it does not gate
+
+The refusal guard was run twice against one build of one tree, with nothing changed between the
+runs. The first run failed three series, the second eleven, and the two failing sets had two rows
+in common. The verdict was not a property of the tree.
+
+That is not a threshold being slightly wrong. A series whose baseline is linear came back
+superlinear in one run and passed in the next, and the set of series it happened to was almost
+disjoint between the runs — so the quantity being compared to the margin varies by about as much
+as the margin itself. The guard was calibrated on explosions, where the exponent is five to seven
+and noise cannot reach the answer, and on a single quiet reading of the baseline; its spread on an
+unchanged tree was never measured. Calibrating a discriminator only where the classes are far
+apart tells you nothing about where they are close, and the whole value of this guard is the
+series that are close.
+
+**So the rule.** A check that gates a build must be reproducible on an unchanged tree. A check
+whose reading is a measurement of time is not, and the two cannot be reconciled by choosing a
+better threshold: the threshold can only be chosen once the spread is known, and if the spread is
+comparable to the distance between the classes, no threshold exists. Such a check reports — it
+prints what it saw, the build stays green — and what gates is only what does not depend on how
+busy the machine was: the reader threw, the input was accepted that should have been refused, the
+series is missing from the baseline, the call did not finish inside the watchdog, or the exponent
+is high enough that no amount of noise could have produced it.
+
+**Why this and not simply loosening the margin.** A check that fires at random teaches the people
+who see it to disregard it, and a disregarded check is removed — taking with it the reason it was
+built. This guard found eleven real explosions in a week, two of which nobody had listed. Its
+value is the finding, and a finding survives being printed; it does not survive being distrusted.
+
+**What a report must still do.** Repeat before it speaks. A series read as worse is read again, up
+to three times, and is called worse only if it was worse every time; a series worse on some runs
+and not on others is named as unstable, which is itself a fact about that series worth having.
+Nothing in this is a reason to stop measuring — it is a reason to stop pretending a measurement is
+a verdict.
