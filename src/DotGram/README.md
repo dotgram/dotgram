@@ -39,24 +39,13 @@ Enable a per-parser build message in the consuming project:
 
 ```xml
 <PropertyGroup>
-  <DotGramReportGeneration>summary</DotGramReportGeneration>
+  <DotGramReportGeneration>true</DotGramReportGeneration>
 </PropertyGroup>
 ```
 
-Or run `dotnet build -p:DotGramReportGeneration=summary`. The NuGet package imports
+Or run `dotnet build -p:DotGramReportGeneration=true`. The NuGet package imports
 its MSBuild target automatically; direct analyzer references need to import
 `build/DotGram.targets` from the source project. This repository does that centrally.
-
-The property takes a level:
-
-| Value | What is printed |
-| --- | --- |
-| `none`, `false`, unset | nothing |
-| `summary` | one line a parser: that the generator ran, and what it produced |
-| `full`, `true` | that line, and what the carrier's choice rested on, rule by rule |
-
-`full` is pages on a large grammar, and answers questions about the generator rather than
-about the parser; `summary` is what a build normally wants.
 
 Each message includes the host (and named variant), normalized rule count,
 generated C# size in UTF-8 bytes, generation time, actual lexical/character mode,
@@ -68,9 +57,8 @@ Time measures grammar compilation and emission, excluding C# compilation, host
 discovery and symbol queries. A cached generator result retains its original timing.
 A build that skips compilation prints no summary. Design-time builds do not report.
 
-Reporting is off by default. Any level above `none` enables compiler-generated files on
-disk and adds a comment-only report file containing timing; keep it off for reproducible
-artifacts.
+Reporting is off by default. It enables compiler-generated files on disk and adds
+a comment-only report file containing timing; keep it off for reproducible artifacts.
 The option does not change parser behavior or turn messages into warnings.
 
 ## One grammar, three parsers

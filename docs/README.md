@@ -37,7 +37,7 @@ it.
 and it is out of date from the first change to the grammar until it is run again.
 
 `carriers.md` is one too: `--carriers` writes it from the reports a build with
-`-p:DotGramReportGeneration=full` leaves, nobody edits it, and it is a run behind main by
+`-p:DotGramReportGeneration=true` leaves, nobody edits it, and it is a run behind main by
 construction. A change meant to move a grammar off the tape is measured by its difference.
 
 ## Repository conventions

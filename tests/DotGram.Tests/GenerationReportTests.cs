@@ -41,31 +41,6 @@ public sealed class GenerationReportTests
 		Assert.DoesNotContain(enabled.Diagnostics, diagnostic => diagnostic.Id.StartsWith("CS878", StringComparison.Ordinal));
 	}
 
-	[Theory]
-	[InlineData("none")]
-	[InlineData("false")]
-	[InlineData("")]
-	[InlineData("whatever nobody spelled")]
-	public void A_level_that_asks_for_nothing_is_silence(string level)
-	{
-		var run = Run(Source, level);
-		Assert.DoesNotContain(run.GeneratedTrees, tree => tree.FilePath.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal));
-	}
-
-	[Theory]
-	[InlineData("summary", false)]
-	[InlineData("SUMMARY", false)]
-	[InlineData("full", true)]
-	[InlineData("true", true)]
-	public void Only_the_full_level_carries_what_the_carrier_rested_on(string level, bool detailed)
-	{
-		var report = Report(Run(Source, level));
-
-		// Both levels say the generator ran; what tells them apart is everything under that line.
-		Assert.Contains("DotGram: Parser,", report, StringComparison.Ordinal);
-		Assert.Equal(detailed, report.Contains("carrier:", StringComparison.Ordinal));
-	}
-
 	[Fact]
 	public void Failed_generation_does_not_claim_to_have_produced_a_parser()
 	{
@@ -96,10 +71,7 @@ public sealed class GenerationReportTests
 
 	static string Report(GeneratorDriverRunResult run) => run.GeneratedTrees.Single(tree => tree.FilePath.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal)).ToString();
 
-	static GeneratorDriverRunResult Run(string source, bool enabled, bool designTime = false) =>
-		Run(source, enabled ? "true" : "false", designTime);
-
-	static GeneratorDriverRunResult Run(string source, string level, bool designTime = false)
+	static GeneratorDriverRunResult Run(string source, bool enabled, bool designTime = false)
 	{
 		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var references = AppDomain.CurrentDomain.GetAssemblies()
@@ -108,24 +80,24 @@ public sealed class GenerationReportTests
 		var compilation = CSharpCompilation.Create("GenerationReport", [CSharpSyntaxTree.ParseText(source, parseOptions)], references,
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 		return CSharpGeneratorDriver.Create([new GramGenerator().AsSourceGenerator()],
-			parseOptions: parseOptions, optionsProvider: new OptionsProvider(level, designTime))
+			parseOptions: parseOptions, optionsProvider: new OptionsProvider(enabled, designTime))
 			.RunGenerators(compilation).GetRunResult();
 	}
 
-	sealed class OptionsProvider(string level, bool designTime) : AnalyzerConfigOptionsProvider
+	sealed class OptionsProvider(bool enabled, bool designTime) : AnalyzerConfigOptionsProvider
 	{
-		public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(level, designTime);
+		public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(enabled, designTime);
 		public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
 		public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
 	}
 
-	sealed class Options(string level, bool designTime) : AnalyzerConfigOptions
+	sealed class Options(bool enabled, bool designTime) : AnalyzerConfigOptions
 	{
 		public override bool TryGetValue(string key, out string value)
 		{
 			value = key switch
 			{
-				"build_property.DotGramReportGeneration" => level,
+				"build_property.DotGramReportGeneration" => enabled.ToString(),
 				"build_property.DesignTimeBuild" => designTime.ToString(),
 				_ => "",
 			};

@@ -12,7 +12,7 @@ namespace DotGram.Benchmarks;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A build with <c>-p:DotGramReportGeneration=full</c> writes beside each grammar's generated file
+/// A build with <c>-p:DotGramReportGeneration=true</c> writes beside each grammar's generated file
 /// a <c>*.DotGramReport.g.cs</c>: a line of what was generated, and under it what GRAM5012 rested
 /// on — the carrier, the gate that kept the grammar on the tape, and each rule kept there with its
 /// cause. `Replay`'s gate names the place a cause was found and what around it lets the reading be
@@ -76,18 +76,7 @@ static class Carriers
 
 		if (grammars.Count == 0)
 		{
-			Console.WriteLine("No reports. Build with -p:DotGramReportGeneration=full first.");
-
-			return;
-		}
-
-		// `summary` leaves the one line a grammar and none of the detail this file is made of.
-		// Without this, a run over those reports would write a table of blanks — which reads as
-		// an answer about the grammars rather than as a report that was never asked for.
-		if (grammars.TrueForAll(static one => one.Lines.Count == 0))
-		{
-			Console.WriteLine("The reports carry no carrier detail: the build asked for `summary`. " +
-				"Build with -p:DotGramReportGeneration=full first.");
+			Console.WriteLine("No reports. Build with -p:DotGramReportGeneration=true first.");
 
 			return;
 		}
@@ -96,7 +85,7 @@ static class Carriers
 
 		text.AppendLine("# Which carrier each grammar is read with, and why");
 		text.AppendLine();
-		text.AppendLine("Every grammar of the solution, as the last build with `-p:DotGramReportGeneration=full` compiled");
+		text.AppendLine("Every grammar of the solution, as the last build with `-p:DotGramReportGeneration=true` compiled");
 		text.AppendLine("it: the carrier `Auto` took (GRAM5012), and for a grammar kept on the tape, the gate that kept it");
 		text.AppendLine("and each rule held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`)");
 		text.AppendLine("from the reports that build left; run again rather than edited.");
