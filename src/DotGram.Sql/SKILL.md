@@ -39,6 +39,8 @@ is what to decide before using one, the contract they share, and what is easy to
   until `visit` answers false. It walks either tree; a check is a pattern match in the lambda.
 
 ```csharp
+using System.Collections.Generic;
+
 using DotGram.Sql;
 using DotGram.Sql.TransactSql;
 
