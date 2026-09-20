@@ -4183,3 +4183,36 @@ is "not emitted here", which is exactly how tonight's two misses stayed invisibl
 grammar that emits several files may be one. Then the first three rows get their files. Not a
 matrix — a few files chosen to cover the rows, because a set that takes minutes to run is a set
 people stop reading. To expr, which is waiting on pairs.
+
+## D43. The grammar rides in the assembly, by a default nobody chose, 2026-09-20
+
+critic's Q18, and it is D42's first concrete instance: where does the configuration the snapshots
+hold differ from the one a consumer gets? Here, by an attribute carrying the whole grammar.
+`Portable` follows the host's visibility — the attribute's value, else an inherited one, else
+whether the type is visible — and where it holds, the emitter writes the grammar's entire text onto
+the class as an attribute argument. The snapshots leave it at the compiler options' default, which
+is false; a public parser's default is true.
+
+**So the SQL package ships 697,784 bytes of grammar text as attribute blobs** — 441,215 for T-SQL,
+223,698 for the standard, 32,871 for SQL-92 — because its three parsers are public. The expression
+language carries its inline grammar twice, as the grammar's own argument and again as the carried
+text. The Web package pays nothing, its grammar classes being internal, which is the shape of its
+design rather than a decision. And the one package that sets the option off is Finance, whose
+grammar is the smallest and already in metadata as its own argument: the decision exists and was
+taken where it saved a duplicate of a small grammar, not where it adds seven hundred kilobytes of a
+large one.
+
+**What settles it is not known and costs one run.** The source figures exist and do not answer it —
+441 KB against a 22 MB generated file is two per cent of *source*, but code compiles down by a
+large factor and a string does not compile down at all, so the share of the shipped assembly is a
+different question. The instrument exists, has never been pointed at this, and needs no pair and no
+window. Ordered from stand.
+
+**And a check that costs nothing comes first, which critic already ran:** nothing in this
+repository includes another project's grammar through the class. The one inclusion is inside a
+single project, where the file is read and the carried text is only the fallback. So the default is
+paying, in every public host, for a capability offered to consumers and used by nobody here. That
+may be exactly right for a library — a consumer building a dialect on our T-SQL grammar is the
+case it exists for — which is why it is stated with the number beside it and decided by Igor, the
+default being part of what a grammar can say. A snapshot with the option on belongs in D42's list
+either way.
