@@ -5624,3 +5624,23 @@ is nothing for a diagnostic to warn about. If they turn out to be heterogeneous,
 polynomial diagnostic reopens with evidence. **Either way the diagnostic's own text says what it
 does not cover**, so that its silence is never read as a verdict; that costs a sentence and is not
 contingent on anything.
+
+**The class test is set up to be able to fail.** The three cases counted are chosen to be
+structurally *unlike* nested parentheses rather than three spellings of it: a character-level
+refusal with no nesting at all, a flat list of items, and a parameter list. If all three land on
+the same arithmetic — a rule called depth times depth plus one — then three unlike shapes have one
+cause and the class belongs to the reader; if one does not, that one is the case to drive, and it
+will be driven rather than reasoned about. The instrument is asked for from the session that
+produced the 1,056 rather than rebuilt, so that a disagreement cannot be about the method.
+
+**And a rule that widens beyond the diagnostic: what a measurement cannot see belongs beside what
+it says.** The carriers report names a grammar's worst machine and not all of them; a refusal
+ladder sees one carrier and one entry point; the audit's own page lists the starts it does not
+reach. Writing what a diagnostic does not cover is the same discipline in a third place. It costs a
+sentence, it depends on nothing, and its absence is what turns a narrow instrument into a
+misplaced clean bill of health.
+
+**A correction made while it was cheap:** the twenty quadratics were described as "in web and SQL"
+rounded together, when the audit keeps them in separate sections and the parenthesis case comes
+from the SQL one. The three being counted are the web's, and whether SQL's behave alike is part of
+what the count answers rather than something already assumed.
