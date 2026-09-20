@@ -179,6 +179,8 @@ in this order:
 flat      Machine.Flat.cs     one method per publication, the automaton's states laid
                               out in it with no arena and no dispatcher
 reader    Machine.Reader.cs   a method per rule, the way a person would write it
+buffered  BufferedEmitter.cs  the reader again, over a buffer that fills from a stream or
+                              a TextReader and releases what is behind the reading
 engine    Machine.cs          the automaton of §4, which can do anything the notation says
 ```
 
@@ -194,14 +196,18 @@ business, and no longer costs this one its flat path.
 
 **The reader** is the default for everything else that qualifies — `Direct` is true
 unless the host sets it off, which a test of the engine does. `CanDirect` refuses, and
-leaves to the engine: a `find`, a publication read from a stream, a recovery other than
-the one §6 names, a capture of what a lookahead saw, a call with arguments, an external recognizer that keeps a value,
-and a guard handed a value whose construction asks for the input. It records the refusal
+leaves to the engine: a `find`, a capture of what a lookahead saw, a call with arguments, an external recognizer that keeps a value,
+and a guard handed a value whose construction asks for the input. A publication read from
+a stream and a recovery were refused with them until the buffered rendering: over a buffer
+the reader carries a `recover`, and steps a `yield` one element at a time, the step being
+a repetition of exactly one turn whose continuation is the next step the driver asks for. It records the refusal
 in words (`Refusal`); over kinds, where it changes what the grammar means, that is said as
 `GRAM5005` (§8). §6 describes the reader.
 
-**The engine** takes whatever is left, and is the one rendering that serves every
-publication kind, every stream and every recovery.
+**The engine** takes whatever is left. It served every stream and every recovery on its
+own until the buffered rendering, which is the reader reading over a buffer: what is left
+to the engine now is what `CanDirect` refuses for its own reasons, whatever the input is
+read from.
 
 ## 3. Nothing is built while matching
 
@@ -254,6 +260,17 @@ look is never silent and still reaches Immediate — because silence is about wh
 machine writes down and this is about whose constructions have run. What remains given up
 is a parse that fails having already run some constructions. `GRAM5012` says which carrier was chosen and, where it was the tape,
 which rules kept it there.
+
+**Where a reading is settled is its own analysis** (`Grammar/Model/Commit.cs`). For each
+site it finds the innermost point past which what was read can no longer be taken back —
+the end of a rule, of a turn, of an atomic group, or the caller's — and a point says
+*when* a construction may run, never what it is built from: what is built there comes
+from the derivation that reached it. A machine that recovers reaches the immediate
+carrier only where every construction of it has a point at a rule's end, which is the
+gate `Machine.Direct.cs` asks before a recovery is carried at all, and the same analysis
+is what lets a recovering repetition release its buffer at each turn. It mirrors
+`Replay`'s walk deliberately: one counts what may be given up, the other where it stops
+being possible.
 
 A carrier the author named that cannot carry a machine leaves that machine
 on the tape, and `GRAM5007` says so. The engine and the flat path have no carrier to
@@ -489,8 +506,9 @@ the input handed over as `ReadOnlyMemory` — and takes another if it goes deepe
 
 Which mode a parse runs in is decided by the type of the input, at the call site
 (`syntax.md` §6.3). The compiler decides *whether* the reader mode is offered at all,
-and both input types that ask for it end up in the same one. (Reading a stream is the
-engine's: neither the flat path nor the reader of §6 takes a publication that streams.)
+and both input types that ask for it end up in the same one. (Reading a stream was the
+engine's until the buffered rendering, which is the reader of §6 written over a buffer;
+the flat path still takes no publication that streams.)
 
 ```text
 in memory   string / ReadOnlySpan<char>
@@ -529,6 +547,15 @@ return past, so a marked repetition streams by construction and the analysis has
 nothing to prove. It commits as well, which the analysis does not — but on one
 repetition, named in the notation, and the rules it calls mean the same thing inside it
 as anywhere else.
+
+**What is held is let go of at each turn, not at the end.** A buffered machine carried
+immediately releases what lies behind a completed turn of such a repetition, because
+the element is built there and nothing before it can be wanted again; the window is then
+one element wide however long the stream is. A yield form is windowed the same way, an
+element at a time; a form that hands back the whole parse holds what it has built until
+the parse ends, which is what it was asked for. Whether a machine may release at a turn
+at all is a question about its carrier and its recovery, asked where the carrier is
+chosen (`Machine.Direct.cs`): the tape cannot release what it has not walked yet.
 
 **`Match<T>.Position` is a `long` regardless of mode** — an offset into the whole
 input, and an in-memory `string` could in principle be one an `int` cannot index just

@@ -1404,10 +1404,12 @@ the scanner braces ask for. A warning, because the two readings are not always t
 parser.
 
 What is different over kinds is said too. `GRAM5005`: a rule of the syntactic half that the
-methods cannot read — a recovery, a stream, a `find`, a captured lookahead, a guard handed
-what a reader cannot give it, a rule called with arguments — runs on the shared engine,
-where a choice that matched can still be revisited, so the committed reading §4 promises
-over kinds is not what runs there. `GRAM5009`: an optional or a repetition that can take,
+methods cannot read — a `find`, a captured lookahead, a guard handed what a reader cannot
+give it, a rule called with arguments — runs on the shared engine, where a choice that
+matched can still be revisited, so the committed reading §4 promises over kinds is not what
+runs there. A recovery and a stream were on that list until the buffered rendering learned
+to read both: over a buffer the methods carry a `recover` and step a `yield` one element at
+a time, and what runs then is the reader's committed reading, not the engine's. `GRAM5009`: an optional or a repetition that can take,
 in one token, what follows it, which over kinds nothing gives back.
 
 **A terminal the lexer begins and a rule or the host ends** (since 2026-09-13). A
@@ -1433,9 +1435,11 @@ GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
   something: a rule read where the machine constructs nothing — under a lookahead, whose
   reading is thrown away by definition and whose body the machine need not build — leaves
   nothing to hold back, so a look over a building rule does not by itself keep the tape.
-- **`Tape`**: records built into values by a walk once the parse is accepted. The carrier
-  that streams, finds and recovers, and the one that keeps "nothing is built while
-  matching" whole.
+- **`Tape`**: records built into values by a walk once the parse is accepted. The carrier a
+  `find` still takes, and the one that keeps "nothing is built while matching" whole. It was
+  the only carrier that streamed or recovered until the buffered rendering: a machine reading
+  over a buffer chooses its carrier like any other, so a stream and a `recover` can be
+  carried immediately, building at the end of each rule and releasing what is behind it.
 - **`Immediate`**: a construction runs the moment its alternative has been read. A factory
   is called once per derivation tried rather than accepted, and **a parse that fails may
   already have run the constructions of what it read**. No walk at the end, which is about
