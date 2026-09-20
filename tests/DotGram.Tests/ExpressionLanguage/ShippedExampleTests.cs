@@ -116,9 +116,10 @@ public sealed class ExpressionShippedExampleTests
 	[Fact]
 	public void A_rule_over_a_type_of_the_calling_assembly()
 	{
-		// The page shows the two lines and leaves the type to the reader. A name is resolved
-		// from what the text says and the assembly it is handed, and nothing else, so the
-		// smallest whole thing of that shape names its namespace as a consumer would.
+		// The page shows a text of this shape with the consumer's own namespace in it: a name is
+		// resolved from what the text says and the assembly it is handed, and from nothing else.
+		// This is that text with the namespace it can have here. The page said neither until it
+		// was run: the fragment it showed was refused with "Expected '.' or '<'".
 		const string text = """
 			using DotGram.Tests.ExpressionLanguage;
 

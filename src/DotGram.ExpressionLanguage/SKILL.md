@@ -1,4 +1,4 @@
----
+﻿---
 name: dotgram-expression-language
 description: Turn C#-style lambda text into System.Linq.Expressions trees or compiled delegates at run time with DotGram.ExpressionLanguage — ExpressionParser.Compile, Parse and TryParse. Use when a project references the DotGram.ExpressionLanguage package, or when asked to evaluate user-written formulas, rules or small code blocks as .NET delegates or expression trees. Not a C# compiler — one lambda per text, no classes, methods, async or query syntax — and not a sandbox.
 ---
@@ -57,8 +57,17 @@ decides what the text may name: public types, and its own internal types and mem
 ```csharp
 static readonly Assembly Caller = typeof(Rules).Assembly;
 
-var rule = ExpressionParser.Compile<Func<Order, bool>>(text, Caller);
+var rule = ExpressionParser.Compile<Func<Order, bool>>(
+    """
+    using Warehouse.Orders;
+
+    (Order o) => o.Quantity > 10
+    """,
+    Caller);
 ```
+
+The text names the namespace of anything it uses, because nothing is imported for it
+(**Names**, below) — the assembly says what may be named, and the text says what is.
 
 Pass it explicitly whenever texts are parsed in a loop, and always when the call is wrapped
 in a helper that lives in another assembly: the helper's assembly is the one the stack finds.
