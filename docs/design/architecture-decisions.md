@@ -4030,3 +4030,39 @@ grammar on a page exists as a test that the generator *compiles it without a dia
 the page says what the grammar reads, that reading is run too. It is in the rule, with that reading
 of it. The SQL package's seven calls carry the same trap the expression language's did, its parsers
 demanding a completeness a page may not show.
+
+## D41. Where emitted code still reads one character at a time, 2026-09-20
+
+critic's Q16, answering the question put to it — is there a win that needs no branching at all.
+Character-at-a-time scanning in emitted code is four places and no more; everything else already
+calls the span APIs. Three of the four are ranked, and the first needs nothing the floor lacks.
+
+**The streaming window counts lines by hand, and it is the one place where the input is longest.**
+The buffered window keeps its place and moves it with `LastIndexOf`, and its own comment says why:
+a feed asking for lines had a branch on every character it read, counted again. The whole-text
+located class keeps its place and counts the distance by hand. The *streaming* window's `LineAt`
+and `ColumnAt` do neither — a per-character loop from the window's start on every call, which is
+exactly the algorithm the located class's remark was written against, in the form where there is
+most input to walk. Streaming maps its line and column to it and recovery reports through it, so a
+feed asking per record pays the window per record: a shape, not a constant. `IndexOf` and
+`LastIndexOf` are on the floor through the memory package that emitted code already requires for
+the span itself, which is the same argument `Machine.cs` makes for ordinal comparison. So: no
+capability, no bucket, no `#if`. **Approved to design, and the number is available today** by
+comparing a streaming parse that asks per record against the same feed buffered.
+
+**And a size defect beside it.** The window class is emitted whenever a grammar streams, ungated,
+two lines below the buffered classes, which are gated on whether the grammar locates anything. So
+every streaming parser carries the naive pair whether or not a thing calls it. Gated in the same
+commit.
+
+**Parked with reasons.** Both incremental implementations vectorize forwards and still walk back a
+character at a time. The link chains reset by a loop where the floor has a span fill, weakest of
+the three and already cautioned by the clearing anatomy: what `Return` pays is calls and cold
+tables, not bytes. Refused for now: the two refusal-path prefix walks, the floor having no
+common-prefix API and the net8 one belonging to D40's bucket, and the case-folded one having no API
+anywhere.
+
+**One thing it says about the record.** No checked-in snapshot emits the line-moving code at all,
+while four of five carry the naive pair — so the implementation carrying a framework branch appears
+in no diff anybody reads. A snapshot covering it is part of the work, on the principle recorded an
+hour earlier: what nobody reads is not checked.
