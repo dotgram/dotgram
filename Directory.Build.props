@@ -13,6 +13,12 @@
 		     fails on the machine that wrote the code rather than on the server. -->
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
+		<!-- NU1900 is not a warning about this code: it says NuGet could not reach a source to ask
+		     whether a package has a known vulnerability. That is a condition of the machine, and a
+		     build that fails when the network is down fails for something nobody can fix by editing
+		     anything. The audit itself stays on: a real finding is NU1901 and above. -->
+		<WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900</WarningsNotAsErrors>
+
 		<DotGramReportGeneration>true</DotGramReportGeneration>
 	</PropertyGroup>
 
