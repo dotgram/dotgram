@@ -3565,3 +3565,41 @@ built. So the join has nothing to join to yet, and D34's shape becomes a conditi
 writes the retention — performance-ff: **at the transition into idle the value store is cleared
 whole**, before the buffers are handed to the idle state, so that a quiet thread holds no tree. The
 fork does not reopen in the meantime, because nothing is proposed before that mechanism exists.
+
+## D35. 0.2.0's readiness, checked by someone who did not build it, 2026-09-20
+
+critic's Q12. The guess that the risk lives where the public surface moved this week was right, and
+what it found is a class rather than a case.
+
+**The defect: a decision that reached the code and not the pages the package ships.** D27 — a
+supplied dictionary adds to the standard's sixteen rather than replacing them — reached the code,
+the constructor's own XML comment and the release notes, and did not reach `README.md` and
+`SKILL.md`. Both open their example with `[95] = 96`, which is one of the standard sixteen, and the
+constructor now throws when either tag of a supplied pair is one the standard defines. So both
+shipped pages open with a call that throws on the package they ship with, and the release notes
+predict that exact reader error. The skill carries the overturned sentence beside it, in the file an
+agent follows. The README says "replacement" in one place and "adds to" forty lines later. Fixed by
+dropping the standard pair from both examples; with finance-24.
+
+**This is why the rule written this morning is a rule.** A decision that changes what a README or a
+SKILL promises edits them in the same commit that changes the behaviour. Three places, one decision,
+one day — and the two that were missed are the two a consumer reads first.
+
+**What is in order, said because a check that lists only defects is not one.** All five packages
+carry release notes as a property rather than a changelog file — critic first concluded there were
+none and found them by looking for the property, which is the second road it now owes every count.
+Both breaks are there with what to do, and there is no unrecorded third: Finance's withdrawal of the
+typed entry classes and the expression language's narrowing to `Parse`, `TryParse` and `Compile`
+are both in their own notes. Licence, repository, authors, copyright and icon come from
+`Directory.Build.props` for every packable project. No page promises XML documentation that is not
+generated, and Sql says it carries none. Nothing of anyone else's is packed: the grammars are
+additional files, the `Specification` directories reach no package, and the only package references
+are `System.Memory` and, privately, a polyfill and Roslyn.
+
+**One line outside the check, and it goes to Igor.** The ISO BNF and Microsoft's published syntax
+sit in the repository, which is public (`github.com/dotgram/dotgram`). Both carry their provenance:
+Microsoft's is CC-BY 4.0 with the attribution and the changes named, which is exactly what that
+licence asks. The ISO file is kept as fetched, with ISO's own sentence quoted — "this grammar may be
+used by implementors of SQL-implementations when generating parsers" — which speaks to *use* and
+not plainly to redistribution, and a public repository redistributes. That is Igor's to weigh, not
+the architect's and not critic's.
