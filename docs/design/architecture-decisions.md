@@ -2716,3 +2716,14 @@ to the author, and whether an author may supply that text is a change to the lan
 to decide separately. Held by compiling the generated code with documentation on and the
 missing-comment warning as an error, so an undocumented member fails here rather than for a
 consumer; the cost in emitted size and the snapshot churn are stated with it.
+**The design, approved as written (expr).** The scope was asked of the compiler rather than
+remembered: what a consumer sees is the host's own methods and the types nested in it, and what is
+undocumented is everything emitted outside the publication's own entry — the reader and stream
+overloads, the byte ones, the lazy entry and its iterator, the buffered `Try`, and `find` over a
+reader. One template a form, built once in the emitter: what the throwing form throws, that the
+match answers instead, that the bool form says only whether, what §6.3 now says of a position and
+a length, that a reader's input is the caller's to dispose, that an enumeration is lazy and
+stopping early leaves read-ahead in the buffer. What a rule means stays the author's: the
+templates say a rule is parsed, never what it is, and expr says plainly that this will not read as
+written prose. Whether an author may supply that text in the grammar is a change to the language
+and goes to Igor on its own; the templates reserve nothing for it.
