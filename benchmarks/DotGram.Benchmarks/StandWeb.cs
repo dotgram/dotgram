@@ -107,8 +107,9 @@ static partial class Stand
 		}
 
 		// A relative reference, which begins with no scheme: the second alternative of `URI / relative-ref` (finance-24, 12a8804f made a scheme end
-		// that alternative before it starts). The dot-colon one has a colon after its first segment, which section 4.2 allows and a scheme would not.
-		foreach (var (name, text) in new[] { ("url.relative", "../a/b/c.html?x=1#f"), ("url.relative-dot-colon", "./a:b/c/d?q=1") })
+		// that alternative before it starts). The dot-colon one has a colon after its first segment, which section 4.2 allows and a scheme would not; the
+		// letters one begins with a long run of scheme characters and has no colon, the text on which the extra pass over the scheme is longest.
+		foreach (var (name, text) in new[] { ("url.relative", "../a/b/c.html?x=1#f"), ("url.relative-dot-colon", "./a:b/c/d?q=1"), ("url.relative-letters", "segmentsegmentsegment/a/b?q=1") })
 		{
 			yield return new Workload("web", name,
 				[

@@ -91,6 +91,9 @@ static partial class Stand
 
 		// The Web's lists and fields, one publication each (docs/design/stand-coverage-2026-09-19.md): a loop in the grammar, so a curve.
 		yield return new Series("email address list",   "generated", "addresses", [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"a{i}@example.com")); return () => EmailAddress.TryParseList(t, out _); });
+		// Three points ten times apart can straddle a step: finance-24 found the Accept curve to be flat up to 3,000 ranges, a drop between 3,000 and 4,000
+		// (the emitted parser pool keeps no more than 65,536 entries) and flat again, so the exponent 2.07 of the three points was a cliff between two of them.
+		yield return new Series("accept, between",      "generated", "ranges",    [500, 1000, 2000, 3000, 4000, 6000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"text/x{i};q=0.5")); return () => MediaRange.TryParseAccept(t, out _); });
 		yield return new Series("accept",               "generated", "ranges",    [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"text/x{i};q=0.5")); return () => MediaRange.TryParseAccept(t, out _); });
 		yield return new Series("forwarded",            "generated", "elements",  [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"for=192.0.2.{i % 250};proto=https")); return () => ForwardedElement.TryParseField(t, out _); });
 		yield return new Series("link",                 "generated", "links",     [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"<https://example.com/{i}>; rel=\"next\"")); return () => WebLink.TryParseField(t, out _); });

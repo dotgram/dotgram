@@ -229,7 +229,9 @@ from the runtime's events, which cost time of their own — the anatomy, not the
 `linearity` (`StandLinearity.cs`) times every parser that reads a long input at three sizes ten
 times apart — the stock count, FIX orders and fields, JSON, a URL path, media-type parameters, a
 structured list, the lists and fields of the Web (email addresses, `Accept`, `Forwarded`, `Link`, cookies), a feed, SQL conditions, rows and columns, an expression — and prints the exponent
-of each step, `log(t2/t1) / log(n2/n1)`, flagging a series above 1.2. Rough: one process, no
+of each step, `log(t2/t1) / log(n2/n1)`, flagging a series above 1.2. Three points ten times apart can straddle a step: the
+`accept` series flagged an exponent of 2.07 that was a cliff between 3,000 and 4,000 ranges (a pool that stopped keeping the parser's arena), flat on
+either side of it; a flagged series is taken again at more points between the two sizes it flagged on (`accept, between`) before its exponent is believed. Rough: one process, no
 window, a few hundred milliseconds a cell. It exists because the stock count's generated parser
 counted newlines from the start of the input for every rejected line and no row noticed until one
 held a thousand of them. Beside each exponent it prints the KB a call allocates at each size and the
