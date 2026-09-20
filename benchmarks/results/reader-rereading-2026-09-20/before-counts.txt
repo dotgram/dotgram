@@ -1,0 +1,75 @@
+The before-picture for the reader change (D63): how many times each reader method is
+entered, on three refusal shapes chosen to be unlike one another.
+
+Taken with sql-39's instrument (scratchpad/recprobe): an instrumented copy of the
+generated parser, counting entries per reader method. Counts, not times - the
+instrumented build is slower and its durations mean nothing. Counts do not depend on
+the JIT tier, on machine load, or on a window.
+
+Revision: 5ed9682b, on top of origin/main e48ab0aa. Retaken at this revision because
+the first reading was at a commit a rebase replaced; the per-rule figures came out
+identical across thirty commits of other work, which is evidence the arithmetic is a
+property of the reader rather than of one tree.
+
+revision under the instrument: 5ed9682b A pool keeps the room it grew, and nothing that was built in it
+on top of origin/main: e48ab0aa D67: four cliffs confirmed, and joins is two of them
+Build succeeded.
+reader methods instrumented: 995
+
+== EmailAddress.TryParseList, an unclosed quoted string (a run of one character)
+   n        calls     refusals   calls/(n(n+1)/2)
+   8          499           65        13.86   read=False
+  16        1,723           89        12.67   read=False
+  32        6,475          137        12.26   read=False
+  64       25,195          233        12.11   read=False
+   -- most-entered at n=32  (count, count/T(n), count/(n+1)^2)
+        1,584    3.000    1.455  Rfc5322  Read_QuotedBody_AddressList_Part0
+        1,584    3.000    1.455  Rfc5322  Read_Qcontent_AddressList
+        1,584    3.000    1.455  Rfc5322  Read_Qcontent_AddressList_Body
+        1,584    3.000    1.455  Rfc5322  Read_Qtext_AddressList
+           99    0.188    0.091  Rfc5322  Read_QuotedBody_AddressList_Body
+   -- most-entered at n=64  (count, count/T(n), count/(n+1)^2)
+        6,240    3.000    1.477  Rfc5322  Read_QuotedBody_AddressList_Part0
+        6,240    3.000    1.477  Rfc5322  Read_Qcontent_AddressList
+        6,240    3.000    1.477  Rfc5322  Read_Qcontent_AddressList_Body
+        6,240    3.000    1.477  Rfc5322  Read_Qtext_AddressList
+          195    0.094    0.046  Rfc5322  Read_QuotedBody_AddressList_Body
+
+== MediaType, parameters then an unclosed quoted string (a repeating unit)
+   n        calls     refusals   calls/(n(n+1)/2)
+   8        1,415            8        39.31   read=False
+  16        4,511            8        33.17   read=False
+  32       16,079            8        30.45   read=False
+  64       60,719            8        29.19   read=False
+   -- most-entered at n=32  (count, count/T(n), count/(n+1)^2)
+        2,319    4.392    2.129  Rfc9110  Read_Ows_ContentTypeField
+        2,319    4.392    2.129  Rfc9110  Read_Ows_ContentTypeField_Body
+        2,256    4.273    2.072  Rfc9110  Read_Token_ContentTypeField
+        2,256    4.273    2.072  Rfc9110  Read_Token_ContentTypeField_Body
+        1,089    2.062    1.000  Rfc9110  Read_Parameters_ContentTypeField_Part0
+   -- most-entered at n=64  (count, count/T(n), count/(n+1)^2)
+        8,719    4.192    2.064  Rfc9110  Read_Ows_ContentTypeField
+        8,719    4.192    2.064  Rfc9110  Read_Ows_ContentTypeField_Body
+        8,592    4.131    2.034  Rfc9110  Read_Token_ContentTypeField
+        8,592    4.131    2.034  Rfc9110  Read_Token_ContentTypeField_Body
+        4,225    2.031    1.000  Rfc9110  Read_Parameters_ContentTypeField_Part0
+
+== LanguageTag, variants then a bare hyphen (a flat list)
+   n        calls     refusals   calls/(n(n+1)/2)
+   8          512          135        14.22   read=False
+  16        1,564          307        11.50   read=False
+  32        5,396          843        10.22   read=False
+  64       19,972        2,683         9.60   read=False
+   -- most-entered at n=32  (count, count/T(n), count/(n+1)^2)
+          593    1.123    0.545  Rfc5646  Read_End
+          593    1.123    0.545  Rfc5646  Read_Alphanum
+          529    1.002    0.486  Rfc5646  Read_Tail_Part2
+          529    1.002    0.486  Rfc5646  Read_Variant
+          529    1.002    0.486  Rfc5646  Read_Variant_Body
+   -- most-entered at n=64  (count, count/T(n), count/(n+1)^2)
+        2,209    1.062    0.523  Rfc5646  Read_End
+        2,209    1.062    0.523  Rfc5646  Read_Alphanum
+        2,081    1.000    0.493  Rfc5646  Read_Tail_Part2
+        2,081    1.000    0.493  Rfc5646  Read_Variant
+        2,081    1.000    0.493  Rfc5646  Read_Variant_Body
+EXIT done
