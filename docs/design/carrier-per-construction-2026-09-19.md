@@ -213,12 +213,23 @@ walk's setup off almost nothing: a walk that keeps one taped record keeps all of
 unweighted 3.5%, not above it, and the unweighted 0.7–1.2% of a parse is an upper bound rather than
 an estimate.
 
-How far below depends on what the two costs are and on how many records a walk builds, which is not
-the same in the two grammars: 1.3 records a walk in SQL:2023's select20, 6.9 in T-SQL over the
-corpus. The constants are being measured. They will be reported in nanoseconds, with the workload
-they were taken on and the arms the record's cost was taken over, and applied to each grammar's own
-counts — a share measured on one grammar says nothing about the other, and this document has been
-wrong that way once already.
+**The two costs, measured.** From the stand's profile of `sql-loop` on main after the materializer's
+three commits (benchmarks/results/sql-anatomy-2026-09-19b), scaled to one parse of select20 by that
+loop's wall of 17,862 ns: **27.8 ns a walk** and **6.0 ns a record**. Both are SQL:2023's, taken over
+that grammar's arms on that statement, where a walk builds 1.3 records; T-SQL's walks carry 6.9, so
+these travel as an estimate and not as a measurement of T-SQL.
+
+Carried to T-SQL's own counts, materialization over a corpus round is 116,946 × 6.0 + 17,023 × 27.8
+= about 1.18 ms, of which the records are 60% and the walks 40%. What step 2 could take off it is
+4,130 × 6.0 + 174 × 27.8 = 29.6 µs, **2.5% of materialization**; at the 0.3–0.5 a construction saves
+built in place, **0.8–1.3% of what materializing costs**, and under half a per cent of a parse.
+
+**The shelving is final under this cost model, and the lever has moved.** Step 2 was worth one to
+two per cent when a record carried the arms' prologue; it is worth less now that the prologue is
+gone, because what is left is mostly the walk, and the walk is what step 2 does not remove. What
+does remove walks is a guard that needs no walk to see a built value — the fourth edge of §1, or the
+guard's own path through the materializer. On select20 that is 8.4 µs of 17.9, the largest single
+item in the parse.
 
 **The rule sets differ too, and by the same tightening.** The counting build marks 115 of the 651
 rules that write a record as settled. §3's static table, taken before the fixpoint was written down,

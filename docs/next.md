@@ -24307,3 +24307,37 @@ after the brackets, and with both forms of the rule. `TryParseQuery` on the same
 the query is not the problem: the choice in `InlineReturn` does not give back there, though the
 analysis records that it may. Under-acceptance, and by Igor's rule it outranks what the cause
 costs.
+
+## SQL:2023's anatomy again, after the materializer's three commits
+
+The stand's profile of `sql-loop` on main (benchmarks/results/sql-anatomy-2026-09-19b, f803ae97),
+scaled to one parse of select20 by the wall of the same loop: 17,862 ns generated, 6,766 hand, so
+**2.64x the hand where it was 10.6x this morning**. The bytes a call are the same 21,328.
+
+| Phase | Generated, ns | Share | Hand, ns |
+| --- | ---: | ---: | ---: |
+| The walk a guard runs: `Materialize` itself, `Reaches*`, `Room`, the clears | 8,379 | 47% | — |
+| The arms: one record built | 2,394 | 13% | — |
+| Recognition (`Read_*`, the seam) | 4,167 | 23% | 4,883 recognising and building |
+| Other and native | 914 | 5% | 149 |
+| Call setup | 703 | 4% | 21 |
+| The runtime: lists, casts, GC | 468 | 3% | 614 |
+| Host helpers (`Towers`, `Nodes`) | 340 | 2% | 370 |
+| Lexer | 260 | 1% | 730 |
+| Tape records (`Ways`) | 236 | 1% | — |
+
+**What the three commits did, and what they left.** The arms' prologue is gone: where a record cost
+about 85 ns in a part method that zeroed 12 KB of frame, it now costs **6.0 ns** in an arm of its
+own. What is left standing is the other half, and it is now the larger by far: **27.8 ns a walk**,
+301 walks for 402 records. The materializer is 60% of the parse, and two thirds of that is the
+walks, not the records.
+
+**So the lever moved.** It is no longer "build fewer records on the tape" but "run fewer walks". A
+guard that names a built value walks the log from its rule's mark, and select20 runs 301 of those
+to build 402 records — 1.3 records a walk. Nothing about the tape's shape asks for that; it is the
+price of asking a guard a question mid-parse. That is the materializer's own ground (expr's), and
+it is worth more than anything left in recognition: 8.4 µs against recognition's 4.2.
+
+The two constants are SQL:2023's, taken over that grammar's arms on select20. T-SQL's arms are not
+these arms and its walks are longer — 6.9 records a walk over the corpus against 1.3 here — so a
+T-SQL number wants a T-SQL profile, and the figures carried into §4b are marked as carried.
