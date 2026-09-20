@@ -1,0 +1,204 @@
+=== run 1 of 5, 19:56:08
+11 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       77.2 ns before       82.0 ns after       85.9 ns  before/hand 1.06x  after/hand 1.11x
+tsql/script100         hand   762468.8 ns before  1188225.0 ns after  1169837.5 ns  before/hand 1.56x  after/hand 1.53x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2699909.4 ns before 17223881.2 ns after 17078221.9 ns  before/hand 6.38x  after/hand 6.33x
+tsql/columns1000       hand  1723293.8 ns before   181192.2 ns after   181115.6 ns  before/hand 0.11x  after/hand 0.11x
+tsql/conditions1000    hand   866313.3 ns before   318728.9 ns after   312525.8 ns  before/hand 0.37x  after/hand 0.36x
+tsql/rows1000          hand   581123.4 ns before   230721.9 ns after   222081.2 ns  before/hand 0.40x  after/hand 0.38x
+sql/select20.bool      hand     6951.2 ns before    34233.2 ns after    18085.4 ns  before/hand 4.92x  after/hand 2.60x
+web/url.full           hand      158.4 ns before      269.7 ns after      279.6 ns  before/hand 1.70x  after/hand 1.76x
+el/string              hand      282.5 ns before     1054.3 ns after      941.8 ns before-immediate      654.8 ns after-immediate      640.1 ns  before/hand 3.73x  after/hand 3.33x  before-immediate/hand 2.32x  after-immediate/hand 2.27x
+tsql/comment           hand    19550.8 ns before     1559.1 ns after     1695.3 ns  before/hand 0.08x  after/hand 0.09x
+sql/select20           hand     7057.6 ns before    34753.5 ns after    18186.3 ns  before/hand 4.92x  after/hand 2.58x
+
+# Paired stand, 2026-09-19 19:56
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 35.4 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 77.2 | 82.0 | 1.06x | 85.9 | 1.11x | +4.7% | 192 | 192 |
+| tsql/script100 | generated | 762468.8 | 1188225.0 | 1.56x | 1169837.5 | 1.53x | -1.5% | 113600 | 113600 |
+| tsql/script400 | generated | 2699909.4 | 17223881.2 | 6.38x | 17078221.9 | 6.33x | -0.8% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1723293.8 | 181192.2 | 0.11x | 181115.6 | 0.11x | 0.0% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 866313.3 | 318728.9 | 0.37x | 312525.8 | 0.36x | -1.9% | 424424 | 424424 |
+| tsql/rows1000 | generated | 581123.4 | 230721.9 | 0.40x | 222081.2 | 0.38x | -3.7% | 296472 | 296472 |
+| sql/select20.bool | generated | 6951.2 | 34233.2 | 4.92x | 18085.4 | 2.60x | -47.2% | 21448 | 21392 |
+| web/url.full | generated | 158.4 | 269.7 | 1.70x | 279.6 | 1.76x | +3.7% | 536 | 536 |
+| el/string | generated | 282.5 | 1054.3 | 3.73x | 941.8 | 3.33x | -10.7% | 1056 | 1056 |
+| el/string | immediate | 282.5 | 654.8 | 2.32x | 640.1 | 2.27x | -2.3% | 1032 | 1032 |
+| tsql/comment | generated | 19550.8 | 1559.1 | 0.08x | 1695.3 | 0.09x | +8.7% | 1192 | 1192 |
+| sql/select20 | generated | 7057.6 | 34753.5 | 4.92x | 18186.3 | 2.58x | -47.7% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w59\pair\run-1
+=== run 2 of 5, 19:56:46
+11 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       78.4 ns before       83.4 ns after       85.4 ns  before/hand 1.06x  after/hand 1.09x
+tsql/script100         hand   652100.0 ns before  1156131.2 ns after  1182612.5 ns  before/hand 1.77x  after/hand 1.81x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2644453.1 ns before 17168281.2 ns after 17222590.6 ns  before/hand 6.49x  after/hand 6.51x
+tsql/columns1000       hand  1724760.9 ns before   199156.2 ns after   195242.2 ns  before/hand 0.12x  after/hand 0.11x
+tsql/conditions1000    hand   856239.1 ns before   318152.3 ns after   301991.4 ns  before/hand 0.37x  after/hand 0.35x
+  tsql/rows1000: 1 round(s) redone after a gen1/gen2 collection
+tsql/rows1000          hand   579160.9 ns before   230107.8 ns after   217601.6 ns  before/hand 0.40x  after/hand 0.38x
+sql/select20.bool      hand     6921.4 ns before    33587.9 ns after    18025.6 ns  before/hand 4.85x  after/hand 2.60x
+web/url.full           hand      152.1 ns before      272.0 ns after      271.9 ns  before/hand 1.79x  after/hand 1.79x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      276.4 ns before     1045.3 ns after      969.2 ns before-immediate      660.6 ns after-immediate      705.3 ns  before/hand 3.78x  after/hand 3.51x  before-immediate/hand 2.39x  after-immediate/hand 2.55x
+tsql/comment           hand    19231.4 ns before     1531.9 ns after     1558.5 ns  before/hand 0.08x  after/hand 0.08x
+sql/select20           hand     7204.0 ns before    34259.9 ns after    18778.4 ns  before/hand 4.76x  after/hand 2.61x
+
+# Paired stand, 2026-09-19 19:57
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 78.4 | 83.4 | 1.06x | 85.4 | 1.09x | +2.4% | 192 | 192 |
+| tsql/script100 | generated | 652100.0 | 1156131.2 | 1.77x | 1182612.5 | 1.81x | +2.3% | 113600 | 113600 |
+| tsql/script400 | generated | 2644453.1 | 17168281.2 | 6.49x | 17222590.6 | 6.51x | +0.3% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1724760.9 | 199156.2 | 0.12x | 195242.2 | 0.11x | -2.0% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 856239.1 | 318152.3 | 0.37x | 301991.4 | 0.35x | -5.1% | 424424 | 424424 |
+| tsql/rows1000 | generated | 579160.9 | 230107.8 | 0.40x | 217601.6 | 0.38x | -5.4% | 296472 | 296472 |
+| sql/select20.bool | generated | 6921.4 | 33587.9 | 4.85x | 18025.6 | 2.60x | -46.3% | 21473 | 21392 |
+| web/url.full | generated | 152.1 | 272.0 | 1.79x | 271.9 | 1.79x | -0.1% | 536 | 536 |
+| el/string | generated | 276.4 | 1045.3 | 3.78x | 969.2 | 3.51x | -7.3% | 1056 | 1056 |
+| el/string | immediate | 276.4 | 660.6 | 2.39x | 705.3 | 2.55x | +6.8% | 1032 | 1032 |
+| tsql/comment | generated | 19231.4 | 1531.9 | 0.08x | 1558.5 | 0.08x | +1.7% | 1192 | 1192 |
+| sql/select20 | generated | 7204.0 | 34259.9 | 4.76x | 18778.4 | 2.61x | -45.2% | 21472 | 21472 |
+
+Written to T:\TEMP\dotgram-stand\w59\pair\run-2
+=== run 3 of 5, 19:57:26
+11 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       76.3 ns before       84.1 ns after       84.5 ns  before/hand 1.10x  after/hand 1.11x
+tsql/script100         hand   692043.8 ns before  1180543.8 ns after  1161937.5 ns  before/hand 1.71x  after/hand 1.68x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2731765.6 ns before 17463434.4 ns after 17321890.6 ns  before/hand 6.39x  after/hand 6.34x
+tsql/columns1000       hand  1704095.3 ns before   181915.6 ns after   173509.4 ns  before/hand 0.11x  after/hand 0.10x
+tsql/conditions1000    hand   867601.6 ns before   325499.2 ns after   303769.5 ns  before/hand 0.38x  after/hand 0.35x
+tsql/rows1000          hand   576750.0 ns before   230302.3 ns after   215657.8 ns  before/hand 0.40x  after/hand 0.37x
+sql/select20.bool      hand     7077.4 ns before    33851.2 ns after    19176.2 ns  before/hand 4.78x  after/hand 2.71x
+web/url.full           hand      152.9 ns before      284.6 ns after      293.2 ns  before/hand 1.86x  after/hand 1.92x
+el/string              hand      260.6 ns before     1059.6 ns after      962.0 ns before-immediate      687.3 ns after-immediate      679.9 ns  before/hand 4.07x  after/hand 3.69x  before-immediate/hand 2.64x  after-immediate/hand 2.61x
+tsql/comment           hand    19881.4 ns before     1577.2 ns after     1560.8 ns  before/hand 0.08x  after/hand 0.08x
+sql/select20           hand     6656.9 ns before    33389.8 ns after    18265.3 ns  before/hand 5.02x  after/hand 2.74x
+
+# Paired stand, 2026-09-19 19:58
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 76.3 | 84.1 | 1.10x | 84.5 | 1.11x | +0.5% | 192 | 192 |
+| tsql/script100 | generated | 692043.8 | 1180543.8 | 1.71x | 1161937.5 | 1.68x | -1.6% | 113600 | 113600 |
+| tsql/script400 | generated | 2731765.6 | 17463434.4 | 6.39x | 17321890.6 | 6.34x | -0.8% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1704095.3 | 181915.6 | 0.11x | 173509.4 | 0.10x | -4.6% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 867601.6 | 325499.2 | 0.38x | 303769.5 | 0.35x | -6.7% | 424424 | 424424 |
+| tsql/rows1000 | generated | 576750.0 | 230302.3 | 0.40x | 215657.8 | 0.37x | -6.4% | 296472 | 296472 |
+| sql/select20.bool | generated | 7077.4 | 33851.2 | 4.78x | 19176.2 | 2.71x | -43.4% | 21448 | 21392 |
+| web/url.full | generated | 152.9 | 284.6 | 1.86x | 293.2 | 1.92x | +3.0% | 536 | 536 |
+| el/string | generated | 260.6 | 1059.6 | 4.07x | 962.0 | 3.69x | -9.2% | 1056 | 1056 |
+| el/string | immediate | 260.6 | 687.3 | 2.64x | 679.9 | 2.61x | -1.1% | 1032 | 1032 |
+| tsql/comment | generated | 19881.4 | 1577.2 | 0.08x | 1560.8 | 0.08x | -1.0% | 1192 | 1192 |
+| sql/select20 | generated | 6656.9 | 33389.8 | 5.02x | 18265.3 | 2.74x | -45.3% | 21448 | 21448 |
+
+Written to T:\TEMP\dotgram-stand\w59\pair\run-3
+=== run 4 of 5, 19:58:06
+11 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       75.4 ns before       81.4 ns after       86.8 ns  before/hand 1.08x  after/hand 1.15x
+tsql/script100         hand   658800.0 ns before  1149475.0 ns after  1156518.8 ns  before/hand 1.74x  after/hand 1.76x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2642568.8 ns before 16737625.0 ns after 17442740.6 ns  before/hand 6.33x  after/hand 6.60x
+tsql/columns1000       hand  1724495.3 ns before   187031.2 ns after   180507.8 ns  before/hand 0.11x  after/hand 0.10x
+tsql/conditions1000    hand   943760.9 ns before   348655.5 ns after   318287.5 ns  before/hand 0.37x  after/hand 0.34x
+tsql/rows1000          hand   595665.6 ns before   245767.2 ns after   225629.7 ns  before/hand 0.41x  after/hand 0.38x
+sql/select20.bool      hand     7536.4 ns before    35424.3 ns after    19611.5 ns  before/hand 4.70x  after/hand 2.60x
+web/url.full           hand      155.8 ns before      285.2 ns after      284.7 ns  before/hand 1.83x  after/hand 1.83x
+  el/string: 1 round(s) redone after a gen1/gen2 collection
+el/string              hand      266.3 ns before     1067.4 ns after      980.9 ns before-immediate      675.3 ns after-immediate      702.9 ns  before/hand 4.01x  after/hand 3.68x  before-immediate/hand 2.54x  after-immediate/hand 2.64x
+tsql/comment           hand    19093.2 ns before     1547.7 ns after     1552.5 ns  before/hand 0.08x  after/hand 0.08x
+sql/select20           hand     7264.0 ns before    35646.4 ns after    19193.8 ns  before/hand 4.91x  after/hand 2.64x
+
+# Paired stand, 2026-09-19 19:58
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 75.4 | 81.4 | 1.08x | 86.8 | 1.15x | +6.7% | 192 | 192 |
+| tsql/script100 | generated | 658800.0 | 1149475.0 | 1.74x | 1156518.8 | 1.76x | +0.6% | 113600 | 113600 |
+| tsql/script400 | generated | 2642568.8 | 16737625.0 | 6.33x | 17442740.6 | 6.60x | +4.2% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1724495.3 | 187031.2 | 0.11x | 180507.8 | 0.10x | -3.5% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 943760.9 | 348655.5 | 0.37x | 318287.5 | 0.34x | -8.7% | 424424 | 424424 |
+| tsql/rows1000 | generated | 595665.6 | 245767.2 | 0.41x | 225629.7 | 0.38x | -8.2% | 296472 | 296472 |
+| sql/select20.bool | generated | 7536.4 | 35424.3 | 4.70x | 19611.5 | 2.60x | -44.6% | 21448 | 21392 |
+| web/url.full | generated | 155.8 | 285.2 | 1.83x | 284.7 | 1.83x | -0.2% | 536 | 536 |
+| el/string | generated | 266.3 | 1067.4 | 4.01x | 980.9 | 3.68x | -8.1% | 1056 | 1056 |
+| el/string | immediate | 266.3 | 675.3 | 2.54x | 702.9 | 2.64x | +4.1% | 1032 | 1032 |
+| tsql/comment | generated | 19093.2 | 1547.7 | 0.08x | 1552.5 | 0.08x | +0.3% | 1192 | 1192 |
+| sql/select20 | generated | 7264.0 | 35646.4 | 4.91x | 19193.8 | 2.64x | -46.2% | 21472 | 21472 |
+
+Written to T:\TEMP\dotgram-stand\w59\pair\run-4
+=== run 5 of 5, 19:58:46
+11 rows, every reading agreeing. Timing 8 rounds.
+fix/One.text           hand       75.5 ns before       83.0 ns after       83.9 ns  before/hand 1.10x  after/hand 1.11x
+tsql/script100         hand   663437.5 ns before  1145793.8 ns after  1156887.5 ns  before/hand 1.73x  after/hand 1.74x
+  tsql/script400: 1 round(s) redone after a gen1/gen2 collection
+tsql/script400         hand  2718093.8 ns before 17521750.0 ns after 17695831.2 ns  before/hand 6.45x  after/hand 6.51x
+tsql/columns1000       hand  1779439.1 ns before   187265.6 ns after   184035.9 ns  before/hand 0.11x  after/hand 0.10x
+tsql/conditions1000    hand   885871.9 ns before   329889.1 ns after   344222.7 ns  before/hand 0.37x  after/hand 0.39x
+tsql/rows1000          hand   595925.0 ns before   242399.2 ns after   232120.3 ns  before/hand 0.41x  after/hand 0.39x
+sql/select20.bool      hand     6922.8 ns before    34552.9 ns after    18960.4 ns  before/hand 4.99x  after/hand 2.74x
+web/url.full           hand      161.1 ns before      299.8 ns after      301.2 ns  before/hand 1.86x  after/hand 1.87x
+el/string              hand      284.4 ns before     1023.0 ns after      973.9 ns before-immediate      667.6 ns after-immediate      678.0 ns  before/hand 3.60x  after/hand 3.42x  before-immediate/hand 2.35x  after-immediate/hand 2.38x
+tsql/comment           hand    19439.8 ns before     1537.2 ns after     1628.4 ns  before/hand 0.08x  after/hand 0.08x
+  sql/select20: 1 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6876.6 ns before    34634.2 ns after    18637.0 ns  before/hand 5.04x  after/hand 2.71x
+
+# Paired stand, 2026-09-19 19:59
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 75.5 | 83.0 | 1.10x | 83.9 | 1.11x | +1.1% | 192 | 192 |
+| tsql/script100 | generated | 663437.5 | 1145793.8 | 1.73x | 1156887.5 | 1.74x | +1.0% | 113600 | 113600 |
+| tsql/script400 | generated | 2718093.8 | 17521750.0 | 6.45x | 17695831.2 | 6.51x | +1.0% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1779439.1 | 187265.6 | 0.11x | 184035.9 | 0.10x | -1.7% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 885871.9 | 329889.1 | 0.37x | 344222.7 | 0.39x | +4.3% | 424424 | 424424 |
+| tsql/rows1000 | generated | 595925.0 | 242399.2 | 0.41x | 232120.3 | 0.39x | -4.2% | 296472 | 296472 |
+| sql/select20.bool | generated | 6922.8 | 34552.9 | 4.99x | 18960.4 | 2.74x | -45.1% | 21448 | 21392 |
+| web/url.full | generated | 161.1 | 299.8 | 1.86x | 301.2 | 1.87x | +0.5% | 536 | 536 |
+| el/string | generated | 284.4 | 1023.0 | 3.60x | 973.9 | 3.42x | -4.8% | 1056 | 1056 |
+| el/string | immediate | 284.4 | 667.6 | 2.35x | 678.0 | 2.38x | +1.6% | 1032 | 1032 |
+| tsql/comment | generated | 19439.8 | 1537.2 | 0.08x | 1628.4 | 0.08x | +5.9% | 1192 | 1192 |
+| sql/select20 | generated | 6876.6 | 34634.2 | 5.04x | 18637.0 | 2.71x | -46.2% | 21472 | 21472 |
+
+Written to T:\TEMP\dotgram-stand\w59\pair\run-5
+
+Median of 4 of 5 runs, each in a process of its own; control 31.3 ns (the runs' controls: 35.4, 31.3, 31.3, 31.1, 31.5).
+Dropped for a control more than 5% off the median: run 1.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-19 19:59
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fix/One.text | generated | 75.9 | 83.2 | 1.10x | 84.9 | 1.12x | +2.1% | 192 | 192 |
+| tsql/script100 | generated | 661118.8 | 1152803.1 | 1.74x | 1159412.5 | 1.75x | +0.6% | 113600 | 113600 |
+| tsql/script400 | generated | 2681273.4 | 17315857.8 | 6.46x | 17382315.6 | 6.48x | +0.4% | 454400 | 454400 |
+| tsql/columns1000 | generated | 1724628.1 | 187148.4 | 0.11x | 182271.9 | 0.11x | -2.6% | 200464 | 200464 |
+| tsql/conditions1000 | generated | 876736.7 | 327694.1 | 0.37x | 311028.5 | 0.35x | -5.1% | 424424 | 424424 |
+| tsql/rows1000 | generated | 587413.3 | 236350.8 | 0.40x | 221615.6 | 0.38x | -6.2% | 296472 | 296472 |
+| sql/select20.bool | generated | 7000.1 | 34202.0 | 4.89x | 19068.3 | 2.72x | -44.2% | 21448 | 21392 |
+| web/url.full | generated | 154.4 | 284.9 | 1.85x | 289.0 | 1.87x | +1.4% | 536 | 536 |
+| el/string | generated | 271.3 | 1052.4 | 3.88x | 971.5 | 3.58x | -7.7% | 1056 | 1056 |
+| el/string | immediate | 271.3 | 671.4 | 2.47x | 691.4 | 2.55x | +3.0% | 1032 | 1032 |
+| tsql/comment | generated | 19335.6 | 1542.4 | 0.08x | 1559.7 | 0.08x | +1.1% | 1192 | 1192 |
+| sql/select20 | generated | 7040.3 | 34447.0 | 4.89x | 18707.7 | 2.66x | -45.7% | 21472 | 21472 |
+
+Written to T:\TEMP\dotgram-stand\w59\pair
