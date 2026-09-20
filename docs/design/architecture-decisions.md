@@ -5960,3 +5960,12 @@ thumb over ladders of twenty to thirty points, a cliff smaller than the threshol
 rising, and a tier change or a collection mid-ladder could in principle fake one. The four are each
 bracketed by two sizes and repeat at the same places across two runs; a fifth from a single run
 would be checked against the every-point dump before being named.
+
+**And a correction sent before anyone could quote it: only one of the four cliffs is confirmed
+twice.** The case-arms step appears at the same place in the every-point dump and in the audit; the
+other three come from one run each, and the earlier audit agrees only that those ladders stopped
+near the same sizes, which is a different statement. So one is confirmed and three are named
+pending their own dumps. **That distinction is exactly the kind that evaporates in a summary** —
+"repeated across two runs" was true of the row that prompted it and became a sentence about four —
+and the correction arrived before the sentence had been used, which is the only time a correction
+is cheap.
