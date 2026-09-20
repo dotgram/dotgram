@@ -2742,7 +2742,13 @@ a length, that a reader's input is the caller's to dispose, that an enumeration 
 stopping early leaves read-ahead in the buffer. What a rule means stays the author's: the
 templates say a rule is parsed, never what it is, and expr says plainly that this will not read as
 written prose. Whether an author may supply that text in the grammar is a change to the language
-and goes to Igor on its own; the templates reserve nothing for it. **Igor, 2026-09-19: not now —
+and goes to Igor on its own; the templates reserve nothing for it. **Written, and the cost is smaller than the design guessed**
+(`a830c3aa`): three files in the solution grow at all — a feed example by 0.3%, FIX by 0.8%, the
+FIX 4.4 fixture by six thousandths of a per cent — and T-SQL and the JSON example not by a byte,
+since they publish no buffered or stream form and their string entries were documented already.
+expr's own estimate of a few hundred lines for T-SQL came from counting its entries rather than
+the undocumented ones, and the measurement corrected it. Coverage is the missing-comment warning
+staying silent with it on, over three frameworks, warnings as errors. **Igor, 2026-09-19: not now —
 there is more important work — but kept as a question for later.** So the emitted documentation
 stays the generator's own words until someone asks for the author's.
 
