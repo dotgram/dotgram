@@ -1585,6 +1585,8 @@ static partial class Stand
 		text.AppendLine(CultureInfo.InvariantCulture,
 			$"{Environment.MachineName}, {(pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {control:F1} ns.");
 		text.AppendLine();
+		text.AppendLine(CultureInfo.InvariantCulture, $"This binary, and the libraries it holds as the control, was built from {BinaryCommit()}.");
+		text.AppendLine();
 
 		if (sides.Length > 0)
 		{
@@ -2301,15 +2303,31 @@ static partial class Stand
 		return null;
 	}
 
+	/// <summary>
+	/// The commit this binary was built from, the source revision the SDK embeds in the informational version of the assembly: a measurement is of
+	/// that, whatever the tree it is run in has moved on to (a binary has no date that shows it). Eight characters.
+	/// </summary>
+	internal static string BinaryCommit()
+	{
+		var version = typeof(Stand).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "";
+		var plus    = version.IndexOf('+');
+
+		return plus < 0 ? "unknown" : version[(plus + 1)..Math.Min(version.Length, plus + 9)];
+	}
+
+	/// <summary>The commit the binary was built from and, only where the tree it is run in is at another, that tree's.</summary>
 	static string Commit(string? root)
 	{
+		var built = BinaryCommit();
+
 		if (root is null)
-			return "?";
+			return built;
 
 		var head  = Git(root, "rev-parse --short HEAD");
 		var dirty = Git(root, "status --porcelain --untracked-files=no");
+		var tree  = dirty.Length > 0 ? head + "+changes" : head;
 
-		return dirty.Length > 0 ? head + "+changes" : head;
+		return head.Length >= 7 && built.StartsWith(head[..7], StringComparison.Ordinal) ? (dirty.Length > 0 ? built + "+changes" : built) : $"{built} (run in a tree at {tree})";
 	}
 
 	static string Git(string root, string arguments)

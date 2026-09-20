@@ -1,4 +1,4 @@
-﻿# Benchmarks
+# Benchmarks
 
 Reusable handwritten parsers live in
 [DotGram.Handwritten](../examples/DotGram.Handwritten/README.md).
@@ -270,6 +270,42 @@ generation 2 collections a call causes at the largest, because a growing list on
 raises the exponent without the algorithm being wrong: a series above 1.2 is `GC` when its allocation is
 linear and generation 2 collected, `ALGORITHM (allocation)` when the allocation grows faster than the
 input, and `ALGORITHM` when the time does with neither.
+
+### Refusal ladders
+
+`linearity-refused [part of a parser or shape]` (`StandRefusals.cs`; `linearity` runs it after the accepted
+ladders) times a refusal, not an acceptance. A series is a head that grows (a run of literal characters, a list of
+items, a chain of terms, records) and a tail no reader can finish (an unclosed `{`, `<`, `"` or `(`, a dangling
+operator, a bare `@`, a cut record), so that the input is refused after the head has been read; it asserts that the
+input IS refused, and a series that is accepted is reported as a fault of the series, not counted as a pass. It
+exists because two shipped readers were exponential on a refusal (`(A+)*` over an atom: a URI template and an
+address list, 3.2 s at twenty-four characters and 107 s at twenty-eight) while every ladder above covered accepted
+input only, and a refusal is sent by anyone. The bar is therefore harder than the accepted ladders': an exponent
+above 1.10 is a defect, from 1.5 it is called quadratic and from 3 explosive; the exponent is the slope of log time
+on log size over the largest sixteenth of the ladder, and the column beside it carries the time at the largest size
+along it to 64 KiB of input, which is what tells a mild curve from a denial of service. The exit code is 1 when a
+series is a defect or a fault.
+
+The budget is what makes it a guard and not a wait: sizes grow by a quarter from four (a shape that doubles for
+every character rises sixteen-fold a step, not sixty-five-thousand-fold), the first call at a size is a probe on a
+thread of its own that is given up on after 2 s (the abandoned call runs on until the process ends), and a ladder
+ends at the first call over 20 ms twice. A constant part of a head can itself be the run: the first version began
+its first series with a 24-character literal prefix, which was the whole explosion, and hung. The entry points that
+have no ladder are printed under the table; that list is half of the result, and it is what a static search of the
+grammars has to cover. A detector is calibrated on the defects already known before its silence is believed: run it
+on a tree from before a fix and it must find what the fix removed.
+
+The series and the runner are one file, `RefusalLadders.cs`, written once in the benchmarks and linked into
+`DotGram.Tests.Slow` (`RefusalGuardTests`), so that the audit (this mode, which prints every series) and the guard
+cannot drift. The guard holds each series to `tests/DotGram.Tests.Slow/RefusalBaseline.txt`, which writes down the
+class each series was measured at (`parser | shape = Linear | Superlinear | Quadratic`) and is asymmetric on
+purpose: a series fails when it is worse than its baseline (with a margin: linear to 1.20, superlinear to 1.60),
+when its input is no longer refused, when it is missing from the file, and always when it is explosive, which no
+baseline may hold, so that the file describes what is allowed and not what happens to be there; a series that is
+better than its baseline passes and says so, and the file only ever tightens. `linearity-refused --baseline`
+prints the lines for the file after the table; take them from a build of main, never from an older binary,
+which would write down as normal what has since been fixed. Every report of a measurement names the commit its
+binary was built from (`Built from ...`, and the plain and paired stand's headers): a binary has no date that shows it.
 
 ### Which carrier a grammar took: `--carriers`
 

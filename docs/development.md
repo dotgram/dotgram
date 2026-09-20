@@ -1,4 +1,4 @@
-﻿# Working on this
+# Working on this
 
 How the project is built, checked and measured. Standing process rather than plans —
 [`next.md`](next.md) says what to do next, this says what to do every time.
@@ -294,6 +294,7 @@ The instrument for a question of the form "is this faster, and than what" is **t
 - `linearity` times a parser at three sizes ten times apart and flags an exponent above 1.2, and
   says whether it is the algorithm or the collector; run it when a change touches how a walk or
   a carrier reads what it has built.
+- `linearity-refused` times a refusal after a growing head at sizes a quarter apart, under a budget, and flags an exponent above 1.10: the two shipped exponential refusals (D57) were visible to no accepted ladder. Run it when a grammar gains a repetition inside a repetition, or a rule whose first sets overlap.
 - `benchmarks/Gate-Generation.ps1 -Base <commit> -Head <commit>` holds the time the generator
   takes to write the grammars of the solution to a base commit's, the two rebuilt alternately in
   the same run.

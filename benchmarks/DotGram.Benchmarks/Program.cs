@@ -136,11 +136,14 @@ static class Program
 			return;
 		}
 
-		// `linearity-refused [part of a parser or a shape]` times a refusal after a growing head at sizes a quarter apart, under a budget, and flags an exponent above 1.10
+		// `linearity-refused [part of a parser or a shape] [--baseline]` times a refusal after a growing head at sizes a quarter apart, under a budget, and flags an exponent above 1.10
 		// (an accepted input is held to 1.2); the exit code is 1 when a series is a defect or a fault of the series. See StandRefusals.cs.
-		if (args.Length is 1 or 2 && args[0] == "linearity-refused")
+		if (args.Length is >= 1 and <= 3 && args[0] == "linearity-refused")
 		{
-			Environment.ExitCode = Stand.RefusedLinearity(args.Length == 2 ? args[1] : null) == 0 ? 0 : 1;
+			var rest     = args.Skip(1).ToList();
+			var baseline = rest.Remove("--baseline");
+
+			Environment.ExitCode = Stand.RefusedLinearity(rest.Count > 0 ? rest[0] : null, baseline) == 0 ? 0 : 1;
 
 			return;
 		}

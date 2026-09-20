@@ -27,6 +27,8 @@
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
 		<!-- The Web readers, for the refusal scaling that holds `(A+)*` out of their grammars. -->
 		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
+		<!-- And FIX, the last package the refusal ladders read (RefusalGuardTests). -->
+		<ProjectReference Include="..\..\src\DotGram.Finance\DotGram.Finance.csproj" />
 
 		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
 		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
@@ -39,6 +41,12 @@
 		<Compile Include="..\DotGram.Tests\CarrierShapes.cs" Link="Shared\CarrierShapes.cs" />
 		<Compile Include="..\DotGram.Tests\RefusalCorpus.cs" Link="Shared\RefusalCorpus.cs" />
 		<Compile Include="..\DotGram.Tests\BufferedInputTests.Input.cs" Link="Shared\BufferedInputTests.Input.cs" />
+	</ItemGroup>
+
+	<!-- Written once, in the benchmarks (which prints every series as an audit), and read here as a guard held to a baseline (D57). -->
+	<ItemGroup>
+		<Compile Include="..\..\benchmarks\DotGram.Benchmarks\RefusalLadders.cs" Link="Shared\RefusalLadders.cs" />
+		<None Include="RefusalBaseline.txt" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>

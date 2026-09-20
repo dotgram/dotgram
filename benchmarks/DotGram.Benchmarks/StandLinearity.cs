@@ -156,6 +156,14 @@ static partial class Stand
 		yield return new Series("SQL:2023 conditions", "generated", "predicates", [10, 100, 1000], n => { var t = Conditions(n); return () => SqlStandardParser.TryParseSearchCondition(t).IsSuccess; });
 		yield return new Series("SQL:2023 conditions", "hand",      "predicates", [10, 100, 1000], n => { var t = Conditions(n); return () => HandSqlStandard.TryParseSearchCondition(t, out _); });
 
+		// Parentheses nested to a depth and closed: the accepted twin of the refusal ladders' "nested parentheses, never closed" (sql-39, 2026-09-20: the refused form
+		// and this one cost alike, about n^2.8, so what the ladders found is a cost of nesting and not of refusing).
+		string Nest(int n) => new string('(', n) + "a = 1" + new string(')', n);
+
+		yield return new Series("T-SQL search condition, nested parentheses",   "generated", "levels", [32, 64, 128, 300], n => { var t = Nest(n); return () => TransactSqlParser.TryParseSearchCondition(t).IsSuccess; });
+		yield return new Series("T-SQL statement, nested parentheses",          "generated", "levels", [32, 64, 128, 300], n => { var t = "SELECT " + new string('(', n) + "1" + new string(')', n); return () => TransactSqlParser.TryParseStatement(t).IsSuccess; });
+		yield return new Series("SQL:2023 search condition, nested parentheses", "generated", "levels", [32, 64, 128, 300], n => { var t = Nest(n); return () => SqlStandardParser.TryParseSearchCondition(t).IsSuccess; });
+		yield return new Series("SQL:2023 query, nested parentheses",           "generated", "levels", [32, 64, 128, 300], n => { var t = "SELECT " + new string('(', n) + "1" + new string(')', n); return () => SqlStandardParser.TryParseQueryExpression(t).IsSuccess; });
 		// ── the expression language ──
 		var chain = (int n) => "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", n));
 
@@ -170,6 +178,8 @@ static partial class Stand
 	/// </summary>
 	public static void Linearity()
 	{
+		Console.WriteLine("Built from " + BinaryCommit() + ".");
+		Console.WriteLine();
 		Console.WriteLine("| parser | form | unit | sizes | µs at each size | exponents | KB a call | gen2 a call at the largest | |");
 		Console.WriteLine("| --- | --- | --- | --- | --- | --- | --- | ---: | --- |");
 
