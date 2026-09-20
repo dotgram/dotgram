@@ -4331,3 +4331,21 @@ recognizers and materializers, in its own class, carrying no grammar text and we
 of the assembly. Any "the text is N% of the assembly" is a fraction whose denominator holds T-SQL
 twice. That is the design's own choice and priced in the comment above it, but it belongs in the
 sentence with the percentage.
+
+**Counted rather than subtracted: the text is 3.7% of the SQL assembly, not 4.7%** (stand,
+`36aad585`). Three attributes in the built assembly, each once, no fourth and none twice:
+474,107 bytes for T-SQL glued to the 1992 standard, 32,871 for 1992, 223,695 for the standard,
+730,673 in all — critic's prediction to within 18 bytes. The expression language carries one
+attribute of 67,567 bytes and the same text again as the argument that declares the grammar, which
+stays whatever the option says, so counting gives 4.1% there against 5.3% by subtraction.
+
+**And the difference of the two builds was 924,160, which is 193,487 bytes more than the
+attributes hold.** Alignment cannot be it: a PE section rounds to 512 bytes and this is three
+hundred times that. So the option changes something else in what is emitted, and nobody has looked
+at what. That is the question the accounting leaves, and it is a good one: a small, exactly posed
+one where before there was a vague excess.
+
+**The recommendation to Igor stands and its number improves**: the grammar text on the classes is
+under four per cent of either assembly, which does not pay for surprising a consumer who builds a
+dialect on our grammar and finds the text absent. The denominator holds T-SQL twice, and the
+result's own page now says so.
