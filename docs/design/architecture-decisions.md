@@ -5042,3 +5042,36 @@ fourteen on the whole corpus of the other, there is little room for anything to 
 by its own number; the discarded fifth accounted for by the price of asking; the second lever
 measured and absent. Four questions, four answers, no code left behind except the snapshot grammar
 that keeps a guard naming two values.
+
+**D52's slope came back, and the arithmetic was registered before it.** The steps reproduced on the
+stand's apparatus at the sizes and heights finance-24 had computed in advance: +656 against 664 at
+the first doubling, then +1,304, +2,584 and +5,144, three of four exact to the byte. The fourth
+disagreed and the person disagreed — a dropped array header in one line of arithmetic, which the
+measurement remembered. So each step is one new array of doubled capacity and nothing else, the
+line between steps is flat, and the doubling belongs to the code rather than to the probe, now
+checked by somebody else's hands.
+
+**And it settles which number answers this question at all.** In time the same ladder gives about
+60 ns a field with a step of 85 ns — the price of one field — against a base wandering by 2 to 13%.
+Bytes answer and time does not, which is D55's rule arriving from the other direction on the same
+day. **The fix carries its own falsifiable criterion**: if holding the list works, the four steps
+vanish and the line goes flat at 168 bytes a field. A change that removes a ladder of doublings has
+to look like a vanished ladder.
+
+**Ruled on the two designs.** The list's retention goes first, as a third tenant of the emitted
+shape, with no policy of its own; the flat array is *not* attacked until that has landed and been
+measured, because the flat array is an input and the list an output, counting first would have to
+parse groups twice, and counting once and remembering is the list under another name. After the
+first change the second may not be worth its complexity, which is a reason to wait rather than to
+hurry.
+
+**And on the validation layer.** A validator object rather than a method with no argument, since a
+dictionary is loaded once and read many times and the only alternative place for it is a static —
+which is what D25 keeps out of this package; a shared instance over the schema we compile in for
+the common case. Every finding rather than the first, the reason being principled: parsing stops
+because after an error the input's meaning is unknown, while a built message is fully known and
+every rule can be asked independently. Of the three open questions: no validating overload on the
+parse, because that is how a layer quietly becomes a mode again; a finding names the entry's index
+in a repeating group as well as the tag, one being useless without the other; and conditional rules
+stay out of scope while the finding's shape must carry a rule's identity and a path, so that adding
+them later is not a change to everything that reads a finding.
