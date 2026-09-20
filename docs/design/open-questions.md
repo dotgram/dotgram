@@ -1894,3 +1894,66 @@ every consumer gets differs from the emission every snapshot holds by an attribu
 whole grammar — Q17's point in one concrete instance, and the reason this was worth looking for.
 
 **Answer:** —
+
+## Q19 (2026-09-20). Where the grammar's text is written, counted off the templates, and what it does not account for
+
+The architect's, narrow: how many times and onto what classes does the emitter write the grammar's
+text when `Portable` holds, and why does `DotGram.Sql` measure 226,376 bytes more than the three
+grammar files add up to? Read at `441eb8ca`. Nothing here is measured; it is counted off the
+emitter and off the three hosts.
+
+**The emitter writes it once per compilation, and the code says why.** `CSharpEmitter`, walking the
+host's class path: `if (i == classParts.Length - 1 && grammarSource is not null && suffix is not {
+Length: > 0 })` — the innermost class part only, and never for a suffixed reading, with the reason
+written beside it: "Only on the compilation that owns the class: a `Suffix` puts a second reading in
+a nested class, and what an including grammar names is the class, not the reading." There is one
+other emission of a whole grammar's text — `LanguageDescriptorAttribute`, two lines below — and it
+is written only where `LanguageId` is set, which is a `.gram` DSL host and not a parser.
+`SourceFileSize` is never set by the generator, so no second file repeats the class header.
+
+**What is carried is the spliced text, not the file.** `GramGenerator` joins the host's own grammar
+with every `[GramInclude]`'d one through `GrammarSplice.Join`, each wrapped in `namespace <name> {
+… }`, and compiles *that*; `GramCompiler` then passes `options.Portable ? grammarText : null` — the
+joined text — to the emitter. That is by design and the design is stated: across a project
+reference the included grammar may not be reachable, so the text that travels has to be the whole
+of what was compiled.
+
+**So the accounted arithmetic for `DotGram.Sql`, by host.**
+
+| host | carries | bytes |
+| --- | --- | --- |
+| `SqlStandardParser` | `SqlStandard.gram` | 223,698 |
+| `Sql92Parser` | `SqlStandard92.gram` | 32,871 |
+| `TransactSqlParser` | `TransactSql.gram` + `Sql92Parser`'s spliced in | 441,215 + 32,871 + ~20 |
+| `TransactSqlParser.Located` | nothing — suffixed | 0 |
+| | | **730,655** |
+
+**Which answers the architect's distinction, and only half of the number.** The excess over "one
+text per grammar file" is **32,871 and it is not a defect**: the standard's 1992 text rides inside
+T-SQL's because T-SQL is compiled from the two joined. That is the price of the design and it
+should be named in the figure rather than left to surprise. But it accounts for 32,871 of 226,376.
+**The remaining ~193,500 bytes are not explained by the emitter**, and the templates say plainly
+that they cannot be: there is one attribute per compilation, three compilations carry a text, and
+the fourth carries none.
+
+**So the number needs a second count by another road, and the first one's road is the problem.**
+924,160, 1,651,200 and 19,811,840 are all multiples of 512, which is a PE file's alignment: the
+figure is a difference of two builds' file sizes, and such a difference attributes to the thing
+that was changed everything else that moved with it. What would settle it is a count of the
+`GramSourceAttribute` blobs in the built `DotGram.Sql.dll` — how many rows, and the length of each
+— which is a metadata read and not a build: `ildasm`, `System.Reflection.Metadata`, or
+`GetCustomAttributesData` on the three types. Three rows of 223,698, 32,871 and 474,086 say the
+emitter is right and the residue is in the measurement. A fourth row, or one of them twice the
+expected length, says the defect is real and is somewhere these templates do not show — and that
+would be the third time this week that what the snapshots cannot emit is where the answer was.
+
+**One thing worth saying beside it, since a share of the assembly is about to be argued about.**
+`TransactSqlParser` carries `[GramOptions(LocationType = typeof(ISqlSpan), Suffix = "Located")]` —
+a second whole compilation of a 441 KB grammar, in a class of its own, with its own recognizers and
+materializers. It carries no grammar text, and it is a large part of what `DotGram.Sql.dll`
+weighs. Any statement of the form "the grammar's text is N% of the assembly" is measured against a
+denominator that holds T-SQL twice, which is the design's choice — the comment above it prices it,
+"locations cost fourteen per cent of the parse and nothing in memory" — but it belongs in the
+sentence with the percentage.
+
+**Answer:** —
