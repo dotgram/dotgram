@@ -3721,3 +3721,31 @@ they hold the *values* the comments claim, not merely that the calls compile. A 
 `0.7` beside a call that returns `0.3` lies to a reader exactly as a call that throws does. All
 sixteen passed first time, which answers the population question critic left open: the sample was
 clean and the population is now checked and clean too.
+
+## D38. What share of what a parse builds a consumer touches, counted, 2026-09-20
+
+stand's count (`benchmarks/results/node-touch-2026-09-20/`, `17abefe1`), taken by rewriting a built
+`DotGram.Sql.dll` so that every node property getter reports what it hands back and every node
+constructor counts a construction. Three numbers a parse: built, reachable from the returned tree,
+and fetched by the consumer, with the counter on only around the consumer. A getter handing back an
+array counts every element, so fetched is an upper bound. The control is the writer, which fetches
+98.4% of what is reachable and never more than a statement holds.
+
+**On ScriptDom's corpus, 1,086 files and 7,694 statements.** A host that asks a script for the kind
+of each statement and does not go inside touches one node a statement: 15.95% of the reachable
+nodes, inflated by a corpus of small statements — for the 275 statements of more than 20 nodes it
+is 3.00%, and on the stand's own statements 1.1% for SQL:2023's `select20`, 0.1% for 100 conditions,
+0.05% for 1,000 columns. So a lazy tree leaves 97 to 99% of a real statement unbuilt for a consumer
+that does not go inside, and nothing at all for one that goes everywhere. The middle — a consumer
+reading some part of every statement — is not measured and is only bounded by these two.
+
+**And one number that is not about laziness at all: 61,171 built against 48,248 reachable.** A
+fifth of what the T-SQL parser builds is thrown away before the tree is handed back, 12,923 nodes
+over the corpus; SQL:2023's hundred conditions build 908 and reach 708, the same fifth. That is
+worth its own question. §3.7 promises that an alternative abandoned by backtracking does not invoke
+an unrequested construction, so either these are requested — a guard naming a value on a path later
+given up — or they are built and then replaced as the tree is shaped. Which of the two it is
+decides whether it is a cost to remove or the price of asking.
+
+**The scale of the walk, for the record:** `select20` in SQL:2023 reaches 91 nodes and builds 93,
+so the guards' 8.4 µs is about 90 ns for each node built.
