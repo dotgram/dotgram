@@ -933,3 +933,86 @@ different question. **One count could not have told me which question I was answ
 Nothing in Q8's argument moves: 84 diagnostics with a hand-written "what to do" for each is the same
 case for a quick fix that 98 was. The number was doing rhetorical work, which is the kind that has
 to be right.
+
+## Q10 (2026-09-20). `Over` cures a quadratic that the positional form's own meaning creates
+
+Asked by the architect before Igor answers: object to `Over`, and answer three things. The reading
+below is of `CSharpEmitter`'s positional path, `syntax.md` §6.3, `ScriptScalingTests` and every call
+of a positional form in the tree. Nothing was run.
+
+**First, the third path, and it is not another object.** The whole text is cut because of what the
+non-windowed positional form *means* today, not because cutting is the only way to read from a
+position. The emitted path does this, before it looks at `at` at all:
+
+```
+var tokens = Tokenized_DotGram(source);     // the whole text
+…
+if (tokens.Stopped >= 0) { value = default!; return false; }
+```
+
+`Stopped` is where the scan met a character that begins no token — **anywhere in the text**. So a
+reading that "need not reach the end" (§6.3) refuses because of something past the end of what it
+reads: one bad character in the last line of a script makes the first statement unreadable, and the
+caller is told nothing about where. The window form is already the other way, and §6.3 says so in
+so many words — "the window form cuts only the window into tokens … and a character no token begins
+with ends the tokens rather than refusing the reading".
+
+Give the non-windowed positional form that same meaning and it can cut from `at` on demand, as far
+as the reading goes and no further. Then a loop over a script is linear in the text because each
+call cuts only what it consumes; there are no slots, no eviction, no weak reference, no thread
+field, no new public type, and the defect found in that machinery could not have existed. The token
+search `TokenAt_DotGram(starts, count, at)` goes too, since a cut that begins at `at` begins at the
+token the caller asked for.
+
+What it costs, said plainly: it changes an answer, so it is Igor's and not the architect's. A script
+with junk at the end reads its statements until it reaches the junk, instead of refusing at the
+first. §6.3 draws the contrast between the two forms deliberately, so this is a change to the
+specification and not a repair of a divergence from it. And on-demand cutting is work in the
+emitter — the tokenizer has to become resumable — which is more than `Over` costs to build. **The
+one who can price that work is not this session.** But it should be named before a public type is
+put on every parser for ever, because `Over` cures the symptom of a decision that could be removed.
+
+**Second, the forms where nothing can be kept.** `Over` can exist only where `kept = positional &&
+!windowed` and the machine is over kinds — a grammar with a lexical layer, read from a string. The
+byte and memory forms keep nothing on purpose: a caller may write into them between two readings,
+which "would make a kept cutting a lie". Each of the three answers is bad in its own way:
+
+- **No such method there.** Then the public shape of a parser follows an internal analysis. The
+  lexical split is the generator's decision and `find` cancels it, so adding a `find` to a grammar
+  deletes a public type from a consumer's API, and the consumer's build breaks for a grammar edit
+  that has nothing to do with them.
+- **Present and inert**, forwarding to the static call. Honest in shape, and it re-introduces the
+  quadratic silently for exactly the callers who believe they have avoided it — the worst of the
+  three, because it is invisible.
+- **Present and throwing.** A run-time failure for a fact known at generation time, which is the
+  one thing a generator should never emit.
+
+The least bad is the first with the sting drawn: `Over` exists only where it is not inert, and the
+generator says so at the publication, as it already reports a refused overload (§6.3). Then the API
+still moves with the grammar, but the consumer is told at build time and by a diagnostic, not by a
+missing member.
+
+**Third, the price of removing the cache, which is a number and is already ours.** The disease is
+measured and written down in `ScriptScalingTests`: 10, 100 and 400 statements at 56 µs, 1.9 ms and
+30.3 ms, an exponent of 1.99 — against about 2.2 ms if it were linear. That is the price of removing
+the cure *and putting nothing in its place*.
+
+It is not the price of `Over`, and the repository cannot give that one, because **every call of a
+positional form in the tree is ours**: `TokenizationCacheTests`, `ScriptScalingTests`, and the
+stand's script rows. No package, no example, no test of the Web, SQL or Finance packages calls one.
+So "a naive loop becomes quadratic" is, here, a statement about three loops we wrote to measure this
+very thing, and the claim about strangers cannot be priced from our own code. I will not pretend
+otherwise.
+
+What the repository *can* say is the part nobody has said, and it is the strongest argument against
+`Over` as proposed: **taking `Over` moves the only gate off the shape the danger lives in.**
+`ScriptScalingTests` asserts an exponent of at most 1.1 over the static positional calls. If `Over`
+becomes the cured path and the static one is allowed to be quadratic again, that test either is
+rewritten to `Over` — after which nothing in the tree measures the naive shape, which is the shape a
+stranger writes first — or it fails and is deleted. A scaling test deleted to let a design land is
+worth noticing before the design lands rather than after. If `Over` is taken, the condition to take
+with it is that this test stays on the static calls and a second one is added for `Over`; and if
+the static calls are then knowingly quadratic, that is a documented property of the API, written in
+§6.3 where the forms are described, not an accident discovered by whoever loops first.
+
+**Answer:** —
