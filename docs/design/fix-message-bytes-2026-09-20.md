@@ -89,6 +89,31 @@ this arithmetic gets. The steps are real and they are the list.
 The floor is ~236 B a field, of which ~72 is the field reader's (measured separately) and ~80 is
 the two copies of the node. The rest is strings and the message's own objects.
 
+### Reproduced on the stand, with the step heights predicted before they were measured
+
+The ladder above is this session's own probe. The stand then measured the same thing in its own
+harness, on its own envelope (`35=3`, three header fields against this probe's seven), at sizes
+chosen so that every doubling falls between a pair — and the four steps are there, at the four
+places and the four heights computed in advance:
+
+| body fields | step measured | new `FixNode[]` at the new capacity |
+| --- | --: | --: |
+| 8 → 9 | +656 | 16 × 40 + 24 = 664 |
+| 16 → 17 | +1,304 | 32 × 40 + 24 = **1,304** |
+| 32 → 33 | +2,584 | 64 × 40 + 24 = **2,584** |
+| 64 → 65 | +5,144 | 128 × 40 + 24 = **5,144** |
+
+Each step is one new array at the doubled capacity and nothing else, to the byte on three of the
+four. (The fourth is mine: I quoted 5,120 for the last, having dropped the array header from that
+one line of arithmetic; the measurement has it.) Between the steps the cost is flat — 168 B a
+field in the stand's envelope, 152 in this one, the difference being the length of the repeated
+value each uses.
+
+So the doubling is the code's and not the probe's, which is what ordering the sizes this way was
+for. In time the same ladder is about 60 ns a field and the steps are **not** separable at a base
+spread of 2-13 %: `b 16 → 17` is +85 ns, which is one field's worth. Bytes answer this question
+and time does not.
+
 ## 4. What must be there, and what need not
 
 **Must.** The per-scope arrays are what a message *is*: `FixMessages` hands out header, body and
