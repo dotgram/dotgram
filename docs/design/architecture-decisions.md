@@ -5163,3 +5163,30 @@ entry point beats an exact one over three.
 
 And the list of entry points that could *not* be given a refused ladder is half the result, not an
 appendix: it is exactly what the static probe has to cover, and the two are read together.
+
+**D57's probe: the list is not empty, and the probe was wrong twice before it was right.** Its first
+version found *neither* known case and named two harmless ones: it looked at the outer repetition's
+syntactic body, while the shape that actually shipped is two calls away and behind a choice, and
+meanwhile it named two runs pinned by a digit that cut one way. **What caught it was asking whether
+it finds what we already know is there** — with the fix absent from that tree, both known cases had
+to appear and neither did. Had the first list been reported, "two places, both in one package"
+would have closed the release question falsely. The corrected predicate follows calls and choice
+alternatives to every way a turn can begin and requires that what follows the inner repetition can
+read nothing; it finds both known cases, which is the only reason the rest of the list is worth
+anything.
+
+**The rule that comes out of it: a detector is calibrated against known positives before its output
+is believed**, and a clean result from an uncalibrated detector is the most expensive kind of
+answer, because it ends the search.
+
+**Eighteen places over 113 grammars, as places and not as defects.** Two areas are the known cases,
+already atomic on main. Of the rest the largest cluster is **ten in the expression language** — the
+string, verbatim and interpolation bodies — which is a shipped package reachable from any consumer
+parsing an expression someone else wrote; and three singles in examples, which are copied by
+readers and so are not exempt.
+
+**Triage by driving rather than by analysis**, which is cheap and answers without judgement: each
+owner takes the shape's own worst input against their own parser, and a refusal that takes a second
+answers the question, while one that does not is also an answer. The probe is kept rather than
+thrown away: it has earned it by finding the known cases, it will be run again after each fix to
+watch the list shrink, and step three's analysis is the same walk with the judgement added.
