@@ -6083,3 +6083,29 @@ my specification. Nothing already recorded changes; the entries and the answers 
 
 The survey itself is still wanted, so it goes to a session that takes work: it is reading and
 writing, its own area's line is closed, and the priority is FIX.
+
+**The layer's first half is written in D69's shape, an hour before the older shape would have been
+fixed by tests.** One public road, read as the consumer's verb: ask the message, with or without a
+dictionary, the bare form being exactly the standard one and a test holding that equality so it
+cannot drift apart in silence. Seventeen tests for the layer, the package green, and behaviour
+untouched — the strict mode still refuses what it refused.
+
+**Two facts the move brought out, neither new and neither previously visible.**
+
+A finding for a missing required field was naming a *component* — the identifier of a group of
+fields — which a consumer cannot look up anywhere. It now names the first tag that component would
+have held, which is the thing the reader actually forgot. **A message that names an internal
+identifier is a message that cannot be acted on**, and the move surfaced two of them.
+
+And a check with one reachable branch: a group whose count disagrees with its entries never
+reaches the layer at all, because the entries are cut *by* that count, so the wire is refused
+before a message exists — in the lenient mode too. What survives is a required group declaring no
+entries, which is correct as wire and wrong as a message. **The check had stood in the strict mode
+from the beginning and was almost always dead**, and only moving it made that visible. The test
+holds the one branch and says in a comment why the other two do not exist.
+
+And the session sends what it already knows about the other engines' API to whoever writes the
+survey, rather than keeping it: an engine's validation there is a service that throws on the
+*first* fault, which is the opposite of our choice on two of four points. Sending it first means
+the survey can contradict it; keeping it would have meant the survey confirming the person who
+commissioned it.
