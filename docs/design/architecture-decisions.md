@@ -5644,3 +5644,32 @@ misplaced clean bill of health.
 rounded together, when the audit keeps them in separate sections and the parenthesis case comes
 from the SQL one. The three being counted are the web's, and whether SQL's behave alike is part of
 what the count answers rather than something already assumed.
+
+## D62. The rerun on main: no explosions left, sixteen quadratics, and a class to settle
+
+The audit reran on a binary built from a named commit, on the timing cores with nothing beside it,
+101 series in 81 seconds. **Nothing explosive, nothing accepted by mistake, nothing thrown: 78
+linear, 7 superlinear, 16 quadratic.** Calibration holds in both directions — the two known
+exponentials are gone, and the expression language's interpolated string is flat in both readings
+across all the forms its author asked for, so three independent sources now agree with the zero
+they measured. One refusal that was exponential before the second seal is now quadratic, which is a
+seal working rather than a seal missing.
+
+**The expectation named before the numbers is confirmed**: the quadratics live in files no seal
+touched. Projected at sixty-four kilobytes, most cost seconds — five to nine for several web
+formats, thirty-eight for an unclosed quoted string in an address list, and the worst is T-SQL's
+nested search condition.
+
+**And the nesting rows are renamed, because they are not about refusal at all**: the closed
+parentheses cost the same, so that is the price of nesting and its accepted twin now sits in the
+accepted ladders. A row that measures something other than its name is worse than a missing row.
+
+**The guard is written and is not pushed until it has compiled and run green** — a slow-suite
+project that has never compiled must not reach the branch — and its baseline is written from this
+run rather than the stale one. Every report now names the commit its binary was built from.
+
+**The twenty-three flagged series go to their owners as information, not as work.** D61's question
+governs: whether one cause — an ordered choice re-reading what it has read — accounts for shapes as
+unlike as a character-level refusal, a flat list and a parameter list. Counting three web cases and
+one SQL case answers it, and until it does, fixing them one at a time risks twenty separate
+remedies for one defect.
