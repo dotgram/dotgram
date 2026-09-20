@@ -3792,3 +3792,32 @@ may stand, so every consumer who writes a dependency scanner writes the shallow 
 wrong in 3.5% of the statements it handles — silently, and never by naming a table that is not
 there, which is the hardest kind to notice. That belongs in `docs/ast.md` as a sentence: a partial
 walk of a statement is unsound, and the walker is what covers it.
+
+## D39. Character classes below 128: two constants instead of a table, 2026-09-20
+
+critic's Q13, corrected by reading the emitter before handing it over: bit tables are not missing —
+`Machine.cs` emits a byte-per-character table for a class lying entirely below 256 and a windowed
+bit table for one reaching past it — and deduplication is already done in both paths, keyed on the
+emitted text, which is why none of Url's nine tables matched. What is left is one question, and it
+is sharper than a threshold.
+
+**The representation is chosen by reach and never by cost.** A class entirely below 256 always gets
+the eight-times-larger form, and the bit table is reached only when a class is too wide for a byte
+table, never when it would merely be smaller. On the checked-in snapshot `Url.gram.g.cs` carries
+nine such tables at 256 bytes each, 2,304 bytes for one small grammar, and every one of them is
+zero above index 127. The same nine as bit tables are 288 bytes; as a pair of `ulong` constants
+each, with no array and no bounds check, 144.
+
+**And that last form is likely not a trade at all.** A class entirely below 128 is 128 bits, which
+is two constants: the test is one compare for the range, a shift and a mask, with no memory access
+and no array bounds check. Against a byte table's load that may be faster as well as sixteen times
+smaller, so the question is not "where should the threshold sit between two existing paths" but
+"is there a third form that beats both for the commonest case". That is what to measure, and it
+does not make the existing threshold anyone's mistake: the byte table is presumably a deliberate
+fast path, nothing in the tree says so, and nothing has measured it.
+
+**Order.** The size number first, over the packages' generated code rather than the snapshots —
+four of the five snapshots emit none of these tables, so Url is the shape and the Web set is where
+the real total is; the harness for it exists in `DotGram.CodeSize` and has never been pointed at
+this. Then the speed half, on the stand's Url and Web rows, as a pair. To performance-ff, behind
+the retention work.
