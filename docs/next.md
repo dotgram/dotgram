@@ -24484,6 +24484,19 @@ from an instrumented build cannot tell those apart, and a time from one is not w
 What is settled is the shape of the question: a product is found by dividing by n(n+1) at two or
 three sizes, and this case answers no.
 
+**Answered the same day, and it was the first of those three.** The stand dumped every point of
+that ladder. Below about 1,391 arms the row is flat in both senses — 4,512 to 4,530 bytes a call
+per arm, 3.0 to 3.2 us per arm — which is the counts above, in another instrument. Between 1,391
+and 1,738 arms the bytes go up 10.6 times for 1.25 times the input. That is the parser pool's
+retention bound of 65,536 entries (1,391 arms x about 47 cells), the same mechanism found on
+`Accept` and already recorded here as an oversized store being dropped and rebuilt. Above the bound
+every call pays for the store again.
+
+So the 1.49 is not a slope at all: it is a cliff, read as a slope because the ladder fits its last
+sixteenth and two of its points sit above the bound. And the counts were taken at 8 to 64 arms,
+twenty times below it — the range was stated and the conclusion held, but nothing counted there
+could have seen this, which is worth remembering before reading a flat count as a flat row.
+
 ## The same parentheses, one grammar further: a cube, exactly
 
 All four quadratic SQL rows of the stand's audit are one case, nested parentheses, in two grammars
