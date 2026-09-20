@@ -4216,3 +4216,30 @@ may be exactly right for a library — a consumer building a dialect on our T-SQ
 case it exists for — which is why it is stated with the number beside it and decided by Igor, the
 default being part of what a grammar can say. A snapshot with the option on belongs in D42's list
 either way.
+
+## D44. A configuration that is shippable and broken, found by the first snapshot, 2026-09-20
+
+D42's first three rows are written (`16bd6c38`, `ff1ac947`): the harness now takes a snapshot of
+every file a compilation yields, under the name the generator gave it, so a split file and a second
+rendering land by themselves; a grammar declares what it is compiled with through a table in the
+test rather than a new format in the file; the five old snapshots are byte for byte unchanged. Three
+grammars, one per row, no matrix — the buffered and byte halves with a retention bound small enough
+to read in the file, the same grammar a second time under a suffix and the immediate carrier (the
+two files differ by 2,911 lines), and the reading over kinds.
+
+**And the first row found what the exercise was ordered for.** A grammar with named captures
+compiled over bytes emits code that does not compile: a capture with no declared type is a span of
+bytes over that input, while the record it is put into is declared with string fields, so every
+field is a conversion error. The only diagnostic emitted is an informational note about the
+carrier — no refusal, no warning. That configuration is shippable and broken, and nobody had seen
+it because no snapshot emitted a byte machine.
+
+**The ruling: this is a refusal, not a silent default.** What a capture without a declared type
+means over bytes is a question with three answers — refuse, decode to text by some encoding, or
+hand back the bytes — and two of them are decisions about the consumer's data that the author has
+not made. Decoding silently chooses an encoding and allocates; handing back bytes changes the
+record's shape under a grammar that reads the same over characters. So the generator says so, by a
+diagnostic naming the capture, and a default conversion, if one is ever wanted, is a change to what
+a grammar means and therefore Igor's. To performance-ff, with the diagnostics document gaining the
+number in the same commit, and expr's `Buffered` grammar noting in its header why it has no
+captures.
