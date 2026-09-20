@@ -116,12 +116,15 @@ static partial class Stand
 
 		text.AppendLine(CultureInfo.InvariantCulture, $"Held while the stream form is walked, median of {repeat} processes each (kilobytes above the live heap before the walk):");
 		text.AppendLine();
+		text.AppendLine("The figure of a small stream moves in steps of a few kilobytes, so the median of five can be a draw between two levels: each cell is the median, then the smallest and the largest of the runs.");
+		text.AppendLine();
 		text.AppendLine("| input | fields | hand | before | after | after / before |");
 		text.AppendLine("| --- | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var (input, expected) in HeldInputs)
 		{
 			var kilobytes = new double[sides.Length];
+			var ranges    = new string[sides.Length];
 
 			for (var s = 0; s < sides.Length; s++)
 			{
@@ -138,11 +141,12 @@ static partial class Stand
 				}
 
 				kilobytes[s] = Median(taken);
+				ranges[s]    = string.Create(CultureInfo.InvariantCulture, $"{kilobytes[s]:N0} ({taken.Min():N0}-{taken.Max():N0})");
 			}
 
 			var ratio = kilobytes[1] > 0 ? kilobytes[2] / kilobytes[1] : double.NaN;
 
-			text.AppendLine(CultureInfo.InvariantCulture, $"| {input} | {expected:N0} | {kilobytes[0]:N0} | {kilobytes[1]:N0} | {kilobytes[2]:N0} | {ratio:0.000} |");
+			text.AppendLine(CultureInfo.InvariantCulture, $"| {input} | {expected:N0} | {ranges[0]} | {ranges[1]} | {ranges[2]} | {ratio:0.000} |");
 		}
 
 		Console.Write(text);
