@@ -528,7 +528,10 @@ Where to look first is decided by what is open here, not by what is famous:
 
 The rule this file lives by applies to it: an item arrives with evidence — a paper or an
 implementation that can be read, the place here it would touch, and what it would have to beat —
-and no more than two or three at a time.
+and no more than two or three at a time. With the addition the counts of 2026-09-20 earned: a number
+arrives carrying the question it answers, because 84, 89 and 98 were all true of the same catalogue
+and only one of them was true of the thing being argued. A figure whose question is not named is not
+evidence, it is decoration.
 
 ## Q7 (2026-09-19). D25's audit: two verdicts, one test, and a hazard under the first candidate
 
