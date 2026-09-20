@@ -2,9 +2,13 @@
 
 `FIX44.xml` is the FIX 4.4 data dictionary of **QuickFIX/n**, copied byte for byte from
 its `QuickFIXn.FIX44` package, version 1.14.1, where it sits at `DataDictionary/FIX44.xml`.
-It describes the protocol as data: 3,783 fields with their types and value sets, 451
-components, and 93 messages with what each requires and which of its tags begin a
-repeating group.
+It describes the protocol as data: 916 fields declared with their types and value sets,
+24 components declared, 93 messages with what each requires, and 59 group names used in
+226 places. The larger figures a naive count gives — 3,783 and 451 — are *references* to
+fields and components from inside messages and components, not declarations, and the
+difference matters: this format declares a group at the place it is used, so one name
+carries a different membership in different messages, and a reader that keys a group by
+its name merges two shapes into one.
 
 Licensed under the QuickFIX Software License 1.0, BSD-three-clause in shape; the notice,
 the conditions and the disclaimer are kept beside the file they cover, in `LICENSE`. The
