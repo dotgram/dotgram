@@ -5528,3 +5528,23 @@ At fifteen to twenty seconds trimmed it goes in whole.
 The half that is not covered is printed with the table rather than omitted — fixed-length formats,
 a lenient one whose every tail is accepted, the reader and span forms, several entry points, the
 examples and the hand parsers — and that list is what the static probe has to answer for.
+
+**The conflict narrows to a build's revision, not to an input.** The two inputs are word for word
+the same, and on current code all three shapes — including a third with a backslash — stand at ten
+and a half milliseconds from eight characters to two thousand, a figure that does not move with
+length at all because it is the first call in a fresh process rather than the reading. The audit's
+ladder stopped at eighteen characters on thirty-six milliseconds. So there is no uncovered shape,
+and what remains is the build.
+
+**And the reason it is worth a rule: three fixes landed inside twenty-four minutes, so a binary
+built at 08:40 carries the first and not the third, and "the tree that morning" does not
+distinguish them.** Our rule that a verification names its revision was written for reading source;
+it applies to a measured binary in exactly the same way, and more sharply, because a binary carries
+no visible date. A measurement names the commit its binary was built from.
+
+The author's position on the outcome is the right one and is recorded as such: if the audit's build
+turns out to be the newer one and the ladder still climbs, their correctness is refuted rather than
+debatable, and they have asked for the input byte for byte including what precedes it. Meanwhile
+the audit's linear results for the ordinary string, the verbatim one, the character literal and the
+interpolation with holes reach by a different road and a different harness exactly the places their
+own driving had judged safe — which is better confirmation than repeating one's own measurement.
