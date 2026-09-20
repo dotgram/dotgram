@@ -5855,3 +5855,22 @@ large one. The entry now says so and says that nothing in it rests on them. **Th
 be corrected rather than left: a number that was never sound reads as sound once it sits in a table
 beside numbers that are.** That is the same shape as the tense corrected an hour earlier — the
 context lends a claim a standing it never had on its own.
+
+**The guard's explosive path is calibrated on the real tree, not on tampered numbers.** Built at
+the parent of the day's first fix, with the guard's files copied in and the baseline from main: 85
+tests, eleven failed, seventy-four passed. The eleven are the two known exponentials, the address
+refusal that a later seal turned quadratic, and **all eight interpolated forms of the expression
+language — including the raw and verbatim ones that nobody had listed as a risk**, which the
+author's seals had covered anyway. Each failure carries the message naming the shape and the
+remedy, and the other seventy-four sit at their baseline on the old tree, as they must, no fix
+having touched them.
+
+**So the guard would have failed the build that shipped all three defects, and would have named two
+that no list held.** That is the strongest thing a guard can demonstrate: not that it repeats what
+we already knew, but that it finds what nobody had written down.
+
+And the run before it was wrong for a reason worth keeping: the script was pointed at the wrong
+binary by an edit that silently did not take, and it was caught because **the failing identifiers
+were the ones that had been tampered with rather than the explosive ones** — the shape of the
+failure did not match the experiment. A wrong answer that fails in the wrong *place* is a cheaper
+warning than one that fails plausibly.
