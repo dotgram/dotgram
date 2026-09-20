@@ -1131,7 +1131,14 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   one turn whose continuation is the next request of the driver, and the in-memory driver already
   exists, since it is what drives the engine today. The condition is lifted after the two pairs
   land, with a stand row for the in-memory lazy form taken first, the differential given that form,
-  and the same five conditions, a reading moving off the engine being behaviour. **And a gap in the stand found
+  **Corrected by performance-ff an hour later, before anything was planned on it:** nothing calls
+  the in-memory lazy form — FIX's lazy entries take a reader or a stream, its in-memory entries take
+  the eager array form, and the overload the emitter writes beside the buffered one is entered by
+  nobody here. So for FIX as shipped the gain is code size and not time: that overload is plausibly
+  the last thing keeping an automaton in FIX's file at all. The change is made anyway, after the two
+  pairs, on the consistency of what a publication means and measured by size rather than by a time
+  nobody here would see; if the automaton does leave, FIX becomes the first of our grammars with
+  none. The speed of it belongs to a consumer calling the in-memory lazy form of their own grammar. **And a gap in the stand found
   by it:** there were no rows for the log form at all,
   so nothing measured the form this work is about until the stand added eighteen. The rule that
   follows: before a form is optimized, it has a row.
