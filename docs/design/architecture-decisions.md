@@ -4435,3 +4435,35 @@ the same named set of files. Ordered from sql-39, who has the counter.
 
 The pair does not wait on it: the new criterion names `sql/select20`, which merges 107 of 194
 walks, and the SQL:2023 rows.
+
+## D47. The generator writes absolute paths into what ships, 2026-09-20
+
+finance-24 checked the built assemblies rather than the settings, with a reader of its own for the
+embedded symbol file, and the answer is half yes and half no.
+
+**Yes, for the document table.** The continuous-integration flag is set on all five packable
+projects under the CI environment, and with the SourceLink properties beside it the SDK maps every
+document path: built with the flag, Web has 46 documents and 46 neutral, Sql 29 of 29, Finance 26
+of 26, and without it all of them are the machine's, as a local build should be. The `.gram` files
+appear there too, so the file named by a line directive is mapped as well.
+
+**No, for the embedded text.** Embedding untracked sources puts the *text* of generated files into
+the symbols, and text is bytes from disk — in which our generator has written line directives
+carrying absolute paths. Sql has 4 of 13 embedded sources naming a machine, Web 13 of 31, Finance 1
+of 7. The compiler mapped the path when it recorded the document and did not touch the text it
+merely embedded. So the shipped package does name build machines' directories, not in the table
+where it was looked for but inside the 2.8 MB of compressed source that D46 found by weight.
+
+**No property fixes this; we write the path, so we fix it.** To performance-ff, design to the
+architect first, because there is a choice — apply the compilation's own path map so that the
+generator agrees with the compiler, or write a path relative to the project — and the emitted
+output changes either way, so the snapshots move with it.
+
+**One edit closes three things.** The packages stop naming directories that are not the consumer's.
+The standing rule that generated size may be compared only within one worktree, which exists
+*because* line directives carry an absolute path, is retired rather than worked around. And
+reproducibility stops being half-closed: while the text carries a path, two builds of one commit on
+two machines differ in bytes, so "packed again from the same commit" cannot be checked — which is
+the other half of the hole the publishing workflow's smoke closed. Whether mapping the paths makes
+two builds byte-identical in every other respect is a separate check, by comparing two builds and
+not by reasoning; finance-24 says so itself rather than claiming it.
