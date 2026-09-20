@@ -71,6 +71,15 @@ I would not add it first.
 A sweep of GitHub by stars and by `topic:fix-protocol language:C#` turned up no modern .NET-first
 FIX engine beyond those three. The current new work in this space is Rust and C++.
 
+**Read Q9 in `open-questions.md` beside this.** It was written the same evening from the other
+direction and finds what this document does not: Artio's *flyweight* decoders, which decode
+nothing until a field is asked for, and staffix reporting under a byte allocated per message —
+and from those, that our own `IdealFixParser` floor allocates one `FixField` a field like
+everything else we have, so the stand cannot see that choice at all, because the floor was built
+to the same design as the thing it is a floor for. That is a finding about our yardstick and this
+document is about theirs; neither replaces the other. Q9 leaves QuickFIX/n's licence to be read
+before it is taken into the benchmarks, which is §3 here.
+
 ## 3. The licences, read rather than summarised
 
 This is the part Igor asked to settle before anything is added, and it is the reason the answer
