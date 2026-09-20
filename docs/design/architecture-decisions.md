@@ -3603,3 +3603,29 @@ licence asks. The ISO file is kept as fetched, with ISO's own sentence quoted �
 used by implementors of SQL-implementations when generating parsers" — which speaks to *use* and
 not plainly to redistribution, and a public repository redistributes. That is Igor's to weigh, not
 the architect's and not critic's.
+
+**There are four pools, not three, and the fourth was invisible to the report that found the other
+three** (performance-ff). `ImmediateValues.Return` carries the same constant and the same cliff as
+the parser's `Recycle`, `Ways.Return` and the emitted `DirectValues.Return`. finance-24's ladders
+could not have shown it: their shapes are carried on the tape, and that store belongs to the other
+carrier — so a grammar carried immediately, with a large document, would have walked into the same
+twentyfold jump with nothing in the report connecting it to the three. That is the same blind spot
+as the carriers report's, one rung down: a measurement taken through one carrier cannot see what
+the other carrier's machinery does. The rule now lives in all four, and two of them share it through
+one emitter helper rather than by being edited alike.
+
+**D34's seam is built into the retention commit rather than sewn on after it**, which is right: the
+moment it needs is the moment that change creates. The route is a store's own `Empty()`, called by
+`Return` and called again by the demotion before the store passes to the weak reference; emptying an
+already-empty store costs nothing, every cleared span being bounded by a count that `Return` zeroes.
+
+**And a stop worth recording as a decision rather than a delay.** performance-ff stopped short of
+that surgery for the evening after three attempts went into fighting shell quoting rather than into
+the change — the point, as it put it, at which it is likelier to break something quietly than to
+finish. Nothing is half-applied: the retention change builds, its test passes, and what is missing
+is described rather than started. A session that stops there and says so is doing the thing this
+journal exists to encourage.
+
+**One measurement note that cost a wrong number today.** The +23% on the located T-SQL was the
+stand's window and a generation gate sharing the boards; on a quiet machine it is 1.07x. A gate is a
+timing run and takes the same discipline as any other: pinned, and not inside somebody's window.
