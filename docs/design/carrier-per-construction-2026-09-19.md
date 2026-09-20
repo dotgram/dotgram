@@ -197,17 +197,31 @@ of the corpus, 7,716 statements:
 | records in settled subtrees | 4,130 (3.5%) |
 | walks whose every record is in a settled subtree | 174 (1.0%), holding 197 records (0.17%) |
 
-**The last row is the weighting.** The anatomy says the greater part of materialization is the
-fixed cost of a walk, not the cost of a record. Step 2 takes the record's cost off 3.5% of the
-records, and the walk's fixed cost off 1% of the walks — every other walk still builds at least one
-taped record and stays whole. Weighted, the number goes down against the unweighted 0.7–1.2%, not
-up. The two constants a share of a parse needs — what a walk costs and what a record costs — are
-being measured; the conclusion is written when they arrive.
+**The last row is the weighting.** Materialization is paid twice over: per record, in the arm that
+builds it — the larger part in the anatomy, 46% of a SQL:2023 parse against the walk's 30% — and per
+walk, in the setup each one pays. Step 2 takes the record's cost off 3.5% of the records. It takes a
+walk's setup off almost nothing: a walk that keeps one taped record keeps all of its setup, and only
+0.17% of the records sit in walks that would go entirely. So the weighted share is a shade below the
+unweighted 3.5%, not above it, and the unweighted 0.7–1.2% of a parse is an upper bound rather than
+an estimate.
+
+How far below depends on what the two costs are and on how many records a walk builds, which is not
+the same in the two grammars: 1.3 records a walk in SQL:2023's select20, 6.9 in T-SQL over the
+corpus. The constants are being measured. They will be reported in nanoseconds, with the workload
+they were taken on and the arms the record's cost was taken over, and applied to each grammar's own
+counts — a share measured on one grammar says nothing about the other, and this document has been
+wrong that way once already.
+
+**The rule sets differ too, and by the same tightening.** The counting build marks 115 of the 651
+rules that write a record as settled. §3's static table, taken before the fixpoint was written down,
+says 195 of 654. Nothing else about the two counts differs enough to explain 5,607 against 4,130, so
+the definition is where it lies: a rule is settled today only where every valued call it makes is
+settled too, and that takes 80 rules out.
 
 **Two numbers, and why they differ.** §4a's count of records in settled subtrees was 5,607 (4.8%);
 today's is 4,130 (3.5%). The counting build behind the first was never committed, so the two cannot
-be compared line by line. The likeliest cause is the definition: today a rule is settled only where
-every valued call it makes is settled too, which is the fixpoint §4a's recipe states. Both numbers
+be compared line by line. The cause is the definition, as the rule sets above show: today a rule is settled
+only where every valued call it makes is settled too, which is the fixpoint §4a's recipe states. Both numbers
 stand here rather than one replacing the other, because a number that moved when its assumption was
 written down is exactly what the earlier reading of this document got wrong.
 
