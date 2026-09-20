@@ -1,0 +1,86 @@
+Built from 0b02f2af: the libraries measured are this build's own (DotGram.Web, DotGram.Sql, DotGram.ExpressionLanguage, DotGram.Finance, the examples).
+
+Refused inputs: a growing head and a tail no reader can finish; each series asserts that the input is refused. The exponent is the slope of log time on log size over the largest sixteenth of the ladder (at least four points); above 1.10 a refusal is a defect, from 1.5 quadratic, from 3.0 explosive. A ladder ends at the first call over 20 ms.
+
+| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | shape of the growth | projected at 64 KiB | KB a call at the largest | allocation exponent | |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- |
+| T-SQL search condition | predicates, then an unclosed ( | predicates | 4 - 3,393 | 33 | 46,398 | 822.3 us | 0.56 | bytes flat; time flat | 1.2 ms | 212.4 | 0.99 |  |
+           4 predicates          11.12 us       0.57 KB       2778.8 ns per predicates        146.0 B per predicates
+           5 predicates          11.86 us       0.63 KB       2371.3 ns per predicates        129.6 B per predicates
+           6 predicates          13.02 us       0.70 KB       2169.9 ns per predicates        118.7 B per predicates
+           7 predicates          14.18 us       0.76 KB       2026.2 ns per predicates        110.9 B per predicates
+           8 predicates          15.40 us       0.82 KB       1925.5 ns per predicates        105.0 B per predicates
+          10 predicates          17.99 us       0.95 KB       1798.8 ns per predicates         96.8 B per predicates
+          12 predicates          20.60 us       1.07 KB       1716.6 ns per predicates         91.3 B per predicates
+          15 predicates          24.39 us       1.26 KB       1626.2 ns per predicates         85.9 B per predicates
+          18 predicates          28.30 us       1.45 KB       1572.1 ns per predicates         82.2 B per predicates
+          22 predicates          33.49 us       1.70 KB       1522.1 ns per predicates         78.9 B per predicates
+          27 predicates          39.99 us       2.01 KB       1481.2 ns per predicates         76.2 B per predicates
+          33 predicates          47.71 us       2.38 KB       1445.7 ns per predicates         73.9 B per predicates
+          41 predicates          58.06 us       2.88 KB       1416.1 ns per predicates         72.0 B per predicates
+          51 predicates          70.70 us       3.51 KB       1386.3 ns per predicates         70.4 B per predicates
+          63 predicates          86.26 us       4.26 KB       1369.2 ns per predicates         69.2 B per predicates
+          78 predicates         105.45 us       5.20 KB       1352.0 ns per predicates         68.2 B per predicates
+          97 predicates         129.20 us       6.38 KB       1332.0 ns per predicates         67.4 B per predicates
+         121 predicates         160.53 us       7.88 KB       1326.7 ns per predicates         66.7 B per predicates
+         151 predicates         199.20 us       9.76 KB       1319.2 ns per predicates         66.2 B per predicates
+         188 predicates         247.05 us      12.07 KB       1314.1 ns per predicates         65.8 B per predicates
+         235 predicates         314.03 us      15.01 KB       1336.3 ns per predicates         65.4 B per predicates
+         293 predicates         263.21 us      18.63 KB        898.3 ns per predicates         65.1 B per predicates
+         366 predicates         104.24 us      23.20 KB        284.8 ns per predicates         64.9 B per predicates
+         457 predicates         119.89 us      28.88 KB        262.3 ns per predicates         64.7 B per predicates
+         571 predicates         147.68 us      36.01 KB        258.6 ns per predicates         64.6 B per predicates
+         713 predicates         171.33 us      44.88 KB        240.3 ns per predicates         64.5 B per predicates
+         891 predicates         212.44 us      56.01 KB        238.4 ns per predicates         64.4 B per predicates
+       1,113 predicates         266.53 us      69.88 KB        239.5 ns per predicates         64.3 B per predicates
+       1,391 predicates         333.41 us      87.26 KB        239.7 ns per predicates         64.2 B per predicates
+       1,738 predicates         417.73 us     108.95 KB        240.3 ns per predicates         64.2 B per predicates
+       2,172 predicates         523.22 us     136.07 KB        240.9 ns per predicates         64.2 B per predicates
+       2,715 predicates         656.45 us     170.01 KB        241.8 ns per predicates         64.1 B per predicates
+       3,393 predicates         822.31 us     212.39 KB        242.4 ns per predicates         64.1 B per predicates
+| SQL:2023 search condition | predicates, then an unclosed ( | predicates | 4 - 3,393 | 33 | 46,398 | 30.0 ms | 1.07 | bytes CLIFF x8.6 between 2,715 and 3,393; time CLIFF x4.0 between 2,715 and 3,393 | 43.4 ms | 92636.7 | 1.32 |  |
+           4 predicates          48.20 us      15.91 KB      12049.1 ns per predicates       4072.1 B per predicates
+           5 predicates          57.51 us      19.06 KB      11502.3 ns per predicates       3904.1 B per predicates
+           6 predicates          66.83 us      22.37 KB      11138.5 ns per predicates       3818.4 B per predicates
+           7 predicates          73.57 us      25.38 KB      10510.4 ns per predicates       3712.1 B per predicates
+           8 predicates          81.60 us      28.53 KB      10200.0 ns per predicates       3652.1 B per predicates
+          10 predicates          98.49 us      34.84 KB       9848.5 ns per predicates       3568.0 B per predicates
+          12 predicates         112.91 us      41.16 KB       9408.9 ns per predicates       3512.0 B per predicates
+          15 predicates         138.05 us      50.63 KB       9203.2 ns per predicates       3456.0 B per predicates
+          18 predicates         162.51 us      60.09 KB       9028.4 ns per predicates       3418.7 B per predicates
+          22 predicates         197.68 us      72.72 KB       8985.4 ns per predicates       3384.8 B per predicates
+          27 predicates         235.66 us      88.50 KB       8728.2 ns per predicates       3356.5 B per predicates
+          33 predicates         284.53 us     107.44 KB       8622.3 ns per predicates       3333.9 B per predicates
+          41 predicates         346.18 us     132.72 KB       8443.5 ns per predicates       3314.8 B per predicates
+          51 predicates         422.40 us     164.25 KB       8282.4 ns per predicates       3297.9 B per predicates
+          63 predicates         519.94 us     202.13 KB       8253.1 ns per predicates       3285.4 B per predicates
+          78 predicates         643.48 us     254.78 KB       8249.7 ns per predicates       3344.8 B per predicates
+          97 predicates         793.27 us     309.44 KB       8178.1 ns per predicates       3266.7 B per predicates
+         121 predicates        1055.55 us     386.20 KB       8723.6 ns per predicates       3268.3 B per predicates
+         151 predicates        1345.55 us     479.88 KB       8910.9 ns per predicates       3254.3 B per predicates
+         188 predicates        1208.73 us     596.66 KB       6429.4 ns per predicates       3249.9 B per predicates
+         235 predicates         943.48 us     745.00 KB       4014.8 ns per predicates       3246.3 B per predicates
+         293 predicates         892.10 us     928.07 KB       3044.7 ns per predicates       3243.5 B per predicates
+         366 predicates         846.40 us    1158.47 KB       2312.6 ns per predicates       3241.2 B per predicates
+         457 predicates        1019.76 us    1445.69 KB       2231.4 ns per predicates       3239.4 B per predicates
+         571 predicates        1275.00 us    1805.51 KB       2232.9 ns per predicates       3237.9 B per predicates
+         713 predicates        1606.16 us    2253.70 KB       2252.7 ns per predicates       3236.7 B per predicates
+         891 predicates        1991.72 us    2815.51 KB       2235.4 ns per predicates       3235.8 B per predicates
+       1,113 predicates        2452.72 us    3516.20 KB       2203.7 ns per predicates       3235.0 B per predicates
+       1,391 predicates        3066.97 us    4393.64 KB       2204.9 ns per predicates       3234.4 B per predicates
+       1,738 predicates        3836.97 us    5488.86 KB       2207.7 ns per predicates       3233.9 B per predicates
+       2,172 predicates        4820.95 us    6858.68 KB       2219.6 ns per predicates       3233.6 B per predicates
+       2,715 predicates        6066.25 us    8572.52 KB       2234.3 ns per predicates       3233.2 B per predicates
+       3,393 predicates       29984.10 us   92636.73 KB       8837.0 ns per predicates      27957.6 B per predicates
+
+2 series, none above the exponent 1.10.
+
+Not covered by a refusal ladder:
+- Timestamp (RFC 3339): a fixed-length form, there is no head that grows before a refusal.
+- SetCookie: the reader is lenient, and every tail tried (a control character in a value or in an attribute) was accepted, so the series that asserted a refusal was a fault and was dropped; a refused shape with a growing head is not known.
+- The reader, stream and span forms of every grammar above: the ladders read a string, and the driver that pulls a TextReader or a Stream in pieces is a different piece of code over the same rules.
+- FixParser.Parse and the streaming FIX forms: they yield fields lazily and do not report a refusal as a value, so a ladder has nothing to read a refusal from.
+- SQL and T-SQL entry points other than a statement, a query expression and a search condition (scripts, the positional forms, expressions alone).
+- Rules that are reachable only from a start the ladders do not use: a shape whose bad tail sits inside a rule no series begins in is not seen here, and the static probe is the way to find it.
+- The examples under examples/ (not shipped), and the hand-written parsers (not a grammar's).
+done 14:46:34
