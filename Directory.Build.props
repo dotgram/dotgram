@@ -19,7 +19,13 @@
 		     anything. The audit itself stays on: a real finding is NU1901 and above. -->
 		<WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900</WarningsNotAsErrors>
 
-		<DotGramReportGeneration>true</DotGramReportGeneration>
+		<!-- What the generator says about itself as it runs. `summary` is the one line a
+		     grammar that says it ran and what it produced; `full` adds what the carrier's
+		     choice rested on, rule by rule, which is what the carriers report reads and what a
+		     build of this solution should not have to scroll past to find its own errors.
+		     Ask for it on the command line when it is what is wanted:
+		     `dotnet build -p:DotGramReportGeneration=full`. -->
+		<DotGramReportGeneration>summary</DotGramReportGeneration>
 	</PropertyGroup>
 
 	<PropertyGroup>

@@ -1,18 +1,28 @@
 ﻿<Project>
-	<PropertyGroup Condition="'$(DotGramReportGeneration)' == 'true'">
+	<!-- `DotGramReportGeneration` takes a level, not a switch: `none` (the default) writes
+	     nothing, `summary` writes the one line a grammar that says the generator ran, and
+	     `full` adds what the carrier's choice rested on, rule by rule. `true` is what the
+	     property was called when it had two settings and still means `full`, so a build that
+	     asked for the detail before the levels existed keeps getting it. MSBuild compares
+	     these without regard to case. -->
+	<PropertyGroup>
+		<DotGramGenerationReported Condition="'$(DotGramReportGeneration)' != '' and '$(DotGramReportGeneration)' != 'false' and '$(DotGramReportGeneration)' != 'none'">true</DotGramGenerationReported>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(DotGramGenerationReported)' == 'true'">
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$(IntermediateOutputPath)DotGramGenerated</CompilerGeneratedFilesOutputPath>
 	</PropertyGroup>
 	<ItemGroup>
 		<CompilerVisibleProperty Include="DotGramReportGeneration" />
 		<CompilerVisibleProperty Include="DesignTimeBuild" />
-		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(DotGramReportGeneration)' == 'true'" />
+		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(DotGramGenerationReported)' == 'true'" />
 	</ItemGroup>
 
 	<!-- Only reports from this compiler invocation may be printed. A skipped compile
 	     therefore prints nothing, and removed hosts cannot leave stale messages. -->
 	<Target Name="DotGramPrepareGenerationReports" BeforeTargets="CoreCompile"
-	        Condition="'$(DotGramReportGeneration)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+	        Condition="'$(DotGramGenerationReported)' == 'true' and '$(DesignTimeBuild)' != 'true'">
 		<ItemGroup>
 			<_DotGramOldReports Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReport.g.cs" />
 		</ItemGroup>
@@ -20,7 +30,7 @@
 	</Target>
 
 	<Target Name="DotGramPrintGenerationReports" AfterTargets="CoreCompile"
-	        Condition="'$(DotGramReportGeneration)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+	        Condition="'$(DotGramGenerationReported)' == 'true' and '$(DesignTimeBuild)' != 'true'">
 		<ItemGroup>
 			<_DotGramReports Include="$(CompilerGeneratedFilesOutputPath)/DotGram/DotGram.Generation.GramGenerator/*.DotGramReport.g.cs" />
 			<FileWrites Include="@(_DotGramReports)" />

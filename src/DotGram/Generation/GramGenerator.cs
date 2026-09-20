@@ -100,11 +100,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 			.Select(static (input, _) => AnswerSafely(input.Left, input.Right))
 			.WithTrackingName(AnsweredStage);
 
+		// How much this build asked to hear. A design-time build hears nothing, whatever it
+		// asked for, because nothing it prints would reach anybody.
 		var reporting = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
-			options.GlobalOptions.TryGetValue("build_property.DotGramReportGeneration", out var enabled) &&
-			string.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase) &&
-			!(options.GlobalOptions.TryGetValue("build_property.DesignTimeBuild", out var designTime) &&
-				string.Equals(designTime, "true", StringComparison.OrdinalIgnoreCase)));
+			options.GlobalOptions.TryGetValue("build_property.DesignTimeBuild", out var designTime) &&
+			string.Equals(designTime, "true", StringComparison.OrdinalIgnoreCase)
+				? ReportLevel.None
+				: options.GlobalOptions.TryGetValue("build_property.DotGramReportGeneration", out var asked)
+					? LevelOf(asked)
+					: ReportLevel.None);
 
 		context.RegisterSourceOutput(
 			answered.Combine(reporting)
@@ -113,6 +117,38 @@ public sealed class GramGenerator : IIncrementalGenerator
 			static (production, parser) => parser.Deliver(production));
 
 	}
+
+	/// <summary>How much of what the generator did a build asked to be told.</summary>
+	/// <remarks>
+	/// The report is pages long on a large grammar, and most of those pages answer a question
+	/// only somebody working on the generator asks. A build that just wants to see that the
+	/// generator ran should not have to read them, so the quiet level says that one line and
+	/// stops; the detail is there for whoever went looking for it.
+	/// </remarks>
+	enum ReportLevel
+	{
+		/// <summary>Nothing is written, and nothing is timed.</summary>
+		None,
+
+		/// <summary>One line a grammar: that the generator ran, and what it produced.</summary>
+		Summary,
+
+		/// <summary>That line, and what the carrier's choice rested on, rule by rule.</summary>
+		Full,
+	}
+
+	/// <summary>
+	/// The level a build asked for. <c>true</c> is the spelling this property had when it had
+	/// only two settings, and it still means everything, so a build that asked for the detail
+	/// before this level existed keeps getting it.
+	/// </summary>
+	static ReportLevel LevelOf(string asked) =>
+		string.Equals(asked, "true", StringComparison.OrdinalIgnoreCase) ||
+		string.Equals(asked, "full", StringComparison.OrdinalIgnoreCase)
+			? ReportLevel.Full
+			: string.Equals(asked, "summary", StringComparison.OrdinalIgnoreCase)
+				? ReportLevel.Summary
+				: ReportLevel.None;
 
 	// ── Parsers ──────────────────────────────────────────────────────────────────
 
@@ -155,7 +191,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 	}
 
-	static Parser CompileSafely(Grammar grammar, bool reporting)
+	static Parser CompileSafely(Grammar grammar, ReportLevel reporting)
 	{
 		try
 		{
@@ -427,7 +463,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, bool reporting)
+	static Parser Compile(Grammar grammar, ReportLevel reporting)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(null, null, grammar.Reports);
@@ -447,7 +483,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// well went silently missing until it was looked for.
 		reports.AddRange(grammar.Reports.Items);
 
-		var timer = reporting ? Stopwatch.StartNew() : null;
+		var timer = reporting != ReportLevel.None ? Stopwatch.StartNew() : null;
 		var result = GramCompiler.Compile(text, new GramCompilerOptions
 		{
 			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
@@ -492,7 +528,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
 
 			// The report asked for is the carriers' too: what GRAM5012 decided, rule by rule.
-			ReportCarriers = reporting,
+			ReportCarriers = reporting == ReportLevel.Full,
 		});
 
 		timer?.Stop();
