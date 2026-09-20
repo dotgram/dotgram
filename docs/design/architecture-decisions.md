@@ -1135,7 +1135,13 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   pairs first: the positional and window forms of the SQL parsers (the path expr is changing now),
   a row that loops the token scanner, which today hides inside every SQL and EL row,
   the message layer's stream and lazy forms, the Web's list publications
-  into the linearity family, one span row per library, and the examples' lazy feed reader. The buffered reader's pair passed (the
+  into the linearity family, one span row per library, and the examples' lazy feed reader.
+  Coded and pushed the same evening: fourteen paired rows — the positional and window forms of the
+  SQL parsers, the token scanner looped over a text in four grammars, the message layer's stream,
+  reader and lazy forms, a span row for each library that has one, the examples' lazy feed reader —
+  and five Web list series in the linearity family. Their baselines are not taken yet, so no figure
+  for these forms is quotable until they are; the "hand" side of a paired row here is the same
+  form built from the other tree, a control and not a hand-written parser. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
