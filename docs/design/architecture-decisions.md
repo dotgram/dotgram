@@ -3003,3 +3003,24 @@ message — the same constructor already refuses a data tag whose standard type 
 the precedent and the table are both there, and it needs one new question of the schema, "is this
 tag defined by the standard", one byte wide. A consumer who genuinely means to discard the
 standard pairs can be given a named way to say so later; nobody should arrive at it by omission.
+
+## D28. One watch list, named, for the three places that need it, 2026-09-19
+
+Three designs arrived within a day needing the same question answered — what may not be moved:
+sql-39's owning continuation, the hoist of a seam out of a rule, and expr's value handed to a
+guard at the capture's close. Three copies of a list like that drift, and the drift is silent,
+so it is written once as **the watch list** (`docs/design/no-way-back-2026-09-19.md` §6,
+`d1c23e5d`) and the other two cite it. Five rows, one sentence of cause each: `when`, a lookahead
+either way, a look-behind, an external or host-measured terminal that may match empty, and
+`with state`. What unites them is one property — the node's answer depends on more than the
+position it stands at.
+
+**It is deliberately stricter than one of its three users needs.** sql-39 checked and reported the
+excess rather than quietly trimming it: for two readings that end at the *same* position, a
+lookahead answers the same both ways, so the two lookahead rows are caution there and not
+necessity; only what depends on the reading rather than the position — `when`, `with state`, a
+host that may read state — can tell such readings apart. For the hoist and for the close, which
+move a reading to a different position, every row earns its place. The ruling is to keep one list:
+a shared list that refuses a little too often costs a few causes, and two lists that drift cost
+correctness. If a row ever has to differ, the narrower list gets a name of its own and a sentence
+saying why, rather than a second copy of the table.
