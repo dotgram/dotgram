@@ -3668,3 +3668,35 @@ pair carries emitted size beside time: a walk that takes several roots where it 
 signature on a hot path. Fourth, the expectation is written before the pair, as it is: T-SQL moves,
 SQL:2023 less, the expression language least, and if T-SQL does not move the design is refused by
 its own criterion, as its predecessor was.
+
+## D37. An example in a shipped page exists as a test, 2026-09-20
+
+**The process question first, answered by critic: there is no drift, because there is nothing in
+between.** The release notes are a literal in each project file, the README and the skill are
+copied into the package by a pack item, and no test, no smoke and no pack step reads any of the
+three. Nothing can drift where nothing is checked at either end. The pages that were wrong this
+morning were wrong at the keystroke, would have been packed wrong, and there was no moment at which
+anyone could have caught them — which is why the defect survived a day of work on that very
+package.
+
+**The rule.** An example in a page a package ships exists as a test that compiles and runs it. The
+evidence is now a number rather than an instinct: one example that throws survived in two shipped
+files until the first check made before a release, in a package whose owner had edited both files
+that week, and the other packages carry 39 more fenced calls — Web 29, Sql 7, the expression
+language 3 — that nothing compiles. critic tried to audit those by reading, twice, and both passes
+returned uniform false negatives, one declaring a method missing that sits four lines into its file
+and is called by the stand. A compiler would have answered correctly both times and at the
+keystroke. finance-24 has written the first such test, so the shape is known and the rule costs one
+per package.
+
+**And what the rule does not cover, said before someone believes it does.** A public-API baseline
+would have caught the rename at the keystroke and would *not* have caught this morning's defect,
+because D27 changed a meaning without changing a signature. The two halves are closed by different
+things, and this repository has neither.
+
+**A gap in the publishing path, one step later.** The build workflow packs and then runs the
+package smoke; the publish workflow packs and pushes to nuget.org with no smoke at all. What ships
+is not what was smoked — it is packed again by the workflow that publishes it. That is closed
+either by a branch rule requiring the build green on the commit a tag is placed on, or by copying
+the smoke between pack and push. The second is the answer to prefer: a branch rule proves that some
+packing passed, not that this packing did.
