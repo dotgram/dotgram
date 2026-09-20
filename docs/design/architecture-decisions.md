@@ -5847,3 +5847,11 @@ was built from**, and a harness whose control is not stable produces no rows at 
 
 **The counts are untouched**: call counts do not depend on a JIT tier, so D63's before-picture, the
 triangular numbers and the exponent boundary all stand exactly as reported.
+
+**And the tier-0 warning immediately cost a correction elsewhere, which is how a rule earns its
+keep.** The diary's entry on the parentheses carried three figures from a scratch harness that
+timed one shot per size in a fresh process — tier-0 at the small end and promoted part way by the
+large one. The entry now says so and says that nothing in it rests on them. **The reason it had to
+be corrected rather than left: a number that was never sound reads as sound once it sits in a table
+beside numbers that are.** That is the same shape as the tense corrected an hour earlier — the
+context lends a claim a standing it never had on its own.
