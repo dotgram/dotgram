@@ -1153,7 +1153,15 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   carrier build for a reading later given up" has been measured only for the form that did not
   change carrier. Named for later: the byte and stream log forms remain 13-15% above their plain
   counterparts where the text forms have converged, which is the multi-character separator and a
-  candidate rather than a defect. **And a second rendering found
+  candidate rather than a defect. **Landed `098ee374` once that condition closed:** on a malformed
+  log wire the bytes a call are identical on both sides in all fifteen runs, so nothing is built
+  for a reading given up — with the caveat, named by performance-ff rather than glossed, that a
+  byte count sees a per-call field and never the tape's pooled records, which is why the
+  differential and the factory counts carry the rest of that claim. FIX now emits no ways at all
+  and its file lost 52 KB of 404. **D13's goal is reached: the generated FIX parser does what the
+  hand-written one does, by the same route** — and faster than it on every form but the lazy one,
+  where they are level. What is left of a walk in FIX is the two yield steps, one per element,
+  which the in-memory lazy form takes next. **And a second rendering found
   behind it, approved 2026-09-19:** a `yield` publication is read by methods only over a buffer,
   because that is what the driver had been taught first, so `ReadFields` from a reader is carried
   immediately while `ReadFields` from a string runs the engine, with an arena and a materialization
