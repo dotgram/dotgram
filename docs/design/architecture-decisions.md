@@ -5238,3 +5238,20 @@ safe rather than assumed safe.
 **And the probe now has calibration in both directions** — it finds a known presence and it saw a
 known absence — and earned its keep a third time by showing that a fix removed three entries and
 not five, which nobody would have checked by hand.
+
+**The second path is closed, and it repeated the lesson literally rather than by analogy.** The
+named input — a route carrying a run of comments — gives 6.6 ms at twelve, 96.5 at sixteen, 310.6
+at twenty, doubling about every one and a half comments; sealed, it is 0.01 at every length. And
+again **one input of four**: the same run was tried into the phrase, the route, the local part and
+the domain, and only the route was slow, the phrase staying flat at 0.13 ms for twenty. Choosing by
+head, the phrase is the obvious one — a display name stuffed with comments — and comments in a
+route look exotic. Twice now the slow one has not been the likely-looking one, so the chance of
+picking the right input by reasoning is not "fair": in two cases out of two it would have been zero.
+
+**A rule we did not have, proposed by the session that needed it, and taken.** When a change is
+confirmed by *the same input that found the defect*, what is confirmed is that this input is no
+longer slow — not that the shape is gone. Those are different claims. To check the second, either
+an instrument of a different nature is needed, which is what the static probe was here, or an input
+found by a different route than the first. That is exactly why yesterday's work ended in honest
+confidence: an input was measured, found, fixed, and re-measured flat, and every step confirmed
+success while none of them asked how many paths lead to the shape.
