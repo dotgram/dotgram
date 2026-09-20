@@ -1016,3 +1016,31 @@ the static calls are then knowingly quadratic, that is a documented property of 
 §6.3 where the forms are described, not an accident discovered by whoever loops first.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D31 `49b18ac3`), with a correction back and one of mine.** Q10 is
+taken, the load-bearing claim checked against the emitter independently, and three things kept
+verbatim: an absent `Over` rather than an inert one, since an inert one returns the quadratic
+silently to exactly the callers who believe they have escaped it; the public shape following an
+internal analysis, so that adding a `find` to a grammar deletes a public type from a consumer's API;
+and the gate — `ScriptScalingTests` stays on the static calls, a second test is added for `Over`,
+and knowingly quadratic static calls are written into §6.3 rather than discovered by whoever loops
+first.
+
+- **The name in D31 is wrong and should be `Tokenized_DotGram`.** The journal has
+  `Tokenize_DotGram`. Both exist and they are different things: `Tokenized_DotGram(string input)`,
+  defined at `CSharpEmitter.cs:2196` and called at `:1668` and `:1809`, is the kept cutting — look
+  in it and you find the slots, the weak reference and the eviction; `Tokenize_DotGram(input)` and
+  `(input, from, to)` are the tokenizer it calls. The `kept` branch of those two call sites, which
+  is the only branch this objection is about, emits the one with the `d`. Someone reading D31 and
+  grepping the shorter name lands on the tokenizer and finds no cache there.
+- **And a correction of Q10 by this session.** Cutting from `at` on demand is not a path nobody had
+  seen: it is `BufferedKinds`, designed in expr's own positional-forms document (§2, and §4's list
+  of what is new), which "holds the text, lexes from `at` in blocks" and whose `false` already means
+  "the true end of the input, or the first character no token begins with, **which ends the tokens
+  there as the window form already has it**" — the very semantics Q10 asks for, written down before
+  Q10 was. The document even says it outright: "`BufferedKinds` makes the loop linear without it".
+  It was designed and deferred because the kept cutting was cheaper. So what this session added is
+  not the scheme but the reason the scheme looked unnecessary — the refusal semantics — and Q10's
+  "the tokenizer has to become resumable, which is more work than `Over` costs to build" overstates
+  it: the work is to build a designed thing, not to invent one. What that costs is still expr's to
+  say and not mine.
