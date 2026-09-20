@@ -1,0 +1,373 @@
+=== run 1 of 5, 21:18:29
+26 rows, every reading agreeing. Timing 8 rounds.
+sql/select20.at        hand     6664.5 ns before    17600.8 ns after    19803.6 ns  before/hand 2.64x  after/hand 2.97x
+sql/select20.window    hand     6765.0 ns before    17853.6 ns after    18059.9 ns  before/hand 2.64x  after/hand 2.67x
+tsql/insert-values.at  hand     8256.8 ns before     1396.4 ns after     1419.3 ns  before/hand 0.17x  after/hand 0.17x
+sql/select20.scan      hand      369.3 ns before      377.6 ns after      382.0 ns  before/hand 1.02x  after/hand 1.03x
+sql/conditions100.scan hand     3460.5 ns before     3558.4 ns after     3477.7 ns  before/hand 1.03x  after/hand 1.00x
+tsql/select20.scan     hand      373.4 ns before      378.9 ns after      378.1 ns  before/hand 1.01x  after/hand 1.01x
+el/ladder.scan         hand      136.8 ns before      136.3 ns after      141.5 ns  before/hand 1.00x  after/hand 1.03x
+fixmsg/Order.parse-stream hand     1707.6 ns before     2131.6 ns after     2093.2 ns  before/hand 1.25x  after/hand 1.23x
+fixmsg/Order.parse-reader hand     1743.5 ns before     2086.2 ns after     2035.1 ns  before/hand 1.20x  after/hand 1.17x
+fixmsg/Order.parse-span hand     1742.3 ns before     1802.9 ns after     1776.7 ns  before/hand 1.03x  after/hand 1.02x
+fixmsg/Order.read-stream100 hand   184254.5 ns before   199022.7 ns after   195075.0 ns  before/hand 1.08x  after/hand 1.06x
+fixmsg/Order.read-reader100 hand   183294.7 ns before   189366.8 ns after   185947.5 ns  before/hand 1.03x  after/hand 1.01x
+fix/Order.span         hand      649.0 ns before      496.8 ns after      497.1 ns  before/hand 0.77x  after/hand 0.77x
+feeds/streaming.1000   hand   208327.1 ns before   221030.7 ns after   206507.2 ns  before/hand 1.06x  after/hand 0.99x
+fix/One.yield-string   hand       82.6 ns before      244.1 ns after      241.6 ns  before/hand 2.96x  after/hand 2.93x
+fix/One.yield-memory   hand       83.3 ns before      125.3 ns after      124.8 ns  before/hand 1.51x  after/hand 1.50x
+  fix/Order.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-string hand      657.5 ns before     2390.1 ns after     2269.9 ns  before/hand 3.63x  after/hand 3.45x
+fix/Order.yield-memory hand      657.6 ns before      787.7 ns after      785.9 ns  before/hand 1.20x  after/hand 1.20x
+fix/BinaryMany.yield-string hand     3536.9 ns before    15633.9 ns after    16341.3 ns  before/hand 4.42x  after/hand 4.62x
+fix/BinaryMany.yield-memory hand     3522.6 ns before     4823.5 ns after     4841.8 ns  before/hand 1.37x  after/hand 1.37x
+fix/Orders128.yield-string hand    77737.3 ns before   294256.7 ns after   279109.3 ns  before/hand 3.79x  after/hand 3.59x
+fix/Orders128.yield-memory hand    77283.8 ns before    92367.7 ns after    93714.6 ns  before/hand 1.20x  after/hand 1.21x
+fix/slope-0.yield-string hand       26.2 ns before       44.4 ns after       50.9 ns  before/hand 1.69x  after/hand 1.94x
+  fix/slope-0.yield-memory: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.yield-memory hand       26.4 ns before       61.1 ns after       61.4 ns  before/hand 2.32x  after/hand 2.33x
+fix/slope-16.yield-string hand      903.0 ns before     3298.1 ns after     3111.1 ns  before/hand 3.65x  after/hand 3.45x
+  fix/slope-16.yield-memory: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-16.yield-memory hand      897.7 ns before     1052.3 ns after     1068.9 ns  before/hand 1.17x  after/hand 1.19x
+
+# Paired stand, 2026-09-19 21:20
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.8 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sql/select20.at | generated | 6664.5 | 17600.8 | 2.64x | 19803.6 | 2.97x | +12.5% | 21416 | 21416 |
+| sql/select20.window | generated | 6765.0 | 17853.6 | 2.64x | 18059.9 | 2.67x | +1.2% | 21416 | 21416 |
+| tsql/insert-values.at | generated | 8256.8 | 1396.4 | 0.17x | 1419.3 | 0.17x | +1.6% | 1328 | 1328 |
+| sql/select20.scan | generated | 369.3 | 377.6 | 1.02x | 382.0 | 1.03x | +1.2% | 0 | 0 |
+| sql/conditions100.scan | generated | 3460.5 | 3558.4 | 1.03x | 3477.7 | 1.00x | -2.3% | 0 | 0 |
+| tsql/select20.scan | generated | 373.4 | 378.9 | 1.01x | 378.1 | 1.01x | -0.2% | 0 | 0 |
+| el/ladder.scan | generated | 136.8 | 136.3 | 1.00x | 141.5 | 1.03x | +3.8% | 0 | 0 |
+| fixmsg/Order.parse-stream | generated | 1707.6 | 2131.6 | 1.25x | 2093.2 | 1.23x | -1.8% | 8224 | 8224 |
+| fixmsg/Order.parse-reader | generated | 1743.5 | 2086.2 | 1.20x | 2035.1 | 1.17x | -2.4% | 12112 | 12112 |
+| fixmsg/Order.parse-span | generated | 1742.3 | 1802.9 | 1.03x | 1776.7 | 1.02x | -1.5% | 3672 | 3672 |
+| fixmsg/Order.read-stream100 | generated | 184254.5 | 199022.7 | 1.08x | 195075.0 | 1.06x | -2.0% | 389248 | 389248 |
+| fixmsg/Order.read-reader100 | generated | 183294.7 | 189366.8 | 1.03x | 185947.5 | 1.01x | -1.8% | 375712 | 375712 |
+| fix/Order.span | generated | 649.0 | 496.8 | 0.77x | 497.1 | 0.77x | +0.1% | 1008 | 1008 |
+| feeds/streaming.1000 | generated | 208327.1 | 221030.7 | 1.06x | 206507.2 | 0.99x | -6.6% | 240760 | 240760 |
+| fix/One.yield-string | generated | 82.6 | 244.1 | 2.96x | 241.6 | 2.93x | -1.0% | 272 | 272 |
+| fix/One.yield-memory | generated | 83.3 | 125.3 | 1.51x | 124.8 | 1.50x | -0.4% | 352 | 352 |
+| fix/Order.yield-string | generated | 657.5 | 2390.1 | 3.63x | 2269.9 | 3.45x | -5.0% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | 657.6 | 787.7 | 1.20x | 785.9 | 1.20x | -0.2% | 1176 | 1176 |
+| fix/BinaryMany.yield-string | generated | 3536.9 | 15633.9 | 4.42x | 16341.3 | 4.62x | +4.5% | 6832 | 6832 |
+| fix/BinaryMany.yield-memory | generated | 3522.6 | 4823.5 | 1.37x | 4841.8 | 1.37x | +0.4% | 6912 | 6912 |
+| fix/Orders128.yield-string | generated | 77737.3 | 294256.7 | 3.79x | 279109.3 | 3.59x | -5.1% | 117936 | 117936 |
+| fix/Orders128.yield-memory | generated | 77283.8 | 92367.7 | 1.20x | 93714.6 | 1.21x | +1.5% | 118016 | 118016 |
+| fix/slope-0.yield-string | generated | 26.2 | 44.4 | 1.69x | 50.9 | 1.94x | +14.7% | 176 | 176 |
+| fix/slope-0.yield-memory | generated | 26.4 | 61.1 | 2.32x | 61.4 | 2.33x | +0.4% | 256 | 256 |
+| fix/slope-16.yield-string | generated | 903.0 | 3298.1 | 3.65x | 3111.1 | 3.45x | -5.7% | 1712 | 1712 |
+| fix/slope-16.yield-memory | generated | 897.7 | 1052.3 | 1.17x | 1068.9 | 1.19x | +1.6% | 1792 | 1792 |
+
+Written to T:\TEMP\dotgram-stand\w62\aa\run-1
+=== run 2 of 5, 21:20:02
+26 rows, every reading agreeing. Timing 8 rounds.
+sql/select20.at        hand     6666.6 ns before    17738.2 ns after    17834.4 ns  before/hand 2.66x  after/hand 2.68x
+sql/select20.window    hand     6960.9 ns before    18281.6 ns after    18308.3 ns  before/hand 2.63x  after/hand 2.63x
+tsql/insert-values.at  hand     7839.2 ns before     1394.4 ns after     1349.2 ns  before/hand 0.18x  after/hand 0.17x
+sql/select20.scan      hand      369.4 ns before      370.3 ns after      370.0 ns  before/hand 1.00x  after/hand 1.00x
+sql/conditions100.scan hand     3461.7 ns before     3418.9 ns after     3419.9 ns  before/hand 0.99x  after/hand 0.99x
+tsql/select20.scan     hand      373.6 ns before      372.5 ns after      372.2 ns  before/hand 1.00x  after/hand 1.00x
+el/ladder.scan         hand      136.5 ns before      137.0 ns after      135.7 ns  before/hand 1.00x  after/hand 0.99x
+fixmsg/Order.parse-stream hand     1800.0 ns before     2110.6 ns after     2112.7 ns  before/hand 1.17x  after/hand 1.17x
+fixmsg/Order.parse-reader hand     1824.8 ns before     2070.8 ns after     2072.1 ns  before/hand 1.13x  after/hand 1.14x
+fixmsg/Order.parse-span hand     1775.9 ns before     1745.7 ns after     1739.6 ns  before/hand 0.98x  after/hand 0.98x
+  fixmsg/Order.read-stream100: 1 round(s) redone after a gen1/gen2 collection
+fixmsg/Order.read-stream100 hand   190274.0 ns before   193279.1 ns after   196632.6 ns  before/hand 1.02x  after/hand 1.03x
+fixmsg/Order.read-reader100 hand   187773.2 ns before   184068.0 ns after   181710.2 ns  before/hand 0.98x  after/hand 0.97x
+fix/Order.span         hand      657.5 ns before      487.6 ns after      485.8 ns  before/hand 0.74x  after/hand 0.74x
+feeds/streaming.1000   hand   202172.1 ns before   203445.7 ns after   206630.9 ns  before/hand 1.01x  after/hand 1.02x
+  fix/One.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/One.yield-string   hand       82.3 ns before      237.6 ns after      252.1 ns  before/hand 2.89x  after/hand 3.06x
+fix/One.yield-memory   hand       81.7 ns before      122.0 ns after      121.4 ns  before/hand 1.49x  after/hand 1.49x
+fix/Order.yield-string hand      663.2 ns before     2237.3 ns after     2292.0 ns  before/hand 3.37x  after/hand 3.46x
+fix/Order.yield-memory hand      652.3 ns before      771.4 ns after      771.3 ns  before/hand 1.18x  after/hand 1.18x
+fix/BinaryMany.yield-string hand     3466.2 ns before    14779.0 ns after    15906.2 ns  before/hand 4.26x  after/hand 4.59x
+  fix/BinaryMany.yield-memory: 1 round(s) redone after a gen1/gen2 collection
+fix/BinaryMany.yield-memory hand     3464.6 ns before     4776.6 ns after     4746.2 ns  before/hand 1.38x  after/hand 1.37x
+fix/Orders128.yield-string hand    78606.2 ns before   275970.7 ns after   281049.0 ns  before/hand 3.51x  after/hand 3.58x
+fix/Orders128.yield-memory hand    78254.6 ns before    90514.8 ns after    90514.7 ns  before/hand 1.16x  after/hand 1.16x
+  fix/slope-0.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.yield-string hand       25.4 ns before       43.2 ns after       49.1 ns  before/hand 1.70x  after/hand 1.93x
+fix/slope-0.yield-memory hand       25.2 ns before       59.4 ns after       59.4 ns  before/hand 2.36x  after/hand 2.36x
+fix/slope-16.yield-string hand      893.6 ns before     3037.8 ns after     3125.2 ns  before/hand 3.40x  after/hand 3.50x
+fix/slope-16.yield-memory hand      899.8 ns before     1059.5 ns after     1042.5 ns  before/hand 1.18x  after/hand 1.16x
+
+# Paired stand, 2026-09-19 21:21
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sql/select20.at | generated | 6666.6 | 17738.2 | 2.66x | 17834.4 | 2.68x | +0.5% | 21416 | 21416 |
+| sql/select20.window | generated | 6960.9 | 18281.6 | 2.63x | 18308.3 | 2.63x | +0.1% | 21416 | 21416 |
+| tsql/insert-values.at | generated | 7839.2 | 1394.4 | 0.18x | 1349.2 | 0.17x | -3.2% | 1328 | 1328 |
+| sql/select20.scan | generated | 369.4 | 370.3 | 1.00x | 370.0 | 1.00x | -0.1% | 0 | 0 |
+| sql/conditions100.scan | generated | 3461.7 | 3418.9 | 0.99x | 3419.9 | 0.99x | 0.0% | 0 | 0 |
+| tsql/select20.scan | generated | 373.6 | 372.5 | 1.00x | 372.2 | 1.00x | -0.1% | 0 | 0 |
+| el/ladder.scan | generated | 136.5 | 137.0 | 1.00x | 135.7 | 0.99x | -0.9% | 0 | 0 |
+| fixmsg/Order.parse-stream | generated | 1800.0 | 2110.6 | 1.17x | 2112.7 | 1.17x | +0.1% | 8224 | 8224 |
+| fixmsg/Order.parse-reader | generated | 1824.8 | 2070.8 | 1.13x | 2072.1 | 1.14x | +0.1% | 12112 | 12112 |
+| fixmsg/Order.parse-span | generated | 1775.9 | 1745.7 | 0.98x | 1739.6 | 0.98x | -0.4% | 3672 | 3672 |
+| fixmsg/Order.read-stream100 | generated | 190274.0 | 193279.1 | 1.02x | 196632.6 | 1.03x | +1.7% | 389248 | 389248 |
+| fixmsg/Order.read-reader100 | generated | 187773.2 | 184068.0 | 0.98x | 181710.2 | 0.97x | -1.3% | 375712 | 375712 |
+| fix/Order.span | generated | 657.5 | 487.6 | 0.74x | 485.8 | 0.74x | -0.4% | 1008 | 1008 |
+| feeds/streaming.1000 | generated | 202172.1 | 203445.7 | 1.01x | 206630.9 | 1.02x | +1.6% | 240760 | 240760 |
+| fix/One.yield-string | generated | 82.3 | 237.6 | 2.89x | 252.1 | 3.06x | +6.1% | 272 | 272 |
+| fix/One.yield-memory | generated | 81.7 | 122.0 | 1.49x | 121.4 | 1.49x | -0.5% | 352 | 352 |
+| fix/Order.yield-string | generated | 663.2 | 2237.3 | 3.37x | 2292.0 | 3.46x | +2.4% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | 652.3 | 771.4 | 1.18x | 771.3 | 1.18x | 0.0% | 1176 | 1176 |
+| fix/BinaryMany.yield-string | generated | 3466.2 | 14779.0 | 4.26x | 15906.2 | 4.59x | +7.6% | 6832 | 6832 |
+| fix/BinaryMany.yield-memory | generated | 3464.6 | 4776.6 | 1.38x | 4746.2 | 1.37x | -0.6% | 6912 | 6912 |
+| fix/Orders128.yield-string | generated | 78606.2 | 275970.7 | 3.51x | 281049.0 | 3.58x | +1.8% | 117936 | 117936 |
+| fix/Orders128.yield-memory | generated | 78254.6 | 90514.8 | 1.16x | 90514.7 | 1.16x | 0.0% | 118016 | 118016 |
+| fix/slope-0.yield-string | generated | 25.4 | 43.2 | 1.70x | 49.1 | 1.93x | +13.6% | 176 | 176 |
+| fix/slope-0.yield-memory | generated | 25.2 | 59.4 | 2.36x | 59.4 | 2.36x | 0.0% | 256 | 256 |
+| fix/slope-16.yield-string | generated | 893.6 | 3037.8 | 3.40x | 3125.2 | 3.50x | +2.9% | 1712 | 1712 |
+| fix/slope-16.yield-memory | generated | 899.8 | 1059.5 | 1.18x | 1042.5 | 1.16x | -1.6% | 1792 | 1792 |
+
+Written to T:\TEMP\dotgram-stand\w62\aa\run-2
+=== run 3 of 5, 21:21:26
+26 rows, every reading agreeing. Timing 8 rounds.
+sql/select20.at        hand     7263.4 ns before    17335.3 ns after    17405.8 ns  before/hand 2.39x  after/hand 2.40x
+sql/select20.window    hand     6881.6 ns before    17883.3 ns after    18316.4 ns  before/hand 2.60x  after/hand 2.66x
+tsql/insert-values.at  hand     8421.6 ns before     1421.8 ns after     1500.1 ns  before/hand 0.17x  after/hand 0.18x
+sql/select20.scan      hand      374.0 ns before      378.5 ns after      384.9 ns  before/hand 1.01x  after/hand 1.03x
+sql/conditions100.scan hand     3542.9 ns before     3583.1 ns after     3772.1 ns  before/hand 1.01x  after/hand 1.06x
+tsql/select20.scan     hand      385.9 ns before      383.2 ns after      380.6 ns  before/hand 0.99x  after/hand 0.99x
+el/ladder.scan         hand      140.0 ns before      136.6 ns after      137.5 ns  before/hand 0.98x  after/hand 0.98x
+fixmsg/Order.parse-stream hand     1950.1 ns before     2212.0 ns after     2156.8 ns  before/hand 1.13x  after/hand 1.11x
+fixmsg/Order.parse-reader hand     1853.0 ns before     2082.8 ns after     2153.2 ns  before/hand 1.12x  after/hand 1.16x
+fixmsg/Order.parse-span hand     1898.8 ns before     1823.5 ns after     1853.0 ns  before/hand 0.96x  after/hand 0.98x
+fixmsg/Order.read-stream100 hand   197813.3 ns before   204372.9 ns after   203689.1 ns  before/hand 1.03x  after/hand 1.03x
+fixmsg/Order.read-reader100 hand   196040.8 ns before   193813.3 ns after   194146.3 ns  before/hand 0.99x  after/hand 0.99x
+fix/Order.span         hand      672.5 ns before      517.1 ns after      509.4 ns  before/hand 0.77x  after/hand 0.76x
+  feeds/streaming.1000: 1 round(s) redone after a gen1/gen2 collection
+feeds/streaming.1000   hand   211618.2 ns before   221041.0 ns after   219064.3 ns  before/hand 1.04x  after/hand 1.04x
+fix/One.yield-string   hand       87.4 ns before      235.6 ns after      264.4 ns  before/hand 2.70x  after/hand 3.03x
+fix/One.yield-memory   hand       87.5 ns before      130.4 ns after      129.7 ns  before/hand 1.49x  after/hand 1.48x
+  fix/Order.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-string hand      698.1 ns before     2218.7 ns after     2445.3 ns  before/hand 3.18x  after/hand 3.50x
+fix/Order.yield-memory hand      718.9 ns before      833.2 ns after      845.0 ns  before/hand 1.16x  after/hand 1.18x
+  fix/BinaryMany.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/BinaryMany.yield-string hand     3597.5 ns before    15443.0 ns after    16013.7 ns  before/hand 4.29x  after/hand 4.45x
+fix/BinaryMany.yield-memory hand     3567.7 ns before     4945.9 ns after     4915.5 ns  before/hand 1.39x  after/hand 1.38x
+fix/Orders128.yield-string hand    83092.9 ns before   266632.6 ns after   293221.0 ns  before/hand 3.21x  after/hand 3.53x
+  fix/Orders128.yield-memory: 1 round(s) redone after a gen1/gen2 collection
+fix/Orders128.yield-memory hand    81777.1 ns before    93786.7 ns after    92519.4 ns  before/hand 1.15x  after/hand 1.13x
+fix/slope-0.yield-string hand       26.6 ns before       44.8 ns after       51.0 ns  before/hand 1.68x  after/hand 1.92x
+fix/slope-0.yield-memory hand       26.4 ns before       63.8 ns after       62.3 ns  before/hand 2.41x  after/hand 2.36x
+fix/slope-16.yield-string hand      949.2 ns before     2980.0 ns after     3310.9 ns  before/hand 3.14x  after/hand 3.49x
+fix/slope-16.yield-memory hand      940.2 ns before     1100.1 ns after     1085.9 ns  before/hand 1.17x  after/hand 1.15x
+
+# Paired stand, 2026-09-19 21:22
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sql/select20.at | generated | 7263.4 | 17335.3 | 2.39x | 17405.8 | 2.40x | +0.4% | 21416 | 21416 |
+| sql/select20.window | generated | 6881.6 | 17883.3 | 2.60x | 18316.4 | 2.66x | +2.4% | 21416 | 21416 |
+| tsql/insert-values.at | generated | 8421.6 | 1421.8 | 0.17x | 1500.1 | 0.18x | +5.5% | 1328 | 1328 |
+| sql/select20.scan | generated | 374.0 | 378.5 | 1.01x | 384.9 | 1.03x | +1.7% | 0 | 0 |
+| sql/conditions100.scan | generated | 3542.9 | 3583.1 | 1.01x | 3772.1 | 1.06x | +5.3% | 0 | 0 |
+| tsql/select20.scan | generated | 385.9 | 383.2 | 0.99x | 380.6 | 0.99x | -0.7% | 0 | 0 |
+| el/ladder.scan | generated | 140.0 | 136.6 | 0.98x | 137.5 | 0.98x | +0.6% | 0 | 0 |
+| fixmsg/Order.parse-stream | generated | 1950.1 | 2212.0 | 1.13x | 2156.8 | 1.11x | -2.5% | 8224 | 8224 |
+| fixmsg/Order.parse-reader | generated | 1853.0 | 2082.8 | 1.12x | 2153.2 | 1.16x | +3.4% | 12112 | 12112 |
+| fixmsg/Order.parse-span | generated | 1898.8 | 1823.5 | 0.96x | 1853.0 | 0.98x | +1.6% | 3672 | 3672 |
+| fixmsg/Order.read-stream100 | generated | 197813.3 | 204372.9 | 1.03x | 203689.1 | 1.03x | -0.3% | 389248 | 389248 |
+| fixmsg/Order.read-reader100 | generated | 196040.8 | 193813.3 | 0.99x | 194146.3 | 0.99x | +0.2% | 375712 | 375712 |
+| fix/Order.span | generated | 672.5 | 517.1 | 0.77x | 509.4 | 0.76x | -1.5% | 1008 | 1008 |
+| feeds/streaming.1000 | generated | 211618.2 | 221041.0 | 1.04x | 219064.3 | 1.04x | -0.9% | 240760 | 240760 |
+| fix/One.yield-string | generated | 87.4 | 235.6 | 2.70x | 264.4 | 3.03x | +12.2% | 272 | 272 |
+| fix/One.yield-memory | generated | 87.5 | 130.4 | 1.49x | 129.7 | 1.48x | -0.5% | 352 | 352 |
+| fix/Order.yield-string | generated | 698.1 | 2218.7 | 3.18x | 2445.3 | 3.50x | +10.2% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | 718.9 | 833.2 | 1.16x | 845.0 | 1.18x | +1.4% | 1176 | 1176 |
+| fix/BinaryMany.yield-string | generated | 3597.5 | 15443.0 | 4.29x | 16013.7 | 4.45x | +3.7% | 6832 | 6832 |
+| fix/BinaryMany.yield-memory | generated | 3567.7 | 4945.9 | 1.39x | 4915.5 | 1.38x | -0.6% | 6912 | 6912 |
+| fix/Orders128.yield-string | generated | 83092.9 | 266632.6 | 3.21x | 293221.0 | 3.53x | +10.0% | 117936 | 117936 |
+| fix/Orders128.yield-memory | generated | 81777.1 | 93786.7 | 1.15x | 92519.4 | 1.13x | -1.4% | 118016 | 118016 |
+| fix/slope-0.yield-string | generated | 26.6 | 44.8 | 1.68x | 51.0 | 1.92x | +13.9% | 176 | 176 |
+| fix/slope-0.yield-memory | generated | 26.4 | 63.8 | 2.41x | 62.3 | 2.36x | -2.3% | 256 | 256 |
+| fix/slope-16.yield-string | generated | 949.2 | 2980.0 | 3.14x | 3310.9 | 3.49x | +11.1% | 1712 | 1712 |
+| fix/slope-16.yield-memory | generated | 940.2 | 1100.1 | 1.17x | 1085.9 | 1.15x | -1.3% | 1792 | 1792 |
+
+Written to T:\TEMP\dotgram-stand\w62\aa\run-3
+=== run 4 of 5, 21:22:55
+26 rows, every reading agreeing. Timing 8 rounds.
+sql/select20.at        hand     7275.5 ns before    18386.9 ns after    17830.2 ns  before/hand 2.53x  after/hand 2.45x
+sql/select20.window    hand     7009.0 ns before    19254.0 ns after    18550.4 ns  before/hand 2.75x  after/hand 2.65x
+tsql/insert-values.at  hand     8166.8 ns before     1418.2 ns after     1478.1 ns  before/hand 0.17x  after/hand 0.18x
+sql/select20.scan      hand      373.8 ns before      367.5 ns after      371.2 ns  before/hand 0.98x  after/hand 0.99x
+sql/conditions100.scan hand     3495.3 ns before     3501.8 ns after     3459.4 ns  before/hand 1.00x  after/hand 0.99x
+tsql/select20.scan     hand      373.3 ns before      373.8 ns after      373.8 ns  before/hand 1.00x  after/hand 1.00x
+el/ladder.scan         hand      145.0 ns before      137.4 ns after      136.3 ns  before/hand 0.95x  after/hand 0.94x
+fixmsg/Order.parse-stream hand     1758.9 ns before     2106.0 ns after     2098.6 ns  before/hand 1.20x  after/hand 1.19x
+fixmsg/Order.parse-reader hand     1842.0 ns before     2191.9 ns after     2187.2 ns  before/hand 1.19x  after/hand 1.19x
+fixmsg/Order.parse-span hand     1818.4 ns before     1865.4 ns after     1835.7 ns  before/hand 1.03x  after/hand 1.01x
+fixmsg/Order.read-stream100 hand   195344.3 ns before   203625.4 ns after   196864.3 ns  before/hand 1.04x  after/hand 1.01x
+fixmsg/Order.read-reader100 hand   195853.1 ns before   197667.2 ns after   192870.3 ns  before/hand 1.01x  after/hand 0.98x
+fix/Order.span         hand      654.3 ns before      513.2 ns after      515.8 ns  before/hand 0.78x  after/hand 0.79x
+feeds/streaming.1000   hand   208853.1 ns before   206773.4 ns after   213211.1 ns  before/hand 0.99x  after/hand 1.02x
+fix/One.yield-string   hand       81.3 ns before      250.4 ns after      238.1 ns  before/hand 3.08x  after/hand 2.93x
+fix/One.yield-memory   hand       83.5 ns before      126.9 ns after      124.6 ns  before/hand 1.52x  after/hand 1.49x
+  fix/Order.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-string hand      655.0 ns before     2356.7 ns after     2212.5 ns  before/hand 3.60x  after/hand 3.38x
+fix/Order.yield-memory hand      657.9 ns before      796.8 ns after      790.2 ns  before/hand 1.21x  after/hand 1.20x
+fix/BinaryMany.yield-string hand     3633.7 ns before    17068.0 ns after    16097.9 ns  before/hand 4.70x  after/hand 4.43x
+fix/BinaryMany.yield-memory hand     3526.7 ns before     4965.1 ns after     4869.0 ns  before/hand 1.41x  after/hand 1.38x
+  fix/Orders128.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/Orders128.yield-string hand    80311.3 ns before   298640.2 ns after   275774.8 ns  before/hand 3.72x  after/hand 3.43x
+fix/Orders128.yield-memory hand    79783.2 ns before    93114.9 ns after    94298.2 ns  before/hand 1.17x  after/hand 1.18x
+fix/slope-0.yield-string hand       26.3 ns before       44.4 ns after       50.4 ns  before/hand 1.69x  after/hand 1.92x
+  fix/slope-0.yield-memory: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.yield-memory hand       25.8 ns before       61.8 ns after       61.5 ns  before/hand 2.39x  after/hand 2.38x
+fix/slope-16.yield-string hand      904.5 ns before     3282.0 ns after     3024.7 ns  before/hand 3.63x  after/hand 3.34x
+  fix/slope-16.yield-memory: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-16.yield-memory hand      905.5 ns before     1093.5 ns after     1085.0 ns  before/hand 1.21x  after/hand 1.20x
+
+# Paired stand, 2026-09-19 21:24
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sql/select20.at | generated | 7275.5 | 18386.9 | 2.53x | 17830.2 | 2.45x | -3.0% | 21416 | 21416 |
+| sql/select20.window | generated | 7009.0 | 19254.0 | 2.75x | 18550.4 | 2.65x | -3.7% | 21416 | 21416 |
+| tsql/insert-values.at | generated | 8166.8 | 1418.2 | 0.17x | 1478.1 | 0.18x | +4.2% | 1353 | 1353 |
+| sql/select20.scan | generated | 373.8 | 367.5 | 0.98x | 371.2 | 0.99x | +1.0% | 0 | 0 |
+| sql/conditions100.scan | generated | 3495.3 | 3501.8 | 1.00x | 3459.4 | 0.99x | -1.2% | 0 | 0 |
+| tsql/select20.scan | generated | 373.3 | 373.8 | 1.00x | 373.8 | 1.00x | 0.0% | 0 | 0 |
+| el/ladder.scan | generated | 145.0 | 137.4 | 0.95x | 136.3 | 0.94x | -0.8% | 0 | 0 |
+| fixmsg/Order.parse-stream | generated | 1758.9 | 2106.0 | 1.20x | 2098.6 | 1.19x | -0.4% | 8224 | 8224 |
+| fixmsg/Order.parse-reader | generated | 1842.0 | 2191.9 | 1.19x | 2187.2 | 1.19x | -0.2% | 12112 | 12112 |
+| fixmsg/Order.parse-span | generated | 1818.4 | 1865.4 | 1.03x | 1835.7 | 1.01x | -1.6% | 3672 | 3672 |
+| fixmsg/Order.read-stream100 | generated | 195344.3 | 203625.4 | 1.04x | 196864.3 | 1.01x | -3.3% | 389248 | 389248 |
+| fixmsg/Order.read-reader100 | generated | 195853.1 | 197667.2 | 1.01x | 192870.3 | 0.98x | -2.4% | 375712 | 375712 |
+| fix/Order.span | generated | 654.3 | 513.2 | 0.78x | 515.8 | 0.79x | +0.5% | 1008 | 1008 |
+| feeds/streaming.1000 | generated | 208853.1 | 206773.4 | 0.99x | 213211.1 | 1.02x | +3.1% | 240760 | 240760 |
+| fix/One.yield-string | generated | 81.3 | 250.4 | 3.08x | 238.1 | 2.93x | -4.9% | 272 | 272 |
+| fix/One.yield-memory | generated | 83.5 | 126.9 | 1.52x | 124.6 | 1.49x | -1.8% | 352 | 352 |
+| fix/Order.yield-string | generated | 655.0 | 2356.7 | 3.60x | 2212.5 | 3.38x | -6.1% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | 657.9 | 796.8 | 1.21x | 790.2 | 1.20x | -0.8% | 1176 | 1176 |
+| fix/BinaryMany.yield-string | generated | 3633.7 | 17068.0 | 4.70x | 16097.9 | 4.43x | -5.7% | 6832 | 6832 |
+| fix/BinaryMany.yield-memory | generated | 3526.7 | 4965.1 | 1.41x | 4869.0 | 1.38x | -1.9% | 6912 | 6912 |
+| fix/Orders128.yield-string | generated | 80311.3 | 298640.2 | 3.72x | 275774.8 | 3.43x | -7.7% | 117936 | 117936 |
+| fix/Orders128.yield-memory | generated | 79783.2 | 93114.9 | 1.17x | 94298.2 | 1.18x | +1.3% | 118016 | 118016 |
+| fix/slope-0.yield-string | generated | 26.3 | 44.4 | 1.69x | 50.4 | 1.92x | +13.6% | 176 | 176 |
+| fix/slope-0.yield-memory | generated | 25.8 | 61.8 | 2.39x | 61.5 | 2.38x | -0.5% | 256 | 256 |
+| fix/slope-16.yield-string | generated | 904.5 | 3282.0 | 3.63x | 3024.7 | 3.34x | -7.8% | 1712 | 1712 |
+| fix/slope-16.yield-memory | generated | 905.5 | 1093.5 | 1.21x | 1085.0 | 1.20x | -0.8% | 1792 | 1792 |
+
+Written to T:\TEMP\dotgram-stand\w62\aa\run-4
+=== run 5 of 5, 21:24:28
+26 rows, every reading agreeing. Timing 8 rounds.
+sql/select20.at        hand     6785.6 ns before    17763.8 ns after    17682.7 ns  before/hand 2.62x  after/hand 2.61x
+sql/select20.window    hand     7243.2 ns before    19183.9 ns after    18753.6 ns  before/hand 2.65x  after/hand 2.59x
+tsql/insert-values.at  hand     8472.6 ns before     1393.6 ns after     1387.3 ns  before/hand 0.16x  after/hand 0.16x
+sql/select20.scan      hand      371.2 ns before      388.6 ns after      377.0 ns  before/hand 1.05x  after/hand 1.02x
+sql/conditions100.scan hand     3491.8 ns before     3518.3 ns after     3496.9 ns  before/hand 1.01x  after/hand 1.00x
+tsql/select20.scan     hand      375.6 ns before      386.6 ns after      382.4 ns  before/hand 1.03x  after/hand 1.02x
+el/ladder.scan         hand      138.2 ns before      139.5 ns after      137.9 ns  before/hand 1.01x  after/hand 1.00x
+fixmsg/Order.parse-stream hand     1782.1 ns before     2129.2 ns after     2182.2 ns  before/hand 1.19x  after/hand 1.22x
+fixmsg/Order.parse-reader hand     1837.2 ns before     2083.2 ns after     2038.8 ns  before/hand 1.13x  after/hand 1.11x
+fixmsg/Order.parse-span hand     1833.1 ns before     1805.0 ns after     1774.4 ns  before/hand 0.98x  after/hand 0.97x
+fixmsg/Order.read-stream100 hand   194971.5 ns before   204872.5 ns after   204999.8 ns  before/hand 1.05x  after/hand 1.05x
+fixmsg/Order.read-reader100 hand   192831.4 ns before   188305.9 ns after   186546.7 ns  before/hand 0.98x  after/hand 0.97x
+fix/Order.span         hand      645.4 ns before      496.6 ns after      495.1 ns  before/hand 0.77x  after/hand 0.77x
+feeds/streaming.1000   hand   219371.3 ns before   218079.3 ns after   209132.0 ns  before/hand 0.99x  after/hand 0.95x
+fix/One.yield-string   hand       82.1 ns before      229.9 ns after      248.5 ns  before/hand 2.80x  after/hand 3.03x
+fix/One.yield-memory   hand       82.8 ns before      127.1 ns after      127.9 ns  before/hand 1.54x  after/hand 1.55x
+  fix/Order.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/Order.yield-string hand      642.9 ns before     2248.7 ns after     2257.0 ns  before/hand 3.50x  after/hand 3.51x
+fix/Order.yield-memory hand      650.9 ns before      787.1 ns after      792.7 ns  before/hand 1.21x  after/hand 1.22x
+  fix/BinaryMany.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/BinaryMany.yield-string hand     3521.0 ns before    15472.5 ns after    16351.8 ns  before/hand 4.39x  after/hand 4.64x
+fix/BinaryMany.yield-memory hand     3567.0 ns before     4838.6 ns after     4861.0 ns  before/hand 1.36x  after/hand 1.36x
+  fix/Orders128.yield-string: 1 round(s) redone after a gen1/gen2 collection
+fix/Orders128.yield-string hand    81102.4 ns before   283451.9 ns after   284901.0 ns  before/hand 3.49x  after/hand 3.51x
+fix/Orders128.yield-memory hand    80220.5 ns before    95455.0 ns after    96576.0 ns  before/hand 1.19x  after/hand 1.20x
+fix/slope-0.yield-string hand       25.9 ns before       44.2 ns after       50.3 ns  before/hand 1.71x  after/hand 1.95x
+  fix/slope-0.yield-memory: 1 round(s) redone after a gen1/gen2 collection
+fix/slope-0.yield-memory hand       26.3 ns before       61.0 ns after       60.5 ns  before/hand 2.32x  after/hand 2.30x
+fix/slope-16.yield-string hand      896.6 ns before     3022.1 ns after     3164.9 ns  before/hand 3.37x  after/hand 3.53x
+fix/slope-16.yield-memory hand      921.3 ns before     1090.1 ns after     1104.7 ns  before/hand 1.18x  after/hand 1.20x
+
+# Paired stand, 2026-09-19 21:26
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sql/select20.at | generated | 6785.6 | 17763.8 | 2.62x | 17682.7 | 2.61x | -0.5% | 21416 | 21416 |
+| sql/select20.window | generated | 7243.2 | 19183.9 | 2.65x | 18753.6 | 2.59x | -2.2% | 21416 | 21416 |
+| tsql/insert-values.at | generated | 8472.6 | 1393.6 | 0.16x | 1387.3 | 0.16x | -0.5% | 1328 | 1328 |
+| sql/select20.scan | generated | 371.2 | 388.6 | 1.05x | 377.0 | 1.02x | -3.0% | 0 | 0 |
+| sql/conditions100.scan | generated | 3491.8 | 3518.3 | 1.01x | 3496.9 | 1.00x | -0.6% | 0 | 0 |
+| tsql/select20.scan | generated | 375.6 | 386.6 | 1.03x | 382.4 | 1.02x | -1.1% | 0 | 0 |
+| el/ladder.scan | generated | 138.2 | 139.5 | 1.01x | 137.9 | 1.00x | -1.1% | 0 | 0 |
+| fixmsg/Order.parse-stream | generated | 1782.1 | 2129.2 | 1.19x | 2182.2 | 1.22x | +2.5% | 8224 | 8224 |
+| fixmsg/Order.parse-reader | generated | 1837.2 | 2083.2 | 1.13x | 2038.8 | 1.11x | -2.1% | 12112 | 12112 |
+| fixmsg/Order.parse-span | generated | 1833.1 | 1805.0 | 0.98x | 1774.4 | 0.97x | -1.7% | 3672 | 3672 |
+| fixmsg/Order.read-stream100 | generated | 194971.5 | 204872.5 | 1.05x | 204999.8 | 1.05x | +0.1% | 389248 | 389248 |
+| fixmsg/Order.read-reader100 | generated | 192831.4 | 188305.9 | 0.98x | 186546.7 | 0.97x | -0.9% | 375712 | 375712 |
+| fix/Order.span | generated | 645.4 | 496.6 | 0.77x | 495.1 | 0.77x | -0.3% | 1008 | 1008 |
+| feeds/streaming.1000 | generated | 219371.3 | 218079.3 | 0.99x | 209132.0 | 0.95x | -4.1% | 240760 | 240760 |
+| fix/One.yield-string | generated | 82.1 | 229.9 | 2.80x | 248.5 | 3.03x | +8.1% | 272 | 272 |
+| fix/One.yield-memory | generated | 82.8 | 127.1 | 1.54x | 127.9 | 1.55x | +0.6% | 352 | 352 |
+| fix/Order.yield-string | generated | 642.9 | 2248.7 | 3.50x | 2257.0 | 3.51x | +0.4% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | 650.9 | 787.1 | 1.21x | 792.7 | 1.22x | +0.7% | 1176 | 1176 |
+| fix/BinaryMany.yield-string | generated | 3521.0 | 15472.5 | 4.39x | 16351.8 | 4.64x | +5.7% | 6832 | 6832 |
+| fix/BinaryMany.yield-memory | generated | 3567.0 | 4838.6 | 1.36x | 4861.0 | 1.36x | +0.5% | 6912 | 6912 |
+| fix/Orders128.yield-string | generated | 81102.4 | 283451.9 | 3.49x | 284901.0 | 3.51x | +0.5% | 117936 | 117936 |
+| fix/Orders128.yield-memory | generated | 80220.5 | 95455.0 | 1.19x | 96576.0 | 1.20x | +1.2% | 118016 | 118016 |
+| fix/slope-0.yield-string | generated | 25.9 | 44.2 | 1.71x | 50.3 | 1.95x | +13.7% | 176 | 176 |
+| fix/slope-0.yield-memory | generated | 26.3 | 61.0 | 2.32x | 60.5 | 2.30x | -0.9% | 256 | 256 |
+| fix/slope-16.yield-string | generated | 896.6 | 3022.1 | 3.37x | 3164.9 | 3.53x | +4.7% | 1712 | 1712 |
+| fix/slope-16.yield-memory | generated | 921.3 | 1090.1 | 1.18x | 1104.7 | 1.20x | +1.3% | 1792 | 1792 |
+
+Written to T:\TEMP\dotgram-stand\w62\aa\run-5
+
+Median of 5 of 5 runs, each in a process of its own; control 31.1 ns (the runs' controls: 30.8, 30.5, 31.1, 31.2, 31.2).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-19 21:26
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | before B | after B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sql/select20.at | generated | 6785.6 | 17738.2 | 2.61x | 17830.2 | 2.63x | +0.5% | 21416 | 21416 |
+| sql/select20.window | generated | 6960.9 | 18281.6 | 2.63x | 18316.4 | 2.63x | +0.2% | 21416 | 21416 |
+| tsql/insert-values.at | generated | 8256.8 | 1396.4 | 0.17x | 1419.3 | 0.17x | +1.6% | 1328 | 1328 |
+| sql/select20.scan | generated | 371.2 | 377.6 | 1.02x | 377.0 | 1.02x | -0.2% | 0 | 0 |
+| sql/conditions100.scan | generated | 3491.8 | 3518.3 | 1.01x | 3477.7 | 1.00x | -1.2% | 0 | 0 |
+| tsql/select20.scan | generated | 373.6 | 378.9 | 1.01x | 378.1 | 1.01x | -0.2% | 0 | 0 |
+| el/ladder.scan | generated | 138.2 | 137.0 | 0.99x | 137.5 | 0.99x | +0.4% | 0 | 0 |
+| fixmsg/Order.parse-stream | generated | 1782.1 | 2129.2 | 1.19x | 2112.7 | 1.19x | -0.8% | 8224 | 8224 |
+| fixmsg/Order.parse-reader | generated | 1837.2 | 2083.2 | 1.13x | 2072.1 | 1.13x | -0.5% | 12112 | 12112 |
+| fixmsg/Order.parse-span | generated | 1818.4 | 1805.0 | 0.99x | 1776.7 | 0.98x | -1.6% | 3672 | 3672 |
+| fixmsg/Order.read-stream100 | generated | 194971.5 | 203625.4 | 1.04x | 196864.3 | 1.01x | -3.3% | 389248 | 389248 |
+| fixmsg/Order.read-reader100 | generated | 192831.4 | 189366.8 | 0.98x | 186546.7 | 0.97x | -1.5% | 375712 | 375712 |
+| fix/Order.span | generated | 654.3 | 496.8 | 0.76x | 497.1 | 0.76x | +0.1% | 1008 | 1008 |
+| feeds/streaming.1000 | generated | 208853.1 | 218079.3 | 1.04x | 209132.0 | 1.00x | -4.1% | 240760 | 240760 |
+| fix/One.yield-string | generated | 82.3 | 237.6 | 2.89x | 248.5 | 3.02x | +4.6% | 272 | 272 |
+| fix/One.yield-memory | generated | 83.3 | 126.9 | 1.52x | 124.8 | 1.50x | -1.6% | 352 | 352 |
+| fix/Order.yield-string | generated | 657.5 | 2248.7 | 3.42x | 2269.9 | 3.45x | +0.9% | 1096 | 1096 |
+| fix/Order.yield-memory | generated | 657.6 | 787.7 | 1.20x | 790.2 | 1.20x | +0.3% | 1176 | 1176 |
+| fix/BinaryMany.yield-string | generated | 3536.9 | 15472.5 | 4.37x | 16097.9 | 4.55x | +4.0% | 6832 | 6832 |
+| fix/BinaryMany.yield-memory | generated | 3526.7 | 4838.6 | 1.37x | 4861.0 | 1.38x | +0.5% | 6912 | 6912 |
+| fix/Orders128.yield-string | generated | 80311.3 | 283451.9 | 3.53x | 281049.0 | 3.50x | -0.8% | 117936 | 117936 |
+| fix/Orders128.yield-memory | generated | 79783.2 | 93114.9 | 1.17x | 93714.6 | 1.17x | +0.6% | 118016 | 118016 |
+| fix/slope-0.yield-string | generated | 26.2 | 44.4 | 1.69x | 50.4 | 1.92x | +13.6% | 176 | 176 |
+| fix/slope-0.yield-memory | generated | 26.3 | 61.1 | 2.32x | 61.4 | 2.33x | +0.4% | 256 | 256 |
+| fix/slope-16.yield-string | generated | 903.0 | 3037.8 | 3.36x | 3125.2 | 3.46x | +2.9% | 1712 | 1712 |
+| fix/slope-16.yield-memory | generated | 905.5 | 1090.1 | 1.20x | 1085.0 | 1.20x | -0.5% | 1792 | 1792 |
+
+Written to T:\TEMP\dotgram-stand\w62\aa

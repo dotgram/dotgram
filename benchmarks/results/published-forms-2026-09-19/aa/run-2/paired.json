@@ -1,0 +1,4529 @@
+{
+  "Control": 30.5005,
+  "Rows": [
+    {
+      "Id": "sql/select20.at",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 6666.6259765625,
+          "Bytes": 24040,
+          "Warmup": 6,
+          "Rounds": [
+            {
+              "Nanoseconds": 6602.880859375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6673.388671875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6645.654296875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6728.076171875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6638.427734375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6854.833984375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6659.86328125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6692.236328125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 17738.1591796875,
+          "Bytes": 21416,
+          "Warmup": 3,
+          "Rounds": [
+            {
+              "Nanoseconds": 17260.498046875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17551.171875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17950.5859375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18317.822265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17816.748046875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17875.78125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17542.28515625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17659.5703125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 17834.423828125,
+          "Bytes": 21416,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 17477.9296875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17508.447265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17878.369140625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17928.857421875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18226.953125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18833.49609375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17706.54296875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17790.478515625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.037793199421383185
+    },
+    {
+      "Id": "sql/select20.window",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 6960.931396484375,
+          "Bytes": 24040,
+          "Warmup": 3,
+          "Rounds": [
+            {
+              "Nanoseconds": 6660.97412109375,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7491.90673828125,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7203.74755859375,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6718.115234375,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7374.51171875,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6603.515625,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7220.60546875,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 6461.60888671875,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 18281.597900390625,
+          "Bytes": 21416,
+          "Warmup": 3,
+          "Rounds": [
+            {
+              "Nanoseconds": 17587.04833984375,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18570.22705078125,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18475.18310546875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18179.4921875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 19231.4697265625,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18267.4560546875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18295.73974609375,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17287.8173828125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 18308.282470703125,
+          "Bytes": 21416,
+          "Warmup": 3,
+          "Rounds": [
+            {
+              "Nanoseconds": 18159.77783203125,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18604.11376953125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18861.3525390625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17922.3388671875,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18842.578125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 18456.787109375,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17966.49169921875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 17539.14794921875,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.14801149341636277
+    },
+    {
+      "Id": "tsql/insert-values.at",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 7839.1845703125,
+          "Bytes": 42184,
+          "Warmup": 3,
+          "Rounds": [
+            {
+              "Nanoseconds": 7952.001953124999,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7838.134765624999,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7816.9921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7846.289062499999,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7831.201171875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7889.94140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7840.234375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 7820.361328125001,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1394.3603515625,
+          "Bytes": 1328,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1407.470703125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1389.35546875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1396.2890625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1394.482421875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1410.64453125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1394.23828125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1389.208984375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1388.232421875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1349.21875,
+          "Bytes": 1328,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1374.609375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1339.404296875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1365.234375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1349.8046875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1409.619140625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1331.25,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1348.6328125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1327.24609375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.017222424655784968
+    },
+    {
+      "Id": "sql/select20.scan",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 369.3817138671875,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 364.56298828125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 370.7275390625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 366.009521484375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 370.00732421875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 369.32373046875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 369.439697265625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 366.12548828125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 369.940185546875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 370.3094482421875,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 370.703125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 373.480224609375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 368.316650390625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 368.609619140625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 369.915771484375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 373.35205078125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 369.561767578125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 371.81396484375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 369.964599609375,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 370.95947265625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 369.82421875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 371.893310546875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 368.756103515625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 370.10498046875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 369.366455078125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 370.76416015625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 367.8466796875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.016688835829773874
+    },
+    {
+      "Id": "sql/conditions100.scan",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 3461.6973876953125,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 3459.002685546875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3458.3251953125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3496.368408203125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3503.472900390625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3476.226806640625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3457.6416015625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3464.39208984375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3457.281494140625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 3418.853759765625,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 3403.72314453125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3411.883544921875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3435.7666015625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3460.699462890625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3419.232177734375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3418.475341796875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3408.38623046875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3426.85546875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 3419.9310302734375,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 3417.095947265625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3406.591796875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3565.130615234375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3461.2548828125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3422.76611328125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3416.888427734375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3425.13427734375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3412.884521484375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.013343571397716183
+    },
+    {
+      "Id": "tsql/select20.scan",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 373.6133575439453,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 370.4551696777344,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 371.0655212402344,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 379.33197021484375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 373.56109619140625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 373.6656188964844,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 381.9374084472656,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 373.3482360839844,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 376.5602111816406,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 372.5128173828125,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 372.0176696777344,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 370.30181884765625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 371.4378356933594,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 371.3722229003906,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 373.0079650878906,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 374.2866516113281,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 376.8165588378906,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 376.5876770019531,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 372.1691131591797,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 369.17877197265625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 372.30224609375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 372.0359802246094,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 372.9789733886719,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 371.05255126953125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 370.2545166015625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 375.78582763671875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 373.55499267578125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.030732945002322837
+    },
+    {
+      "Id": "el/ladder.scan",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 136.50178909301758,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 133.57906341552734,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 134.76638793945312,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 138.55419158935547,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 135.17379760742188,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 138.06781768798828,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.90261840820312,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.11278533935547,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.8907928466797,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 136.9706153869629,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 140.58246612548828,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 135.16998291015625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.78760528564453,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 135.3931427001953,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 137.58602142333984,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.60602569580078,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 137.15362548828125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 137.9251480102539,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 135.71090698242188,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 135.21137237548828,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 135.52074432373047,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 135.7065200805664,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 134.771728515625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.34929656982422,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 135.71529388427734,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.8276596069336,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.16867065429688,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.03644734773723648
+    },
+    {
+      "Id": "fixmsg/Order.parse-stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1799.9755859375,
+          "Bytes": 3360,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1861.328125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1812.3046875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1783.69140625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1794.3603515625,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1775.9033203125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1805.5908203125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1792.8955078125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1809.86328125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2110.63232421875,
+          "Bytes": 8224,
+          "Warmup": 3,
+          "Rounds": [
+            {
+              "Nanoseconds": 2104.1748046875,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2037.0849609375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2123.2666015625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2066.9921875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2093.310546875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2141.5771484375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2117.08984375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2118.0419921875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2112.6708984375,
+          "Bytes": 8224,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 2126.0009765625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2105.908203125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2099.3408203125,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2103.173828125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2092.08984375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2140.966796875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2162.744140625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2119.43359375,
+              "Gen0": 0,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.04745886852849024
+    },
+    {
+      "Id": "fixmsg/Order.parse-reader",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1824.8275756835938,
+          "Bytes": 3360,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1854.0374755859375,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1849.774169921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1835.736083984375,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1802.520751953125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1827.4658203125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1800.5706787109375,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1777.9205322265625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1822.1893310546875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2070.8160400390625,
+          "Bytes": 12112,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 2086.3525390625,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2082.086181640625,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2106.0272216796875,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2064.4744873046875,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2046.1578369140627,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2077.1575927734375,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2020.1934814453125,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2000.1190185546875,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2072.0718383789062,
+          "Bytes": 12112,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 2156.207275390625,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2080.389404296875,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2160.5865478515625,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2247.064208984375,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2063.7542724609375,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2035.97412109375,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2021.7285156250002,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1991.0736083984375,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.04171185506710739
+    },
+    {
+      "Id": "fixmsg/Order.parse-span",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1775.9201049804688,
+          "Bytes": 3360,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1767.352294921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1778.485107421875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1781.2286376953125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1766.522216796875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1776.3763427734375,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1775.4638671875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1787.95166015625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1766.78466796875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1745.7366943359375,
+          "Bytes": 3672,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1752.9083251953125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1753.35693359375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1745.1629638671875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1742.529296875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1762.0147705078125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1742.6971435546875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1746.3104248046875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1737.811279296875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1739.56298828125,
+          "Bytes": 3672,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1739.5843505859375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1731.4453125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1730.95703125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1739.5416259765625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1762.3321533203125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1745.0347900390625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1745.5535888671875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1729.266357421875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.012066670848129554
+    },
+    {
+      "Id": "fixmsg/Order.read-stream100",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 190274.0234375,
+          "Bytes": 375640,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 189987.109375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 190345.703125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 191130.078125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 190365.625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 190202.34375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 189873.046875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 190112.109375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 190508.59375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 193279.1015625,
+          "Bytes": 389248,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 193968.75,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 193308.203125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 193580.46875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 192931.25,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 192623.828125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 193247.265625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 193250,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 193458.984375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 196632.6171875,
+          "Bytes": 389248,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 197745.703125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 196503.515625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 197014.453125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 196141.015625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 197927.34375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 196761.71875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 196496.09375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 195803.515625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.006606425970767899
+    },
+    {
+      "Id": "fixmsg/Order.read-reader100",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 187773.2421875,
+          "Bytes": 375640,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 191034.765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 187213.28125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 187183.203125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 188493.75,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 187829.296875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 187457.03125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 191284.765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 187717.1875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 184067.96875,
+          "Bytes": 375712,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 185119.921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 183291.796875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 183335.9375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 183576.5625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 183646.484375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 184489.453125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 184805.859375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 185719.921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 181710.15625,
+          "Bytes": 375712,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 183811.71875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 182869.53125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 181285.546875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 181144.921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 181282.8125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 180974.609375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 182134.765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 185297.265625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.021843168133106026
+    },
+    {
+      "Id": "fix/Order.span",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 657.5187683105469,
+          "Bytes": 920,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 652.4307250976562,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 652.679443359375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 653.1951904296875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 661.4334106445312,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 664.3539428710938,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 653.6041259765625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 661.7507934570312,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 665.4876708984375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 487.5724792480469,
+          "Bytes": 1008,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 485.26458740234375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 485.504150390625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 485.51025390625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 489.6347045898438,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 497.2625732421875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 484.82513427734375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 493.0374145507813,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 496.9284057617187,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 485.82000732421875,
+          "Bytes": 1008,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 482.3516845703125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 483.1329345703125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 484.97467041015625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 485.43548583984375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 487.89215087890625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 486.20452880859375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 489.04418945312494,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 503.4896850585937,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.01985790585769932
+    },
+    {
+      "Id": "feeds/streaming.1000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 202172.0703125,
+          "Bytes": 240728,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 203664.84375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 204594.53125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 202624.21875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 200698.046875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 200863.28125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 201719.921875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 203026.953125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 201310.546875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 203445.703125,
+          "Bytes": 240760,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 204164.84375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 208176.5625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 203612.109375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 203557.03125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 201995.703125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 201548.828125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 203233.59375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 203334.375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 206630.859375,
+          "Bytes": 240760,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 205902.34375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 215612.5,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 207267.96875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 208182.03125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 206337.5,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 206924.21875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 206048.4375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 204958.203125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.01927310913410123
+    },
+    {
+      "Id": "fix/One.yield-string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 82.29598999023438,
+          "Bytes": 256,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 83.25672149658203,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 82.2662353515625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 81.3833236694336,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 82.30915069580078,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 82.28282928466797,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 85.25867462158203,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 81.77661895751953,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 83.63170623779297,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 237.63017654418945,
+          "Bytes": 272,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 237.42332458496094,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 241.16973876953125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 234.5958709716797,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 236.26537322998047,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 237.83702850341797,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 238.46302032470703,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 235.4877471923828,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 241.12415313720703,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 252.05411911010742,
+          "Bytes": 272,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 252.3967742919922,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 252.01053619384768,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 249.1691589355469,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 251.89323425292972,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 254.16259765625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 252.99358367919925,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 250.10395050048828,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 252.09770202636716,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.047090398360944495
+    },
+    {
+      "Id": "fix/One.yield-memory",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 81.65483474731445,
+          "Bytes": 256,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 82.7219009399414,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 82.27958679199219,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 81.73751831054688,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 81.50157928466797,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 81.57215118408203,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 82.98377990722656,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 81.50043487548828,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 81.3446044921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 121.9644546508789,
+          "Bytes": 352,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 121.59042358398438,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 123.19374084472656,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.46549224853516,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 122.06230163574219,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.4681625366211,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 136.88831329345703,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 122.3134994506836,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.86660766601562,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 121.36411666870117,
+          "Bytes": 352,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 121.43592834472656,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 122.05829620361328,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 122.35031127929688,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.58546447753906,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.29230499267578,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.07219696044922,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.15478515625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 121.1578369140625,
+              "Gen0": 4,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.020074444092766635
+    },
+    {
+      "Id": "fix/Order.yield-string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 663.226318359375,
+          "Bytes": 920,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 665.1443481445312,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 661.3082885742188,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 660.9481811523438,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 673.5427856445312,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 678.857421875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 653.3203125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 650.1861572265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 668.1686401367188,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2237.2833251953125,
+          "Bytes": 1096,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 2229.2633056640625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2251.806640625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2245.3033447265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2269.8745727539062,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2255.0994873046875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2212.481689453125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2213.0889892578125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2226.25732421875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2291.9700622558594,
+          "Bytes": 1096,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 2295.3414916992188,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2308.26416015625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2355.4168701171875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2335.4034423828125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2288.5986328125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2272.5799560546875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2273.6114501953125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 2281.6299438476562,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.04322998628788088
+    },
+    {
+      "Id": "fix/Order.yield-memory",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 652.3460388183594,
+          "Bytes": 920,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 656.4773559570312,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 650.2914428710938,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 652.1865844726562,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 674.2095947265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 663.9114379882812,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 652.5054931640625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 649.7802734375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 649.078369140625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 771.3981628417969,
+          "Bytes": 1176,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 769.561767578125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 770.0531005859375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 771.8521118164062,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 803.9581298828125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 770.9442138671875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 774.0753173828125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 764.29443359375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 789.9337768554688,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 771.3050842285156,
+          "Bytes": 1176,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 766.7388916015625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 770.0408935546875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 773.3306884765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 781.2484741210938,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 776.910400390625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 772.5692749023438,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 768.6813354492188,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 767.0639038085938,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.03852437830612028
+    },
+    {
+      "Id": "fix/BinaryMany.yield-string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 3466.1590576171875,
+          "Bytes": 5808,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 3461.322021484375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3481.182861328125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3465.5029296875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3466.815185546875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3452.24609375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3476.983642578125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3461.376953125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3477.2216796875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 14779.00390625,
+          "Bytes": 6832,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 14867.29736328125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 14822.54638671875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 14774.08447265625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 14787.92724609375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 14769.9462890625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 14778.6376953125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 14779.3701171875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 14775.91552734375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 15906.222534179686,
+          "Bytes": 6832,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 15997.186279296873,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 15997.186279296873,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 15815.277099609375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 15890.637207031248,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 15908.178710937498,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 15926.0009765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 15904.266357421873,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 15858.203125000002,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.00834836690905281
+    },
+    {
+      "Id": "fix/BinaryMany.yield-memory",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 3464.6209716796875,
+          "Bytes": 5808,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 3492.34619140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3482.269287109375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3463.75732421875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3465.484619140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3570.660400390625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3444.146728515625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3438.421630859375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3460.791015625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 4776.5594482421875,
+          "Bytes": 6912,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 4827.362060546875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4788.95263671875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4781.903076171875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4777.86865234375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4762.725830078125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4756.9091796875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4775.250244140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4754.8828125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 4746.240234375,
+          "Bytes": 6912,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 4784.197998046875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4759.6923828125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4757.91015625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4745.17822265625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4735.430908203125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4725.1708984375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4747.30224609375,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 4742.59033203125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.038168322195180605
+    },
+    {
+      "Id": "fix/Orders128.yield-string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 78606.15234375,
+          "Bytes": 95408,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 79015.4296875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78678.90625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78545.3125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78834.9609375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78191.796875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78666.9921875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78511.71875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78254.8828125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 275970.703125,
+          "Bytes": 117936,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 276556.4453125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 275981.25,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 275735.3515625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 276647.265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 277115.234375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 275250.9765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 275504.4921875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 275960.15625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 281049.0234375,
+          "Bytes": 117936,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 281290.8203125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 280088.4765625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 280658.7890625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 284965.8203125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 282150.5859375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 280807.2265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 282447.0703125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 280557.8125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.010477968809593913
+    },
+    {
+      "Id": "fix/Orders128.yield-memory",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 78254.58984375,
+          "Bytes": 95408,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 78586.5234375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78630.6640625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78402.34375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 77865.0390625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78011.328125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78529.296875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78044.140625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 78106.8359375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 90514.84375,
+          "Bytes": 118016,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 90536.9140625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 91081.4453125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90606.8359375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90054.8828125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90492.7734375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90266.796875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90545.5078125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90267.1875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 90514.74609375,
+          "Bytes": 118016,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 91557.2265625,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 91364.84375,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90741.9921875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90407.8125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90469.7265625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90072.0703125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90346.875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 90559.765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.009783771169572473
+    },
+    {
+      "Id": "fix/slope-0.yield-string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 25.368404388427734,
+          "Bytes": 152,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 25.157499313354492,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 26.190805435180664,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 26.079654693603516,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.35858154296875,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.37822723388672,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.246620178222656,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.191211700439453,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.574922561645508,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 43.21799278259277,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 43.25547218322754,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 44.3634033203125,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 44.255971908569336,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 43.30086708068848,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 43.01471710205078,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 43.18051338195801,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 42.91043281555176,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 42.99130439758301,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 49.0877628326416,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 49.37553405761719,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 50.08831024169922,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 50.682926177978516,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 49.581098556518555,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 48.76432418823242,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 48.799991607666016,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 48.67415428161621,
+              "Gen0": 8,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 48.59299659729004,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.04073201081174556
+    },
+    {
+      "Id": "fix/slope-0.yield-memory",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 25.225424766540527,
+          "Bytes": 152,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 25.24867057800293,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.325393676757812,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.539779663085938,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.160503387451172,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.153398513793945,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.21977424621582,
+              "Gen0": 7,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.231075286865234,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 25.18019676208496,
+              "Gen0": 6,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 59.421539306640625,
+          "Bytes": 256,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 59.534454345703125,
+              "Gen0": 10,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.49392318725586,
+              "Gen0": 10,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.44790840148926,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.273386001586914,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.24196243286133,
+              "Gen0": 10,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.252309799194336,
+              "Gen0": 10,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.39517021179199,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.572601318359375,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 59.40845012664795,
+          "Bytes": 256,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 59.61103439331055,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.43622589111328,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.335994720458984,
+              "Gen0": 10,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.38067436218262,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.499454498291016,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.21449661254883,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.28325653076172,
+              "Gen0": 10,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 59.527587890625,
+              "Gen0": 11,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.015317131539624076
+    },
+    {
+      "Id": "fix/slope-16.yield-string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 893.6302185058594,
+          "Bytes": 1456,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 893.8827514648438,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 892.327880859375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 893.5211181640625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 896.4859008789062,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 893.7393188476562,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 894.93408203125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 893.096923828125,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 892.2515869140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 3037.8318786621094,
+          "Bytes": 1712,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 3047.2427368164062,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3037.2238159179688,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3033.697509765625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3039.788818359375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3036.2091064453125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3049.7711181640625,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3031.28662109375,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3038.43994140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 3125.218963623047,
+          "Bytes": 1712,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 3123.2437133789062,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3126.043701171875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3130.078125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3147.9522705078125,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3124.3942260742188,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3127.5344848632812,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3121.0830688476562,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 3119.976806640625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.004738328983461952
+    },
+    {
+      "Id": "fix/slope-16.yield-memory",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 899.7978210449219,
+          "Bytes": 1456,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 893.9453125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 895.0714111328125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 895.47119140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 897.4334716796875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 902.1621704101562,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 906.170654296875,
+              "Gen0": 1,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 909.124755859375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1124.468994140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1059.4688415527344,
+          "Bytes": 1792,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1048.4085083007812,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1051.2283325195312,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1048.5015869140625,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1053.1036376953125,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1120.721435546875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1065.8340454101562,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1077.4871826171875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1173.2879638671875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1042.4568176269531,
+          "Bytes": 1792,
+          "Warmup": 2,
+          "Rounds": [
+            {
+              "Nanoseconds": 1032.0281982421875,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1030.9646606445312,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1032.8659057617188,
+              "Gen0": 3,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1030.615234375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1055.0140380859375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1091.741943359375,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1055.7632446289062,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            },
+            {
+              "Nanoseconds": 1052.0477294921875,
+              "Gen0": 2,
+              "Gen1": 0,
+              "Gen2": 0
+            }
+          ]
+        }
+      ],
+      "HandSpread": 0.25619497652586143
+    }
+  ]
+}
