@@ -4017,3 +4017,16 @@ promise about the floor turned out to have two unmeasured cases under it, the fa
 The branch of the wrong form in `BufferedEmitter` is that session's own, written yesterday without
 a thought, and it goes over with the other rather than staying as legacy: the multiplying argument
 is about the second and third bucket and does not care which branch was written first.
+
+**Two clauses D37 gained from being carried out.** First, from expr: a test that holds a page must
+*copy the page's text*, not write its own of the same meaning. Its first test would have passed had
+it written the missing declaration in without comparing against the fence — it would have checked
+an example that is not on the page. So the half is invisible to a test as well as to a compiler,
+unless the test is a copy; and where the copy does not work, the page is fixed and not the copy.
+
+Second, the generator's own pages are the one set that shows grammars rather than calls, so
+"smallest complete form" means something else there and has to be settled before anyone starts: a
+grammar on a page exists as a test that the generator *compiles it without a diagnostic*, and where
+the page says what the grammar reads, that reading is run too. It is in the rule, with that reading
+of it. The SQL package's seven calls carry the same trap the expression language's did, its parsers
+demanding a completeness a page may not show.
