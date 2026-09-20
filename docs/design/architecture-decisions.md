@@ -5548,3 +5548,17 @@ debatable, and they have asked for the input byte for byte including what preced
 the audit's linear results for the ordinary string, the verbatim one, the character literal and the
 interpolation with holes reach by a different road and a different harness exactly the places their
 own driving had judged safe — which is better confirmation than repeating one's own measurement.
+
+**The conflict is closed, and both measurements were right for their own revisions.** Read from the
+assemblies' product version and an ancestry check rather than from memory: the audit ran on a
+commit of 07:32 of which none of the day's four fixes is an ancestor. So every number in it — not
+only the web ones — precedes every D57 seal, the flat interpolation ladder and the exponent of 4.9
+are each true of their own build, and neither party was wrong about anything but the other's
+revision. **That is what naming a binary's commit buys: a disagreement that looked like a
+contradiction turns out to be two facts.**
+
+What the rerun will change is therefore the two web grammars and the expression language's string
+bodies; the quadratic findings live in files no seal touched and are expected to survive — an
+expectation stated as one, with the rerun to speak for itself. The baseline the guard starts from
+is generated from *that* run and not from this one, which is the right way round: a baseline built
+on a stale binary would grandfather what has already been fixed.
