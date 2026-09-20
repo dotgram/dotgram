@@ -1178,7 +1178,15 @@ that the immediate carrier refuses any grammar that recovers. Three commits:
   reader and lazy forms, a span row for each library that has one, the examples' lazy feed reader —
   and five Web list series in the linearity family. Their baselines are not taken yet, so no figure
   for these forms is quotable until they are; the "hand" side of a paired row here is the same
-  form built from the other tree, a control and not a hand-written parser. The buffered reader's pair passed (the
+  form built from the other tree, a control and not a hand-written parser.
+  **Their baselines (window 62):** the token scanner 378 ns over twenty selects and 137 over an
+  expression ladder, allocating nothing; the positional form 17.7 µs and the window 18.3; the
+  message layer about 2 µs a message over a stream or a reader. Two findings came out of rows that
+  had never been read. The lazy form over a string costs 2.8-3.2x the same form over bytes held in
+  memory — the string side runs the engine and the byte side the methods, which is the change
+  already approved on consistency and size, now with a number. And the header of acceptable media
+  types allocates quadratically, 63.8 MB at ten thousand ranges with an exponent of 2.07: a
+  shipped API, and finance-24 takes it ahead of the URL edit, diagnosis first as with the others. The buffered reader's pair passed (the
   byte lean was the profile's, gone alone and under PGO=0); it lands with C3.
   Landed: the buffered reader `6a500f21` and C3 `f5658882`, with the commit-point column in
   `carriers.md`. C4a waits for its pair; C4b is being written.
