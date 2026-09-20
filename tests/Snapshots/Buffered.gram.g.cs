@@ -233,7 +233,7 @@ namespace DotGram.Snapshots
 			if (end < 0)
 			{
 				var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match.", failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, failure.ExpectedMore);
 			}
 			return Match<string>.Success(text.Slice(0, end).ToString(), 0, end);
 		}
@@ -257,7 +257,7 @@ namespace DotGram.Snapshots
 			if (end < 0)
 			{
 				var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);
-				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match.", failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, failure.ExpectedMore);
 			}
 			return Match<byte[]>.Success(text.Slice(0, end).ToArray(), 0, end);
 		}
@@ -285,7 +285,7 @@ namespace DotGram.Snapshots
 			if (end < 0)
 			{
 				var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);
-				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match.", failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, failure.ExpectedMore);
 			}
 			return Match<byte[]>.Success(text.Slice(0, end).ToArray(), 0, end);
 		}

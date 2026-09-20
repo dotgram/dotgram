@@ -276,6 +276,8 @@ public sealed partial class BufferedInputTests
 				Assert.Equal(expected.IsSuccess, actual.Success);
 				Assert.Equal(expected.Position, actual.Position);
 				if (expected.IsSuccess) Assert.Equal(expected.Value, actual.Value);
+				// And what it says about a refusal, which is the fourth thing a match carries.
+				Assert.Equal(expected.Error, actual.Error);
 				Assert.False(reader.Disposed);
 			}
 		}
@@ -291,8 +293,8 @@ public sealed partial class BufferedInputTests
 		new[] { "a", "a=b", "a,b=c,d", "ab=cd,ef", "a=", "a,,b", "a=b=c", "", "=" })]
 	[InlineData(
 		"Start : @string = n: Name & '!' => @(n) | n: Name & '?' => @(n + \"?\")\nName : @string = t: ['a'..'z']+ & ('.' & ['a'..'z']+)* => @(t)",
-		new[] { "ab!", "ab.cd?", "ab.", "ab.cd", "ab!!", "a.b.c!", "" })]
-	public void A_buffered_form_is_read_by_the_reader_the_string_form_is_read_by(string grammar, string[] inputs)
+		new[] { "ab!", "ab.cd?", "ab.", "ab.cd", "ab!!", "a.b.c!", "" }, false)]
+	public void A_buffered_form_is_read_by_the_reader_the_string_form_is_read_by(string grammar, string[] inputs, bool sameMessage = true)
 	{
 		var compilation = GramCompiler.Compile(grammar + "\nparse Start stream", new GramCompilerOptions
 		{
@@ -314,6 +316,67 @@ public sealed partial class BufferedInputTests
 				Assert.True(expected.IsSuccess == actual.Success, $"\"{input}\" split {split}: {expected.IsSuccess} against {actual.Success}");
 				Assert.Equal(expected.Position, actual.Position);
 				if (expected.IsSuccess) Assert.Equal(expected.Value, actual.Value);
+
+				// And what it says, where the two forms say the same. Where they do not, the difference
+				// is held exactly by A_buffered_reading_expects_less_than_the_string_one rather than
+				// passed over here.
+				if (sameMessage) Assert.Equal(expected.Error, actual.Error);
+			}
+		}
+	}
+
+	/// <summary>
+	/// A buffered reading says less than the string one about what it expected, and this holds
+	/// it to exactly how much less.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Found by holding the message in the differential (critic, Q20). The two readings agree on
+	/// the outcome, the position and the value, and on the sentence — but where a repetition
+	/// inside a called rule could have turned again, the string reading names what that turn
+	/// would have accepted and the buffered reading does not.
+	/// </para>
+	/// <para>
+	/// What is known about it: it is not the refill, because it is the same at every split; and it
+	/// is not the end of the input, because a refusal with input still to come says the same. What
+	/// is not known is why the turn's expectation is not recorded over a buffer. Written down as it
+	/// stands rather than smoothed over, because the check that both halves of a platform branch
+	/// answer alike is the check this repository leans on (D40), and a differential that quietly
+	/// accepted a shorter message would be that check with a hole in it.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_buffered_reading_expects_less_than_the_string_one()
+	{
+		var compilation = GramCompiler.Compile(
+			"""
+			Start : @string = n: Name & '!' => @(n) | n: Name & '?' => @(n + "?")
+			Name : @string = t: ['a'..'z']+ & ('.' & ['a'..'z']+)* => @(t)
+			parse Start stream
+			""",
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape });
+
+		EmittedCode.Quiet(compilation.Diagnostics);
+
+		var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text);
+
+		// The turn that could have followed is named by one and not by the other, at the end of the
+		// input and away from it alike.
+		foreach (var input in new[] { "ab.cd", "ab.cdX" })
+		{
+			var whole = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+			Assert.Equal("Expected '.' or ['!' | '?'].", whole.Error);
+
+			for (var split = 1; split <= input.Length + 1; split++)
+			{
+				using var reader = new ShortReader(input, split);
+
+				var buffered = Read(assembly, reader, 2);
+
+				Assert.Equal(whole.IsSuccess, buffered.Success);
+				Assert.Equal(whole.Position, buffered.Position);
+				Assert.Equal("Expected ['!' | '?'].", buffered.Error);
 			}
 		}
 	}
@@ -491,6 +554,7 @@ public sealed partial class BufferedInputTests
 		var actual = Read(assembly, new ShortReader(input, 1), 2);
 		Assert.Equal(expected.IsSuccess, actual.Success);
 		Assert.Equal((string[])expected.Value!, (string[])actual.Value!);
+		Assert.Equal(expected.Error, actual.Error);
 		Assert.Equal(new[] { "abc", "xyz" }, (string[])assembly.GetType("Grammar")!.GetMethod("Whole")!
 			.Invoke(null, [new StringReader("abc\r\nxyz\n")])!);
 		var original = EmittedCode.Compile(GramCompiler.Compile(grammar.Replace(" stream", ""), options).Sources.Single().Text);

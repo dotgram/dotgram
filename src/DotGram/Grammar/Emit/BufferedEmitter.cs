@@ -393,7 +393,9 @@ public static partial class CSharpEmitter
 					? "var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.End && !text.Peek(failure.Position, out _);"
 					: "var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);");
 				file.Line($"return {match}.Failed(starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
-					"starved ? \"Expected more input.\" : \"Input does not match.\", " +
+					// Named, as the string form names it: the two forms of one publication answer
+					// alike or the difference is one we have said out loud (BufferedInputTests).
+					$"starved ? \"Expected more input.\" : \"Input does not match '{name}'.\", " +
 					"failure.Position, failure.Expected, failure.ExpectedMore);");
 			}
 			file.Line($"return {match}.Success({(type is null ? bytes ? "text.Slice(0, end).ToArray()" : "text.Slice(0, end).ToString()" : "value")}, 0, end);");
