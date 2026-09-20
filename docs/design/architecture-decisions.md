@@ -5811,3 +5811,39 @@ case at all — the walk's listing loop runs zero times at every size — so the
 re-reading and the records given back are linear beside it. And a memory of a rule's refusal at a
 position removes the cube as well as the square, and removes more of it: the deeper the nesting,
 the more it saves. That is an argument for the remedy already named, not a new one.
+
+## D65. Every D58 timing was taken on tier-0 code, and "it is free" comes out of the record
+
+Neither harness ran a method long enough to reach the optimising tier, so all eighteen readings —
+twelve from one session and six from the other — describe code no consumer runs. Tier-0 is about
+three times slower on the shape in question; at an intermediate number of readings the transition
+lands mid-series and a point goes bimodal, one build against a byte-identical copy of itself
+swinging 0.825 and then 1.433 in consecutive runs. **That is not a measurement problem, it is the
+runtime changing the thing being measured while it is measured.**
+
+**So the claim that probing every level is free is withdrawn**, and with it the mechanism offered
+this morning for a both-signed pattern: the pattern was tier-0 behaviour and not code layout, and a
+mechanism proposed for a pattern measured on the wrong code is worse than no mechanism. The
+arithmetic on those numbers was right; the numbers were about a tier nobody ships against.
+
+**What may replace it is not a result yet.** One run with tiering off put the ratio at one to four
+per cent above unity on all six shapes with a two per cent control; a second contradicted it with a
+ten per cent control and therefore cannot be read. Two runs disagree and neither is quotable; five
+consecutive runs with selection by control are asked for.
+
+**The decision does not change and its wording does.** The probe on every level repairs a defect
+that ties a consumer's usable depth to their build configuration, which is worth a few per cent if
+that is what it costs. But "free" and "two to four per cent" are not the same promise, and the
+difference is exactly what somebody finds after it lands and is right to be annoyed about. So the
+change lands with whatever number the clean runs give, and if that number is material, the question
+of a cheaper probe reopens — which it should not, given the alternative is a constant that was
+wrong for the same reason twice.
+
+**Three instrument failures in one day, and the rule they leave.** A harness that measured process
+startup, a script believed dead that was alive, and two harnesses measuring tier-0 — each reported
+confidently before the instrument was checked, and in each case checking cost less than the run.
+**A timing report names the tiering mode it ran under, exactly as it names the commit its binary
+was built from**, and a harness whose control is not stable produces no rows at all.
+
+**The counts are untouched**: call counts do not depend on a JIT tier, so D63's before-picture, the
+triangular numbers and the exponent boundary all stand exactly as reported.
