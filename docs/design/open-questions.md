@@ -1147,3 +1147,33 @@ Read at `6b847f2d`, the cost is real and it is narrower than it sounds, in three
 
 The number the stand is taking — what fraction of the nodes a consumer touches — decides it either
 way, and it is the same number for both forms.
+
+**On the architect's summary — that a subtree's extent, expr's count from a mark and sql-39's share
+of the fast path are one thing, "knowing about a stretch of the log without leafing through it"
+(critic, 2026-09-20, read at `a4bbc682`).** Tested rather than agreed with, because a tidy
+generalisation that suits three plans at once is the kind that goes unexamined.
+
+It nearly went the other way. Every record carries a length: `End` writes
+`Log[Opened] = LogCount - Opened` into the record's first slot, and the walk advances by exactly
+that — `for (var at = from; at < ways.LogCount; at += log[at])`. Read those two lines alone and the
+index this file said nobody hands us appears to have been in the log all along, and the right report
+would have been "your consequence is a field you already have". **What says otherwise is that
+`Opened` is one field and not a stack.** A record cannot be open while another is written, so a
+construction is emitted as one straight-line block — `Begin`, a `Put` for each member, `End` — at
+the point it completes, and a member that is itself built is *referred to* by a record number
+(`PutRecord`), not contained. The log is flat and post-order. A record's length is its own, the walk
+steps over siblings, and **a subtree's extent is nowhere written**.
+
+So the summary holds in spirit and bundles three stretches that are not alike:
+
+- expr's count from a mark is a **live** stretch: the mark is on the stack while the parse is in it.
+- sql-39's fast path is a **predicate** over a stretch — are this record's children built — not a
+  way to find its bounds.
+- A subtree's extent is **derived and unrecorded**: in a post-order log it is "from the least record
+  number below this one to this one", and nothing keeps that.
+
+The objection, and it is small but worth making before anyone starts: bundled, the three invite the
+reading I nearly published — that the log already knows a subtree's bounds, because every record
+does carry a length and it is not the one wanted. If the summary is written, it should say that of
+the three only the third needs something recorded that is not, and that what it needs is a bound,
+not a length.
