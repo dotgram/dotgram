@@ -271,3 +271,111 @@ unpaired gate rather than asserting it, by making the generated reading answer `
 watching `--stand-check` throw. So: `0.73x` and the `ideal` column stand on gated rows; the pairs
 taken before `2410830e` stand on tag sums, and `--stand-paired-check` re-checks any of them field
 by field in a few minutes without a window.
+
+## Q4 (2026-09-19). The paired stand calls every base reading "hand", including the ones that are not
+
+**What it rests on.** `Stand.cs:1519` writes the header of every paired report as a literal:
+`| row | reading | hand ns | before ns | before/hand | after ns | after/hand | change | … |`. The
+base reading is whatever the workload's first `Reading` is, and it is named `"hand"` in every
+family. It is not always a hand parser:
+
+- `StandWebParsers.cs` — the web parsers that have no hand-written reader. Its own doc comment says
+  so ("there is no hand-written parser for these"), and the reading is `new Reading("hand", () =>
+  own(text) …)`, where `own` is *this process's own build of the same generated parser*.
+- `Stand.cs:1434` — T-SQL: `new Reading("hand", () => ScriptDomAccepts(text) …)`. That is
+  Microsoft's library, which the documents are careful to call ScriptDom and never a hand parser.
+- `StandConfig.cs:19`, `StandBool.cs:34` — a reading of our own again, under the same name.
+
+**The objection.** A row of `benchmarks/results/pairs-2026-09-19/chain-a021ad2c/pair/paired.md`
+reads `web/media-type.params1000 | generated | 46,695.4 | 45,821.5 | 0.98x`, under a column named
+`before/hand`. By its own header that says the generated parser reads media-type parameters at
+0.98x of a hand-written parser. There is no hand-written media-type parser; the number is the
+generated parser against another build of itself, which is a control and belongs in a column called
+one. The same header puts `tsql/columns1000 … 0.30x` forward as 0.30x of a hand parser, where it is
+0.30x of ScriptDom.
+
+The baseline documents are careful about this — `stand-2026-09-19b.md` says in so many words which
+families have no hand parser and what stands in for them. The pairs are not documents: they are the
+artifact a session quotes when a commit lands, and they are read by the column name. This is the
+same failure as Q3's, one step earlier: a number that is honest where it is taken and wrong where
+it is read.
+
+**What would settle it.** Name a reading what it is — `own`, `scriptdom`, `control` — and take the
+header from the base reading's name rather than from a literal. The comparison does not change; only
+what it is called does.
+
+**Answer:** —
+
+## Q5 (2026-09-19). D16 says the rest of the web grammars are variants of the three; by the generator's own report they are not
+
+**The claim.** "The rest of the Web grammars are variants of these shapes and get none." (D16,
+which gave hand parsers to RFC 8259, RFC 3986 and RFC 3339.)
+
+**What it rests on.** The three shapes named there: recursion with escaped strings, runs and
+character classes, and small fixed-width fields.
+
+**The objection.** The dimension that decides what a generated parser costs is not the shape of the
+input, it is the carrier and the reader's gate — that is the premise of every design in this folder.
+By `docs/carriers.md`, the three yardsticks are two immediate grammars and the second-lightest gated
+one:
+
+| grammar | carrier | building | read again | a hand parser |
+| --- | --- | ---: | ---: | --- |
+| Rfc3339, date-time | immediate | | | yes |
+| Rfc8259, JSON | immediate | | | yes |
+| Rfc6901, JSON Pointer | immediate | | | no |
+| Rfc3986, URL | tape, read again | 6 | 12 | yes |
+| Rfc9110, media type | tape, read again | 4 | 7 | no |
+| Rfc8288, link | tape, read again | 5 | 7 | no |
+| Rfc6265, cookie | tape, read again | 6 | 6 | no |
+| Rfc5646, language tag | tape, read again | 9 | 6 | no |
+| Rfc7239, forwarded | tape, read again | 7 | 9 | no |
+| Rfc9651, structured fields | tape, read again | 15 | 17 | no |
+| Rfc5322, addr-spec | tape, read again | 48 | 114 | no |
+
+So of the gated grammars — the ones whose cost the whole tape argument is about — exactly one has a
+base, and it is the lightest but two. The heaviest in the package, RFC 5322, is eight times URL by
+either column and is measured against nothing. "Variants of these shapes" is true of the input and
+false of the machine.
+
+**And the rows without a base are where the worst numbers already are.** On a refusal, the
+unyardsticked families are beaten by a compiled regular expression: `web/media-type.refused` 30.2 ns
+against the generated parser's 137.3 (0.22x), `web/addr-spec.refused` 54.4 against 120.5 (0.45x).
+Where a base exists the same shape is visible and was noticed — `web/url.refused` is 9.99x the hand
+parser and `web/date-time.refused` 3.64x — but for media type and addr-spec there is no ratio to
+notice, so nobody has asked. A regex that refuses is not a regex doing less: it says no, which is
+all that is being timed.
+
+**Cheap doors, in the order they cost.** The runtime already reads three of the five: an addr-spec
+(`System.Net.Mail.MailAddress.TryCreate`), a media type (`System.Net.Http.Headers.MediaTypeHeaderValue.TryParse`),
+a Set-Cookie (`System.Net.CookieContainer.SetCookies`). As external references they need no code to
+maintain and carry exactly the status ScriptDom and `System.Text.Json` already have in the stand —
+each does somewhat different work, which is the owner's to judge and the document's to state. That
+answers "is 99 ns good" for three families this week. A hand parser is worth writing for one
+grammar only, and it is RFC 5322, because it is the gated shape nothing covers. This session has
+run none of them.
+
+**Answer:** —
+
+## Q6 (2026-09-19). Five shipped web formats are timed nowhere
+
+**What it rests on.** The package ships fourteen formats. `web/*` rows exist for eight families
+(unpaired: url, json, date-time, addr-spec, media-type, cookie, pointer, sf; the paired run adds
+language-tag). No row, paired or unpaired, covers RFC 6266 content-disposition, RFC 6570 URI
+templates, RFC 6902 JSON patch, RFC 7239 forwarded or RFC 8288 link. Forwarded and link appear once
+each in `StandLinearity.cs`, which asks whether a parser's time grows linearly, not what it costs.
+Of the five, four are on the tape with a gate.
+
+**The objection.** The pairs are the gate a change to the reader, the walk or the materializer
+passes before it lands. A change that doubled the cost of the link header or of a URI template would
+pass every gate the repository has, and nothing but a user would find it. That is not hypothetical
+in this repository: `584a7c1f` made the expression language's tape 753% slower at a thousand terms
+and it was caught only because someone thought to look at another family, which is why "pair every
+walk change across families" is a standing rule.
+
+**What would settle it.** One row each, in the paired stand, for the four gated formats with none —
+they cost a line apiece next to the nine already there, and no timing window, since the paired stand
+runs on request. Whether they also deserve a base is Q5's question and can wait behind it. A row
+with no base still catches a change of its own cost, which is what a pair is for.
+
+**Answer:** —
