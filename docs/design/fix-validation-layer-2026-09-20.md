@@ -27,19 +27,44 @@ or a group entry only in the lenient mode; in the strict one it ends the scope. 
 report a message, it *shapes* one: whether tag 9999 is a member of the body or the thing that
 ended it is a different tree, not a different verdict.
 
-**So the mode does not survive, and the structural question resolves.** If validation is a layer
-over a built message, construction has to build one — a message it refuses to build is a message
-the layer never sees, and the consumer gets a worse answer than today rather than a better one.
-The rule becomes unconditional: **an unknown tag inside a body or a group entry belongs to it.**
-It is definite, it needs no policy, and the tag being unknown is then something the layer says out
-loud instead of something the tree silently decided.
+**So the mode does not survive, and the structural question resolves — but not as simply as the
+paragraph above first said.** If validation is a layer over a built message, construction has to
+build one: a message it refuses to build is a message the layer never sees, and the consumer gets
+a worse answer than today rather than a better one.
+
+The first draft of this section made the rule "an unknown tag inside a body or a group entry
+belongs to it". That covers too little, and the stand found the case while checking the agreement
+of an unrelated row. A *known* tag in the wrong place is refused too, and by construction rather
+than by validation: `Members` maps a group to its **counter** only, so `58 Text` is not a
+body-level member of `B News` at all; `Scope` finds no membership, the lenient rescue applies only
+to tags the schema does not know, and the scope ends there. `TryBuild` then sees fields left over
+and fails with "Field is not permitted in this message scope" — which is one of the very findings
+D53 moves to the layer. The same argument therefore applies to it: construction must stop refusing
+these too.
+
+**And that is bounded by what a scope needs in order to end.** Admitting everything
+unconditionally cannot work, because then the first repeating group swallows the rest of the
+message: an entry knows it has ended only by meeting a tag that does not belong to it. So the rule
+has to be stated per scope, and this is the shape:
+
+| scope | where it ends |
+| --- | --- |
+| header | at the first field that is not a header member — unchanged |
+| trailer | at `10`, `89`, `93` — unchanged, already special-cased |
+| body | nowhere: **every field between the header and the trailer belongs to the body**, known or not, permitted or not |
+| group entry | at the delimiter, or at a tag that is neither a member of the entry nor of an enclosing scope — **membership stays**, because there is nothing else that can end an entry |
+
+So construction keeps exactly one use of the schema, and it keeps it where no policy can replace
+it. The body's membership check disappears and "this field is not permitted here" becomes a
+finding; the group's stays and is not a check but a boundary.
 
 Why this is not two checks in two places: after the split, construction asks *where does this
 field go* and the layer asks *should it be here*. Those are different questions with different
 answers, and today they are one flag because the answers happened to coincide in the strict mode.
 
 **What it costs.** A message that the strict mode refuses today is now built in full and then
-reported on. For a consumer who parses a stream of bad messages that is one whole construction
+reported on — and so is one that *both* modes refuse today, which is the larger set: every message
+carrying a known tag outside its place. For a consumer who parses a stream of bad messages that is one whole construction
 they did not pay for before — and by measurement that is ~2,500 B a message of `FixNode[]` alone.
 Cheap for a trading session, where a rejected message is an event; not free for a log-scanning
 tool, where it may be most of the input. Worth naming rather than discovering.
