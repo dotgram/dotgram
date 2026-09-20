@@ -14,6 +14,10 @@
 # of a corpus written elsewhere is that it is the text they wrote and not ours.
 tests/Corpus/ScriptDom/** -text
 
+# The same for somebody else's dictionary: it is their file, and a reader we write
+# against it must be held to the bytes they published, not to ours.
+tests/Corpus/Fix/** -text
+
 # JSONTestSuite's parsing cases are the bytes a parser is handed: some are UTF-16, some are not
 # valid UTF-8, and a line ending is part of what several of them test.
 tests/DotGram.Tests/Web/JsonTestSuite/** -text
