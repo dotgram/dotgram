@@ -4349,3 +4349,34 @@ one where before there was a vague excess.
 under four per cent of either assembly, which does not pay for surprising a consumer who builds a
 dialect on our grammar and finds the text absent. The denominator holds T-SQL twice, and the
 result's own page now says so.
+
+## D46. The assembly carries the generated source, compressed, and every size we quote includes it
+
+critic's Q21 closes D43's residue and opens something larger. `Portable` pulls nothing else along:
+the grammar text reaches exactly one emitted line. The missing 193,487 bytes are elsewhere — every
+package sets embedded symbols, with the reason written above it (a stack trace from a parser here
+has line numbers without a symbol server), and the repository sets sources-untracked-by-source-control
+to be embedded beside its SourceLink block. Generated code is exactly what a debugger cannot find
+on disk, so it travels inside the symbols. **The grammar therefore rides twice**: once raw as the
+attribute blob and once as part of the generated source, deflated — 730,673 × 26.5% is 193,600
+against the 193,487 that was missing.
+
+**So the two measurements were never in conflict, and the one to quote Igor is the subtraction.**
+Counting answers how many bytes of grammar text sit in the metadata, 3.7% and 4.1%; subtracting
+answers what the file loses if the option is off, 4.7% and 5.3%, and that is the question being
+asked.
+
+**And the consequence is larger than the option.** If the symbols carry the generated source they
+carry all of it: 22.0 MB for T-SQL, 13.8 for the standard, 0.8 for 1992 — 36.6 MB of generated C#
+compressed inside a 19.8 MB assembly, which at the same ratio is seven to nine megabytes, a third
+to a half of the file, and explains its size better than its IL does. Every assembly size this
+repository has taken includes it, the code-size harness among them.
+
+**Nothing here is wrong and the decision is not reopened by me**: symbols in the assembly have a
+reason written beside them, and a stack trace through generated code without a symbol server is
+worth paying for. What is wrong is that no figure we quote says it is being paid. And the trade may
+be finer than it looks: embedded symbols alone give the line numbers the comment asks for, while
+embedding the sources is what buys stepping into generated code — so the saving, if it is wanted,
+may cost less than the reason it would seem to contradict. Igor's, with the number first: a read of
+the debug directory and the symbol file's document table, both through metadata, two numbers and no
+build.
