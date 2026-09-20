@@ -1191,6 +1191,42 @@ public sealed class CSharpEmitterTests
 		Assert.Equal("Expected more input.", nothing.Error);
 	}
 
+	/// <summary>
+	/// A reading from a position is not refused by a character it never read (§6.3).
+	/// </summary>
+	/// <remarks>
+	/// The whole input is cut, and a character no token begins with used to refuse the reading
+	/// wherever it stood — so one bad character in the last line of a script made its first
+	/// statement unreadable. The tokens end there instead, as they already did inside a window.
+	/// The whole form is untouched: it has to reach the end, so what it cannot read refuses it.
+	/// </remarks>
+	[Fact]
+	public void A_reading_from_a_position_is_not_refused_by_what_it_never_read()
+	{
+		var parser = EmittedCode.Compile(EmitSplit(TwoNames));
+
+		// `#` begins no token here, and it stands past everything the reading needs.
+		var read = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd #", 0);
+
+		Assert.True(read.IsSuccess, read.Error);
+		Assert.Equal((0L, 5L), (read.Position, read.Length));
+
+		// The form that answers only whether reads it too, and moves the position it was handed.
+		var answered = EmittedCode.Answered(parser, "Grammar", "TryParseStart", "ab cd #", 0);
+
+		Assert.True(answered.Read);
+		Assert.Equal(5, answered.At);
+
+		// The whole input is another question: it must be read to the end, and it cannot be.
+		var whole = EmittedCode.Match(parser, "Grammar", "TryParseStart", "ab cd #");
+
+		Assert.False(whole.IsSuccess);
+		Assert.Equal(6, whole.Position);
+
+		// Where the tokens ended there is nothing left to begin a reading with.
+		Assert.False(EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd #", 6).IsSuccess);
+	}
+
 	/// <summary>A window may begin where no token of the whole text does.</summary>
 	/// <remarks>
 	/// <c>zzab</c> is one token of the whole input, so a reading asked to begin at its third

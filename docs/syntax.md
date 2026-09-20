@@ -1911,17 +1911,29 @@ this grammar calls trivia — is the lexer's to skip and not the caller's to kno
 host reading a script a statement at a time hands in the position after the last
 statement, which is one of those as often as not. `Position` then says where the reading
 began, which is where the value begins and not where the caller was looking, and where
-nothing is left but trivia the answer is `Starved`. The window form cuts only the window
-into tokens, so it may begin anywhere, and a character no token begins with ends the
-tokens rather than refusing the reading: a hole in an interpolated string, read up to the
-`:` its format begins with, is the shape it is for. A publication compiled as a plain
+nothing is left but trivia the answer is `Starved`. A character no token begins with ends
+the tokens rather than refusing the reading — in all of these forms, since none of them is
+required to reach the end of the input, and a reading must not be refused by what it never
+read: one character the language does not know in the last line of a script leaves the
+statements before it readable. The window form cuts only the window into tokens, so it may
+also begin anywhere: a hole in an interpolated string, read up to the `:` its format begins
+with, is the shape it is for. Only the whole-input forms refuse there, because reaching the
+end is what they are for. A publication compiled as a plain
 method, with the one entry a whole parse needs, gets neither: its rules were proved to
 need nothing else only against the end of the input.
 
 **This changed.** Until this version both forms read the trivia after the rule as well, so
 the position that came back was past it and `Length` counted it. A caller that went on from
 the position it was handed reads the same values in the same places; a caller that measured
-a value by `Length` reads a shorter extent.
+a value by `Length` reads a shorter extent. A reading from a position is also no longer
+refused by a character no token begins with standing somewhere it never read.
+
+**What a reading from a position still costs, said here rather than discovered.** Over a
+grammar cut into tokens it cuts the whole input, and the cutting is kept for the next
+reading of the same string, so a loop of readings over one text cuts it once. One reading
+of a short value out of a huge text cuts the whole text all the same, and that is known
+and not intended to be otherwise: cutting only as far as the reading goes would mean a
+second machine for the same grammar, which every build would pay for.
 
 **What "how far back" means is fixed by §4**, and this is the whole of the retention
 rule:

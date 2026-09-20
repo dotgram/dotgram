@@ -1673,7 +1673,12 @@ public static partial class CSharpEmitter
 					file.Line("var count   = tokens.Count;");
 					file.Line();
 
-					if (!windowed)
+					// A whole reading has to reach the end, so a character no token begins with
+					// anywhere in the input refuses it. A reading from a position does not: the
+					// tokens end there, as they do inside a window, and what the reading needed
+					// is answered by what there is — a bad character in the last line of a script
+					// is not a reason to refuse its first statement.
+					if (!positional)
 					{
 						using (file.Block("if (tokens.Stopped >= 0)"))
 						{
@@ -1816,8 +1821,10 @@ public static partial class CSharpEmitter
 
 					// Inside a window a character no token begins with is where the tokens end:
 					// what the caller asked for is a reading of what can be read from `at`, and
-					// the piece of text after it is commonly not this language at all.
-					if (!windowed)
+					// the piece of text after it is commonly not this language at all. From a
+					// position it means the same — the reading was never required to reach the
+					// end, so it must not be refused by a character it never read.
+					if (!positional)
 					{
 						using (file.Block("if (tokens.Stopped >= 0)"))
 						{
@@ -1967,12 +1974,12 @@ public static partial class CSharpEmitter
 					file.Line();
 					if (overKinds)
 					{
-						// Past the last token of a window is where its tokens ended: where the lexer
-						// stopped inside it, or its edge.
-						file.Line(windowed
-							? $"var {halt} = failure.Position < count ? starts[failure.Position] : " +
-								"tokens.Stopped >= 0 ? tokens.Stopped : at + length;"
-							: $"var {halt} = failure.Position < count ? starts[failure.Position] : source.Length;");
+						// Past the last token is where the tokens ended: where the lexer stopped —
+						// which a reading from a position is no longer refused by — or, where it
+						// did not stop, the window's edge or the end of the input.
+						file.Line(
+							$"var {halt} = failure.Position < count ? starts[failure.Position] : " +
+							$"tokens.Stopped >= 0 ? tokens.Stopped : {(windowed ? "at + length" : "source.Length")};");
 						file.Line();
 						if (!kept) file.Line("Recycle_DotGram(tokens);");
 						file.Line();
