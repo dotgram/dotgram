@@ -280,6 +280,12 @@ namespace DotGram.ExpressionLanguage;
 			| "\\x" & t: HexDigit{1,4} => @(((char)Convert.ToInt32(t, 16)).ToString())
 
 		// The parts of a run: an escape, or the longest stretch that needs none.
+		//
+		// The run is `(A+)*` with the pieces around it, the shape that reads an unclosed string
+		// every way it cuts — but a plain string and a verbatim one are whole lexemes the lexer's
+		// automaton reads, and an automaton has no way back to take. Measured: a thousand
+		// characters after an unclosed `"` are refused in under a millisecond, where the same
+		// text after `$"`, which the automaton only opens, took seconds (D57). So no braces here.
 		TextPart : @string = e: Escape => @(e) | t: [^ '"' | '\\']+  => @(t)
 		CharPart : @string = e: Escape => @(e) | t: [^ '\'' | '\\'] => @(t)
 
@@ -306,6 +312,10 @@ namespace DotGram.ExpressionLanguage;
 		HoleRun    = ( HoleNested | HoleQuoted | '@' & ?!'"' | '$' & ?!'"'
 		             | [^ '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\'' | '@' | '$' | ':'])*
 
+		// These three repeat a single character, not a run of them, so there is nothing to cut
+		// a text into pieces with: an unclosed hole, an unclosed bracket inside one and an
+		// unclosed format were all refused in under a millisecond at two hundred characters,
+		// where an unclosed `$"` took seconds before its run was made atomic (D57).
 		HoleAt     : @Segment = HoleRun => @(Segment.Hole(parserSpan.Start, parserSpan.Length))
 		HoleFormat : @string  = t: [^ '{' | '}' | '"' | '\\']* => @(t)
 		Hole       : @Segment = s: HoleAt & (':' & f: HoleFormat)? => @(s.Formatted(f))
@@ -373,6 +383,10 @@ namespace DotGram.ExpressionLanguage;
 		// again for its value have to agree on where it ends, and the two read "up to" differently:
 		// the automaton takes the longest text holding no closing run, which a quote just before the
 		// closing ones would have passed, and C# refuses that.
+		//
+		// One character a turn, or a run of quotes shorter than the closing one and then a
+		// character: the two cannot both read the same text, so an unclosed raw string has one
+		// reading and is refused at once, quotes in it or not (D57).
 		RawPlain(quotes) = ([^ '"'] | quotes & [^ '"'])*
 
 		// With one dollar a brace always opens a hole, and a closing one outside a hole is refused.
