@@ -3421,3 +3421,37 @@ supplied dictionary replaces the standard pairs, which D27 reversed. Both docume
 sentence saying what the seam does not do. The rename is a break and belongs in 0.2.0's notes as
 one, which is what makes doing it before the release the cheap moment rather than merely the tidy
 one.
+
+## D33. The outward sweep: three items, triaged, 2026-09-20
+
+critic's Q11, the hunt for what the outside does and we do not. Three items rather than a list, each
+with the place here it touches and the number that would decide it. What the sweep found we already
+have is worth as much: precedence climbing for a tower of binary operators is `graph.Climbing`, and
+the progress assertions the outside advocates as a run-time fuel counter we prove at generation and
+report as a diagnostic instead, which is D25's side of the same question.
+
+**Third item first: a tree built where it is asked for.** It aims at our largest number, the guards'
+walk at 8.4 of `select20`'s 17.9 µs, and the deciding fact is not known here — what fraction of the
+nodes a real consumer touches, all of them for `--roundtrip`, a few per statement for a host asking
+a script what kinds of statements it holds. That count is ordered from stand and needs no machine.
+**But the item carries an objection the sweep did not price: D5.** Deferring a construction past the
+end of the parse means keeping what it will be built from — the log, and for a value cut from the
+text, the text. Nothing may retain the input, which is the bound this repository has spent its
+memory work on, and §3.7 defers a construction only to the accepted derivation, not past the parse.
+So the shape that survives is a *bounded* one: built where it is asked for, within the parse, which
+is what `carrier-per-construction` and D29 are already circling. A tree handed back unbuilt is a
+different promise and would have to be priced against D5 before it is designed.
+
+**First item, computed recovery sets, is parked with its number.** Today `recover` is the author's:
+it marks a repetition, names its own synchronization expression, exists nowhere else, and a failed
+parse returns no structure at all. Computing recovery sets from the grammar — follow sets of the
+dominators, as `lelwel` does — uses two halves we already have in `FirstSets` and `FollowSets` and
+one we do not. It changes what a grammar says, so it is Igor's, and it belongs with the tooling
+project rather than ahead of D13. The number to take when it is opened: of a file whose first error
+is at line N, how much structure comes back.
+
+**Second, incremental re-parsing, is parked outright, with the same instruction.** It is the editor
+only; a generated parser is not asked to be incremental. Nothing here reuses a tree, and the
+extension answers the cost by backgrounding. The number comes before any design: what one keystroke
+in the middle of a 7,264-line grammar costs today. Backgrounding may already have made it a
+non-question, and that is cheaper to find out than to design against.
