@@ -4725,3 +4725,26 @@ to the rules, and today's whole theme is that what nobody reads is not held. And
 reads it after it lands rather than before it is written, which is the right order for a consequence
 of an existing paragraph and the wrong one for a new rule — the distinction being exactly what the
 author made when deciding to write rather than to propose.
+
+## D50. A criterion named through rows needs two questions, not one, 2026-09-20
+
+D36's second criterion is void as well, and expr said so before anyone asked. An A/A run — the same
+build against itself, nine rounds in the quietest window of the day — moves `select20` by −2.9%,
+`nest8` by −5.4% and `refused-late` by −1.5%, with the sign holding across most rounds. So the
+SQL:2023 rows fall on their own, and "they moved" is satisfied by the floor rather than by the
+change. What is left above that floor is two to five points on small nested and refused rows, in a
+window whose base wandered by 24 to 108%, which the stand reads as drift and not as an effect.
+
+**The first criterion named rows that do not reach the mechanism; the second named rows that fall
+without it.** Both were registered before the numbers and both were void, for different reasons,
+and what they share is that rows were named without asking what those rows do *without* the change.
+So the rule gains its second half: a criterion named through rows is checked by "does this row
+reach the mechanism", which cost the first failure, **and** by "what does this row show with
+nothing changed", which cost the second. The A/A answers the second, and it is ordered *with* the
+pair rather than after it.
+
+**And the repair expr chose is the right one twice over.** The form that does not depend on drift —
+two builds, differing by one constant, rounds taken in turn — is the same form that settled the
+clearing question. And the expectation is now named in *numbers* rather than in rows: zero to three
+per cent on `select20`, and zero within the spread of the rounds withdraws the change. A criterion
+in numbers cannot be satisfied by the floor, which is what both of its predecessors were.
