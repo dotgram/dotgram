@@ -24424,7 +24424,16 @@ was busy with another window, so the shape is what to read, not the milliseconds
 | 128 | 9.1 | 19.2 |
 | 300 | 125 | 65 |
 
-Both about n^2.8. The cause is a count, not a timing, and the count says it exactly: reading the
+Both about n^2.8.
+
+**Those milliseconds are not to be quoted (added 2026-09-20).** They were taken one shot at a size
+in a fresh process, after a single warm call, which is the trap `benchmarks/README.md` already
+warns about: the small sizes were read on tier-0 code and the large ones on code the runtime had
+promoted part-way through, so neither the times nor the exponent drawn from them is sound. Nothing
+below rests on them — the cause was settled by counts, which tiering cannot move — and the row's own
+exponent belongs to the stand, whose ladders are warmed.
+
+The cause is a count, not a timing, and the count says it exactly: reading the
 same shape on SQL:2023, at 32 levels `Read_QueryPrimary`, `Read_QueryTerm` and
 `Read_QueryExpressionBody` are each entered 1,056 times, and 1,056 is 32 × 33. Rule calls over the
 whole reading: 566 at 8 levels, 30,750 at 96 refused, 16,718 at 96 read.
