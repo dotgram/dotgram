@@ -3540,3 +3540,28 @@ reference. Clearing the tables at that same transition makes the hot path free, 
 retention by the thread's own work rather than by the collector's mood, and gives the mechanism its
 second user rather than inventing one. What has to be designed is only the join: the store is
 cleared *before* it is handed to the idle state, so a quiet thread holds no tree at all.
+
+**D29 is closed by its own numbers, and expr closed it.** On T-SQL's corpus, 17,023 asks: the fast
+path fires on 7.8% of them, and 78% miss it for one reason — there is an unbuilt record below. A
+count answers that question in constant time and answers "no", after which the walk happens anyway:
+the listing, the clearing and the marking all remain, and only the scan is saved, which is 6% of
+the walk. So the third form buys nothing on T-SQL. Nor does the second, which expr saw only after
+reading the reasons: an unbuilt record below is a record *nobody asked for*, and §3.7 lets a close
+build only what a guard named, so it stays unbuilt, the fast path still misses, and nothing moves.
+The cause is cured only by building everything whose reading is proved, which is the wider
+`carrier-per-construction` and not this. SQL:2023 has a different shape — 56% pass, and what stops
+the rest is mostly "the root is not the last record", 36% — but neither the count nor the close
+removes that either.
+
+The design is rewritten as a refusal carrying these numbers and kept: a record of why something was
+not done is worth more than a deleted file, and this one was refused by the criterion its own §3
+named in advance. The next number on this line is sql-39's: how many records the slow walk lists
+per ask. If it lists tens for one, that is where to aim, and it is a different project.
+
+**D34's shape is a requirement on work not yet written.** The moment "the thread went quiet" does
+not exist in the code: the spares in `Emit/Support.cs` are still a strong slot and deeper spares,
+with no counter of unused parses and no weak reference. The retention rule was decided and not
+built. So the join has nothing to join to yet, and D34's shape becomes a condition on whoever
+writes the retention — performance-ff: **at the transition into idle the value store is cleared
+whole**, before the buffers are handed to the idle state, so that a quiet thread holds no tree. The
+fork does not reopen in the meantime, because nothing is proposed before that mechanism exists.
