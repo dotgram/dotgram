@@ -5190,3 +5190,27 @@ owner takes the shape's own worst input against their own parser, and a refusal 
 answers the question, while one that does not is also an answer. The probe is kept rather than
 thrown away: it has earned it by finding the known cases, it will be run again after each fix to
 watch the list shrink, and step three's analysis is the same walk with the judgement added.
+
+**A third instance of the shape, and the triage method earned itself in a minute.** Of the four
+places the probe named in the address grammar, two had been fixed and two had not. The unfixed one
+repeats over folding whitespace — a run of folded space inside angle brackets — and doubles about
+every one and a half characters: twelve characters 3.2 ms, sixteen 48.8, twenty 188.9. Both folding
+rules are atomic now, the obsolete and the strict, for the same reason atoms are: a space cut in
+half is the same space. 189 ms became nothing.
+
+**And the part that could not have come from reading.** Four inputs were tried into that rule —
+spaces, commas, a mixture, and repeated routes — and exactly *one* was slow; the other three are
+flat at every length. Choosing an input by eye, the commas look like the more obvious way in, and
+the conclusion would have been that the shape is not reachable. **Driving inputs is cheaper than
+reading not only in time: it also takes away the chance to pick the convenient one.**
+
+**Reverse calibration is owed and is being taken from two directions.** The probe should stop
+seeing the four now that they are fixed — its owner runs it, not the person who fixed them — and
+beside it a guard of a different nature: the package's own slow-suite check now holds all three
+shapes and was verified to fail on the unfixed grammars in 4.6 seconds, naming the shape and the
+remedy. Two checks of different kinds against one class beat one.
+
+**And the sentence worth keeping from the session that found the second and third:** it went
+looking not out of diligence but because the first was found by someone else, which meant it did
+not know how many there were. **When a defect is found by somebody else, the honest conclusion is
+that one's own review did not see it, and the answer is to measure rather than to reason.**
