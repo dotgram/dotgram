@@ -1,4 +1,16 @@
-# What a resumable lexer costs: the number Igor's fork is missing (2026-09-20)
+﻿# What a resumable lexer costs: the number Igor's fork is missing (2026-09-20)
+
+**Decided on 2026-09-20: the kept cutting stays and there is no reading a host holds.** Igor
+took the fork this was written for, and took neither half of what it priced: lazy kinds are not
+built — the number below is why — and `Over(text)` is refused, so nothing new appears in a
+generated parser's public API. The cutting lives as it is: two slots a thread, the text weakly and
+the kinds strongly, a slot taken by the next text. The defect that sat in it is fixed and held by
+a test, and nothing else on that line is to be touched without its own reason.
+
+The one reason to reopen it: a living consumer needing a reading they hold themselves. Not a
+square somebody notices in our own tests — every caller of a positional form in this tree is ours.
+
+What the document is kept for is the number, which closed a direction rather than opened one.
 
 For the architect, and through him for Igor's decision between changing what a positional form
 refuses (and lexing on demand) and keeping the refusal (and paying for a public type). The cost of
