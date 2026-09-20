@@ -3262,6 +3262,42 @@ public static partial class CSharpEmitter
 	/// cref="Commit"/>), of how many there are: a call whose value is built, and a construction.
 	/// What a carrier that builds at the point could take off the tape, said for every grammar.
 	/// </summary>
+	/// <summary>The points of one machine: the sites it reads, and nobody else's.</summary>
+	static string Points(Commit.Report commit, Demand.Report demand, IReadOnlyCollection<RuleSymbol> rules)
+	{
+		var building = 0;
+		var settled  = 0;
+		var reads    = new HashSet<RuleSymbol>(rules);
+
+		foreach (var site in commit.Sites)
+		{
+			if (!reads.Contains(site.Owner))
+				continue;
+
+			if (site.Node is Node.Call call && (!demand.Knows(call) || demand.Of(call) == Demand.Kind.Never))
+				continue;
+
+			building++;
+
+			if (commit.TryGet(site.Node, out _))
+				settled++;
+		}
+
+		return $"; points: {settled}/{building}";
+	}
+
+	/// <summary>How a machine is named in the report: what it publishes, and the form it reads.</summary>
+	static string Read(Compiled one)
+	{
+		var names = one.Publications.Count == 0
+			? "unpublished"
+			: string.Join(", ", one.Publications.Select(static publication => publication.MethodName).Distinct(StringComparer.Ordinal));
+
+		var form = one.Machine.BufferedBytes ? "bytes" : one.Machine.BufferedInput ? "buffered" : "whole";
+
+		return $"{names} [{form}]";
+	}
+
 	static string Points(RecognitionGraph graph, Replay.Report? replay)
 	{
 		var commit   = Commit.Of(graph, replay ?? Replay.Of(graph));
@@ -3323,11 +3359,39 @@ public static partial class CSharpEmitter
 		var gate = replayed.Count > 0 ? "replay" : again.Count > 0 ? "read again" : refused.Count > 0 ? "refused" : "none";
 		var by   = immediate && kept.Count == 0 && refused.Count == 0 ? "immediate" : kept.Count + refused.Count > 0 ? "tape" : "nothing to choose";
 
+		// The grammar's own line is a summary of machines that were each carried on their own,
+		// and it shows the worst of them; performance-ff read one as a description of the whole
+		// grammar and predicted a gain where the machine in question had nothing to give. So it
+		// says how many machines it stands for, and each machine says its own answer below.
 		lines.Add((kept.Count + refused.Count == 0
 			? $"carrier: {by}; gate: {gate}"
 			: $"carrier: {by}; gate: {gate}; building: {building.Count}; replayed: {replayed.Count}; " +
 				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}; " +
-				$"refused: {refused.Count}; alone: {alone}") + Points(graph, replay));
+				$"refused: {refused.Count}; alone: {alone}") +
+			$"; machines: {direct.Count}; on the tape: {direct.Count(static one => !one.Machine.CarriesImmediately)}" +
+			Points(graph, replay));
+
+		var points = Commit.Of(graph, replay ?? Replay.Of(graph));
+		var wanted = Demand.Of(graph);
+
+		foreach (var one in direct)
+		{
+			var machine   = one.Machine;
+			var mine      = machine.KeptOnTape;
+			var refusal   = machine.RefusedOnTape;
+			var held      = mine ?? refusal?.Otherwise;
+			var replaying = held?.Replayed.Count ?? 0;
+			var reading   = held is { Replayed.Count: 0 } ? held.Again.Count : 0;
+
+			lines.Add(
+				$"machine {Read(one)}: carrier: " +
+				(machine.CarriesImmediately ? "immediate" : "tape") +
+				"; gate: " +
+				(replaying > 0 ? "replay" : reading > 0 ? "read again" : refusal is not null ? "refused" : "none") +
+				$"; building: {held?.Building.Count ?? 0}; replayed: {replaying}; " +
+				$"read again: {reading}; refused: {(refusal is null ? 0 : 1)}" +
+				Points(points, wanted, machine.Reads));
+		}
 
 		foreach (var one in refused)
 			lines.Add(

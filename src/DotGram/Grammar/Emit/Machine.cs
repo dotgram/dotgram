@@ -298,6 +298,9 @@ sealed partial class Machine
 	/// <summary>The rules this machine is built from — see the constructor's <c>only</c>.</summary>
 	readonly IReadOnlyCollection<RuleSymbol> _rules;
 
+	/// <summary>The rules this machine reads, for a report that answers per machine.</summary>
+	internal IReadOnlyCollection<RuleSymbol> Reads => _rules;
+
 	/// <summary>What separates this machine's names from a sibling's — the constructor's <c>tag</c>.</summary>
 	readonly string _tag;
 

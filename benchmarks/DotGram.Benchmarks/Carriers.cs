@@ -102,14 +102,66 @@ static class Carriers
 		text.AppendLine("reason; their building rules count in **Building**. **Alone** is how many of those neither gate");
 		text.AppendLine("would keep on the tape: what lifting the refusal would move.");
 		text.AppendLine();
-		text.AppendLine("| Grammar | Carrier | Gate | Building | Replayed | Direct | Read again | Refused | Alone | Points |");
-		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+		text.AppendLine("A carrier is chosen per machine, and a grammar has one machine per publication group and input");
+		text.AppendLine("form, so the grammar's row is a **summary** and shows the worst of its machines. What a machine");
+		text.AppendLine("answers is in the table below it, and that is the row to read before expecting anything of a");
+		text.AppendLine("change: a grammar on the tape may have a machine that is not.");
+		text.AppendLine();
+		text.AppendLine("| Grammar (summary) | Machines | On the tape | Carrier | Gate | Building | Replayed | Direct | Read again | Refused | Alone | Points |");
+		text.AppendLine("| --- | ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var grammar in grammars)
 			text.AppendLine(
-				$"| {grammar.Name} | {Carrier(grammar)} | {grammar.Field("gate")} | {grammar.Field("building")} | " +
+				$"| {grammar.Name} | {grammar.Field("machines")} | {grammar.Field("on the tape")} | {Carrier(grammar)} | " +
+				$"{grammar.Field("gate")} | {grammar.Field("building")} | " +
 				$"{grammar.Field("replayed")} | {grammar.Field("direct")} | {grammar.Field("read again")} | " +
 				$"{grammar.Field("refused")} | {grammar.Field("alone")} | {grammar.Field("points")} |");
+
+		text.AppendLine();
+		text.AppendLine("## Machine by machine");
+		text.AppendLine();
+		text.AppendLine("One row a machine: what it publishes, the form it reads (`whole` for a text held whole, `buffered`");
+		text.AppendLine("for a reader, `bytes` for a byte stream), and its own carrier, gate and counts. The counts are the");
+		text.AppendLine("machine's own, and so are the points: a site belongs to the machine that reads the rule it stands in.");
+		text.AppendLine();
+		text.AppendLine("| Grammar | Publishes | Form | Carrier | Gate | Building | Replayed | Read again | Refused | Points |");
+		text.AppendLine("| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |");
+
+		foreach (var grammar in grammars)
+			foreach (var line in grammar.Lines.Where(static line => line.StartsWith("machine ", StringComparison.Ordinal)))
+			{
+				var head  = line.Substring("machine ".Length);
+				var split = head.IndexOf("]: ", StringComparison.Ordinal);
+
+				if (split < 0)
+					continue;
+
+				var named = head.Substring(0, split);
+				var rest  = head.Substring(split + "]: ".Length);
+				var form  = named.Substring(named.LastIndexOf('[') + 1);
+				var names = named.Substring(0, named.LastIndexOf('[')).Trim();
+				var parts = names.Split(", ");
+				var shown = parts.Length > 3
+					? string.Join(", ", parts.Take(3)) + $" and {parts.Length - 3} more"
+					: names;
+
+				string Field(string name)
+				{
+					foreach (var part in rest.Split(';'))
+					{
+						var pair = part.Trim().Split(':', 2);
+
+						if (pair.Length == 2 && pair[0].Trim() == name)
+							return pair[1].Trim();
+					}
+
+					return "";
+				}
+
+				text.AppendLine(
+					$"| {grammar.Name} | {shown} | {form} | {Field("carrier")} | {Field("gate")} | {Field("building")} | " +
+					$"{Field("replayed")} | {Field("read again")} | {Field("refused")} | {Field("points")} |");
+			}
 
 		// The second gate by the shape that opened the way and why the way stays: `open` lines are
 		// `open Rule: shape; why; how the rule is called; node`.
