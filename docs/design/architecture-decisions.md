@@ -5139,3 +5139,27 @@ same class as the two configurations that ship and do not compile, except that t
 and then stops responding. It sits above the speed items, it comes as a design before any code,
 and it waits for an undivided head, because a warning that fires on a correct grammar is worse
 than none and that judgement is the whole of the work.
+
+**D57's second step, designed: a refused ladder for every family that has an accepted one** — the
+same head and a tail the reader cannot finish, plus the shapes the two defects actually had, a long
+run of atoms before the bad character and a long quoted or bracketed construct left open. Coverage
+is every web format, FIX, the feed, both SQL dialects and the expression language, and a series
+whose input turns out to be *accepted* is reported as a fault of the series rather than counted as
+a pass — a series that quietly stops refusing stops checking what it was written for.
+
+**And the budget is the part worth keeping: a guard that needs twenty minutes to say "exponential"
+reports nothing.** Sizes grow by a quarter rather than doubling, so a shape that doubles per
+character rises sixteenfold a step instead of sixty-five thousandfold; a call is run once before it
+is timed; a ladder stops at the first call over twenty milliseconds and prints the size, the time
+and the word. The worst call any series makes is under two seconds, against the hundred and seven
+that started this. A check against explosions must find the explosion faster than the explosion
+eats the check.
+
+**One addition: that is an audit, and what is wanted is a guard.** It answers whether there is a
+defect today; the two that shipped survived precisely because nobody ran anything. So after the
+first pass a trimmed version — the same series, fewer points, the same budget — belongs where the
+build runs it. If it costs too much, cut the points and not the families: a coarse curve over every
+entry point beats an exact one over three.
+
+And the list of entry points that could *not* be given a refused ladder is half the result, not an
+appendix: it is exactly what the static probe has to cover, and the two are read together.
