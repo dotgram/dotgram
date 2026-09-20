@@ -4305,3 +4305,29 @@ where the static count promised far more — the gap is in the implementation, n
 change, ask how many times the row reaches the place being changed.** A row with nothing to measure
 returns zero, and that zero is indistinguishable from "the change does not work". The question
 costs a counter and it is asked before the window, not after it.
+
+**The 226 KB, accounted for to a seventh, and the rest the emitter cannot produce** (critic's Q19).
+The attribute is written once per compilation — innermost class part only, never for a suffixed
+reading, with the reason beside it: a suffix puts a second reading in a nested class, and what an
+including grammar names is the class. What is carried is the *spliced* text, not the file: the host
+grammar joined with every included one, because across a project reference the included grammar may
+not be reachable, so what travels must be the whole of what was compiled. By host that is 223,698
+for the standard, 32,871 for 1992, and 474,086 for T-SQL, which is compiled from itself joined with
+1992 — 730,655 in all. So 32,871 of the excess is the design's price and should be named in the
+figure rather than surface as a surprise, and it is **not** a defect. The remaining ~193,500 the
+emitter cannot produce: one attribute per compilation, three compilations carrying a text.
+
+**So the measurement is now the suspect, and its own shape says why.** The three figures are
+multiples of 512, a PE file's alignment: the number is a difference of two builds' file sizes, and
+such a difference attributes everything that moved to the thing that was changed. What settles it
+is a count of the attribute blobs in the built assembly — rows and lengths, read from metadata
+rather than built. Three rows of the expected lengths mean the emitter is right and the residue is
+in the measurement; a fourth row, or one at twice its length, means a defect living where these
+templates do not show. Ordered from stand, which holds the builds.
+
+**And the denominator needs saying whenever the percentage is.** The T-SQL parser also declares a
+located reading under a suffix — a second whole compilation of a 441 KB grammar, its own
+recognizers and materializers, in its own class, carrying no grammar text and weighing a large part
+of the assembly. Any "the text is N% of the assembly" is a fraction whose denominator holds T-SQL
+twice. That is the design's own choice and priced in the comment above it, but it belongs in the
+sentence with the percentage.
