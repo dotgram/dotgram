@@ -4277,3 +4277,31 @@ or a nested one. That was not chased, the order having been for an order of magn
 surprising a consumer who builds a dialect on our grammar and finds the text absent, which is the
 case the option exists for. The 226 KB is a separate question and a better one: a grammar's text
 emitted more than once is a defect rather than a design cost, and it is ordered.
+
+## D45. A criterion that named rows the mechanism never reaches, 2026-09-20
+
+D36's pair said T-SQL did not move, which is the condition under which expr undertook to withdraw
+the change. Before withdrawing it counted how often those rows ask a guard at all: `columns1000`
+three walks a parse, `conditions1000` three, `rows1000` two, a script statement three, none of them
+merged. `sql/select20` makes 194 walks of which 107 merge. **So the rows the criterion named make
+two or three guard asks in a whole parse, and no change touching guard asks could move them.**
+
+**The criterion is void rather than met, and that is a different thing from being re-read after the
+numbers.** What makes it void is a fact independent of the outcome: those rows do not exercise the
+mechanism, which was true before the pair was taken and would be true had the change helped. expr
+established it and then refused to re-read its own criterion, handing the decision over instead,
+which is the only way a pre-registered criterion survives being wrong — the author may show it
+measured nothing, and someone else decides what follows.
+
+**Decided: the change stays, unvalidated, and a new criterion is registered now.** It must show on
+rows that reach the mechanism — `sql/select20` and the SQL:2023 rows, where the first measurement
+already fell by 3 to 8% — and must not cost T-SQL or the expression language beyond noise. And
+before that measurement, the premature flush is fixed: the reader merges only asks emitted back to
+back and flushes before a text capture, so a guard naming a text capture between two built ones
+falls into two walks although a text capture builds nothing. That is why the corpus merges 3.1%
+where the static count promised far more — the gap is in the implementation, not in sql-39's count.
+
+**And the rule the episode leaves, which is the stand's as much as anyone's: before pairing a
+change, ask how many times the row reaches the place being changed.** A row with nothing to measure
+returns zero, and that zero is indistinguishable from "the change does not work". The question
+costs a counter and it is asked before the window, not after it.
