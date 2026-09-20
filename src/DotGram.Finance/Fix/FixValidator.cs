@@ -68,9 +68,10 @@ public sealed class FixValidator
 
 	/// <summary>The rules this package compiles in, shared by every caller and not written to.</summary>
 	/// <remarks>
-	/// This is what <c>FixParseMode.Strict</c> checked while validation lived inside building, in
-	/// its new home. A consumer moving across writes <c>message.Validate()</c> where they wrote
-	/// <c>FixParseMode.Strict</c>.
+	/// FIX 4.4's schema as this package holds it: required fields and components, the order and
+	/// uniqueness of a group entry's fields, primitive syntax, code sets, and the rule that
+	/// <c>MessageEncoding</c> accompanies an <c>Encoded</c> field. What <see cref="FixMessage.Validate()"/>
+	/// asks when it is given nothing else.
 	/// </remarks>
 	public static FixValidator Standard { get; } = new(shared: true);
 
