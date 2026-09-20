@@ -81,7 +81,7 @@ static partial class Stand
 	}
 
 	/// <summary>The paired stand taken <paramref name="count"/> times, and the medians of it.</summary>
-	public static void RepeatPaired(string beforeDir, string afterDir, string? directory, string? only, int count, double? limitMinutes = null)
+	public static void RepeatPaired(string beforeDir, string afterDir, string? directory, string? only, int count, double? limitMinutes = null, bool withAa = false, string? aaRows = null, string aaNote = "")
 	{
 		var output   = directory ?? DefaultDirectory();
 		var deadline = Deadline(limitMinutes);
@@ -108,13 +108,47 @@ static partial class Stand
 
 				break;
 			}
+
+			// The A/A of the parent, in the same slot and after each run of the pair (D50): the same rows, the parent's build against itself, so that what
+			// the stand says of a row when nothing changed sits beside what it says of the change.
+			if (withAa)
+			{
+				var same = new List<string> { "--stand-paired", beforeDir, beforeDir, Path.Combine(output, $"aa-run-{i}") };
+
+				if (aaRows is not null)
+					same.AddRange(["--only", aaRows]);
+
+				if (!RunAgain(same, deadline))
+				{
+					if (Directory.Exists(Path.Combine(output, $"aa-run-{i}")))
+						Directory.Delete(Path.Combine(output, $"aa-run-{i}"), true);
+
+					count = i - 1;
+					Console.WriteLine($"=== the limit of {limitMinutes} minutes came inside the A/A of run {i}: it and its pair are left out, {count} runs are used");
+
+					break;
+				}
+			}
 		}
 
 		var runs   = Enumerable.Range(1, count)
 			.Select(i => JsonSerializer.Deserialize<Taken>(File.ReadAllText(Path.Combine(output, $"run-{i}", "paired.json")), Json)!)
 			.ToArray();
 		var pooled = Pool(runs, output);
-		var report = pooled.Note + PairedMarkdown(true, pooled.Control, pooled.Rows, SideNote(beforeDir, afterDir));
+		Dictionary<string, Row>? aa = null;
+
+		if (withAa && count >= 1)
+		{
+			var aaRuns = Enumerable.Range(1, count)
+				.Where(i => File.Exists(Path.Combine(output, $"aa-run-{i}", "paired.json")))
+				.Select(i => JsonSerializer.Deserialize<Taken>(File.ReadAllText(Path.Combine(output, $"aa-run-{i}", "paired.json")), Json)!)
+				.ToArray();
+
+			if (aaRuns.Length >= MinimumKept)
+				aa = Pool(aaRuns, output).Rows.ToDictionary(static row => row.Id);
+		}
+
+		var report = pooled.Note + PairedMarkdown(true, pooled.Control, pooled.Rows, SideNote(beforeDir, afterDir) + (aaNote.Length > 0 ? " " + aaNote : ""), aa);
 
 		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(pooled.Control, pooled.Rows), Json));
 		File.WriteAllText(Path.Combine(output, "paired.md"), report);
@@ -171,6 +205,9 @@ static partial class Stand
 		return new Pooled(rows, control, keep, note.ToString());
 	}
 
+	/// <summary>One-decimal percent with a sign; a change that rounds to nothing is +0.0%, not the "-+0.0%" a negative zero would print.</summary>
+	static string Percent(double change) => (Math.Round(change, 3) + 0.0).ToString("+0.0%;-0.0%;+0.0%", CultureInfo.InvariantCulture);
+
 	/// <summary>One row with each reading's median over the runs, and the base's run-to-run spread.</summary>
 	static Row Merge(Row row, Taken[] runs)
 	{
@@ -201,7 +238,7 @@ static partial class Stand
 
 			var changes = others.Select(other => other.Readings[j].Nanoseconds / other.Readings[i].Nanoseconds - 1).ToArray();
 
-			ranges[suffix] = string.Create(CultureInfo.InvariantCulture, $"[{changes.Min():+0.0%;-0.0%}..{changes.Max():+0.0%;-0.0%}], {changes.Count(static one => one > 0)} of {changes.Length} positive");
+			ranges[suffix] = string.Create(CultureInfo.InvariantCulture, $"[{Percent(changes.Min())}..{Percent(changes.Max())}], {changes.Count(static one => one > 0)} of {changes.Length} positive");
 		}
 
 		return new Row(row.Id, readings, (baseline.Max() - baseline.Min()) / Median([.. baseline]), ranges);

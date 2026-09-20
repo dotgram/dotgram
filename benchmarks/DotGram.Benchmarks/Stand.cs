@@ -1564,7 +1564,19 @@ static partial class Stand
 		return note;
 	}
 
-	static string PairedMarkdown(bool pinned, double control, Row[] rows, string sides = "")
+	/// <summary>The A/A of the parent for one row: the median change of its build against itself, and the range over the runs; empty where the row was not in the A/A.</summary>
+	static string AaCell(Dictionary<string, Row> aa, string id, string suffix)
+	{
+		if (!aa.TryGetValue(id, out var row))
+			return "";
+
+		var before = row.Readings.FirstOrDefault(one => one.Reading == "before" + suffix);
+		var after  = row.Readings.FirstOrDefault(one => one.Reading == "after" + suffix);
+
+		return before is null || after is null ? "" : $"{Change(before.Nanoseconds, after.Nanoseconds)} {(row.Ranges is { } ranges && ranges.TryGetValue(suffix, out var range) ? range : "")}";
+	}
+
+	static string PairedMarkdown(bool pinned, double control, Row[] rows, string sides = "", Dictionary<string, Row>? aa = null)
 	{
 		var text = new StringBuilder();
 
@@ -1584,8 +1596,14 @@ static partial class Stand
 		text.AppendLine();
 		text.AppendLine("The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).");
 		text.AppendLine();
-		text.AppendLine("| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |");
-		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
+		if (aa is not null)
+		{
+			text.AppendLine("The last column is the **A/A of the parent** taken in the same slot, on the same rows: the parent's build against itself, its median change and its range over the runs. What the stand says of a row when nothing changed; a change is read as its excess over it (D50).");
+			text.AppendLine();
+		}
+
+		text.AppendLine("| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |" + (aa is null ? "" : " A/A of the parent |"));
+		text.AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |" + (aa is null ? "" : " --- |"));
 
 		foreach (var row in rows)
 		{
@@ -1596,10 +1614,11 @@ static partial class Stand
 				var suffix = reading.Reading["before".Length..];
 				var after  = row.Readings.First(one => one.Reading == "after" + suffix);
 				var name   = suffix.Length == 0 ? "generated" : suffix.TrimStart('-');
+				var aaCell = aa is null ? "" : $" {AaCell(aa, row.Id, suffix)} |";
 
 				text.AppendLine(CultureInfo.InvariantCulture,
 					$"| {row.Id} | {name} | {hand.Reading} | {hand.Nanoseconds:F1} | {reading.Nanoseconds:F1} | {reading.Nanoseconds / hand.Nanoseconds:F2}x | " +
-					$"{after.Nanoseconds:F1} | {after.Nanoseconds / hand.Nanoseconds:F2}x | {Change(reading.Nanoseconds, after.Nanoseconds)} | {reading.Bytes:F0} | {after.Bytes:F0} | {row.HandSpread:P0} | {(row.Ranges is { } ranges && ranges.TryGetValue(suffix, out var range) ? range : "")} |");
+					$"{after.Nanoseconds:F1} | {after.Nanoseconds / hand.Nanoseconds:F2}x | {Change(reading.Nanoseconds, after.Nanoseconds)} | {reading.Bytes:F0} | {after.Bytes:F0} | {row.HandSpread:P0} | {(row.Ranges is { } ranges && ranges.TryGetValue(suffix, out var range) ? range : "")} |{aaCell}");
 			}
 		}
 
@@ -1812,7 +1831,7 @@ static partial class Stand
 
 	// ── The first call ──────────────────────────────────────────────────────────
 
-	static readonly string[] FirstRows = ["fix/One.text", "fix/One.bytes", "el/floor", "sql/literal", "sql/select20"];
+	static readonly string[] FirstRows = ["fix/One.text", "fix/One.bytes", "el/floor", "sql/literal", "sql/select20", "fixmsg/Order44.strict"];
 
 	const int FirstRuns = 3;
 
@@ -2386,6 +2405,12 @@ static partial class Stand
 
 		foreach (var call in result.FirstCalls)
 			text.AppendLine(CultureInfo.InvariantCulture, $"| {call.Id} | {call.Reading} | {call.Milliseconds:F2} |");
+
+		if (result.FirstCalls.Any(static call => call.Id == "fixmsg/Order44.strict"))
+		{
+			text.AppendLine();
+			text.AppendLine("**`fixmsg/Order44.strict`, `reference-QuickFIXn`: its first call includes building the data dictionary (`new DataDictionary(path)` reads FIX44.xml, about a megabyte), and it is the cost of starting to use that reader, paid once per process and not per message.** An application that reads a million messages spreads it to nothing; dividing this number by ours reads as \"a hundred times faster\" and is the wrong quantity. The generated reading's first call builds no dictionary: its dictionary is compiled into the code and its 447 slots are filled as they are asked.");
+		}
 
 		text.AppendLine();
 		text.AppendLine(CultureInfo.InvariantCulture, $"Held while {StreamedFields:N0} FIX fields are read lazily from a stream:");

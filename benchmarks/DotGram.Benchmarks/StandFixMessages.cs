@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Finance.Fix;
 
@@ -47,6 +48,23 @@ static partial class Stand
 		return head + fields + "10=" + (sum % 256).ToString("D3", System.Globalization.CultureInfo.InvariantCulture) + (char)1;
 	}
 
+	/// <summary>
+	/// A framed message of exactly <paramref name="fields"/> fields (finance-24, D52): BeginString, BodyLength, MsgType (3, Reject, which has Text as a plain field, where News has it inside a group), then the Text tag repeated, then CheckSum, so
+	/// four fixed fields and the rest a repeated tag, which only the lenient mode accepts (the strict one refuses a duplicate in an area). BodyLength and CheckSum are
+	/// computed. The list that doubles is the reader's stack, and its top is the largest AREA, the body: N - 4 fields, so it doubles as N - 4 passes 8, 16, 32 and 64, and the sizes 12/13, 20/21, 36/37 and 68/69 straddle those (finance-24, who chose them after finding that the total count would have hit the middles of the steps).
+	/// </summary>
+	static string FixFramedFields(int fields)
+	{
+		var body = "35=3" + (char)1 + string.Concat(Enumerable.Range(0, fields - 4).Select(static i => "58=text" + i + (char)1));
+		var head = "8=FIX.4.4" + (char)1 + "9=" + body.Length + (char)1;
+		var sum  = 0;
+
+		foreach (var octet in System.Text.Encoding.Latin1.GetBytes(head + body))
+			sum += octet;
+
+		return head + body + "10=" + (sum % 256).ToString("D3", System.Globalization.CultureInfo.InvariantCulture) + (char)1;
+	}
+
 	static readonly Lazy<QuickFix.DataDictionary.DataDictionary> QuickFixDictionary = new(static () => new QuickFix.DataDictionary.DataDictionary(System.IO.Path.Combine(AppContext.BaseDirectory, "FIX44.xml")));
 
 	/// <summary>Whether QuickFIX/n accepts the wire as a session would take it: parsed with the dictionary and validated against it.</summary>
@@ -72,6 +90,18 @@ static partial class Stand
 	{
 		var wire = FixMessageWire();
 		var agreed = FixAgreedWire();
+
+		// The message layer's slope: FixMessages.TryParse, lenient mode, over messages of 8 to 132 fields, one row a size, with the bytes a call (D52).
+		foreach (var fields in new[] { 8, 12, 13, 20, 21, 36, 37, 68, 69, 132 })
+		{
+			var framed = FixFramedFields(fields);
+
+			yield return new Workload(
+				"fixmsg",
+				$"slope-{fields}",
+				[new Reading("generated", () => FixMessages.TryParse(framed, out _, out _, new FixParseOptions(FixParseMode.Lenient)) ? 1 : 0)],
+				() => FixMessages.TryParse(framed, out _, out var error, new FixParseOptions(FixParseMode.Lenient)) ? null : $"  the lenient mode refuses the {fields}-field message: {error}");
+		}
 
 		// The message layer against QuickFIX/n on a message both accept. The second reading is a reference: another library's reader, doing the work a
 		// session needs (a dictionary, BodyLength and CheckSum checked). It says how fast that reader is here, and not what this grammar costs against a hand

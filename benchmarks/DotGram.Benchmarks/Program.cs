@@ -209,12 +209,29 @@ static class Program
 				rest.RemoveRange(flag, 2);
 			}
 
+			// The A/A of the parent (D50) is taken with the pair on the rows the order named: `--only` names both, `--aa-only a,b` names the rows of the A/A alone
+			// (a subset of the pair's), and `--no-aa` is the order declining it. A general run that names no rows takes none, and its report says so.
+			var declined = rest.Remove("--no-aa");
+			var aaFlag   = rest.IndexOf("--aa-only");
+			var aaRows   = only;
+
+			if (aaFlag >= 0)
+			{
+				aaRows = rest[aaFlag + 1];
+
+				rest.RemoveRange(aaFlag, 2);
+			}
+
 			var directory = rest.Count > 2 ? rest[2] : null;
+			var sameSides = string.Equals(Path.GetFullPath(rest[0]), Path.GetFullPath(rest[1]), StringComparison.OrdinalIgnoreCase);
+			var aaOn      = !declined && aaRows is not null && !sameSides;
+			var aaNote    = sameSides ? "" : declined ? "**No A/A of the parent was taken with this pair: the order declined it (`--no-aa`).** No row of it is quoted as an effect without one."
+				: aaRows is null ? "**No A/A of the parent was taken with this pair: the order named no rows, so it is a general run.** No row of it is quoted as an effect." : "";
 
 			if (first)
 				Stand.PairedFirstCalls(rest[0], rest[1], directory, only);
 			else if (repeat > 1)
-				Stand.RepeatPaired(rest[0], rest[1], directory, only, repeat, limit);
+				Stand.RepeatPaired(rest[0], rest[1], directory, only, repeat, limit, withAa: aaOn, aaRows: aaRows, aaNote: aaNote);
 			else
 				Stand.Paired(rest[0], rest[1], directory, only);
 
