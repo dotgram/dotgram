@@ -1828,3 +1828,69 @@ the shape of both of this evening's misses, and it is why the answer to "how man
 wrong by construction when X is taken off this set.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-20, D42 `53712a93`).** Taken with the order as given, and the harness
+changed before any grammar: a snapshot may carry its own options, and a grammar that compiles into
+several files may be a snapshot. Then files for the first three rows — a few of them, not a matrix,
+since a set that takes minutes stops being read. The qualification is kept as written: none of the
+nine is untested, and the claim is only that no diff shows them.
+
+## Q18 (2026-09-20). A public parser carries its whole grammar into the assembly, and nothing has weighed it
+
+Proposed rather than assigned, and it comes out of Q17: if the snapshot set is one configuration,
+the first thing worth asking is where that configuration differs from the one a *consumer* gets.
+Here is one, and it is the whole grammar. Read at `53712a93`.
+
+**The claim.** "`Portable` | follows the class's visibility | whether the grammar's text travels on
+the class, for an include across a project reference (§6.7)." (`docs/syntax.md`, the `[Gram]`
+table.) `GramGenerator` settles it as the attribute's own value, else an inherited one, else
+`Visible(type)` — public all the way out. `CSharpEmitter` then writes
+`[global::DotGram.GramSourceAttribute("…")]` onto the last part of the class, the argument being the
+grammar's entire text.
+
+**What it rests on.** That a project downstream will include this grammar and needs the text to do
+it. Within one project it is never needed: the `.gram` file is an additional file and the generator
+reads it, taking a carried text only as the `else if`.
+
+**The objection is the size, and who is paying it.**
+
+- **`DotGram.Sql` publishes three public parsers over file-referenced grammars.**
+  `TransactSql.gram` is 441,215 bytes, `SqlStandard.gram` 223,698, `SqlStandard92.gram` 32,871 —
+  **697,784 bytes of grammar text**, carried into the shipped assembly as custom-attribute blobs,
+  because `SqlStandardParser`, `TransactSqlParser` and `Sql92Parser` are public.
+- **`DotGram.ExpressionLanguage` carries its grammar twice.** The host is public and the grammar is
+  inline, so the text is in metadata once as the `[Gram]` argument the source wrote and once more as
+  `[GramSource]` — a block of about 67 KB in the source either way.
+- **`DotGram.Web` pays nothing, and by the shape of its design rather than by a decision.** Its
+  grammar classes are internal — `static partial class Rfc3339` — so `Visible` is false and no text
+  travels.
+- **`DotGram.Finance` is the one package that says `Portable = false`**, and it is the one whose
+  grammar is smallest and already in metadata as its own `[Gram]` argument. So the decision exists,
+  and it was taken where it saved a duplicate of a small grammar and not taken where it adds seven
+  hundred kilobytes of a large one. That is this file's ranking rule again: a decision taken once
+  and not carried across.
+
+**What is not known, and it is the whole of what would settle this.** What share of the shipped
+assembly that is. The *source* figures exist —
+[`sql-code-size-2026-09-17.json`](../../benchmarks/results/sql-code-size-2026-09-17.json) has
+`TransactSqlParser.g.cs` at 22,026,182 bytes, against which 441 KB of grammar is two per cent — but
+source bytes and assembly bytes are different questions: the code compiles down by a large factor
+and the string does not compile down at all, so the share in the DLL is necessarily larger and
+may be much larger. `DotGram.CodeSize` weighs assemblies and has never been pointed at this.
+
+**The question a number answers.** The byte share of `GramSourceAttribute` in `DotGram.Sql.dll` and
+in `DotGram.ExpressionLanguage.dll`. One run, no pair, no window — it is a size question.
+
+**And a check that costs nothing and should come first.** Does anything include another project's
+grammar through the class? In this repository, no: `TransactSqlParser` includes `Sql92Parser`, and
+they are in one project, where the file is read and the carried text is not consulted. So the
+default is paying, in every public host, for a capability offered to consumers and used by nobody
+here — which may be exactly right for a library, and is worth saying out loud with the number
+beside it rather than left as a guess about a downstream project.
+
+**Why no snapshot shows it.** `SnapshotTests` leaves `Portable` at the `GramCompilerOptions`
+default, which is `false`, while a consumer's default is their host's visibility. So the emission
+every consumer gets differs from the emission every snapshot holds by an attribute carrying the
+whole grammar — Q17's point in one concrete instance, and the reason this was worth looking for.
+
+**Answer:** —
