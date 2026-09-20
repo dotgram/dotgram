@@ -4895,3 +4895,20 @@ a validator object holding the dictionary. What a failure is: a first refusal wi
 every finding, since a validating layer that stops at the first is of little use to somebody
 reconciling a session. And whether validation may be asked for without a dictionary at all, against
 the schema we already carry, which is what today's strict mode approximates.
+
+**One principle, arrived at twice in an hour from opposite sides (performance-ff).** For the
+measurement switch the question was whether a thing is reachable or merely promised, and there it
+could be made *unreachable*: declaring the property where a consumer's build cannot set it turns a
+promise into a fact held by the position of a line. For the emitted retention shape it cannot —
+anything internal in their assembly is theirs to call, and no placement changes that — so the other
+lever applies: withhold the promise. **Make it unreachable where you can, unpromised where you
+cannot**, and the choice between the two is simply which is available. Neither is a weaker form of
+the other; the first is enforced by the build, the second by nothing but our own restraint, which
+is why it is written down.
+
+And the shape gains a requirement from its third tenant rather than discovering one later: a list
+growing with the number of fields and holding references to fields is bounded by a length rather
+than by a sum of capacities, so the bound belongs to the tenant and not to the shape; and the
+quench matters far more for it, a quiet thread otherwise holding a whole message's nodes instead of
+some empty arrays. D34's seam living in the shape is what makes that automatic for a tenant that
+has not thought about it.
