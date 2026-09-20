@@ -6597,3 +6597,23 @@ Then the time is taken again, the walk having got eight per cent faster this mor
 generated form sharing the repair, so the ratio measured before it is no longer the ratio. The
 second argument of the attribute — generating only the types a consumer names — stays last: the
 arithmetic already says it is not needed to make the shape affordable.
+
+**D77 said three lists and there are five, which is my miscount.** Each of the two workflows keeps
+its *own* pack list and its *own* smoke step; only the shape script is shared. I read one workflow
+and counted its list, its loop and the script, then wrote "three" as though the other workflow did
+not exist. All five have grown, both workflows parse, and the analyzer smoke is an analyzer's
+rather than a library's: install the package, put a dictionary in as an additional file, write
+three lines and see the class come back with rules.
+
+**Its dictionary is its own**, small and written here — borrowing the corpus copy to test a package
+that ships nobody's dictionary would be the package doing the thing it refuses.
+
+**And running it, rather than writing it, found two things.** The shape script refused the new
+package for having no release notes, on the packed file, before any of it reached CI — the check
+being worth exactly what it is worth before the event. And the first run failed with a wall of
+missing types out of the generated file, which is not a defect at all: a package of the same
+identifier and version was already in the global cache from an earlier life, so the old library
+was served beside the new generator and the rules referred to types it did not have. **A stale
+artifact of the right name does not look stale; it looks like the thing you just wrote is broken**,
+and half a minute went into believing that. It is written into the development page with the shape
+of the failure named, next to the half that was already there.
