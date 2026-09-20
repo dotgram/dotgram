@@ -3318,3 +3318,12 @@ direction: the work is to build a designed thing, not to invent one. What critic
 scheme but the reason it looked unnecessary. The choice in front of Igor is therefore not "a new
 public type versus inventing on-demand lexing" but "a new public type versus finishing something
 already designed, whose deferral rested on a semantic nobody had questioned".
+
+**The convention that comes out of it, for every document in `docs/design/`.** A citation is the
+name — a method, a rule, a section — and the line number is a convenience that is true at the
+commit named beside it. A name survives other people's commits and a line does not, and with five
+sessions rebasing through one repository a line moves within hours. critic has put this at the top
+of `docs/design/open-questions.md` and re-read Q10's three citations at `91544ed4` so that they
+carry the commit they hold at. The part worth repeating is not "check it twice" but which checkout
+is likeliest to be wrong: a session working in a branch fetches constantly and is usually current,
+while the tree that feels canonical is the one nobody rebases. The main worktree is the stale one.
