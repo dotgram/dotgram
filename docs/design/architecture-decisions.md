@@ -3064,3 +3064,33 @@ number of rules would mean the arms multiplied after all. The condition that rep
 second door must not restate the fast path's test in a second place, and the branch must not be
 paid for by a grammar that has no guard at all — the generator emits the door where a guard needs
 it, which is D25 applied to this.
+
+**A third form, which would make the project unnecessary, and the rule it illustrates.** Before
+writing the second form expr looked again at what is actually expensive on the ask, and it is not
+the building. The fast path already builds a record where it stands; what it pays for is proving
+itself entitled to — an `IndexOf` over the `built` flags from the rule's mark to the root. That
+question, "is everything from the mark built", has a constant-time answer: a watermark of
+contiguity in `Ways`, raised by one as each record is built and lowered on a rewind in the same
+place `ways.Built` is already lowered. The test becomes a comparison.
+
+Why it is better than what I approved: the factories are called exactly when they are called
+today, only when a guard asks. §3.7 is not touched at any point, so the watch list is not needed,
+lookahead bodies need no exclusion, the repetition test has nothing to test and the proof of a
+point is not required. The whole risk of the project disappears and bookkeeping is left. The edit
+is also smaller than the second form: a field, one line at a build, one at a rewind, a comparison
+instead of a scan.
+
+**The rule this is recorded for.** Where two designs answer the same measurement, the one that
+does not touch what the specification promises wins even at equal numbers — the other is paid for
+in proofs that have to keep being true as everything around them changes. A risk removed is worth
+more than a risk carefully held.
+
+What it does not cover, and why the project is not withdrawn: two other linear costs sit on the
+ask beside the scan, `values.Room` clearing `Live` from `from`, and the blanket
+`Array.Clear(built, …)`. Constant time for one of three does not help if the cost is spread over
+all three. expr has asked sql-39 for its anatomy split over those parts and writes no code until
+the answer: if the cost is the scan, the third form wins and the second is not needed; if it is in
+the clearings, the second stays and the third lands inside it as its cheap part. The condition
+that comes with the watermark, whenever it lands: it is a cache of a property that is otherwise
+computed honestly, so a test must hold it against the honest scan over the corpora, because a
+watermark that is wrong by one answers "all built" and the building is skipped in silence.
