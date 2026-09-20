@@ -62,10 +62,25 @@ static class ShippedPages
 	/// imported — and on nothing else, which is the point: what no block of the page ever wrote is
 	/// not there, however much the test project would have supplied.
 	/// </remarks>
-	public static string Inherited(IReadOnlyList<string> blocks, int upTo) =>
-		string.Concat(blocks
+	public static string Inherited(IReadOnlyList<string> blocks, int upTo)
+	{
+		// What the block writes itself is not written for it again: a page that repeats an import
+		// where it wants to be read on its own is not making a mistake, and a using written twice
+		// is a warning, which here is a failure.
+		var own = new HashSet<string>(Usings(blocks[upTo]), StringComparer.Ordinal);
+
+		return string.Concat(blocks
 			.Take(upTo)
-			.SelectMany(static block => block.Split('\n'))
+			.SelectMany(Usings)
+			.Distinct()
+			.Where(line => !own.Contains(line))
+			.Select(static line => line + Environment.NewLine));
+	}
+
+	/// <summary>The using directives a block writes, as it writes them.</summary>
+	static IEnumerable<string> Usings(string block) =>
+		block
+			.Split('\n')
 			.Select(static line => line.TrimEnd('\r'))
 			.Where(static line =>
 				line.StartsWith("using ", StringComparison.Ordinal) && line.EndsWith(";", StringComparison.Ordinal) &&
@@ -74,9 +89,7 @@ static class ShippedPages
 				// twice and name types the block never imported — the checker's own errors, read
 				// as the page's.
 				!line.StartsWith("using var ", StringComparison.Ordinal) &&
-				!line.StartsWith("using (", StringComparison.Ordinal))
-			.Distinct()
-			.Select(static line => line + Environment.NewLine));
+				!line.StartsWith("using (", StringComparison.Ordinal));
 
 	/// <summary>Every block of every page, as a theory takes them: the page and which block it is.</summary>
 	public static TheoryData<string, int> Every(params string[] pages)
@@ -131,6 +144,44 @@ static class ShippedPages
 			.Where(static assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
 			.Select(static assembly => (MetadataReference)MetadataReference.CreateFromFile(assembly.Location)),
 	];
+
+	/// <summary>The grammar a block holds inside its <c>[Gram(…)]</c>, or null where it holds none.</summary>
+	/// <remarks>
+	/// Taken as text rather than compiled as C#, so the indentation a raw string would strip is
+	/// stripped here too: what the generator is handed has to be what the reader's compiler would
+	/// hand it, and a grammar indented one tab further than it says is a different grammar.
+	/// </remarks>
+	public static string? GrammarIn(string block)
+	{
+		var opens = block.IndexOf("[Gram(" + Quotes, StringComparison.Ordinal);
+
+		if (opens < 0)
+			return null;
+
+		var lines  = block.Substring(opens).Split('\n').Select(static line => line.TrimEnd('\r')).ToList();
+		var closes = lines.FindIndex(static line => line.TrimStart().StartsWith(Quotes + ")", StringComparison.Ordinal));
+
+		if (closes < 0)
+			return null;
+
+		var margin = lines[closes].Length - lines[closes].TrimStart().Length;
+
+		return string.Join(
+			Environment.NewLine,
+			lines
+				.Skip(1)
+				.Take(closes - 1)
+				.Select(line => line.Length >= margin ? line.Substring(margin) : line.TrimStart()));
+	}
+
+	/// <summary>The class a block declares, which is the host a grammar of that block is compiled against.</summary>
+	public static string? HostIn(string block) =>
+		Regex.Match(block, "partial class ([A-Za-z_][A-Za-z0-9_]*)") is { Success: true } named
+			? named.Groups[1].Value
+			: null;
+
+	/// <summary>The three quotes a raw string opens and closes with.</summary>
+	const string Quotes = "\"\"\"";
 
 	/// <summary>Where a package's pages are, from a type it ships.</summary>
 	public static string PageOf(Type shipped, string name) =>

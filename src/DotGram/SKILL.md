@@ -1,4 +1,4 @@
----
+﻿---
 name: dotgram
 description: Write, publish and debug .Gram grammars — the notation, its seam with C#, and what the generator's diagnostics mean. Use when a project references the DotGram package, when a file carries a [Gram] attribute or has a .gram extension, or when asked in so many words for a parser written in .Gram. Not for reading a format in C# generally: a regular expression, System.Text.Json or a hand-written reader is often the right answer, and this says nothing about them.
 ---
@@ -94,8 +94,8 @@ unsafe or unsupported shapes produce `GRAM4027`. Errors occur during enumeration
 `as` names the method instead: `find Row as AllRows`.
 
 ```csharp
-CssColor.ParseColor("#12aBcF").Value       // 12aBcF
-CssColor.TryParseColor("#xyz").IsSuccess   // false
+var value   = CssColor.ParseColor("#12aBcF").Value;      // 12aBcF
+var refused = CssColor.TryParseColor("#xyz").IsSuccess;  // false
 ```
 
 A `Match<T>` carries `IsSuccess`, `Value`, `Error` and `Position`.

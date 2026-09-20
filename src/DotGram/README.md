@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Agents: the skill for this package is SKILL.md, beside this file in the package
   directory — the notation, its seam with C#, and what the generator's diagnostics mean.
   Read it before writing a grammar. In a restored package that is
@@ -121,14 +121,14 @@ public static partial class Calculator
 Three parsers come out of it:
 
 ```csharp
-Calculator.EvaluateInt("7 / 2");          // 3
-Calculator.EvaluateDecimal("7 / 2");      // 3.5
-Calculator.EvaluateInt("2 ^ 3 ^ 2");      // 512, since `^` groups to the right
-Calculator.EvaluateInt("-2 ^ 2");         // -4, since a prefix is where an expression starts
+int     half    = Calculator.EvaluateInt("7 / 2");      // 3
+decimal exact   = Calculator.EvaluateDecimal("7 / 2");  // 3.5
+int     tower   = Calculator.EvaluateInt("2 ^ 3 ^ 2");  // 512, since `^` groups to the right
+int     negated = Calculator.EvaluateInt("-2 ^ 2");     // -4, since a prefix is where an expression starts
 
-Calculator.TryEvaluateInt("1.5");         // no match: `Value` is `IntNumber` there
+var refused = Calculator.TryEvaluateInt("1.5");         // no match: `Value` is `IntNumber` there
 
-Calculator.BuildTree("1 - 2 - 3");
+var tree = Calculator.BuildTree("1 - 2 - 3");
 // case Binary(-, Binary(-, Number(1), Number(2)), Number(3)) :
 ```
 
@@ -172,11 +172,18 @@ public static partial class FeedParser;
 The parser returns that structure directly:
 
 ```csharp
+var text = """
+	H|2026-09-20
+	R|ABC|100
+	T|1
+
+	""";
+
 var feed = FeedParser.ParseFeed(text);
 
-feed.Header.Date.Year;
-feed.Rows[0].Symbol;
-feed.Trailer.Count;
+var year   = feed.Header.Date.Year;   // 2026
+var symbol = feed.Rows[0].Symbol;     // ABC
+var count  = feed.Trailer.Count;      // 1
 
 foreach (var row in FeedParser.AllRows(text))
 	Console.WriteLine(row.Value.Symbol);
@@ -242,9 +249,9 @@ public static partial class SqlDialect;
 ```
 
 ```csharp
-SqlDialect.ParseOld("a *= b");                              // a left-joined to b
-SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
-SqlDialect.ParseAny("a is distinct from b");                // a differs from b
+var joined  = SqlDialect.ParseOld("a *= b");                // a left-joined to b
+var refused = SqlDialect.TryParseNew("a *= b");             // IsSuccess is false
+var differs = SqlDialect.ParseAny("a is distinct from b");  // a differs from b
 ```
 
 `when Version is "2000"` is decided when the parser is generated, not while it runs:
