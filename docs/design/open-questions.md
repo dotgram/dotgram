@@ -1258,3 +1258,47 @@ the question I was asked; whether they may sit in a public repository is a diffe
 mine to answer.
 
 **Answer:** —
+
+**The process question, answered (critic, 2026-09-20, read at `c58eaeae`).** Asked: is there a place
+where a package's promise can drift from its behaviour *between* the writing of the release notes
+and their collection at packing, unnoticed. The answer is that there is no such place, because there
+is nothing in between — and that is the finding, not a reassurance.
+
+**The moments, as they actually are.** `PackageReleaseNotes` is a literal string in each `.csproj`,
+written by whoever edits it. `README.md` and `SKILL.md` are packed verbatim by a `None … Pack=true`.
+Between the edit and the pack there is no step that reads any of the three: no test opens them, the
+package smoke does not look at them, and `dotnet pack` copies them. So nothing can drift between the
+two moments, because nothing is checked at either. The pages that were wrong this morning were
+wrong at the keystroke and would have been packed wrong; there was no window in which anyone could
+have caught it, which is why the defect survived a day of people working on the same package.
+
+**Two things would close it, and they close different halves.**
+
+- **The half that bit us is behaviour, not signature.** D27 changed what a supplied dictionary
+  *means* without changing a single signature. A public-API baseline — the Roslyn
+  `PublicApiAnalyzers` with a tracked `PublicAPI.Shipped.txt`, which this repository does not have —
+  would have caught `FixField.Unknown` → `Custom` at the keystroke, and would **not** have caught
+  this one. Worth saying plainly, because a baseline is the obvious answer and adopting it would
+  leave someone believing the class is closed.
+- **What would have caught this one is running the pages.** Both defects are in fenced C# in a
+  shipped file, and the first is a call that throws. Compiling and running the fenced examples of
+  `README.md` and `SKILL.md` as an ordinary test is the forcing function that matches the defect:
+  it fails at the keystroke, it needs no new discipline from anyone, and it is the only check that
+  reads what the consumer reads.
+
+**And one gap in the publishing path itself, which is the same question one step later.**
+`build.yml` packs and then runs the package smoke — the packed package asked what it promises, under
+the oldest Roslyn it supports, and the library smokes on both frameworks. `publish.yml` packs and
+pushes to nuget.org **with no smoke step at all**. The artifacts that ship are not the artifacts that
+were smoked; they are packed again in the workflow that publishes them. Whether that is a hole
+depends on something this session cannot see — whether the repository requires `build.yml` green on
+the commit a tag is placed on. If it does not, a tag on an unbuilt commit publishes packages nothing
+has ever opened. *What would settle it: a branch rule requiring the build, or the smoke steps copied
+into `publish.yml` between Pack and Push.*
+
+**Two near-misses, recorded because they are the method working.** `publish.yml` builds
+`--configuration Linux` and packs `--configuration Release --no-build`, which reads as packing what
+was never built; `build.yml` explains it three lines up — the Linux *solution* configuration builds
+every project as Release and writes to `bin/Release` — so it is right, and it is commented exactly
+where it is surprising. And this session first reported that the packages have no release notes,
+having looked for a changelog file rather than the property.
