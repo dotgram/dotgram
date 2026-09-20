@@ -6759,3 +6759,27 @@ anyway. Had the number been carried over rather than counted again, the conclusi
 right by accident, and a week later nobody could tell the accident from the reasoning. A review of
 an area that has changed under it is recounted, number by number; checking that its conclusion
 still sounds right is not the same act.
+
+## D81 — A generated table cannot show what was never read
+
+The carriers page is written from the reports a build leaves. Ask for it after building one
+project and it comes out complete-looking: thirty-five grammars, every column filled, nothing on
+the page saying that the solution has more. The reader is not misled by a wrong cell — there is no
+wrong cell — but by the *shape* of the table, which says "this is the set" because that is what a
+table says.
+
+**Emptiness and absence are different, and only one of them a table can carry.** A blank cell is
+an answer: a grammar read with the immediate carrier has nothing to say about a gate, and the
+column is rightly empty. A grammar that was never compiled has no row, and no arrangement of rows
+can show that. So absence has to be said in words, beside the table: this page was read from these
+projects, and a short table here means a short build rather than a grammar with nothing to say.
+
+**The same holds wherever we generate a document from what a run happened to find** — the
+carriers page, the coverage page, any future one. Each says what it was read from and how much of
+it there was, so that a reader can tell a small answer from a small question. The alternative, and
+it is the one that bites, is that a page which is merely incomplete reads exactly like a page
+which is complete — and unlike a wrong number, nothing in it looks wrong.
+
+**It is the day's own rule in a third place.** A test that takes what the process has loaded
+measures the finder; a document generated from what a build happened to leave describes the build.
+In both, the defect is invisible to whoever produced it, because for them the thing was there.
