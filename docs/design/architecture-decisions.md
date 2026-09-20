@@ -6137,3 +6137,25 @@ jump of four to eleven times across it, the case-arms row seen three times and t
 step in time between a later pair — which a single exponent could never have shown and which the
 shape column separates only because it prints both quantities. Nothing changes class, and the guard
 is untouched.
+
+**A retraction about what the bool rows measure, and it lands better than it sounds.** Those rows
+compare the *match* form of one side with the *bool* form of the other by construction: they are
+two APIs, not two commits. So a halving of time and allocation on them supports nothing about any
+commit, and an unrelated pair shows the same halving on the same rows, with an A/A of one build
+against itself at minus fifty-two per cent. A hypothesis about a store rented and dropped past a
+bound drew on those rows and must let go of them.
+
+**What the journal already says is the correct use of the same number and stands.** D4's entry
+records the halving as the price of the *match* form against the bool form, which is exactly what
+the rows measure, and it is now supported by two independent runs rather than one. The error was
+never in the number; it was in attributing an API's cost to a change.
+
+Of the rest of that report: the constant fall of eleven to twenty nanoseconds on the web refusal
+rows stands, the accepted rows are not separable from the A/A, and a two to three per cent rise
+offered without an A/A turns out to be what an unrelated pair shows too — the second-slot bias of
+short rows — so it is unsupported rather than a price.
+
+**And the fix is procedural rather than an apology:** every pair carrying such a row will say in its
+header what the row compares. A row whose name reads as a variant of its neighbour and whose
+meaning is a different API is a trap laid for every future reader, and the person who fell into it
+is the one who built it.
