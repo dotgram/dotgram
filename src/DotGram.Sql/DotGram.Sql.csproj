@@ -7,9 +7,9 @@
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
 		<RootNamespace>DotGram.Sql</RootNamespace>
 
-		<Description>SQL parsers written in .gram, building one tree of records: the ISO standard's SQL-92 and Microsoft's T-SQL.</Description>
+		<Description>SQL parsers written in .gram: ISO SQL:2023, with a tree of the standard's own constructs, and SQL-92 and Microsoft's T-SQL, which build one tree of records between them.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>parser;sql;iso-sql;tsql;t-sql;sql-server;dotgram</PackageTags>
+		<PackageTags>parser;sql;iso-sql;sql-2023;sql-92;tsql;t-sql;sql-server;dotgram</PackageTags>
 		<PackageReleaseNotes>The trees and their writers are unchanged, and so is every method that was here before: what moved is what the grammars read, and there is one more way to ask.
 
 Every publication now has a third method, bool TryParseX(string input, out T value), beside ParseX and the Match&lt;T&gt; form. It answers only whether the text reads, says nothing about what was expected where it does not, and a refusal costs it about half, since nothing is read a second time to record the message.
