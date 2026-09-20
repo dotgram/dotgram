@@ -3936,3 +3936,26 @@ a project here. There is, on T-SQL, and the next question is not how much but *w
 constructions are built and then replaced. That names whether it is the shape of the grammar — a
 rule building what the rule above rebuilds — or a cost of the engine, and the two have nothing in
 common but the number. Behind the line for `ast.md` and the repeats count.
+
+**D36 is written (`7f59a2d2`), and the size went the other way from the usual.** All four conditions
+are closed. The order question was answered in two parts rather than asserted: captures standing
+side by side occupy disjoint ordered stretches of the log, so the merged order is exactly "the
+first one's records, then the second's", which is what two walks did. Order moves only where a
+guard names a value *inside* another — today the inner subtree is built whole and the outer is
+finished after it, so a record standing before the inner subtree is built after it, while the
+merged walk builds in log order. The set is the same and a child still precedes its parent; only a
+factory with a side effect could tell, and §7.2 promises order for guards and "after the match" for
+constructions, not this. Noted rather than waved past: if that promise is ever widened, this is
+where it breaks.
+
+Condition 3 was the one where time usually wins and the file grows unwatched. It shrank: T-SQL by
+8,208 bytes over 48 merged calls, SQL:2023 by 5,172 over 40, taken before and after in one tree.
+One call is shorter than the run it replaces, and a machine whose guards never name two built
+values emits neither the parameters nor the marking — three snapshots byte for byte unchanged.
+
+**And two defects of its own, both out of bounds, both from editing a branch without reading whose
+`else` it was.** A guard with no first value calls with −1 in its place and the walk indexed by it;
+the guard added for that then captured the `else` belonging to the gathering branch, sending an
+ordinary ask down the side stack with −1. The tests caught both, and expr's own comment is the
+right one: caught by tests is not an excuse when the edit was five lines and reading the next line
+was cheaper than two runs.
