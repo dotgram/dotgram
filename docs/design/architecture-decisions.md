@@ -5673,3 +5673,28 @@ governs: whether one cause — an ordered choice re-reading what it has read —
 unlike as a character-level refusal, a flat list and a parameter list. Counting three web cases and
 one SQL case answers it, and until it does, fixing them one at a time risks twenty separate
 remedies for one defect.
+
+**Two cheap facts that narrow the class count before it finishes** (finance-24, five minutes,
+because the grammars are theirs and they can say what is *not* in them).
+
+**The worst projection has no grammatical ambiguity at all.** An unclosed quoted string is a run of
+one character, and in that rule the optional folding whitespace never matches while the content is
+exactly one character — so there is one reading and nothing to cut. Whatever the square is there,
+it cannot be a property of the grammar.
+
+**And the quiet path is quadratic too.** The same input read without recording anything: 5.70,
+22.56 and 91.55 ms at one, two and four thousand characters — exactly four times for twice, a clean
+square — against 30.67, 113.40 and 239.65 recording. **So building the expectation is not the
+cause**; it multiplies the refusal by about four and sits on top of a square that lives in the
+reading.
+
+**The hypothesis, marked as one:** a greedy repetition that cannot finish gives back what it ate
+one element at a time and retries the continuation, which is n attempts — linear if giving one back
+costs a constant, quadratic if it costs what has already been eaten. That is testable by the count
+already under way.
+
+**And the pair to count first, which is the sharpest thing in the report:** the address list's
+unclosed quote is a run of *one character*, while the media type's is a repeated *unit*, and the
+audit gives them the same exponent. If one arithmetic covers both, that is strong evidence for the
+reader; if they differ, the list holds two diseases under one number and they must be cured apart.
+Measuring that pair first decides more than any other pair would.
