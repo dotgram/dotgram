@@ -11,6 +11,11 @@
 		<PackageTags>expressions;expression-tree;linq;linq-expressions;parser;csharp;dsl;dotgram</PackageTags>
 		<PackageReleaseNotes>Since 0.1.0. Lambdas whose parameters say no types, read where the types are known; interpolated strings, verbatim and raw; a resolver of its own that a host can hand in, so what a name means is the host's to decide. Parse, TryParse and Compile are what is public, and TryParse now also answers whether without a message. Faster: an expression of a thousand terms no longer costs the square of its length.</PackageReleaseNotes>
 
+		<!-- The documentation of what is public, shipped beside the assembly. Here and not
+		     in Directory.Build.targets: by the time those are read the SDK has already
+		     decided where the file goes, and it goes nowhere. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+
 		<!-- Symbols inside the assembly, and paths normalized on CI only: both as
 		     DotGram.Web has them, and the reasons are written there. -->
 		<DebugType>embedded</DebugType>

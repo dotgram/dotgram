@@ -10,6 +10,12 @@ grammar and checks what it means; `GRAM5xxx` the analyses that decide what a gra
 rather than whether it is one. `GRAM6xxx` is not the generator's: the Visual Studio extension
 reports it in the editor, and it has a section of its own before the retired numbers.
 
+**This file is the list, and the analyzer's release files are not.** `AnalyzerReleases.Shipped.md`
+holds only what the Roslyn shell declares as rules of its own, which is `GRAM0xxx`. Everything a
+grammar is told is reported through a descriptor made from its identifier as the message arrives,
+so Roslyn never sees those rules to track them — and a suppression or a severity is written
+against the identifier either way.
+
 **A retired number is not reused.** A suppression written against the old meaning would
 silently acquire a new one. The retired numbers are listed at the end.
 

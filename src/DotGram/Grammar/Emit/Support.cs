@@ -399,6 +399,7 @@ public static partial class CSharpEmitter
 		/// </remarks>
 		public readonly struct SourceSpan
 		{
+			/// <summary>A span of <paramref name="length"/> items beginning at <paramref name="start"/>.</summary>
 			public SourceSpan(int start, int length)
 			{
 				Start  = start;
@@ -420,6 +421,7 @@ public static partial class CSharpEmitter
 				return text.Slice(Start, Length);
 			}
 
+			/// <summary>Where it begins and one past where it ends, as <c>[start..end)</c>.</summary>
 			public override string ToString() { return "[" + Start + ".." + End + ")"; }
 		}
 		""";

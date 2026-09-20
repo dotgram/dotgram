@@ -49,6 +49,7 @@ public static partial class CSharpEmitter
 				return true;
 			}
 
+			/// <summary>The item at <paramref name="position"/>, or false where the input ended before it.</summary>
 			public bool Peek(int position, out T value)
 			{
 				if (!Ensure(position, 1))

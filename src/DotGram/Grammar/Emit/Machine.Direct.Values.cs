@@ -1139,7 +1139,9 @@ sealed partial class Machine
 			if (_marksAsked is { } arms)
 			{
 				file.Line();
-				file.Line("/// <summary>Whether a record the walk may build from here on is handed the marks standing over it.</summary>");
+				// Not a documentation comment: a local function takes none, and a consumer generating
+				// the documentation of their own assembly is told so (CS1587).
+				file.Line("// Whether a record the walk may build from here on is handed the marks standing over it.");
 
 				using (file.Block($"static bool {DirectMaterializer}_AsksMarks(int[] log, int from, int end)"))
 				{

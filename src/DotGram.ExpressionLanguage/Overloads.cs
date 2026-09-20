@@ -120,6 +120,8 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>One way a call could be read: the member, and the form its arguments take.</summary>
+	/// <param name="Member">The member the call would reach.</param>
+	/// <param name="Parameters">What it takes, as metadata says.</param>
 	/// <param name="Expanded">Whether a <c>params</c> array's elements were written one by one.</param>
 	/// <param name="Defaults">How many optional parameters were left to their defaults.</param>
 	readonly record struct Candidate(MemberInfo Member, ParameterInfo[] Parameters, bool Expanded, int Defaults)
@@ -132,6 +134,8 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>An overload before any argument is asked: its parameters, and what they already say.</summary>
+	/// <param name="Member">The member this overload is.</param>
+	/// <param name="Parameters">What it takes, as metadata says.</param>
 	/// <param name="Params">Whether the last parameter is a <c>params</c> array.</param>
 	/// <param name="Usable">Whether an expression tree could hold every parameter it takes.</param>
 	/// <remarks>

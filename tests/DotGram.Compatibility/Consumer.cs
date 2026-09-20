@@ -102,6 +102,36 @@ namespace DotGram.Compatibility
 	{
 	}
 
+	// A guard that names a value built while the text is read, under a mark: the walk that
+	// builds for such a guard is written with a method of its own asking whether what it may
+	// build is handed the marks standing over it, and that method is a local function. What a
+	// generator writes above a local function may not be a documentation comment — a consumer
+	// who generates the documentation of their own assembly compiles our file with that switch
+	// on, and the compiler refuses it (CS1587). This project builds with it on, so it refuses
+	// here instead.
+	[Gram(
+		"state : @int\n" +
+		"Digits : @int  = d: ['0'..'9']+ => @(ToInt(d))\n" +
+		"Start  : @int  = v: Digits with state @(1) & when @(v > 0) & '!' => @(Under(v, parserState))\n" +
+		"parse Start", Carrier = GramCarrier.Tape)]
+	public partial class MarkedGuard
+	{
+		static int ToInt(string text)
+		{
+			var result = 0;
+			for (var i = 0; i < text.Length; i++) result = checked(result * 10 + text[i] - '0');
+			return result;
+		}
+
+		// Naming the marks is what makes the walk ask whether a record it may build is handed
+		// them, and that question is a method of its own — the local function whose comment
+		// this project is here to compile.
+		static int Under(int value, System.ReadOnlySpan<int> marks)
+		{
+			return marks.Length > 0 ? value + marks[marks.Length - 1] : value;
+		}
+	}
+
 	/// <summary>What the grammar above builds, filled from captures by name (§7.3).</summary>
 	public sealed class Entry
 	{

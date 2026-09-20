@@ -9,6 +9,7 @@ namespace DotGram.ExpressionLanguage;
 // Every answer here is the same every time it is asked and costs an allocation every
 // time. The ones keyed by what a text said are bounded, because a text can grow them.
 
+/// <summary>The expression language: its parser, and what it keeps between readings.</summary>
 public static partial class ExpressionParser
 {
 	// What reflection answers about a type is the same every time it is asked, and costs an

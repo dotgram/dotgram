@@ -1912,6 +1912,7 @@ public static partial class ExpressionParser
 	/// is what the text said and nothing more. A tuple would have said the same, and the
 	/// notation has no place to write one — a rule's type is a name.
 	/// </remarks>
+	/// <param name="Name">What the member is called.</param>
 	/// <param name="Value">What the member is assigned, or null where it is initialized.</param>
 	/// <param name="Fields">A nested member initializer's own settings, or null.</param>
 	/// <param name="Items">A nested collection initializer's own elements, or null.</param>
@@ -2306,6 +2307,9 @@ public static partial class ExpressionParser
 
 	/// <summary>How a value is iterated: one decision, read by both halves of a `foreach`.</summary>
 	/// <param name="Enumerable">What the source is converted to before it is asked for an enumerator.</param>
+	/// <param name="GetEnumerator">What the source is asked for its enumerator.</param>
+	/// <param name="MoveNext">What moves the enumerator, and says whether it moved.</param>
+	/// <param name="Current">What the enumerator is asked for the value of a turn.</param>
 	/// <param name="Item">What each turn yields, before the declared type takes it.</param>
 	readonly record struct Iteration(
 		Type Enumerable, MethodInfo GetEnumerator, MethodInfo MoveNext, PropertyInfo Current, Type Item);

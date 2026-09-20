@@ -35,6 +35,17 @@
 		<!-- Off: the file it generates is C# 10 and would fail the floor before anything
 		     of ours was judged. A consumer at the floor has no implicit usings either. -->
 		<ImplicitUsings>disable</ImplicitUsings>
+
+		<!-- On, and as errors: a consumer who documents their own assembly compiles our
+		     generated file with this switch, and what we write has to survive it. It did not
+		     once — two comments the generator wrote sat on a local function, which C# has no
+		     documentation for, and the consumer's build failed on a file they did not write
+		     (CS1587). Here it fails in ours, on three frameworks, which is what this project
+		     is for. CS1591 is off: what the generated file leaves undocumented is a question
+		     about the documentation we ship, not about whether it compiles. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">
