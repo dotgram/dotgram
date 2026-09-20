@@ -288,6 +288,33 @@ It also gives our own side something to look at: 4,192 B for a seventeen-field m
 message parse allocates is therefore the message layer and not the fields — which is a question
 for us, not for them, and not one this row was built to answer.
 
+## 5b. The first call, which is about two decisions rather than two speeds
+
+Window 89, each reading in a fresh process, seven each, alternating; the ranges do not touch.
+
+| | first call |
+| --- | --: |
+| `FixMessages.TryParse`, strict | 14.09 ms (14.01-14.29) |
+| `reference-QuickFIXn` | 39.58 ms (39.40-39.77) |
+
+**Do not divide these.** Theirs includes building the data dictionary — `new DataDictionary(path)`
+reads FIX44.xml, about a megabyte — and that is the cost of *starting to use* the reader, paid
+once a process and never again. An application reading a million messages spreads it to nothing.
+Ours has no such step at all, and that is the whole content of the comparison: their dictionary is
+a file read at startup, ours is compiled into the assembly with its slots filled as they are
+asked for. The number is evidence about two designs, not about two speeds, and the report prints
+that sentence under the table rather than leaving it here.
+
+What is *not* measured, and should not be inferred: the first message after a dictionary is
+already loaded. That would be the like-for-like first call, and nobody has taken it.
+
+**And it says something about us that has nothing to do with them.** 14 ms is a long time. It is
+loading, type initialization and the JIT for one message — this package has already had its first
+call halved once, by taking a 35 ms static constructor out and keeping 13.8 KB of IL off the
+path. There is no stand row watching it, so there is nothing to stop it growing back. That is a
+question for this repository and not for the comparison, and it is written here because this is
+where the number turned up.
+
 ## 6. What I would not do
 
 - I argued here against a message-layer row until the two validators had been held side by side,
