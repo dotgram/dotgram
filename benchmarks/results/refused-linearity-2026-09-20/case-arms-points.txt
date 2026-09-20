@@ -1,0 +1,85 @@
+Built from d700843e: the libraries measured are this build's own (DotGram.Web, DotGram.Sql, DotGram.ExpressionLanguage, DotGram.Finance, the examples).
+
+Refused inputs: a growing head and a tail no reader can finish; each series asserts that the input is refused. The exponent is the slope of log time on log size over the largest sixteenth of the ladder (at least four points); above 1.10 a refusal is a defect, from 1.5 quadratic, from 3.0 explosive. A ladder ends at the first call over 20 ms.
+
+| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | projected at 64 KiB | KB a call at the largest | allocation exponent | |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| T-SQL statement | CASE arms, no END | arms | 4 - 3,393 | 33 | 61,085 | 804.9 us | 1.00 | 863.5 us | 36.1 | 0.68 |  |
+           4 arms                 8.46 us       0.09 KB       2116.1 ns per arms         22.0 B per arms
+           5 arms                 9.54 us       0.09 KB       1907.5 ns per arms         17.6 B per arms
+           6 arms                10.76 us       0.09 KB       1792.8 ns per arms         14.7 B per arms
+           7 arms                12.17 us       0.09 KB       1738.7 ns per arms         12.6 B per arms
+           8 arms                13.56 us       0.09 KB       1694.6 ns per arms         11.0 B per arms
+          10 arms                16.32 us       0.10 KB       1632.2 ns per arms          9.8 B per arms
+          12 arms                19.18 us       0.09 KB       1597.9 ns per arms          7.3 B per arms
+          15 arms                23.39 us       0.09 KB       1559.6 ns per arms          5.9 B per arms
+          18 arms                28.41 us       0.09 KB       1578.1 ns per arms          4.9 B per arms
+          22 arms                33.89 us       0.12 KB       1540.3 ns per arms          5.6 B per arms
+          27 arms                40.20 us       0.10 KB       1489.0 ns per arms          3.8 B per arms
+          33 arms                56.64 us       0.09 KB       1716.3 ns per arms          2.7 B per arms
+          41 arms                60.67 us       0.09 KB       1479.7 ns per arms          2.2 B per arms
+          51 arms                74.84 us       0.09 KB       1467.5 ns per arms          1.7 B per arms
+          63 arms                93.18 us       0.09 KB       1479.1 ns per arms          1.4 B per arms
+          78 arms               115.59 us       0.09 KB       1481.9 ns per arms          1.1 B per arms
+          97 arms               102.80 us       0.09 KB       1059.8 ns per arms          0.9 B per arms
+         121 arms               104.64 us       0.09 KB        864.8 ns per arms          0.7 B per arms
+         151 arms                45.85 us       0.09 KB        303.7 ns per arms          0.6 B per arms
+         188 arms                48.00 us       0.09 KB        255.3 ns per arms          0.5 B per arms
+         235 arms                55.76 us       0.09 KB        237.3 ns per arms          0.4 B per arms
+         293 arms                69.72 us       0.09 KB        237.9 ns per arms          0.3 B per arms
+         366 arms                85.57 us       1.48 KB        233.8 ns per arms          4.2 B per arms
+         457 arms               107.39 us       0.09 KB        235.0 ns per arms          0.2 B per arms
+         571 arms               135.76 us       0.09 KB        237.8 ns per arms          0.2 B per arms
+         713 arms               167.55 us       0.09 KB        235.0 ns per arms          0.1 B per arms
+         891 arms               208.88 us       2.40 KB        234.4 ns per arms          2.8 B per arms
+       1,113 arms               263.50 us       0.91 KB        236.8 ns per arms          0.8 B per arms
+       1,391 arms               327.66 us       0.09 KB        235.6 ns per arms          0.1 B per arms
+       1,738 arms               410.87 us       0.09 KB        236.4 ns per arms          0.1 B per arms
+       2,172 arms               511.15 us       0.09 KB        235.3 ns per arms          0.0 B per arms
+       2,715 arms               639.98 us       0.09 KB        235.7 ns per arms          0.0 B per arms
+       3,393 arms               804.88 us      36.10 KB        237.2 ns per arms         10.9 B per arms
+| SQL:2023 query | CASE arms, no END | arms | 4 - 2,715 | 32 | 48,881 | 20.1 ms | 1.44 | 30.7 ms | 0.0 | 1.66 | SUPERLINEAR, stopped at 2,715 (20 ms) |
+           4 arms                59.09 us      17.80 KB      14771.3 ns per arms       4556.1 B per arms
+           5 arms                75.65 us      22.20 KB      15130.4 ns per arms       4547.3 B per arms
+           6 arms                83.89 us      26.61 KB      13980.9 ns per arms       4541.4 B per arms
+           7 arms                96.71 us      31.02 KB      13816.2 ns per arms       4537.2 B per arms
+           8 arms               108.36 us      35.42 KB      13545.4 ns per arms       4534.1 B per arms
+          10 arms               134.89 us      44.24 KB      13489.3 ns per arms       4529.7 B per arms
+          12 arms               147.56 us      53.05 KB      12296.4 ns per arms       4526.7 B per arms
+          15 arms               183.20 us      69.14 KB      12213.0 ns per arms       4719.6 B per arms
+          18 arms               220.04 us      79.49 KB      12224.6 ns per arms       4521.8 B per arms
+          22 arms               266.97 us      97.11 KB      12134.8 ns per arms       4520.1 B per arms
+          27 arms               326.13 us     119.14 KB      12079.0 ns per arms       4518.6 B per arms
+          33 arms               398.04 us     145.58 KB      12061.9 ns per arms       4517.4 B per arms
+          41 arms               490.69 us     180.83 KB      11968.0 ns per arms       4516.4 B per arms
+          51 arms               613.66 us     227.27 KB      12032.6 ns per arms       4563.1 B per arms
+          63 arms               751.39 us     277.77 KB      11926.8 ns per arms       4514.9 B per arms
+          78 arms              1011.33 us     344.07 KB      12965.7 ns per arms       4517.0 B per arms
+          97 arms              1144.50 us     427.58 KB      11799.0 ns per arms       4513.9 B per arms
+         121 arms               870.67 us     533.33 KB       7195.6 ns per arms       4513.5 B per arms
+         151 arms               791.08 us     665.52 KB       5239.0 ns per arms       4513.2 B per arms
+         188 arms               695.51 us     828.55 KB       3699.5 ns per arms       4513.0 B per arms
+         235 arms               727.49 us    1035.64 KB       3095.7 ns per arms       4512.8 B per arms
+         293 arms               913.49 us    1291.21 KB       3117.7 ns per arms       4512.6 B per arms
+         366 arms              1103.69 us    1612.86 KB       3015.5 ns per arms       4512.5 B per arms
+         457 arms              1433.80 us    2013.83 KB       3137.4 ns per arms       4512.4 B per arms
+         571 arms              1749.76 us    2516.15 KB       3064.4 ns per arms       4512.3 B per arms
+         713 arms              2148.72 us    3411.56 KB       3013.6 ns per arms       4899.6 B per arms
+         891 arms              2678.17 us    3926.15 KB       3005.8 ns per arms       4512.2 B per arms
+       1,113 arms              3379.77 us    4904.34 KB       3036.6 ns per arms       4512.2 B per arms
+       1,391 arms              4512.45 us    6129.29 KB       3244.0 ns per arms       4512.1 B per arms
+       1,738 arms             30115.25 us   64974.30 KB      17327.5 ns per arms      38281.8 B per arms
+       2,172 arms             25637.60 us   74532.59 KB      11803.7 ns per arms      35138.8 B per arms
+       2,715 arms             20101.90 us       0.00 KB       7404.0 ns per arms          0.0 B per arms
+
+2 series, 1 defective or faulty:
+- SQL:2023 query, CASE arms, no END: SUPERLINEAR, stopped at 2,715 (20 ms), time exponent 1.44, 30.7 ms at 64 KiB
+
+Not covered by a refusal ladder:
+- Timestamp (RFC 3339): a fixed-length form, there is no head that grows before a refusal.
+- SetCookie: the reader is lenient, and every tail tried (a control character in a value or in an attribute) was accepted, so the series that asserted a refusal was a fault and was dropped; a refused shape with a growing head is not known.
+- The reader, stream and span forms of every grammar above: the ladders read a string, and the driver that pulls a TextReader or a Stream in pieces is a different piece of code over the same rules.
+- FixParser.Parse and the streaming FIX forms: they yield fields lazily and do not report a refusal as a value, so a ladder has nothing to read a refusal from.
+- SQL and T-SQL entry points other than a statement, a query expression and a search condition (scripts, the positional forms, expressions alone).
+- Rules that are reachable only from a start the ladders do not use: a shape whose bad tail sits inside a rule no series begins in is not seen here, and the static probe is the way to find it.
+- The examples under examples/ (not shipped), and the hand-written parsers (not a grammar's).

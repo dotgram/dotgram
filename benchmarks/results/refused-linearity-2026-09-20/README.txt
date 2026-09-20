@@ -19,3 +19,7 @@ time on log size over the largest sixteenth of the ladder; "projected at 64 KiB"
 characters. The last section is the baseline the guard (tests/DotGram.Tests.Slow/RefusalBaseline.txt) was written from.
 
 A note on the hash: 5d439127, the commit the binary of the rerun names, was rebased onto a later main before it was pushed and is df2d9e1e there (the same change on a newer parent; the audit was taken before the rebase, on main 35d2d315 plus that change).
+
+case-arms-points.txt: "linearity-refused "CASE arms"" on a build of b24ce490 plus the printer that prints every point (10:59; committed as 8fdc0475 and its parents): the SQL:2023 CASE row is flat at ~4,512 B and ~3.0 us an arm up to 1,391 arms and jumps between 1,391 and 1,738 arms (bytes x8.5, time x3.0; 65,000 KB a call): a cliff at the pool's bound of 65,536 entries (1,391 x ~47 cells), not a slope of 1.44. The fitted exponent over the last sixteenth of a ladder turned the two points above it into one.
+
+audit-shape-bin60.txt: the audit with the shape column (CLIFF / rising / flat of the bytes and the time a unit of the head) on a build of b24ce490 plus the shape code (8fdc0475), 11:05, cores 0-15. Of the seven superlinear rows of the first audit, four (SQL:2023 CASE, joins, the two predicate rows) are cliffs in bytes and time and three (MediaRange, WebLink links, Forwarded) are slopes; the CASE cliff is confirmed twice, the others are from this run only.
