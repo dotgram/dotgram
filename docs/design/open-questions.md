@@ -587,6 +587,23 @@ Two things about it are worth saying anyway, and the second is a defect rather t
   session does not run code; the chain is exact and cheap to test, and if it holds the fix is to not
   recycle on eviction, or to keep a reading's tokens off the slots for as long as it is reading.
 
+  **Reproduced and closed (expr, `9428418d`), a failing test first.**
+  `tests/DotGram.Tests/TokenizationCacheTests.cs` builds the chain as written — an outer positional
+  reading whose first value's factory reads three other strings — and the answer before the fix was
+  `true`, with the value `aaaabbccddee` for a text of `aaa bbb ccc …`: no refusal and no exception,
+  cut at another text's offsets. The worst shape a wrong answer can take, and the reason reading for
+  it was worth more than waiting for it. A cutting that leaves a slot is now let go of and never
+  pooled, on both branches — eviction and a collected input, the second being unsafe for the same
+  reason, since the weak reference can fail to give the string back while a reading still holds its
+  tokens. DotGram.Tests 9,381 and DotGram.Sql.Tests 14,774 green.
+
+  Two things worth keeping from it. The detail that made it rare: nothing is corrupted when the next
+  text needs more room, because `Room` resizes and the evicted reading keeps the old arrays — it
+  repeats only for a new text no longer than the one before, which is why a test had to be built for
+  it rather than waited for. And the price of the fix, which is small and bounded: one cutting per
+  distinct string is no longer pooled, and the case the cache exists for — the same string again —
+  does not tokenize at all, so nothing on the hot path pays for the correctness.
+
 **Candidate 2, the pools and the weak reference, is housekeeping — with the part I cannot audit
 named.** Every pool in the emitted support passes the test above: take the spares away and the same
 steps run over freshly allocated arrays. The only weak reference on main today is the one in
