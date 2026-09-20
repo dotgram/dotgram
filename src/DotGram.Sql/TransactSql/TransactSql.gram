@@ -1000,7 +1000,7 @@ TSqlGrouping : @Expression
 	| "ROLLUP"i   & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
 	| "GROUPING"i & "SETS"i & '(' & first: GroupingSet & (',' & rest: GroupingSet)* & ')'
 		=> @(new Expression.RoutineInvocation("GROUPING SETS", Syntax.Listed(first, rest)))
-	| e: GroupByExpression => @(e)
+	| e: GroupByItem => @(e)
 
 GroupList : @Expression[]
 	= '(' & first: GroupByExpression & (',' & rest: GroupByExpression)* & ')'
@@ -1008,10 +1008,23 @@ GroupList : @Expression[]
 
 // A column, or a list of them standing as one — and the empty list, which is the grand
 // total and the one grouping that names nothing.
+//
+// The bare column is read before the bracketed list, because a grouping column is an
+// expression and an expression may open with a bracket. Read the list first and `(a+b)*2`
+// gives up `(a+b)` and leaves `*2` to nobody: the choice is ordered and opens no way, so
+// nothing comes back for the rest.
 GroupByExpression : @Expression
 	= '(' & ')' => @(new Expression.RowValueConstructor(Expression.None))
+	| c: TSqlGroupingColumn => @(c)
 	| '(' & first: TSqlGroupingColumn & (',' & rest: TSqlGroupingColumn)* & ')'
 		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+
+// At the top of a `GROUP BY` there is no bracketed list: `GROUP BY (a, b)` is refused by the
+// server with Msg 102 at the comma, and a list of columns standing as one is read only inside
+// `ROLLUP`, `CUBE` and `GROUPING SETS`. What a bracket opens here is an ordinary expression —
+// and `()` alone, which is the grand total.
+GroupByItem : @Expression
+	= '(' & ')' => @(new Expression.RowValueConstructor(Expression.None))
 	| c: TSqlGroupingColumn => @(c)
 
 TSqlGroupingColumn : @Expression
