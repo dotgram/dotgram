@@ -631,8 +631,8 @@ static partial class Stand
 		readonly Type _fix;
 		readonly Type _fixOptions;
 		readonly Type _fixMessages;
-		readonly Type _fixParseMode;
-		readonly Type _fixParseOptions;
+		readonly Type? _fixParseMode;
+		readonly Type? _fixParseOptions;
 		readonly Type? _stock;
 		readonly Type? _uri;
 		readonly Type _tsql;
@@ -673,8 +673,11 @@ static partial class Stand
 			_fix         = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser");
 			_fixOptions  = Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
 			_fixMessages = Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages");
-			_fixParseMode = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseMode");
-			_fixParseOptions = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParseOptions");
+			// FixParseMode is gone from a side after D53/D69 (the schema check moved to FixMessage.Validate()): a side may have it, or the options, or neither.
+			var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
+
+			_fixParseMode    = finance.GetType("DotGram.Finance.Fix.FixParseMode");
+			_fixParseOptions = finance.GetType("DotGram.Finance.Fix.FixParseOptions");
 
 			// Only a side that was given DotGram.Web has URLs and JSON to read.
 			if (File.Exists(Path.Combine(directory, "DotGram.Web.dll")))
@@ -841,40 +844,95 @@ static partial class Stand
 		/// </summary>
 		public Func<int> FixMessagesForm(string form, string wire, int messages)
 		{
-			var mode = Enum.ToObject(_fixParseMode, 0);
 			var text = string.Concat(Enumerable.Repeat(wire, messages));
 			var one  = Encoding.Latin1.GetBytes(wire);
 			var many = Encoding.Latin1.GetBytes(text);
 
 			if (form == "parse-span")
 			{
-				var target = _fixMessages.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixParseMode])
-					?? throw new InvalidOperationException("FixMessages.Parse(ReadOnlySpan<char>, FixParseMode) not found");
-				var call   = SpanCall(target);
+				var (target, withMode) = FixMessagesEntry("Parse", [typeof(ReadOnlySpan<char>)]);
+				var call         = SpanCall(target);
+				var validateSpan = withMode ? null : FixValidate();
 
-				return () => call(wire) is null ? 0 : 1;
+				return () => Checked(call(wire), validateSpan) is null ? 0 : 1;
 			}
 
 			var parse = form.StartsWith("parse", StringComparison.Ordinal);
 			var input = form.EndsWith("stream", StringComparison.Ordinal) ? typeof(Stream) : typeof(TextReader);
-			var entry = _fixMessages.GetMethod(parse ? "Parse" : "ReadMessages", [input, _fixParseMode, typeof(int)])
-				?? throw new InvalidOperationException($"FixMessages.{(parse ? "Parse" : "ReadMessages")}({input.Name}, FixParseMode, int) not found");
+			var (entry, mode) = FixMessagesEntry(parse ? "Parse" : "ReadMessages", [input, typeof(int)]);
+			var strict   = mode ? FixStrictMode() : null;
+			var validate = mode ? null : FixValidate();
 
 			return () =>
 			{
 				var source = input == typeof(Stream) ? (object)new MemoryStream(parse ? one : many, false) : new StringReader(parse ? wire : text);
-				var result = entry.Invoke(null, [source, mode, 4096]);
+				var result = entry.Invoke(null, mode ? [source, strict, 4096] : [source, 4096]);
 
 				if (parse)
-					return result is null ? 0 : 1;
+					return Checked(result, validate) is null ? 0 : 1;
 
 				var count = 0;
 
 				foreach (var message in (IEnumerable)result!)
+				{
+					Checked(message, validate);
 					count++;
+				}
 
 				return count;
 			};
+		}
+
+		/// <summary>
+		/// The entry of <c>FixMessages</c> named <paramref name="name"/> taking <paramref name="plain"/>: where this side still has <c>FixParseMode</c> (before D53/D69) the one that takes
+		/// the mode after its first parameter, which is what those sides always measured, and where it does not the one without it.
+		/// </summary>
+		(MethodInfo Method, bool WithMode) FixMessagesEntry(string name, Type[] plain)
+		{
+			if (_fixParseMode is not null)
+			{
+				var withMode = new Type[plain.Length + 1];
+
+				withMode[0] = plain[0];
+				withMode[1] = _fixParseMode;
+
+				Array.Copy(plain, 1, withMode, 2, plain.Length - 1);
+
+				if (_fixMessages.GetMethod(name, withMode) is { } found)
+					return (found, true);
+			}
+
+			return (_fixMessages.GetMethod(name, plain) ?? throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found, with or without FixParseMode"), false);
+		}
+
+		/// <summary>Strict, the first member of the enum: what the old sides were always asked for.</summary>
+		object FixStrictMode() => Enum.ToObject(_fixParseMode!, 0);
+
+		/// <summary>
+		/// On a side with no <c>FixParseMode</c> the strict parse is gone and its schema check is <c>FixMessage.Validate()</c>: the nearest work to what the other side does in one call
+		/// is the parse and then this, so that is what a row of the message layer measures there (the header of a pair says so). Null where a side has none.
+		/// </summary>
+		Func<object, object?>? FixValidate()
+		{
+			var message  = _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixMessage");
+			var validate = message?.GetMethod("Validate", Type.EmptyTypes);
+
+			if (validate is null)
+				return null;
+
+			var parameter = System.Linq.Expressions.Expression.Parameter(typeof(object));
+
+			return System.Linq.Expressions.Expression.Lambda<Func<object, object?>>(
+				System.Linq.Expressions.Expression.Convert(System.Linq.Expressions.Expression.Call(System.Linq.Expressions.Expression.Convert(parameter, message!), validate), typeof(object)),
+				parameter).Compile();
+		}
+
+		static object? Checked(object? message, Func<object, object?>? validate)
+		{
+			if (message is not null)
+				validate?.Invoke(message);
+
+			return message;
 		}
 
 		/// <summary>FixParser.Parse(ReadOnlySpan&lt;char&gt;) of this side, through a dynamic method: how many fields it read.</summary>
@@ -1123,11 +1181,11 @@ static partial class Stand
 		/// <summary>FixMessages.Parse of a wire message, strict, by reflection: what it read, as 1.</summary>
 		public Func<int> FixMessageParse(string wire)
 		{
-			var call   = _fixMessages.GetMethod("Parse", [typeof(string), _fixParseMode])
-				?? throw new InvalidOperationException("FixMessages.Parse(string, FixParseMode) not found");
-			var strict = Enum.ToObject(_fixParseMode, 0);
+			var (call, mode) = FixMessagesEntry("Parse", [typeof(string)]);
+			var strict   = mode ? FixStrictMode() : null;
+			var validate = mode ? null : FixValidate();
 
-			return () => call.Invoke(null, [wire, strict]) is null ? 0 : 1;
+			return () => Checked(call.Invoke(null, mode ? [wire, strict] : [wire]), validate) is null ? 0 : 1;
 		}
 
 		/// <summary>FixMessages.Build over the fields this side's FixParser reads from the wire, by reflection.</summary>
@@ -1135,10 +1193,12 @@ static partial class Stand
 		{
 			var fields = FixCall("Parse", [typeof(string), _fixOptions], [wire, null]);
 			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod(_fix.Assembly.GetType("DotGram.Finance.Fix.FixField")!);
-			var build  = _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions])
-				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[], FixParseOptions) not found");
+			var build  = (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
+				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType])
+				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[]) or (string, FixField[], FixParseOptions) not found");
+			var withOptions = build.GetParameters().Length == 3;
 
-			return () => build.Invoke(null, [wire, array.Invoke(null, [fields()]), null]) is null ? 0 : 1;
+			return () => build.Invoke(null, withOptions ? [wire, array.Invoke(null, [fields()]), null] : [wire, array.Invoke(null, [fields()])]) is null ? 0 : 1;
 		}
 
 		/// <summary>FixParser.ParseLog (the `|`-separated log form) of this side: "text", "bytes", or "stream" (the yield form over a stream).</summary>
@@ -1530,6 +1590,22 @@ static partial class Stand
 	/// build properties it was given): a pair of two branches of one commit differs by those properties and nothing else, and the report says so.
 	/// Empty where a folder has no such file.
 	/// </summary>
+	/// <summary>Whether this side's DotGram.Finance still has FixParseMode: the enum's name is in the assembly's metadata strings.</summary>
+	static bool HasFixParseMode(string directory)
+	{
+		var path = Path.Combine(directory, "DotGram.Finance.dll");
+
+		return File.Exists(path) && File.ReadAllBytes(path).AsSpan().IndexOf("FixParseMode"u8) >= 0;
+	}
+
+	static string FixModeNote(string beforeDir, string afterDir)
+	{
+		var before = HasFixParseMode(beforeDir);
+		var after  = HasFixParseMode(afterDir);
+
+		return before == after ? "" : $" **The FIX message rows (fixmsg/) compare two different readings: the {(before ? "before" : "after")} side still has FixParseMode and reads strict (schema checked in the parse), the {(before ? "after" : "before")} side has none and is read as Parse plus FixMessage.Validate(), the nearest work to what the strict parse did, and not identical to it. A difference there is the price of the move, not a speed.**";
+	}
+
 	static string SideNote(string beforeDir, string afterDir)
 	{
 		static string Read(string directory)
@@ -1550,7 +1626,7 @@ static partial class Stand
 		var after  = Read(afterDir);
 
 		if (before == "no build.txt" && after == "no build.txt")
-			return "";
+			return FixModeNote(beforeDir, afterDir).TrimStart();
 
 		var note = $"Sides: before ({before}); after ({after}). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)";
 
@@ -1561,7 +1637,7 @@ static partial class Stand
 		if (propertiesBefore != propertiesAfter && Line(beforeDir, "emitted").Length > 0 && Line(beforeDir, "emitted") == Line(afterDir, "emitted"))
 			note += " **THE TWO SIDES EMITTED THE SAME CODE (byte for byte, worktree paths aside) although their properties differ: the generator read none of them, and this is not a pair of two branches.**";
 
-		return note;
+		return note + FixModeNote(beforeDir, afterDir);
 	}
 
 	/// <summary>The A/A of the parent for one row: the median change of its build against itself, and the range over the runs; empty where the row was not in the A/A.</summary>
