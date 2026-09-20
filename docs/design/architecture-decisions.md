@@ -6642,3 +6642,16 @@ nothing.
 **And a row may close in either direction, including neither.** Ours right, theirs right, or the
 specification saying something neither says — the last is the interesting case and the one a list
 of two readings cannot reach on its own.
+
+**The shipped-page test is flaky by construction, and the merge only changed the order that exposed
+it.** Its reference set is "every assembly this process has loaded" — read once, when the property
+is first touched. Nothing guarantees that the assembly a page names has been loaded by then: it is
+loaded lazily, on first use, and whether some earlier test in the same process happened to touch it
+decides the answer. Twenty-three blocks of the web and expression-language pages failed here with
+"the type or namespace does not exist", and the same blocks pass elsewhere, on the same code.
+
+**So the check answers a question about load order rather than about the page**, and it passes
+today by luck. The fix is to name what it needs instead of collecting what happens to be there — a
+type from each shipped assembly, touched before the set is read, or the references gathered from
+the test's own dependencies rather than from the domain. This is the day's own rule arriving in a
+new place: a measurement that takes what it finds is measuring the finder.
