@@ -1118,8 +1118,8 @@ static partial class Stand
 		public Func<int> FixBytes(byte[] bytes) => FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null]));
 
 		/// <summary>FixParser.Parse(TextReader) of this side, the yield form over a reader: the fields' tags summed.</summary>
-		public IEnumerable<object> FixYieldReaderFields(TextReader input) =>
-			(IEnumerable<object>)((IEnumerable)FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [input, null, 4096, null])()).Cast<object>();
+		public IEnumerable<object> FixYieldReaderFields(TextReader input, int? maxRetained = null) =>
+			(IEnumerable<object>)((IEnumerable)FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [input, null, 4096, maxRetained])()).Cast<object>();
 
 		public Func<int> FixYieldReader(string text) => FixCount(() =>
 			FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [new StringReader(text), null, 4096, null])());
@@ -1147,8 +1147,8 @@ static partial class Stand
 			FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
 
 		/// <summary>The stream form of this side, as the lazy sequence it returns, for a held-memory reading.</summary>
-		public IEnumerable FixStreamFields(Stream stream) =>
-			(IEnumerable)FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [stream, null, 4096, null])();
+		public IEnumerable FixStreamFields(Stream stream, int? maxRetained = null) =>
+			(IEnumerable)FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [stream, null, 4096, maxRetained])();
 
 		Func<object> FixCall(string method, Type[] parameters, object?[] arguments)
 		{

@@ -34,6 +34,18 @@ static partial class Stand
 		("made-2000000-reader", StreamedFields),
 		("slope-100000-reader", 100_000),
 		("recover-100000-reader", 100_000),
+
+		// A small maxRetained (performance-ff, 2026-09-19, the architect's condition on D5): a field may take no more than the number
+		// after the @, and what the walk holds must not grow with the input. The hand parser has no such limit, so its column is the same as above.
+		// 1024 is the cap FIX's own retention tests hold the streaming forms at, where the buffer compacts on nearly every fill; 4096 is the sanity line.
+		("made-2000000@1024", StreamedFields),
+		("made-2000000-reader@1024", StreamedFields),
+		("recover-100000@1024", 100_000),
+		("recover-100000-reader@1024", 100_000),
+		("made-2000000@4096", StreamedFields),
+		("made-2000000-reader@4096", StreamedFields),
+		("recover-100000@4096", 100_000),
+		("recover-100000-reader@4096", 100_000),
 	];
 
 	static Stream HeldStream(string input)
@@ -58,17 +70,20 @@ static partial class Stand
 	public static void HeldOne(string side, string directory, string input)
 	{
 		var expected = Array.Find(HeldInputs, one => one.Name == input).Fields;
-		var  reader = input.EndsWith("-reader", StringComparison.Ordinal);
+		var at       = input.IndexOf('@');
+		int? retained = at < 0 ? null : int.Parse(input.AsSpan(at + 1), CultureInfo.InvariantCulture);
+		var name     = at < 0 ? input : input[..at];
+		var  reader = name.EndsWith("-reader", StringComparison.Ordinal);
 		Func<Stream, IEnumerable> parse = reader
 			? side is "hand" or "kept"
 				? stream => HandFixParser.Parse(new StreamReader(stream, Encoding.Latin1))
-				: stream => new PairedSide(side, directory).FixYieldReaderFields(new StreamReader(stream, Encoding.Latin1))
+				: stream => new PairedSide(side, directory).FixYieldReaderFields(new StreamReader(stream, Encoding.Latin1), retained)
 			: side is "hand" or "kept"
 				? stream => HandFixParser.Parse(stream)
-				: new PairedSide(side, directory).FixStreamFields;
+				: stream => new PairedSide(side, directory).FixStreamFields(stream, retained);
 
 		// The input exists before the floor is taken: a memory stream's bytes are the caller's, not the reader's.
-		var source = HeldStream(input);
+		var source = HeldStream(name);
 
 		GC.Collect();
 		GC.WaitForPendingFinalizers();
