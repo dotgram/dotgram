@@ -56,23 +56,35 @@ The doubling is the kind of claim that is easy to assert from a type name, so it
 same message with the body's field count varied, lenient (a repeated tag is how the size is
 varied, and the strict mode refuses a duplicate):
 
-| fields | bytes | a field |
-| --: | --: | --: |
-| 4 | 2,832 | 283 |
-| 8 | 3,440 | 246 |
-| 12 | 4,712 | 262 |
-| 16 | 5,320 | **242** |
-| 17 | 6,776 | 295 |
-| 24 | 7,840 | 261 |
-| 32 | 9,056 | **238** |
-| 48 | 14,072 | 261 |
-| 64 | 16,504 | **236** |
-| 96 | 26,512 | 260 |
+| body fields | fields in all | bytes | a field |
+| --: | --: | --: | --: |
+| 4 | 12 | 2,832 | 236 |
+| 8 | 16 | 3,440 | **215** |
+| 12 | 20 | 4,712 | 236 |
+| 16 | 24 | 5,320 | **222** |
+| 17 | 25 | 6,776 | 271 |
+| 20 | 28 | 7,232 | 258 |
+| 24 | 32 | 7,840 | 245 |
+| 32 | 40 | 9,056 | **226** |
+| 40 | 48 | 12,856 | 268 |
+| 48 | 56 | 14,072 | 251 |
+| 64 | 72 | 16,504 | **229** |
+| 96 | 104 | 26,512 | 255 |
 
-The cost a field is lowest at 16, 32 and 64 — the sizes where a doubling list has just filled
-exactly — and worst immediately after one, at 17. Between 16 and 17 fields the message costs
-1,456 B more, which is a thirty-two-slot `FixNode[]` and its header. The steps are real and they
-are the list.
+**Two columns, because one of them misled its first reader.** The message is `8`, `9`, `35`, `49`,
+`56`, `34`, `52`, then the repeated field, then `10` — seven header fields and a trailer over the
+body. What doubles is not the message but the `List<FixNode>` inside the `Reader`, and since
+`Scope` copies each area out and calls `RemoveRange`, the count falls back to zero while the
+capacity stays: **the high-water mark is the largest single area, which here is the body.** So the
+steps fall where the BODY crosses a power of two, not where the message does. Ordering a
+measurement of this by total field count would put every size in the middle between two steps and
+see nothing.
+
+The cost a field is lowest at 8, 16, 32 and 64 body fields — the sizes where a doubling list has
+just filled exactly — and worst immediately after one, at 17. Between 16 and 17 body fields the
+message costs 1,456 B more: a thirty-two-slot `FixNode[]` is 1,304 B with its header, the extra
+field itself about 72, and its node 40 — 1,416 against the measured 1,456, which is as close as
+this arithmetic gets. The steps are real and they are the list.
 
 The floor is ~236 B a field, of which ~72 is the field reader's (measured separately) and ~80 is
 the two copies of the node. The rest is strings and the message's own objects.
