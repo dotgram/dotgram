@@ -6042,3 +6042,29 @@ nothing; then building becomes unconditional and the modes leave. The second cha
 for messages the strict mode rejects today, and mixing that with the appearance of new code would
 lose which of the two moved what. Without the first there is also nothing to check the second
 with.
+
+## D69. Igor: validation is asked of the message, 2026-09-20
+
+The shape is settled from above: a separate method by which each message can be asked whether it is
+valid. That overrides the design's preference — which I had approved — for a validator object as
+the only entry, and the objection behind that preference survives inside the new shape rather than
+against it.
+
+**The objection was that a dictionary is loaded once and read many times, so it cannot be a
+parameter of every call and must not be a mutable static, which D25 keeps out of this package.**
+Both hold if the method on the message *takes* the validator: one form for a counterparty's
+dictionary, and a bare one for the schema we compile in. The second needs no global configuration —
+a shared instance built from our own compiled tables is data we ship, not a registry a consumer
+mutates — so the thing D25 forbids never appears. Asking the message is the consumer's verb and the
+dictionary still lives in one object.
+
+**And the second half of the order stands on its own: look at how the other libraries expose it.**
+That goes with the survey already commissioned, narrowed to the API rather than the model — whether
+validation is a method on the message, a method on a dictionary, a separate service, what it
+returns, whether it stops at the first fault, and what a fault carries. We have decided three of
+those from first principles; seeing what a consumer of another engine already has in their hands is
+worth more than another argument, because a consumer arriving from one of them brings its habits.
+
+What does not change: every finding rather than the first, a finding naming the entry's index in a
+repeating group as well as the tag, no validating overload on the parse, and validation without a
+dictionary against our own schema.
