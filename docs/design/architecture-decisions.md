@@ -2744,8 +2744,13 @@ eight empty arrays even when nothing was used (performance-ff, after his queue: 
 a reading succeeds, or leave early on return, chosen by the numbers, with the accepted rows as the
 control). And a URL's refusal reads the input twice, since a reference is a URI or a relative one
 and both start from the beginning: a fifth of the run, and reading the common beginning once would
-take the refusal to about 145 ns, level with the compiled expression (asked of expr's fold
-first; a grammar edit if the fold cannot take it).
+take the refusal to about 145 ns, level with the compiled expression. The fold cannot take that
+one and expr said so plainly: the two alternatives begin with different captures of different
+rules, and what they share is that they read the same characters under different names, which is
+a fact about the language and not a prefix. The cure is the grammar's own — a lookahead for a
+scheme and its colon in front of the first alternative, so that a refusal re-reads the scheme
+rather than the whole input and an accepted relative reference never tries the other alternative
+at all — and it is finance-24's to write and measure.
 **A measurement rule came with it:** the first 300 ms of a process runs five times slower, and it
 is neither tiering nor the collector — the same row measured last in the same process is at its
 final speed from the first repeat. A short probe on a cold process overstates its first row about
