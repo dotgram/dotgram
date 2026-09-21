@@ -2877,3 +2877,26 @@ by checking something the instrument was not built to answer. A per-file count, 
 materials, a text order read as an execution order, and now a name-space collapsed across classes
 that do not share one. The rule holds and gains a clause: **the grouping a count is taken over is
 part of the count**, and it has to be read off the program's structure rather than off the directory.
+
+**The Rfc9651 question, answered before the filter is written (critic, read at `ca4c95c2`).**
+performance asked why all eleven of that class's `Grow` are dead when SQL:2023's are all live, and
+said they would look before writing the filter. The answer is not that Rfc9651 misses the dense
+gate. **There are two write paths, and each uses exactly one of the two accessors:**
+
+| | `values.AddN` calls | inline `V[slot].Value` writes | `values.GrowN` calls |
+| --- | --- | --- | --- |
+| `Rfc9651` | 56 | 0 | 0 |
+| `SqlStandardParser` | 24 | 1,627 | 1,627 |
+
+`Add` grows the table inside itself — `if (index == V.Length) Array.Resize(…)` is its second line —
+so **the accessor path needs `Add` and never `Grow`**, and Rfc9651 takes it for all eleven tables.
+The dense inline path writes the slot directly and extends through `Grow`, so **it needs `Grow` and
+never `Add`**, and SQL:2023 takes it 1,627 times. SQL:2023 shows both because four of its tables are
+written through the accessor and the rest inline — which is exactly its four live `Add` against 302
+live `Grow`.
+
+**So the filter is per table and not per file, and neither accessor is safe by construction.** Emit
+`AddN` for the tables written through the accessor; emit `GrowN` for the tables written inline. The
+emitter knows which at the moment it writes the call site, because it is the thing that chose the
+path — the used set is derivable where the loop runs, as performance said, but the predicate is
+"which path does this table's writes take", not "is this store dense".
