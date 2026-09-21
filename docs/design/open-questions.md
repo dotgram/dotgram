@@ -3378,3 +3378,32 @@ Once it carries `ParseFields`, `ParseMessage`, `ParseMessages`, `ReadFields`, `R
 main parser cannot parse a message at all, and it is not a reason to reopen the name; but if
 `Build` moves onto it as well, the type is the package's façade and not its parser, and the
 documentation should say façade rather than repeat "main parser".
+
+**Two corrections from the architect, both taken, and one remark of mine withdrawn (critic, read at
+`3b4a63b9`).**
+
+- **The collision is on all four common input types, not one.** `Parse(string)`,
+  `Parse(ReadOnlySpan<char>)`, `Parse(TextReader)` and `Parse(Stream)` return `FixField[]`,
+  `FixField[]`, `IEnumerable<FixField>` and `IEnumerable<FixField>` on `FixParser`, and a single
+  `FixMessage` on all four on `FixMessages`. The argument is four times over, not once.
+- **"Identical parameter list" was wrong in the letter, and the conclusion survives for a different
+  reason.** `FixParser.Parse(TextReader, FixFieldOptions?, int bufferSize, int? maxRetained)`
+  against `FixMessages.Parse(TextReader, FixFieldOptions?, int maxMessageLength)` — the tails
+  differ. But both tails are optional, so `Parse(reader)` and `Parse(reader, options)` are
+  **ambiguous** on merge, which is what makes the rename forced. The architect's reason for
+  correcting a sentence whose conclusion is right is the one this file keeps arriving at: somebody
+  will check the claim, find it false, and doubt the finding it supports.
+
+**And I withdraw the façade remark, because `Build` says what it is in its own summary.**
+"Build one message from fields already parsed from the supplied source" — it takes the wire *and*
+the fields parsed from it, and assembles the message. That is the second stage of a parse, not a
+different act, and the `Try…` forms are parse variants. With `Validate` staying on `FixMessage`, a
+merged type would carry parsing stage one, parsing stage two and reading, and nothing else. So
+**`FixParser` is exact**, and the doubt I raised — that a type carrying `Build` is a façade rather
+than a parser — was mine and rests on nothing. The name question is closed by that line of
+documentation rather than by anybody's preference.
+
+**On the architect declining to carry "these are Igor's decisions" second-hand: right, and I would
+not have it otherwise.** My message did label which parts were his, but a label is still a relay,
+and public surface now needs his word before building. Three relayed claims cost us something today
+already.
