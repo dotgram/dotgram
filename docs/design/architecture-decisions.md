@@ -8901,3 +8901,43 @@ earlier table claimed more than it knew.
 fields: a thousand entries of three, plus the order's eight. Two equal numbers say the sides agree;
 two equal numbers *broken into their terms* say both sides walked the whole group rather than
 agreeing at its start. The second count came by another road, and it came unasked.
+
+## D128 — The comparison rested on a claim about the other library that nobody had asked it
+
+The FIX comparison paired our `Validate()` against QuickFIX/n's `FromString(..., validate: true,
+...)`, on the reading that a flag called `validate` validates. Asked directly — a correctly framed
+`NewOrderSingle` with `ClOrdID` missing — the library answers otherwise:
+
+```
+ours                                     1 finding
+validate: false                          accepted
+validate: true                           accepted     <- here
+validate: true + DataDictionary.Validate refused: RequiredTagMissing
+```
+
+Required fields are checked by a separate static call the session makes after parsing. **So the
+"validating" side of the pair was doing less work than ours, and the table would have been wrong
+in our favour** — the direction nobody goes back and re-checks.
+
+**The check that found it cost one message.** Everything else about the comparison had been
+measured: four message shapes, three mechanisms, two schema modes, agreement counted field by
+field and broken into its terms. All of it was measured on *valid* messages, where both sides
+answer identically — and no number of shapes or sizes on valid input could have exposed a flag
+that only differs when something is wrong. **The assertion is tested by the arm where it must be
+false**, which is D127's lesson arriving in a second place within the hour, about a claim rather
+than about a guard.
+
+**And my own instruction would have hidden it.** I had ruled invalid messages out of scope, and
+that was right about a *row* — stop-at-first-error against collect-all-findings is not one work,
+and a row comparing them must be explained rather than measured. It was wrong about a *probe*. An
+invalid message used to ask the other side what its flag means is not a measurement at all, and
+the session ran it anyway. **A scope written in terms of the input excludes the probe along with
+the measurement**, which is the same mistake in shape as writing a window's exemption in terms of
+what a run reads: the boundary was drawn around the material instead of around the act.
+
+**The correction is not finished when the pair is levelled once.** Adding a call to their side to
+catch ours up raises the symmetric question immediately: does their pair now do something ours does
+not — a checksum, a body length, a field order — in which case the table leans the other way and we
+hear about it from a reader. The answer is owed as two lists and their difference, not as an
+argument; and whatever stays different is written beside the table as a known lean with its
+direction named.
