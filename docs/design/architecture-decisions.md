@@ -7280,3 +7280,31 @@ become literals, never fragments of code, and names become comments with their l
 comment terminators neutered. This is not a hypothetical: a dictionary is a file a consumer
 downloads from a counterparty, and "compose code from it" is the shape that has to be got right
 once rather than patched after.
+
+**The expression language has no comments, and the way round it does not touch the language.**
+Its trivia is whitespace; `//` and `/* */` are syntax errors, so the condition above cannot be met
+by writing comments into the text that is compiled. Stripping them before compiling would be
+worse than not writing them: the diagnostic would then point into a text without comments while
+the reader is shown the text with them, and the line numbers would disagree — breaking exactly
+what the condition exists for. So one text is composed, with its comments, and the copy handed to
+the compiler has every comment **overwritten by spaces of the same length, newlines kept**. The
+geometry agrees character for character: line 40, column 5 of what the compiler read is line 40,
+column 5 of what the reader opens. The language is not touched for our convenience, and a test
+holds the property rather than the intention — a deliberately broken arm, and the line the
+diagnostic names must be the line naming the dictionary entry.
+
+**The blanker is a scanner, not a search.** `//` inside a string literal is not a comment, and a
+blanker that does not know the difference will quietly eat part of a value the dictionary
+supplied. The trap is the same shape as the rest of this decision: text composed from somebody
+else's file, processed by something that assumes our conventions.
+
+**Provenance goes in twice, and for two readers.** The comment is for the person opening the saved
+file; a string literal carrying the same entry — the message, the field, the requirement —
+survives compilation and can reach a finding. Both are composed from the dictionary, so both are
+escaped: the literal as a literal, the comment stripped of newlines and of both comment markers,
+and bounded in length.
+
+**One correction to what this decision asked for.** The layout in `CLAUDE.md` never named the
+sixth package at all, so there was nothing to remove there. That is worth knowing rather than
+passing over: the layout is where somebody looks to learn what exists, and a package absent from
+it was invisible to that reader for the whole of its life.
