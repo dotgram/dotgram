@@ -645,6 +645,16 @@ static partial class Stand
 		/// <summary>Whether the side was given DotGram.Examples, and so has a stock count to read.</summary>
 		public bool HasStock => _stock is not null;
 
+		/// <summary>The types whose thread-static pools <see cref="PoolReadout"/> reads for the rows of a family ("sql", "tsql", "el", "fix", "web").</summary>
+		public Type[] PoolRoots(string family) => family switch
+		{
+			"el"   => [_elTape, _elImmediate],
+			"tsql" => [_tsql],
+			"fix"  => new[] { _fix, _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") }.OfType<Type>().ToArray(),
+			"web"  => new[] { _json, _uri }.OfType<Type>().ToArray(),
+			_      => [_sql],
+		};
+
 		/// <summary>Whether the side was given DotGram.Web, and so has URLs and JSON to read.</summary>
 		public bool HasWeb => _uri is not null;
 
@@ -867,7 +877,7 @@ static partial class Stand
 			return () =>
 			{
 				var source = input == typeof(Stream) ? (object)new MemoryStream(parse ? one : many, false) : new StringReader(parse ? wire : text);
-				var result = entry.Invoke(null, kind switch { FixEntry.Mode => [source, strict, 4096], FixEntry.FieldOptions => [source, null, 4096], _ => [source, 4096] });
+				var result = entry.Invoke(null, kind switch { FixEntry.Mode => [source, strict, 4096], FixEntry.FieldOptions => [source, null, 4096], FixEntry.Door => [source, null, FixMaxMessageLength()], _ => [source, 4096] });
 
 				if (parse)
 					return Checked(result, validate) is null ? 0 : 1;
@@ -905,17 +915,29 @@ static partial class Stand
 			if (_fixParseMode is not null && _fixMessages.GetMethod(name, Inserted(_fixParseMode)) is { } withMode)
 				return (withMode, FixEntry.Mode);
 
+			// Form 4 (finance-fc, 4219b316): the public door is FixParser (ParseMessage, ReadMessage, ReadMessages), FixMessages is internal behind it. A consumer calls the door, so where the side has it the door is what is read.
+			var doorName = name == "Parse" ? (plain[0] == typeof(string) || plain[0] == typeof(ReadOnlySpan<char>) ? "ParseMessage" : "ReadMessage") : name;
+
+			if (_fix.GetMethod(doorName, Inserted(_fixOptions)) is { } door)
+				return (door, FixEntry.Door);
+
 			if (_fixMessages.GetMethod(name, plain) is { } direct)
 				return (direct, FixEntry.Plain);
 
 			if (_fixMessages.GetMethod(name, Inserted(_fixOptions)) is { } withOptions)
 				return (withOptions, FixEntry.FieldOptions);
 
-			throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found: not with FixParseMode, plain, or with FixFieldOptions after the first parameter");
+			throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found: not with FixParseMode (form 1), as FixParser.{doorName} with FixFieldOptions after the first parameter (form 4), plain (form 2), or as FixMessages with FixFieldOptions after the first parameter (form 3)");
 		}
 
-		/// <summary>Which overload of the message layer a side has: with the mode (strict), plain, or with FixFieldOptions after the first parameter (passed as null).</summary>
-		enum FixEntry { Mode, Plain, FieldOptions }
+		/// <summary>
+		/// Which overload of the message layer a side has: with the mode (strict), plain, with FixFieldOptions after the first parameter (passed as null) on FixMessages, or the same on FixParser (the door, ParseMessage / ReadMessage /
+		/// ReadMessages), whose last parameter of the streaming forms is the length of a message, not the size of a buffer: <see cref="FixMaxMessageLength"/>.
+		/// </summary>
+		enum FixEntry { Mode, Plain, FieldOptions, Door }
+
+		/// <summary>FixParser.DefaultMaxMessageLength of a side that has the door: the value the streaming forms are called with, as a consumer that names none calls them.</summary>
+		int FixMaxMessageLength() => (int)_fix.GetField("DefaultMaxMessageLength", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetRawConstantValue()!;
 
 		/// <summary>Strict, the first member of the enum: what the old sides were always asked for.</summary>
 		object FixStrictMode() => Enum.ToObject(_fixParseMode!, 0);
@@ -950,8 +972,8 @@ static partial class Stand
 		/// <summary>FixParser.Parse(ReadOnlySpan&lt;char&gt;) of this side, through a dynamic method: how many fields it read.</summary>
 		public Func<int> FixSpan(string text)
 		{
-			var target = _fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixOptions])
-				?? throw new InvalidOperationException("FixParser.Parse(ReadOnlySpan<char>, FixFieldOptions) not found");
+			var target = _fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixOptions]) ?? _fix.GetMethod("ParseFields", [typeof(ReadOnlySpan<char>), _fixOptions])
+				?? throw new InvalidOperationException("FixParser.Parse or ParseFields (ReadOnlySpan<char>, FixFieldOptions) not found");
 			var call   = SpanCall(target);
 
 			return () => ((Array)call(text)!).Length;
@@ -1197,7 +1219,7 @@ static partial class Stand
 			var strict   = kind == FixEntry.Mode ? FixStrictMode() : null;
 			var validate = kind == FixEntry.Mode ? null : FixValidate();
 
-			return () => Checked(call.Invoke(null, kind switch { FixEntry.Mode => [wire, strict], FixEntry.FieldOptions => [wire, null], _ => [wire] }), validate) is null ? 0 : 1;
+			return () => Checked(call.Invoke(null, kind switch { FixEntry.Mode => [wire, strict], FixEntry.FieldOptions or FixEntry.Door => [wire, null], _ => [wire] }), validate) is null ? 0 : 1;
 		}
 
 		/// <summary>FixMessages.Build over the fields this side's FixParser reads from the wire, by reflection.</summary>
@@ -1205,10 +1227,11 @@ static partial class Stand
 		{
 			var fields = FixCall("Parse", [typeof(string), _fixOptions], [wire, null]);
 			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod(_fix.Assembly.GetType("DotGram.Finance.Fix.FixField")!);
-			var build  = (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
+			var build  = _fix.GetMethod("BuildMessage", [typeof(string), array.ReturnType, _fixOptions])
+				?? (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
 				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType])
 				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixOptions])
-				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[]) with FixParseOptions, plain, or with FixFieldOptions not found");
+				?? throw new InvalidOperationException("FixParser.BuildMessage, or FixMessages.Build(string, FixField[]) with FixParseOptions, plain, or with FixFieldOptions, not found");
 			var withOptions = build.GetParameters().Length == 3;
 
 			return () => build.Invoke(null, withOptions ? [wire, array.Invoke(null, [fields()]), null] : [wire, array.Invoke(null, [fields()])]) is null ? 0 : 1;
@@ -1276,8 +1299,10 @@ static partial class Stand
 
 		Func<object> FixCall(string method, Type[] parameters, object?[] arguments)
 		{
+			// The field readers were Parse; since finance-fc's 4219b316 they are ParseFields (memory) and ReadFields (a reader or a stream).
 			var call = _fix.GetMethod(method, parameters)
-				?? throw new InvalidOperationException($"FixParser.{method} not found for the given parameters");
+				?? (method == "Parse" ? _fix.GetMethod(parameters[0] == typeof(TextReader) || parameters[0] == typeof(Stream) ? "ReadFields" : "ParseFields", parameters) : null)
+				?? throw new InvalidOperationException($"FixParser.{method} (or its successor ParseFields / ReadFields) not found for the given parameters");
 
 			return () => call.Invoke(null, arguments)!;
 		}
@@ -1618,7 +1643,7 @@ static partial class Stand
 	/// </summary>
 	/// <summary>
 	/// Which form of the FIX message layer this side's DotGram.Finance is in, read from the names in the assembly's metadata strings: 1 has FixParseMode (a parameter, strict), 2 has no mode but still
-	/// FixParseOptions, 3 has neither (the settings are FixFieldOptions, an optional parameter). The stand's binder asks each form what it can answer; a pair of two forms compares two readings.
+	/// FixParseOptions, 3 has neither (the settings are FixFieldOptions, an optional parameter), 4 is 3 with the public door on FixParser (ParseMessage, ReadMessage, ReadMessages; FixMessages internal). The stand's binder asks each form what it can answer; a pair of two forms compares two readings.
 	/// </summary>
 	static int FixForm(string directory)
 	{
@@ -1629,7 +1654,7 @@ static partial class Stand
 
 		var bytes = File.ReadAllBytes(path);
 
-		return bytes.AsSpan().IndexOf("FixParseMode"u8) >= 0 ? 1 : bytes.AsSpan().IndexOf("FixParseOptions"u8) >= 0 ? 2 : 3;
+		return bytes.AsSpan().IndexOf("FixParseMode"u8) >= 0 ? 1 : bytes.AsSpan().IndexOf("FixParseOptions"u8) >= 0 ? 2 : bytes.AsSpan().IndexOf("TryReadMessage"u8) >= 0 ? 4 : 3;
 	}
 
 	static string FixModeNote(string beforeDir, string afterDir)
@@ -1637,8 +1662,8 @@ static partial class Stand
 		var before = FixForm(beforeDir);
 		var after  = FixForm(afterDir);
 
-		// Form 1 reads strict inside the parse; forms 2 and 3 have no such parse and are read as Parse plus FixMessage.Validate(), the nearest work and not identical to it.
-		return (before == 1) == (after == 1) ? "" : $" **The FIX message rows (fixmsg/) compare two different readings: the before side is in form {before} and the after side in form {after} of the message layer (1: FixParseMode is a parameter and the parse is strict, the schema checked inside it; 2 and 3: there is no mode, and the side is read as Parse plus FixMessage.Validate(), the nearest work to what the strict parse did, and not identical to it). A difference there is the price of the move, not a speed.**";
+		// Form 1 reads strict inside the parse; forms 2, 3 and 4 have no such parse and are read as the parse plus FixMessage.Validate(), the nearest work and not identical to it.
+		return before == after ? "" : $" **The FIX message rows (fixmsg/) compare two different readings: the before side is in form {before} and the after side in form {after} of the message layer (1: FixParseMode is a parameter and the parse is strict, the schema checked inside it; 2, 3 and 4: there is no mode, and the side is read as the parse plus FixMessage.Validate(), the nearest work to what the strict parse did, and not identical to it; 4 is called through FixParser, whose streaming forms take the length of a message where the others take the size of a buffer). A difference there is the price of the move, not a speed.**";
 	}
 	/// <summary>
 	/// The JIT's tiering modes this process ran under, as the environment set them (DOTNET_TieredCompilation, DOTNET_TieredPGO, DOTNET_TC_QuickJitForLoops, DOTNET_OSR_HitLimit, DOTNET_ReadyToRun): a report of a time names them as it names the commit,
