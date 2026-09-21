@@ -5,6 +5,7 @@ using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
 
 using Microsoft.CodeAnalysis.CSharp;
@@ -138,11 +139,16 @@ public sealed class GramDocument(
 /// </summary>
 public static class GramLanguageService
 {
-	static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
+	/// <summary>The words a grammar document colours as keywords, and the built-in rules with them.</summary>
+	/// <remarks>
+	/// The built-in rules come from the binder that resolves them, so a rule added there is coloured
+	/// here without anybody remembering to. The words are still a copy of what the parser takes;
+	/// they are checked against it by hand today.
+	/// </remarks>
+	static readonly HashSet<string> Keywords = new(GrammarBinder.BuiltIn, StringComparer.Ordinal)
 	{
 		"using", "namespace", "parse", "find", "as", "when", "switch", "case", "default", "recover", "with",
 		"context", "state", "stream", "bytes", "yield",
-		"any", "none", "eol", "eof", "trivia", "word", "wordboundary",
 	};
 
 	/// <summary>Analyzes a complete snapshot of a standalone <c>.gram</c> document.</summary>

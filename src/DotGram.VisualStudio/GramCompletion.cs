@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
+using DotGram.Grammar.Binding;
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
@@ -67,9 +68,17 @@ sealed class EmbeddedGramCompletionSourceProvider : IAsyncCompletionSourceProvid
 
 abstract class GramCompletionSourceBase : IAsyncCompletionSource
 {
+	/// <summary>What a grammar may write where a name goes: the built-in rules, and the words.</summary>
+	/// <remarks>
+	/// The built-in rules are taken from the compiler rather than listed again here. They were
+	/// listed again once, and the copy had six of the seven: `word` was offered by the classifier
+	/// and by the compiler and not by this list, for as long as `word` has existed. A list that is
+	/// derived cannot fall behind the thing it is derived from, which is the only property that
+	/// matters here — the words below still are a copy, and are the next thing to derive.
+	/// </remarks>
 	static readonly string[] BuiltIns =
 	[
-		"any", "none", "eol", "eof", "trivia", "wordboundary",
+		.. GrammarBinder.BuiltIn,
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
 		"on", "fail", "public", "internal", "private",
 		"is", "not", "and", "or",
@@ -219,7 +228,8 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		"eol"             => "DotGram built-in rule: matches an end of line",
 		"eof"             => "DotGram built-in rule: matches the end of input",
 		"trivia"          => "DotGram built-in rule: matches grammar trivia",
-		"wordboundary" => "DotGram built-in word-boundary rule",
+		"word"            => "DotGram built-in rule: one whole word, as wordboundary defines it",
+		"wordboundary"    => "DotGram built-in rule: what a word is made of",
 		_                  => $"DotGram keyword: {name}",
 	};
 }
