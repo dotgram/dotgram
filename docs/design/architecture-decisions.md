@@ -8747,7 +8747,9 @@ call it the first.
 
 **And an allocation-only run needs no window**: it reads no time column, so it runs on the building
 half whenever the machine is free. That is worth having as a rule, because it is most of what a
-consumer's question about memory actually needs.
+consumer's question about memory actually needs. **"Whenever the machine is free" was doing work I
+did not notice it doing** — see D125, where it had to be said outright: needing no window of its
+own is not permission to run inside somebody else's.
 
 ## D124 — Expression-bodied methods: the rule existed, the enforcement did not (Igor)
 
@@ -8813,9 +8815,17 @@ that starts the run.
 **The affinity rule is two-sided, and the second side had no owner.** Timing runs on 0–15;
 everything else — builds, tests, packs — is pinned to 16–31 so that the half being measured is
 quiet. Both halves are written down. What was *not* written down is that **while a window is
-announced nobody builds at all, on either half**: the two halves share the last-level cache and
-the memory bus, which `benchmarks/README.md` says plainly, and one window this week was spoiled
-exactly that way. The session that runs the stand had been holding its own builds until windows
+announced the machine is taken whole**: no builds, no allocation runs, no dry runs, on either
+half. The two halves share the last-level cache and the memory bus, which `benchmarks/README.md`
+says plainly, and one window this week was spoiled exactly that way.
+
+**The first draft of this rule said "nobody builds", and that was a hole I left.** An
+allocation-only run needs no window — D123 says so and it still does — and nothing in that
+sentence stopped one from starting inside another session's window, because I had written the
+exemption as a property of the run rather than as a property of the machine. It took the stand
+catching a `MemoryDiagnoser` run overlapping its own test windows to show the gap. **An exemption
+written in terms of what a run reads exempts it from the wrong thing**: what makes a window quiet
+is not what the other process reads, it is that the other process is not there. The session that runs the stand had been holding its own builds until windows
 closed — a personal practice, correct and invisible, which is the same thing as absent for
 everybody else. **A discipline only one session observes is not a rule; it is that session's
 habit, and it protects nothing outside its own process.** It is now stated to every session.
