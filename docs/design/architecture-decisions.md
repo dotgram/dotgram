@@ -7118,3 +7118,20 @@ the reader struct's fields — a stack check appearing five times in one grammar
 no reason the design needs, and the emitter can tell which those are: it knows whether a body
 reads a field. Sharing only that subset takes nothing away from the direct access, so it belongs
 in the other pile.
+
+**Counted, before the decision rested on it: the exception is an eighth.** 31 of the 252 copies,
+7.1 KB of the 73.3 — so the sentence on the page names about 66 KB, and the eighth is a small size
+item rather than a revision of the price. Two instruments agree without having been written to
+agree: 221 + 31 is 252 and 66.3 + 7.1 is 73.4, against the first count's independently taken 252
+and 73.3. For the static methods the test is exact — a static method cannot read an instance
+field, so duplicating it buys nothing the struct exists for. The few that rest on "the body names
+no field" are weaker, since a field declared below the method or inherited would be missed, and
+they are re-checked before anything is merged.
+
+**And the distinction generalizes past the generator, which is the part worth carrying.** A
+finding about a chosen cost keeps landing in a size report, where it is true, unowned and
+unactionable; a year later someone finds it again and writes it again. It changes nothing not
+because it is wrong but because it is in the wrong place. Beside the choice — in the page that
+offers the option, in the words someone reads while deciding — the same sentence does work every
+time the choice is made. That is the difference between a review that accumulates and one that
+repeats.
