@@ -7825,3 +7825,32 @@ uncorrected claims was made while PASSING SOMETHING ON, and none while doing the
 feels like repeating something already checked; it is a fresh assertion made without the
 instrument. The check belongs at the moment of handing over, because the sender is the last person
 who can still apply it and the receiver has nothing left to apply it to.
+
+## D108 — Two states that look alike from the far side, and a binary that was not the one built
+
+The five-pool policy test asserts the count **at every step** rather than the state at the end, and
+the reason is the defect it was written for: a counter that never advances and a counter that
+advances and resets look identical from the outside — the store is held either way. This one has
+now been written wrong in both of those ways, and neither an end-state assertion nor the eye caught
+either. **Where a working mechanism and a broken one share their visible end state, the test
+observes the transitions.**
+
+**A limitation was left visible instead of smoothed over**, which is the right call. The pools
+cannot all be exercised from one grammar: the lexer's buffer exists only for a grammar read as
+tokens, the engine's arena only where the engine is emitted, and the cheapest thing that asks for
+an arena is `find`, which is refused over tokens. So each case compiles the grammar that produces
+its pool. What is held to one policy is the pools; the grammar is not, and the test says so.
+
+**And the trap that `docs/development.md` already names caught somebody who knew it was there.** A
+build failed, the assembly from the previous build stayed on disk, and the five failures read off
+it came from code that no longer existed. The repair is not to read the document again: it is that
+the tests now run through one command that refuses to run them when the build did not succeed.
+That is D104's second half in a second place — **a rule that lives in a document is followed by
+whoever remembers it, and a rule that lives in the tool is followed by everyone** — and it is worth
+extending to every way this repository runs tests, since the document did not prevent it even for a
+reader who had read it.
+
+**One of mine belongs here too.** I read "started 2m ago" in the session list and reported that the
+working sessions had restarted and lost their context. They had not; the list describes the
+connection, not the conversation. Fourth time tonight: a description read as the state, and the
+instrument this time was the one I had reached for precisely to avoid reporting from memory.
