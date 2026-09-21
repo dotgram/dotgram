@@ -8218,3 +8218,35 @@ for a one-field struct, and a bound blind to where the memory was — and both t
 three lines away. Naming that is worth more than either correction: **the cheapest measurement is
 the one that would have stopped you writing the commit, and it is almost always an arithmetic on
 sizes you already know.**
+
+## D116 — The bound governs parking, not keeping; and a unit price without its count
+
+A pool keeps up to **four** stores, not one: `_spare` and three `_deeper` slots, **neither bounded
+nor ever released**. Four stores under the element bound is some forty megabytes with nothing in
+the code that would give any of it back, and the observed nineteen-point-eight to twenty-four-point
+-nine is two or three of them.
+
+**Which explains the thing nobody could explain: why counting the value tables changed nothing.**
+The bound decides whether a store is **parked**. It does not decide whether a store is **kept**.
+Anything under it goes to a spare or a deeper slot unconditionally and stays there; counting more
+in the bound can only move a store *over* it, into the one slot that does have a release — and none
+crossed. An account that explains the observation you could not explain is worth more than one that
+fits the observation you were looking at, and this one also fits the byte-for-byte identity that
+made no sense an hour ago.
+
+**So the next item is four times what it was priced at.** Not "a bound and a release for the
+ordinary spare" but for the spare **and the three deeper slots**, which are the same shape and were
+simply not in view.
+
+**And the error that hid it has a name worth keeping separate: a unit price used without its
+count.** Ten megabytes a store was right; one store was the assumption, and nothing had been read
+that said so. It is the third of the same family in a night — sixteen bytes for a one-field struct,
+a bound blind in the wrong place, and now a per-unit size without its multiplicity — and every one
+was arithmetic over numbers already on the screen. That is distinct from not knowing a mechanism:
+the mechanism was known each time and the multiplier was never asked for.
+
+**The falsifier is stated before the reading, which is what makes it a hypothesis rather than an
+account.** If the readout shows two or three occupied deeper slots of a few megabytes each and the
+parked slot empty, this holds. If the slots are near-empty, the memory is somewhere still unnamed —
+and the same session will have been wrong twice about the same twenty megabytes, which is worth
+saying out loud in advance rather than discovering a reason afterwards.
