@@ -6824,3 +6824,34 @@ overturn the rule, but it prices it: what the rule buys is build time, and what 
 window in which a change like this one lives undetected. Where an edit crosses that boundary — a
 rewrite of calls, a change of what an argument means — the differential run is part of the edit,
 not a thing to do later.
+
+## D83 — The path in `#line` is one fact, and it is answered by the toolchain's path map
+
+Three sessions met the same thing through three instruments. The size measurement cannot normalize
+the repository root out of `FileBytes`, because the text inside the embedded symbols is the
+unnormalized one. A shipped package's symbols name the disk of the machine that built them. And a
+relative `#line` path cannot be made to work at all: it resolves against the *generated* file's
+directory, which the compiler invents even when nothing is written to disk, and which carries the
+configuration and the target framework — so the number of `..` would differ between a Debug build,
+a Release build and a multi-targeted one, which the generator cannot know because it runs before
+the compiler decides where, or whether, to write the file. That was measured, in four builds, not
+reasoned about.
+
+**So the choice is not relative-against-absolute. It is navigation against anonymity, and the path
+map gives both.** A build that sets deterministic source paths has its paths mapped; one that does
+not keeps them absolute. That is exactly the right split, and it is the split the toolchain
+already draws: the person building locally has those directories and wants to click an error into
+their grammar; the artifact that ships has no business naming anybody's disk. We honour a
+mechanism the consumer already controls instead of inventing one.
+
+**What changes in the earlier arithmetic, and it is the argument that moved me.** This shape was
+priced before as "closes one of three goals" and set aside. It closes the goal that SHIPS. A
+package a consumer downloads is built in CI; local reproducibility and the size rule are about
+what we do on our own machines, where the leak harms nobody. "Closes one of three" and "closes the
+one that ships" are the same fact read two ways, and the second reading is the one that matters.
+
+**And this decides the other two, so it goes first.** What a shipped package says of the build
+machine is answered by it; what a size measurement can compare is narrowed by it — inside CI the
+bytes become comparable, on a developer's machine the rule "compare only within one worktree"
+stands, with its mechanism now named rather than obeyed. Neither of those is settled ahead of
+this one.
