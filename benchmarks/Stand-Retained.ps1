@@ -29,6 +29,6 @@ $lines = foreach ($row in $Rows) {
 	& $Exe --stand-retained @Sides --only $row 2>&1 | Where-Object { $_ -match '^\| (el|sql|fix|web|feeds|tsql|fixmsg|config)/' -or $_ -match '^Retained after' }
 }
 
-"| row | reading | retained before KB | retained after KB | difference KB | bytes a call before | bytes a call after | after eight small parses before KB | after eight small parses after KB | after sixteen before KB | after sixteen after KB |"
-"| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+"| row | side | after one parse KB | after two KB | two / one | bytes a call | after eight small parses KB | after sixteen KB |"
+"| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"
 $lines
