@@ -7033,3 +7033,26 @@ key reads exactly like a finding. Neither announces itself. What caught all thre
 question asked three times: what would this number look like if my key were not measuring what I
 think it is? That question is cheap, it is asked before the result is believed rather than after
 it is doubted, and today it saved three confident wrong answers in one hour.
+
+**Withdrawn the same hour, and the withdrawal is ours.** The paragraph above told the size
+instrument to ask for mapped paths so that its numbers would be publishable by construction. It
+was measured instead of taken on trust, and it is wrong twice. `DotGram.CodeSize` weighs the
+assembly, and the assembly came out byte-identical — 1,259,008 in all four builds — from two
+worktrees whose roots differ by a hundred and one characters: the path lives in the portable
+PDB's document names, which is a separate file. And the flag could not have worked anyway, for
+D83's own reason: a `#line` path is literal text the generator writes before the compiler decides
+anything, so mapping on both sides left the two PDBs 3,636 bytes apart. Only the emitter honouring
+the map removes it.
+
+**What the rule is actually about is the generated source figure**, and there the whole difference
+is the path string: 2,727 bytes between the two worktrees, which is 27 directives carrying the
+absolute path times the 101 characters of difference, exactly and with nothing else varying. So
+the rule narrows to the "bytes UTF-8 C#" the report prints, and an assembly built with a separate
+PDB was never the problem — that sentence belongs in the rule, because obeying a rule whose reason
+is wrong is how a rule outlives its cause.
+
+**The exception is the one that ships.** The packages emit embedded symbols, so in a packed
+assembly the paths do ride inside the DLL and its size is path-dependent. That is D83's own
+target, and it means the emitter honouring the map normalizes what ships as well as what we
+compare — which is the same fact as before, now with the boundary drawn where the measurement put
+it rather than where I guessed.
