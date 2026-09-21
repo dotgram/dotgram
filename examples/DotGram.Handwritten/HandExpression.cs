@@ -4050,10 +4050,24 @@ public static class HandExpression
 			if (!type.IsArray)
 				Refuse(at);
 
-			var arguments = Arguments(at, out var args);
+			// The parentheses may be left out when an initializer follows — `new List<int> { 1 }`
+			// is `new List<int>() { 1 }`, as in C#. Not on their own: `new T` with neither tail
+			// falls through to `Arguments`, which wants a `(` and refuses.
+			int arguments;
+			Expression[]? args;
 
-			if (arguments < 0)
-				return -1;
+			if (Kind(at) == LeftBrace)
+			{
+				arguments = at;
+				args      = [];
+			}
+			else
+			{
+				arguments = Arguments(at, out args);
+
+				if (arguments < 0)
+					return -1;
+			}
 
 			var fields   = default(ExpressionParser.Setting[]);
 			var elements = default(ExpressionParser.Element[]);

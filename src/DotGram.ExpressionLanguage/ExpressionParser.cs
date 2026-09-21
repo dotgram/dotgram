@@ -1161,6 +1161,20 @@ namespace DotGram.ExpressionLanguage;
 		| "new" & type: Type & args: Arguments
 		  & (fields: Bindings | '{' & items: Elements & '}')?
 		  => @(ExpressionParser.Made(type, args, fields, items, context.Caller))
+		// The parentheses may be left out when an initializer follows, which is C#'s rule:
+		// `new List<int> { 448 }` is `new List<int>() { 448 }`. Not on their own — `new T` with
+		// neither tail is no constructor call here, as it is none in C#, and this alternative
+		// wants the brace.
+		//
+		// A second alternative rather than `Arguments?` with a guard on the one above, and the
+		// reason is what a truncated text answers. Written as `Arguments?`, `new T(x, 1` — the
+		// text one character short of its closing brace — stops being STARVED and becomes a
+		// plain no-match, because absent arguments are then a shape the rule allows rather than
+		// input that ran out. The hand-written parser's agreement check found it on exactly
+		// that text. `Type` is read twice on this path, which is the price of keeping the
+		// difference between "not this" and "not yet".
+		| "new" & type: Type & (fields: Bindings | '{' & items: Elements & '}')
+		  => @(ExpressionParser.Made(type, [], fields, items, context.Caller))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
