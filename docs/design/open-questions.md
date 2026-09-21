@@ -3407,3 +3407,59 @@ documentation rather than by anybody's preference.
 not have it otherwise.** My message did label which parts were his, but a label is still a relay,
 and public surface now needs his word before building. Three relayed claims cost us something today
 already.
+
+## Q34 (2026-09-21). The sixth sweep found nothing, and the framework list has one API named wrongly in D40
+
+Two things Igor asked for. Read at `eca118e5`; versions read off the API reference, per the rule
+D40 set and Q23 followed.
+
+**The sweep: a clean negative, and a fourth instrument of mine withdrawn.** I counted tests repeated
+inside one method — `!text.Ensure(p, 1)` sixteen times in one FIX method, `(uint)p >= (uint)text.Length`
+thirty-two times in one expression-language method. **The number means nothing**: a recursive-descent
+reader tests the same thing at every position it advances to, so textual repetition is the expected
+shape and not a redundancy. Pointed at the one case that is unambiguous — two identical guards on
+adjacent lines, where the second cannot be reached under a different `p` — it finds **zero** in FIX,
+the expression language and `Rfc5322`. So: the emitter does not emit an adjacent duplicate guard,
+and anything beyond that needs dataflow rather than text, which this instrument does not have.
+
+**The framework list, with every version read rather than recalled.**
+
+| API | applies to | where it lands here |
+| --- | --- | --- |
+| `SearchValues<byte>`, `SearchValues<char>` | net8 | stop sets; D40's second bucket |
+| `MemoryExtensions.Count` | net8 | already emitted, in `MoveLine` |
+| `IndexOfAnyExcept` | net8 | the star over a class, 58 seam places (Q13, D20) |
+| `System.Text.Ascii` | net8 | comparisons ignoring case |
+| **`decimal.TryParse(ReadOnlySpan<byte>)`** | **net8** | FIX's byte path — **see the caveat below** |
+| `SearchValues.Create(ReadOnlySpan<string>, StringComparison)` | **net9** | searching a haystack for many literals |
+| **`Dictionary.GetAlternateLookup<TAlternateKey>`** | **net9** | **keyword recognition — and D40 names the wrong API for it** |
+| `allows ref struct` | net9 / C# 13 | D10 already |
+
+**The correction, and it is the point of this entry.** D40's third bucket is "recognising a keyword
+from a span without making a string", and it attributes that to `SearchValues<string>`. Those are
+different jobs. `SearchValues<string>` searches a *haystack* for any of many needles. Recognising a
+keyword is a *lookup*: is this span one of four hundred and ten words, and which one? The API for
+that is `Dictionary<string,V>.GetAlternateLookup<ReadOnlySpan<char>>()`, whose signature is
+`where TAlternateKey : allows ref struct` and which requires the dictionary's comparer to implement
+`IAlternateEqualityComparer<ReadOnlySpan<char>, string>`. Both are net9, so **the bucket does not
+move** — but whoever builds it from the decision as written would reach for the wrong tool and
+conclude the bucket was overrated. `FrozenDictionary` carries the same lookup, which matters because
+D40 already puts frozen tables in the net8 bucket for a grammar over tokens.
+
+**And a live instance of D40's own rule about sources.** A current article states that
+`SearchValues<string>` "is introduced in .NET 10". The reference's moniker range for
+`Create(ReadOnlySpan<string>, StringComparison)` is net-9.0, net-10.0, net-11.0. The rule — read the
+reference, not a blog — has now paid twice on the same API.
+
+**The caveat on the UTF-8 number parsing, which I nearly filed as a free win.** FIX does not decode
+bytes to text before parsing numbers: `FixConvert` has a byte overload of its own, and its comment
+says why — "Nine digits per BigInteger operation; no text decoding or decimal rounding". So
+`decimal.TryParse(ReadOnlySpan<byte>)` would **replace hand-written code that exists on purpose**,
+and the question is whether the framework's vectorised parse beats it, not whether a conversion is
+being wasted. That is a pair on the Fix44 rows, not a cleanup.
+
+**One candidate I did not verify and therefore do not price:** `[InlineArray]` for the small fixed
+buffers the tape and the token arrays allocate. I believe it is C# 12 and net8 but did not read the
+reference, and this file's rule is that an unverified version is not quoted.
+
+**Answer:** —
