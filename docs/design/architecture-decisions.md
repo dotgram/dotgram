@@ -8301,3 +8301,41 @@ and where nothing has, the entry says what is held and stops — as the page for
 lines, a unit test, a `Debug.Assert`, a grep over the generated output. Each of today's three cost
 under ten minutes, and each was available before the sentence was written rather than after it was
 believed.
+
+## D118 — An instrument that cannot see a release, and a correction that over-corrected
+
+The readout settles it, and it inverts the retraction. Case-1738's 19.8 MB is **one**
+`DirectValues` in the spare holding 1.43 million elements across 305 arrays — far over the bound,
+sitting in the spare because the old bound counted only the record tables and could not see it.
+With the new bound that store is parked, and with a collection after each small parse it falls from
+20,018 KB to 3,012; without the new bound it stays at 20.0 MB. **The first mechanism was right.**
+
+**Why it read as inert is the finding worth keeping.** A store that is let go is held only
+**weakly**, and the next rental takes it back if no collection has run in between. Eight small
+parses in a tight loop allocate nothing that collects — so "released" and "released and retaken"
+are the same column. The instrument could not see the difference it was built to measure, and
+nothing in its output said so. **Where a measurement asks whether something was released, and the
+release is a weak reference, the measurement is meaningless until a collection is forced.**
+
+**And the arithmetic agrees where it should**, which persuades more than the direction of the
+result: below the step, where a store genuinely is under the bound, the readout gives 8.5 MB
+against a prediction of about 8.4 of values plus 2 of records.
+
+**The retraction was a new failure, not one of the three, and its shape is the dangerous one.**
+Having just learned a real error class — a per-unit price used without its multiplicity — the
+session applied it to a case where the multiplicity was one, prompted by a table that showed a
+correct fix looking inert. The question not asked was "what could make a correct fix LOOK inert".
+**That is over-correction wearing the clothes of rigour**, and it is the specific risk in learning
+an error class at speed: the newest lesson is the one nearest to hand, and a surprising result is
+exactly when reaching for it feels like care.
+
+**So, by the criteria named before the reading:** the bound fix stays; the next item is the bound
+and release for the four ordinary slots, the residue now being named rather than unexplained —
+`Ways._spare` at 2.2 MB and the lexer's 0.15, both unbounded spares older than this chain; and the
+dense decision comes after that. The timed pair confirms the trade in both orders.
+
+**And a build made to be thrown away is the right instrument for a residue.** One to three per cent
+on the small SQL rows, sign not flipping with the order, and a pair that cannot get under the
+noise: replacing the one candidate with a constant answers whether it is the cause, in a build that
+cannot land and is not meant to. A question asked by removing the suspect is cheaper than one asked
+by measuring around it.
