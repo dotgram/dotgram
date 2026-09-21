@@ -8458,3 +8458,40 @@ commit that introduced it, the repair was one line, and the owner was told. Wher
 fails — an inferred intent, more than a mechanical change, no blockage — the finding is reported
 and the work stops. The telling is not the optional part: it is what leaves the owner able to
 disagree.
+
+## D121 — The observed figure is a workload; the ceiling is the promise
+
+The ordinary slots were described here as unbounded. They are not: the admission test is the
+corrected dense one, on capacity including the value tables, and the idle counter inside is on
+usage. **What they lack is not a bound but a release.**
+
+**And the arithmetic now carries its multiplicity.** A store admitted to an ordinary slot holds up
+to 1,048,576 capacity units; for a dense store the dominant term is the value tables at eight bytes
+apiece, so about eight megabytes a store, and there are four slots — **some thirty-five megabytes
+per pool per thread at the ceiling**, against the 2.35 MB the instrument reads today. Both belong
+in the record and they answer different questions: **the reading is a workload, and the ceiling is
+the promise.** A consumer's workload is not ours to assume; the ceiling is what we are committing
+to, and it is the number a reader should meet first.
+
+**The order is decided by a count, not by an argument, because the count is free.** How often is
+the deeper count above zero at the end of a parse, across the shipped grammars? The deeper slots
+exist for a parse re-entered from inside another — an interpolated hole, a guard, a value that
+parses — so a thread that never re-enters never fills them and a thread that re-enters once holds
+them for ever after. If the count is near zero outside the re-entrant families, then releasing the
+three deeper slots is nearly the whole residue and the fourth is buying a last tenth; if it is not,
+that is known before anything is written. No window, no timing.
+
+**Then the three deeper slots, then the spare, as two commits.** The first changes nothing on the
+common path, which makes it free in the sense that matters, and it makes the second's measurement
+honest: with the deeper slots released, whatever the spare still holds is the spare's and not three
+neighbours'.
+
+**Lowering the admission bound is refused.** It would make the parked path the ordinary path for
+mid-sized documents — changing behaviour for every consumer to avoid writing a release. A constant
+is cheap to change and expensive to have changed.
+
+**And the flagged concern is the right one to flag.** Demoting the spare to a weak reference puts a
+weak reference near the common path. If the demotion happens only on expiry, the ordinary rent and
+return never touch one — but that is a reading of the emitted code, to be confirmed by reading it,
+not settled by this sentence. Tonight has cost us three mechanisms asserted without execution; this
+one is named as unconfirmed on purpose.
