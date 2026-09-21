@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 #
 # What the packages must look like, checked on the packed files themselves.
 #
@@ -62,8 +62,3 @@ check_library sql         DotGram.Sql
 check_library web         DotGram.Web
 check_library finance     DotGram.Finance
 check_library expressions DotGram.ExpressionLanguage
-
-# The second analyzer. Its own page and skill, and no lib/ either: it fills tables the library
-# reads and carries nothing a consumer references.
-check_analyzer finance-generator DotGram.Finance.Generator
-check_face finance-generator

@@ -1,7 +1,7 @@
 ﻿name: publish
 
 # A release is a tag. Pushing `v0.2.0` builds the repository at that commit, checks that the
-# tag and the version in Directory.Build.props are the same thing, packs the six packages and
+# tag and the version in Directory.Build.props are the same thing, packs the five packages and
 # publishes them. Everything up to the push happens on a manual run too: without a tag the
 # packages are still built, checked and uploaded as artifacts of the run, so a dry run is the
 # same run with the last job left off.
@@ -67,7 +67,6 @@ jobs:
           dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
-          dotnet pack src/DotGram.Finance.Generator/DotGram.Finance.Generator.csproj --no-build --configuration Release --output artifacts
 
       # What `build.yml` does between packing and keeping, done here too, and for the reason the
       # gate cannot cover: that workflow proves a pack passed, and this one packs AGAIN and sends
@@ -80,11 +79,6 @@ jobs:
 
       - name: The package, in somebody else's build
         run: dotnet run --project tests/DotGram.PackageSmoke/DotGram.PackageSmoke.csproj --configuration Release
-      # The second analyzer, and the same question asked of it: a dictionary named in an attribute
-      # becomes validation during a build that knows nothing of this repository. Its own small
-      # dictionary, because the package ships nobody's and this check borrows none.
-      - name: The generator package, in somebody else's build
-        run: dotnet run --project tests/DotGram.Finance.Generator.PackageSmoke/DotGram.Finance.Generator.PackageSmoke.csproj --configuration Release
 
       # Required rather than tidy: the library smokes run on net8.0 as well as net10.0, and this
       # job installs one SDK. Without it those legs fail on a clean runner — or pass on one that

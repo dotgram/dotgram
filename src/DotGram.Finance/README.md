@@ -288,9 +288,12 @@ to the body rather than ending it: whether it should be there is a finding, and 
 reader will not build is a message nothing can report on. The exact wire and every offset are
 preserved whatever is found.
 
-`message.Validate(validator)` holds it to a schema of your own instead; see **Custom fields**
-and `DotGram.Finance.Generator` for where one comes from. `FixValidator.Standard` is the
-shared default and refuses to be written to — make your own with `new FixValidator()`.
+`message.Validate(validator)` holds it to a schema of your own instead. `FixValidator.Standard`
+is the shared default and refuses to be written to — make your own with `new FixValidator()`,
+and fill it either from a counterparty's QuickFIX dictionary, `validator.Load(FixDictionary.Load(stream))`,
+or one message type at a time, `validator["D"] = (message, findings) => …`. The last write wins,
+and `FixValidator.Compiled` puts this package's own rule back. The package ships nobody's
+dictionary: the file is yours, in your repository, and its licence obligations are yours with it.
 
 It is not a trading or session validator. Prose-only conditional requirements,
 sequence-number state, order economics, live ISO registry assignments and announced

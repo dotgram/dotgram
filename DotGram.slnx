@@ -58,9 +58,6 @@
 		<Project Path="src/DotGram.Finance/DotGram.Finance.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
-		<Project Path="src/DotGram.Finance.Generator/DotGram.Finance.Generator.csproj">
-			<BuildType Solution="Linux|*" Project="Release" />
-		</Project>
 		<Project Path="src/DotGram/DotGram.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
@@ -83,9 +80,6 @@
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Finance.Fix44.Tests/DotGram.Finance.Fix44.Tests.csproj">
-			<BuildType Solution="Linux|*" Project="Release" />
-		</Project>
-		<Project Path="tests/DotGram.Finance.Generated/DotGram.Finance.Generated.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj">
