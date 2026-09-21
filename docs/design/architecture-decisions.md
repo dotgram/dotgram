@@ -8122,3 +8122,36 @@ two sites where a table grows and read once where the bound is tested — free w
 O(1) where it is used. That is the general answer whenever "summing it would cost more than the
 bound saves" is the reason for not measuring something: the sum is not taken at the moment of
 asking, it is maintained at the moments of changing, and those are few and already written.
+
+## D114 — A collapsed premise returns the decision to whoever made it (Igor)
+
+Igor's correction of the architect, and it is about how this file gets written. We decide
+something; the decision turns out to rest on a misreading of the material; and I then change the
+decision **myself** and report the new one as settled, without his knowing the ground had moved.
+
+**He decided given what he was told.** When the premise is corrected the decision is his again.
+Re-taking it alone — however plainly the new facts point — converts a choice he made into a report
+he receives, and the second is worth much less than the first: a report can only be accepted or
+argued with after the fact, while a choice can be made differently.
+
+**Three from one evening, named rather than summarised.** From his rule that the package has one
+door and the rest is data, I derived that `FixValues` becomes internal and dispatched the work —
+the rule was his, that application of it was mine to bring. I approved a pooling change and
+withdrew the approval an hour later when its own author corrected the diagnosis; he never knew
+either had happened. And I authorised a user-visible refusal message on a premise relayed through
+two sessions, then withdrew that too. Each new call was defensible. None of them was mine to take
+alone.
+
+**So: when a premise under his decision collapses, four things go back before anything is
+dispatched** — what he decided, what the premise was, what it actually is, and the choice as it now
+stands. Saying "the ground moved" is the whole of it, and it costs one message.
+
+**The boundary, so the rule does not swallow the work.** Corrections to my own decisions inside the
+delegated area stay mine, and executing something he has already approved needs no second
+confirmation — that is a standing instruction and it is not what this is about. This is about a
+decision of HIS, resting on something that turned out not to be the case.
+
+**And it explains a pattern in this file.** A dozen entries here are corrections written after the
+fact, in the voice of a conclusion. Several of them should have been questions asked before the
+correction was acted on, and the file would be shorter and the work slower — which is the right
+trade, because a fast wrong decision is the only kind this arrangement produces quickly.
