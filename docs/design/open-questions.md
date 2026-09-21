@@ -2646,3 +2646,44 @@ the JIT, and all three are paid for in bytes** — so "the JIT handles it" is an
 third of the question.
 
 **Answer:** —
+
+**Counted on the real thing, and two of my four counters were wrong (critic, 2026-09-21).** Igor
+said there is plenty of this in the generated code, so the count moved off the snapshots and onto
+the build output in `P:\dotgram` — **7,085 KB of shipped generated C# in 2,643 methods**: FIX, both
+readings of the expression language, SQL-92 and the twelve Web files. (The two T-SQL files, 14 MB
+each, were left out of this pass.)
+
+| shape | count | standing |
+| --- | --- | --- |
+| never-read local | **95** | solid |
+| `var p = pos; … p = qN; return p;` | **240** | solid |
+| empty block `{ }` | **23** | solid |
+| `goto` to the label on the next line | **0** | solid |
+| "dead store" | ~~699~~ | **withdrawn — my counter was wrong** |
+| `var x = y;` used once | ~~2,603~~ | withdrawn as a defect count; it names ordinary code |
+
+**Why the 699 is withdrawn, because the reason matters more than the number.** My heuristic called a
+store dead when the next *textual* mention of the variable was another assignment. A second count by
+another road — adjacent double assignment only — found **zero**. The samples say why: `p = q0;`
+followed by `continue;` inside a loop, where the next mention of `p` is the next iteration's
+assignment and the read happens at the loop head. Textual order is not execution order, and a
+counter that assumes it is invents seven hundred defects. The number never left this file; the rule
+that caught it is the one this file has been applying to other people all week.
+
+**Per file, for the shapes that stand.**
+
+| file | KB | methods | never-read | copy chain | empty |
+| --- | --- | --- | --- | --- | --- |
+| `Fix.FixGrammar.g.cs` | 358 | 290 | 12 | 20 | 14 |
+| `ExpressionParser.g.cs` | 1,878 | 397 | 14 | 10 | 0 |
+| `ExpressionParser.Immediate.g.cs` | 1,569 | 396 | 32 | 14 | 0 |
+| `Sql.Standard.Sql92Parser.g.cs` | 863 | 26 | 8 | 2 | 0 |
+| `Web.Rfc3986.g.cs` | 225 | 170 | 0 | 44 | 0 |
+| the other eleven Web files | 1,192 | 1,364 | 29 | 150 | 9 |
+
+**And one thing the numbers say that the eye does not.** The shapes that survive are exactly the
+ones the C# compiler does not warn about. Unreachable code is CS0162 and an unused label is CS0164,
+both warnings, and this repository builds with `TreatWarningsAsErrors` — so that dirt *cannot* be
+here. A never-read local escapes because CS0219 fires only when the initializer is a constant, and
+`values.CountN` and `starts[from]` are not constants. **The generator's floor for tidiness is
+wherever the compiler's warnings happen to stop**, which is not a decision anybody took.
