@@ -3121,3 +3121,20 @@ minting untagged ones only where the map is consulted across publications saves 
 216 in this file — a quarter, not a half — and buys a permanent inconsistency where some tables
 carry a publication's tag and some do not. A quarter is worth knowing before choosing; I would not
 take it for a quarter, but that is a preference and the number is the thing.
+
+**Closed (performance, 2026-09-21).** The middle option is dead on the number rather than on taste —
+a quarter of the call sites saved, against a permanent split where some tables carry a publication's
+tag and some do not, and the saving is in diff size rather than in anything a consumer runs. Full
+rename. Q29 goes first because its "no call site moves" is not the cleaner of two clean
+measurements but the only one in the four sweeps. The before-picture is pinned at `72f06e29`,
+`8acaf2c8`, `47ebe5bc`, `714581a3` and `601fe7be`, to be used rather than recounted.
+
+**And one number of my own, checked at last and withdrawn.** The second sweep's tool also reported
+**64 "single-case switches"**. It never entered an entry or a message, and it is wrong: the switch
+at line 977 of the FIX file has `case 0` *and* `case 1`, and my counter stopped at the first because
+the first case's block closes a brace and the walk read that as the switch ending. That is the third
+number this instrument family has produced and lost — 699 dead stores, 372 unused parameters, 64
+single-case switches — and all three failed the same way, by reading a structure's punctuation as
+its extent. The ones that survived did so because each was checked against a witness: a method whose
+name occurs once, a table whose payload is 516 identical characters, a call site counted rather than
+described.
