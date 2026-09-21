@@ -40,8 +40,10 @@ static class FixRuleText
 	/// </remarks>
 	public static void Literal(StringBuilder text, string value)
 	{
-		if (text is null) throw new ArgumentNullException(nameof(text));
-		if (value is null) throw new ArgumentNullException(nameof(value));
+		if (text is null)
+			throw new ArgumentNullException(nameof(text));
+		if (value is null)
+			throw new ArgumentNullException(nameof(value));
 
 		text.Append('"');
 
@@ -82,7 +84,8 @@ static class FixRuleText
 	/// </remarks>
 	public static string Note(string raw)
 	{
-		if (raw is null) throw new ArgumentNullException(nameof(raw));
+		if (raw is null)
+			throw new ArgumentNullException(nameof(raw));
 
 		var note  = new StringBuilder(Math.Min(raw.Length, Longest) + 4);
 		var space = false;
@@ -139,7 +142,8 @@ static class FixRuleText
 	/// </remarks>
 	public static string Blank(string text)
 	{
-		if (text is null) throw new ArgumentNullException(nameof(text));
+		if (text is null)
+			throw new ArgumentNullException(nameof(text));
 
 		var blanked = null as StringBuilder;
 

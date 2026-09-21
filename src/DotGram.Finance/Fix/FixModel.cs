@@ -252,13 +252,13 @@ public abstract partial class FixMessage : FixFieldSet
 
 		Checking(this, found);
 
-		return found.Count == 0 ? Nothing : found.ToArray();
+		return found.Count == 0 ? _nothing : found.ToArray();
 	}
 
 	/// <summary>The rule this message's own class is holding, which <see cref="Validate"/> asks.</summary>
 	private protected abstract FixMessageRule Checking { get; }
 
-	static readonly FixFinding[] Nothing = [];
+	static readonly FixFinding[] _nothing = [];
 
 	/// <summary>All fields in wire order, recursively including group entries.</summary>
 	public IEnumerable<FixFieldView> AllFields

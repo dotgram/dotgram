@@ -126,11 +126,11 @@ static class FixRuleFields
 	/// </remarks>
 	public static void Compiled()
 	{
-		foreach (var field in Compiling)
+		foreach (var field in _compiling)
 			field();
 	}
 
-	static readonly Action[] Compiling =
+	static readonly Action[] _compiling =
 	[
 		() => FixMessage.NewOrderSingle.Rule = FixValidator.ValidateNewOrderSingle,
 		() => FixMessage.TestRequest.Rule = FixValidator.ValidateTestRequest,
