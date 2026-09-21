@@ -7177,3 +7177,39 @@ being complete.
 the prefix at the use site, and a case that repeats it gives back what the nesting bought and
 stammers while doing it. So `FixMessage.Custom`. The rename rides in the break already declared,
 which is the whole reason it is free: a second break announced a week later is not.
+
+## D91 — "Free before release" was a claim about the world, and nobody looked
+
+Five packages are on nuget.org at 0.1.0: `DotGram`, `DotGram.Sql`, `DotGram.Web`,
+`DotGram.Finance` and `DotGram.ExpressionLanguage`. `DotGram.Finance.Generator` is not. One
+request to the flat container says so, and the day's decisions were taken without it.
+
+**So the price line of D80 and D90 is wrong, and it was wrong in the same sentence both times:**
+that collapsing the options type, removing `ParseLog`, nesting the ninety-three message classes
+and renaming `CustomFixMessage` cost nothing "before release". They are breaking changes to a
+published package. The release notes were written on the same premise, by the session I told it
+to.
+
+**The decisions themselves stand, and that distinction matters.** Each was argued from what the
+package already does one layer down — the neighbour's idiom, the closed set at the place it is
+matched, a nested case not repeating its outer name. None rested on the cost being zero. What
+changes is what we now owe: a version, and words.
+
+**What follows, concretely.** The version in `Directory.Build.props` is still 0.1.0, so the next
+tag is `v0.2.0` and the bump comes first — the tag-is-version check would have caught a `v0.2.0`
+tag against it, which is the one thing in that workflow that cannot be taken back. Under 0.x a
+minor may break, so 0.2.0 is the right number. And every break in the notes gains the line that
+makes it a migration rather than an announcement: not "`ParseLog` is gone" but what to write
+instead. A consumer reading a break wants the replacement in the same sentence.
+
+**And the policy's scope follows the same fact.** Because the generator package has never been
+published, the first trusted-publishing run needs "push new packages and versions"; it narrows to
+"new versions only" afterwards, which then makes publishing a new package ID from CI impossible —
+the release mistake nobody can take back.
+
+**The lesson is the day's own, arriving where it was least expected.** We spent the day refusing
+to carry a figure from one material to another without measuring, and the one premise nobody
+measured was whether the thing being changed was already in somebody else's hands. It was
+cheaper to check than any number we took: one request, no window, no instrument. A claim about
+the world is not made true by everyone repeating it, and "this is not published yet" is a claim
+about the world.
