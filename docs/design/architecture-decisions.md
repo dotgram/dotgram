@@ -7954,3 +7954,41 @@ straight replacement for hand-written byte parsing in FIX — until the comment 
 overload says why it is hand-written: nine digits per operation, no text decoding, no decimal
 rounding. Replacing deliberate code with a framework call is a PAIR on the rows that exercise it,
 not a cleanup, and calling it the latter is how a measured decision gets undone by a tidy one.
+
+## D111 — The dense change lands, and the slot that never had a release is next
+
+The clean table, one row per process, three sides, meets all three conditions named before it was
+taken. The fall after eight is SEEN: 583,978 KB to 4,234; 2,018,095 to 381; 2,327,730 to nought;
+138,624 to 123 — and on the side with the dead counter none of them fell. The peak is of the order
+of what the parse needed, 1.00 on every row with a largest deviation of 1.04. The non-dense rows
+are byte-identical on all three sides. Against that, the rows fall 37% to 72% in time with
+allocation down tenfold.
+
+**So it lands.** Not because the numbers are good but because the standard they were read against
+was fixed before they existed — which is the only arrangement in which a good number means
+anything.
+
+**And the table found a gap that none of the three conditions names**, which is the argument for
+reading a table rather than checking a list. Above their step the cliff rows keep 19.8 to 24.9 MB
+and **never fall** — not after eight small parses, not after sixteen. The cause is in the emitted
+code rather than in the numbers: **the release exists only for the parked slot, and the ordinary
+spare has none.** A store whose capacity is UNDER the bound is kept for the life of the thread
+whatever it weighs. The dense change did not introduce it — the side without parking keeps 3.5 MB
+on the same rows — but it enlarges it sixfold and permanently.
+
+**Which does not block the commit, and here is the test that says so.** D103's rule is that a
+change whose acceptability depends on an unmade repair is not ready. This one's acceptability does
+not: even on the gap rows the retention is of the order of what the parse itself needed, and the
+alternative on offer is rebuilding the machinery on every parse, which is what the time column
+measures. The gap is a pre-existing defect made larger, not a condition of this change working.
+
+**Two things go with it, and neither is a backlog entry.** A bound and a release for the ordinary
+spare is the NEXT item. And it is measured in BYTES: today's bound counts array elements,
+`> 1048576`, while the cost is bytes — a million `Held<T>` is some 16.8 MB and a million `int` is
+4 MB, and the same test calls both small. That arithmetic was offered as arithmetic, with the
+element sizes named as one read away and not read; **the byte bound is designed on the read, not on
+the estimate**, which is the whole of this week in one sentence.
+
+**And the number is written where the choice is.** Until the spare has a bound, a thread that
+parses such documents keeps twenty-odd megabytes it will never be asked to give back. That belongs
+beside the decision and in the diary, not discovered later in a size report.
