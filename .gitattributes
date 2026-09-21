@@ -18,6 +18,10 @@ tests/Corpus/ScriptDom/** -text
 # against it must be held to the bytes they published, not to ours.
 tests/Corpus/Fix/** -text
 
+# And the specification's own machine-readable form, from FIX Protocol Ltd: their bytes, their
+# headers, their copyright notice. Normalizing it would edit a document we are quoting.
+tests/Corpus/FixRepository/** -text
+
 # JSONTestSuite's parsing cases are the bytes a parser is handed: some are UTF-16, some are not
 # valid UTF-8, and a line ending is part of what several of them test.
 tests/DotGram.Tests/Web/JsonTestSuite/** -text
