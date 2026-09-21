@@ -21,8 +21,8 @@ static partial class Stand
 
 		Console.WriteLine($"Retained after a parse, {DateTime.Now:yyyy-MM-dd HH:mm}. Built from {BinaryCommit()}. One row per process, each side in turn.");
 		Console.WriteLine();
-		Console.WriteLine("| row | side | after one parse KB | after two KB | two / one | bytes a call | after eight small parses KB | after sixteen KB | after eight more, a collection after each KB |");
-		Console.WriteLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+		Console.WriteLine("| row | side | after one parse KB | after two KB | two / one | bytes a call | after eight small parses KB | after sixteen KB | after eight more, a collection after each KB | twelve of the same parse, lowest KB | highest KB |");
+		Console.WriteLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var id in sides[0].Workloads.Where(one => only is null || Matches(one.Id, only)).Select(static one => one.Id))
 		{
@@ -41,12 +41,13 @@ static partial class Stand
 				var held    = Retained(big, small, () => PoolReadout(side.PoolRoots(family), out _));
 
 				Console.WriteLine(string.Create(System.Globalization.CultureInfo.InvariantCulture,
-					$"| {id} | {System.IO.Path.GetFileName(directory)} | {held.One / 1024.0:N1} | {held.Two / 1024.0:N1} | {(held.One > 0 ? (held.Two / (double)held.One).ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "-")} | {held.Allocated:N0} | {held.Eight / 1024.0:N1} | {held.Sixteen / 1024.0:N1} | {held.Collected / 1024.0:N1} |"));
+					$"| {id} | {System.IO.Path.GetFileName(directory)} | {held.One / 1024.0:N1} | {held.Two / 1024.0:N1} | {(held.One > 0 ? (held.Two / (double)held.One).ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "-")} | {held.Allocated:N0} | {held.Eight / 1024.0:N1} | {held.Sixteen / 1024.0:N1} | {held.Collected / 1024.0:N1} | {held.SteadyLow / 1024.0:N1} | {held.SteadyHigh / 1024.0:N1} |"));
 
 				// What each pool of that side holds on this thread, by capacity: after the first parse and after eight small ones (see PoolReadout).
 				Console.WriteLine("    pools after one parse:     " + held.PoolsOne);
 				Console.WriteLine("    pools after eight small:   " + held.PoolsEight);
 				Console.WriteLine("    pools after eight more, collected each time: " + held.PoolsCollected);
+				Console.WriteLine("    pools after twelve of the same parse, collected each time: " + held.PoolsSteady);
 			}
 		}
 	}
@@ -62,7 +63,7 @@ static partial class Stand
 		return (PairedWorkloads(side, new PairedSide("side-again", directory)), side);
 	}
 
-	sealed record Kept(long One, long Two, long Allocated, long Eight, long Sixteen, long Collected = -1, string PoolsOne = "", string PoolsEight = "", string PoolsCollected = "");
+	sealed record Kept(long One, long Two, long Allocated, long Eight, long Sixteen, long Collected = -1, string PoolsOne = "", string PoolsEight = "", string PoolsCollected = "", long SteadyLow = -1, long SteadyHigh = -1, string PoolsSteady = "");
 
 	/// <summary>The bytes that stay reachable after a reading has run once, twice, and after eight and sixteen further small parses.</summary>
 	static Kept Retained(Func<int> run, Func<int>? small, Func<string>? pools = null)
@@ -88,8 +89,25 @@ static partial class Stand
 
 		var two = Math.Max(0, GC.GetTotalMemory(true) - before);
 
+		// A steady workload: twelve more of the SAME parse, a collection after each, the heap read after each. A pool that lets go of room the parses have stopped wanting must leave a workload that keeps wanting
+		// it alone; if it gives the room up and takes it again the reading drops below the retention of the second parse at some step (SteadyLow), and it is a store that a consumer's steady work would rebuild.
+		long steadyLow = long.MaxValue, steadyHigh = 0;
+
+		for (var i = 0; i < 12; i++)
+		{
+			run();
+			Collect();
+
+			var now = Math.Max(0, GC.GetTotalMemory(true) - before);
+
+			steadyLow  = Math.Min(steadyLow, now);
+			steadyHigh = Math.Max(steadyHigh, now);
+		}
+
+		var poolsSteady = pools?.Invoke() ?? "";
+
 		if (small is null)
-			return new Kept(one, two, allocated, -1, -1, -1, poolsOne);
+			return new Kept(one, two, allocated, -1, -1, -1, poolsOne, "", "", steadyLow, steadyHigh, poolsSteady);
 
 		for (var i = 0; i < 8; i++)
 			small();
@@ -117,7 +135,7 @@ static partial class Stand
 
 		var collected = Math.Max(0, GC.GetTotalMemory(true) - before);
 
-		return new Kept(one, two, allocated, eight, sixteen, collected, poolsOne, poolsEight, pools?.Invoke() ?? "");
+		return new Kept(one, two, allocated, eight, sixteen, collected, poolsOne, poolsEight, pools?.Invoke() ?? "", steadyLow, steadyHigh, poolsSteady);
 	}
 
 	static void Collect()
