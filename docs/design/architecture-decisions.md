@@ -8250,3 +8250,24 @@ account.** If the readout shows two or three occupied deeper slots of a few mega
 parked slot empty, this holds. If the slots are near-empty, the memory is somewhere still unnamed —
 and the same session will have been wrong twice about the same twenty megabytes, which is worth
 saying out loud in advance rather than discovering a reason afterwards.
+
+**Three consequences of the form, met while building it.** A static field is process state, so the
+FIX tests stopped running in parallel: a test that loads a foreign dictionary changes what every
+other test sees while it runs. Collections are few and xunit runs them together, so the suite now
+runs its collections one at a time — four and a half seconds against two. That is the price of the
+shape, paid rather than avoided: a suite that passes because two tests happened not to meet is
+worth less than a suite two seconds slower.
+
+**A rule cannot be compared with `ReferenceEquals`, and the reason is worth stating correctly.**
+`FixMessage.NewOrderSingle.Rule == FixValidator.ValidateNewOrderSingle` is true, and
+`ReferenceEquals` of the two is false. Not because every method-group conversion allocates — since
+C# 11 a static method group conversion is cached — but because it is cached **per conversion site**,
+so two sites yield two instances that are equal and not the same. A consumer asking "is our rule
+still in place" compares with `==`. That belongs on the page, not only in a test.
+
+**And undoing one rule is an assignment while undoing a whole dictionary is ninety-three.** The
+name makes a single replacement reversible, which is what it was for; a load has no such handle,
+and an operation a consumer can perform but not reverse is a trap. Restoring the compiled set
+exists internally for the tests, which must return the process to where they found it. Whether it
+becomes public is Igor's, and the case for it is that `LoadDictionary` is public and changes the
+whole process.
