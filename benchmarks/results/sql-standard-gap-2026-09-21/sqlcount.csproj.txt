@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<NoWarn>$(NoWarn);CS0649;CS0162;CS0219;CS8618;CS8625;CS1591;CS0414</NoWarn>
+		<AssemblyName>sqlcount</AssemblyName>
+		<RootNamespace>RecProbe</RootNamespace>
+		<LangVersion>latest</LangVersion>
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Include="gen\*.cs" />
+		<Compile Include="probe.cs" />
+		<Compile Include="shim.cs" />
+		<Compile Include="P:\dotgram.WorkTrees\performance\.work\wt-main\src\DotGram.Sql\**\*.cs"
+			Exclude="P:\dotgram.WorkTrees\performance\.work\wt-main\src\DotGram.Sql\obj\**\*.cs;P:\dotgram.WorkTrees\performance\.work\wt-main\src\DotGram.Sql\bin\**\*.cs" />
+	</ItemGroup>
+</Project>

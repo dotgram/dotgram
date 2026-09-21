@@ -1,0 +1,9 @@
+How much work the generated parser does, per input and per token.
+
+input             tokens        calls   calls/token      fails  rollbacks   log writes  deepest
+literal               1            2          2.00          0          0            8        8
+arithmetic           19          197         10.37         93         53          513      377
+select1              15           80          5.33         35         23          230      188
+select20            115        1,111          9.66        514        323        2,937    2,215
+conditions100     1,275        6,002          4.71      2,500      1,500       16,416   13,016
+conditions1000   14,775       60,002          4.06     25,000     15,000      164,016  130,016
