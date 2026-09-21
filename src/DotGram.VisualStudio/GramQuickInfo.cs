@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Threading;
@@ -461,7 +461,7 @@ sealed class GramQuickInfoSource(
 		"|"  => "DotGram alternative",
 		"&"  => "DotGram sequence",
 		"~"  => "DotGram sequence without trivia",
-		"^"  => "DotGram recovery marker",
+		"^"  => "DotGram element set: complement, [^ a | b ]",
 		".." => "DotGram range",
 		_     => $"DotGram special symbol: {text}",
 	};
