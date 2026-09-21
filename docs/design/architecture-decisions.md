@@ -7542,3 +7542,30 @@ a column. It is worth one more field, because it is also the evidence that the w
 its cost — if the first pass were ever the faster, walking twice would be buying nothing there.
 Nothing waiting on it: the claim the guard rests on was read, not inferred, and the distinction
 between the two was drawn by the session that could have blurred it.
+
+**Withdrawn within the hour, and the withdrawal is mine.** Collection and object initializers are
+SUPPORTED — `new List<int>() { 448 }` and `new StringBuilder() { Capacity = 8 }` both run. What is
+not supported is omitting the constructor's parentheses: the rule requires `Arguments`, and the
+initializer is an optional tail after them. So the repair D101 authorized — refusing with
+"collection initializers are not supported" — would have shipped a false statement about our own
+package, and a worse failure than the one it replaced: today's message confuses, that one would
+have misled confidently, and a reader believing it would stop looking for the working form they
+already have.
+
+**How it got into a decision is the part to keep.** A diagnosis travelled from the session that met
+it, through the session that owns the area, to me, and each pass added standing without adding
+evidence; I then wrote it into the repository's record, which is where a relayed claim becomes a
+fact nobody re-checks. Checking cost four minutes and one run, and the session that finally did it
+was the one furthest from the original observation. **A claim arriving through a third party is
+evidence about the journey, not about the code** — and an architect writing it down is the last
+place that can still tell the difference.
+
+**What is actually true of the three constructs.** The implicitly typed array `new[] { … }` is
+genuinely unsupported — `new int[] { … }` is the form — and where no alternative reading exists the
+message is already exact, pointing at the `[`. The other two are a parenthesis away from working.
+
+**So the choice narrows, and the larger half goes to Igor.** A diagnostic that recognizes
+`new T { … }` and says the parentheses are needed is true, is allowed by the standing rule, and
+teaches the working form. Making `Arguments` optional when an initializer follows is a change to
+what the grammar accepts, is the same form C# accepts, and is his. The second is asked first,
+because if it is granted the first is code written to be deleted.
