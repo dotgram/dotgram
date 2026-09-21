@@ -1,18 +1,38 @@
-# How validation is asked for: ours from the code, QuickFIX/n from the assembly (2026-09-20)
+# How validation is asked for, and what none of them carries (2026-09-20)
 
 Igor asked what the validation API of other FIX libraries looks like, because a consumer arriving
-from one of them brings habits. This document is that review, and it is **unfinished**: two columns
-are filled and the rest are not.
+from one of them brings habits. This document is that review: **ten other libraries read from their
+source or their shipped assembly**, across .NET, the JVM, C++, Python, Go and Rust.
+
+**The answer, and it is the same everywhere.**
+
+- **Not one of them returns more than one finding.** Every library that validates at all throws or
+  returns on the first problem. The single partial exception in ten is Artio's on-the-fly path,
+  which reports every *missing required* tag at completion while stopping at the first of everything
+  else.
+- **Not one finding carries a position in the source.** The best any of them does is a bare tag.
+- **Not one finding carries the entry index of a repeating group** — and this is the part worth
+  reading twice, because in three of them the code *has* the index when it reports. quickfix-go
+  walks entries with the index in hand as `groupCount` and reports the tag alone. Artio accumulates
+  every unknown and every missing field in hash sets and hands back one tag, taken from a hash set,
+  not even in wire order. fefix makes `entry_index` part of a field's very identity — and has no
+  finding to attach it to.
+- **Three of the ten do no validation whatsoever**, and two say so in their own documentation.
+  pyfixmsg is the instructive one: it loads a full spec with types and enum values and uses it only
+  for grouping and field order.
+
+So both decisions this package made on that axis — all findings at once, and a finding that names
+which entry of which group — are differences a consumer will **meet**, not habits they arrive with.
+That has to be said in the documentation rather than assumed obvious. And the strongest argument for
+the first is not ours: it is that two libraries had already collected the whole answer internally
+and published a door one finding wide.
 
 What is here was read rather than recalled. Ours comes from the code, in both of the shapes it
-currently has. QuickFIX/n comes from the assembly installed on this machine — which is a better
-source than its page, because a page describes what was intended and an assembly describes what is
-there. The libraries on other platforms are missing because this session has no network, and §4
-says so rather than filling them from memory — and that list is short by count rather than by
-guess: of the 737 packages in this machine's cache, the only third-party FIX ones are
-`quickfixn.core` and `quickfixn.fix44` (enumerated by the FIX owner). There is no OnixS, no Fix8,
-nothing else to read offline. **Every claim names what it was read from**: a source
-file and revision, an assembly and its version, a licence file, or the shipped XML documentation.
+currently has. QuickFIX/n comes from the assembly installed on this machine — a better source than
+its page, because a page describes what was intended and an assembly describes what is there. The
+rest come from their source at named tags or commits. What is still missing is named in §6 rather
+than filled from memory. **Every claim names what it was read from**: a source file and revision, an
+assembly and its version, a licence file, or the shipped XML documentation.
 
 Two documents already cover ground this one does not repeat: `fix-libraries-2026-09-19.md` (what
 exists on .NET, what may sit in a benchmark, and the QuickFIX/n licence) and
@@ -172,7 +192,132 @@ configuration on a long-lived object, which is the one place its shape and ours 
 `Validate` in the file is an unrelated `AsciiValidator.Validate(System.String)`. A consumer reading
 the documentation does not meet the validation entry point at all.
 
-## 3. Their licence and their dictionary, read from the files
+## 3. The JVM: QuickFIX/J, Artio, Philadelphia
+
+Read from source at named tags — QuickFIX/J at `QFJ_RELEASE_3_0_2`, Artio at `0.184`, Philadelphia
+at `2.0.0` — and not from their documentation.
+
+**QuickFIX/J — the verb is on the dictionary, and it throws.**
+
+```java
+// quickfixj-base/src/main/java/quickfix/DataDictionary.java
+public        void validate(Message message, ValidationSettings settings)
+        throws IncorrectTagValue, FieldNotFound, IncorrectDataFormat;
+public static void validate(Message, DataDictionary session, DataDictionary application,
+                            ValidationSettings);
+```
+
+First problem only: `validate` walks the fields and throws out of the first failing check, with no
+accumulation anywhere. The finding is a `FieldException` carrying exactly two things — the tag and
+an **int** session-reject-reason constant (not an enum) — plus a sentence built from them. No
+offset, no path, no entry index. A second, narrower channel exists: parsing defers one error into a
+single `FieldException` field, which `hasValidStructure()` exposes and `validate` re-throws — still
+exactly one. The dictionary is long-lived and loaded from XML; the seven strictness booleans are a
+`ValidationSettings` passed per call.
+
+**Artio — a boolean and two ints, and the all-errors information exists but is not reachable.**
+
+```java
+// artio-codecs/.../builder/Decoder.java
+boolean validate();      // never throws
+int     invalidTagId();  // NO_ERROR == -1
+int     rejectReason();  // int, deliberately not an enum
+```
+
+This is the finding that matters most for us. The generated decoder **internally accumulates**
+`IntHashSet unknownFields` and `IntHashSet missingRequiredFields` — it knows every problem — and
+`validate()` surfaces `iterator.nextValue()`: one tag, taken from a hash set, so not even in wire
+order. The whole answer is in the object and has no public accessor. Nothing carries an offset, a
+path or an entry index; group validation counts entries but copies up only the tag and the reason.
+
+Artio's on-the-fly path is **the one exception found anywhere to "first problem only"**:
+`OtfValidator.onComplete()` computes the difference between required and present fields and calls
+`onError` for **every** missing tag, while every other check stops at the first. Its
+`ValidationError` is a real enum, of five coarse members. The group entry index is available to the
+acceptor during parsing (`onGroupBegin(tag, numInGroup, index)`) and is *not* carried on `onError`.
+
+**Philadelphia — no validation API at all.** No dictionary, no validator, no `validate` anywhere in
+the core. The parser checks framing only, and a message that fails it is labelled garbled and
+**silently skipped**: no callback, no error object, no exception. That is a real answer rather than
+a gap: a library can decide that validation is the application's business and say so by having none.
+
+**And Philadelphia is the one library here whose model is ours.** `FIXMessage` is two parallel
+arrays, `int[] tags` and `FIXValue[] values`, read positionally — so **wire order survives and
+repeated tags survive**, which is true of no other library read so far and is exactly what
+`FixParser.Parse` returns. It has no repeating-group model at all; a group is a flat run the
+application interprets. QuickFIX/J is the opposite: a `TreeMap` keyed by tag, where order is lost
+and a repeated tag is refused outright.
+
+**Licences**: Artio and Philadelphia are plain Apache-2.0. QuickFIX/J carries the same
+QuickFIX Software License as the .NET port, advertising clause and all.
+
+## 4. C++, Python, Go and Rust
+
+Read from source at named commits: QuickFIX C++ at `386ce46e`, quickfix-go at `2600e522`, hffix at
+`797ce7db`, simplefix at `007e3d7f`, pyfixmsg at `b7f1bfbd`, fefix at tag `v0.7.0`.
+
+**QuickFIX C++ — the dictionary again, throwing again.** `static void validate(const Message&,
+const DataDictionary* session, const DataDictionary* app)`, a straight-line sequence of throwing
+checks with no accumulation. The finding is the **exception class** — `RequiredTagMissing`,
+`IncorrectDataFormat`, `RepeatedTag`, `RepeatingGroupCountMismatch` and their siblings — carrying a
+type string, a detail string and the tag. No offset, no entry index.
+
+Two things here that the .NET port does not have. First, **DATA fields are general and
+dictionary-driven**: `XMLTypeToType` maps `type="DATA"` to `TYPE::Data`, `isDataField` consults the
+set, and `Message::extractField` takes the value by length for any of them — where QuickFIX/n
+special-cases `XmlData` alone. Second, and less flattering: the pairing of a data field to its
+length field is the hardcoded convention `tag − 1` (with `Signature` → `SignatureLength` as the one
+exception), not something the dictionary states. Worth knowing before we treat "reads DATA from the
+dictionary" as one thing.
+
+A coverage gap found by reading rather than by using: `iterate()` walks the flat field map, and
+groups live in a separate structure, so per-field format and enum checks **do not descend into
+repeating-group entries**. Only the required-field check recurses, and its finding carries the tag
+alone.
+
+**quickfix-go — a separate validator object, and one error.**
+
+```go
+type Validator interface { Validate(*Message) MessageRejectError }
+func NewValidator(settings ValidatorSettings, appDD, transportDD *datadictionary.DataDictionary) Validator
+```
+
+Long-lived, built once from config. Returns a single `MessageRejectError` — an interface carrying a
+reject-reason int, a sentence, an optional `*Tag`, and a business/session flag. Every level is
+`if err != nil { return err }`; nothing is collected.
+
+And here is the same shape as Artio's, from the other end: `validateVisitGroupField` walks group
+entries with the index in hand as `groupCount`, and when a required field is missing inside entry N
+it reports `RequiredTagMissing(childTag)` — **N is in scope and is not put in the error**.
+
+**Three of the six do no validation at all**, and two say so themselves. simplefix's parser
+docstring states it verbatim: it does not check fields, presence, types or enumerations. hffix has
+`is_valid()`, which means only that the framing parses — and it is a flag rather than an exception
+precisely so the reader can resynchronise. Both keep wire order and repeated tags exactly, as
+Philadelphia does and as we do.
+
+**pyfixmsg is the instructive one: the material without the verb.** It loads a QuickFIX-style XML
+spec into `FixSpec` with types, enum values by name and by value, components, groups and a field
+order — and uses all of it for exactly two things: splitting repeating groups while decoding, and
+re-ordering tags when serialising. Nothing ever consults `tagtype` or the enum values to check a
+message. Its model also loses most of what a check would need: a `dict` keyed by tag, so wire order
+is not represented and a duplicate tag outside a group collapses.
+
+**fefix carries an entry index — as an address, not as a finding.** A field is located by
+`FieldLocator { tag, context }`, where the context is `TopLevel` or
+`WithinGroup { index_of_group_tag, entry_index }`. It is **the only library of the eleven read here
+that treats "which entry of which group" as part of a field's identity** — and it has no findings to
+attach it to: decoding returns a four-variant `DecodeError` that carries no tag at all, and type
+checking happens per field, at the call site, when you ask for a value. Its DATA handling is the
+cleanest found: the decoder keys off the preceding field's dictionary datatype being `Length`, with
+no tag−1 assumption and no special cases.
+
+**Licences**: QuickFIX C++ and quickfix-go carry the QuickFIX Software License, with the same
+clause-3 acknowledgment and clause 4-5 name restrictions as the other two QuickFIX ports. hffix is
+BSD-2, simplefix MIT, pyfixmsg Apache-2.0, fefix MIT-or-Apache-2.0 — all clean. (fefix bundles FIX
+Repository data under separate terms, not read.)
+
+## 5. Their licence and their dictionary, read from the files
 
 **QuickFIX/n's licence, read from the file** — `P:\.packages\.nuget\packages\quickfixn.core\1.14.1\LICENSE`,
 not from a summary: "The QuickFIX Software License, Version 1.0", copyright 2001-2010
@@ -187,23 +332,15 @@ the cached package now makes it verifiable without network.
 dictionary to read with a tool is available locally. **It is not copied into this repository**, per
 Igor's rule that no third-party file enters what we ship.
 
-## 4. What is missing, and why it is missing rather than guessed
+## 6. What is still missing, and the questionnaire that found the rest
 
-The other columns — where the verb lives, what comes back, whether it stops, and what a finding
-carries — are **not written**, for QuickFIX/J, Artio, Philadelphia, QuickFIX (C++), Fix8, hffix,
-simplefix, pyfixmsg, quickfix-go, fefix, FIX Antenna .NET Core, Geh.Fix, or the commercial engines.
-
-The reason is that this session cannot reach the network: `WebFetch` returns
-`connect ECONNREFUSED 10.0.0.1:443`, `curl` returns status 000, and four parallel readings failed
-with connection refused. The rule for this review is that a claim about someone else's code comes
-from their source with the version named. Writing the columns from memory would produce a document
-whose every line carried "unverified", which is honest and useless at once — and the error would
-land exactly on what looks common knowledge: the review from 2026-09-19 found by reading that the
-.NET port of QuickFIX handles DATA fields differently from the C++ original, which nobody would
-have guessed.
-
-The questionnaire is written and was given to four readings; it survives the network outage and is
-recorded here so the work resumes without being re-derived:
+The questionnaire below is what every column above answers. It is recorded because the next
+library is read against the same three questions, and because the first attempt at this review was
+made with no network at all — the columns were left empty rather than filled from memory, on the
+ground that a document whose every line carries "unverified" is honest and useless at once. The
+2026-09-19 review is the reason that rule is not pedantry: it found by reading that the .NET port
+of QuickFIX handles DATA fields differently from the C++ original, which nobody would have guessed
+and which this review has now confirmed from both sides.
 
 1. **Model** — what parsing turns the wire into (field map keyed by tag, flat list, buffer index
    with lazy accessors, generated typed classes); whether **wire order** survives; whether a
@@ -217,10 +354,19 @@ recorded here so the work resumes without being re-derived:
 3. **Licence** — read from the LICENSE file: what may be read with a tool, what may not be kept in
    this repository, what may not be quoted in documentation.
 
-The question the FIX owner asked to have answered first was **is there any library that returns all
-findings at once?** — and for the one library that could be read, the answer is no, twice over:
-QuickFIX/n throws on the first problem, and its finding carries neither the position nor the entry
-index of a repeating group. So on the evidence so far, two of our four decisions are differences a
-consumer will meet rather than expectations they arrive with, and the documentation has to say so
-instead of assuming it is obvious. Whether that survives the other twelve libraries is exactly what
-the missing columns are for: one library is a data point, not a pattern.
+**What is left unread**, so that the ten do not read as "everything": the commercial engines — OnixS
+on .NET and C++, B2BITS FIX Antenna, RA — whose source is not public and which this review does not
+guess about; EPAM's Apache-2.0 FIX Antenna .NET Core and Geh.Fix, which have public source and were
+not reached; and anything on a platform not named here. Ten libraries agreeing is a strong pattern
+and not a proof, and the commercial engines are exactly where a different answer would most likely
+live, since they are sold to people who reconcile breaks for a living.
+
+**One thing to carry beyond validation**, found while answering these questions and belonging to
+whoever writes our DATA handling: the four libraries that read length-prefixed fields do it four
+different ways. QuickFIX C++ takes the set of DATA fields from the dictionary but pairs each to its
+length field by the hardcoded convention `tag − 1` (with `Signature` the one exception). QuickFIX/n
+special-cases `XmlData` and has no general reading at all. hffix and simplefix carry hardcoded pair
+tables — and hffix's own comment says why it dare not assume the convention. fefix is the only one
+that does it from the data: it keys off the preceding field's dictionary datatype being `Length`.
+quickfix-go does not handle DATA at parse time at all, so a value containing the separator
+mis-parses.
