@@ -1,10 +1,18 @@
-# How validation is asked for: ours, read from the code, and theirs, not yet read (2026-09-20)
+# How validation is asked for: ours from the code, QuickFIX/n from the assembly (2026-09-20)
 
 Igor asked what the validation API of other FIX libraries looks like, because a consumer arriving
-from one of them brings habits. This document is that review. It is **half written**: the column it
-compares against — ours — is here, read from the code rather than from anybody's account of it, and
-the other columns are not, because this session has no network and their source cannot be read.
-What is missing is named in §3 rather than filled from memory.
+from one of them brings habits. This document is that review, and it is **unfinished**: two columns
+are filled and the rest are not.
+
+What is here was read rather than recalled. Ours comes from the code, in both of the shapes it
+currently has. QuickFIX/n comes from the assembly installed on this machine — which is a better
+source than its page, because a page describes what was intended and an assembly describes what is
+there. The libraries on other platforms are missing because this session has no network, and §4
+says so rather than filling them from memory — and that list is short by count rather than by
+guess: of the 737 packages in this machine's cache, the only third-party FIX ones are
+`quickfixn.core` and `quickfixn.fix44` (enumerated by the FIX owner). There is no OnixS, no Fix8,
+nothing else to read offline. **Every claim names what it was read from**: a source
+file and revision, an assembly and its version, a licence file, or the shipped XML documentation.
 
 Two documents already cover ground this one does not repeat: `fix-libraries-2026-09-19.md` (what
 exists on .NET, what may sit in a benchmark, and the QuickFIX/n licence) and
@@ -36,7 +44,13 @@ public static bool Validate(FixMessage message, FixParseMode mode, FixParseOptio
   identifier, no scope, and nothing about repeating groups: a finding inside the ninth `Parties`
   entry is indistinguishable from one in the first.
 
-### 1b. What is being built — `codex/finance` at `cda1a41f` (2026-09-20 18:18)
+### 1b. What is being built — `codex/finance` at `644f91ea` (2026-09-20 20:16)
+
+*(Read at the owner's branch head, not at `main`. An area with an owner is read on their branch:
+their work is committed and simply not pushed, so `main` is honestly current and honestly wrong
+for the question. This section first quoted `cda1a41f` because that was the head when it was
+written two hours earlier; the shape below is unchanged between the two, but the revision is
+named rather than assumed.)*
 
 ```csharp
 // FixModel.cs
@@ -73,14 +87,92 @@ static readonly FixFinding[] Nothing = [];             // a right message alloca
   the part no other column has yet been checked for — the group's counter tag **and the entry
   index**. "Tag 448 is wrong" says nothing in a message carrying nine parties.
 
-**All four of the design claims finance-24 described are in the code as described**, which is worth
+Two things stand beside the validator at this revision and belong in the comparison: `FixDictionary`
+— a counterparty's dictionary as data a validator loads — and `DotGram.Finance.Generator`, an
+analyzer that reads a QuickFIX dictionary and compiles it into code. So the same two roads QuickFIX/n
+carries in one package are both here too, and the line between them is the one the dictionary study
+drew: what is *read* and what is *checked* may be run-time tables, what is *constructed* stays build
+time.
+
+**All four of the design claims the FIX owner described are in the code as described**, which is worth
 stating plainly because this review was given them in advance precisely so that it would check them
 rather than repeat them. What was not in the account, and matters for the review, is that they are
 in a branch: on `main` the shape is still 1a, and `fix-validation-layer-2026-09-20.md` — the
 proposal — opens with "No code is changed". So a consumer of the shipped package today meets the
 `bool` + first-error form, and the review's comparison must say which of our two shapes it compares.
 
-## 2. What is already read of theirs
+## 2. QuickFIX/n, read from the installed assembly
+
+The package is on this machine, so this column is answered without network — and from a better
+source than a page, because **a page describes the intention and an assembly describes what is
+there**. Everything below was read by reflecting over
+`P:\.packages\.nuget\packages\quickfixn.core\1.14.1\lib\net10.0\QuickFix.dll` (assembly version
+1.14.1.0), types reflected over and never constructed. Where a line comes from the licence file or
+the shipped XML documentation instead, it says so.
+
+**Where the verb lives — a static service, and a second one on the message.**
+
+```csharp
+// QuickFix.DataDictionary.DataDictionary
+static void Validate(Message message, DataDictionary transportDataDict, DataDictionary appDataDict,
+                     string beginString, string msgType);
+
+// QuickFix.Message : FieldMap
+void Validate();
+void FromString(string msgstr, bool validate, DataDictionary transportDict, DataDictionary appDict,
+                IMessageFactory msgFactory, bool ignoreBody);
+```
+
+The schema check is a **static method taking the message and two dictionaries** — not a method on
+the message, and not an instance the dictionary owns. The message's own `Validate()` is a different
+check (framing: BodyLength and CheckSum), and `FromString`'s `validate` flag runs it during parsing.
+So there are three readings, and two of the three are the caller's to combine.
+
+**What comes back: nothing.** Both `Validate` overloads return `void`. A finding is therefore an
+**exception**, and the first one ends the check — there is no shape in which a second could be
+reported. The same is true of the dictionary's own checks, which are the rules one at a time:
+`CheckHasRequired`, `CheckIsInGroup`, `CheckGroupCount`, `CheckValidFormat`, `CheckValue`,
+`CheckHasNoRepeatedTags`, `CheckMsgType`, `CheckValidTagNumber` — every one of them `void`.
+
+**What a finding carries**, from the exception types:
+
+| | carries |
+| --- | --- |
+| `TagException : QuickFIXException` | `int Field`, `SessionRejectReason sessionRejectReason` |
+| `FieldNotFoundException` | `int Field` |
+| `MissingRequiredFieldException` | the tag, through a constructor; no public member |
+| `GroupDelimiterTagException : TagException` | counter tag and delimiter tag |
+| `RepeatedTagWithoutGroupDelimiterTagException : TagException` | counter tag and the offending tag |
+
+So: the **rule** is the exception's type, plus `SessionRejectReason` where there is one — an
+enumeration, as ours is. The **tag** is there. **Position in the source is not.** **Scope —
+header, body or trailer — is not.** And the **entry index of a repeating group is not**: two
+exception types name a group's counter tag, which is as close as it comes, and neither says which
+entry. That is the question the FIX owner asked to have answered first, and for this library the
+answer is no.
+
+**The packaging answers a question about the model, and it is the one thing here nobody would
+think to look for.** `quickfixn.fix44` 1.14.1 ships `DataDictionary/FIX44.xml` — 340,702 bytes —
+**beside** `QuickFix.FIX44.dll`: generated typed classes and a run-time dictionary, in one package.
+They do not choose between the two roads; they carry both. (Found by the FIX owner while enumerating
+the cache for other libraries, and worth more than the enumeration itself.) Our own corpus copy at
+`tests/Corpus/Fix/FIX44.xml` is byte for byte the same file, sha `a8111ec5…`, identical in 1.14.0
+and 1.14.1 — so the dictionary did not change between those versions, which makes "byte for byte
+from 1.14.1" a checked statement rather than a copied one.
+
+**Model**, confirmed from the assembly rather than restated: `QuickFix.Message : FieldMap`, which
+is what the 2026-09-19 review found by reading the source — storage keyed by tag, so wire order and
+repeated tags do not survive. Dictionary construction is `new DataDictionary(path)` or
+`(Stream)`, and its `AllowUnknownMessageFields`, `CheckFieldsOutOfOrder`, `CheckFieldsHaveValues`,
+`CheckUserDefinedFields`, `AllowUnknownEnumValues` are settable properties — the strictness is
+configuration on a long-lived object, which is the one place its shape and ours agree.
+
+**Not in the shipped XML documentation.** `QuickFix.xml` ships beside the assembly and carries
+2,098 documented members, and `DataDictionary.Validate` is not among them: the only documented
+`Validate` in the file is an unrelated `AsciiValidator.Validate(System.String)`. A consumer reading
+the documentation does not meet the validation entry point at all.
+
+## 3. Their licence and their dictionary, read from the files
 
 **QuickFIX/n's licence, read from the file** — `P:\.packages\.nuget\packages\quickfixn.core\1.14.1\LICENSE`,
 not from a summary: "The QuickFIX Software License, Version 1.0", copyright 2001-2010
@@ -95,7 +187,7 @@ the cached package now makes it verifiable without network.
 dictionary to read with a tool is available locally. **It is not copied into this repository**, per
 Igor's rule that no third-party file enters what we ship.
 
-## 3. What is missing, and why it is missing rather than guessed
+## 4. What is missing, and why it is missing rather than guessed
 
 The other columns — where the verb lives, what comes back, whether it stops, and what a finding
 carries — are **not written**, for QuickFIX/J, Artio, Philadelphia, QuickFIX (C++), Fix8, hffix,
@@ -125,8 +217,10 @@ recorded here so the work resumes without being re-derived:
 3. **Licence** — read from the LICENSE file: what may be read with a tool, what may not be kept in
    this repository, what may not be quoted in documentation.
 
-The question finance-24 asked to have answered first, and which this document cannot yet answer:
-**is there any library that returns all findings at once?** If none does, our point 3 is a
-difference that has to be named and explained in the documentation rather than assumed obvious —
-and the same for the verb's place, since a consumer arriving from a library where validation is a
-service brings that habit with them.
+The question the FIX owner asked to have answered first was **is there any library that returns all
+findings at once?** — and for the one library that could be read, the answer is no, twice over:
+QuickFIX/n throws on the first problem, and its finding carries neither the position nor the entry
+index of a repeating group. So on the evidence so far, two of our four decisions are differences a
+consumer will meet rather than expectations they arrive with, and the documentation has to say so
+instead of assuming it is obvious. Whether that survives the other twelve libraries is exactly what
+the missing columns are for: one library is a data point, not a pattern.
