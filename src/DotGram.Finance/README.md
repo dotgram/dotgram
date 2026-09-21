@@ -73,7 +73,7 @@ foreach (var field in FixParser.Parse("55=ABC|broken|38=2", FixFieldOptions.Log)
 Valid binary payloads are consumed by length, including embedded separators.
 After a malformed binary header or length, separator recovery is best effort:
 the next separator may be inside damaged payload data. Primitive conversion
-failures keep their existing typed field with `IsValid == false`; `recover`
+failures still come back as the tag's own typed field, with `IsValid == false`; `recover`
 handles recognition failures, not semantic validation.
 Use `.ToArray()` when a complete list is needed. String/span/byte-array overloads
 materialize the complete result. Empty input returns no fields.
@@ -136,8 +136,8 @@ validation remain in the explicitly called semantic API.
 ## Explicit message semantics
 
 The following APIs belong to `FixMessages` and run only when called explicitly.
-This layer restores separate length nodes for the wire message model; that work
-is not part of flat field parsing.
+A length/data pair is one field to `FixParser`; the message model holds the length
+and the data as two nodes, and this is the layer that separates them.
 `Build(source, fields)` requires fields parsed from that exact source and performs
 recognition and group assembly without parsing it again. `Parse` combines both steps.
 Holding the result to a schema is `Validate`, a call of its own.
@@ -211,8 +211,8 @@ there is no automatic resynchronization or rollback of the underlying stream.
 
 The framing adapter prevents read-ahead from consuming the next message. The byte
 path retains a byte frame and passes it to the generated buffered byte parser;
-field conversion does not transcode numeric input. The existing source-owning model
-also creates a lossless character view after recognition for validation and
+field conversion does not transcode numeric input. A result owns its source, and a
+lossless character view is built after recognition for validation and
 `OriginalWire`. This is not a zero-copy API. Results own their data independently
 of subsequent stream reads. See the finance benchmarks for total parsing costs.
 
@@ -374,7 +374,8 @@ The common grammar declares `Separator` and specializes the log publication with
 Only structural SOH separators are rendered as pipes. Raw-data payload octets must
 remain untouched; a log that replaces or escapes payload bytes is not lossless and
 requires its own decoding before this API. Arbitrary log prefixes are not accepted.
-BodyLength is unchanged. CheckSum is verified against the original SOH representation
+BodyLength counts the wire's octets and the pipe rendering does not change it.
+CheckSum is verified against the original SOH representation
 by normalizing only the recognized field delimiters, never pipes inside raw data.
 `OriginalWire` preserves the supplied log representation.
 
@@ -465,4 +466,5 @@ on a particular field (such as currency syntax or a code set) remain semantic ch
 `LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
 The constructing group in `Fields` covers the complete tag, equals sign, value
 and optional final separator; it supplies the field's source extent. `Position`, `ValuePosition` and
-`Length` retain their existing meanings, including for unknown and binary fields.
+`Length` mean here what they mean everywhere else on this page, unknown and binary
+fields included.
