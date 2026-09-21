@@ -3200,3 +3200,68 @@ and the publication count is the largest structural cost in the generated code t
 a number to.
 
 **Answer:** —
+
+## Q33 (2026-09-21). The type called `FixParser` is not the one you use to parse FIX
+
+Igor's, asked directly: `FixParser` holds only field-level methods, it would be more logical as the
+API's central point, and the message work sits partly on `FixMessage` itself. Read at `3b4a63b9`
+in `P:\dotgram.WorkTrees\finance`, the owner's branch, where Q26 and Q27 have already landed —
+`FixParseOptions` is folded away, `ParseLog` is gone, and every entry now takes one
+`FixFieldOptions? options = null`.
+
+**Both halves of the observation check out, and the first is sharper than it looks.**
+
+- `FixParser` is five `Parse` overloads — string, span, `TextReader`, `Stream`, `byte[]` — and
+  every one of them returns fields. **Nothing on it produces a message.**
+- The package's own README says, at line 107, "**`FixParser` is the main parser**". The type
+  documented as the main parser is the one that cannot parse a FIX message.
+- Message work is spread over three surfaces: `FixMessages` (static: `Parse`, `TryParse`,
+  `ReadMessages`, `Build`, `TryBuild`), `FixMessage` (instance: `Validate()`,
+  `Validate(validator)`), and `FixValidator` (`Standard`, `Compiled`, `Load`).
+
+**And the README's opening example is the long way round**, which is the evidence I would put in
+front of anyone who thinks this is a matter of taste:
+
+```csharp
+FixField[] fields  = FixParser.Parse(wire);
+FixMessage message = FixMessages.Build(wire, fields);
+```
+
+Two calls, two classes, and `wire` passed twice — while `FixMessages.Parse(wire)` exists and does it
+in one. The first thing the documentation teaches is the route that the shorter method makes
+unnecessary.
+
+**Where I disagree with the obvious fix, and where I agree with Igor.** The defect is not that there
+are two classes: the two layers are the package's design, stated in `CLAUDE.md` — the wire read into
+typed fields, the messages built over them — and both are first-class. The defect is that **the
+names do not name the layers**. `FixParser` claims the whole job and delivers half of it, and
+`FixMessages` reads as a collection rather than an entry point.
+
+Two roads, and they exclude each other:
+
+1. **Merge, as Igor proposes.** `FixParser.Parse(wire)` returns a message; `FixParser.ParseFields(wire)`
+   returns fields. One type to find, and the type named parser parses.
+2. **Rename the field entry** to `FixFields.Parse`, leaving `FixMessages` alone. Symmetric pair,
+   nothing claims to be the main parser, and the README's sentence at 107 disappears because there
+   is no main parser to name.
+
+**I would take the merge, against my own first instinct.** The layer is not the choice a newcomer
+makes — they want a message — and making them pick a *class* before they know there are layers puts
+the choice in the most expensive place there is. A method name is a cheaper place for it than a type
+name. The merge also removes the two-step example by construction. Its price: one public type
+disappears, which is a break; about seventeen methods land on one class; and the cheap field path
+becomes one method quieter, mitigated by `ParseFields` sitting beside `Parse`.
+
+**What I would not move: `Validate` stays on the message.** `message.Validate()` is an operation on
+a thing you are holding, and `FixMessages.Validate(message)` would be worse. The inconsistency here
+comes from `Parse` being on a type that does not say so, not from `Validate` being where it is.
+
+**One question I cannot answer from reading, and it decides how much of `FixMessages` survives a
+merge.** Why does the README lead with `Build(wire, fields)` when `Parse(wire)` exists? If `Build`
+is for fields that came from somewhere else — a log reader, a consumer's own source — it earns its
+place and stays. If it is only the long way round, it is one more method that exists because the
+example needed it.
+
+**This is public surface, so it is Igor's to decide and not the architect's.**
+
+**Answer:** —
