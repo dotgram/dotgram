@@ -328,6 +328,31 @@ public sealed class GramLanguageServiceTests
 		Assert.Contains(("wordboundary", GramSyntaxKind.Keyword), classified);
 	}
 
+	/// <summary>A `context` and a `state` declare a C# type, and it is classified as one.</summary>
+	/// <remarks>
+	/// Five kinds of declaration, and the classifier had cases for three: the two that name a
+	/// type and nothing else were the two left out, so the type after `state :` was the only
+	/// C# in a grammar with no Roslyn colour on it.
+	/// </remarks>
+	[Fact]
+	public void ClassifiesTheTypeOfAContextAndAState()
+	{
+		const string source =
+			"context : @System.Text.StringBuilder\n" +
+			"state : @int\n" +
+			"Start = 'a'\n" +
+			"parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+
+		var classified = document.Classifications
+			.Select(span => (source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Contains(("int", GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("StringBuilder", GramSyntaxKind.Identifier), classified);
+	}
+
 	[Fact]
 	public void ClassifiesStreamAndBytesAsKeywords()
 	{

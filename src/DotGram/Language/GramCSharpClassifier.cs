@@ -36,6 +36,17 @@ static class GramCSharpClassifier
 				Classify(publication.ResultType, text, result);
 				break;
 
+			// A `context : @T` or `state : @T` declares a type like a rule does, and it is C# for
+			// the same reason. They were not here: five kinds of declaration, three cases, and the
+			// two that name a type and nothing else were the two left out.
+			case Decl.Context(var context):
+				Classify(context, text, result);
+				break;
+
+			case Decl.State(var state):
+				Classify(state, text, result);
+				break;
+
 			case Decl.Namespace(_, _, _, var declarations):
 				foreach (var nested in declarations)
 					Classify(nested, text, result);
