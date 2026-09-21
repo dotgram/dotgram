@@ -1,0 +1,13 @@
+Does what a failing turn discards come back the same?
+
+shape                                          n      calls  begins  rollbacks  rewritten   same    log writes  deepest Log   differ   shared prefix
+addresses, an unclosed quoted string (refuses)  16      1,723       0         73          0      0            0            0   none                         -
+addresses, an unclosed quoted string (refuses)  64     25,195       0        217          0      0            0            0   none                         -
+addresses, a valid list (accepts)               16      1,532     160        244          0      0          608          608   none                         -
+addresses, a valid list (accepts)               64      6,284     640      1,012          0      0        2,432        2,432   none                         -
+media type, parameters then unclosed string (refuses)  16      4,511     403         44         37      0        1,939           98   37 (first at position 0)     57.4% of 1,926
+media type, parameters then unclosed string (refuses)  64     60,719   4,627        140        133      0       22,867          338   133 (first at position 0)    72.7% of 22,854
+language tag, variants then a bare hyphen (refuses)  16      1,564     170        265         16      0          935           95   16 (first at position 0)     52.2% of 920
+language tag, variants then a bare hyphen (refuses)  64     19,972   2,210      2,545         64      0       11,375          335   64 (first at position 0)     71.0% of 11,360
+structured field, items then an unclosed ( (refuses)  16      5,266   1,765         42         37      0        6,354          288   37 (first at position 0)     83.9% of 6,336
+structured field, items then an unclosed ( (refuses)  64     92,602  30,925        186        181      0      111,330        1,152   181 (first at position 0)    91.5% of 111,312
