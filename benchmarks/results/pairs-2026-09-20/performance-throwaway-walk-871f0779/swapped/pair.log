@@ -1,0 +1,982 @@
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+=== run 1 of 10, 14:22:12
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   893318.8 ns before   289637.5 ns after   291925.0 ns  before/scriptdom 0.32x  after/scriptdom 0.33x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6706.1 ns before    17570.7 ns after    17207.6 ns  before/hand 2.62x  after/hand 2.57x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6692.9 ns before    17788.0 ns after    17503.8 ns  before/hand 2.66x  after/hand 2.62x
+sql/select20.scan      control      375.0 ns before      376.1 ns after      379.6 ns  before/control 1.00x  after/control 1.01x
+tsql/select20.scan     control      375.5 ns before      376.7 ns after      375.6 ns  before/control 1.00x  after/control 1.00x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6787.3 ns before    18028.9 ns after    18086.4 ns  before/hand 2.66x  after/hand 2.66x
+sql/literal            hand       55.1 ns before      187.4 ns after      142.0 ns  before/hand 3.40x  after/hand 2.58x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   488909.0 ns before  1187748.4 ns after  1249928.5 ns  before/hand 2.43x  after/hand 2.56x
+sql/select1            hand      643.7 ns before     1611.3 ns after     1479.7 ns  before/hand 2.50x  after/hand 2.30x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6831.0 ns before    17997.9 ns after    17573.1 ns  before/hand 2.63x  after/hand 2.57x
+
+# Paired stand, 2026-09-21 14:23
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 893318.8 | 289637.5 | 0.32x | 291925.0 | 0.33x | +0.8% | 424449 | 424449 | 1,539 % |  |
+| sql/select20.at | generated | hand | 6706.1 | 17570.7 | 2.62x | 17207.6 | 2.57x | -2.1% | 21416 | 21416 | 14 % |  |
+| sql/select20.window | generated | hand | 6692.9 | 17788.0 | 2.66x | 17503.8 | 2.62x | -1.6% | 21416 | 21416 | 10 % |  |
+| sql/select20.scan | generated | control | 375.0 | 376.1 | 1.00x | 379.6 | 1.01x | +0.9% | 0 | 0 | 5 % |  |
+| tsql/select20.scan | generated | control | 375.5 | 376.7 | 1.00x | 375.6 | 1.00x | -0.3% | 0 | 0 | 12 % |  |
+| sql/select20.bool | generated | hand | 6787.3 | 18028.9 | 2.66x | 18086.4 | 2.66x | +0.3% | 21448 | 21392 | 7 % |  |
+| sql/literal | generated | hand | 55.1 | 187.4 | 3.40x | 142.0 | 2.58x | -24.2% | 160 | 160 | 13 % |  |
+| sql/conditions1000 | generated | hand | 488909.0 | 1187748.4 | 2.43x | 1249928.5 | 2.56x | +5.2% | 1616203 | 1616203 | 6 % |  |
+| sql/select1 | generated | hand | 643.7 | 1611.3 | 2.50x | 1479.7 | 2.30x | -8.2% | 1688 | 1688 | 5 % |  |
+| sql/select20 | generated | hand | 6831.0 | 17997.9 | 2.63x | 17573.1 | 2.57x | -2.4% | 21448 | 21448 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-1
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1224743.8 ns before   301043.8 ns after   312412.5 ns  before/scriptdom 0.25x  after/scriptdom 0.26x
+sql/select20.at        hand     6730.8 ns before    17653.4 ns after    17475.0 ns  before/hand 2.62x  after/hand 2.60x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6732.9 ns before    18152.5 ns after    17793.4 ns  before/hand 2.70x  after/hand 2.64x
+sql/select20.scan      control      377.2 ns before      380.6 ns after      379.0 ns  before/control 1.01x  after/control 1.00x
+tsql/select20.scan     control      379.7 ns before      381.9 ns after      379.5 ns  before/control 1.01x  after/control 1.00x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6780.4 ns before    18006.8 ns after    18046.2 ns  before/hand 2.66x  after/hand 2.66x
+sql/literal            hand       54.7 ns before      166.4 ns after      196.6 ns  before/hand 3.04x  after/hand 3.59x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   498501.2 ns before  1203622.7 ns after  1213718.4 ns  before/hand 2.41x  after/hand 2.43x
+sql/select1            hand      645.7 ns before     1599.4 ns after     1542.9 ns  before/hand 2.48x  after/hand 2.39x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6793.2 ns before    17936.2 ns after    17978.1 ns  before/hand 2.64x  after/hand 2.65x
+
+# Paired stand, 2026-09-21 14:24
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.0 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1224743.8 | 301043.8 | 0.25x | 312412.5 | 0.26x | +3.8% | 424449 | 424449 | 1,093 % |  |
+| sql/select20.at | generated | hand | 6730.8 | 17653.4 | 2.62x | 17475.0 | 2.60x | -1.0% | 21416 | 21416 | 3 % |  |
+| sql/select20.window | generated | hand | 6732.9 | 18152.5 | 2.70x | 17793.4 | 2.64x | -2.0% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 377.2 | 380.6 | 1.01x | 379.0 | 1.00x | -0.4% | 0 | 0 | 4 % |  |
+| tsql/select20.scan | generated | control | 379.7 | 381.9 | 1.01x | 379.5 | 1.00x | -0.6% | 0 | 0 | 1 % |  |
+| sql/select20.bool | generated | hand | 6780.4 | 18006.8 | 2.66x | 18046.2 | 2.66x | +0.2% | 21448 | 21392 | 2 % |  |
+| sql/literal | generated | hand | 54.7 | 166.4 | 3.04x | 196.6 | 3.59x | +18.1% | 160 | 160 | 6 % |  |
+| sql/conditions1000 | generated | hand | 498501.2 | 1203622.7 | 2.41x | 1213718.4 | 2.43x | +0.8% | 1616203 | 1616203 | 5 % |  |
+| sql/select1 | generated | hand | 645.7 | 1599.4 | 2.48x | 1542.9 | 2.39x | -3.5% | 1688 | 1688 | 3 % |  |
+| sql/select20 | generated | hand | 6793.2 | 17936.2 | 2.64x | 17978.1 | 2.65x | +0.2% | 21448 | 21448 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-1
+=== run 2 of 10, 14:24:28
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   856000.0 ns before   299912.5 ns after   296356.2 ns  before/scriptdom 0.35x  after/scriptdom 0.35x
+sql/select20.at        hand     6778.4 ns before    17573.8 ns after    17606.7 ns  before/hand 2.59x  after/hand 2.60x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6767.3 ns before    18026.4 ns after    18041.0 ns  before/hand 2.66x  after/hand 2.67x
+sql/select20.scan      control      377.1 ns before      373.6 ns after      374.8 ns  before/control 0.99x  after/control 0.99x
+tsql/select20.scan     control      379.9 ns before      378.4 ns after      378.0 ns  before/control 1.00x  after/control 1.00x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6690.8 ns before    18064.7 ns after    18050.4 ns  before/hand 2.70x  after/hand 2.70x
+sql/literal            hand       54.7 ns before      192.5 ns after      138.8 ns  before/hand 3.52x  after/hand 2.54x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   491312.1 ns before  1216165.6 ns after  1200811.3 ns  before/hand 2.48x  after/hand 2.44x
+sql/select1            hand      648.3 ns before     1541.5 ns after     1536.4 ns  before/hand 2.38x  after/hand 2.37x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6704.8 ns before    18075.5 ns after    18052.8 ns  before/hand 2.70x  after/hand 2.69x
+
+# Paired stand, 2026-09-21 14:25
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 856000.0 | 299912.5 | 0.35x | 296356.2 | 0.35x | -1.2% | 424449 | 424449 | 13 % |  |
+| sql/select20.at | generated | hand | 6778.4 | 17573.8 | 2.59x | 17606.7 | 2.60x | +0.2% | 21416 | 21416 | 2 % |  |
+| sql/select20.window | generated | hand | 6767.3 | 18026.4 | 2.66x | 18041.0 | 2.67x | +0.1% | 21416 | 21416 | 4 % |  |
+| sql/select20.scan | generated | control | 377.1 | 373.6 | 0.99x | 374.8 | 0.99x | +0.3% | 0 | 0 | 10 % |  |
+| tsql/select20.scan | generated | control | 379.9 | 378.4 | 1.00x | 378.0 | 1.00x | -0.1% | 0 | 0 | 2 % |  |
+| sql/select20.bool | generated | hand | 6690.8 | 18064.7 | 2.70x | 18050.4 | 2.70x | -0.1% | 21448 | 21392 | 2 % |  |
+| sql/literal | generated | hand | 54.7 | 192.5 | 3.52x | 138.8 | 2.54x | -27.9% | 160 | 160 | 9 % |  |
+| sql/conditions1000 | generated | hand | 491312.1 | 1216165.6 | 2.48x | 1200811.3 | 2.44x | -1.3% | 1616160 | 1616203 | 1 % |  |
+| sql/select1 | generated | hand | 648.3 | 1541.5 | 2.38x | 1536.4 | 2.37x | -0.3% | 1688 | 1688 | 3 % |  |
+| sql/select20 | generated | hand | 6704.8 | 18075.5 | 2.70x | 18052.8 | 2.69x | -0.1% | 21448 | 21448 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-2
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   853443.8 ns before   306893.8 ns after   300937.5 ns  before/scriptdom 0.36x  after/scriptdom 0.35x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6717.7 ns before    17718.6 ns after    17546.5 ns  before/hand 2.64x  after/hand 2.61x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6854.6 ns before    18090.9 ns after    17997.1 ns  before/hand 2.64x  after/hand 2.63x
+sql/select20.scan      control      376.4 ns before      384.6 ns after      380.2 ns  before/control 1.02x  after/control 1.01x
+tsql/select20.scan     control      388.8 ns before      397.4 ns after      380.1 ns  before/control 1.02x  after/control 0.98x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6799.4 ns before    18063.9 ns after    18080.2 ns  before/hand 2.66x  after/hand 2.66x
+sql/literal            hand       54.3 ns before      197.1 ns after      184.6 ns  before/hand 3.63x  after/hand 3.40x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   484815.2 ns before  1186650.0 ns after  1180343.0 ns  before/hand 2.45x  after/hand 2.43x
+sql/select1            hand      655.3 ns before     1546.5 ns after     1524.9 ns  before/hand 2.36x  after/hand 2.33x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6788.3 ns before    18023.1 ns after    18185.0 ns  before/hand 2.66x  after/hand 2.68x
+
+# Paired stand, 2026-09-21 14:26
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 853443.8 | 306893.8 | 0.36x | 300937.5 | 0.35x | -1.9% | 424449 | 424449 | 23 % |  |
+| sql/select20.at | generated | hand | 6717.7 | 17718.6 | 2.64x | 17546.5 | 2.61x | -1.0% | 21416 | 21416 | 2 % |  |
+| sql/select20.window | generated | hand | 6854.6 | 18090.9 | 2.64x | 17997.1 | 2.63x | -0.5% | 21416 | 21416 | 10 % |  |
+| sql/select20.scan | generated | control | 376.4 | 384.6 | 1.02x | 380.2 | 1.01x | -1.1% | 0 | 0 | 15 % |  |
+| tsql/select20.scan | generated | control | 388.8 | 397.4 | 1.02x | 380.1 | 0.98x | -4.3% | 0 | 0 | 3 % |  |
+| sql/select20.bool | generated | hand | 6799.4 | 18063.9 | 2.66x | 18080.2 | 2.66x | +0.1% | 21448 | 21392 | 3 % |  |
+| sql/literal | generated | hand | 54.3 | 197.1 | 3.63x | 184.6 | 3.40x | -6.3% | 160 | 160 | 1 % |  |
+| sql/conditions1000 | generated | hand | 484815.2 | 1186650.0 | 2.45x | 1180343.0 | 2.43x | -0.5% | 1616203 | 1616203 | 2 % |  |
+| sql/select1 | generated | hand | 655.3 | 1546.5 | 2.36x | 1524.9 | 2.33x | -1.4% | 1688 | 1688 | 4 % |  |
+| sql/select20 | generated | hand | 6788.3 | 18023.1 | 2.66x | 18185.0 | 2.68x | +0.9% | 21448 | 21448 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-2
+=== run 3 of 10, 14:26:43
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1511937.5 ns before   396893.8 ns after   323768.8 ns  before/scriptdom 0.26x  after/scriptdom 0.21x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6775.4 ns before    17617.3 ns after    17848.4 ns  before/hand 2.60x  after/hand 2.63x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6791.6 ns before    17979.5 ns after    18129.3 ns  before/hand 2.65x  after/hand 2.67x
+sql/select20.scan      control      378.6 ns before      381.5 ns after      374.6 ns  before/control 1.01x  after/control 0.99x
+tsql/select20.scan     control      373.8 ns before      378.7 ns after      374.7 ns  before/control 1.01x  after/control 1.00x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6727.3 ns before    18001.6 ns after    18064.0 ns  before/hand 2.68x  after/hand 2.69x
+  sql/literal: 1 round(s) redone after a gen1/gen2 collection
+sql/literal            hand       52.1 ns before      183.1 ns after      139.8 ns  before/hand 3.52x  after/hand 2.68x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   483289.1 ns before  1203240.6 ns after  1200057.4 ns  before/hand 2.49x  after/hand 2.48x
+sql/select1            hand      632.6 ns before     1524.6 ns after     1473.9 ns  before/hand 2.41x  after/hand 2.33x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6713.7 ns before    17998.9 ns after    18141.0 ns  before/hand 2.68x  after/hand 2.70x
+
+# Paired stand, 2026-09-21 14:27
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1511937.5 | 396893.8 | 0.26x | 323768.8 | 0.21x | -18.4% | 424449 | 424449 | 939 % |  |
+| sql/select20.at | generated | hand | 6775.4 | 17617.3 | 2.60x | 17848.4 | 2.63x | +1.3% | 21416 | 21416 | 43 % |  |
+| sql/select20.window | generated | hand | 6791.6 | 17979.5 | 2.65x | 18129.3 | 2.67x | +0.8% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 378.6 | 381.5 | 1.01x | 374.6 | 0.99x | -1.8% | 0 | 0 | 30 % |  |
+| tsql/select20.scan | generated | control | 373.8 | 378.7 | 1.01x | 374.7 | 1.00x | -1.1% | 0 | 0 | 3 % |  |
+| sql/select20.bool | generated | hand | 6727.3 | 18001.6 | 2.68x | 18064.0 | 2.69x | +0.3% | 21448 | 21392 | 2 % |  |
+| sql/literal | generated | hand | 52.1 | 183.1 | 3.52x | 139.8 | 2.68x | -23.7% | 160 | 160 | 15 % |  |
+| sql/conditions1000 | generated | hand | 483289.1 | 1203240.6 | 2.49x | 1200057.4 | 2.48x | -0.3% | 1616203 | 1616203 | 3 % |  |
+| sql/select1 | generated | hand | 632.6 | 1524.6 | 2.41x | 1473.9 | 2.33x | -3.3% | 1688 | 1688 | 5 % |  |
+| sql/select20 | generated | hand | 6713.7 | 17998.9 | 2.68x | 18141.0 | 2.70x | +0.8% | 21448 | 21448 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-3
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   864893.8 ns before   303768.8 ns after   291262.5 ns  before/scriptdom 0.35x  after/scriptdom 0.34x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6782.5 ns before    17851.0 ns after    17641.7 ns  before/hand 2.63x  after/hand 2.60x
+  sql/select20.window: 4 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6846.0 ns before    18500.2 ns after    18030.7 ns  before/hand 2.70x  after/hand 2.63x
+sql/select20.scan      control      374.3 ns before      379.2 ns after      387.2 ns  before/control 1.01x  after/control 1.03x
+tsql/select20.scan     control      373.6 ns before      382.4 ns after      379.5 ns  before/control 1.02x  after/control 1.02x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6742.5 ns before    18273.2 ns after    18071.0 ns  before/hand 2.71x  after/hand 2.68x
+sql/literal            hand       54.4 ns before      194.8 ns after      196.9 ns  before/hand 3.58x  after/hand 3.62x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   482922.3 ns before  1201866.0 ns after  1188201.2 ns  before/hand 2.49x  after/hand 2.46x
+sql/select1            hand      656.1 ns before     1575.9 ns after     1592.6 ns  before/hand 2.40x  after/hand 2.43x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6764.3 ns before    18236.3 ns after    18268.0 ns  before/hand 2.70x  after/hand 2.70x
+
+# Paired stand, 2026-09-21 14:28
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.0 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 864893.8 | 303768.8 | 0.35x | 291262.5 | 0.34x | -4.1% | 424449 | 424449 | 16 % |  |
+| sql/select20.at | generated | hand | 6782.5 | 17851.0 | 2.63x | 17641.7 | 2.60x | -1.2% | 21416 | 21416 | 3 % |  |
+| sql/select20.window | generated | hand | 6846.0 | 18500.2 | 2.70x | 18030.7 | 2.63x | -2.5% | 21416 | 21441 | 6 % |  |
+| sql/select20.scan | generated | control | 374.3 | 379.2 | 1.01x | 387.2 | 1.03x | +2.1% | 0 | 0 | 3 % |  |
+| tsql/select20.scan | generated | control | 373.6 | 382.4 | 1.02x | 379.5 | 1.02x | -0.8% | 0 | 0 | 3 % |  |
+| sql/select20.bool | generated | hand | 6742.5 | 18273.2 | 2.71x | 18071.0 | 2.68x | -1.1% | 21448 | 21392 | 2 % |  |
+| sql/literal | generated | hand | 54.4 | 194.8 | 3.58x | 196.9 | 3.62x | +1.1% | 160 | 160 | 10 % |  |
+| sql/conditions1000 | generated | hand | 482922.3 | 1201866.0 | 2.49x | 1188201.2 | 2.46x | -1.1% | 1616203 | 1616160 | 2 % |  |
+| sql/select1 | generated | hand | 656.1 | 1575.9 | 2.40x | 1592.6 | 2.43x | +1.1% | 1688 | 1688 | 68 % |  |
+| sql/select20 | generated | hand | 6764.3 | 18236.3 | 2.70x | 18268.0 | 2.70x | +0.2% | 21448 | 21448 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-3
+=== run 4 of 10, 14:28:59
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 3 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   883768.8 ns before   289981.2 ns after   290906.2 ns  before/scriptdom 0.33x  after/scriptdom 0.33x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6745.1 ns before    17945.9 ns after    17504.7 ns  before/hand 2.66x  after/hand 2.60x
+  sql/select20.window: 4 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6792.7 ns before    18537.9 ns after    17870.5 ns  before/hand 2.73x  after/hand 2.63x
+sql/select20.scan      control      372.3 ns before      379.1 ns after      382.9 ns  before/control 1.02x  after/control 1.03x
+tsql/select20.scan     control      378.3 ns before      378.0 ns after      379.9 ns  before/control 1.00x  after/control 1.00x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6737.2 ns before    18392.0 ns after    17926.2 ns  before/hand 2.73x  after/hand 2.66x
+sql/literal            hand       55.7 ns before      188.3 ns after      138.2 ns  before/hand 3.38x  after/hand 2.48x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   488005.1 ns before  1209352.3 ns after  1223891.0 ns  before/hand 2.48x  after/hand 2.51x
+sql/select1            hand      656.2 ns before     1576.8 ns after     1512.5 ns  before/hand 2.40x  after/hand 2.30x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6776.0 ns before    18317.4 ns after    17895.3 ns  before/hand 2.70x  after/hand 2.64x
+
+# Paired stand, 2026-09-21 14:30
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.0 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 883768.8 | 289981.2 | 0.33x | 290906.2 | 0.33x | +0.3% | 424449 | 424449 | 1,356 % |  |
+| sql/select20.at | generated | hand | 6745.1 | 17945.9 | 2.66x | 17504.7 | 2.60x | -2.5% | 21416 | 21416 | 3 % |  |
+| sql/select20.window | generated | hand | 6792.7 | 18537.9 | 2.73x | 17870.5 | 2.63x | -3.6% | 21416 | 21441 | 19 % |  |
+| sql/select20.scan | generated | control | 372.3 | 379.1 | 1.02x | 382.9 | 1.03x | +1.0% | 0 | 0 | 12 % |  |
+| tsql/select20.scan | generated | control | 378.3 | 378.0 | 1.00x | 379.9 | 1.00x | +0.5% | 0 | 0 | 3 % |  |
+| sql/select20.bool | generated | hand | 6737.2 | 18392.0 | 2.73x | 17926.2 | 2.66x | -2.5% | 21448 | 21392 | 11 % |  |
+| sql/literal | generated | hand | 55.7 | 188.3 | 3.38x | 138.2 | 2.48x | -26.6% | 160 | 160 | 16 % |  |
+| sql/conditions1000 | generated | hand | 488005.1 | 1209352.3 | 2.48x | 1223891.0 | 2.51x | +1.2% | 1616203 | 1616203 | 3 % |  |
+| sql/select1 | generated | hand | 656.2 | 1576.8 | 2.40x | 1512.5 | 2.30x | -4.1% | 1688 | 1688 | 2 % |  |
+| sql/select20 | generated | hand | 6776.0 | 18317.4 | 2.70x | 17895.3 | 2.64x | -2.3% | 21448 | 21448 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-4
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   895306.2 ns before   297750.0 ns after   305200.0 ns  before/scriptdom 0.33x  after/scriptdom 0.34x
+sql/select20.at        hand     6853.2 ns before    17517.6 ns after    17532.4 ns  before/hand 2.56x  after/hand 2.56x
+  sql/select20.window: 4 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     7345.9 ns before    17714.1 ns after    17805.0 ns  before/hand 2.41x  after/hand 2.42x
+sql/select20.scan      control      432.4 ns before      372.2 ns after      372.7 ns  before/control 0.86x  after/control 0.86x
+tsql/select20.scan     control      374.5 ns before      373.0 ns after      371.9 ns  before/control 1.00x  after/control 0.99x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6911.7 ns before    17662.5 ns after    17996.8 ns  before/hand 2.56x  after/hand 2.60x
+sql/literal            hand       55.2 ns before      198.4 ns after      181.9 ns  before/hand 3.60x  after/hand 3.30x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   484080.5 ns before  1189641.0 ns after  1186801.2 ns  before/hand 2.46x  after/hand 2.45x
+sql/select1            hand      644.4 ns before     1500.8 ns after     1502.1 ns  before/hand 2.33x  after/hand 2.33x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6875.7 ns before    17693.8 ns after    17847.6 ns  before/hand 2.57x  after/hand 2.60x
+
+# Paired stand, 2026-09-21 14:31
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.8 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 895306.2 | 297750.0 | 0.33x | 305200.0 | 0.34x | +2.5% | 424449 | 424449 | 1,538 % |  |
+| sql/select20.at | generated | hand | 6853.2 | 17517.6 | 2.56x | 17532.4 | 2.56x | +0.1% | 21416 | 21416 | 9 % |  |
+| sql/select20.window | generated | hand | 7345.9 | 17714.1 | 2.41x | 17805.0 | 2.42x | +0.5% | 21416 | 21416 | 4 % |  |
+| sql/select20.scan | generated | control | 432.4 | 372.2 | 0.86x | 372.7 | 0.86x | +0.2% | 0 | 0 | 18 % |  |
+| tsql/select20.scan | generated | control | 374.5 | 373.0 | 1.00x | 371.9 | 0.99x | -0.3% | 0 | 0 | 1 % |  |
+| sql/select20.bool | generated | hand | 6911.7 | 17662.5 | 2.56x | 17996.8 | 2.60x | +1.9% | 21448 | 21392 | 15 % |  |
+| sql/literal | generated | hand | 55.2 | 198.4 | 3.60x | 181.9 | 3.30x | -8.3% | 160 | 160 | 17 % |  |
+| sql/conditions1000 | generated | hand | 484080.5 | 1189641.0 | 2.46x | 1186801.2 | 2.45x | -0.2% | 1616179 | 1616203 | 43 % |  |
+| sql/select1 | generated | hand | 644.4 | 1500.8 | 2.33x | 1502.1 | 2.33x | +0.1% | 1688 | 1688 | 2 % |  |
+| sql/select20 | generated | hand | 6875.7 | 17693.8 | 2.57x | 17847.6 | 2.60x | +0.9% | 21448 | 21448 | 5 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-4
+=== run 5 of 10, 14:31:13
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1520681.2 ns before   309143.8 ns after   300875.0 ns  before/scriptdom 0.20x  after/scriptdom 0.20x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6798.9 ns before    17472.8 ns after    17391.7 ns  before/hand 2.57x  after/hand 2.56x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6789.2 ns before    17733.3 ns after    17729.2 ns  before/hand 2.61x  after/hand 2.61x
+sql/select20.scan      control      372.9 ns before      376.9 ns after      376.0 ns  before/control 1.01x  after/control 1.01x
+tsql/select20.scan     control      382.9 ns before      371.1 ns after      372.7 ns  before/control 0.97x  after/control 0.97x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6847.9 ns before    17929.6 ns after    17824.9 ns  before/hand 2.62x  after/hand 2.60x
+sql/literal            hand       58.9 ns before      195.8 ns after      134.6 ns  before/hand 3.32x  after/hand 2.28x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   485592.2 ns before  1192411.7 ns after  1201418.0 ns  before/hand 2.46x  after/hand 2.47x
+sql/select1            hand      644.7 ns before     1630.4 ns after     1509.6 ns  before/hand 2.53x  after/hand 2.34x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6825.0 ns before    18007.8 ns after    17901.6 ns  before/hand 2.64x  after/hand 2.62x
+
+# Paired stand, 2026-09-21 14:32
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1520681.2 | 309143.8 | 0.20x | 300875.0 | 0.20x | -2.7% | 424449 | 424449 | 898 % |  |
+| sql/select20.at | generated | hand | 6798.9 | 17472.8 | 2.57x | 17391.7 | 2.56x | -0.5% | 21416 | 21416 | 2 % |  |
+| sql/select20.window | generated | hand | 6789.2 | 17733.3 | 2.61x | 17729.2 | 2.61x | 0.0% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 372.9 | 376.9 | 1.01x | 376.0 | 1.01x | -0.2% | 0 | 0 | 2 % |  |
+| tsql/select20.scan | generated | control | 382.9 | 371.1 | 0.97x | 372.7 | 0.97x | +0.4% | 0 | 0 | 2 % |  |
+| sql/select20.bool | generated | hand | 6847.9 | 17929.6 | 2.62x | 17824.9 | 2.60x | -0.6% | 21448 | 21392 | 6 % |  |
+| sql/literal | generated | hand | 58.9 | 195.8 | 3.32x | 134.6 | 2.28x | -31.3% | 160 | 160 | 5 % |  |
+| sql/conditions1000 | generated | hand | 485592.2 | 1192411.7 | 2.46x | 1201418.0 | 2.47x | +0.8% | 1616203 | 1616160 | 2 % |  |
+| sql/select1 | generated | hand | 644.7 | 1630.4 | 2.53x | 1509.6 | 2.34x | -7.4% | 1688 | 1688 | 2 % |  |
+| sql/select20 | generated | hand | 6825.0 | 18007.8 | 2.64x | 17901.6 | 2.62x | -0.6% | 21448 | 21448 | 5 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-5
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 3 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   892025.0 ns before   285868.8 ns after   291312.5 ns  before/scriptdom 0.32x  after/scriptdom 0.33x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6851.6 ns before    17523.8 ns after    17821.4 ns  before/hand 2.56x  after/hand 2.60x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6845.6 ns before    17919.9 ns after    18309.6 ns  before/hand 2.62x  after/hand 2.67x
+sql/select20.scan      control      374.4 ns before      379.0 ns after      379.1 ns  before/control 1.01x  after/control 1.01x
+tsql/select20.scan     control      373.0 ns before      378.1 ns after      378.3 ns  before/control 1.01x  after/control 1.01x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6818.9 ns before    17923.9 ns after    18394.5 ns  before/hand 2.63x  after/hand 2.70x
+sql/literal            hand       59.0 ns before      202.2 ns after      179.4 ns  before/hand 3.43x  after/hand 3.04x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   487002.0 ns before  1177174.2 ns after  1209154.3 ns  before/hand 2.42x  after/hand 2.48x
+sql/select1            hand      650.7 ns before     1539.9 ns after     1595.0 ns  before/hand 2.37x  after/hand 2.45x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6775.3 ns before    18062.3 ns after    18575.7 ns  before/hand 2.67x  after/hand 2.74x
+
+# Paired stand, 2026-09-21 14:33
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.0 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 892025.0 | 285868.8 | 0.32x | 291312.5 | 0.33x | +1.9% | 424449 | 424449 | 1,261 % |  |
+| sql/select20.at | generated | hand | 6851.6 | 17523.8 | 2.56x | 17821.4 | 2.60x | +1.7% | 21416 | 21416 | 16 % |  |
+| sql/select20.window | generated | hand | 6845.6 | 17919.9 | 2.62x | 18309.6 | 2.67x | +2.2% | 21416 | 21416 | 4 % |  |
+| sql/select20.scan | generated | control | 374.4 | 379.0 | 1.01x | 379.1 | 1.01x | 0.0% | 0 | 0 | 2 % |  |
+| tsql/select20.scan | generated | control | 373.0 | 378.1 | 1.01x | 378.3 | 1.01x | +0.1% | 0 | 0 | 12 % |  |
+| sql/select20.bool | generated | hand | 6818.9 | 17923.9 | 2.63x | 18394.5 | 2.70x | +2.6% | 21448 | 21392 | 20 % |  |
+| sql/literal | generated | hand | 59.0 | 202.2 | 3.43x | 179.4 | 3.04x | -11.3% | 160 | 160 | 4 % |  |
+| sql/conditions1000 | generated | hand | 487002.0 | 1177174.2 | 2.42x | 1209154.3 | 2.48x | +2.7% | 1616203 | 1616203 | 8 % |  |
+| sql/select1 | generated | hand | 650.7 | 1539.9 | 2.37x | 1595.0 | 2.45x | +3.6% | 1688 | 1688 | 8 % |  |
+| sql/select20 | generated | hand | 6775.3 | 18062.3 | 2.67x | 18575.7 | 2.74x | +2.8% | 21448 | 21448 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-5
+=== run 6 of 10, 14:33:28
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1335275.0 ns before   472150.0 ns after   321537.5 ns  before/scriptdom 0.35x  after/scriptdom 0.24x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6853.4 ns before    17613.6 ns after    17672.4 ns  before/hand 2.57x  after/hand 2.58x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6741.2 ns before    17806.2 ns after    18029.4 ns  before/hand 2.64x  after/hand 2.67x
+sql/select20.scan      control      376.7 ns before      384.6 ns after      380.0 ns  before/control 1.02x  after/control 1.01x
+tsql/select20.scan     control      382.6 ns before      378.8 ns after      376.3 ns  before/control 0.99x  after/control 0.98x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6758.3 ns before    17995.2 ns after    18303.3 ns  before/hand 2.66x  after/hand 2.71x
+sql/literal            hand       55.0 ns before      185.2 ns after      145.7 ns  before/hand 3.37x  after/hand 2.65x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   482399.6 ns before  1192881.2 ns after  1212978.9 ns  before/hand 2.47x  after/hand 2.51x
+sql/select1            hand      655.1 ns before     1520.0 ns after     1566.7 ns  before/hand 2.32x  after/hand 2.39x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6745.5 ns before    17950.9 ns after    18919.8 ns  before/hand 2.66x  after/hand 2.80x
+
+# Paired stand, 2026-09-21 14:34
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.0 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1335275.0 | 472150.0 | 0.35x | 321537.5 | 0.24x | -31.9% | 424449 | 424449 | 1,054 % |  |
+| sql/select20.at | generated | hand | 6853.4 | 17613.6 | 2.57x | 17672.4 | 2.58x | +0.3% | 21416 | 21416 | 13 % |  |
+| sql/select20.window | generated | hand | 6741.2 | 17806.2 | 2.64x | 18029.4 | 2.67x | +1.3% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 376.7 | 384.6 | 1.02x | 380.0 | 1.01x | -1.2% | 0 | 0 | 2 % |  |
+| tsql/select20.scan | generated | control | 382.6 | 378.8 | 0.99x | 376.3 | 0.98x | -0.7% | 0 | 0 | 3 % |  |
+| sql/select20.bool | generated | hand | 6758.3 | 17995.2 | 2.66x | 18303.3 | 2.71x | +1.7% | 21448 | 21392 | 3 % |  |
+| sql/literal | generated | hand | 55.0 | 185.2 | 3.37x | 145.7 | 2.65x | -21.3% | 160 | 160 | 6 % |  |
+| sql/conditions1000 | generated | hand | 482399.6 | 1192881.2 | 2.47x | 1212978.9 | 2.51x | +1.7% | 1616203 | 1616203 | 6 % |  |
+| sql/select1 | generated | hand | 655.1 | 1520.0 | 2.32x | 1566.7 | 2.39x | +3.1% | 1688 | 1688 | 2 % |  |
+| sql/select20 | generated | hand | 6745.5 | 17950.9 | 2.66x | 18919.8 | 2.80x | +5.4% | 21448 | 21448 | 19 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-6
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 3 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   885325.0 ns before   293956.2 ns after   287912.5 ns  before/scriptdom 0.33x  after/scriptdom 0.33x
+  sql/select20.at: 30 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6683.0 ns before    17353.2 ns after    17453.8 ns  before/hand 2.60x  after/hand 2.61x
+  sql/select20.window: 144 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6690.4 ns before    17792.2 ns after    17894.1 ns  before/hand 2.66x  after/hand 2.67x
+sql/select20.scan      control      374.7 ns before      378.2 ns after      393.3 ns  before/control 1.01x  after/control 1.05x
+tsql/select20.scan     control      375.0 ns before      377.7 ns after      380.1 ns  before/control 1.01x  after/control 1.01x
+  sql/select20.bool: 144 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6718.6 ns before    17713.8 ns after    17928.5 ns  before/hand 2.64x  after/hand 2.67x
+sql/literal            hand       54.2 ns before      193.6 ns after      180.2 ns  before/hand 3.57x  after/hand 3.32x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   478088.7 ns before  1170945.7 ns after  1205754.7 ns  before/hand 2.45x  after/hand 2.52x
+sql/select1            hand      646.8 ns before     1508.0 ns after     1537.2 ns  before/hand 2.33x  after/hand 2.38x
+  sql/select20: 5 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6755.2 ns before    17703.3 ns after    17943.4 ns  before/hand 2.62x  after/hand 2.66x
+
+# Paired stand, 2026-09-21 14:36
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 885325.0 | 293956.2 | 0.33x | 287912.5 | 0.33x | -2.1% | 424449 | 424449 | 1,536 % |  |
+| sql/select20.at | generated | hand | 6683.0 | 17353.2 | 2.60x | 17453.8 | 2.61x | +0.6% | 21416 | 21416 | 34 % |  |
+| sql/select20.window | generated | hand | 6690.4 | 17792.2 | 2.66x | 17894.1 | 2.67x | +0.6% | 21416 | 21416 | 4 % |  |
+| sql/select20.scan | generated | control | 374.7 | 378.2 | 1.01x | 393.3 | 1.05x | +4.0% | 0 | 0 | 13 % |  |
+| tsql/select20.scan | generated | control | 375.0 | 377.7 | 1.01x | 380.1 | 1.01x | +0.6% | 0 | 0 | 5 % |  |
+| sql/select20.bool | generated | hand | 6718.6 | 17713.8 | 2.64x | 17928.5 | 2.67x | +1.2% | 21448 | 21392 | 2 % |  |
+| sql/literal | generated | hand | 54.2 | 193.6 | 3.57x | 180.2 | 3.32x | -6.9% | 160 | 160 | 3 % |  |
+| sql/conditions1000 | generated | hand | 478088.7 | 1170945.7 | 2.45x | 1205754.7 | 2.52x | +3.0% | 1616160 | 1616203 | 2 % |  |
+| sql/select1 | generated | hand | 646.8 | 1508.0 | 2.33x | 1537.2 | 2.38x | +1.9% | 1688 | 1688 | 23 % |  |
+| sql/select20 | generated | hand | 6755.2 | 17703.3 | 2.62x | 17943.4 | 2.66x | +1.4% | 21448 | 21448 | 1 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-6
+=== run 7 of 10, 14:36:17
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 3 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1217656.2 ns before   300775.0 ns after   307881.2 ns  before/scriptdom 0.25x  after/scriptdom 0.25x
+  sql/select20.at: 30 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6671.2 ns before    17403.1 ns after    17579.4 ns  before/hand 2.61x  after/hand 2.64x
+  sql/select20.window: 144 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6729.3 ns before    18185.3 ns after    18150.2 ns  before/hand 2.70x  after/hand 2.70x
+sql/select20.scan      control      379.9 ns before      384.4 ns after      384.8 ns  before/control 1.01x  after/control 1.01x
+tsql/select20.scan     control      382.0 ns before      394.4 ns after      382.3 ns  before/control 1.03x  after/control 1.00x
+  sql/select20.bool: 144 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6709.7 ns before    17827.6 ns after    17945.0 ns  before/hand 2.66x  after/hand 2.67x
+sql/literal            hand       54.4 ns before      183.4 ns after      147.4 ns  before/hand 3.37x  after/hand 2.71x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   488709.8 ns before  1204372.3 ns after  1194597.3 ns  before/hand 2.46x  after/hand 2.44x
+sql/select1            hand      675.6 ns before     1558.9 ns after     1498.9 ns  before/hand 2.31x  after/hand 2.22x
+  sql/select20: 4 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6700.4 ns before    17829.3 ns after    17934.8 ns  before/hand 2.66x  after/hand 2.68x
+
+# Paired stand, 2026-09-21 14:38
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1217656.2 | 300775.0 | 0.25x | 307881.2 | 0.25x | +2.4% | 424449 | 424449 | 846 % |  |
+| sql/select20.at | generated | hand | 6671.2 | 17403.1 | 2.61x | 17579.4 | 2.64x | +1.0% | 21416 | 21416 | 1 % |  |
+| sql/select20.window | generated | hand | 6729.3 | 18185.3 | 2.70x | 18150.2 | 2.70x | -0.2% | 21416 | 21416 | 8 % |  |
+| sql/select20.scan | generated | control | 379.9 | 384.4 | 1.01x | 384.8 | 1.01x | +0.1% | 0 | 0 | 12 % |  |
+| tsql/select20.scan | generated | control | 382.0 | 394.4 | 1.03x | 382.3 | 1.00x | -3.1% | 0 | 0 | 7 % |  |
+| sql/select20.bool | generated | hand | 6709.7 | 17827.6 | 2.66x | 17945.0 | 2.67x | +0.7% | 21448 | 21392 | 4 % |  |
+| sql/literal | generated | hand | 54.4 | 183.4 | 3.37x | 147.4 | 2.71x | -19.6% | 160 | 160 | 1 % |  |
+| sql/conditions1000 | generated | hand | 488709.8 | 1204372.3 | 2.46x | 1194597.3 | 2.44x | -0.8% | 1616203 | 1616160 | 9 % |  |
+| sql/select1 | generated | hand | 675.6 | 1558.9 | 2.31x | 1498.9 | 2.22x | -3.8% | 1688 | 1688 | 24 % |  |
+| sql/select20 | generated | hand | 6700.4 | 17829.3 | 2.66x | 17934.8 | 2.68x | +0.6% | 21448 | 21448 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-7
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   920412.5 ns before   289668.8 ns after   296075.0 ns  before/scriptdom 0.31x  after/scriptdom 0.32x
+sql/select20.at        hand     6717.8 ns before    17435.9 ns after    17555.8 ns  before/hand 2.60x  after/hand 2.61x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     7589.1 ns before    17754.5 ns after    17711.2 ns  before/hand 2.34x  after/hand 2.33x
+sql/select20.scan      control      377.8 ns before      379.4 ns after      377.2 ns  before/control 1.00x  after/control 1.00x
+tsql/select20.scan     control      373.9 ns before      377.7 ns after      376.5 ns  before/control 1.01x  after/control 1.01x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     7333.0 ns before    17774.4 ns after    18158.2 ns  before/hand 2.42x  after/hand 2.48x
+sql/literal            hand       54.6 ns before      177.9 ns after      192.6 ns  before/hand 3.26x  after/hand 3.53x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   480219.1 ns before  1167447.7 ns after  1188898.8 ns  before/hand 2.43x  after/hand 2.48x
+sql/select1            hand      667.6 ns before     1570.9 ns after     1527.6 ns  before/hand 2.35x  after/hand 2.29x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     7361.2 ns before    17886.6 ns after    17935.8 ns  before/hand 2.43x  after/hand 2.44x
+
+# Paired stand, 2026-09-21 14:39
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 920412.5 | 289668.8 | 0.31x | 296075.0 | 0.32x | +2.2% | 424449 | 424449 | 1,465 % |  |
+| sql/select20.at | generated | hand | 6717.8 | 17435.9 | 2.60x | 17555.8 | 2.61x | +0.7% | 21416 | 21416 | 21 % |  |
+| sql/select20.window | generated | hand | 7589.1 | 17754.5 | 2.34x | 17711.2 | 2.33x | -0.2% | 21416 | 21441 | 1 % |  |
+| sql/select20.scan | generated | control | 377.8 | 379.4 | 1.00x | 377.2 | 1.00x | -0.6% | 0 | 0 | 4 % |  |
+| tsql/select20.scan | generated | control | 373.9 | 377.7 | 1.01x | 376.5 | 1.01x | -0.3% | 0 | 0 | 1 % |  |
+| sql/select20.bool | generated | hand | 7333.0 | 17774.4 | 2.42x | 18158.2 | 2.48x | +2.2% | 21448 | 21392 | 1 % |  |
+| sql/literal | generated | hand | 54.6 | 177.9 | 3.26x | 192.6 | 3.53x | +8.2% | 160 | 160 | 3 % |  |
+| sql/conditions1000 | generated | hand | 480219.1 | 1167447.7 | 2.43x | 1188898.8 | 2.48x | +1.8% | 1616203 | 1616203 | 18 % |  |
+| sql/select1 | generated | hand | 667.6 | 1570.9 | 2.35x | 1527.6 | 2.29x | -2.8% | 1688 | 1688 | 25 % |  |
+| sql/select20 | generated | hand | 7361.2 | 17886.6 | 2.43x | 17935.8 | 2.44x | +0.3% | 21448 | 21448 | 1 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-7
+=== run 8 of 10, 14:39:09
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   832062.5 ns before   290150.0 ns after   287025.0 ns  before/scriptdom 0.35x  after/scriptdom 0.34x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6894.1 ns before    17330.3 ns after    17546.6 ns  before/hand 2.51x  after/hand 2.55x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6854.9 ns before    17755.3 ns after    18229.8 ns  before/hand 2.59x  after/hand 2.66x
+sql/select20.scan      control      375.4 ns before      379.4 ns after      377.2 ns  before/control 1.01x  after/control 1.00x
+tsql/select20.scan     control      374.3 ns before      382.9 ns after      379.1 ns  before/control 1.02x  after/control 1.01x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6820.0 ns before    17788.4 ns after    18023.0 ns  before/hand 2.61x  after/hand 2.64x
+sql/literal            hand       54.6 ns before      185.9 ns after      159.4 ns  before/hand 3.40x  after/hand 2.92x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   497266.8 ns before  1183480.1 ns after  1196396.1 ns  before/hand 2.38x  after/hand 2.41x
+sql/select1            hand      654.9 ns before     1523.9 ns after     1503.1 ns  before/hand 2.33x  after/hand 2.30x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6824.5 ns before    17793.2 ns after    17981.4 ns  before/hand 2.61x  after/hand 2.63x
+
+# Paired stand, 2026-09-21 14:40
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 832062.5 | 290150.0 | 0.35x | 287025.0 | 0.34x | -1.1% | 424449 | 424449 | 26 % |  |
+| sql/select20.at | generated | hand | 6894.1 | 17330.3 | 2.51x | 17546.6 | 2.55x | +1.2% | 21416 | 21416 | 3 % |  |
+| sql/select20.window | generated | hand | 6854.9 | 17755.3 | 2.59x | 18229.8 | 2.66x | +2.7% | 21416 | 21416 | 32 % |  |
+| sql/select20.scan | generated | control | 375.4 | 379.4 | 1.01x | 377.2 | 1.00x | -0.6% | 0 | 0 | 10 % |  |
+| tsql/select20.scan | generated | control | 374.3 | 382.9 | 1.02x | 379.1 | 1.01x | -1.0% | 0 | 0 | 2 % |  |
+| sql/select20.bool | generated | hand | 6820.0 | 17788.4 | 2.61x | 18023.0 | 2.64x | +1.3% | 21448 | 21392 | 2 % |  |
+| sql/literal | generated | hand | 54.6 | 185.9 | 3.40x | 159.4 | 2.92x | -14.3% | 160 | 160 | 6 % |  |
+| sql/conditions1000 | generated | hand | 497266.8 | 1183480.1 | 2.38x | 1196396.1 | 2.41x | +1.1% | 1616203 | 1616160 | 3 % |  |
+| sql/select1 | generated | hand | 654.9 | 1523.9 | 2.33x | 1503.1 | 2.30x | -1.4% | 1688 | 1688 | 3 % |  |
+| sql/select20 | generated | hand | 6824.5 | 17793.2 | 2.61x | 17981.4 | 2.63x | +1.1% | 21448 | 21448 | 14 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-8
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1513125.0 ns before   340556.2 ns after   459150.0 ns  before/scriptdom 0.23x  after/scriptdom 0.30x
+sql/select20.at        hand     6725.4 ns before    17609.4 ns after    17427.1 ns  before/hand 2.62x  after/hand 2.59x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6743.2 ns before    17950.3 ns after    17958.1 ns  before/hand 2.66x  after/hand 2.66x
+sql/select20.scan      control      394.6 ns before      404.8 ns after      384.7 ns  before/control 1.03x  after/control 0.97x
+tsql/select20.scan     control      372.7 ns before      374.0 ns after      378.4 ns  before/control 1.00x  after/control 1.02x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6958.8 ns before    18176.7 ns after    18340.9 ns  before/hand 2.61x  after/hand 2.64x
+  sql/literal: 1 round(s) redone after a gen1/gen2 collection
+sql/literal            hand       56.7 ns before      197.3 ns after      198.8 ns  before/hand 3.48x  after/hand 3.51x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   490156.6 ns before  1230413.3 ns after  1255403.1 ns  before/hand 2.51x  after/hand 2.56x
+sql/select1            hand      660.0 ns before     1550.1 ns after     1538.2 ns  before/hand 2.35x  after/hand 2.33x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6742.0 ns before    18049.1 ns after    17950.0 ns  before/hand 2.68x  after/hand 2.66x
+
+# Paired stand, 2026-09-21 14:41
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.1 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1513125.0 | 340556.2 | 0.23x | 459150.0 | 0.30x | +34.8% | 424449 | 424449 | 911 % |  |
+| sql/select20.at | generated | hand | 6725.4 | 17609.4 | 2.62x | 17427.1 | 2.59x | -1.0% | 21416 | 21416 | 3 % |  |
+| sql/select20.window | generated | hand | 6743.2 | 17950.3 | 2.66x | 17958.1 | 2.66x | 0.0% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 394.6 | 404.8 | 1.03x | 384.7 | 0.97x | -5.0% | 0 | 0 | 27 % |  |
+| tsql/select20.scan | generated | control | 372.7 | 374.0 | 1.00x | 378.4 | 1.02x | +1.2% | 0 | 0 | 20 % |  |
+| sql/select20.bool | generated | hand | 6958.8 | 18176.7 | 2.61x | 18340.9 | 2.64x | +0.9% | 21448 | 21392 | 19 % |  |
+| sql/literal | generated | hand | 56.7 | 197.3 | 3.48x | 198.8 | 3.51x | +0.7% | 160 | 160 | 19 % |  |
+| sql/conditions1000 | generated | hand | 490156.6 | 1230413.3 | 2.51x | 1255403.1 | 2.56x | +2.0% | 1616203 | 1616203 | 5 % |  |
+| sql/select1 | generated | hand | 660.0 | 1550.1 | 2.35x | 1538.2 | 2.33x | -0.8% | 1688 | 1688 | 5 % |  |
+| sql/select20 | generated | hand | 6742.0 | 18049.1 | 2.68x | 17950.0 | 2.66x | -0.5% | 21448 | 21448 | 19 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-8
+=== run 9 of 10, 14:41:27
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1540606.2 ns before   353243.8 ns after   410993.8 ns  before/scriptdom 0.23x  after/scriptdom 0.27x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6838.3 ns before    17796.9 ns after    17595.8 ns  before/hand 2.60x  after/hand 2.57x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6845.5 ns before    18324.0 ns after    18150.0 ns  before/hand 2.68x  after/hand 2.65x
+sql/select20.scan      control      373.8 ns before      387.2 ns after      377.4 ns  before/control 1.04x  after/control 1.01x
+tsql/select20.scan     control      386.0 ns before      379.1 ns after      387.5 ns  before/control 0.98x  after/control 1.00x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     7010.4 ns before    18784.9 ns after    18288.2 ns  before/hand 2.68x  after/hand 2.61x
+sql/literal            hand       56.8 ns before      195.5 ns after      140.6 ns  before/hand 3.45x  after/hand 2.48x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   483605.5 ns before  1242366.8 ns after  1183398.4 ns  before/hand 2.57x  after/hand 2.45x
+sql/select1            hand      641.9 ns before     1529.3 ns after     1477.7 ns  before/hand 2.38x  after/hand 2.30x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6784.7 ns before    18259.4 ns after    18302.8 ns  before/hand 2.69x  after/hand 2.70x
+
+# Paired stand, 2026-09-21 14:42
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1540606.2 | 353243.8 | 0.23x | 410993.8 | 0.27x | +16.3% | 424449 | 424449 | 907 % |  |
+| sql/select20.at | generated | hand | 6838.3 | 17796.9 | 2.60x | 17595.8 | 2.57x | -1.1% | 21416 | 21416 | 61 % |  |
+| sql/select20.window | generated | hand | 6845.5 | 18324.0 | 2.68x | 18150.0 | 2.65x | -0.9% | 21416 | 21416 | 7 % |  |
+| sql/select20.scan | generated | control | 373.8 | 387.2 | 1.04x | 377.4 | 1.01x | -2.5% | 0 | 0 | 9 % |  |
+| tsql/select20.scan | generated | control | 386.0 | 379.1 | 0.98x | 387.5 | 1.00x | +2.2% | 0 | 0 | 18 % |  |
+| sql/select20.bool | generated | hand | 7010.4 | 18784.9 | 2.68x | 18288.2 | 2.61x | -2.6% | 21448 | 21392 | 12 % |  |
+| sql/literal | generated | hand | 56.8 | 195.5 | 3.45x | 140.6 | 2.48x | -28.1% | 160 | 160 | 17 % |  |
+| sql/conditions1000 | generated | hand | 483605.5 | 1242366.8 | 2.57x | 1183398.4 | 2.45x | -4.7% | 1616203 | 1616203 | 8 % |  |
+| sql/select1 | generated | hand | 641.9 | 1529.3 | 2.38x | 1477.7 | 2.30x | -3.4% | 1688 | 1688 | 21 % |  |
+| sql/select20 | generated | hand | 6784.7 | 18259.4 | 2.69x | 18302.8 | 2.70x | +0.2% | 21448 | 21448 | 8 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-9
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1535956.2 ns before   340862.5 ns after   307906.2 ns  before/scriptdom 0.22x  after/scriptdom 0.20x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6770.4 ns before    18003.9 ns after    17827.3 ns  before/hand 2.66x  after/hand 2.63x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6723.1 ns before    19036.6 ns after    18156.5 ns  before/hand 2.83x  after/hand 2.70x
+sql/select20.scan      control      381.0 ns before      396.4 ns after      384.8 ns  before/control 1.04x  after/control 1.01x
+tsql/select20.scan     control      388.9 ns before      390.2 ns after      383.9 ns  before/control 1.00x  after/control 0.99x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6868.0 ns before    18458.1 ns after    19425.0 ns  before/hand 2.69x  after/hand 2.83x
+sql/literal            hand       58.3 ns before      181.7 ns after      196.4 ns  before/hand 3.12x  after/hand 3.37x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   484608.2 ns before  1212148.4 ns after  1215616.0 ns  before/hand 2.50x  after/hand 2.51x
+sql/select1            hand      644.7 ns before     1575.1 ns after     1532.9 ns  before/hand 2.44x  after/hand 2.38x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6719.6 ns before    18389.7 ns after    18178.9 ns  before/hand 2.74x  after/hand 2.71x
+
+# Paired stand, 2026-09-21 14:43
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.3 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1535956.2 | 340862.5 | 0.22x | 307906.2 | 0.20x | -9.7% | 424449 | 424449 | 924 % |  |
+| sql/select20.at | generated | hand | 6770.4 | 18003.9 | 2.66x | 17827.3 | 2.63x | -1.0% | 21416 | 21416 | 62 % |  |
+| sql/select20.window | generated | hand | 6723.1 | 19036.6 | 2.83x | 18156.5 | 2.70x | -4.6% | 21416 | 21416 | 3 % |  |
+| sql/select20.scan | generated | control | 381.0 | 396.4 | 1.04x | 384.8 | 1.01x | -2.9% | 0 | 0 | 24 % |  |
+| tsql/select20.scan | generated | control | 388.9 | 390.2 | 1.00x | 383.9 | 0.99x | -1.6% | 0 | 0 | 27 % |  |
+| sql/select20.bool | generated | hand | 6868.0 | 18458.1 | 2.69x | 19425.0 | 2.83x | +5.2% | 21448 | 21392 | 44 % |  |
+| sql/literal | generated | hand | 58.3 | 181.7 | 3.12x | 196.4 | 3.37x | +8.1% | 160 | 160 | 34 % |  |
+| sql/conditions1000 | generated | hand | 484608.2 | 1212148.4 | 2.50x | 1215616.0 | 2.51x | +0.3% | 1616203 | 1616203 | 38 % |  |
+| sql/select1 | generated | hand | 644.7 | 1575.1 | 2.44x | 1532.9 | 2.38x | -2.7% | 1688 | 1688 | 2 % |  |
+| sql/select20 | generated | hand | 6719.6 | 18389.7 | 2.74x | 18178.9 | 2.71x | -1.1% | 21448 | 21448 | 5 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-9
+=== run 10 of 10, 14:43:47
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 2 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom  1498400.0 ns before   303306.2 ns after   310837.5 ns  before/scriptdom 0.20x  after/scriptdom 0.21x
+sql/select20.at        hand     6690.8 ns before    17594.2 ns after    17817.1 ns  before/hand 2.63x  after/hand 2.66x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6722.9 ns before    18000.4 ns after    17908.1 ns  before/hand 2.68x  after/hand 2.66x
+sql/select20.scan      control      376.6 ns before      378.5 ns after      387.0 ns  before/control 1.00x  after/control 1.03x
+tsql/select20.scan     control      374.9 ns before      377.0 ns after      377.5 ns  before/control 1.01x  after/control 1.01x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6776.7 ns before    18070.2 ns after    17978.4 ns  before/hand 2.67x  after/hand 2.65x
+sql/literal            hand       57.0 ns before      183.9 ns after      137.8 ns  before/hand 3.22x  after/hand 2.42x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   486417.2 ns before  1187399.6 ns after  1227588.7 ns  before/hand 2.44x  after/hand 2.52x
+sql/select1            hand      661.6 ns before     1538.5 ns after     1513.0 ns  before/hand 2.33x  after/hand 2.29x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6910.5 ns before    18164.9 ns after    18201.0 ns  before/hand 2.63x  after/hand 2.63x
+
+# Paired stand, 2026-09-21 14:44
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 1498400.0 | 303306.2 | 0.20x | 310837.5 | 0.21x | +2.5% | 424449 | 424449 | 918 % |  |
+| sql/select20.at | generated | hand | 6690.8 | 17594.2 | 2.63x | 17817.1 | 2.66x | +1.3% | 21416 | 21416 | 9 % |  |
+| sql/select20.window | generated | hand | 6722.9 | 18000.4 | 2.68x | 17908.1 | 2.66x | -0.5% | 21416 | 21416 | 3 % |  |
+| sql/select20.scan | generated | control | 376.6 | 378.5 | 1.00x | 387.0 | 1.03x | +2.2% | 0 | 0 | 27 % |  |
+| tsql/select20.scan | generated | control | 374.9 | 377.0 | 1.01x | 377.5 | 1.01x | +0.1% | 0 | 0 | 2 % |  |
+| sql/select20.bool | generated | hand | 6776.7 | 18070.2 | 2.67x | 17978.4 | 2.65x | -0.5% | 21448 | 21392 | 7 % |  |
+| sql/literal | generated | hand | 57.0 | 183.9 | 3.22x | 137.8 | 2.42x | -25.1% | 160 | 160 | 7 % |  |
+| sql/conditions1000 | generated | hand | 486417.2 | 1187399.6 | 2.44x | 1227588.7 | 2.52x | +3.4% | 1616203 | 1616203 | 8 % |  |
+| sql/select1 | generated | hand | 661.6 | 1538.5 | 2.33x | 1513.0 | 2.29x | -1.7% | 1688 | 1688 | 6 % |  |
+| sql/select20 | generated | hand | 6910.5 | 18164.9 | 2.63x | 18201.0 | 2.63x | +0.2% | 21448 | 21448 | 8 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\run-10
+Another timing window is announced and its process is alive: pid 43836; started 2026-09-21 13:58:43; until 2026-09-21 14:53:43; what Run-Announced.ps1 sql-walk-throwaway [THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.]; process-start 2026-09-21T17:58:39.8725604Z
+10 rows, every reading agreeing. Timing 8 rounds.
+  tsql/conditions1000: 3 round(s) redone after a gen1/gen2 collection
+tsql/conditions1000    scriptdom   886812.5 ns before   289031.2 ns after   285775.0 ns  before/scriptdom 0.33x  after/scriptdom 0.32x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6805.0 ns before    17813.3 ns after    17988.4 ns  before/hand 2.62x  after/hand 2.64x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6747.7 ns before    18056.8 ns after    18069.8 ns  before/hand 2.68x  after/hand 2.68x
+sql/select20.scan      control      378.8 ns before      382.9 ns after      381.7 ns  before/control 1.01x  after/control 1.01x
+tsql/select20.scan     control      374.3 ns before      379.1 ns after      378.3 ns  before/control 1.01x  after/control 1.01x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6806.3 ns before    18348.5 ns after    18377.5 ns  before/hand 2.70x  after/hand 2.70x
+sql/literal            hand       57.4 ns before      187.0 ns after      196.2 ns  before/hand 3.26x  after/hand 3.42x
+  sql/conditions1000: 144 round(s) redone after a gen1/gen2 collection
+sql/conditions1000     hand   483537.1 ns before  1205821.5 ns after  1260622.7 ns  before/hand 2.49x  after/hand 2.61x
+sql/select1            hand      653.9 ns before     1540.1 ns after     1525.6 ns  before/hand 2.36x  after/hand 2.33x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6749.3 ns before    17897.6 ns after    17984.0 ns  before/hand 2.65x  after/hand 2.66x
+
+# Paired stand, 2026-09-21 14:46
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tsql/conditions1000 | generated | scriptdom | 886812.5 | 289031.2 | 0.33x | 285775.0 | 0.32x | -1.1% | 424449 | 424449 | 1,524 % |  |
+| sql/select20.at | generated | hand | 6805.0 | 17813.3 | 2.62x | 17988.4 | 2.64x | +1.0% | 21416 | 21416 | 23 % |  |
+| sql/select20.window | generated | hand | 6747.7 | 18056.8 | 2.68x | 18069.8 | 2.68x | +0.1% | 21416 | 21416 | 7 % |  |
+| sql/select20.scan | generated | control | 378.8 | 382.9 | 1.01x | 381.7 | 1.01x | -0.3% | 0 | 0 | 12 % |  |
+| tsql/select20.scan | generated | control | 374.3 | 379.1 | 1.01x | 378.3 | 1.01x | -0.2% | 0 | 0 | 4 % |  |
+| sql/select20.bool | generated | hand | 6806.3 | 18348.5 | 2.70x | 18377.5 | 2.70x | +0.2% | 21448 | 21392 | 11 % |  |
+| sql/literal | generated | hand | 57.4 | 187.0 | 3.26x | 196.2 | 3.42x | +4.9% | 160 | 160 | 8 % |  |
+| sql/conditions1000 | generated | hand | 483537.1 | 1205821.5 | 2.49x | 1260622.7 | 2.61x | +4.5% | 1616160 | 1616203 | 9 % |  |
+| sql/select1 | generated | hand | 653.9 | 1540.1 | 2.36x | 1525.6 | 2.33x | -0.9% | 1688 | 1688 | 3 % |  |
+| sql/select20 | generated | hand | 6749.3 | 17897.6 | 2.65x | 17984.0 | 2.66x | +0.5% | 21448 | 21448 | 20 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair\aa-run-10
+
+Median of 10 of 10 runs, each in a process of its own; control 31.2 ns (the runs' controls: 31.2, 31.2, 31.2, 31.0, 31.2, 31.0, 31.3, 31.2, 31.5, 31.2).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-21 14:46
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 21c80961. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 871f0779, framework net10.0, no properties, emitted a06e1cf7e2550eb3); after (commit e29c9144, framework net10.0, no properties, emitted 9a576c87d31f69d2). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+The last column is the **A/A of the parent** taken in the same slot, on the same rows: the parent's build against itself, its median change and its range over the runs. What the stand says of a row when nothing changed; a change is read as its excess over it (D50).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs | A/A of the parent |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| tsql/conditions1000 | generated | scriptdom | 1276465.6 | 302040.6 | 0.24x | 304378.1 | 0.24x | +0.8% | 424449 | 424449 | 56 % | [-31.9%..+16.3%], 5 of 10 positive | -0.3% [-9.7%..+34.8%], 5 of 10 positive |
+| sql/select20.at | generated | hand | 6776.9 | 17584.0 | 2.59x | 17587.6 | 2.60x | 0.0% | 21416 | 21416 | 3 % | [-2.5%..+1.3%], 6 of 10 positive | -0.5% [-1.2%..+1.7%], 5 of 10 positive |
+| sql/select20.window | generated | hand | 6778.2 | 17989.9 | 2.65x | 18035.2 | 2.66x | +0.3% | 21416 | 21416 | 2 % | [-3.6%..+2.7%], 4 of 10 positive | -0.1% [-4.6%..+2.2%], 5 of 10 positive |
+| sql/select20.scan | generated | control | 376.0 | 379.2 | 1.01x | 378.5 | 1.01x | -0.2% | 0 | 0 | 2 % | [-2.5%..+2.2%], 5 of 10 positive | +0.3% [-5.0%..+4.0%], 4 of 10 positive |
+| tsql/select20.scan | generated | control | 379.1 | 378.6 | 1.00x | 377.8 | 1.00x | -0.2% | 0 | 0 | 3 % | [-3.1%..+2.2%], 4 of 10 positive | +0.1% [-4.3%..+1.2%], 3 of 10 positive |
+| sql/select20.bool | generated | hand | 6767.5 | 18015.2 | 2.66x | 18036.7 | 2.67x | +0.1% | 21448 | 21392 | 5 % | [-2.6%..+1.7%], 5 of 10 positive | +0.5% [-1.1%..+5.2%], 9 of 10 positive |
+| sql/literal | generated | hand | 55.0 | 186.6 | 3.39x | 140.2 | 2.55x | -24.9% | 160 | 160 | 12 % | [-31.3%..-14.3%], 0 of 10 positive | +0.1% [-11.3%..+18.1%], 6 of 10 positive |
+| sql/conditions1000 | generated | hand | 487211.1 | 1198060.9 | 2.46x | 1201114.6 | 2.47x | +0.3% | 1616203 | 1616203 | 3 % | [-4.7%..+5.2%], 6 of 10 positive | +1.0% [-1.1%..+4.5%], 7 of 10 positive |
+| sql/select1 | generated | hand | 651.6 | 1540.0 | 2.36x | 1506.4 | 2.31x | -2.2% | 1688 | 1688 | 7 % | [-8.2%..+3.1%], 1 of 10 positive | -0.9% [-3.5%..+3.6%], 4 of 10 positive |
+| sql/select20 | generated | hand | 6780.4 | 18003.3 | 2.66x | 18017.1 | 2.66x | +0.1% | 21448 | 21448 | 3 % | [-2.4%..+5.4%], 6 of 10 positive | 0.0% [-1.1%..+2.8%], 8 of 10 positive |
+
+Written to T:\TEMP\dotgram-stand\wc13-swapped\pair

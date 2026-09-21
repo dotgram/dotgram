@@ -1,0 +1,4 @@
+A start 13:58:43 order normal
+wc13-normal end 14:22:12
+A start 14:22:12 order swapped
+wc13-swapped end 14:46:03

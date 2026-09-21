@@ -1,0 +1,10 @@
+# sql-walk-throwaway, 2026-09-21 13:58 - 14:46
+
+Script P:\dotgram.WorkTrees\stand\.work\wc13-inner.ps1, arguments: . Machine IGOR-DESKTOP, this process and its children on mask 0xFFFF at high priority (the children inherit it; whether they stayed on it was not read back).
+Quiet check before the start: 2.4% of the machine (0.77 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.323; claude (pid 36444) 0.078; claude (pid 36144) 0.078.
+State of the repository the script sits in, read at 13:58:43: HEAD 074f187f; 0 tracked files modified.
+Artifact T:\TEMP\dotgram-stand\stand-bin81\DotGram.Benchmarks.exe: sha256 E7AB2012827A472A, 162816 bytes, written 11:49:17.
+Artifact T:\TEMP\dotgram-stand\side\r9-0\DotGram.Sql.dll: sha256 84763C71BB91B9CB, 19821568 bytes, written 13:56:12.
+Artifact T:\TEMP\dotgram-stand\side\r9-1\DotGram.Sql.dll: sha256 3ACD38C49E1568F4, 19838464 bytes, written 13:57:32.
+Exit code: 0.
+Note: THROWAWAY PAIR: 871f0779 is deliberately not landable (the value-table walk in DirectValues.Return is doubled; correct, only slower by design); the parent is e29c9144. Read every movement against the A/A of the parent on the SAME row and the spread between the two orders.
