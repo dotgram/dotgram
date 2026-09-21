@@ -7694,3 +7694,41 @@ followed by whoever read the note; a rule written into the tool is followed by e
 was read in the contaminated arrangement, and the worst rows ran last. The dead demotion is a fact
 read in the emitted `Rent`, not a measurement, so "fix the demotion first, the dense change waits"
 stands whatever the clean table says.
+
+## D105 — Compiled control flow is warm for one and cold for ninety-three
+
+The comparison that produced D102's table was invalid, and its author found it: "one hot type"
+against "all ninety-three" compares different SETS of messages, so it cannot separate the cost of
+widening the hot set from the difference in what the messages contain. Measured properly — each
+type alone, weighted by fixture count, against the measured corpus — the cost of widening is:
+
+| | narrow | wide | widening |
+| --- | --- | --- | --- |
+| the walk | 3,349 | 3,707 | 1.11× |
+| full rules, 8.8 M chars | 3,254 | 10,128 | 3.11× |
+| without value checks, 4.5 M | 1,686 | 5,399 | 3.20× |
+| without the membership switch, 1.4 M | 1,632 | 2,631 | 1.61× |
+
+**Halving the text changed nothing — 3.11 to 3.20 — and removing one layer changed everything.**
+So it is not code size in the sense of bytes. Each rule carries its own switch over one to three
+hundred tags; ninety-three rules are ninety-three cold jump tables, while the walk has ONE
+membership lookup shared by every type. And the switch is not cheap even when warm: 3,254 against
+1,632 on a fifteen-field message.
+
+**The principle, which is not about FIX.** Compiled control flow is fast because it is warm, and
+warmth is per method. Compile the control flow of one thing and it stays warm; compile the control
+flow of ninety-three and the rotation between them is the cost. A shared walk over DATA does not
+have that problem: one small routine, always warm, reading a table that differs per type. So where
+a schema has many alternatives exercised in rotation, compile the data the rule needs and not the
+branching — and the form where that already exists is the one in the package.
+
+**This is a negative result that transfers, which is what makes it worth more than the five per
+cent we were chasing.** "Compile the schema into the package" is now closed by mechanism rather
+than by a number, and the mechanism is not specific to this schema.
+
+**And it asks a question of our own generated parsers, which nobody has asked.** A generated parser
+is compiled control flow. For one grammar read over and over it is exactly the warm case, which is
+why it wins. But the FIX 4.4 parser is fifty-seven megabytes of C# and T-SQL is 1,142 rules — and
+whether a workload that rotates through many of their alternatives meets the same wall is a
+measurement nobody has taken. It may not: a parser's branches are threaded by one input rather
+than selected ninety-three ways. Asking it is cheap; assuming either answer is not.
