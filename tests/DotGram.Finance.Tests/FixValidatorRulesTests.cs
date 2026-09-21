@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 using DotGram.Finance.Fix;
@@ -163,6 +164,47 @@ public sealed class FixValidatorRulesTests
 		}
 
 		Assert.Equal((FixMessageRule)FixValidator.ValidateNewOrderSingle, FixMessage.NewOrderSingle.Rule);
+	}
+
+	/// <summary>
+	/// EVERY class comes back, not most of them.
+	/// </summary>
+	/// <remarks>
+	/// The restore was a hand-written list, kept beside a second hand-written list of the same set,
+	/// and the two disagreed: NewOrderSingle twice, Heartbeat not at all. A load then left Heartbeat
+	/// holding a dictionary's rule for the rest of the process, and nothing said so — the suite was
+	/// green because of the order the tests happened to run in.
+	/// </remarks>
+	[Fact]
+	public void Every_class_comes_back_from_a_loaded_dictionary()
+	{
+		var classes = typeof(FixMessage).GetNestedTypes(BindingFlags.Public)
+			.Where(one => one.IsSubclassOf(typeof(FixMessage)))
+			.ToArray();
+
+		Assert.Equal(94, classes.Length);
+
+		try
+		{
+			using (var file = File.OpenRead(PublishedPath()))
+			{
+				FixParser.LoadDictionary(file);
+			}
+		}
+		finally
+		{
+			FixRuleFields.Compiled();
+		}
+
+		foreach (var one in classes)
+		{
+			var rule     = (FixMessageRule)one.GetField("Rule", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+			var compiled = typeof(FixValidator).GetMethod("Validate" + one.Name)!;
+
+			Assert.True(
+				rule.Method == compiled,
+				$"{one.Name} came back as {rule.Method.Name} rather than Validate{one.Name}");
+		}
 	}
 
 	/// <summary>

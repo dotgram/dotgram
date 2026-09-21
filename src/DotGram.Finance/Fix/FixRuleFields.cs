@@ -4,14 +4,21 @@ using System.Collections.Generic;
 namespace DotGram.Finance.Fix;
 
 /// <summary>
-/// Which class holds the rule for which <c>MsgType</c>, for the one call that needs to know.
+/// Which class holds the rule for which <c>MsgType</c>, and what this package compiles in for it.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Validating a message asks no table: a message type and a class are the same thing, so a message
 /// reads its own class's field. Loading a dictionary is the other direction — a file names types
-/// and something has to find the field each one belongs to — and that is the only thing this table
-/// is for. It is read once a load, never once a message.
+/// and something has to find the field each one belongs to — and that is what this is for. It is
+/// read once a load, never once a message.
+/// </para>
+/// <para>
+/// <strong>One row a type, carrying both the way in and the way back.</strong> This was two lists
+/// once: one mapping MsgType to a field, one putting the compiled rules back. They were written
+/// separately, and they disagreed — the second held NewOrderSingle twice and Heartbeat not at all,
+/// so a restore left Heartbeat holding a dictionary's rule and nothing said so. Two lists of one
+/// set diverge in silence; one list cannot.
 /// </para>
 /// <para>
 /// Internal, because a consumer reaching a rule reaches it by name: <c>FixMessage.NewOrderSingle.Rule</c>.
@@ -19,212 +26,132 @@ namespace DotGram.Finance.Fix;
 /// </remarks>
 static class FixRuleFields
 {
-	/// <summary>The ninety-three types this package models, each with the field its rule lives in.</summary>
-	public static readonly Dictionary<string, Action<FixMessageRule>> Fields = new(StringComparer.Ordinal)
+	/// <summary>Every type this package models: its MsgType, its field, and its compiled rule.</summary>
+	static readonly (string Type, Action<FixMessageRule> Set, FixMessageRule Compiled)[] _rules =
+	[
+		("0",   rule => FixMessage.Heartbeat.Rule = rule, FixValidator.ValidateHeartbeat),
+		("1",   rule => FixMessage.TestRequest.Rule = rule, FixValidator.ValidateTestRequest),
+		("2",   rule => FixMessage.ResendRequest.Rule = rule, FixValidator.ValidateResendRequest),
+		("3",   rule => FixMessage.Reject.Rule = rule, FixValidator.ValidateReject),
+		("4",   rule => FixMessage.SequenceReset.Rule = rule, FixValidator.ValidateSequenceReset),
+		("5",   rule => FixMessage.Logout.Rule = rule, FixValidator.ValidateLogout),
+		("6",   rule => FixMessage.IOI.Rule = rule, FixValidator.ValidateIOI),
+		("7",   rule => FixMessage.Advertisement.Rule = rule, FixValidator.ValidateAdvertisement),
+		("8",   rule => FixMessage.ExecutionReport.Rule = rule, FixValidator.ValidateExecutionReport),
+		("9",   rule => FixMessage.OrderCancelReject.Rule = rule, FixValidator.ValidateOrderCancelReject),
+		("A",   rule => FixMessage.Logon.Rule = rule, FixValidator.ValidateLogon),
+		("B",   rule => FixMessage.News.Rule = rule, FixValidator.ValidateNews),
+		("C",   rule => FixMessage.Email.Rule = rule, FixValidator.ValidateEmail),
+		("D",   rule => FixMessage.NewOrderSingle.Rule = rule, FixValidator.ValidateNewOrderSingle),
+		("E",   rule => FixMessage.NewOrderList.Rule = rule, FixValidator.ValidateNewOrderList),
+		("F",   rule => FixMessage.OrderCancelRequest.Rule = rule, FixValidator.ValidateOrderCancelRequest),
+		("G",   rule => FixMessage.OrderCancelReplaceRequest.Rule = rule, FixValidator.ValidateOrderCancelReplaceRequest),
+		("H",   rule => FixMessage.OrderStatusRequest.Rule = rule, FixValidator.ValidateOrderStatusRequest),
+		("J",   rule => FixMessage.AllocationInstruction.Rule = rule, FixValidator.ValidateAllocationInstruction),
+		("K",   rule => FixMessage.ListCancelRequest.Rule = rule, FixValidator.ValidateListCancelRequest),
+		("L",   rule => FixMessage.ListExecute.Rule = rule, FixValidator.ValidateListExecute),
+		("M",   rule => FixMessage.ListStatusRequest.Rule = rule, FixValidator.ValidateListStatusRequest),
+		("N",   rule => FixMessage.ListStatus.Rule = rule, FixValidator.ValidateListStatus),
+		("P",   rule => FixMessage.AllocationInstructionAck.Rule = rule, FixValidator.ValidateAllocationInstructionAck),
+		("Q",   rule => FixMessage.DontKnowTrade.Rule = rule, FixValidator.ValidateDontKnowTrade),
+		("R",   rule => FixMessage.QuoteRequest.Rule = rule, FixValidator.ValidateQuoteRequest),
+		("S",   rule => FixMessage.Quote.Rule = rule, FixValidator.ValidateQuote),
+		("T",   rule => FixMessage.SettlementInstructions.Rule = rule, FixValidator.ValidateSettlementInstructions),
+		("V",   rule => FixMessage.MarketDataRequest.Rule = rule, FixValidator.ValidateMarketDataRequest),
+		("W",   rule => FixMessage.MarketDataSnapshotFullRefresh.Rule = rule, FixValidator.ValidateMarketDataSnapshotFullRefresh),
+		("X",   rule => FixMessage.MarketDataIncrementalRefresh.Rule = rule, FixValidator.ValidateMarketDataIncrementalRefresh),
+		("Y",   rule => FixMessage.MarketDataRequestReject.Rule = rule, FixValidator.ValidateMarketDataRequestReject),
+		("Z",   rule => FixMessage.QuoteCancel.Rule = rule, FixValidator.ValidateQuoteCancel),
+		("a",   rule => FixMessage.QuoteStatusRequest.Rule = rule, FixValidator.ValidateQuoteStatusRequest),
+		("b",   rule => FixMessage.MassQuoteAcknowledgement.Rule = rule, FixValidator.ValidateMassQuoteAcknowledgement),
+		("c",   rule => FixMessage.SecurityDefinitionRequest.Rule = rule, FixValidator.ValidateSecurityDefinitionRequest),
+		("d",   rule => FixMessage.SecurityDefinition.Rule = rule, FixValidator.ValidateSecurityDefinition),
+		("e",   rule => FixMessage.SecurityStatusRequest.Rule = rule, FixValidator.ValidateSecurityStatusRequest),
+		("f",   rule => FixMessage.SecurityStatus.Rule = rule, FixValidator.ValidateSecurityStatus),
+		("g",   rule => FixMessage.TradingSessionStatusRequest.Rule = rule, FixValidator.ValidateTradingSessionStatusRequest),
+		("h",   rule => FixMessage.TradingSessionStatus.Rule = rule, FixValidator.ValidateTradingSessionStatus),
+		("i",   rule => FixMessage.MassQuote.Rule = rule, FixValidator.ValidateMassQuote),
+		("j",   rule => FixMessage.BusinessMessageReject.Rule = rule, FixValidator.ValidateBusinessMessageReject),
+		("k",   rule => FixMessage.BidRequest.Rule = rule, FixValidator.ValidateBidRequest),
+		("l",   rule => FixMessage.BidResponse.Rule = rule, FixValidator.ValidateBidResponse),
+		("m",   rule => FixMessage.ListStrikePrice.Rule = rule, FixValidator.ValidateListStrikePrice),
+		("n",   rule => FixMessage.XMLnonFIX.Rule = rule, FixValidator.ValidateXMLnonFIX),
+		("o",   rule => FixMessage.RegistrationInstructions.Rule = rule, FixValidator.ValidateRegistrationInstructions),
+		("p",   rule => FixMessage.RegistrationInstructionsResponse.Rule = rule, FixValidator.ValidateRegistrationInstructionsResponse),
+		("q",   rule => FixMessage.OrderMassCancelRequest.Rule = rule, FixValidator.ValidateOrderMassCancelRequest),
+		("r",   rule => FixMessage.OrderMassCancelReport.Rule = rule, FixValidator.ValidateOrderMassCancelReport),
+		("s",   rule => FixMessage.NewOrderCross.Rule = rule, FixValidator.ValidateNewOrderCross),
+		("t",   rule => FixMessage.CrossOrderCancelReplaceRequest.Rule = rule, FixValidator.ValidateCrossOrderCancelReplaceRequest),
+		("u",   rule => FixMessage.CrossOrderCancelRequest.Rule = rule, FixValidator.ValidateCrossOrderCancelRequest),
+		("v",   rule => FixMessage.SecurityTypeRequest.Rule = rule, FixValidator.ValidateSecurityTypeRequest),
+		("w",   rule => FixMessage.SecurityTypes.Rule = rule, FixValidator.ValidateSecurityTypes),
+		("x",   rule => FixMessage.SecurityListRequest.Rule = rule, FixValidator.ValidateSecurityListRequest),
+		("y",   rule => FixMessage.SecurityList.Rule = rule, FixValidator.ValidateSecurityList),
+		("z",   rule => FixMessage.DerivativeSecurityListRequest.Rule = rule, FixValidator.ValidateDerivativeSecurityListRequest),
+		("AA",  rule => FixMessage.DerivativeSecurityList.Rule = rule, FixValidator.ValidateDerivativeSecurityList),
+		("AB",  rule => FixMessage.NewOrderMultileg.Rule = rule, FixValidator.ValidateNewOrderMultileg),
+		("AC",  rule => FixMessage.MultilegOrderCancelReplace.Rule = rule, FixValidator.ValidateMultilegOrderCancelReplace),
+		("AD",  rule => FixMessage.TradeCaptureReportRequest.Rule = rule, FixValidator.ValidateTradeCaptureReportRequest),
+		("AE",  rule => FixMessage.TradeCaptureReport.Rule = rule, FixValidator.ValidateTradeCaptureReport),
+		("AF",  rule => FixMessage.OrderMassStatusRequest.Rule = rule, FixValidator.ValidateOrderMassStatusRequest),
+		("AG",  rule => FixMessage.QuoteRequestReject.Rule = rule, FixValidator.ValidateQuoteRequestReject),
+		("AH",  rule => FixMessage.RFQRequest.Rule = rule, FixValidator.ValidateRFQRequest),
+		("AI",  rule => FixMessage.QuoteStatusReport.Rule = rule, FixValidator.ValidateQuoteStatusReport),
+		("AJ",  rule => FixMessage.QuoteResponse.Rule = rule, FixValidator.ValidateQuoteResponse),
+		("AK",  rule => FixMessage.Confirmation.Rule = rule, FixValidator.ValidateConfirmation),
+		("AL",  rule => FixMessage.PositionMaintenanceRequest.Rule = rule, FixValidator.ValidatePositionMaintenanceRequest),
+		("AM",  rule => FixMessage.PositionMaintenanceReport.Rule = rule, FixValidator.ValidatePositionMaintenanceReport),
+		("AN",  rule => FixMessage.RequestForPositions.Rule = rule, FixValidator.ValidateRequestForPositions),
+		("AO",  rule => FixMessage.RequestForPositionsAck.Rule = rule, FixValidator.ValidateRequestForPositionsAck),
+		("AP",  rule => FixMessage.PositionReport.Rule = rule, FixValidator.ValidatePositionReport),
+		("AQ",  rule => FixMessage.TradeCaptureReportRequestAck.Rule = rule, FixValidator.ValidateTradeCaptureReportRequestAck),
+		("AR",  rule => FixMessage.TradeCaptureReportAck.Rule = rule, FixValidator.ValidateTradeCaptureReportAck),
+		("AS",  rule => FixMessage.AllocationReport.Rule = rule, FixValidator.ValidateAllocationReport),
+		("AT",  rule => FixMessage.AllocationReportAck.Rule = rule, FixValidator.ValidateAllocationReportAck),
+		("AU",  rule => FixMessage.ConfirmationAck.Rule = rule, FixValidator.ValidateConfirmationAck),
+		("AV",  rule => FixMessage.SettlementInstructionRequest.Rule = rule, FixValidator.ValidateSettlementInstructionRequest),
+		("AW",  rule => FixMessage.AssignmentReport.Rule = rule, FixValidator.ValidateAssignmentReport),
+		("AX",  rule => FixMessage.CollateralRequest.Rule = rule, FixValidator.ValidateCollateralRequest),
+		("AY",  rule => FixMessage.CollateralAssignment.Rule = rule, FixValidator.ValidateCollateralAssignment),
+		("AZ",  rule => FixMessage.CollateralResponse.Rule = rule, FixValidator.ValidateCollateralResponse),
+		("BA",  rule => FixMessage.CollateralReport.Rule = rule, FixValidator.ValidateCollateralReport),
+		("BB",  rule => FixMessage.CollateralInquiry.Rule = rule, FixValidator.ValidateCollateralInquiry),
+		("BC",  rule => FixMessage.NetworkCounterpartySystemStatusRequest.Rule = rule, FixValidator.ValidateNetworkCounterpartySystemStatusRequest),
+		("BD",  rule => FixMessage.NetworkCounterpartySystemStatusResponse.Rule = rule, FixValidator.ValidateNetworkCounterpartySystemStatusResponse),
+		("BE",  rule => FixMessage.UserRequest.Rule = rule, FixValidator.ValidateUserRequest),
+		("BF",  rule => FixMessage.UserResponse.Rule = rule, FixValidator.ValidateUserResponse),
+		("BG",  rule => FixMessage.CollateralInquiryAck.Rule = rule, FixValidator.ValidateCollateralInquiryAck),
+		("BH",  rule => FixMessage.ConfirmationRequest.Rule = rule, FixValidator.ValidateConfirmationRequest),
+	];
+
+	/// <summary>The field each <c>MsgType</c> writes to, which is what a load walks.</summary>
+	public static readonly Dictionary<string, Action<FixMessageRule>> Fields = Build();
+
+	static Dictionary<string, Action<FixMessageRule>> Build()
 	{
-		["0"   ] = rule => FixMessage.Heartbeat.Rule = rule,
-		["1"   ] = rule => FixMessage.TestRequest.Rule = rule,
-		["2"   ] = rule => FixMessage.ResendRequest.Rule = rule,
-		["3"   ] = rule => FixMessage.Reject.Rule = rule,
-		["4"   ] = rule => FixMessage.SequenceReset.Rule = rule,
-		["5"   ] = rule => FixMessage.Logout.Rule = rule,
-		["6"   ] = rule => FixMessage.IOI.Rule = rule,
-		["7"   ] = rule => FixMessage.Advertisement.Rule = rule,
-		["8"   ] = rule => FixMessage.ExecutionReport.Rule = rule,
-		["9"   ] = rule => FixMessage.OrderCancelReject.Rule = rule,
-		["A"   ] = rule => FixMessage.Logon.Rule = rule,
-		["B"   ] = rule => FixMessage.News.Rule = rule,
-		["C"   ] = rule => FixMessage.Email.Rule = rule,
-		["D"   ] = rule => FixMessage.NewOrderSingle.Rule = rule,
-		["E"   ] = rule => FixMessage.NewOrderList.Rule = rule,
-		["F"   ] = rule => FixMessage.OrderCancelRequest.Rule = rule,
-		["G"   ] = rule => FixMessage.OrderCancelReplaceRequest.Rule = rule,
-		["H"   ] = rule => FixMessage.OrderStatusRequest.Rule = rule,
-		["J"   ] = rule => FixMessage.AllocationInstruction.Rule = rule,
-		["K"   ] = rule => FixMessage.ListCancelRequest.Rule = rule,
-		["L"   ] = rule => FixMessage.ListExecute.Rule = rule,
-		["M"   ] = rule => FixMessage.ListStatusRequest.Rule = rule,
-		["N"   ] = rule => FixMessage.ListStatus.Rule = rule,
-		["P"   ] = rule => FixMessage.AllocationInstructionAck.Rule = rule,
-		["Q"   ] = rule => FixMessage.DontKnowTrade.Rule = rule,
-		["R"   ] = rule => FixMessage.QuoteRequest.Rule = rule,
-		["S"   ] = rule => FixMessage.Quote.Rule = rule,
-		["T"   ] = rule => FixMessage.SettlementInstructions.Rule = rule,
-		["V"   ] = rule => FixMessage.MarketDataRequest.Rule = rule,
-		["W"   ] = rule => FixMessage.MarketDataSnapshotFullRefresh.Rule = rule,
-		["X"   ] = rule => FixMessage.MarketDataIncrementalRefresh.Rule = rule,
-		["Y"   ] = rule => FixMessage.MarketDataRequestReject.Rule = rule,
-		["Z"   ] = rule => FixMessage.QuoteCancel.Rule = rule,
-		["a"   ] = rule => FixMessage.QuoteStatusRequest.Rule = rule,
-		["b"   ] = rule => FixMessage.MassQuoteAcknowledgement.Rule = rule,
-		["c"   ] = rule => FixMessage.SecurityDefinitionRequest.Rule = rule,
-		["d"   ] = rule => FixMessage.SecurityDefinition.Rule = rule,
-		["e"   ] = rule => FixMessage.SecurityStatusRequest.Rule = rule,
-		["f"   ] = rule => FixMessage.SecurityStatus.Rule = rule,
-		["g"   ] = rule => FixMessage.TradingSessionStatusRequest.Rule = rule,
-		["h"   ] = rule => FixMessage.TradingSessionStatus.Rule = rule,
-		["i"   ] = rule => FixMessage.MassQuote.Rule = rule,
-		["j"   ] = rule => FixMessage.BusinessMessageReject.Rule = rule,
-		["k"   ] = rule => FixMessage.BidRequest.Rule = rule,
-		["l"   ] = rule => FixMessage.BidResponse.Rule = rule,
-		["m"   ] = rule => FixMessage.ListStrikePrice.Rule = rule,
-		["n"   ] = rule => FixMessage.XMLnonFIX.Rule = rule,
-		["o"   ] = rule => FixMessage.RegistrationInstructions.Rule = rule,
-		["p"   ] = rule => FixMessage.RegistrationInstructionsResponse.Rule = rule,
-		["q"   ] = rule => FixMessage.OrderMassCancelRequest.Rule = rule,
-		["r"   ] = rule => FixMessage.OrderMassCancelReport.Rule = rule,
-		["s"   ] = rule => FixMessage.NewOrderCross.Rule = rule,
-		["t"   ] = rule => FixMessage.CrossOrderCancelReplaceRequest.Rule = rule,
-		["u"   ] = rule => FixMessage.CrossOrderCancelRequest.Rule = rule,
-		["v"   ] = rule => FixMessage.SecurityTypeRequest.Rule = rule,
-		["w"   ] = rule => FixMessage.SecurityTypes.Rule = rule,
-		["x"   ] = rule => FixMessage.SecurityListRequest.Rule = rule,
-		["y"   ] = rule => FixMessage.SecurityList.Rule = rule,
-		["z"   ] = rule => FixMessage.DerivativeSecurityListRequest.Rule = rule,
-		["AA"  ] = rule => FixMessage.DerivativeSecurityList.Rule = rule,
-		["AB"  ] = rule => FixMessage.NewOrderMultileg.Rule = rule,
-		["AC"  ] = rule => FixMessage.MultilegOrderCancelReplace.Rule = rule,
-		["AD"  ] = rule => FixMessage.TradeCaptureReportRequest.Rule = rule,
-		["AE"  ] = rule => FixMessage.TradeCaptureReport.Rule = rule,
-		["AF"  ] = rule => FixMessage.OrderMassStatusRequest.Rule = rule,
-		["AG"  ] = rule => FixMessage.QuoteRequestReject.Rule = rule,
-		["AH"  ] = rule => FixMessage.RFQRequest.Rule = rule,
-		["AI"  ] = rule => FixMessage.QuoteStatusReport.Rule = rule,
-		["AJ"  ] = rule => FixMessage.QuoteResponse.Rule = rule,
-		["AK"  ] = rule => FixMessage.Confirmation.Rule = rule,
-		["AL"  ] = rule => FixMessage.PositionMaintenanceRequest.Rule = rule,
-		["AM"  ] = rule => FixMessage.PositionMaintenanceReport.Rule = rule,
-		["AN"  ] = rule => FixMessage.RequestForPositions.Rule = rule,
-		["AO"  ] = rule => FixMessage.RequestForPositionsAck.Rule = rule,
-		["AP"  ] = rule => FixMessage.PositionReport.Rule = rule,
-		["AQ"  ] = rule => FixMessage.TradeCaptureReportRequestAck.Rule = rule,
-		["AR"  ] = rule => FixMessage.TradeCaptureReportAck.Rule = rule,
-		["AS"  ] = rule => FixMessage.AllocationReport.Rule = rule,
-		["AT"  ] = rule => FixMessage.AllocationReportAck.Rule = rule,
-		["AU"  ] = rule => FixMessage.ConfirmationAck.Rule = rule,
-		["AV"  ] = rule => FixMessage.SettlementInstructionRequest.Rule = rule,
-		["AW"  ] = rule => FixMessage.AssignmentReport.Rule = rule,
-		["AX"  ] = rule => FixMessage.CollateralRequest.Rule = rule,
-		["AY"  ] = rule => FixMessage.CollateralAssignment.Rule = rule,
-		["AZ"  ] = rule => FixMessage.CollateralResponse.Rule = rule,
-		["BA"  ] = rule => FixMessage.CollateralReport.Rule = rule,
-		["BB"  ] = rule => FixMessage.CollateralInquiry.Rule = rule,
-		["BC"  ] = rule => FixMessage.NetworkCounterpartySystemStatusRequest.Rule = rule,
-		["BD"  ] = rule => FixMessage.NetworkCounterpartySystemStatusResponse.Rule = rule,
-		["BE"  ] = rule => FixMessage.UserRequest.Rule = rule,
-		["BF"  ] = rule => FixMessage.UserResponse.Rule = rule,
-		["BG"  ] = rule => FixMessage.CollateralInquiryAck.Rule = rule,
-		["BH"  ] = rule => FixMessage.ConfirmationRequest.Rule = rule,
-	};
+		var fields = new Dictionary<string, Action<FixMessageRule>>(StringComparer.Ordinal);
+
+		foreach (var one in _rules)
+		{
+			fields.Add(one.Type, one.Set);
+		}
+
+		return fields;
+	}
 
 	/// <summary>Puts every class back to the rule this package compiles in.</summary>
 	/// <remarks>
 	/// Not offered outside: a consumer undoes a replacement by assigning the name back, one class
 	/// at a time, which is the whole of the seam. This exists because a test that loads somebody's
-	/// dictionary has to leave the process as it found it, and ninety-three assignments in a finally
-	/// block would be ninety-three chances to forget one.
+	/// dictionary has to leave the process as it found it.
 	/// </remarks>
 	public static void Compiled()
 	{
-		foreach (var field in _compiling)
-			field();
-	}
+		foreach (var one in _rules)
+		{
+			one.Set(one.Compiled);
+		}
 
-	static readonly Action[] _compiling =
-	[
-		() => FixMessage.NewOrderSingle.Rule = FixValidator.ValidateNewOrderSingle,
-		() => FixMessage.TestRequest.Rule = FixValidator.ValidateTestRequest,
-		() => FixMessage.ResendRequest.Rule = FixValidator.ValidateResendRequest,
-		() => FixMessage.Reject.Rule = FixValidator.ValidateReject,
-		() => FixMessage.SequenceReset.Rule = FixValidator.ValidateSequenceReset,
-		() => FixMessage.Logout.Rule = FixValidator.ValidateLogout,
-		() => FixMessage.IOI.Rule = FixValidator.ValidateIOI,
-		() => FixMessage.Advertisement.Rule = FixValidator.ValidateAdvertisement,
-		() => FixMessage.ExecutionReport.Rule = FixValidator.ValidateExecutionReport,
-		() => FixMessage.OrderCancelReject.Rule = FixValidator.ValidateOrderCancelReject,
-		() => FixMessage.Logon.Rule = FixValidator.ValidateLogon,
-		() => FixMessage.News.Rule = FixValidator.ValidateNews,
-		() => FixMessage.Email.Rule = FixValidator.ValidateEmail,
-		() => FixMessage.NewOrderSingle.Rule = FixValidator.ValidateNewOrderSingle,
-		() => FixMessage.NewOrderList.Rule = FixValidator.ValidateNewOrderList,
-		() => FixMessage.OrderCancelRequest.Rule = FixValidator.ValidateOrderCancelRequest,
-		() => FixMessage.OrderCancelReplaceRequest.Rule = FixValidator.ValidateOrderCancelReplaceRequest,
-		() => FixMessage.OrderStatusRequest.Rule = FixValidator.ValidateOrderStatusRequest,
-		() => FixMessage.AllocationInstruction.Rule = FixValidator.ValidateAllocationInstruction,
-		() => FixMessage.ListCancelRequest.Rule = FixValidator.ValidateListCancelRequest,
-		() => FixMessage.ListExecute.Rule = FixValidator.ValidateListExecute,
-		() => FixMessage.ListStatusRequest.Rule = FixValidator.ValidateListStatusRequest,
-		() => FixMessage.ListStatus.Rule = FixValidator.ValidateListStatus,
-		() => FixMessage.AllocationInstructionAck.Rule = FixValidator.ValidateAllocationInstructionAck,
-		() => FixMessage.DontKnowTrade.Rule = FixValidator.ValidateDontKnowTrade,
-		() => FixMessage.QuoteRequest.Rule = FixValidator.ValidateQuoteRequest,
-		() => FixMessage.Quote.Rule = FixValidator.ValidateQuote,
-		() => FixMessage.SettlementInstructions.Rule = FixValidator.ValidateSettlementInstructions,
-		() => FixMessage.MarketDataRequest.Rule = FixValidator.ValidateMarketDataRequest,
-		() => FixMessage.MarketDataSnapshotFullRefresh.Rule = FixValidator.ValidateMarketDataSnapshotFullRefresh,
-		() => FixMessage.MarketDataIncrementalRefresh.Rule = FixValidator.ValidateMarketDataIncrementalRefresh,
-		() => FixMessage.MarketDataRequestReject.Rule = FixValidator.ValidateMarketDataRequestReject,
-		() => FixMessage.QuoteCancel.Rule = FixValidator.ValidateQuoteCancel,
-		() => FixMessage.QuoteStatusRequest.Rule = FixValidator.ValidateQuoteStatusRequest,
-		() => FixMessage.MassQuoteAcknowledgement.Rule = FixValidator.ValidateMassQuoteAcknowledgement,
-		() => FixMessage.SecurityDefinitionRequest.Rule = FixValidator.ValidateSecurityDefinitionRequest,
-		() => FixMessage.SecurityDefinition.Rule = FixValidator.ValidateSecurityDefinition,
-		() => FixMessage.SecurityStatusRequest.Rule = FixValidator.ValidateSecurityStatusRequest,
-		() => FixMessage.SecurityStatus.Rule = FixValidator.ValidateSecurityStatus,
-		() => FixMessage.TradingSessionStatusRequest.Rule = FixValidator.ValidateTradingSessionStatusRequest,
-		() => FixMessage.TradingSessionStatus.Rule = FixValidator.ValidateTradingSessionStatus,
-		() => FixMessage.MassQuote.Rule = FixValidator.ValidateMassQuote,
-		() => FixMessage.BusinessMessageReject.Rule = FixValidator.ValidateBusinessMessageReject,
-		() => FixMessage.BidRequest.Rule = FixValidator.ValidateBidRequest,
-		() => FixMessage.BidResponse.Rule = FixValidator.ValidateBidResponse,
-		() => FixMessage.ListStrikePrice.Rule = FixValidator.ValidateListStrikePrice,
-		() => FixMessage.XMLnonFIX.Rule = FixValidator.ValidateXMLnonFIX,
-		() => FixMessage.RegistrationInstructions.Rule = FixValidator.ValidateRegistrationInstructions,
-		() => FixMessage.RegistrationInstructionsResponse.Rule = FixValidator.ValidateRegistrationInstructionsResponse,
-		() => FixMessage.OrderMassCancelRequest.Rule = FixValidator.ValidateOrderMassCancelRequest,
-		() => FixMessage.OrderMassCancelReport.Rule = FixValidator.ValidateOrderMassCancelReport,
-		() => FixMessage.NewOrderCross.Rule = FixValidator.ValidateNewOrderCross,
-		() => FixMessage.CrossOrderCancelReplaceRequest.Rule = FixValidator.ValidateCrossOrderCancelReplaceRequest,
-		() => FixMessage.CrossOrderCancelRequest.Rule = FixValidator.ValidateCrossOrderCancelRequest,
-		() => FixMessage.SecurityTypeRequest.Rule = FixValidator.ValidateSecurityTypeRequest,
-		() => FixMessage.SecurityTypes.Rule = FixValidator.ValidateSecurityTypes,
-		() => FixMessage.SecurityListRequest.Rule = FixValidator.ValidateSecurityListRequest,
-		() => FixMessage.SecurityList.Rule = FixValidator.ValidateSecurityList,
-		() => FixMessage.DerivativeSecurityListRequest.Rule = FixValidator.ValidateDerivativeSecurityListRequest,
-		() => FixMessage.DerivativeSecurityList.Rule = FixValidator.ValidateDerivativeSecurityList,
-		() => FixMessage.NewOrderMultileg.Rule = FixValidator.ValidateNewOrderMultileg,
-		() => FixMessage.MultilegOrderCancelReplace.Rule = FixValidator.ValidateMultilegOrderCancelReplace,
-		() => FixMessage.TradeCaptureReportRequest.Rule = FixValidator.ValidateTradeCaptureReportRequest,
-		() => FixMessage.TradeCaptureReport.Rule = FixValidator.ValidateTradeCaptureReport,
-		() => FixMessage.OrderMassStatusRequest.Rule = FixValidator.ValidateOrderMassStatusRequest,
-		() => FixMessage.QuoteRequestReject.Rule = FixValidator.ValidateQuoteRequestReject,
-		() => FixMessage.RFQRequest.Rule = FixValidator.ValidateRFQRequest,
-		() => FixMessage.QuoteStatusReport.Rule = FixValidator.ValidateQuoteStatusReport,
-		() => FixMessage.QuoteResponse.Rule = FixValidator.ValidateQuoteResponse,
-		() => FixMessage.Confirmation.Rule = FixValidator.ValidateConfirmation,
-		() => FixMessage.PositionMaintenanceRequest.Rule = FixValidator.ValidatePositionMaintenanceRequest,
-		() => FixMessage.PositionMaintenanceReport.Rule = FixValidator.ValidatePositionMaintenanceReport,
-		() => FixMessage.RequestForPositions.Rule = FixValidator.ValidateRequestForPositions,
-		() => FixMessage.RequestForPositionsAck.Rule = FixValidator.ValidateRequestForPositionsAck,
-		() => FixMessage.PositionReport.Rule = FixValidator.ValidatePositionReport,
-		() => FixMessage.TradeCaptureReportRequestAck.Rule = FixValidator.ValidateTradeCaptureReportRequestAck,
-		() => FixMessage.TradeCaptureReportAck.Rule = FixValidator.ValidateTradeCaptureReportAck,
-		() => FixMessage.AllocationReport.Rule = FixValidator.ValidateAllocationReport,
-		() => FixMessage.AllocationReportAck.Rule = FixValidator.ValidateAllocationReportAck,
-		() => FixMessage.ConfirmationAck.Rule = FixValidator.ValidateConfirmationAck,
-		() => FixMessage.SettlementInstructionRequest.Rule = FixValidator.ValidateSettlementInstructionRequest,
-		() => FixMessage.AssignmentReport.Rule = FixValidator.ValidateAssignmentReport,
-		() => FixMessage.CollateralRequest.Rule = FixValidator.ValidateCollateralRequest,
-		() => FixMessage.CollateralAssignment.Rule = FixValidator.ValidateCollateralAssignment,
-		() => FixMessage.CollateralResponse.Rule = FixValidator.ValidateCollateralResponse,
-		() => FixMessage.CollateralReport.Rule = FixValidator.ValidateCollateralReport,
-		() => FixMessage.CollateralInquiry.Rule = FixValidator.ValidateCollateralInquiry,
-		() => FixMessage.NetworkCounterpartySystemStatusRequest.Rule = FixValidator.ValidateNetworkCounterpartySystemStatusRequest,
-		() => FixMessage.NetworkCounterpartySystemStatusResponse.Rule = FixValidator.ValidateNetworkCounterpartySystemStatusResponse,
-		() => FixMessage.UserRequest.Rule = FixValidator.ValidateUserRequest,
-		() => FixMessage.UserResponse.Rule = FixValidator.ValidateUserResponse,
-		() => FixMessage.CollateralInquiryAck.Rule = FixValidator.ValidateCollateralInquiryAck,
-		() => FixMessage.ConfirmationRequest.Rule = FixValidator.ValidateConfirmationRequest,
-		() => FixMessage.Custom.Rule = FixValidator.ValidateCustom,
-	];
+		FixMessage.Custom.Rule = FixValidator.ValidateCustom;
+	}
 }
