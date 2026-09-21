@@ -157,13 +157,12 @@ known and every rule can be asked of it independently. A finding names its rule,
 scope, the tag, the entry of the repeating group it is in, and where in the source it
 begins. A valid message answers with an empty array and allocates nothing.
 
-**Do not port the shape of another FIX library's validation onto it.** The ones this package
-is compared with stop at the first problem and report a bare tag: no offset, no entry index.
-Two things follow. Code that expects a throw gets an array instead, and a rewrite that reads
-one finding and moves on discards the rest silently — `message.Validate().FirstOrDefault()`
-is that older shape said out loud, if it is really what you want. And where a message carries
-nine parties, `finding.GroupTag`, `finding.EntryIndex` and `finding.Position` are the part
-that says which one; "tag 448 is wrong" is the answer you were getting before.
+**Do not carry over the shape of validation that stops at the first problem.** If the code
+you are porting expects a throw, or reads one error and moves on, it will keep the first
+finding here and discard the rest silently — `message.Validate().FirstOrDefault()` is that
+shape said out loud, if it is really what you want. And where a message carries nine parties,
+`finding.GroupTag`, `finding.EntryIndex` and `finding.Position` are the part that says which
+one; a bare tag does not.
 
 `message.Validate(validator)` checks against a `FixValidator` instead; the no-argument
 form is `Validate(FixValidator.Standard)`, which is FIX 4.4's schema as this package
