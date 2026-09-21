@@ -1,6 +1,7 @@
 The shas the pair READMEs of the pooling chain name are the shas of the chain in its own worktree; the chain was rebased onto 543326da before it landed (performance-ff, 2026-09-21) and they are no longer on any branch. Landed as, on main:
 
 5ed9682b  ->  02e44143  "The pool keeps what it grew, and the store it parks is emptied first" (on main before the night of 2026-09-20)
+            the code is the same: git patch-id --stable over `src` of both commits gives 148ff9a10a3d206a49345e4d922b7a6316c43de7; they differ in docs/next.md only (the diary paragraph and the message were reworded at landing; 1998 against 1993 added lines in all)
 5de9a75d  ->  dcf60185  "The dense store keeps its tables, and the lexer keeps its buffer"
 e1c2e8f1  ->  8234bdcf  "One test holds all five pools to the release policy"
 e93675cc  ->  52f52800  "The dense bound counts the tables it guards"
