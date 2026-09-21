@@ -7163,3 +7163,17 @@ who had written against it, which is why it is done now rather than considered l
 D88 the edit re-reads them for the CONCEPT — "a message class", "the message types" — and not only
 for the identifiers the compiler will find. And the release notes gain their fifth break, in the
 same commit as the change, since a break recorded later is a break somebody met first.
+
+**Two refinements the work found, and both are general.** Only CASES of the type nest inside it.
+`StandardHeader` and `StandardTrailer` derive from `FixFieldSet` and are regions WITHIN a message,
+not messages; the first pass drew them into the nest with the rest and they came back out. A
+non-case inside the set weakens exactly the claim the nesting is made to carry — that everything
+in here is one of these. And `CustomFixMessage` belongs in it for the opposite reason: it is the
+case for whatever the schema does not describe, and it is what lets the set be CLOSED without
+being complete.
+
+**And a nested case does not repeat its outer name.** The idiom cited for this decision is
+`FixField.Custom`, never `FixField.CustomFixField`: nesting exists so that the outer name carries
+the prefix at the use site, and a case that repeats it gives back what the nesting bought and
+stammers while doing it. So `FixMessage.Custom`. The rename rides in the break already declared,
+which is the whole reason it is free: a second break announced a week later is not.
