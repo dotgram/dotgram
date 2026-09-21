@@ -119,6 +119,86 @@ static class FixValidationBenchmarks
 			Time(messages, validator, repeat);
 	}
 
+	/// <summary>
+	/// How much of validating a message is reading the characters of its values, which is the
+	/// part no way of writing the rules can remove.
+	/// </summary>
+	/// <remarks>
+	/// The question behind it: compiling the rules replaces table lookups with constants, so the
+	/// most it can win is what the lookups cost — and a share that is mostly value reading puts a
+	/// ceiling on the whole road before a line of it is written. Measured against the same corpus
+	/// the run above times, by difference: walking every field and doing nothing, then walking
+	/// every field and holding its value to its type. The code sets are left out, so this is a
+	/// floor for the value share and therefore a CEILING for what compiling could win.
+	/// </remarks>
+	public static void Share(string[] args)
+	{
+		var rounds = args.Length > 0 ? int.Parse(args[0], CultureInfo.InvariantCulture) : 15;
+		var repeat = args.Length > 1 ? int.Parse(args[1], CultureInfo.InvariantCulture) : 20000;
+
+		var messages = Corpus();
+		var fields   = messages.Sum(message => message.AllFields.Count());
+		var typed    = messages.Sum(message => message.AllFields.Count(field => FixValues.Type(field.Tag) != FixValueType.None));
+
+		Console.WriteLine($"{messages.Length} messages, {fields} fields, {typed} of them with a type the schema gives.");
+
+		Warm(messages, walk: true,  repeat, TimeSpan.FromSeconds(2));
+		Warm(messages, walk: false, repeat, TimeSpan.FromSeconds(2));
+
+		var perMessage = messages.Length * repeat;
+		var walking    = new double[rounds];
+		var checking   = new double[rounds];
+
+		for (var round = 0; round < rounds; round++)
+		{
+			walking[round]  = Nanoseconds(Walked(messages, walk: true,  repeat), perMessage);
+			checking[round] = Nanoseconds(Walked(messages, walk: false, repeat), perMessage);
+		}
+
+		Report("walk only ", walking);
+		Report("walk+value", checking);
+
+		Console.WriteLine(
+			$"the values cost {Median(checking) - Median(walking):F0} ns/message of the " +
+			$"{Median(checking):F0} ns this walk takes");
+	}
+
+	static void Warm(FixMessage[] messages, bool walk, int repeat, TimeSpan budget)
+	{
+		var clock = Stopwatch.StartNew();
+
+		while (clock.Elapsed < budget)
+			Walked(messages, walk, repeat);
+	}
+
+	static long Walked(FixMessage[] messages, bool walk, int repeat)
+	{
+		var sink  = 0L;
+		var clock = Stopwatch.StartNew();
+
+		for (var pass = 0; pass < repeat; pass++)
+			foreach (var message in messages)
+				foreach (var field in message.AllFields)
+					if (walk)
+					{
+						sink += field.Tag;
+					}
+					else
+					{
+						var type = FixValues.Type(field.Tag);
+
+						if (type != FixValueType.None)
+							sink += FixValues.Valid(field, type, null) ? 1 : 0;
+					}
+
+		clock.Stop();
+
+		if (sink == long.MinValue)
+			throw new InvalidOperationException("Unreachable, and here so that the loop is not elided.");
+
+		return clock.ElapsedTicks;
+	}
+
 	static (long Ticks, int Findings) Time(FixMessage[] messages, FixValidator? validator, int repeat)
 	{
 		var findings = 0;
