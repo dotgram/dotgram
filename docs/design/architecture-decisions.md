@@ -7887,3 +7887,26 @@ a prediction that happens to look certain.
 contain no `recover`, no `find`, no lookahead either way, and no `with state` at all — which is
 exactly where §7.8 and GRAM4029/4030 arrived. A manual check that cannot see a regression in the
 newest area is the part of the suite that looks like coverage and is not.
+
+**A sharpening of D88's criterion, from applying it.** I gave "'existing' — compared to what?" as
+the test for prose that narrates change. It finds candidates; it does not separate them. Of five
+hits, four were history and one was **a real distinction wearing history's clothes**: "this layer
+restores separate length nodes" was a wrong word for a true statement — a length/data pair is ONE
+field to the field parser and TWO nodes in the message model, which the pair check depends on.
+Deleting the word would have deleted the fact. It now reads without yesterday: one field there,
+two nodes here, and this is the layer that separates them.
+
+**And a word can compare against the subject matter rather than against the past.** "BodyLength is
+unchanged" compares with the WIRE, which is legitimate — and a reader cannot tell that from a
+comparison with a previous version without guessing. The repair is not to strike the word but to
+name what the comparison is against: "BodyLength counts the wire's octets and the pipe rendering
+does not change it."
+
+So: **a search term produces candidates, and only reading what is asserted separates them.** That
+is the day's own rule arriving in prose — checking by names rather than by mechanism is what we got
+wrong three times tonight, and a grep over "existing" is checking by names.
+
+**And the dated internal document was treated correctly by not being rewritten.** A half-updated
+snapshot is worse than either state. It gained a header saying what it is, on what day, which names
+have moved since, and where the current description lives; the reasoning and the measurements stay,
+dated by what they measured.
