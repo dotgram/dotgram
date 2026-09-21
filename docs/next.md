@@ -24814,3 +24814,69 @@ each parse**, which does not care where the threshold sits -- and the reason it 
 different true one, that a weakly held store is retaken by the next rental if nothing collects in
 between. Two independent reasons for the same choice, and only one of them was known when it was
 made.
+
+## The bound decides which slot, not whether to keep: a steady workload was rebuilding seventeen megabytes
+
+The pooling chain removed a cliff where an oversized store was thrown away and grown again. It
+then put a quieter one back, in the slot it had just given a release to, and nobody saw it for a
+day because **every instrument until now read the end state of a run rather than its steps**.
+
+The stand's per-step column -- twenty identical parses, a collection after each, the heap read
+after each -- says it in one line: on `sql/refused-cliff-case-1738` the heap swings between 3 MB
+and 20 MB, **on a workload that never changes**, with the dip every fourth parse. `worst-columns-100k`
+does the same every eighth, and the size of its dip is exactly `SqlStandardParser._largeTokens`.
+
+**The cause is arithmetic between two quantities that were never the same.** The parked slot
+counted the parse's use against the **bound**: `used > 1048576`, where `used` was the record
+count times the number of tables. The **room** that put the store past that bound counts three
+hundred value tables. Case-1738 fills a store of 1,428,064 elements whose `used` reads about
+524,288 -- **under** the bound, on the parse that had just filled it -- so every steady parse read
+as idle, the eighth idle return demoted the store, and the next parse rebuilt seventeen megabytes.
+
+So the bound now decides only **which slot** holds a store, and both slots ask one question: is
+the room far larger than the use. One expression per pool, named once, passed to both. The
+result, measured the same way: **no dip in twenty steady parses**, 20,031.5 KB low against
+20,033.0 high, and the lexer's eighth-parse dip gone with it.
+
+**The lexer needed a quantity it did not have.** Its three arrays are sized from a *guess* at the
+token count -- a quarter of the input, doubling -- so their length is not a count of anything and
+cannot be held against `Count`: a document of long tokens guesses high and reads as idle on every
+parse of it, steady or not. `Room` now records what it was **asked** for, which is the number the
+arrays were sized from, and both slots read against that. A guess compared with a count is the
+same defect as a room compared with a use in a different unit, which is the third face of it in
+one day.
+
+**Four things went wrong on the way, and three of them are mine.**
+
+**A defect predicted from a ratio nobody divided.** I argued the tape's 144-entry birth size would
+fire the release on a small steady workload -- "room 144 against use about 48, which is over four".
+144 over 48 is **three**. The rule needs four. The regime I predicted cannot exist, and the stand's
+rows showed the stores had grown to fit their work anyway. The prediction was written out with its
+mechanism, sent, and read by someone else before the division was done.
+
+**Finding one exception stopped the search for the next, twice in one night.** The dense value
+store's room is not commensurable with its use; I found that, wrote it in a commit message as the
+one exception, and did not look in the slot next door -- where the *same* incommensurability was
+already deciding when to throw the store away. The lexer's guess was the third instance of it. A
+sentence of the form "X is the exception" should be read as a question about what else is.
+
+**"Cannot" said about a file not opened.** I read the entry point in a snapshot, saw the store
+rented after the refusal guard, and told the stand their dip could not be that pool. Both shapes
+are in the generated SQL parser: where the reader takes the value store as a constructor argument,
+because a guard may materialize while recognition is still running, the rental **must** precede
+the guard and the `finally` returns the store on a refusal too. The counter the stand printed --
+`_largeIdle=2` after one call -- was the evidence; my reading only supplied the reason afterwards.
+
+**And one that was not mine, reported before its numbers were used.** The first per-step instrument
+kept a pool readout for every parse and so grew the heap it was measuring by about a kilobyte a
+step, flagging nearly every parse as a dip. It was found, fixed and *said* before anything was read
+from it. An instrument that disturbs what it measures by less than a kilobyte is exactly the kind
+of thing a good story gets built on.
+
+**The timed side, with the resolution of its own hour.** Nothing on the common path: every row
+within 1.1% and the controls moving as much as the rows. But the two orders disagreed by up to
+**3.4 points** this hour against 1.4 for the previous pair on the same rows, so the sentence is a
+ceiling and not a zero: *the extra work in `Return` -- three more pools, both slots -- costs less
+than about two percent on these rows at this resolution.* Worth keeping as a general point: **the
+resolution is a property of the hour, not a constant of the stand**, so it is measured with each
+pair rather than carried over from the last one.
