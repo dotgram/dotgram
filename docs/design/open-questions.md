@@ -3025,3 +3025,55 @@ nobody's and unactionable** — it is rediscovered a year later and written down
 nothing, not because it is wrong but because it is in the wrong place. Beside the choice, in the
 words somebody reads while deciding, the same sentence works every time the choice is made. That is
 the difference between a review that accumulates and one that repeats.
+
+## Q31 (2026-09-21). The class-table deduplication exists, and it cannot see past one publication
+
+Fourth sweep, still on Igor's instruction to keep cleaning. Read at `7a04fd50`. This one is the
+**accidental** pile by D89's rule, not the chosen one, and it has a single place to fix.
+
+**What was counted.** Static data emitted more than once in one class, keyed on the literal
+contents so that two declarations with different names and the same elements count as duplicates.
+
+| class | redundant tables | source |
+| --- | --- | --- |
+| `Rfc5322` | 47 | 23.5 KB |
+| `Rfc9651` | 14 | 7.0 KB |
+| `SqlStandardParser` | 10 | 4.4 KB |
+| `Rfc9110` | 5 | 2.5 KB |
+| `TransactSqlParser` | 4 | 2.0 KB |
+| `ExpressionParser` | 2 | 1.0 KB |
+| FIX, `Sql92Parser`, the other nine Web files | 0 | — |
+| **total** | **82** | **≈40.4 KB** |
+
+**The other kind of table has none, which is the control.** Expected-set arrays — 198 declared in
+the expression language, 187 in `Sql92Parser`, 67 in `Rfc5322`, 10 in FIX — have **zero** duplicate
+groups anywhere. So this is not "the generator repeats data"; it is one kind of table repeating and
+another not.
+
+**The names say the cause and the emitter confirms it.** `Recognize_DotGram_AddressList_Class0`,
+`Recognize_DotGram_AddrSpecRule_With1_Class1`, `Recognize_DotGram_Mailbox_With2_Class1` — five
+copies of one 256-byte character class, one per publication. Verified rather than assumed: the
+payloads at lines 28867 and 29023 of `Rfc5322` are **516 characters each and identical**. (My first
+comparison of them "passed" because it compared two empty strings — `grep -A1 | tail -1` returns
+the line *after* the match. The check that passes for the wrong reason is the week's shape once
+more, and it nearly went into this entry.)
+
+**And the deduplication is there, one scope too narrow.** `Machine.cs:250` declares
+`readonly Dictionary<string, string> _classesByRanges`, and `_bitTables` beside it at 5352 — both
+**instance fields of `Machine`**, keyed on the emitted text. A `Machine` is one per publication, and
+the emitted name carries the publication's tag. So Q13's correction — "deduplication is already
+done, an identical table is never emitted twice" — is true **within one publication** and false
+across them, which is exactly the boundary nobody had reason to look at until the publications
+started sharing rules.
+
+**Why this is the accidental pile and not the chosen one.** Q30's duplicated method bodies are
+instance methods of a per-publication `ref struct`, and sharing them gives up the direct field
+access that struct exists for. A `static readonly byte[]` has no relationship to any struct's
+fields. Hoisting the map from the machine to the file takes nothing away from anything — the tables
+are already static, already `readonly`, already named by content in the map that holds them.
+
+**What would settle it.** One measurement, and the cleanest kind: hoist the two dictionaries, count
+`ILBytes` and the source figure before and after. No call site changes, because the call sites name
+a table and a rename is a rename.
+
+**Answer:** —
