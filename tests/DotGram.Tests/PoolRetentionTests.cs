@@ -275,36 +275,42 @@ public sealed class PoolRetentionTests
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// The bound above governs what may be <em>parked</em>. Nothing governed what was
-	/// <em>kept</em>: a store grown once for a large document sat in <c>_spare</c> for the life
-	/// of the thread, which a retained-bytes readout showed as 8.5 MB of one store still held
-	/// after the bound and the parked slot's release were both in place. This is that half.
+	/// The bound governs what may be <em>parked</em>. Nothing governed what was <em>kept</em>: a
+	/// store grown once for a large document sat in the ordinary slot for the life of the thread,
+	/// which a retained-bytes readout showed as 8.5 MB of one store still held after the bound
+	/// and the parked slot's release were both in place. This is that half, and all five pools
+	/// are under it — the rule is held here rather than described anywhere, because on 2026-09-20
+	/// the neighbouring policy was fixed in the two pools the generator writes and stayed broken
+	/// in the three that carry hand-written copies of it.
 	/// </para>
 	/// <para>
-	/// The quantity is the record tables against this parse's record count, and not the whole
-	/// store against its whole use. A dense store carries three hundred value tables, each grown
-	/// to the largest record index written in it, so their capacities sum to several times the
-	/// record count even when every one of them fits — a test of total room against total use
-	/// fires on a store that is exactly the right size. The margin is four and not two because a
-	/// table grows to <c>Math.Max(count, Length * 2)</c>: one doubling is the slack a steady
-	/// workload leaves behind, and two is a workload that has actually shrunk.
+	/// <b>Room against use, and for four of the five they are the same quantity twice.</b> The
+	/// arena has a list's own capacity and count; the lexer's three arrays and the tape's are all
+	/// indexed by one thing, so each pool's bound already sums exactly what its release counts.
+	/// The dense value store is the exception: its three hundred value tables are each grown to
+	/// the largest record index written <em>in that table</em>, so their capacities sum to several
+	/// times the record count even when every one of them fits, and a test of total room against
+	/// total use would fire on a store that is exactly the right size. It reads
+	/// <c>Live.Length</c> against the record count instead.
 	/// </para>
 	/// <para>
-	/// Two of the five pools are under this rule and three are not, and the three are carried
-	/// here asserting that they have no such counter — so the gap is visible in the test that
-	/// owns the policy rather than absent from it, and closing it fails this case rather than
-	/// passing silently. That is how <c>Tokens_DotGram</c> was carried before it came under the
-	/// rule above.
+	/// The margin is four and not two because every one of them grows by doubling: one doubling
+	/// is the slack a steady workload leaves behind, and a threshold there would demote the spare
+	/// of every steady parse every eight parses. Two doublings cannot be reached by slack.
+	/// </para>
+	/// <para>
+	/// The count is read from the field at every step and never inferred from the end state. A
+	/// counter that never advances and one that advances and is reset are indistinguishable from
+	/// the far side, and the neighbouring counter has been written wrong in both of those ways.
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues", true)]
-	[InlineData(CarrierKind.Immediate, "ImmediateValues", true)]
-	[InlineData(CarrierKind.Tape, "Ways", false)]
-	[InlineData(CarrierKind.Tape, "Tokens_DotGram", false)]
-	[InlineData(CarrierKind.Tape, "Parser", false)]
-	public void The_ordinary_spare_is_let_go_after_eight_parses_that_left_its_room_unused(
-		CarrierKind carrier, string name, bool releases)
+	[InlineData(CarrierKind.Tape, "DirectValues")]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues")]
+	[InlineData(CarrierKind.Tape, "Ways")]
+	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
+	[InlineData(CarrierKind.Tape, "Parser")]
+	public void The_ordinary_spare_is_let_go_after_eight_parses_that_left_its_room_unused(CarrierKind carrier, string name)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
 
@@ -326,79 +332,91 @@ public sealed class PoolRetentionTests
 		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text);
 		var owner    = assembly.GetType("Grammar")!;
 		var type     = owner.GetNestedType(name, Flags)!;
-		var counters = new[] { type, owner }
+
+		// The slot, and from its name the count and where the store goes afterwards: each pool
+		// spells all three differently and two of them keep them on the host class, which is
+		// exactly why they are found by what they hold rather than by a name written here.
+		var slot  = new[] { type, owner }
 			.SelectMany(where => where.GetFields(Flags))
-			.Where(field => field.IsStatic && !field.IsLiteral && field.FieldType == typeof(int)
-				&& field.Name.IndexOf("spare", StringComparison.OrdinalIgnoreCase) >= 0
-				&& field.Name.EndsWith("Idle", StringComparison.Ordinal))
-			.ToArray();
+			.Single(field => field.IsStatic && field.FieldType == type
+				&& field.Name.StartsWith("_spare", StringComparison.Ordinal));
+		var held  = slot.DeclaringType!;
+		var idle  = held.GetField(slot.Name + "Idle", Flags)!;
+		var letGo = held.GetField(slot.Name + "LetGo", Flags)!;
+		var rent  = type.GetMethod("Rent", Flags)
+			?? owner.GetMethod("Rented_DotGram", Flags) ?? owner.GetMethod("Recycled", Flags);
+		var back  = type.GetMethod("Return", Flags)
+			?? owner.GetMethod("Recycle_DotGram", Flags) ?? owner.GetMethod("Recycle", Flags);
 
-		if (!releases)
+		if (engine)
 		{
-			// The gap, asserted rather than left out. When this pool comes under the rule the
-			// case fails here, which is the notice that its row should move to true.
-			Assert.Empty(counters);
-
-			return;
+			rent = owner.GetMethod("Recycled", Flags);
+			back = owner.GetMethod("Recycle", Flags);
 		}
 
-		// Not literals: the policy's own SpareIdle is a const, which is a static int field of
-		// that name too, and a search by name alone finds the threshold beside the counter.
-		// Named, because a lexical grammar carries more than one pool on the host class and
-		// the counter asked about here is the one belonging to the pool named by the case.
-		var idle  = Assert.Single(counters, field => field.DeclaringType == type);
-		var held  = idle.DeclaringType!;
-		var slot     = held.GetFields(Flags).Single(field => field.IsStatic && field.FieldType == type
-			&& field.Name == idle.Name[..^"Idle".Length]);
-		var letGo    = held.GetField(idle.Name[..^"Idle".Length] + "LetGo", Flags)!;
-		var rent     = type.GetMethod("Rent", Flags)!;
-		var giveBack = type.GetMethod("Return", Flags)!;
-
-		// Small enough in capacity that every return below takes the ordinary branch and not
-		// the parked one, and one array long enough that a parse can leave most of it unused.
-		var store  = rent.Invoke(null, null)!;
+		var store  = rent!.Invoke(null, null)!;
 		var arrays = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType.IsArray).ToArray();
 		var counts = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType == typeof(int)).ToArray();
-		var room   = name == "DirectValues"
-			? arrays.Single(field => field.Name == "Live")
-			: arrays.First(field => field.Name.StartsWith("Stack", StringComparison.Ordinal));
 
-		foreach (var field in arrays)
-			field.SetValue(store, Array.CreateInstance(field.FieldType.GetElementType()!, 0));
+		// Room enough that a parse can leave most of it unused, and small enough in capacity
+		// that every return below takes the ordinary branch and never the parked one. The arena
+		// is one level down: a Parser holds an arena, and the arena holds the room.
+		var arena = type.GetFields(Flags).FirstOrDefault(field => field.Name == "Entries")?.GetValue(store);
+		var room  = arena?.GetType().GetFields(Flags).Single(field => field.FieldType.IsArray);
+		var count = arena?.GetType().GetFields(Flags).Single(field => field.FieldType == typeof(int));
 
-		room.SetValue(store, Array.CreateInstance(room.FieldType.GetElementType()!, 64));
+		if (arena is not null)
+			room!.SetValue(arena, Array.CreateInstance(room.FieldType.GetElementType()!, 64));
+		else
+		{
+			// Every array the pool's own test reads is given the same room, and the rest none,
+			// so that "room" in this test is the number that test sums and nothing else.
+			var counted = name switch
+			{
+				"DirectValues"     => new[] { "Live" },
+				"ImmediateValues"  => arrays.Where(field => field.Name.StartsWith("Stack", StringComparison.Ordinal))
+					.Take(1).Select(field => field.Name).ToArray(),
+				"Ways"             => ["Items", "Log", "Refs"],
+				_                  => ["Kinds", "Starts", "Lengths"],
+			};
+
+			foreach (var field in arrays)
+				field.SetValue(store, Array.CreateInstance(field.FieldType.GetElementType()!,
+					counted.Contains(field.Name) ? 64 : 0));
+		}
 
 		void Used(int howMuch)
 		{
-			foreach (var field in counts)
-				field.SetValue(store, howMuch);
+			if (arena is not null)
+				count!.SetValue(arena, howMuch);
+			else
+				foreach (var field in counts)
+					field.SetValue(store, howMuch);
 		}
 
 		// Sixteen of sixty-four is inside the margin: the room is wanted, and the count is nil.
 		Used(16);
-		giveBack.Invoke(null, [store]);
+		back!.Invoke(null, [store]);
 		Assert.Same(store, slot.GetValue(null));
 		Assert.Equal(0, idle.GetValue(null));
 
-		// Eight of sixty-four is two doublings out. Seven such parses and the store is still
-		// held — and the count is read from the field at every step, never inferred from the
-		// end state, because a counter that never advances and one that advances and is reset
-		// are indistinguishable from the far side.
+		// Eight of sixty-four is two doublings out. Seven such parses and the store is held
+		// still, with the count read from the field after each one.
 		for (var parse = 1; parse <= 7; parse++)
 		{
 			Assert.Same(store, rent.Invoke(null, null));
 
 			Used(8);
-			giveBack.Invoke(null, [store]);
+			back.Invoke(null, [store]);
 
 			Assert.Same(store, slot.GetValue(null));
 			Assert.Equal(parse, idle.GetValue(null));
 		}
 
-		// One parse that wants the room puts it back to nothing.
+		// One parse that wants the room puts the count back to nothing.
 		Assert.Same(store, rent.Invoke(null, null));
 		Used(16);
-		giveBack.Invoke(null, [store]);
+		back.Invoke(null, [store]);
 		Assert.Same(store, slot.GetValue(null));
 		Assert.Equal(0, idle.GetValue(null));
 
@@ -410,7 +428,7 @@ public sealed class PoolRetentionTests
 			Assert.Same(store, rent.Invoke(null, null));
 
 			Used(8);
-			giveBack.Invoke(null, [store]);
+			back.Invoke(null, [store]);
 		}
 
 		Assert.Null(slot.GetValue(null));

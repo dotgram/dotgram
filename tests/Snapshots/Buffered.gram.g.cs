@@ -4000,6 +4000,14 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<Ways>? _largeLetGo;
 
+			/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
+			[global::System.ThreadStatic]
+			static int _spareIdle;
+
+			/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<Ways>? _spareLetGo;
+
 			/// <summary>
 			/// Eight is a claim, not a taste: if eight parses in a row have not wanted the large
 			/// tape, this thread's work has changed and the next parse is unlikely to want it
@@ -4007,6 +4015,9 @@ namespace DotGram.Snapshots
 			/// moment ago anyway; holding it through a hundred would be hoarding.
 			/// </summary>
 			const int LargeIdle = 8;
+
+			/// <summary>The same count for the ordinary slot, read the same way.</summary>
+			const int SpareIdle = 8;
 
 			internal static Ways Rent()
 			{
@@ -4028,6 +4039,11 @@ namespace DotGram.Snapshots
 				{
 					spare = letGo;
 					_largeLetGo.SetTarget(null!);
+				}
+				else if (_spareLetGo != null && _spareLetGo.TryGetTarget(out var letGoSpare))
+				{
+					spare = letGoSpare;
+					_spareLetGo.SetTarget(null!);
 				}
 				else
 					return new Ways();
@@ -4072,6 +4088,23 @@ namespace DotGram.Snapshots
 					}
 
 					_large = ways;
+
+					return;
+				}
+
+				// The ordinary slot lets go by the rule the parked one uses, counted where a parse
+				// ENDS and against what it used. Room and use are the two sums already written above:
+				// every array here is indexed by the same thing, so the bound's capacities and the
+				// release's counts are the same quantity twice. Four times and not twice because a
+				// table grows to at least double: one doubling is the slack a steady workload leaves,
+				// and two is a workload that has shrunk.
+				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
+					> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
+					_spareIdle = 0;
+				else if (++_spareIdle >= SpareIdle)
+				{
+					(_spareLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+					_spareIdle = 0;
 
 					return;
 				}
@@ -4830,6 +4863,14 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static global::System.WeakReference<Parser>? _largeParserLetGo;
 
+		/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
+		[global::System.ThreadStatic]
+		static int _spareParserIdle;
+
+		/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
+		[global::System.ThreadStatic]
+		static global::System.WeakReference<Parser>? _spareParserLetGo;
+
 		/// <summary>
 		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
 		/// large arena, this thread's work has changed and the next parse is unlikely to want
@@ -4837,6 +4878,9 @@ namespace DotGram.Snapshots
 		/// a moment ago anyway; carrying it through a hundred would be hoarding.
 		/// </summary>
 		const int LargeParserIdle = 8;
+
+		/// <summary>The same count for the ordinary slot, read the same way.</summary>
+		const int SpareParserIdle = 8;
 
 		static Parser Recycled()
 		{
@@ -4858,6 +4902,11 @@ namespace DotGram.Snapshots
 			{
 				spare = letGo;
 				_largeParserLetGo.SetTarget(null!);
+			}
+			else if (_spareParserLetGo != null && _spareParserLetGo.TryGetTarget(out var letGoSpare))
+			{
+				spare = letGoSpare;
+				_spareParserLetGo.SetTarget(null!);
 			}
 			else
 				return new Parser();
@@ -4886,6 +4935,19 @@ namespace DotGram.Snapshots
 				}
 
 				_largeParser = parser;
+
+				return;
+			}
+
+			// The ordinary slot lets go by the rule the parked one uses. Room and use are the
+			// list's own two numbers, which is as commensurable as it gets; four times and not
+			// twice because a list grows by doubling, so one doubling is ordinary slack.
+			if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
+				_spareParserIdle = 0;
+			else if (++_spareParserIdle >= SpareParserIdle)
+			{
+				(_spareParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+				_spareParserIdle = 0;
 
 				return;
 			}

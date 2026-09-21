@@ -4756,6 +4756,14 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static global::System.WeakReference<Parser>? _largeParserLetGo;
 
+		/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
+		[global::System.ThreadStatic]
+		static int _spareParserIdle;
+
+		/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
+		[global::System.ThreadStatic]
+		static global::System.WeakReference<Parser>? _spareParserLetGo;
+
 		/// <summary>
 		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
 		/// large arena, this thread's work has changed and the next parse is unlikely to want
@@ -4763,6 +4771,9 @@ namespace DotGram.Snapshots
 		/// a moment ago anyway; carrying it through a hundred would be hoarding.
 		/// </summary>
 		const int LargeParserIdle = 8;
+
+		/// <summary>The same count for the ordinary slot, read the same way.</summary>
+		const int SpareParserIdle = 8;
 
 		static Parser Recycled()
 		{
@@ -4784,6 +4795,11 @@ namespace DotGram.Snapshots
 			{
 				spare = letGo;
 				_largeParserLetGo.SetTarget(null!);
+			}
+			else if (_spareParserLetGo != null && _spareParserLetGo.TryGetTarget(out var letGoSpare))
+			{
+				spare = letGoSpare;
+				_spareParserLetGo.SetTarget(null!);
 			}
 			else
 				return new Parser();
@@ -4812,6 +4828,19 @@ namespace DotGram.Snapshots
 				}
 
 				_largeParser = parser;
+
+				return;
+			}
+
+			// The ordinary slot lets go by the rule the parked one uses. Room and use are the
+			// list's own two numbers, which is as commensurable as it gets; four times and not
+			// twice because a list grows by doubling, so one doubling is ordinary slack.
+			if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
+				_spareParserIdle = 0;
+			else if (++_spareParserIdle >= SpareParserIdle)
+			{
+				(_spareParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+				_spareParserIdle = 0;
 
 				return;
 			}

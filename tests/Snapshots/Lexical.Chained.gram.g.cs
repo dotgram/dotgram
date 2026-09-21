@@ -1260,6 +1260,14 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<Tokens_DotGram>? _largeTokensLetGo;
 
+			/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
+			[global::System.ThreadStatic]
+			static int _spareTokensIdle;
+
+			/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<Tokens_DotGram>? _spareTokensLetGo;
+
 			static Tokens_DotGram Rented_DotGram()
 			{
 				var spare = _spareTokens;
@@ -1280,6 +1288,11 @@ namespace DotGram.Snapshots
 				{
 					spare = letGo;
 					_largeTokensLetGo.SetTarget(null!);
+				}
+				else if (_spareTokensLetGo != null && _spareTokensLetGo.TryGetTarget(out var letGoSpare))
+				{
+					spare = letGoSpare;
+					_spareTokensLetGo.SetTarget(null!);
 				}
 				else
 					return new Tokens_DotGram();
@@ -1313,6 +1326,19 @@ namespace DotGram.Snapshots
 					}
 
 					_largeTokens = tokens;
+
+					return;
+				}
+
+				// The ordinary slot lets go by the rule the parked one uses. All three arrays
+				// are indexed by the token, so the bound's capacities and this count are the
+				// same quantity twice; four times and not twice because they grow by doubling.
+				if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length <= 4L * tokens.Count * 3L)
+					_spareTokensIdle = 0;
+				else if (++_spareTokensIdle >= 8)
+				{
+					(_spareTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(tokens)).SetTarget(tokens);
+					_spareTokensIdle = 0;
 
 					return;
 				}
@@ -1558,6 +1584,14 @@ namespace DotGram.Snapshots
 				[global::System.ThreadStatic]
 				static global::System.WeakReference<Ways>? _largeLetGo;
 
+				/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
+				[global::System.ThreadStatic]
+				static int _spareIdle;
+
+				/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
+				[global::System.ThreadStatic]
+				static global::System.WeakReference<Ways>? _spareLetGo;
+
 				/// <summary>
 				/// Eight is a claim, not a taste: if eight parses in a row have not wanted the large
 				/// tape, this thread's work has changed and the next parse is unlikely to want it
@@ -1565,6 +1599,9 @@ namespace DotGram.Snapshots
 				/// moment ago anyway; holding it through a hundred would be hoarding.
 				/// </summary>
 				const int LargeIdle = 8;
+
+				/// <summary>The same count for the ordinary slot, read the same way.</summary>
+				const int SpareIdle = 8;
 
 				internal static Ways Rent()
 				{
@@ -1586,6 +1623,11 @@ namespace DotGram.Snapshots
 					{
 						spare = letGo;
 						_largeLetGo.SetTarget(null!);
+					}
+					else if (_spareLetGo != null && _spareLetGo.TryGetTarget(out var letGoSpare))
+					{
+						spare = letGoSpare;
+						_spareLetGo.SetTarget(null!);
 					}
 					else
 						return new Ways();
@@ -1630,6 +1672,23 @@ namespace DotGram.Snapshots
 						}
 
 						_large = ways;
+
+						return;
+					}
+
+					// The ordinary slot lets go by the rule the parked one uses, counted where a parse
+					// ENDS and against what it used. Room and use are the two sums already written above:
+					// every array here is indexed by the same thing, so the bound's capacities and the
+					// release's counts are the same quantity twice. Four times and not twice because a
+					// table grows to at least double: one doubling is the slack a steady workload leaves,
+					// and two is a workload that has shrunk.
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
+						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
+						_spareIdle = 0;
+					else if (++_spareIdle >= SpareIdle)
+					{
+						(_spareLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+						_spareIdle = 0;
 
 						return;
 					}

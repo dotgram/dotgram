@@ -2137,6 +2137,14 @@ public static partial class CSharpEmitter
 		file.Line("[global::System.ThreadStatic]");
 		file.Line("static global::System.WeakReference<Tokens_DotGram>? _largeTokensLetGo;");
 		file.Line();
+		file.Line("/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static int _spareTokensIdle;");
+		file.Line();
+		file.Line("/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static global::System.WeakReference<Tokens_DotGram>? _spareTokensLetGo;");
+		file.Line();
 
 		using (file.Block("static Tokens_DotGram Rented_DotGram()"))
 		{
@@ -2161,6 +2169,12 @@ public static partial class CSharpEmitter
 			{
 				file.Line("spare = letGo;");
 				file.Line("_largeTokensLetGo.SetTarget(null!);");
+			}
+
+			using (file.Block("else if (_spareTokensLetGo != null && _spareTokensLetGo.TryGetTarget(out var letGoSpare))"))
+			{
+				file.Line("spare = letGoSpare;");
+				file.Line("_spareTokensLetGo.SetTarget(null!);");
 			}
 
 			file.Line("else");
@@ -2197,6 +2211,19 @@ file.Line("return spare;");
 				}
 				file.Line();
 				file.Line("_largeTokens = tokens;");
+				file.Line();
+				file.Line("return;");
+			}
+			file.Line();
+			file.Line("// The ordinary slot lets go by the rule the parked one uses. All three arrays");
+			file.Line("// are indexed by the token, so the bound's capacities and this count are the");
+			file.Line("// same quantity twice; four times and not twice because they grow by doubling.");
+			file.Line("if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length <= 4L * tokens.Count * 3L)");
+			file.Then("_spareTokensIdle = 0;");
+			using (file.Block("else if (++_spareTokensIdle >= 8)"))
+			{
+				file.Line("(_spareTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(tokens)).SetTarget(tokens);");
+				file.Line("_spareTokensIdle = 0;");
 				file.Line();
 				file.Line("return;");
 			}
