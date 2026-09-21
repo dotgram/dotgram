@@ -7732,3 +7732,24 @@ why it wins. But the FIX 4.4 parser is fifty-seven megabytes of C# and T-SQL is 
 whether a workload that rotates through many of their alternatives meets the same wall is a
 measurement nobody has taken. It may not: a parser's branches are threaded by one input rather
 than selected ninety-three ways. Asking it is cheap; assuming either answer is not.
+
+**Sharpened by its author, and the sharpening is what makes it portable.** "Not code size in bytes"
+was my phrasing and it is too loose. Halving the text changed nothing because what was removed was
+the value checks; removing the switch, with the same number of arms still present in other layers,
+halved the cost. So the quantity to count is **alternatives exercised in rotation**, not the volume
+of what was generated. "A lot of code" is a poor indicator; "many cold forks, alternating in time"
+is a good one — and only the second transfers to a schema nobody has seen.
+
+**And the argument against transferring it one-to-one to our own parsers is worth keeping beside
+the question.** A parser's branches are threaded by one input moving forward, not selected
+ninety-three ways among independent procedures called in arbitrary order; the locality is a
+different shape. That is a consideration and not a measurement, and it was labelled as one by the
+session that offered it.
+
+**One more thing the same session caught about itself, and it is a rule.** The figure it had given
+another session — 3.6 MB/s for reading the generated text — was a single cold pass with default
+tiering; measured warm it is 8 to 10. The discipline that had protected its own validation
+measurement, warm-up by the clock, did not attach to a number it was *relaying*. **Care follows
+the act of measuring and does not follow a number into someone else's hands** — which is the
+relaying rule seen from the other end: the sender is the last person who can still apply it, and
+the receiver has nothing to apply it to.
