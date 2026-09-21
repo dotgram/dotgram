@@ -428,10 +428,10 @@ public sealed class FixDictionary
 
 		return required switch
 		{
-			"Y"      => true,
-			"N"      => false,
-			null     => false,
-			_        => throw Bad(reader, $"required='{required}' on <{reader.Name} name='{reader.GetAttribute("name")}'>; the format has only Y and N."),
+			"Y"  => true,
+			"N"  => false,
+			null => false,
+			_    => throw Bad(reader, $"required='{required}' on <{reader.Name} name='{reader.GetAttribute("name")}'>; the format has only Y and N."),
 		};
 	}
 

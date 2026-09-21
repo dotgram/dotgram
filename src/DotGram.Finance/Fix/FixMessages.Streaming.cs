@@ -28,14 +28,20 @@ public static partial class FixMessages
 	public static bool TryParse(TextReader input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
+
 		ValidateStreamArguments(maxMessageLength);
+
 		message = null;
+
 		var reader = new FrameReader(input, maxMessageLength, (options?.Framing ?? FixFraming.Wire).Separator());
+
 		if (!reader.TryRead(out var wire, out error))
 		{
-			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
+			if (error == null)
+				Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
+
 		return TryParseFrame(wire, out message, out error, options);
 	}
 
@@ -46,7 +52,9 @@ public static partial class FixMessages
 	public static IEnumerable<FixMessage> ReadMessages(TextReader input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
+
 		ValidateStreamArguments(maxMessageLength);
+
 		return ReadFrames(new FrameReader(input, maxMessageLength, (options?.Framing ?? FixFraming.Wire).Separator()), options);
 	}
 
@@ -57,7 +65,9 @@ public static partial class FixMessages
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
 	public static FixMessage Parse(Stream input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		if (TryParse(input, out var message, out var error, options, maxMessageLength)) return message!;
+		if (TryParse(input, out var message, out var error, options, maxMessageLength))
+			return message!;
+
 		throw new FormatException(error!.ToString());
 	}
 
@@ -71,14 +81,20 @@ public static partial class FixMessages
 	public static bool TryParse(Stream input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
+
 		ValidateStreamArguments(maxMessageLength);
+
 		message = null;
+
 		var reader = new FrameReader(input, maxMessageLength, (options?.Framing ?? FixFraming.Wire).Separator());
+
 		if (!reader.TryRead(out var wire, out error))
 		{
-			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
+			if (error == null)
+				Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
+
 		return TryParseFrame(wire, out message, out error, options);
 	}
 
@@ -89,7 +105,9 @@ public static partial class FixMessages
 	public static IEnumerable<FixMessage> ReadMessages(Stream input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
+
 		ValidateStreamArguments(maxMessageLength);
+
 		return ReadFrames(new FrameReader(input, maxMessageLength, (options?.Framing ?? FixFraming.Wire).Separator()), options);
 	}
 
@@ -104,101 +122,153 @@ public static partial class FixMessages
 		{
 			if (!reader.TryRead(out var wire, out var error))
 			{
-				if (error != null) throw new FormatException(error.ToString());
+				if (error != null)
+					throw new FormatException(error.ToString());
 				yield break;
 			}
-			if (!TryParseFrame(wire, out var message, out error, options)) throw new FormatException(error!.ToString());
+
+			if (!TryParseFrame(wire, out var message, out error, options))
+				throw new FormatException(error!.ToString());
+
 			yield return message!;
 		}
 	}
 
 	readonly struct Frame
 	{
-		public Frame(string? text, byte[]? bytes) { Text = text; Bytes = bytes; }
-		public string? Text { get; }
+		public Frame(string? text, byte[]? bytes)
+		{
+			Text  = text;
+			Bytes = bytes;
+		}
+
+		public string? Text  { get; }
 		public byte[]? Bytes { get; }
 	}
 
 	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
-		=> frame.Bytes != null ? TryParseBytes(frame.Bytes, out message, out error, options) : TryParseCore(frame.Text, out message, out error, options);
+	{
+		return frame.Bytes != null
+			? TryParseBytes(frame.Bytes, out message, out error, options)
+			: TryParseCore(frame.Text, out message, out error, options);
+	}
 
 	sealed class FrameReader
 	{
-		readonly string prefix;
-		readonly char separator;
-		readonly TextReader? textInput;
-		readonly Stream? byteInput;
-		readonly int maximum;
-		char[]? buffer;
-		byte[]? byteBuffer;
-		int count;
+		readonly string      _prefix;
+		readonly char        _separator;
+		readonly TextReader? _textInput;
+		readonly Stream?     _byteInput;
+		readonly int         _maximum;
+		char[]?              _buffer;
+		byte[]?              _byteBuffer;
+		int                  _count;
 
 		public FrameReader(TextReader input, int maximum, char separator = '\u0001')
 		{
-			textInput = input;
-			this.separator = separator;
-			prefix = "8=FIX.4.4" + separator + "9=";
-			this.maximum = maximum;
-			buffer = new char[Math.Min(4096, maximum)];
+			_textInput = input;
+			_separator = separator;
+			_prefix    = "8=FIX.4.4" + separator + "9=";
+			_maximum   = maximum;
+			_buffer    = new char[Math.Min(4096, maximum)];
 		}
 
 		public FrameReader(Stream input, int maximum, char separator = '\u0001')
 		{
-			byteInput = input;
-			this.separator = separator;
-			prefix = "8=FIX.4.4" + separator + "9=";
-			this.maximum = maximum;
-			byteBuffer = new byte[Math.Min(4096, maximum)];
+			_byteInput  = input;
+			_separator  = separator;
+			_prefix     = "8=FIX.4.4" + separator + "9=";
+			_maximum    = maximum;
+			_byteBuffer = new byte[Math.Min(4096, maximum)];
 		}
-		int At(int index) => byteBuffer != null ? byteBuffer[index] : buffer![index];
+
+		int At(int index)
+		{
+			return _byteBuffer != null ? _byteBuffer[index] : _buffer![index];
+		}
+
 		bool ReadTo(int target)
 		{
-			while (count < target)
+			while (_count < target)
 			{
-				var capacity = byteBuffer?.Length ?? buffer!.Length;
-				if (count == capacity)
+				var capacity = _byteBuffer?.Length ?? _buffer!.Length;
+
+				if (_count == capacity)
 				{
-					capacity = (int)Math.Min(maximum, Math.Max((long)count + 1, (long)count * 2));
-					if (byteBuffer != null) Array.Resize(ref byteBuffer, capacity);
-					else Array.Resize(ref buffer, capacity);
+					capacity = (int)Math.Min(_maximum, Math.Max((long)_count + 1, (long)_count * 2));
+
+					if (_byteBuffer != null)
+						Array.Resize(ref _byteBuffer, capacity);
+					else
+						Array.Resize(ref _buffer, capacity);
 				}
-				var wanted = Math.Min(target - count, capacity - count);
-				var read = byteInput != null ? byteInput.Read(byteBuffer!, count, wanted) : textInput!.Read(buffer!, count, wanted);
-				if (read == 0) return false;
-				count += read;
+
+				var wanted = Math.Min(target - _count, capacity - _count);
+				var read   = _byteInput?.Read(_byteBuffer!, _count, wanted) ?? _textInput!.Read(_buffer!, _count, wanted);
+
+				if (read == 0)
+					return false;
+
+				_count += read;
 			}
+
 			return true;
 		}
 
 		public bool TryRead(out Frame wire, out FixParseError? error)
 		{
-			wire = default;
-			error = null;
-			count = 0;
-			if (!ReadTo(1)) return false;
-			if (maximum < prefix.Length) return Fail(count, 9, null, "Message exceeds maxMessageLength.", out error);
-			if (!ReadTo(prefix.Length)) return Fail(count, 8, null, "Truncated FIX header.", out error);
-			for (var i = 0; i < prefix.Length; i++)
-				if (At(i) != prefix[i]) return Fail(i, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+			wire   = default;
+			error  = null;
+			_count = 0;
+
+			if (!ReadTo(1))
+				return false;
+
+			if (_maximum < _prefix.Length)
+				return Fail(_count, 9, null, "Message exceeds maxMessageLength.", out error);
+
+			if (!ReadTo(_prefix.Length))
+				return Fail(_count, 8, null, "Truncated FIX header.", out error);
+
+			for (var i = 0; i < _prefix.Length; i++)
+				if (At(i) != _prefix[i])
+					return Fail(i, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+
 			var length = 0;
 			var digits = 0;
+
 			while (true)
 			{
-				if (count == maximum) return Fail(count, 9, null, "Message exceeds maxMessageLength.", out error);
-				if (!ReadTo(count + 1)) return Fail(count, 9, null, "Truncated BodyLength.", out error);
-				var c = At(count - 1);
-				if (c == separator && digits != 0) break;
-				if (c < '0' || c > '9') return Fail(count - 1, 9, null, "BodyLength must contain decimal digits.", out error);
-				if (length > (maximum - (c - '0')) / 10 || c - '0' > maximum)
-					return Fail(count - 1, 9, null, "Message exceeds maxMessageLength.", out error);
+				if (_count == _maximum)
+					return Fail(_count, 9, null, "Message exceeds maxMessageLength.", out error);
+
+				if (!ReadTo(_count + 1))
+					return Fail(_count, 9, null, "Truncated BodyLength.", out error);
+
+				var c = At(_count - 1);
+
+				if (c == _separator && digits != 0)
+					break;
+
+				if (c < '0' || c > '9')
+					return Fail(_count - 1, 9, null, "BodyLength must contain decimal digits.", out error);
+
+				if (length > (_maximum - (c - '0')) / 10 || c - '0' > _maximum)
+					return Fail(_count - 1, 9, null, "Message exceeds maxMessageLength.", out error);
+
 				length = length * 10 + c - '0';
 				digits++;
 			}
-			if ((long)count + length + 7 > maximum) return Fail(count, 9, null, "Message exceeds maxMessageLength.", out error);
-			if (!ReadTo(count + length + 7)) return Fail(count, null, null, "Truncated FIX message.", out error);
-			wire = byteBuffer != null ? new Frame(null, byteBuffer.AsSpan(0, count).ToArray()) : new Frame(new string(buffer!, 0, count), null);
+
+			if ((long)_count + length + 7 > _maximum)
+				return Fail(_count, 9, null, "Message exceeds maxMessageLength.", out error);
+
+			if (!ReadTo(_count + length + 7))
+				return Fail(_count, null, null, "Truncated FIX message.", out error);
+
+			wire = _byteBuffer != null ? new Frame(null, [.. _byteBuffer.AsSpan(0, _count)]) : new Frame(new string(_buffer!, 0, _count), null);
+
 			return true;
 		}
 	}
-
 }
