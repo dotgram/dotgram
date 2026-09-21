@@ -63,10 +63,16 @@ public class SqlStandardBenchmarks
 		/// <summary>What the two disagree about, or null where they build the same tree.</summary>
 		public Func<string?> Disagreement { get; } = disagreement;
 
-		/// <summary>The name is what BenchmarkDotNet prints for the case.</summary>
+		/// <summary>What BenchmarkDotNet prints for the case: the name and the size, in twenty</summary>
+		/// <remarks>
+		/// Twenty characters is what a parameter column keeps before it elides the middle, and an
+		/// elided name is a row nobody can tell from its neighbour. "conditions1000 12889" is exactly
+		/// twenty; the words that used to be in here ("characters") pushed it over and the report
+		/// printed "arith(...)ters) [26]".
+		/// </remarks>
 		public override string ToString()
 		{
-			return Name + " (" + Text.Length + " characters)";
+			return Name + " " + Text.Length;
 		}
 	}
 
