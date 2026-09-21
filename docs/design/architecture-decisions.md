@@ -8708,3 +8708,43 @@ BenchmarkDotNet job and no affinity at all, so a run today inherits whatever the
 and the only affinity in that directory pins the half opposite to the one the timing rules name.
 Which of those is the defect is the stand's to say; that it must be said before a number is taken
 is not.
+
+**The affinity is not a defect, and the rule is two-sided.** Timing runs on cores 0–15 at high
+priority; everybody else's builds and tests run pinned to 16–31 so that the timing half is quiet.
+Both halves are written down — in the benchmarks' README and in the development notes — and the
+code carries them: the stand's timing process takes 0–15, the generator's gate takes 0–15 because
+it times, the side-building script takes 16–31 because it builds, and the retained-bytes script
+takes 16–31 below normal because it counts. The C# alone shows one half; the scripts carry the
+other. **16–31 is not the stand's half — it is the half the stand asks everybody else to use.**
+
+**What is true and unwritten is the part that bit us.** A build on 16–31 still shares the
+last-level cache and the memory bandwidth with a window on 0–15; the README says so and a window
+was spoilt by it once already. The stand holds its own builds until a window ends — **a practice,
+never written as a rule for anyone else**, which is why my own build walked into somebody's window
+tonight. It is a rule now: while a window is announced, no one builds, on either half.
+
+**And the two instruments answer different questions, which decides how a comparison is written.**
+BenchmarkDotNet runs one process per case: right for an ABSOLUTE number and for allocations, since
+each case pays for its own garbage — and wrong for a RATIO between two cases on this machine,
+where three default-job runs were once thrown away because two methods doing identical work came
+out 21% and 28% apart. The stand is round-robin in one process precisely so that a change in the
+machine hits every method alike. Igor asked for comparisons, which are ratios, on an instrument
+that is weak at ratios. **So every BenchmarkDotNet class that compares two things carries an A/A
+row — the same method under two names — and is read against its spread.** Without it the number is
+a ratio quoted at a resolution nobody measured, which is the mistake this week has already paid
+for twice.
+
+**Pinning belongs to the launcher, and the claim is made true by a check rather than by belief.**
+The script pins itself, announces the window, and then reads a running child's affinity and stops
+the run if it is not the timing half — because whether BenchmarkDotNet's children inherit it is not
+known, and an unverified inheritance is exactly the shape of an instrument that cannot see what it
+was built to measure.
+
+**Start-up rows are not warm-up rows.** A dictionary read at construction against one read at
+`LoadDictionary` needs a fresh process per sample, not a warmed loop; they belong in the cold form
+or in the first-call harness, and putting them in a warmed class would measure the second call and
+call it the first.
+
+**And an allocation-only run needs no window**: it reads no time column, so it runs on the building
+half whenever the machine is free. That is worth having as a rule, because it is most of what a
+consumer's question about memory actually needs.
