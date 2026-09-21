@@ -8079,3 +8079,32 @@ is armed again, so a grammar that stops writing one is reported rather than sile
 `Looking` is the single place where "never assigned" is the design, and keeping its pragma says so
 in the code — which is the difference between a suppression that documents an intention and one
 that hides the absence of a check.
+
+## D113 — A break is counted from the last published version, not from this morning
+
+I called the API merge "the sixth break" and it is not one. The release notes are written from
+**0.1.0**, and in 0.1.0 `FixMessages` was never public — there was one door, `Fix44`. For the
+reader those notes address, nothing breaks; what changes is where the migration arrows already
+there now point: `Fix44.Parse(wire, Strict)` becomes `FixParser.ParseMessage(wire)` rather than
+`FixMessages.Parse(wire)`.
+
+**Counting from an unreleased intermediate is the same error as calling a break free.** Both take
+a state that exists only in our working tree and treat it as the one a consumer holds. The count a
+consumer needs is against what they can install; the count of what changed since this morning is
+ours, belongs in the journal, and means nothing on a page they read.
+
+**And a rename anchors on a token boundary, not on a substring.** `"FixParser.Parse("` is a
+substring of `"HandFixParser.Parse("` and `"IdealFixParser.Parse("`, so the first mechanical pass
+renamed the hand-written parsers in fourteen files. The compiler caught it because these are
+identifiers; the same mistake in a string literal would have been silent, and the session that made
+it had made the same one in the same area a month ago. The rule is cheap and the exception is not.
+
+**The rest of that pass is worth copying.** Rename everything to the buffer form, then take the
+streaming form wherever the type checker objects: fifty-six errors are fifty-six places that need
+it, and none is decided by eye. Where a rename has a semantic half, the type checker is the oracle
+for which half each site is.
+
+**And one revert inside it is the day's rule in miniature.** Two summaries describing what the
+binder looks for **on any side** were renamed with the rest and then put back: prose about all
+forms must not be narrowed to ours. A mechanical pass reaches text that is not about the thing
+being renamed, and only reading stops it.
