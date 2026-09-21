@@ -7336,3 +7336,29 @@ but **"what comes with it"** — which parents, which files, which claims.
 back because they have decided it is not ready; carrying it out for them overrides a decision that
 was theirs, silently, and they find out afterwards from a third party. That is the part to
 remember when the mechanics fade.
+
+## D95 — What the before-count bounds, and when the fastest reading is the lying one
+
+The two validation roads were counted before anything was built: the compiled-in tables at
+1,183 ns a message, the dictionary's tables at 1,278 — **1.08×**. The number matters less than
+what it does and does not bound. It says the two TABLE SHAPES cost nearly the same, now that both
+roads are one implementation over two tables. It does not bound what compilation can win, because
+both roads interpret: each reads a table at every step, and compiled code would read none. So the
+8% is not a ceiling; it is the evidence that there is no gap between the roads left to close, and
+that whatever the expression language buys must come from removing the interpretation itself.
+
+**The acceptance was named before the work, which is the point of naming it.** If the dictionary
+road does not go clearly below 1,278 once compiled, that is said out loud and written into the
+notes, and whether the construction is worth its price is Igor's to decide with the number in
+front of him. And the corollary is worth seeing now rather than being surprised by: if compiled
+lambdas beat 1,183 as well, the same technique applies to the schema we compile in — a far larger
+change, and his call, not one to drift into.
+
+**And a refinement of tonight's other rule, from the same run.** I told the stand that with a
+one-sided error — interference can only slow a reading — the minimum is the least corrupted
+observation, and that stands. But a reading that is 40% FASTER than every other, on one side only,
+cannot be explained by less interference: nothing was removed that could account for it. It is
+evidence that the round did not do the work, or did different work. So the minimum is trustworthy
+only where the fast tail is; a fast outlier appearing on one arm and not on its pair is a defect
+to explain, not a clean number to keep. Fifteen rounds and a median, with the fastest and the
+slowest printed beside it, says both things at once — which is why the report carries all three.
