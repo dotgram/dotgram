@@ -12,8 +12,8 @@ static partial class Stand
 	internal static string WindowFile => Path.Combine(Path.GetTempPath(), "dotgram-timing-window.txt");
 
 	/// <summary>
-	/// A timing run announces itself for as long as it runs: <c>pid</c>, <c>started</c>, <c>until</c> (the end of its <c>--limit</c>, or <c>unknown</c>), <c>what</c> (its arguments). The file is removed when the run
-	/// ends, and a file whose pid is not alive is stale and is overwritten. A child process of a repeated run finds its parent's announcement alive and writes nothing. It does not stop anyone from timing:
+	/// A timing run announces itself for as long as it runs: <c>pid</c>, <c>started</c>, <c>until</c> (the end of its <c>--limit</c>, or <c>unknown</c>), <c>what</c> (its arguments). The file is never removed: when the run
+	/// ends it is put back to <c>idle</c> (first line), so that its absence means a defect of the stand and not "no window", and a file whose pid is not alive is stale and is overwritten. A child process of a repeated run finds its parent's announcement alive and writes nothing. It does not stop anyone from timing:
 	/// it says that a window is open and when it ends, which is what a session that is about to time something needs to know before it asks whose process this is. A run that finds another announcement alive says so.
 	/// </summary>
 	internal static IDisposable AnnounceWindow(double? limitMinutes, string what)
@@ -96,7 +96,7 @@ static partial class Stand
 			try
 			{
 				if (File.Exists(path) && File.ReadLines(path).FirstOrDefault() == $"pid {pid}")
-					File.Delete(path);
+					File.WriteAllLines(path, ["idle", $"since {DateTime.Now:yyyy-MM-dd HH:mm:ss}", $"why the window of pid {pid} ended"]);
 			}
 			catch (IOException)
 			{
