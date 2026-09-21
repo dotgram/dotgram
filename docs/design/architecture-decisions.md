@@ -8026,3 +8026,37 @@ checked an arithmetic they had labelled as arithmetic, found it wrong in the dir
 implicated their own change, and brought it before the decision rather than after. Nothing in the
 process would have caught it: the conditions were met, the table was clean, and I had already said
 yes.
+
+## D112 — A suppression that suppresses nothing disarms the check it names
+
+The emitted `Failure` struct declares fields some grammars never set, and a field nothing assigns
+is CS0649 — which, under a consumer's `TreatWarningsAsErrors`, fails their build on a file they did
+not write. So each field's template carries a one-field-wide `#pragma warning disable 0649` with
+its reason on the line above. That is careful work and it is why the sweep had to be aimed at what
+the mechanism does NOT explain.
+
+**What it does not explain: the pragma travels with the field unconditionally, while its reason is
+per grammar.** In nineteen of the twenty shipped generated files the suppression sits around a
+field the same file assigns — thirty (file, field) pairs, counted: `Quiet` assigned 255 times in
+`SqlStandardParser` and `OutOfInput` 386, `Quiet` 186 in each T-SQL reading, 73 and 62 in the
+expression language, 48 in `Rfc5322` through an object initializer, which counts for CS0649.
+
+**The cost is not the two lines. It is that CS0649 is the one check that would catch a change which
+stopped writing `Quiet` in some grammar, and the pragma switches it off where it was never needed.**
+D85 found the emitted code's tidiness floor to be wherever Roslyn's warning list happens to stop;
+this is the generator cutting a hole in that floor wider than its own reason. A suppression is not
+neutral — it removes a guard, and the place it removes it is the consumer's build.
+
+**The fix is one place, and its condition must be stated more precisely than "the same knowledge
+that conditions the field".** The field is emitted when the feature is present; the pragma is
+needed when the field is emitted AND no assignment site was. The emitter knows both, because it
+writes the assignments. Getting that wrong re-breaks a consumer's build under warnings-as-errors,
+which is the worst direction to be wrong in, so the acceptance is a grammar that emits the field
+without assigning it, built with warnings as errors, still clean — and the nineteen files losing
+the pragma.
+
+**And a false start belongs in the record because it nearly went out as the finding.** Fifty-nine
+of the seventy-five suppressions were first read as carrying no reason; every one carries it, on
+the line above where the search was looking. The care about to be criticised was there all along.
+That is D110 one step earlier: not a count the mechanism explains, but **a reading the source
+explains if you look one line further**.
