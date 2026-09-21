@@ -1,4 +1,4 @@
-# The first call of validation: the walk against the generated rule
+﻿# The first call of validation: the walk against the generated rule
 
 2026-09-21, window `fix-first-validate` 13:19:18–13:34:18, HEAD `402055eb` with no modified tracked
 files, quiet check 1.7% of the machine, mask `0xFFFF` inherited by every process. `run.txt` holds
@@ -66,6 +66,48 @@ large.
 type: a process that validates one type has paid for all ninety-three. The generated road's methods
 are disjoint — the IL differs per type in the table above — so a process pays again for each type
 it touches. A session handling ten message types pays about 25 KB once and ten methods after it.
+
+## All ninety-three, counted rather than extrapolated
+
+Four methods of ninety-three is the wrong sample to multiply by ninety-three, so the IL was read
+off the built assembly instead of guessed at: every `ValidateDefault` in
+`DotGram.Finance.dll`, through `MethodBody.GetILAsByteArray`.
+
+| | |
+|---|---|
+| generated methods | 93 |
+| their IL, in total | **2 332 491 bytes** |
+| mean | 25 081 |
+| median | 29 786 |
+| largest (`TradeCaptureReport`) | 65 131 |
+| smallest (`Heartbeat`) | 332 |
+
+They are not one size: 10 are under a kilobyte, 23 between one and ten, 17 between ten and thirty,
+34 between thirty and fifty, and 9 above fifty. The shared part beside them is `FixStandard`
+10 344 bytes and `FixCodes` 16 952, which agrees with the 24 994 a Heartbeat was measured
+compiling.
+
+**What a process that touches all ninety-three would pay, and what that figure rests on.** The four
+cells give a marginal rate of about 0.43 ms per kilobyte of IL (a straight line through the
+extremes reproduces the two middle cells to within 1.3 ms). At that rate 2 332 491 bytes is about
+**one second** of compiling, against the walk's 6.8 ms for the same ninety-three types — which the
+walk pays for whichever single type it is first asked about.
+
+That second is an extrapolation of the RATE, and the rate was measured between 25 and 90 KB while
+33 of the 93 methods are smaller than its floor, where a method's fixed cost weighs more. The IL is
+counted; the time per byte is not. A harness mode that validates one message of every type in one
+process would replace the product with a reading, and would take one short window.
+
+**And it is a JIT cost, which is not the only way this ships.** What the package carries is IL;
+what compiles it is the consumer's build. A consumer publishing with ReadyToRun or NativeAOT
+compiles ahead of time and pays none of this. That is not a mitigation offered in the package's
+favour -- it is part of the mechanism, and the figures above are the cost for a consumer who runs
+the IL as we ship it.
+
+**A second cost, which this window did not set out to measure.** The assembly is 3 389 440 bytes,
+and 2 332 491 of that is the ninety-three method bodies. The package is roughly three times the
+size it was, and that is paid by every consumer at download and at load, whether or not they ever
+validate anything.
 
 ## What this does not measure
 
