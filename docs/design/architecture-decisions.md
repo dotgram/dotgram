@@ -8339,3 +8339,36 @@ on the small SQL rows, sign not flipping with the order, and a pair that cannot 
 noise: replacing the one candidate with a constant answers whether it is the cause, in a build that
 cannot land and is not meant to. A question asked by removing the suspect is cheaper than one asked
 by measuring around it.
+
+## D119 — Stop isolating where the remaining cause is one the apparatus cannot separate
+
+The one-to-three per cent lean on the small SQL rows stays **measured and unattributed**, and the
+isolation stops. The reason I would put first is not the cost.
+
+**No remaining candidate is arithmetically sufficient.** The `used` capture is measured and
+innocent — a throwaway build replaced it with a constant and moved nothing, −0.2 to +0.2% over
+twenty runs in both orders. `Tables +=` cannot be it: it arrived after the lean. The best remaining
+one — a dense `Return` now evaluating three field loads and a compare where a dense parser
+evaluated no bound at all — is a nanosecond or two against rows measured in microseconds. What is
+left is an accumulation of such additions, or the code layout and inlining that come free with any
+change to a method the JIT was already deciding about. **The second cannot be separated by anything
+we have**, and spending windows on a question the apparatus cannot answer is the failure we wrote
+down twice tonight, in advance this time.
+
+**The trade is stated rather than implied.** One to three per cent on `select20`, which is what
+consumers actually run, against twenty-eight to sixty-five per cent on the cliff rows and a tenfold
+fall in allocation. That is a trade worth taking, and the report says so in those words — including
+that the common path pays, because a reader who finds the cost later and no sentence about it will
+reasonably conclude nobody looked.
+
+**What goes in the report is the honest middle sentence.** Not "explained", which we cannot write;
+not silence, which leaves it to be rediscovered as a surprise; but a named row with its number, its
+rows, and the note that no single-line candidate accounts for it. The next person gets a starting
+point rather than an ambush, and the condition for reopening is written with it: if the lean grows,
+or if another change lands on the same path, it is measured again.
+
+**And the discriminator that did most of tonight's work deserves recording on its own.** *A change
+belonging to the commit flips sign when the sides are exchanged; a bias of the second slot keeps
+its sign.* Three small-row suspicions carried since the refusal-rent pair — a JSON array, a media
+type, an orders row — dissolved under it. This lean is the one that did not, which is precisely why
+it was worth asking about rather than dropping.
