@@ -7637,3 +7637,29 @@ approved; the approved policy was *keep the room, then let it go*. A change whos
 depends on a repair that has not been made is not ready, however separable the two are on paper.
 Repair first, then the pair, then the commit — and the parent is repaired on the same grounds,
 since it is on main and carries the same dead counter.
+
+**Two corrections to the entry above, and both are mine.** The parent is NOT on main: `5ed9682b`
+is unpushed, the whole chain sits on a worktree over `origin/main` at `e48ab0aa`, and the dead
+counter has never left it. I wrote "since it is on main" from a message rather than from git,
+which is one command. The decision does not change — a commit whose acceptability rests on an
+unmade repair is not ready — but the urgency I attached to it was invented.
+
+**And the hypothesis I offered for the anomalies predicts the wrong sign.** I suggested the
+emptying was releasing references the old side held. The emptying is in the parent, which is the
+BEFORE side of that pair, so both sides empty; and where the dense branch differs it differs the
+other way — the old side replaced an oversized table with a fresh small one and released the whole
+array, while the new side clears it and keeps it. Every shape I can construct says the new side
+should retain MORE. Four rows retain less at identical allocation, and no story either of us has
+produces that sign.
+
+**Which makes the next measurement the right one to insist on**: one anomalous row alone in a
+fresh process, both sides, on a row that provably cannot have changed. If it is identical in
+isolation the anomalies are contamination between rows; if it still differs, the change does
+something neither of us understands, and that is worth knowing before a repair is written on top
+of the understanding. **A result that contradicts your model of your own change outranks the
+result you went looking for.**
+
+**And the shape of my two errors is one shape.** Both are claims about code and about a repository
+made from a letter instead of from the thing — on the evening whose whole subject was that a
+relayed claim is evidence about the journey. The architect is not outside that rule; being the
+place where claims are written down makes it stricter, not looser.
