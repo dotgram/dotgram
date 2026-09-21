@@ -1,0 +1,19 @@
+# BenchmarkDotNet run price-fix-oursparse, 2026-09-21 11:06 - 11:11
+
+Assembly P:\dotgram.WorkTrees\finance\.work\qfcompare\bin\Release\net10.0\qfcompare.dll, commit library d476b533, main d476b533 (qfcompare built outside the repository, ProjectReference to the library). Arguments: --filter *FixAgainstQuickFix.OursParse. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 10 workers (its log), 10 were read.
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 50484 | 0xFFFF | High | 11:06:56 |
+| 21176 | 0xFFFF | High | 11:07:18 |
+| 48760 | 0xFFFF | High | 11:07:46 |
+| 56284 | 0xFFFF | High | 11:08:04 |
+| 56244 | 0xFFFF | High | 11:08:30 |
+| 41504 | 0xFFFF | High | 11:08:56 |
+| 58048 | 0xFFFF | High | 11:09:16 |
+| 47280 | 0xFFFF | High | 11:09:44 |
+| 44848 | 0xFFFF | High | 11:10:05 |
+| 27580 | 0xFFFF | High | 11:10:31 |
