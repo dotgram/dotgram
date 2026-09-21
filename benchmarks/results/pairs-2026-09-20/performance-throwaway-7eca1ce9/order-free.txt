@@ -1,0 +1,10 @@
+row | median normal | median swapped | median of twenty | positive of twenty
+el/ladder | -0.5% | +0.7% | +0.1% | 10 of 20
+el/ladder.scan | -0.2% | -0.2% | -0.2% | 9 of 20
+sql/refused-cliff-paren-2715 | -0.5% | -1.8% | -0.7% | 7 of 20
+sql/refused-late | +0.1% | -0.5% | -0.3% | 8 of 20
+sql/select20 | +0.2% | -0.8% | -0.2% | 9 of 20
+sql/select20.at | +0.5% | -0.0% | +0.2% | 12 of 20
+sql/select20.scan | -0.3% | +0.5% | +0.4% | 12 of 20
+sql/select20.window | +0.3% | -0.0% | +0.0% | 10 of 20
+tsql/select20.scan | +0.2% | -1.1% | -0.8% | 6 of 20
