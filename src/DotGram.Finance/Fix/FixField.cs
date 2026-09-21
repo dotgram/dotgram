@@ -4876,11 +4876,11 @@ public abstract class FixField : IFixLocation
 		: Typed<decimal>(673, value);
 
 	/// <summary>
-	/// Represents LegAllocAcctIDSource, FIX tag 674, with wire type <c>int</c>.
+	/// Represents LegAllocAcctIDSource, FIX tag 674, with wire type <c>String</c>.
 	/// </summary>
-	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegAllocAcctIDSource((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(674, value);
+	/// <param name="value">The field text, stored directly without primitive conversion.</param>
+	public sealed class LegAllocAcctIDSource(string value)
+		: Typed<string>(674, value);
 
 	/// <summary>
 	/// Represents LegSettlCurrency, FIX tag 675, with wire type <c>Currency</c>.

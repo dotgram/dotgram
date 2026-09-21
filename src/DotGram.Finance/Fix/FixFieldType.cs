@@ -2536,7 +2536,7 @@ public enum FixFieldType
 	/// </summary>
 	LegAllocQty                          = 673,
 	/// <summary>
-	/// Identifies LegAllocAcctIDSource, FIX tag 674, with wire type <c>int</c>.
+	/// Identifies LegAllocAcctIDSource, FIX tag 674, with wire type <c>String</c>.
 	/// </summary>
 	LegAllocAcctIDSource                 = 674,
 	/// <summary>

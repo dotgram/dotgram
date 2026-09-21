@@ -1,4 +1,4 @@
-// Reading policy is supplied by the handwritten Fix44Grammar.gram.
+﻿// Reading policy is supplied by the handwritten Fix44Grammar.gram.
 @using DotGram.Finance.Fix;
 
 KnownField(text) : @FixField =
@@ -1854,9 +1854,9 @@ KnownField(text) : @FixField =
 	| { "531=" & value: text }
 	  => @(new FixField.MassCancelResponse(FixConvert.Character(value)))
 
-	// 532: MassCancelRejectReason (int)
+	// 532: MassCancelRejectReason (String)
 	| { "532=" & value: text }
-	  => @(new FixField.MassCancelRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.MassCancelRejectReason(FixConvert.Text(value)))
 
 	// 533: TotalAffectedOrders (int)
 	| { "533=" & value: text }
@@ -2402,9 +2402,9 @@ KnownField(text) : @FixField =
 	| { "673=" & value: text }
 	  => @(new FixField.LegAllocQty(FixConvert.Decimal(value)))
 
-	// 674: LegAllocAcctIDSource (int)
+	// 674: LegAllocAcctIDSource (String)
 	| { "674=" & value: text }
-	  => @(new FixField.LegAllocAcctIDSource(FixConvert.Integer(value)))
+	  => @(new FixField.LegAllocAcctIDSource(FixConvert.Text(value)))
 
 	// 675: LegSettlCurrency (Currency)
 	| { "675=" & value: text }
