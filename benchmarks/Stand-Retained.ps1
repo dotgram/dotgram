@@ -26,7 +26,7 @@ $me.PriorityClass = 'BelowNormal'
 
 $lines = foreach ($row in $Rows) {
 	# The row's id is a substring filter: an exact id names one row, and a process holds nothing else.
-	& $Exe --stand-retained @Sides --only $row 2>&1 | Where-Object { $_ -match '^\| (el|sql|fix|web|feeds|tsql|fixmsg|config)/' -or $_ -match '^Retained after' -or $_ -match '^    pools after' -or $_ -match '^    parses \(' }
+	& $Exe --stand-retained @Sides --only $row 2>&1 | Where-Object { $_ -match '^\| (el|sql|fix|web|feeds|tsql|fixmsg|config)/' -or $_ -match '^Retained after' -or $_ -match '^    pools after' -or $_ -match '^    parses \(' -or $_ -match '^    pools at the first' -or $_ -match '^        parse ' }
 }
 
 "| row | side | after one parse KB | after two KB | two / one | bytes a call | after eight small parses KB | after sixteen KB | after eight more, a collection after each KB | twenty of the same parse, lowest KB | highest KB |"

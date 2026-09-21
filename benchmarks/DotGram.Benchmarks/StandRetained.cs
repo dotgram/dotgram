@@ -48,7 +48,10 @@ static partial class Stand
 				Console.WriteLine("    pools after eight small:   " + held.PoolsEight);
 				Console.WriteLine("    pools after eight more, collected each time: " + held.PoolsCollected);
 				Console.WriteLine("    pools after twenty of the same parse, collected each time: " + held.PoolsSteady);
-				Console.WriteLine("    parses (of the row's own, counting the first two) that read more than 1 KB under the highest: " + (held.SteadySteps.Length == 0 ? "none" : held.SteadySteps));
+				Console.WriteLine("    parses (of the row's own, counting the first two) that read more than 1 KB under the parse before it: " + (held.SteadySteps.Length == 0 ? "none" : held.SteadySteps));
+
+				if (held.PoolsAtDip.Length > 0)
+					Console.WriteLine("    pools at the first of them, and at the parse before:" + Environment.NewLine + "        " + held.PoolsAtDip);
 			}
 		}
 	}
@@ -64,7 +67,7 @@ static partial class Stand
 		return (PairedWorkloads(side, new PairedSide("side-again", directory)), side);
 	}
 
-	sealed record Kept(long One, long Two, long Allocated, long Eight, long Sixteen, long Collected = -1, string PoolsOne = "", string PoolsEight = "", string PoolsCollected = "", long SteadyLow = -1, long SteadyHigh = -1, string PoolsSteady = "", string SteadySteps = "");
+	sealed record Kept(long One, long Two, long Allocated, long Eight, long Sixteen, long Collected = -1, string PoolsOne = "", string PoolsEight = "", string PoolsCollected = "", long SteadyLow = -1, long SteadyHigh = -1, string PoolsSteady = "", string SteadySteps = "", string PoolsAtDip = "");
 
 	/// <summary>The bytes that stay reachable after a reading has run once, twice, and after eight and sixteen further small parses.</summary>
 	static Kept Retained(Func<int> run, Func<int>? small, Func<string>? pools = null)
@@ -94,6 +97,8 @@ static partial class Stand
 		// it alone; if it gives the room up and takes it again the reading drops below the retention of the second parse at some step (SteadyLow), and it is a store that a consumer's steady work would rebuild.
 		long steadyLow = long.MaxValue, steadyHigh = 0;
 		var  readings  = new long[20];
+		var  atDip     = "";
+		var  before2   = "";
 
 		for (var i = 0; i < readings.Length; i++)
 		{
@@ -103,17 +108,26 @@ static partial class Stand
 			var now = Math.Max(0, GC.GetTotalMemory(true) - before);
 
 			readings[i] = now;
+
+			// The readout of the pools is kept for two parses only (this one and the one before it) and for the first parse that read more than a kilobyte under the one before: keeping one for every parse would grow the heap
+			// that is being read by a kilobyte a step.
+			var here = pools?.Invoke() ?? "";
+
+			if (atDip.Length == 0 && i > 0 && now < readings[i - 1] - 1024)
+				atDip = $"parse {i + 2}: {before2}{Environment.NewLine}        parse {i + 3}: {here}";
+
+			before2 = here;
 			steadyLow   = Math.Min(steadyLow, now);
 			steadyHigh  = Math.Max(steadyHigh, now);
 		}
 
-		// Where a store was let go of: the parses (counting the first two of the row) whose reading is more than a kilobyte under the highest.
-		var steps = string.Join(", ", readings.Select(static (reading, at) => (reading, at)).Where(one => one.reading < steadyHigh - 1024).Select(static one => one.at + 3));
+		// Where a store was let go of: the parses (counting the first two of the row) whose reading is more than a kilobyte under the one before it.
+		var steps = string.Join(", ", readings.Select(static (reading, at) => (reading, at)).Where(one => one.at > 0 && one.reading < readings[one.at - 1] - 1024).Select(static one => one.at + 3));
 
 		var poolsSteady = pools?.Invoke() ?? "";
 
 		if (small is null)
-			return new Kept(one, two, allocated, -1, -1, -1, poolsOne, "", "", steadyLow, steadyHigh, poolsSteady, steps);
+			return new Kept(one, two, allocated, -1, -1, -1, poolsOne, "", "", steadyLow, steadyHigh, poolsSteady, steps, atDip);
 
 		for (var i = 0; i < 8; i++)
 			small();
@@ -141,7 +155,7 @@ static partial class Stand
 
 		var collected = Math.Max(0, GC.GetTotalMemory(true) - before);
 
-		return new Kept(one, two, allocated, eight, sixteen, collected, poolsOne, poolsEight, pools?.Invoke() ?? "", steadyLow, steadyHigh, poolsSteady, steps);
+		return new Kept(one, two, allocated, eight, sixteen, collected, poolsOne, poolsEight, pools?.Invoke() ?? "", steadyLow, steadyHigh, poolsSteady, steps, atDip);
 	}
 
 	static void Collect()

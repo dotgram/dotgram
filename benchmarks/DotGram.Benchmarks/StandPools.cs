@@ -17,8 +17,9 @@ static partial class Stand
 	/// </summary>
 	static string PoolReadout(Type[] roots, out long bytes)
 	{
-		var lines = new List<string>();
-		var total = 0L;
+		var lines    = new List<string>();
+		var counters = new List<string>();
+		var total    = 0L;
 		var seen  = new HashSet<Type>();
 
 		void Visit(Type type)
@@ -31,9 +32,19 @@ static partial class Stand
 				if (field.GetCustomAttribute<ThreadStaticAttribute>() is null)
 					continue;
 
+				var value = field.GetValue(null);
+
+				// The counters of the release policy (_largeIdle, _spareIdle, ...): what the pool has counted so far on this thread.
+				if (value is int counter)
+				{
+					counters.Add($"{type.Name}.{field.Name}={counter}");
+
+					continue;
+				}
+
 				var held = new PoolHeld();
 
-				Measure(field.GetValue(null), held, weak: false);
+				Measure(value, held, weak: false);
 
 				if (held.Arrays == 0)
 					continue;
@@ -51,7 +62,9 @@ static partial class Stand
 
 		bytes = total;
 
-		return lines.Count == 0 ? "no thread-static pool holds a store" : string.Join("; ", lines) + $"; together {total / 1024.0:N0} KB";
+		var text = lines.Count == 0 ? "no thread-static pool holds a store" : string.Join("; ", lines) + $"; together {total / 1024.0:N0} KB";
+
+		return counters.Count == 0 ? text : text + "; counters: " + string.Join(", ", counters);
 	}
 
 	sealed class PoolHeld
