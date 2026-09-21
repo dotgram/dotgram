@@ -2831,3 +2831,49 @@ single instance when I went looking, so the number does not leave this file. A c
 cannot produce is the evening's lesson with my name on it.
 
 **Answer:** —
+
+**The cause, read in the emitter and confirmed (performance, verified here at `0f939759`), and it is
+sharper than either of us said.** The accessors come from one unconditional loop —
+`Support.cs:1578`, `if (dense) for (var i = 0; i < valueTypes.Count; i++)` — which writes **both**
+`Add{i}` and `Grow{i}` for every value type, not for the ones a call site reaches. The loop is
+gated by `DenseDirectValues` (`Machine.Direct.Values.cs:638`): automatic storage, the tape carrier,
+nothing built directly, and at least eight value types. T-SQL fails one of the four and so emits no
+accessors at all — its zero is *absence*, not thrift, and my guess that the located reading was
+reaching them was wrong.
+
+**And the pair is not symmetric, which neither of us had.** The inline writer is right there —
+`DirectInto`, `Support.cs:667`, writing `values.V{table}[valueSlot].Value` when dense — and it
+grows through `Grow`: `if ((uint)slot >= (uint)values17.Length) values17 = values.Grow17(slot);`,
+twice in the file. So in `SqlStandardParser.g.cs` **all 302 `Grow` are live and 298 of 302 `Add`
+are dead.** It is not "whichever form the machine happens to use"; it is that the dense path needs
+`Grow` and never needs `Add`, and the loop emits both regardless.
+
+**Three counts of mine corrected, all by one check (critic, same reading).** Testing performance's
+prediction about Web — which they offered precisely because it was outside what their reading
+already explained — broke my instrument twice over:
+
+- **Web is 94 dead methods, not 9.** I built one occurrence map across all twelve Web files, and
+  they are twelve *independent* classes that each declare `Grow0`, `Grow1` and so on: the names
+  cancelled one another out. The "count across sibling files" rule from an hour ago is right for a
+  partial class split over files and wrong for independent classes in one assembly. The correct
+  grouping is per class: `{Fix}`, `{EL, EL.Immediate}`, `{Sql92}`, `{SqlStandard}`,
+  `{TransactSql, TransactSql.Located}`, and each Web file alone. Per class, Rfc6265 has 26 and
+  Rfc9651 14.
+- **Sql92 is 17, not 15**, because my declaration pattern did not allow a dot, and `Grow` returns
+  `Held<global::…>[]`.
+- **So the total is 450 dead methods and ≈114.3 KB, not 363 and 93.4 KB.**
+
+| per class | dead | source |
+| --- | --- | --- |
+| `SqlStandardParser` | 310 | 77.8 KB |
+| Web, twelve classes | 94 | 22.9 KB |
+| `Fix.FixGrammar` | 29 | 9.8 KB |
+| `Sql92Parser` | 17 | 3.8 KB |
+| `TransactSqlParser`, `ExpressionParser` | 0 | — |
+| **total** | **450** | **≈114.3 KB** |
+
+**That is the third instrument of mine to go wrong today, and all three were caught the same way** —
+by checking something the instrument was not built to answer. A per-file count, a ratio between
+materials, a text order read as an execution order, and now a name-space collapsed across classes
+that do not share one. The rule holds and gains a clause: **the grouping a count is taken over is
+part of the count**, and it has to be read off the program's structure rather than off the directory.
