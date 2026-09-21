@@ -3265,3 +3265,50 @@ example needed it.
 **This is public surface, so it is Igor's to decide and not the architect's.**
 
 **Answer:** —
+
+**`ParseFields` / `ParseMessages`, considered (Igor's, read at `3b4a63b9`).** Half of the pair I
+would take as it stands and half I would not, and the reason is a fact worth putting above the
+naming argument entirely.
+
+**Today the same verb, on the same input type, means different cardinalities on the two classes:**
+
+| call | returns |
+| --- | --- |
+| `FixParser.Parse(TextReader)` | `IEnumerable<FixField>` — **many**, lazily |
+| `FixMessages.Parse(TextReader)` | `FixMessage` — **exactly one** |
+| `FixMessages.ReadMessages(TextReader)` | `IEnumerable<FixMessage>` — many |
+
+The same for `Stream`. So `Parse(reader)` gives a lazy sequence or a single object depending on
+which class the reader happened to type, and the parameter list is identical. That is a stronger
+argument for renaming than anything about which class is central, and it is not fixed by moving the
+methods onto one type — merged as they are, `FixParser` would have two `Parse(TextReader)` overloads
+that cannot coexist.
+
+**`ParseFields`: take it.** Fields are always many, whatever the input, so the plural is right
+everywhere and the name says which layer without a comment.
+
+**`ParseMessages`: do not take it as the pair-mate,** because the message layer has a cardinality
+the field layer does not. One message from one string is the common case; one *framed* message from
+a stream is a real session-layer use and exists today; many from a stream is the feed case. A plural
+`s` is the wrong thing to carry that distinction: `ReadMessage(reader)` beside `ReadMessages(reader)`
+is two methods with one parameter list differing by one letter, and `var` hides which you called.
+The BCL has met this and answered it with different words rather than a plural —
+`Directory.GetFiles` against `Directory.EnumerateFiles`.
+
+**The scheme I would take**, two bits in every name — the verb says where the input comes from, the
+noun says which layer, and "many from a stream" gets its own word:
+
+| | whole buffer | stream |
+| --- | --- | --- |
+| fields | `ParseFields` → `FixField[]` | `ReadFields` → `IEnumerable<FixField>` |
+| one message | `ParseMessage` (+ `TryParseMessage`) | `ReadMessage` |
+| many messages | — | `EnumerateMessages` |
+
+`ReadFields` against `ParseFields` is not padding: a sequence over a `TextReader` is lazy and the
+reader has to outlive the enumeration, which `Read` signals and `Parse` actively hides by suggesting
+the work is done.
+
+**And the minimum, if five names is too many for one change:** `ParseFields` everywhere on the field
+side and `ParseMessage` / `EnumerateMessages` on the message side. That alone removes the
+same-verb-different-cardinality trap, which is the part that can actually cost somebody an
+afternoon; the eager/lazy distinction is a comfort by comparison.
