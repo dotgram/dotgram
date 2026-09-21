@@ -8941,3 +8941,40 @@ not — a checksum, a body length, a field order — in which case the table lea
 hear about it from a reader. The answer is owed as two lists and their difference, not as an
 argument; and whatever stays different is written beside the table as a known lean with its
 direction named.
+
+## D129 — Two conditions that sound like one, in four places in one evening
+
+D112 needed to know which `CS0649` suppressions a generated file still needs. I approved recording
+at the sites: the emitter marks that it wrote an assignment, and the suppression is kept where it
+did. Verification refused it, and in the direction I had forbidden — **`CS0649` in a file its
+author did not write**, caught by thirteen tests that compile emitted code.
+
+**The cause is one sentence.** Compiling happens inside the machine's constructor and writes into
+scratch writers, and a discarded branch's text never reaches the file. So recording at the sites
+answers *"did the emitter run a line of code"*, and the question is *"is there an assignment in
+the file"*. Two conditions that sound like one, and they part exactly where a branch is thrown
+away.
+
+**Reading the finished text is not the weaker observation; it is the compiler's own question.**
+`CS0649` fires where no assignment to the field occurs in the compilation, so what decides the
+suppression is literally what is in the file — comment lines excluded, because the generator
+writes the field's name beside it. The acceptance was then taken off the shipped output rather
+than the snapshots, and in both directions: eighteen fields keep a suppression and none is ever
+assigned, forty-one lost one and every one of those is assigned, zero violations either way.
+
+**And that shape appeared four times in one evening, each in different clothes.** A guard whose
+passing arm was checked and whose refusing arm was not. A flag named `validate` that does not
+check required fields. A reading the instrument did not take, reported as a reading of absence. A
+rule stated without the address of the file that holds its state — mine — where *not checking* and
+*checking and finding nothing* are indistinguishable from the inside. In every one of them, two
+conditions were treated as one because no input had been built on which they differ.
+
+**The general form, in the words of the session that put it best:** a rule whose state lives
+somewhere — a file, a lock, a flag — has to carry that address in the sentence that states the
+rule, or it splits into one rule for the people who already know where to look and no rule at all
+for everybody else.
+
+**The last instance closes itself.** The window file does not exist while no window is open, so
+"no file" and "cannot check" look identical to whoever is about to build — which is the same
+defect again, in the fix for the defect. It is now written once, empty, and kept: its absence
+means the stand is broken, which is a thing that can be seen.
