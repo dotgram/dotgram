@@ -7308,3 +7308,31 @@ and bounded in length.
 sixth package at all, so there was nothing to remove there. That is worth knowing rather than
 passing over: the layout is where somebody looks to learn what exists, and a package absent from
 it was invisible to that reader for the whole of its life.
+
+## D94 — A merge is not the favour a cherry-pick was asked for
+
+expr asked for their page-helper fix to be taken by cherry-pick and said why: their tree stood on
+a stale base, so pushing the branch would drag that base under the commit. Five minutes before
+someone else did exactly that, carefully, **I merged the whole branch** into main. It brought in
+the stale base and a half-written review the author was holding back, which is now published under
+a commit message about something else. The code is fine — main carries the finished helper — and
+the author is replacing the document with its completed version. Nothing here is a code defect;
+it is a process one, and it was mine.
+
+**The distinction is worth stating because "I took their work" felt like the same act.** A
+cherry-pick puts one commit on the current head. A merge puts that commit and everything beneath
+it — the base its author already knows is stale, and whatever they had not finished. When a
+session asks for the first, and gives the reason, doing the second is not the same favour done
+another way. It is a different act with a different reach, performed on somebody else's unfinished
+work.
+
+**Third of the same shape in one evening**, and that is what makes it a rule rather than a
+mishap: an ungated commit riding under a documentation fix in the morning, this merge, and a
+result file naming its own branch's hash. Each time the thing sent was right and something
+travelled with it. The question to ask before sending anything anywhere is not "is this correct"
+but **"what comes with it"** — which parents, which files, which claims.
+
+**What it costs to be careless here is other people's judgement, not code.** An author holds work
+back because they have decided it is not ready; carrying it out for them overrides a decision that
+was theirs, silently, and they find out afterwards from a third party. That is the part to
+remember when the mechanics fade.
