@@ -8686,3 +8686,25 @@ question rather than answering it, which is the cheaper of the two.
 `.work` harnesses, so it does not fight ours. And nothing with a `.gram` extension is left there:
 a sweep over the repository read `.work` once already this week and reported a scratch grammar as
 a finding.
+
+**And the first thing the gap list found is that the existing headline cannot be read.** The
+T-SQL-against-ScriptDom class times **one operation over the whole corpus** — a short `SELECT` and
+a three-hundred-line procedure averaged into a single figure — and the divisor is a property
+BenchmarkDotNet never prints, so the per-statement number cannot be recovered from the report by
+anyone, including us. **A number whose divisor is not in the report is not a slow way to the
+answer; it is not an answer**, and that outranks adding coverage: the first deliverable is a figure
+that can be read, not more figures. So the order is the readable ones first — buckets by statement
+length as a parameter, ScriptDom's one configuration flag written down where it is chosen, its
+version read from the loaded assembly rather than from the props file — and the missing parser and
+the walking row after.
+
+**One row is honest only if it says what it lacks.** Their lexer is timed alone and ours cannot be,
+because ours is internal to the generated parser. Rather than expose a tokenizer to make a pair,
+the row says it has no partner — otherwise a reader puts their lexing beside our whole parse and
+the comparison lies without anybody writing a false sentence.
+
+**And nothing is timed until the stand has given the configuration.** The benchmark project has no
+BenchmarkDotNet job and no affinity at all, so a run today inherits whatever the machine offers —
+and the only affinity in that directory pins the half opposite to the one the timing rules name.
+Which of those is the defect is the stand's to say; that it must be said before a number is taken
+is not.
