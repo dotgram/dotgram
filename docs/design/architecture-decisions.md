@@ -9112,3 +9112,49 @@ discarded nor obeyed: it becomes a second opinion.**
 **A mixture is worse than following the wrong source.** The cross-order tables took tag 41 from the
 repository and 586 from the dictionary — **no single reading end to end**, so nothing could be
 checked against anything. Both now come from the repository.
+
+## D133 — D63 buys time, not memory, and one row closed the cheaper cure
+
+The reader's re-reading was measured on four columns, two shapes and two sizes, at `80ba6733`,
+after the instrument had been made to reproduce its own two-month-old answer **to the digit**
+across some sixty commits — 995 reader methods, 249 roll-backs, and the re-reading counts 1,723 at
+n=16 and 25,195 at n=64, exactly as filed.
+
+```
+shape                                 calls x  writes x  deepest x
+addresses, unclosed quote (refuses)      14.6       -          -
+addresses, valid list (ACCEPTS)           4.1      4.0        4.0
+media type (refuses)                     13.5     11.8        3.4
+language tag (refuses)                   12.8     12.2        3.5
+structured field (refuses)               17.6     17.5        4.0
+```
+
+Input ×4: linear is 4.0, triangular 15.3.
+
+**Writes are quadratic and the deepest `Log` is linear**, so retries multiply turnover and cannot
+raise the peak. **Therefore the cure buys time, not memory** — and that sentence belongs in the
+record *before* anyone measures a cure, because a retained-bytes reading of it would show nothing
+and would be right. Had memory been promised, the instrument telling the truth would have looked
+broken.
+
+**One row closed the cheaper of the two cures, by measurement rather than by argument.**
+`addresses, an unclosed quoted string` writes **no records at all** and has **no depth**, while its
+calls climb 1,723 → 25,195 on the triangular number: the disease at full strength with nothing
+downstream to remove. Keeping the log's prefix buys exactly nothing there. So the choice is
+"remember where the turn ended, or nothing" — and **nothing remains a result**.
+
+**The accepting shape is the control and behaves like one**: linear in all three columns, its
+writes equal to its depth to the digit (608/608, 2,432/2,432), so nothing is written twice and an
+accepted parse re-reads nothing. D63's condition — that an accepted parse must not pay — is
+observed in the same table as the disease rather than argued beside it.
+
+**What the table cannot decide is a ratio of constants, not a degree.** Both the disease and the
+proposed cure are quadratic on the same count, so the whole question is what one re-read costs
+against one stored position. A cure whose count grows at the rate of the disease is not thereby
+refuted — that argument was made and withdrawn here — it is refuted or paid for by the multiplier.
+
+**And the column that looked like an answer was a name.** `begins` counts arms begun on the tape,
+not repetitions' turns; it was reported as "the multiplier is already printed", and it was not. The
+filed record now warns the next reader against the reading its own author made that morning, and
+states in capitals what would silently make the peak column a lower bound: a third place that
+advances `LogCount`.
