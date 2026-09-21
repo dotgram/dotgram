@@ -288,6 +288,13 @@ to the body rather than ending it: whether it should be there is a finding, and 
 reader will not build is a message nothing can report on. The exact wire and every offset are
 preserved whatever is found.
 
+**Both of those are differences from the libraries this one is compared with, not habits it
+shares with them.** Ten open FIX implementations were read for this: those that validate stop
+at the first problem — by throwing or by returning it — and a finding is a bare tag, with no
+offset and no entry index. Code ported from one of them will read `Validate()` as an answer to
+"is it valid", which it is (`Length == 0`), and will silently drop everything after the first
+finding; `message.Validate().FirstOrDefault()` is the older shape written out.
+
 `message.Validate(validator)` holds it to a schema of your own instead. `FixValidator.Standard`
 is the shared default and refuses to be written to — make your own with `new FixValidator()`,
 and fill it either from a counterparty's QuickFIX dictionary, `validator.Load(FixDictionary.Load(stream))`,
