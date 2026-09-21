@@ -6898,3 +6898,34 @@ is a larger promise than a method.
 **Half of it already exists, from the maintainer's side.** Our three lists are a guard, fixed in
 the suite, and they fire when our tables and the published dictionary disagree. What is missing is
 the consumer's half, which is the half this decides.
+
+## D85 — The emitted code's standard is what the machine must do, not what a reader would tidy
+
+Counted over the whole shipped generated output — forty-four megabytes, 4,797 methods — there are
+299 never-read locals, 250 copy chains, 23 empty blocks, and zero unreachable statements and zero
+unused labels. The zeroes are not care: unreachable code is CS0162 and an unused label CS0164,
+both warnings, and this repository builds warnings as errors. A never-read local survives because
+CS0219 fires only on a constant initializer, and an array element is not a constant.
+
+**So everything the compiler polices is clean and everything it does not police is not, and
+nobody chose that.** Left alone, the tidiness of what we emit will drift with Roslyn's warning
+list. That is the thing to decide, and the answer is neither "the compiler's warnings are the
+standard" nor a campaign for tidiness.
+
+**The standard is: the emitted code contains nothing the machine is obliged to execute for
+nothing.** It is a criterion about cost, it does not move when a warning is added or removed, and
+it sorts the shapes found here by itself.
+
+**Which it does, into two items rather than one.** A copy chain is removed outright by the JIT: it
+costs bytes and no time, so it is a size item, and where 240 of its 250 sit in three grammars it
+is probably one emitter site rather than a habit. A never-read local reading an array element is
+not removable — the bounds check can throw, so the JIT must keep it — and twelve array accesses
+are performed for nothing; worse, were the index ever out of range the parser would throw from a
+line that does nothing. That one is a defect in what we emit, not untidiness, and eighty of them
+in one parser's hundred and sixty-seven methods is a pattern, not a slip.
+
+**The withdrawn half belongs in the record too.** The argument that these locals also cost time
+through zeroing the frame was carried from a figure measured on materializer arms — small methods
+entered constantly — to reader methods entered once per rule per position. A ratio moved to
+another material; withdrawn by the session that made it when the other caught it. The size effect
+is the result, and it is not a proxy for a speed one.
