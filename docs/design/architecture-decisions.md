@@ -7663,3 +7663,34 @@ result you went looking for.**
 made from a letter instead of from the thing — on the evening whose whole subject was that a
 relayed claim is evidence about the journey. The architect is not outside that rule; being the
 place where claims are written down makes it stricter, not looser.
+
+## D104 — A shared process hides a true result as readily as it invents a false one
+
+Run one row per process, both sides come out identical to tens of kilobytes: `el/terms1000`
+700.7 → 687.3 KB where the shared-process table had read 19.6 → 0.0; `paren-2715` 13,451 → 13,475
+where it had read 10,264 → 27. The pools are thread-static and shared by every row in a process,
+so each row's retention was a function of the rows before it. Neither the emptying story nor the
+contamination story needed to be right about the sign, because the sign was not real.
+
+**And the same contamination concealed a true result.** `predicates-3393` read 0.0 → 0.0 on both
+sides — which is why it was flagged as inexplicable — and alone it reads 3,637 → 24,115 KB with
+allocation falling 94.86 to 10.97 MB a call: the predicted trade, invisible in the shared run.
+**That is the worse of the two failures.** A false anomaly gets argued about, and the argument is
+how it is found. A concealed result reads as a clean negative, and a clean negative ends the
+conversation — nothing about it invites a second look.
+
+**Which gives the rule for choosing a process boundary.** An instrument measuring a RATE — time a
+call, allocation a call — may share a process between cases, and must warm up. An instrument
+measuring an ACCUMULATION — retained heap, pool state, anything a case can leave behind for the
+next — may not: there the previous case is part of the apparatus. The question to ask of any stand
+is not "is it fast enough this way" but "can a case reach the next one", and where it can, the
+boundary is the process.
+
+**And the discipline goes in the script, not the note.** The instrument now runs one row per
+process by construction, so it cannot be used the wrong way again. A rule written beside a tool is
+followed by whoever read the note; a rule written into the tool is followed by everybody.
+
+**The magnitude is marked provisional and the decision does not rest on it.** The 0.4 to 1.3 GB
+was read in the contaminated arrangement, and the worst rows ran last. The dead demotion is a fact
+read in the emitted `Rent`, not a measurement, so "fix the demotion first, the dense change waits"
+stands whatever the clean table says.
