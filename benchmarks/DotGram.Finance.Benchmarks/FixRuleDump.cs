@@ -52,6 +52,7 @@ static class FixRuleDump
 		var longest   = ("", 0);
 		var assembly  = typeof(FixMessage).Assembly;
 		var composing = new System.Diagnostics.Stopwatch();
+		var blanks    = new List<string>();
 		var reading   = new System.Diagnostics.Stopwatch();
 
 		foreach (var type in types)
@@ -74,6 +75,8 @@ static class FixRuleDump
 			if (text.Length > longest.Item2)
 				longest = (type + " " + name, text.Length);
 
+			blanks.Add(blanked);
+
 			reading.Start();
 
 			var said = ExpressionParser.TryParse(blanked, assembly);
@@ -87,6 +90,23 @@ static class FixRuleDump
 		Console.WriteLine($"{types.Length} rules, {octets:N0} characters, longest {longest.Item1} at {longest.Item2:N0}.");
 		Console.WriteLine($"written to {into}");
 		Console.WriteLine($"composed in {composing.ElapsedMilliseconds} ms, read by the language in {reading.ElapsedMilliseconds} ms.");
+
+		// The first pass carries the JIT of the parser itself, and a parser measured on its first
+		// pass is a parser measured at tier 0. Two more passes over the same texts, and the last one
+		// is what a process that reads dictionaries for a living would see.
+		for (var pass = 2; pass <= 3; pass++)
+		{
+			var again = System.Diagnostics.Stopwatch.StartNew();
+
+			foreach (var one in blanks)
+				ExpressionParser.TryParse(one, assembly);
+
+			again.Stop();
+
+			Console.WriteLine(
+				$"pass {pass}: {again.ElapsedMilliseconds} ms, " +
+				$"{octets / (again.Elapsed.TotalSeconds * 1024 * 1024):F1} MB/s");
+		}
 
 		if (refused.Count == 0)
 		{
