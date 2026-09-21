@@ -4813,10 +4813,9 @@ namespace DotGram.Snapshots
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
 
-				// Against what this parse USED. Counted at the rental it could never arrive:
-				// a rental that takes the kept arena zeroes the count, and with no ordinary
-				// spare - the state right after a large parse - every rental takes it.
-				if (parser.Entries.Count > KeptEntries)
+				// The same question the ordinary slot asks below: is the room far larger than the
+				// use. The bound decides which slot holds the arena, not whether to keep it.
+				if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
 					_largeParserIdle = 0;
 				else if (++_largeParserIdle >= LargeParserIdle)
 				{

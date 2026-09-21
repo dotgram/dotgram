@@ -1180,10 +1180,9 @@ public static partial class CSharpEmitter
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
 
-				// Against what this parse USED. Counted at the rental it could never arrive:
-				// a rental that takes the kept arena zeroes the count, and with no ordinary
-				// spare - the state right after a large parse - every rental takes it.
-				if (parser.Entries.Count > KeptEntries)
+				// The same question the ordinary slot asks below: is the room far larger than the
+				// use. The bound decides which slot holds the arena, not whether to keep it.
+				if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
 					_largeParserIdle = 0;
 				else if (++_largeParserIdle >= LargeParserIdle)
 				{
@@ -1404,8 +1403,11 @@ public static partial class CSharpEmitter
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _deeperCount;\n\n");
 		text.Append("\t/// <summary>A store past the bound, kept while this thread's work still wants it.</summary>\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic ").Append(type).Append("? _large;\n\n");
-		text.Append("\t/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>\n");
-		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _largeIdle;\n\n");
+		if (releases)
+		{
+			text.Append("\t/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>\n");
+			text.Append("\t[global::System.ThreadStatic]\n\tstatic int _largeIdle;\n\n");
+		}
 		text.Append("\t/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic global::System.WeakReference<").Append(type).Append(">? _largeLetGo;\n\n");
 		if (releases)
@@ -1428,7 +1430,8 @@ public static partial class CSharpEmitter
 		text.Append("\t/// takes it. Against CAPACITY it could never arrive either: a store comes back\n");
 		text.Append("\t/// as large as it was grown, whatever the document was.\n");
 		text.Append("\t/// </summary>\n");
-		text.Append("\tconst int LargeIdle = 8;\n\n");
+		if (releases)
+			text.Append("\tconst int LargeIdle = 8;\n\n");
 		if (releases)
 		{
 			text.Append("\t/// <summary>The same count for the ordinary slot, read the same way.</summary>\n");
@@ -1462,19 +1465,26 @@ public static partial class CSharpEmitter
 	/// alternative it looks like: that pool's largest kept array is 2^20 elements, the same
 	/// number this bound is written in, so it declines exactly these arrays.
 	/// </remarks>
-	internal static void Outsized(StringBuilder text, string type, string store, string used)
+	internal static void Outsized(StringBuilder text, string type, string store, string? roomy)
 	{
 		text.Append("\t\t{\n");
-		text.Append("\t\t\t// Against what this parse USED, not what the store holds: capacity does not\n");
-		text.Append("\t\t\t// shrink because a document was small, so a count against it would reset here\n");
-		text.Append("\t\t\t// every time and never arrive. Eight parses that did not use the room and it\n");
-		text.Append("\t\t\t// stops being held strongly - the borrower is what demotes it.\n");
-		text.Append("\t\t\tif (").Append(used).Append(" > 1048576)\n");
-		text.Append("\t\t\t\t_largeIdle = 0;\n");
-		text.Append("\t\t\telse if (++_largeIdle >= LargeIdle)\n\t\t\t{\n");
-		text.Append("\t\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(").Append(store).Append(")).SetTarget(").Append(store).Append(");\n");
-		text.Append("\t\t\t\t_large = null;\n\t\t\t\t_largeIdle = 0;\n\n");
-		text.Append("\t\t\t\treturn;\n\t\t\t}\n\n");
+
+		if (roomy is not null)
+		{
+		text.Append("\t\t\t// The same question the ordinary slot asks below: is the room far larger than\n");
+		text.Append("\t\t\t// the use. The bound decides WHICH slot holds the store; it does not decide\n");
+		text.Append("\t\t\t// whether to keep it. This read the parse's use against the BOUND until\n");
+		text.Append("\t\t\t// 2026-09-21, and for a dense store the two are not the same quantity: the\n");
+		text.Append("\t\t\t// room counts three hundred value tables and the use counted only records, so\n");
+		text.Append("\t\t\t// a parse that had just filled a seventeen-megabyte store read as idle and the\n");
+		text.Append("\t\t\t// eighth STEADY parse of the same document threw the store away and rebuilt it.\n");
+			text.Append("\t\t\tif (!(").Append(roomy).Append("))\n");
+			text.Append("\t\t\t\t_largeIdle = 0;\n");
+			text.Append("\t\t\telse if (++_largeIdle >= LargeIdle)\n\t\t\t{\n");
+			text.Append("\t\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(").Append(store).Append(")).SetTarget(").Append(store).Append(");\n");
+			text.Append("\t\t\t\t_large = null;\n\t\t\t\t_largeIdle = 0;\n\n");
+			text.Append("\t\t\t\treturn;\n\t\t\t}\n\n");
+		}
 		text.Append("\t\t\tif (_large != null && !ReferenceEquals(_large, ").Append(store).Append("))\n");
 		text.Append("\t\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(_large)).SetTarget(_large);\n\n");
 		text.Append("\t\t\t_large = ").Append(store).Append(";\n\n\t\t\treturn;\n\t\t}\n\n");
@@ -1568,12 +1578,13 @@ public static partial class CSharpEmitter
 			capacities.Add("values.MarkState.Length");
 		if (stateType is not null && markPositions)
 			capacities.Add("values.MarkAt.Length");
+const string Roomy = "values.Live.Length > 4L * rows";
+
 text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		// Taken before the emptying below, which zeroes it. Every table the bound counts
 		// is indexed by the record, so the room a parse used is its count of records once
 		// per table - the same sum the bound is read from, with use in place of length.
-		text.Append("\t\tvar rows = values._used;\n");
-		text.Append("\t\tvar used = ").Append(capacities.Count).Append("L * rows;\n\n");
+		text.Append("\t\tvar rows = values._used;\n\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (dense)
@@ -1610,7 +1621,7 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
 		text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
 		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
-		Outsized(text, "DirectValues", "values", "used");
+		Outsized(text, "DirectValues", "values", Roomy);
 
 		// Read off the RECORD tables and not off the whole store. Every table here is indexed
 		// by the record, and Live grows by doubling to hold them, so Live.Length against this
@@ -1626,7 +1637,7 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		// releasing it would demote the spare of every steady parse in the world. TWO doublings
 		// cannot be reached by slack - only by a workload that has actually shrunk - which is
 		// the change this release exists to notice.
-		Spared(text, "DirectValues", "values", "values.Live.Length > 4L * rows");
+		Spared(text, "DirectValues", "values", Roomy);
 		text.Append("\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
 		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(", int from = 0)\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");
@@ -1970,8 +1981,10 @@ public static partial class CSharpEmitter
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
 
-					// Against what this parse USED, read the same way the bound reads capacity.
-					if (ways.Count * 2L + ways.LogCount + ways.RefsCount > 1048576)
+					// The same question the ordinary slot asks below: is the room far larger than the
+					// use. The bound decides which slot holds the tape, not whether to keep it.
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
+						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{

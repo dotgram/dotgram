@@ -1208,8 +1208,19 @@ namespace DotGram.Snapshots
 				internal int    Count;
 				internal int    Stopped;
 
+				/// <summary>What the last parse asked of this buffer: its room, in its own unit.</summary>
+				/// <remarks>
+				/// The arrays are sized from a GUESS at the token count, so their length is not a
+				/// count of anything and cannot be held against Count: a document of long tokens
+				/// guesses high and would read as idle on every parse of it, steady or not. What
+				/// the guess WAS is the honest other side, and Room is where it is known.
+				/// </remarks>
+				internal int    Asked;
+
 				internal void Room(int length)
 				{
+					Asked = length;
+
 					if (Kinds.Length >= length)
 						return;
 
@@ -1311,10 +1322,9 @@ namespace DotGram.Snapshots
 					if (_largeTokens != null && !ReferenceEquals(_largeTokens, tokens))
 						(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);
 
-					// Against what this parse USED. At the rental it could never arrive: a
-					// rental that takes the kept buffer zeroes the count, and with no ordinary
-					// spare - the state right after a large parse - every rental takes it.
-					if (tokens.Count * 3L > 1048576)
+					// The same question the ordinary slot asks below: is the room far larger than
+					// the room this parse asked for. The bound decides which slot holds the buffer.
+					if ((long)tokens.Kinds.Length <= 4L * tokens.Asked)
 						_largeTokensIdle = 0;
 					else if (++_largeTokensIdle >= 8)
 					{
@@ -1330,10 +1340,11 @@ namespace DotGram.Snapshots
 					return;
 				}
 
-				// The ordinary slot lets go by the rule the parked one uses. All three arrays
-				// are indexed by the token, so the bound's capacities and this count are the
-				// same quantity twice; four times and not twice because they grow by doubling.
-				if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length <= 4L * tokens.Count * 3L)
+				// The ordinary slot lets go by the rule the parked one uses, and against the same
+				// quantity: the room this parse asked for, which is what the arrays were sized
+				// from. Held against Count instead, a document of long tokens reads as idle on
+				// every parse of it, because the length of these arrays is a guess and not a count.
+				if ((long)tokens.Kinds.Length <= 4L * tokens.Asked)
 					_spareTokensIdle = 0;
 				else if (++_spareTokensIdle >= 8)
 				{
@@ -1659,8 +1670,10 @@ namespace DotGram.Snapshots
 						if (_large != null && !ReferenceEquals(_large, ways))
 							(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
 
-						// Against what this parse USED, read the same way the bound reads capacity.
-						if (ways.Count * 2L + ways.LogCount + ways.RefsCount > 1048576)
+						// The same question the ordinary slot asks below: is the room far larger than the
+						// use. The bound decides which slot holds the tape, not whether to keep it.
+						if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
+							> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
 							_largeIdle = 0;
 						else if (++_largeIdle >= LargeIdle)
 						{
@@ -2116,11 +2129,14 @@ namespace DotGram.Snapshots
 					// first, above: what is kept is the room, never what was built in it.
 					if (0L + values.Stack1.Length > 1048576)
 					{
-						// Against what this parse USED, not what the store holds: capacity does not
-						// shrink because a document was small, so a count against it would reset here
-						// every time and never arrive. Eight parses that did not use the room and it
-						// stops being held strongly - the borrower is what demotes it.
-						if (used > 1048576)
+						// The same question the ordinary slot asks below: is the room far larger than
+						// the use. The bound decides WHICH slot holds the store; it does not decide
+						// whether to keep it. This read the parse's use against the BOUND until
+						// 2026-09-21, and for a dense store the two are not the same quantity: the
+						// room counts three hundred value tables and the use counted only records, so
+						// a parse that had just filled a seventeen-megabyte store read as idle and the
+						// eighth STEADY parse of the same document threw the store away and rebuilt it.
+						if (!(0L + values.Stack1.Length > 4L * used))
 							_largeIdle = 0;
 						else if (++_largeIdle >= LargeIdle)
 						{

@@ -74,7 +74,8 @@ sealed partial class Machine
 			// Taken before the emptying below, which zeroes the high-water marks.
 			var high = stacks.OrderBy(stack => stack, StringComparer.Ordinal)
 				.Select(stack => "values.High" + stack).ToList();
-			text.Append("\t\tvar used = ").Append(high.Count == 0 ? "0L" : "0L + " + string.Join(" + ", high)).Append(";\n\n");
+			if (high.Count != 0)
+				text.Append("\t\tvar used = 0L + ").Append(string.Join(" + ", high)).Append(";\n\n");
 			Emptied(text, "Text");
 			Emptied(text, "Spans");
 
@@ -91,12 +92,14 @@ sealed partial class Machine
 				capacities.Add("values.MarkState.Length");
 			if (stateType is not null && markPositions)
 				capacities.Add("values.MarkAt.Length");
+			var roomy = high.Count == 0 ? null : "0L + " + string.Join(" + ", capacities) + " > 4L * used";
+
 			text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
 			text.Append("\t\t// and not a bound - it is kept while the work keeps wanting it, and handed\n");
 			text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
 			text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
 			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
-			CSharpEmitter.Outsized(text, "ImmediateValues", "values", "used");
+			CSharpEmitter.Outsized(text, "ImmediateValues", "values", roomy);
 
 			// Room against use, and here the two are the same quantity: every capacity summed
 			// above is a stack length, and every term of `used` is that stack's high-water mark.
@@ -104,8 +107,7 @@ sealed partial class Machine
 			// slot is written without a release at all, rather than with one that cannot fire.
 			// Four and not two for the reason written beside the direct store: one doubling of
 			// room is what a steady workload leaves behind, and two is a workload that changed.
-			CSharpEmitter.Spared(text, "ImmediateValues", "values",
-				high.Count == 0 ? null : "0L + " + string.Join(" + ", capacities) + " > 4L * used");
+			CSharpEmitter.Spared(text, "ImmediateValues", "values", roomy);
 			text.Append("\t}\n\n");
 		}
 

@@ -1593,8 +1593,10 @@ namespace DotGram.Snapshots
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
 
-					// Against what this parse USED, read the same way the bound reads capacity.
-					if (ways.Count * 2L + ways.LogCount + ways.RefsCount > 1048576)
+					// The same question the ordinary slot asks below: is the room far larger than the
+					// use. The bound decides which slot holds the tape, not whether to keep it.
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
+						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
@@ -2001,7 +2003,6 @@ namespace DotGram.Snapshots
 			internal static void Return(DirectValues values)
 			{
 				var rows = values._used;
-				var used = 4L * rows;
 
 				global::System.Array.Clear(values.V0, 0, global::System.Math.Min(values._used, values.V0.Length));
 				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
@@ -2013,11 +2014,14 @@ namespace DotGram.Snapshots
 				// first, above: what is kept is the room, never what was built in it.
 				if (0L + values.V0.Length + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576)
 				{
-					// Against what this parse USED, not what the store holds: capacity does not
-					// shrink because a document was small, so a count against it would reset here
-					// every time and never arrive. Eight parses that did not use the room and it
-					// stops being held strongly - the borrower is what demotes it.
-					if (used > 1048576)
+					// The same question the ordinary slot asks below: is the room far larger than
+					// the use. The bound decides WHICH slot holds the store; it does not decide
+					// whether to keep it. This read the parse's use against the BOUND until
+					// 2026-09-21, and for a dense store the two are not the same quantity: the
+					// room counts three hundred value tables and the use counted only records, so
+					// a parse that had just filled a seventeen-megabyte store read as idle and the
+					// eighth STEADY parse of the same document threw the store away and rebuilt it.
+					if (!(values.Live.Length > 4L * rows))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{

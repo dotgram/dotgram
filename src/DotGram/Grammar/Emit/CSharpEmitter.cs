@@ -2081,9 +2081,20 @@ public static partial class CSharpEmitter
 			file.Line("internal int    Count;");
 			file.Line("internal int    Stopped;");
 			file.Line();
+			file.Line("/// <summary>What the last parse asked of this buffer: its room, in its own unit.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// The arrays are sized from a GUESS at the token count, so their length is not a");
+			file.Line("/// count of anything and cannot be held against Count: a document of long tokens");
+			file.Line("/// guesses high and would read as idle on every parse of it, steady or not. What");
+			file.Line("/// the guess WAS is the honest other side, and Room is where it is known.");
+			file.Line("/// </remarks>");
+			file.Line("internal int    Asked;");
+			file.Line();
 
 			using (file.Block("internal void Room(int length)"))
 			{
+				file.Line("Asked = length;");
+				file.Line();
 				file.Line("if (Kinds.Length >= length)");
 				file.Then("return;");
 				file.Line();
@@ -2196,10 +2207,9 @@ file.Line("return spare;");
 				file.Line("if (_largeTokens != null && !ReferenceEquals(_largeTokens, tokens))");
 				file.Then("(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);");
 				file.Line();
-				file.Line("// Against what this parse USED. At the rental it could never arrive: a");
-				file.Line("// rental that takes the kept buffer zeroes the count, and with no ordinary");
-				file.Line("// spare - the state right after a large parse - every rental takes it.");
-				file.Line("if (tokens.Count * 3L > 1048576)");
+				file.Line("// The same question the ordinary slot asks below: is the room far larger than");
+				file.Line("// the room this parse asked for. The bound decides which slot holds the buffer.");
+				file.Line("if ((long)tokens.Kinds.Length <= 4L * tokens.Asked)");
 				file.Then("_largeTokensIdle = 0;");
 				using (file.Block("else if (++_largeTokensIdle >= 8)"))
 				{
@@ -2215,10 +2225,11 @@ file.Line("return spare;");
 				file.Line("return;");
 			}
 			file.Line();
-			file.Line("// The ordinary slot lets go by the rule the parked one uses. All three arrays");
-			file.Line("// are indexed by the token, so the bound's capacities and this count are the");
-			file.Line("// same quantity twice; four times and not twice because they grow by doubling.");
-			file.Line("if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length <= 4L * tokens.Count * 3L)");
+			file.Line("// The ordinary slot lets go by the rule the parked one uses, and against the same");
+			file.Line("// quantity: the room this parse asked for, which is what the arrays were sized");
+			file.Line("// from. Held against Count instead, a document of long tokens reads as idle on");
+			file.Line("// every parse of it, because the length of these arrays is a guess and not a count.");
+			file.Line("if ((long)tokens.Kinds.Length <= 4L * tokens.Asked)");
 			file.Then("_spareTokensIdle = 0;");
 			using (file.Block("else if (++_spareTokensIdle >= 8)"))
 			{

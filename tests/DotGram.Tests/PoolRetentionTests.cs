@@ -214,9 +214,16 @@ public sealed class PoolRetentionTests
 			room!.SetValue(arena, Array.CreateInstance(room.FieldType.GetElementType()!, 65_537));
 		else
 		{
+			// The room goes in the array the pool' own release reads, which for the direct store
+			// is Live and not whichever array happens to be declared first: since 2026-09-21 both
+			// slots ask whether the room is far larger than the use, so a test that puts the room
+			// somewhere the rule does not look asks nothing at all.
+			var sized = arrays.FirstOrDefault(field => field.Name == (name == "DirectValues" ? "Live" : "Kinds")) ?? arrays[0];
+
 			foreach (var field in arrays)
 				field.SetValue(store, Array.CreateInstance(field.FieldType.GetElementType()!, 0));
-			arrays[0].SetValue(store, Array.CreateInstance(arrays[0].FieldType.GetElementType()!, Budget + 1));
+
+			sized.SetValue(store, Array.CreateInstance(sized.FieldType.GetElementType()!, Budget + 1));
 		}
 
 		void Used(int howMuch)
