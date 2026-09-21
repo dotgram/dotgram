@@ -269,6 +269,35 @@ public sealed class FixRepositoryAgreementTests
 				Assert.Contains(tag, pairs.Values);
 	}
 
+	/// <summary>
+	/// Every tag the specification declares is inside the mask a scope marks what it has seen with.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Trivially true today: FIX 4.4's largest tag is 956 and the mask covers 1 through
+	/// <see cref="FixSchema.TagLimit"/>. It is asserted because a deletion rests on it. Asking
+	/// whether a scope holds a tag is done by reading that mask, and the branch that looked for a
+	/// tag outside it among the fields themselves existed for a counterparty's own tag, arriving
+	/// from a loaded dictionary. Nothing generated asks it: a validator asks only about tags the
+	/// schema lists.
+	/// </para>
+	/// <para>
+	/// If a later edition of the repository -- or another version of FIX read through the same
+	/// files -- ever declares a tag above the mask, presence would be asked of a bit that is not
+	/// there. This says so at once instead of letting it become a silent wrong answer.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Every_tag_the_repository_declares_is_inside_the_mask()
+	{
+		var largest = Load("Fields.xml").Elements()
+			.Select(one => int.Parse(Text(one, "Tag"), CultureInfo.InvariantCulture))
+			.Max();
+
+		Assert.True(largest < FixSchema.TagLimit,
+			$"the repository declares tag {largest} and the mask covers 1 through {FixSchema.TagLimit - 1}.");
+	}
+
 	// ── the repository, read afresh ──────────────────────────────────────────────────────────
 
 	// Read once for the whole class: ninety-three types times two tests is a hundred and
