@@ -3077,3 +3077,22 @@ are already static, already `readonly`, already named by content in the map that
 a table and a rename is a rename.
 
 **Answer:** —
+
+**The scope question, checked rather than inherited (critic, at performance's request, read at
+`47ebe5bc`).** They would not take "hoisting the map is the whole fix" as settled, having verified
+only the half about the maps — correctly, because I had asserted the other half without looking.
+Looked now.
+
+**The tables are at the host class's scope, not inside the per-publication types.** In `Rfc5322`,
+the table at line 28867 and the nested `private sealed class Deep_DotGram_AddressList_With4`
+declared at 28173 are both indented two tabs, and the brace depth from the class's declaration to
+the table is **zero** — the class has closed. So the tables are siblings of the publication types,
+and one of them can already be referenced from any publication nested in the same host. **Hoisting
+the two dictionaries is the whole fix; no table has to move.**
+
+**One wrinkle that follows and is worth a line in the fix.** The name is built as
+`$"Recognize_DotGram{_tag}_Bits" + _bitTables.Count`, and the tag is the publication's. Share the
+map and a table named for `AddressList` is referenced from `Mailbox_With2` — which compiles, being
+one scope, and reads as a lie. The shared name should drop the tag, which also makes the name and
+the dedup key agree: the key is the content, so the name should not claim an owner the content does
+not have.
