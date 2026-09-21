@@ -3138,3 +3138,65 @@ single-case switches — and all three failed the same way, by reading a structu
 its extent. The ones that survived did so because each was checked against a witness: a method whose
 name occurs once, a table whose payload is 516 identical characters, a call site counted rather than
 described.
+
+## Q32 (2026-09-21). Members nothing names at all — 161 so far, and they must not be added to Q31's
+
+Fifth sweep, on Igor's instruction to keep going. Read at `0b021041`. The test is exact in the
+positive direction: **a member whose name occurs once in the whole generated file** — its own
+declaration — is referenced by nothing.
+
+**Two false starts before the number, both worth recording.** My first version counted a field's
+mentions *within its declaring type*, which is precisely wrong: a field is used by the type's
+**users**. It duly reported `Failure.Quiet`, `Failure.Looking` and `Failure.Reach` as dead, and
+`Looking` occurs 43 times in the file. That is the same scope error as the Web miscount of an hour
+ago, in the opposite direction — too narrow instead of too wide — and the rule it sharpens is that
+**the scope of a count must match the scope of the thing's use**, which differs between a
+declaration and a member.
+
+**What the corrected count finds.**
+
+| class | members nothing names | source |
+| --- | --- | --- |
+| `Rfc5322` | 62 | 26.1 KB |
+| `Rfc3986` | 21 | 6.5 KB |
+| `Rfc9651` | 21 | 8.4 KB |
+| `Rfc5646` | 13 | 3.6 KB |
+| `Rfc7239` | 10 | 3.3 KB |
+| `Rfc6570` | 8 | 2.0 KB |
+| `Rfc8288` | 7 | 1.8 KB |
+| `Rfc6266` | 6 | 1.5 KB |
+| `Rfc8259` | 5 | 1.3 KB |
+| `Fix.FixGrammar`, `Rfc3339` | 3 each | 0.9 KB |
+| `Rfc9110` | 2 | 0.7 KB |
+| `Sql92Parser`, `ExpressionParser`, `SqlStandardParser`, `TransactSqlParser` | **0** | — |
+| **so far** | **161** | **≈56 KB** |
+
+**Two kinds, and the split is even.** In `Rfc5322` the 62 are **36 expected-set properties** and
+**26 character-class tables**. Witness for the first kind: `Recognize_DotGram_Fields_Expected4` in
+the FIX file occurs once, in its own declaration, while its neighbour `Expected3` occurs 25 times.
+Witness for the second: of 73 `byte[]` declarations in `Rfc5322`, 26 have a single occurrence, and
+they alternate with used ones — `Class3` dead, `Class4` used once, `Class5` dead, `Class6` used
+once.
+
+**And the caveat that matters more than the total: this overlaps Q31 and the two must not be
+added.** Q31 counted 47 redundant *copies* among those same 73 tables by hashing their contents —
+a population that includes these 26. One file cannot lose 40 KB of duplicates and 26 KB of
+unreferenced members independently; the union is smaller than the sum, and whoever prices the fix
+takes the union rather than trusting either entry alone.
+
+**The expected-set half has a visible shape.** Grouped by publication in `Rfc5322`: `AddressList`
+11 dead of 54 declared, `AddrSpecRule_With1` 10 of 15, `Mailbox_With2` 5 of 7, `MailboxList_With3`
+5 of 7, `AddressList_With4` 5 of 7. The secondary publications are mostly dead sets and the primary
+one mostly live — which reads as sets emitted per machine for positions that the smaller
+publications never refuse at.
+
+**And the control is the finding's other half.** Four of the largest classes — both SQL:2023 and
+T-SQL, SQL-92 and the expression language — have **none at all**, while every Web file has some.
+Those four publish one way each; the Web files publish several. So this joins Q30's duplicated
+bodies and Q31's repeated tables: **three of the five sweeps found the same multiplier**, in three
+different kinds of artefact — methods, static tables, and now members nothing names. Whatever is
+emitted per machine is emitted for every publication, whether that publication reaches it or not,
+and the publication count is the largest structural cost in the generated code that anyone has put
+a number to.
+
+**Answer:** —
