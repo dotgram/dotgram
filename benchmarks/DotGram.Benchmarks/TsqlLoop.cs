@@ -7,7 +7,7 @@ namespace DotGram.Benchmarks;
 /// <summary>
 /// The corpus of <see cref="ScriptDomBenchmarks"/> read over and over by one T-SQL reading alone, so
 /// that a profiler sees that reading and nothing else:
-/// <c>tsql-loop plain|located [every|short|medium|long] [rounds]</c>.
+/// <c>tsql-loop plain|located|walked|theirs|theirs-walked [every|short|medium|long] [rounds]</c>.
 /// </summary>
 /// <remarks>
 /// The word has no dashes because dotTrace takes an argument that begins with one for its own; start
@@ -25,9 +25,13 @@ static class TsqlLoop
 
 		Func<int> read = which switch
 		{
-			"plain"   => benchmark.Grammar,
-			"located" => benchmark.Located,
-			_         => throw new ArgumentException($"'{which}' is not plain or located."),
+			"plain"    => benchmark.Grammar,
+			"located"  => benchmark.Located,
+			"walked"   => benchmark.GrammarWalked,
+			"theirs"   => benchmark.Tree,
+			"theirs-walked" => benchmark.TreeWalked,
+			_          => throw new ArgumentException(
+				$"'{which}' is not plain, located, walked, theirs or theirs-walked."),
 		};
 
 		var sink = 0;

@@ -60,6 +60,14 @@ namespace DotGram.Benchmarks;
 /// will not fill.
 /// </para>
 /// <para>
+/// <b>Built, and then read.</b> <see cref="Tree"/> and <see cref="Grammar"/> build a tree and
+/// nobody looks at it; <see cref="TreeWalked"/> and <see cref="GrammarWalked"/> walk every node
+/// of what they built. A consumer walks, so the second pair is the one their day looks like, and
+/// the difference between a row and its partner is what reading our tree costs against reading
+/// theirs. Both count nodes and nothing else, and both make their visitor once outside the loop,
+/// so what is timed is the walk and not the making of a delegate.
+/// </para>
+/// <para>
 /// <b><see cref="Tokens"/> has no partner, deliberately.</b> It times ScriptDom's lexer
 /// alone; ours is internal to the generated parser, and exposing it to make a pair would be
 /// a change to what we ship for the sake of a row. So the row stands alone, and this is the
@@ -249,5 +257,66 @@ public class ScriptDomBenchmarks
 			sink += TransactSqlParser.TryParseStatement(one).IsSuccess ? 1 : 0;
 
 		return sink;
+	}
+
+	/// <summary>ScriptDom's tree, read to the end: every node of it handed to a visitor.</summary>
+	[Benchmark(OperationsPerInvoke = Sample, Description = "Tree walked")]
+	public int TreeWalked()
+	{
+		var sink     = 0;
+		var counting = new Counting();
+
+		foreach (var (one, by) in _sample)
+		{
+			using var reader = new StringReader(one);
+
+			if (by.Parse(reader, out _) is not TSqlFragment fragment)
+				continue;
+
+			counting.Count = 0;
+			fragment.Accept(counting);
+			sink += counting.Count;
+		}
+
+		return sink;
+	}
+
+	/// <summary>Ours, read to the end: every node of it handed to the walker the package ships.</summary>
+	[Benchmark(OperationsPerInvoke = Sample, Description = "Grammar walked")]
+	public int GrammarWalked()
+	{
+		var sink  = 0;
+		var nodes = 0;
+		Func<ISqlSpan, bool> visit = _ =>
+		{
+			nodes++;
+
+			return true;
+		};
+
+		foreach (var (one, _) in _sample)
+		{
+			var match = TransactSqlParser.TryParseStatement(one);
+
+			if (!match.IsSuccess)
+				continue;
+
+			nodes = 0;
+			SqlWalker.Walk(match.Value, visit);
+			sink += nodes;
+		}
+
+		return sink;
+	}
+
+	/// <summary>A visitor that does nothing but count, so that what is timed is the walk.</summary>
+	sealed class Counting : TSqlFragmentVisitor
+	{
+		public int Count;
+
+		public override void Visit(TSqlFragment node)
+		{
+			Count++;
+		}
 	}
 }
