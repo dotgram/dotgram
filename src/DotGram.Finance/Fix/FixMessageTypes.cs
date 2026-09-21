@@ -151,7 +151,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Heartbeat, MsgType 0.</summary>
-	public sealed class Heartbeat : FixMessage
+	public sealed partial class Heartbeat : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -177,7 +177,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TestRequest, MsgType 1.</summary>
-	public sealed class TestRequest : FixMessage
+	public sealed partial class TestRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -203,7 +203,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ResendRequest, MsgType 2.</summary>
-	public sealed class ResendRequest : FixMessage
+	public sealed partial class ResendRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -233,7 +233,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Reject, MsgType 3.</summary>
-	public sealed class Reject : FixMessage
+	public sealed partial class Reject : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -283,7 +283,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SequenceReset, MsgType 4.</summary>
-	public sealed class SequenceReset : FixMessage
+	public sealed partial class SequenceReset : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -313,7 +313,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Logout, MsgType 5.</summary>
-	public sealed class Logout : FixMessage
+	public sealed partial class Logout : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -347,7 +347,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 IOI, MsgType 6.</summary>
-	public sealed class IOI : FixMessage
+	public sealed partial class IOI : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -741,7 +741,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Advertisement, MsgType 7.</summary>
-	public sealed class Advertisement : FixMessage
+	public sealed partial class Advertisement : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -1011,7 +1011,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ExecutionReport, MsgType 8.</summary>
-	public sealed class ExecutionReport : FixMessage
+	public sealed partial class ExecutionReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -1905,7 +1905,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderCancelReject, MsgType 9.</summary>
-	public sealed class OrderCancelReject : FixMessage
+	public sealed partial class OrderCancelReject : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -2011,7 +2011,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Logon, MsgType A.</summary>
-	public sealed class Logon : FixMessage
+	public sealed partial class Logon : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -2077,7 +2077,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 News, MsgType B.</summary>
-	public sealed class News : FixMessage
+	public sealed partial class News : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -2151,7 +2151,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Email, MsgType C.</summary>
-	public sealed class Email : FixMessage
+	public sealed partial class Email : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -2233,7 +2233,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NewOrderSingle, MsgType D.</summary>
-	public sealed class NewOrderSingle : FixMessage
+	public sealed partial class NewOrderSingle : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -2879,7 +2879,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NewOrderList, MsgType E.</summary>
-	public sealed class NewOrderList : FixMessage
+	public sealed partial class NewOrderList : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -2977,7 +2977,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderCancelRequest, MsgType F.</summary>
-	public sealed class OrderCancelRequest : FixMessage
+	public sealed partial class OrderCancelRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -3299,7 +3299,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderCancelReplaceRequest, MsgType G.</summary>
-	public sealed class OrderCancelReplaceRequest : FixMessage
+	public sealed partial class OrderCancelReplaceRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -3941,7 +3941,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderStatusRequest, MsgType H.</summary>
-	public sealed class OrderStatusRequest : FixMessage
+	public sealed partial class OrderStatusRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -4211,7 +4211,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AllocationInstruction, MsgType J.</summary>
-	public sealed class AllocationInstruction : FixMessage
+	public sealed partial class AllocationInstruction : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -4741,7 +4741,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ListCancelRequest, MsgType K.</summary>
-	public sealed class ListCancelRequest : FixMessage
+	public sealed partial class ListCancelRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -4791,7 +4791,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ListExecute, MsgType L.</summary>
-	public sealed class ListExecute : FixMessage
+	public sealed partial class ListExecute : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -4841,7 +4841,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ListStatusRequest, MsgType M.</summary>
-	public sealed class ListStatusRequest : FixMessage
+	public sealed partial class ListStatusRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -4879,7 +4879,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ListStatus, MsgType N.</summary>
-	public sealed class ListStatus : FixMessage
+	public sealed partial class ListStatus : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -4949,7 +4949,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AllocationInstructionAck, MsgType P.</summary>
-	public sealed class AllocationInstructionAck : FixMessage
+	public sealed partial class AllocationInstructionAck : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -5035,7 +5035,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 DontKnowTrade, MsgType Q.</summary>
-	public sealed class DontKnowTrade : FixMessage
+	public sealed partial class DontKnowTrade : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -5297,7 +5297,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteRequest, MsgType R.</summary>
-	public sealed class QuoteRequest : FixMessage
+	public sealed partial class QuoteRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -5351,7 +5351,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Quote, MsgType S.</summary>
-	public sealed class Quote : FixMessage
+	public sealed partial class Quote : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -5873,7 +5873,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SettlementInstructions, MsgType T.</summary>
-	public sealed class SettlementInstructions : FixMessage
+	public sealed partial class SettlementInstructions : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -5935,7 +5935,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MarketDataRequest, MsgType V.</summary>
-	public sealed class MarketDataRequest : FixMessage
+	public sealed partial class MarketDataRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6009,7 +6009,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MarketDataSnapshotFullRefresh, MsgType W.</summary>
-	public sealed class MarketDataSnapshotFullRefresh : FixMessage
+	public sealed partial class MarketDataSnapshotFullRefresh : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6239,7 +6239,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MarketDataIncrementalRefresh, MsgType X.</summary>
-	public sealed class MarketDataIncrementalRefresh : FixMessage
+	public sealed partial class MarketDataIncrementalRefresh : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6277,7 +6277,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MarketDataRequestReject, MsgType Y.</summary>
-	public sealed class MarketDataRequestReject : FixMessage
+	public sealed partial class MarketDataRequestReject : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6323,7 +6323,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteCancel, MsgType Z.</summary>
-	public sealed class QuoteCancel : FixMessage
+	public sealed partial class QuoteCancel : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6389,7 +6389,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteStatusRequest, MsgType a.</summary>
-	public sealed class QuoteStatusRequest : FixMessage
+	public sealed partial class QuoteStatusRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6663,7 +6663,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MassQuoteAcknowledgement, MsgType b.</summary>
-	public sealed class MassQuoteAcknowledgement : FixMessage
+	public sealed partial class MassQuoteAcknowledgement : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6741,7 +6741,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityDefinitionRequest, MsgType c.</summary>
-	public sealed class SecurityDefinitionRequest : FixMessage
+	public sealed partial class SecurityDefinitionRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -6995,7 +6995,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityDefinition, MsgType d.</summary>
-	public sealed class SecurityDefinition : FixMessage
+	public sealed partial class SecurityDefinition : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -7257,7 +7257,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityStatusRequest, MsgType e.</summary>
-	public sealed class SecurityStatusRequest : FixMessage
+	public sealed partial class SecurityStatusRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -7491,7 +7491,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityStatus, MsgType f.</summary>
-	public sealed class SecurityStatus : FixMessage
+	public sealed partial class SecurityStatus : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -7789,7 +7789,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradingSessionStatusRequest, MsgType g.</summary>
-	public sealed class TradingSessionStatusRequest : FixMessage
+	public sealed partial class TradingSessionStatusRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -7835,7 +7835,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradingSessionStatus, MsgType h.</summary>
-	public sealed class TradingSessionStatus : FixMessage
+	public sealed partial class TradingSessionStatus : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -7925,7 +7925,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MassQuote, MsgType i.</summary>
-	public sealed class MassQuote : FixMessage
+	public sealed partial class MassQuote : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -7991,7 +7991,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 BusinessMessageReject, MsgType j.</summary>
-	public sealed class BusinessMessageReject : FixMessage
+	public sealed partial class BusinessMessageReject : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8041,7 +8041,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 BidRequest, MsgType k.</summary>
-	public sealed class BidRequest : FixMessage
+	public sealed partial class BidRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8179,7 +8179,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 BidResponse, MsgType l.</summary>
-	public sealed class BidResponse : FixMessage
+	public sealed partial class BidResponse : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8213,7 +8213,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ListStrikePrice, MsgType m.</summary>
-	public sealed class ListStrikePrice : FixMessage
+	public sealed partial class ListStrikePrice : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8255,7 +8255,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 XMLnonFIX, MsgType n.</summary>
-	public sealed class XMLnonFIX : FixMessage
+	public sealed partial class XMLnonFIX : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8277,7 +8277,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 RegistrationInstructions, MsgType o.</summary>
-	public sealed class RegistrationInstructions : FixMessage
+	public sealed partial class RegistrationInstructions : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8347,7 +8347,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 RegistrationInstructionsResponse, MsgType p.</summary>
-	public sealed class RegistrationInstructionsResponse : FixMessage
+	public sealed partial class RegistrationInstructionsResponse : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8409,7 +8409,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderMassCancelRequest, MsgType q.</summary>
-	public sealed class OrderMassCancelRequest : FixMessage
+	public sealed partial class OrderMassCancelRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -8831,7 +8831,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderMassCancelReport, MsgType r.</summary>
-	public sealed class OrderMassCancelReport : FixMessage
+	public sealed partial class OrderMassCancelReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -9277,7 +9277,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NewOrderCross, MsgType s.</summary>
-	public sealed class NewOrderCross : FixMessage
+	public sealed partial class NewOrderCross : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -9739,7 +9739,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CrossOrderCancelReplaceRequest, MsgType t.</summary>
-	public sealed class CrossOrderCancelReplaceRequest : FixMessage
+	public sealed partial class CrossOrderCancelReplaceRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -10209,7 +10209,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CrossOrderCancelRequest, MsgType u.</summary>
-	public sealed class CrossOrderCancelRequest : FixMessage
+	public sealed partial class CrossOrderCancelRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -10439,7 +10439,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityTypeRequest, MsgType v.</summary>
-	public sealed class SecurityTypeRequest : FixMessage
+	public sealed partial class SecurityTypeRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -10497,7 +10497,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityTypes, MsgType w.</summary>
-	public sealed class SecurityTypes : FixMessage
+	public sealed partial class SecurityTypes : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -10567,7 +10567,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityListRequest, MsgType x.</summary>
-	public sealed class SecurityListRequest : FixMessage
+	public sealed partial class SecurityListRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -10853,7 +10853,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityList, MsgType y.</summary>
-	public sealed class SecurityList : FixMessage
+	public sealed partial class SecurityList : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -10899,7 +10899,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 DerivativeSecurityListRequest, MsgType z.</summary>
-	public sealed class DerivativeSecurityListRequest : FixMessage
+	public sealed partial class DerivativeSecurityListRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -11149,7 +11149,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 DerivativeSecurityList, MsgType AA.</summary>
-	public sealed class DerivativeSecurityList : FixMessage
+	public sealed partial class DerivativeSecurityList : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -11383,7 +11383,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NewOrderMultileg, MsgType AB.</summary>
-	public sealed class NewOrderMultileg : FixMessage
+	public sealed partial class NewOrderMultileg : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -11929,7 +11929,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MultilegOrderCancelReplace, MsgType AC.</summary>
-	public sealed class MultilegOrderCancelReplace : FixMessage
+	public sealed partial class MultilegOrderCancelReplace : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -12487,7 +12487,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReportRequest, MsgType AD.</summary>
-	public sealed class TradeCaptureReportRequest : FixMessage
+	public sealed partial class TradeCaptureReportRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -12861,7 +12861,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReport, MsgType AE.</summary>
-	public sealed class TradeCaptureReport : FixMessage
+	public sealed partial class TradeCaptureReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -13375,7 +13375,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderMassStatusRequest, MsgType AF.</summary>
-	public sealed class OrderMassStatusRequest : FixMessage
+	public sealed partial class OrderMassStatusRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -13789,7 +13789,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteRequestReject, MsgType AG.</summary>
-	public sealed class QuoteRequestReject : FixMessage
+	public sealed partial class QuoteRequestReject : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -13839,7 +13839,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 RFQRequest, MsgType AH.</summary>
-	public sealed class RFQRequest : FixMessage
+	public sealed partial class RFQRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -13873,7 +13873,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteStatusReport, MsgType AI.</summary>
-	public sealed class QuoteStatusReport : FixMessage
+	public sealed partial class QuoteStatusReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -14403,7 +14403,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteResponse, MsgType AJ.</summary>
-	public sealed class QuoteResponse : FixMessage
+	public sealed partial class QuoteResponse : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -14933,7 +14933,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Confirmation, MsgType AK.</summary>
-	public sealed class Confirmation : FixMessage
+	public sealed partial class Confirmation : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -15499,7 +15499,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 PositionMaintenanceRequest, MsgType AL.</summary>
-	public sealed class PositionMaintenanceRequest : FixMessage
+	public sealed partial class PositionMaintenanceRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -15793,7 +15793,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 PositionMaintenanceReport, MsgType AM.</summary>
-	public sealed class PositionMaintenanceReport : FixMessage
+	public sealed partial class PositionMaintenanceReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -16091,7 +16091,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 RequestForPositions, MsgType AN.</summary>
-	public sealed class RequestForPositions : FixMessage
+	public sealed partial class RequestForPositions : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -16369,7 +16369,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 RequestForPositionsAck, MsgType AO.</summary>
-	public sealed class RequestForPositionsAck : FixMessage
+	public sealed partial class RequestForPositionsAck : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -16635,7 +16635,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 PositionReport, MsgType AP.</summary>
-	public sealed class PositionReport : FixMessage
+	public sealed partial class PositionReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -16937,7 +16937,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReportRequestAck, MsgType AQ.</summary>
-	public sealed class TradeCaptureReportRequestAck : FixMessage
+	public sealed partial class TradeCaptureReportRequestAck : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -17187,7 +17187,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReportAck, MsgType AR.</summary>
-	public sealed class TradeCaptureReportAck : FixMessage
+	public sealed partial class TradeCaptureReportAck : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -17525,7 +17525,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AllocationReport, MsgType AS.</summary>
-	public sealed class AllocationReport : FixMessage
+	public sealed partial class AllocationReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -18071,7 +18071,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AllocationReportAck, MsgType AT.</summary>
-	public sealed class AllocationReportAck : FixMessage
+	public sealed partial class AllocationReportAck : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -18161,7 +18161,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ConfirmationAck, MsgType AU.</summary>
-	public sealed class ConfirmationAck : FixMessage
+	public sealed partial class ConfirmationAck : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -18219,7 +18219,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SettlementInstructionRequest, MsgType AV.</summary>
-	public sealed class SettlementInstructionRequest : FixMessage
+	public sealed partial class SettlementInstructionRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -18301,7 +18301,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AssignmentReport, MsgType AW.</summary>
-	public sealed class AssignmentReport : FixMessage
+	public sealed partial class AssignmentReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -18599,7 +18599,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralRequest, MsgType AX.</summary>
-	public sealed class CollateralRequest : FixMessage
+	public sealed partial class CollateralRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -19021,7 +19021,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralAssignment, MsgType AY.</summary>
-	public sealed class CollateralAssignment : FixMessage
+	public sealed partial class CollateralAssignment : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -19475,7 +19475,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralResponse, MsgType AZ.</summary>
-	public sealed class CollateralResponse : FixMessage
+	public sealed partial class CollateralResponse : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -19893,7 +19893,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralReport, MsgType BA.</summary>
-	public sealed class CollateralReport : FixMessage
+	public sealed partial class CollateralReport : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -20339,7 +20339,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralInquiry, MsgType BB.</summary>
-	public sealed class CollateralInquiry : FixMessage
+	public sealed partial class CollateralInquiry : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -20781,7 +20781,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NetworkCounterpartySystemStatusRequest, MsgType BC.</summary>
-	public sealed class NetworkCounterpartySystemStatusRequest : FixMessage
+	public sealed partial class NetworkCounterpartySystemStatusRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -20815,7 +20815,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NetworkCounterpartySystemStatusResponse, MsgType BD.</summary>
-	public sealed class NetworkCounterpartySystemStatusResponse : FixMessage
+	public sealed partial class NetworkCounterpartySystemStatusResponse : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -20857,7 +20857,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 UserRequest, MsgType BE.</summary>
-	public sealed class UserRequest : FixMessage
+	public sealed partial class UserRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -20907,7 +20907,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 UserResponse, MsgType BF.</summary>
-	public sealed class UserResponse : FixMessage
+	public sealed partial class UserResponse : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -20945,7 +20945,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralInquiryAck, MsgType BG.</summary>
-	public sealed class CollateralInquiryAck : FixMessage
+	public sealed partial class CollateralInquiryAck : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>
@@ -21295,7 +21295,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ConfirmationRequest, MsgType BH.</summary>
-	public sealed class ConfirmationRequest : FixMessage
+	public sealed partial class ConfirmationRequest : FixMessage
 	{
 		/// <summary>The rule this type is held to, and yours to replace.</summary>
 		/// <remarks>

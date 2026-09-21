@@ -1,0 +1,939 @@
+﻿<#@ template language="C#" hostspecific="true" #>
+<#@ output extension=".g.cs" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ assembly name="System.Xml.Linq" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Globalization" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Xml.Linq" #>
+<#
+	// Run by hand: `dotnet t4 src/DotGram.Finance/Fix/FixMessageValidation.tt`. The build never
+	// runs it; its output is checked in beside it and read as ordinary source.
+	Load(Path.Combine(Path.GetDirectoryName(Host.ResolvePath("FixMessageValidation.tt")),
+		"..", "..", "..", "tests", "Corpus", "FixRepository", "FIX.4.4", "Base"));
+
+	Emit();
+#>
+<#+
+	// ═══ what the repository says ════════════════════════════════════════════════════════════
+
+	sealed class FieldDef
+	{
+		public int      Tag;
+		public string   Name;
+		public string   Declared;  // the repository's own spelling of the type
+		public string   Type;      // the FixValueType member it lands on
+		public string[] Codes;     // the code set, or null where the field has none
+	}
+
+	abstract class Item { public bool Required; }
+
+	sealed class FieldItem     : Item { public FieldDef Field; }
+	sealed class ComponentItem : Item { public string Name; public List<Item> Items; }
+	sealed class GroupItem     : Item { public string Name; public FieldDef Counter; public List<Item> Items; }
+
+	sealed class MessageDef
+	{
+		public string     MsgType;
+		public string     Name;
+		public List<Item> Items;
+	}
+
+	Dictionary<int, FieldDef>    fieldsByTag  = new Dictionary<int, FieldDef>();
+	Dictionary<string, FieldDef> fieldsByName = new Dictionary<string, FieldDef>();
+	List<MessageDef>             messages     = new List<MessageDef>();
+	List<Item>                   header       = new List<Item>();
+	List<Item>                   trailer      = new List<Item>();
+	Dictionary<int, int>         dataOfLength = new Dictionary<int, int>();
+	Dictionary<int, int>         lengthOfData = new Dictionary<int, int>();
+	SortedSet<int>               codeSets     = new SortedSet<int>();
+
+	void Load(string directory)
+	{
+		foreach (var one in XDocument.Load(Path.Combine(directory, "Fields.xml")).Root.Elements())
+		{
+			var field = new FieldDef
+			{
+				Tag      = Number(one, "Tag"),
+				Name     = Text(one, "Name"),
+				Declared = Text(one, "Type"),
+			};
+
+			field.Type = ValueType(field.Declared);
+
+			fieldsByTag[field.Tag]   = field;
+			fieldsByName[field.Name] = field;
+		}
+
+		// A code set is rows of Enums.xml keyed by tag, kept in the repository's own order so that
+		// a reader comparing the emitted array with the published table sees the same sequence.
+		var codes = new Dictionary<int, List<string>>();
+
+		foreach (var one in XDocument.Load(Path.Combine(directory, "Enums.xml")).Root.Elements())
+		{
+			var tag = Number(one, "Tag");
+
+			if (!codes.ContainsKey(tag))
+				codes[tag] = new List<string>();
+
+			codes[tag].Add(Text(one, "Value"));
+		}
+
+		foreach (var pair in codes)
+			if (fieldsByTag.ContainsKey(pair.Key))
+				fieldsByTag[pair.Key].Codes = pair.Value.ToArray();
+
+		// The pairs come from the TYPE of the data field and its length field's name, never from
+		// `Type == "Length"` alone: BodyLength and MaxMessageSize carry that type and measure no
+		// data field, so a rule reading the type alone would invent two pairs that do not exist.
+		foreach (var data in fieldsByTag.Values.Where(one => one.Type == "Data").OrderBy(one => one.Tag))
+		{
+			FieldDef length;
+
+			if (!fieldsByName.TryGetValue(data.Name + "Len", out length) &&
+				!fieldsByName.TryGetValue(data.Name + "Length", out length))
+				throw new InvalidOperationException("No length field for data field " + data.Name + ", tag " + data.Tag + ".");
+
+			dataOfLength[length.Tag] = data.Tag;
+			lengthOfData[data.Tag]   = length.Tag;
+		}
+
+		// Membership is rows keyed by the id of the message or component that holds them.
+		var rows = new Dictionary<int, List<XElement>>();
+
+		foreach (var row in XDocument.Load(Path.Combine(directory, "MsgContents.xml")).Root.Elements())
+		{
+			var id = Number(row, "ComponentID");
+
+			if (!rows.ContainsKey(id))
+				rows[id] = new List<XElement>();
+
+			rows[id].Add(row);
+		}
+
+		var componentId = new Dictionary<string, int>();
+
+		foreach (var one in XDocument.Load(Path.Combine(directory, "Components.xml")).Root.Elements())
+			componentId[Text(one, "Name")] = Number(one, "ComponentID");
+
+		rowsById          = rows;
+		componentIdByName = componentId;
+
+		if (componentId.ContainsKey("StandardHeader"))
+			header = Read(componentId["StandardHeader"]);
+
+		if (componentId.ContainsKey("StandardTrailer"))
+			trailer = Read(componentId["StandardTrailer"]);
+
+		foreach (var one in XDocument.Load(Path.Combine(directory, "Messages.xml")).Root.Elements())
+		{
+			messages.Add(new MessageDef
+			{
+				MsgType = Text(one, "MsgType"),
+				Name    = Text(one, "Name"),
+
+				// The header and the trailer are scopes of their own here, so a body's reference
+				// to them is not a member of the body.
+				Items   = Read(Number(one, "ComponentID"))
+					.Where(item => !(item is ComponentItem && Standard(((ComponentItem)item).Name)))
+					.ToList(),
+			});
+		}
+	}
+
+	Dictionary<int, List<XElement>> rowsById;
+	Dictionary<string, int>         componentIdByName;
+
+	/// <summary>The members of a message or component, by the id its rows are keyed with.</summary>
+	List<Item> Read(int id)
+	{
+		return rowsById.ContainsKey(id)
+			? Items(rowsById[id].OrderBy(one => Position(one)).ToList())
+			: new List<Item>();
+	}
+
+	// INDENT IS THE STRUCTURE, and a named component is only sometimes there. Logon writes its
+	// NoMsgTypes group out in its own rows — 384 at the outer indent, 372 and 385 one deeper, with
+	// no component to name — and ninety-two scopes of the repository do the same. Reading a row as
+	// a field because nothing names a component around it loses the group: its entries are never
+	// walked, and a correct message is told its 372 does not belong in this scope.
+	List<Item> Items(List<XElement> block)
+	{
+		var items = new List<Item>();
+		var at    = 0;
+
+		while (at < block.Count)
+		{
+			var row      = block[at];
+			var indent   = Number(row, "Indent");
+			var text     = Text(row, "TagText");
+			var required = Text(row, "Reqd") == "1";
+			var next     = at + 1;
+
+			// Everything deeper than this row belongs to it.
+			while (next < block.Count && Number(block[next], "Indent") > indent)
+				next++;
+
+			var deeper = block.GetRange(at + 1, next - at - 1);
+			int tag;
+
+			if (int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out tag))
+			{
+				if (fieldsByTag[tag].Codes != null)
+					codeSets.Add(tag);
+
+				items.Add(deeper.Count == 0
+					? (Item)new FieldItem { Field = fieldsByTag[tag], Required = required }
+					: new GroupItem
+					{
+						Name     = fieldsByTag[tag].Name,
+						Counter  = fieldsByTag[tag],
+						Items    = Items(deeper),
+						Required = required,
+					});
+
+				at = next;
+
+				continue;
+			}
+
+			if (!componentIdByName.ContainsKey(text))
+				throw new InvalidOperationException("Row names '" + text + "', which is neither a tag nor a component.");
+
+			// A repeating component's own rows are a counter with its members under it, so reading
+			// them gives the group itself; what this row adds is whether the scope requires it.
+			//
+			// WHICH IT IS, IS ASKED OF THE SHAPE AND NOT OF ComponentType. The repository declares
+			// Hop an ImplicitBlock, and its rows are a counter with three members one indent deeper
+			// — a group, which is what a message on the wire holds. The declared type is kept as a
+			// second opinion by FixRepositoryAgreementTests, which names any other place the two
+			// come apart rather than letting it change what is generated unnoticed.
+			var inner = Read(componentIdByName[text]);
+
+			if (inner.Count == 1 && inner[0] is GroupItem)
+			{
+				var group = (GroupItem)inner[0];
+
+				items.Add(new GroupItem
+				{
+					Name     = text,
+					Counter  = group.Counter,
+					Items    = group.Items,
+					Required = required,
+				});
+			}
+			else
+			{
+				items.Add(new ComponentItem { Name = text, Items = inner, Required = required });
+			}
+
+			at = next;
+		}
+
+		return items;
+	}
+
+	static bool Standard(string name)
+	{
+		return name == "StandardHeader" || name == "StandardTrailer";
+	}
+
+	static int Number(XElement element, string name)
+	{
+		return int.Parse(Text(element, name), NumberStyles.None, CultureInfo.InvariantCulture);
+	}
+
+	static double Position(XElement element)
+	{
+		return double.Parse(Text(element, "Position"), CultureInfo.InvariantCulture);
+	}
+
+	static string Text(XElement element, string name)
+	{
+		var child = element.Element(name);
+
+		return child == null ? null : child.Value.Trim();
+	}
+
+	// The repository's spelling of a type in this package's terms. FixVocabulary.Of holds the same
+	// map for a dictionary read at run time; that the two agree for every tag is asserted by
+	// FixMessageValidationTests rather than arranged by sharing code a template cannot call.
+	static string ValueType(string declared)
+	{
+		switch ((declared ?? "").ToUpperInvariant())
+		{
+			case "STRING":
+			case "LANGUAGE":             return "String";
+			case "CHAR":                 return "Char";
+			case "INT":                  return "Int";
+			case "LENGTH":               return "Length";
+			case "NUMINGROUP":           return "NumInGroup";
+			case "SEQNUM":               return "SeqNum";
+			case "TAGNUM":               return "TagNum";
+			case "DAYOFMONTH":           return "DayOfMonth";
+			case "FLOAT":                return "Float";
+			case "QTY":                  return "Qty";
+			case "PRICE":                return "Price";
+			case "PRICEOFFSET":          return "PriceOffset";
+			case "AMT":                  return "Amt";
+			case "PERCENTAGE":           return "Percentage";
+			case "BOOLEAN":              return "Boolean";
+			case "CURRENCY":             return "Currency";
+			case "COUNTRY":              return "Country";
+			case "EXCHANGE":             return "Exchange";
+			case "MONTHYEAR":            return "MonthYear";
+			case "LOCALMKTDATE":         return "LocalMktDate";
+			case "UTCDATEONLY":
+			case "UTCDATE":              return "UTCDateOnly";
+			case "UTCTIMEONLY":          return "UTCTimeOnly";
+			case "UTCTIMESTAMP":         return "UTCTimestamp";
+			case "DATA":
+			case "XMLDATA":              return "Data";
+			case "MULTIPLEVALUESTRING":
+			case "MULTIPLESTRINGVALUE":
+			case "MULTIPLECHARVALUE":    return "MultipleValueString";
+			default:                     return "None";
+		}
+	}
+
+	// ═══ the flattening a scope's checks are written from ════════════════════════════════════
+
+	// Every tag a scope holds, through its components, with a group counted by its counter tag.
+	// This is the set a field is held against, and the order a group entry's fields are held to.
+	static List<int> Flat(List<Item> items)
+	{
+		var tags = new List<int>();
+
+		Walk(items, tags);
+
+		return tags;
+	}
+
+	static void Walk(List<Item> items, List<int> tags)
+	{
+		foreach (var item in items)
+		{
+			if (item is FieldItem)     tags.Add(((FieldItem)item).Field.Tag);
+			if (item is GroupItem)     tags.Add(((GroupItem)item).Counter.Tag);
+			if (item is ComponentItem) Walk(((ComponentItem)item).Items, tags);
+		}
+	}
+
+	// A component is an id and a consumer cannot look an id up, so a finding about a missing
+	// component names the first tag it would have held: the thing they can look up, and usually
+	// the thing they forgot.
+	static int First(List<Item> items)
+	{
+		var flat = Flat(items);
+
+		return flat.Count == 0 ? 0 : flat[0];
+	}
+
+	static FieldDef Member(List<Item> items, int tag)
+	{
+		foreach (var item in items)
+		{
+			if (item is FieldItem && ((FieldItem)item).Field.Tag == tag) return ((FieldItem)item).Field;
+			if (item is GroupItem && ((GroupItem)item).Counter.Tag == tag) return ((GroupItem)item).Counter;
+
+			if (item is ComponentItem)
+			{
+				var found = Member(((ComponentItem)item).Items, tag);
+
+				if (found != null)
+					return found;
+			}
+		}
+
+		return null;
+	}
+
+	// ═══ what is written once rather than ninety-three times ═════════════════════════════════
+
+	// The standard header and trailer are one scope each for all ninety-three types, and the
+	// length/data pairs and the set of defined tags are the standard's rather than any message's.
+	// They are written once and called. Set this true to write them out inside every validator
+	// instead: about thirty-six thousand more lines, and nothing a reader of one validator sees.
+	const bool InlineWhatIsShared = false;
+
+	// Whether a generated validator is what Validate() calls. It is not, yet: while the walk is
+	// still the answer, the generated code can be held against it over every fixture this package
+	// keeps — which is the only way to know the transfer from the specification is right before it
+	// becomes the only reading. Turn this on in the commit that removes the walk, and delete the
+	// flag in the same commit: a switch that outlives its question is a second road nobody
+	// remembers in six months.
+	const bool TheGeneratedRuleAnswers = false;
+
+	string tab = "\t";
+
+	void Line(int depth, string text)
+	{
+		Write(string.Concat(Enumerable.Repeat(tab, depth)));
+		WriteLine(text);
+	}
+
+	void Blank()
+	{
+		WriteLine("");
+	}
+#>
+<#+
+	// ═══ the emission ════════════════════════════════════════════════════════════════════════
+
+	void Emit()
+	{
+		Preamble();
+
+		// Every partial declaration of a type must agree about its accessibility, and the other
+		// two say public abstract.
+		Line(0, "public abstract partial class FixMessage");
+		Line(0, "{");
+
+		var first = true;
+
+		foreach (var message in messages)
+		{
+			if (!first)
+				Blank();
+
+			EmitMessage(message);
+			first = false;
+		}
+
+		Line(0, "}");
+		Blank();
+
+		EmitShared();
+	}
+
+	void Preamble()
+	{
+		Line(0, "// <auto-generated>");
+		Line(0, "//     Written by FixMessageValidation.tt from tests/Corpus/FixRepository, which is the FIX");
+		Line(0, "//     Repository as its authors publish it. Do not edit: run the template.");
+		Line(0, "//");
+		Line(0, "//     One method per message type, holding that type's checks and nothing else - no schema,");
+		Line(0, "//     no table, no lookup. A message type and a class are the same thing in this package, so");
+		Line(0, "//     the rule lives where the type does.");
+		Line(0, "//");
+		Line(0, "//     Three things are written once rather than ninety-three times, and none of them is a");
+		Line(0, "//     table: the standard header and the standard trailer, which are one scope each for");
+		Line(0, "//     every type; the sixteen length/data pairs, which are the standard's and not any");
+		Line(0, "//     message's; and the set of tags FIX 4.4 defines, which a finding needs only to tell");
+		Line(0, "//     \"not here\" from \"nowhere\".");
+		Line(0, "//");
+		Line(0, "//     What is deliberately NOT carried across from the repository is its prose. A tag, a");
+		Line(0, "//     name and whether a field is required are facts of the specification. The description");
+		Line(0, "//     of a field is somebody else's text, and this package does not reprint it.");
+		Line(0, "//");
+		Line(0, "//     A length/data pair is ONE field on the wire, carrying the data tag, with the length in");
+		Line(0, "//     its prefix, so a pair is checked once, by its data tag. The repository lists both");
+		Line(0, "//     halves as separate rows; a validator written from those rows literally would report");
+		Line(0, "//     tag 348 missing from a message that is entirely correct.");
+		Line(0, "// </auto-generated>");
+		Blank();
+		Line(0, "using System;");
+		Line(0, "using System.Collections.Generic;");
+		Blank();
+		// A file the compiler takes for generated is outside the project's nullable context
+		// unless it says otherwise, and this one is written against a project that has it on.
+		Line(0, "#nullable enable");
+		Blank();
+		Line(0, "namespace DotGram.Finance.Fix;");
+		Blank();
+	}
+
+	void EmitMessage(MessageDef message)
+	{
+		var name = message.Name;
+
+		Line(1, "public sealed partial class " + name);
+		Line(1, "{");
+		Line(2, "/// <summary>The rule this type is held to, and yours to replace.</summary>");
+		Line(2, "/// <remarks>");
+		Line(2, "/// A message type and a class are one and the same thing here, so the rule lives where");
+		Line(2, "/// the type does: no table, no lookup, and the class is the key. Assign to replace it -");
+		Line(2, "/// a reference assignment, so a reader sees one rule or the other and never half of a");
+		Line(2, "/// change - and assign <see cref=\"ValidateDefault\"/> to put it back.");
+		Line(2, "/// </remarks>");
+		Line(2, "public static Func<" + name + ", FixFinding[]> Validator = ValidateDefault;");
+		Blank();
+
+		if (TheGeneratedRuleAnswers)
+		{
+			Line(2, "/// <inheritdoc/>");
+			Line(2, "public override FixFinding[] Validate()");
+			Line(2, "{");
+			Line(3, "return Validator(this);");
+			Line(2, "}");
+			Blank();
+		}
+
+		Line(2, "/// <summary>What FIX 4.4 says a " + name + " is, written out.</summary>");
+		Line(2, "public static FixFinding[] ValidateDefault(" + name + " message)");
+		Line(2, "{");
+		Line(3, "List<FixFinding>? found = null;");
+		Blank();
+		Line(3, "FixStandard.Encoding(message, ref found);");
+		Blank();
+
+		if (InlineWhatIsShared)
+			EmitScope(header, "message.Header", "FixScope.Header", "0", "-1", false, 0, 3);
+		else
+			Line(3, "FixStandard.Header(message, ref found);");
+
+		Blank();
+		EmitScope(message.Items, "message", "FixScope.Body", "0", "-1", false, 0, 3);
+		Blank();
+
+		if (InlineWhatIsShared)
+			EmitScope(trailer, "message.Trailer", "FixScope.Trailer", "0", "-1", false, 0, 3);
+		else
+			Line(3, "FixStandard.Trailer(message, ref found);");
+
+		Blank();
+		Line(3, "return found is null ? [] : found.ToArray();");
+		Line(2, "}");
+		Line(1, "}");
+	}
+
+	// -- one scope: the fields in the order they arrive, then what the schema asks for ---------
+
+	void EmitScope(List<Item> items, string source, string where, string groupTag, string entry, bool ordered, int d, int at)
+	{
+		var tags  = Flat(items);
+		var scope = "scope" + d;
+		var seen  = "seen"  + d;
+		var node  = "node"  + d;
+		var field = "field" + d;
+		var index = "i"     + d;
+		var rank  = "rank"  + d;
+		var more  = "extended" + d;
+
+		Line(at, "{");
+		Line(at + 1, "var " + scope + " = " + source + ";");
+		Line(at + 1, "var " + seen + " = new ulong[15];");
+		Line(at + 1, "HashSet<int>? " + more + " = null;");
+
+		if (ordered)
+			Line(at + 1, "var " + rank + " = -1;");
+
+		Blank();
+		Line(at + 1, "for (var " + index + " = 0; " + index + " < " + scope + ".Nodes.Length; " + index + "++)");
+		Line(at + 1, "{");
+		Line(at + 2, "var " + node + "  = " + scope + ".Nodes[" + index + "];");
+		Line(at + 2, "var " + field + " = " + node + ".Field(" + scope + ".Source);");
+		Blank();
+
+		if (ordered && tags.Count != 0)
+		{
+			Line(at + 2, "// an entry's fields come in the order the schema lists them");
+			Line(at + 2, "switch (" + node + ".Tag)");
+			Line(at + 2, "{");
+
+			for (var i = 0; i < tags.Count; i++)
+			{
+				Line(at + 3, "case " + tags[i] + ":   // " + fieldsByTag[tags[i]].Name);
+				Line(at + 4, "if (" + i + " < " + rank + ")");
+				Line(at + 5, Add(where, field + ".Tag", groupTag, entry, field + ".ValuePosition",
+					"FixRule.FieldOutOfOrder", "The fields of a group entry are not in the order the schema gives them."));
+				Line(at + 4, "else");
+				Line(at + 5, rank + " = " + i + ";");
+				Blank();
+				Line(at + 4, "break;");
+				Blank();
+			}
+
+			Line(at + 2, "}");
+			Blank();
+		}
+
+		Line(at + 2, "// the tag twice in one scope");
+		Line(at + 2, "if (" + node + ".Tag is > 0 and < 957)");
+		Line(at + 2, "{");
+		Line(at + 3, "var bit = 1UL << (" + node + ".Tag & 63);");
+		Blank();
+		Line(at + 3, "if ((" + seen + "[" + node + ".Tag >> 6] & bit) != 0)");
+		Line(at + 4, Add(where, field + ".Tag", groupTag, entry, field + ".ValuePosition",
+			"FixRule.DuplicateField", "The tag appears more than once in this scope."));
+		Blank();
+		Line(at + 3, seen + "[" + node + ".Tag >> 6] |= bit;");
+		Line(at + 2, "}");
+		Line(at + 2, "else if (!(" + more + " ??= []).Add(" + node + ".Tag))");
+		Line(at + 3, Add(where, field + ".Tag", groupTag, entry, field + ".ValuePosition",
+			"FixRule.DuplicateField", "The tag appears more than once in this scope."));
+		Blank();
+		Line(at + 2, "FixStandard.Pair(" + scope + ", " + index + ", " + where + ", " + groupTag + ", " + entry + ", ref found);");
+
+		// Where a message names a type the schema does not describe there is nothing for a field
+		// to be out of place against, and saying so of every field would bury the one finding
+		// that matters.
+		if (tags.Count != 0)
+		{
+			Blank();
+			Line(at + 2, "switch (" + node + ".Tag)");
+			Line(at + 2, "{");
+
+			foreach (var tag in tags)
+			{
+				var member = Member(items, tag);
+
+				Line(at + 3, "case " + tag + ":   // " + member.Name + ", " + member.Declared);
+
+				if (member.Type == "None")
+				{
+					Line(at + 4, "// this package models no type for " + member.Declared + ", so nothing is said of the value");
+					Line(at + 4, "break;");
+				}
+				else
+				{
+					Line(at + 4, "if (!FixPrimitives.Valid(" + field + ", FixValueType." + member.Type + ", " +
+						(member.Codes == null ? "null" : "FixCodes.T" + tag) + "))");
+					Line(at + 5, Add(where, field + ".Tag", groupTag, entry, field + ".ValuePosition",
+						"FixRule.InvalidValue", "The value does not fit the field's type, or is not one of its code set."));
+					Blank();
+					Line(at + 4, "break;");
+				}
+
+				Blank();
+			}
+
+			Line(at + 3, "default:");
+			Line(at + 4, "FixStandard.NotInScope(" + field + ", " + where + ", " + groupTag + ", " + entry + ", ref found);");
+			Line(at + 4, "break;");
+			Line(at + 2, "}");
+		}
+
+		Line(at + 1, "}");
+
+		EmitReferences(items, scope, seen, where, groupTag, entry, d, at + 1);
+
+		Line(at, "}");
+	}
+
+	void EmitReferences(List<Item> items, string scope, string seen, string where, string groupTag, string entry, int d, int at)
+	{
+		foreach (var item in items)
+		{
+			if (item is FieldItem)
+			{
+				var field = ((FieldItem)item).Field;
+
+				if (!item.Required)
+					continue;
+
+				Blank();
+				Line(at, "// " + field.Name + ", tag " + field.Tag + ", which this scope requires");
+				Line(at, "if (!" + Has(scope, seen, field.Tag) + ")");
+				Line(at + 1, Add(where, field.Tag.ToString(CultureInfo.InvariantCulture), groupTag, entry, "0",
+					"FixRule.RequiredFieldMissing", "The schema requires this tag in this scope."));
+
+				continue;
+			}
+
+			if (item is ComponentItem)
+			{
+				var component = (ComponentItem)item;
+				var reachable = Flat(component.Items);
+
+				if (reachable.Count == 0)
+					continue;
+
+				Blank();
+				Line(at, "// the component " + component.Name + (component.Required ? ", which this scope requires" : ""));
+				Line(at, "if (" + string.Join(" ||" + Environment.NewLine + Indent(at + 1) + " ",
+					reachable.Select(tag => Has(scope, seen, tag)).ToArray()) + ")");
+				Line(at, "{");
+				EmitReferences(component.Items, scope, seen, where, groupTag, entry, d, at + 1);
+				Line(at, "}");
+
+				if (component.Required)
+				{
+					Line(at, "else");
+					Line(at + 1, Add(where, "null", groupTag, entry, "0", "FixRule.RequiredComponentMissing",
+						"A component the schema requires has none of its fields; its first is tag " + First(component.Items) + "."));
+				}
+
+				continue;
+			}
+
+			var group   = (GroupItem)item;
+			var counter = "counter" + d;
+			var entries = "entries" + d;
+			var count   = "count"   + d;
+			var one     = "one"     + d;
+			var walked  = "index"   + d;
+
+			Blank();
+			Line(at, "// the group " + group.Name + ", counted by tag " + group.Counter.Tag);
+			Line(at, "if (!" + Has(scope, seen, group.Counter.Tag) + ")");
+			Line(at, "{");
+
+			if (group.Required)
+				Line(at + 1, Add(where, group.Counter.Tag.ToString(CultureInfo.InvariantCulture), groupTag, entry, "0",
+					"FixRule.RequiredFieldMissing", "The schema requires this tag in this scope."));
+			else
+				Line(at + 1, "// the schema does not require this group");
+
+			Line(at, "}");
+			Line(at, "else");
+			Line(at, "{");
+			Line(at + 1, "var " + counter + " = " + scope + ".GetField(" + group.Counter.Tag + ")!.Value;");
+			Line(at + 1, "var " + entries + " = " + scope + ".GetGroup(" + group.Counter.Tag + ");");
+			Blank();
+			Line(at + 1, "if (!" + counter + ".TryGetInt64(out var " + count + ") || " + count + " != " + entries + ".Count || " +
+				count + " < 0" + (group.Required ? " || " + count + " == 0" : "") + ")");
+			Line(at + 2, "(found ??= []).Add(new FixFinding(FixRule.GroupCountMismatch, " + where + ", " + counter + ".Tag, " +
+				groupTag + ", " + entry + ", " + counter + ".ValuePosition,");
+			Line(at + 3, "$\"The count says {" + counter + "} and {" + entries + ".Count} entries follow.\"));");
+			Blank();
+			Line(at + 1, "var " + walked + " = 0;");
+			Blank();
+			Line(at + 1, "foreach (var " + one + " in " + entries + ")");
+			Line(at + 1, "{");
+			EmitScope(group.Items, one, where, group.Counter.Tag.ToString(CultureInfo.InvariantCulture), walked, true, d + 1, at + 2);
+			Blank();
+			Line(at + 2, walked + "++;");
+			Line(at + 1, "}");
+			Line(at, "}");
+		}
+	}
+
+	// A scope's standard tags are in the mask its fields marked; any other tag is looked for among
+	// the fields themselves, because the mask has no room for it.
+	static string Has(string scope, string seen, int tag)
+	{
+		// Parenthesised whole, because every caller of this writes `if (!...)` around it and `!`
+		// would otherwise bind to the mask rather than to the comparison.
+		return tag > 0 && tag < 957
+			? "((" + seen + "[" + (tag >> 6) + "] & 0x" + (1UL << (tag & 63)).ToString("X16") + "UL) != 0)"
+			: "(" + scope + ".GetField(" + tag + ") != null)";
+	}
+
+	static string Add(string where, string tag, string groupTag, string entry, string position, string rule, string reason)
+	{
+		return "(found ??= []).Add(new FixFinding(" + rule + ", " + where + ", " + tag + ", " + groupTag + ", " +
+			entry + ", " + position + ", \"" + reason + "\"));";
+	}
+#>
+<#+
+	// ═══ what is written once, because it is the standard's and not any message's ════════════
+
+	void EmitShared()
+	{
+		Line(0, "/// <summary>The code sets FIX 4.4 publishes, each named by its tag.</summary>");
+		Line(0, "/// <remarks>");
+		Line(0, "/// Not a table and not looked up: a validator names the one array it needs, and the name");
+		Line(0, "/// is resolved by the compiler. They live together only so that a set shared by twenty");
+		Line(0, "/// message types is written once rather than twenty times.");
+		Line(0, "/// </remarks>");
+		Line(0, "static class FixCodes");
+		Line(0, "{");
+
+		var first = true;
+
+		foreach (var tag in codeSets)
+		{
+			if (!first)
+				Blank();
+
+			var field = fieldsByTag[tag];
+
+			Line(1, "/// <summary>The code set of " + field.Name + ", tag " + tag + ".</summary>");
+			Line(1, "public static readonly string[] T" + tag + " =");
+			Line(1, "[");
+			Line(2, string.Join(", ", field.Codes.Select(code => "\"" + code + "\"").ToArray()));
+			Line(1, "];");
+
+			first = false;
+		}
+
+		Line(0, "}");
+		Blank();
+		Line(0, "/// <summary>What every message is held to, because the standard says it of all of them.</summary>");
+		Line(0, "/// <remarks>");
+		Line(0, "/// The standard header and trailer are one scope each for all ninety-three types; the");
+		Line(0, "/// sixteen length/data pairs are the standard's; and whether FIX 4.4 defines a tag at all");
+		Line(0, "/// is a question about the standard, not about a message. Writing them out in every");
+		Line(0, "/// validator would add about thirty-six thousand lines and tell a reader nothing new.");
+		Line(0, "/// </remarks>");
+		Line(0, "static class FixStandard");
+		Line(0, "{");
+
+		Line(1, "/// <summary>The standard header, which every message carries.</summary>");
+		Line(1, "public static void Header(FixMessage message, ref List<FixFinding>? found)");
+		Line(1, "{");
+		EmitScope(header, "message.Header", "FixScope.Header", "0", "-1", false, 0, 2);
+		Line(1, "}");
+		Blank();
+
+		Line(1, "/// <summary>The standard trailer, which every message carries.</summary>");
+		Line(1, "public static void Trailer(FixMessage message, ref List<FixFinding>? found)");
+		Line(1, "{");
+		EmitScope(trailer, "message.Trailer", "FixScope.Trailer", "0", "-1", false, 0, 2);
+		Line(1, "}");
+		Blank();
+
+		EmitEncoding();
+		Blank();
+		EmitPairs();
+		Blank();
+		EmitNotInScope();
+
+		Line(0, "}");
+	}
+
+	void EmitEncoding()
+	{
+		var encoded = lengthOfData.Keys
+			.Where(tag => fieldsByTag[tag].Name.StartsWith("Encoded", StringComparison.Ordinal))
+			.OrderBy(tag => tag)
+			.ToArray();
+
+		Line(1, "/// <summary>MessageEncoding, which an Encoded field cannot be read without.</summary>");
+		Line(1, "public static void Encoding(FixMessage message, ref List<FixFinding>? found)");
+		Line(1, "{");
+		Line(2, "if (message.Header.GetField(347) == null && (Encoded(message.Header) || Encoded(message)))");
+		Line(3, "(found ??= []).Add(new FixFinding(FixRule.MessageEncodingMissing, FixScope.Header, 347, 0, -1, 0,");
+		Line(4, "\"MessageEncoding is required where an Encoded field is present.\"));");
+		Line(1, "}");
+		Blank();
+		Line(1, "static bool Encoded(FixFieldSet scope)");
+		Line(1, "{");
+		Line(2, "foreach (var node in scope.Nodes)");
+		Line(2, "{");
+		Line(3, "switch (node.Tag)");
+		Line(3, "{");
+
+		foreach (var tag in encoded)
+			Line(4, "case " + tag + ":   // " + fieldsByTag[tag].Name);
+
+		Line(5, "return true;");
+		Line(3, "}");
+		Blank();
+		Line(3, "if (node.Entries != null)");
+		Line(4, "foreach (var entry in node.Entries)");
+		Line(5, "if (Encoded(entry))");
+		Line(6, "return true;");
+		Line(2, "}");
+		Blank();
+		Line(2, "return false;");
+		Line(1, "}");
+	}
+
+	void EmitPairs()
+	{
+		Line(1, "/// <summary>A data field follows the length that measures it, and a length precedes it.</summary>");
+		Line(1, "/// <remarks>");
+		Line(1, "/// The sixteen pairs of FIX 4.4, asked of every field of every scope. Which tags are a");
+		Line(1, "/// pair is the standard's answer and the same in every message, so it is written here");
+		Line(1, "/// once; a pair is read off the wire as ONE field carrying the data tag, and these two");
+		Line(1, "/// findings are about the length field that should have stood beside it.");
+		Line(1, "/// </remarks>");
+		Line(1, "public static void Pair(FixFieldSet scope, int index, FixScope where, int groupTag, int entry, ref List<FixFinding>? found)");
+		Line(1, "{");
+		Line(2, "switch (scope.Nodes[index].Tag)");
+		Line(2, "{");
+
+		foreach (var pair in lengthOfData.OrderBy(one => one.Key))
+		{
+			Line(3, "case " + pair.Key + ":   // " + fieldsByTag[pair.Key].Name + ", which tag " + pair.Value + " measures");
+			Line(4, "AfterLength(scope, index, " + pair.Value + ", where, groupTag, entry, ref found);");
+			Line(4, "break;");
+			Blank();
+		}
+
+		foreach (var pair in dataOfLength.OrderBy(one => one.Key))
+		{
+			Line(3, "case " + pair.Key + ":   // " + fieldsByTag[pair.Key].Name + ", which measures tag " + pair.Value);
+			Line(4, "BeforeData(scope, index, " + pair.Value + ", where, groupTag, entry, ref found);");
+			Line(4, "break;");
+			Blank();
+		}
+
+		Line(2, "}");
+		Line(1, "}");
+		Blank();
+		Line(1, "static void AfterLength(FixFieldSet scope, int index, int lengthTag, FixScope where, int groupTag, int entry, ref List<FixFinding>? found)");
+		Line(1, "{");
+		Line(2, "var node = scope.Nodes[index];");
+		Blank();
+		Line(2, "if (index == 0 ||");
+		Line(3, "scope.Nodes[index - 1].Tag != lengthTag ||");
+		Line(3, "!scope.Nodes[index - 1].Field(scope.Source).TryGetInt64(out var measured) ||");
+		Line(3, "measured != node.Length)");
+		Line(2, "{");
+		Line(3, "var field = node.Field(scope.Source);");
+		Blank();
+		Line(3, "(found ??= []).Add(new FixFinding(FixRule.DataFieldNotAfterLength, where, field.Tag, groupTag, entry, field.ValuePosition,");
+		Line(4, "$\"A data field must immediately follow tag {lengthTag}, which measures it.\"));");
+		Line(2, "}");
+		Line(1, "}");
+		Blank();
+		Line(1, "static void BeforeData(FixFieldSet scope, int index, int dataTag, FixScope where, int groupTag, int entry, ref List<FixFinding>? found)");
+		Line(1, "{");
+		Line(2, "if (index + 1 == scope.Nodes.Length || scope.Nodes[index + 1].Tag != dataTag)");
+		Line(2, "{");
+		Line(3, "var field = scope.Nodes[index].Field(scope.Source);");
+		Blank();
+		Line(3, "(found ??= []).Add(new FixFinding(FixRule.LengthFieldNotBeforeData, where, field.Tag, groupTag, entry, field.ValuePosition,");
+		Line(4, "$\"A length field must immediately precede tag {dataTag}, which it measures.\"));");
+		Line(2, "}");
+		Line(1, "}");
+	}
+
+	void EmitNotInScope()
+	{
+		Line(1, "/// <summary>A tag the scope does not list, and the two sentences that tells apart.</summary>");
+		Line(1, "/// <remarks>");
+		Line(1, "/// Whether FIX 4.4 defines a tag at all is a question about the standard and the same for");
+		Line(1, "/// every scope, which is why it is asked here rather than written into each of them.");
+		Line(1, "/// </remarks>");
+		Line(1, "public static void NotInScope(FixFieldView field, FixScope where, int groupTag, int entry, ref List<FixFinding>? found)");
+		Line(1, "{");
+		Line(2, "(found ??= []).Add(new FixFinding(FixRule.FieldNotInScope, where, field.Tag, groupTag, entry, field.ValuePosition,");
+		Line(3, "Defines(field.Tag)");
+		Line(4, "? \"The schema defines this tag, but not in this scope.\"");
+		Line(4, ": \"The schema defines no such tag.\"));");
+		Line(1, "}");
+		Blank();
+		Line(1, "/// <summary>Whether FIX 4.4 gives this tag a name at all.</summary>");
+		Line(1, "static bool Defines(int tag)");
+		Line(1, "{");
+		Line(2, "switch (tag)");
+		Line(2, "{");
+
+		var line  = new StringBuilder();
+		var count = 0;
+
+		foreach (var tag in fieldsByTag.Keys.OrderBy(one => one))
+		{
+			line.Append("case ").Append(tag).Append(": ");
+
+			if (++count % 10 == 0)
+			{
+				Line(3, line.ToString().TrimEnd());
+				line.Clear();
+			}
+		}
+
+		if (line.Length != 0)
+			Line(3, line.ToString().TrimEnd());
+
+		Line(4, "return true;");
+		Blank();
+		Line(3, "default:");
+		Line(4, "return false;");
+		Line(2, "}");
+		Line(1, "}");
+	}
+
+	static string Indent(int depth)
+	{
+		return new string('\t', depth);
+	}
+#>

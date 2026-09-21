@@ -1,4 +1,4 @@
-# Working on this
+﻿# Working on this
 
 How the project is built, checked and measured. Standing process rather than plans —
 [`next.md`](next.md) says what to do next, this says what to do every time.
@@ -394,6 +394,32 @@ what it says about the pass.
 - An example owes assertions in `tests/DotGram.Tests/ExampleTests.cs`. Nothing under
   `examples/` may reference a test framework — an example that needs a fixture to make
   sense is not an example.
+
+## The template that writes the FIX validators
+
+`src/DotGram.Finance/Fix/FixMessageValidation.tt` reads `tests/Corpus/FixRepository` — FIX 4.4's
+own machine-readable form — and writes `FixMessageValidation.g.cs`, the validator of each of the
+ninety-three message types. **The build does not run it.** Its output is checked in beside it and
+read as ordinary source, so nobody needs the tool to build, test or ship this repository; it is
+needed only by whoever changes the template or the repository under it.
+
+```
+dotnet tool install -g dotnet-t4 --version 3.0.0
+t4 src/DotGram.Finance/Fix/FixMessageValidation.tt
+```
+
+The output name comes from the template's own `output extension` directive, so pass no `-o`:
+passing one appends rather than replaces, and you get `FixMessageValidation.g.g.cs`. On Windows the
+tool lands wherever the dotnet CLI's tools directory is, which is not always under the profile —
+`(Get-Command t4).Source` says where. The output has no byte-order mark, because t4 writes UTF-8
+without one and takes no option to do otherwise; `.editorconfig` says so for that one file, so
+nobody adds a mark that the next run would drop.
+
+After running it, build: the generated file is about two hundred thousand lines, and a mistake in
+the template is a compile error in ninety-three places at once rather than one. Then run
+`FixGeneratedRuleTests`, which holds every generated rule against the walk over every fixture, and
+`FixRepositoryAgreementTests`, which holds all ninety-three types against the repository read
+afresh.
 
 ## Large generated source files
 

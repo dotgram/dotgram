@@ -1,4 +1,4 @@
-root = true
+﻿root = true
 
 [*]
 charset = utf-8
@@ -15,6 +15,12 @@ tab_width = 4
 [*.{cs,csproj,props,targets}]
 # What Visual Studio itself writes for these.
 charset = utf-8-bom
+
+[FixMessageValidation.g.cs]
+# Written by t4, which emits UTF-8 without a BOM and takes no option to do otherwise. The file is
+# ASCII, so a BOM would carry nothing; added by hand it would be lost on the next run of the
+# template, which is worse than not having it.
+charset = utf-8
 
 [*.slnx]
 # Visual Studio writes .slnx without a BOM; matching it keeps solution edits from
