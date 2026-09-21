@@ -7854,3 +7854,36 @@ reader who had read it.
 working sessions had restarted and lost their context. They had not; the list describes the
 connection, not the conversation. Fourth time tonight: a description read as the state, and the
 instrument this time was the one I had reached for precisely to avoid reporting from memory.
+
+## D109 — Audit a duplicated list against its original, and then ask why it is duplicated
+
+The editor's audit was done the right way round. The editor parses with the compiler's own front
+end, so new syntax is read correctly the day it lands and cannot rot; **what can rot is only what
+the editor writes by hand.** That decomposition makes the audit finite, and it turns "read the
+specification and judge" into "compare each hand-written list against the compiler's own,
+mechanically": the keyword set against every word literal the parser takes, the punctuation
+tooltips against the spelling table, the built-ins against the binder's list. One built-in of seven
+was missing, and no amount of reading the specification would have been as certain.
+
+**And the finding raises the question behind it.** A list in the editor that mirrors a list in the
+compiler is a duplication of exactly the kind that produced five dead counters in five pools. The
+repair is to fill in the missing entry; the cure is to ask whether the list can be DERIVED from the
+compiler's rather than kept beside it. A derived list cannot go stale, and these are small enough
+that the answer is probably yes for at least the built-ins and the keywords. Worth pricing before
+anyone writes the next one by hand.
+
+**One of the three divergences is a wrong claim shown to a user**, which ranks above the other two:
+the hover inside `[^ … ]` calls `^` a "recovery marker", and the language has no such thing — the
+character is the complement of an element set, and recovery is `recover`. It is the only hover a
+reader gets there, so the editor is the thing teaching them the wrong word.
+
+**The third is predicted rather than demonstrated, and waits for its demonstration.** A constructing
+group owns its captures and the editor hoists them to the rule, so two groups capturing the same
+name become one symbol for Rename and Find All References. That follows from reading both sides;
+it has not been run. It is repaired after it is shown, not before — the evening's rule, applied to
+a prediction that happens to look certain.
+
+**And the manual checks are behind in the place this week's work landed.** The Playground grammars
+contain no `recover`, no `find`, no lookahead either way, and no `with state` at all — which is
+exactly where §7.8 and GRAM4029/4030 arrived. A manual check that cannot see a regression in the
+newest area is the part of the suite that looks like coverage and is not.
