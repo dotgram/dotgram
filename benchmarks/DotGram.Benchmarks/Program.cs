@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using BenchmarkDotNet.Running;
 
@@ -163,6 +163,14 @@ static class Program
 		if (args.Length == 1 && args[0] == "--stand-check")
 		{
 			Stand.Check();
+
+			return;
+		}
+
+		// `--stand-retained beforeDir afterDir [--only a,b]` prints what each side's parser still holds after it has read a row's input, beside the bytes a call allocates (D97). Times nothing.
+		if (args.Length is 3 or 5 && args[0] == "--stand-retained")
+		{
+			Stand.PairedRetained(args[1], args[2], args.Length == 5 && args[3] == "--only" ? args[4] : null);
 
 			return;
 		}

@@ -319,6 +319,10 @@ test exe appends one line a series, the worst class of three runs, and asserts n
 from an older binary writes down as normal what has since been fixed. `linearity-refused --baseline` prints lines too, for reading, not for the file. Every report of a measurement names the commit its
 binary was built from (`Built from ...`, and the plain and paired stand's headers): a binary has no date that shows it.
 
+### What a parser still holds: `--stand-retained`
+
+`--stand-retained beforeDir afterDir [--only a,b]` (`StandRetained.cs`) prints, for each row and each side in turn, the managed heap that stays reachable after the row's reading has run twice (full collections either side of it), beside the bytes the second call allocated. It times nothing, so it needs no window. It exists because a change to what a pool keeps has two sides, the bytes a call no longer allocates and what the pool now keeps resident, and a pair that prints one cannot price the trade (architect, D97). A side's retention is measured against the heap just before it, so the two sides run one after the other in one process. First reading (r1-0/r1-1, 2026-09-20): the SQL:2023 CASE row at 1,391 arms retains 11.2 MB on both sides (the store is kept, below the bound) and the same row at 1,738 arms retains nothing and allocates 74 MB a call (dropped, above it).
+
 ### Which carrier a grammar took: `--carriers`
 
 ```console

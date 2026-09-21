@@ -37,6 +37,10 @@ static partial class Stand
 		var problems = new List<string>();
 		var lines    = new List<string>();
 		var series   = 0;
+		var points   = 0;
+		var firstWas = 0;
+		var firstBy  = 0;
+		var firstList = new List<string>();
 
 		foreach (var one in RefusalLadders.All())
 		{
@@ -46,6 +50,24 @@ static partial class Stand
 			series++;
 
 			var result   = RefusalLadders.Run(one);
+
+			// Where was the warm-up the faster of the two readings of a size? There the second pass bought nothing (D95).
+			foreach (var point in result.FirstPass.Where(static p => p.N >= 32))
+			{
+				if (result.SecondPass.FirstOrDefault(other => other.N == point.N) is not { N: > 0 } second)
+					continue;
+
+				points++;
+
+				if (point.Ns < second.Ns)
+					firstWas++;
+
+				if (point.Ns * 1.25 < second.Ns)
+				{
+					firstBy++;
+					firstList.Add($"{RefusalLadders.Id(one)} at {point.N:N0}: the first pass {RefusalLadders.Duration(point.Ns)}, the second {RefusalLadders.Duration(second.Ns)}");
+				}
+			}
 			var exponent = result.Exponent;
 			var last     = result.Last;
 			var stopped  = result.Budget ? ", stopped at " + last.N.ToString("N0", invariant) + " (" + (last.Ns / 1e6).ToString("F0", invariant) + " ms)" : "";
@@ -92,6 +114,11 @@ static partial class Stand
 			Console.Out.Flush();
 		}
 
+		Console.WriteLine();
+		Console.WriteLine($"Of {points:N0} points of size 32 units or more read in both passes, the FIRST pass (the warm-up) was the faster in {firstWas:N0} and faster by a quarter or more in {firstBy:N0}: where it was, the second pass bought nothing.");
+
+		foreach (var line in firstList)
+			Console.WriteLine("- " + line);
 		Console.WriteLine();
 		Console.WriteLine(problems.Count == 0
 			? $"{series} series, none above the exponent {RefusalLadders.Threshold.ToString("F2", invariant)}."

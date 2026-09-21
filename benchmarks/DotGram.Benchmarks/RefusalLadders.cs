@@ -380,7 +380,12 @@ internal static class RefusalLadders
 	internal sealed record Result(Series Series, List<(int N, double Ns, double Bytes)> Points, bool Budget, bool Hung, bool Faulty, string? Thrown, double Exponent, double Allocation, int Length)
 	{
 		/// <summary>The time of each size in the first pass (the warm-up), beside the merged Points, whose time is the faster of the two passes: kept so that the gap between them can be looked at (D95).</summary>
-		internal List<(int N, double Ns)> Slower { get; init; } = [];
+		internal List<(int N, double Ns)> Slower => FirstPass.Select(one => SecondPass.FirstOrDefault(other => other.N == one.N) is { N: > 0 } two ? (one.N, Math.Max(one.Ns, two.Ns)) : one).ToList();
+
+		/// <summary>The time of every size in the first pass, and in the second: kept apart, so that it can be counted where the first (the warm-up) was the faster and the second pass bought nothing there.</summary>
+		internal List<(int N, double Ns)> FirstPass { get; init; } = [];
+
+		internal List<(int N, double Ns)> SecondPass { get; init; } = [];
 
 		/// <summary>
 		/// The widest gap between the two passes at any size of 32 units or more, slower over faster, and where it was. The faster of two passes is taken because a disturbance can only slow a call; that holds only while the
@@ -461,7 +466,8 @@ internal static class RefusalLadders
 
 		return second with
 		{
-			Slower  = gaps.Select(one => slower.FirstOrDefault(other => other.N == one.N) is { N: > 0 } two ? (one.N, Math.Max(one.Ns, two.Ns)) : one).ToList(),
+			FirstPass  = gaps,
+			SecondPass = slower,
 			Points     = merged,
 			Exponent   = merged.Count < 2 ? double.NaN : Exponent(merged, static p => p.Ns),
 			Allocation = merged.Count < 2 ? double.NaN : Exponent(merged, static p => p.Bytes),
