@@ -8424,3 +8424,37 @@ were arithmetic their author could have done alone. This one was not: **the reso
 instrument is knowledge its owner holds**, and the person reading the number usually cannot derive
 it. So a figure handed over carries its resolution the way it carries its units — and where the
 receiver cannot ask, the owner volunteers it.
+
+## D120 — The dense trade lands; and three rules the landing turned up
+
+**The ruling, asked for before the four-slot work because that work's shape depends on it: the
+dense change lands, together with the bound that made it legible.** Every condition named before
+the clean table is met; the twenty-odd megabytes are no longer unexplained but **explained and
+bounded** — one store over the bound, parked by the new bound, falling from 20,018 KB to 3,012 once
+a collection runs — and a bounded cost is one that can be accepted, which is the sentence I gave
+when I deferred. The timed half is −28 to −65% on the cliff rows, confirmed in both orders. The
+residue goes into the report as agreed, with its resolution inside the sentence. The four slots
+follow, and are sized for dense stores because dense stores now exist.
+
+**A correction written above a claim does not retract the claim.** An entry was found still
+carrying "it also costs about two to three per cent on the largest documents" three paragraphs
+below the paragraph that had withdrawn exactly that reading. Second time this week. So D107 gains
+its missing half: in an editable record, **the withdrawn sentence is deleted, not merely
+contradicted**. What may stay is narration — that it was believed, and why — in the voice of
+history. What must not stay is the claim in the assertive voice, because that is the sentence a
+reader will quote.
+
+**A sweep asserts a floor, and the floor is what makes a filter defect legible.** The shape probe
+tested an absolute path for `\.work\`, so in a worktree under `…/performance/.work/wt-main` it
+filtered out every grammar in the repository — and said so, loudly: *"Only 0 grammars were read;
+the walk over the repository is broken."* A sweep that had merely returned an empty list would have
+passed, and the defect would have been a clean answer that stopped the search. We have collected
+this class all night from the negative side; this is the positive instance, and the rule it gives
+is cheap: **every sweep asserts that it found something, and says what it expected to find.**
+
+**And fixing rather than reporting, across an area boundary, was right here.** Four things held
+together: it blocked the fixer's own gate, the intent was unambiguous and written down in the
+commit that introduced it, the repair was one line, and the owner was told. Where any of those
+fails — an inferred intent, more than a mechanical change, no blockage — the finding is reported
+and the work stops. The telling is not the optional part: it is what leaves the owner able to
+disagree.
