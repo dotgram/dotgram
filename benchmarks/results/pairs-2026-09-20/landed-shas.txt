@@ -5,6 +5,7 @@ The shas the pair READMEs of the pooling chain name are the shas of the chain in
 5de9a75d  ->  dcf60185  "The dense store keeps its tables, and the lexer keeps its buffer"
 e1c2e8f1  ->  8234bdcf  "One test holds all five pools to the release policy"
 e93675cc  ->  52f52800  "The dense bound counts the tables it guards"
+f18a941b  ->  c9904b56  "The ordinary slot lets go of room the parses have stopped wanting" (rebased when pushed; the diary entry beside it is 3f292ba6; its parent 0783f47b is unchanged on main)
 7eca1ce9  ->  nowhere, by design (the throwaway with `used = 0L`, deleted)
 bc7a860d  ->  f3c70da7  "The release counts what a parse used, where a parse ends" (never paired under its own name; inside the span of the e1c2e8f1 pair)
 
