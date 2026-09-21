@@ -16,7 +16,7 @@
 	  3. pins itself to logical processors 0-15 (0xFFFF) at high priority and starts `dotnet <Assembly> <BdnArgs> --artifacts <out>`; the children inherit the mask;
 	  4. every 100 ms reads the workers that appeared and checks each once (a worker that starts and ends between two reads is not checked, and run.txt says how many
 	     workers BDN executed, from its own log, against how many were read: a case of a real run lasts many seconds, a dry job's does not);
-	  5. (-Note is written into the announcement and into run.txt: "a pricing probe, its numbers are not to be quoted")
+	  5. (-Commit names the commit of what is under test when the assembly is built outside the repository, e.g. "library 1a2b3c4d, main 5e6f7a8b"; without it the commit is read from the repository the assembly sits in, and says "no repository" when there is none. -Note is written into the announcement and into run.txt: "a pricing probe, its numbers are not to be quoted")
 	  6. at the end writes run.txt beside BDN's artifacts: the commit, the mask, the JIT variables, every worker checked (pid, affinity, priority,
 	     when) and the exit code, so that a reader a month later has the header a paired report carries.
 
@@ -36,7 +36,8 @@ param(
 	[double]$LimitMinutes = 60,
 	[UInt64]$Affinity = 0xFFFF,
 	[string]$Root = 'T:\TEMP\dotgram-bdn',
-	[string]$Note = ''
+	[string]$Note = '',
+	[string]$Commit = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -144,7 +145,7 @@ finally {
 if (-not $failure -and -not $truncated -and $checked.Count -eq 0) { $failure = 'no benchmark worker was seen, so no case was checked: the run measured nothing this script can vouch for' }
 
 $executed = if (Test-Path (Join-Path $out 'bdn.log')) { @(Select-String -Path (Join-Path $out 'bdn.log') -Pattern '^// Execute:').Count } else { 0 }
-$commit = if ($repo) { (git -C $repo rev-parse --short HEAD) + $(if (git -C $repo status --porcelain 2>$null) { ' (+ uncommitted changes)' } else { '' }) } else { 'no repository' }
+$commit = if ($Commit) { $Commit } elseif ($repo) { (git -C $repo rev-parse --short HEAD) + $(if (git -C $repo status --porcelain 2>$null) { ' (+ uncommitted changes)' } else { '' }) } else { 'no repository' }
 $jit    = 'DOTNET_TieredCompilation', 'DOTNET_TieredPGO', 'DOTNET_TC_QuickJitForLoops', 'DOTNET_ReadyToRun' | ForEach-Object { $v = [Environment]::GetEnvironmentVariable($_); if ($v) { "$_=$v" } else { "$_ unset" } }
 
 $report = @(
