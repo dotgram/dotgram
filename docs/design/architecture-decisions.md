@@ -8495,3 +8495,29 @@ weak reference near the common path. If the demotion happens only on expiry, the
 return never touch one — but that is a reading of the emitted code, to be confirmed by reading it,
 not settled by this sentence. Tonight has cost us three mechanisms asserted without execution; this
 one is named as unconfirmed on purpose.
+
+**The count inverted the proposal, which is why it went first.** Across eighteen rows and three
+sides the deeper slots **never appear**. What holds the residue is the spare, whole: 8,542 KB of
+the value store's, 2,183 of the ways', 123 of the lexer's. So releasing the deeper three is free
+and buys nothing measurable, and the spare's release is not the last tenth — **it is the entire
+work**. The author had proposed the opposite order on a suspicion, and the file that settled it was
+already on disk.
+
+**And the absence was shown to be evidence rather than silence**, which is the step that usually
+goes missing. The readout reflects over every thread-static field of the parser's types and their
+nested types, drops a field only when it holds no array, and carries a case written for exactly the
+array-of-stores shape the deeper slots have. They were looked for by name and by intent and held
+nothing; the array is made lazily and was never allocated. **An absence counts only where the
+instrument has been shown able to see the thing that is absent** — the positive form of the failure
+we met four times tonight.
+
+**What the count cannot say, said before anyone quotes it further.** The deeper slots fill only
+when a parse begins while the spare is taken — an interpolated hole, a guard, a value that parses.
+If no row drives a re-entrant parse, the reading cannot tell "they stay empty" from "these rows
+never re-enter", and the honest sentence is the second. **Their ceiling is untested, not zero** —
+three slots of some eight megabytes each, twenty-four of the thirty-five we would be promising.
+
+**So: the spare's release now, and the second count after it** — which shipped grammars can
+re-enter at all, and a readout after a suite run rather than a stand row. Not to order the work,
+which the first count settled, but because a slot that never fills in any shipped grammar is not a
+slot to release; it is a slot to question.
