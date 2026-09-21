@@ -140,4 +140,16 @@ public static partial class FixParser
 			? FixGrammar.ParseLogFields(input, context)
 			: FixGrammar.ParseFields(input, context);
 	}
+
+	/// <summary>
+	/// Reads wire fields separated by SOH from a copy of the octets.
+	/// </summary>
+	/// <remarks>
+	/// The parser reads an array, so the span is copied into one first; a binary field's value then
+	/// refers to that copy rather than to the caller's buffer, which is what makes it safe to keep.
+	/// </remarks>
+	public static FixField[] ParseFields(ReadOnlySpan<byte> input, FixFieldOptions? options = null)
+	{
+		return ParseFields(input.ToArray(), options);
+	}
 }

@@ -171,11 +171,11 @@ else
 ```
 
 `FixParser.ParseMessage(wire)` returns the same model and throws `FormatException` on malformed
-input. `TryParse` returns false and leaves `message` null. Null input also returns
-false in `TryParse`; invalid options passed to an options overload are programming
-errors. String and `ReadOnlySpan<char>` overloads accept one complete message.
-Concatenated messages are rejected by the contiguous-input overloads. Use
-`ReadMessages` to consume a sequence from a reader or stream.
+input. `TryParseMessage` returns false and leaves `message` null. Null input also returns
+false in `TryParseMessage`; invalid options passed to an options overload are programming
+errors. The `string`, `ReadOnlySpan<char>`, `byte[]` and `ReadOnlySpan<byte>` overloads accept one
+complete message. Concatenated messages are rejected by these overloads; `ParseMessages` reads a
+buffer of them, and `ReadMessages` consumes a sequence from a reader or stream.
 
 ## Streaming input
 
@@ -228,8 +228,16 @@ reads pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` an
 and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
 payload remains opaque and its declared `MessageEncoding` remains available.
 
-String input is retained without copying. Span input is copied once because the
-returned model owns its source. Keeping a field or message alive retains that
+**Or hand over the octets and make no claim at all.** Every field and message call also takes
+`byte[]` and `ReadOnlySpan<byte>`: `ParseFields`, `ParseMessage`, `TryParseMessage` and
+`ParseMessages`. There the package decodes, knowing that the specification counts octets, so
+nothing depends on the caller having chosen an encoding. What this buys is correctness, not
+allocation: a message keeps its source, so the octets are still materialised one character to one
+octet, and the cost is about what the string road costs.
+
+String input is retained without copying. Span and octet input are materialised once because the
+returned model owns its source; `ParseFields(byte[])` reads the array where it lies and builds no
+model, so nothing is copied there. Keeping a field or message alive retains that
 source. Networking and FIX session state are outside this package.
 
 ## Model

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -49,6 +49,52 @@ public static partial class FixParser
 		return FixMessages.Parse(input, options);
 	}
 
+	/// <summary>Reads one message from the octets it arrived as.</summary>
+	/// <param name="input">The whole message, as the octets that came off the wire.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	/// <exception cref="FormatException">The input is not one readable message.</exception>
+	/// <remarks>
+	/// <para>
+	/// <strong>This road asks nothing of the caller that they can get wrong.</strong> FIX counts
+	/// its envelope in octets — BodyLength is a length in bytes and CheckSum a sum of bytes — so a
+	/// string input is a claim that somebody has already decoded the wire one character to one
+	/// octet. Reading a file as UTF-8, which is what is done by default, breaks that claim, and
+	/// what the package can say about it is that the length does not match: a true statement that
+	/// sends the reader to look at their counterparty. Octets carry no such claim.
+	/// </para>
+	/// <para>
+	/// A field of type <c>data</c> comes back as the octets it was, cut by the length its paired
+	/// length field gives and not by the separator, so a payload may hold the separator itself.
+	/// Nothing here decodes anything: <c>MessageEncoding</c> (347) is delivered as a value, and
+	/// what an <c>Encoded</c> field's octets mean is the consumer's to decide.
+	/// </para>
+	/// <para>
+	/// <strong>What this road buys is correctness, not allocation.</strong> A message keeps its
+	/// source — <see cref="FixMessage.OriginalWire"/> is that source — so the octets are still
+	/// materialised into a string, one character to one octet. The difference is who decides how:
+	/// here it is the package, which knows that the specification counts octets, rather than a
+	/// consumer choosing an encoding for a file whose framing arithmetic that choice then changes.
+	/// </para>
+	/// </remarks>
+	public static FixMessage ParseMessage(byte[] input, FixFieldOptions? options = null)
+	{
+		return FixMessages.Parse(input, options);
+	}
+
+	/// <summary>Reads one message from a copy of the octets it arrived as.</summary>
+	/// <param name="input">The whole message, as the octets that came off the wire.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
+	/// <exception cref="FormatException">The input is not one readable message.</exception>
+	/// <remarks>
+	/// <see cref="ParseMessage(byte[], FixFieldOptions)"/> says what the octet road is for. The
+	/// parser reads an array, so the span is copied into one first.
+	/// </remarks>
+	public static FixMessage ParseMessage(ReadOnlySpan<byte> input, FixFieldOptions? options = null)
+	{
+		return FixMessages.Parse(input, options);
+	}
+
 	/// <summary>Reads one message from a buffer; a malformed one answers with a diagnostic.</summary>
 	/// <param name="input">The whole message, as octets held one to a character.</param>
 	/// <param name="message">The message read, or null.</param>
@@ -67,6 +113,30 @@ public static partial class FixParser
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	public static bool TryParseMessage(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		return FixMessages.TryParse(input, out message, out error, options);
+	}
+
+	/// <summary>Reads one message from octets; a malformed one answers with a diagnostic.</summary>
+	/// <param name="input">The whole message, as the octets that came off the wire; null is refused with a diagnostic.</param>
+	/// <param name="message">The message read, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	/// <remarks><see cref="ParseMessage(byte[], FixFieldOptions)"/> says what the octet road is for.</remarks>
+	public static bool TryParseMessage(byte[]? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		return FixMessages.TryParse(input, out message, out error, options);
+	}
+
+	/// <summary>Reads one message from a copy of the octets; a malformed one answers with a diagnostic.</summary>
+	/// <param name="input">The whole message, as the octets that came off the wire.</param>
+	/// <param name="message">The message read, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
+	public static bool TryParseMessage(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
 	{
 		return FixMessages.TryParse(input, out message, out error, options);
 	}
@@ -103,6 +173,43 @@ public static partial class FixParser
 	public static FixMessage[] ParseMessages(ReadOnlySpan<char> input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		return ParseMessages(input.ToString(), options, maxMessageLength);
+	}
+
+	/// <summary>Reads every message of a buffer of octets, in order.</summary>
+	/// <param name="input">Concatenated messages, as the octets that came off the wire.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
+	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
+	/// <remarks>
+	/// <see cref="ParseMessage(byte[], FixFieldOptions)"/> says what the octet road is for. The whole
+	/// input is in hand, so every message is built before the call returns; a log too large to hold
+	/// that way is what <see cref="ReadMessages(Stream, FixFieldOptions, int)"/> is for, and this is
+	/// that call over the octets already read.
+	/// </remarks>
+	public static FixMessage[] ParseMessages(byte[] input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		if (input is null)
+			throw new ArgumentNullException(nameof(input));
+
+		var messages = new List<FixMessage>();
+
+		using (var stream = new MemoryStream(input, writable: false))
+			foreach (var message in FixMessages.ReadMessages(stream, options, maxMessageLength))
+				messages.Add(message);
+
+		return messages.ToArray();
+	}
+
+	/// <summary>Reads every message of a copy of a buffer of octets, in order.</summary>
+	/// <param name="input">Concatenated messages, as the octets that came off the wire.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
+	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
+	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
+	/// <remarks>The input is read from an array, so the span is copied into one first.</remarks>
+	public static FixMessage[] ParseMessages(ReadOnlySpan<byte> input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return ParseMessages(input.ToArray(), options, maxMessageLength);
 	}
 
 	/// <summary>Reads exactly one message from a reader, without closing it or reading past it.</summary>

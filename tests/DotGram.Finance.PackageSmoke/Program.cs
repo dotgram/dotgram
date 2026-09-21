@@ -27,6 +27,12 @@ foreach (var item in FixParser.ReadMessages(stream))
 	count++;
 }
 if (count != 2) throw new Exception("Expected two messages on one stream.");
+var octets = Encoding.Latin1.GetBytes(wire);
+if (FixParser.ParseMessage(octets) is not FixMessage.Heartbeat octetHeartbeat || octetHeartbeat.OriginalWire != wire)
+	throw new Exception("Expected a Heartbeat from the octets themselves.");
+if (FixParser.ParseMessages(octets).Length != 1 ||
+	!FixParser.TryParseMessage(octets, out var tried, out _) || tried!.OriginalWire != wire)
+	throw new Exception("The octet doors do not agree with each other.");
 var fields = FixParser.ParseFields(wire);
 if (fields.Length != 8 || fields[0] is not FixField.BeginString)
 	throw new Exception("Expected flat typed fields from FixParser.");
@@ -34,4 +40,4 @@ if (typeof(FixParser).Assembly.GetType("DotGram.Finance.Fix44.Fix44Parser") != n
 	typeof(FixParser).Assembly.GetType("DotGram.Examples.Finance.Fix44") != null ||
 	typeof(FixParser).Assembly.GetReferencedAssemblies().Any(name => name.Name is "DotGram.Finance.Fix44" or "DotGram.Examples"))
 	throw new Exception("The Fix44 fixture must not be included in the package.");
-Console.WriteLine("DotGram.Finance package smoke: char, byte stream, pipe and typed ADT passed.");
+Console.WriteLine("DotGram.Finance package smoke: char, octets, byte stream, pipe and typed ADT passed.");

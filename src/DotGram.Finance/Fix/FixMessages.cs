@@ -220,6 +220,65 @@ static partial class FixMessages
 		return checksum == expected || Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
 	}
 
+	/// <summary>Parses one complete message from the octets it arrived as.</summary>
+	/// <param name="input">The message's octets.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <remarks>
+	/// The road the specification describes: BodyLength counts octets and CheckSum sums octets, and
+	/// on this road they are counted and summed over the octets themselves rather than over
+	/// characters somebody has already decoded them into.
+	/// </remarks>
+	public static FixMessage Parse(byte[] input, FixFieldOptions? options = null)
+	{
+		if (input == null)
+			throw new ArgumentNullException(nameof(input));
+
+		if (TryParseBytes(input, out var message, out var error, options))
+			return message!;
+
+		throw new FormatException(error!.ToString());
+	}
+
+	/// <summary>Parses one complete message from a copy of the octets it arrived as.</summary>
+	/// <param name="input">The message's octets.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
+	public static FixMessage Parse(ReadOnlySpan<byte> input, FixFieldOptions? options = null)
+	{
+		return Parse(input.ToArray(), options);
+	}
+
+	/// <summary>Tries to parse one complete message from the octets it arrived as.</summary>
+	/// <param name="input">The message's octets; null is refused with a diagnostic rather than thrown for.</param>
+	/// <param name="message">The message read, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	public static bool TryParse(byte[]? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		message = null;
+		error   = null;
+
+		return input == null
+			? Fail(0, null, null, "Input is null.", out error)
+			: TryParseBytes(input, out message, out error, options);
+	}
+
+	/// <summary>Tries to parse one complete message from a copy of the octets it arrived as.</summary>
+	/// <param name="input">The message's octets.</param>
+	/// <param name="message">The message read, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
+	public static bool TryParse(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		return TryParse(input.ToArray(), out message, out error, options);
+	}
+
 	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
 	{
 		message = null;
