@@ -8,7 +8,7 @@ using System.Text;
 
 // The first call of the FIX parsers, in phases, in a fresh process (from sql-39's fixfirst).
 //
-//     fixfirst <directory> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock
+//     fixfirst <directory> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock | validate | validate-generated
 //
 // The directory holds DotGram.Finance.dll, and DotGram.Handwritten.dll for `hand`. Each phase prints
 // its time, how many methods the runtime compiled during it, their IL, and the time it spent compiling:
@@ -19,8 +19,14 @@ using System.Text;
 //               first parse, the second.
 //   stock       StockCountReader.TryParseCount of the example's four-line count (DotGram.Examples.dll in the
 //               directory too): load, the type initializers, the first parse, the second.
-//   build       FixMessages.Build of the fields FixParser.Parse read from the same message: the same phases,
+//   build       FixMessages.Build of the fields the field parser read from the same message: the same phases,
 //               with the field parse before the first build so that the build is what is timed.
+//   validate            FixMessage.Validate of a parsed NewOrderSingle -- the walk over the schema tables.
+//   validate-generated  NewOrderSingle.ValidateDefault of the same message -- the rule written out per type.
+//               Both parse first and do not time the parse, so what is timed is one act: the first call of
+//               validation in a fresh process, which is where a generated method of five thousand lines is
+//               paid for. They are two modes rather than two phases of one, because a first call is a
+//               property of the process and the second act in a process is not a first call.
 //
 // The compiled methods come from the runtime's MethodJittingStarted events through an EventListener,
 // which costs time of its own: the absolute figures run above `--stand-paired --first`'s (7.5 ms against
@@ -30,9 +36,14 @@ using System.Text;
 var directory = args.Length > 1 ? args[0] : null;
 var mode      = args.Length > 1 ? args[1] : null;
 
-if (directory is null || mode is not ("generated" or "hand" or "generated-bytes" or "hand-bytes" or "generated-stream" or "hand-stream" or "parse" or "build" or "stock"))
+// Which message type the validate modes read. A first call is paid per method, and the methods
+// differ by three orders of magnitude between a Heartbeat and a TradeCaptureReport, so the cost is
+// a row and not a number.
+var which = args.Length > 2 ? args[2] : "NewOrderSingle";
+
+if (directory is null || mode is not ("generated" or "hand" or "generated-bytes" or "hand-bytes" or "generated-stream" or "hand-stream" or "parse" or "build" or "stock" or "validate" or "validate-generated"))
 {
-	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock");
+	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock | validate | validate-generated");
 
 	return 2;
 }
@@ -55,7 +66,14 @@ var fieldParser = (mode.StartsWith("hand", StringComparison.Ordinal) ? handwritt
 var messages = finance.GetType("DotGram.Finance.Fix.FixMessages")!;
 var bytes       = mode.EndsWith("-bytes", StringComparison.Ordinal);
 var streamed    = mode.EndsWith("-stream", StringComparison.Ordinal);
-var parseFields = fieldParser.GetMethod("Parse", streamed ? [typeof(Stream), options, typeof(int), typeof(int?)] : [bytes ? typeof(byte[]) : typeof(string), options])!;
+// The field calls of this package were renamed when its door was merged -- ParseFields from a
+// buffer, ReadFields from a stream -- while the hand-written parser beside it kept Parse. A
+// harness that runs against an older build of the library has to answer to both names, so it asks
+// for the current one and falls back rather than dying with a null it cannot explain.
+var parseTypes  = streamed ? new[] { typeof(Stream), options, typeof(int), typeof(int?) } : [bytes ? typeof(byte[]) : typeof(string), options];
+var parseNames  = mode.StartsWith("hand", StringComparison.Ordinal) ? ["Parse"] : new[] { streamed ? "ReadFields" : "ParseFields", "Parse" };
+var parseFields = parseNames.Select(name => fieldParser.GetMethod(name, parseTypes)).FirstOrDefault(found => found != null)
+	?? throw new MissingMethodException($"{fieldParser.Name} has none of {string.Join(", ", parseNames)} for this input.");
 
 switch (mode)
 {
@@ -151,6 +169,41 @@ switch (mode)
 		break;
 	}
 
+	case "validate":
+	case "validate-generated":
+	{
+		RuntimeHelpers.RunClassConstructor(finance.GetType("DotGram.Finance.Fix.FixSchema")!.TypeHandle);
+		Phase("FixSchema cctor", true);
+		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
+		Phase("FixMessages cctor", false);
+
+		var parse   = messages.GetMethod("Parse", [typeof(string), options])!;
+		var message = parse.Invoke(null, [Wire(which), null])!;
+
+		Phase("parse", false);
+
+		// The walk is a call on the message; the generated rule is a static of the message's own
+		// class. They are asked for the same act by the two roads they are reached by.
+		var generated = mode == "validate-generated";
+		var rule      = generated
+			? message.GetType().GetMethod("ValidateDefault", BindingFlags.Public | BindingFlags.Static)
+				?? throw new MissingMethodException($"{message.GetType().Name} has no generated rule in this build.")
+			: finance.GetType("DotGram.Finance.Fix.FixMessage")!.GetMethod("Validate", Type.EmptyTypes)!;
+
+		var call = generated
+			? new Func<object>(() => rule.Invoke(null, [message])!)
+			: () => rule.Invoke(message, null)!;
+
+		var first = Guard(call);
+
+		Phase("first validate", true);
+		Guard(call);
+		Phase("second validate", false);
+		Console.WriteLine($"{which} {first}");
+
+		break;
+	}
+
 	default:
 	{
 		RuntimeHelpers.RunClassConstructor(finance.GetType("DotGram.Finance.Fix.FixSchema")!.TypeHandle);
@@ -215,6 +268,32 @@ static string Guard(Func<object> call)
 static string OrderWire()
 {
 	var body   = "35=D\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000111=ORDER\u000121=1\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u0001";
+	var header = $"8=FIX.4.4\u00019={body.Length}\u0001";
+	var sum    = 0;
+
+	foreach (var character in header + body)
+		sum += character;
+
+	return $"{header}{body}10={sum % 256:D3}\u0001";
+}
+
+// A message of the named type with a standard header and nothing in its body. The body is empty on
+// purpose: what a first call costs is dominated by compiling the method, which happens whole
+// whichever branches the data takes, and an empty body is the one body every type can be given
+// alike. What validation then reports is a list of what the type requires, which is a result of the
+// right size to print and the wrong thing to read anything into.
+static string Wire(string which)
+{
+	var type = which switch
+	{
+		"Heartbeat"          => "0",
+		"NewOrderSingle"     => "D",
+		"TradeCaptureReport" => "AE",
+		"ExecutionReport"    => "8",
+		_                    => throw new ArgumentException($"no wire for {which}"),
+	};
+
+	var body   = $"35={type}\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u0001";
 	var header = $"8=FIX.4.4\u00019={body.Length}\u0001";
 	var sum    = 0;
 
