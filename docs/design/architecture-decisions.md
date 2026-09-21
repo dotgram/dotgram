@@ -9199,3 +9199,45 @@ stands in the name.**
 removed test: the largest tag the repository declares is inside the mask. It is trivially true
 today, and its remark says what it is holding up — the day it stops being trivial is the day a
 presence question would be asked of a bit that does not exist.
+
+## D135 — A half-applied correction is worse than the defect it corrects
+
+Tag 674 was fixed against the specification in the schema that validation reads and **not** in the
+`FixField` class that parsing builds. For some hours the package therefore **accepted a non-numeric
+value as permitted and returned a field whose `IsValid` was false** — two answers about one value.
+
+**Before the fix it was wrong and consistent**; after it, right in half and inconsistent. The defect
+was visible to anyone holding the package against the specification. The disagreement was visible
+to **nobody**, because each half agrees with itself and no test brought them together. So: **a
+change that touches two halves which each agree with themselves must be atomic, or there must
+exist a place where the halves meet.** Here that place was the fixture grammar, which names a
+converter per tag and so forces the compiler to reconcile them.
+
+**And the solution did not build for hours while every suite was green.** `DotGram.Finance.Fix44`
+is a separate project *on purpose* — D12 keeps it out so the ordinary tests build in seconds — so
+"the folder is green" and "the solution builds" were different statements that looked the same.
+**The arrangement that makes the run fast is what hid the break.** The repair was not to undo D12
+but to give the fast suite **a cheap way to ask the same question**: a test that reads the fixture
+grammar as *text* in milliseconds and asks, for all 880 rules by reflection, whether what
+`FixConvert` returns fits what the `FixField` class takes. It was pointed at the defect and made to
+name it before it was believed.
+
+**A test written before a rewrite pins what the old code promised; one written after pins what the
+new code does.** Almost always the second is written and called the first. Three refusal texts and
+the whole behaviour of an unknown message type were pinned *before* the assembler work was
+authorised, for that reason.
+
+**A witness that refuses to fail is worth more than one that fails as expected.** The first attempt
+to make a field "not permitted" — a repeated header tag at the end of the body — simply parsed:
+the body claims every tag nobody else lists, so a field can be surplus **only after the trailer has
+begun**. That rule is written in no comment, test or page; it follows from which scopes are
+declared `body`, and it is **ours**, not the specification's. It is now written beside the witness
+that found it.
+
+**And a change was cancelled by arithmetic that could have gone either way.** Splitting the field
+factory on 100 instead of 64 was argued from readability and from whether C# would still compact
+the jump tables. The densities — 0.75–1.00 at 64, 0.80–1.00 at 100, tail 0.57, against a threshold
+near a half — say a jump table is emitted either way, so that argument supported neither side; and
+the case labels inside each part are the real tag numbers, so the readability it promised was
+already there. **1,824 cases were not regrouped for nothing, because the arithmetic was done
+before the regrouping and not after.**
