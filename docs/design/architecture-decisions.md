@@ -7056,3 +7056,28 @@ assembly the paths do ride inside the DLL and its size is path-dependent. That i
 target, and it means the emitter honouring the map normalizes what ships as well as what we
 compare — which is the same fact as before, now with the boundary drawn where the measurement put
 it rather than where I guessed.
+
+## D88 — Compiling a page catches a dead name, never a wrong claim
+
+Three pieces of shipped documentation were found stale in one day, each found on the way to
+something else: a validator's member explaining itself through a type deleted that morning,
+release notes missing the day's third break, and a README section titled "Validation policies"
+holding a table of two modes that no longer exist. The largest change of the day was described
+nowhere and contradicted on the package's own front page.
+
+**All three passed every check we have**, because the checks are the wrong shape for the fault.
+The suite was green; the page's code blocks compiled. Compilation is an excellent detector of a
+dead *name* and is blind to a wrong *claim*: a table of two modes compiles perfectly, since it is
+prose, and prose is what carries the assertion. The one thing that would have caught it — reading
+the page — is the thing an edit does not do.
+
+**So the rule sits on the edit, where the knowledge is.** An edit that removes or renames a public
+type or member re-reads the pages for the CONCEPT and not only for the identifier: the mode, the
+policy, the default, the "either … or" that the removal collapsed. The compiler finds every
+mention of the name for free; nothing finds a mention of the idea, and the person who removed it
+is the only one who knows what the idea was called.
+
+**Why this belongs beside the rule that official pages carry no history.** A page that keeps no
+record of what used to be true has no way to say "this section is about the old design" — it can
+only be right or wrong. That is the price of the form, and it is worth paying, but it means the
+page's correctness rests entirely on the discipline of whoever changed the thing underneath it.
