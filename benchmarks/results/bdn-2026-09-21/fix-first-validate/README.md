@@ -105,9 +105,23 @@ favour -- it is part of the mechanism, and the figures above are the cost for a 
 the IL as we ship it.
 
 **A second cost, which this window did not set out to measure.** The assembly is 3 389 440 bytes,
-and 2 332 491 of that is the ninety-three method bodies. The package is roughly three times the
-size it was, and that is paid by every consumer at download and at load, whether or not they ever
-validate anything.
+and 2 332 491 of that is the ninety-three method bodies. Built from the commit before the generated
+file and from the one after it, both sides of every artifact the package ships:
+
+| | before (`82b68221`) | after (`80ba6733`) | |
+|---|---|---|---|
+| `DotGram.Finance.dll`, net10.0 | 855 552 | 3 389 440 | ×3.96 |
+| `DotGram.Finance.dll`, netstandard2.0 | 1 739 264 | 4 292 096 | ×2.47 |
+| `DotGram.Finance.0.1.0.nupkg` | 1 833 756 | 3 018 474 | ×1.65 |
+
+The download grows least because generated code compresses well: the nupkg is 65% larger while the
+net10.0 assembly is nearly four times the size. Which of the three matters depends on what a
+consumer is short of -- bandwidth once, or the bytes that are mapped and read at load, every
+process, every time.
+
+This is paid by everyone, at download and at load, whether or not they ever validate anything. The
+first-call cost above is paid only by a consumer who validates, and disappears entirely under
+ReadyToRun or NativeAOT; this one does not.
 
 ## What this does not measure
 
