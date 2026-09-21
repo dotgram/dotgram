@@ -8780,3 +8780,38 @@ because one identifier was a substring of another.
 `benchmarks` and `examples` right now; a pass of this size against live work is a conflict for
 each of them. It is announced, everyone lands or parks, the pass runs, and everyone rebases —
 which is cheaper than five partial passes leaving the tree in two styles.
+
+## D125 — A quiet window is everyone's rule, and a queue is ordered by readiness
+
+Two sessions asked for the machine in the same hour, and the answer to both was about something
+other than preference.
+
+**The queue is ordered by readiness, not by importance.** SQL goes first because its comparing
+classes are written and want reading; FIX goes second because its comparison class does not exist
+yet, and a window spent on a case that is not built measures nothing. Writing the class needs no
+window at all. This is worth stating as the rule rather than the ruling: **a window is given to
+work that is finished enough to be read**, and everything upstream of that — writing, building,
+fixing — happens off the window, because it can.
+
+**And no number is taken before the script that pins the run exists.** `benchmarks/Run-Bdn.ps1`
+pins the measuring process to cores 0–15 at high priority, announces the window, and — the part
+that is not decoration — **reads the affinity back from the live child process ten seconds in.**
+BenchmarkDotNet starts a separate process per case, so pinning the parent says nothing about where
+the arithmetic happened. A verification that reads its own intention instead of the instrument is
+the failure this repository has paid for twice, and the cheapest place to stop it is in the script
+that starts the run.
+
+**The affinity rule is two-sided, and the second side had no owner.** Timing runs on 0–15;
+everything else — builds, tests, packs — is pinned to 16–31 so that the half being measured is
+quiet. Both halves are written down. What was *not* written down is that **while a window is
+announced nobody builds at all, on either half**: the two halves share the last-level cache and
+the memory bus, which `benchmarks/README.md` says plainly, and one window this week was spoiled
+exactly that way. The session that runs the stand had been holding its own builds until windows
+closed — a personal practice, correct and invisible, which is the same thing as absent for
+everybody else. **A discipline only one session observes is not a rule; it is that session's
+habit, and it protects nothing outside its own process.** It is now stated to every session.
+
+**Every comparing class carries an A/A row** — the same method under two names. BenchmarkDotNet is
+strong at absolute figures and allocations and weak at ratios; a ratio without its measured
+resolution was retracted from this journal once already this week, and an A/A row is the cheapest
+possible statement of what the instrument can and cannot separate.
