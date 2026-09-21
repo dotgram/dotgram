@@ -2586,3 +2586,63 @@ nothing to do. If the validator, `FixParseOptions` is one enum in a class of its
 folded.
 
 **Answer:** —
+
+## Q28 (2026-09-21). "The JIT removes it" answers one of three costs, and the one it answers is the cheapest
+
+Igor's, from a generated method he read: a recognizer that declares `var p = pos`, copies `q0` into
+it and returns it, and declares `var rb_1 = values.Count1` it never reads. He asked whether the JIT
+removes this. Read at `a5664514`; counted over the thirteen checked-in snapshots.
+
+**It is not one shape, it is three, and they are not equally dead.**
+
+| shape | in 483 methods | what the JIT does with it |
+| --- | --- | --- |
+| `var p = pos; … p = qN; return p;` | **26 methods** | removes it — copy propagation, nothing survives |
+| `var rb_N = values.CountN;` never read | 12 | a field load through a **reference**; the null check may survive |
+| `var began = starts[from];` never read | 12 | an **array index**; the bounds check must survive |
+| `lmR`, `ruleStart` never read | 5 | not examined |
+
+27 of 483 methods carry at least one never-read local, 29 declarations in all, and 26 end in the
+copy chain. *The proportion is the snapshots' and does not extrapolate:* the real grammars have
+orders more methods and a different mix, and the count that matters is over a built package's
+generated files, which this session cannot produce.
+
+**The second row is where the received answer stops being true.** `values` is declared
+`readonly ImmediateValues values` — a class, so `values.CountN` is a field load through a reference
+and can throw. A load whose result is unused is removable only where it cannot fault, so the JIT
+keeps a null check unless it can prove the reference non-null — and in `Recognize_Program_Read` the
+dead line is the **only** mention of `values` in the method, so there is no other dereference to
+share a check with.
+
+**The third row is not hypothetical at all.** `starts[from]` is an array index: it carries a bounds
+check that can throw `IndexOutOfRangeException`, and a possibly-throwing operation is not dead code
+— the JIT is obliged to keep it. So twelve methods perform a bounds check and a load whose value
+nothing reads. And there is a second reading of that, worse than the waste: **if `from` were ever
+out of range, the parser would throw from a line that does nothing.** A dead local whose initializer
+can fault is not dead; it is a live check with no purpose.
+
+**And the whole table above is only the time. Two costs no JIT touches.**
+
+- **Bytes, and they ship twice.** Every such line is source, and Q21 established that generated
+  source rides into the shipped assembly a second time inside the embedded symbols — 2,839,013
+  bytes for `DotGram.Sql.dll`, 14.3% of it, about a fourteenth of the source after deflate. So a
+  redundant line costs its IL *and* a fraction of its own text in every consumer's download.
+- **Frame, which this repository has already measured.** Extra locals enlarge the frame that
+  `.locals init` zeroes on every call, and the recognition anatomy put the arms' prologues at 46% of
+  materialization — the largest single share — with the zeroing named as the cause. D10 already
+  treats skipping locals' initialisation as an option precisely because that zeroing is expensive.
+  A local that exists only to be copied is frame that is zeroed for nothing.
+
+**What would settle it, and neither half needs a window.** Size: remove the shapes, re-run
+`DotGram.CodeSize`, read `ILBytes` — which Q22 established is the figure untouched by the symbols —
+and the source figure beside it. Time: read one method's disassembly rather than benchmark it, which
+is what this file's own rule says about naming a cause from a JIT listing. Both are counting, and
+counting needs no timing window and ignores what else the machine is doing.
+
+**What I am not saying.** That the emitter should be hand-tuned line by line. The copy chain is
+probably the emitter writing one shape for every rule so that the shape is uniform, and uniformity in
+a generator is worth something. The claim is narrower: **two of the three shapes are not removed by
+the JIT, and all three are paid for in bytes** — so "the JIT handles it" is an answer to the cheapest
+third of the question.
+
+**Answer:** —
