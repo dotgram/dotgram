@@ -7081,3 +7081,12 @@ is the only one who knows what the idea was called.
 record of what used to be true has no way to say "this section is about the old design" — it can
 only be right or wrong. That is the price of the form, and it is worth paying, but it means the
 page's correctness rests entirely on the discipline of whoever changed the thing underneath it.
+
+**A hash a file writes about itself cannot be right when it is needed.** Twice today a results
+file named the commit of the branch it was written on, and both times the rebase that landed the
+file changed that commit — so the header pointed at a hash nobody can resolve, which is worse than
+naming nothing, because it looks checkable and costs whoever checks it their time. The cure is not
+more care: a header names what a rebase cannot move — the published `origin/main` commit the
+measurement was taken AGAINST, and a fingerprint of the thing measured, the binary or the library
+file. Where the file itself ended up is said by the commit that lands it, and that is written by
+somebody other than the author.
