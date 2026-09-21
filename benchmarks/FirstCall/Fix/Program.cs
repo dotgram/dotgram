@@ -8,7 +8,7 @@ using System.Text;
 
 // The first call of the FIX parsers, in phases, in a fresh process (from sql-39's fixfirst).
 //
-//     fixfirst <directory> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock | validate | validate-generated
+//     fixfirst <directory> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock | validate | validate-generated | validate-all | validate-all-generated
 //
 // The directory holds DotGram.Finance.dll, and DotGram.Handwritten.dll for `hand`. Each phase prints
 // its time, how many methods the runtime compiled during it, their IL, and the time it spent compiling:
@@ -41,9 +41,9 @@ var mode      = args.Length > 1 ? args[1] : null;
 // a row and not a number.
 var which = args.Length > 2 ? args[2] : "NewOrderSingle";
 
-if (directory is null || mode is not ("generated" or "hand" or "generated-bytes" or "hand-bytes" or "generated-stream" or "hand-stream" or "parse" or "build" or "stock" or "validate" or "validate-generated"))
+if (directory is null || mode is not ("generated" or "hand" or "generated-bytes" or "hand-bytes" or "generated-stream" or "hand-stream" or "parse" or "build" or "stock" or "validate" or "validate-generated" or "validate-all" or "validate-all-generated"))
 {
-	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock | validate | validate-generated");
+	Console.Error.WriteLine("usage: fixfirst <directory with DotGram.Finance.dll> generated | hand | generated-bytes | hand-bytes | generated-stream | hand-stream | parse | build | stock | validate | validate-generated | validate-all | validate-all-generated");
 
 	return 2;
 }
@@ -169,6 +169,69 @@ switch (mode)
 		break;
 	}
 
+	case "validate-all":
+	case "validate-all-generated":
+	{
+		RuntimeHelpers.RunClassConstructor(finance.GetType("DotGram.Finance.Fix.FixSchema")!.TypeHandle);
+		Phase("FixSchema cctor", true);
+		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
+		Phase("FixMessages cctor", false);
+
+		var parseOne = messages.GetMethod("Parse", [typeof(string), options])!;
+		var built    = new List<object>();
+
+		// One message of every type the package knows, found by asking it: a MsgType it does not
+		// describe comes back as the Custom class, and everything else is one of the ninety-three.
+		// Reading the list out of the package rather than writing it here means a type that is
+		// added or removed changes the count below instead of being quietly left out.
+		foreach (var candidate in Candidates())
+		{
+			try
+			{
+				var message = parseOne.Invoke(null, [WireOfType(candidate), null])!;
+
+				if (message.GetType().Name != "Custom")
+					built.Add(message);
+			}
+			catch (TargetInvocationException)
+			{
+				// Not a message type; the candidates are a superset on purpose.
+			}
+		}
+
+		Phase($"parse {built.Count} types", false);
+
+		var wanted = mode.EndsWith("-generated", StringComparison.Ordinal);
+		var walk   = finance.GetType("DotGram.Finance.Fix.FixMessage")!.GetMethod("Validate", Type.EmptyTypes)!;
+		var rules  = built.ToDictionary(
+			static message => message,
+			message => wanted
+				? message.GetType().GetMethod("ValidateDefault", BindingFlags.Public | BindingFlags.Static)
+					?? throw new MissingMethodException($"{message.GetType().Name} has no generated rule in this build.")
+				: walk);
+
+		var round = () =>
+		{
+			var found = 0;
+
+			foreach (var message in built)
+				found += ((Array)(wanted ? rules[message].Invoke(null, [message])! : rules[message].Invoke(message, null)!)).Length;
+
+			return found;
+		};
+
+		var first = round();
+
+		Phase("first validate all", true);
+
+		var second = round();
+
+		Phase("second validate all", false);
+		Console.WriteLine($"{built.Count} types, {first} findings ({second} again)");
+
+		break;
+	}
+
 	case "validate":
 	case "validate-generated":
 	{
@@ -284,15 +347,37 @@ static string OrderWire()
 // right size to print and the wrong thing to read anything into.
 static string Wire(string which)
 {
-	var type = which switch
+	return WireOfType(which switch
 	{
 		"Heartbeat"          => "0",
 		"NewOrderSingle"     => "D",
 		"TradeCaptureReport" => "AE",
 		"ExecutionReport"    => "8",
 		_                    => throw new ArgumentException($"no wire for {which}"),
-	};
+	});
+}
 
+// Every MsgType FIX 4.4 could spell, which is a superset: what is not a type comes back as the
+// Custom class and is dropped. One letter, one digit, and two letters, which is how the standard
+// numbers them.
+static IEnumerable<string> Candidates()
+{
+	for (var digit = '0'; digit <= '9'; digit++)
+		yield return digit.ToString();
+
+	for (var letter = 'A'; letter <= 'Z'; letter++)
+		yield return letter.ToString();
+
+	for (var letter = 'a'; letter <= 'z'; letter++)
+		yield return letter.ToString();
+
+	for (var first = 'A'; first <= 'B'; first++)
+		for (var second = 'A'; second <= 'Z'; second++)
+			yield return string.Concat(first, second);
+}
+
+static string WireOfType(string type)
+{
 	var body   = $"35={type}\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u0001";
 	var header = $"8=FIX.4.4\u00019={body.Length}\u0001";
 	var sum    = 0;

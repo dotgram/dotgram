@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 	What the first call of validation costs, the walk against the generated rule, one fresh process
 	per sample.
@@ -38,7 +38,12 @@ param(
 	[string]   $Library  = 'src/DotGram.Finance/bin/Release/net10.0',
 	[string[]] $Types    = @('Heartbeat', 'NewOrderSingle', 'ExecutionReport', 'TradeCaptureReport'),
 	[int]      $Launches = 11,
-	[string]   $Harness  = 'benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst.exe'
+	[string]   $Harness  = 'benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst.exe',
+
+	# One process that validates one message of EVERY type, instead of one type a process. It is
+	# the other question: not what the first message costs, but what a process pays to have met
+	# them all -- and it is a reading where multiplying the per-type row would be a product.
+	[switch]   $All
 )
 
 $ErrorActionPreference = 'Stop'
@@ -72,11 +77,22 @@ if ($mask -ne 0xFFFF) {
 
 # The third cell is the second road again, under another name: an A/A whose spread is this run's
 # resolution.
-$roads = [ordered]@{
-	'the walk'      = 'validate'
-	'generated'     = 'validate-generated'
-	'generated A/A' = 'validate-generated'
+$roads = if ($All) {
+	[ordered]@{
+		'the walk'      = 'validate-all'
+		'generated'     = 'validate-all-generated'
+		'generated A/A' = 'validate-all-generated'
+	}
+} else {
+	[ordered]@{
+		'the walk'      = 'validate'
+		'generated'     = 'validate-generated'
+		'generated A/A' = 'validate-generated'
+	}
 }
+
+# The all-types modes take no message type and report one line for the ninety-three together.
+if ($All) { $Types = @('all 93 types') }
 
 function Sample([string] $mode, [string] $type) {
 	$out = New-TemporaryFile
@@ -85,7 +101,9 @@ function Sample([string] $mode, [string] $type) {
 	try {
 		# No mask is set on the child on purpose: it inherits this process's, and by the time
 		# Start-Process has returned, the part of a first call that matters has already happened.
-		$run = Start-Process -FilePath $Harness -ArgumentList @($Library, $mode, $type) -PassThru -NoNewWindow `
+		$arguments = if ($All) { @($Library, $mode) } else { @($Library, $mode, $type) }
+
+		$run = Start-Process -FilePath $Harness -ArgumentList $arguments -PassThru -NoNewWindow `
 			-RedirectStandardOutput $out -RedirectStandardError $err
 
 		$run.WaitForExit()
@@ -95,11 +113,12 @@ function Sample([string] $mode, [string] $type) {
 		}
 
 		$line = Get-Content $out | Where-Object { $_ -match '^first validate' }
+		$line = @($line)[0]
 
 		if (-not $line) { throw "fixfirst $mode $type printed no first-validate phase" }
 
 		# first validate        12.34 ms   jit   57 methods    98765 bytes IL   9.99 ms compiling   ...
-		if ($line -notmatch '^first validate\s+([0-9.]+) ms\s+jit\s+(\d+) methods\s+(\d+) bytes IL\s+([0-9.]+) ms compiling') {
+		if ($line -notmatch '^first validate(?: all)?\s+([0-9.]+) ms\s+jit\s+(\d+) methods\s+(\d+) bytes IL\s+([0-9.]+) ms compiling') {
 			throw "fixfirst $mode $type printed a phase line this script cannot read: $line"
 		}
 
