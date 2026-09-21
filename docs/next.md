@@ -24642,6 +24642,22 @@ rows were picked for having the steepest steps, which is a sample chosen by the 
 by the question, and they turned out to be a different bound in a different branch with the same
 disease.
 
+**And the cost it seemed to have was the measuring order, not the commit (added the same
+evening).** The lean of two to three per cent on the largest documents, which read as the one
+`Array.Clear` a parse now pays, does not survive exchanging the slots: run the commit first and
+`web/json.array10000` still reads +3.4% where it read +2.9% the other way round, and an A/A of a
+single build against itself reads +2.0 and +2.7. **A change that belongs to the commit changes
+sign with the order; a second-slot bias keeps its sign.** This kept its sign, so it is the slot's.
+The commit's own part is about -0.3% there and +0.6% on `fix/Orders128.yield-string`: nothing.
+
+What does follow the commit, in both orders, is `web/media-type.quoted` -- +0.8% run first, -3.3%
+run second, an estimate of about +2%, some six nanoseconds on a 285 ns row that never approaches
+the bound. The run ranges cross zero in both orders, so it is an indication and not a result. It
+is also the opposite of what was predicted: the cost was expected on the largest documents and the
+only row carrying one is a small accepted one. Emitted code changed in every parser -- arena,
+ways, both value stores -- so a per-parse constant of a few nanoseconds is not against the change,
+but it wants the whole accepted set measured with the slots exchanged before anyone believes it.
+
 **What the commit stands on is not performance.** Written first as a branch that parked a store and
 returned, it returned past the lines that empty the tables and the one that resets the cursor, so a
 kept store reached the next parse believing it already held a document: 453 failures across 190
