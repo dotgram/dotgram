@@ -7442,3 +7442,30 @@ lands for a different reason — the intermediate state corrupted reused stores 
 and the emptying is what fixes that — and the pooling half is justified by the non-dense ladders.
 It must not be remembered as the cliff fix. A commit remembered for what it did not do is how a
 later session concludes the cliffs are cured and stops looking.
+
+## D99 — A bound written for the rare large document punishes the steady large workload
+
+The dense store drops one oversized table and keeps the rest; the dropped table then regrows from
+sixteen, and that regrowth is the cliff. Which exposes what the bound is actually for. `TableKept`
+protects a process from holding a table grown by an unusual document — a sensible thing to want.
+But a workload that is *always* past the bound is not an unusual document; it is the normal case
+for that consumer, and the bound turns their every parse into a rebuild of the same cascade. A
+limit designed for the exception, applied to the rule, is a tax on the rule.
+
+**So the dense branch parks the store, as the other branch already does.** Keep the room, empty
+the contents, release after the idle rentals. That gives the steady large workload its capacity
+back and still lets the occasional large document go — which is the whole point of parking rather
+than keeping. It is a change of policy and not an extension of one: today a store gives up one
+table and keeps three hundred, afterwards it gives up nothing and holds everything for eight
+rentals.
+
+**Per table was rightly withdrawn by its author.** A slot, an idle counter and a weak reference
+for each of three hundred tables is not the landed shape applied elsewhere; it is a different and
+heavier mechanism wearing the same name.
+
+**And the pair must include the case the change is worst for.** One runaway table among many small
+ones now stays resident where it used to be released, and that is the shape to measure — not
+because it is expected to fail, but because a pair that exercises only the case we hope for
+measures our hope. That is D98 read forwards: rows are chosen by mechanism, and the mechanism that
+loses is one of them. Retained bytes after a parse, not only bytes a call, since what is being
+traded is memory for allocation.
