@@ -7248,3 +7248,35 @@ to it, and it belongs in the release notes of 0.2.0 beside the breaks.
 was created this evening with my approval, to hold a witness that needs a process of its own. The
 witness is right and the project is not: the repository already has console programs run by hand
 and by tests, and a mode in one of them costs nothing. The rule is not about packages only.
+
+## D93 — Generated validator text is readable, keepable, and named in the failure (Igor)
+
+Igor's instruction for the road D92 opens. A flag keeps the generated text — in a temporary
+directory or a log — so it can be read. A compilation that fails throws, and the exception invites
+the reader to look at the code that would not compile. And the generated code carries comments, so
+that looking at it is worth doing.
+
+**The comments are the part that decides whether the rest works.** Text compiled from somebody
+else's dictionary fails for a reason that lives in *their* dictionary, not in our composition, so
+every arm says where it came from: the tag, the message or component, and the spelling the
+dictionary used. A reader who is shown an error at line 40 of something they never wrote needs
+line 40 to name the entry they did write. It is the `#line` problem again — a generated artifact
+that cannot point back at its source makes the reader translate, and they translate wrongly.
+
+**The exception carries the text, and the flag decides whether the disk does.** Two separate
+questions: what a failure tells you, and what a successful run leaves behind for inspection. A
+failure is useless without the code, so the code — or the saved path when one exists — is in the
+exception, always. The flag is for the other case, reading text that compiled, and it is the only
+reason a library writes a file at all; a library that writes files unasked is a library that
+surprises somebody's container.
+
+**Loading is all or nothing.** The delegate array is the consumer's to change at any time, so a
+dictionary whose middle entry fails to compile must not leave half the cells replaced and half
+original. Everything compiles, then everything is installed — and the throw happens before the
+first cell moves.
+
+**And the dictionary is untrusted input, which composition must respect.** Values out of the file
+become literals, never fragments of code, and names become comments with their line breaks and
+comment terminators neutered. This is not a hypothetical: a dictionary is a file a consumer
+downloads from a counterparty, and "compose code from it" is the shape that has to be got right
+once rather than patched after.
