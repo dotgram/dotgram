@@ -6796,3 +6796,31 @@ which is complete — and unlike a wrong number, nothing in it looks wrong.
 **It is the day's own rule in a third place.** A test that takes what the process has loaded
 measures the finder; a document generated from what a build happened to leave describes the build.
 In both, the defect is invisible to whoever produced it, because for them the thing was there.
+
+## D82 — Where two implementations share names and types, the compiler guards nothing
+
+Collapsing the FIX message layer meant rewriting every call: `ParseLog(x)` became
+`Parse(x, FixFieldOptions.Log)`. The rewrite ran over `HandFixParser` too — the hand-written
+parser in `examples/`, whose API did not change and still has both methods. And
+`HandFixParser.Parse(x, FixFieldOptions.Log)` compiles perfectly, reading the wire where the log
+was meant. Silently: the new argument is valid for the old method, so nothing was wrong to say.
+
+**That is the dangerous shape of an API change, and it has a name worth keeping.** Not "the
+signature changed" — that the compiler catches, at every call, for free. The one to fear is a
+change after which the *old* call is still legal and means something else. There the compiler is
+not weakly helpful; it is silent by construction, and every mechanical rewrite across that
+boundary is unchecked.
+
+**What caught it was the differential test**, comparing the generated parser against the hand
+written one: a field came back `Invalid` where the other implementation read it. Nothing was
+looking for this defect; the comparison found it because a comparison does not need to know what
+to look for.
+
+**So the second implementation is a correctness instrument, not only a measuring one.** The
+hand-written parsers were kept for benchmarks and for differential tests, and their standing rule
+is that no ordinary test reads them — they are run by hand after being touched. Today one of them
+caught a defect in shipped behaviour that the whole suite would have carried. That does not
+overturn the rule, but it prices it: what the rule buys is build time, and what it costs is the
+window in which a change like this one lives undetected. Where an edit crosses that boundary — a
+rewrite of calls, a change of what an argument means — the differential run is part of the edit,
+not a thing to do later.
