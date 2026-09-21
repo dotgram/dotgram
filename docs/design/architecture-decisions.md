@@ -7213,3 +7213,38 @@ measured was whether the thing being changed was already in somebody else's hand
 cheaper to check than any number we took: one request, no window, no instrument. A claim about
 the world is not made true by everyone repeating it, and "this is not published yet" is a claim
 about the world.
+
+## D92 — No new projects; the validators are compiled by the expression language at run time (Igor)
+
+Igor's instruction, and it reverses D74 and D75. **New projects are not created, public ones least
+of all.** And what he asked for in the first place was this: `DotGram.Finance` references the
+expression language and the code that builds validators uses it as a library — validator text
+composed from the dictionary and compiled into lambdas, in process, when a dictionary is loaded.
+
+**What I did with that instead is the part worth naming.** He said, in so many words, that we have
+the expression language and can compose validation as text and compile it to lambdas. I turned it
+into a build-time analyzer in a package of its own — which answers a question he did not ask, and
+answers it with the one thing he now says is forbidden. The reasoning inside D74 and D75 is sound
+about the thing it was reasoning about; it was reasoning about the wrong thing.
+
+**Why the run-time road is not a lesser version of the other.** He also said that time at startup
+does not matter and the speed of validation does. Compiling once when a dictionary is loaded pays
+at startup and gives the same executable code the analyzer would have emitted — so the property
+that made the compiled road worth having is kept, and the package that carried it is not. It also
+removes what the analyzer made awkward: one reader shared as source across two compilations,
+version rules that turn into loader rules, a sixth package in five publication lists.
+
+**What goes.** `src/DotGram.Finance.Generator`, `tests/DotGram.Finance.Generator.PackageSmoke` and
+`tests/DotGram.Finance.Generated`, with their entries in the solution, in both workflows' pack and
+smoke lists, in the layout in CLAUDE.md and in the pages that name them. None was ever published,
+so nothing breaks outside this repository.
+
+**What arrives.** A package reference from `DotGram.Finance` to `DotGram.ExpressionLanguage`, and
+with it a cost to state plainly rather than discover: every consumer of the FIX package now
+restores the expression language too. That is a consequence of the instruction, not an objection
+to it, and it belongs in the release notes of 0.2.0 beside the breaks.
+
+**And the rule reaches today's other new project.** `tests/DotGram.ExpressionLanguage.LoadOrder`
+was created this evening with my approval, to hold a witness that needs a process of its own. The
+witness is right and the project is not: the repository already has console programs run by hand
+and by tests, and a mode in one of them costs nothing. The rule is not about packages only.
