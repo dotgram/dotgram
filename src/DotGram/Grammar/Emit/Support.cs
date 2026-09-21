@@ -1367,7 +1367,7 @@ public static partial class CSharpEmitter
 	/// A pool of one type's spares for a class written with a <see cref="StringBuilder"/>:
 	/// its fields and <c>Rent</c>, at one tab of indent. <see cref="Spared"/> puts one back.
 	/// </summary>
-	internal static void Spares(StringBuilder text, string type)
+	internal static void Spares(StringBuilder text, string type, bool releases)
 	{
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic ").Append(type).Append("? _spare;\n\n");
 		text.Append("\t/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>\n");
@@ -1379,9 +1379,17 @@ public static partial class CSharpEmitter
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _largeIdle;\n\n");
 		text.Append("\t/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic global::System.WeakReference<").Append(type).Append(">? _largeLetGo;\n\n");
+		if (releases)
+		{
+			text.Append("\t/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>\n");
+			text.Append("\t[global::System.ThreadStatic]\n\tstatic int _spareIdle;\n\n");
+			text.Append("\t/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>\n");
+			text.Append("\t[global::System.ThreadStatic]\n\tstatic global::System.WeakReference<").Append(type).Append(">? _spareLetGo;\n\n");
+		}
 		text.Append("\t/// <summary>\n");
 		text.Append("\t/// Eight is a claim rather than a taste: if eight parses in a row have not wanted\n");
-		text.Append("\t/// the large store, this thread's work has changed and the next parse is unlikely\n");
+		text.Append("\t/// the room a slot holds - the large store, or an ordinary spare far bigger than\n");
+		text.Append("\t/// the parses that keep coming - this thread's work has changed and the next parse is unlikely\n");
 		text.Append("\t/// to want it either. Carrying it through a few small parses costs the memory this\n");
 		text.Append("\t/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.\n");
 		text.Append("\t///\n");
@@ -1392,12 +1400,22 @@ public static partial class CSharpEmitter
 		text.Append("\t/// as large as it was grown, whatever the document was.\n");
 		text.Append("\t/// </summary>\n");
 		text.Append("\tconst int LargeIdle = 8;\n\n");
+		if (releases)
+		{
+			text.Append("\t/// <summary>The same count for the ordinary slot, read the same way.</summary>\n");
+			text.Append("\tconst int SpareIdle = 8;\n\n");
+		}
 		text.Append("\tinternal static ").Append(type).Append(" Rent()\n\t{\n\t\tvar spare = _spare;\n\n");
 		text.Append("\t\tif (spare != null)\n\t\t\t_spare = null;\n");
 		text.Append("\t\telse if (_deeperCount > 0)\n\t\t{\n\t\t\tspare = _deeper![--_deeperCount]!;\n\t\t\t_deeper![_deeperCount] = null;\n\t\t}\n");
 		text.Append("\t\telse if (_large != null)\n\t\t{\n\t\t\tspare = _large;\n\t\t\t_large = null;\n\t\t}\n");
 		text.Append("\t\telse if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))\n\t\t{\n");
 		text.Append("\t\t\tspare = letGo;\n\t\t\t_largeLetGo.SetTarget(null!);\n\t\t}\n");
+		if (releases)
+		{
+			text.Append("\t\telse if (_spareLetGo != null && _spareLetGo.TryGetTarget(out var letGoSpare))\n\t\t{\n");
+			text.Append("\t\t\tspare = letGoSpare;\n\t\t\t_spareLetGo.SetTarget(null!);\n\t\t}\n");
+		}
 		text.Append("\t\telse\n\t\t\treturn new ").Append(type).Append("();\n\n");
 				text.Append("\t\treturn spare;\n\t}\n\n");
 	}
@@ -1434,8 +1452,32 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>The last lines of a <c>Return</c> written by <see cref="Spares"/>: the store goes back.</summary>
-	internal static void Spared(StringBuilder text, string type, string store)
+	/// <remarks>
+	/// <paramref name="roomy"/> is this pool's test of "the parse that has just ended left most
+	/// of this store's room unused", and it is what gives the ordinary slot a release at all.
+	/// <see langword="null"/> where the pool holds nothing whose use it can read - and then no
+	/// release is written, rather than one whose condition is a constant. A constant condition
+	/// is unreachable code in the consumer's build (CS0162), and two fields nothing assigns.
+	/// The bound above governs what may be <b>parked</b>; until this, nothing governed what was
+	/// <b>kept</b>, so a store grown once for a large document sat in the ordinary slot for the
+	/// life of the thread. That residue is what a retained-bytes readout still showed with the
+	/// bound and the parked slot's release both in place: 8.5 MB of one store in _spare.
+	/// </remarks>
+	internal static void Spared(StringBuilder text, string type, string store, string? roomy)
 	{
+		if (roomy is not null)
+		{
+			text.Append("\t\t// The ordinary slot lets go by the same rule as the parked one: counted where a\n");
+			text.Append("\t\t// parse ENDS, against what that parse USED. At the rental it could not arrive,\n");
+			text.Append("\t\t// for the reason written above LargeIdle. And it is let go of WEAKLY, so a thread that\n");
+			text.Append("\t\t// wants the room straight back still gets it, while one that does not has stopped\n");
+			text.Append("\t\t// holding it against everybody else.\n");
+			text.Append("\t\tif (!(").Append(roomy).Append("))\n\t\t\t_spareIdle = 0;\n");
+			text.Append("\t\telse if (++_spareIdle >= SpareIdle)\n\t\t{\n");
+			text.Append("\t\t\t(_spareLetGo ??= new global::System.WeakReference<").Append(type).Append(">(").Append(store).Append(")).SetTarget(").Append(store).Append(");\n");
+			text.Append("\t\t\t_spareIdle = 0;\n\n\t\t\treturn;\n\t\t}\n\n");
+		}
+
 		text.Append("\t\tif (_spare == null)\n\t\t\t_spare = ").Append(store).Append(";\n");
 		text.Append("\t\telse if (_deeperCount < ").Append(DeeperSpares).Append(")\n");
 		text.Append("\t\t\t(_deeper ??= new ").Append(type).Append("?[").Append(DeeperSpares).Append("])[_deeperCount++] = ").Append(store).Append(";\n");
@@ -1488,7 +1530,7 @@ public static partial class CSharpEmitter
 		}
 
 		text.Append("\tint _used;\n\n");
-		Spares(text, "DirectValues");
+		Spares(text, "DirectValues", releases: true);
 				var capacities = dense
 			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length", "values.Tables" }
 			: Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
@@ -1501,7 +1543,8 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		// Taken before the emptying below, which zeroes it. Every table the bound counts
 		// is indexed by the record, so the room a parse used is its count of records once
 		// per table - the same sum the bound is read from, with use in place of length.
-		text.Append("\t\tvar used = ").Append(capacities.Count).Append("L * values._used;\n\n");
+		text.Append("\t\tvar rows = values._used;\n");
+		text.Append("\t\tvar used = ").Append(capacities.Count).Append("L * rows;\n\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (dense)
@@ -1540,7 +1583,21 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
 		Outsized(text, "DirectValues", "values", "used");
 
-		Spared(text, "DirectValues", "values");
+		// Read off the RECORD tables and not off the whole store. Every table here is indexed
+		// by the record, and Live grows by doubling to hold them, so Live.Length against this
+		// parse's record count is room against use in one unit. The whole store is not that: a
+		// dense one carries three hundred value tables, each grown to the largest record index
+		// written IN IT, so their capacities sum to several times the record count even when
+		// every one of them fits perfectly - and a test of total room against total use would
+		// fire on a store that is exactly the right size.
+		//
+		// Four times and not twice, and the factor is the allocator's own. A table grows to
+		// Math.Max(count, Length * 2), so a store serving a steady workload sits anywhere
+		// between once and twice what that workload needs: ONE doubling is ordinary slack and
+		// releasing it would demote the spare of every steady parse in the world. TWO doublings
+		// cannot be reached by slack - only by a workload that has actually shrunk - which is
+		// the change this release exists to notice.
+		Spared(text, "DirectValues", "values", "values.Live.Length > 4L * rows");
 		text.Append("\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
 		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(", int from = 0)\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");

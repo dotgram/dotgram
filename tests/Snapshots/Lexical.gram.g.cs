@@ -1980,9 +1980,18 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<ImmediateValues>? _largeLetGo;
 
+			/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
+			[global::System.ThreadStatic]
+			static int _spareIdle;
+
+			/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
+			[global::System.ThreadStatic]
+			static global::System.WeakReference<ImmediateValues>? _spareLetGo;
+
 			/// <summary>
 			/// Eight is a claim rather than a taste: if eight parses in a row have not wanted
-			/// the large store, this thread's work has changed and the next parse is unlikely
+			/// the room a slot holds - the large store, or an ordinary spare far bigger than
+			/// the parses that keep coming - this thread's work has changed and the next parse is unlikely
 			/// to want it either. Carrying it through a few small parses costs the memory this
 			/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.
 			///
@@ -1993,6 +2002,9 @@ namespace DotGram.Snapshots
 			/// as large as it was grown, whatever the document was.
 			/// </summary>
 			const int LargeIdle = 8;
+
+			/// <summary>The same count for the ordinary slot, read the same way.</summary>
+			const int SpareIdle = 8;
 
 			internal static ImmediateValues Rent()
 			{
@@ -2014,6 +2026,11 @@ namespace DotGram.Snapshots
 				{
 					spare = letGo;
 					_largeLetGo.SetTarget(null!);
+				}
+				else if (_spareLetGo != null && _spareLetGo.TryGetTarget(out var letGoSpare))
+				{
+					spare = letGoSpare;
+					_spareLetGo.SetTarget(null!);
 				}
 				else
 					return new ImmediateValues();
@@ -2057,6 +2074,21 @@ namespace DotGram.Snapshots
 						(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(_large)).SetTarget(_large);
 
 					_large = values;
+
+					return;
+				}
+
+				// The ordinary slot lets go by the same rule as the parked one: counted where a
+				// parse ENDS, against what that parse USED. At the rental it could not arrive,
+				// for the reason written above LargeIdle. And it is let go of WEAKLY, so a thread that
+				// wants the room straight back still gets it, while one that does not has stopped
+				// holding it against everybody else.
+				if (!(0L + values.Stack1.Length > 4L * used))
+					_spareIdle = 0;
+				else if (++_spareIdle >= SpareIdle)
+				{
+					(_spareLetGo ??= new global::System.WeakReference<ImmediateValues>(values)).SetTarget(values);
+					_spareIdle = 0;
 
 					return;
 				}

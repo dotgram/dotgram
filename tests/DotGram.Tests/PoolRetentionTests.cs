@@ -270,4 +270,158 @@ public sealed class PoolRetentionTests
 		Assert.Same(store, arguments[0]);
 	}
 
+	/// <summary>
+	/// The ordinary slot lets go too, once the parses stop wanting the room it holds.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The bound above governs what may be <em>parked</em>. Nothing governed what was
+	/// <em>kept</em>: a store grown once for a large document sat in <c>_spare</c> for the life
+	/// of the thread, which a retained-bytes readout showed as 8.5 MB of one store still held
+	/// after the bound and the parked slot's release were both in place. This is that half.
+	/// </para>
+	/// <para>
+	/// The quantity is the record tables against this parse's record count, and not the whole
+	/// store against its whole use. A dense store carries three hundred value tables, each grown
+	/// to the largest record index written in it, so their capacities sum to several times the
+	/// record count even when every one of them fits — a test of total room against total use
+	/// fires on a store that is exactly the right size. The margin is four and not two because a
+	/// table grows to <c>Math.Max(count, Length * 2)</c>: one doubling is the slack a steady
+	/// workload leaves behind, and two is a workload that has actually shrunk.
+	/// </para>
+	/// <para>
+	/// Two of the five pools are under this rule and three are not, and the three are carried
+	/// here asserting that they have no such counter — so the gap is visible in the test that
+	/// owns the policy rather than absent from it, and closing it fails this case rather than
+	/// passing silently. That is how <c>Tokens_DotGram</c> was carried before it came under the
+	/// rule above.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(CarrierKind.Tape, "DirectValues", true)]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues", true)]
+	[InlineData(CarrierKind.Tape, "Ways", false)]
+	[InlineData(CarrierKind.Tape, "Tokens_DotGram", false)]
+	[InlineData(CarrierKind.Tape, "Parser", false)]
+	public void The_ordinary_spare_is_let_go_after_eight_parses_that_left_its_room_unused(
+		CarrierKind carrier, string name, bool releases)
+	{
+		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
+
+		var engine   = name == "Parser";
+		var compiled = GramCompiler.Compile($$"""
+			trivia = { ' '* }
+			Start : @int = items: Item+ => @(items.Length)
+			Item : @int = "a" => @(1)
+			parse Start
+			{{(engine ? "find Item as AnyItem" : "")}}
+			""", new GramCompilerOptions
+		{
+			ClassName = "Grammar", Lexical = !engine, Carrier = carrier,
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+
+		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text);
+		var owner    = assembly.GetType("Grammar")!;
+		var type     = owner.GetNestedType(name, Flags)!;
+		var counters = new[] { type, owner }
+			.SelectMany(where => where.GetFields(Flags))
+			.Where(field => field.IsStatic && !field.IsLiteral && field.FieldType == typeof(int)
+				&& field.Name.IndexOf("spare", StringComparison.OrdinalIgnoreCase) >= 0
+				&& field.Name.EndsWith("Idle", StringComparison.Ordinal))
+			.ToArray();
+
+		if (!releases)
+		{
+			// The gap, asserted rather than left out. When this pool comes under the rule the
+			// case fails here, which is the notice that its row should move to true.
+			Assert.Empty(counters);
+
+			return;
+		}
+
+		// Not literals: the policy's own SpareIdle is a const, which is a static int field of
+		// that name too, and a search by name alone finds the threshold beside the counter.
+		// Named, because a lexical grammar carries more than one pool on the host class and
+		// the counter asked about here is the one belonging to the pool named by the case.
+		var idle  = Assert.Single(counters, field => field.DeclaringType == type);
+		var held  = idle.DeclaringType!;
+		var slot     = held.GetFields(Flags).Single(field => field.IsStatic && field.FieldType == type
+			&& field.Name == idle.Name[..^"Idle".Length]);
+		var letGo    = held.GetField(idle.Name[..^"Idle".Length] + "LetGo", Flags)!;
+		var rent     = type.GetMethod("Rent", Flags)!;
+		var giveBack = type.GetMethod("Return", Flags)!;
+
+		// Small enough in capacity that every return below takes the ordinary branch and not
+		// the parked one, and one array long enough that a parse can leave most of it unused.
+		var store  = rent.Invoke(null, null)!;
+		var arrays = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType.IsArray).ToArray();
+		var counts = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType == typeof(int)).ToArray();
+		var room   = name == "DirectValues"
+			? arrays.Single(field => field.Name == "Live")
+			: arrays.First(field => field.Name.StartsWith("Stack", StringComparison.Ordinal));
+
+		foreach (var field in arrays)
+			field.SetValue(store, Array.CreateInstance(field.FieldType.GetElementType()!, 0));
+
+		room.SetValue(store, Array.CreateInstance(room.FieldType.GetElementType()!, 64));
+
+		void Used(int howMuch)
+		{
+			foreach (var field in counts)
+				field.SetValue(store, howMuch);
+		}
+
+		// Sixteen of sixty-four is inside the margin: the room is wanted, and the count is nil.
+		Used(16);
+		giveBack.Invoke(null, [store]);
+		Assert.Same(store, slot.GetValue(null));
+		Assert.Equal(0, idle.GetValue(null));
+
+		// Eight of sixty-four is two doublings out. Seven such parses and the store is still
+		// held — and the count is read from the field at every step, never inferred from the
+		// end state, because a counter that never advances and one that advances and is reset
+		// are indistinguishable from the far side.
+		for (var parse = 1; parse <= 7; parse++)
+		{
+			Assert.Same(store, rent.Invoke(null, null));
+
+			Used(8);
+			giveBack.Invoke(null, [store]);
+
+			Assert.Same(store, slot.GetValue(null));
+			Assert.Equal(parse, idle.GetValue(null));
+		}
+
+		// One parse that wants the room puts it back to nothing.
+		Assert.Same(store, rent.Invoke(null, null));
+		Used(16);
+		giveBack.Invoke(null, [store]);
+		Assert.Same(store, slot.GetValue(null));
+		Assert.Equal(0, idle.GetValue(null));
+
+		// And eight in a row that do not: the slot is empty and the store is reachable only
+		// weakly, which is the whole of the policy — it stops competing for the memory, and it
+		// is still there for a thread that wants it straight back.
+		for (var parse = 1; parse <= 8; parse++)
+		{
+			Assert.Same(store, rent.Invoke(null, null));
+
+			Used(8);
+			giveBack.Invoke(null, [store]);
+		}
+
+		Assert.Null(slot.GetValue(null));
+
+		var weak = letGo.GetValue(null);
+
+		Assert.NotNull(weak);
+
+		object?[] arguments = [null];
+
+		Assert.True((bool)weak!.GetType().GetMethod("TryGetTarget")!.Invoke(weak, arguments)!);
+		Assert.Same(store, arguments[0]);
+	}
 }

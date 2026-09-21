@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -66,7 +66,7 @@ sealed partial class Machine
 		if (stacks.Count != 0 || stateType is not null)
 		{
 			text.Append('\n');
-			CSharpEmitter.Spares(text, "ImmediateValues");
+			CSharpEmitter.Spares(text, "ImmediateValues", releases: stacks.Count != 0);
 			// A required stack can still be unused by this particular parse. Its high-water
 			// mark includes values discarded by backtracking, so every retained reference
 			// is cleared before the store is made available to another parse.
@@ -98,7 +98,14 @@ sealed partial class Machine
 			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
 			CSharpEmitter.Outsized(text, "ImmediateValues", "values", "used");
 
-			CSharpEmitter.Spared(text, "ImmediateValues", "values");
+			// Room against use, and here the two are the same quantity: every capacity summed
+			// above is a stack length, and every term of `used` is that stack's high-water mark.
+			// Where a grammar has no stacks at all there is nothing to read a usage from, so the
+			// slot is written without a release at all, rather than with one that cannot fire.
+			// Four and not two for the reason written beside the direct store: one doubling of
+			// room is what a steady workload leaves behind, and two is a workload that changed.
+			CSharpEmitter.Spared(text, "ImmediateValues", "values",
+				high.Count == 0 ? null : "0L + " + string.Join(" + ", capacities) + " > 4L * used");
 			text.Append("\t}\n\n");
 		}
 
