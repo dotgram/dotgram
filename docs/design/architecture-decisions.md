@@ -7489,3 +7489,39 @@ decision taken on an expectation that did not hold.
 **And the corollary keeps its shape.** If the lambdas beat 1,183 as well, the same technique is
 available to the schema compiled into the package — a far larger change, wanted or not, and his to
 order rather than one to drift into on the strength of a validation benchmark.
+
+## D101 — Which of two explanations is true, and the cheap answer that is not the general one
+
+When a parse of an expression fails, two accounts compete: a syntactic error at the place reading
+stopped, and a semantic refusal remembered when a name would not resolve. Today the refusal wins
+unconditionally, and on input using a construct the language does not support — a collection
+initializer, `new[]`, an object initializer — the parser backtracks into another reading of the
+statement and reports a name from THAT reading, innocent and at a nonsensical position. Where no
+alternative exists the message is already exact, which is what points at the cause.
+
+**"Further along means truer" was tried and refuted by the suite**, and that is the useful part of
+the report. Both repros were fixed by it and six tests broke, among them `(int x) => x + y`, where
+the refusal is earlier than the syntactic error and is nonetheless the right answer. So position
+cannot separate the two cases, and the criterion has to be about something else.
+
+**What separates them is whether the refusal is what stopped a reading that would otherwise have
+worked.** Define `y` and `(int x) => x + y` parses; resolve the refused name in the `new[]` case
+and the construct is still unsupported. That is computable rather than guessable: parse once more
+with resolution suppressed — every name assumed to resolve — and if that pass consumes the whole
+input, the refusal is the story; if it fails too, the syntactic error is, at its own position. It
+costs one extra parse on the failure path only, which is where we can afford anything.
+
+**But that is a change to every error message this package produces, so it is designed and evidenced
+on its own, not slipped in beside a repair.** The six tests that broke are the beginning of the
+record of what today's behaviour is, and that record is what such a change is held against.
+
+**The repair to make now is the narrow one, and it is not a language change.** Recognize the
+unsupported constructs in the grammar for the purpose of refusing them by name — "collection
+initializers are not supported" — and nothing becomes valid that was not, nothing invalid that was
+not. That is a diagnostic, which the standing rule allows to proceed; only a change to what a
+grammar may say goes to Igor. The list is driven by cases that actually mislead, and grows when
+one appears; completing it against the whole of C# is not the work.
+
+**And one finding to keep beside the code.** `state.Refused() ?? match.Error!` has a comment
+describing a position-aware intent the code never had. The comment was not stale — it described
+something that was never built. Where the two disagree, neither is evidence for the other.
