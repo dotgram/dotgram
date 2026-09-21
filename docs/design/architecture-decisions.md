@@ -8415,8 +8415,15 @@ against a one-to-three per cent lean on the common path. Not now, and the price 
 that "not now" can be revisited with the cost already known.
 
 **So the sentence is: a one-to-three per cent lean on small SQL parses, sign stable under exchange
-of order, cause unattributable at the stand's present resolution, which is ±1.8 points at ten runs
-an order.** The resolution belongs in the sentence; without it a later reader repeats tonight
+of order, cause unattributable at the resolution of the pair that measured it, which was ±1.8
+points at ten runs an order.**
+
+**Corrected: the resolution belongs to the pair, not to the stand.** The same rows in the same
+apparatus disagreed by 1.4 points in the morning and 3.4 in the evening. So "the stand's
+resolution" is not a quantity — it is a property of the hour, measured with each pair and never
+carried forward. Quoting the morning's figure against the evening's data would have claimed a
+ceiling twice as tight as the instrument could support, which is the throwaway's error one level
+up: a number read as tighter than the thing that produced it. The resolution belongs in the sentence; without it a later reader repeats tonight
 exactly, including the part where a flat throwaway looks like an acquittal.
 
 **And the reason this one needed two sessions is worth keeping.** Three of tonight's corrections
@@ -8555,3 +8562,34 @@ counter is read at every step, because a counter that never advances and one tha
 resets are the same from outside. And the retained reading that follows has to force a collection
 before it looks: a released store is weakly held, and the instrument that could not tell released
 from released-and-retaken was this same reading without that step.
+
+## D122 — "X is the exception" is a question about what else is
+
+The pool chain removed a cliff and put a quieter one back **in the slot it had just given a release
+to**. The admission test had been corrected to compare commensurable quantities; the idle test one
+slot over compared the parse's use against the **bound**, while the room that put the store past
+that bound is three hundred value tables. A store of 1,428,064 elements reads a use of about
+524,288 — under the bound, on the parse that had just filled it — so every steady parse read as
+idle, the eighth demoted and the ninth rebuilt seventeen megabytes. Twenty identical parses swung
+from three megabytes to twenty. Now flat.
+
+**The rule its author proposes, and I take it.** Having established that a dense store's room is
+not commensurable with its use, they wrote it into a commit as *the* exception and did not look at
+the slot next door, where the same incommensurability was already deciding when to throw the store
+away; the lexer's guess against a count was a third instance. **A sentence of the form "X is the
+exception" is a question about what else is, and is not finished until that question is asked.**
+It is the positive twin of the rule that a count the mechanism explains is not a finding: there the
+mechanism dissolves a false finding, here it explains one case and closes the search.
+
+**And an instrument lesson that cost a day.** Every reading in this work took the **end state of a
+run**, and a store demoted and rebuilt *inside* a run is invisible to all of them. What saw it was
+a per-step column — twenty parses, a collection after each, the heap read after each, the low and
+the high printed — built to answer a different question that turned out to have a clean answer.
+**An end-state reading cannot see a cycle within the run**, and where a mechanism can undo its own
+work between steps, the low and the high are the measurement and the final figure is not.
+
+**The floor build is promoted from "last" to "part of an emitter change".** It has now caught three
+defects in one chain, every one a shape no suite could see because every one is about what a
+CONSUMER's compiler does: unreachable code from a constant condition, a suppression around a field
+that is assigned, fields nothing writes. An emitter change is not finished until it has run. Three
+cases is enough to stop calling it prudence.
