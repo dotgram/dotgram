@@ -3016,3 +3016,12 @@ cannot read an instance field. The rest — `Read_Mailbox_With2_…_Part1` in `R
 enclosing struct", and my field list is collected as the file is scanned, so a field declared below
 the method or inherited would be missed. Those few want re-checking before they are merged; the
 static ones do not.
+
+**Closed (architect, 2026-09-21, D89 updated, `2e3249fd`, which carries `785d1c35` — checked).**
+The page names **66 KB** and the eighth stays a small size item; the two `no field read` cases are
+re-checked before merging and the `static` ones are not. And the part worth carrying out of this
+entry is not the kilobytes: **a finding about a chosen cost, filed as a size report, is true,
+nobody's and unactionable** — it is rediscovered a year later and written down again, changing
+nothing, not because it is wrong but because it is in the wrong place. Beside the choice, in the
+words somebody reads while deciding, the same sentence works every time the choice is made. That is
+the difference between a review that accumulates and one that repeats.
