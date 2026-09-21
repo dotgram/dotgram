@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
@@ -43,10 +42,9 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 	/// them are hot rather than what they do, which is a claim about code — and a claim about code
 	/// is tested by taking code away, a layer at a time, and nothing else with it.
 	/// </remarks>
-	readonly int lean = lean;
-
-	readonly List<string>    constants = [];
-	readonly HashSet<string> declared  = [];
+	readonly int             _lean      = lean;
+	readonly List<string>    _constants = [];
+	readonly HashSet<string> _declared  = [];
 
 	StringBuilder text = new();
 
@@ -56,8 +54,8 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 	{
 		if (messageType is null) throw new ArgumentNullException(nameof(messageType));
 
-		constants.Clear();
-		declared.Clear();
+		_constants.Clear();
+		_declared. Clear();
 
 		var name = dictionary.MessageName(messageType) ?? messageType;
 		var body = new StringBuilder();
@@ -68,8 +66,8 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 		Line(2, "FixRuleSupport.Message(tables, message, found);");
 		Blank();
 
-		Scope(2, "message.Header", dictionary.Header, FixScope.Header, "the standard header", 0, "-1", 0);
-		Scope(2, "message", dictionary.Message(messageType), FixScope.Body, $"message '{messageType}' - {name}", 0, "-1", 0);
+		Scope(2, "message.Header",  dictionary.Header, FixScope.Header, "the standard header", 0, "-1", 0);
+		Scope(2, "message",         dictionary.Message(messageType), FixScope.Body, $"message '{messageType}' - {name}", 0, "-1", 0);
 		Scope(2, "message.Trailer", dictionary.Trailer, FixScope.Trailer, "the standard trailer", 0, "-1", 0);
 
 		var whole = new StringBuilder();
@@ -85,10 +83,10 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 		Line(0, "(FixTables tables) =>");
 		Line(0, "{");
 
-		foreach (var constant in constants)
+		foreach (var constant in _constants)
 			whole.Append(constant);
 
-		if (constants.Count != 0)
+		if (_constants.Count != 0)
 			Blank();
 
 		Line(1, "return (FixMessage message, List<FixFinding> found) =>");
@@ -110,7 +108,10 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 	/// follows the number of tags it can name, which is a property of the schema and not of any
 	/// message.
 	/// </remarks>
-	public int Arms(string messageType) => Members(dictionary.Message(messageType)).Count;
+	public int Arms(string messageType)
+	{
+		return Members(dictionary.Message(messageType)).Count;
+	}
 
 	/// <summary>
 	/// One scope: the header, the body, the trailer, or one entry of a repeating group.
@@ -131,7 +132,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 		Line(at + 1, $"FixFieldSet {scope} = {source};");
 		Line(at + 1, $"ulong[] {seen} = new ulong[15];");
 
-		if (groupTag != 0 && lean < 2)
+		if (groupTag != 0 && _lean < 2)
 			Line(at + 1, $"int {rank} = -1;");
 
 		Blank();
@@ -139,9 +140,10 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 		Line(at + 1, "{");
 		Line(at + 2, $"FixFieldView field = node.Field({scope}.Source);");
 		Blank();
+
 		// Level 2 writes no switch at all. It is not a validator -- it cannot say that a tag does not
 		// belong -- and exists only to ask whether the switch is what the wide runs are paying for.
-		if (lean < 2)
+		if (_lean < 2)
 		{
 			Line(at + 2, "switch (node.Tag)");
 			Line(at + 2, "{");
@@ -157,6 +159,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 			Line(at + 2, "}");
 			Blank();
 		}
+
 		Line(at + 2, $"if (FixRuleSupport.Seen({seen}, node.Tag))");
 		Line(at + 3, $"found.Add(FixRuleSupport.Wrong(FixRule.DuplicateField, {Where(where)}, field, {groupTag}, {entry},");
 		Line(at + 4, "\"The tag appears more than once in this scope.\"));");
@@ -164,7 +167,8 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 		Line(at + 2, $"FixRuleSupport.Mark({seen}, node.Tag);");
 		Line(at + 1, "}");
 		Blank();
-		if (lean == 0)
+
+		if (_lean == 0)
 		{
 			Line(at + 1, $"FixRuleSupport.Pairs(tables, found, {scope}, {Where(where)}, {groupTag}, {entry});");
 			Blank();
@@ -193,7 +197,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 			Blank();
 		}
 
-		var type = lean > 0 ? FixValueType.None : FixVocabulary.Of(dictionary.CodeType(tag));
+		var type = _lean > 0 ? FixValueType.None : FixVocabulary.Of(dictionary.CodeType(tag));
 
 		if (type != FixValueType.None)
 		{
@@ -334,7 +338,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 	{
 		var identifier = "codes" + tag.ToString(CultureInfo.InvariantCulture);
 
-		if (declared.Add(identifier))
+		if (_declared.Add(identifier))
 		{
 			var one = new StringBuilder();
 
@@ -350,7 +354,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 
 			one.Append(" };   // ").Append(FixRuleText.Note($"the code set of {name}, tag {tag}")).Append('\n');
 
-			constants.Add(one.ToString());
+			_constants.Add(one.ToString());
 		}
 
 		return identifier;
@@ -360,7 +364,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 	{
 		var identifier = "part" + id.ToString(CultureInfo.InvariantCulture);
 
-		if (declared.Add(identifier))
+		if (_declared.Add(identifier))
 		{
 			var one = new StringBuilder();
 
@@ -376,7 +380,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 
 			one.Append(" };   // ").Append(FixRuleText.Note($"the tags of component '{name}'")).Append('\n');
 
-			constants.Add(one.ToString());
+			_constants.Add(one.ToString());
 		}
 
 		return identifier;
@@ -391,10 +395,13 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 	bool Says(SchemaRef[] schema)
 	{
 		foreach (var reference in schema)
-			if (reference.Kind == 2 ||
-				reference.Kind == 0 && reference.Required ||
-				reference.Kind == 1 && (reference.Required || Says(dictionary.Component(reference.Id))))
-				return true;
+			switch (reference.Kind)
+			{
+				case 0 when reference.Required:
+				case 1 when (reference.Required || Says(dictionary.Component(reference.Id))):
+				case 2:
+					return true;
+			}
 
 		return false;
 	}
@@ -403,7 +410,7 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 	List<int> Members(SchemaRef[] schema)
 	{
 		var members = new List<int>();
-		var seen     = new HashSet<int>();
+		var seen    = new HashSet<int>();
 
 		void Add(SchemaRef[] refs)
 		{
@@ -412,7 +419,6 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 				if (reference.Kind == 1)
 				{
 					Add(dictionary.Component(reference.Id));
-
 					continue;
 				}
 
@@ -461,13 +467,28 @@ sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 
 	// ── writing ─────────────────────────────────────────────────────────────────────────────
 
-	static string Where(FixScope where) => "FixScope." + where;
+	static string Where(FixScope where)
+	{
+		return "FixScope." + where;
+	}
 
-	void Line(int at, string line) => text.Append('\t', at).Append(line).Append('\n');
+	void Line(int at, string line)
+	{
+		text.Append('\t', at).Append(line).Append('\n');
+	}
 
-	void Blank() => text.Append('\n');
+	void Blank()
+	{
+		text.Append('\n');
+	}
 
-	void Comment(int at, string what) => text.Append('\t', at).Append("// ").Append(FixRuleText.Note(what)).Append('\n');
+	void Comment(int at, string what)
+	{
+		text.Append('\t', at).Append("// ").Append(FixRuleText.Note(what)).Append('\n');
+	}
 
-	static string Trailing(string what) => "   // " + FixRuleText.Note(what);
+	static string Trailing(string what)
+	{
+		return "   // " + FixRuleText.Note(what);
+	}
 }

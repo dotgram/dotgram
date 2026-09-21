@@ -52,15 +52,15 @@ public delegate void FixMessageRule(FixMessage message, List<FixFinding> finding
 /// </remarks>
 public sealed class FixValidator
 {
-	static readonly FixFinding[] Nothing = [];
+	static readonly FixFinding[] _nothing = [];
 
-	readonly Dictionary<string, FixMessageRule> rules;
-	readonly bool                               shared;
+	readonly Dictionary<string, FixMessageRule> _rules;
+	readonly bool                               _shared;
 
 	FixValidator(bool shared)
 	{
-		rules       = new Dictionary<string, FixMessageRule>(StringComparer.Ordinal);
-		this.shared = shared;
+		_rules       = new Dictionary<string, FixMessageRule>(StringComparer.Ordinal);
+		this._shared = shared;
 	}
 
 	/// <summary>A validator whose rules are the ones this package compiles in, and yours to replace.</summary>
@@ -103,7 +103,7 @@ public sealed class FixValidator
 			if (messageType is null)
 				throw new ArgumentNullException(nameof(messageType));
 
-			return rules.TryGetValue(messageType, out var rule) ? rule : Compiled;
+			return _rules.TryGetValue(messageType, out var rule) ? rule : Compiled;
 		}
 
 		set
@@ -116,7 +116,7 @@ public sealed class FixValidator
 
 			Mine();
 
-			rules[messageType] = value;
+			_rules[messageType] = value;
 		}
 	}
 
@@ -142,7 +142,7 @@ public sealed class FixValidator
 		var tables = new DictionaryTables(dictionary);
 
 		foreach (var type in dictionary.MessageTypes)
-			rules[type] = (message, findings) => FixRules.Check(tables, message, findings);
+			_rules[type] = (message, findings) => FixRules.Check(tables, message, findings);
 	}
 
 	/// <summary>Writes a rule for every entry of a table, replacing what was there.</summary>
@@ -168,13 +168,13 @@ public sealed class FixValidator
 			if (rule.Key is null || rule.Value is null)
 				throw new ArgumentException("A table holds no null type and no null rule.", nameof(rules));
 
-			this.rules[rule.Key] = rule.Value;
+			this._rules[rule.Key] = rule.Value;
 		}
 	}
 
 	void Mine()
 	{
-		if (shared)
+		if (_shared)
 			throw new InvalidOperationException(
 				"FixValidator.Standard is shared by every caller in the process and cannot be written to: " +
 				"a rule written here would change what FixMessage.Validate() answers for code that never " +
@@ -189,6 +189,6 @@ public sealed class FixValidator
 
 		this[message.MessageType](message, found);
 
-		return found.Count == 0 ? Nothing : found.ToArray();
+		return found.Count == 0 ? _nothing : found.ToArray();
 	}
 }

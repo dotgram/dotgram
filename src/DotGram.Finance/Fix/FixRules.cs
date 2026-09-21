@@ -27,20 +27,21 @@ abstract class FixTables
 	/// composition as "no such type" is how that message came to be reported unknown by a file
 	/// that describes it.
 	/// </remarks>
-	public abstract bool Describes(string type);
-	public abstract SchemaRef[] Component(int id);
-	public abstract SchemaRef[] Group(int id);
-	public abstract int         Counter(int id);
-	public abstract SchemaRef[] Header  { get; }
-	public abstract SchemaRef[] Trailer { get; }
-	public abstract FixValueType Type(int tag);
-	public abstract string[]?   Codes(int tag);
-	public abstract int         LengthTag(int dataTag);
-	public abstract int         DataTag(int lengthTag);
-	public abstract bool        RequiresEncoding(int tag);
+	public abstract bool         Describes       (string type);
+	public abstract SchemaRef[]  Component       (int id);
+	public abstract SchemaRef[]  Group           (int id);
+	public abstract int          Counter         (int id);
+	public abstract FixValueType Type            (int tag);
+	public abstract string[]?    Codes           (int tag);
+	public abstract int          LengthTag       (int dataTag);
+	public abstract int          DataTag         (int lengthTag);
+	public abstract bool         RequiresEncoding(int tag);
 
 	/// <summary>Whether the schema places this tag in a scope at all, for the sentence of a finding.</summary>
 	public abstract bool Defines(int tag);
+
+	public abstract SchemaRef[]  Header  { get; }
+	public abstract SchemaRef[]  Trailer { get; }
 
 	/// <summary>
 	/// Whether a component id is a scope walked on its own rather than a member of the body.
