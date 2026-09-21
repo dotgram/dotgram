@@ -10,6 +10,7 @@
 	is stopped and its numbers are not to be quoted. A worker whose priority is below High is raised to High and the raise is written down.
 
 	What it does, in order:
+	  0. refuses to start (exit 5, no flag lifts it) when the machine is not quiet: more than 6% of it in use outside this script over three seconds, or any build tool above 0.15 core; what it saw is printed and written to run.txt either way;
 	  1. refuses to start when another window is announced and its process is alive (`dotgram-timing-window.txt` in the temp directory), or when BDN is asked
 	     to run in process (`--inProcess`: a number taken there is not a number of this stand);
 	  2. announces the window (pid, started, until, what) in the same format as the stand's own runs, and puts the file back to `idle` when the run ends (benchmarks/Window.ps1 reads it);
@@ -59,6 +60,42 @@ if (Test-Path $window) {
 	if ($ownerPid -ne 0 -and $ownerPid -ne $PID -and (Get-Process -Id $ownerPid -ErrorAction SilentlyContinue)) {
 		Write-Error ("Another timing window is announced and its process is alive: " + ((Get-Content $window) -join '; ')); exit 3
 	}
+}
+
+# The quiet check: a build or a run that somebody started and forgot is found by the instrument, not by memory (2026-09-21: a restore and a compile were still running when a window was announced).
+# The CPU time of every readable process over three seconds, outside this script. Two refusals, and no flag that lifts either: the machine as a whole above 6% (an idle machine here reads 1.7-2.8%, twelve samples of
+# 2026-09-21: a light keeper at 0.3 core, the sessions' own processes about 0.2), and any build tool (dotnet, MSBuild, the compiler servers, csc, git) above 0.15 core, which a small compile alone would not
+# lift the total to 6% for. What it saw is printed and written into run.txt whether it passes or not, so the thresholds can be moved by the records and not by memory.
+$quietPercent = 6
+$buildTools   = 'dotnet', 'MSBuild', 'VBCSCompiler', 'csc', 'vbcscompiler', 'cl', 'link', 'git', 'nuget', 'node', 'msbuild'
+
+function CpuSample {
+	$sample = @{}
+
+	foreach ($process in Get-Process) {
+		try { if ($process.Id -ne $PID -and $process.Id -ne 0) { $sample[$process.Id] = @($process.ProcessName, $process.TotalProcessorTime.TotalSeconds) } } catch { }
+	}
+
+	$sample
+}
+
+$before  = CpuSample
+Start-Sleep -Seconds 3
+$after   = CpuSample
+$cores   = [int]$env:NUMBER_OF_PROCESSORS
+$busy    = @(foreach ($id in $after.Keys) { if ($before.ContainsKey($id)) { [pscustomobject]@{ Id = $id; Name = $after[$id][0]; Cores = [math]::Round(($after[$id][1] - $before[$id][1]) / 3, 3) } } })
+$total   = ($busy | Measure-Object Cores -Sum).Sum
+$percent = [math]::Round(100 * $total / $cores, 1)
+$top     = ($busy | Sort-Object Cores -Descending | Select-Object -First 3 | ForEach-Object { "$($_.Name) (pid $($_.Id)) $($_.Cores)" }) -join '; '
+$builders = @($busy | Where-Object { $_.Name -in $buildTools -and $_.Cores -gt 0.15 })
+$quiet    = "Quiet check before the start: $percent% of the machine ($([math]::Round($total, 2)) of $cores logical processors) in use outside this script, three seconds; busiest: $top."
+
+$quiet
+
+if ($percent -gt $quietPercent -or $builders.Count -gt 0) {
+	$why = if ($builders.Count -gt 0) { "a build tool is running: $(($builders | ForEach-Object { "$($_.Name) (pid $($_.Id)) $($_.Cores) cores" }) -join '; ')" } else { "more than $quietPercent% of the machine is in use" }
+	Write-Error "The machine is not quiet: $why. $quiet Nothing was announced or started."
+	exit 5
 }
 
 New-Item -ItemType Directory -Force $out | Out-Null
@@ -154,6 +191,7 @@ $report = @(
 	"Assembly $Assembly, commit $commit. Arguments: $($BdnArgs -join ' '). Machine $env:COMPUTERNAME, launcher and workers on mask 0x$($Affinity.ToString('X')) at high priority.",
 	"JIT: $($jit -join ', ') (unset is the runtime's default: tiered compilation on, dynamic PGO on).",
 	$(if ($Note) { "**$Note**" }),
+	$quiet,
 	"Exit code: $(if ($null -ne $exit) { $exit } else { 'none (stopped)' }). $(if ($truncated) { 'STOPPED at the limit of ' + $LimitMinutes + ' minutes: the results are incomplete.' })",
 	$(if ($failure) { "**FAILED: $failure**" } else { "Every worker that was read back from the operating system was on the mask. Coverage: BDN executed $executed workers (its log), $($checked.Count) were read$(if ($checked.Count -lt $executed) { '; the others ended between two reads, and the mask they had is the inherited one, not a reading' })." }),
 	'',
