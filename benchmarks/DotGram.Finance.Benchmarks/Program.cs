@@ -46,6 +46,11 @@ static class Program
 			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix");
 			return;
 		}
+		if (args.Length == 1 && args[0] == "--against-check")
+		{
+			FixAgainstQuickFix.Check();
+			return;
+		}
 		if (args.Length >= 1 && args[0] == "--validation-size")
 		{
 			FixRuleCompiled.Size(args[1..]);
