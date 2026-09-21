@@ -1,4 +1,4 @@
-# Current parser layout
+﻿# Current parser layout
 
 The production parser is `DotGram.Finance.Fix.FixParser`. The large grammar is
 `DotGram.Finance.Fix44.Fix44Parser`, in the `tests/DotGram.Finance.Fix44` fixture.
@@ -206,9 +206,9 @@ These numbers measure the existing byte-to-character FIX adapter, not a future
 native byte parser or lazy field decoding implementation.
 
 The `FlatOrderFields`, `FlatRawFields`, and `FlatGroupFields` workloads call
-`FixParser.Parse` and return only fields. Existing message workloads explicitly call
-`FixMessages.Parse`; their costs include semantic assembly and validation.
-Previously recorded results predate this separation.
+`FixParser.ParseFields` and return only fields. The message workloads call
+`FixParser.ParseMessage`; their costs include semantic assembly. Results recorded before
+the two were told apart do not carry the distinction.
 
 ## Single field-choice grammar: 2026-09-16
 

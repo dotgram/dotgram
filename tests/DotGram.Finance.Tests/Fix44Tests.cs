@@ -17,7 +17,7 @@ public sealed class Fix44Tests
 	[MemberData(nameof(FixFixtures.Messages), MemberType = typeof(FixFixtures))]
 	public void Every_standard_message_has_a_typed_result(string name, string wire)
 	{
-		Assert.True(FixMessages.TryParse(wire, out var message, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(wire, out var message, out var error), error?.ToString());
 		Assert.Equal(name, message!.GetType().Name);
 		Assert.Same(wire, message.OriginalWire);
 	}
@@ -26,7 +26,7 @@ public sealed class Fix44Tests
 	[MemberData(nameof(FixFixtures.Messages), MemberType = typeof(FixFixtures))]
 	public void Semantic_assembler_reconstructs_every_message_from_flat_fields(string name, string wire)
 	{
-		var original = FixMessages.Parse(wire);
+		var original = FixParser.ParseMessage(wire);
 		var flat = original.AllFields.Select(f => new FixNode(f.Tag, f.Position, f.ValuePosition, f.Length)).ToArray();
 		Assert.True(FixSemantics.TryBuild(wire, original.MessageType, flat, null, out var rebuilt, out var error), error?.ToString());
 		Assert.Equal(name, rebuilt!.GetType().Name);
@@ -52,7 +52,7 @@ public sealed class Fix44Tests
 	[Fact]
 	public void Public_order_api_and_optional_values()
 	{
-		var order = Assert.IsType<FixMessage.NewOrderSingle>(FixMessages.Parse(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")));
+		var order = Assert.IsType<FixMessage.NewOrderSingle>(FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")));
 		Assert.Equal("ABC", order.Symbol);
 		Assert.True(order.OrderQty!.Value.TryGetDecimal(out var quantity));
 		Assert.Equal(100m, quantity);
@@ -62,13 +62,13 @@ public sealed class Fix44Tests
 	[Fact]
 	public void Body_fields_may_be_reordered()
 	{
-		Assert.True(FixMessages.TryParse(FixFixtures.Wire("D", "40=1|38=100|60=20260915-12:00:00|54=1|55=ABC|11=ORDER|"), out _, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(FixFixtures.Wire("D", "40=1|38=100|60=20260915-12:00:00|54=1|55=ABC|11=ORDER|"), out _, out var error), error?.ToString());
 	}
 
 	[Fact]
 	public void Nested_groups_preserve_entry_boundaries()
 	{
-		var message = FixMessages.Parse(FixFixtures.Wire("D", "11=ORDER|453=2|448=P1|447=D|452=1|802=2|523=S1|803=1|523=S2|803=2|448=P2|447=D|452=3|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|"));
+		var message = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|453=2|448=P1|447=D|452=1|802=2|523=S1|803=1|523=S2|803=2|448=P2|447=D|452=3|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|"));
 		var parties = message.GetGroup(453);
 		Assert.Equal(2, parties.Count);
 		Assert.Equal("P2", parties[1].GetField(448)!.Value.ToString());
@@ -84,7 +84,7 @@ public sealed class Fix44Tests
 		var wire = FixFixtures.Wire("0", "112=TEST|");
 		for (var length = 0; length < wire.Length; length++)
 		{
-			Assert.False(FixMessages.TryParse(wire[..length], out var message, out var error));
+			Assert.False(FixParser.TryParseMessage(wire[..length], out var message, out var error));
 			Assert.Null(message);
 			Assert.NotNull(error);
 		}
@@ -99,7 +99,7 @@ public sealed class Fix44Tests
 	[InlineData("D", "11=X|55=ABC|54=1|60=20260230-12:00:00|38=1|40=1|", FixRule.InvalidValue)]
 	public void Invalid_schema_builds_and_is_reported(string type, string body, FixRule rule)
 	{
-		Assert.True(FixMessages.TryParse(FixFixtures.Wire(type, body), out var message, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(FixFixtures.Wire(type, body), out var message, out var error), error?.ToString());
 		Assert.Contains(message!.Validate(), f => f.Rule == rule);
 	}
 
@@ -109,7 +109,7 @@ public sealed class Fix44Tests
 	{
 		var wire = FixFixtures.Wire("D", "11=X|453=2|448=P1|447=D|452=1|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
 
-		Assert.False(FixMessages.TryParse(wire, out _, out var error));
+		Assert.False(FixParser.TryParseMessage(wire, out _, out var error));
 		Assert.NotNull(error);
 		Assert.Equal("D", error.MessageType);
 	}
@@ -119,7 +119,7 @@ public sealed class Fix44Tests
 	{
 		var wire = FixFixtures.Wire("0", "9001=A|112=TEST|9002=B|");
 
-		Assert.True(FixMessages.TryParse(wire, out var result, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(wire, out var result, out var error), error?.ToString());
 		Assert.Equal(new[] { 9001, 112, 9002 }, result!.Fields.Select(f => f.Tag));
 
 		// The strict mode refused this message. The reader builds it and the layer names the tags.
@@ -134,7 +134,7 @@ public sealed class Fix44Tests
 		var raw = "a\u0001=\0\u00ff";
 		var body = "98=0\u0001108=30\u000195=" + raw.Length + "\u000196=" + raw + "\u0001";
 		var wire = FixFixtures.Wire("A", body);
-		var message = FixMessages.Parse(wire);
+		var message = FixParser.ParseMessage(wire);
 		Assert.Equal(raw, message.GetField(96)!.Value.ToString());
 		Assert.Equal(wire, message.OriginalWire);
 	}
@@ -143,9 +143,9 @@ public sealed class Fix44Tests
 	public void Framing_errors_identify_the_field()
 	{
 		var wire = FixFixtures.Wire("0", "");
-		Assert.False(FixMessages.TryParse(wire[..^4] + "999\u0001", out _, out var checksum));
+		Assert.False(FixParser.TryParseMessage(wire[..^4] + "999\u0001", out _, out var checksum));
 		Assert.Equal(10, checksum!.Tag);
-		Assert.False(FixMessages.TryParse(wire.Replace("9=", "9=1", StringComparison.Ordinal), out _, out var length));
+		Assert.False(FixParser.TryParseMessage(wire.Replace("9=", "9=1", StringComparison.Ordinal), out _, out var length));
 		Assert.Equal(9, length!.Tag);
 	}
 
@@ -158,20 +158,20 @@ public sealed class Fix44Tests
 	{
 		// A length and the data it measures are how the reader knows where a field ends, so this
 		// stays a refusal and does not become a finding: there is no message to have one about.
-		Assert.False(FixMessages.TryParse(FixFixtures.Wire("A", body), out _, out _));
+		Assert.False(FixParser.TryParseMessage(FixFixtures.Wire("A", body), out _, out _));
 	}
 
 	[Fact]
 	public void Empty_raw_payload_is_preserved()
 	{
-		Assert.Equal("", FixMessages.Parse(FixFixtures.Wire("A", "98=0|108=30|95=0|96=|")).GetField(96)!.Value.ToString());
+		Assert.Equal("", FixParser.ParseMessage(FixFixtures.Wire("A", "98=0|108=30|95=0|96=|")).GetField(96)!.Value.ToString());
 	}
 
 	[Fact]
 	public void Custom_fields_inside_groups_are_preserved()
 	{
 		var wire = FixFixtures.Wire("D", "11=ORDER|453=1|448=P1|9001=X|447=D|452=1|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
-		Assert.True(FixMessages.TryParse(wire, out var message, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(wire, out var message, out var error), error?.ToString());
 		Assert.Equal("X", message!.GetGroup(453)[0].GetField(9001)!.Value.ToString());
 		Assert.Equal(wire, string.Concat(message.AllFields.Select(f => f.Tag.ToString(CultureInfo.InvariantCulture) + "=" + f.Value.ToString() + "\u0001")));
 	}
@@ -182,7 +182,7 @@ public sealed class Fix44Tests
 		var wire = FixFixtures.Wire("D", "11=ORDER|453=1|448=P1|452=1|447=D|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
 
 		// The strict mode refused this message; the order of a group's fields is now a finding.
-		Assert.True(FixMessages.TryParse(wire, out var message, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(wire, out var message, out var error), error?.ToString());
 		Assert.Contains(message!.Validate(), f => f.Rule == FixRule.FieldOutOfOrder && f.GroupTag == 453);
 	}
 
@@ -192,7 +192,7 @@ public sealed class Fix44Tests
 		var wire = FixFixtures.Wire("U1", "9001=X|9002=Y|");
 
 		// The strict mode refused an unknown MsgType; it is now a finding about a built message.
-		Assert.True(FixMessages.TryParse(wire, out var result, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(wire, out var result, out var error), error?.ToString());
 		Assert.IsType<FixMessage.Custom>(result);
 		Assert.Equal(wire, result!.OriginalWire);
 		Assert.Contains(result.Validate(), f => f.Rule == FixRule.UnknownMessageType);
@@ -207,7 +207,7 @@ public sealed class Fix44Tests
 		{
 			var body = new char[random.Next(1, 150)];
 			for (var i = 0; i < body.Length; i++) body[i] = alphabet[random.Next(alphabet.Length)];
-			FixMessages.TryParse(FixFixtures.Wire("0", new string(body)), out _, out _);
+			FixParser.TryParseMessage(FixFixtures.Wire("0", new string(body)), out _, out _);
 		}
 	}
 
@@ -218,7 +218,7 @@ public sealed class Fix44Tests
 
 		// Nothing declares 9000 to measure 9001, so the SOH inside the value ends the field and
 		// the wire does not read. That is recognition, not schema, and stays a refusal.
-		Assert.False(FixMessages.TryParse(wire, out _, out _));
+		Assert.False(FixParser.TryParseMessage(wire, out _, out _));
 	}
 
 	[Fact]
@@ -227,7 +227,7 @@ public sealed class Fix44Tests
 		var order = FixFixtures.Wire("D", "11=X|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|354=1|355=X|");
 
 		// The strict mode refused this with tag 347; the layer names the same tag.
-		Assert.True(FixMessages.TryParse(order, out var message, out var error), error?.ToString());
+		Assert.True(FixParser.TryParseMessage(order, out var message, out var error), error?.ToString());
 		Assert.Contains(message!.Validate(), f => f.Rule == FixRule.MessageEncodingMissing && f.Tag == 347);
 	}
 
@@ -238,7 +238,7 @@ public sealed class Fix44Tests
 		foreach (var data in FixFixtures.Messages())
 		{
 			var wire = (string)data[1];
-			var message = FixMessages.Parse(wire);
+			var message = FixParser.ParseMessage(wire);
 			var fields = message.AllFields.ToArray();
 			Assert.Equal(wire, string.Concat(fields.Select(f => f.Wire.ToString())));
 			foreach (var field in fields) tags.Add(field.Tag);
@@ -257,7 +257,7 @@ public sealed class Fix44Tests
 		foreach (var data in FixFixtures.Messages())
 		{
 			var wire = (string)data[1];
-			var fields = FixMessages.Parse(wire).AllFields.ToArray();
+			var fields = FixParser.ParseMessage(wire).AllFields.ToArray();
 			for (var i = 1; i < fields.Length; i++)
 			{
 				var current = fields[i];
@@ -266,7 +266,7 @@ public sealed class Fix44Tests
 				var preceding = fields[i - 1];
 				Assert.Equal(lengthTag, preceding.Tag);
 				var changed = wire[..preceding.Position] + lengthTag + "=5\u0001" + current.Tag + "=" + payload + "\u0001" + wire[(current.ValuePosition + current.Length + 1)..];
-				var result = FixMessages.Parse(Reframe(changed));
+				var result = FixParser.ParseMessage(Reframe(changed));
 				Assert.Equal(payload, result.AllFields.First(f => f.Tag == current.Tag).Value.ToString());
 			}
 		}
@@ -280,13 +280,13 @@ public sealed class Fix44Tests
 		foreach (var data in FixFixtures.Messages())
 		{
 			var wire = (string)data[1];
-			var message = FixMessages.Parse(wire);
+			var message = FixParser.ParseMessage(wire);
 			foreach (var scope in new FixFieldSet[] { message.Header, message })
 				foreach (var node in GroupNodes(scope))
 				{
 					if (node.Entries!.Count == 0 || !covered.Add(node.GroupId)) continue;
 					var changed = wire[..node.ValuePosition] + "2" + wire[(node.ValuePosition + node.Length)..];
-					Assert.False(FixMessages.TryParse(Reframe(changed), out _, out _), node.GroupId.ToString());
+					Assert.False(FixParser.TryParseMessage(Reframe(changed), out _, out _), node.GroupId.ToString());
 				}
 		}
 		Assert.Equal(91, covered.Count);

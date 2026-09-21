@@ -108,34 +108,34 @@ public class Fix44Benchmarks
 		// may be reordered independently of the entry field order.
 		body.Insert(0, "55=ABC|");
 		groups = Wire("W", body.ToString());
-		foreach (var input in new[] { heartbeat, order, raw, groups }) FixMessages.Parse(input);
+		foreach (var input in new[] { heartbeat, order, raw, groups }) FixParser.ParseMessage(input);
 		orderBytes = Encoding.Latin1.GetBytes(order);
 		rawBytes = Encoding.Latin1.GetBytes(raw);
 		using var orderInput = new MemoryStream(orderBytes);
 		using var rawInput = new MemoryStream(rawBytes);
-		if (FixMessages.Parse(orderInput).OriginalWire != order || FixMessages.Parse(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
+		if (FixParser.ReadMessage(orderInput).OriginalWire != order || FixParser.ReadMessage(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
 	}
 
-	[Benchmark] public FixField[] FlatOrderFields() => FixParser.Parse(order);
-	[Benchmark] public FixField[] FlatRawFields()   => FixParser.Parse(raw);
-	[Benchmark] public FixField[] FlatGroupFields() => FixParser.Parse(groups);
+	[Benchmark] public FixField[] FlatOrderFields() => FixParser.ParseFields(order);
+	[Benchmark] public FixField[] FlatRawFields()   => FixParser.ParseFields(raw);
+	[Benchmark] public FixField[] FlatGroupFields() => FixParser.ParseFields(groups);
 
-	[Benchmark] public FixMessage Heartbeat() => FixMessages.Parse(heartbeat);
-	[Benchmark] public FixMessage NewOrderSingle() => FixMessages.Parse(order);
-	[Benchmark] public FixMessage LargeRawData() => FixMessages.Parse(raw);
-	[Benchmark] public FixMessage RepeatingGroups() => FixMessages.Parse(groups);
+	[Benchmark] public FixMessage Heartbeat() => FixParser.ParseMessage(heartbeat);
+	[Benchmark] public FixMessage NewOrderSingle() => FixParser.ParseMessage(order);
+	[Benchmark] public FixMessage LargeRawData() => FixParser.ParseMessage(raw);
+	[Benchmark] public FixMessage RepeatingGroups() => FixParser.ParseMessage(groups);
 
 	[Benchmark]
 	public FixMessage NewOrderSingleBytes()
 	{
 		using var input = new MemoryStream(orderBytes, writable: false);
-		return FixMessages.Parse(input);
+		return FixParser.ReadMessage(input);
 	}
 	[Benchmark]
 	public FixMessage LargeRawDataBytes()
 	{
 		using var input = new MemoryStream(rawBytes, writable: false);
-		return FixMessages.Parse(input);
+		return FixParser.ReadMessage(input);
 	}
 
 	internal static string Wire(string type, string fields)

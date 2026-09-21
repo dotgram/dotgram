@@ -99,8 +99,8 @@ static partial class Stand
 			yield return new Workload(
 				"fixmsg",
 				$"slope-{fields}",
-				[new Reading("generated", () => FixMessages.TryParse(framed, out _, out _, null) ? 1 : 0)],
-				() => FixMessages.TryParse(framed, out _, out var error, null) ? null : $"  the reader refuses the {fields}-field message: {error}");
+				[new Reading("generated", () => FixParser.TryParseMessage(framed, out _, out _, null) ? 1 : 0)],
+				() => FixParser.TryParseMessage(framed, out _, out var error, null) ? null : $"  the reader refuses the {fields}-field message: {error}");
 		}
 
 		// The message layer against QuickFIX/n on a message both accept. The second reading is a reference: another library's reader, doing the work a
@@ -110,23 +110,23 @@ static partial class Stand
 			"fixmsg",
 			"Order44.strict",
 			[
-				new Reading("generated", () => FixMessages.TryParse(agreed, out _, out _, null) ? 1 : 0),
+				new Reading("generated", () => FixParser.TryParseMessage(agreed, out _, out _, null) ? 1 : 0),
 				new Reading("reference-QuickFIXn", () => QuickFixAccepts(agreed) ? 1 : 0),
 			],
-			() => FixMessages.TryParse(agreed, out _, out var error, null)
+			() => FixParser.TryParseMessage(agreed, out _, out var error, null)
 				? (QuickFixAccepts(agreed) ? null : "  the message layer accepts the wire and QuickFIX/n does not")
 				: $"  the message layer refuses the wire: {error}");
 
 		yield return new Workload(
 			"fixmsg",
 			"Order.parse",
-			[new Reading("generated", () => FixMessages.Parse(wire) is null ? 0 : 1)],
-			() => FixMessages.TryParse(wire, out _, out var error) ? null : $"  the strict layer refuses the wire: {error}");
+			[new Reading("generated", () => FixParser.ParseMessage(wire) is null ? 0 : 1)],
+			() => FixParser.TryParseMessage(wire, out _, out var error) ? null : $"  the strict layer refuses the wire: {error}");
 
 		yield return new Workload(
 			"fixmsg",
 			"Order.build",
-			[new Reading("generated", () => FixMessages.Build(wire, [.. FixParser.Parse(wire)]) is null ? 0 : 1)],
-			() => FixMessages.Build(wire, [.. FixParser.Parse(wire)]) is null ? "  Build returned nothing" : null);
+			[new Reading("generated", () => FixParser.BuildMessage(wire, [.. FixParser.ParseFields(wire)]) is null ? 0 : 1)],
+			() => FixParser.BuildMessage(wire, [.. FixParser.ParseFields(wire)]) is null ? "  Build returned nothing" : null);
 	}
 }

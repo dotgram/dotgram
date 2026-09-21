@@ -76,12 +76,12 @@ static partial class Stand
 		var wire = FixMessageWire();
 
 		foreach (var form in new[] { "parse-stream", "parse-reader", "parse-span" })
-			yield return PairedFormRow("fixmsg", "Order." + form, "control", () => FixMessages.Parse(wire).Validate() is null ? 0 : 1, before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
+			yield return PairedFormRow("fixmsg", "Order." + form, "control", () => FixParser.ParseMessage(wire).Validate() is null ? 0 : 1, before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
 
 		var many = string.Concat(Enumerable.Repeat(wire, 100));
 
 		foreach (var form in new[] { "read-stream", "read-reader" })
-			yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", () => FixMessages.ReadMessages(new StringReader(many), null, 4096).Count(m => m.Validate().Length == 0), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
+			yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", () => FixParser.ReadMessages(new StringReader(many), null, 4096).Count(m => m.Validate().Length == 0), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
 
 		// ── one span row for FIX ──
 		var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";

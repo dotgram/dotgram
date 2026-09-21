@@ -29,7 +29,7 @@ public sealed class FixValidatorRulesTests
 
 	static FixMessage Message(string body)
 	{
-		Assert.True(FixMessages.TryParse(Framed(body), out var message, out var error), error?.Reason);
+		Assert.True(FixParser.TryParseMessage(Framed(body), out var message, out var error), error?.Reason);
 
 		return message!;
 	}
@@ -177,7 +177,7 @@ public sealed class FixValidatorRulesTests
 
 		foreach (var data in FixFixtures.Messages())
 		{
-			var message = FixMessages.Parse((string)data[1]);
+			var message = FixParser.ParseMessage((string)data[1]);
 			var ours    = message.Validate();
 			var theirs  = message.Validate(loaded);
 

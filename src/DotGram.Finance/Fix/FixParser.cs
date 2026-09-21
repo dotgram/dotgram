@@ -5,7 +5,7 @@ namespace DotGram.Finance.Fix;
 /// <summary>
 /// Reads an ordered, flat list of FIX fields using computed dispatch without message validation.
 /// </summary>
-public static class FixParser
+public static partial class FixParser
 {
 	/// <summary>
 	/// The <c>maxRetained</c> a call gets when it gives none: 16 Mi characters from a reader, 16 MiB
@@ -22,7 +22,7 @@ public static class FixParser
 	/// <summary>
 	/// Reads wire fields separated by SOH.
 	/// </summary>
-	public static FixField[] Parse(string input, FixFieldOptions? options = null)
+	public static FixField[] ParseFields(string input, FixFieldOptions? options = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
@@ -41,9 +41,9 @@ public static class FixParser
 	/// <remarks>
 	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
 	/// </remarks>
-	public static FixField[] Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null)
+	public static FixField[] ParseFields(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
-		return Parse(input.ToString(), options);
+		return ParseFields(input.ToString(), options);
 	}
 
 	/// <summary>
@@ -59,7 +59,7 @@ public static class FixParser
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
-	public static IEnumerable<FixField> Parse(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
+	public static IEnumerable<FixField> ReadFields(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)   throw new ArgumentNullException(nameof(input));
 		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -97,7 +97,7 @@ public static class FixParser
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
-	public static IEnumerable<FixField> Parse(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
+	public static IEnumerable<FixField> ReadFields(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)   throw new ArgumentNullException(nameof(input));
 		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -128,7 +128,7 @@ public static class FixParser
 	/// <remarks>
 	/// The array is read where it lies, with no copy; being whole, it is not bounded by <c>maxRetained</c>.
 	/// </remarks>
-	public static FixField[] Parse(byte[] input, FixFieldOptions? options = null)
+	public static FixField[] ParseFields(byte[] input, FixFieldOptions? options = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));

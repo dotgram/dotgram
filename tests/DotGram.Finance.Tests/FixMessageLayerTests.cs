@@ -24,7 +24,7 @@ public sealed class FixMessageLayerTests
 
 		// A count sizes an array before anything is read into it, so this is recognition and
 		// stays a refusal however the schema is read.
-		Assert.False(FixMessages.TryParse(wire, out _, out var error));
+		Assert.False(FixParser.TryParseMessage(wire, out _, out var error));
 		Assert.Equal(268, error!.Tag);
 		Assert.Contains("NumInGroup", error.Reason);
 	}

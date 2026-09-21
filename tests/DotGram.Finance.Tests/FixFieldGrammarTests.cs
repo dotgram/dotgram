@@ -16,11 +16,11 @@ public sealed class FixFieldGrammarTests
 	[MemberData(nameof(FixFixtures.Messages), MemberType = typeof(FixFixtures))]
 	public void All_fields_have_the_same_ADT_in_char_byte_and_pipe_forms(string name, string wire)
 	{
-		var expected = FixMessages.Parse(wire);
+		var expected = FixParser.ParseMessage(wire);
 		var log = FixFieldReaderTests.Log(expected);
 		using var bytes = new MemoryStream(Bytes(wire));
 		using var logBytes = new MemoryStream(Bytes(log));
-		foreach (var message in new[] { FixMessages.Parse(bytes), FixMessages.Parse(log, FixFieldOptions.Log), FixMessages.Parse(logBytes, FixFieldOptions.Log) })
+		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, FixFieldOptions.Log), FixParser.ReadMessage(logBytes, FixFieldOptions.Log) })
 		{
 			Assert.Equal(name, message.GetType().Name);
 			Assert.Equal(expected.AllFields.Select(f => f.Value.ToString()), message.AllFields.Select(f => f.Value.ToString()));
@@ -34,7 +34,7 @@ public sealed class FixFieldGrammarTests
 	{
 		var orderWire = FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
 		using var stream = new MemoryStream(Bytes(orderWire));
-		foreach (var order in new[] { FixMessages.Parse(orderWire), FixMessages.Parse(stream) })
+		foreach (var order in new[] { FixParser.ParseMessage(orderWire), FixParser.ReadMessage(stream) })
 		{
 			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(order.GetField(55)!.Value.TypedValue).Value);
 			Assert.Equal('1', Assert.IsType<FixField.Side>(order.GetField(54)!.Value.TypedValue).Value);
@@ -68,8 +68,8 @@ public sealed class FixFieldGrammarTests
 	public void Log_checksum_still_detects_damage()
 	{
 		var wire = FixFixtures.Wire("0", "112=TEST|");
-		var log = FixFieldReaderTests.Log(FixMessages.Parse(wire));
-		Assert.Throws<FormatException>(() => FixMessages.Parse(log.Replace("TEST", "FAIL"), FixFieldOptions.Log));
+		var log = FixFieldReaderTests.Log(FixParser.ParseMessage(wire));
+		Assert.Throws<FormatException>(() => FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixFieldOptions.Log));
 	}
 
 	static byte[] Bytes(string text) => text.Select(c => checked((byte)c)).ToArray();

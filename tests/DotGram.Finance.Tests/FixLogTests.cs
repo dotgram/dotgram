@@ -85,11 +85,11 @@ public sealed class FixLogTests
 	public void Wire_mode_keeps_pipe_characters_and_spaces_in_values()
 	{
 		const string value = "ABC | DEF ";
-		var fields = FixParser.Parse("55=" + value + "\u000138=2\u0001");
+		var fields = FixParser.ParseFields("55=" + value + "\u000138=2\u0001");
 
 		Assert.Equal(2, fields.Length);
 		Assert.Equal(value, Assert.IsType<FixField.Symbol>(fields[0]).Value);
-		Assert.Equal("ABC ", Assert.IsType<FixField.Symbol>(Assert.Single(FixParser.Parse("55=ABC ", FixFieldOptions.Log))).Value);
+		Assert.Equal("ABC ", Assert.IsType<FixField.Symbol>(Assert.Single(FixParser.ParseFields("55=ABC ", FixFieldOptions.Log))).Value);
 	}
 
 	[Theory]
@@ -101,8 +101,8 @@ public sealed class FixLogTests
 		var limit = input.IndexOf("38=", StringComparison.Ordinal) + 1;
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input)) { ReadLimit = limit };
 		using var reader = new GatedReader(input, limit);
-		var bytes = FixParser.Parse(stream, FixFieldOptions.Log, bufferSize: 1);
-		var chars = FixParser.Parse(reader, FixFieldOptions.Log, bufferSize: 1);
+		var bytes = FixParser.ReadFields(stream, FixFieldOptions.Log, bufferSize: 1);
+		var chars = FixParser.ReadFields(reader, FixFieldOptions.Log, bufferSize: 1);
 
 		Assert.Equal(0, stream.Position);
 		Assert.Equal(0, reader.ReadCount);
@@ -148,15 +148,15 @@ public sealed class FixLogTests
 
 	static IEnumerable<FixField[]> ReadLog(string input, FixFieldOptions? options = null)
 	{
-		yield return FixParser.Parse(input, (options ?? new FixFieldOptions()).With(FixFraming.Log));
-		yield return FixParser.Parse(input.AsSpan(), (options ?? new FixFieldOptions()).With(FixFraming.Log));
-		yield return FixParser.Parse(Encoding.Latin1.GetBytes(input), (options ?? new FixFieldOptions()).With(FixFraming.Log));
+		yield return FixParser.ParseFields(input, (options ?? new FixFieldOptions()).With(FixFraming.Log));
+		yield return FixParser.ParseFields(input.AsSpan(), (options ?? new FixFieldOptions()).With(FixFraming.Log));
+		yield return FixParser.ParseFields(Encoding.Latin1.GetBytes(input), (options ?? new FixFieldOptions()).With(FixFraming.Log));
 
 		using var reader = new StringReader(input);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 
-		yield return FixParser.Parse(reader, (options ?? new FixFieldOptions()).With(FixFraming.Log), bufferSize: 1).ToArray();
-		yield return FixParser.Parse(stream, (options ?? new FixFieldOptions()).With(FixFraming.Log), bufferSize: 1).ToArray();
+		yield return FixParser.ReadFields(reader, (options ?? new FixFieldOptions()).With(FixFraming.Log), bufferSize: 1).ToArray();
+		yield return FixParser.ReadFields(stream, (options ?? new FixFieldOptions()).With(FixFraming.Log), bufferSize: 1).ToArray();
 		Assert.True(stream.CanRead);
 	}
 

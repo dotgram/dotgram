@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Agents: the skill for this package is SKILL.md, beside this file in the package
   directory — which layer to use, how to read fields and messages, and the mistakes
   that are easy to make. Read it before writing code against the package. In a
@@ -23,14 +23,17 @@ using DotGram.Finance.Fix;
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-FixField[] fields = FixParser.Parse(wire);
-var logFields = FixParser.Parse("55=ABC | 38=100", FixFieldOptions.Log);
-using var input = File.OpenRead("messages.fix");
-foreach (FixField field in FixParser.Parse(input))
-    Console.WriteLine(field.Tag);
+// One door, and the verb says where the input is: Parse takes a buffer whole, Read consumes
+// a reader or a stream. The plural says how many come back.
+FixMessage message = FixParser.ParseMessage(wire);
 
-// Explicit, optional semantics; reuses the already parsed field objects.
-FixMessage message = FixMessages.Build(wire, fields);
+FixField[] fields = FixParser.ParseFields(wire);
+var logFields = FixParser.ParseFields("55=ABC | 38=100", FixFieldOptions.Log);
+
+using var input = File.OpenRead("messages.fix");
+
+foreach (FixField field in FixParser.ReadFields(input))
+    Console.WriteLine(field.Tag);
 ```
 
 `FixParser` returns fields in source order, including repeated and unknown tags. It does
@@ -63,7 +66,7 @@ byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
 I/O errors and exceptions from user C# code still propagate during enumeration.
 
 ```csharp
-foreach (var field in FixParser.Parse("55=ABC|broken|38=2", FixFieldOptions.Log))
+foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", FixFieldOptions.Log))
 {
     if (field is FixField.Invalid invalid)
         Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
@@ -79,7 +82,7 @@ Use `.ToArray()` when a complete list is needed. String/span/byte-array overload
 materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixParser.Parse` reads SOH-delimited wire input; given `FixFieldOptions.Log` it reads logs
+`FixParser.ParseFields` reads SOH-delimited wire input; given `FixFieldOptions.Log` it reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
 spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
 `FixFieldOptions` declares which framing to read and any length/data pairs of your own.
@@ -96,8 +99,8 @@ The parser requires the correct tag pair and consumes exactly the declared numbe
 of data bytes, including any delimiter bytes inside the payload. An orphaned
 length or data field is rejected. The final field may end at EOF without a separator. Separators between fields
 remain required; the declared binary length still determines the complete payload.
-`FixParser.Parse` returns the completed field sequence, including `Invalid` fields.
-Use `FixMessages.TryParse` or `FixMessages.TryBuild` to build a message; both refuse a
+`FixParser.ParseFields` returns the completed field sequence, including `Invalid` fields.
+Use `FixParser.TryParseMessage` or `FixParser.TryBuildMessage` to build a message; both refuse a
 recovered syntax error with the first syntax diagnostic, whatever the framing. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
@@ -116,18 +119,18 @@ It is not included in the Finance package.
 ```csharp
 using System.Collections.Generic;
 
-var fields = FixParser.Parse("55=ABC|38=100|", FixFieldOptions.Log);
+var fields = FixParser.ParseFields("55=ABC|38=100|", FixFieldOptions.Log);
 var options = new FixFieldOptions(new Dictionary<int, int>
 {
     [5000] = 5001,   // the standard's own sixteen pairs hold as well, and may not be redeclared
 });
-var custom = FixParser.Parse("5000=3 | 5001=a|b | ", options.With(FixFraming.Log));
+var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", options.With(FixFraming.Log));
 ```
 
 A supplied length/data dictionary **adds to** the standard's sixteen pairs and is copied
 at construction; the standard's own pairs always hold, so neither tag of a supplied pair may be one
 the standard already defines. Omit it to use the standard pairs alone. The same object is what
-`FixMessages` takes, so one value describes both layers. Each length tag must
+the message calls take, so one value describes both kinds of answer. Each length tag must
 immediately precede its configured data tag. The pair produces one binary field;
 data tags the package does not define produce `FixField.Custom` with binary metadata. Standalone
 data tags are rejected. The parser recognizes binary boundaries; message and business
@@ -135,7 +138,7 @@ validation remain in the explicitly called semantic API.
 
 ## Explicit message semantics
 
-The following APIs belong to `FixMessages` and run only when called explicitly.
+The message calls run only when called explicitly.
 A length/data pair is one field to `FixParser`; the message model holds the length
 and the data as two nodes, and this is the layer that separates them.
 `Build(source, fields)` requires fields parsed from that exact source and performs
@@ -148,7 +151,7 @@ using DotGram.Finance.Fix;
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-if (FixMessages.TryParse(wire, out var message, out var error))
+if (FixParser.TryParseMessage(wire, out var message, out var error))
 {
     if (message is FixMessage.NewOrderSingle order)
     {
@@ -167,7 +170,7 @@ else
 }
 ```
 
-`FixMessages.Parse(wire)` returns the same model and throws `FormatException` on malformed
+`FixParser.ParseMessage(wire)` returns the same model and throws `FormatException` on malformed
 input. `TryParse` returns false and leaves `message` null. Null input also returns
 false in `TryParse`; invalid options passed to an options overload are programming
 errors. String and `ReadOnlySpan<char>` overloads accept one complete message.
@@ -178,12 +181,12 @@ Concatenated messages are rejected by the contiguous-input overloads. Use
 
 ```csharp
 using var input = File.OpenRead("messages.fix");
-foreach (var message in FixMessages.ReadMessages(input))
+foreach (var message in FixParser.ReadMessages(input))
     Console.WriteLine(message.MessageType);
 
 // Alternatively, read exactly one frame from a fresh stream:
 using var single = File.OpenRead("messages.fix");
-var next = FixMessages.Parse(single, maxMessageLength: 4 * 1024 * 1024);
+var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
@@ -317,7 +320,7 @@ standard tag. Each case declares its tag and primitive type:
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-var order = (FixMessage.NewOrderSingle)FixMessages.Parse(wire);
+var order = (FixMessage.NewOrderSingle)FixParser.ParseMessage(wire);
 var symbol = (FixField.Symbol)order.GetField(55)!.Value.TypedValue!;
 var quantity = (FixField.OrderQty)order.GetField(38)!.Value.TypedValue!;
 Console.WriteLine(symbol.Value);             // string
@@ -357,9 +360,9 @@ field objects and nothing more: a tag outside FIX 4.4 is still unknown to the me
 var logLine   = "55=ABC | 38=100";
 using var logReader = new StringReader(logLine);
 
-var message = FixMessages.Parse(logLine, FixFieldOptions.Log);
+var message = FixParser.ParseMessage(logLine, FixFieldOptions.Log);
 var options = FixFieldOptions.Log;
-foreach (var item in FixMessages.ReadMessages(logReader, options))
+foreach (var item in FixParser.ReadMessages(logReader, options))
     Console.WriteLine(item.MessageType);
 ```
 

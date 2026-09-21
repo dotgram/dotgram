@@ -311,7 +311,7 @@ static partial class Stand
 			.. FixSlopeCounts.Select(n => FixForm(
 				$"slope-{n}.text",
 				() => HandFixParser.Parse(FixSlopeText(n)),
-				() => FixParser.Parse(FixSlopeText(n)),
+				() => FixParser.ParseFields(FixSlopeText(n)),
 				() => IdealFixParser.Parse(FixSlopeText(n)),
 				FixSlopeText(n),
 				(n, 0))),
@@ -320,14 +320,14 @@ static partial class Stand
 			.. FixSlopeCounts.Select(n => FixForm(
 				$"slope-{n}.bytes",
 				() => HandFixParser.Parse(FixSlopeBytes(n)),
-				() => FixParser.Parse(FixSlopeBytes(n)),
+				() => FixParser.ParseFields(FixSlopeBytes(n)),
 				expected: (n, 0))),
 
 			// And through a stream over them, the windowed form (performance-ff's buffered reader with recover).
 			.. FixSlopeCounts.Select(n => FixForm(
 				$"slope-{n}.stream",
 				() => HandFixParser.Parse(new MemoryStream(FixSlopeBytes(n), false)),
-				() => FixParser.Parse(new MemoryStream(FixSlopeBytes(n), false)),
+				() => FixParser.ReadFields(new MemoryStream(FixSlopeBytes(n), false)),
 				expected: (n, 0))),
 
 			// The web's formats (architect for Igor, 2026-09-18): generated, and a regular
@@ -416,18 +416,18 @@ static partial class Stand
 
 		yield return FixForm(name + ".text",
 			() => HandFixParser.Parse(text),
-			() => FixParser.Parse(text),
+			() => FixParser.ParseFields(text),
 			regexText: regex ? text : null,
 			expected: (fields, invalid));
 
 		yield return FixForm(name + ".bytes",
 			() => HandFixParser.Parse(bytes),
-			() => FixParser.Parse(bytes),
+			() => FixParser.ParseFields(bytes),
 			expected: (fields, invalid));
 
 		yield return FixForm(name + ".stream",
 			() => HandFixParser.Parse(new MemoryStream(bytes, false)),
-			() => FixParser.Parse(new MemoryStream(bytes, false)),
+			() => FixParser.ReadFields(new MemoryStream(bytes, false)),
 			expected: (fields, invalid));
 	}
 
@@ -1448,8 +1448,8 @@ static partial class Stand
 	{
 		var wire = FixMessageWire();
 
-		yield return PairedFixMessage("Order.parse", () => FixMessages.Parse(wire) is null ? 0 : 1, before.FixMessageParse(wire), after.FixMessageParse(wire));
-		yield return PairedFixMessage("Order.build", () => FixMessages.Build(wire, [.. FixParser.Parse(wire)]) is null ? 0 : 1, before.FixMessageBuild(wire), after.FixMessageBuild(wire));
+		yield return PairedFixMessage("Order.parse", () => FixParser.ParseMessage(wire) is null ? 0 : 1, before.FixMessageParse(wire), after.FixMessageParse(wire));
+		yield return PairedFixMessage("Order.build", () => FixParser.BuildMessage(wire, [.. FixParser.ParseFields(wire)]) is null ? 0 : 1, before.FixMessageBuild(wire), after.FixMessageBuild(wire));
 	}
 
 	static Workload PairedFixMessage(string name, Func<int> control, Func<int> before, Func<int> after)
@@ -2057,7 +2057,7 @@ static partial class Stand
 		return
 		[
 			Hold("hand",      stream => HandFixParser.Parse(stream)),
-			Hold("generated", stream => FixParser.Parse(stream)),
+			Hold("generated", stream => FixParser.ReadFields(stream)),
 		];
 
 		static Held Hold(string reading, Func<Stream, IEnumerable<FixField>> parse)

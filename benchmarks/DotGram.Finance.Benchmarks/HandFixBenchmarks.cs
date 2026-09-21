@@ -72,11 +72,11 @@ public class HandFixBenchmarks
 		if (InputForm == "Text")
 			return hand
 				? _log ? HandFixParser.Parse(_text, FixFieldOptions.Log) : HandFixParser.Parse(_text)
-				: _log ? FixParser.Parse(_text, FixFieldOptions.Log) : FixParser.Parse(_text);
+				: _log ? FixParser.ParseFields(_text, FixFieldOptions.Log) : FixParser.ParseFields(_text);
 		if (InputForm == "Bytes")
 			return hand
 				? _log ? HandFixParser.Parse(_bytes, FixFieldOptions.Log) : HandFixParser.Parse(_bytes)
-				: _log ? FixParser.Parse(_bytes, FixFieldOptions.Log) : FixParser.Parse(_bytes);
+				: _log ? FixParser.ParseFields(_bytes, FixFieldOptions.Log) : FixParser.ParseFields(_bytes);
 
 		return Read();
 
@@ -87,10 +87,10 @@ public class HandFixBenchmarks
 			var fields = InputForm == "Reader"
 				? hand
 					? _log ? HandFixParser.Parse(reader, FixFieldOptions.Log) : HandFixParser.Parse(reader)
-					: _log ? FixParser.Parse(reader, FixFieldOptions.Log) : FixParser.Parse(reader)
+					: _log ? FixParser.ReadFields(reader, FixFieldOptions.Log) : FixParser.ReadFields(reader)
 				: hand
 					? _log ? HandFixParser.Parse(stream, FixFieldOptions.Log) : HandFixParser.Parse(stream)
-					: _log ? FixParser.Parse(stream, FixFieldOptions.Log) : FixParser.Parse(stream);
+					: _log ? FixParser.ReadFields(stream, FixFieldOptions.Log) : FixParser.ReadFields(stream);
 			foreach (var field in fields)
 				yield return field;
 		}
@@ -139,7 +139,7 @@ public class HandFixBenchmarks
 	{
 		const string input = "55=ABC\u0001";
 		var watch = Stopwatch.StartNew();
-		var fields = hand ? HandFixParser.Parse(input) : FixParser.Parse(input);
+		var fields = hand ? HandFixParser.Parse(input) : FixParser.ParseFields(input);
 		var elapsed = watch.Elapsed.TotalMilliseconds;
 		Console.WriteLine(FormattableString.Invariant($"{(hand ? "handwritten" : "generated")},{elapsed:F3},{fields.Length}"));
 	}

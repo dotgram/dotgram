@@ -63,7 +63,7 @@ public abstract class FixFieldReaderTests
 		Each(parser =>
 		{
 			var fields  = parser.Parse(wire);
-			var message = FixMessages.Build(wire, fields);
+			var message = FixParser.BuildMessage(wire, fields);
 
 			Assert.Equal(name, message.GetType().Name);
 			Assert.Equal(fields.Length, message.AllFields.Count(f => fields.Contains(f.TypedValue!)));
@@ -74,7 +74,7 @@ public abstract class FixFieldReaderTests
 			var corrupt       = wire.Substring(0, wire.Length - 4) + "999" + wire[^1];
 			var corruptFields = parser.Parse(corrupt);
 
-			Assert.False(FixMessages.TryBuild(corrupt, corruptFields, out _, out _));
+			Assert.False(FixParser.TryBuildMessage(corrupt, corruptFields, out _, out _));
 		});
 	}
 
@@ -475,7 +475,7 @@ public abstract class FixFieldReaderTests
 		var body   = "35=A\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000198=0\u0001108=30\u000195=" + raw.Length + "\u000196=" + raw + "\u0001";
 		var prefix = "8=FIX.4.4\u00019=" + body.Length + "\u0001" + body;
 		var wire   = prefix + "10=" + (prefix.Sum(c => (int)c) & 255).ToString("000", CultureInfo.InvariantCulture) + "\u0001";
-		var log    = Log(FixMessages.Parse(wire));
+		var log    = Log(FixParser.ParseMessage(wire));
 
 		Each(parser =>
 		{

@@ -31,7 +31,7 @@ public sealed class ShippedExampleTests
 			[5000] = 5001,
 		});
 
-		var custom = FixParser.Parse("5000=3 | 5001=a|b | ", (options ?? new FixFieldOptions()).With(FixFraming.Log));
+		var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", (options ?? new FixFieldOptions()).With(FixFraming.Log));
 
 		Assert.Equal([5001], custom.Select(field => field.Tag));
 	}
@@ -43,7 +43,7 @@ public sealed class ShippedExampleTests
 		// likely to doubt: declaring your own does not cost you the standard's.
 		var options = new FixFieldOptions(new Dictionary<int, int> { [5000] = 5001 });
 
-		var standard = FixParser.Parse("95=3 | 96=a|b | ", (options ?? new FixFieldOptions()).With(FixFraming.Log));
+		var standard = FixParser.ParseFields("95=3 | 96=a|b | ", (options ?? new FixFieldOptions()).With(FixFraming.Log));
 
 		Assert.Equal([96], standard.Select(field => field.Tag));
 	}
@@ -98,7 +98,7 @@ public sealed class ShippedExampleTests
 	[Fact]
 	public void The_opening_example_of_the_readme_runs()
 	{
-		var fields = FixParser.Parse("55=ABC|38=100|", FixFieldOptions.Log);
+		var fields = FixParser.ParseFields("55=ABC|38=100|", FixFieldOptions.Log);
 
 		Assert.Equal([55, 38], fields.Select(field => field.Tag));
 	}

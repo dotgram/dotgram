@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -224,11 +224,11 @@ static class FixValidationBenchmarks
 	/// </remarks>
 	static FixMessage[] Corpus() =>
 	[
-		FixMessages.Parse(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")),
-		FixMessages.Parse(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|453=2|448=A|447=D|452=1|448=B|447=D|452=2|")),
-		FixMessages.Parse(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=9|60=not-a-time|38=abc|40=2|")),
-		FixMessages.Parse(Fix44Benchmarks.Wire("8", "37=ORDER|17=EXEC|150=0|39=0|55=ABC|54=1|38=100|14=0|6=0|")),
-		FixMessages.Parse(Fix44Benchmarks.Wire("A", "98=0|108=30|")),
+		FixParser.ParseMessage(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")),
+		FixParser.ParseMessage(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|453=2|448=A|447=D|452=1|448=B|447=D|452=2|")),
+		FixParser.ParseMessage(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=9|60=not-a-time|38=abc|40=2|")),
+		FixParser.ParseMessage(Fix44Benchmarks.Wire("8", "37=ORDER|17=EXEC|150=0|39=0|55=ABC|54=1|38=100|14=0|6=0|")),
+		FixParser.ParseMessage(Fix44Benchmarks.Wire("A", "98=0|108=30|")),
 	];
 
 	static FixValidator Loaded()

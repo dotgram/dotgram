@@ -1,4 +1,4 @@
----
+﻿---
 name: dotgram-finance
 description: Read FIX 4.4 tag-value data with DotGram.Finance — flat typed fields from wire or log input, and, where a message must be known correct, validated messages with their repeating groups. Use when a project references the DotGram.Finance package, or when asked to parse FIX tag-value messages or FIX logs in .NET. Not for FIX session handling, sending or composing messages, FIXML, or another FIX version's schema; this package only reads, and only FIX 4.4.
 ---
@@ -15,35 +15,40 @@ things in, and the mistakes that are easy to make.
 
 [readme]: https://github.com/dotgram/dotgram/tree/main/src/DotGram.Finance
 
-## Choose the layer first
+## Choose the answer first
 
-There are two, and most wrong code starts from the wrong one.
+`FixParser` is the whole door, and the name of the call says what comes back. Most wrong
+code asks for the wrong one of these two.
 
-- **`FixParser` reads fields.** It returns every field in source order as a typed
-  `FixField`, repeated and unknown tags included. It validates nothing beyond what it
-  needs to find the next field: no message boundaries, no groups, no BodyLength, no
-  CheckSum, no required fields. Use it for logs, for pulling a few values out, and for
-  anything that must not reject input.
-- **`FixMessages` reads messages.** It checks the envelope, BodyLength and CheckSum,
-  assembles repeating groups and returns the message's own class. Use it when a message's
-  groups matter, or when it is to be held to the schema — which is `Validate`, a separate
-  call over the built message, not something `Parse` does on the way.
+- **Fields** — `ParseFields` from a buffer, `ReadFields` from a reader or a stream. Every
+  field in source order as a typed `FixField`, repeated and unknown tags included. Nothing
+  is validated beyond what it takes to find the next field: no message boundaries, no
+  groups, no BodyLength, no CheckSum, no required fields. Use it for logs, for pulling a
+  few values out, and for anything that must not reject input.
+- **Messages** — `ParseMessage` and `ParseMessages` from a buffer, `ReadMessage` and
+  `ReadMessages` from a reader or a stream. The envelope, BodyLength and CheckSum are
+  checked, repeating groups are assembled, and the message's own class comes back. Use it
+  when a message's groups matter, or when it is to be held to the schema — which is
+  `Validate`, a separate call over the built message, not something the reading does on the
+  way.
 
-`FixMessages.Build(source, fields)` joins them: it builds the message from fields that
-`FixParser` already returned, without reading the input again.
+The verb says where the input is and what happens to it: `Parse` takes a buffer whole,
+`Read` consumes a reader or a stream and leaves it open. The plural says how many come back.
+
+`FixParser.BuildMessage(source, fields)` joins the two: it builds the message from fields
+`ParseFields` already returned, without reading the input again.
 
 ## Input
 
 - **A string is octets, not text.** Every character stands for one byte,
   U+0000 through U+00FF. Decode files and sockets with Latin-1
-  (`Encoding.Latin1`), never UTF-8: UTF-8 changes the byte count, and `FixMessages`
-  then rejects the message on BodyLength or CheckSum. `FixMessages` rejects
-  characters above U+00FF.
-- **Wire or log.** `FixParser.Parse` reads SOH-separated fields and
-  `FixFieldOptions.Log` makes it read pipe-separated ones, with or without spaces
-  around the pipe. The same value is what `FixMessages` takes
-  with any other entry point. The message layer accepts a bare `|` only; read a log
-  padded with spaces through `FixParser` with `FixFieldOptions.Log`.
+  (`Encoding.Latin1`), never UTF-8: UTF-8 changes the byte count, and a message call
+  then rejects the input on BodyLength or CheckSum. A character above U+00FF is
+  refused.
+- **Wire or log.** The field calls read SOH-separated fields, and `FixFieldOptions.Log`
+  makes them read pipe-separated ones, with or without spaces around the pipe. The same
+  value goes to every other call. The message calls accept a bare `|` only; read a log
+  padded with spaces with `ParseFields` and `FixFieldOptions.Log`.
 - **Forms.** Fields: `string`, `ReadOnlySpan<char>`, `byte[]`, `TextReader` and
   `Stream`. Messages: `string`, `ReadOnlySpan<char>`, `TextReader` and `Stream`. The
   span overloads copy the input into a string first. `TextReader` and `Stream` are
@@ -59,7 +64,7 @@ using DotGram.Finance.Fix;
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-foreach (var field in FixParser.Parse(wire))
+foreach (var field in FixParser.ParseFields(wire))
 {
     switch (field)
     {
@@ -100,7 +105,7 @@ foreach (var field in FixParser.Parse(wire))
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-if (!FixMessages.TryParse(wire, out var message, out var error))
+if (!FixParser.TryParseMessage(wire, out var message, out var error))
 {
     Console.WriteLine(error);                     // message type, tag, offset and reason
     return;
@@ -134,8 +139,9 @@ switch (message)
   `FixField` case.
 - `Header` and `Trailer` hold the standard header and trailer, `AllFields` walks the
   whole message in wire order, groups included, and `OriginalWire` is the exact input.
-- `Parse` throws `FormatException`; `TryParse` returns false with a `FixParseError`
-  saying where and why.
+- `ParseMessage` throws `FormatException`; `TryParseMessage` returns false with a
+  `FixParseError` saying where and why. The same pair for readers and streams is
+  `ReadMessage` and `TryReadMessage`.
 
 ## Validation
 
@@ -146,7 +152,7 @@ Holding the result to the schema is then one call:
 
 ```csharp
 var wire    = "8=FIX.4.4\u00019=51\u000135=0\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000110=136\u0001";
-var message = FixMessages.Parse(wire);
+var message = FixParser.ParseMessage(wire);
 
 foreach (var finding in message.Validate())
     Console.WriteLine(finding);   // Body/453[1] tag 452 at 187: InvalidValue: ...
@@ -185,7 +191,7 @@ using (var file = File.OpenRead("FIX44-venue.xml"))
 validator["D"] = (order, findings) => { /* your rule for NewOrderSingle */ };
 
 var wire    = "8=FIX.4.4\u00019=51\u000135=0\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000110=136\u0001";
-var message = FixMessages.Parse(wire);
+var message = FixParser.ParseMessage(wire);
 
 foreach (var finding in message.Validate(validator))
     Console.WriteLine(finding);
@@ -224,7 +230,7 @@ var captured = File.ReadAllLines("yesterday.log");   // your own, in wire or log
 
 foreach (var line in captured)
 {
-    if (!FixMessages.TryParse(line, out var message, out _, FixFieldOptions.Log))
+    if (!FixParser.TryParseMessage(line, out var message, out _, FixFieldOptions.Log))
         continue;
 
     var before = message!.Validate();          // or the validator you run today
@@ -265,13 +271,13 @@ var options = new FixFieldOptions(new Dictionary<int, int>
     [5000] = 5001,   // added to the standard's sixteen pairs, which hold and may not be redeclared
 });
 
-var fields  = FixParser.Parse(wire, options);
-var message = FixMessages.Parse(wire, options);   // the same value describes both layers
+var fields  = FixParser.ParseFields(wire, options);
+var message = FixParser.ParseMessage(wire, options);   // the same value describes both layers
 ```
 
 The dictionary **adds to** the standard's sixteen pairs, which always hold: list only
 what the standard does not define, and repeating one of its pairs is refused with the tag
-named. The same object is what `FixMessages` takes. When
+named. The same object goes to the message calls. When
 reading a stream, `maxRetained` bounds one field, from its tag through the separator that
 ends it, or a whole pair: 16 Mi characters from a `TextReader` or bytes from a `Stream` by
 default. A field that needs more throws `IOException`, so pass a larger `maxRetained` for
@@ -279,8 +285,8 @@ large binary data.
 
 ## Streams
 
-`FixParser.Parse(Stream)` and `FixParser.Parse(TextReader)` return a lazy
-`IEnumerable<FixField>`. `FixMessages.ReadMessages` returns a lazy
+`FixParser.ReadFields(Stream)` and `FixParser.ReadFields(TextReader)` return a lazy
+`IEnumerable<FixField>`. `FixParser.ReadMessages` returns a lazy
 `IEnumerable<FixMessage>`, one message at a time, each at most `maxMessageLength`,
 16 MiB by default. Neither closes its input.
 
@@ -288,9 +294,9 @@ large binary data.
 
 1. Decoding input as UTF-8. Use Latin-1.
 2. Reading `Value` from a field without checking `IsValid`.
-3. Expecting `FixParser` to reject a bad message. It does not validate; `FixMessages`
-   does.
-4. Feeding a space-padded log to `FixMessages`. Only `FixParser` reads padding.
+3. Expecting the field calls to reject a bad message. They do not validate; the message
+   calls check the envelope, and `Validate` holds the result to the schema.
+4. Feeding a space-padded log to a message call. Only the field calls read padding.
 5. Repeating a standard length/data pair in a dictionary of your own to keep it. They hold
    without being listed, and redeclaring one is refused.
 6. Holding a `FixMessage` longer than needed. It keeps its whole source string alive.

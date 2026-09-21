@@ -51,7 +51,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var venue = new Venue();
 
-		var fields = FixParser.Parse("55=AAPL|54=1|", Options(venue).With(FixFraming.Log));
+		var fields = FixParser.ParseFields("55=AAPL|54=1|", Options(venue).With(FixFraming.Log));
 
 		Assert.Equal([55, 54], fields.Select(field => field.Tag));
 		Assert.IsType<FixField.Symbol>(fields[0]);
@@ -67,8 +67,8 @@ public sealed class FixCustomFieldsTests
 			var text  = "55=AAPL|25005=OPEN|";
 
 			var fields = bytes
-				? FixParser.Parse(Encoding.Latin1.GetBytes(text), Options(venue).With(FixFraming.Log))
-				: FixParser.Parse(text, Options(venue).With(FixFraming.Log));
+				? FixParser.ParseFields(Encoding.Latin1.GetBytes(text), Options(venue).With(FixFraming.Log))
+				: FixParser.ParseFields(text, Options(venue).With(FixFraming.Log));
 
 			var status = Assert.IsType<Venue.Status>(fields[1]);
 
@@ -82,7 +82,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var venue = new Venue();
 
-		var fields = FixParser.Parse("28905=20261231|", Options(venue).With(FixFraming.Log));
+		var fields = FixParser.ParseFields("28905=20261231|", Options(venue).With(FixFraming.Log));
 
 		var spare = Assert.IsType<FixField.Custom>(Assert.Single(fields));
 
@@ -96,7 +96,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var venue = new Venue();
 
-		var fields = FixParser.Parse("25000=3|25001=a|b|55=END|", Options(venue, pairs: true).With(FixFraming.Log));
+		var fields = FixParser.ParseFields("25000=3|25001=a|b|55=END|", Options(venue, pairs: true).With(FixFraming.Log));
 
 		var payload = Assert.IsType<Venue.Payload>(fields[0]);
 
@@ -113,7 +113,7 @@ public sealed class FixCustomFieldsTests
 		// the other ours.
 		var venue  = new Venue();
 		var wire   = Framed("35=0|49=A|56=B|34=1|52=20260919-12:00:00|25000=3|25001=xyz|");
-		var read   = FixMessages.TryParse(wire, out _, out var error, Options(venue, pairs: true));
+		var read   = FixParser.TryParseMessage(wire, out _, out var error, Options(venue, pairs: true));
 
 		Assert.True(read, error?.Reason);
 		Assert.Contains("char 25000", venue.Asked);
@@ -137,7 +137,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void Without_a_consumer_the_package_builds_what_it_always_built()
 	{
-		var fields = FixParser.Parse("25005=OPEN|", FixFieldOptions.Log);
+		var fields = FixParser.ParseFields("25005=OPEN|", FixFieldOptions.Log);
 
 		var spare = Assert.IsType<FixField.Custom>(Assert.Single(fields));
 

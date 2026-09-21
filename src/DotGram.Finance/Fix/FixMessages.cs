@@ -4,7 +4,7 @@ using System.Globalization;
 namespace DotGram.Finance.Fix;
 
 /// <summary>Parses one complete FIX 4.4 tag-value message.</summary>
-public static partial class FixMessages
+static partial class FixMessages
 {
 	/// <summary>
 	/// Parses one complete message from a lossless octet string: every character in U+0000..U+00FF.
@@ -134,7 +134,7 @@ public static partial class FixMessages
 		if (!Envelope(input, framing, null, out var type, out error))
 			return false;
 
-		var fields = FixParser.Parse(input, options);
+		var fields = FixParser.ParseFields(input, options);
 
 		if (!CheckSyntax(fields, out error))
 			return false;
@@ -223,7 +223,7 @@ public static partial class FixMessages
 		if (!Envelope(input, framing, null, out var type, out error))
 			return false;
 
-		var fields = FixParser.Parse(input, options);
+		var fields = FixParser.ParseFields(input, options);
 
 		if (!CheckSyntax(fields, out error))
 			return false;

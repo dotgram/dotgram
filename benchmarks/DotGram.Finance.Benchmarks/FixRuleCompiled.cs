@@ -261,7 +261,7 @@ static class FixRuleCompiled
 		{
 			var wire = fixture.GetProperty("wire").GetString()!;
 
-			if (FixMessages.TryParse(wire, out var message, out _))
+			if (FixParser.TryParseMessage(wire, out var message, out _))
 				messages.Add(message!);
 		}
 

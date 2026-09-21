@@ -102,11 +102,11 @@ public sealed class FixFieldHeaderTests
 
 		if (log)
 		{
-			yield return FixParser.Parse(input, FixFieldOptions.Log);
-			yield return FixParser.Parse(input.AsSpan(), FixFieldOptions.Log);
-			yield return FixParser.Parse(bytes, FixFieldOptions.Log);
-			yield return FixParser.Parse(new StringReader(input), FixFieldOptions.Log, bufferSize: 7).ToArray();
-			yield return FixParser.Parse(new MemoryStream(bytes), FixFieldOptions.Log, bufferSize: 7).ToArray();
+			yield return FixParser.ParseFields(input, FixFieldOptions.Log);
+			yield return FixParser.ParseFields(input.AsSpan(), FixFieldOptions.Log);
+			yield return FixParser.ParseFields(bytes, FixFieldOptions.Log);
+			yield return FixParser.ReadFields(new StringReader(input), FixFieldOptions.Log, bufferSize: 7).ToArray();
+			yield return FixParser.ReadFields(new MemoryStream(bytes), FixFieldOptions.Log, bufferSize: 7).ToArray();
 			yield return HandFixParser.ParseLog(input);
 			yield return HandFixParser.ParseLog(bytes);
 			yield return HandFixParser.ParseLog(new StringReader(input), bufferSize: 7).ToArray();
@@ -114,11 +114,11 @@ public sealed class FixFieldHeaderTests
 		}
 		else
 		{
-			yield return FixParser.Parse(input);
-			yield return FixParser.Parse(input.AsSpan());
-			yield return FixParser.Parse(bytes);
-			yield return FixParser.Parse(new StringReader(input), bufferSize: 7).ToArray();
-			yield return FixParser.Parse(new MemoryStream(bytes), bufferSize: 7).ToArray();
+			yield return FixParser.ParseFields(input);
+			yield return FixParser.ParseFields(input.AsSpan());
+			yield return FixParser.ParseFields(bytes);
+			yield return FixParser.ReadFields(new StringReader(input), bufferSize: 7).ToArray();
+			yield return FixParser.ReadFields(new MemoryStream(bytes), bufferSize: 7).ToArray();
 			yield return HandFixParser.Parse(input);
 			yield return HandFixParser.Parse(bytes);
 			yield return HandFixParser.Parse(new StringReader(input), bufferSize: 7).ToArray();

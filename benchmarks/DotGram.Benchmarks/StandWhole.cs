@@ -12,7 +12,7 @@ static partial class Stand
 {
 	/// <summary>
 	/// FIX read whole from a stream or a text reader, the array of its fields at the end (performance-ff, C4c, 2026-09-19):
-	/// <c>FixParser.Parse(Stream)</c>, which the <c>.stream</c> rows read, yields a window at a time by another driver, and
+	/// <c>FixParser.ParseFields(Stream)</c>, which the <c>.stream</c> rows read, yields a window at a time by another driver, and
 	/// the whole-stream form is the one a change to the buffered machines moves. The hand parser is this process's own,
 	/// read from a memory stream as the <c>.stream</c> rows read it.
 	/// </summary>

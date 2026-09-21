@@ -123,12 +123,12 @@ public sealed class FixRetentionTests
 		{
 			using var stream = new EndlessStream();
 
-			return parser == "generated" ? FixParser.Parse(stream).ToArray() : HandFixParser.Parse(stream).ToArray();
+			return parser == "generated" ? FixParser.ReadFields(stream).ToArray() : HandFixParser.Parse(stream).ToArray();
 		}
 
 		using var reader = new EndlessReader();
 
-		return parser == "generated" ? FixParser.Parse(reader).ToArray() : HandFixParser.Parse(reader).ToArray();
+		return parser == "generated" ? FixParser.ReadFields(reader).ToArray() : HandFixParser.Parse(reader).ToArray();
 	}
 
 	sealed class EndlessReader : TextReader
@@ -208,14 +208,14 @@ public sealed class FixRetentionTests
 			using var stream = new MemoryStream(Encoding.Latin1.GetBytes(text));
 
 			return parser == "generated"
-				? FixParser.Parse(stream, null, bufferSize, maxRetained).ToArray()
+				? FixParser.ReadFields(stream, null, bufferSize, maxRetained).ToArray()
 				: HandFixParser.Parse(stream, null, bufferSize, maxRetained).ToArray();
 		}
 
 		using var reader = new StringReader(text);
 
 		return parser == "generated"
-			? FixParser.Parse(reader, null, bufferSize, maxRetained).ToArray()
+			? FixParser.ReadFields(reader, null, bufferSize, maxRetained).ToArray()
 			: HandFixParser.Parse(reader, null, bufferSize, maxRetained).ToArray();
 	}
 }

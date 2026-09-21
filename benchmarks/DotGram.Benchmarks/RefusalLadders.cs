@@ -139,8 +139,8 @@ internal static class RefusalLadders
 			var body = "35=3" + soh + Copies("58=text" + soh, n);
 
 			return "8=FIX.4.4" + soh + "9=" + body.Length + soh + body + "10=";
-		}, static t => FixMessages.TryParse(t, out _, out _, null));
-		yield return R("FixMessages.TryParse", "one value never terminated", "characters", 4096, n => "8=FIX.4.4" + soh + "9=5" + soh + "35=3" + soh + "58=" + new string('a', n), static t => FixMessages.TryParse(t, out _, out _, null));
+		}, static t => FixParser.TryParseMessage(t, out _, out _, null));
+		yield return R("FixMessages.TryParse", "one value never terminated", "characters", 4096, n => "8=FIX.4.4" + soh + "9=5" + soh + "35=3" + soh + "58=" + new string('a', n), static t => FixParser.TryParseMessage(t, out _, out _, null));
 
 		// ── the feeds ──
 		yield return R("FeedReader", "records, then a cut record", "records", 4096, n => "H|2026-08-13|ACME\n" + Copies("R|AAPL|100|2026-08-12\n", n) + "R|AAPL|100|", static t => FeedAccepts(t));

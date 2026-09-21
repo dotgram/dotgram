@@ -36,7 +36,7 @@ public sealed class FixValidatorTests
 	/// <summary>Built, which is now unconditional: the schema is read by the layer, not the reader.</summary>
 	static FixMessage Message(string body)
 	{
-		Assert.True(FixMessages.TryParse(Framed(body), out var message, out var error), error?.Reason);
+		Assert.True(FixParser.TryParseMessage(Framed(body), out var message, out var error), error?.Reason);
 
 		return message!;
 	}
@@ -192,7 +192,7 @@ public sealed class FixValidatorTests
 	/// <remarks>
 	/// <para>
 	/// Every row here is a message that <c>FixParseMode.Strict</c> turned away and that
-	/// <c>FixMessages.Parse</c> now returns. That is the behaviour change of D53, and this is the
+	/// <c>FixParser.ParseMessage</c> now returns. That is the behaviour change of D53, and this is the
 	/// assertion that it lost nothing: the reader stopped refusing and the layer started saying,
 	/// about the same input, with a rule a caller can act on.
 	/// </para>

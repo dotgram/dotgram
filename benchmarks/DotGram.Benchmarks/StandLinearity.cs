@@ -60,8 +60,8 @@ static partial class Stand
 
 		foreach (var (form, generated, hand) in new (string, Func<string, Func<bool>>, Func<string, Func<bool>>)[]
 		{
-			("text",  t => () => FixParser.Parse(t).Count() > 0, t => () => HandFixParser.Parse(t).Count() > 0),
-			("bytes", t => { var b = Encoding.Latin1.GetBytes(t); return () => FixParser.Parse(b).Count() > 0; },
+			("text",  t => () => FixParser.ParseFields(t).Count() > 0, t => () => HandFixParser.Parse(t).Count() > 0),
+			("bytes", t => { var b = Encoding.Latin1.GetBytes(t); return () => FixParser.ParseFields(b).Count() > 0; },
 			          t => { var b = Encoding.Latin1.GetBytes(t); return () => HandFixParser.Parse(b).Count() > 0; }),
 		})
 		{
@@ -69,7 +69,7 @@ static partial class Stand
 			yield return new Series("FIX orders", "hand " + form,      "orders", [4, 40, 400], n => hand(string.Concat(Enumerable.Repeat(order, n))));
 		}
 
-		yield return new Series("FIX fields", "generated text", "fields", [16, 160, 1600], n => { var t = FixSlopeText(n); return () => FixParser.Parse(t).Count() > 0; });
+		yield return new Series("FIX fields", "generated text", "fields", [16, 160, 1600], n => { var t = FixSlopeText(n); return () => FixParser.ParseFields(t).Count() > 0; });
 		yield return new Series("FIX fields", "hand text",      "fields", [16, 160, 1600], n => { var t = FixSlopeText(n); return () => HandFixParser.Parse(t).Count() > 0; });
 
 		// ── the web ──

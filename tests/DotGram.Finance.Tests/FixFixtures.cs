@@ -36,7 +36,7 @@ public static class FixFixtures
 		foreach (var c in head + fields)
 			sum += c;
 
-		return FixMessages.Parse(head + fields + "10=" + (sum % 256).ToString("D3", CultureInfo.InvariantCulture) + (char)1);
+		return FixParser.ParseMessage(head + fields + "10=" + (sum % 256).ToString("D3", CultureInfo.InvariantCulture) + (char)1);
 	}
 
 	/// <summary>

@@ -28,10 +28,10 @@ public sealed class FixOracleTests
 		var expected = Fix44Parser.Parse(wire);
 		var bytes    = Encoding.Latin1.GetBytes(wire);
 
-		Equal(expected, FixParser.Parse(wire));
-		Equal(expected, FixParser.Parse(bytes));
-		Equal(expected, FixParser.Parse(new StringReader(wire), bufferSize: 3));
-		Equal(expected, FixParser.Parse(new ShortStream(bytes), bufferSize: 3));
+		Equal(expected, FixParser.ParseFields(wire));
+		Equal(expected, FixParser.ParseFields(bytes));
+		Equal(expected, FixParser.ReadFields(new StringReader(wire), bufferSize: 3));
+		Equal(expected, FixParser.ReadFields(new ShortStream(bytes), bufferSize: 3));
 
 		Equal(expected, HandFixParser.Parse(wire));
 		Equal(expected, HandFixParser.Parse(bytes));

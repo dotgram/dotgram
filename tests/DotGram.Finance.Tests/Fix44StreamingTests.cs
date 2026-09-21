@@ -14,13 +14,13 @@ public sealed class Fix44StreamingTests
 	{
 		using var chars = new ShortReader(wire + wire);
 		using var bytes = new ShortStream(ToBytes(wire + wire));
-		var messages = FixMessages.ReadMessages(chars).Concat(FixMessages.ReadMessages(bytes)).ToArray();
+		var messages = FixParser.ReadMessages(chars).Concat(FixParser.ReadMessages(bytes)).ToArray();
 		Assert.Equal(4, messages.Length);
 		foreach (var parsed in messages)
 		{
 			Assert.Equal(name, parsed.GetType().Name);
 			Assert.Equal(wire, parsed.OriginalWire);
-			Assert.Equal(FixMessages.Parse(wire).AllFields.Select(f => (f.Tag, f.Value.ToString())), parsed.AllFields.Select(f => (f.Tag, f.Value.ToString())));
+			Assert.Equal(FixParser.ParseMessage(wire).AllFields.Select(f => (f.Tag, f.Value.ToString())), parsed.AllFields.Select(f => (f.Tag, f.Value.ToString())));
 		}
 	}
 
@@ -29,12 +29,12 @@ public sealed class Fix44StreamingTests
 	{
 		var wire = (string)FixFixtures.Messages().First()[1];
 		using var input = new MemoryStream(ToBytes(wire + wire));
-		Assert.Equal(wire, FixMessages.Parse(input).OriginalWire);
+		Assert.Equal(wire, FixParser.ReadMessage(input).OriginalWire);
 		Assert.Equal(wire.Length, input.Position);
-		using (var iterator = FixMessages.ReadMessages(input).GetEnumerator()) Assert.True(iterator.MoveNext());
+		using (var iterator = FixParser.ReadMessages(input).GetEnumerator()) Assert.True(iterator.MoveNext());
 		Assert.True(input.CanRead);
-		Assert.Empty(FixMessages.ReadMessages(input));
-		Assert.False(FixMessages.TryParse(input, out _, out var error));
+		Assert.Empty(FixParser.ReadMessages(input));
+		Assert.False(FixParser.TryReadMessage(input, out _, out var error));
 		Assert.NotNull(error);
 	}
 
@@ -44,15 +44,15 @@ public sealed class Fix44StreamingTests
 		var wire = (string)FixFixtures.Messages().First()[1];
 		for (var i = 0; i < wire.Length; i++)
 		{
-			Assert.False(FixMessages.TryParse(new StringReader(wire.Substring(0, i)), out _, out var error));
+			Assert.False(FixParser.TryReadMessage(new StringReader(wire.Substring(0, i)), out _, out var error));
 			Assert.NotNull(error);
 		}
-		Assert.False(FixMessages.TryParse(new StringReader(wire), out _, out _, maxMessageLength: wire.Length - 1));
-		Assert.Equal(wire, FixMessages.Parse(new StringReader(wire), maxMessageLength: wire.Length).OriginalWire);
-		Assert.False(FixMessages.TryParse(new StringReader(wire.Substring(0, wire.Length - 4) + "999\u0001"), out _, out _));
-		Assert.Throws<FormatException>(() => FixMessages.ReadMessages(new StringReader(wire + "8=")).ToArray());
+		Assert.False(FixParser.TryReadMessage(new StringReader(wire), out _, out _, maxMessageLength: wire.Length - 1));
+		Assert.Equal(wire, FixParser.ReadMessage(new StringReader(wire), maxMessageLength: wire.Length).OriginalWire);
+		Assert.False(FixParser.TryReadMessage(new StringReader(wire.Substring(0, wire.Length - 4) + "999\u0001"), out _, out _));
+		Assert.Throws<FormatException>(() => FixParser.ReadMessages(new StringReader(wire + "8=")).ToArray());
 		foreach (var length in new[] { "", "-1", "x", "999999999999999999999" })
-			Assert.False(FixMessages.TryParse(new StringReader("8=FIX.4.4\u00019=" + length + "\u0001"), out _, out _));
+			Assert.False(FixParser.TryReadMessage(new StringReader("8=FIX.4.4\u00019=" + length + "\u0001"), out _, out _));
 	}
 
 	[Fact]
@@ -63,8 +63,8 @@ public sealed class Fix44StreamingTests
 		var wire = prefix + "10=" + (prefix.Sum(c => (int)c) & 255).ToString("000", System.Globalization.CultureInfo.InvariantCulture) + "\u0001";
 		FixFieldOptions? options = null;
 		using var bytes = new ShortStream(ToBytes(wire + wire));
-		Assert.Equal(2, FixMessages.ReadMessages(bytes, options).Count());
-		Assert.Equal(wire, FixMessages.Parse(new StringReader(wire), options).OriginalWire);
+		Assert.Equal(2, FixParser.ReadMessages(bytes, options).Count());
+		Assert.Equal(wire, FixParser.ReadMessage(new StringReader(wire), options).OriginalWire);
 	}
 
 	static byte[] ToBytes(string text) => text.Select(c => checked((byte)c)).ToArray();
