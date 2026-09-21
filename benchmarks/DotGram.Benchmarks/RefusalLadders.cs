@@ -379,6 +379,15 @@ internal static class RefusalLadders
 	/// <summary>What one ladder found.</summary>
 	internal sealed record Result(Series Series, List<(int N, double Ns, double Bytes)> Points, bool Budget, bool Hung, bool Faulty, string? Thrown, double Exponent, double Allocation, int Length)
 	{
+		/// <summary>The time of each size in the first pass (the warm-up), beside the merged Points, whose time is the faster of the two passes: kept so that the gap between them can be looked at (D95).</summary>
+		internal List<(int N, double Ns)> Slower { get; init; } = [];
+
+		/// <summary>
+		/// The widest gap between the two passes at any size of 32 units or more, slower over faster, and where it was. The faster of two passes is taken because a disturbance can only slow a call; that holds only while the
+		/// faster is not fast for a wrong reason (a call that ended early, read less, took another path): a gap that is a multiple and not a scatter has to be understood before the minimum is trusted.
+		/// </summary>
+		internal (double Ratio, int At) PassGap => Slower.Count == 0 ? (1, 0) : Points.Where(p => p.N >= 32).Select(p => Slower.FirstOrDefault(one => one.N == p.N) is { N: > 0 } other ? (Ratio: Math.Max(p.Ns, other.Ns) / Math.Min(p.Ns, other.Ns), At: p.N) : (Ratio: 1.0, At: p.N)).OrderByDescending(static one => one.Ratio).FirstOrDefault((Ratio: 1.0, At: 0));
+
 		/// <summary>The class of the time's exponent; a ladder that was abandoned is explosive whatever its points say.</summary>
 		internal Class Class => Hung || Exponent >= Explosive ? Class.Explosive
 			: Exponent >= Quadratic ? Class.Quadratic
@@ -446,8 +455,13 @@ internal static class RefusalLadders
 			? (point.N, Math.Min(point.Ns, other.Ns), point.Bytes > 0 && other.Bytes > 0 ? Math.Min(point.Bytes, other.Bytes) : Math.Max(point.Bytes, other.Bytes))
 			: point).ToList();
 
+		// The gap needs both readings of a size: the second pass's is the one the second result holds, and the first pass's is kept beside the merged list.
+		var slower = second.Points.Select(point => (point.N, point.Ns)).ToList();
+		var gaps   = first.Points.Select(point => (point.N, point.Ns)).ToList();
+
 		return second with
 		{
+			Slower  = gaps.Select(one => slower.FirstOrDefault(other => other.N == one.N) is { N: > 0 } two ? (one.N, Math.Max(one.Ns, two.Ns)) : one).ToList(),
 			Points     = merged,
 			Exponent   = merged.Count < 2 ? double.NaN : Exponent(merged, static p => p.Ns),
 			Allocation = merged.Count < 2 ? double.NaN : Exponent(merged, static p => p.Bytes),
