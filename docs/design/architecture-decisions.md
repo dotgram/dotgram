@@ -9031,3 +9031,84 @@ that second one before he did.
 **What is not decided:** whether the 4,823 checks are written by hand or produced from the
 specification, and whether generated code derived from FIX Protocol Ltd's tables carries an
 attribution line.
+
+## D131 — Ask the instrument what you already know, before you measure anything with it
+
+Five sessions spent a day on different work and each one, independently, found the same thing:
+**an instrument that has never been seen refusing has not been seen at all.** The instances are
+worth listing together, because the cure is one sentence and the disguises are all different.
+
+- A guard asserting the schema mode in every benchmark case was seen to **pass**, and that was
+  called verification. It is not: a passing case is consistent with the guard working and with the
+  guard being absent. Loading a dictionary and watching it refuse cost one call — **less than
+  proving the pass**, though the reverse is always assumed.
+- A benchmark's case names printed as `arith(...)ters) [26]`: BenchmarkDotNet keeps twenty
+  characters of a parameter and elides the middle. Nothing fails; the names simply become
+  indistinguishable, and a table read from a real window would have been quoted. The fix — a limit
+  asserted in the setup — was then checked by lengthening a name until it fired and putting it back.
+- `--affinity 0xFF` is a bad format to BenchmarkDotNet, which prints its help and exits **zero**: a
+  run that looks finished and measured nothing. The window script now turns that into "no benchmark
+  worker was seen".
+- A flag named `validate` on somebody else's library, asked with a message missing a required
+  field, **accepts it**. The comparison had rested on the flag's name for a day.
+- `dotnet format` has three entry points: `--diagnostics` edits whitespace beyond what it was
+  given, `analyzers` does not see these rules and answers "no changes", and only `style` sees them.
+  Two plausible false answers in a row, and one of them — "nothing to fix" — would have ended the
+  work.
+
+**And the day's own scorekeeper failed the same way.** I stated the window rule to four sessions
+without naming the file that holds its state; I passed on a script as usable from another session's
+"done", never having run it; I repeated a session's retracted figure because it had been true of a
+road nobody took; and I built inside a window twenty seconds after announcing it, because **I knew**
+no window was open — I was the one about to open it. Knowing instead of reading, from the author of
+the sentence that they are different.
+
+**The rule, and its economics.** Ask the instrument a question whose answer you already know, and
+do it **before** it has measured anything: it is free then, and it gets dearer with every figure
+taken after. Three of this day's five were caught the other way round — a number first, the
+instrument checked afterwards — and each one cost a rerun or a letter of correction.
+
+**The corollary for reading a null result:** an instrument that cannot refuse reports agreement.
+So "no difference" from an unexercised check and "no difference" from a working one are the same
+sentence, and only the refusing arm tells them apart.
+
+## D132 — A cross-check earns the right to ask, not the right to fix
+
+The FIX package was read against the specification's own machine-readable form, now in the tree.
+Seven divergences came out of it. **Four were defects. Two were the package being right and the
+specification contradicting itself. One was the checking test.**
+
+**The specification disagrees with itself in exactly two places.** `MiscFeeType` (139) is declared
+`char` and its own code set publishes `10`, `11`, `12`; `MassCancelRejectReason` (532) is declared
+`char` and publishes `99`. Under the declared type both would refuse values the same document
+prints. The package held them wider — and that was a repair, not an error. The session "fixed"
+both, then read the code sets and **reverted before committing**. A repair withdrawn before it
+lands is worth more than one made correctly first time: the second proves nothing about the
+process, the first proves it catches.
+
+**The rule, in that session's words:** *a reconciliation does not give the right to fix; it gives
+the right to ask which of the two is wrong — and sometimes the answer is both, and we knew it three
+months ago in a comment.* A test had pinned ten divergences against the implementor's dictionary,
+with a remark saying that the published specification, which decides them, **had not been read**,
+and a guess about `MiscFeeType`. It was read: nine of the ten are the dictionary's, one is ours,
+and the guess was right. A debt written down as a debt got paid.
+
+**And the count is a boundary, not an impression:** fields in FIX 4.4 whose declared type does not
+hold their own published code set — exactly two, and exactly those two.
+
+**Igor settled the shape as one rule rather than two ad-hoc choices:** where the declared type
+demonstrably does not hold the published values, the field is a **string**. Nothing is guessed in
+its place; the values are checked by the code set, not by the shape of the type. That moved
+`MassCancelRejectReason` from `Int` to `String` — the one change of the five that alters a **type
+on the public surface** rather than what validation reports.
+
+**The test's own defect twice, and it was repaired as a test both times.** First it decided "group
+or block" from the repository's `ComponentType`, which is unreliable — `Hop` is declared a block
+and is structurally a group, and there the package is right; so the shape is decided by structure
+and `ComponentType` was demoted to a cross-check. Then it counted the standard header and trailer
+as required components of the body, which they are not. **An oracle wrong in one place is neither
+discarded nor obeyed: it becomes a second opinion.**
+
+**A mixture is worse than following the wrong source.** The cross-order tables took tag 41 from the
+repository and 586 from the dictionary — **no single reading end to end**, so nothing could be
+checked against anything. Both now come from the repository.
