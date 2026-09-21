@@ -34,6 +34,7 @@
 	<ItemGroup>
 		<AdditionalFiles Include="Playground\VisualStudioToolingPlayground.gram" />
 		<AdditionalFiles Include="Playground\ToolingQuery.gram" />
+		<AdditionalFiles Include="Playground\RecoveryPlayground.gram" />
 	</ItemGroup>
 
 	<ItemGroup>

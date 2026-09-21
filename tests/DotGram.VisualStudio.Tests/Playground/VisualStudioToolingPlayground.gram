@@ -56,6 +56,27 @@ Insensitive = "select"i | 'x'i
 // than an optional expression. The trailing `?` keeps the ordinary optional hint.
 Backtracking? = 'x'?
 
+// `recover` lives in RecoveryPlayground.gram and not here, and the reason is worth the
+// line: a recovering repetition anywhere in a file turns on line and column tracking, and
+// GRAM4026 then refuses buffered byte input for every publication in that file -- including
+// ToolingLazy below, in a namespace of its own. One file cannot hold both checks.
+Row  = ['a'..'z']+
+
+// Lookahead both ways. `?=` and `?!` are one token each: hovering either must name it --
+// "positive lookahead", "negative lookahead" -- and neither may read as a `?` beside an
+// `=` or a `!`, which is what a two-character token is for.
+Guarded  = ?= 'a' & Row
+Excluded = ?! 'z' & Row
+
+// A mark and what stands under it (7.8): the newest corner of the language, and the one
+// nothing here could see until now. `state` and `with` are keywords, and the `@(...)`
+// after `with state` is C# -- Roslyn colors inside it, and Ctrl+Space completes there.
+// Comment out the `state` line: the squiggle should name GRAM4029, because a mark needs
+// a type to be written in. Give the mark a value that names a capture of its own
+// alternative and it should name GRAM4030.
+state : @int
+Marked = 'm' & Row with state @(1)
+
 // F12 on ToolingEvaluate should open the generated C# publication method.
 parse Sum as ToolingEvaluate
 
@@ -68,6 +89,14 @@ parse Fixed        as ToolingFixed
 parse Shift        as ToolingShift
 parse Insensitive  as ToolingInsensitive
 parse Backtracking as ToolingBacktracking
+parse Guarded      as ToolingGuarded
+parse Excluded     as ToolingExcluded
+parse Marked       as ToolingMarked
+
+// `find` is a directive of its own, not an expression: the word before a rule, and `as`
+// after it, exactly as `parse` takes them. F12 on `Row` here and on `ToolingFound` should
+// both navigate, one into this file and one into the generated method.
+find Row as ToolingFound
 
 // Check keyword colors for switch/case/default and C# colors in the selector.
 // F12 on Insensitive inside the selected branch should open its rule above.

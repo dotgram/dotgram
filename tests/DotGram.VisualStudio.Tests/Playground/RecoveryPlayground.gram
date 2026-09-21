@@ -1,0 +1,24 @@
+// Manual tooling playground for `recover`, kept apart from VisualStudioToolingPlayground.gram
+// because a recovering repetition turns line and column tracking on for the whole file, and
+// GRAM4026 then refuses the buffered byte publication that file carries. Run these in the
+// experimental instance (RootSuffix DotGram) with the other playground.
+
+trivia = [' ' | '\t']*
+
+// `recover` marks a repetition that survives a bad element (8.2). The word should take the
+// keyword color, and what follows it is an ordinary expression: F12 on `Row` navigates to
+// its rule, and the synchronization expression folds and matches braces like any other.
+// A single letter rather than a run of them, on purpose: a repetition inside a repetition is
+// a shape the exponential guard asks a verdict for (tests/DotGram.Tests/ExponentialShapes.txt),
+// and a playground rule is not worth one. What is being checked here is the word `recover`.
+Row  = ['a'..'z']
+Rows = Row* recover eol
+
+// The `=> @(...)` form of a recovery, which is where `parserMessage` is in reach, is not
+// here: what a recovered collection may hold is particular (GRAM4008, GRAM4010 — the
+// repetition must be collected rather than captured, and text has no place for a rejected
+// element), and a playground grammar that does not compile checks nothing. The form is
+// written out in syntax.md §8.2; the C# inside a `=>` is already covered by every other
+// construction in the other playground file.
+
+parse Rows     as ToolingRecovering
