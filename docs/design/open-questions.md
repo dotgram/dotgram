@@ -2687,3 +2687,38 @@ both warnings, and this repository builds with `TreatWarningsAsErrors` — so th
 here. A never-read local escapes because CS0219 fires only when the initializer is a constant, and
 `values.CountN` and `starts[from]` are not constants. **The generator's floor for tidiness is
 wherever the compiler's warnings happen to stop**, which is not a decision anybody took.
+
+**The frame argument is mine and it is overstated (performance, 2026-09-21; correction taken).** I
+wrote that every local enlarges the frame `.locals init` zeroes "which the recognition anatomy
+already priced at 46% of the arms' prologues". The figure does not transfer, and the reason is the
+one this file has been correcting in other people all day: **a measurement taken on one material
+carried to another.** The 46% was measured on materializer *arms* — many small methods entered
+constantly, which is what makes a prologue visible at all. The reader methods that hold these locals
+are entered once per rule per position. Removing a local from a method entered twice is not worth a
+fraction of removing one from a method entered six thousand times.
+
+So Q28's third leg is corrected: **the size effect is the result, not a proxy for a speed effect.**
+The never-read locals still cost bytes twice over, and `starts[from]` still performs a bounds check
+for nothing — that part stands on its own semantics and needs no frame argument. What should not be
+claimed is a time saving from the frame, and I claimed one by borrowing a ratio.
+
+**The second pass, over the three files the first left out (critic, 2026-09-21).** performance
+offered to count them; counting is reading, the files are on disk, and their queue is two deep, so
+this session took it with the same instrument rather than a new one. `TransactSqlParser.g.cs`,
+`TransactSqlParser.Located.g.cs` and `SqlStandardParser.g.cs` — **37,008 KB in 2,154 methods**:
+
+| file | KB | methods | never-read | copy chain |
+| --- | --- | --- | --- | --- |
+| `TransactSqlParser.g.cs` | 14,053 | 384 | 62 | 6 |
+| `TransactSqlParser.Located.g.cs` | 14,415 | 1,603 | 62 | 4 |
+| `SqlStandardParser.g.cs` | 8,540 | 167 | 80 | 0 |
+
+**Whole of the shipped generated code, both passes: 44,093 KB, 4,797 methods, 299 never-read
+locals, 250 copy chains, 23 empty blocks, no `goto` to the next label.**
+
+**And the mix is not the same in the two halves, which says the two shapes have different causes.**
+The copy chain is a Web, FIX and expression-language phenomenon — 240 of its 250 are there, 44 in
+`Rfc3986.g.cs` alone — and is nearly absent from SQL. The never-read local runs the other way:
+**80 in `SqlStandardParser.g.cs`'s 167 methods, close to one method in two.** Whatever emits each
+shape is reached by different grammars, so they are two items and not one, and the SQL ratio says
+where to look first.
