@@ -9,3 +9,4 @@ Reading, as the table stands (D50: a change is read as its excess over the A/A; 
 - web/json.array10000 -2.0% (A/A -3.6%, range [-2.0%..+0.3%]): nothing carried forward from this row.
 - The base spread on the heavy rows is large (53-77% on the 74-95 MB rows): the control there is the process's own build and moves with the collector; the change over the runs is negative on every run.
 - tsql/columns1000 A/A +22.5% [-13.5%..+22.7%]: one disturbed run in the A/A, the row is not read from this half.
+LANDED SHAS (2026-09-21): e1c2e8f1 landed as 8234bdcf. The pair measured the delta against its parent on the old base, before the rebase onto 543326da; see ../landed-shas.txt.

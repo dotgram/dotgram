@@ -1,0 +1,10 @@
+The shas the pair READMEs of the pooling chain name are the shas of the chain in its own worktree; the chain was rebased onto 543326da before it landed (performance-ff, 2026-09-21) and they are no longer on any branch. Landed as, on main:
+
+5ed9682b  ->  02e44143  "The pool keeps what it grew, and the store it parks is emptied first" (on main before the night of 2026-09-20)
+5de9a75d  ->  dcf60185  "The dense store keeps its tables, and the lexer keeps its buffer"
+e1c2e8f1  ->  8234bdcf  "One test holds all five pools to the release policy"
+e93675cc  ->  52f52800  "The dense bound counts the tables it guards"
+7eca1ce9  ->  nowhere, by design (the throwaway with `used = 0L`, deleted)
+bc7a860d  ->  f3c70da7  "The release counts what a parse used, where a parse ends" (never paired under its own name; inside the span of the e1c2e8f1 pair)
+
+Read each pair as a measurement of its commit's DELTA against its own parent on the OLD base. The rebase moved that base by 222 commits, so the combination of the chain with everything main gained since was not paired in place; nobody has measured the landed chain against the tree it landed on, and a sentence that says "the chain was paired" is not true of that.
