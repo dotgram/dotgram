@@ -7695,6 +7695,15 @@ was read in the contaminated arrangement, and the worst rows ran last. The dead 
 read in the emitted `Rent`, not a measurement, so "fix the demotion first, the dense change waits"
 stands whatever the clean table says.
 
+**The table above is withdrawn, and the withdrawal belongs here rather than only in D105.** Those
+three ratios came from comparing "one hot type" against "all ninety-three", which compares
+different SETS of messages and cannot separate the cost of widening the hot set from the difference
+in what the messages contain. Their author found it and remeasured; the valid figures are in D105.
+The conclusion survives — widening costs the compiled road three times what it costs the walk —
+but the numbers here do not, and an entry that carries retracted numbers with its correction filed
+two entries later is an entry that will be read alone and believed. A withdrawal goes where the
+claim is, not where the correction was convenient to write.
+
 ## D105 — Compiled control flow is warm for one and cold for ninety-three
 
 The comparison that produced D102's table was invalid, and its author found it: "one hot type"
