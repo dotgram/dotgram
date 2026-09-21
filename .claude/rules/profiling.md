@@ -356,8 +356,14 @@ reports "Zero tests ran". Where one class is what is wanted, build the project a
 assembly with its own xUnit runner:
 
 ```powershell
-dotnet build tests/DotGram.Tests/DotGram.Tests.csproj -c Debug
+dotnet build tests/DotGram.Tests/DotGram.Tests.csproj -c Debug &&
 dotnet tests\DotGram.Tests\bin\Debug\net10.0\DotGram.Tests.dll -class DotGram.Tests.ReaderTests
 ```
+
+**Joined by `&&`, and not two commands.** A project that fails to build leaves its previous
+assembly on disk, and running it reports the results of code that no longer exists — five
+failures were once read here from a version already replaced. `docs/development.md` warns
+about this, and the warning did not help the person who had read it: a rule beside the
+command is kept by whoever remembers it, a rule inside the command by everyone.
 
 The full run is minutes, and the runner's own summary line is `Total: …, Failed: …`.

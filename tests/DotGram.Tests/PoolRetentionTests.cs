@@ -122,4 +122,152 @@ public sealed class PoolRetentionTests
 		Assert.True(match.IsSuccess);
 		Assert.Equal(3, match.Value);
 	}
+
+	/// <summary>
+	/// Every pool lets go of a kept store after eight parses that did not use the room.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One policy, five pools, one test — because on 2026-09-20 the policy was fixed in the two
+	/// the generator writes and stayed broken in the three that carry hand-written copies of the
+	/// same logic, one of which had been written an hour earlier by copying the broken pattern.
+	/// A defect spreads by duplication faster than a fix does, and it does so even when whoever
+	/// is copying understands the problem completely. So the rule is held here rather than
+	/// described anywhere: a sixth pool inherits the test, not the intention.
+	/// </para>
+	/// <para>
+	/// What is asserted is the policy and not its implementation. A return whose parse used the
+	/// room resets the count; a return whose parse did not advances it; at eight the store stops
+	/// being held strongly and is reachable only through the weak reference. The count is read
+	/// from the field on every step rather than inferred from the end state, because this counter
+	/// has now been written wrong twice — once reading rentals, which every rental reset, and once
+	/// proposed against capacity, which never shrinks and so would have reset just as reliably.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(CarrierKind.Tape, "DirectValues")]
+	[InlineData(CarrierKind.Tape, "Ways")]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues")]
+	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
+	[InlineData(CarrierKind.Tape, "Parser")]
+	public void A_kept_store_is_let_go_after_eight_parses_that_did_not_use_the_room(CarrierKind carrier, string name)
+	{
+		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
+		const int Budget = 1048576;
+
+		// Two of the five exist only under their own conditions, so the grammar is the one
+		// that produces the pool being asked about rather than one grammar bent to fit all.
+		// The lexer's buffer needs a grammar read as tokens; the engine's arena needs one the
+		// engine is emitted for, and `find` is the cheapest thing that asks for it — but `find`
+		// hunts through characters, so it is refused over tokens (GRAM5004) and the two cannot
+		// be the same grammar. What is held to one policy is the pools, not the grammar.
+		var engine  = name == "Parser";
+		var compiled = GramCompiler.Compile($$"""
+			trivia = { ' '* }
+			Start : @int = items: Item+ => @(items.Length)
+			Item : @int = "a" => @(1)
+			parse Start
+			{{(engine ? "find Item as AnyItem" : "")}}
+			""", new GramCompilerOptions
+		{
+			ClassName = "Grammar", Lexical = !engine, Carrier = carrier,
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text);
+		var owner = assembly.GetType("Grammar")!;
+		var type = owner.GetNestedType(name, Flags)!;
+		var rent = type.GetMethod("Rent", Flags)
+			?? owner.GetMethod("Rented_DotGram", Flags) ?? owner.GetMethod("Recycled", Flags);
+		var release = type.GetMethod("Return", Flags)
+			?? owner.GetMethod("Recycle_DotGram", Flags) ?? owner.GetMethod("Recycle", Flags);
+
+		// The arena keeps its own rental on the host and names it differently again; the point
+		// of this test is that none of those spellings is allowed to mean a different policy.
+		if (name == "Parser")
+		{
+			rent = owner.GetMethod("Recycled", Flags);
+			release = owner.GetMethod("Recycle", Flags);
+		}
+
+		// The slot, its count and where it goes afterwards, found by what they hold rather than
+		// by name: each pool spells them differently and the policy is the same.
+		var slot = new[] { type, owner }
+			.SelectMany(where => where.GetFields(Flags))
+			.Single(field => field.IsStatic && field.FieldType == type
+				&& field.Name.StartsWith("_large", StringComparison.Ordinal));
+		var held = slot.DeclaringType!;
+		var idle = held.GetField(slot.Name + "Idle", Flags)!;
+		var letGo = held.GetField(slot.Name + "LetGo", Flags)!;
+
+		var store = rent!.Invoke(null, null)!;
+		var arrays = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType.IsArray).ToArray();
+		var counts = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType == typeof(int)).ToArray();
+
+		// Past the bound in capacity, so every return below takes the branch that keeps it.
+		// The arena is one level down: a Parser holds an arena, and the arena holds the room.
+		var arena = type.GetFields(Flags).FirstOrDefault(field => field.Name == "Entries")?.GetValue(store);
+		var room  = arena?.GetType().GetFields(Flags).Single(field => field.FieldType.IsArray);
+		var count = arena?.GetType().GetFields(Flags).Single(field => field.FieldType == typeof(int));
+
+		if (arena is not null)
+			room!.SetValue(arena, Array.CreateInstance(room.FieldType.GetElementType()!, 65_537));
+		else
+		{
+			foreach (var field in arrays)
+				field.SetValue(store, Array.CreateInstance(field.FieldType.GetElementType()!, 0));
+			arrays[0].SetValue(store, Array.CreateInstance(arrays[0].FieldType.GetElementType()!, Budget + 1));
+		}
+
+		void Used(int howMuch)
+		{
+			if (arena is not null)
+				count!.SetValue(arena, howMuch);
+			else
+				foreach (var field in counts)
+					field.SetValue(store, howMuch);
+		}
+
+		// A parse that used the room: kept, and the count starts again.
+		Used(arena is not null ? 65_537 : Budget + 1);
+		release!.Invoke(null, [store]);
+		Assert.Same(store, slot.GetValue(null));
+		Assert.Equal(0, idle.GetValue(null));
+
+		// Seven that did not: still kept, and the count is read at every step rather than at
+		// the end — a counter that never advances and one that advances and is reset look the
+		// same from the far side, and this one has been written wrong in both of those ways.
+		for (var parse = 1; parse <= 7; parse++)
+		{
+			Used(0);
+			release!.Invoke(null, [store]);
+
+			Assert.Same(store, slot.GetValue(null));
+			Assert.Equal(parse, idle.GetValue(null));
+		}
+
+		// A parse that used the room again puts the count back to nothing: the store is wanted.
+		Used(arena is not null ? 65_537 : Budget + 1);
+		release!.Invoke(null, [store]);
+		Assert.Same(store, slot.GetValue(null));
+		Assert.Equal(0, idle.GetValue(null));
+
+		// And eight in a row that did not let it go: the slot is empty and what was in it is
+		// reachable only weakly, which is the whole of the policy.
+		for (var parse = 1; parse <= 8; parse++)
+		{
+			Used(0);
+			release!.Invoke(null, [store]);
+		}
+
+		Assert.Null(slot.GetValue(null));
+
+		var weak = letGo.GetValue(null);
+		Assert.NotNull(weak);
+		var target = weak!.GetType().GetMethod("TryGetTarget")!;
+		object?[] arguments = [null];
+		Assert.True((bool)target.Invoke(weak, arguments)!);
+		Assert.Same(store, arguments[0]);
+	}
+
 }
