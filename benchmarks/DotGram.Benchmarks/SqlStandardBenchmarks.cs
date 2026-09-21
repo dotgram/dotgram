@@ -102,10 +102,31 @@ public class SqlStandardBenchmarks
 	[ParamsSource(nameof(Cases))]
 	public Case Input { get; set; } = Cases[0];
 
-	/// <summary>Both read it, and build the same tree, before anything is timed.</summary>
+	/// <summary>What a parameter column keeps before it elides the middle of a name.</summary>
+	/// <remarks>
+	/// The limit is here rather than in a comment because a name over it is not an error and not
+	/// a warning: the row simply prints as "arith(...)ters) [26]" and stops being tellable from
+	/// its neighbour. That happened once already, and the person it happens to next would have no
+	/// way to know why -- so the setup refuses instead, which is the only form of the rule that
+	/// does not depend on somebody remembering it.
+	/// </remarks>
+	const int NameWidth = 20;
+
+	/// <summary>The names fit, and both parsers build the same tree, before anything is timed.</summary>
 	[GlobalSetup]
-	public void BothReadItAndAgree()
+	public void TheNamesFitAndBothParsersAgree()
 	{
+		foreach (var one in Cases)
+		{
+			var printed = one.ToString();
+
+			if (printed.Length > NameWidth)
+				throw new InvalidOperationException(
+					$"The case '{one.Name}' prints as '{printed}', {printed.Length} characters where " +
+					$"BenchmarkDotNet keeps {NameWidth} and elides the middle of the rest. Two rows would " +
+					"read alike in the report. Shorten the name.");
+		}
+
 		if (Input.Disagreement() is { } difference)
 			throw new InvalidOperationException(
 				$"The two parsers do not agree about '{Input.Name}':" + Environment.NewLine + difference);
