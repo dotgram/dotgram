@@ -8590,6 +8590,12 @@ work between steps, the low and the high are the measurement and the final figur
 
 **The floor build is promoted from "last" to "part of an emitter change".** It has now caught three
 defects in one chain, every one a shape no suite could see because every one is about what a
-CONSUMER's compiler does: unreachable code from a constant condition, a suppression around a field
-that is assigned, fields nothing writes. An emitter change is not finished until it has run. Three
-cases is enough to stop calling it prudence.
+CONSUMER's compiler does: unreachable code from a constant condition, a value nothing reads, a
+field nothing assigns. An emitter change is not finished until it has run.
+
+**And the rule rests on the class, not on the tally** — the correction is its author's. Our suites
+cannot see these, not because they are weak but because they ask a different question: they run the
+parser, and this one only asks whether it compiles. Three cases did not earn the rule by being
+three; they earned it by being **categorically invisible to everything else we have**, which a
+fourth would not strengthen. Counting instances is how one argues for prudence; naming the class is
+how one argues for a rule.
