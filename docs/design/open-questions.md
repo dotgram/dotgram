@@ -3096,3 +3096,28 @@ map and a table named for `AddressList` is referenced from `Mailbox_With2` — w
 one scope, and reads as a lie. The shared name should drop the tag, which also makes the name and
 the dedup key agree: the key is the content, so the name should not claim an owner the content does
 not have.
+
+**And my claim about the measurement was wrong twice over (performance caught the first half; the
+second is from counting it, critic, read at `714581a3`).** I wrote that Q31 changes no call site,
+"because a call site names a table and a rename is a rename". performance pointed out that a rename
+*is* a change to the call site's text, so the source figure would move for two reasons at once.
+True — and counting it shows the claim was wrong before the rename even enters, because **collapsing
+duplicates necessarily repoints the users of every table that disappears.**
+
+In `Rfc5322` alone: 73 declarations, 26 distinct, 47 removed as duplicates.
+
+| | call sites touched |
+| --- | --- |
+| minimal fix — share the map, keep each surviving table's existing name | **163** |
+| full fix — also drop the publication's tag from every shared name | **216** |
+
+So Q31 was never the shape Q29 is. Q29 removes 298 methods that nothing calls and **no** call site
+moves; Q31 moves 163 at the very least. That makes performance's order right for a firmer reason
+than the one they gave: it is not that the rename muddies Q31's measurement, it is that Q31 has no
+clean measurement to muddy.
+
+**And their cheaper middle can now be priced rather than felt.** Keeping the survivors' names and
+minting untagged ones only where the map is consulted across publications saves 53 call sites of
+216 in this file — a quarter, not a half — and buys a permanent inconsistency where some tables
+carry a publication's tag and some do not. A quarter is worth knowing before choosing; I would not
+take it for a quarter, but that is a preference and the number is the thing.
