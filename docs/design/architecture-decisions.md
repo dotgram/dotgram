@@ -1,4 +1,4 @@
-# Architecture decisions: generator performance
+﻿# Architecture decisions: generator performance
 
 A log of decisions agreed for bringing generated parsers to the work a handwritten parser
 does. Each entry says what was decided, why, and what it binds. Proposals, measurements
@@ -6759,6 +6759,16 @@ anyway. Had the number been carried over rather than counted again, the conclusi
 right by accident, and a week later nobody could tell the accident from the reasoning. A review of
 an area that has changed under it is recounted, number by number; checking that its conclusion
 still sounds right is not the same act.
+
+**Which settles the other options type, and not by waiting for the dictionary.** Fold the framing
+in and `FixParseOptions` holds one enum and nothing else, and the question was put whether to keep
+it until the dictionary work says where schema-level state will live. That is deciding by
+prediction. Decide it on what each type answers instead: a field separator is what delimits a
+field, which is the field layer's own fact, not a message-layer one. It belongs beside the per-tag
+table on the merits, today, and the type left behind is empty because its content was never its
+own. So the package has one options type; the surviving name should read at both layers, which is
+a rename and costs nothing before release. If the dictionary work then brings schema-level state,
+it lands where the tables already are, which is the same type — not a re-split.
 
 ## D81 — A generated table cannot show what was never read
 
