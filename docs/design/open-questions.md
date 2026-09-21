@@ -3482,3 +3482,51 @@ zero across three files. The line is closed for one command rather than an after
 each was withdrawn by its own author, and each time after asking what the number would look like if
 the instrument were measuring something other than what it was aimed at. An instrument never
 withdrawn has usually never been questioned.
+
+## Q35 (2026-09-21). Thirty suppressions that suppress nothing, in every shipped file but one
+
+Seventh sweep, aimed by the rule Q34 produced: name the mechanism first, then look only at what it
+does not explain. Read at `e44ec137`.
+
+**The mechanism.** The emitted `Failure` struct declares fields that some grammars never set —
+`Looking`, `Quiet`, `Began`, `OutOfInput` — and a field nothing assigns is CS0649 in a consumer's
+build, which under `TreatWarningsAsErrors` is a broken compilation of a file they did not write. So
+each field's template carries its own `#pragma warning disable 0649`, one field wide, with the
+reason on the line above it. That is careful work and the mechanism explains it completely.
+
+**What it does not explain.** The pragma travels *with the field*, unconditionally — while the
+condition it exists for is per grammar. The emitter already knows: the fields themselves are
+conditional, emitted through `{{looking}}`, `{{quiet}}`, `{{began}}` placeholders. So where the
+reading *is* emitted and the field *is* written, the suppression is emitted anyway.
+
+**Thirty (file, field) pairs, in every shipped generated file except FIX.**
+
+| | suppressed field, and how many times that file assigns it |
+| --- | --- |
+| `SqlStandardParser` | `Quiet` 255, `OutOfInput` 386 |
+| `TransactSqlParser`, and its `Located` reading | `Quiet` 186 each |
+| `ExpressionParser`, and its `Immediate` reading | `Quiet` 73, `OutOfInput` 62 each |
+| `Rfc5322` | `Quiet` 48, `OutOfInput` 5 |
+| the other eleven Web files and `Sql92Parser` | `Quiet` 6–42, `OutOfInput` 3–26 |
+
+Witness rather than inference: in `Rfc5322` the text reads `#pragma warning disable 0649` /
+`public bool Quiet;` / `#pragma warning restore 0649`, and the same file writes
+`new Failure { Quiet = true }` — an object initializer, which is an assignment for CS0649's purpose,
+forty-eight times over.
+
+**The cost is not the two lines.** It is that **a suppression that suppresses nothing disarms the
+check it names.** This repository builds with `TreatWarningsAsErrors`, so a change that stopped
+writing `Quiet` in some grammar would otherwise fail the build — CS0649 is exactly the complaint
+that would catch it. With the pragma emitted unconditionally, it does not. Q28 found that the
+generated code's tidiness floor is wherever Roslyn's warning list stops; this is the generator
+cutting a hole in that floor **wider than the reason for it**, in nineteen files out of twenty.
+
+**The fix is one place**: condition the pragma on the same knowledge that already conditions the
+field.
+
+**And a false start of mine, recorded because it nearly went out.** My first reading of the
+suppressions was that 59 of the 75 "carry no reason". They all carry one — on the line above the
+pragma, where my grep was not looking. The care I was about to criticise was there all along; what
+is actually wrong is narrower and in a different place.
+
+**Answer:** —
