@@ -23,6 +23,10 @@
 		<InternalsVisibleTo Include="DotGram.Finance.Fix44" />
 		<InternalsVisibleTo Include="DotGram.Finance.Fix44.Tests" />
 
+		<!-- The benchmarks read the composed rule text and compile it, which needs the tables and
+		     the nodes the text is written against. Nothing ships from that project. -->
+		<InternalsVisibleTo Include="DotGram.Finance.Benchmarks" />
+
 		<ProjectReference Include="../DotGram/DotGram.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
 		<AdditionalFiles Include="Fix/*.gram" />

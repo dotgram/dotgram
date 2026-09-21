@@ -8,6 +8,10 @@
 		<PackageReference Include="BenchmarkDotNet" />
 		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
+
+		<!-- To compile the rule text the composer writes, which is how a dump says whether what it
+		     wrote is a program. The package itself does not reference the expression language. -->
+		<ProjectReference Include="../../src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
 		<ProjectReference Include="../../tests/DotGram.Finance.Fix44/DotGram.Finance.Fix44.csproj" />
 	</ItemGroup>
 </Project>

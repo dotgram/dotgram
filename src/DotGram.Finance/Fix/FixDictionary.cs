@@ -34,6 +34,7 @@ public sealed class FixDictionary
 	readonly Dictionary<string, SchemaRef[]> messages;
 	readonly Dictionary<string, string>     messageNames;
 	readonly SchemaRef[][]                  components;
+	readonly string[]                       componentNames;
 	readonly SchemaRef[][]                  groups;
 	readonly int[]                          counters;
 
@@ -43,6 +44,7 @@ public sealed class FixDictionary
 		Dictionary<string, SchemaRef[]>  messages,
 		Dictionary<string, string>       messageNames,
 		SchemaRef[][]                    components,
+		string[]                         componentNames,
 		SchemaRef[][]                    groups,
 		int[]                            counters,
 		SchemaRef[]                      header,
@@ -53,6 +55,7 @@ public sealed class FixDictionary
 		this.messages     = messages;
 		this.messageNames = messageNames;
 		this.components   = components;
+		this.componentNames = componentNames;
 		this.groups       = groups;
 		this.counters     = counters;
 		this.header       = header;
@@ -104,6 +107,10 @@ public sealed class FixDictionary
 	// different messages — 59 names over 226 sites in the published FIX 4.4 file.
 	internal SchemaRef[] Message(string type) => messages.TryGetValue(type, out var refs) ? refs : [];
 	internal SchemaRef[] Component(int id) => components[id];
+
+	// The name the file gave the component, which is what a comment about it has to say: an id
+	// is ours and means nothing in the file a reader would go back to.
+	internal string ComponentName(int id) => componentNames[id];
 	internal SchemaRef[] Group(int id) => groups[id];
 	internal int Counter(int id) => counters[id];
 	internal SchemaRef[] Header => header;
@@ -441,6 +448,7 @@ public sealed class FixDictionary
 			throw new FormatException("The dictionary declares no fields.");
 
 		var components = new List<SchemaRef[]>();
+		var componentNames = new List<string>();
 		var groups     = new List<SchemaRef[]>();
 		var counters   = new List<int>();
 		var ids        = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -501,6 +509,7 @@ public sealed class FixDictionary
 
 			id = components.Count;
 			components.Add([]);
+			componentNames.Add(name);
 			ids.Add(name, id);
 			components[id] = Refs(members, "the component '" + name + "'");
 
@@ -527,6 +536,6 @@ public sealed class FixDictionary
 
 		return new FixDictionary(
 			version, read.Fields, messages, messageNames,
-			components.ToArray(), groups.ToArray(), counters.ToArray(), header, trailer);
+			components.ToArray(), componentNames.ToArray(), groups.ToArray(), counters.ToArray(), header, trailer);
 	}
 }
