@@ -82,7 +82,7 @@ Concatenated messages are read as one ordered field sequence.
 `FixParser.Parse` reads SOH-delimited wire input; given `FixFieldOptions.Log` it reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
 spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
-`FixFieldOptions` declares length/data pairs of your own, not the delimiter.
+`FixFieldOptions` declares which framing to read and any length/data pairs of your own.
 
 The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
 before or after a pipe belong to that separator. Spaces inside text values are
@@ -97,8 +97,8 @@ of data bytes, including any delimiter bytes inside the payload. An orphaned
 length or data field is rejected. The final field may end at EOF without a separator. Separators between fields
 remain required; the declared binary length still determines the complete payload.
 `FixParser.Parse` returns the completed field sequence, including `Invalid` fields.
-Use `FixMessages.TryParse` or `FixMessages.TryBuild` for validation; both reject
-recovered syntax errors in strict and lenient modes with the first syntax diagnostic. Typed values own their data;
+Use `FixMessages.TryParse` or `FixMessages.TryBuild` to build a message; both refuse a
+recovered syntax error with the first syntax diagnostic, whatever the framing. Typed values own their data;
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
 
@@ -126,8 +126,8 @@ var custom = FixParser.Parse("5000=3 | 5001=a|b | ", options.With(FixFraming.Log
 
 A supplied length/data dictionary **adds to** the standard's sixteen pairs and is copied
 at construction; the standard's own pairs always hold, so neither tag of a supplied pair may be one
-the standard already defines. Omit it to use the standard pairs alone. The same object carries the
-same object for message parsing. Each length tag must
+the standard already defines. Omit it to use the standard pairs alone. The same object is what
+`FixMessages` takes, so one value describes both layers. Each length tag must
 immediately precede its configured data tag. The pair produces one binary field;
 data tags the package does not define produce `FixField.Custom` with binary metadata. Standalone
 data tags are rejected. The parser recognizes binary boundaries; message and business
@@ -248,31 +248,49 @@ Flattened component fields are properties of their containing scope.
   `AllFields` traverses the complete message, including nested groups, in wire order.
 - `OriginalWire` is the exact input. No serializer is necessary to recover it.
 
-## Validation policies
+## Recognition and validation
 
-| Check | Strict (default) | Lenient |
-| --- | --- | --- |
-| Complete framing, BeginString, first three fields, terminal CheckSum | Required | Required |
-| BodyLength and CheckSum | Checked | Checked |
-| Length/data pairs, including embedded SOH | Checked | Checked |
-| Standard group delimiters, boundaries and counts | Checked during semantic assembly | Checked during semantic assembly |
-| Explicit schema required fields and component activation | Checked | Relaxed |
-| Primitive lexical/calendar syntax and code sets | Checked | Values preserved |
-| Group field order and duplicate standard fields | Checked | Order/duplicates preserved |
-| Unknown scalar tags | Rejected | Preserved |
-| Unknown vendor MsgType | Rejected | `CustomFixMessage` with an ordered flat body |
+Reading the wire and holding the result to a schema are two acts, and they refuse at
+different times for different reasons.
 
-Body fields may be reordered. Group entries must begin with their schema's first
-field in both modes. Unknown scalar tags inside an entry belong to the current
-entry until a known delimiter or field establishes the next scope. Without a
-vendor schema, their business meaning or a different intended scope cannot be
-inferred. The exact wire and offsets are always preserved.
+**Recognition refuses, because after it the input's meaning is unknown.** Complete framing,
+`BeginString` and the first three fields, the terminal `CheckSum`, `BodyLength`, a
+length/data pair and the octets it measures including an embedded SOH, a `NumInGroup` that
+would size an array past the fields left, a group entry that does not begin with its
+delimiter, and a field the parser could not read at all. None of these can wait for a
+message to exist: they are how the reader finds where one ends.
 
-Strict validates the explicit machine-readable schema and wire constraints, including
-`MessageEncoding` when Encoded fields occur. It is not a trading or session business
-validator: prose-only conditional trading requirements, sequence-number state,
-order economics, live ISO registry assignments and announced leap-second dates are
-outside its checks. ISO identifiers are checked for their lexical shape.
+**Everything else is a finding about a message that was built.** `message.Validate()` holds
+it to FIX 4.4 and answers with all of them at once:
+
+| What it reports | |
+| --- | --- |
+| `RequiredFieldMissing` | a field the schema requires in that scope is absent |
+| `RequiredComponentMissing` | a required component has none of its fields; the sentence names the first tag it would have held |
+| `InvalidValue` | the value does not fit the tag's type, or is not one of its code set |
+| `DuplicateField` | a tag appears twice in one scope |
+| `FieldNotInScope` | the schema defines no such tag, or defines it and not there |
+| `FieldOutOfOrder` | a group entry's fields are not in the schema's order |
+| `GroupCountMismatch` | a required group announces no entries |
+| `UnknownMessageType` | the schema describes no message of that `MsgType` |
+| `MessageEncodingMissing` | an `Encoded` field is present and tag 347 is not |
+
+Each finding names its rule, its scope, its tag, the entry of the repeating group it is in,
+and where in the source it begins — "tag 448 is wrong" says nothing where a message carries
+nine parties.
+
+Body fields may be reordered, and an unknown tag between the header and the trailer belongs
+to the body rather than ending it: whether it should be there is a finding, and a message the
+reader will not build is a message nothing can report on. The exact wire and every offset are
+preserved whatever is found.
+
+`message.Validate(validator)` holds it to a schema of your own instead; see **Custom fields**
+and `DotGram.Finance.Generator` for where one comes from. `FixValidator.Standard` is the
+shared default and refuses to be written to — make your own with `new FixValidator()`.
+
+It is not a trading or session validator. Prose-only conditional requirements,
+sequence-number state, order economics, live ISO registry assignments and announced
+leap-second dates are outside it; ISO identifiers are checked for their lexical shape.
 
 ## Field ADT and typed values
 
@@ -301,8 +319,8 @@ Console.WriteLine(quantity.Value);           // decimal
 | UTCTimeOnly, UTCTimestamp, MonthYear | FixTime, FixTimestamp, FixMonthYear |
 | data | ReadOnlyMemory<byte> |
 
-Code sets are validated against the schema tables in Strict mode; their underlying
-primitive remains the value type. Dates retain year zero and leap-second notation.
+A code set is held against the schema by `Validate`, not while the field is read; the
+underlying primitive remains the value type. Dates retain year zero and leap-second notation.
 The character numeric hooks use invariant .NET parsing; byte decimal hooks use
 UTF-8 decimal parsing with the same FIX syntax checks. Integer values retain
 arbitrary precision. Decimal values must fit `System.Decimal` exactly: overflow
