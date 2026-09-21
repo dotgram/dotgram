@@ -927,10 +927,10 @@ namespace DotGram.Snapshots
 			/// of the input, which the boundary reads off <c>Position</c> itself.
 			/// </para>
 			/// </remarks>
-			// A grammar whose every test wants one character never writes this — and a
-			// field nothing assigns is a warning in somebody else's build, which for a
-			// build that treats warnings as errors is a broken compilation of a file
-			// they did not write.
+			// Nothing assigns this here: every test in this grammar wants one character.
+			// A field nothing assigns is CS0649 in somebody else's build, which for one
+			// that treats warnings as errors is a broken compilation of a file they did
+			// not write.
 			#pragma warning disable 0649
 			public int OutOfInput;
 			#pragma warning restore 0649

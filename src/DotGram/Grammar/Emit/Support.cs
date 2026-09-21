@@ -53,10 +53,9 @@ public static partial class CSharpEmitter
 			/// the look is read and given back whatever it says — so a reader records none
 			/// while this is above zero, as the engine records none inside its own lookahead.
 			/// </summary>
-			// Never written where a grammar's readers hold no lookahead.
-			#pragma warning disable 0649
+			{{suppress:Looking}}
 			public int Looking;
-			#pragma warning restore 0649
+			{{restore:Looking}}
 		""";
 
 	const string QuietField = """
@@ -65,11 +64,9 @@ public static partial class CSharpEmitter
 			/// Whether nothing reads what this failure would record, so nothing is recorded: a
 			/// `find` trying each start, the lexer measuring or valuing a token again.
 			/// </summary>
-			// Declared for the machines that ask it, and never set where no such reading is
-			// emitted — a lexer that measures nothing again, say.
-			#pragma warning disable 0649
+			{{suppress:Quiet}}
 			public bool Quiet;
-			#pragma warning restore 0649
+			{{restore:Quiet}}
 		""";
 
 	const string StarvedField = """
@@ -641,6 +638,140 @@ public static partial class CSharpEmitter
 	internal const string FailureType = "Failure";
 
 	/// <summary>
+	/// A suppression whose need is not known where the field is written, written between a
+	/// fence for the same reason a state's number is: generated C# cannot contain a control
+	/// character, so a mark left unsettled is caught by the generator's own guard rather than
+	/// by the consumer's compiler, where it would name nothing (<c>Machine.Graph.Settle</c>).
+	/// </summary>
+	static string Mark(string field, bool opening)
+	{
+		return Fence + "P" + field + (opening ? "0" : "1") + Fence;
+	}
+
+	const char Fence = '\u0001';
+
+	/// <summary>
+	/// Every suppression mark answered: the two lines where nothing assigned the field, and
+	/// nothing at all where something did.
+	/// </summary>
+	/// <remarks>
+	/// Read <see cref="Assigned"/> for why this is observed and not derived. Called once the
+	/// whole file is written, which is the earliest the answer exists.
+	/// </remarks>
+	internal static string Suppressed(string text)
+	{
+		text = Answer(text, "Looking",    "failure.Looking++",      "no reading of this grammar holds a lookahead");
+		text = Answer(text, "Quiet",      "Quiet = true",           "no reading whose failure nothing reads is emitted");
+		text = Answer(text, "Began",      "failure.Began = ",       "no reading that begins where it is told is emitted");
+		text = Answer(text, "OutOfInput", "failure.OutOfInput = ",  "every test in this grammar wants one character");
+
+		return text;
+
+		// Asked of the finished text, because that is the compiler's own question: CS0649 fires
+		// where no assignment to the field occurs in the compilation, so what decides the
+		// suppression is what is IN the file. Recorded at the sites that write one instead, it
+		// over-reports: compiling writes into scratch that a discarded branch never lands, and a
+		// suppression dropped where nothing assigns is CS0649 in somebody else's build - the one
+		// direction this change must never take. That version failed thirteen tests here first.
+		static string Answer(string text, string field, string statement, string why)
+		{
+			var assigned = Writes(text, statement);
+
+			text = At(text, Mark(field, true), assigned ? null :
+				"// Nothing assigns this here: " + why + "." + Lines.Ending +
+				"// A field nothing assigns is CS0649 in somebody else's build, which for one" + Lines.Ending +
+				"// that treats warnings as errors is a broken compilation of a file they did" + Lines.Ending +
+				"// not write." + Lines.Ending +
+				"#pragma warning disable 0649");
+
+			return At(text, Mark(field, false), assigned ? null : "#pragma warning restore 0649");
+		}
+
+		// A comment is not an assignment, and the generator writes comments naming these very
+		// fields right beside them.
+		static bool Writes(string text, string statement)
+		{
+			foreach (var line in text.Split([Lines.Ending], StringSplitOptions.None))
+			{
+				var code = line.Trim();
+
+				if (!code.StartsWith("//", StringComparison.Ordinal) &&
+					code.Contains(statement, StringComparison.Ordinal))
+					return true;
+			}
+
+			return false;
+		}
+
+		// The mark is alone on its line, so an answer of nothing takes the line with it rather
+		// than leaving an indented blank one; and every line of an answer takes the mark's indent.
+		static string At(string text, string mark, string? answer)
+		{
+			var at = text.IndexOf(mark, StringComparison.Ordinal);
+
+			if (at < 0)
+				return text;
+
+			var opened = text.LastIndexOf(Lines.Ending, at, StringComparison.Ordinal);
+			var begins = opened < 0 ? 0 : opened + Lines.Ending.Length;
+			var closed = text.IndexOf(Lines.Ending, at, StringComparison.Ordinal);
+			var ends   = closed < 0 ? text.Length : closed + Lines.Ending.Length;
+			var indent = text.Substring(begins, at - begins);
+
+			return text.Substring(0, begins) +
+				(answer is null
+					? ""
+					: indent + answer.Replace(Lines.Ending, Lines.Ending + indent) + Lines.Ending) +
+				text.Substring(ends);
+		}
+	}
+
+	internal sealed class Assigned
+	{
+		/// <summary>Whether an assignment to each was written anywhere in this file.</summary>
+		internal bool Quiet { get; private set; }
+
+		/// <inheritdoc cref="Quiet"/>
+		internal bool Looking { get; private set; }
+
+		/// <inheritdoc cref="Quiet"/>
+		internal bool Began { get; private set; }
+
+		/// <inheritdoc cref="Quiet"/>
+		internal bool OutOfInput { get; private set; }
+
+		/// <summary>Said by the site that writes one, whichever machine it belongs to.</summary>
+		/// <remarks>
+		/// One accumulator and not a question asked of a list of machines: the machine that reads
+		/// a terminal again is not among the file's, and a grammar read as kinds has a lexical half
+		/// whose machines are not either. Asking "did any of these write it" was the first version
+		/// of this and it answered <b>no</b> for a file with three hundred and eighty-six of them.
+		/// </remarks>
+		internal void Quieted()
+		{
+			Quiet = true;
+		}
+
+		/// <inheritdoc cref="Quieted"/>
+		internal void Looked()
+		{
+			Looking = true;
+		}
+
+		/// <inheritdoc cref="Quieted"/>
+		internal void Beginning()
+		{
+			Began = true;
+		}
+
+		/// <inheritdoc cref="Quieted"/>
+		internal void RanOut()
+		{
+			OutOfInput = true;
+		}
+	}
+
+	/// <summary>
 	/// The record of the best failure a match saw, threaded through every recognizer.
 	/// </summary>
 	/// <remarks>
@@ -674,7 +805,19 @@ public static partial class CSharpEmitter
 				looking ? Lines.Normalize(LookingField) + Lines.Ending : "")
 			.Replace(
 				"\t{{quiet}}" + Lines.Ending,
-				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "");
+				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "")
+			// Whether each of these fields needs its suppression is not known here: the field is
+			// emitted where the capability is present, and the suppression is needed where nothing
+			// assigns it, which only the sites that write the assignments know. So a mark goes in,
+			// and Suppressed puts the answer there once everything has been written.
+			.Replace("{{suppress:Looking}}", Mark("Looking", true))
+			.Replace("{{restore:Looking}}", Mark("Looking", false))
+			.Replace("{{suppress:Quiet}}", Mark("Quiet", true))
+			.Replace("{{restore:Quiet}}", Mark("Quiet", false))
+			.Replace("{{suppress:Began}}", Mark("Began", true))
+			.Replace("{{restore:Began}}", Mark("Began", false))
+			.Replace("{{suppress:OutOfInput}}", Mark("OutOfInput", true))
+			.Replace("{{restore:OutOfInput}}", Mark("OutOfInput", false));
 
 	/// <summary>Where a reading that begins where it is told read its value, past the trivia at it.</summary>
 	/// <remarks>
@@ -686,12 +829,9 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	const string BeganField = """
 		/// <summary>Where the value begins: past the trivia the reading started on.</summary>
-		// A publication compiled as a plain method has no reading that begins where it is told,
-		// so nothing writes this — and a field nothing assigns is a warning in somebody else's
-		// build, as OutOfInput says above.
-		#pragma warning disable 0649
+		{{suppress:Began}}
 		public int Began;
-		#pragma warning restore 0649
+		{{restore:Began}}
 		""";
 
 	const string FailureStruct = """
@@ -727,13 +867,9 @@ public static partial class CSharpEmitter
 			/// of the input, which the boundary reads off <c>Position</c> itself.
 			/// </para>
 			/// </remarks>
-			// A grammar whose every test wants one character never writes this — and a
-			// field nothing assigns is a warning in somebody else's build, which for a
-			// build that treats warnings as errors is a broken compilation of a file
-			// they did not write.
-			#pragma warning disable 0649
+			{{suppress:OutOfInput}}
 			public int OutOfInput;
-			#pragma warning restore 0649
+			{{restore:OutOfInput}}
 			{{began}}
 			{{reach}}
 			{{starved}}

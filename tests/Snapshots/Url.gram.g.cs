@@ -4193,13 +4193,7 @@ namespace DotGram.Snapshots
 			/// of the input, which the boundary reads off <c>Position</c> itself.
 			/// </para>
 			/// </remarks>
-			// A grammar whose every test wants one character never writes this — and a
-			// field nothing assigns is a warning in somebody else's build, which for a
-			// build that treats warnings as errors is a broken compilation of a file
-			// they did not write.
-			#pragma warning disable 0649
 			public int OutOfInput;
-			#pragma warning restore 0649
 
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
 			public bool Starved;
@@ -4223,11 +4217,7 @@ namespace DotGram.Snapshots
 			/// Whether nothing reads what this failure would record, so nothing is recorded: a
 			/// `find` trying each start, the lexer measuring or valuing a token again.
 			/// </summary>
-			// Declared for the machines that ask it, and never set where no such reading is
-			// emitted — a lexer that measures nothing again, say.
-			#pragma warning disable 0649
 			public bool Quiet;
-			#pragma warning restore 0649
 		}
 
 		/// <summary>A reader, read through a buffer that is reused.</summary>

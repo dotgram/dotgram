@@ -925,6 +925,12 @@ public static partial class CSharpEmitter
 		// order they all share — which is only known now (Machine.TableName).
 		var written = Numbered(file.ToString(), tables);
 
+		// And the suppressions, which could not be decided where the fields were written: a
+		// field is emitted where the capability is present, and its suppression is needed only
+		// where no assignment site was emitted. Observed rather than derived (Assigned), and
+		// answered here because this is the earliest the answer exists.
+		written = Suppressed(written);
+
 		// A mark stands for a state whose final name was not known when it was written, and
 		// `Settle` puts the name in. One that reaches here would be a control character in
 		// the consumer's source — so it is caught here, where the failure names the
