@@ -8665,3 +8665,24 @@ much as on nanoseconds.
 **And nothing comparative reaches a shipped page without Igor.** Numbers about a named third
 party's software are exactly the claim a page of ours cannot keep true, which is already decided;
 internal, dated results files are where they live until he says otherwise.
+
+**The comparison lives outside the repository (Igor).** QuickFIX/n is not referenced from anything
+of ours: a throwaway project under `.work/`, which git ignores, with its own package reference and
+a project reference back to `DotGram.Finance` — the shape `.work/genprof` already uses for the
+profiling harness. It is not in the solution, it is not published, and nothing about their licence
+has to be decided, because nothing we distribute touches their package. **The numbers are ours and
+go in the dated results; their code stays on this machine.**
+
+**That supersedes what I told the owner an hour before** — that adding a package reference to an
+existing benchmark project would be fine because it is not a new project. It would have been fine
+by that rule and wrong by a rule I had not considered: a third party's licence becomes a question
+the moment their package is referenced by anything we build as ours. Igor's answer removes the
+question rather than answering it, which is the cheaper of the two.
+
+**ScriptDom is untouched by this.** It is Microsoft's, it has been referenced from
+`DotGram.Benchmarks` for some time, and the SQL comparison stays where it is.
+
+**Two cautions for the throwaway.** Central package management is off in it, as in the other
+`.work` harnesses, so it does not fight ours. And nothing with a `.gram` extension is left there:
+a sweep over the repository read `.work` once already this week and reported a scratch grammar as
+a finding.
