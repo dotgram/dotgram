@@ -6982,3 +6982,19 @@ the sentence that uses it, not in a footnote: on which family, at which stage, i
 A number without that is a number that will be moved, because nothing in it resists the move. And
 a claim whose evidence was gathered elsewhere is a hypothesis, however well it reasons — which is
 the day's other rule seen from the front: what a measurement cannot see, it also cannot forbid.
+
+**Two additions the evening's work earned, one on each.** A generated page states facts and not
+verdicts: the carriers run now records when each project's report was written and prints the span,
+because a date beside a project's name is something the run found, while "stale" would be a
+comparison — against which build, on a machine where two target frameworks write the report twice?
+— and a wrong verdict in a written page is worse than none. The reader who sees one date two days
+older among a column of today's needs no help from us.
+
+**And the size instrument settles its own comparability rather than inheriting a rule.** What the
+path map changes is not where a figure may be compared but under which setting it was taken: two
+builds that both map their paths are comparable anywhere, and a build that does not is comparable
+only against another on the same machine in the same worktree. So `DotGram.CodeSize` asks for
+mapped paths itself, and then its numbers are publishable by construction — instead of every
+reader having to remember the range a figure was sound in. That is the cheaper half of today's
+lesson about numbers read further than they were taken: an instrument that cannot produce an
+unpublishable number needs no rule about publishing.
