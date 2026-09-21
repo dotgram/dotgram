@@ -114,8 +114,10 @@ public sealed partial class GrammarNormalizer
 	/// answered here rather than asked, so a grammar that declares the same contract as the
 	/// one it includes needs no host at all.
 	/// </remarks>
-	bool Satisfies(TypeRef from, TypeRef to) =>
-		from.Name == to.Name || _resolver.IsAssignable(from.Name, to.Name);
+	bool Satisfies(TypeRef from, TypeRef to)
+	{
+		return from.Name == to.Name || _resolver.IsAssignable(from.Name, to.Name);
+	}
 
 	/// <summary>
 	/// The one type every mark in a parse is written in, where more than one grammar in the
@@ -226,8 +228,10 @@ public sealed partial class GrammarNormalizer
 
 		// Every supplied name begins with `parser`, so where the expression would not parse
 		// the spelling is enough to go on (CSharpEmitter.Uses answers the same way).
-		static bool Names(string text, IReadOnlyCollection<string>? free, string name) =>
-			free is not null ? free.Contains(name) : text.Contains(name);
+		static bool Names(string text, IReadOnlyCollection<string>? free, string name)
+		{
+			return free is not null ? free.Contains(name) : text.Contains(name);
+		}
 	}
 
 	/// <summary>

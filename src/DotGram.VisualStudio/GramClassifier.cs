@@ -50,9 +50,11 @@ sealed class GramFilePathToContentTypeProvider : IFilePathToContentTypeProvider
 	readonly IContentType _contentType;
 
 	[ImportingConstructor]
-	public GramFilePathToContentTypeProvider(IContentTypeRegistryService contentTypes) =>
+	public GramFilePathToContentTypeProvider(IContentTypeRegistryService contentTypes)
+	{
 		_contentType = contentTypes.GetContentType(GramContentType.Name) ??
 			throw new InvalidOperationException($"Visual Studio content type '{GramContentType.Name}' is unavailable.");
+	}
 
 	public bool TryGetContentTypeForFilePath(string filePath, out IContentType contentType)
 	{
@@ -148,14 +150,18 @@ sealed class GramClassifier : IClassifier
 		return result;
 	}
 
-	void Changed(ITextSnapshot snapshot) =>
+	void Changed(ITextSnapshot snapshot)
+	{
 		ClassificationChanged?.Invoke(
 			this,
 			new ClassificationChangedEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
-	static IClassificationType Type(IClassificationTypeRegistryService classifications, string name) =>
-		classifications.GetClassificationType(name) ??
+	static IClassificationType Type(IClassificationTypeRegistryService classifications, string name)
+	{
+		return classifications.GetClassificationType(name) ??
 		throw new InvalidOperationException($"Visual Studio classification '{name}' is unavailable.");
+	}
 }
 
 [Export(typeof(ITaggerProvider))]
@@ -215,9 +221,11 @@ sealed class GramDiagnosticTagger : ITagger<ErrorTag>
 		}
 	}
 
-	void Changed(ITextSnapshot snapshot) =>
+	void Changed(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
 			new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
 	static SnapshotSpan Span(ITextSnapshot snapshot, int position, int length)
 	{
@@ -235,12 +243,15 @@ sealed class GramDiagnosticTagger : ITagger<ErrorTag>
 		return new SnapshotSpan(snapshot, position, length);
 	}
 
-	static string ErrorType(GramSeverity severity) => severity switch
+	static string ErrorType(GramSeverity severity)
 	{
-		GramSeverity.Error   => PredefinedErrorTypeNames.SyntaxError,
-		GramSeverity.Warning => PredefinedErrorTypeNames.Warning,
-		_                            => PredefinedErrorTypeNames.Information,
-	};
+		return severity switch
+		{
+			GramSeverity.Error => PredefinedErrorTypeNames.SyntaxError,
+			GramSeverity.Warning => PredefinedErrorTypeNames.Warning,
+			_ => PredefinedErrorTypeNames.Information,
+		};
+	}
 }
 
 sealed class GramBufferAnalysis
@@ -269,8 +280,10 @@ sealed class GramBufferAnalysis
 
 	public event Action<ITextSnapshot>? Changed;
 
-	public static GramBufferAnalysis For(ITextBuffer buffer) =>
-		buffer.Properties.GetOrCreateSingletonProperty(() => new GramBufferAnalysis(buffer));
+	public static GramBufferAnalysis For(ITextBuffer buffer)
+	{
+		return buffer.Properties.GetOrCreateSingletonProperty(() => new GramBufferAnalysis(buffer));
+	}
 
 	public void ConfigureInheritance(Workspace workspace, string filePath)
 	{
@@ -400,11 +413,14 @@ sealed class GramBufferAnalysis
 		ScheduleAnalysis(_buffer.CurrentSnapshot, immediate: true);
 	}
 
-	static bool IsIdentifier(char character) =>
-		character == '_' || char.IsLetterOrDigit(character);
+	static bool IsIdentifier(char character)
+	{
+		return character == '_' || char.IsLetterOrDigit(character);
+	}
 
-	static GramDocument Project(GramDocument document, int length, bool suppressContextDiagnostics) =>
-		new(
+	static GramDocument Project(GramDocument document, int length, bool suppressContextDiagnostics)
+	{
+		return new(
 			document.Classifications.Where(item => item.Position < length).ToArray(),
 			document.Diagnostics.Where(item =>
 				item.Position < length &&
@@ -414,10 +430,13 @@ sealed class GramBufferAnalysis
 			document.FoldingRanges.Where(item => item.Position < length).ToArray(),
 			document.DocumentSymbols.Where(item => item.Position < length).ToArray(),
 			document.PublishedApis.Where(item => item.Position < length).ToArray());
+	}
 
-	static bool IsSyntaxDiagnostic(string id) =>
-		id.StartsWith("GRAM1", StringComparison.Ordinal) ||
+	static bool IsSyntaxDiagnostic(string id)
+	{
+		return id.StartsWith("GRAM1", StringComparison.Ordinal) ||
 		id.StartsWith("GRAM2", StringComparison.Ordinal);
+	}
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
@@ -507,8 +526,9 @@ sealed class GramBufferAnalysis
 	static GramDocument TranslateDocument(
 		GramDocument document,
 		ITextSnapshot source,
-		ITextSnapshot target) =>
-		new(
+		ITextSnapshot target)
+	{
+		return new(
 			document.Classifications.Select(item =>
 			{
 				var span = Translate(item.Position, item.Length, source, target);
@@ -526,6 +546,7 @@ sealed class GramBufferAnalysis
 					item.SymbolKind);
 			}).ToArray(),
 			[], [], [], [], [], []);
+	}
 
 	static Span Translate(
 		int position,

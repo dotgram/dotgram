@@ -28,7 +28,9 @@ public static partial class CSharpEmitter
 
 	// One storage algorithm, specialized while generating the source. The resulting
 	// parsers use concrete arrays and block reads; they share no runtime input interface.
-	static string BufferedByteClass() => BufferedTextClass
+	static string BufferedByteClass()
+	{
+		return BufferedTextClass
 		.Replace("BufferedText", "BufferedBytes")
 		.Replace("global::System.IO.TextReader", "global::System.IO.Stream")
 		.Replace("IParserInputSource<char>", "IParserInputSource<byte>")
@@ -56,9 +58,12 @@ public static partial class CSharpEmitter
 
 			public bool Peek(int position, out byte value)
 			""");
+	}
 
-	static string BufferedMethod(Publication publication, bool bytes = false, bool inPlace = false) =>
-		"ReadBuffered_" + publication.MethodName + (bytes ? "_Bytes" : "") + (inPlace ? "_Memory" : "");
+	static string BufferedMethod(Publication publication, bool bytes = false, bool inPlace = false)
+	{
+		return "ReadBuffered_" + publication.MethodName + (bytes ? "_Bytes" : "") + (inPlace ? "_Memory" : "");
+	}
 
 	static void AddBufferedMachines(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,

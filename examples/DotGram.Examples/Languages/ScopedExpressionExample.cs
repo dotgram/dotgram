@@ -57,10 +57,16 @@ public sealed class Names
 	}
 
 	/// <summary>Whether anything has been bound to this name yet.</summary>
-	public bool Known(string name) => _values.ContainsKey(name);
+	public bool Known(string name)
+	{
+		return _values.ContainsKey(name);
+	}
 
 	/// <summary>What it was bound to.</summary>
-	public int Of(string name) => _values[name];
+	public int Of(string name)
+	{
+		return _values[name];
+	}
 }
 
 [Gram("""

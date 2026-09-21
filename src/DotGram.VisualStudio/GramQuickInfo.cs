@@ -44,13 +44,15 @@ sealed class GramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 	[Import]
 	IClassificationTypeRegistryService ClassificationTypes { get; set; } = null!;
 
-	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer) =>
-		new GramQuickInfoSource(
+	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
+	{
+		return new GramQuickInfoSource(
 			textBuffer,
 			GramBufferAnalysis.For(textBuffer),
 			new RoslynGramCompletion(textBuffer, Workspace, Documents),
 			FormatMaps,
 			ClassificationTypes);
+	}
 }
 
 [Export(typeof(IAsyncQuickInfoSourceProvider))]
@@ -71,13 +73,15 @@ sealed class EmbeddedGramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 	[Import]
 	IClassificationTypeRegistryService ClassificationTypes { get; set; } = null!;
 
-	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer) =>
-		new EmbeddedGramQuickInfoSource(
+	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
+	{
+		return new EmbeddedGramQuickInfoSource(
 			textBuffer,
 			EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents),
 			new RoslynGramCompletion(textBuffer, Workspace, Documents),
 			FormatMaps,
 			ClassificationTypes);
+	}
 }
 
 sealed class GramQuickInfoSource(
@@ -217,28 +221,31 @@ sealed class GramQuickInfoSource(
 		return new QuickInfoItem(trackingSpan, panel);
 	}
 
-	static string RoslynClassification(string tag) => tag switch
+	static string RoslynClassification(string tag)
 	{
-		TextTags.Keyword => PredefinedClassificationTypeNames.Keyword,
-		TextTags.Class => "class name",
-		TextTags.Struct => "struct name",
-		TextTags.Interface => "interface name",
-		TextTags.Enum => "enum name",
-		TextTags.Delegate => "delegate name",
-		TextTags.Method => "method name",
-		TextTags.ExtensionMethod => "extension method name",
-		TextTags.Property => "property name",
-		TextTags.Field => "field name",
-		TextTags.Event => "event name",
-		TextTags.Namespace => "namespace name",
-		TextTags.Parameter => "parameter name",
-		TextTags.Local => "local name",
-		TextTags.NumericLiteral => PredefinedClassificationTypeNames.Number,
-		TextTags.StringLiteral => PredefinedClassificationTypeNames.String,
-		TextTags.Operator => PredefinedClassificationTypeNames.Operator,
-		TextTags.Punctuation => PredefinedClassificationTypeNames.Punctuation,
-		_ => PredefinedClassificationTypeNames.Text,
-	};
+		return tag switch
+		{
+			TextTags.Keyword => PredefinedClassificationTypeNames.Keyword,
+			TextTags.Class => "class name",
+			TextTags.Struct => "struct name",
+			TextTags.Interface => "interface name",
+			TextTags.Enum => "enum name",
+			TextTags.Delegate => "delegate name",
+			TextTags.Method => "method name",
+			TextTags.ExtensionMethod => "extension method name",
+			TextTags.Property => "property name",
+			TextTags.Field => "field name",
+			TextTags.Event => "event name",
+			TextTags.Namespace => "namespace name",
+			TextTags.Parameter => "parameter name",
+			TextTags.Local => "local name",
+			TextTags.NumericLiteral => PredefinedClassificationTypeNames.Number,
+			TextTags.StringLiteral => PredefinedClassificationTypeNames.String,
+			TextTags.Operator => PredefinedClassificationTypeNames.Operator,
+			TextTags.Punctuation => PredefinedClassificationTypeNames.Punctuation,
+			_ => PredefinedClassificationTypeNames.Text,
+		};
+	}
 
 	static object Expandable(
 		ITextView view,
@@ -404,25 +411,28 @@ sealed class GramQuickInfoSource(
 		}
 	}
 
-	static string Classification(GramSyntaxKind kind) => kind switch
+	static string Classification(GramSyntaxKind kind)
 	{
-		GramSyntaxKind.Invalid        => GramClassificationTypes.Invalid,
-		GramSyntaxKind.Comment        => GramClassificationTypes.Comment,
-		GramSyntaxKind.Keyword        => GramClassificationTypes.Keyword,
-		GramSyntaxKind.Identifier     => GramClassificationTypes.Identifier,
-		GramSyntaxKind.Number         => GramClassificationTypes.Number,
-		GramSyntaxKind.Character      => GramClassificationTypes.Literal,
-		GramSyntaxKind.String         => GramClassificationTypes.Literal,
-		GramSyntaxKind.CaseInsensitiveCharacter => GramClassificationTypes.CaseInsensitiveLiteral,
-		GramSyntaxKind.CaseInsensitiveString => GramClassificationTypes.CaseInsensitiveLiteral,
-		GramSyntaxKind.CharacterClass => GramClassificationTypes.Literal,
-		GramSyntaxKind.EmbeddedCode   => GramClassificationTypes.EmbeddedCode,
-		GramSyntaxKind.Transition     => GramClassificationTypes.TransitionStyle,
-		GramSyntaxKind.SpecialSymbol  => GramClassificationTypes.SpecialSymbol,
-		GramSyntaxKind.Operator       => GramClassificationTypes.Operator,
-		GramSyntaxKind.Punctuation    => GramClassificationTypes.Punctuation,
-		_ => PredefinedClassificationTypeNames.Text,
-	};
+		return kind switch
+		{
+			GramSyntaxKind.Invalid => GramClassificationTypes.Invalid,
+			GramSyntaxKind.Comment => GramClassificationTypes.Comment,
+			GramSyntaxKind.Keyword => GramClassificationTypes.Keyword,
+			GramSyntaxKind.Identifier => GramClassificationTypes.Identifier,
+			GramSyntaxKind.Number => GramClassificationTypes.Number,
+			GramSyntaxKind.Character => GramClassificationTypes.Literal,
+			GramSyntaxKind.String => GramClassificationTypes.Literal,
+			GramSyntaxKind.CaseInsensitiveCharacter => GramClassificationTypes.CaseInsensitiveLiteral,
+			GramSyntaxKind.CaseInsensitiveString => GramClassificationTypes.CaseInsensitiveLiteral,
+			GramSyntaxKind.CharacterClass => GramClassificationTypes.Literal,
+			GramSyntaxKind.EmbeddedCode => GramClassificationTypes.EmbeddedCode,
+			GramSyntaxKind.Transition => GramClassificationTypes.TransitionStyle,
+			GramSyntaxKind.SpecialSymbol => GramClassificationTypes.SpecialSymbol,
+			GramSyntaxKind.Operator => GramClassificationTypes.Operator,
+			GramSyntaxKind.Punctuation => GramClassificationTypes.Punctuation,
+			_ => PredefinedClassificationTypeNames.Text,
+		};
+	}
 
 	sealed class InteractiveQuickInfoPanel(ITrackingSpan trackingSpan) : StackPanel, IInteractiveQuickInfoContent, IDotGramQuickInfoContent
 	{
@@ -432,42 +442,50 @@ sealed class GramQuickInfoSource(
 		public bool IsMouseOverAggregated => IsMouseOver;
 	}
 
-	static string Describe(GramSyntaxKind kind, string text) => kind switch
+	static string Describe(GramSyntaxKind kind, string text)
 	{
-		GramSyntaxKind.Keyword        => $"DotGram keyword: {text}",
-		GramSyntaxKind.Identifier     => $"DotGram rule or binding: {text}",
-		GramSyntaxKind.Number         => "DotGram numeric literal",
-		GramSyntaxKind.Character      => "DotGram character literal",
-		GramSyntaxKind.String         => "DotGram string literal",
-		GramSyntaxKind.CaseInsensitiveCharacter => "DotGram case-insensitive character literal",
-		GramSyntaxKind.CaseInsensitiveString => "DotGram case-insensitive string literal",
-		GramSyntaxKind.CharacterClass => "DotGram character class",
-		GramSyntaxKind.EmbeddedCode   => "Embedded C# expression",
-		GramSyntaxKind.Transition     => "Switch from DotGram grammar to C#",
-		GramSyntaxKind.SpecialSymbol  => SpecialSymbol(text),
-		GramSyntaxKind.Comment        => "DotGram comment",
-		GramSyntaxKind.Invalid        => "Unrecognized DotGram syntax",
-		GramSyntaxKind.Operator       => $"DotGram operator: {text}",
-		_                             => $"DotGram syntax: {text}",
-	};
+		return kind switch
+		{
+			GramSyntaxKind.Keyword => $"DotGram keyword: {text}",
+			GramSyntaxKind.Identifier => $"DotGram rule or binding: {text}",
+			GramSyntaxKind.Number => "DotGram numeric literal",
+			GramSyntaxKind.Character => "DotGram character literal",
+			GramSyntaxKind.String => "DotGram string literal",
+			GramSyntaxKind.CaseInsensitiveCharacter => "DotGram case-insensitive character literal",
+			GramSyntaxKind.CaseInsensitiveString => "DotGram case-insensitive string literal",
+			GramSyntaxKind.CharacterClass => "DotGram character class",
+			GramSyntaxKind.EmbeddedCode => "Embedded C# expression",
+			GramSyntaxKind.Transition => "Switch from DotGram grammar to C#",
+			GramSyntaxKind.SpecialSymbol => SpecialSymbol(text),
+			GramSyntaxKind.Comment => "DotGram comment",
+			GramSyntaxKind.Invalid => "Unrecognized DotGram syntax",
+			GramSyntaxKind.Operator => $"DotGram operator: {text}",
+			_ => $"DotGram syntax: {text}",
+		};
+	}
 
-	static string SpecialSymbol(string text) => text switch
+	static string SpecialSymbol(string text)
 	{
-		"*"  => "DotGram repetition: zero or more",
-		"+"  => "DotGram repetition: one or more",
-		"?"  => "DotGram optional expression",
-		"?!" => "DotGram negative lookahead",
-		"?=" => "DotGram positive lookahead",
-		"|"  => "DotGram alternative",
-		"&"  => "DotGram sequence",
-		"~"  => "DotGram sequence without trivia",
-		"^"  => "DotGram element set: complement, [^ a | b ]",
-		".." => "DotGram range",
-		_     => $"DotGram special symbol: {text}",
-	};
+		return text switch
+		{
+			"*" => "DotGram repetition: zero or more",
+			"+" => "DotGram repetition: one or more",
+			"?" => "DotGram optional expression",
+			"?!" => "DotGram negative lookahead",
+			"?=" => "DotGram positive lookahead",
+			"|" => "DotGram alternative",
+			"&" => "DotGram sequence",
+			"~" => "DotGram sequence without trivia",
+			"^" => "DotGram element set: complement, [^ a | b ]",
+			".." => "DotGram range",
+			_ => $"DotGram special symbol: {text}",
+		};
+	}
 
-	static bool Contains(int start, int length, int position) =>
-		start <= position && position < start + length;
+	static bool Contains(int start, int length, int position)
+	{
+		return start <= position && position < start + length;
+	}
 }
 
 sealed class EmbeddedGramQuickInfoSource(

@@ -35,13 +35,18 @@ static class SeamSplits
 	static readonly ConditionalWeakTable<RecognitionGraph, object> _answers = new();
 
 	/// <summary>Whether a node that stands still can be met between two seams.</summary>
-	public static bool Matter(RecognitionGraph graph) =>
-		(bool)_answers.GetValue(graph, static one => Compute(one));
+	public static bool Matter(RecognitionGraph graph)
+	{
+		return (bool)_answers.GetValue(graph, static one => Compute(one));
+	}
 
 	/// <summary>What may have just been read: a seam, with nothing since; a seam and then a node that stands still.</summary>
 	readonly record struct State(bool Seam, bool Still)
 	{
-		public State Or(State other) => new(Seam || other.Seam, Still || other.Still);
+		public State Or(State other)
+		{
+			return new(Seam || other.Seam, Still || other.Still);
+		}
 	}
 
 	static bool Compute(RecognitionGraph graph)
@@ -172,6 +177,9 @@ static class SeamSplits
 		}
 
 		// A node that stands still, met where a seam may just have been read.
-		static State Still(State state) => new(state.Seam, state.Still || state.Seam);
+		static State Still(State state)
+		{
+			return new(state.Seam, state.Still || state.Seam);
+		}
 	}
 }

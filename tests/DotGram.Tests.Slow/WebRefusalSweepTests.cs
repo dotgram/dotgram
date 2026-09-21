@@ -65,7 +65,10 @@ public sealed class WebRefusalSweepTests
 			$"them all. Seal the inner run: `{{ X+ }}`.");
 	}
 
-	static string Repeat(string filler, int times) => string.Concat(System.Linq.Enumerable.Repeat(filler, times));
+	static string Repeat(string filler, int times)
+	{
+		return string.Concat(System.Linq.Enumerable.Repeat(filler, times));
+	}
 
 	/// <summary>A refusal a reader is fed, with the run put where that reader accepts one.</summary>
 	static readonly Dictionary<string, Func<string, bool>> Refusals = new()

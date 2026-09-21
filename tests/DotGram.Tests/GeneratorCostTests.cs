@@ -105,20 +105,26 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 		}
 	}
 
-	static object Lex(string text) =>
-		GramLexer.Tokenize(
+	static object Lex(string text)
+	{
+		return GramLexer.Tokenize(
 			StandardLibrary.SplicedOnto(text), RoslynCSharpScanner.Instance, text.Length,
 			StandardLibrary.Scanner);
+	}
 
-	static object Bind(string text) =>
-		GrammarBinder.Bind(
+	static object Bind(string text)
+	{
+		return GrammarBinder.Bind(
 			GramCompiler.Read(text, RoslynCSharpScanner.Instance).File, PermissiveSymbolResolver.Instance, text.Length);
+	}
 
-	static object Shape(string text) =>
-		GrammarNormalizer.Normalize(
+	static object Shape(string text)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramCompiler.Read(text, RoslynCSharpScanner.Instance).File, PermissiveSymbolResolver.Instance, text.Length),
 			PermissiveSymbolResolver.Instance, RoslynCSharpScanner.Instance);
+	}
 
 	/// <summary>Everything up to and including the two checks a sound grammar earns.</summary>
 	static object Checked(string text)
@@ -128,20 +134,22 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 		return (Retention.Check(graph).Count(), FirstSets.Check(graph).Count());
 	}
 
-	static GramCompilerOptions Options(string name) =>
-		new()
+	static GramCompilerOptions Options(string name)
+	{
+		return new()
 		{
-			ClassName    = "Measured",
-			Namespace    = "DotGram.Tests.Measured",
-			CSharpScanner  = RoslynCSharpScanner.Instance,
+			ClassName = "Measured",
+			Namespace = "DotGram.Tests.Measured",
+			CSharpScanner = RoslynCSharpScanner.Instance,
 
 			// Every `@Type` accepted, which is what lets a grammar written against a host's
 			// own types be compiled here at all: without it `TransactSql.gram` is five
 			// hundred unresolved names and nothing is emitted, so the row measures a
 			// compilation that stopped rather than one that finished.
 			SymbolResolver = PermissiveSymbolResolver.Instance,
-			Lexical        = name == "SqlStandard92.gram",
+			Lexical = name == "SqlStandard92.gram",
 		};
+	}
 
 	/// <summary>The median of nine whole runs, which is what survives a re-jitting spike.</summary>
 	static double Median(Func<object> once)
@@ -172,8 +180,10 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 		return taken[Runs / 2];
 	}
 
-	static string Share(double part, double whole) =>
-		whole <= 0 ? "" : $"{100.0 * part / whole,6:F1}%";
+	static string Share(double part, double whole)
+	{
+		return whole <= 0 ? "" : $"{100.0 * part / whole,6:F1}%";
+	}
 
 	/// <summary>
 	/// One grammar the size of a specification and the small ones beside it.
@@ -186,14 +196,16 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 	/// beside rows measuring compilations that finished. What it costs in place is what the
 	/// build of <c>DotGram.Sql</c> costs, and that is a different measurement.
 	/// </remarks>
-	static (string Name, string Text)[] Grammars() =>
-	[
+	static (string Name, string Text)[] Grammars()
+	{
+		return [
 		("SqlStandard92.gram", File.ReadAllText(Path.Combine(Sql, "Standard", "SqlStandard92.gram"))),
 		("SqlStandard92.gram, whole", File.ReadAllText(Path.Combine(Sql, "Standard", "SqlStandard92.gram"))),
 		.. Directory
 			.GetFiles(Snapshots, "*.gram")
 			.Select(path => (Path.GetFileName(path), File.ReadAllText(path))),
 	];
+	}
 
 	static string Sql =>
 		Path.Combine(Root, "src", "DotGram.Sql");
@@ -206,5 +218,8 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

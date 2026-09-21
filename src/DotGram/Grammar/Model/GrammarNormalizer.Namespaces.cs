@@ -272,8 +272,10 @@ public sealed partial class GrammarNormalizer
 	Dictionary<RuleSymbol, RuleSymbol> CloneAffected(
 		HashSet<RuleSymbol> affected,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
-		string siteName) =>
-		CloneAffected(affected, targets, siteName, []);
+		string siteName)
+	{
+		return CloneAffected(affected, targets, siteName, []);
+	}
 
 	/// <summary>
 	/// The same, into clones already made for the same substitution: a rule already in
@@ -393,8 +395,10 @@ public sealed partial class GrammarNormalizer
 	/// a <see cref="Node.Behind"/> is reached through this because a look-behind holds an
 	/// element rather than a node, and the switches cannot recurse into it.
 	/// </remarks>
-	internal static Node.Element Same(Node.Element element) =>
-		new(element.IsNegated, element.Ranges, element.Categories, element.References);
+	internal static Node.Element Same(Node.Element element)
+	{
+		return new(element.IsNegated, element.Ranges, element.Categories, element.References);
+	}
 
 	Node CloneAndRewrite(
 		Node node,
@@ -469,8 +473,10 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	Func<string, string>? _renaming;
 
-	string Renaming(string text) =>
-		_renaming is null ? text : _renaming(text);
+	string Renaming(string text)
+	{
+		return _renaming is null ? text : _renaming(text);
+	}
 
 	RuleSymbol RewriteCall(
 		RuleSymbol called,
@@ -575,9 +581,11 @@ public sealed partial class GrammarNormalizer
 	static RuleSymbol? CloneAt(
 		GrammarNamespace? site,
 		RuleSymbol rule,
-		Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap) =>
-		site is not null && remap.TryGetValue(site, out var cloneMap) &&
+		Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap)
+	{
+		return site is not null && remap.TryGetValue(site, out var cloneMap) &&
 		cloneMap.TryGetValue(rule, out var clone) ? clone : null;
+	}
 
 	static GrammarNamespace? NearestSite(GrammarNamespace from)
 	{
@@ -697,9 +705,11 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>A parameterized rule's declared type, where it is concrete C#.</summary>
-	string? DeclaredConcrete(RuleSymbol rule) =>
-		rule.Declaration is { Params.Count: > 0, Type: { } declared } &&
+	string? DeclaredConcrete(RuleSymbol rule)
+	{
+		return rule.Declaration is { Params.Count: > 0, Type: { } declared } &&
 		(declared.IsCSharp || IsCSharpKeyword(declared.Name))
 			? TypeName(declared)
 			: null;
+	}
 }

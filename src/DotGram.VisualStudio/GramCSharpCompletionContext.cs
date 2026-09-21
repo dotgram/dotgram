@@ -125,9 +125,13 @@ public static class GramCSharpCompletionContext
 		return position >= expressionStart && position <= expressionEnd;
 	}
 
-	static bool IsNameCharacter(char character) =>
-		char.IsLetterOrDigit(character) || character is '_' or '.' or ':';
+	static bool IsNameCharacter(char character)
+	{
+		return char.IsLetterOrDigit(character) || character is '_' or '.' or ':';
+	}
 
-	static bool IsIdentifierCharacter(char character) =>
-		char.IsLetterOrDigit(character) || character == '_';
+	static bool IsIdentifierCharacter(char character)
+	{
+		return char.IsLetterOrDigit(character) || character == '_';
+	}
 }

@@ -116,11 +116,20 @@ public partial class CallCost
 	static readonly string Input = new('x', Letters);
 
 	[Benchmark(Baseline = true)]
-	public string? Compiled_in_place() => Inlined.ParseStart(Input);
+	public string? Compiled_in_place()
+	{
+		return Inlined.ParseStart(Input);
+	}
 
 	[Benchmark]
-	public string? Called_as_a_rule() => Called.ParseStart(Input);
+	public string? Called_as_a_rule()
+	{
+		return Called.ParseStart(Input);
+	}
 
 	[Benchmark]
-	public string? Called_as_a_valued_rule() => Valued.ParseStart(Input);
+	public string? Called_as_a_valued_rule()
+	{
+		return Valued.ParseStart(Input);
+	}
 }

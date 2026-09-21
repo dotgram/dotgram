@@ -29,10 +29,12 @@ sealed class EmbeddedGramNavigationMarginProvider : IWpfTextViewMarginProvider
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public IWpfTextViewMargin CreateMargin(IWpfTextViewHost host, IWpfTextViewMargin containerMargin) =>
-		new EmbeddedGramNavigationMargin(
+	public IWpfTextViewMargin CreateMargin(IWpfTextViewHost host, IWpfTextViewMargin containerMargin)
+	{
+		return new EmbeddedGramNavigationMargin(
 			host.TextView,
 			EmbeddedGrammarBufferAnalysis.For(host.TextView.TextBuffer, Workspace, Documents));
+	}
 }
 
 abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
@@ -125,13 +127,19 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 		_view.VisualElement.Focus();
 	}
 
-	void ViewClosed(object sender, EventArgs args) => Dispose();
+	void ViewClosed(object sender, EventArgs args)
+	{
+		Dispose();
+	}
 
 	public FrameworkElement VisualElement => this;
 	public double MarginSize => ActualHeight;
 	public bool Enabled => Visibility == Visibility.Visible;
-	public ITextViewMargin? GetTextViewMargin(string marginName) =>
-		string.Equals(marginName, MarginName, StringComparison.OrdinalIgnoreCase) ? this : null;
+	public ITextViewMargin? GetTextViewMargin(string marginName)
+	{
+		return string.Equals(marginName, MarginName, StringComparison.OrdinalIgnoreCase) ? this : null;
+	}
+
 	protected abstract string MarginName { get; }
 
 	public void Dispose()
@@ -192,6 +200,13 @@ sealed class EmbeddedGramNavigationMargin : GramNavigationMargin
 		}
 	}
 
-	void AnalysisChanged(ITextSnapshot snapshot) => RequestRefresh(snapshot);
-	protected override void Unsubscribe() => _analysis.Changed -= AnalysisChanged;
+	void AnalysisChanged(ITextSnapshot snapshot)
+	{
+		RequestRefresh(snapshot);
+	}
+
+	protected override void Unsubscribe()
+	{
+		_analysis.Changed -= AnalysisChanged;
+	}
 }

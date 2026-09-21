@@ -228,12 +228,18 @@ struct SqlCursor
 	}
 
 	/// <summary>The text of a token, as the tree keeps it.</summary>
-	public readonly string TextOf(in SqlToken token) => Text.Substring(token.Start, token.End - token.Start);
+	public readonly string TextOf(in SqlToken token)
+	{
+		return Text.Substring(token.Start, token.End - token.Start);
+	}
 
 	// ── §5.2 Separators ────────────────────────────────────────────────────────
 
 	/// <summary>Past the comments and whitespace that begin at <paramref name="at"/>.</summary>
-	int Trivia(int at) => Trivia(at, false);
+	int Trivia(int at)
+	{
+		return Trivia(at, false);
+	}
 
 	/// <summary>
 	/// The same, with every bracketed comment closed at the first <c>*/</c> instead of at the one a
@@ -294,7 +300,10 @@ struct SqlCursor
 	/// unclosed and the choice takes its other branch instead. The two branches are tried in that
 	/// order here, which is the order the BNF writes them in.
 	/// </remarks>
-	readonly int Bracketed(int at) => Contents(at + 2, 1);
+	readonly int Bracketed(int at)
+	{
+		return Contents(at + 2, 1);
+	}
 
 	/// <summary>Past a bracketed comment closed at the first <c>*/</c> in it, or -1.</summary>
 	readonly int Plain(int at)
@@ -516,7 +525,10 @@ struct SqlCursor
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	readonly char At(int at) => (uint)at < (uint)Text.Length ? Text[at] : '\0';
+	readonly char At(int at)
+	{
+		return (uint)at < (uint)Text.Length ? Text[at] : '\0';
+	}
 
 	void Punctuation(SqlTokenKind kind, int end)
 	{
@@ -1001,25 +1013,38 @@ struct SqlCursor
 
 	// ── The character classes §5.1 and §5.2 are written in ─────────────────────
 
-	public static bool IsDigit(char ch) => (uint)(ch - '0') <= 9;
+	public static bool IsDigit(char ch)
+	{
+		return (uint)(ch - '0') <= 9;
+	}
 
-	static bool IsDigit(char ch, int radix) =>
-		radix switch
+	static bool IsDigit(char ch, int radix)
+	{
+		return radix switch
 		{
 			'x' => IsHexit(ch),
 			'o' => (uint)(ch - '0') <= 7,
 			'b' => ch == '0' || ch == '1',
-			_   => (uint)(ch - '0') <= 9,
+			_ => (uint)(ch - '0') <= 9,
 		};
+	}
 
-	static bool IsHexit(char ch) => (uint)(ch - '0') <= 9 || (uint)((ch | 0x20) - 'a') <= 5;
+	static bool IsHexit(char ch)
+	{
+		return (uint)(ch - '0') <= 9 || (uint)((ch | 0x20) - 'a') <= 5;
+	}
 
-	static bool IsLatinLetter(char ch) => (uint)((ch | 0x20) - 'a') <= 25;
+	static bool IsLatinLetter(char ch)
+	{
+		return (uint)((ch | 0x20) - 'a') <= 25;
+	}
 
 	/// <summary>An <c>&lt;identifier start&gt;</c>: a letter of any script, or a letter-like number.</summary>
-	public static bool IsIdentifierStart(char ch) =>
-		(uint)((ch | 0x20) - 'a') <= 25 ||
+	public static bool IsIdentifierStart(char ch)
+	{
+		return (uint)((ch | 0x20) - 'a') <= 25 ||
 		ch > 127 && (char.IsLetter(ch) || char.GetUnicodeCategory(ch) == UnicodeCategory.LetterNumber);
+	}
 
 	/// <summary>
 	/// An <c>&lt;identifier part&gt;</c>: a start, a digit, the middle dot, a combining mark, a

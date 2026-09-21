@@ -46,3 +46,13 @@ dotnet_separate_import_directive_groups = true
 # on a member, `internal` on a top-level type.
 dotnet_style_require_accessibility_modifiers = omit_if_default:suggestion
 csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:suggestion
+
+# A method body is a block, never an expression: an expression-bodied method reads as a property
+# (docs/coding-conventions.md). Properties, indexers and accessors may stay expressions, and
+# lambdas are untouched by these three.
+csharp_style_expression_bodied_methods = false:error
+csharp_style_expression_bodied_constructors = false:error
+csharp_style_expression_bodied_local_functions = false:error
+dotnet_diagnostic.IDE0022.severity = error
+dotnet_diagnostic.IDE0021.severity = error
+dotnet_diagnostic.IDE0061.severity = error

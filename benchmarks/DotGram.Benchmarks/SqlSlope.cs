@@ -132,8 +132,10 @@ static class SqlSlope
 		        Median(parses, () => Sql92Parser.TryParseSearchCondition(refused)));
 	}
 
-	static string Input(string term, int terms) =>
-		string.Join(" AND ", Enumerable.Range(0, terms).Select(i => string.Format(term, i)));
+	static string Input(string term, int terms)
+	{
+		return string.Join(" AND ", Enumerable.Range(0, terms).Select(i => string.Format(term, i)));
+	}
 
 	static double Median(int parses, Action once)
 	{

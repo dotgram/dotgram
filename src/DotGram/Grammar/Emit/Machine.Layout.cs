@@ -264,20 +264,27 @@ sealed partial class Machine
 	/// The three fixed states are below <see cref="First"/> and are not renamed: they are
 	/// not states of the table but the three ways out of it.
 	/// </remarks>
-	int Number(int state) =>
-		state - First is var index && index >= 0 && index < _numbers.Length ? _numbers[index] : state;
+	int Number(int state)
+	{
+		return state - First is var index && index >= 0 && index < _numbers.Length ? _numbers[index] : state;
+	}
 
 	/// <summary>And the state a number written in the file is.</summary>
-	int Denumber(int number) =>
-		number - First is var index && index >= 0 && index < _internal.Length
+	int Denumber(int number)
+	{
+		return number - First is var index && index >= 0 && index < _internal.Length
 			? _internal[index] + First
 			: number;
+	}
 
 	/// <summary>
 	/// What something outside the table has to say to arrive at a state: where the state
 	/// really is, under the number it is written with.
 	/// </summary>
-	public int Numbered(int state) => Number(Resolved(state));
+	public int Numbered(int state)
+	{
+		return Number(Resolved(state));
+	}
 
 	/// <summary>The numbers a set of states is written under, ascending.</summary>
 	List<int> Numbering(IEnumerable<int> states)
@@ -442,7 +449,10 @@ sealed partial class Machine
 	/// a slot in the jump table and a jump stub that nothing can execute. Across every
 	/// grammar in this repository that was 82% of the table — 677 cases of 735 in `Url`.
 	/// </remarks>
-	IEnumerable<int> Dispatched() => _dispatched ??= [.. DispatchedNow()];
+	IEnumerable<int> Dispatched()
+	{
+		return _dispatched ??= [.. DispatchedNow()];
+	}
 
 	/// <summary>The same, held: three places ask and two of them ask once per part.</summary>
 	IReadOnlyList<int>? _dispatched;
@@ -494,8 +504,10 @@ sealed partial class Machine
 	bool[] _written = [];
 
 	/// <summary>Whether a state has a label in the output — the three fixed ones always do.</summary>
-	bool Written(int state) =>
-		state - First is var index && (index < 0 || _written.Length == 0 || (index < _written.Length && _written[index]));
+	bool Written(int state)
+	{
+		return state - First is var index && (index < 0 || _written.Length == 0 || (index < _written.Length && _written[index]));
+	}
 
 	/// <summary>The state a body is, where the body is one unconditional jump and nothing else.</summary>
 	static int? JumpOnly(string body)
@@ -579,8 +591,10 @@ sealed partial class Machine
 		};
 	}
 
-	int Resolved(int state) =>
-		state - First is var index && index >= 0 && index < _resolved.Length ? _resolved[index] : state;
+	int Resolved(int state)
+	{
+		return state - First is var index && index >= 0 && index < _resolved.Length ? _resolved[index] : state;
+	}
 
 	static readonly Regex Gotos   = new(@"goto S(\d+);", RegexOptions.Compiled);
 }

@@ -170,9 +170,11 @@ static class StandaloneGrammarInheritance
 		return false;
 	}
 
-	static AttributeData? PrimaryGram(IEnumerable<AttributeData> attributes) =>
-		attributes.FirstOrDefault(static attribute =>
+	static AttributeData? PrimaryGram(IEnumerable<AttributeData> attributes)
+	{
+		return attributes.FirstOrDefault(static attribute =>
 			attribute.AttributeClass?.ToDisplayString() == GramAttribute);
+	}
 
 	static async Task<(string? source, string? FilePath)> FileTextAsync(
 		Project project,
@@ -186,9 +188,11 @@ static class StandaloneGrammarInheritance
 			: ((await document.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString(), document.FilePath);
 	}
 
-	static bool IsFile(string source) =>
-		source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
+	static bool IsFile(string source)
+	{
+		return source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
 		source.IndexOf('\r') < 0 && source.IndexOf('\n') < 0;
+	}
 
 	static bool Matches(string filePath, string wanted)
 	{

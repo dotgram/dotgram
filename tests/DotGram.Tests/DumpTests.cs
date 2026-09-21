@@ -22,7 +22,8 @@ namespace DotGram.Tests;
 public sealed class DumpTests
 {
 	[Fact]
-	public void A_lowered_grammar_prints_as_a_tree() =>
+	public void A_lowered_grammar_prints_as_a_tree()
+	{
 		Assert.Equal(
 			"""
 			Word:
@@ -45,6 +46,7 @@ public sealed class DumpTests
 				"parse Start")
 				.Dump()
 				.Replace("\r\n", "\n"));
+	}
 
 	/// <summary>And one rule of it on its own, which is what a report about one can carry.</summary>
 	[Fact]
@@ -55,8 +57,10 @@ public sealed class DumpTests
 		Assert.StartsWith("Word:", graph.Dump(graph.Rules[0]), StringComparison.Ordinal);
 	}
 
-	static RecognitionGraph Graph(string text) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string text)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).File));
+	}
 }

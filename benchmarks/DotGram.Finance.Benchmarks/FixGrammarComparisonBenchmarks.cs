@@ -7,7 +7,9 @@ using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using BenchmarkDotNet.Attributes;
+
 using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
@@ -111,6 +113,15 @@ public class FixGrammarComparisonBenchmarks
 		if (!Read(left).SequenceEqual(Read(right))) throw new InvalidOperationException("Field types, values or locations differ.");
 	}
 
-	[Benchmark(Baseline = true)] public int Previous() => previous();
-	[Benchmark] public int Simplified() => simplified();
+	[Benchmark(Baseline = true)]
+	public int Previous()
+	{
+		return previous();
+	}
+
+	[Benchmark]
+	public int Simplified()
+	{
+		return simplified();
+	}
 }

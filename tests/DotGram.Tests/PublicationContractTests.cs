@@ -2,11 +2,14 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+
 using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Model;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+
 using Xunit;
 
 namespace DotGram.Tests;

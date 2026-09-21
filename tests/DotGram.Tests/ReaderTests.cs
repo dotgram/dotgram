@@ -44,36 +44,46 @@ public sealed class ReaderTests
 	[InlineData("a")]
 	[InlineData("")]
 	[InlineData("a b c")]
-	public void A_sequence(string input) =>
+	public void A_sequence(string input)
+	{
 		Both("Start = Lexical.Name & Lexical.Name & eof", input);
+	}
 
 	[Theory]
 	[InlineData("a")]
 	[InlineData("1")]
 	[InlineData("+")]
-	public void A_choice_the_first_token_divides(string input) =>
+	public void A_choice_the_first_token_divides(string input)
+	{
 		Both("Start = (Lexical.Name | Lexical.Digits) & eof", input);
+	}
 
 	[Theory]
 	[InlineData("")]
 	[InlineData("a a a")]
 	[InlineData("a 1")]
-	public void A_repetition(string input) =>
+	public void A_repetition(string input)
+	{
 		Both("Start = Lexical.Name* & eof", input);
+	}
 
 	[Theory]
 	[InlineData("a = 1")]
 	[InlineData("a = 1 , b = 2")]
 	[InlineData("a =")]
-	public void A_rule_calling_a_rule(string input) =>
+	public void A_rule_calling_a_rule(string input)
+	{
 		Both("Start = Pair & (',' & Pair)* & eof\nPair = Lexical.Name & '=' & Lexical.Digits", input);
+	}
 
 	[Theory]
 	[InlineData("a 1")]
 	[InlineData("a")]
 	[InlineData("1")]
-	public void A_choice_of_alternatives_that_begin_alike(string input) =>
+	public void A_choice_of_alternatives_that_begin_alike(string input)
+	{
 		Both("Start = (Lexical.Name & Lexical.Digits | Lexical.Name) & eof", input);
+	}
 
 	/// <summary>
 	/// Alternatives that begin alike over more characters than a switch names: `Wide` begins
@@ -110,8 +120,10 @@ public sealed class ReaderTests
 	[Theory]
 	[InlineData("a")]
 	[InlineData("1")]
-	public void A_lookahead(string input) =>
+	public void A_lookahead(string input)
+	{
 		Both("Start = ?!Lexical.Digits & Lexical.Name & eof", input);
+	}
 
 	/// <summary>A value built from a captured rule and captured text.</summary>
 	/// <remarks>
@@ -122,8 +134,10 @@ public sealed class ReaderTests
 	[InlineData("a b 1")]
 	[InlineData("22")]
 	[InlineData("a b")]
-	public void A_value_built_from_captures(string input) =>
+	public void A_value_built_from_captures(string input)
+	{
 		Same(Valued, input);
+	}
 
 	/// <summary>Two rules that keep a value, one built out of the other.</summary>
 	const string Valued =
@@ -151,8 +165,10 @@ public sealed class ReaderTests
 	[InlineData("let 1")]
 	[InlineData("let a")]
 	[InlineData("1")]
-	public void A_value_built_over_a_shared_head(string input) =>
+	public void A_value_built_over_a_shared_head(string input)
+	{
 		Same(Shared, input);
+	}
 
 	/// <summary>Two alternatives that capture one head under one name, which is what lets it be shared.</summary>
 	const string Shared =
@@ -274,24 +290,28 @@ public sealed class ReaderTests
 	[InlineData("a b")]
 	[InlineData("a b c")]
 	[InlineData("")]
-	public void A_capture_gathered_across_turns(string input) =>
+	public void A_capture_gathered_across_turns(string input)
+	{
 		Same(
 			"Start : @string = only: List & eof => @(only)" + Line +
 			"List : @string = first: Lexical.Name & rest: Lexical.Name*" +
 			" => @(first + string.Concat(rest))",
 			input);
+	}
 
 	/// <summary>The same, where each turn keeps a record rather than a run of text.</summary>
 	[Theory]
 	[InlineData("a")]
 	[InlineData("a, 1")]
 	[InlineData("a, 1, 2")]
-	public void A_record_gathered_across_turns(string input) =>
+	public void A_record_gathered_across_turns(string input)
+	{
 		Same(
 			"Start : @string = only: List & eof => @(only)" + Line +
 			"List : @string = first: Lexical.Name & rest: Tail* => @(first + string.Concat(rest))" + Line +
 			"Tail : @string = ',' & one: Lexical.Digits => @(one)",
 			input);
+	}
 
 	/// <summary>A left-recursive rule, which is a base and a loop of steps over it.</summary>
 	/// <remarks>
@@ -307,8 +327,10 @@ public sealed class ReaderTests
 	[InlineData("1 + 2 + 3")]
 	[InlineData("1 + 2 * 3")]
 	[InlineData("1 +")]
-	public void A_rule_that_folds(string input) =>
+	public void A_rule_that_folds(string input)
+	{
 		Same(Folded, input);
+	}
 
 	/// <summary>Two levels of a ladder, both left-recursive.</summary>
 	const string Folded =
@@ -344,12 +366,14 @@ public sealed class ReaderTests
 	[InlineData("a 1")]
 	[InlineData("a")]
 	[InlineData("1")]
-	public void A_value_left_behind_by_an_alternative_that_failed(string input) =>
+	public void A_value_left_behind_by_an_alternative_that_failed(string input)
+	{
 		Same(
 			"Start : @string = only: Item & eof => @(only)" + Line +
 			"Item : @string = x: Pair & Lexical.Digits => @(x) | y: Lexical.Name => @(y)" + Line +
 			"Pair : @string = n: Lexical.Name => @(n)",
 			input);
+	}
 
 	/// <summary>One line of a grammar written as one string.</summary>
 	const string Line = "\n";
@@ -375,16 +399,20 @@ public sealed class ReaderTests
 	[InlineData("a")]
 	[InlineData("ab")]
 	[InlineData("")]
-	public void A_run_gives_a_character_back(string input) =>
+	public void A_run_gives_a_character_back(string input)
+	{
 		Characters("Start = ['a'..'z']+ & 'a' & eof", input);
+	}
 
 	/// <summary>And gives back as many as it has to.</summary>
 	[Theory]
 	[InlineData("aaaa")]
 	[InlineData("aaa")]
 	[InlineData("aa")]
-	public void A_run_gives_back_as_many_as_it_must(string input) =>
+	public void A_run_gives_back_as_many_as_it_must(string input)
+	{
 		Characters("Start = ['a'..'z']* & 'a' & 'a' & 'a' & eof", input);
+	}
 
 	/// <summary>An alternative that matched gives way to the next one.</summary>
 	/// <remarks>
@@ -396,31 +424,39 @@ public sealed class ReaderTests
 	[InlineData("ab")]
 	[InlineData("ac")]
 	[InlineData("ad")]
-	public void An_alternative_gives_way_to_the_next(string input) =>
+	public void An_alternative_gives_way_to_the_next(string input)
+	{
 		Characters("Start = ('a' & 'b' | 'a' & 'c') & eof", input);
+	}
 
 	/// <summary>A run inside an alternative, given back after the choice moved on.</summary>
 	[Theory]
 	[InlineData("aab")]
 	[InlineData("aac")]
 	[InlineData("ac")]
-	public void A_run_inside_an_alternative(string input) =>
+	public void A_run_inside_an_alternative(string input)
+	{
 		Characters("Start = (['a'..'z']+ & 'b' | ['a'..'z']+ & 'c') & eof", input);
+	}
 
 	/// <summary>A look decides once, and what it decided is not reopened.</summary>
 	[Theory]
 	[InlineData("abc")]
 	[InlineData("xbc")]
-	public void A_look_over_characters(string input) =>
+	public void A_look_over_characters(string input)
+	{
 		Characters("Start = ?!'x' & ['a'..'z']+ & eof", input);
+	}
 
 	/// <summary>One rule calling another, each with a way back of its own.</summary>
 	[Theory]
 	[InlineData("aaa")]
 	[InlineData("aab")]
 	[InlineData("ab")]
-	public void A_rule_over_characters_calling_a_rule(string input) =>
+	public void A_rule_over_characters_calling_a_rule(string input)
+	{
 		Characters("Start = Run & 'a' & eof\nRun = ['a'..'z']+", input);
+	}
 
 	/// <summary>
 	/// Shapes that make the tape work, each against every input, both ways.
@@ -707,11 +743,13 @@ public sealed class ReaderTests
 		Assert.Equal(Reads(whole, input, reader: false), Reads(whole, input, reader: true));
 	}
 
-	static bool Reads(string grammar, string input, bool reader, bool lexical = true) =>
-		EmittedCode
+	static bool Reads(string grammar, string input, bool reader, bool lexical = true)
+	{
+		return EmittedCode
 			.Match(
 				EmittedCode.Compile(Written(grammar, reader, lexical)), "Grammar", "TryParseStart", input)
 			.IsSuccess;
+	}
 
 	/// <param name="carrier">
 	/// The generator's own choice unless a test is about what one carrier writes: a test that

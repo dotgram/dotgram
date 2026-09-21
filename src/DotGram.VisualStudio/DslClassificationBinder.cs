@@ -143,7 +143,10 @@ public static class DslClassificationBinder
 		void Diagnostic(
 			DslClassificationBindingDiagnosticKind kind,
 			DslClassificationDefinition definition,
-			string message) => diagnostics.Add(new DslClassificationBindingDiagnostic(kind, definition, message));
+			string message)
+		{
+			diagnostics.Add(new DslClassificationBindingDiagnostic(kind, definition, message));
+		}
 	}
 
 	static IEnumerable<GramDocumentSymbol> Rules(IReadOnlyList<GramDocumentSymbol> symbols)

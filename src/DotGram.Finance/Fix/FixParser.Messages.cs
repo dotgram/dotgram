@@ -35,15 +35,19 @@ public static partial class FixParser
 	/// <param name="input">The whole message, as octets held one to a character.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <exception cref="FormatException">The input is not one readable message.</exception>
-	public static FixMessage ParseMessage(string input, FixFieldOptions? options = null) =>
-		FixMessages.Parse(input, options);
+	public static FixMessage ParseMessage(string input, FixFieldOptions? options = null)
+	{
+		return FixMessages.Parse(input, options);
+	}
 
 	/// <summary>Reads one message from a buffer, checking framing, BodyLength and CheckSum.</summary>
 	/// <param name="input">The whole message, as octets held one to a character.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <exception cref="FormatException">The input is not one readable message.</exception>
-	public static FixMessage ParseMessage(ReadOnlySpan<char> input, FixFieldOptions? options = null) =>
-		FixMessages.Parse(input, options);
+	public static FixMessage ParseMessage(ReadOnlySpan<char> input, FixFieldOptions? options = null)
+	{
+		return FixMessages.Parse(input, options);
+	}
 
 	/// <summary>Reads one message from a buffer; a malformed one answers with a diagnostic.</summary>
 	/// <param name="input">The whole message, as octets held one to a character.</param>
@@ -51,8 +55,10 @@ public static partial class FixParser
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParseMessage(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null) =>
-		FixMessages.TryParse(input, out message, out error, options);
+	public static bool TryParseMessage(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		return FixMessages.TryParse(input, out message, out error, options);
+	}
 
 	/// <summary>Reads one message from a buffer; a malformed one answers with a diagnostic.</summary>
 	/// <param name="input">The whole message, as octets held one to a character.</param>
@@ -60,8 +66,10 @@ public static partial class FixParser
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParseMessage(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null) =>
-		FixMessages.TryParse(input, out message, out error, options);
+	public static bool TryParseMessage(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		return FixMessages.TryParse(input, out message, out error, options);
+	}
 
 	/// <summary>Reads every message of a buffer, in order.</summary>
 	/// <param name="input">Concatenated messages, as octets held one to a character.</param>
@@ -92,24 +100,30 @@ public static partial class FixParser
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
-	public static FixMessage[] ParseMessages(ReadOnlySpan<char> input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength) =>
-		ParseMessages(input.ToString(), options, maxMessageLength);
+	public static FixMessage[] ParseMessages(ReadOnlySpan<char> input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return ParseMessages(input.ToString(), options, maxMessageLength);
+	}
 
 	/// <summary>Reads exactly one message from a reader, without closing it or reading past it.</summary>
 	/// <param name="input">The reader, which is left open.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage ReadMessage(TextReader input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength) =>
-		FixMessages.Parse(input, options, maxMessageLength);
+	public static FixMessage ReadMessage(TextReader input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return FixMessages.Parse(input, options, maxMessageLength);
+	}
 
 	/// <summary>Reads exactly one message from a stream, without closing it or reading past it.</summary>
 	/// <param name="input">The stream, which is left open.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage ReadMessage(Stream input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength) =>
-		FixMessages.Parse(input, options, maxMessageLength);
+	public static FixMessage ReadMessage(Stream input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return FixMessages.Parse(input, options, maxMessageLength);
+	}
 
 	/// <summary>Reads one message from a reader; a malformed one answers with a diagnostic.</summary>
 	/// <param name="input">The reader, which is left open.</param>
@@ -118,8 +132,10 @@ public static partial class FixParser
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryReadMessage(TextReader input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength) =>
-		FixMessages.TryParse(input, out message, out error, options, maxMessageLength);
+	public static bool TryReadMessage(TextReader input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return FixMessages.TryParse(input, out message, out error, options, maxMessageLength);
+	}
 
 	/// <summary>Reads one message from a stream; a malformed one answers with a diagnostic.</summary>
 	/// <param name="input">The stream, which is left open.</param>
@@ -128,22 +144,28 @@ public static partial class FixParser
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryReadMessage(Stream input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength) =>
-		FixMessages.TryParse(input, out message, out error, options, maxMessageLength);
+	public static bool TryReadMessage(Stream input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return FixMessages.TryParse(input, out message, out error, options, maxMessageLength);
+	}
 
 	/// <summary>Reads concatenated messages from a reader, one at a time, reusing a frame buffer.</summary>
 	/// <param name="input">The reader, which is left open and owned by the caller.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(TextReader input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength) =>
-		FixMessages.ReadMessages(input, options, maxMessageLength);
+	public static IEnumerable<FixMessage> ReadMessages(TextReader input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return FixMessages.ReadMessages(input, options, maxMessageLength);
+	}
 
 	/// <summary>Reads concatenated messages from a stream, one at a time, reusing a frame buffer.</summary>
 	/// <param name="input">The stream, which is left open and owned by the caller.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(Stream input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength) =>
-		FixMessages.ReadMessages(input, options, maxMessageLength);
+	public static IEnumerable<FixMessage> ReadMessages(Stream input, FixFieldOptions? options = null, int maxMessageLength = DefaultMaxMessageLength)
+	{
+		return FixMessages.ReadMessages(input, options, maxMessageLength);
+	}
 
 	/// <summary>
 	/// Builds one message from fields already read from that exact source, without reading it again.
@@ -157,8 +179,10 @@ public static partial class FixParser
 	/// happened in <see cref="ParseFields(string, FixFieldOptions)"/>, and this puts a message
 	/// together from what came back.
 	/// </remarks>
-	public static FixMessage BuildMessage(string source, FixField[] fields, FixFieldOptions? options = null) =>
-		FixMessages.Build(source, fields, options);
+	public static FixMessage BuildMessage(string source, FixField[] fields, FixFieldOptions? options = null)
+	{
+		return FixMessages.Build(source, fields, options);
+	}
 
 	/// <summary>The same, answering with a diagnostic rather than throwing.</summary>
 	/// <param name="source">The source those fields were read from.</param>
@@ -167,6 +191,8 @@ public static partial class FixParser
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryBuildMessage(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null) =>
-		FixMessages.TryBuild(source, fields, out message, out error, options);
+	public static bool TryBuildMessage(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		return FixMessages.TryBuild(source, fields, out message, out error, options);
+	}
 }

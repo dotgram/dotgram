@@ -18,15 +18,19 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class ReplayTests
 {
-	static Replay.Report Report(string grammar) =>
-		Replay.Of(
+	static Replay.Report Report(string grammar)
+	{
+		return Replay.Of(
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
 						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+	}
 
-	static Replay.Because Of(Replay.Report report, string rule) =>
-		report.Rules.Single(pair => pair.Key.Name == rule).Value;
+	static Replay.Because Of(Replay.Report report, string rule)
+	{
+		return report.Rules.Single(pair => pair.Key.Name == rule).Value;
+	}
 
 	/// <summary>
 	/// A sibling replaces an alternative only where it can begin where the alternative began.

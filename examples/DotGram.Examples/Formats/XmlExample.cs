@@ -87,7 +87,10 @@ namespace DotGram.Examples.Formats;
 public sealed partial class XmlParser
 {
 	/// <summary>Reads one element and everything under it, or throws.</summary>
-	public static XmlElement Read(string text) => ParseXml(text);
+	public static XmlElement Read(string text)
+	{
+		return ParseXml(text);
+	}
 }
 
 /// <summary>Either an element or a run of text.</summary>

@@ -32,7 +32,10 @@ public sealed class CarrierTests
 {
 	static readonly (string Name, string Grammar, string[] Inputs)[] Shapes = CarrierShapes.All;
 
-	public static IEnumerable<object[]> Every() => Shapes.Select(one => new object[] { one.Name });
+	public static IEnumerable<object[]> Every()
+	{
+		return Shapes.Select(one => new object[] { one.Name });
+	}
 
 	/// <summary>The immediate carrier agrees with the tape on every shape and every input.</summary>
 	[Theory]
@@ -553,14 +556,16 @@ public sealed class CarrierTests
 		}
 	}
 
-	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
-		GramCompiler.Compile(grammar, new GramCompilerOptions
+	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier)
+	{
+		return GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			ClassName     = "Probe",
-			Namespace     = "Carried",
+			ClassName = "Probe",
+			Namespace = "Carried",
 			CSharpScanner = RoslynCSharpScanner.Instance,
-			Carrier       = carrier,
+			Carrier = carrier,
 		}).Diagnostics;
+	}
 
 	[Theory]
 	[InlineData("Letter = ['a'..'z']")]
@@ -814,8 +819,10 @@ public sealed class CarrierTests
 		}
 	}
 
-	static string? ValueOf((bool IsSuccess, object? Value, string? Error, long Position) match) =>
-		match.Value?.ToString();
+	static string? ValueOf((bool IsSuccess, object? Value, string? Error, long Position) match)
+	{
+		return match.Value?.ToString();
+	}
 
 	static (string Source, Assembly Assembly) Compiled(string grammar, CarrierKind carrier)
 	{

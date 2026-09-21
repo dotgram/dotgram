@@ -19,10 +19,12 @@ public readonly record struct Token(TokenKind Kind, int Position, int Length, st
 	/// Quotes and backslashes in the value are escaped, so a value that itself
 	/// contains a quote cannot be read as the end of one.
 	/// </summary>
-	public override string ToString() =>
-		Value is null
+	public override string ToString()
+	{
+		return Value is null
 			? Kind.ToString()
 			: $"{Kind} \"{Value.Replace("\\", @"\\").Replace("\"", "\\\"")}\"";
+	}
 }
 
 /// <summary>The result of lexing: the tokens, and what went wrong producing them.</summary>

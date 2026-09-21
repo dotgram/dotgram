@@ -108,15 +108,19 @@ public sealed class DslGrammarSourceResolverTests
 			resolution.Text);
 	}
 
-	static Project Project() =>
-		new AdhocWorkspace().AddProject("Dsl", LanguageNames.CSharp);
+	static Project Project()
+	{
+		return new AdhocWorkspace().AddProject("Dsl", LanguageNames.CSharp);
+	}
 
-	static DslLanguageDefinition Language(DslGrammarSourceKind kind, string source) =>
-		new(
+	static DslLanguageDefinition Language(DslGrammarSourceKind kind, string source)
+	{
+		return new(
 			"test",
 			null!,
 			kind,
 			source,
 			[],
 			[]);
+	}
 }

@@ -249,11 +249,15 @@ static class Bnf
 		return tokens;
 	}
 
-	static bool Bang(string body, int at) =>
-		body[at] == '!' && at + 1 < body.Length && body[at + 1] == '!';
+	static bool Bang(string body, int at)
+	{
+		return body[at] == '!' && at + 1 < body.Length && body[at + 1] == '!';
+	}
 
-	static bool Ellipsis(string body, int at) =>
-		at + 2 < body.Length && body[at] == '.' && body[at + 1] == '.' && body[at + 2] == '.';
+	static bool Ellipsis(string body, int at)
+	{
+		return at + 2 < body.Length && body[at] == '.' && body[at + 1] == '.' && body[at + 2] == '.';
+	}
 
 	/// <summary>The length of a <c>&lt;name&gt;</c> starting here, or null: a letter after the bracket and its close on the same line.</summary>
 	static int? Name(string body, int at)

@@ -236,39 +236,56 @@ public sealed partial class GrammarNormalizer
 		// could read nothing and go on to whatever follows the sequence, the answer is anything,
 		// and the rewrite is not made. Asking FOLLOW of the whole grammar for the few places
 		// that could use it cost more than the rewrite was worth.
-		FirstSets.First After(IReadOnlyList<Node> parts, int from) =>
-			from >= parts.Count
+		FirstSets.First After(IReadOnlyList<Node> parts, int from)
+		{
+			return from >= parts.Count
 				? FirstSets.First.All
 				: FollowSets.Plainly(new Node.Sequence([.. parts.Skip(from)]), FirstSets.First.All, graph);
+		}
 
 		// What is read after a seam, as one node.
-		static Node Beginning(List<Node> parts) => parts.Count == 1 ? parts[0] : new Node.Sequence(parts);
+		static Node Beginning(List<Node> parts)
+		{
+			return parts.Count == 1 ? parts[0] : new Node.Sequence(parts);
+		}
 
-		static Node Sequence(List<Node> parts) => parts.Count == 1 ? parts[0] : new Node.Sequence(parts);
+		static Node Sequence(List<Node> parts)
+		{
+			return parts.Count == 1 ? parts[0] : new Node.Sequence(parts);
+		}
 
-		static RuleSymbol? Seam(Node? node) => node is Node.Call(var called, { Count: 0 }) ? called : null;
+		static RuleSymbol? Seam(Node? node)
+		{
+			return node is Node.Call(var called, { Count: 0 }) ? called : null;
+		}
 
 		// Whether what follows a seam must consume and cannot begin inside what the seam read:
 		// then the seam has one reading that can lead anywhere, its longest.
-		bool Apart(RuleSymbol seam, Node rest) =>
-			!FirstSets.Nullable(rest, graph) && !Contained(seam).Overlaps(FirstSets.Of(rest, graph));
+		bool Apart(RuleSymbol seam, Node rest)
+		{
+			return !FirstSets.Nullable(rest, graph) && !Contained(seam).Overlaps(FirstSets.Of(rest, graph));
+		}
 
-		FirstSets.First Contained(RuleSymbol seam) =>
-			contained.TryGetValue(seam, out var known)
+		FirstSets.First Contained(RuleSymbol seam)
+		{
+			return contained.TryGetValue(seam, out var known)
 				? known
 				: contained[seam] = Determinism.Contained(seam, graph);
+		}
 
 		// A star that only reads — its body a repetition without a bound, or an optional of a rule
 		// that is one — with nothing in it, or in what it calls, that guards, marks, builds or
 		// captures.
-		bool OnlyReads(RuleSymbol seam) =>
-			reading.TryGetValue(seam, out var known)
+		bool OnlyReads(RuleSymbol seam)
+		{
+			return reading.TryGetValue(seam, out var known)
 				? known
 				: reading[seam] = _bodies.TryGetValue(seam, out var body) &&
 					(body is Node.Repeat(_, 0, null) ||
 					 body is Node.Repeat(Node.Call(var inner, { Count: 0 }), 0, 1) &&
 						_bodies.TryGetValue(inner, out var run) && run is Node.Repeat(_, _, null)) &&
 					Reads(body, [seam]);
+		}
 
 		bool Reads(Node body, HashSet<RuleSymbol> seen)
 		{

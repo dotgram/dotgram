@@ -7,7 +7,9 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Text;
+
 using BenchmarkDotNet.Attributes;
+
 using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 
@@ -22,9 +24,12 @@ public class FixInitializationBenchmarks
 	Func<int> previous = null!;
 	Func<int> simplified = null!;
 
-	internal static Type TypeOf(bool old) => !old ? typeof(FixParser) : oldType ??=
+	internal static Type TypeOf(bool old)
+	{
+		return !old ? typeof(FixParser) : oldType ??=
 		Environment.GetEnvironmentVariable("DOTGRAM_FIX_BASELINE") is { } path
 			? FixGrammarComparisonBenchmarks.PreviousType(path) : typeof(Fix44Parser);
+	}
 
 	[GlobalSetup]
 	public void Setup()
@@ -66,6 +71,15 @@ public class FixInitializationBenchmarks
 		for (var i = 0; i < 20000; i++) operation();
 	}
 
-	[Benchmark(Baseline = true)] public int Previous() => previous();
-	[Benchmark] public int Simplified() => simplified();
+	[Benchmark(Baseline = true)]
+	public int Previous()
+	{
+		return previous();
+	}
+
+	[Benchmark]
+	public int Simplified()
+	{
+		return simplified();
+	}
 }

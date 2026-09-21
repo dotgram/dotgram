@@ -26,8 +26,10 @@ public sealed class DslLiteralCompletionParserTests
 	[Theory]
 	[InlineData("['a'..'z']")]
 	[InlineData("end of input")]
-	public void RejectsNonLiteralExpectations(string expected) =>
+	public void RejectsNonLiteralExpectations(string expected)
+	{
 		Assert.Null(DslLiteralCompletionParser.Parse(expected));
+	}
 
 	[Fact]
 	public void ExpandsFiniteCharacterSetButNotRange()

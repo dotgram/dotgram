@@ -59,14 +59,19 @@ partial class HandSqlStandard
 	}
 
 	/// <summary>The <c>FORMAT JSON</c> after a value, where one was written.</summary>
-	static JsonInputClause? Format(ref SqlCursor cursor) => JSONInputClause(ref cursor, out var input) ? input : null;
+	static JsonInputClause? Format(ref SqlCursor cursor)
+	{
+		return JSONInputClause(ref cursor, out var input) ? input : null;
+	}
 
-	static JsonPredicateType? JSONPredicateTypeConstraint(ref SqlCursor cursor) =>
-		cursor.Take(SqlWord.Value)      ? JsonPredicateType.Value :
-		cursor.Take(SqlWord.Array)      ? JsonPredicateType.Array :
-		cursor.TakeWord("OBJECT")       ? JsonPredicateType.Object :
-		cursor.TakeWord("SCALAR")       ? JsonPredicateType.Scalar :
+	static JsonPredicateType? JSONPredicateTypeConstraint(ref SqlCursor cursor)
+	{
+		return cursor.Take(SqlWord.Value) ? JsonPredicateType.Value :
+		cursor.Take(SqlWord.Array) ? JsonPredicateType.Array :
+		cursor.TakeWord("OBJECT") ? JsonPredicateType.Object :
+		cursor.TakeWord("SCALAR") ? JsonPredicateType.Scalar :
 		null;
+	}
 
 	/// <summary><c>WITH UNIQUE [KEYS]</c> and its three fellows.</summary>
 	static JsonKeyUniqueness? JSONKeyUniquenessConstraint(ref SqlCursor cursor)
@@ -868,8 +873,10 @@ partial class HandSqlStandard
 		var member    = (Expression.Member)method;
 		var arguments = member.Arguments ?? [];
 
-		int? Number(int at) =>
-			arguments.Count > at ? (int)Long(((LiteralValue.Numeric)((Expression.Literal)arguments[at].Value).Value).Text.AsSpan()) : null;
+		int? Number(int at)
+		{
+			return arguments.Count > at ? (int)Long(((LiteralValue.Numeric)((Expression.Literal)arguments[at].Value).Value).Text.AsSpan()) : null;
+		}
 
 		return member.Name.Text.ToUpperInvariant() switch
 		{
@@ -1574,15 +1581,19 @@ partial class HandSqlStandard
 
 	static JsonTablePlan? JSONTableDefaultPlanChoices(ref SqlCursor cursor)
 	{
-		JsonTableDefaultInnerOuter? InnerOuter(ref SqlCursor reading) =>
-			reading.Take(SqlWord.Inner) ? JsonTableDefaultInnerOuter.Inner :
+		JsonTableDefaultInnerOuter? InnerOuter(ref SqlCursor reading)
+		{
+			return reading.Take(SqlWord.Inner) ? JsonTableDefaultInnerOuter.Inner :
 			reading.Take(SqlWord.Outer) ? JsonTableDefaultInnerOuter.Outer :
 			null;
+		}
 
-		JsonTableDefaultUnionCross? UnionCross(ref SqlCursor reading) =>
-			reading.Take(SqlWord.Union) ? JsonTableDefaultUnionCross.Union :
+		JsonTableDefaultUnionCross? UnionCross(ref SqlCursor reading)
+		{
+			return reading.Take(SqlWord.Union) ? JsonTableDefaultUnionCross.Union :
 			reading.Take(SqlWord.Cross) ? JsonTableDefaultUnionCross.Cross :
 			null;
+		}
 
 		var save   = cursor;
 		var inner  = InnerOuter(ref cursor);

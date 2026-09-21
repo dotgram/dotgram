@@ -1287,15 +1287,18 @@ public static class FirstSets
 	}
 
 	/// <summary>The first part of a body that is not a capture, construction or mark around it.</summary>
-	static Node? Leading(Node node) => node switch
+	static Node? Leading(Node node)
 	{
-		Node.Sequence(var parts) when parts.Count > 0 => parts[0],
-		Node.Capture(_, var held)                     => Leading(held),
-		Node.Construct(var built, _)                  => Leading(built),
-		Node.Marked(var kept, _)                      => Leading(kept),
-		Node.Atomic(var kept)                         => Leading(kept),
-		_                                             => node,
-	};
+		return node switch
+		{
+			Node.Sequence(var parts) when parts.Count > 0 => parts[0],
+			Node.Capture(_, var held) => Leading(held),
+			Node.Construct(var built, _) => Leading(built),
+			Node.Marked(var kept, _) => Leading(kept),
+			Node.Atomic(var kept) => Leading(kept),
+			_ => node,
+		};
+	}
 
 	/// <summary>
 	/// What a node can read right after a first token from <paramref name="first"/>, and
@@ -1410,8 +1413,10 @@ public static class FirstSets
 	}
 
 	/// <summary>Both, where both are known; not known where either is not.</summary>
-	static First? Or(First? one, First? other) =>
-		one is null || other is null || one.Anything || other.Anything ? null : one.Or(other);
+	static First? Or(First? one, First? other)
+	{
+		return one is null || other is null || one.Anything || other.Anything ? null : one.Or(other);
+	}
 
 	/// <summary>What a node can match when it matches exactly one token, or nothing.</summary>
 	/// <remarks>
@@ -1556,46 +1561,56 @@ public static class FirstSets
 	}
 
 	/// <summary>The node with a leading application of the seam taken off, for First.</summary>
-	static Node PastSeam(Node node, RuleSymbol? seam) =>
-		seam is not null &&
+	static Node PastSeam(Node node, RuleSymbol? seam)
+	{
+		return seam is not null &&
 		node is Node.Sequence(var parts) &&
 		parts.Count > 1 &&
 		parts[0] is Node.Call(var called, _) &&
 		ReferenceEquals(called, seam)
 			? parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)])
 			: node;
+	}
 
-	static bool IsSeamCall(Node node, RuleSymbol? seam) =>
-		seam is not null && node is Node.Call(var called, _) && ReferenceEquals(called, seam);
+	static bool IsSeamCall(Node node, RuleSymbol? seam)
+	{
+		return seam is not null && node is Node.Call(var called, _) && ReferenceEquals(called, seam);
+	}
 
 	/// <summary>Whether every reading of a node consumes exactly one character.</summary>
-	static bool OneCharacter(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen) =>
-		node switch
+	static bool OneCharacter(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		return node switch
 		{
-			Node.Literal(var text)                  => text.Length == 1,
-			Node.Element(_, _, _, var references)   => references.Count == 0,
+			Node.Literal(var text) => text.Length == 1,
+			Node.Element(_, _, _, var references) => references.Count == 0,
 			Node.Choice(var alternatives) { Selection: null } => alternatives.All(one => OneCharacter(one, graph, seen)),
-			Node.Sequence(var parts)                => parts.Count(part => !Silent(part)) == 1 &&
-			                                           parts.All(part => Silent(part) || OneCharacter(part, graph, seen)),
-			Node.Capture(_, var held)               => OneCharacter(held, graph, seen),
-			Node.Atomic(var body)                   => OneCharacter(body, graph, seen),
-			Node.Marked(var body, _)                => OneCharacter(body, graph, seen),
-			Node.Construct(var built, _)            => OneCharacter(built, graph, seen),
+			Node.Sequence(var parts) => parts.Count(part => !Silent(part)) == 1 &&
+													   parts.All(part => Silent(part) || OneCharacter(part, graph, seen)),
+			Node.Capture(_, var held) => OneCharacter(held, graph, seen),
+			Node.Atomic(var body) => OneCharacter(body, graph, seen),
+			Node.Marked(var body, _) => OneCharacter(body, graph, seen),
+			Node.Construct(var built, _) => OneCharacter(built, graph, seen),
 			Node.Repeat(var body, var min, var max) => min == 1 && max == 1 && OneCharacter(body, graph, seen),
-			Node.Call(var called, _)                => seen.Add(called) &&
-			                                           graph.Bodies.TryGetValue(called, out var body) &&
-			                                           OneCharacter(body, graph, seen),
-			_                                       => false,
+			Node.Call(var called, _) => seen.Add(called) &&
+													   graph.Bodies.TryGetValue(called, out var body) &&
+													   OneCharacter(body, graph, seen),
+			_ => false,
 		};
+	}
 
 	/// <summary>A part that reads nothing: a look, a guard, or nothing at all.</summary>
-	static bool Silent(Node node) =>
-		node is Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading;
+	static bool Silent(Node node)
+	{
+		return node is Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading;
+	}
 
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>
 	public static First Following(
-		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam = null) =>
-		Following(parts, from, graph, seam, ByRule(graph));
+		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam = null)
+	{
+		return Following(parts, from, graph, seam, ByRule(graph));
+	}
 
 	static First Following(
 		IReadOnlyList<Node> parts, int from, RecognitionGraph graph, RuleSymbol? seam,
@@ -1674,7 +1689,10 @@ public static class FirstSets
 	}
 
 	/// <summary>What a node can begin with.</summary>
-	public static First Of(Node node, RecognitionGraph graph) => Inner(node, graph, ByRule(graph));
+	public static First Of(Node node, RecognitionGraph graph)
+	{
+		return Inner(node, graph, ByRule(graph));
+	}
 
 	/// <summary>
 	/// What a node begins with, kept on the graph once what the rules begin with has settled
@@ -2059,7 +2077,10 @@ public static class FirstSets
 	}
 
 	/// <summary>Whether a node can match without consuming anything.</summary>
-	public static bool Nullable(Node node, RecognitionGraph graph) => Nullable(node, graph.RuleIsNullable);
+	public static bool Nullable(Node node, RecognitionGraph graph)
+	{
+		return Nullable(node, graph.RuleIsNullable);
+	}
 
 	/// <summary>
 	/// The same question where the answer for a rule is not settled yet.
@@ -2080,21 +2101,24 @@ public static class FirstSets
 	/// parameter.
 	/// </para>
 	/// </remarks>
-	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule) => node switch
+	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule)
 	{
-		Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
-		Node.Literal(var text)                       => text.Length == 0,
-		Node.Element                                 => false,
-		Node.Atomic(var body)                        => Nullable(body,     rule),
-		Node.Marked(var body, _)                     => Nullable(body,     rule),
-		Node.Capture(_, var captured)                => Nullable(captured, rule),
-		Node.Construct(var built, _)                 => Nullable(built,    rule),
-		Node.Repeat(var body, var min, _)            => min == 0 || Nullable(body, rule),
-		Node.Sequence(var parts)                     => All(parts,        rule),
-		Node.Choice(var alternatives)                => Any(alternatives, rule),
-		Node.Call(var called, _)                     => rule(called),
-		_                                            => false,
-	};
+		return node switch
+		{
+			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
+			Node.Literal(var text) => text.Length == 0,
+			Node.Element => false,
+			Node.Atomic(var body) => Nullable(body, rule),
+			Node.Marked(var body, _) => Nullable(body, rule),
+			Node.Capture(_, var captured) => Nullable(captured, rule),
+			Node.Construct(var built, _) => Nullable(built, rule),
+			Node.Repeat(var body, var min, _) => min == 0 || Nullable(body, rule),
+			Node.Sequence(var parts) => All(parts, rule),
+			Node.Choice(var alternatives) => Any(alternatives, rule),
+			Node.Call(var called, _) => rule(called),
+			_ => false,
+		};
+	}
 
 	static bool All(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule)
 	{

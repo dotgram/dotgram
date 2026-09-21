@@ -24,8 +24,10 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 
 	/// <summary>A JSON Pointer in its string form (RFC 6901 §3): nothing, or tokens each after a <c>/</c>.</summary>
 	/// <exception cref="FormatException">The text is no pointer; the message says where.</exception>
-	public static JsonPointer Parse(string text) =>
-		Rfc6901.ParsePointer(text ?? throw new ArgumentNullException(nameof(text)));
+	public static JsonPointer Parse(string text)
+	{
+		return Rfc6901.ParsePointer(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A JSON Pointer in its string form, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out JsonPointer? pointer)
@@ -39,8 +41,10 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 
 	/// <summary>A JSON Pointer in a URI fragment (§6): <c>#</c>, and the string form pct-encoded as UTF-8.</summary>
 	/// <exception cref="FormatException">The text is no fragment holding a pointer; the message says where.</exception>
-	public static JsonPointer ParseFragment(string text) =>
-		Rfc6901.ParseFragment(text ?? throw new ArgumentNullException(nameof(text)));
+	public static JsonPointer ParseFragment(string text)
+	{
+		return Rfc6901.ParseFragment(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A JSON Pointer in a URI fragment, or false where the text is not one.</summary>
 	public static bool TryParseFragment(string text, [NotNullWhen(true)] out JsonPointer? pointer)
@@ -53,10 +57,16 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	}
 
 	/// <summary>Equal to another pointer with the same tokens in the same order.</summary>
-	public bool Equals(JsonPointer? other) => other is not null && Structural.Same(Tokens, other.Tokens);
+	public bool Equals(JsonPointer? other)
+	{
+		return other is not null && Structural.Same(Tokens, other.Tokens);
+	}
 
 	/// <summary>A hash over the reference tokens.</summary>
-	public override int GetHashCode() => Structural.Hash(Tokens);
+	public override int GetHashCode()
+	{
+		return Structural.Hash(Tokens);
+	}
 
 	/// <summary>The pointer as a JSON string holds it (§5): each token after a <c>/</c>, escaped.</summary>
 	public override string ToString()
@@ -129,7 +139,10 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	}
 
 	/// <summary>Whether a token is <c>-</c>, the element after an array's last (§4).</summary>
-	public static bool IsPastTheEnd(string token) => token == "-";
+	public static bool IsPastTheEnd(string token)
+	{
+		return token == "-";
+	}
 
 	/// <summary>The value this pointer refers to in a document (§4), or null where it refers to none.</summary>
 	/// <remarks>
@@ -194,11 +207,13 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	}
 
 	// RFC 3986 §3.5: a fragment is pchar, `/` and `?`; a `%` is always a triplet's.
-	static bool Allowed(char c) =>
-		c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or
+	static bool Allowed(char c)
+	{
+		return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or
 			'-' or '.' or '_' or '~' or
 			'!' or '$' or '&' or '\'' or '(' or ')' or '*' or '+' or ',' or ';' or '=' or
 			':' or '@' or '/' or '?';
+	}
 
 	const string Hex = "0123456789ABCDEF";
 }
@@ -240,8 +255,10 @@ static partial class Rfc6901
 {
 	// ParsePointer, TryParsePointer, ParseFragment and TryParseFragment are generated here.
 
-	internal static string Unescaped(string text) =>
-		text.IndexOf('~') < 0 ? text : text.Replace("~1", "/").Replace("~0", "~");
+	internal static string Unescaped(string text)
+	{
+		return text.IndexOf('~') < 0 ? text : text.Replace("~1", "/").Replace("~0", "~");
+	}
 
 	/// <summary>The pointer a fragment's text holds, or null where its bytes are not UTF-8 or its text no pointer.</summary>
 	internal static JsonPointer? FromFragment(string text)
@@ -274,8 +291,10 @@ static partial class Rfc6901
 		return TryParsePointer(decoded, out var pointer) ? pointer : null;
 	}
 
-	static int Hex(char digit) =>
-		digit <= '9' ? digit - '0' : (digit | 0x20) - 'a' + 10;
+	static int Hex(char digit)
+	{
+		return digit <= '9' ? digit - '0' : (digit | 0x20) - 'a' + 10;
+	}
 
 	static readonly UTF8Encoding Strict = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 }

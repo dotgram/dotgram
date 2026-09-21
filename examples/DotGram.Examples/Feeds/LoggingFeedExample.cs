@@ -38,8 +38,10 @@ namespace DotGram.Examples.Feeds;
 /// <summary>A record the feed could not read, as an operational event rather than data.</summary>
 public sealed record FeedRejection(string Rule, int Line, string Text, string Message)
 {
-	public override string ToString() =>
-		$"line {Line.ToString(CultureInfo.InvariantCulture)}: {Message} — {Text}";
+	public override string ToString()
+	{
+		return $"line {Line.ToString(CultureInfo.InvariantCulture)}: {Message} — {Text}";
+	}
 }
 
 [Gram("""
@@ -92,6 +94,8 @@ public static partial class LoggingFeedReader
 	/// mechanism, and it is why the generated side can afford to always be there.
 	/// </remarks>
 	static partial void OnRecovered(
-		string rule, string text, long position, int line, int column, int ordinal, string message) =>
+		string rule, string text, long position, int line, int column, int ordinal, string message)
+	{
 		_rejected?.Add(new FeedRejection(rule, line, text, message));
+	}
 }

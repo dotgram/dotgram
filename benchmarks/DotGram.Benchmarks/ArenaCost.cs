@@ -49,7 +49,10 @@ public class ArenaCost
 	/// <param name="Name">What the profile is of, for the results table.</param>
 	public sealed record Profile(string Name, int Adds, int Reads, int Writes, int Removes)
 	{
-		public override string ToString() => Name;
+		public override string ToString()
+		{
+			return Name;
+		}
 	}
 
 	/// <remarks>
@@ -127,7 +130,10 @@ public class ArenaCost
 			Count--;
 		}
 
-		public void Clear() => Count = 0;
+		public void Clear()
+		{
+			Count = 0;
+		}
 	}
 
 	/// <summary>The same, reading in place instead of copying out.</summary>
@@ -139,7 +145,10 @@ public class ArenaCost
 
 		public ref readonly Entry this[int index] => ref _items[index];
 
-		public void Write(int index, in Entry entry) => _items[index] = entry;
+		public void Write(int index, in Entry entry)
+		{
+			_items[index] = entry;
+		}
 
 		public void Add(in Entry entry)
 		{
@@ -159,7 +168,10 @@ public class ArenaCost
 			Count--;
 		}
 
-		public void Clear() => Count = 0;
+		public void Clear()
+		{
+			Count = 0;
+		}
 	}
 
 	readonly ByValue     _byValue     = new();
@@ -251,7 +263,10 @@ public class ArenaCost
 		return total;
 	}
 
-	static Entry Made(int i) => new(1, i, i, i, -1, -1, -1, i, -1);
+	static Entry Made(int i)
+	{
+		return new(1, i, i, i, -1, -1, -1, i, -1);
+	}
 
 	[Benchmark(Baseline = true)]
 	public int Entries_handed_back_by_value()

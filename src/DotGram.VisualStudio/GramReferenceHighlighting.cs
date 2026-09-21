@@ -16,10 +16,12 @@ namespace DotGram.VisualStudio;
 [TagType(typeof(TextMarkerTag))]
 sealed class GramReferenceHighlightTaggerProvider : IViewTaggerProvider
 {
-	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag =>
-		buffer == textView.TextBuffer
+	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
+	{
+		return buffer == textView.TextBuffer
 			? new GramReferenceHighlightTagger(textView, GramBufferAnalysis.For(buffer)) as ITagger<T>
 			: null;
+	}
 }
 
 [Export(typeof(IViewTaggerProvider))]
@@ -33,12 +35,14 @@ sealed class EmbeddedGramReferenceHighlightTaggerProvider : IViewTaggerProvider
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag =>
-		buffer == textView.TextBuffer
+	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
+	{
+		return buffer == textView.TextBuffer
 			? new EmbeddedGramReferenceHighlightTagger(
 				textView,
 				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>
 			: null;
+	}
 }
 
 sealed class GramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDisposable
@@ -88,14 +92,25 @@ sealed class GramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDisposable
 			}
 	}
 
-	void CaretPositionChanged(object sender, CaretPositionChangedEventArgs e) => RaiseChanged(e.NewPosition.BufferPosition.Snapshot);
+	void CaretPositionChanged(object sender, CaretPositionChangedEventArgs e)
+	{
+		RaiseChanged(e.NewPosition.BufferPosition.Snapshot);
+	}
 
-	void AnalysisChanged(ITextSnapshot snapshot) => RaiseChanged(snapshot);
+	void AnalysisChanged(ITextSnapshot snapshot)
+	{
+		RaiseChanged(snapshot);
+	}
 
-	void RaiseChanged(ITextSnapshot snapshot) =>
+	void RaiseChanged(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
-	void ViewClosed(object sender, EventArgs e) => Dispose();
+	void ViewClosed(object sender, EventArgs e)
+	{
+		Dispose();
+	}
 
 	public void Dispose()
 	{
@@ -157,14 +172,25 @@ sealed class EmbeddedGramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDis
 			}
 	}
 
-	void CaretPositionChanged(object sender, CaretPositionChangedEventArgs e) => RaiseChanged(e.NewPosition.BufferPosition.Snapshot);
+	void CaretPositionChanged(object sender, CaretPositionChangedEventArgs e)
+	{
+		RaiseChanged(e.NewPosition.BufferPosition.Snapshot);
+	}
 
-	void AnalysisChanged(ITextSnapshot snapshot) => RaiseChanged(snapshot);
+	void AnalysisChanged(ITextSnapshot snapshot)
+	{
+		RaiseChanged(snapshot);
+	}
 
-	void RaiseChanged(ITextSnapshot snapshot) =>
+	void RaiseChanged(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
-	void ViewClosed(object sender, EventArgs e) => Dispose();
+	void ViewClosed(object sender, EventArgs e)
+	{
+		Dispose();
+	}
 
 	public void Dispose()
 	{

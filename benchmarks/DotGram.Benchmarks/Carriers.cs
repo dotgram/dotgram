@@ -46,7 +46,10 @@ static class Carriers
 	}
 
 	/// <summary>"one project", "four projects" — a count that reads the way a sentence does.</summary>
-	static string Say(int count) => count == 1 ? "one project" : $"{count} projects";
+	static string Say(int count)
+	{
+		return count == 1 ? "one project" : $"{count} projects";
+	}
 
 	/// <summary>When the reports were written: one time, or the oldest and the newest.</summary>
 	/// <remarks>

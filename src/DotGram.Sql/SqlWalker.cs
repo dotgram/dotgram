@@ -89,23 +89,30 @@ public static class SqlWalker
 	}
 
 	/// <summary>The properties of a record that can hold a node, in the order they were declared.</summary>
-	static PropertyInfo[] FieldsOf(Type type) => Fields.GetOrAdd(type, static type =>
+	static PropertyInfo[] FieldsOf(Type type)
+	{
+		return Fields.GetOrAdd(type, static type =>
 		[
 			.. from property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
 			   where property.GetIndexParameters().Length == 0 && Holds(property.PropertyType)
 			   orderby property.MetadataToken
 			   select property,
 		]);
+	}
 
 	// A node, or anything enumerable whose elements can hold one: an array, an IReadOnlyList.
-	static bool Holds(Type type) =>
-		typeof(ISqlSpan).IsAssignableFrom(type) ||
+	static bool Holds(Type type)
+	{
+		return typeof(ISqlSpan).IsAssignableFrom(type) ||
 		type != typeof(string) && ElementOf(type) is { } element && Holds(element);
+	}
 
-	static Type? ElementOf(Type type) =>
-		type.IsArray
+	static Type? ElementOf(Type type)
+	{
+		return type.IsArray
 			? type.GetElementType()
 			: (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? type : type.GetInterfaces().FirstOrDefault(static one => one.IsGenericType && one.GetGenericTypeDefinition() == typeof(IEnumerable<>)))?.GetGenericArguments()[0];
+	}
 
 	static readonly ConcurrentDictionary<Type, PropertyInfo[]> Fields = new();
 }

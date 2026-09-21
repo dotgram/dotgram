@@ -14,8 +14,10 @@ partial class HandSqlStandard
 {
 	// ── The publications ───────────────────────────────────────────────────────
 
-	public static Statement.Insert ParseInsertStatement(string input) =>
-		TryParseInsertStatement(input, out var value) ? value : throw Refused(input, "insert statement");
+	public static Statement.Insert ParseInsertStatement(string input)
+	{
+		return TryParseInsertStatement(input, out var value) ? value : throw Refused(input, "insert statement");
+	}
 
 	public static bool TryParseInsertStatement(string input, out Statement.Insert value)
 	{
@@ -29,8 +31,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.Update ParseUpdateStatementSearched(string input) =>
-		TryParseUpdateStatementSearched(input, out var value) ? value : throw Refused(input, "update statement: searched");
+	public static Statement.Update ParseUpdateStatementSearched(string input)
+	{
+		return TryParseUpdateStatementSearched(input, out var value) ? value : throw Refused(input, "update statement: searched");
+	}
 
 	public static bool TryParseUpdateStatementSearched(string input, out Statement.Update value)
 	{
@@ -44,8 +48,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.Update ParseUpdateStatementPositioned(string input) =>
-		TryParseUpdateStatementPositioned(input, out var value) ? value : throw Refused(input, "update statement: positioned");
+	public static Statement.Update ParseUpdateStatementPositioned(string input)
+	{
+		return TryParseUpdateStatementPositioned(input, out var value) ? value : throw Refused(input, "update statement: positioned");
+	}
 
 	public static bool TryParseUpdateStatementPositioned(string input, out Statement.Update value)
 	{
@@ -59,8 +65,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.Delete ParseDeleteStatementSearched(string input) =>
-		TryParseDeleteStatementSearched(input, out var value) ? value : throw Refused(input, "delete statement: searched");
+	public static Statement.Delete ParseDeleteStatementSearched(string input)
+	{
+		return TryParseDeleteStatementSearched(input, out var value) ? value : throw Refused(input, "delete statement: searched");
+	}
 
 	public static bool TryParseDeleteStatementSearched(string input, out Statement.Delete value)
 	{
@@ -74,8 +82,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.Delete ParseDeleteStatementPositioned(string input) =>
-		TryParseDeleteStatementPositioned(input, out var value) ? value : throw Refused(input, "delete statement: positioned");
+	public static Statement.Delete ParseDeleteStatementPositioned(string input)
+	{
+		return TryParseDeleteStatementPositioned(input, out var value) ? value : throw Refused(input, "delete statement: positioned");
+	}
 
 	public static bool TryParseDeleteStatementPositioned(string input, out Statement.Delete value)
 	{
@@ -89,8 +99,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.Merge ParseMergeStatement(string input) =>
-		TryParseMergeStatement(input, out var value) ? value : throw Refused(input, "merge statement");
+	public static Statement.Merge ParseMergeStatement(string input)
+	{
+		return TryParseMergeStatement(input, out var value) ? value : throw Refused(input, "merge statement");
+	}
 
 	public static bool TryParseMergeStatement(string input, out Statement.Merge value)
 	{
@@ -104,8 +116,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.TruncateTable ParseTruncateTableStatement(string input) =>
-		TryParseTruncateTableStatement(input, out var value) ? value : throw Refused(input, "truncate table statement");
+	public static Statement.TruncateTable ParseTruncateTableStatement(string input)
+	{
+		return TryParseTruncateTableStatement(input, out var value) ? value : throw Refused(input, "truncate table statement");
+	}
 
 	public static bool TryParseTruncateTableStatement(string input, out Statement.TruncateTable value)
 	{

@@ -131,7 +131,10 @@ static class SqlWords
 		return shapes;
 	}
 
-	static int Bucket(string word) => (word.Length - Shortest) * 26 + (word[0] - 'A');
+	static int Bucket(string word)
+	{
+		return (word.Length - Shortest) * 26 + (word[0] - 'A');
+	}
 
 	/// <summary>Which reserved word this is, or <see cref="SqlWord.Name"/> where it is a name.</summary>
 	public static SqlWord Of(ReadOnlySpan<char> word)

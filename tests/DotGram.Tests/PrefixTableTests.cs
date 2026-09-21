@@ -80,19 +80,33 @@ public sealed class PrefixTableTests
 		using var stream = new OneByteStream(Encoding.ASCII.GetBytes(input));
 		var method = parser.GetType("Grammar")!.GetMethod("TryParseStart", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
 		var match = method.Invoke(null, [bytes ? stream : reader, 1, 1024])!;
-		object? Get(string name) => match.GetType().GetProperty(name)!.GetValue(match);
+		object? Get(string name)
+		{
+			return match.GetType().GetProperty(name)!.GetValue(match);
+		}
+
 		return ((bool)Get("IsSuccess")!, Get("Value"), Get("Error"), Get("Position"));
 	}
 
 	sealed class OneCharReader(string input) : StringReader(input)
 	{
-		public override int Read(char[] buffer, int index, int count) => base.Read(buffer, index, Math.Min(1, count));
+		public override int Read(char[] buffer, int index, int count)
+		{
+			return base.Read(buffer, index, Math.Min(1, count));
+		}
 	}
 
 	sealed class OneByteStream(byte[] bytes) : MemoryStream(bytes)
 	{
-		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(1, count));
-		public override int Read(Span<byte> buffer) => base.Read(buffer[..Math.Min(1, buffer.Length)]);
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			return base.Read(buffer, offset, Math.Min(1, count));
+		}
+
+		public override int Read(Span<byte> buffer)
+		{
+			return base.Read(buffer[..Math.Min(1, buffer.Length)]);
+		}
 	}
 
 	[Theory]
@@ -160,8 +174,15 @@ public sealed class PrefixTableTests
 	{
 		var type = match.GetType();
 
-		object? Property(string name) => type.GetProperty(name)!.GetValue(match);
-		object? Field(string name) => type.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(match);
+		object? Property(string name)
+		{
+			return type.GetProperty(name)!.GetValue(match);
+		}
+
+		object? Field(string name)
+		{
+			return type.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(match);
+		}
 
 		var value    = Property("Value") is System.Collections.IEnumerable items and not string ? string.Join(",", items.Cast<object>()) : Property("Value")?.ToString();
 		var expected = Field("_expected") is string[] first ? string.Join("|", first) : "null";

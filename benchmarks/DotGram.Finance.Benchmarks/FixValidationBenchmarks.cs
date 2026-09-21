@@ -96,9 +96,11 @@ static class FixValidationBenchmarks
 		Console.WriteLine($"dictionary/standard {Median(sides.Dictionary) / Median(sides.Standard):F2}x, by medians");
 	}
 
-	static void Report(string side, double[] rounds) =>
+	static void Report(string side, double[] rounds)
+	{
 		Console.WriteLine(
 			$"{side}: median {Median(rounds):F0} ns/message, fastest round {rounds.Min():F0}, slowest {rounds.Max():F0}");
+	}
 
 	static double Median(double[] rounds)
 	{
@@ -213,8 +215,10 @@ static class FixValidationBenchmarks
 		return (clock.ElapsedTicks, findings / repeat);
 	}
 
-	static double Nanoseconds(long ticks, int operations) =>
-		ticks * (1_000_000_000.0 / Stopwatch.Frequency) / operations;
+	static double Nanoseconds(long ticks, int operations)
+	{
+		return ticks * (1_000_000_000.0 / Stopwatch.Frequency) / operations;
+	}
 
 	/// <summary>Messages of several shapes, valid and not, built once and validated many times.</summary>
 	/// <remarks>
@@ -222,14 +226,16 @@ static class FixValidationBenchmarks
 	/// finding is where the work is — so both are here, and so is one carrying a repeating group,
 	/// which is the walk's only recursive part.
 	/// </remarks>
-	static FixMessage[] Corpus() =>
-	[
+	static FixMessage[] Corpus()
+	{
+		return [
 		FixParser.ParseMessage(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")),
 		FixParser.ParseMessage(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|453=2|448=A|447=D|452=1|448=B|447=D|452=2|")),
 		FixParser.ParseMessage(Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=9|60=not-a-time|38=abc|40=2|")),
 		FixParser.ParseMessage(Fix44Benchmarks.Wire("8", "37=ORDER|17=EXEC|150=0|39=0|55=ABC|54=1|38=100|14=0|6=0|")),
 		FixParser.ParseMessage(Fix44Benchmarks.Wire("A", "98=0|108=30|")),
 	];
+	}
 
 	static FixMessageRule Loaded()
 	{

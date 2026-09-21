@@ -590,8 +590,9 @@ public static class GramLanguageService
 
 	static IReadOnlyList<GramDiagnostic> NormalizeDiagnostics(
 		IReadOnlyList<GramDiagnostic> diagnostics,
-		IReadOnlyList<Token> tokens) =>
-		diagnostics.Select(diagnostic =>
+		IReadOnlyList<Token> tokens)
+	{
+		return diagnostics.Select(diagnostic =>
 		{
 			if (diagnostic.Id != "GRAM3002")
 				return diagnostic;
@@ -603,6 +604,7 @@ public static class GramLanguageService
 				? diagnostic with { Length = token.Length }
 				: diagnostic;
 		}).ToArray();
+	}
 
 	static IReadOnlyList<GramSymbolOccurrence> SymbolOccurrences(
 		IReadOnlyList<Decl> declarations,
@@ -733,12 +735,15 @@ public static class GramLanguageService
 		/// Through its alternatives, because `( a => @(x) | b => @(y) )` is one group and each
 		/// alternative constructs. A plain group keeps the capture scope it always had.
 		/// </remarks>
-		static bool Constructs(Expr body) => body switch
+		static bool Constructs(Expr body)
 		{
-			Expr.Construct                => true,
-			Expr.Choice(var alternatives) => alternatives.Any(Constructs),
-			_                             => false,
-		};
+			return body switch
+			{
+				Expr.Construct => true,
+				Expr.Choice(var alternatives) => alternatives.Any(Constructs),
+				_ => false,
+			};
+		}
 
 		void VisitType(TypeRef type)
 		{
@@ -1093,8 +1098,10 @@ public static class GramLanguageService
 		}
 	}
 
-	static bool Intersects(GramClassifiedSpan left, GramClassifiedSpan right) =>
-		left.Position < right.Position + right.Length && right.Position < left.Position + left.Length;
+	static bool Intersects(GramClassifiedSpan left, GramClassifiedSpan right)
+	{
+		return left.Position < right.Position + right.Length && right.Position < left.Position + left.Length;
+	}
 
 	static void ClassifyComments(
 		string text,

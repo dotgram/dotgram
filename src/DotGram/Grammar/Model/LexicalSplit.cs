@@ -294,14 +294,16 @@ public sealed class LexicalSplit
 		/// and what a mark usually comes to. Anything wider is an element set, which is the
 		/// same sentence about more numbers.
 		/// </remarks>
-		static Node Testing(IReadOnlyList<TerminalInventory.Group> ranges) =>
-			ranges is [{ From: var only, To: var same }] && only == same
+		static Node Testing(IReadOnlyList<TerminalInventory.Group> ranges)
+		{
+			return ranges is [{ From: var only, To: var same }] && only == same
 				? new Node.Literal(((char)only).ToString())
 				: new Node.Element(
 					false,
 					[.. ranges.Select(range => new CharRange((char)range.From, (char)range.To))],
 					[],
 					[]);
+		}
 
 		/// <summary>
 		/// The rewrite, and a record of what each node became.

@@ -32,7 +32,10 @@ public sealed class RoslynSymbolResolver(
 
 	readonly Dictionary<string, INamedTypeSymbol?> _types = new(StringComparer.Ordinal);
 
-	public bool TypeExists(string qualifiedName) => TypeNamed(qualifiedName) is not null;
+	public bool TypeExists(string qualifiedName)
+	{
+		return TypeNamed(qualifiedName) is not null;
+	}
 
 	/// <summary>
 	/// Whether a value of one type may be put where the other is expected.
@@ -333,9 +336,11 @@ public sealed class RoslynSymbolResolver(
 	}
 
 	/// <summary>Whether a method can be called in a role from where the host is.</summary>
-	bool Callable(IMethodSymbol method, INamedTypeSymbol host, ExternalMethodRole role) =>
-		(role == ExternalMethodRole.Predicate ? Tests(method) : Recognizes(method)) &&
+	bool Callable(IMethodSymbol method, INamedTypeSymbol host, ExternalMethodRole role)
+	{
+		return (role == ExternalMethodRole.Predicate ? Tests(method) : Recognizes(method)) &&
 		_compilation.IsSymbolAccessibleWithin(method, host);
+	}
 
 	static ExternalMethodResolution RecognitionForm(IMethodSymbol method, ExternalMethodRole role)
 	{
@@ -347,11 +352,14 @@ public sealed class RoslynSymbolResolver(
 			: ExternalMethodResolution.FoundInput;
 	}
 
-	static bool IsInputView(ITypeSymbol type) => type is INamedTypeSymbol
+	static bool IsInputView(ITypeSymbol type)
 	{
-		Name: "ParserInput",
-		TypeArguments: [{ SpecialType: SpecialType.System_Char }],
-	};
+		return type is INamedTypeSymbol
+		{
+			Name: "ParserInput",
+			TypeArguments: [{ SpecialType: SpecialType.System_Char }],
+		};
+	}
 
 	/// <summary>A span recognizer, or an input-view recognizer with an optional trailing context.</summary>
 	static bool Recognizes(IMethodSymbol method)
@@ -382,8 +390,9 @@ public sealed class RoslynSymbolResolver(
 	/// character converts to implicitly, whatever the parameter is called or typed as, and
 	/// nothing after it that has to be passed.
 	/// </summary>
-	bool Tests(IMethodSymbol method) =>
-		method is
+	bool Tests(IMethodSymbol method)
+	{
+		return method is
 		{
 			IsStatic: true,
 			ReturnType.SpecialType: SpecialType.System_Boolean,
@@ -391,6 +400,7 @@ public sealed class RoslynSymbolResolver(
 		} &&
 		parameters.Skip(1).All(static one => one.IsOptional) &&
 		_compilation.ClassifyCommonConversion(_compilation.GetSpecialType(SpecialType.System_Char), item.Type).IsImplicit;
+	}
 
 	/// <summary>The symbol-typed core of <see cref="IsAssignable"/>, shared rather than
 	/// re-derived by round-tripping a symbol through a display string and back.</summary>
@@ -405,13 +415,15 @@ public sealed class RoslynSymbolResolver(
 	}
 
 	/// <summary>Whether this is <c>System.ReadOnlySpan&lt;char&gt;</c>, exactly.</summary>
-	static bool IsReadOnlySpanOfChar(ITypeSymbol type) =>
-		type is INamedTypeSymbol
+	static bool IsReadOnlySpanOfChar(ITypeSymbol type)
+	{
+		return type is INamedTypeSymbol
 		{
 			Name: "ReadOnlySpan",
 			ContainingNamespace.Name: "System",
 			TypeArguments: [{ SpecialType: SpecialType.System_Char }],
 		};
+	}
 
 	/// <summary>
 	/// A type by the name a grammar writes, keyword or otherwise.

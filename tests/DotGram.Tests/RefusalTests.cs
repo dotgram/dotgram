@@ -16,8 +16,10 @@ public sealed class RefusalTests
 	/// <summary>One reading in five of the record, a different rendering for each shape.</summary>
 	/// <remarks>The whole record is held by <c>DotGram.Tests.Slow</c>, before any change to how failures are recorded.</remarks>
 	[Fact]
-	public void Every_refusal_in_a_sample_is_the_one_it_was() =>
+	public void Every_refusal_in_a_sample_is_the_one_it_was()
+	{
 		RefusalCorpus.AssertSample();
+	}
 
 	/// <summary>
 	/// A loop that ends where its turn cannot begin, and the end refused after it: every

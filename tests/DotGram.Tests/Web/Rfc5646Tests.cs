@@ -95,8 +95,10 @@ public sealed class Rfc5646Tests
 	[InlineData("i-klingonx")]           // a grandfathered tag is one only where the tag ends
 	[InlineData("x")]
 	[InlineData("12-US")]
-	public void What_is_not_well_formed_is_refused(string tag) =>
+	public void What_is_not_well_formed_is_refused(string tag)
+	{
 		Assert.False(LanguageTag.TryParse(tag, out _), $"'{tag}' was read.");
+	}
 
 	[Fact]
 	public void A_tag_comes_apart_into_its_subtags()
@@ -264,5 +266,8 @@ public sealed class Rfc5646Tests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

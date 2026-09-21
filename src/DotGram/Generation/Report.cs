@@ -43,18 +43,20 @@ readonly record struct Report(
 	string?          Grammar   = null)
 {
 	/// <summary>A diagnostic the shell raises about the host, from a fixed descriptor.</summary>
-	public static Report Of(DiagnosticDescriptor descriptor, Location? at, params string[] arguments) =>
-		new(
+	public static Report Of(DiagnosticDescriptor descriptor, Location? at, params string[] arguments)
+	{
+		return new(
 			descriptor.Id,
 			descriptor.Title.ToString(),
 			descriptor.MessageFormat.ToString(),
 			descriptor.DefaultSeverity,
-			FilePath:  null,
-			Position:  0,
-			Length:    0,
-			Lines:     default,
-			Fallback:  at,
+			FilePath: null,
+			Position: 0,
+			Length: 0,
+			Lines: default,
+			Fallback: at,
 			Arguments: new EquatableArray<string>([.. arguments]));
+	}
 
 	/// <summary>A diagnostic the grammar half raised, placed in the grammar it came from.</summary>
 	/// <param name="written">
@@ -181,7 +183,10 @@ readonly struct EquatableArray<T>(ImmutableArray<T> items) : IEquatable<Equatabl
 		return true;
 	}
 
-	public override bool Equals(object? obj) => obj is EquatableArray<T> other && Equals(other);
+	public override bool Equals(object? obj)
+	{
+		return obj is EquatableArray<T> other && Equals(other);
+	}
 
 	public override int GetHashCode()
 	{

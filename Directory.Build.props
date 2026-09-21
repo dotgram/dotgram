@@ -13,6 +13,15 @@
 		     fails on the machine that wrote the code rather than on the server. -->
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
+		<!-- Without this, the style rules in .editorconfig are seen by an editor and by
+		     `dotnet format`, and by nothing else: a build does not read them, so a rule
+		     written there is a rule only for whoever was already going to follow it. That
+		     is how the block-body rule came to be broken in 2,962 places while sitting in
+		     docs/coding-conventions.md the whole time. With it, the next one fails a build
+		     on the machine that wrote it. Measured: it wakes no other diagnostic, and its
+		     cost is not visible against the spread of a full rebuild. -->
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
 		<!-- NU1900 is not a warning about this code: it says NuGet could not reach a source to ask
 		     whether a package has a known vulnerability. That is a condition of the machine, and a
 		     build that fails when the network is down fails for something nobody can fix by editing

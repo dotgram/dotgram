@@ -61,6 +61,8 @@ static partial class Stand
 		}
 	}
 
-	static Func<bool> HandExpressionAccepts(string text) =>
-		() => DotGram.Handwritten.HandExpression.TryParseLambda(text, new DotGram.ExpressionLanguage.ExpressionParser.State(Caller) { Text = text }).IsSuccess;
+	static Func<bool> HandExpressionAccepts(string text)
+	{
+		return () => DotGram.Handwritten.HandExpression.TryParseLambda(text, new DotGram.ExpressionLanguage.ExpressionParser.State(Caller) { Text = text }).IsSuccess;
+	}
 }

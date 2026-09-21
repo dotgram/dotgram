@@ -518,7 +518,9 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		}
 		""";
 
-	static string Source(string value) => Support + $$""""
+	static string Source(string value)
+	{
+		return Support + $$""""
 
 		[DotGram.Gram("""
 			trivia     = [' ' | '\t']*
@@ -549,4 +551,5 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			static void Ordinary(string text) { }
 		}
 		"""";
+	}
 }

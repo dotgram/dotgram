@@ -23,9 +23,11 @@ sealed class GramSignatureHelpTrigger : IWpfTextViewCreationListener
 	[Import]
 	ISignatureHelpBroker Broker { get; set; } = null!;
 
-	public void TextViewCreated(IWpfTextView textView) =>
+	public void TextViewCreated(IWpfTextView textView)
+	{
 		textView.TextBuffer.Changed += (sender, change) =>
 			Trigger(textView, Broker, change, static (_, _) => true);
+	}
 
 	internal static void Trigger(
 		IWpfTextView view,
@@ -94,8 +96,10 @@ sealed class EmbeddedGramSignatureHelpTrigger : IWpfTextViewCreationListener
 [ContentType(GramContentType.Name)]
 sealed class GramSignatureHelpSourceProvider : ISignatureHelpSourceProvider
 {
-	public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer) =>
-		new GramSignatureHelpSource(textBuffer, GramBufferAnalysis.For(textBuffer));
+	public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer)
+	{
+		return new GramSignatureHelpSource(textBuffer, GramBufferAnalysis.For(textBuffer));
+	}
 }
 
 [Export(typeof(ISignatureHelpSourceProvider))]
@@ -110,10 +114,12 @@ sealed class EmbeddedGramSignatureHelpSourceProvider : ISignatureHelpSourceProvi
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer) =>
-		new EmbeddedGramSignatureHelpSource(
+	public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer)
+	{
+		return new EmbeddedGramSignatureHelpSource(
 			textBuffer,
 			EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents));
+	}
 }
 
 abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpSource
@@ -147,13 +153,17 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 			argument));
 	}
 
-	static string Documentation(string signature, string description) =>
-		description.StartsWith(signature, StringComparison.Ordinal)
+	static string Documentation(string signature, string description)
+	{
+		return description.StartsWith(signature, StringComparison.Ordinal)
 			? description.Substring(signature.Length).TrimStart()
 			: description;
+	}
 
-	public ISignature? GetBestMatch(ISignatureHelpSession session) =>
-		session.Signatures.FirstOrDefault();
+	public ISignature? GetBestMatch(ISignatureHelpSession session)
+	{
+		return session.Signatures.FirstOrDefault();
+	}
 
 	public void Dispose()
 	{
@@ -206,13 +216,15 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 sealed class GramSignatureHelpSource(ITextBuffer buffer, GramBufferAnalysis analysis)
 	: GramSignatureHelpSourceBase(buffer)
 {
-	protected override IEnumerable<RuleSignature> Definitions(ITextSnapshot snapshot, int position) =>
-		analysis.Document(snapshot).Classifications
+	protected override IEnumerable<RuleSignature> Definitions(ITextSnapshot snapshot, int position)
+	{
+		return analysis.Document(snapshot).Classifications
 			.Where(static item => item.DefinitionPosition == item.Position && item.RuleParameterCount > 0)
 			.Select(item => new RuleSignature(
 				snapshot.GetText(item.Position, item.Length),
 				item.RuleSignature!,
 				item.QuickInfo!));
+	}
 }
 
 sealed class EmbeddedGramSignatureHelpSource(

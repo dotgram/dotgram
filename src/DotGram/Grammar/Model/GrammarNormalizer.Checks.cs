@@ -360,30 +360,32 @@ public sealed partial class GrammarNormalizer
 	/// The names may differ and usually do — the alternatives mean different things by it —
 	/// and what is read twice is the same either way.
 	/// </remarks>
-	static bool SameShape(Node one, Node other) =>
-		(one, other) switch
+	static bool SameShape(Node one, Node other)
+	{
+		return (one, other) switch
 		{
-			(Node.Capture(_, var a), Node.Capture(_, var b))       => SameShape(a, b),
+			(Node.Capture(_, var a), Node.Capture(_, var b)) => SameShape(a, b),
 			(Node.Call(var a, { Count: 0 }), Node.Call(var b, { Count: 0 })) => a == b,
-			(Node.Literal a, Node.Literal b)                       => a == b,
-			(Node.Element a, Node.Element b)                       => SameSet(a, b),
-			(Node.Behind(var a), Node.Behind(var b))               => SameSet(a, b),
-			(Node.Reading(var a), Node.Reading(var b))             => a == b,
-			(Node.Empty, Node.Empty)                               => true,
-			(Node.Glue, Node.Glue)                                 => true,
+			(Node.Literal a, Node.Literal b) => a == b,
+			(Node.Element a, Node.Element b) => SameSet(a, b),
+			(Node.Behind(var a), Node.Behind(var b)) => SameSet(a, b),
+			(Node.Reading(var a), Node.Reading(var b)) => a == b,
+			(Node.Empty, Node.Empty) => true,
+			(Node.Glue, Node.Glue) => true,
 
 			// A lookahead reads nothing, so two of the same shape are the same
 			// condition on what follows and may be shared like anything else.
 			(Node.Lookahead(var ap, var a), Node.Lookahead(var bp, var b))
 				=> ap == bp && SameShape(a, b),
-			(Node.Atomic(var a), Node.Atomic(var b))               => SameShape(a, b),
+			(Node.Atomic(var a), Node.Atomic(var b)) => SameShape(a, b),
 
 			// The marks themselves are not compared: a mark changes nothing about what is
 			// read, so two alternatives that differ only in one really do share a prefix.
-			(Node.Marked(var a, _), Node.Marked(var b, _))         => SameShape(a, b),
+			(Node.Marked(var a, _), Node.Marked(var b, _)) => SameShape(a, b),
 
-			_                                                      => false,
+			_ => false,
 		};
+	}
 
 	/// <summary>The same set of characters, compared by what is in it.</summary>
 	/// <remarks>
@@ -391,11 +393,13 @@ public sealed partial class GrammarNormalizer
 	/// compares that list by reference — two identical sets written twice are never equal
 	/// by it, which is exactly the case this asks about.
 	/// </remarks>
-	static bool SameSet(Node.Element one, Node.Element other) =>
-		one.IsNegated == other.IsNegated &&
+	static bool SameSet(Node.Element one, Node.Element other)
+	{
+		return one.IsNegated == other.IsNegated &&
 		one.Ranges.SequenceEqual(other.Ranges) &&
 		one.Categories.SequenceEqual(other.Categories) &&
 		one.References.SequenceEqual(other.References);
+	}
 
 	/// <summary>Whether reading this can reach that rule again, so the cost compounds.</summary>
 	bool Reaches(Node from, RuleSymbol rule)
@@ -470,8 +474,10 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>
-	static IReadOnlyList<Node> Alternatives(Node body) =>
-		body is Node.Choice(var alternatives) { Selection: null } ? alternatives : [body];
+	static IReadOnlyList<Node> Alternatives(Node body)
+	{
+		return body is Node.Choice(var alternatives) { Selection: null } ? alternatives : [body];
+	}
 
 	static IEnumerable<Node> Constructs(Node node)
 	{
@@ -548,7 +554,10 @@ public sealed partial class GrammarNormalizer
 			return false;
 		}
 
-		static bool Continues(char c) => char.IsLetterOrDigit(c) || c is '_' or '@';
+		static bool Continues(char c)
+		{
+			return char.IsLetterOrDigit(c) || c is '_' or '@';
+		}
 	}
 
 	/// <summary>What a capture is not allowed to be, which is now one thing.</summary>

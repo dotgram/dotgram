@@ -379,7 +379,10 @@ public sealed class Rfc6265Tests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 
 	// ── A store, §5.3 and §5.4 cut to what the tests ask ─────────────────────────
 
@@ -390,9 +393,15 @@ public sealed class Rfc6265Tests
 
 		public DateTimeOffset Now { get; } = now;
 
-		public void Receive(Uri uri, string field) => Receive(uri.OriginalString, field);
+		public void Receive(Uri uri, string field)
+		{
+			Receive(uri.OriginalString, field);
+		}
 
-		public string CookieString(Uri uri) => CookieString(uri.OriginalString);
+		public string CookieString(Uri uri)
+		{
+			return CookieString(uri.OriginalString);
+		}
 
 		public void Receive(string url, string field)
 		{

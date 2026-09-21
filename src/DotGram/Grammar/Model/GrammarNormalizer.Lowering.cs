@@ -79,49 +79,52 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	RuleSymbol? _currentRule;
 
-	Node Lower(Expr expression, GrammarNamespace ns) => expression switch
+	Node Lower(Expr expression, GrammarNamespace ns)
 	{
-		Expr.Literal   (_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, ns, ignoreCase),
-		Expr.ElementSet(var negated, var items)          => LowerElementSet(negated, items, expression),
-		Expr.Group     (var body)                        => Lower(body, ns),
-		Expr.Atomic    (var body)                        => new Node.Atomic(Lower(body, ns)),
-		Expr.Capture   (var name, var operand)           => new Node.Capture(name, Lower(operand, ns)),
-		Expr.Lookahead (var positive, var operand)       => new Node.Lookahead(positive, Lower(operand, ns)),
-		Expr.Guard     (var value)                       => Guarded(value),
-		Expr.Switch(var value, var cases) => new Node.Choice(cases.Select(one => Lower(one.Body, ns)).ToArray())
+		return expression switch
 		{
-			Selection = new Node.SwitchSelection((Node.Guard)Guarded(value), cases.Select(one => one.Label).ToArray()),
-		},
-		Expr.Condition (var test)                        =>
-			new Node.Condition(
-				Lowered(test, ns),
-				Parsing.Test.Operands(test) is [var first, ..] ? StartOf(first) : -1),
-		Expr.CSharp    (var text)                        => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
-		Expr.Construct (var pattern, var value)          => LowerConstruct(pattern, value, ns),
-		Expr.Bound     (var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
+			Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, ns, ignoreCase),
+			Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
+			Expr.Group(var body) => Lower(body, ns),
+			Expr.Atomic(var body) => new Node.Atomic(Lower(body, ns)),
+			Expr.Capture(var name, var operand) => new Node.Capture(name, Lower(operand, ns)),
+			Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, ns)),
+			Expr.Guard(var value) => Guarded(value),
+			Expr.Switch(var value, var cases) => new Node.Choice(cases.Select(one => Lower(one.Body, ns)).ToArray())
+			{
+				Selection = new Node.SwitchSelection((Node.Guard)Guarded(value), cases.Select(one => one.Label).ToArray()),
+			},
+			Expr.Condition(var test) =>
+				new Node.Condition(
+					Lowered(test, ns),
+					Parsing.Test.Operands(test) is [var first, ..] ? StartOf(first) : -1),
+			Expr.CSharp(var text) => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
+			Expr.Construct(var pattern, var value) => LowerConstruct(pattern, value, ns),
+			Expr.Bound(var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
 
-		// Parsed and refused rather than parsed and ignored: a `recover` that means
-		// nothing would swallow a bad record in silence.
-		Expr.Recovering(var body, var sync, var factory) => LowerRecovery(body, sync, factory, ns, expression),
+			// Parsed and refused rather than parsed and ignored: a `recover` that means
+			// nothing would swallow a bad record in silence.
+			Expr.Recovering(var body, var sync, var factory) => LowerRecovery(body, sync, factory, ns, expression),
 
-		// §4.2: a count may be a parameter's name, and inside a specialization it stands
-		// for the number the call passed.
-		Expr.Quantified(var operand, var kind, var min, var minName, var max, var maxName) =>
-			Repeated(
-				Lower(operand, ns),
-				Bounds(kind, Counted(min, minName, expression)).Min,
-				Bounds(kind, Counted(max, maxName, expression)).Max,
-				ns),
+			// §4.2: a count may be a parameter's name, and inside a specialization it stands
+			// for the number the call passed.
+			Expr.Quantified(var operand, var kind, var min, var minName, var max, var maxName) =>
+				Repeated(
+					Lower(operand, ns),
+					Bounds(kind, Counted(min, minName, expression)).Min,
+					Bounds(kind, Counted(max, maxName, expression)).Max,
+					ns),
 
-		Expr.Sequence (var operands)              => LowerSequence(operands, ns),
-		Expr.Glued    (var operands)              => LowerGlued(operands, ns),
-		Expr.Choice   (var alternatives)          => LowerChoice(alternatives, ns),
-		Expr.Call     (var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
-		Expr.Reference(_, var name, _)            => LowerReference(expression, name, ns),
-		Expr.With     (var operand, _)            => LowerWith(expression, operand, ns),
-		Expr.Marked   (var operand, var value)    => new Node.Marked(Lower(operand, ns), Substituted(Text(value))),
-		_                                         => Node.Empty.Instance,
-	};
+			Expr.Sequence(var operands) => LowerSequence(operands, ns),
+			Expr.Glued(var operands) => LowerGlued(operands, ns),
+			Expr.Choice(var alternatives) => LowerChoice(alternatives, ns),
+			Expr.Call(var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
+			Expr.Reference(_, var name, _) => LowerReference(expression, name, ns),
+			Expr.With(var operand, _) => LowerWith(expression, operand, ns),
+			Expr.Marked(var operand, var value) => new Node.Marked(Lower(operand, ns), Substituted(Text(value))),
+			_ => Node.Empty.Instance,
+		};
+	}
 
 	/// <summary><c>=&gt; expr</c>.</summary>
 	Node LowerConstruct(Expr pattern, Expr value, GrammarNamespace ns)
@@ -135,18 +138,24 @@ public sealed partial class GrammarNormalizer
 	// this is one of those places (§4.2, GrammarNormalizer.Values.cs). Off every path but
 	// a specialization's own: outside one there is nothing to substitute and the text is
 	// handed back as it was written.
-	Node Guarded(Expr value) => new Node.Guard(Substituted(Text(value)), StartOf(value));
+	Node Guarded(Expr value)
+	{
+		return new Node.Guard(Substituted(Text(value)), StartOf(value));
+	}
 
 	/// <summary>A condition with every recognizer under it lowered.</summary>
-	Test Lowered(Parsing.Test test, GrammarNamespace ns) => test switch
+	Test Lowered(Parsing.Test test, GrammarNamespace ns)
 	{
-		Parsing.Test.Meets(var left, var right, var negated) =>
-			new Test.Meets(Lower(left, ns), Lower(right, ns), negated),
-		Parsing.Test.Runs(var value)          => new Test.Runs(Substituted(Text(value)), StartOf(value)),
-		Parsing.Test.All(var left, var right) => new Test.All(Lowered(left, ns), Lowered(right, ns)),
-		Parsing.Test.Any(var left, var right) => new Test.Any(Lowered(left, ns), Lowered(right, ns)),
-		_ => throw new InvalidOperationException($"Unhandled test kind: {test.GetType().Name}"),
-	};
+		return test switch
+		{
+			Parsing.Test.Meets(var left, var right, var negated) =>
+				new Test.Meets(Lower(left, ns), Lower(right, ns), negated),
+			Parsing.Test.Runs(var value) => new Test.Runs(Substituted(Text(value)), StartOf(value)),
+			Parsing.Test.All(var left, var right) => new Test.All(Lowered(left, ns), Lowered(right, ns)),
+			Parsing.Test.Any(var left, var right) => new Test.Any(Lowered(left, ns), Lowered(right, ns)),
+			_ => throw new InvalidOperationException($"Unhandled test kind: {test.GetType().Name}"),
+		};
+	}
 
 	/// <summary>
 	/// Where the C# of an expression starts, which is not always where the expression does.
@@ -157,13 +166,16 @@ public sealed partial class GrammarNormalizer
 	/// the expression does, and a <c>#line</c> that ignored that would put every column one
 	/// to the left — under the <c>@</c> rather than under the code.
 	/// </remarks>
-	static int StartOf(Expr value) => value switch
+	static int StartOf(Expr value)
 	{
-		Expr.CSharp                      => value.At.Position + 1,
-		Expr.Call     (var target, _)    => target.IsCSharp ? value.At.Position + 1 : value.At.Position,
-		Expr.Reference(var csharp, _, _) => csharp ? value.At.Position + 1 : value.At.Position,
-		_                                => value.At.Position,
-	};
+		return value switch
+		{
+			Expr.CSharp => value.At.Position + 1,
+			Expr.Call(var target, _) => target.IsCSharp ? value.At.Position + 1 : value.At.Position,
+			Expr.Reference(var csharp, _, _) => csharp ? value.At.Position + 1 : value.At.Position,
+			_ => value.At.Position,
+		};
+	}
 
 	/// <summary>
 	/// A bare name standing where an operand goes: a rule to call, or something else.
@@ -651,13 +663,16 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The C# type a literal argument is, or null where the argument is not one.</summary>
-	static string? LiteralType(Expr argument) => argument switch
+	static string? LiteralType(Expr argument)
 	{
-		Expr.Number                => "int",
-		Expr.Literal(true,  _)     => "char",
-		Expr.Literal(false, _)     => "string",
-		_                          => null,
-	};
+		return argument switch
+		{
+			Expr.Number => "int",
+			Expr.Literal(true, _) => "char",
+			Expr.Literal(false, _) => "string",
+			_ => null,
+		};
+	}
 
 	/// <summary>
 	/// The specialization itself, from arguments already lowered — split from
@@ -844,8 +859,10 @@ public sealed partial class GrammarNormalizer
 		return taken;
 	}
 
-	static string Text(int value) =>
-		value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+	static string Text(int value)
+	{
+		return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+	}
 
 	bool Named(string name)
 	{
@@ -856,35 +873,45 @@ public sealed partial class GrammarNormalizer
 		return false;
 	}
 
-	static Node BuiltInBody(string name) => name switch
+	static Node BuiltInBody(string name)
 	{
-		"any" => AnyItem,
-		"eol" => new Node.Choice([new Node.Literal("\r\n"), new Node.Literal("\n"), new Node.Literal("\r")]),
-		"eof" => new Node.Lookahead(IsPositive: false, AnyItem),
+		return name switch
+		{
+			"any" => AnyItem,
+			"eol" => new Node.Choice([new Node.Literal("\r\n"), new Node.Literal("\n"), new Node.Literal("\r")]),
+			"eof" => new Node.Lookahead(IsPositive: false, AnyItem),
 
-		// `none`, and `trivia` until a grammar shadows it with one of its own (§4.5).
-		_     => Node.Empty.Instance,
-	};
+			// `none`, and `trivia` until a grammar shadows it with one of its own (§4.5).
+			_ => Node.Empty.Instance,
+		};
+	}
 
 	/// <summary>The complement of nothing: one item, whatever it is.</summary>
 	static Node.Element AnyItem => new(IsNegated: true, [], [], []);
 
-	static (int Min, int? Max) Bounds(QuantifierKind kind, int? count) => kind switch
+	static (int Min, int? Max) Bounds(QuantifierKind kind, int? count)
 	{
-		QuantifierKind.Optional   => (0, 1),
-		QuantifierKind.ZeroOrMore => (0, null),
-		QuantifierKind.OneOrMore  => (1, null),
-		_                         => (count ?? 0, count),
-	};
+		return kind switch
+		{
+			QuantifierKind.Optional => (0, 1),
+			QuantifierKind.ZeroOrMore => (0, null),
+			QuantifierKind.OneOrMore => (1, null),
+			_ => (count ?? 0, count),
+		};
+	}
 
-	RuleSymbol RuleOf(Expr expression, string name) =>
-		_model.Bindings.TryGetValue(expression, out var symbol) && symbol is RuleSymbol rule
+	RuleSymbol RuleOf(Expr expression, string name)
+	{
+		return _model.Bindings.TryGetValue(expression, out var symbol) && symbol is RuleSymbol rule
 			? rule
 			: Unresolved(name);
+	}
 
 	/// <summary>Binding already reported it; a placeholder keeps lowering going.</summary>
-	static RuleSymbol Unresolved(string name) =>
-		new(name, new GrammarNamespace("<unresolved>", null), Declaration: null);
+	static RuleSymbol Unresolved(string name)
+	{
+		return new(name, new GrammarNamespace("<unresolved>", null), Declaration: null);
+	}
 
 	/// <summary>
 	/// Values in `=&gt;` and `when` are C# by the time they get here — and are rendered
@@ -895,28 +922,36 @@ public sealed partial class GrammarNormalizer
 	/// that resolves to nothing is C#'s error to report, on the grammar's line (§7.6).
 	/// The `@` is not part of it: it marks the crossing into C# and does not survive it.
 	/// </remarks>
-	static string Text(Expr value) => value switch
+	static string Text(Expr value)
 	{
-		Expr.CSharp   (var text)                  => $"({text})",
-		Expr.Reference(_, var name, var types)    => name + TypeArguments(types),
-		Expr.Call     (var target, var arguments) =>
-			Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
-		// A character literal with no character in it is not something an author can
-		// mean, but it is something a broken file can hold — and this runs on a grammar
-		// the lexer has already reported, because normalization does not stop at the
-		// first diagnostic. Answered rather than thrown on (found by the fuzzer).
-		Expr.Literal  (true,  var text)           => text.Length == 0
-			? "''"
-			: CharRange.Quote(text[0]),
-		Expr.Literal  (false, var text)           => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
-		_                                         => value.ToString(),
-	};
+		return value switch
+		{
+			Expr.CSharp(var text) => $"({text})",
+			Expr.Reference(_, var name, var types) => name + TypeArguments(types),
+			Expr.Call(var target, var arguments) =>
+				Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
+			// A character literal with no character in it is not something an author can
+			// mean, but it is something a broken file can hold — and this runs on a grammar
+			// the lexer has already reported, because normalization does not stop at the
+			// first diagnostic. Answered rather than thrown on (found by the fuzzer).
+			Expr.Literal(true, var text) => text.Length == 0
+				? "''"
+				: CharRange.Quote(text[0]),
+			Expr.Literal(false, var text) => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
+			_ => value.ToString(),
+		};
+	}
 
-	static string TypeArguments(IReadOnlyList<TypeRef> types) =>
-		types.Count == 0 ? "" : "<" + string.Join(", ", types.Select(TypeName)) + ">";
+	static string TypeArguments(IReadOnlyList<TypeRef> types)
+	{
+		return types.Count == 0 ? "" : "<" + string.Join(", ", types.Select(TypeName)) + ">";
+	}
 
 	/// <summary>A type as it is written in C#, which is as the grammar wrote it.</summary>
-	internal static string TypeName(TypeRef type) => type.Name + (type.IsSequence ? "[]" : "");
+	internal static string TypeName(TypeRef type)
+	{
+		return type.Name + (type.IsSequence ? "[]" : "");
+	}
 
 	/// <summary>
 	/// A set of one-item tests, with references to elementary rules merged into it.
@@ -1177,10 +1212,12 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether a node is a bare application of the namespace's own trivia.</summary>
-	static bool IsSeam(Node node, Node trivia) =>
-		node is Node.Call(var called, _) &&
+	static bool IsSeam(Node node, Node trivia)
+	{
+		return node is Node.Call(var called, _) &&
 		trivia is Node.Call(var seam, _) &&
 		ReferenceEquals(called, seam);
+	}
 
 	/// <summary>
 	/// §4.6: a literal that is all word characters may not be the start of a longer word.
@@ -1243,7 +1280,10 @@ public sealed partial class GrammarNormalizer
 	/// The boundary's own element, where the rule is one — which is the same shape
 	/// <see cref="Continues"/> already requires to decide anything at all.
 	/// </summary>
-	Node.Element? BoundaryElement(Node boundary) => ElementOf(boundary);
+	Node.Element? BoundaryElement(Node boundary)
+	{
+		return ElementOf(boundary);
+	}
 
 	/// <summary>Whether this character is one the boundary rule says continues a word.</summary>
 	/// <remarks>
@@ -1278,13 +1318,16 @@ public sealed partial class GrammarNormalizer
 	/// recommends. Found when the symmetric weave did not fire; the asymmetric one had
 	/// not been firing either, and nothing said so.
 	/// </remarks>
-	Node.Element? ElementOf(Node node, HashSet<RuleSymbol>? seen = null) => node switch
+	Node.Element? ElementOf(Node node, HashSet<RuleSymbol>? seen = null)
 	{
-		Node.Element element => element,
-		Node.Call(var rule, _) when (seen ??= []).Add(rule)
-			=> ElementOf(BodyOf(rule), seen),
-		_ => null,
-	};
+		return node switch
+		{
+			Node.Element element => element,
+			Node.Call(var rule, _) when (seen ??= []).Add(rule)
+				=> ElementOf(BodyOf(rule), seen),
+			_ => null,
+		};
+	}
 
 	/// <summary>The `wordboundary` this namespace sees, or null while it matches nothing.</summary>
 	/// <summary>Every namespace's own <c>word</c>, made the first time one is called.</summary>
@@ -1346,10 +1389,12 @@ public sealed partial class GrammarNormalizer
 	/// The `trivia` this namespace sees, or null when it matches nothing — in which case the
 	/// insertions are not emitted at all rather than emitted and skipped (§4.5).
 	/// </summary>
-	Node? TriviaFor(GrammarNamespace ns) =>
-		_model.Trivia.TryGetValue(ns, out var trivia) && !MatchesNothing(trivia, [])
+	Node? TriviaFor(GrammarNamespace ns)
+	{
+		return _model.Trivia.TryGetValue(ns, out var trivia) && !MatchesNothing(trivia, [])
 			? CallTo(trivia, [])
 			: null;
+	}
 
 	/// <summary>
 	/// Whether a rule can only ever match the empty sequence. Stronger than nullable,
@@ -1364,24 +1409,29 @@ public sealed partial class GrammarNormalizer
 	/// because the namespace's own rules were still to come — seams that read nothing and
 	/// broke the shape of everything the lexer recognizes by shape.
 	/// </remarks>
-	bool MatchesNothing(RuleSymbol rule, HashSet<RuleSymbol> seen) =>
-		rule.IsBuiltIn
+	bool MatchesNothing(RuleSymbol rule, HashSet<RuleSymbol> seen)
+	{
+		return rule.IsBuiltIn
 			? rule.Name is "none" or "trivia" or "eof" or "wordboundary"
 			: seen.Add(rule) && MatchesNothing(BodyOf(rule), seen);
+	}
 
-	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen) => node switch
+	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen)
 	{
-		Node.Empty          => true,
-		Node.Literal(var t) => t.Length == 0,
-		Node.Atomic(var body) => MatchesNothing(body, seen),
-		Node.Repeat(var body, _, var max) => max == 0 || MatchesNothing(body, seen),
-		Node.Sequence(var nodes)   => nodes.All(child => MatchesNothing(child, seen)),
-		Node.Choice(var nodes) { Selection: null } => nodes.All(child => MatchesNothing(child, seen)),
-		Node.Capture(_, var body)  => MatchesNothing(body, seen),
-		Node.Construct(var body, _) => MatchesNothing(body, seen),
-		Node.Call(var rule, _)     => MatchesNothing(rule, seen),
-		_                          => false,
-	};
+		return node switch
+		{
+			Node.Empty => true,
+			Node.Literal(var t) => t.Length == 0,
+			Node.Atomic(var body) => MatchesNothing(body, seen),
+			Node.Repeat(var body, _, var max) => max == 0 || MatchesNothing(body, seen),
+			Node.Sequence(var nodes) => nodes.All(child => MatchesNothing(child, seen)),
+			Node.Choice(var nodes) { Selection: null } => nodes.All(child => MatchesNothing(child, seen)),
+			Node.Capture(_, var body) => MatchesNothing(body, seen),
+			Node.Construct(var body, _) => MatchesNothing(body, seen),
+			Node.Call(var rule, _) => MatchesNothing(rule, seen),
+			_ => false,
+		};
+	}
 
 	/// <summary>`'a' &amp; 'b'` is `"ab"`: a sequence of literals already means their
 	/// concatenation.</summary>
@@ -1468,12 +1518,15 @@ public sealed partial class GrammarNormalizer
 		return merged;
 	}
 
-	static bool IsSingleItem(Node node) => node switch
+	static bool IsSingleItem(Node node)
 	{
-		Node.Literal(var text) { IgnoreCase: false } => text.Length == 1,
-		Node.Element(var negated, _, _, _) => !negated,
-		_ => false,
-	};
+		return node switch
+		{
+			Node.Literal(var text) { IgnoreCase: false } => text.Length == 1,
+			Node.Element(var negated, _, _, _) => !negated,
+			_ => false,
+		};
+	}
 
 	static Node.Element Combine(List<Node> run)
 	{

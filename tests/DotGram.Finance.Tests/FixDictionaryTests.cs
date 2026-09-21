@@ -41,11 +41,15 @@ public sealed class FixDictionaryTests
 		return at?.FullName ?? from;
 	}
 
-	static FixDictionary Load() => FixDictionary.Load(File.OpenRead(Published));
+	static FixDictionary Load()
+	{
+		return FixDictionary.Load(File.OpenRead(Published));
+	}
 
 	/// <summary>A dictionary around members, with the fields section last as the published file has it.</summary>
-	static string Written(string header, string messages, string components, string fields) =>
-		$"""
+	static string Written(string header, string messages, string components, string fields)
+	{
+		return $"""
 		<fix major="4" minor="4">
 			<header>{header}</header>
 			<trailer><field name="CheckSum" required="Y"/></trailer>
@@ -57,6 +61,7 @@ public sealed class FixDictionaryTests
 			</fields>
 		</fix>
 		""";
+	}
 
 	[Fact]
 	public void The_published_dictionary_reads()

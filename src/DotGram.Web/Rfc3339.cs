@@ -149,8 +149,10 @@ public sealed record Timestamp(FullDate Date, FullTime Time)
 {
 	/// <summary>A date-time, with §5.7's days, hours, minutes and leap second.</summary>
 	/// <exception cref="FormatException">The text is no date-time, or names a time that is not; the message says where.</exception>
-	public static Timestamp Parse(string text) =>
-		Rfc3339.ParseTimestamp(text ?? throw new ArgumentNullException(nameof(text)));
+	public static Timestamp Parse(string text)
+	{
+		return Rfc3339.ParseTimestamp(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A date-time, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out Timestamp? timestamp)
@@ -186,7 +188,10 @@ public sealed record Timestamp(FullDate Date, FullTime Time)
 	}
 
 	/// <summary>The date-time as §5.6 writes it, with an uppercase <c>T</c> and <c>Z</c> as §5.6 says to.</summary>
-	public override string ToString() => $"{Date}T{Time}";
+	public override string ToString()
+	{
+		return $"{Date}T{Time}";
+	}
 }
 
 /// <summary>A full-date (RFC 3339 §5.6): a day of the Gregorian calendar.</summary>
@@ -194,8 +199,10 @@ public sealed record FullDate(int Year, int Month, int Day)
 {
 	/// <summary>A full-date, a day its month has.</summary>
 	/// <exception cref="FormatException">The text is no full-date, or names a day that is not; the message says where.</exception>
-	public static FullDate Parse(string text) =>
-		Rfc3339.ParseFullDate(text ?? throw new ArgumentNullException(nameof(text)));
+	public static FullDate Parse(string text)
+	{
+		return Rfc3339.ParseFullDate(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A full-date, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out FullDate? date)
@@ -208,8 +215,10 @@ public sealed record FullDate(int Year, int Month, int Day)
 	}
 
 	/// <summary>The date as §5.6 writes one: four digits, a month and a day.</summary>
-	public override string ToString() =>
-		string.Format(CultureInfo.InvariantCulture, "{0:D4}-{1:D2}-{2:D2}", Year, Month, Day);
+	public override string ToString()
+	{
+		return string.Format(CultureInfo.InvariantCulture, "{0:D4}-{1:D2}-{2:D2}", Year, Month, Day);
+	}
 }
 
 /// <summary>A full-time (RFC 3339 §5.6): a time of day and the offset from UTC it was written in.</summary>
@@ -225,8 +234,10 @@ public sealed record FullTime(int Hour, int Minute, int Second, string? Fraction
 {
 	/// <summary>A full-time, a leap second only at 23:59 UTC.</summary>
 	/// <exception cref="FormatException">The text is no full-time, or names a time that is not; the message says where.</exception>
-	public static FullTime Parse(string text) =>
-		Rfc3339.ParseFullTime(text ?? throw new ArgumentNullException(nameof(text)));
+	public static FullTime Parse(string text)
+	{
+		return Rfc3339.ParseFullTime(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A full-time, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out FullTime? time)

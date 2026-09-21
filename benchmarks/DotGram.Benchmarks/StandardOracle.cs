@@ -143,35 +143,46 @@ sealed class StandardOracle
 	}
 
 	/// <summary>§5.4's Syntax Rule, wherever a <c>&lt;regular identifier&gt;</c> is completed: it is not a reserved word.</summary>
-	Func<int, int, int, bool> Accept(char[] text) =>
-		(made, from, to) => made != regular || !reserved.Contains(new string(text, from, to - from));
-
-	bool CharacterMatches(int terminal, char one) => characters.Terminal(terminal) switch
+	Func<int, int, int, bool> Accept(char[] text)
 	{
-		Terminal.Character c => char.ToUpperInvariant(c.One) == char.ToUpperInvariant(one),
-		Terminal.Class k     => k.Test(one),
-		_                    => false,
-	};
+		return (made, from, to) => made != regular || !reserved.Contains(new string(text, from, to - from));
+	}
+
+	bool CharacterMatches(int terminal, char one)
+	{
+		return characters.Terminal(terminal) switch
+		{
+			Terminal.Character c => char.ToUpperInvariant(c.One) == char.ToUpperInvariant(one),
+			Terminal.Class k => k.Test(one),
+			_ => false,
+		};
+	}
 
 	/// <summary>The one-character predicates the lexical <c>!!</c> productions stand for.</summary>
-	static Func<char, bool>? Character(string name) => name switch
+	static Func<char, bool>? Character(string name)
 	{
-		"space"                       => static one => one == ' ',
-		"identifier start"            => static one => char.IsLetter(one) || CharUnicodeInfo.GetUnicodeCategory(one) == UnicodeCategory.LetterNumber,
-		"identifier extend"           => static one => one == '·' || CharUnicodeInfo.GetUnicodeCategory(one) is
-			UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.DecimalDigitNumber or
-			UnicodeCategory.ConnectorPunctuation or UnicodeCategory.Format,
-		"Unicode escape character"    => static one => one == '\\',
-		"non-double quote character"  => static one => one != '"',
-		"non-quote character"         => static one => one != '\'',
-		"whitespace"                  => static one => char.IsWhiteSpace(one),
-		"truncating whitespace"       => static one => char.IsWhiteSpace(one),
-		"newline"                     => static one => one == '\n',
-		_                             => null,
-	};
+		return name switch
+		{
+			"space" => static one => one == ' ',
+			"identifier start" => static one => char.IsLetter(one) || CharUnicodeInfo.GetUnicodeCategory(one) == UnicodeCategory.LetterNumber,
+			"identifier extend" => static one => one == '·' || CharUnicodeInfo.GetUnicodeCategory(one) is
+				UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.DecimalDigitNumber or
+				UnicodeCategory.ConnectorPunctuation or UnicodeCategory.Format,
+			"Unicode escape character" => static one => one == '\\',
+			"non-double quote character" => static one => one != '"',
+			"non-quote character" => static one => one != '\'',
+			"whitespace" => static one => char.IsWhiteSpace(one),
+			"truncating whitespace" => static one => char.IsWhiteSpace(one),
+			"newline" => static one => one == '\n',
+			_ => null,
+		};
+	}
 
 	/// <summary>The productions a text's tokens are made of, as this recognizer draws the line.</summary>
-	public static HashSet<string> LexicalProductions(Dictionary<string, BnfNode> rules) => Lexical(rules);
+	public static HashSet<string> LexicalProductions(Dictionary<string, BnfNode> rules)
+	{
+		return Lexical(rules);
+	}
 
 	/// <summary>Every production the lexical rules reach from a token and a separator.</summary>
 	/// <remarks>
@@ -251,46 +262,60 @@ sealed class StandardOracle
 		return spelled;
 	}
 
-	static bool BeginsSpecial(BnfNode node, HashSet<string> special) =>
-		node is BnfSequence { Items: [BnfRule first, _, ..] } && special.Contains(first.Name);
-
-	static bool OneCharacter(string name, BnfNode node, HashSet<string> single) => node switch
+	static bool BeginsSpecial(BnfNode node, HashSet<string> special)
 	{
-		BnfWord word     => word.Text.Length == 1,
-		BnfRule rule     => single.Contains(rule.Name),
-		BnfChoice choice => choice.Options.All(option => OneCharacter(name, option, single)),
-		BnfText          => Character(name) is not null,
-		_                => false,
-	};
+		return node is BnfSequence { Items: [BnfRule first, _, ..] } && special.Contains(first.Name);
+	}
 
-	static bool Characters(BnfNode node, HashSet<string> spelled) => node switch
+	static bool OneCharacter(string name, BnfNode node, HashSet<string> single)
 	{
-		BnfWord word         => word.Text.Length == 1,
-		BnfRule rule         => spelled.Contains(rule.Name),
-		BnfChoice choice     => choice.Options.All(option => Characters(option, spelled)),
-		BnfSequence sequence => sequence.Items.All(item => Characters(item, spelled)),
-		BnfOptional optional => Characters(optional.Body, spelled),
-		BnfRepeated repeated => Characters(repeated.Body, spelled),
-		_                    => false,
-	};
+		return node switch
+		{
+			BnfWord word => word.Text.Length == 1,
+			BnfRule rule => single.Contains(rule.Name),
+			BnfChoice choice => choice.Options.All(option => OneCharacter(name, option, single)),
+			BnfText => Character(name) is not null,
+			_ => false,
+		};
+	}
 
-	static IEnumerable<string> Used(BnfNode node) => node switch
+	static bool Characters(BnfNode node, HashSet<string> spelled)
 	{
-		BnfRule rule          => [rule.Name],
-		BnfSequence sequence  => sequence.Items.SelectMany(Used),
-		BnfChoice choice      => choice.Options.SelectMany(Used),
-		BnfOptional optional  => Used(optional.Body),
-		BnfRepeated repeated  => Used(repeated.Body),
-		_                     => [],
-	};
+		return node switch
+		{
+			BnfWord word => word.Text.Length == 1,
+			BnfRule rule => spelled.Contains(rule.Name),
+			BnfChoice choice => choice.Options.All(option => Characters(option, spelled)),
+			BnfSequence sequence => sequence.Items.All(item => Characters(item, spelled)),
+			BnfOptional optional => Characters(optional.Body, spelled),
+			BnfRepeated repeated => Characters(repeated.Body, spelled),
+			_ => false,
+		};
+	}
 
-	static IEnumerable<string> Words(BnfNode node) => node switch
+	static IEnumerable<string> Used(BnfNode node)
 	{
-		BnfWord word         => [word.Text],
-		BnfChoice choice     => choice.Options.SelectMany(Words),
-		BnfSequence sequence => sequence.Items.SelectMany(Words),
-		_                    => [],
-	};
+		return node switch
+		{
+			BnfRule rule => [rule.Name],
+			BnfSequence sequence => sequence.Items.SelectMany(Used),
+			BnfChoice choice => choice.Options.SelectMany(Used),
+			BnfOptional optional => Used(optional.Body),
+			BnfRepeated repeated => Used(repeated.Body),
+			_ => [],
+		};
+	}
+
+	static IEnumerable<string> Words(BnfNode node)
+	{
+		return node switch
+		{
+			BnfWord word => [word.Text],
+			BnfChoice choice => choice.Options.SelectMany(Words),
+			BnfSequence sequence => sequence.Items.SelectMany(Words),
+			_ => [],
+		};
+	}
 
 	/// <summary>A terminal of a compiled grammar.</summary>
 	abstract record Terminal
@@ -334,20 +359,37 @@ sealed class StandardOracle
 			return id;
 		}
 
-		public Terminal Terminal(int id) => terminals[id];
+		public Terminal Terminal(int id)
+		{
+			return terminals[id];
+		}
 
 		public int Count => right.Count;
 
-		public int[] Right(int production) => right[production];
+		public int[] Right(int production)
+		{
+			return right[production];
+		}
 
-		public int Left(int production) => left[production];
+		public int Left(int production)
+		{
+			return left[production];
+		}
 
-		public IReadOnlyList<int> Of(int nonterminal) => byLeft[nonterminal];
+		public IReadOnlyList<int> Of(int nonterminal)
+		{
+			return byLeft[nonterminal];
+		}
 
-		public bool Nullable(int nonterminal) => nullable[nonterminal];
+		public bool Nullable(int nonterminal)
+		{
+			return nullable[nonterminal];
+		}
 
-		public IEnumerable<string> NullableNames() =>
-			named.Where(pair => nullable[pair.Value]).Select(static pair => pair.Key).OrderBy(static name => name, StringComparer.Ordinal);
+		public IEnumerable<string> NullableNames()
+		{
+			return named.Where(pair => nullable[pair.Value]).Select(static pair => pair.Key).OrderBy(static name => name, StringComparer.Ordinal);
+		}
 
 		/// <summary>A symbol: a nonterminal is its index, a terminal the complement of its index.</summary>
 		int Nonterminal(string name)
@@ -397,14 +439,19 @@ sealed class StandardOracle
 			byLeft[id].Add(right.Count - 1);
 		}
 
-		IEnumerable<int[]> Alternatives(BnfNode node) =>
-			node is BnfChoice choice ? choice.Options.Select(Symbols) : [Symbols(node)];
-
-		int[] Symbols(BnfNode node) => node switch
+		IEnumerable<int[]> Alternatives(BnfNode node)
 		{
-			BnfSequence sequence => sequence.Items.SelectMany(One).ToArray(),
-			_                    => One(node).ToArray(),
-		};
+			return node is BnfChoice choice ? choice.Options.Select(Symbols) : [Symbols(node)];
+		}
+
+		int[] Symbols(BnfNode node)
+		{
+			return node switch
+			{
+				BnfSequence sequence => sequence.Items.SelectMany(One).ToArray(),
+				_ => One(node).ToArray(),
+			};
+		}
 
 		IEnumerable<int> One(BnfNode node)
 		{

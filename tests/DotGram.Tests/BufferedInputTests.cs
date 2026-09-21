@@ -155,9 +155,12 @@ public sealed partial class BufferedInputTests
 
 		var method = EmittedCode.Compile(source).GetType("Grammar")!
 			.GetMethod("All", [bytes ? typeof(Stream) : typeof(TextReader), typeof(int?), typeof(int?)])!;
-		object Input() => bytes
+		object Input()
+		{
+			return bytes
 			? new MemoryStream(System.Text.Encoding.ASCII.GetBytes("abcdefghij;"))
 			: new StringReader("abcdefghij;");
+		}
 
 		// Null: the grammar's limit of four, which a record of ten exceeds.
 		var thrown = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [Input(), null, null]));
@@ -415,7 +418,11 @@ public sealed partial class BufferedInputTests
 			{
 				using var stream = new ChunkedStream(bytes, split);
 				var match = parse.Invoke(null, [stream, 1, int.MaxValue])!;
-				object? Get(string property) => match.GetType().GetProperty(property)!.GetValue(match);
+				object? Get(string property)
+				{
+					return match.GetType().GetProperty(property)!.GetValue(match);
+				}
+
 				Assert.True(expected.IsSuccess == (bool)Get("IsSuccess")!, $"\"{input}\" split {split}");
 				Assert.Equal(expected.Position, (long)Get("Position")!);
 			}
@@ -445,7 +452,10 @@ public sealed partial class BufferedInputTests
 
 	sealed class ChunkedStream(byte[] bytes, int chunk) : MemoryStream(bytes)
 	{
-		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, chunk));
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			return base.Read(buffer, offset, Math.Min(count, chunk));
+		}
 	}
 
 	[Fact]

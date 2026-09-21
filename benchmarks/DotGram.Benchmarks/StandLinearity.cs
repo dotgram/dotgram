@@ -118,9 +118,20 @@ static partial class Stand
 		});
 
 		// ── SQL ──
-		string Names(int n) => string.Join(", ", Enumerable.Range(0, n).Select(static i => "c" + i));
-		string Conditions(int n) => string.Join(" AND ", Enumerable.Range(0, n).Select(static i => "a" + i + " = 1"));
-		string Rows(int n) => string.Join(", ", Enumerable.Repeat("(1, 2)", n));
+		string Names(int n)
+		{
+			return string.Join(", ", Enumerable.Range(0, n).Select(static i => "c" + i));
+		}
+
+		string Conditions(int n)
+		{
+			return string.Join(" AND ", Enumerable.Range(0, n).Select(static i => "a" + i + " = 1"));
+		}
+
+		string Rows(int n)
+		{
+			return string.Join(", ", Enumerable.Repeat("(1, 2)", n));
+		}
 
 		yield return new Series("T-SQL columns",    "generated", "columns",    [10, 100, 1000], n => { var t = $"SELECT {Names(n)} FROM t"; return () => TransactSqlParser.TryParseStatement(t).IsSuccess; });
 		yield return new Series("T-SQL conditions", "generated", "predicates", [10, 100, 1000], n => { var t = Conditions(n); return () => TransactSqlParser.TryParseSearchCondition(t).IsSuccess; });
@@ -158,7 +169,10 @@ static partial class Stand
 
 		// Parentheses nested to a depth and closed: the accepted twin of the refusal ladders' "nested parentheses, never closed" (sql-39, 2026-09-20: the refused form
 		// and this one cost alike, about n^2.8, so what the ladders found is a cost of nesting and not of refusing).
-		string Nest(int n) => new string('(', n) + "a = 1" + new string(')', n);
+		string Nest(int n)
+		{
+			return new string('(', n) + "a = 1" + new string(')', n);
+		}
 
 		yield return new Series("T-SQL search condition, nested parentheses",   "generated", "levels", [32, 64, 128, 300], n => { var t = Nest(n); return () => TransactSqlParser.TryParseSearchCondition(t).IsSuccess; });
 		yield return new Series("T-SQL statement, nested parentheses",          "generated", "levels", [32, 64, 128, 300], n => { var t = "SELECT " + new string('(', n) + "1" + new string(')', n); return () => TransactSqlParser.TryParseStatement(t).IsSuccess; });

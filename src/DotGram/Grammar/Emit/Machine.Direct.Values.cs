@@ -194,8 +194,10 @@ sealed partial class Machine
 	readonly Dictionary<RuleSymbol, HashSet<int>> _directStepSlots = [];
 
 	/// <summary>Whether a factory of a rule is a fold step, whose record leads with the value so far.</summary>
-	bool IsStep(RuleSymbol rule, int factory) =>
-		factory >= 0 && _factories[rule][factory].Accumulator is not null;
+	bool IsStep(RuleSymbol rule, int factory)
+	{
+		return factory >= 0 && _factories[rule][factory].Accumulator is not null;
+	}
 
 	/// <summary>The member a capture slot of a rule belongs to, if any — as the record that will hold it shapes it.</summary>
 	DirectMember? MemberOfSlot(RuleSymbol rule, int slot)
@@ -248,24 +250,32 @@ sealed partial class Machine
 
 		return _read[(owner, slot)] = found;
 
-		static RuleSymbol? Called(Node node) =>
-			node switch
+		static RuleSymbol? Called(Node node)
+		{
+			return node switch
 			{
-				Node.Call(var rule, _)                        => rule,
-				Node.Construct(var body, _)                   => Called(body),
-				Node.Atomic(var body)                         => Called(body),
+				Node.Call(var rule, _) => rule,
+				Node.Construct(var body, _) => Called(body),
+				Node.Atomic(var body) => Called(body),
 				Node.Sequence(var parts) when parts.Count == 1 => Called(parts[0]),
-				_                                             => null,
+				_ => null,
 			};
+		}
 	}
 
 	readonly Dictionary<(RuleSymbol Owner, int Slot), RuleSymbol?> _read = [];
 
 	/// <summary>Whether a rule keeps a value at all, and so writes a record.</summary>
-	bool Valued(RuleSymbol rule) => ValueRule(rule) >= 0;
+	bool Valued(RuleSymbol rule)
+	{
+		return ValueRule(rule) >= 0;
+	}
 
 	/// <summary>Whether a rule writes its record where its body ends, having no construction of its own.</summary>
-	bool RecordsAtEnd(RuleSymbol rule) => Valued(rule) && _factories[rule].Count == 0;
+	bool RecordsAtEnd(RuleSymbol rule)
+	{
+		return Valued(rule) && _factories[rule].Count == 0;
+	}
 
 	/// <summary>
 	/// Whether a rule can be read by methods with its value kept: everything the direct
@@ -416,7 +426,10 @@ sealed partial class Machine
 	readonly Dictionary<int, int> _recoveryArms = [];
 
 	/// <summary>Which arm a recovered element of this plan writes its record under.</summary>
-	int RecoveryArm(RecoveryPlan plan) => _recoveryArms[plan.Id];
+	int RecoveryArm(RecoveryPlan plan)
+	{
+		return _recoveryArms[plan.Id];
+	}
 
 	readonly Dictionary<(RuleSymbol Rule, int Factory), int> _directArms = [];
 	readonly List<(RuleSymbol Rule, int Factory)>            _directArmed = [];
@@ -425,7 +438,10 @@ sealed partial class Machine
 	internal IReadOnlyList<RuleSymbol> _directRules = [];
 
 	/// <summary>Which arm a rule's alternative writes its record under.</summary>
-	public int DirectArm(RuleSymbol rule, int factory) => _directArms[(rule, factory)];
+	public int DirectArm(RuleSymbol rule, int factory)
+	{
+		return _directArms[(rule, factory)];
+	}
 
 	/// <summary>
 	/// Whether a rule writes a record at all: one whose every alternative hands its
@@ -524,8 +540,10 @@ sealed partial class Machine
 	/// write after all. Asked here and not inside, because the carrier is chosen from what
 	/// the machine turned out to hold and the analysis runs before it does.
 	/// </summary>
-	bool ForwardsInPlace(RuleSymbol? rule, int factory) =>
-		Carrier.ForwardsInPlace && DirectForwards(rule, factory);
+	bool ForwardsInPlace(RuleSymbol? rule, int factory)
+	{
+		return Carrier.ForwardsInPlace && DirectForwards(rule, factory);
+	}
 
 	bool DirectForwards(RuleSymbol? rule, int factory)
 	{
@@ -664,12 +682,14 @@ sealed partial class Machine
 	}
 
 	/// <summary>Where a direct walk writes a rule's value: into the table's held slot.</summary>
-	string DirectInto(string type, string index) =>
-		DenseDirectValues
+	string DirectInto(string type, string index)
+	{
+		return DenseDirectValues
 			? $"values.V{TableName(type)}[valueSlot].Value"
 			: Carrier is TapeCarrier { AdaptiveStore: true }
 				? $"((uint){index} < (uint)values{TableName(type)}.Length ? ref values{TableName(type)}[{index}] : ref values.V{TableName(type)}[{index}]).Value"
 				: ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
+	}
 
 	/// <summary>
 	/// What a record-indexed write leaves behind in a store that also holds dense tables:
@@ -682,10 +702,12 @@ sealed partial class Machine
 	/// they would say that every table holds a value at every record, and the store would be
 	/// cleared in full however little of it was written.
 	/// </remarks>
-	string DirectMark(string type, string index) =>
-		!DenseDirectValues && _denseStore && TableFor(type) >= 0
+	string DirectMark(string type, string index)
+	{
+		return !DenseDirectValues && _denseStore && TableFor(type) >= 0
 			? $"if ({index} >= values.N{TableName(type)}) values.N{TableName(type)} = {index} + 1;"
 			: "";
+	}
 
 	/// <summary>
 	/// What a record-indexed write into a store that also holds dense tables does first: grows
@@ -707,10 +729,12 @@ sealed partial class Machine
 	/// parse is mostly that: it made them a fifth to two fifths slower.
 	/// </para>
 	/// </remarks>
-	string DirectGrow(string type, string index) =>
-		!DenseDirectValues && _denseStore && TableFor(type) >= 0 && Carrier is not TapeCarrier { AdaptiveStore: true }
+	string DirectGrow(string type, string index)
+	{
+		return !DenseDirectValues && _denseStore && TableFor(type) >= 0 && Carrier is not TapeCarrier { AdaptiveStore: true }
 			? $"if ((uint){index} >= (uint)values{TableName(type)}.Length) values{TableName(type)} = values.Grow{TableName(type)}({index});"
 			: "";
+	}
 
 	/// <summary>The materializer for one direct machine: a walk over the log, a switch per rule.</summary>
 	/// <remarks>
@@ -1639,8 +1663,9 @@ sealed partial class Machine
 	}
 
 	/// <summary>The value a record holds: from its type's table, or for an extent the record itself.</summary>
-	string RecordValue(string type, string record) =>
-		type == "SourceSpan"
+	string RecordValue(string type, string record)
+	{
+		return type == "SourceSpan"
 			? Span($"log[{record} + 2]", $"log[{record} + 3] - log[{record} + 2]")
 			: TableFor(type) >= 0
 				? DenseDirectValues
@@ -1649,14 +1674,17 @@ sealed partial class Machine
 						? $"((uint){record} < (uint)values{TableName(type)}.Length ? values{TableName(type)}[{record}].Value : values.V{TableName(type)}[{record}].Value)"
 						: $"values{TableName(type)}[{record}].Value"
 				: throw new InvalidOperationException($"No value table for '{type}'.");
+	}
 
 	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>
-	List<string> DirectArguments(RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members) =>
-		DirectArguments(
+	List<string> DirectArguments(RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members)
+	{
+		return DirectArguments(
 			rule, factory, members,
 			() => Cut("start", "end - start"), () => Span("start", "end - start"),
 			() => RecordValue(_results.QualifiedOf(rule)!, "accumulated"),
 			static member => $"captured{member.Index}");
+	}
 
 	/// <summary>
 	/// The factory's arguments, in the order the factory's parameters were written, from

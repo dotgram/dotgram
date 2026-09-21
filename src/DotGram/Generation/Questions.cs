@@ -47,23 +47,44 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </summary>
 	public const int Rewinds = -7;
 
-	public static Question Fits(string from, string to) => new(from, Assignability, to);
+	public static Question Fits(string from, string to)
+	{
+		return new(from, Assignability, to);
+	}
 
-	public static Question Builds(string type) => new(type, Constructors);
+	public static Question Builds(string type)
+	{
+		return new(type, Constructors);
+	}
 
-	public static Question Sets(string type) => new(type, Properties);
+	public static Question Sets(string type)
+	{
+		return new(type, Properties);
+	}
 
 	/// <param name="against">
 	/// The type <c>T</c> would have to fit for a whole rule's body to be exactly this call,
 	/// or null for a captured or otherwise nested use, which only asks what <c>T</c> is.
 	/// </param>
-	public static Question ValueOf(string method, string? against = null) => new(method, ExternalValue, against);
+	public static Question ValueOf(string method, string? against = null)
+	{
+		return new(method, ExternalValue, against);
+	}
 
-	public static Question Recognizes(string method) => new(method, ExternalMethod);
+	public static Question Recognizes(string method)
+	{
+		return new(method, ExternalMethod);
+	}
 
-	public static Question Tests(string method) => new(method, ExternalMethod, "char");
+	public static Question Tests(string method)
+	{
+		return new(method, ExternalMethod, "char");
+	}
 
-	public static Question Restores(string context) => new(context, Rewinds);
+	public static Question Restores(string context)
+	{
+		return new(context, Rewinds);
+	}
 
 	/// <summary>The role an <see cref="ExternalMethod"/> question asks about.</summary>
 	public ExternalMethodRole Role => Against is null ? ExternalMethodRole.Recognizer : ExternalMethodRole.Predicate;
@@ -474,12 +495,20 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		return index;
 	}
 
-	public bool TypeExists(string qualifiedName) => Look(new Question(qualifiedName, Question.Exists)).Yes;
+	public bool TypeExists(string qualifiedName)
+	{
+		return Look(new Question(qualifiedName, Question.Exists)).Yes;
+	}
 
-	public bool IsAssignable(string from, string to) =>
-		string.Equals(from, to, StringComparison.Ordinal) || Look(Question.Fits(from, to)).Yes;
+	public bool IsAssignable(string from, string to)
+	{
+		return string.Equals(from, to, StringComparison.Ordinal) || Look(Question.Fits(from, to)).Yes;
+	}
 
-	public bool Rewinds(string qualifiedName) => Look(Question.Restores(qualifiedName)).Yes;
+	public bool Rewinds(string qualifiedName)
+	{
+		return Look(Question.Restores(qualifiedName)).Yes;
+	}
 
 	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
 	{
@@ -515,8 +544,10 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 			: ExternalValueResolution.NotFound;
 	}
 
-	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
-		Look(role == ExternalMethodRole.Predicate ? Question.Tests(methodName) : Question.Recognizes(methodName)).Method;
+	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+	{
+		return Look(role == ExternalMethodRole.Predicate ? Question.Tests(methodName) : Question.Recognizes(methodName)).Method;
+	}
 
 	/// <summary>
 	/// The answer, or a failure — never a guess.
@@ -528,10 +559,12 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 	/// no parser, which is bad but visible; the alternative is a diagnostic they cannot
 	/// act on about a type they spelled correctly.
 	/// </remarks>
-	Answer Look(Question question) =>
-		_answers.TryGetValue(question, out var answer)
+	Answer Look(Question question)
+	{
+		return _answers.TryGetValue(question, out var answer)
 			? answer
 			: throw new InvalidOperationException(
 				$"The question collector did not foresee the type question for '{question.Name}' " +
 				$"(kind {question.Kind}). This is a defect in DotGram.Generation.Questions, not in the grammar.");
+	}
 }

@@ -94,14 +94,16 @@ public sealed class SharedPrefixTests
 		Assert.Empty(said);
 	}
 
-	static GramDiagnostic[] Warnings(string grammar) =>
-		GramCompiler
+	static GramDiagnostic[] Warnings(string grammar)
+	{
+		return GramCompiler
 			.Compile(grammar, new GramCompilerOptions
-				{
-					ClassName = "G",
-					CSharpScanner = DotGram.Generation.RoslynCSharpScanner.Instance,
-				})
+			{
+				ClassName = "G",
+				CSharpScanner = DotGram.Generation.RoslynCSharpScanner.Instance,
+			})
 			.Diagnostics
 			.Where(one => one.Id == "GRAM4016")
 			.ToArray();
+	}
 }

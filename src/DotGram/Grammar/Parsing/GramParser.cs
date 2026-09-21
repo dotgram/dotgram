@@ -47,7 +47,10 @@ public sealed class GramParser
 	/// </summary>
 	bool _panic;
 
-	GramParser(TokenList tokens) => _tokens = tokens;
+	GramParser(TokenList tokens)
+	{
+		_tokens = tokens;
+	}
 
 	public static ParseResult Parse(TokenList tokens)
 	{
@@ -67,12 +70,20 @@ public sealed class GramParser
 
 	bool AtEnd => Current.Kind == TokenKind.EndOfFile;
 
-	Token Take() => AtEnd ? Current : _tokens[_index++];
+	Token Take()
+	{
+		return AtEnd ? Current : _tokens[_index++];
+	}
 
-	bool At(TokenKind kind) => Current.Kind == kind;
+	bool At(TokenKind kind)
+	{
+		return Current.Kind == kind;
+	}
 
-	bool AtKeyword(string keyword) =>
-		Current.Kind == TokenKind.Identifier && Current.Value == keyword;
+	bool AtKeyword(string keyword)
+	{
+		return Current.Kind == TokenKind.Identifier && Current.Value == keyword;
+	}
 
 	bool TakeIf(TokenKind kind)
 	{
@@ -107,11 +118,15 @@ public sealed class GramParser
 		return new(start, Math.Max(0, end - start));
 	}
 
-	void Report(string id, string message) =>
+	void Report(string id, string message)
+	{
 		Report(id, message, new Location(Current.Position, Math.Max(Current.Length, 1)));
+	}
 
-	void Report(string id, string message, Location at) =>
+	void Report(string id, string message, Location at)
+	{
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
+	}
 
 	void Expect(TokenKind kind)
 	{
@@ -177,9 +192,11 @@ public sealed class GramParser
 		return new GrammarFile(usings, declarations, new Location(0, _tokens[_tokens.Count - 1].Position));
 	}
 
-	bool AtUsing() =>
-		AtKeyword("using") && Next.Kind == TokenKind.Identifier ||
+	bool AtUsing()
+	{
+		return AtKeyword("using") && Next.Kind == TokenKind.Identifier ||
 		At(TokenKind.At) && Next.Kind == TokenKind.Identifier && Next.Value == "using";
+	}
 
 	Using ParseUsing()
 	{
@@ -251,7 +268,10 @@ public sealed class GramParser
 		return KindAt(head) is TokenKind.Equals || StartsParameterizedRule(head) || StartsTypedRule(head);
 	}
 
-	TokenKind KindAt(int at) => at < _tokens.Count ? _tokens[at].Kind : TokenKind.EndOfFile;
+	TokenKind KindAt(int at)
+	{
+		return at < _tokens.Count ? _tokens[at].Kind : TokenKind.EndOfFile;
+	}
 
 	/// <summary>
 	/// Whether an identifier followed by <c>(</c> is a rule taking parameters rather than
@@ -325,14 +345,16 @@ public sealed class GramParser
 	/// named <c>parse</c>, because that is what an <c>=</c> or a parameter list after the
 	/// word means anywhere else in the language.
 	/// </remarks>
-	bool AtPublication() =>
-		!StartsRule() &&
+	bool AtPublication()
+	{
+		return !StartsRule() &&
 		(AtKeyword("parse") || AtKeyword("find")) &&
 		Next.Kind is
 			TokenKind.Identifier or TokenKind.OpenParen or TokenKind.OpenBracket or
 			TokenKind.OpenBrace or TokenKind.At or
 			TokenKind.Character or TokenKind.String or
 			TokenKind.CaseInsensitiveCharacter or TokenKind.CaseInsensitiveString;
+	}
 
 	/// <summary><c>public</c>, <c>internal</c> or <c>private</c>, where a directive follows it (§6).</summary>
 	/// <remarks>
@@ -340,11 +362,13 @@ public sealed class GramParser
 	/// <c>internal</c> stays one — which is the same bargain <c>parse</c> and <c>find</c>
 	/// themselves make with <see cref="StartsRule"/>.
 	/// </remarks>
-	bool AtAccess() =>
-		(AtKeyword("public") || AtKeyword("internal") || AtKeyword("private")) &&
+	bool AtAccess()
+	{
+		return (AtKeyword("public") || AtKeyword("internal") || AtKeyword("private")) &&
 		!StartsRule() &&
 		Next.Kind == TokenKind.Identifier &&
 		Next.Value is "parse" or "find";
+	}
 
 	/// <remarks>
 	/// `with` is required before the rebindings here (§5.1), matching the other two
@@ -924,8 +948,10 @@ public sealed class GramParser
 	{
 		var operand = ParsePrefixed();
 
-		Expr Quantify(QuantifierKind kind, int? min = null, string? minName = null, int? max = null, string? maxName = null) =>
-			Recovering(new Expr.Quantified(operand, kind, min, minName, max, maxName) { At = From(start) }, start);
+		Expr Quantify(QuantifierKind kind, int? min = null, string? minName = null, int? max = null, string? maxName = null)
+		{
+			return Recovering(new Expr.Quantified(operand, kind, min, minName, max, maxName) { At = From(start) }, start);
+		}
 
 		if (TakeIf(TokenKind.Question)) return Quantify(QuantifierKind.Optional);
 		if (TakeIf(TokenKind.Star))     return Quantify(QuantifierKind.ZeroOrMore);
@@ -1198,8 +1224,10 @@ public sealed class GramParser
 	}
 
 	/// <summary>A value position — <c>=&gt;</c> and <c>when</c> take these.</summary>
-	Expr ParseValue() =>
-		At(TokenKind.At) || At(TokenKind.Identifier) ? ParseReferenceOrCall() : ParsePrimary();
+	Expr ParseValue()
+	{
+		return At(TokenKind.At) || At(TokenKind.Identifier) ? ParseReferenceOrCall() : ParsePrimary();
+	}
 
 	Expr ParseReferenceOrCall()
 	{
@@ -1323,11 +1351,13 @@ public sealed class GramParser
 		return new Expr.ElementSet(negated, items) { At = From(start) };
 	}
 
-	void ReportCaseInsensitiveElement(Token token) =>
+	void ReportCaseInsensitiveElement(Token token)
+	{
 		Report(
 			ExpectedExpression,
 			"A case-insensitive character is a literal token and cannot be a character-set element or range bound.",
 			new Location(token.Position + token.Length - 1, 1));
+	}
 
 	// ── Recovery ─────────────────────────────────────────────────────────────────
 

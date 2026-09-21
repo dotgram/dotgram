@@ -101,15 +101,18 @@ static class Preparation
 	}
 
 	/// <summary>How many rules the grammar has, which is what the first call is a function of.</summary>
-	static string Rules(string name) => name switch
+	static string Rules(string name)
 	{
-		"Levels"      => "4",
-		"Url"         => "14",
-		"Config"      => "9",
-		"Sql-92"      => "~130",
-		"TransactSql" => "~640",
-		_             => "",
-	};
+		return name switch
+		{
+			"Levels" => "4",
+			"Url" => "14",
+			"Config" => "9",
+			"Sql-92" => "~130",
+			"TransactSql" => "~640",
+			_ => "",
+		};
+	}
 
 	/// <summary>Two grammars a page long, two that fit on a screen, and one that is four rules.</summary>
 	/// <remarks>
@@ -117,12 +120,14 @@ static class Preparation
 	/// over kinds carries a lexer with a transition table and a keyword trie of its own, and
 	/// those are built before the first rule runs.
 	/// </remarks>
-	static List<Subject> Subjects() =>
-	[
+	static List<Subject> Subjects()
+	{
+		return [
 		new("Levels", "characters", "1", static text => Levels.TryLevelled(text).IsSuccess),
 		new("Url", "characters", "http://a", static text => Urls.TryParseUrl(text).IsSuccess),
 		new("Config", "trivia", "a=b;", static text => Config.Read(text).Length >= 0),
 		new("Sql-92", "kinds", "a > 1", static text => Sql92Parser.TryParseSearchCondition(text).IsSuccess),
 		new("TransactSql", "kinds", "SELECT 1", static text => TransactSqlParser.TryParseStatement(text).IsSuccess),
 	];
+	}
 }

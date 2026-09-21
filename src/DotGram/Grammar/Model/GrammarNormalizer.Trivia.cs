@@ -80,26 +80,30 @@ public sealed partial class GrammarNormalizer
 	/// the graph exists — and asked with a guard, since a trivia rule reaches itself, which
 	/// is the whole reason this pass is here.
 	/// </remarks>
-	bool Nullable(RuleSymbol rule, HashSet<RuleSymbol> seen) =>
-		seen.Add(rule) && _bodies.TryGetValue(rule, out var body) && Nullable(body, seen);
+	bool Nullable(RuleSymbol rule, HashSet<RuleSymbol> seen)
+	{
+		return seen.Add(rule) && _bodies.TryGetValue(rule, out var body) && Nullable(body, seen);
+	}
 
-	bool Nullable(Node node, HashSet<RuleSymbol> seen) =>
-		node switch
+	bool Nullable(Node node, HashSet<RuleSymbol> seen)
+	{
+		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
-			Node.Literal(var text)        => text.Length == 0,
-			Node.Element                  => false,
-			Node.External                 => false,
-			Node.Repeat(_, var min, _)    => min == 0,
-			Node.Sequence(var parts)      => parts.All(part => Nullable(part, seen)),
+			Node.Literal(var text) => text.Length == 0,
+			Node.Element => false,
+			Node.External => false,
+			Node.Repeat(_, var min, _) => min == 0,
+			Node.Sequence(var parts) => parts.All(part => Nullable(part, seen)),
 			Node.Choice(var alternatives) => alternatives.Any(one => Nullable(one, seen)),
-			Node.Call(var called, _)      => Nullable(called, seen),
-			Node.Atomic(var kept)         => Nullable(kept, seen),
-			Node.Marked(var kept, _)      => Nullable(kept, seen),
-			Node.Capture(_, var held)     => Nullable(held, seen),
-			Node.Construct(var built, _)  => Nullable(built, seen),
-			_                             => false,
+			Node.Call(var called, _) => Nullable(called, seen),
+			Node.Atomic(var kept) => Nullable(kept, seen),
+			Node.Marked(var kept, _) => Nullable(kept, seen),
+			Node.Capture(_, var held) => Nullable(held, seen),
+			Node.Construct(var built, _) => Nullable(built, seen),
+			_ => false,
 		};
+	}
 
 	/// <summary>The same body with every call to the seam taken out.</summary>
 	Node Unwoven(Node node, Node seam)

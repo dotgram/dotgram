@@ -69,5 +69,8 @@ sealed class GramToolTipPresenter(IToolTipPresenter inner) : IToolTipPresenter
 			inner.StartOrUpdate(markers[0].TrackingSpan, visible);
 	}
 
-	public void Dismiss() => inner.Dismiss();
+	public void Dismiss()
+	{
+		inner.Dismiss();
+	}
 }

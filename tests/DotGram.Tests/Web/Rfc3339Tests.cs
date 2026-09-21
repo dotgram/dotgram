@@ -147,5 +147,8 @@ public sealed class Rfc3339Tests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

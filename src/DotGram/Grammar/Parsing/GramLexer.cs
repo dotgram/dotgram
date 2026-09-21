@@ -39,8 +39,10 @@ public static class GramLexer
 	/// one — reported as a diagnostic rather than a crash, since a caller that only
 	/// exercises the grammar side legitimately has no C# lexer to offer.
 	/// </param>
-	public static TokenList Tokenize(string text, ICSharpScanner? scanner = null) =>
-		Tokenize(text, scanner, int.MaxValue, null);
+	public static TokenList Tokenize(string text, ICSharpScanner? scanner = null)
+	{
+		return Tokenize(text, scanner, int.MaxValue, null);
+	}
 
 	/// <summary>
 	/// Reads a text whose tail from <paramref name="splicedAt"/> on was spliced in by the
@@ -61,11 +63,15 @@ public static class GramLexer
 		var diagnostics = new List<GramDiagnostic>();
 		var position    = 0;
 
-		void Report(string id, string message, int start, int length) =>
+		void Report(string id, string message, int start, int length)
+		{
 			diagnostics.Add(new GramDiagnostic(id, message, start, length, GramSeverity.Error));
+		}
 
-		void Add(TokenKind kind, int start, int length, string? value = null) =>
+		void Add(TokenKind kind, int start, int length, string? value = null)
+		{
 			tokens.Add(new Token(kind, start, length, value));
+		}
 
 		while (position < text.Length)
 		{

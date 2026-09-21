@@ -106,5 +106,8 @@ public static partial class Selectors
 	}
 
 	/// <summary>The selector as it would be written again, which is what it was read from.</summary>
-	public static string Written(Step selector) => string.Concat(Steps(selector));
+	public static string Written(Step selector)
+	{
+		return string.Concat(Steps(selector));
+	}
 }

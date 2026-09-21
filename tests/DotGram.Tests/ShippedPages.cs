@@ -86,8 +86,9 @@ static class ShippedPages
 	}
 
 	/// <summary>The using directives a block writes, as it writes them.</summary>
-	static IEnumerable<string> Usings(string block) =>
-		block
+	static IEnumerable<string> Usings(string block)
+	{
+		return block
 			.Split('\n')
 			.Select(static line => line.TrimEnd('\r'))
 			.Where(static line =>
@@ -98,6 +99,7 @@ static class ShippedPages
 				// as the page's.
 				!line.StartsWith("using var ", StringComparison.Ordinal) &&
 				!line.StartsWith("using (", StringComparison.Ordinal));
+	}
 
 	/// <summary>Every block of every page, as a theory takes them: the page and which block it is.</summary>
 	public static TheoryData<string, int> Every(params string[] pages)
@@ -231,17 +233,21 @@ static class ShippedPages
 	}
 
 	/// <summary>The class a block declares, which is the host a grammar of that block is compiled against.</summary>
-	public static string? HostIn(string block) =>
-		Regex.Match(block, "partial class ([A-Za-z_][A-Za-z0-9_]*)") is { Success: true } named
+	public static string? HostIn(string block)
+	{
+		return Regex.Match(block, "partial class ([A-Za-z_][A-Za-z0-9_]*)") is { Success: true } named
 			? named.Groups[1].Value
 			: null;
+	}
 
 	/// <summary>The three quotes a raw string opens and closes with.</summary>
 	const string Quotes = "\"\"\"";
 
 	/// <summary>Where a package's pages are, from a type it ships.</summary>
-	public static string PageOf(Type shipped, string name) =>
-		Path.Combine(Root, "src", shipped.Assembly.GetName().Name!, name);
+	public static string PageOf(Type shipped, string name)
+	{
+		return Path.Combine(Root, "src", shipped.Assembly.GetName().Name!, name);
+	}
 
 	static string Root { get; } = Repository();
 

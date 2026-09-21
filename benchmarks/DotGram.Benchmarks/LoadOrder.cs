@@ -37,11 +37,16 @@ static class LoadOrder
 	/// <summary>A type from an assembly nothing here otherwise uses, named in full.</summary>
 	const string Text = "() => DotGram.Web.MediaType.Parse(\"text/plain\")";
 
-	static bool Loaded() =>
-		AppDomain.CurrentDomain.GetAssemblies().Any(one => one.GetName().Name == "DotGram.Web");
+	static bool Loaded()
+	{
+		return AppDomain.CurrentDomain.GetAssemblies().Any(one => one.GetName().Name == "DotGram.Web");
+	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	static string Touch() => typeof(DotGram.Web.MediaType).FullName!;
+	static string Touch()
+	{
+		return typeof(DotGram.Web.MediaType).FullName!;
+	}
 
 	/// <summary>Runs the three steps and returns what a process should exit with.</summary>
 	public static int Run()

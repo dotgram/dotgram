@@ -42,5 +42,8 @@ static class Structural
 		return hash;
 	}
 
-	public static int Combine(int hash, int next) => unchecked(hash * 31 + next);
+	public static int Combine(int hash, int next)
+	{
+		return unchecked(hash * 31 + next);
+	}
 }

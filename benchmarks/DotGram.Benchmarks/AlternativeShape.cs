@@ -1239,7 +1239,10 @@ public class AlternativeShape
 	readonly Sink _sink = new();
 
 	[GlobalSetup]
-	public void Setup() => _input = Input();
+	public void Setup()
+	{
+		_input = Input();
+	}
 
 	/// <summary>
 	/// The head every alternative shares, the middle every alternative wants, and a last

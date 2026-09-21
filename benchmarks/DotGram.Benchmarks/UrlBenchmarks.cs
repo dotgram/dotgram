@@ -180,10 +180,16 @@ public class UrlBenchmarks
 	}
 
 	[Benchmark(Description = "Regex, every part")]
-	public int RegexInterpretedEveryPart() => EveryPart(Interpreted.Match(Input));
+	public int RegexInterpretedEveryPart()
+	{
+		return EveryPart(Interpreted.Match(Input));
+	}
 
 	[Benchmark(Description = "Regex compiled, every part")]
-	public int RegexCompiledEveryPart() => EveryPart(Compiled.Match(Input));
+	public int RegexCompiledEveryPart()
+	{
+		return EveryPart(Compiled.Match(Input));
+	}
 
 	static int EveryPart(Match match)
 	{

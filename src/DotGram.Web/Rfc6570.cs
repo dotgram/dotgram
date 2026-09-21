@@ -19,8 +19,10 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 {
 	/// <summary>A URI Template of any of RFC 6570's four levels.</summary>
 	/// <exception cref="FormatException">The text is no template; the message says where.</exception>
-	public static UriTemplate Parse(string text) =>
-		Rfc6570.ParseTemplate(text ?? throw new ArgumentNullException(nameof(text)));
+	public static UriTemplate Parse(string text)
+	{
+		return Rfc6570.ParseTemplate(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A URI Template, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out UriTemplate? template)
@@ -47,11 +49,16 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 		/// Whether the other expression has the same operator and the same variables in the same
 		/// order.
 		/// </summary>
-		public bool Equals(Expression? other) =>
-			other is not null && Operator == other.Operator && Structural.Same(Variables, other.Variables);
+		public bool Equals(Expression? other)
+		{
+			return other is not null && Operator == other.Operator && Structural.Same(Variables, other.Variables);
+		}
 
 		/// <summary>A hash over the operator and the variables.</summary>
-		public override int GetHashCode() => Structural.Combine(Operator.GetHashCode(), Structural.Hash(Variables));
+		public override int GetHashCode()
+		{
+			return Structural.Combine(Operator.GetHashCode(), Structural.Hash(Variables));
+		}
 	}
 
 	/// <summary>§2.3, §2.4: a variable's name as written, and the one modifier it may have.</summary>
@@ -61,10 +68,16 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 	public sealed record Variable(string Name, int? Prefix, bool Explode);
 
 	/// <summary>Equal to another template made of equal parts in the same order.</summary>
-	public bool Equals(UriTemplate? other) => other is not null && Structural.Same(Parts, other.Parts);
+	public bool Equals(UriTemplate? other)
+	{
+		return other is not null && Structural.Same(Parts, other.Parts);
+	}
 
 	/// <summary>A hash over the template's parts, literal and expression alike.</summary>
-	public override int GetHashCode() => Structural.Hash(Parts);
+	public override int GetHashCode()
+	{
+		return Structural.Hash(Parts);
+	}
 
 	/// <summary>The URI reference this template stands for, given the values of its variables.</summary>
 	/// <remarks>
@@ -363,21 +376,29 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 		}
 	}
 
-	static void Octet(StringBuilder result, int octet) =>
+	static void Octet(StringBuilder result, int octet)
+	{
 		result.Append('%').Append(Hex[octet >> 4]).Append(Hex[octet & 0xF]);
+	}
 
 	const string Hex = "0123456789ABCDEF";
 
 	// RFC 3986 §2.3 and §2.2.
-	static bool IsUnreserved(char c) =>
-		c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '-' or '.' or '_' or '~';
+	static bool IsUnreserved(char c)
+	{
+		return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '-' or '.' or '_' or '~';
+	}
 
-	static bool IsReserved(char c) =>
-		c is ':' or '/' or '?' or '#' or '[' or ']' or '@' or
+	static bool IsReserved(char c)
+	{
+		return c is ':' or '/' or '?' or '#' or '[' or ']' or '@' or
 			'!' or '$' or '&' or '\'' or '(' or ')' or '*' or '+' or ',' or ';' or '=';
+	}
 
-	static bool IsTriplet(string text, int at) =>
-		text[at] == '%' && at + 2 < text.Length && Uri.IsHexDigit(text[at + 1]) && Uri.IsHexDigit(text[at + 2]);
+	static bool IsTriplet(string text, int at)
+	{
+		return text[at] == '%' && at + 2 < text.Length && Uri.IsHexDigit(text[at + 1]) && Uri.IsHexDigit(text[at + 2]);
+	}
 }
 
 // RFC 6570, URI Template. The grammar is §2's ABNF rule for rule, all four levels, which is what

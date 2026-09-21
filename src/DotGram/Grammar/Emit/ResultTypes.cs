@@ -94,7 +94,10 @@ sealed class ResultTypes
 	public IReadOnlyList<RuleSymbol> Built => _built;
 
 	/// <summary>The generated type's own name, or null when none is generated for it.</summary>
-	public string? NameOf(RuleSymbol rule) => _names.TryGetValue(rule, out var name) ? name : null;
+	public string? NameOf(RuleSymbol rule)
+	{
+		return _names.TryGetValue(rule, out var name) ? name : null;
+	}
 
 	/// <summary>
 	/// The type of a value of this rule, or null when its value is the text it matched.
@@ -104,16 +107,21 @@ sealed class ResultTypes
 	/// one is written exactly as the grammar wrote it, and the <c>@using</c> directives
 	/// carried into the generated file are what make it resolve.
 	/// </remarks>
-	public string? QualifiedOf(RuleSymbol rule) =>
-		_declared.TryGetValue(rule, out var declared) ? declared :
-		_names.TryGetValue(rule, out var name)       ? _prefix + name :
+	public string? QualifiedOf(RuleSymbol rule)
+	{
+		return _declared.TryGetValue(rule, out var declared) ? declared :
+		_names.TryGetValue(rule, out var name) ? _prefix + name :
 		null;
+	}
 
 	/// <summary>
 	/// The type of a value of this rule, text included. Null is the text case too: it is
 	/// what a capture of anything other than a rule holds.
 	/// </summary>
-	public string ValueOf(RuleSymbol? rule) => rule is null ? "string" : QualifiedOf(rule) ?? "string";
+	public string ValueOf(RuleSymbol? rule)
+	{
+		return rule is null ? "string" : QualifiedOf(rule) ?? "string";
+	}
 
 	/// <summary>The innermost class, without its type parameters.</summary>
 	static string SimpleNameOf(string className)
@@ -141,8 +149,10 @@ sealed class ResultTypes
 	}
 
 	/// <summary>The constructor parameter a capture becomes — the name as written.</summary>
-	public static string ParameterOf(ResultMember member) =>
-		Keywords.Contains(member.Name) ? "@" + member.Name : member.Name;
+	public static string ParameterOf(ResultMember member)
+	{
+		return Keywords.Contains(member.Name) ? "@" + member.Name : member.Name;
+	}
 
 	/// <summary>
 	/// C#'s reserved words. A capture may be called <c>base</c> or <c>string</c>; the

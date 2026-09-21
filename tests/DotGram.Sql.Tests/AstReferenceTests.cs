@@ -94,16 +94,20 @@ public sealed class AstReferenceTests
 	/// Found rather than listed, so that a root added to <c>SqlSyntax.cs</c> and left out of
 	/// the reference is caught by the same two tests every node is.
 	/// </remarks>
-	static IEnumerable<Type> Roots() =>
-		typeof(Statement).Assembly
+	static IEnumerable<Type> Roots()
+	{
+		return typeof(Statement).Assembly
 			.GetExportedTypes()
 			.Where(one =>
 				one.IsAbstract && !one.IsSealed && one.Namespace == typeof(Statement).Namespace &&
 				one.BaseType == typeof(object) && one.GetNestedTypes(BindingFlags.Public).Length > 0);
+	}
 
 	/// <summary>Every record of the tree, from the tree itself, named by its root.</summary>
-	static IEnumerable<string> Nodes() =>
-		Roots().SelectMany(root => Records(root, root, root.Name));
+	static IEnumerable<string> Nodes()
+	{
+		return Roots().SelectMany(root => Records(root, root, root.Name));
+	}
 
 	/// <summary>
 	/// The records under a type, however deeply nested: a <c>SetExpression</c>'s are in the
@@ -121,8 +125,10 @@ public sealed class AstReferenceTests
 		}
 	}
 
-	static HashSet<string> Documented() =>
-		Rows().Select(one => one.Node).ToHashSet(StringComparer.Ordinal);
+	static HashSet<string> Documented()
+	{
+		return Rows().Select(one => one.Node).ToHashSet(StringComparer.Ordinal);
+	}
 
 	static List<(string Node, string Source)> Rows()
 	{

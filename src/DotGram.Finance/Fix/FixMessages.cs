@@ -30,8 +30,10 @@ static partial class FixMessages
 	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
 	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
-	public static FixMessage Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null) =>
-		Parse(input.ToString(), options);
+	public static FixMessage Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null)
+	{
+		return Parse(input.ToString(), options);
+	}
 
 	/// <summary>Tries to parse one complete message from a copy of the input.</summary>
 	/// <param name="input">The message.</param>
@@ -40,8 +42,10 @@ static partial class FixMessages
 	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
-	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null) =>
-		TryParse(input.ToString(), out message, out error, options);
+	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	{
+		return TryParse(input.ToString(), out message, out error, options);
+	}
 
 	/// <summary>Tries to parse one complete message.</summary>
 	/// <param name="input">The message; null is refused with a diagnostic rather than thrown for.</param>
@@ -50,7 +54,9 @@ static partial class FixMessages
 	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
-		=> TryParseCore(input, out message, out error, options);
+	{
+		return TryParseCore(input, out message, out error, options);
+	}
 
 	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
 	{
@@ -371,30 +377,35 @@ static partial class FixMessages
 	}
 
 	// The optional message model exposes both wire fields; the parser returns only data.
-	static FixField LengthField(int tag, ReadOnlySpan<char> value, FixCustomFields custom) => tag switch
+	static FixField LengthField(int tag, ReadOnlySpan<char> value, FixCustomFields custom)
 	{
-		 90 => new FixField.SecureDataLen                   (FixConvert.Integer(value)),
-		 93 => new FixField.SignatureLength                 (FixConvert.Integer(value)),
-		 95 => new FixField.RawDataLength                   (FixConvert.Integer(value)),
-		212 => new FixField.XmlDataLen                      (FixConvert.Integer(value)),
-		348 => new FixField.EncodedIssuerLen                (FixConvert.Integer(value)),
-		350 => new FixField.EncodedSecurityDescLen          (FixConvert.Integer(value)),
-		352 => new FixField.EncodedListExecInstLen          (FixConvert.Integer(value)),
-		354 => new FixField.EncodedTextLen                  (FixConvert.Integer(value)),
-		356 => new FixField.EncodedSubjectLen               (FixConvert.Integer(value)),
-		358 => new FixField.EncodedHeadlineLen              (FixConvert.Integer(value)),
-		360 => new FixField.EncodedAllocTextLen             (FixConvert.Integer(value)),
-		362 => new FixField.EncodedUnderlyingIssuerLen      (FixConvert.Integer(value)),
-		364 => new FixField.EncodedUnderlyingSecurityDescLen(FixConvert.Integer(value)),
-		445 => new FixField.EncodedListStatusTextLen        (FixConvert.Integer(value)),
-		618 => new FixField.EncodedLegIssuerLen             (FixConvert.Integer(value)),
-		621 => new FixField.EncodedLegSecurityDescLen       (FixConvert.Integer(value)),
-		_   => custom.Text(tag, value),
-	};
+		return tag switch
+		{
+			90 => new FixField.SecureDataLen(FixConvert.Integer(value)),
+			93 => new FixField.SignatureLength(FixConvert.Integer(value)),
+			95 => new FixField.RawDataLength(FixConvert.Integer(value)),
+			212 => new FixField.XmlDataLen(FixConvert.Integer(value)),
+			348 => new FixField.EncodedIssuerLen(FixConvert.Integer(value)),
+			350 => new FixField.EncodedSecurityDescLen(FixConvert.Integer(value)),
+			352 => new FixField.EncodedListExecInstLen(FixConvert.Integer(value)),
+			354 => new FixField.EncodedTextLen(FixConvert.Integer(value)),
+			356 => new FixField.EncodedSubjectLen(FixConvert.Integer(value)),
+			358 => new FixField.EncodedHeadlineLen(FixConvert.Integer(value)),
+			360 => new FixField.EncodedAllocTextLen(FixConvert.Integer(value)),
+			362 => new FixField.EncodedUnderlyingIssuerLen(FixConvert.Integer(value)),
+			364 => new FixField.EncodedUnderlyingSecurityDescLen(FixConvert.Integer(value)),
+			445 => new FixField.EncodedListStatusTextLen(FixConvert.Integer(value)),
+			618 => new FixField.EncodedLegIssuerLen(FixConvert.Integer(value)),
+			621 => new FixField.EncodedLegSecurityDescLen(FixConvert.Integer(value)),
+			_ => custom.Text(tag, value),
+		};
+	}
 
 	// Never null, so that the one path holds here as it does in the reader.
-	static FixCustomFields Custom(FixFieldOptions? options) =>
-		options?.CustomFields ?? FixSpareFields.Instance;
+	static FixCustomFields Custom(FixFieldOptions? options)
+	{
+		return options?.CustomFields ?? FixSpareFields.Instance;
+	}
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
 	{

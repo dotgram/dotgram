@@ -82,20 +82,24 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Theory]
-	[InlineData("abc",  true)]
-	[InlineData("abd",  false)]
-	[InlineData("ab",   false)]
+	[InlineData("abc", true)]
+	[InlineData("abd", false)]
+	[InlineData("ab", false)]
 	[InlineData("abcd", false)]     // parse requires the whole input
-	public void Literals(string input, bool expected) =>
+	public void Literals(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("""Start = 'a' & 'b' & 'c'""", input).Matched);
+	}
 
 	[Theory]
-	[InlineData("42",    true)]
-	[InlineData("0",     true)]
-	[InlineData("",      false)]
-	[InlineData("4x",    false)]
-	public void Element_sets_and_repetition(string input, bool expected) =>
+	[InlineData("42", true)]
+	[InlineData("0", true)]
+	[InlineData("", false)]
+	[InlineData("4x", false)]
+	public void Element_sets_and_repetition(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("Start = ['0'..'9']+", input).Matched);
+	}
 
 	/// <summary>A class reaching past a byte table is read from a bit table, from its first character.</summary>
 	[Theory]
@@ -401,12 +405,14 @@ public sealed class CSharpEmitterTests
 	/// <c>parserText</c> cuts, unread.
 	/// </remarks>
 	[Theory]
-	[InlineData("abc",  true)]
-	[InlineData("ab",   false)]
-	public void A_guard_may_ask_for_the_span_it_has_reached(string input, bool expected) =>
+	[InlineData("abc", true)]
+	[InlineData("ab", false)]
+	public void A_guard_may_ask_for_the_span_it_has_reached(string input, bool expected)
+	{
 		Assert.Equal(
 			expected,
 			Run("Start = ['a'..'z']+ & when @(parserSpan.Length > 2)", input).Matched);
+	}
 
 	[Fact]
 	public void Text_captures_are_records_in_the_shared_parser_arena()
@@ -724,8 +730,10 @@ public sealed class CSharpEmitterTests
 	[InlineData("cat", true)]
 	[InlineData("dog", true)]
 	[InlineData("cow", false)]
-	public void Ordered_choice(string input, bool expected) =>
+	public void Ordered_choice(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("""Start = "cat" | "dog" """, input).Matched);
+	}
 
 	[Fact]
 	public void Ordered_choice_backtracks_across_a_shared_prefix()
@@ -745,24 +753,30 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Theory]
-	[InlineData("ab",   true)]
-	[InlineData("b",    true)]
-	[InlineData("aab",  false)]
-	public void Optional(string input, bool expected) =>
+	[InlineData("ab", true)]
+	[InlineData("b", true)]
+	[InlineData("aab", false)]
+	public void Optional(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("Start = 'a'? & 'b'", input).Matched);
+	}
 
 	[Theory]
 	[InlineData("aaa", true)]
-	[InlineData("aa",  false)]
+	[InlineData("aa", false)]
 	[InlineData("aaaa", false)]
-	public void Counted_repetition(string input, bool expected) =>
+	public void Counted_repetition(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("Start = 'a'{3}", input).Matched);
+	}
 
 	[Theory]
 	[InlineData("ab", true)]
 	[InlineData("ax", false)]
-	public void Lookahead_consumes_nothing(string input, bool expected) =>
+	public void Lookahead_consumes_nothing(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("Start = 'a' & ?='b' & 'b'", input).Matched);
+	}
 
 	[Fact]
 	public void A_lookahead_runs_recursive_rules_on_the_same_arena()
@@ -781,8 +795,10 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void The_value_is_the_matched_text() =>
+	public void The_value_is_the_matched_text()
+	{
 		Assert.Equal("hello", Run("Start = ['a'..'z']+", "hello").Value);
+	}
 
 	[Fact]
 	public void Rules_call_each_other()
@@ -799,27 +815,35 @@ public sealed class CSharpEmitterTests
 	// ── The standard library (§3.1) ──────────────────────────────────────────────
 
 	[Theory]
-	[InlineData("a\n",   true)]
+	[InlineData("a\n", true)]
 	[InlineData("a\r\n", true)]
-	[InlineData("a\r",   true)]
-	[InlineData("a",     false)]
-	public void Eol(string input, bool expected) =>
+	[InlineData("a\r", true)]
+	[InlineData("a", false)]
+	public void Eol(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("Start = 'a' & eol", input).Matched);
+	}
 
 	[Theory]
-	[InlineData("ab",  true)]
+	[InlineData("ab", true)]
 	[InlineData("a\n", true)]
-	[InlineData("a",   false)]
-	public void Any_is_one_of_whatever(string input, bool expected) =>
+	[InlineData("a", false)]
+	public void Any_is_one_of_whatever(string input, bool expected)
+	{
 		Assert.Equal(expected, Run("Start = 'a' & any", input).Matched);
+	}
 
 	[Fact]
-	public void Eof_consumes_nothing_and_is_only_true_at_the_end() =>
+	public void Eof_consumes_nothing_and_is_only_true_at_the_end()
+	{
 		Assert.True(Run("Start = 'a' & eof", "a").Matched);
+	}
 
 	[Fact]
-	public void None_matches_the_empty_sequence() =>
+	public void None_matches_the_empty_sequence()
+	{
 		Assert.True(Run("Start = 'a' & none", "a").Matched);
+	}
 
 	// ── Publication (§6) ─────────────────────────────────────────────────────────
 
@@ -829,30 +853,42 @@ public sealed class CSharpEmitterTests
 		""";
 
 	/// <summary>Compiles the emitted source and walks a <c>find</c>.</summary>
-	static object?[] Occurrences(string grammar, string method, string input) =>
-		EmittedCode.Found(EmittedCode.Compile(Emit(grammar)), "Grammar", method, input);
+	static object?[] Occurrences(string grammar, string method, string input)
+	{
+		return EmittedCode.Found(EmittedCode.Compile(Emit(grammar)), "Grammar", method, input);
+	}
 
 	[Fact]
-	public void Parse_requires_the_input_to_end() =>
+	public void Parse_requires_the_input_to_end()
+	{
 		Assert.False(Run("Start = ['0'..'9']+", "12ab").Matched);
+	}
 
 	[Fact]
-	public void Find_takes_every_occurrence() =>
+	public void Find_takes_every_occurrence()
+	{
 		Assert.Equal(
 			new object?[] { "12", "34" },
 			Occurrences(Digits + "find Start", "FindStart", "ab12cd34"));
+	}
 
 	[Fact]
-	public void And_the_first_one_is_LINQ_s_business_rather_than_a_directive_s() =>
+	public void And_the_first_one_is_LINQ_s_business_rather_than_a_directive_s()
+	{
 		Assert.Equal("12", Occurrences(Digits + "find Start", "FindStart", "ab12cd34")[0]);
+	}
 
 	[Fact]
-	public void Find_yields_nothing_rather_than_matching_nothing() =>
+	public void Find_yields_nothing_rather_than_matching_nothing()
+	{
 		Assert.Empty(Occurrences(Digits + "find Start", "FindStart", "abc"));
+	}
 
 	[Fact]
-	public void As_renames_the_pair() =>
+	public void As_renames_the_pair()
+	{
 		Assert.True(Invoke(Digits + "parse Start as ReadDigits", "ReadDigits", "12").Matched);
+	}
 
 	/// <summary>Balanced angle brackets, measured after the first one by the host.</summary>
 	/// <remarks>
@@ -1644,8 +1680,10 @@ public sealed class CSharpEmitterTests
 	const int Buffer = 4096;
 
 	/// <summary>An input whose only occurrence straddles the end of the first window.</summary>
-	static string AcrossTheBoundary(string occurrence, int before = 6) =>
-		new string('x', Buffer - before) + occurrence + new string('x', 16);
+	static string AcrossTheBoundary(string occurrence, int before = 6)
+	{
+		return new string('x', Buffer - before) + occurrence + new string('x', 16);
+	}
 
 	[Fact]
 	public void A_find_over_a_reader_takes_the_same_occurrences()
@@ -1766,7 +1804,8 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void A_reader_that_gives_nothing_yields_nothing() =>
+	public void A_reader_that_gives_nothing_yields_nothing()
+	{
 		Assert.Empty(
 			EmittedCode.Found(
 				EmittedCode.Compile(Emit(Digits + "find Start")),
@@ -1774,6 +1813,7 @@ public sealed class CSharpEmitterTests
 				"FindStart",
 				"",
 				typeof(TextReader)));
+	}
 
 	[Fact]
 	public void Only_find_gets_a_reader_so_far()
@@ -1896,19 +1936,23 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void A_rule_that_streams_is_told_nothing() =>
+	public void A_rule_that_streams_is_told_nothing()
+	{
 		EmittedCode.Quiet(GramCompiler.Compile(
 			"Start = ['0'..'9']+\nfind Start",
 			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
+	}
 
 	[Fact]
-	public void And_neither_is_a_parse_that_has_no_reader_overload_yet() =>
+	public void And_neither_is_a_parse_that_has_no_reader_overload_yet()
+	{
 		// The reason there is a fact about this compiler rather than about the grammar in
 		// front of it. Saying it on every build of every grammar would be noise, and
 		// docs/status.md is where it belongs.
 		EmittedCode.Quiet(GramCompiler.Compile(
 			"Start = any* & 'z'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
+	}
 
 	[Fact]
 	public void The_class_goes_where_it_was_asked_to()
@@ -2177,24 +2221,28 @@ public sealed class CSharpEmitterTests
 
 	[Theory]
 	[InlineData("Run = ['0'..'9']+\nStart : @string = t: Run{2} => @(t)", "1234", "1234")]
-	[InlineData("Start : @string = t: (['0'..'9']+){2} => @(t)",          "1234", "1234")]
+	[InlineData("Start : @string = t: (['0'..'9']+){2} => @(t)", "1234", "1234")]
 	public void And_the_start_it_reads_back_is_the_one_its_own_turn_wrote(
-		string grammar, string input, string expected) =>
+		string grammar, string input, string expected)
+	{
 		// Both answered "" before the opening went into the arena: turn two had set the
 		// variable to where it began, its body failed, and the give-back door came back to
 		// turn one's close — which recorded a span starting after it ended.
 		Assert.Equal(expected, Run(grammar, input).Value);
+	}
 
 	[Theory]
-	[InlineData("Start : @string = (t: ['0'..'9']+ & '-'){2} => @(t)",   "12-34-",    "1234")]
-	[InlineData("Start : @string = (t: ['0'..'9']+ & '-')+ => @(t)",     "12-34-56-", "123456")]
+	[InlineData("Start : @string = (t: ['0'..'9']+ & '-'){2} => @(t)", "12-34-", "1234")]
+	[InlineData("Start : @string = (t: ['0'..'9']+ & '-')+ => @(t)", "12-34-56-", "123456")]
 	[InlineData("D = ['0'..'9']\nStart : @string = (t: D+ & '-')+ => @(t)", "12-34-", "1234")]
 	public void A_repeated_text_capture_is_the_turns_joined_and_not_the_span_they_lie_in(
-		string grammar, string input, string expected) =>
+		string grammar, string input, string expected)
+	{
 		// §10: repeated text is the text joined. The span from the first start to the last
 		// end is that only where the turns are adjacent — and the generator still takes it
 		// where they are, which is what the measurements are for.
 		Assert.Equal(expected, Run(grammar, input).Value);
+	}
 
 	/// <summary>A fold keeps naming its own loop when a pass rebuilds it.</summary>
 	/// <remarks>
@@ -2222,7 +2270,8 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void And_the_parse_it_emits_reads_the_chain() =>
+	public void And_the_parse_it_emits_reads_the_chain()
+	{
 		Assert.Equal(
 			"abc",
 			Run(
@@ -2232,6 +2281,7 @@ public sealed class CSharpEmitterTests
 				P : @string = t: P & '[' & m: Start & ']' => @(t + m) | p: C => @(p)
 				""",
 				"a[b][c]").Value);
+	}
 
 	/// <summary>Two shapes of the same choice, and the same answer about where it failed.</summary>
 	/// <remarks>
@@ -2287,7 +2337,8 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void And_a_grammar_that_declares_none_is_untouched() =>
+	public void And_a_grammar_that_declares_none_is_untouched()
+	{
 		Assert.DoesNotContain(
 			"context",
 			Emit(
@@ -2296,9 +2347,11 @@ public sealed class CSharpEmitterTests
 				parse Start
 				"""),
 			StringComparison.Ordinal);
+	}
 
 	[Fact]
-	public void And_one_that_declares_it_without_naming_it_is_too() =>
+	public void And_one_that_declares_it_without_naming_it_is_too()
+	{
 		// The publication takes no argument nobody asked for.
 		Assert.Contains(
 			"public static string ParseStart(string input)",
@@ -2308,6 +2361,7 @@ public sealed class CSharpEmitterTests
 				Start : @string = t: ['a'..'z']+ => @(t)
 				parse Start
 				"""));
+	}
 
 	// ── §7.8, the marks a parse places over an extent ────────────────────────────
 
@@ -2329,7 +2383,8 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void And_one_that_does_not_is_not() =>
+	public void And_one_that_does_not_is_not()
+	{
 		// The same rule the supplied names of §8.2 and `context` follow: what a hook does
 		// not name, it is not given.
 		Assert.DoesNotContain(
@@ -2342,9 +2397,11 @@ public sealed class CSharpEmitterTests
 				parse Start
 				"""),
 			StringComparison.Ordinal);
+	}
 
 	[Fact]
-	public void And_a_grammar_that_places_none_carries_none_of_the_machinery() =>
+	public void And_a_grammar_that_places_none_carries_none_of_the_machinery()
+	{
 		Assert.DoesNotContain(
 			"ParserEntry.StateSet",
 			Emit(
@@ -2354,6 +2411,7 @@ public sealed class CSharpEmitterTests
 				parse Start
 				"""),
 			StringComparison.Ordinal);
+	}
 
 	/// <summary>A room check cannot overflow, whatever the input's size.</summary>
 	/// <remarks>
@@ -2435,7 +2493,8 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void And_one_grammar_declaring_one_context_is_unchanged() =>
+	public void And_one_grammar_declaring_one_context_is_unchanged()
+	{
 		// Where nothing is included the contract and the effective type are the same, which
 		// is every grammar written before this existed.
 		Assert.Contains(
@@ -2447,6 +2506,7 @@ public sealed class CSharpEmitterTests
 				parse Start
 				"""),
 			StringComparison.Ordinal);
+	}
 
 	// ── What an expression asks for, from its syntax (§8.2) ─────────────────────
 
@@ -2482,7 +2542,8 @@ public sealed class CSharpEmitterTests
 	/// or underscore as a boundary, so a dot before the name read as the start of one.
 	/// </remarks>
 	[Fact]
-	public void And_a_member_of_that_name_is_not_the_name() =>
+	public void And_a_member_of_that_name_is_not_the_name()
+	{
 		Assert.DoesNotContain(
 			"Names context",
 			Emit(
@@ -2492,9 +2553,11 @@ public sealed class CSharpEmitterTests
 				parse Start
 				"""),
 			StringComparison.Ordinal);
+	}
 
 	[Fact]
-	public void And_the_name_written_as_itself_is_still_asked_for() =>
+	public void And_the_name_written_as_itself_is_still_asked_for()
+	{
 		// The point of the exercise is precision, not silence.
 		Assert.Contains(
 			"Names context",
@@ -2505,6 +2568,7 @@ public sealed class CSharpEmitterTests
 				parse Start
 				"""),
 			StringComparison.Ordinal);
+	}
 
 	// ── A literal a later alternative continues ─────────────────────────────────
 
@@ -2690,7 +2754,10 @@ public sealed class CSharpEmitterTests
 
 		var methods = parser.GetType("Grammar")!.GetMethods(Everything);
 
-		MethodInfo[] Named(params string[] names) => [.. methods.Where(method => names.Contains(method.Name))];
+		MethodInfo[] Named(params string[] names)
+		{
+			return [.. methods.Where(method => names.Contains(method.Name))];
+		}
 
 		var outer = Named("ParseOuter", "TryParseOuter");
 		var inner = Named("ParseInner", "TryParseInner");

@@ -102,14 +102,18 @@ public class Membership
 	}
 
 	/// <summary>What the emitter writes today.</summary>
-	static bool Chained(char c) =>
-		(c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
+	static bool Chained(char c)
+	{
+		return (c >= '-' && c <= '.') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
 		c == '_' || (c >= 'a' && c <= 'z') || c == '~';
+	}
 
 	/// <summary>Each range as one unsigned comparison.</summary>
-	static bool Shifted(char c) =>
-		(uint)(c - '-') <= 1 || (uint)(c - '0') <= 9 || (uint)(c - 'A') <= 25 ||
+	static bool Shifted(char c)
+	{
+		return (uint)(c - '-') <= 1 || (uint)(c - '0') <= 9 || (uint)(c - 'A') <= 25 ||
 		c == '_' || (uint)(c - 'a') <= 25 || c == '~';
+	}
 
 	/// <summary>The whole set as bits in a window.</summary>
 	static bool Masked(char c)
@@ -151,10 +155,20 @@ public class Membership
 		return (bit & ~63u) == 0 && (Narrow >> (int)bit & 1UL) != 0;
 	}
 
-	static bool One_chained(char c)   => c >= 'a' && c <= 'z';
-	static bool Two_chained(char c)   => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z');
-	static bool Three_chained(char c) =>
-		(c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+	static bool One_chained(char c)
+	{
+		return c >= 'a' && c <= 'z';
+	}
+
+	static bool Two_chained(char c)
+	{
+		return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z');
+	}
+
+	static bool Three_chained(char c)
+	{
+		return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+	}
 
 	static bool One_masked(char c)
 	{
@@ -289,8 +303,10 @@ public class Membership
 
 	static readonly string Members = new('x', 51);
 
-	static bool Masked_thrice(char c) =>
-		(uint)(c - Low) < Span && ((c - Low < 64 ? Word0 : Word1) >> (c - Low) & 1UL) != 0;
+	static bool Masked_thrice(char c)
+	{
+		return (uint)(c - Low) < Span && ((c - Low < 64 ? Word0 : Word1) >> (c - Low) & 1UL) != 0;
+	}
 
 	static bool Masked_once(char c)
 	{

@@ -45,8 +45,10 @@ public sealed class RuntimeContractTests
 	}
 
 	[Fact]
-	public void And_says_so() =>
+	public void And_says_so()
+	{
 		Assert.Equal("[3..5)", new Extents.SourceSpan(3, 2).ToString());
+	}
 
 	[Fact]
 	public void And_a_parser_hands_one_back()

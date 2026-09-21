@@ -21,12 +21,14 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class CallGraphTests
 {
-	static RecognitionGraph Graph(string grammar) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string grammar)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				DotGram.Grammar.Parsing.GramParser.Parse(
 					DotGram.Grammar.Parsing.GramLexer.Tokenize(
 						grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!));
+	}
 
 	static bool Recurses(string grammar, string rule)
 	{
@@ -36,27 +38,35 @@ public sealed class CallGraphTests
 	}
 
 	[Fact]
-	public void A_rule_that_calls_itself_recurses() =>
+	public void A_rule_that_calls_itself_recurses()
+	{
 		Assert.True(Recurses("A = 'a' & A | 'b'\nStart = A", "A"));
+	}
 
 	[Fact]
-	public void And_two_rules_that_call_each_other_both_do() =>
+	public void And_two_rules_that_call_each_other_both_do()
+	{
 		Assert.All(
 			new[] { "A", "B" },
 			rule => Assert.True(Recurses("A = 'a' & B | 'x'\nB = 'b' & A | 'y'\nStart = A", rule)));
+	}
 
 	[Fact]
-	public void And_a_rule_that_only_reaches_a_cycle_does_not() =>
+	public void And_a_rule_that_only_reaches_a_cycle_does_not()
+	{
 		// `Start` calls into a cycle and is not in one. Reachability alone would say it is
 		// if it were asked the wrong question — "can I reach a recursive rule" rather than
 		// "can I reach myself".
 		Assert.False(Recurses("A = 'a' & B | 'x'\nB = 'b' & A | 'y'\nStart = A", "Start"));
+	}
 
 	[Fact]
-	public void And_a_chain_that_does_not_come_back_recurses_nowhere() =>
+	public void And_a_chain_that_does_not_come_back_recurses_nowhere()
+	{
 		Assert.All(
 			new[] { "A", "B", "C" },
 			rule => Assert.False(Recurses("A = 'a' & B\nB = 'b' & C\nC = 'c'\nStart = A", rule)));
+	}
 
 	/// <summary>Two cycles sharing a rule are one component; two that only touch are two.</summary>
 	/// <remarks>
@@ -105,11 +115,16 @@ public sealed class CallGraphTests
 				.GetValue(graph)!;
 		}
 
-		public bool Together(string one, string other) =>
-			(bool)_graph.GetType()
+		public bool Together(string one, string other)
+		{
+			return (bool)_graph.GetType()
 				.GetMethod("Together")!
 				.Invoke(_graph, [Rule(one), Rule(other)])!;
+		}
 
-		RuleSymbol Rule(string name) => _of.Rules.First(rule => rule.Name == name);
+		RuleSymbol Rule(string name)
+		{
+			return _of.Rules.First(rule => rule.Name == name);
+		}
 	}
 }

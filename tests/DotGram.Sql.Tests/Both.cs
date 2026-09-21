@@ -49,9 +49,12 @@ static class Both
 		return read;
 	}
 
-	public static LiteralValue ParseLiteral(string input) => TryParseLiteral(input).IsSuccess
+	public static LiteralValue ParseLiteral(string input)
+	{
+		return TryParseLiteral(input).IsSuccess
 		? SqlStandardParser.ParseLiteral(input)
 		: throw Refused(input, "literal");
+	}
 
 	public static SqlStandardParser.Match<LiteralValue> TryParseUnsignedLiteral(string input)
 	{
@@ -73,9 +76,12 @@ static class Both
 		return read;
 	}
 
-	public static Identifier ParseIdentifier(string input) => TryParseIdentifier(input).IsSuccess
+	public static Identifier ParseIdentifier(string input)
+	{
+		return TryParseIdentifier(input).IsSuccess
 		? SqlStandardParser.ParseIdentifier(input)
 		: throw Refused(input, "identifier");
+	}
 
 	public static SqlStandardParser.Match<QualifiedName> TryParseIdentifierChain(string input)
 	{
@@ -86,9 +92,12 @@ static class Both
 		return read;
 	}
 
-	public static QualifiedName ParseIdentifierChain(string input) => TryParseIdentifierChain(input).IsSuccess
+	public static QualifiedName ParseIdentifierChain(string input)
+	{
+		return TryParseIdentifierChain(input).IsSuccess
 		? SqlStandardParser.ParseIdentifierChain(input)
 		: throw Refused(input, "identifier chain");
+	}
 
 	public static SqlStandardParser.Match<Expression> TryParseColumnReference(string input)
 	{
@@ -99,9 +108,12 @@ static class Both
 		return read;
 	}
 
-	public static Expression ParseColumnReference(string input) => TryParseColumnReference(input).IsSuccess
+	public static Expression ParseColumnReference(string input)
+	{
+		return TryParseColumnReference(input).IsSuccess
 		? SqlStandardParser.ParseColumnReference(input)
 		: throw Refused(input, "column reference");
+	}
 
 	public static SqlStandardParser.Match<QualifiedName> TryParseTableName(string input)
 	{
@@ -112,9 +124,12 @@ static class Both
 		return read;
 	}
 
-	public static QualifiedName ParseTableName(string input) => TryParseTableName(input).IsSuccess
+	public static QualifiedName ParseTableName(string input)
+	{
+		return TryParseTableName(input).IsSuccess
 		? SqlStandardParser.ParseTableName(input)
 		: throw Refused(input, "table name");
+	}
 
 	public static SqlStandardParser.Match<QualifiedName> TryParseSchemaName(string input)
 	{
@@ -136,9 +151,12 @@ static class Both
 		return read;
 	}
 
-	public static DataType ParseDataType(string input) => TryParseDataType(input).IsSuccess
+	public static DataType ParseDataType(string input)
+	{
+		return TryParseDataType(input).IsSuccess
 		? SqlStandardParser.ParseDataType(input)
 		: throw Refused(input, "data type");
+	}
 
 	// ── §6.28 Value expressions, §8 predicates ─────────────────────────────────
 
@@ -151,9 +169,12 @@ static class Both
 		return read;
 	}
 
-	public static Expression ParseValueExpression(string input) => TryParseValueExpression(input).IsSuccess
+	public static Expression ParseValueExpression(string input)
+	{
+		return TryParseValueExpression(input).IsSuccess
 		? SqlStandardParser.ParseValueExpression(input)
 		: throw Refused(input, "value expression");
+	}
 
 	public static SqlStandardParser.Match<Expression> TryParseSearchCondition(string input)
 	{
@@ -164,9 +185,12 @@ static class Both
 		return read;
 	}
 
-	public static Expression ParseSearchCondition(string input) => TryParseSearchCondition(input).IsSuccess
+	public static Expression ParseSearchCondition(string input)
+	{
+		return TryParseSearchCondition(input).IsSuccess
 		? SqlStandardParser.ParseSearchCondition(input)
 		: throw Refused(input, "search condition");
+	}
 
 	// ── §7 Query expressions ───────────────────────────────────────────────────
 
@@ -179,9 +203,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.Select ParseQueryExpression(string input) => TryParseQueryExpression(input).IsSuccess
+	public static Statement.Select ParseQueryExpression(string input)
+	{
+		return TryParseQueryExpression(input).IsSuccess
 		? SqlStandardParser.ParseQueryExpression(input)
 		: throw Refused(input, "query expression");
+	}
 
 	public static SqlStandardParser.Match<TableSource> TryParseTableReference(string input)
 	{
@@ -192,9 +219,12 @@ static class Both
 		return read;
 	}
 
-	public static TableSource ParseTableReference(string input) => TryParseTableReference(input).IsSuccess
+	public static TableSource ParseTableReference(string input)
+	{
+		return TryParseTableReference(input).IsSuccess
 		? SqlStandardParser.ParseTableReference(input)
 		: throw Refused(input, "table reference");
+	}
 
 	// ── §14 Data change statements ─────────────────────────────────────────────
 
@@ -207,9 +237,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.Insert ParseInsertStatement(string input) => TryParseInsertStatement(input).IsSuccess
+	public static Statement.Insert ParseInsertStatement(string input)
+	{
+		return TryParseInsertStatement(input).IsSuccess
 		? SqlStandardParser.ParseInsertStatement(input)
 		: throw Refused(input, "insert statement");
+	}
 
 	public static SqlStandardParser.Match<Statement.Update> TryParseUpdateStatementSearched(string input)
 	{
@@ -220,9 +253,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.Update ParseUpdateStatementSearched(string input) => TryParseUpdateStatementSearched(input).IsSuccess
+	public static Statement.Update ParseUpdateStatementSearched(string input)
+	{
+		return TryParseUpdateStatementSearched(input).IsSuccess
 		? SqlStandardParser.ParseUpdateStatementSearched(input)
 		: throw Refused(input, "update statement: searched");
+	}
 
 	public static SqlStandardParser.Match<Statement.Update> TryParseUpdateStatementPositioned(string input)
 	{
@@ -233,9 +269,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.Update ParseUpdateStatementPositioned(string input) => TryParseUpdateStatementPositioned(input).IsSuccess
+	public static Statement.Update ParseUpdateStatementPositioned(string input)
+	{
+		return TryParseUpdateStatementPositioned(input).IsSuccess
 		? SqlStandardParser.ParseUpdateStatementPositioned(input)
 		: throw Refused(input, "update statement: positioned");
+	}
 
 	public static SqlStandardParser.Match<Statement.Delete> TryParseDeleteStatementSearched(string input)
 	{
@@ -246,9 +285,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.Delete ParseDeleteStatementSearched(string input) => TryParseDeleteStatementSearched(input).IsSuccess
+	public static Statement.Delete ParseDeleteStatementSearched(string input)
+	{
+		return TryParseDeleteStatementSearched(input).IsSuccess
 		? SqlStandardParser.ParseDeleteStatementSearched(input)
 		: throw Refused(input, "delete statement: searched");
+	}
 
 	public static SqlStandardParser.Match<Statement.Delete> TryParseDeleteStatementPositioned(string input)
 	{
@@ -259,9 +301,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.Delete ParseDeleteStatementPositioned(string input) => TryParseDeleteStatementPositioned(input).IsSuccess
+	public static Statement.Delete ParseDeleteStatementPositioned(string input)
+	{
+		return TryParseDeleteStatementPositioned(input).IsSuccess
 		? SqlStandardParser.ParseDeleteStatementPositioned(input)
 		: throw Refused(input, "delete statement: positioned");
+	}
 
 	public static SqlStandardParser.Match<Statement.Merge> TryParseMergeStatement(string input)
 	{
@@ -272,9 +317,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.Merge ParseMergeStatement(string input) => TryParseMergeStatement(input).IsSuccess
+	public static Statement.Merge ParseMergeStatement(string input)
+	{
+		return TryParseMergeStatement(input).IsSuccess
 		? SqlStandardParser.ParseMergeStatement(input)
 		: throw Refused(input, "merge statement");
+	}
 
 	public static SqlStandardParser.Match<Statement.TruncateTable> TryParseTruncateTableStatement(string input)
 	{
@@ -285,9 +333,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.TruncateTable ParseTruncateTableStatement(string input) => TryParseTruncateTableStatement(input).IsSuccess
+	public static Statement.TruncateTable ParseTruncateTableStatement(string input)
+	{
+		return TryParseTruncateTableStatement(input).IsSuccess
 		? SqlStandardParser.ParseTruncateTableStatement(input)
 		: throw Refused(input, "truncate table statement");
+	}
 
 	// ── §11, §12 and §14 to §23: the statements ────────────────────────────────
 
@@ -300,9 +351,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLSchemaStatement(string input) => TryParseSQLSchemaStatement(input).IsSuccess
+	public static Statement ParseSQLSchemaStatement(string input)
+	{
+		return TryParseSQLSchemaStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLSchemaStatement(input)
 		: throw Refused(input, "SQL schema statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseDirectSQLStatement(string input)
 	{
@@ -313,9 +367,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseDirectSQLStatement(string input) => TryParseDirectSQLStatement(input).IsSuccess
+	public static Statement ParseDirectSQLStatement(string input)
+	{
+		return TryParseDirectSQLStatement(input).IsSuccess
 		? SqlStandardParser.ParseDirectSQLStatement(input)
 		: throw Refused(input, "direct SQL statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseDirectSQLDataStatement(string input)
 	{
@@ -326,9 +383,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseDirectSQLDataStatement(string input) => TryParseDirectSQLDataStatement(input).IsSuccess
+	public static Statement ParseDirectSQLDataStatement(string input)
+	{
+		return TryParseDirectSQLDataStatement(input).IsSuccess
 		? SqlStandardParser.ParseDirectSQLDataStatement(input)
 		: throw Refused(input, "direct SQL data statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseSQLDataStatement(string input)
 	{
@@ -339,9 +399,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLDataStatement(string input) => TryParseSQLDataStatement(input).IsSuccess
+	public static Statement ParseSQLDataStatement(string input)
+	{
+		return TryParseSQLDataStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLDataStatement(input)
 		: throw Refused(input, "SQL data statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseSQLControlStatement(string input)
 	{
@@ -352,9 +415,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLControlStatement(string input) => TryParseSQLControlStatement(input).IsSuccess
+	public static Statement ParseSQLControlStatement(string input)
+	{
+		return TryParseSQLControlStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLControlStatement(input)
 		: throw Refused(input, "SQL control statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseSQLTransactionStatement(string input)
 	{
@@ -365,9 +431,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLTransactionStatement(string input) => TryParseSQLTransactionStatement(input).IsSuccess
+	public static Statement ParseSQLTransactionStatement(string input)
+	{
+		return TryParseSQLTransactionStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLTransactionStatement(input)
 		: throw Refused(input, "SQL transaction statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseSQLConnectionStatement(string input)
 	{
@@ -378,9 +447,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLConnectionStatement(string input) => TryParseSQLConnectionStatement(input).IsSuccess
+	public static Statement ParseSQLConnectionStatement(string input)
+	{
+		return TryParseSQLConnectionStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLConnectionStatement(input)
 		: throw Refused(input, "SQL connection statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseSQLSessionStatement(string input)
 	{
@@ -391,9 +463,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLSessionStatement(string input) => TryParseSQLSessionStatement(input).IsSuccess
+	public static Statement ParseSQLSessionStatement(string input)
+	{
+		return TryParseSQLSessionStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLSessionStatement(input)
 		: throw Refused(input, "SQL session statement");
+	}
 
 	public static SqlStandardParser.Match<Statement.GetDiagnostics> TryParseSQLDiagnosticsStatement(string input)
 	{
@@ -404,9 +479,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement.GetDiagnostics ParseSQLDiagnosticsStatement(string input) => TryParseSQLDiagnosticsStatement(input).IsSuccess
+	public static Statement.GetDiagnostics ParseSQLDiagnosticsStatement(string input)
+	{
+		return TryParseSQLDiagnosticsStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLDiagnosticsStatement(input)
 		: throw Refused(input, "SQL diagnostics statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseSQLDynamicStatement(string input)
 	{
@@ -417,9 +495,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLDynamicStatement(string input) => TryParseSQLDynamicStatement(input).IsSuccess
+	public static Statement ParseSQLDynamicStatement(string input)
+	{
+		return TryParseSQLDynamicStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLDynamicStatement(input)
 		: throw Refused(input, "SQL dynamic statement");
+	}
 
 	public static SqlStandardParser.Match<Statement> TryParseSQLProcedureStatement(string input)
 	{
@@ -430,9 +511,12 @@ static class Both
 		return read;
 	}
 
-	public static Statement ParseSQLProcedureStatement(string input) => TryParseSQLProcedureStatement(input).IsSuccess
+	public static Statement ParseSQLProcedureStatement(string input)
+	{
+		return TryParseSQLProcedureStatement(input).IsSuccess
 		? SqlStandardParser.ParseSQLProcedureStatement(input)
 		: throw Refused(input, "SQL procedure statement");
+	}
 
 	// ── Holding one to the other ───────────────────────────────────────────────
 
@@ -455,8 +539,10 @@ static class Both
 		Assert.True(expected == actual, "The two parsers built different trees for: " + input + "\n  generated: " + expected + "\n  by hand:   " + actual);
 	}
 
-	static FormatException Refused(string input, string production) =>
-		new("Input does not match '" + production + "': " + input);
+	static FormatException Refused(string input, string production)
+	{
+		return new("Input does not match '" + production + "': " + input);
+	}
 
 	/// <summary>A tree as its properties, which is what two trees are compared as.</summary>
 	static string Dump(object? node)

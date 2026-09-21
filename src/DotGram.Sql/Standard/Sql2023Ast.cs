@@ -15,13 +15,23 @@ namespace DotGram.Sql.Ast;
 public interface ISqlNode : ISqlSpan;
 
 // Text is the identifier as written, its quotes included. UnicodeEscape is `U&"a" UESCAPE '!'`'s character.
-public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited }
 
 /// <summary>BNF: top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families.</summary>
 public abstract record Statement : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	// BNF: <query expression>, <query specification>, <select statement: single row>, <dynamic single row select statement>
 	public record Select : Statement
 	{
@@ -267,7 +277,12 @@ public abstract record Statement : ISqlNode
 /// <summary>BNF: <select list>, <select sublist>, <derived column>, <qualified asterisk>, <all fields reference>.</summary>
 public abstract record SelectItem : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record All : SelectItem;
 	public record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectItem;
 	public record QualifiedAll(Expression Qualifier, IReadOnlyList<Identifier>? RenamedFields = null) : SelectItem;
@@ -279,7 +294,12 @@ public enum SetOperator { Union, Except, Intersect }
 /// <summary>BNF: UNION/EXCEPT/INTERSECT portions of <query expression body>/<query term>.</summary>
 public sealed record SetOperation : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public required SetOperator Operator { get; init; }
 	public SetQuantifier? Quantifier { get; init; }
 	public CorrespondingClause? Corresponding { get; init; }
@@ -289,40 +309,114 @@ public sealed record SetOperation : ISqlNode
 /// <summary>BNF: <simple table>, parenthesized <query primary>. Grammar precedence nodes are intentionally erased.</summary>
 public abstract record QueryOperand : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Select(Statement.Select Query) : QueryOperand;
 	public record Values(IReadOnlyList<RowValue> Rows) : QueryOperand;
 	public record Table(QualifiedName Name) : QueryOperand;
 }
 
-public sealed record WithClause(bool Recursive, IReadOnlyList<CommonTableExpression> Items) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record CommonTableExpression(Identifier Name, IReadOnlyList<Identifier> Columns, Statement.Select Query, SearchClause? Search = null, CycleClause? Cycle = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record WithClause(bool Recursive, IReadOnlyList<CommonTableExpression> Items) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record CommonTableExpression(Identifier Name, IReadOnlyList<Identifier> Columns, Statement.Select Query, SearchClause? Search = null, CycleClause? Cycle = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // BNF: <search clause>, <recursive search order>, <sequence column>.
-public sealed record SearchClause(SearchOrder Order, IReadOnlyList<Identifier> Columns, Identifier SequenceColumn) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record SearchClause(SearchOrder Order, IReadOnlyList<Identifier> Columns, Identifier SequenceColumn) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum SearchOrder { DepthFirst, BreadthFirst }
 
 // BNF: <cycle clause>, <cycle column list>, <cycle mark column>, <cycle mark option>, <path column>.
-public sealed record CycleClause(IReadOnlyList<Identifier> Columns, Identifier MarkColumn, Expression? MarkValue, Expression? NonCycleMarkValue, Identifier PathColumn) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record FromClause(IReadOnlyList<TableSource> Sources) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record IntoClause(IReadOnlyList<Expression> Targets) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record GroupByClause(SetQuantifier? Quantifier, IReadOnlyList<GroupingElement> Items) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record WindowClause(IReadOnlyList<WindowDefinition> Windows) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record OrderByClause(IReadOnlyList<SortItem> Items) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record OffsetClause(Expression Count, RowWord RowWord) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record FetchClause(FetchPosition Position, Expression? Quantity, bool Percent, RowWord RowWord, FetchMode Mode) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record CycleClause(IReadOnlyList<Identifier> Columns, Identifier MarkColumn, Expression? MarkValue, Expression? NonCycleMarkValue, Identifier PathColumn) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record FromClause(IReadOnlyList<TableSource> Sources) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record IntoClause(IReadOnlyList<Expression> Targets) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record GroupByClause(SetQuantifier? Quantifier, IReadOnlyList<GroupingElement> Items) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record WindowClause(IReadOnlyList<WindowDefinition> Windows) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record OrderByClause(IReadOnlyList<SortItem> Items) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record OffsetClause(Expression Count, RowWord RowWord) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record FetchClause(FetchPosition Position, Expression? Quantity, bool Percent, RowWord RowWord, FetchMode Mode) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum RowWord { Row, Rows }
 public enum FetchPosition { First, Next }
 public enum FetchMode { Only, WithTies }
-public sealed record CorrespondingClause(bool By, IReadOnlyList<Identifier> Columns) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record SortItem(Expression Key, SortDirection? Direction = null, NullOrdering? NullOrdering = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record CorrespondingClause(bool By, IReadOnlyList<Identifier> Columns) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record SortItem(Expression Key, SortDirection? Direction = null, NullOrdering? NullOrdering = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum SortDirection { Asc, Desc }
 public enum NullOrdering { First, Last }
 
 /// <summary>BNF: <table reference>, <table factor>, <table primary>, <joined table>, derived/collection/function/JSON tables.</summary>
 public abstract record TableSource : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
 
 	// BNF: <table factor>'s <sample clause>, which may follow any <table primary>.
 	public SampleClause? Sample { get; init; }
@@ -371,19 +465,39 @@ public abstract record TableSource : ISqlNode
 public enum JoinKind { Cross, Inner, Left, Right, Full }
 public abstract record JoinSpecification : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record On(Expression Condition) : JoinSpecification;
 	public record Using(IReadOnlyList<Identifier> Columns, Identifier? Correlation = null) : JoinSpecification;
 }
-public sealed record Alias(Identifier Name, IReadOnlyList<Identifier>? Columns = null, bool AsKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record SampleClause(SampleMethod Method, Expression Percentage, Expression? Repeat = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record Alias(Identifier Name, IReadOnlyList<Identifier>? Columns = null, bool AsKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record SampleClause(SampleMethod Method, Expression Percentage, Expression? Repeat = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum SampleMethod { Bernoulli, System }
 public enum ResultOption { Final, New, Old }
 
 /// <summary>BNF: <value expression> and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars.</summary>
 public abstract record Expression : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Literal(LiteralValue Value) : Expression;
 	public record Reference(QualifiedName Name) : Expression;
 
@@ -625,16 +739,31 @@ public enum RegexPositionStartOrAfter { Start, After }
 
 // BNF: <listagg overflow clause>: `ON OVERFLOW ERROR`, or `ON OVERFLOW TRUNCATE [filler] WITH|WITHOUT COUNT`.
 // BNF: <descriptor column specification>.
-public sealed record DescriptorColumn(Identifier Name, DataType? Type = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record DescriptorColumn(Identifier Name, DataType? Type = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // BNF: <row marker>.
 public enum RowMarkerKind { BeginPartition, BeginFrame, CurrentRow, FrameRow, EndFrame, EndPartition }
 
-public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, bool? WithCount = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, bool? WithCount = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 public abstract record LiteralValue : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Numeric(string Text, NumericLiteralKind Kind) : LiteralValue;
 	// Text is the literal's spelling as written, from its first quote to its last: the segments of `'a' 'b'`
 	// and the separators between them included, the introducer not.
@@ -653,30 +782,80 @@ public enum DateTimeLiteralKind { Date, Time, Timestamp }
 
 // BNF: <simple when clause>, <searched when clause>. A simple one's <when operand list> is `WHEN 1, 2`; a
 // searched one has a single condition.
-public sealed record CaseWhen(IReadOnlyList<Expression> When, Expression Then) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record Argument(Expression Value, Identifier? Name = null, bool NamedAssignment = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record FilterClause(Expression Condition) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record WithinGroupClause(OrderByClause OrderBy) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public abstract record WindowReference : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record NameRef(Identifier Name) : WindowReference; public record Specification(WindowSpecification Value) : WindowReference; }
-public sealed record WindowSpecification(Identifier? Existing, IReadOnlyList<Expression> PartitionBy, OrderByClause? OrderBy, WindowFrame? Frame) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record WindowDefinition(Identifier Name, WindowSpecification Specification) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record WindowFrame(WindowFrameUnit Unit, WindowFrameExtent Extent, WindowFrameExclusion? Exclusion, RowPatternClause? Pattern) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record CaseWhen(IReadOnlyList<Expression> When, Expression Then) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record Argument(Expression Value, Identifier? Name = null, bool NamedAssignment = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record FilterClause(Expression Condition) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record WithinGroupClause(OrderByClause OrderBy) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public abstract record WindowReference : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record NameRef(Identifier Name) : WindowReference; public record Specification(WindowSpecification Value) : WindowReference; }
+public sealed record WindowSpecification(Identifier? Existing, IReadOnlyList<Expression> PartitionBy, OrderByClause? OrderBy, WindowFrame? Frame) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record WindowDefinition(Identifier Name, WindowSpecification Specification) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record WindowFrame(WindowFrameUnit Unit, WindowFrameExtent Extent, WindowFrameExclusion? Exclusion, RowPatternClause? Pattern) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum WindowFrameUnit { Rows, Range, Groups }
-public abstract record WindowFrameExtent : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Single(WindowFrameBound Bound) : WindowFrameExtent; public record Between(WindowFrameBound From, WindowFrameBound To) : WindowFrameExtent; }
-public sealed record WindowFrameBound(WindowBoundKind Kind, Expression? Offset = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public abstract record WindowFrameExtent : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Single(WindowFrameBound Bound) : WindowFrameExtent; public record Between(WindowFrameBound From, WindowFrameBound To) : WindowFrameExtent; }
+public sealed record WindowFrameBound(WindowBoundKind Kind, Expression? Offset = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum WindowBoundKind { UnboundedPreceding, Preceding, CurrentRow, Following, UnboundedFollowing }
 public enum WindowFrameExclusion { CurrentRow, Group, Ties, NoOthers }
 
-public abstract record InSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Query(Statement.Select Value) : InSource; public record Values(IReadOnlyList<Expression> Items) : InSource; }
-public sealed record TypeTest(QualifiedName TypeName, bool Only) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public abstract record PeriodValue : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Reference(QualifiedName Name) : PeriodValue; public record Range(Expression Start, Expression End) : PeriodValue; }
-public abstract record PeriodRight : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Period(PeriodValue Value) : PeriodRight; public record Point(Expression Value) : PeriodRight; }
+public abstract record InSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Query(Statement.Select Value) : InSource; public record Values(IReadOnlyList<Expression> Items) : InSource; }
+public sealed record TypeTest(QualifiedName TypeName, bool Only) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public abstract record PeriodValue : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Reference(QualifiedName Name) : PeriodValue; public record Range(Expression Start, Expression End) : PeriodValue; }
+public abstract record PeriodRight : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Period(PeriodValue Value) : PeriodRight; public record Point(Expression Value) : PeriodRight; }
 public enum PeriodOperator { Overlaps, Equals, Contains, Precedes, Succeeds, ImmediatelyPrecedes, ImmediatelySucceeds }
 
 /// <summary>BNF: <data type> and all predefined/row/reference/collection/user-defined type rules.</summary>
 public abstract record DataType : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null) : DataType;
 	public record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null) : DataType;
 	public record Numeric(NumericTypeKind Kind, int? Precision = null, int? Scale = null) : DataType;
@@ -702,14 +881,29 @@ public enum DateTimeTypeKind { Date, Time, Timestamp }
 public enum TimeZoneMode { With, Without }
 public enum LengthUnit { Characters, Octets }
 public readonly record struct LargeObjectSize(long Value, char? Multiplier);
-public sealed record FieldDefinition(Identifier Name, DataType Type) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record IntervalQualifier(DateTimeField Start, int? LeadingPrecision = null, DateTimeField? End = null, int? FractionalPrecision = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record FieldDefinition(Identifier Name, DataType Type) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record IntervalQualifier(DateTimeField Start, int? LeadingPrecision = null, DateTimeField? End = null, int? FractionalPrecision = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum DateTimeField { Year, Month, Day, Hour, Minute, Second }
 
 /// <summary>BNF: table element/column/period/constraint/LIKE/typed-table/as-subquery structures.</summary>
 public abstract record TableContents : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Elements(IReadOnlyList<TableElement> Items) : TableContents;
 	public record Typed(QualifiedName TypeName, QualifiedName? Under, IReadOnlyList<TableElement> Items) : TableContents;
 	public record AsQuery(IReadOnlyList<Identifier> Columns, Statement.Select Query, WithDataMode Data) : TableContents;
@@ -717,7 +911,12 @@ public abstract record TableContents : ISqlNode
 public enum WithDataMode { WithData, WithNoData }
 public abstract record TableElement : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Column(ColumnDefinition Definition) : TableElement;
 	public record Period(PeriodDefinition Definition) : TableElement;
 	public record TableConstraint(Constraint Value) : TableElement;
@@ -725,10 +924,20 @@ public abstract record TableElement : ISqlNode
 	public record SelfReference(Identifier Name, ReferenceGeneration? Generation) : TableElement;
 	public record ColumnOptions(Identifier Name, ColumnOptionList Options) : TableElement;
 }
-public sealed record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, IReadOnlyList<Constraint> Constraints, CollationName? Collation) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, IReadOnlyList<Constraint> Constraints, CollationName? Collation) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public abstract record ColumnGeneration : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Default(Expression Value) : ColumnGeneration;
 	public record Identity(IdentityGeneration Generation, IReadOnlyList<SequenceOption> Options) : ColumnGeneration;
 	public record Generated(Expression Expression) : ColumnGeneration;
@@ -736,13 +945,23 @@ public abstract record ColumnGeneration : ISqlNode
 	public record RowEnd : ColumnGeneration;
 }
 public enum IdentityGeneration { Always, ByDefault }
-public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default, IReadOnlyList<Constraint> Constraints) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default, IReadOnlyList<Constraint> Constraints) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum LikeOption { IncludingIdentity, ExcludingIdentity, IncludingDefaults, ExcludingDefaults, IncludingGenerated, ExcludingGenerated }
 public enum ReferenceGeneration { SystemGenerated, UserGenerated, Derived }
 
 public abstract record Constraint : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public QualifiedName? Name { get; init; }
 	public ConstraintCharacteristics? Characteristics { get; init; }
 	public record NotNull : Constraint;
@@ -752,16 +971,31 @@ public abstract record Constraint : ISqlNode
 }
 public enum UniqueKind { Unique, PrimaryKey, UniqueValue }
 public enum NullDistinctness { Distinct, NotDistinct }
-public sealed record ReferencesSpecification(QualifiedName Table, IReadOnlyList<Identifier> Columns, Identifier? Period, MatchType? Match, ReferentialAction? OnUpdate, ReferentialAction? OnDelete, bool DeleteRuleFirst = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ReferencesSpecification(QualifiedName Table, IReadOnlyList<Identifier> Columns, Identifier? Period, MatchType? Match, ReferentialAction? OnUpdate, ReferentialAction? OnDelete, bool DeleteRuleFirst = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum MatchType { Full, Partial, Simple }
 public enum ReferentialAction { Cascade, SetNull, SetDefault, Restrict, NoAction }
 // DeferrableFirst: `DEFERRABLE INITIALLY DEFERRED` rather than `INITIALLY DEFERRED DEFERRABLE`.
-public sealed record ConstraintCharacteristics(ConstraintTiming? Timing, bool? Deferrable, bool? Enforced, bool DeferrableFirst = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ConstraintCharacteristics(ConstraintTiming? Timing, bool? Deferrable, bool? Enforced, bool DeferrableFirst = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum ConstraintTiming { InitiallyDeferred, InitiallyImmediate, Deferred, Immediate }
 
 public abstract record AlterTableAction : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record AddColumn(ColumnDefinition Column, bool ColumnKeyword = false) : AlterTableAction;
 	public record AlterColumn(Identifier Column, AlterColumnAction Action, bool ColumnKeyword = false) : AlterTableAction;
 	public record DropColumn(Identifier Column, DropBehavior Behavior, bool ColumnKeyword = false) : AlterTableAction;
@@ -776,7 +1010,12 @@ public abstract record AlterTableAction : ISqlNode
 }
 public abstract record AlterColumnAction : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record SetDefault(Expression Value) : AlterColumnAction;
 	public record DropDefault : AlterColumnAction;
 	public record SetNotNull : AlterColumnAction;
@@ -789,7 +1028,12 @@ public abstract record AlterColumnAction : ISqlNode
 	public record DropIdentity : AlterColumnAction;
 	public record DropExpression : AlterColumnAction;
 }
-public sealed record PeriodDefinition(PeriodKind Kind, Identifier? ApplicationName, Identifier BeginColumn, Identifier EndColumn) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record PeriodDefinition(PeriodKind Kind, Identifier? ApplicationName, Identifier BeginColumn, Identifier EndColumn) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum PeriodKind { SystemTime, ApplicationTime }
 public enum DropBehavior { Cascade, Restrict }
 public enum TableScope { GlobalTemporary, LocalTemporary }
@@ -798,7 +1042,12 @@ public enum TableCommitAction { Preserve, Delete }
 /// <summary>BNF: grouping element families.</summary>
 public abstract record GroupingElement : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Ordinary(IReadOnlyList<Expression> Expressions, bool Parenthesized = false) : GroupingElement;
 	public record Rollup(IReadOnlyList<GroupingElement> Items) : GroupingElement;
 	public record Cube(IReadOnlyList<GroupingElement> Items) : GroupingElement;
@@ -809,7 +1058,12 @@ public abstract record GroupingElement : ISqlNode
 /// <summary>BNF: MATCH_RECOGNIZE and row-pattern grammar. Kept separate from normal SQL expressions.</summary>
 public abstract record RowPattern : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Variable(Identifier Name) : RowPattern;
 	public record StartAnchor : RowPattern;
 	public record EndAnchor : RowPattern;
@@ -820,21 +1074,56 @@ public abstract record RowPattern : ISqlNode
 	public record Excluded(RowPattern Pattern) : RowPattern;
 	public record Permute(IReadOnlyList<RowPattern> Items) : RowPattern;
 }
-public sealed record RowPatternQuantifier(RowPatternQuantifierKind Kind, int? Min = null, int? Max = null, bool Reluctant = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record RowPatternQuantifier(RowPatternQuantifierKind Kind, int? Min = null, int? Max = null, bool Reluctant = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum RowPatternQuantifierKind { ZeroOrMore, OneOrMore, ZeroOrOne, Range, Exact }
-public sealed record RowPatternClause(IReadOnlyList<Expression> PartitionBy, OrderByClause? OrderBy, IReadOnlyList<RowPatternMeasure> Measures, RowsPerMatch? RowsPerMatch, RowPatternSkip? AfterMatch, RowPatternInitial? Initial, RowPattern? Pattern, IReadOnlyList<RowPatternSubset> Subsets, IReadOnlyList<RowPatternDefinition> Definitions) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record RowPatternMeasure(Expression Expression, Identifier Name) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record RowPatternSubset(Identifier Name, IReadOnlyList<Identifier> Variables) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record RowPatternDefinition(Identifier Variable, Expression Condition) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record RowPatternClause(IReadOnlyList<Expression> PartitionBy, OrderByClause? OrderBy, IReadOnlyList<RowPatternMeasure> Measures, RowsPerMatch? RowsPerMatch, RowPatternSkip? AfterMatch, RowPatternInitial? Initial, RowPattern? Pattern, IReadOnlyList<RowPatternSubset> Subsets, IReadOnlyList<RowPatternDefinition> Definitions) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record RowPatternMeasure(Expression Expression, Identifier Name) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record RowPatternSubset(Identifier Name, IReadOnlyList<Identifier> Variables) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record RowPatternDefinition(Identifier Variable, Expression Condition) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum RowsPerMatch { One, All, AllShowEmpty, AllOmitEmpty, AllWithUnmatched }
 public enum RowPatternInitial { Initial, Seek }
-public sealed record RowPatternSkip(RowPatternSkipKind Kind, Identifier? Variable = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record RowPatternSkip(RowPatternSkipKind Kind, Identifier? Variable = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum RowPatternSkipKind { NextRow, PastLastRow, First, Last, Variable }
 
 /// <summary>BNF: SQL/JSON path language. Separate expression language embedded in SQL.</summary>
 public abstract record JsonPathExpression : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Literal(string Text, JsonPathLiteralKind Kind) : JsonPathExpression;
 	public record Variable(JsonPathVariableKind Kind, Identifier? Name = null) : JsonPathExpression;
 	public record Unary(JsonPathUnaryOperator Operator, JsonPathExpression Operand) : JsonPathExpression;
@@ -849,7 +1138,12 @@ public enum JsonPathUnaryOperator { Plus, Minus }
 public enum JsonPathBinaryOperator { Add, Subtract, Multiply, Divide, Modulo }
 public abstract record JsonPathAccessor : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Member(string Name, bool Quoted) : JsonPathAccessor;
 	public record WildcardMember : JsonPathAccessor;
 	public record Array(IReadOnlyList<JsonSubscript> Subscripts) : JsonPathAccessor;
@@ -857,10 +1151,20 @@ public abstract record JsonPathAccessor : ISqlNode
 	public record Filter(JsonPathPredicate Predicate) : JsonPathAccessor;
 	public record Method(JsonMethod Value) : JsonPathAccessor;
 }
-public sealed record JsonSubscript(JsonPathExpression From, JsonPathExpression? To = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonSubscript(JsonPathExpression From, JsonPathExpression? To = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public abstract record JsonPathPredicate : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Exists(JsonPathExpression Expression) : JsonPathPredicate;
 	public record Comparison(JsonPathExpression Left, JsonPathComparisonOperator Operator, JsonPathExpression Right) : JsonPathPredicate;
 	public record LikeRegex(JsonPathExpression Value, string Pattern, string? Flags) : JsonPathPredicate;
@@ -872,25 +1176,65 @@ public abstract record JsonPathPredicate : ISqlNode
 	public record Parenthesized(JsonPathPredicate Predicate) : JsonPathPredicate;
 }
 public enum JsonPathComparisonOperator { Equal, NotEqual, NotEqualBang, Less, Greater, LessOrEqual, GreaterOrEqual }
-public sealed record JsonMethod(JsonMethodKind Kind, int? Precision = null, int? Scale = null, string? DateTimeTemplate = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonMethod(JsonMethodKind Kind, int? Precision = null, int? Scale = null, string? DateTimeTemplate = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum JsonMethodKind { Type, Size, Double, Ceiling, Floor, Abs, DateTime, KeyValue, BigInt, Boolean, Date, Decimal, Integer, Number, String, Time, TimeTz, Timestamp, TimestampTz }
-public sealed record JsonPath(JsonPathMode Mode, JsonPathExpression Expression) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonPath(JsonPathMode Mode, JsonPathExpression Expression) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum JsonPathMode { Strict, Lax }
 
 // --- JSON SQL structures ----------------------------------------------------
 // PathSpecification is the literal as written, like LiteralValue.String.Text. ContextFormat is the context item's `FORMAT JSON`.
-public sealed record JsonApiCommon(Expression Context, string PathSpecification, Identifier? PathName, IReadOnlyList<JsonArgument> Passing, JsonInputClause? ContextFormat = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record JsonArgument(Expression Value, Identifier Name, JsonInputClause? Format = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record JsonInputClause(JsonRepresentation Representation) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record JsonRepresentation(JsonEncoding? Encoding = null, string? ImplementationDefined = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonApiCommon(Expression Context, string PathSpecification, Identifier? PathName, IReadOnlyList<JsonArgument> Passing, JsonInputClause? ContextFormat = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record JsonArgument(Expression Value, Identifier Name, JsonInputClause? Format = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record JsonInputClause(JsonRepresentation Representation) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record JsonRepresentation(JsonEncoding? Encoding = null, string? ImplementationDefined = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum JsonEncoding { Utf8, Utf16, Utf32 }
 public enum JsonPredicateType { Value, Array, Object, Scalar }
 public enum JsonKeyUniqueness { WithUniqueKeys, WithUnique, WithoutUniqueKeys, WithoutUnique }
 public enum JsonExistsErrorBehavior { True, False, Unknown, Error }
-public sealed record JsonTableDefinition(JsonApiCommon Common, IReadOnlyList<JsonTableColumn> Columns, JsonTablePlan? Plan, JsonTableErrorBehavior? OnError, bool Primitive = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonTableDefinition(JsonApiCommon Common, IReadOnlyList<JsonTableColumn> Columns, JsonTablePlan? Plan, JsonTableErrorBehavior? OnError, bool Primitive = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public abstract record JsonTableColumn : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Ordinality(Identifier Name) : JsonTableColumn;
 	public record Regular(Identifier Name, DataType Type, string? Path, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : JsonTableColumn;
 	public record Formatted(Identifier Name, DataType Type, JsonRepresentation? Format, string? Path, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : JsonTableColumn;
@@ -899,7 +1243,12 @@ public abstract record JsonTableColumn : ISqlNode
 }
 public abstract record JsonTablePlan : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Name(Identifier Value) : JsonTablePlan;
 	public record Outer(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
 	public record Inner(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
@@ -911,23 +1260,43 @@ public abstract record JsonTablePlan : ISqlNode
 public enum JsonTableDefaultInnerOuter { Inner, Outer }
 public enum JsonTableDefaultUnionCross { Union, Cross }
 public enum JsonTableErrorBehavior { Error, Empty }
-public abstract record JsonValueBehavior : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Error : JsonValueBehavior; public record Null : JsonValueBehavior; public record Default(Expression Value) : JsonValueBehavior; }
+public abstract record JsonValueBehavior : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Error : JsonValueBehavior; public record Null : JsonValueBehavior; public record Default(Expression Value) : JsonValueBehavior; }
 public enum JsonWrapperBehavior { Without, WithoutArray, With, WithConditional, WithUnconditional, WithArray, WithConditionalArray, WithUnconditionalArray }
 public enum JsonQuotesBehavior { Keep, Omit }
 public enum JsonQueryBehavior { Error, Null, EmptyArray, EmptyObject }
 
 // BNF: <JSON output clause>: `RETURNING t FORMAT JSON ENCODING UTF8`.
-public sealed record JsonOutput(DataType Type, JsonRepresentation? Format = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonOutput(DataType Type, JsonRepresentation? Format = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // BNF: <JSON query quotes behavior>: `KEEP QUOTES ON SCALAR STRING`.
-public sealed record JsonQuotes(JsonQuotesBehavior Behavior, bool OnScalarString) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonQuotes(JsonQuotesBehavior Behavior, bool OnScalarString) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // BNF: <JSON name and value>: `KEY k VALUE v`, `k VALUE v` or `k : v`, with the value's format.
-public sealed record JsonMember(Expression Key, Expression Value, JsonMemberSyntax Syntax, JsonInputClause? Format = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonMember(Expression Key, Expression Value, JsonMemberSyntax Syntax, JsonInputClause? Format = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum JsonMemberSyntax { KeyValue, Value, Colon }
 
 // BNF: <JSON value expression> in an array constructor or aggregate, with its format.
-public sealed record JsonElement(Expression Value, JsonInputClause? Format = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record JsonElement(Expression Value, JsonInputClause? Format = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // BNF: <JSON constructor null clause>.
 public enum JsonNullHandling { NullOnNull, AbsentOnNull }
@@ -935,45 +1304,113 @@ public enum JsonNullHandling { NullOnNull, AbsentOnNull }
 // --- DML helper families ----------------------------------------------------
 public abstract record InsertSource : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Query(Statement.Select Select) : InsertSource;
 	public record Values(IReadOnlyList<RowValue> Rows) : InsertSource;
 	public record DefaultValues : InsertSource;
 }
-public sealed record RowValue(IReadOnlyList<Expression> Items, bool RowKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record RowValue(IReadOnlyList<Expression> Items, bool RowKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum OverrideKind { UserValue, SystemValue }
 public abstract record MergeClause : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public Expression? Condition { get; init; }
 	public record Matched(MergeMatchedAction Action) : MergeClause;
 	public record NotMatched(MergeInsertAction Action) : MergeClause;
 }
-public abstract record MergeMatchedAction : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Update(IReadOnlyList<Assignment> Assignments) : MergeMatchedAction; public record Delete : MergeMatchedAction; }
-public sealed record MergeInsertAction(IReadOnlyList<Identifier> Columns, OverrideKind? Override, IReadOnlyList<Expression> Values) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public abstract record MergeMatchedAction : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Update(IReadOnlyList<Assignment> Assignments) : MergeMatchedAction; public record Delete : MergeMatchedAction; }
+public sealed record MergeInsertAction(IReadOnlyList<Identifier> Columns, OverrideKind? Override, IReadOnlyList<Expression> Values) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 // BNF: <set clause>, <multiple column assignment>. Parenthesized where the targets were written in brackets: `(a) = (1)` is not `a = (1)`.
-public sealed record Assignment(IReadOnlyList<AssignmentTarget> Targets, Expression Value, bool Parenthesized = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record Assignment(IReadOnlyList<AssignmentTarget> Targets, Expression Value, bool Parenthesized = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // BNF: <set target>, <update target>, <mutated set clause>. Trigraphs are `??(` and `??)` around the index.
-public sealed record AssignmentTarget(QualifiedName Name, Expression? Index = null, IReadOnlyList<Identifier>? MutationPath = null, bool Trigraphs = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record PeriodPortion(Identifier Name, Expression From, Expression To) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record AssignmentTarget(QualifiedName Name, Expression? Index = null, IReadOnlyList<Identifier>? MutationPath = null, bool Trigraphs = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record PeriodPortion(Identifier Name, Expression From, Expression To) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum IdentityRestart { Continue, Restart }
 
 // --- Names and small value objects -----------------------------------------
 public sealed record QualifiedName(IReadOnlyList<Identifier> Parts) : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
-	public static QualifiedName Of(params Identifier[] parts) => new(parts);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
+	public static QualifiedName Of(params Identifier[] parts)
+	{
+		return new(parts);
+	}
 }
-public sealed record CharacterSetName(QualifiedName Name) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record CollationName(QualifiedName Name) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record AuthorizationIdentifier(Identifier Name) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record PathSpecification(IReadOnlyList<QualifiedName> Schemas) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record CharacterSetName(QualifiedName Name) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record CollationName(QualifiedName Name) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record AuthorizationIdentifier(Identifier Name) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record PathSpecification(IReadOnlyList<QualifiedName> Schemas) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // --- Temporal/table source --------------------------------------------------
 public abstract record SystemTimeSpecification : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record AsOf(Expression Point) : SystemTimeSpecification;
 	public record Between(Expression From, Expression To, BetweenSymmetry? Symmetry) : SystemTimeSpecification;
 	public record FromTo(Expression From, Expression To) : SystemTimeSpecification;
@@ -982,7 +1419,12 @@ public abstract record SystemTimeSpecification : ISqlNode
 // --- ALTER DOMAIN -----------------------------------------------------------
 public abstract record AlterDomainAction : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record SetDefault(Expression Value) : AlterDomainAction;
 	public record DropDefault : AlterDomainAction;
 	public record AddConstraint(Constraint Constraint) : AlterDomainAction;
@@ -992,51 +1434,111 @@ public abstract record AlterDomainAction : ISqlNode
 // --- Views -----------------------------------------------------------------
 public abstract record ViewSpecification : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Regular(IReadOnlyList<Identifier> Columns) : ViewSpecification;
 	public record Referenceable(QualifiedName TypeName, QualifiedName? Under, IReadOnlyList<ViewElement> Elements) : ViewSpecification;
 }
-public abstract record ViewElement : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record SelfReference(Identifier Name, ReferenceGeneration? Generation) : ViewElement; public record ColumnOption(Identifier Name, QualifiedName Scope) : ViewElement; }
+public abstract record ViewElement : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record SelfReference(Identifier Name, ReferenceGeneration? Generation) : ViewElement; public record ColumnOption(Identifier Name, QualifiedName Scope) : ViewElement; }
 public enum CheckOption { Cascaded, Local, Unqualified }
 
 // --- Triggers ---------------------------------------------------------------
 public enum TriggerTime { Before, After, InsteadOf }
-public sealed record TriggerEvent(TriggerEventKind Kind, IReadOnlyList<Identifier> Columns) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record TriggerEvent(TriggerEventKind Kind, IReadOnlyList<Identifier> Columns) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum TriggerEventKind { Insert, Delete, Update }
-public sealed record TransitionReference(TransitionKind Kind, Identifier Name, bool RowKeyword = false, bool AsKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record TransitionReference(TransitionKind Kind, Identifier Name, bool RowKeyword = false, bool AsKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum TransitionKind { OldRow, NewRow, OldTable, NewTable }
-public sealed record TriggerAction(TriggerGranularity? Granularity, Expression? When, IReadOnlyList<Statement> Statements, bool AtomicBlock = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record TriggerAction(TriggerGranularity? Granularity, Expression? When, IReadOnlyList<Statement> Statements, bool AtomicBlock = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum TriggerGranularity { Row, Statement }
 
 // --- UDT/routines/transforms ------------------------------------------------
-public sealed record UserDefinedTypeDefinition(QualifiedName Name, QualifiedName? Under, TypeRepresentation? Representation, IReadOnlyList<UserTypeOption> Options, IReadOnlyList<MethodSpecification> Methods) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public abstract record TypeRepresentation : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Type(DataType Value) : TypeRepresentation; public record Members(IReadOnlyList<AttributeDefinition> Attributes) : TypeRepresentation; }
-public sealed record AttributeDefinition(Identifier Name, DataType Type, Expression? Default, CollationName? Collation) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record UserDefinedTypeDefinition(QualifiedName Name, QualifiedName? Under, TypeRepresentation? Representation, IReadOnlyList<UserTypeOption> Options, IReadOnlyList<MethodSpecification> Methods) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public abstract record TypeRepresentation : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Type(DataType Value) : TypeRepresentation; public record Members(IReadOnlyList<AttributeDefinition> Attributes) : TypeRepresentation; }
+public sealed record AttributeDefinition(Identifier Name, DataType Type, Expression? Default, CollationName? Collation) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public abstract record UserTypeOption : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Instantiable(bool Value) : UserTypeOption;
 	public record Final(bool Value) : UserTypeOption;
 	public record Reference(UserTypeReference Representation) : UserTypeOption;
 	public record Cast(UserTypeCastKind Kind, Identifier FunctionName) : UserTypeOption;
 }
-public abstract record UserTypeReference : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Using(DataType Type) : UserTypeReference; public record FromAttributes(IReadOnlyList<Identifier> Attributes) : UserTypeReference; public record SystemGenerated : UserTypeReference; }
+public abstract record UserTypeReference : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Using(DataType Type) : UserTypeReference; public record FromAttributes(IReadOnlyList<Identifier> Attributes) : UserTypeReference; public record SystemGenerated : UserTypeReference; }
 public enum UserTypeCastKind { ToRef, ToType, ToDistinct, ToSource }
-public abstract record AlterTypeAction : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record AddAttribute(AttributeDefinition Attribute) : AlterTypeAction; public record DropAttribute(Identifier Name) : AlterTypeAction; public record AddMethod(MethodSpecification Method, bool Overriding) : AlterTypeAction; public record DropMethod(MethodDesignator Method) : AlterTypeAction; }
-public sealed record MethodSpecification(MethodModifier? Modifier, Identifier Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition Returns, QualifiedName? SpecificName, bool SelfAsResult, bool SelfAsLocator, IReadOnlyList<RoutineCharacteristic> Characteristics, bool Overriding = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public abstract record AlterTypeAction : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record AddAttribute(AttributeDefinition Attribute) : AlterTypeAction; public record DropAttribute(Identifier Name) : AlterTypeAction; public record AddMethod(MethodSpecification Method, bool Overriding) : AlterTypeAction; public record DropMethod(MethodDesignator Method) : AlterTypeAction; }
+public sealed record MethodSpecification(MethodModifier? Modifier, Identifier Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition Returns, QualifiedName? SpecificName, bool SelfAsResult, bool SelfAsLocator, IReadOnlyList<RoutineCharacteristic> Characteristics, bool Overriding = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum MethodModifier { Instance, Static, Constructor }
-public sealed record MethodDesignator(MethodModifier? Modifier, Identifier Name, IReadOnlyList<DataType> ParameterTypes) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record MethodDesignator(MethodModifier? Modifier, Identifier Name, IReadOnlyList<DataType> ParameterTypes) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // BNF: <schema procedure>, <schema function>, <method specification designator>. StaticDispatch is <dispatch clause>.
-public sealed record RoutineDefinition(RoutineKind Kind, QualifiedName Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, IReadOnlyList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null, bool StaticDispatch = false, bool SpecificMethod = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record RoutineDefinition(RoutineKind Kind, QualifiedName Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, IReadOnlyList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null, bool StaticDispatch = false, bool SpecificMethod = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum RoutineKind { Routine, Procedure, Function, Method }
 // BNF: <SQL parameter declaration>. Locator is <locator indication>, `AS LOCATOR`.
-public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum ParameterMode { In, Out, InOut }
 // BNF: <returns clause>, <returns type>, <result cast>. `RETURNS TABLE` with no columns is TableKeyword alone.
 public sealed record ReturnsDefinition(DataType? Type, IReadOnlyList<FieldDefinition>? TableColumns, bool OnlyPassThrough = false) : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public bool TableKeyword { get; init; }
 	public bool Locator { get; init; }
 	public DataType? CastFrom { get; init; }
@@ -1044,7 +1546,12 @@ public sealed record ReturnsDefinition(DataType? Type, IReadOnlyList<FieldDefini
 }
 public abstract record RoutineCharacteristic : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Language(string Name) : RoutineCharacteristic;
 	public record ParameterStyle(ParameterStyleKind Style) : RoutineCharacteristic;
 	public record Specific(QualifiedName Name) : RoutineCharacteristic;
@@ -1062,7 +1569,12 @@ public enum NullCallMode { ReturnsNullOnNullInput, CalledOnNullInput }
 public enum SavepointLevelKind { New, Old }
 public abstract record RoutineBody : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	// BNF: <SQL routine spec>: the rights it runs with and one <SQL procedure statement>.
 	public record Sql(Statement Statement, SqlSecurity? Security = null) : RoutineBody;
 	// BNF: <external body reference>. Name is the <external routine name> as written, quotes included.
@@ -1072,28 +1584,83 @@ public abstract record RoutineBody : ISqlNode
 public enum SqlSecurity { Invoker, Definer }
 public enum ExternalSecurity { Definer, Invoker, ImplementationDefined }
 // PrivateParameters is null where no `PRIVATE` was written; PrivateDataKeyword is `PRIVATE DATA`.
-public sealed record PolymorphicTableFunctionBody(IReadOnlyList<ParameterDefinition>? PrivateParameters, RoutineDesignator? Describe, RoutineDesignator? Start, RoutineDesignator Fulfill, RoutineDesignator? Finish, bool PrivateDataKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record RoutineDesignator(RoutineKind Kind, QualifiedName Name, IReadOnlyList<DataType>? ParameterTypes = null, QualifiedName? ForType = null, bool SpecificKeyword = false, MethodModifier? MethodModifier = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record PolymorphicTableFunctionBody(IReadOnlyList<ParameterDefinition>? PrivateParameters, RoutineDesignator? Describe, RoutineDesignator? Start, RoutineDesignator Fulfill, RoutineDesignator? Finish, bool PrivateDataKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record RoutineDesignator(RoutineKind Kind, QualifiedName Name, IReadOnlyList<DataType>? ParameterTypes = null, QualifiedName? ForType = null, bool SpecificKeyword = false, MethodModifier? MethodModifier = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum AlterRoutineBehavior { Restrict }
 
-public sealed record TranslationSource(QualifiedName? Existing, RoutineDesignator? Routine) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record OrderingDefinition(OrderingForm Form, OrderingCategory Category) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record TranslationSource(QualifiedName? Existing, RoutineDesignator? Routine) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record OrderingDefinition(OrderingForm Form, OrderingCategory Category) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum OrderingForm { EqualsOnly, Full }
-public abstract record OrderingCategory : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Relative(RoutineDesignator Function) : OrderingCategory; public record Map(RoutineDesignator Function) : OrderingCategory; public record State(QualifiedName? SpecificName) : OrderingCategory; }
-public sealed record TransformGroup(Identifier Name, IReadOnlyList<TransformElement> Elements) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record TransformElement(TransformDirection Direction, RoutineDesignator Function) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public abstract record OrderingCategory : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Relative(RoutineDesignator Function) : OrderingCategory; public record Map(RoutineDesignator Function) : OrderingCategory; public record State(QualifiedName? SpecificName) : OrderingCategory; }
+public sealed record TransformGroup(Identifier Name, IReadOnlyList<TransformElement> Elements) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record TransformElement(TransformDirection Direction, RoutineDesignator Function) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum TransformDirection { ToSql, FromSql }
-public sealed record TransformAlterGroup(Identifier Name, IReadOnlyList<TransformAlterAction> Actions) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record TransformAlterAction(bool Add, IReadOnlyList<TransformElement> Elements, IReadOnlyList<TransformDirection> DropKinds, DropBehavior? Behavior) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public abstract record TransformDropTarget : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record All : TransformDropTarget; public record Group(Identifier Name) : TransformDropTarget; }
-public sealed record TransformGroupSpecification(Identifier? SingleGroup, IReadOnlyList<TransformGroupForType> Groups) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record TransformAlterGroup(Identifier Name, IReadOnlyList<TransformAlterAction> Actions) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record TransformAlterAction(bool Add, IReadOnlyList<TransformElement> Elements, IReadOnlyList<TransformDirection> DropKinds, DropBehavior? Behavior) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public abstract record TransformDropTarget : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record All : TransformDropTarget; public record Group(Identifier Name) : TransformDropTarget; }
+public sealed record TransformGroupSpecification(Identifier? SingleGroup, IReadOnlyList<TransformGroupForType> Groups) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 // BNF: <group specification>, a transform group for a type.
-public sealed record TransformGroupForType(Identifier Group, QualifiedName Type) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record TransformGroupForType(Identifier Group, QualifiedName Type) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // --- Sequences --------------------------------------------------------------
 public abstract record SequenceOption : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record DataTypeOption(DataType Type) : SequenceOption;
 	public record Start(Expression Value) : SequenceOption;
 	public record Increment(Expression Value) : SequenceOption;
@@ -1106,91 +1673,181 @@ public abstract record SequenceOption : ISqlNode
 // --- Privileges/roles -------------------------------------------------------
 public abstract record GrantBody : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Privileges(IReadOnlyList<Privilege> Items, PrivilegeObject Object, IReadOnlyList<Grantee> Grantees, bool HierarchyOption, bool GrantOption, Grantor? GrantedBy) : GrantBody;
 	public record Roles(IReadOnlyList<Identifier> Names, IReadOnlyList<Grantee> Grantees, bool AdminOption, Grantor? GrantedBy) : GrantBody;
 }
 public abstract record RevokeBody : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Privileges(RevokeOption? Option, IReadOnlyList<Privilege> Items, PrivilegeObject Object, IReadOnlyList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
 	public record Roles(bool AdminOptionFor, IReadOnlyList<Identifier> Names, IReadOnlyList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
 }
-public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Columns, IReadOnlyList<RoutineDesignator> Methods) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Columns, IReadOnlyList<RoutineDesignator> Methods) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum PrivilegeKind { AllPrivileges, Select, Delete, Insert, Update, References, Usage, Trigger, Under, Execute }
 // BNF: <object name>. TableKeyword says `ON TABLE t` rather than `ON t`.
-public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum PrivilegeObjectKind { Table, Domain, Collation, CharacterSet, Translation, Type, Sequence, Routine }
-public abstract record Grantee : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Public : Grantee; public record Identifier(AuthorizationIdentifier Value) : Grantee; }
+public abstract record Grantee : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Public : Grantee; public record Identifier(AuthorizationIdentifier Value) : Grantee; }
 public enum Grantor { CurrentUser, CurrentRole }
 public enum RevokeOption { GrantOptionFor, HierarchyOptionFor }
 
 // --- Cursors/dynamic SQL/descriptors ---------------------------------------
 // BNF: <cursor name> (a <local qualified name>, `MODULE.c`), <extended cursor name>, and a dynamic cursor's <scope option>.
 // Name is null where the cursor is named by an extended name alone, `GLOBAL :c`.
-public sealed record CursorReference(QualifiedName? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record CursorReference(QualifiedName? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum CursorSensitivity { Sensitive, Insensitive, Asensitive }
 public enum CursorScrollability { Scroll, NoScroll }
 public enum CursorHoldability { WithHold, WithoutHold }
 public enum CursorReturnability { WithReturn, WithoutReturn }
-public abstract record CursorSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Query(Statement.Select Select, UpdatabilityClause? Updatability) : CursorSource; public record Prepared(StatementReference Statement) : CursorSource; }
-public sealed record UpdatabilityClause(bool ReadOnly, IReadOnlyList<Identifier> UpdateColumns) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record FetchOrientation(FetchOrientationKind Kind, Expression? Offset = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public abstract record CursorSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Query(Statement.Select Select, UpdatabilityClause? Updatability) : CursorSource; public record Prepared(StatementReference Statement) : CursorSource; }
+public sealed record UpdatabilityClause(bool ReadOnly, IReadOnlyList<Identifier> UpdateColumns) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record FetchOrientation(FetchOrientationKind Kind, Expression? Offset = null) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum FetchOrientationKind { Next, Prior, First, Last, Absolute, Relative }
-public abstract record CursorAllocationSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Prepared(StatementReference Statement) : CursorAllocationSource; public record Routine(RoutineDesignator Designator) : CursorAllocationSource; }
-public sealed record StatementReference(Identifier? Name, Expression? ExtendedName = null, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record DescriptorReference(Identifier? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public abstract record DescriptorGet : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Header(IReadOnlyList<DescriptorRead> Items) : DescriptorGet; public record Value(Expression Index, IReadOnlyList<DescriptorRead> Items) : DescriptorGet; }
-public abstract record DescriptorSet : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Header(IReadOnlyList<DescriptorWrite> Items) : DescriptorSet; public record Value(Expression Index, IReadOnlyList<DescriptorWrite> Items) : DescriptorSet; }
-public sealed record DescriptorRead(Expression Target, DescriptorItem Item) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record DescriptorWrite(DescriptorItem Item, Expression Value) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public abstract record CursorAllocationSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Prepared(StatementReference Statement) : CursorAllocationSource; public record Routine(RoutineDesignator Designator) : CursorAllocationSource; }
+public sealed record StatementReference(Identifier? Name, Expression? ExtendedName = null, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record DescriptorReference(Identifier? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public abstract record DescriptorGet : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Header(IReadOnlyList<DescriptorRead> Items) : DescriptorGet; public record Value(Expression Index, IReadOnlyList<DescriptorRead> Items) : DescriptorGet; }
+public abstract record DescriptorSet : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Header(IReadOnlyList<DescriptorWrite> Items) : DescriptorSet; public record Value(Expression Index, IReadOnlyList<DescriptorWrite> Items) : DescriptorSet; }
+public sealed record DescriptorRead(Expression Target, DescriptorItem Item) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record DescriptorWrite(DescriptorItem Item, Expression Value) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum DescriptorItem { Count, KeyType, DynamicFunction, DynamicFunctionCode, TopLevelCount, Cardinality, CharacterSetCatalog, CharacterSetName, CharacterSetSchema, CollationCatalog, CollationName, CollationSchema, Data, DatetimeIntervalCode, DatetimeIntervalPrecision, Degree, Indicator, KeyMember, Length, Level, Name, Nullable, NullOrdering, OctetLength, ParameterMode, ParameterOrdinalPosition, ParameterSpecificCatalog, ParameterSpecificName, ParameterSpecificSchema, Precision, ReturnedCardinality, ReturnedLength, ReturnedOctetLength, Scale, ScopeCatalog, ScopeName, ScopeSchema, SortDirection, Type, Unnamed, UserDefinedTypeCatalog, UserDefinedTypeName, UserDefinedTypeSchema, UserDefinedTypeCode }
-public abstract record DescriptorCopy : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Whole(DescriptorReference Source, DescriptorReference Target) : DescriptorCopy; public record Item(DescriptorReference Source, Expression SourceIndex, IReadOnlyList<DescriptorCopyOption> Options, DescriptorReference Target, Expression TargetIndex) : DescriptorCopy; }
+public abstract record DescriptorCopy : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Whole(DescriptorReference Source, DescriptorReference Target) : DescriptorCopy; public record Item(DescriptorReference Source, Expression SourceIndex, IReadOnlyList<DescriptorCopyOption> Options, DescriptorReference Target, Expression TargetIndex) : DescriptorCopy; }
 public enum DescriptorCopyOption { Name, Type, Data }
-public abstract record DescribeBody : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Input(StatementReference Statement, DescriptorReference Descriptor, bool? WithNesting, bool SqlKeyword = false) : DescribeBody; public record Output(DescribeObject Object, DescriptorReference Descriptor, bool? WithNesting, bool OutputKeyword, bool SqlKeyword = false) : DescribeBody; }
-public abstract record DescribeObject : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Statement(StatementReference Value) : DescribeObject; public record Cursor(CursorReference Value) : DescribeObject; }
-public abstract record DynamicArguments : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Values(IReadOnlyList<Expression> Items) : DynamicArguments; public record Descriptor(DescriptorReference Value, bool SqlKeyword) : DynamicArguments; }
+public abstract record DescribeBody : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Input(StatementReference Statement, DescriptorReference Descriptor, bool? WithNesting, bool SqlKeyword = false) : DescribeBody; public record Output(DescribeObject Object, DescriptorReference Descriptor, bool? WithNesting, bool OutputKeyword, bool SqlKeyword = false) : DescribeBody; }
+public abstract record DescribeObject : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Statement(StatementReference Value) : DescribeObject; public record Cursor(CursorReference Value) : DescribeObject; }
+public abstract record DynamicArguments : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Values(IReadOnlyList<Expression> Items) : DynamicArguments; public record Descriptor(DescriptorReference Value, bool SqlKeyword) : DynamicArguments; }
 
 // --- Transactions/connections ---------------------------------------------
-public abstract record TransactionMode : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Isolation(IsolationLevel Level) : TransactionMode; public record Access(TransactionAccess Mode) : TransactionMode; public record DiagnosticsSize(Expression Size) : TransactionMode; }
+public abstract record TransactionMode : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Isolation(IsolationLevel Level) : TransactionMode; public record Access(TransactionAccess Mode) : TransactionMode; public record DiagnosticsSize(Expression Size) : TransactionMode; }
 public enum IsolationLevel { ReadUncommitted, ReadCommitted, RepeatableRead, Serializable }
 public enum TransactionAccess { ReadOnly, ReadWrite }
-public abstract record ConstraintTarget : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record All : ConstraintTarget; public record Names(IReadOnlyList<QualifiedName> Values) : ConstraintTarget; }
+public abstract record ConstraintTarget : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record All : ConstraintTarget; public record Names(IReadOnlyList<QualifiedName> Values) : ConstraintTarget; }
 public enum ChainMode { Chain, NoChain }
-public sealed record ConnectionTarget(Expression? Server, Expression? Name, Expression? User, bool Default) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public abstract record ConnectionObject : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Default : ConnectionObject; public record Named(Expression Name) : ConnectionObject; }
-public abstract record DisconnectObject : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Connection(ConnectionObject Value) : DisconnectObject; public record All : DisconnectObject; public record Current : DisconnectObject; }
-public sealed record TransformGroupCharacteristic(bool DefaultGroup, QualifiedName? ForType, Expression Value) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ConnectionTarget(Expression? Server, Expression? Name, Expression? User, bool Default) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public abstract record ConnectionObject : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Default : ConnectionObject; public record Named(Expression Name) : ConnectionObject; }
+public abstract record DisconnectObject : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Connection(ConnectionObject Value) : DisconnectObject; public record All : DisconnectObject; public record Current : DisconnectObject; }
+public sealed record TransformGroupCharacteristic(bool DefaultGroup, QualifiedName? ForType, Expression Value) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // --- Diagnostics ------------------------------------------------------------
 
 // BNF: <SQL diagnostics information>: a statement's items, a condition's items, or all of either.
 public abstract record DiagnosticsInformation : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Statement(IReadOnlyList<StatementInformationItem> Items) : DiagnosticsInformation;
 	public record Condition(Expression Number, IReadOnlyList<ConditionInformationItem> Items) : DiagnosticsInformation;
 
 	// BNF: <all information>, `:t = ALL CONDITION 1`; Qualifier null where none was written.
 	public record All(Expression Target, AllInformationQualifier? Qualifier, Expression? ConditionNumber = null) : DiagnosticsInformation;
 }
-public sealed record StatementInformationItem(Expression Target, StatementInformationItemName Name) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record ConditionInformationItem(Expression Target, ConditionInformationItemName Name) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record StatementInformationItem(Expression Target, StatementInformationItemName Name) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+public sealed record ConditionInformationItem(Expression Target, ConditionInformationItemName Name) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum AllInformationQualifier { Statement, Condition }
 public enum StatementInformationItemName { Number, More, CommandFunction, CommandFunctionCode, DynamicFunction, DynamicFunctionCode, RowCount, TransactionsCommitted, TransactionsRolledBack, TransactionActive }
 public enum ConditionInformationItemName { CatalogName, ClassOrigin, ColumnName, ConditionNumber, ConnectionName, ConstraintCatalog, ConstraintName, ConstraintSchema, CursorName, MessageLength, MessageOctetLength, MessageText, ParameterMode, ParameterName, ParameterOrdinalPosition, ReturnedSqlstate, RoutineCatalog, RoutineName, RoutineSchema, SchemaName, ServerName, SpecificName, SubclassOrigin, TableName, TriggerCatalog, TriggerName, TriggerSchema }
 
 // --- SQL conditions / WHENEVER ---------------------------------------------
-public abstract record SqlCondition : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Major(SqlConditionMajor Value) : SqlCondition; public record State(string ClassCode, string? SubclassCode) : SqlCondition; public record Constraint(QualifiedName Name) : SqlCondition; }
+public abstract record SqlCondition : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Major(SqlConditionMajor Value) : SqlCondition; public record State(string ClassCode, string? SubclassCode) : SqlCondition; public record Constraint(QualifiedName Name) : SqlCondition; }
 public enum SqlConditionMajor { Exception, Warning, NotFound }
-public abstract record ConditionAction : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Continue : ConditionAction; public record GoTo(string Target, bool TwoWordKeyword) : ConditionAction; }
+public abstract record ConditionAction : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Continue : ConditionAction; public record GoTo(string Target, bool TwoWordKeyword) : ConditionAction; }
 
 // --- Embedded SQL -----------------------------------------------------------
 /// <summary>BNF: embedded SQL host-program sections. Kept out of the core SQL families.</summary>
 public abstract record EmbeddedSql : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Statement(EmbeddedPrefix Prefix, DotGram.Sql.Ast.Statement Value, EmbeddedTerminator? Terminator) : EmbeddedSql;
 	public record DeclareSection(EmbeddedPrefix Prefix, CharacterSetName? CharacterSet, IReadOnlyList<HostDeclaration> Declarations, EmbeddedTerminator? Terminator, EmbeddedPrefix? EndPrefix = null, EmbeddedTerminator? EndTerminator = null) : EmbeddedSql;
 	public record Authorization(EmbeddedAuthorization Value) : EmbeddedSql;
@@ -1202,7 +1859,12 @@ public enum EmbeddedPrefix { ExecSql, AmpersandSqlParen }
 public enum EmbeddedTerminator { EndExec, Semicolon, RightParen }
 public abstract record HostDeclaration : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Ada(string Text) : HostDeclaration;
 	public record C(string Text) : HostDeclaration;
 	public record Cobol(string Text) : HostDeclaration;
@@ -1211,9 +1873,19 @@ public abstract record HostDeclaration : ISqlNode
 	public record Pascal(string Text) : HostDeclaration;
 	public record Pli(string Text) : HostDeclaration;
 }
-public sealed record EmbeddedAuthorization(QualifiedName? Schema, AuthorizationIdentifier? Authorization, EmbeddedStaticMode? StaticMode) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record EmbeddedAuthorization(QualifiedName? Schema, AuthorizationIdentifier? Authorization, EmbeddedStaticMode? StaticMode) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 public enum EmbeddedStaticMode { StaticOnly, StaticAndDynamic }
-public sealed record ModuleCollation(CollationName Collation, IReadOnlyList<CharacterSetName> CharacterSets) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record ModuleCollation(CollationName Collation, IReadOnlyList<CharacterSetName> CharacterSets) : ISqlNode { public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
 
 // --- SQL-client modules -----------------------------------------------------
 
@@ -1221,7 +1893,12 @@ public sealed record ModuleCollation(CollationName Collation, IReadOnlyList<Char
 // collations, temporary tables, and what it contains.
 public sealed record SqlClientModule : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public Identifier? Name { get; init; }
 	public CharacterSetName? NamesAre { get; init; }
 	public required string Language { get; init; }
@@ -1236,7 +1913,12 @@ public sealed record SqlClientModule : ISqlNode
 // BNF: <module contents>: a cursor declared, statically or dynamically, or an <externally-invoked procedure>.
 public abstract record ModuleContent : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Cursor(Statement.DeclareCursor Declaration) : ModuleContent;
 	public record Procedure(Identifier Name, IReadOnlyList<HostParameterDeclaration> Parameters, Statement Body) : ModuleContent;
 }
@@ -1244,7 +1926,12 @@ public abstract record ModuleContent : ISqlNode
 // BNF: <host parameter declaration>: a host parameter with its type, or the status parameter SQLSTATE.
 public abstract record HostParameterDeclaration : ISqlNode
 {
-	public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public SqlSpan Span { get; private set; }
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
 	public record Parameter(Identifier Name, DataType Type, bool Locator = false) : HostParameterDeclaration;
 	public record Status : HostParameterDeclaration;
 }

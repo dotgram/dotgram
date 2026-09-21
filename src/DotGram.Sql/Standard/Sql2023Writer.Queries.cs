@@ -316,7 +316,8 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutSorts(OrderByClause order) =>
+		void PutSorts(OrderByClause order)
+		{
 			Each(order.Items, item =>
 			{
 				PutExpression(item.Key);
@@ -327,6 +328,7 @@ public static partial class Sql2023Writer
 				if (item.NullOrdering is { } nulls)
 					Word(nulls == NullOrdering.First ? "NULLS FIRST" : "NULLS LAST");
 			});
+		}
 
 		// ── §7.11 Windows, §7.6 Row pattern recognition ────────────────────────────
 

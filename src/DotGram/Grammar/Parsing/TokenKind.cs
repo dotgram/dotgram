@@ -60,34 +60,37 @@ public enum TokenKind
 public static class TokenKindExtensions
 {
 	/// <summary>The one spelling a fixed-spelling kind has, or null when it carries a value.</summary>
-	public static string? Spelling(this TokenKind kind) => kind switch
+	public static string? Spelling(this TokenKind kind)
 	{
-		TokenKind.Ampersand         => "&",
-		TokenKind.Tilde             => "~",
-		TokenKind.Bar               => "|",
-		TokenKind.OpenParen         => "(",
-		TokenKind.CloseParen        => ")",
-		TokenKind.OpenBracket       => "[",
-		TokenKind.CloseBracket      => "]",
-		TokenKind.OpenBrace         => "{",
-		TokenKind.CloseBrace        => "}",
-		TokenKind.Comma             => ",",
-		TokenKind.Semicolon         => ";",
-		TokenKind.Colon             => ":",
-		TokenKind.Equals            => "=",
-		TokenKind.Arrow             => "=>",
-		TokenKind.Question          => "?",
-		TokenKind.Star              => "*",
-		TokenKind.Plus              => "+",
-		TokenKind.Minus             => "-",
-		TokenKind.Caret             => "^",
-		TokenKind.Dot               => ".",
-		TokenKind.DotDot            => "..",
-		TokenKind.Less              => "<",
-		TokenKind.Greater           => ">",
-		TokenKind.At                => "@",
-		TokenKind.PositiveLookahead => "?=",
-		TokenKind.NegativeLookahead => "?!",
-		_                           => null,
-	};
+		return kind switch
+		{
+			TokenKind.Ampersand => "&",
+			TokenKind.Tilde => "~",
+			TokenKind.Bar => "|",
+			TokenKind.OpenParen => "(",
+			TokenKind.CloseParen => ")",
+			TokenKind.OpenBracket => "[",
+			TokenKind.CloseBracket => "]",
+			TokenKind.OpenBrace => "{",
+			TokenKind.CloseBrace => "}",
+			TokenKind.Comma => ",",
+			TokenKind.Semicolon => ";",
+			TokenKind.Colon => ":",
+			TokenKind.Equals => "=",
+			TokenKind.Arrow => "=>",
+			TokenKind.Question => "?",
+			TokenKind.Star => "*",
+			TokenKind.Plus => "+",
+			TokenKind.Minus => "-",
+			TokenKind.Caret => "^",
+			TokenKind.Dot => ".",
+			TokenKind.DotDot => "..",
+			TokenKind.Less => "<",
+			TokenKind.Greater => ">",
+			TokenKind.At => "@",
+			TokenKind.PositiveLookahead => "?=",
+			TokenKind.NegativeLookahead => "?!",
+			_ => null,
+		};
+	}
 }

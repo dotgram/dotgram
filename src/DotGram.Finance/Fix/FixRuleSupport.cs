@@ -22,12 +22,16 @@ namespace DotGram.Finance.Fix;
 static class FixRuleSupport
 {
 	/// <summary>A finding about a field that is present, which therefore has a position.</summary>
-	public static FixFinding Wrong(FixRule rule, FixScope where, FixFieldView field, int groupTag, int entry, string reason) =>
-		new(rule, where, field.Tag, groupTag, entry, field.ValuePosition, reason);
+	public static FixFinding Wrong(FixRule rule, FixScope where, FixFieldView field, int groupTag, int entry, string reason)
+	{
+		return new(rule, where, field.Tag, groupTag, entry, field.ValuePosition, reason);
+	}
 
 	/// <summary>A finding about something absent, which has a tag but nowhere to point.</summary>
-	public static FixFinding Missing(FixRule rule, FixScope where, int tag, int groupTag, int entry, string reason) =>
-		new(rule, where, tag, groupTag, entry, 0, reason);
+	public static FixFinding Missing(FixRule rule, FixScope where, int tag, int groupTag, int entry, string reason)
+	{
+		return new(rule, where, tag, groupTag, entry, 0, reason);
+	}
 
 	/// <summary>
 	/// A finding about a component, which has no tag of its own to name.
@@ -37,12 +41,16 @@ static class FixRuleSupport
 	/// have to spell the null, and a reader of that line would be asked to know that a component
 	/// is the one thing here without a tag.
 	/// </remarks>
-	public static FixFinding Absent(FixScope where, int groupTag, int entry, string reason) =>
-		new(FixRule.RequiredComponentMissing, where, null, groupTag, entry, 0, reason);
+	public static FixFinding Absent(FixScope where, int groupTag, int entry, string reason)
+	{
+		return new(FixRule.RequiredComponentMissing, where, null, groupTag, entry, 0, reason);
+	}
 
 	/// <summary>Whether this scope has already held the tag.</summary>
-	public static bool Seen(ulong[] seen, int tag) =>
-		tag is > 0 and < 957 && (seen[tag >> 6] & 1UL << (tag & 63)) != 0;
+	public static bool Seen(ulong[] seen, int tag)
+	{
+		return tag is > 0 and < 957 && (seen[tag >> 6] & 1UL << (tag & 63)) != 0;
+	}
 
 	/// <summary>Records the tag in the scope's mask; a tag outside the mask's range is ignored.</summary>
 	public static void Mark(ulong[] seen, int tag)
@@ -52,8 +60,10 @@ static class FixRuleSupport
 	}
 
 	/// <summary>Whether the scope holds the tag: from the mask, or by looking where it cannot.</summary>
-	public static bool Has(FixFieldSet scope, ulong[] seen, int tag) =>
-		FixRules.Has(scope, seen, tag);
+	public static bool Has(FixFieldSet scope, ulong[] seen, int tag)
+	{
+		return FixRules.Has(scope, seen, tag);
+	}
 
 	/// <summary>Whether the scope holds any of these tags, which is what a component's presence is.</summary>
 	public static bool Any(FixFieldSet scope, ulong[] seen, int[] tags)
@@ -70,11 +80,13 @@ static class FixRuleSupport
 	/// tables, because whether a tag exists at all is the one thing the composed code cannot know
 	/// from the scope it was written for.
 	/// </summary>
-	public static void NotInScope(FixTables tables, List<FixFinding> found, FixScope where, FixFieldView field, int groupTag, int entry) =>
+	public static void NotInScope(FixTables tables, List<FixFinding> found, FixScope where, FixFieldView field, int groupTag, int entry)
+	{
 		found.Add(Wrong(FixRule.FieldNotInScope, where, field, groupTag, entry,
 			tables.Defines(field.Tag)
 				? "The schema defines this tag, but not in this scope."
 				: "The schema defines no such tag."));
+	}
 
 	/// <summary>
 	/// The field with that tag, which the composed code asks for only where it has just tested
@@ -85,7 +97,10 @@ static class FixRuleSupport
 	/// read by somebody debugging their dictionary, and a null-valued access there would be one
 	/// more thing in it to explain.
 	/// </remarks>
-	public static FixFieldView Field(FixFieldSet scope, int tag) => scope.GetField(tag)!.Value;
+	public static FixFieldView Field(FixFieldSet scope, int tag)
+	{
+		return scope.GetField(tag)!.Value;
+	}
 
 	/// <summary>A counter against the entries that followed it.</summary>
 	public static void Count(

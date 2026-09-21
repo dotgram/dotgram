@@ -129,19 +129,21 @@ public sealed partial class GrammarNormalizer
 		/// Whether a node's value could only ever be the text it matched — no rule value, no
 		/// capture of its own, nothing a turn's record would keep that the extent does not.
 		/// </summary>
-		bool PureText(Node node) =>
-			node switch
+		bool PureText(Node node)
+		{
+			return node switch
 			{
 				Node.Call(var rule, var arguments) => arguments.Count == 0 && PureRule(rule),
 				Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
-				Node.Sequence(var parts)        => parts.All(PureText),
+				Node.Sequence(var parts) => parts.All(PureText),
 				Node.Choice(var alternatives) { Selection: null } => alternatives.All(PureText),
-				Node.Repeat(var body, _, _)     => !_recoveries.ContainsKey(node) && PureText(body),
-				Node.Atomic(var body)           => PureText(body),
-				Node.Marked(var body, _)        => PureText(body),
-				Node.Lookahead(_, var body)     => PureText(body),
-				_                               => false,
+				Node.Repeat(var body, _, _) => !_recoveries.ContainsKey(node) && PureText(body),
+				Node.Atomic(var body) => PureText(body),
+				Node.Marked(var body, _) => PureText(body),
+				Node.Lookahead(_, var body) => PureText(body),
+				_ => false,
 			};
+		}
 
 		bool PureRule(RuleSymbol rule)
 		{

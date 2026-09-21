@@ -1346,7 +1346,10 @@ public static partial class ExpressionParser
 	/// class's own.
 	/// </remarks>
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	public static LambdaExpression Parse(string text) => Parse(text, Assembly.GetCallingAssembly());
+	public static LambdaExpression Parse(string text)
+	{
+		return Parse(text, Assembly.GetCallingAssembly());
+	}
 
 	/// <summary>The same, on behalf of an assembly the caller names.</summary>
 	/// <remarks>
@@ -1393,8 +1396,10 @@ public static partial class ExpressionParser
 	/// </para>
 	/// </remarks>
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	public static Match<LambdaExpression> TryParse(string text) =>
-		TryParse(text, Assembly.GetCallingAssembly());
+	public static Match<LambdaExpression> TryParse(string text)
+	{
+		return TryParse(text, Assembly.GetCallingAssembly());
+	}
 
 	/// <summary>The same, on behalf of an assembly the caller names.</summary>
 	/// <remarks>
@@ -1426,9 +1431,11 @@ public static partial class ExpressionParser
 	/// class makes: an <c>ArgumentNullException</c> is this class handing itself nothing,
 	/// which no text can cause and an answer would hide.
 	/// </remarks>
-	static bool IsRefusal(Exception thrown) =>
-		thrown is FormatException or InvalidOperationException or OverflowException ||
+	static bool IsRefusal(Exception thrown)
+	{
+		return thrown is FormatException or InvalidOperationException or OverflowException ||
 		thrown is ArgumentException and not ArgumentNullException;
+	}
 
 	/// <summary>The same, compiled to a delegate of the caller's own type.</summary>
 	/// <remarks>
@@ -1440,8 +1447,10 @@ public static partial class ExpressionParser
 	/// </remarks>
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public static TDelegate Compile<TDelegate>(string text)
-		where TDelegate : Delegate =>
-		Compile<TDelegate>(text, Assembly.GetCallingAssembly());
+		where TDelegate : Delegate
+	{
+		return Compile<TDelegate>(text, Assembly.GetCallingAssembly());
+	}
 
 	/// <summary>The same, on behalf of an assembly the caller names.</summary>
 	/// <remarks>
@@ -1512,14 +1521,20 @@ public static partial class ExpressionParser
 	/// either side is concatenation, which C# compiles to <c>string.Concat</c> and the API has
 	/// no operator for.
 	/// </remarks>
-	internal static Expression Add(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
-		Joined(left, right) ?? Arithmetic(Checked(reading) ? Expression.AddChecked : Expression.Add, left, right);
+	internal static Expression Add(Expression left, Expression right, ReadOnlySpan<Reading> reading)
+	{
+		return Joined(left, right) ?? Arithmetic(Checked(reading) ? Expression.AddChecked : Expression.Add, left, right);
+	}
 
-	internal static Expression Subtract(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
-		Arithmetic(Checked(reading) ? Expression.SubtractChecked : Expression.Subtract, left, right);
+	internal static Expression Subtract(Expression left, Expression right, ReadOnlySpan<Reading> reading)
+	{
+		return Arithmetic(Checked(reading) ? Expression.SubtractChecked : Expression.Subtract, left, right);
+	}
 
-	internal static Expression Multiply(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
-		Arithmetic(Checked(reading) ? Expression.MultiplyChecked : Expression.Multiply, left, right);
+	internal static Expression Multiply(Expression left, Expression right, ReadOnlySpan<Reading> reading)
+	{
+		return Arithmetic(Checked(reading) ? Expression.MultiplyChecked : Expression.Multiply, left, right);
+	}
 
 	/// <remarks>
 	/// `-2147483648` is the <c>int</c> it looks like, though `2147483648` alone is a
@@ -1551,59 +1566,76 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>A constant's negation, or null where it has none of its own type.</summary>
-	static object? Negative(object? value) => value switch
+	static object? Negative(object? value)
 	{
-		int number when number != int.MinValue   => -number,
-		long number when number != long.MinValue => -number,
-		float number                             => -number,
-		double number                            => -number,
-		decimal number                           => -number,
-		_                                        => null,
-	};
+		return value switch
+		{
+			int number when number != int.MinValue => -number,
+			long number when number != long.MinValue => -number,
+			float number => -number,
+			double number => -number,
+			decimal number => -number,
+			_ => null,
+		};
+	}
 
 	/// <remarks>
 	/// A cast is where the difference is most visible and least like the others: `(byte)300`
 	/// is 44 unchecked and throws checked, and neither is an error the C# compiler would
 	/// have caught here — the value is not a constant until the tree is compiled.
 	/// </remarks>
-	internal static Expression Cast(Expression operand, Type type, ReadOnlySpan<Reading> reading) =>
-		ReferenceEquals(operand, Null) && CanBeNull(type) ? Expression.Constant(null, type)
+	internal static Expression Cast(Expression operand, Type type, ReadOnlySpan<Reading> reading)
+	{
+		return ReferenceEquals(operand, Null) && CanBeNull(type) ? Expression.Constant(null, type)
 		: Formattable(operand, type) is { } formattable ? formattable
 		: Checked(reading) ? Expression.ConvertChecked(operand, type)
 		: Expression.Convert(operand, type);
+	}
 
-	internal static Expression AddAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Compound(
+	internal static Expression AddAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading)
+	{
+		return Compound(
 			Checked(reading) ? Expression.AddAssignChecked : Expression.AddAssign,
 			Add(target, value, reading), target, reading);
+	}
 
-	internal static Expression SubtractAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Compound(
+	internal static Expression SubtractAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading)
+	{
+		return Compound(
 			Checked(reading) ? Expression.SubtractAssignChecked : Expression.SubtractAssign,
 			Subtract(target, value, reading), target, reading);
+	}
 
-	internal static Expression MultiplyAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Compound(
+	internal static Expression MultiplyAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading)
+	{
+		return Compound(
 			Checked(reading) ? Expression.MultiplyAssignChecked : Expression.MultiplyAssign,
 			Multiply(target, value, reading), target, reading);
+	}
 
 	/// <summary>A compound assignment whose operator is arithmetic and has no checked form.</summary>
 	internal static Expression ArithmeticAssign(
 		Func<Expression, Expression, BinaryExpression> assign, Func<Expression, Expression, BinaryExpression> make,
-		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Compound(assign, Arithmetic(make, target, value), target, reading);
+		Expression target, Expression value, ReadOnlySpan<Reading> reading)
+	{
+		return Compound(assign, Arithmetic(make, target, value), target, reading);
+	}
 
 	/// <summary>A compound assignment whose operator is bitwise.</summary>
 	internal static Expression IntegralAssign(
 		Func<Expression, Expression, BinaryExpression> assign, Func<Expression, Expression, BinaryExpression> make,
-		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Compound(assign, Integral(make, target, value), target, reading);
+		Expression target, Expression value, ReadOnlySpan<Reading> reading)
+	{
+		return Compound(assign, Integral(make, target, value), target, reading);
+	}
 
 	/// <summary>A compound assignment whose operator is a shift.</summary>
 	internal static Expression ShiftAssign(
 		Func<Expression, Expression, BinaryExpression> assign, Func<Expression, Expression, BinaryExpression> make,
-		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Compound(assign, Shift(make, target, value), target, reading);
+		Expression target, Expression value, ReadOnlySpan<Reading> reading)
+	{
+		return Compound(assign, Shift(make, target, value), target, reading);
+	}
 
 	/// <summary>C#'s <c>x op= y</c>, which is <c>x = (T)(x op y)</c>.</summary>
 	/// <remarks>
@@ -1615,11 +1647,13 @@ public static partial class ExpressionParser
 	/// </remarks>
 	static Expression Compound(
 		Func<Expression, Expression, BinaryExpression> assign, Expression computed, Expression target,
-		ReadOnlySpan<Reading> reading) =>
-		computed is BinaryExpression binary && binary.Left == target && binary.Type == target.Type &&
+		ReadOnlySpan<Reading> reading)
+	{
+		return computed is BinaryExpression binary && binary.Left == target && binary.Type == target.Type &&
 		binary.Method?.DeclaringType != typeof(string)
 			? assign(target, binary.Right)
 			: Expression.Assign(target, computed.Type == target.Type ? computed : Cast(computed, target.Type, reading));
+	}
 
 	// ── An interpolated string ──────────────────────────────────────────────────
 
@@ -1632,13 +1666,22 @@ public static partial class ExpressionParser
 	internal readonly record struct Segment(string? Text, int At, int Length, string? Format)
 	{
 		/// <summary>Text, standing for itself.</summary>
-		public static Segment Of(string text) => new(text, 0, 0, null);
+		public static Segment Of(string text)
+		{
+			return new(text, 0, 0, null);
+		}
 
 		/// <summary>A hole, and where in the input its expression stands.</summary>
-		public static Segment Hole(int at, int length) => new(null, at, length, null);
+		public static Segment Hole(int at, int length)
+		{
+			return new(null, at, length, null);
+		}
 
 		/// <summary>The same hole, with the format written after its colon.</summary>
-		public Segment Formatted(string? format) => this with { Format = format };
+		public Segment Formatted(string? format)
+		{
+			return this with { Format = format };
+		}
 	}
 
 	/// <summary>An interpolated string as the lexer measured it: its pieces, and the text they stand in.</summary>
@@ -1650,18 +1693,23 @@ public static partial class ExpressionParser
 	/// read is folded into its callers, and `Body` has to stay a rule, so that the machine
 	/// reading a lambda holds it and a body can be read again there on its own.
 	/// </remarks>
-	internal static Expression Body(Expression value) => value;
+	internal static Expression Body(Expression value)
+	{
+		return value;
+	}
 
 	/// <summary>A parameter written with no type: its name, and where it was written.</summary>
 	internal readonly record struct Awaited(string Name, int At)
 	{
 		/// <summary>The parameters of either form, as one list.</summary>
-		public static Awaited[] Of(Awaited? one, Awaited? first, Awaited[]? rest) =>
-			one is { } only
+		public static Awaited[] Of(Awaited? one, Awaited? first, Awaited[]? rest)
+		{
+			return one is { } only
 				? [only]
 				: first is { } head
 					? [head, .. rest ?? []]
 					: [];
+		}
 	}
 
 	/// <summary>Where a lambda's body stands in the text, which is all that is kept of it until it can be built.</summary>
@@ -1910,16 +1958,20 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>One step built onto what it is written after.</summary>
-	static Expression Applied(Expression value, Step step, State context) =>
-		step.Indices is { } at       ? Indexed(value, at, context.Caller)
+	static Expression Applied(Expression value, Step step, State context)
+	{
+		return step.Indices is { } at ? Indexed(value, at, context.Caller)
 		: step.Arguments is { } args ? context.Calling(value, step.Member!, args)
-		:                              Member(value, step.Member!, context.Caller);
+		: Member(value, step.Member!, context.Caller);
+	}
 
 	/// <summary>Whether that value is null, asked as its type allows.</summary>
-	static Expression IsNull(Expression value) =>
-		Nullable.GetUnderlyingType(value.Type) is not null
+	static Expression IsNull(Expression value)
+	{
+		return Nullable.GetUnderlyingType(value.Type) is not null
 			? Expression.Not(Expression.Property(value, "HasValue"))
 			: Expression.ReferenceEqual(value, Expression.Constant(null, value.Type));
+	}
 
 	/// <summary>
 	/// What a guarded step is written on, which for a nullable value type is what it holds.
@@ -1929,10 +1981,12 @@ public static partial class ExpressionParser
 	/// which `Nullable&lt;int&gt;` has no method for. Reached past the test, so the value is
 	/// there to be had.
 	/// </remarks>
-	static Expression Unwrapped(Expression value) =>
-		Nullable.GetUnderlyingType(value.Type) is not null
+	static Expression Unwrapped(Expression value)
+	{
+		return Nullable.GetUnderlyingType(value.Type) is not null
 			? Expression.Property(value, "Value")
 			: value;
+	}
 
 	/// <summary>A generic type's arguments, in the order they were written.</summary>
 	internal static Type[] Types(Type first, Type[] rest)
@@ -1972,7 +2026,10 @@ public static partial class ExpressionParser
 	internal readonly record struct Element(Expression[] Arguments);
 
 	/// <summary>One element, where the text wrote it without braces of its own.</summary>
-	internal static Element Only(Expression value) => new([value]);
+	internal static Element Only(Expression value)
+	{
+		return new([value]);
+	}
 
 	/// <summary>What an initializer sets, in the order it was written.</summary>
 	internal static Setting[] Set(Setting first, Setting[] rest)
@@ -2024,8 +2081,10 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>What a field or property holds, which a nested initializer is written in.</summary>
-	static Type MemberType(MemberInfo member) =>
-		member is PropertyInfo property ? property.PropertyType : ((FieldInfo)member).FieldType;
+	static Type MemberType(MemberInfo member)
+	{
+		return member is PropertyInfo property ? property.PropertyType : ((FieldInfo)member).FieldType;
+	}
 
 	/// <summary>Those elements against the collection type that has the `Add`.</summary>
 	/// <remarks>
@@ -2135,10 +2194,12 @@ public static partial class ExpressionParser
 	/// other's type and not back — and where neither does, the answer is <c>void</c> rather
 	/// than a refusal: an `if` is a statement first.
 	/// </remarks>
-	internal static Expression Branched(Expression test, Expression then, Expression otherwise) =>
-		Common(then, otherwise) is { } type
+	internal static Expression Branched(Expression test, Expression then, Expression otherwise)
+	{
+		return Common(then, otherwise) is { } type
 			? Expression.Condition(test, Implicitly(then, type)!, Implicitly(otherwise, type)!, type)
 			: Expression.Condition(test, then, otherwise, typeof(void));
+	}
 
 	/// <summary>A <c>try</c> of whichever shape was written: handlers, a finally, or both.</summary>
 	/// <remarks>
@@ -2288,8 +2349,10 @@ public static partial class ExpressionParser
 	/// ends in one, is <c>void</c>, which no variable can be. Answering rather than throwing
 	/// leaves the reading to the alternatives after it (§8.1).
 	/// </remarks>
-	internal static bool Inferable(Expression value) =>
-		value is not null && value.Type != typeof(void) && !ReferenceEquals(value, Null);
+	internal static bool Inferable(Expression value)
+	{
+		return value is not null && value.Type != typeof(void) && !ReferenceEquals(value, Null);
+	}
 
 	/// <summary>C#'s predefined arithmetic operators take one of these, in this order.</summary>
 	static readonly Type[] _arithmetics =
@@ -2433,8 +2496,10 @@ public static partial class ExpressionParser
 	/// not for the element it names, because <see cref="Element"/> is already what one call to
 	/// a collection's <c>Add</c> takes.
 	/// </remarks>
-	internal static Type? Yielded(Expression source) =>
-		source is not null && Iterating(source.Type) is { } plan ? plan.Item : null;
+	internal static Type? Yielded(Expression source)
+	{
+		return source is not null && Iterating(source.Type) is { } plan ? plan.Item : null;
+	}
 
 	/// <summary>A <c>foreach</c>, written out as what C# lowers one to.</summary>
 	/// <remarks>
@@ -2527,19 +2592,25 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>Whether an operand is one C#'s predefined numeric operators could take.</summary>
-	static bool Predefined(Expression operand) =>
-		ReferenceEquals(operand, Null) || IsNumeric(Underlying(operand.Type));
+	static bool Predefined(Expression operand)
+	{
+		return ReferenceEquals(operand, Null) || IsNumeric(Underlying(operand.Type));
+	}
 
 	/// <summary>An arithmetic operator — <c>+ - * / %</c> — over operands promoted as C# promotes them.</summary>
 	internal static Expression Arithmetic(
-		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right) =>
-		Operand(_arithmetics, left, right) is { } type
+		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
+	{
+		return Operand(_arithmetics, left, right) is { } type
 			? make(Implicitly(left, type)!, Implicitly(right, type)!)
 			: make(left, right);
+	}
 
 	/// <summary>The unary <c>+</c>, likewise.</summary>
-	internal static Expression Arithmetic(Func<Expression, UnaryExpression> make, Expression operand) =>
-		Operand(_arithmetics, operand, null) is { } type ? make(Implicitly(operand, type)!) : make(operand);
+	internal static Expression Arithmetic(Func<Expression, UnaryExpression> make, Expression operand)
+	{
+		return Operand(_arithmetics, operand, null) is { } type ? make(Implicitly(operand, type)!) : make(operand);
+	}
 
 	/// <summary>A bitwise operator — <c>&amp; | ^</c> — over integers, <c>bool</c>s or one enum.</summary>
 	/// <remarks>
@@ -2560,10 +2631,12 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>The unary <c>~</c>, likewise.</summary>
-	internal static Expression Integral(Func<Expression, UnaryExpression> make, Expression operand) =>
-		Operand(_integrals, operand, null) is { } type ? make(Implicitly(operand, type)!)
+	internal static Expression Integral(Func<Expression, UnaryExpression> make, Expression operand)
+	{
+		return Operand(_integrals, operand, null) is { } type ? make(Implicitly(operand, type)!)
 		: Underlying(operand.Type).IsEnum ? Expression.Convert(make(AsUnderlying(operand)), operand.Type)
 		: make(operand);
+	}
 
 	/// <summary>A shift: the left side promoted on its own, and the count an <c>int</c>.</summary>
 	internal static Expression Shift(
@@ -2633,11 +2706,13 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>Two operands of one type where one converts to the other's, and as they are otherwise.</summary>
-	static (Expression, Expression) Unified(Expression left, Expression right) =>
-		left.Type == right.Type                        ? (left, right)
-		: Implicitly(right, left.Type) is { } asLeft  ? (left, asLeft)
+	static (Expression, Expression) Unified(Expression left, Expression right)
+	{
+		return left.Type == right.Type ? (left, right)
+		: Implicitly(right, left.Type) is { } asLeft ? (left, asLeft)
 		: Implicitly(left, right.Type) is { } asRight ? (asRight, right)
 		: (left, right);
+	}
 
 	/// <summary>An enum as its underlying number, nullable where it was.</summary>
 	static Expression AsUnderlying(Expression value)
@@ -2771,8 +2846,10 @@ public static partial class ExpressionParser
 		/// at a position now, though, so only a use inside the same block can find it — and
 		/// where the reading was abandoned, no such use is left.
 		/// </remarks>
-		internal bool Declare(Type type, string name, SourceSpan at) =>
-			Holds(Expression.Variable(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+		internal bool Declare(Type type, string name, SourceSpan at)
+		{
+			return Holds(Expression.Variable(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+		}
 
 		/// <summary>The same for a lambda's parameter, which the API names apart.</summary>
 		/// <remarks>
@@ -2781,8 +2858,10 @@ public static partial class ExpressionParser
 		/// lambda is handed and the other is what a block declares. This one reads them apart
 		/// because it can — they are two rules — and says so by naming both.
 		/// </remarks>
-		internal bool Takes(Type type, string name, SourceSpan at) =>
-			Holds(Expression.Parameter(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+		internal bool Takes(Type type, string name, SourceSpan at)
+		{
+			return Holds(Expression.Parameter(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+		}
 
 		/// <summary>The parameters of a lambda that says no types, declared until they have one.</summary>
 		/// <remarks>
@@ -2821,8 +2900,10 @@ public static partial class ExpressionParser
 		/// the one a call makes, and a lambda nested in a body read again from the one around it,
 		/// whose own parameters are declared afresh there and wait for types of their own.
 		/// </remarks>
-		internal bool Unsettled(SourceSpan at) =>
-			_unsettled is not null && _unsettled.Exists(one => !one.Known && one.From <= at.Start && at.Start < one.To);
+		internal bool Unsettled(SourceSpan at)
+		{
+			return _unsettled is not null && _unsettled.Exists(one => !one.Known && one.From <= at.Start && at.Start < one.To);
+		}
 
 		/// <summary>A body read before its lambda has types: where it begins, where it ends, and whose parameters wait.</summary>
 		sealed class Pending(int from, int[] parameters)
@@ -2879,8 +2960,10 @@ public static partial class ExpressionParser
 		/// </para>
 		/// <para>A parameter is written outside every block and is therefore in all of them.</para>
 		/// </remarks>
-		internal ParameterExpression Named(string name, SourceSpan at) =>
-			Find(name, at) ?? throw new FormatException(NothingNamed(name));
+		internal ParameterExpression Named(string name, SourceSpan at)
+		{
+			return Find(name, at) ?? throw new FormatException(NothingNamed(name));
+		}
 
 		/// <summary>
 		/// Whether that name means a variable where it is written — the same question
@@ -2971,7 +3054,10 @@ public static partial class ExpressionParser
 		/// no `y` gives up at the end of the input, four characters past the word that is
 		/// the reason.
 		/// </remarks>
-		internal string? Refused() => _refusal;
+		internal string? Refused()
+		{
+			return _refusal;
+		}
 
 		/// <summary>Where what <see cref="Refused"/> speaks of was written.</summary>
 		internal int RefusedAt => _refusedAt;
@@ -3019,12 +3105,18 @@ public static partial class ExpressionParser
 		/// name two `using`s both give is a type as well — an ambiguous one, which
 		/// <see cref="TypeNamed"/> refuses where it is built.
 		/// </remarks>
-		internal bool Resolves(string name) => Meanings(name, out _, out _) > 0;
+		internal bool Resolves(string name)
+		{
+			return Meanings(name, out _, out _) > 0;
+		}
 
 		/// <summary>The type that name means.</summary>
 		/// <exception cref="FormatException">It means none.</exception>
 		/// <exception cref="InvalidOperationException">It means two, which C# refuses (CS0104).</exception>
-		internal Type TypeNamed(string name) => Only(name, name);
+		internal Type TypeNamed(string name)
+		{
+			return Only(name, name);
+		}
 
 		/// <summary>The type that name and those arguments mean.</summary>
 		/// <remarks>
@@ -3046,14 +3138,16 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>The one type a metadata name means, or why there is not one.</summary>
-		Type Only(string name, string shown) =>
-			Meanings(name, out var first, out var second) switch
+		Type Only(string name, string shown)
+		{
+			return Meanings(name, out var first, out var second) switch
 			{
 				0 => throw new FormatException($"The type or namespace name '{shown}' could not be found."),
 				1 => first!,
 				_ => throw new InvalidOperationException(
 					$"'{shown}' is an ambiguous reference between '{first}' and '{second}'."),
 			};
+		}
 
 		/// <summary>
 		/// How many types a name means here — written whole, or inside a namespace a `using`
@@ -3084,7 +3178,10 @@ public static partial class ExpressionParser
 			return count;
 		}
 
-		static string NothingNamed(string name) => $"nothing named '{name}' is declared here.";
+		static string NothingNamed(string name)
+		{
+			return $"nothing named '{name}' is declared here.";
+		}
 
 		ParameterExpression? Find(string name, SourceSpan at)
 		{
@@ -3124,7 +3221,10 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
-		Scope? Holding(int position) => Innermost(_scopes, position);
+		Scope? Holding(int position)
+		{
+			return Innermost(_scopes, position);
+		}
 
 		/// <summary>The innermost of these extents holding a position, or none.</summary>
 		Scope? Innermost(List<Scope>? among, int position)

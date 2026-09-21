@@ -127,10 +127,12 @@ public static partial class ExpressionParser
 	readonly record struct Candidate(MemberInfo Member, ParameterInfo[] Parameters, bool Expanded, int Defaults)
 	{
 		/// <summary>The type the argument at that position is converted to.</summary>
-		public Type At(int position) =>
-			Expanded && position >= Parameters.Length - 1
+		public Type At(int position)
+		{
+			return Expanded && position >= Parameters.Length - 1
 				? Parameters[Parameters.Length - 1].ParameterType.GetElementType()!
 				: Parameters[position].ParameterType;
+		}
 	}
 
 	/// <summary>An overload before any argument is asked: its parameters, and what they already say.</summary>
@@ -471,12 +473,15 @@ public static partial class ExpressionParser
 
 		return more == less ? 0 : more ? 1 : -1;
 
-		static ParameterInfo[]? Written(MemberInfo member) => member switch
+		static ParameterInfo[]? Written(MemberInfo member)
 		{
-			MethodInfo { IsGenericMethod: true } method => method.GetGenericMethodDefinition().GetParameters(),
-			MethodBase method                           => method.GetParameters(),
-			_                                           => null,
-		};
+			return member switch
+			{
+				MethodInfo { IsGenericMethod: true } method => method.GetGenericMethodDefinition().GetParameters(),
+				MethodBase method => method.GetParameters(),
+				_ => null,
+			};
+		}
 	}
 
 	/// <summary>Whether one written type is more specific than another (§12.6.4.3).</summary>
@@ -604,11 +609,15 @@ public static partial class ExpressionParser
 		return 0;
 	}
 
-	static bool IsSigned(Type type) =>
-		type == typeof(sbyte) || type == typeof(short) || type == typeof(int) || type == typeof(long);
+	static bool IsSigned(Type type)
+	{
+		return type == typeof(sbyte) || type == typeof(short) || type == typeof(int) || type == typeof(long);
+	}
 
-	static bool IsUnsigned(Type type) =>
-		type == typeof(byte) || type == typeof(ushort) || type == typeof(uint) || type == typeof(ulong);
+	static bool IsUnsigned(Type type)
+	{
+		return type == typeof(byte) || type == typeof(ushort) || type == typeof(uint) || type == typeof(ulong);
+	}
 
 	/// <summary>The arguments as the chosen candidate takes them.</summary>
 	/// <remarks>
@@ -646,8 +655,10 @@ public static partial class ExpressionParser
 	/// it is, and the delegate says what its parameters are. Nothing after this point has a
 	/// node of this file's own in it.
 	/// </remarks>
-	static Expression Given(Expression argument, Type to) =>
-		argument is Unbuilt lambda ? lambda.Built(to) : Implicitly(argument, to)!;
+	static Expression Given(Expression argument, Type to)
+	{
+		return argument is Unbuilt lambda ? lambda.Built(to) : Implicitly(argument, to)!;
+	}
 
 	/// <summary>What an optional parameter left out is worth.</summary>
 	/// <remarks>
@@ -670,8 +681,14 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>The types of some arguments, for a message.</summary>
-	static string Listing(Expression[] arguments) => string.Join(", ", arguments.Select(Shown));
+	static string Listing(Expression[] arguments)
+	{
+		return string.Join(", ", arguments.Select(Shown));
+	}
 
 	/// <summary>An expression's type for a message, and the literal <c>null</c> as C# names it.</summary>
-	static string Shown(Expression value) => ReferenceEquals(value, Null) ? "<null>" : value.Type.Name;
+	static string Shown(Expression value)
+	{
+		return ReferenceEquals(value, Null) ? "<null>" : value.Type.Name;
+	}
 }

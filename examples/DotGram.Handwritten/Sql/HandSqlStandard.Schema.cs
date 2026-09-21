@@ -14,10 +14,15 @@ partial class HandSqlStandard
 {
 	// ── The publication ────────────────────────────────────────────────────────
 
-	public static Statement ParseSQLSchemaStatement(string input) =>
-		TryParseSQLSchemaStatement(input, out var value) ? value : throw Refused(input, "SQL schema statement");
+	public static Statement ParseSQLSchemaStatement(string input)
+	{
+		return TryParseSQLSchemaStatement(input, out var value) ? value : throw Refused(input, "SQL schema statement");
+	}
 
-	public static bool TryParseSQLSchemaStatement(string input, out Statement value) => Whole(input, SQLSchemaStatement, out value);
+	public static bool TryParseSQLSchemaStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLSchemaStatement, out value);
+	}
 
 	/// <summary>
 	/// <c>&lt;SQL schema statement&gt;</c>: a definition or a manipulation. The first word says which

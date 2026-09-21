@@ -46,7 +46,10 @@ public readonly record struct GeneratedSource(string HintName, string Text);
 /// </remarks>
 public sealed record GramDiagnostic(string Id, string Message, int Position, int Length, GramSeverity Severity)
 {
-	public override string ToString() => $"{Id} at {Position}..{Position + Length}: {Message}";
+	public override string ToString()
+	{
+		return $"{Id} at {Position}..{Position + Length}: {Message}";
+	}
 }
 
 public enum GramSeverity

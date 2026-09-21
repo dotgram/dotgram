@@ -191,16 +191,19 @@ public sealed class StreamingRetentionTests
 		return new Outcome(count, source.Peak);
 	}
 
-	static IEnumerable Read(Type host, string form, Source source) => form switch
+	static IEnumerable Read(Type host, string form, Source source)
 	{
-		"lines"        => Call(host, "All", source.Lines()),
-		"reader"       => Call(host, "All", source.Reader()),
-		"reader yield" => Call(host, "Read", source.Reader(), 4096, int.MaxValue),
-		"stream yield" => Call(host, "Read", source.Stream(), 4096, int.MaxValue),
-		"reader whole" => Call(host, "All", source.Reader(), 4096, int.MaxValue),
-		"stream whole" => Call(host, "All", source.Stream(), 4096, int.MaxValue),
-		_              => throw new ArgumentOutOfRangeException(nameof(form)),
-	};
+		return form switch
+		{
+			"lines" => Call(host, "All", source.Lines()),
+			"reader" => Call(host, "All", source.Reader()),
+			"reader yield" => Call(host, "Read", source.Reader(), 4096, int.MaxValue),
+			"stream yield" => Call(host, "Read", source.Stream(), 4096, int.MaxValue),
+			"reader whole" => Call(host, "All", source.Reader(), 4096, int.MaxValue),
+			"stream whole" => Call(host, "All", source.Stream(), 4096, int.MaxValue),
+			_ => throw new ArgumentOutOfRangeException(nameof(form)),
+		};
+	}
 
 	static IEnumerable Call(Type host, string name, object input, params object[] rest)
 	{
@@ -283,9 +286,15 @@ public sealed class StreamingRetentionTests
 			}
 		}
 
-		public TextReader Reader() => new CharReader(this);
+		public TextReader Reader()
+		{
+			return new CharReader(this);
+		}
 
-		public Stream Stream() => new ByteStream(this);
+		public Stream Stream()
+		{
+			return new ByteStream(this);
+		}
 
 		/// <summary>The lines with their terminators, a slice at a time.</summary>
 		string _pending = "";
@@ -324,10 +333,15 @@ public sealed class StreamingRetentionTests
 
 		sealed class CharReader(Source source) : TextReader
 		{
-			public override int Read(char[] buffer, int index, int count) =>
-				source.Fill(buffer.AsSpan(index, count));
+			public override int Read(char[] buffer, int index, int count)
+			{
+				return source.Fill(buffer.AsSpan(index, count));
+			}
 
-			public override int Read(Span<char> buffer) => source.Fill(buffer);
+			public override int Read(Span<char> buffer)
+			{
+				return source.Fill(buffer);
+			}
 
 			public override int Read()
 			{
@@ -336,7 +350,10 @@ public sealed class StreamingRetentionTests
 				return source.Fill(one) == 0 ? -1 : one[0];
 			}
 
-			public override int Peek() => throw new NotSupportedException("A streamed parse does not peek.");
+			public override int Peek()
+			{
+				throw new NotSupportedException("A streamed parse does not peek.");
+			}
 		}
 
 		sealed class ByteStream(Source source) : Stream
@@ -362,9 +379,20 @@ public sealed class StreamingRetentionTests
 			public override long Length   => throw new NotSupportedException();
 			public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 			public override void Flush() { }
-			public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-			public override void SetLength(long value) => throw new NotSupportedException();
-			public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+			public override long Seek(long offset, SeekOrigin origin)
+			{
+				throw new NotSupportedException();
+			}
+
+			public override void SetLength(long value)
+			{
+				throw new NotSupportedException();
+			}
+
+			public override void Write(byte[] buffer, int offset, int count)
+			{
+				throw new NotSupportedException();
+			}
 		}
 	}
 }

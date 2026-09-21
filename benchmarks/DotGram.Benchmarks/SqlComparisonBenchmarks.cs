@@ -66,8 +66,14 @@ public class SqlComparisonBenchmarks
 	}
 
 	[Benchmark(Baseline = true, Description = "tape")]
-	public bool Tape() => Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
+	public bool Tape()
+	{
+		return Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
+	}
 
 	[Benchmark(Description = "immediate")]
-	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Input).IsSuccess;
+	public bool Immediate()
+	{
+		return ImmediateSql.TryParseSearchCondition(Input).IsSuccess;
+	}
 }

@@ -43,7 +43,10 @@ public class PreparationBenchmarks
 	/// <summary>A grammar, a size, and the reading of it.</summary>
 	public sealed record Case(string Name, string Size, string Input, Func<string, bool> Read)
 	{
-		public override string ToString() => $"{Name} {Size}";
+		public override string ToString()
+		{
+			return $"{Name} {Size}";
+		}
 	}
 
 	public static IEnumerable<Case> Cases()
@@ -73,21 +76,33 @@ public class PreparationBenchmarks
 	public Case Read { get; set; } = null!;
 
 	[Benchmark]
-	public bool Parse() => Read.Read(Read.Input);
+	public bool Parse()
+	{
+		return Read.Read(Read.Input);
+	}
 
-	static string Sum(int terms) => string.Join(" + ", Enumerable.Range(1, terms));
+	static string Sum(int terms)
+	{
+		return string.Join(" + ", Enumerable.Range(1, terms));
+	}
 
-	static string Settings(int entries) =>
-		string.Concat(Enumerable.Range(0, entries).Select(
+	static string Settings(int entries)
+	{
+		return string.Concat(Enumerable.Range(0, entries).Select(
 			static i => "key" + i + " = value" + i + ";" + Environment.NewLine));
+	}
 
-	static string Condition() =>
-		"a.c1 > 10 AND b.c2 IN (1, 2, 3) AND (c.c3 = 'x' OR c.c4 IS NOT NULL) " +
+	static string Condition()
+	{
+		return "a.c1 > 10 AND b.c2 IN (1, 2, 3) AND (c.c3 = 'x' OR c.c4 IS NOT NULL) " +
 		"AND d.c5 BETWEEN 1 AND 9";
+	}
 
-	static string Sql() =>
-		"SELECT c1, c2, SUM(c3) AS total FROM dbo.t1 AS a " +
+	static string Sql()
+	{
+		return "SELECT c1, c2, SUM(c3) AS total FROM dbo.t1 AS a " +
 		"INNER JOIN dbo.t2 AS b ON a.id = b.id " +
 		"WHERE a.c1 > 10 AND b.c2 IN (1, 2, 3) " +
 		"GROUP BY c1, c2 HAVING SUM(c3) > 100 ORDER BY total DESC";
+	}
 }

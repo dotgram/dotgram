@@ -166,13 +166,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// diagnostic in every compilation that set it, which is the noise this level exists to
 	/// remove — so an unrecognized word is silence rather than a message.
 	/// </remarks>
-	static Reporting Asked(string asked) =>
-		asked.Trim().ToLowerInvariant() switch
+	static Reporting Asked(string asked)
+	{
+		return asked.Trim().ToLowerInvariant() switch
 		{
 			"full" or "true" => Reporting.Full,
-			"summary"        => Reporting.Summary,
-			_                => Reporting.None,
+			"summary" => Reporting.Summary,
+			_ => Reporting.None,
 		};
+	}
 
 	static Parser CompileSafely(Grammar grammar, Reporting reporting)
 	{
@@ -188,8 +190,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 	}
 
-	static bool Recoverable(Exception exception) =>
-		exception is not OperationCanceledException and not OutOfMemoryException;
+	static bool Recoverable(Exception exception)
+	{
+		return exception is not OperationCanceledException and not OutOfMemoryException;
+	}
 
 	static Grammar Failed(Grammar grammar, string stage, Exception exception)
 	{
@@ -276,13 +280,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 	}
 
-	static Diagnostic InternalDiagnostic(string stage, Exception exception, Location? location) =>
-		Diagnostic.Create(
+	static Diagnostic InternalDiagnostic(string stage, Exception exception, Location? location)
+	{
+		return Diagnostic.Create(
 			Diagnostics.InternalFailure,
 			location ?? Location.None,
 			stage,
 			exception.GetType().FullName ?? exception.GetType().Name,
 			exception.Message);
+	}
 
 	/// <summary>
 	/// One host's grammar, found and read, with the questions its C# names raise and —
@@ -662,8 +668,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 		return true;
 	}
 
-	static EquatableArray<Report> Values(ImmutableArray<Report>.Builder reports) =>
-		new(reports.ToImmutable());
+	static EquatableArray<Report> Values(ImmutableArray<Report>.Builder reports)
+	{
+		return new(reports.ToImmutable());
+	}
 
 	/// <summary>
 	/// Works out which grammar a host means: the text written into the attribute, an
@@ -671,13 +679,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </summary>
 	static bool TryResolveGrammar(
 		ImmutableArray<Report>.Builder reports,
-		Host                           host,
-		ImmutableArray<GrammarFile>    files,
-		out string                     text,
-		out string?                    path) =>
-		TryResolveGrammar(
+		Host host,
+		ImmutableArray<GrammarFile> files,
+		out string text,
+		out string? path)
+	{
+		return TryResolveGrammar(
 			reports, host.Source, host.SimpleName, host.ClassName, host.Location, files,
 			out text, out path);
+	}
 
 	/// <summary>
 	/// The same for a grammar that is not this host's — one it inherits.
@@ -739,10 +749,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 	}
 
-	static bool IsPath(string source) =>
-		source.EndsWith(GramFileExtension, StringComparison.OrdinalIgnoreCase) &&
+	static bool IsPath(string source)
+	{
+		return source.EndsWith(GramFileExtension, StringComparison.OrdinalIgnoreCase) &&
 		source.IndexOf('\n') < 0 &&
 		source.IndexOf('\r') < 0;
+	}
 
 	/// <summary>
 	/// A file matches a wanted path when it ends with it on a separator boundary — the
@@ -901,10 +913,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 			}
 		}
 
-		static string TypeParametersOf(ClassDeclarationSyntax declaration) =>
-			declaration.TypeParameterList is { Parameters.Count: > 0 } parameters
+		static string TypeParametersOf(ClassDeclarationSyntax declaration)
+		{
+			return declaration.TypeParameterList is { Parameters.Count: > 0 } parameters
 				? "<" + string.Join(", ", parameters.Parameters.Select(static p => p.Identifier.ValueText)) + ">"
 				: "";
+		}
 
 		/// <summary>
 		/// One host per reading the class asks for: the <c>[Gram]</c>, and then every

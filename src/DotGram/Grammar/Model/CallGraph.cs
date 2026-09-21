@@ -68,12 +68,16 @@ sealed class CallGraph
 	}
 
 	/// <summary>What a rule calls directly.</summary>
-	public IReadOnlyList<RuleSymbol> Calls(RuleSymbol rule) =>
-		_forward.TryGetValue(rule, out var called) ? called : [];
+	public IReadOnlyList<RuleSymbol> Calls(RuleSymbol rule)
+	{
+		return _forward.TryGetValue(rule, out var called) ? called : [];
+	}
 
 	/// <summary>What calls a rule directly.</summary>
-	public IReadOnlyList<RuleSymbol> CalledBy(RuleSymbol rule) =>
-		_reverse.TryGetValue(rule, out var callers) ? callers : [];
+	public IReadOnlyList<RuleSymbol> CalledBy(RuleSymbol rule)
+	{
+		return _reverse.TryGetValue(rule, out var callers) ? callers : [];
+	}
 
 	/// <summary>
 	/// The strongly connected components, each in the order Tarjan settles them.

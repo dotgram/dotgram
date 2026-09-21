@@ -275,8 +275,10 @@ public static class Retention
 	/// possibility. <c>recover</c> alone is not: plenty of grammars recover over a string
 	/// and never want a reader.
 	/// </remarks>
-	static bool Streamable(RecognitionGraph graph, RuleSymbol rule) =>
-		graph.Types.TryGetValue(rule, out var type) && type.EndsWith("[]", StringComparison.Ordinal);
+	static bool Streamable(RecognitionGraph graph, RuleSymbol rule)
+	{
+		return graph.Types.TryGetValue(rule, out var type) && type.EndsWith("[]", StringComparison.Ordinal);
+	}
 
 	/// <summary>
 	/// Why a rule that asks for the whole input cannot be read from a reader, or null.
@@ -352,12 +354,14 @@ public static class Retention
 	/// The seam is not part of what has to be held: the driver skips it before the
 	/// element, moving the window as it goes, so only the element bounds retention.
 	/// </remarks>
-	static Node PastSeam(Node element, RuleSymbol? seam) =>
-		seam is not null &&
+	static Node PastSeam(Node element, RuleSymbol? seam)
+	{
+		return seam is not null &&
 		element is Node.Sequence([Node.Call(var lead, _), var inner]) &&
 		ReferenceEquals(lead, seam)
 			? inner
 			: element;
+	}
 
 	/// <summary>How many repetitions under a node were marked <c>recover</c>.</summary>
 	static int Marked(Node node, RecognitionGraph graph)
@@ -565,8 +569,10 @@ public static class Retention
 		};
 	}
 
-	static string Describe(Stage stage) =>
-		stage.Committed ? "an element of " + stage.Body : stage.Body.ToString();
+	static string Describe(Stage stage)
+	{
+		return stage.Committed ? "an element of " + stage.Body : stage.Body.ToString();
+	}
 
 	/// <summary>
 	/// Every rule that can take at least one input item.
@@ -685,20 +691,23 @@ public static class Retention
 	/// anything that might consume counts — because the cost of saying yes is a grammar
 	/// that loses an overload it could have had, and of saying no is one that loses data.
 	/// </remarks>
-	static bool Consumes(Node node, ICollection<RuleSymbol> consuming) => node switch
+	static bool Consumes(Node node, ICollection<RuleSymbol> consuming)
 	{
-		Node.Empty or Node.Guard or Node.Lookahead => false,
-		Node.Literal(var text)                     => text.Length > 0,
-		Node.Repeat(var body, _, var max)          => max != 0 && Consumes(body, consuming),
-		Node.Atomic(var body)                      => Consumes(body, consuming),
-		Node.Marked(var body, _)                   => Consumes(body, consuming),
-		Node.Capture(_, var captured)              => Consumes(captured, consuming),
-		Node.Construct(var built, _)               => Consumes(built, consuming),
-		Node.Sequence(var parts)                   => Any(parts, consuming),
-		Node.Choice(var alternatives)              => Any(alternatives, consuming),
-		Node.Call(var called, _)                   => consuming.Contains(called),
-		_                                          => true,
-	};
+		return node switch
+		{
+			Node.Empty or Node.Guard or Node.Lookahead => false,
+			Node.Literal(var text) => text.Length > 0,
+			Node.Repeat(var body, _, var max) => max != 0 && Consumes(body, consuming),
+			Node.Atomic(var body) => Consumes(body, consuming),
+			Node.Marked(var body, _) => Consumes(body, consuming),
+			Node.Capture(_, var captured) => Consumes(captured, consuming),
+			Node.Construct(var built, _) => Consumes(built, consuming),
+			Node.Sequence(var parts) => Any(parts, consuming),
+			Node.Choice(var alternatives) => Any(alternatives, consuming),
+			Node.Call(var called, _) => consuming.Contains(called),
+			_ => true,
+		};
+	}
 
 	static bool Any(IReadOnlyList<Node> nodes, ICollection<RuleSymbol> consuming)
 	{
@@ -710,8 +719,10 @@ public static class Retention
 	}
 
 	/// <summary>Whether the last item of a literal is a terminator.</summary>
-	static bool EndsWithTerminator(string text) =>
-		text.Length > 0 && text[^1] is '\n' or '\r';
+	static bool EndsWithTerminator(string text)
+	{
+		return text.Length > 0 && text[^1] is '\n' or '\r';
+	}
 
 	/// <summary>
 	/// Whether an element set admits a line terminator.
@@ -731,7 +742,10 @@ public static class Retention
 	/// so a host predicate still counts as admitting one — which is the answer it has to be.
 	/// </para>
 	/// </remarks>
-	static bool Admits(Node.Element element) => FirstSets.OfElement(element).Overlaps(Terminators);
+	static bool Admits(Node.Element element)
+	{
+		return FirstSets.OfElement(element).Overlaps(Terminators);
+	}
 
 	static readonly FirstSets.First Terminators =
 		FirstSets.First.Chars([new CharRange('\n', '\n'), new CharRange('\r', '\r')]);

@@ -151,7 +151,9 @@ public sealed class EmbeddedGrammarAnalysisTests
 		Assert.True(publication.GrammarSpan.Contains(publication.Span));
 	}
 
-	static string Host(string literal) => $$"""
+	static string Host(string literal)
+	{
+		return $$"""
 		using DG = DotGram;
 
 		namespace DotGram
@@ -162,6 +164,7 @@ public sealed class EmbeddedGrammarAnalysisTests
 		[DG.Gram({{literal}})]
 		class Parser;
 		""";
+	}
 
 	static EmbeddedGrammarAnalysis[] Analyze(string source)
 	{

@@ -64,6 +64,8 @@ public static partial class TwoCalculators
 	// here — the first pair over `int`, the second over `double`.
 
 	/// <summary>One place for the culture, so the grammar does not have to name it.</summary>
-	public static double Double(string digits) =>
-		double.Parse(digits, CultureInfo.InvariantCulture);
+	public static double Double(string digits)
+	{
+		return double.Parse(digits, CultureInfo.InvariantCulture);
+	}
 }

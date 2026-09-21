@@ -61,9 +61,12 @@ public sealed class RoslynSymbolResolverTests
 		Assert.False(second.IsAssignable("Row", "First.Row"));
 	}
 
-	static CSharpCompilation Compilation(string source) => CSharpCompilation.Create(
+	static CSharpCompilation Compilation(string source)
+	{
+		return CSharpCompilation.Create(
 		"ResolverTests",
 		[CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
 		[MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
 		new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+	}
 }

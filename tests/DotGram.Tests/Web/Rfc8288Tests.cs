@@ -130,13 +130,15 @@ public sealed class Rfc8288Tests
 
 	/// <summary>A list's empty elements are accepted, and a field with none is no links (RFC 9110 §5.6.1).</summary>
 	[Theory]
-	[InlineData("",                         0)]
-	[InlineData(" , ,",                     0)]
-	[InlineData(",<a>; rel=x",              1)]
+	[InlineData("", 0)]
+	[InlineData(" , ,", 0)]
+	[InlineData(",<a>; rel=x", 1)]
 	[InlineData("<a>; rel=x,, <b>; rel=y,", 2)]
-	[InlineData("<a>;rel=x\t,\t<b>",        2)]
-	public void Empty_list_elements_are_accepted(string field, int count) =>
+	[InlineData("<a>;rel=x\t,\t<b>", 2)]
+	public void Empty_list_elements_are_accepted(string field, int count)
+	{
 		Assert.Equal(count, WebLink.ParseField(field).Length);
+	}
 
 	[Fact]
 	public void Space_is_allowed_around_the_equals_sign()
@@ -148,8 +150,10 @@ public sealed class Rfc8288Tests
 	}
 
 	[Fact]
-	public void A_parameter_without_a_value_is_empty() =>
+	public void A_parameter_without_a_value_is_empty()
+	{
 		Assert.Equal("", WebLink.ParseField("<a>; rel=x; crossorigin").Single().First("crossorigin")!.Value);
+	}
 
 	[Theory]
 	[InlineData("<a")]                          // the target is never closed
@@ -160,6 +164,8 @@ public sealed class Rfc8288Tests
 	[InlineData("<a>; rel=\"x")]                // a quoted-string never closed
 	[InlineData("<a b>; rel=x")]                // a space is no part of a URI-Reference
 	[InlineData("<a>; rel=x;")]                 // a semicolon with nothing after it
-	public void What_the_ABNF_does_not_make_is_refused(string field) =>
+	public void What_the_ABNF_does_not_make_is_refused(string field)
+	{
 		Assert.False(WebLink.TryParseField(field, out _), $"'{field}' was read.");
+	}
 }

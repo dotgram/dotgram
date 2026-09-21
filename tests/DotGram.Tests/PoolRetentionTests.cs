@@ -67,8 +67,16 @@ public sealed class PoolRetentionTests
 		var release = (name == "Tokens_DotGram" ? owner.GetMethod("Recycle_DotGram", Flags) : type.GetMethod("Return", Flags))!;
 		var arrays = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType.IsArray).ToArray();
 
-		object Rent() => rent.Invoke(null, null)!;
-		void Return(object value) => release.Invoke(null, [value]);
+		object Rent()
+		{
+			return rent.Invoke(null, null)!;
+		}
+
+		void Return(object value)
+		{
+			release.Invoke(null, [value]);
+		}
+
 		void Capacity(object value, int count)
 		{
 			foreach (var field in arrays)
@@ -83,11 +91,14 @@ public sealed class PoolRetentionTests
 		// What a store looks like when it is ready to read: the state every rental must be in,
 		// whichever slot it came from. Read from a new one, so it is the runtime's own answer
 		// rather than a list of field names this test would have to keep in step.
-		int[] Counters(object value) => type.GetFields(Flags)
+		int[] Counters(object value)
+		{
+			return type.GetFields(Flags)
 			.Where(field => !field.IsStatic && field.FieldType == typeof(int))
 			.OrderBy(field => field.Name, StringComparer.Ordinal)
 			.Select(field => (int)field.GetValue(value)!)
 			.ToArray();
+		}
 
 		var ordinary = Rent();
 		var asNew    = Counters(ordinary);

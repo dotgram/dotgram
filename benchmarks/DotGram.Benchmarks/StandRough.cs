@@ -58,8 +58,10 @@ static partial class Stand
 			}
 		}
 
-		(string, Func<int>, Func<int>) Row(string name, string type, string method, string text) =>
-			(name, before.Example(type, method, text), after.Example(type, method, text));
+		(string, Func<int>, Func<int>) Row(string name, string type, string method, string text)
+		{
+			return (name, before.Example(type, method, text), after.Example(type, method, text));
+		}
 
 		Console.WriteLine("| entry point | before us (min, median) | after us (min, median) | after / before, min | after / before, median |");
 		Console.WriteLine("| --- | ---: | ---: | ---: | ---: |");

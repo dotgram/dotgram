@@ -43,8 +43,10 @@ public sealed class FixCustomFieldsTests
 		internal sealed class Payload(ReadOnlyMemory<byte> value) : FixField.Typed<ReadOnlyMemory<byte>>(25001, value);
 	}
 
-	static FixFieldOptions Options(Venue venue, bool pairs = false) =>
-		new(pairs ? new Dictionary<int, int> { [25000] = 25001 } : null, venue);
+	static FixFieldOptions Options(Venue venue, bool pairs = false)
+	{
+		return new(pairs ? new Dictionary<int, int> { [25000] = 25001 } : null, venue);
+	}
 
 	[Fact]
 	public void A_tag_the_package_knows_never_reaches_the_seam()

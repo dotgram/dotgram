@@ -20,8 +20,10 @@ public sealed record AddrSpec(string LocalPart, string Domain)
 {
 	/// <summary>An addr-spec as a receiver reads it: §3's syntax and §4's obsolete syntax both.</summary>
 	/// <exception cref="FormatException">The text is no addr-spec; the message says where.</exception>
-	public static AddrSpec Parse(string text) =>
-		Rfc5322.ParseAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+	public static AddrSpec Parse(string text)
+	{
+		return Rfc5322.ParseAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>An addr-spec as a receiver reads it, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out AddrSpec? address)
@@ -35,8 +37,10 @@ public sealed record AddrSpec(string LocalPart, string Domain)
 
 	/// <summary>An addr-spec in §3's syntax alone: what a sender may write.</summary>
 	/// <exception cref="FormatException">The text is no addr-spec §3 makes; the message says where.</exception>
-	public static AddrSpec ParseStrict(string text) =>
-		Rfc5322.ParseStrictAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+	public static AddrSpec ParseStrict(string text)
+	{
+		return Rfc5322.ParseStrictAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>An addr-spec in §3's syntax alone, or false where the text is not one.</summary>
 	public static bool TryParseStrict(string text, [NotNullWhen(true)] out AddrSpec? address)
@@ -49,7 +53,10 @@ public sealed record AddrSpec(string LocalPart, string Domain)
 	}
 
 	/// <summary>Whether a local part can be written as a dot-atom: atext, and dots between runs of it.</summary>
-	public static bool IsDotAtom(string text) => Rfc5322.IsDotAtomText(text);
+	public static bool IsDotAtom(string text)
+	{
+		return Rfc5322.IsDotAtomText(text);
+	}
 
 	/// <summary>Whether the domain is a domain literal, <c>[...]</c>.</summary>
 	public bool IsDomainLiteral => Domain.Length > 0 && Domain[0] == '[';
@@ -97,8 +104,10 @@ public abstract record EmailAddress
 
 	/// <summary>An address-list as a receiver reads it, null members left out: what <c>To</c> and <c>Cc</c> hold.</summary>
 	/// <exception cref="FormatException">The text is no address-list; the message says where.</exception>
-	public static EmailAddress[] ParseList(string text) =>
-		Rfc5322.ParseAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+	public static EmailAddress[] ParseList(string text)
+	{
+		return Rfc5322.ParseAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>An address-list as a receiver reads it, or false where the text is not one.</summary>
 	public static bool TryParseList(string text, [NotNullWhen(true)] out EmailAddress[]? addresses)
@@ -112,8 +121,10 @@ public abstract record EmailAddress
 
 	/// <summary>An address-list in §3's syntax alone: what a sender may write.</summary>
 	/// <exception cref="FormatException">The text is no address-list §3 makes; the message says where.</exception>
-	public static EmailAddress[] ParseStrictList(string text) =>
-		Rfc5322.ParseStrictAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+	public static EmailAddress[] ParseStrictList(string text)
+	{
+		return Rfc5322.ParseStrictAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>An address-list in §3's syntax alone, or false where the text is not one.</summary>
 	public static bool TryParseStrictList(string text, [NotNullWhen(true)] out EmailAddress[]? addresses)
@@ -127,8 +138,10 @@ public abstract record EmailAddress
 
 	/// <summary>A mailbox-list as a receiver reads it, null members left out: what <c>From</c> holds.</summary>
 	/// <exception cref="FormatException">The text is no mailbox-list; the message says where.</exception>
-	public static Mailbox[] ParseMailboxList(string text) =>
-		Rfc5322.ParseMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+	public static Mailbox[] ParseMailboxList(string text)
+	{
+		return Rfc5322.ParseMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A mailbox-list as a receiver reads it, or false where the text is not one.</summary>
 	public static bool TryParseMailboxList(string text, [NotNullWhen(true)] out Mailbox[]? mailboxes)
@@ -142,8 +155,10 @@ public abstract record EmailAddress
 
 	/// <summary>A mailbox-list in §3's syntax alone.</summary>
 	/// <exception cref="FormatException">The text is no mailbox-list §3 makes; the message says where.</exception>
-	public static Mailbox[] ParseStrictMailboxList(string text) =>
-		Rfc5322.ParseStrictMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+	public static Mailbox[] ParseStrictMailboxList(string text)
+	{
+		return Rfc5322.ParseStrictMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A mailbox-list in §3's syntax alone, or false where the text is not one.</summary>
 	public static bool TryParseStrictMailboxList(string text, [NotNullWhen(true)] out Mailbox[]? mailboxes)
@@ -165,8 +180,10 @@ public abstract record EmailAddress
 	{
 		/// <summary>A mailbox as a receiver reads it (§3.4, §4.4).</summary>
 		/// <exception cref="FormatException">The text is no mailbox; the message says where.</exception>
-		public static Mailbox Parse(string text) =>
-			Rfc5322.ParseMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+		public static Mailbox Parse(string text)
+		{
+			return Rfc5322.ParseMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+		}
 
 		/// <summary>A mailbox as a receiver reads it, or false where the text is not one.</summary>
 		public static bool TryParse(string text, [NotNullWhen(true)] out Mailbox? mailbox)
@@ -180,8 +197,10 @@ public abstract record EmailAddress
 
 		/// <summary>A mailbox in §3's syntax alone.</summary>
 		/// <exception cref="FormatException">The text is no mailbox §3 makes; the message says where.</exception>
-		public static Mailbox ParseStrict(string text) =>
-			Rfc5322.ParseStrictMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+		public static Mailbox ParseStrict(string text)
+		{
+			return Rfc5322.ParseStrictMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+		}
 
 		/// <summary>A mailbox in §3's syntax alone, or false where the text is not one.</summary>
 		public static bool TryParseStrict(string text, [NotNullWhen(true)] out Mailbox? mailbox)
@@ -201,11 +220,16 @@ public abstract record EmailAddress
 		/// Whether the other group has the same display name and the same members in the same
 		/// order.
 		/// </summary>
-		public bool Equals(Group? other) =>
-			other is not null && DisplayName == other.DisplayName && Structural.Same(Members, other.Members);
+		public bool Equals(Group? other)
+		{
+			return other is not null && DisplayName == other.DisplayName && Structural.Same(Members, other.Members);
+		}
 
 		/// <summary>A hash over the display name and the members.</summary>
-		public override int GetHashCode() => Structural.Combine(DisplayName.GetHashCode(), Structural.Hash(Members));
+		public override int GetHashCode()
+		{
+			return Structural.Combine(DisplayName.GetHashCode(), Structural.Hash(Members));
+		}
 	}
 
 	/// <summary>The address as §3 would generate it.</summary>
@@ -504,8 +528,10 @@ static partial class Rfc5322
 		return output.Append(']').ToString();
 	}
 
-	internal static string Dotted(string first, string[] rest) =>
-		rest.Length == 0 ? first : first + "." + string.Join(".", rest);
+	internal static string Dotted(string first, string[] rest)
+	{
+		return rest.Length == 0 ? first : first + "." + string.Join(".", rest);
+	}
 
 	internal static T[] Joined<T>(T first, T[][] rest)
 	{
@@ -623,7 +649,9 @@ static partial class Rfc5322
 		output.Append('"');
 	}
 
-	static bool IsAtext(char c) =>
-		c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or
+	static bool IsAtext(char c)
+	{
+		return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or
 			'!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+' or '-' or '/' or '=' or '?' or '^' or '_' or '`' or '{' or '|' or '}' or '~';
+	}
 }

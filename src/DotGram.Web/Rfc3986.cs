@@ -33,8 +33,10 @@ public sealed record UriReference(
 {
 	/// <summary>A URI reference (RFC 3986 §4.1): a URI, or a reference relative to one.</summary>
 	/// <exception cref="FormatException">The text is no URI reference; the message says where.</exception>
-	public static UriReference Parse(string text) =>
-		Rfc3986.ParseReference(text ?? throw new ArgumentNullException(nameof(text)));
+	public static UriReference Parse(string text)
+	{
+		return Rfc3986.ParseReference(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A URI reference, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out UriReference? reference)
@@ -48,8 +50,10 @@ public sealed record UriReference(
 
 	/// <summary>A URI (§3): a reference with a scheme.</summary>
 	/// <exception cref="FormatException">The text is no URI; the message says where.</exception>
-	public static UriReference ParseUri(string text) =>
-		Rfc3986.ParseUri(text ?? throw new ArgumentNullException(nameof(text)));
+	public static UriReference ParseUri(string text)
+	{
+		return Rfc3986.ParseUri(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A URI, or false where the text is not one.</summary>
 	public static bool TryParseUri(string text, [NotNullWhen(true)] out UriReference? uri)
@@ -66,7 +70,10 @@ public sealed record UriReference(
 	/// Not done while parsing, and §2.4 says why: <c>%2F</c> in a path segment is a slash that is not a
 	/// separator. The escapes are bytes (§2.5), decoded together as UTF-8.
 	/// </remarks>
-	public static string Decode(string part) => Rfc3986.Decode(part);
+	public static string Decode(string part)
+	{
+		return Rfc3986.Decode(part);
+	}
 }
 
 // RFC 3986, whole. Not the `Url.gram` of the test corpus, which is the same shape cut down
@@ -248,8 +255,10 @@ static partial class Rfc3986
 	/// fourth carries an authority. Both hand back the same shape so that the rule above
 	/// can fill in the scheme, query and fragment without asking which it got.
 	/// </remarks>
-	internal static UriReference Only(string path) =>
-		new(null, null, null, null, path ?? throw new ArgumentNullException(nameof(path)), null, null);
+	internal static UriReference Only(string path)
+	{
+		return new(null, null, null, null, path ?? throw new ArgumentNullException(nameof(path)), null, null);
+	}
 
 	/// <summary>One part with its percent-escapes turned back into the bytes they stand for.</summary>
 	/// <remarks>

@@ -34,8 +34,10 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 
 	/// <summary>A Link field value (RFC 8288 §3): its link-values in order, empty list elements left out.</summary>
 	/// <exception cref="FormatException">The text is no Link field; the message says where.</exception>
-	public static WebLink[] ParseField(string text) =>
-		Rfc8288.ParseLinks(text ?? throw new ArgumentNullException(nameof(text)));
+	public static WebLink[] ParseField(string text)
+	{
+		return Rfc8288.ParseLinks(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A Link field value, or false where the text is not one.</summary>
 	public static bool TryParseField(string text, [NotNullWhen(true)] out WebLink[]? links)
@@ -48,11 +50,16 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 	}
 
 	/// <summary>Equal to another link-value with the same target and equal parameters in the same order.</summary>
-	public bool Equals(WebLink? other) =>
-		other is not null && string.Equals(Target, other.Target, StringComparison.Ordinal) && Structural.Same(Parameters, other.Parameters);
+	public bool Equals(WebLink? other)
+	{
+		return other is not null && string.Equals(Target, other.Target, StringComparison.Ordinal) && Structural.Same(Parameters, other.Parameters);
+	}
 
 	/// <summary>A hash over the target and the parameters.</summary>
-	public override int GetHashCode() => Structural.Combine(StringComparer.Ordinal.GetHashCode(Target), Structural.Hash(Parameters));
+	public override int GetHashCode()
+	{
+		return Structural.Combine(StringComparer.Ordinal.GetHashCode(Target), Structural.Hash(Parameters));
+	}
 
 	/// <summary>The relation types of the first <c>rel</c> (§3.3), which later ones do not replace.</summary>
 	public IReadOnlyList<string> Relations =>
@@ -272,8 +279,10 @@ static partial class Rfc8288
 		return new ExtendedValue(charset, language, value);
 	}
 
-	static int Hex(char digit) =>
-		digit <= '9' ? digit - '0' : (digit | 0x20) - 'a' + 10;
+	static int Hex(char digit)
+	{
+		return digit <= '9' ? digit - '0' : (digit | 0x20) - 'a' + 10;
+	}
 
 	static readonly UTF8Encoding Strict = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 }

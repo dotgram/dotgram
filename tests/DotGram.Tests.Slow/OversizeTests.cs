@@ -84,7 +84,10 @@ public sealed class OversizeTests
 		Assert.Contains("'Méthod_1' is estimated at 2001 basic blocks", diagnostics[0].Message, StringComparison.Ordinal);
 		Assert.Contains("'Last' is estimated at 2001 basic blocks", diagnostics[1].Message, StringComparison.Ordinal);
 
-		void Line(string line) => text.Append(line).Append(ending);
+		void Line(string line)
+		{
+			text.Append(line).Append(ending);
+		}
 
 		void Repeat(string line, int count)
 		{
@@ -97,7 +100,10 @@ public sealed class OversizeTests
 	[InlineData("")]
 	[InlineData("static void Empty()")]
 	[InlineData("static void Empty()\n")]
-	public void Empty_method_bodies_do_not_warn(string text) => Assert.Empty(Inspect(text));
+	public void Empty_method_bodies_do_not_warn(string text)
+	{
+		Assert.Empty(Inspect(text));
+	}
 
 	static List<GramDiagnostic> Inspect(string text)
 	{
@@ -165,16 +171,18 @@ public sealed class OversizeTests
 	{
 		Assert.True(Methods(400) < Methods(40), "a smaller part should be more methods");
 
-		static int Methods(int size) =>
-			GramCompiler.Compile(Divisible(), new GramCompilerOptions
-				{
-					ClassName     = "Counted",
-					PartSize      = size,
-					CSharpScanner = RoslynCSharpScanner.Instance,
-				})
+		static int Methods(int size)
+		{
+			return GramCompiler.Compile(Divisible(), new GramCompilerOptions
+			{
+				ClassName = "Counted",
+				PartSize = size,
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			})
 				.Sources[0].Text
 				.Split(["_Part"], StringSplitOptions.None)
 				.Length;
+		}
 	}
 
 	/// <summary>

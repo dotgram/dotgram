@@ -191,7 +191,9 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		return true;
 	}
 
-	static int Position(GoToDefinitionCommandArgs args, ITextSnapshot snapshot) =>
-		args.TextView.Caret.Position.BufferPosition
+	static int Position(GoToDefinitionCommandArgs args, ITextSnapshot snapshot)
+	{
+		return args.TextView.Caret.Position.BufferPosition
 			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
+	}
 }

@@ -61,5 +61,8 @@ public sealed class ExpressionScalingTests
 		return best;
 	}
 
-	static string Sum(int terms) => "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", terms));
+	static string Sum(int terms)
+	{
+		return "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", terms));
+	}
 }

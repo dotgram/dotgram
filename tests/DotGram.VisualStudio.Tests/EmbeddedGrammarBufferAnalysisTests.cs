@@ -28,13 +28,13 @@ public sealed class EmbeddedGrammarBufferAnalysisTests
 	}
 
 	[Theory]
-	[InlineData(true,  0, 1, 0, 0, 0, true)]
-	[InlineData(true,  0, 0, 1, 0, 0, true)]
-	[InlineData(true,  0, 0, 0, 1, 0, true)]
-	[InlineData(true,  0, 0, 0, 0, 1, true)]
+	[InlineData(true, 0, 1, 0, 0, 0, true)]
+	[InlineData(true, 0, 0, 1, 0, 0, true)]
+	[InlineData(true, 0, 0, 0, 1, 0, true)]
+	[InlineData(true, 0, 0, 0, 0, 1, true)]
 	[InlineData(false, 0, 1, 1, 1, 1, false)]
-	[InlineData(true,  1, 1, 1, 1, 1, false)]
-	[InlineData(true,  0, 0, 0, 0, 0, false)]
+	[InlineData(true, 1, 1, 1, 1, 1, false)]
+	[InlineData(true, 0, 0, 0, 0, 0, false)]
 	public void PreservesEmbeddedAnalysisAcrossTransientSyntaxErrors(
 		bool hasSyntaxErrors,
 		int analysisCount,
@@ -42,7 +42,8 @@ public sealed class EmbeddedGrammarBufferAnalysisTests
 		int previousDslClassificationCount,
 		int previousSymbolCount,
 		int previousDslSiteCount,
-		bool expected) =>
+		bool expected)
+	{
 		Assert.Equal(expected, EmbeddedGrammarBufferAnalysis.ShouldPreserveEmbeddedAnalysis(
 			hasSyntaxErrors,
 			analysisCount,
@@ -50,7 +51,10 @@ public sealed class EmbeddedGrammarBufferAnalysisTests
 			previousDslClassificationCount,
 			previousSymbolCount,
 			previousDslSiteCount));
+	}
 
-	static HostClassification Classification(int start, int length, GramSyntaxKind kind) =>
-		new(new TextSpan(start, length), kind, null, null, default, null, 0, null);
+	static HostClassification Classification(int start, int length, GramSyntaxKind kind)
+	{
+		return new(new TextSpan(start, length), kind, null, null, default, null, 0, null);
+	}
 }

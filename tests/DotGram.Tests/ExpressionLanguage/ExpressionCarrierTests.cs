@@ -198,5 +198,8 @@ public sealed class ExpressionCarrierTests
 			Assert.Equal(Shown(tape.Value), Shown(immediate.Value));
 	}
 
-	static string Shown(LambdaExpression? lambda) => lambda?.ToString() ?? "<none>";
+	static string Shown(LambdaExpression? lambda)
+	{
+		return lambda?.ToString() ?? "<none>";
+	}
 }

@@ -37,7 +37,11 @@ public sealed class BufferedPoolTests
 		var assembly = EmittedCode.Compile(source + Pool);
 		var pool = assembly.GetType("ProbePool`1")!.MakeGenericType(bytes ? typeof(byte) : typeof(char));
 		var inputs = new List<object>();
-		int Active() => (int)pool.GetProperty("Active")!.GetValue(null)!;
+		int Active()
+		{
+			return (int)pool.GetProperty("Active")!.GetValue(null)!;
+		}
+
 		object Call(string method, string input, int limit = 100, bool throws = false)
 		{
 			object reader = bytes ? new InputStream(Encoding.ASCII.GetBytes(input), throws) : new InputReader(input, throws);
@@ -106,14 +110,22 @@ public sealed class BufferedPoolTests
 	sealed class InputStream(byte[] input, bool throws) : MemoryStream(input)
 	{
 		public bool Disposed { get; private set; }
-		public override int Read(byte[] buffer, int offset, int count) => throws ? throw new IOException() : base.Read(buffer, offset, count);
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			return throws ? throw new IOException() : base.Read(buffer, offset, count);
+		}
+
 		protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
 	}
 
 	sealed class InputReader(string input, bool throws) : StringReader(input)
 	{
 		public bool Disposed { get; private set; }
-		public override int Read(char[] buffer, int offset, int count) => throws ? throw new IOException() : base.Read(buffer, offset, count);
+		public override int Read(char[] buffer, int offset, int count)
+		{
+			return throws ? throw new IOException() : base.Read(buffer, offset, count);
+		}
+
 		protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
 	}
 

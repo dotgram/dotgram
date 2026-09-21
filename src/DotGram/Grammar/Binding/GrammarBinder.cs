@@ -193,8 +193,10 @@ public sealed class GrammarBinder
 		return _standard = standard;
 	}
 
-	void Report(string id, string message, Location at) =>
+	void Report(string id, string message, Location at)
+	{
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
+	}
 
 	/// <summary>
 	/// One message for <see cref="ShadowsEnclosingRule"/> regardless of which of its two
@@ -202,10 +204,12 @@ public sealed class GrammarBinder
 	/// or one of this namespace's own imports (<see cref="Resolve"/>): the fix is the same
 	/// either way, and a reader should not have to care which pass caught it.
 	/// </summary>
-	static string ShadowsMessage(string name) =>
-		$"'{name}' already resolves to a rule from an enclosing namespace or an import. If " +
+	static string ShadowsMessage(string name)
+	{
+		return $"'{name}' already resolves to a rule from an enclosing namespace or an import. If " +
 		$"this means to replace it rather than declare a new rule under the same name, say " +
 		$"so with a rebinding instead: 'namespace Name with ({name} = ...) {{ ... }}' (§5.1).";
+	}
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
 
@@ -283,7 +287,10 @@ public sealed class GrammarBinder
 		}
 	}
 
-	static GrammarNamespace? FindNamespace(GrammarNamespace from, string name) => from.Find(name);
+	static GrammarNamespace? FindNamespace(GrammarNamespace from, string name)
+	{
+		return from.Find(name);
+	}
 
 	/// <summary>
 	/// §5's "the first hit wins" cuts the other way here: a rule this namespace declares
@@ -556,12 +563,17 @@ public sealed class GrammarBinder
 	/// §4.2's kind line: a parameter declared with a C# type is a value, anything else a
 	/// recognizer. The same reading <c>GrammarNormalizer</c> makes when a call passes one.
 	/// </summary>
-	static bool IsValueParam(Param parameter) =>
-		parameter.Type is { } kind && (kind.IsCSharp || IsCSharpKeyword(kind.Name));
+	static bool IsValueParam(Param parameter)
+	{
+		return parameter.Type is { } kind && (kind.IsCSharp || IsCSharpKeyword(kind.Name));
+	}
 
-	static bool IsCSharpKeyword(string name) => name is
+	static bool IsCSharpKeyword(string name)
+	{
+		return name is
 		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
 		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
+	}
 
 	/// <summary>
 	/// Layers <paramref name="ownRebindings"/> over <paramref name="inherited"/>, chain-
@@ -664,8 +676,10 @@ public sealed class GrammarBinder
 	}
 
 	/// <summary>However §4.1 case 4's own type is written.</summary>
-	static bool IsSourceSpan(string name) =>
-		name is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
+	static bool IsSourceSpan(string name)
+	{
+		return name is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
+	}
 
 	/// <summary>
 	/// A type names a C# type, a rule, or a parameter — the last being how `: item[]`
@@ -723,10 +737,13 @@ public sealed class GrammarBinder
 		return false;
 	}
 
-	static bool IsBuiltInCSharpType(string name) => name is
+	static bool IsBuiltInCSharpType(string name)
+	{
+		return name is
 		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
 		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or
 		"object" or "void";
+	}
 
 	void ResolveExpression(
 		Expr expression,

@@ -234,10 +234,15 @@ public sealed class Rfc6902Tests
 		}
 	}
 
-	static JsonValue? Member(JsonValue record, string name) =>
-		((JsonValue.Object)record).Members.FirstOrDefault(member => member.Key == name).Value;
+	static JsonValue? Member(JsonValue record, string name)
+	{
+		return ((JsonValue.Object)record).Members.FirstOrDefault(member => member.Key == name).Value;
+	}
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

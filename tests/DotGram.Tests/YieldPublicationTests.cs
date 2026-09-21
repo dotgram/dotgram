@@ -168,7 +168,11 @@ public sealed class YieldPublicationTests
 		Assert.Equal(4, parsed.File.Decls.Count);
 	}
 
-	static GramCompilerOptions Options() => new() { CSharpScanner = RoslynCSharpScanner.Instance, Direct = false };
+	static GramCompilerOptions Options()
+	{
+		return new() { CSharpScanner = RoslynCSharpScanner.Instance, Direct = false };
+	}
+
 	static Assembly Compile(string grammar)
 	{
 		var compiled = GramCompiler.Compile(grammar, Options());

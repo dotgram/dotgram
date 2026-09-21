@@ -106,8 +106,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t WHERE CAST([b] AS INTEGER) = dbo.f(@v)")]
 	[InlineData("SELECT a FROM t JOIN dbo.f(@v) AS x ON t.id = x.id")]
 	[InlineData("SELECT a FROM t WHERE EXISTS (SELECT 1 FROM u WHERE u.[id] = t.[id])")]
-	public void The_replacement_reaches_where_it_is_never_named(string input) =>
+	public void The_replacement_reaches_where_it_is_never_named(string input)
+	{
 		Assert.True(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
+	}
 
 	// ── And that nothing was traded for it ───────────────────────────────────────
 
@@ -353,8 +355,10 @@ public sealed class TransactSqlTests
 	// A list of columns standing as one grouping is read inside ROLLUP, CUBE and GROUPING SETS
 	// and nowhere else: at the top of the clause the server answers Msg 102 at the comma.
 	[InlineData("SELECT c1 FROM t1 GROUP BY (c1, c2)")]
-	public void What_the_engine_refuses_this_refuses_too(string input) =>
+	public void What_the_engine_refuses_this_refuses_too(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
+	}
 
 	/// <summary>Statements ScriptDom reads and SQL Server refuses, refused here as well.</summary>
 	/// <remarks>
@@ -378,8 +382,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t ORDER BY a FOR JSON AUTO OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY")]
 	[InlineData("SELECT a FROM t FOR JSON AUTO ORDER BY a")]
 	[InlineData("EXEC ('SELECT 1') AT [srv] AS USER = 'u'")]
-	public void Statements_the_engine_refuses_are_refused(string input) =>
+	public void Statements_the_engine_refuses_are_refused(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And the forms beside them that it reads.</summary>
 	[Theory]
@@ -435,8 +441,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE ASYMMETRIC KEY k FROM FILE = 'f' WITH ALGORITHM = RSA_2048")]
 	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = DES ENCRYPTION BY SERVER CERTIFICATE c")]
 	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = RSA_2048")]
-	public void The_keys_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_keys_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -515,8 +523,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE INDEX i ON t (a) WITH (ONLINE = ON, RESUMABLE = ON, MAX_DURATION = 5 MINUTE)")]
 	[InlineData("UPDATE STATISTICS t WITH FOO")]
 	[InlineData("UPDATE STATISTICS t WITH SAMPLE @n PERCENT")]
-	public void The_index_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_index_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -585,8 +595,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = +4")]
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET PARAMETER_SNIFFING = 1")]
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE @h")]
-	public void The_database_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_database_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -639,8 +651,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER TABLE t REBUILD WITH (RESUMABLE = ON)")]
 	[InlineData("ALTER TABLE t REBUILD WITH (BUCKET_COUNT = 10)")]
 	[InlineData("ALTER TABLE t REBUILD PARTITION = 1 WITH (FILLFACTOR = 80)")]
-	public void The_table_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_table_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -687,8 +701,10 @@ public sealed class TransactSqlTests
 	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH FILESTREAM (DIRECTORY_NAME = @v)")]
 	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH KEEP_TEMPORAL_RETENTION = ON")]
 	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH KEEP_TEMPORAL_RETENTION")]
-	public void The_backup_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_backup_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -757,8 +773,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE APPLICATION ROLE r WITH DEFAULT_LANGUAGE = NONE")]
 	[InlineData("ALTER APPLICATION ROLE r WITH DEFAULT_SCHEMA = NULL")]
 	[InlineData("ALTER APPLICATION ROLE r WITH DEFAULT_LANGUAGE = 1033")]
-	public void The_principal_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_principal_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -813,8 +831,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1) FOR DATABASE_MIRRORING (MESSAGE_FORWARD_SIZE = 10)")]
 	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1) FOR TSQL () AS TCP (LISTENER_PORT = 2)")]
 	[InlineData("ALTER ENDPOINT e AUTHORIZATION sa STATE = STARTED")]
-	public void The_endpoint_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_endpoint_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -858,8 +878,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE (1033))")]
 	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE 1033.5)")]
 	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE English)")]
-	public void The_full_text_predicates_refuse_what_the_engine_does(string input) =>
+	public void The_full_text_predicates_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -905,8 +927,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x', 5, LANGUAGE 1033) AS k")]
 	[InlineData("SELECT * FROM FREETEXTTABLE (t, $IDENTITY, 'x') AS k")]
 	[InlineData("SELECT * FROM FREETEXTTABLE (t, b, 'x', 10, LANGUAGE 1033) AS k")]
-	public void The_full_text_rowsets_refuse_what_the_engine_does(string input) =>
+	public void The_full_text_rowsets_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -946,8 +970,10 @@ public sealed class TransactSqlTests
 	[InlineData("SETUSER 'u' + 'v'")]
 	[InlineData("SETUSER WITH NORESET")]
 	[InlineData("SETUSER 'u' WITH FOO")]
-	public void The_session_statements_refuse_what_the_engine_does(string input) =>
+	public void The_session_statements_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -1013,8 +1039,10 @@ public sealed class TransactSqlTests
 	[InlineData("END CONVERSATION 10 FETCH NEXT FROM c", true)]
 	[InlineData("END CONVERSATION 10 GRANT SELECT ON t TO u", true)]
 	[InlineData("END CONVERSATION 10 BACKUP DATABASE d TO DISK = 'f'", true)]
-	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
+	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read)
+	{
 		Assert.Equal(read, TransactSqlParser.TryParseSql(input).IsSuccess);
+	}
 
 	/// <summary>A negation repeated, an <c>ORDER</c> after the options, and the name a context cannot leave out, as the engine answers them.</summary>
 	[Theory]
@@ -1023,8 +1051,10 @@ public sealed class TransactSqlTests
 	[InlineData("EXECUTE ('select * from t1', 5) AS LOGIN = 'sa'")]
 	[InlineData("EXECUTE ('select') AS LOGIN")]
 	[InlineData("EXECUTE ('select', 5, @a) AS LOGIN")]
-	public void Negations_orders_and_contexts_refuse_what_the_engine_does(string input) =>
+	public void Negations_orders_and_contexts_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -1066,8 +1096,10 @@ public sealed class TransactSqlTests
 	[InlineData("DECLARE @m MONEY = ©10.00")]
 	[InlineData("DECLARE @m MONEY = °10.00")]
 	[InlineData("DECLARE @m MONEY = ¤10 . 12")]
-	public void The_signs_money_is_written_with_refuse_what_the_engine_does(string input) =>
+	public void The_signs_money_is_written_with_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the ones it does.</summary>
 	[Theory]
@@ -1103,8 +1135,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' ESCAPE '%' {ESCAPE '%'}")]
 	[InlineData("SELECT 1 WHERE 'a' IN ('b') {ESCAPE '%'}")]
 	[InlineData("SELECT 1 WHERE 'a' LIKE {ESCAPE '%'}")]
-	public void An_escape_in_braces_refuses_what_the_engine_does(string input) =>
+	public void An_escape_in_braces_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -1148,8 +1182,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t1 (c1 dbo.mytype (CONTENT dbo.xsd1))")]
 	[InlineData("CREATE TABLE t1 (c1 sys.nosuchtype (DOCUMENT dbo.xsd1))")]
 	[InlineData("CREATE TABLE t1 (c1 sys.interval year)")]
-	public void A_type_named_through_its_schema_refuses_what_the_engine_does(string input) =>
+	public void A_type_named_through_its_schema_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the tails it takes.</summary>
 	[Theory]
@@ -1221,8 +1257,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t1 (c1 interval year)")]
 	[InlineData("CREATE TABLE t1 (c1 interval year to month)")]
 	[InlineData("SELECT CAST (1 AS interval year)")]
-	public void A_length_after_a_type_refuses_what_the_engine_does(string input) =>
+	public void A_length_after_a_type_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads it wherever a type stands.</summary>
 	[Theory]
@@ -1304,8 +1342,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH (sorted_data))")]
 	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH sorted_data, fillfactor = 12")]
 	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 FOREIGN KEY REFERENCES t2 WITH sorted_data)")]
-	public void The_index_options_older_than_the_brackets_refuse_what_the_engine_does(string input) =>
+	public void The_index_options_older_than_the_brackets_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the places it does.</summary>
 	[Theory]
@@ -1350,8 +1390,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH pad_index)")]
 	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH statistics_norecompute)")]
 	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH fillfactor = 12, sorted_data ON MyGroup")]
-	public void An_option_standing_without_brackets_refuses_what_the_engine_does(string input) =>
+	public void An_option_standing_without_brackets_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the spellings it takes.</summary>
 	[Theory]
@@ -1406,8 +1448,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (statistics_norecompute = ON))")]
 	[InlineData("CREATE TYPE tt AS TABLE (a1 int UNIQUE WITH (fillfactor = 12))")]
 	[InlineData("CREATE TYPE tt AS TABLE (a1 int, INDEX i1 (a1) WITH (pad_index = ON))")]
-	public void A_body_that_is_not_a_tables_refuses_what_the_engine_does(string input) =>
+	public void A_body_that_is_not_a_tables_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads what each of them takes.</summary>
 	[Theory]
@@ -1458,8 +1502,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER AVAILABILITY GROUP ag1 GRANT CREATE ANY DATABASE, DENY CREATE ANY DATABASE")]
 	[InlineData("ALTER AVAILABILITY GROUP ag1 ADD REPLICA ON 'node1' WITH (ENDPOINT_URL = 'TCP://a:5022', AVAILABILITY_MODE = SYNCHRONOUS_COMMIT, FAILOVER_MODE = AUTOMATIC), 'node2' WITH (ENDPOINT_URL = 'TCP://b:5022', AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT, FAILOVER_MODE = MANUAL)")]
 	[InlineData("CREATE AVAILABILITY GROUP ag1 WITH (CONTAINED REUSE_SYSTEM_DATABASES) FOR REPLICA ON 'node1' WITH (ENDPOINT_URL = 'TCP://a:5022', AVAILABILITY_MODE = SYNCHRONOUS_COMMIT, FAILOVER_MODE = AUTOMATIC)")]
-	public void A_group_of_databases_that_fail_over_together_refuses_what_the_engine_does(string input) =>
+	public void A_group_of_databases_that_fail_over_together_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms it takes.</summary>
 	[Theory]
@@ -1522,8 +1568,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER TABLE t1 ALTER COLUMN c1 int DEFAULT 1 WITH VALUES")]
 	[InlineData("CREATE TABLE t1 (c1 int DEFAULT 1 WITH VALUES)")]
 	[InlineData("DECLARE @t TABLE (c1 int DEFAULT 1 WITH VALUES)")]
-	public void A_default_the_rows_already_there_take_refuses_what_the_engine_does(string input) =>
+	public void A_default_the_rows_already_there_take_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads it where a column is added.</summary>
 	[Theory]
@@ -1556,8 +1604,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE CREDENTIAL c1 WITH IDENTITY = 'x', SECRET = 'y',")]
 	[InlineData("CREATE DATABASE SCOPED CREDENTIAL c1 WITH IDENTITY = 'x', SECRET = 'y',")]
 	[InlineData("SELECT * FROM OPENROWSET(BULK 'f', FORMAT = 'CSV',) AS r")]
-	public void A_comma_with_nothing_after_it_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_comma_with_nothing_after_it_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -1609,8 +1659,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5)")]
 	[InlineData("UPDATE AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) SET chunk = 'y'")]
 	[InlineData("DELETE FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5)")]
-	public void A_text_cut_into_chunks_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_text_cut_into_chunks_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -1640,8 +1692,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT 1 >>= 1")]
 	[InlineData("DECLARE @a int; SET @a <<= 1")]
 	[InlineData("SELECT 1 << 1 = 2")]
-	public void A_shift_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_shift_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it, at every level.</summary>
 	[Theory]
@@ -1684,8 +1738,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT CAST ('x' AS VECTOR(3, float32.x))")]
 	[InlineData("SELECT CAST ('x' AS VECTOR(3, dbo.float32))")]
 	[InlineData("SELECT CAST ('x' AS VECTOR(3, float32, ))")]
-	public void A_vector_with_its_base_type_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_vector_with_its_base_type_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it, wherever a type stands.</summary>
 	[Theory]
@@ -1722,8 +1778,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) '$.x' + 'y') AS r")]
 	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR(50) '$.x' '$.y') AS r")]
 	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 2147483648) AS x")]
-	public void A_path_in_a_bulk_rowsets_schema_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_path_in_a_bulk_rowsets_schema_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -1778,8 +1836,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT JSON_OBJECT('a':1 RETURNING NVARCHAR(MAX))")]
 	[InlineData("SELECT STRING_AGG(data, ',' ORDER BY priority) FROM records")]
 	[InlineData("SELECT COUNT(data ORDER BY priority) FROM records")]
-	public void An_aggregate_of_json_values_is_refused_where_the_engine_refuses_it(string input) =>
+	public void An_aggregate_of_json_values_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -1824,8 +1884,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT TOP (10) WITH APPROX * FROM Orders ORDER BY OrderDate")]
 	[InlineData("SELECT * FROM t ORDER BY c FETCH APPROXIMATE NEXT 20 ROWS ONLY")]
 	[InlineData("SELECT * FROM t ORDER BY c OFFSET 0 ROWS FETCH APPROXIMATE FIRST 15 ROWS ONLY")]
-	public void An_approximation_nobody_published_is_refused(string input) =>
+	public void An_approximation_nobody_published_is_refused(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>A synonym's and a sequence's name takes empty parts as a table's does; a type's, a statistic's and an alias do not.</summary>
 	[Theory]
@@ -1834,8 +1896,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TYPE .tt AS TABLE (c int)")]
 	[InlineData("CREATE STATISTICS .st ON t1 (c)")]
 	[InlineData("SELECT * FROM t1 AS .a")]
-	public void A_name_with_empty_parts_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_name_with_empty_parts_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it, or reads it and objects to the value.</summary>
 	[Theory]
@@ -1876,8 +1940,10 @@ public sealed class TransactSqlTests
 	[Theory]
 	[InlineData("ALTER TABLE t1 ENABLE TRIGGER a.b.c")]
 	[InlineData("ALTER TABLE t1 DISABLE TRIGGER a.b, c")]
-	public void A_trigger_switched_by_a_qualified_name_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_trigger_switched_by_a_qualified_name_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -1909,8 +1975,10 @@ public sealed class TransactSqlTests
 	[InlineData("UPDATETEXT t.c @p WITH LOG TIMESTAMP = 0xFF NULL 0 'hi'")]
 	[InlineData("UPDATETEXT t.c @p TIMESTAMP = 0xFF WITH LOG NULL 0 'hi'")]
 	[InlineData("WRITETEXT t.c @p WITH LOG TIMESTAMP = 0xFF 'hi'")]
-	public void A_text_utility_with_its_timestamp_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_text_utility_with_its_timestamp_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it, or reads it and objects to the value.</summary>
 	[Theory]
@@ -1964,8 +2032,10 @@ public sealed class TransactSqlTests
 	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m1 ()")]
 	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE DEFAULT")]
 	[InlineData("SEND ON CONVERSATION @h, @h MESSAGE TYPE m1")]
-	public void A_message_type_held_in_a_variable_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_message_type_held_in_a_variable_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -2001,8 +2071,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE QUEUE q1 ON 'fg' WITH STATUS = ON")]
 	[InlineData("CREATE QUEUE q1 ON fg.x")]
 	[InlineData("ALTER QUEUE q1 ON 'fg'")]
-	public void Two_words_that_are_statements_is_refused_where_the_engine_refuses_it(string input) =>
+	public void Two_words_that_are_statements_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -2042,8 +2114,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (NOSUCH)")]
 	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION OFF (USE_IDENTITY)")]
 	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON ()")]
-	public void A_partition_split_bare_and_a_server_authenticated_outside_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_partition_split_bare_and_a_server_authenticated_outside_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it, or reads it and objects to the value.</summary>
 	[Theory]
@@ -2093,8 +2167,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE JSON INDEX ix ON t (c) WITH MAXDOP = 4")]
 	[InlineData("CREATE JSON INDEX ix ON t (c) WITH (SORT_IN_TEMPDB = ON)")]
 	[InlineData("CREATE JSON INDEX ix ON t (c) WITH (ONLINE = ON)")]
-	public void A_json_index_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_json_index_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -2132,8 +2208,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER EXTERNAL MODEL m WITH (MODEL = 'x')")]
 	[InlineData("ALTER EXTERNAL MODEL m AUTHORIZATION dbo SET (MODEL = 'x')")]
 	[InlineData("ALTER EXTERNAL MODEL m SET (MODEL = 'x') SET (MODEL = 'y')")]
-	public void A_model_served_from_outside_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_model_served_from_outside_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -2215,8 +2293,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY ON, ENABLE_BROKER")]
 	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY ON, TRUSTWORTHY OFF")]
 	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH NOSUCH ON")]
-	public void What_the_mirages_hid_and_the_engine_reads_is_refused_where_the_engine_refuses_it(string input) =>
+	public void What_the_mirages_hid_and_the_engine_reads_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -2299,8 +2379,10 @@ public sealed class TransactSqlTests
 	[InlineData("(SELECT @v = 1) UNION ALL (SELECT 2)")]
 	[InlineData("SELECT @v = 1 UNION ALL SELECT 2 ORDER BY 1")]
 	[InlineData("SELECT @v = 1 ORDER BY 1")]
-	public void What_the_mirages_hid_and_the_engine_refuses_is_refused_where_the_engine_refuses_it(string input) =>
+	public void What_the_mirages_hid_and_the_engine_refuses_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And what stands beside each of them is read.</summary>
 	[Theory]
@@ -2360,8 +2442,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT { fn convert ('1', 'SQL_INTEGER') }")]
 	[InlineData("SELECT { fn convert ('1', SQL_INTEGER, 1) }")]
 	[InlineData("SELECT { fn convert ('1') }")]
-	public void An_odbc_conversion_to_a_type_odbc_names_is_refused_where_the_engine_refuses_it(string input) =>
+	public void An_odbc_conversion_to_a_type_odbc_names_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -2660,8 +2744,10 @@ public sealed class TransactSqlTests
 	[InlineData("DROP FULLTEXT INDEX ON t, u")]
 	[InlineData("DROP MASTER KEY x")]
 	[InlineData("DROP EXTERNAL LANGUAGE l1, l2 AUTHORIZATION dbo.bing")]
-	public void A_drop_by_what_it_drops_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_drop_by_what_it_drops_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it, or reads it and objects to the name.</summary>
 	[Theory]
@@ -3211,8 +3297,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE EXTERNAL DATA SOURCE ds WITH (LOCATION = 's3://h:1/', TYPE = 'BLOB_STORAGE')")]
 	[InlineData("ALTER EXTERNAL DATA SOURCE ds SET LOCATION = 'a', LOCATION = 'b'")]
 	[InlineData("ALTER EXTERNAL DATA SOURCE ds SET CREDENTIAL = dbo.c")]
-	public void An_external_objects_option_of_its_kind_is_refused_where_the_engine_refuses_it(string input) =>
+	public void An_external_objects_option_of_its_kind_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it, or reads it and objects to what a string holds.</summary>
 	[Theory]
@@ -4557,8 +4645,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE FUNCTION f() RETURNS INT AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') RETURN 1; END")]
 	[InlineData("BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') SELECT 1; END")]
 	[InlineData("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english', TEXTSIZE = 1e3) SELECT 1; END")]
-	public void A_transaction_or_a_column_option_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_transaction_or_a_column_option_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	const string NativeModule =
 		"CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH " +
@@ -4578,8 +4668,10 @@ public sealed class TransactSqlTests
 	[InlineData(NativeModule + " END")]
 	[InlineData("BEGIN " + NativeModule + " END")]
 	[InlineData("CREATE FUNCTION f() RETURNS int WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') RETURN 1 END SELECT 2")]
-	public void Nothing_but_the_end_of_the_batch_follows_a_native_modules_block(string input) =>
+	public void Nothing_but_the_end_of_the_batch_follows_a_native_modules_block(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseSql(input).IsSuccess, input);
+	}
 
 	/// <summary>And the batch ending there is read: after `;`s, spacing and comments, and before a `GO`.</summary>
 	[Theory]
@@ -6344,8 +6436,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t (c int REFERENCES u (a) NOT FOR REPLICATION NOT FOR REPLICATION)")]
 	[InlineData("CREATE TABLE t (c int, FOREIGN KEY (c) REFERENCES u (a) NOT FOR REPLICATION NOT FOR REPLICATION)")]
 	[InlineData("ALTER TABLE t ADD CONSTRAINT f FOREIGN KEY (c) REFERENCES u (a) NOT FOR REPLICATION NOT FOR REPLICATION")]
-	public void A_columns_tail_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_columns_tail_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -7796,8 +7890,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER INDEX ix ON t REBUILD WITH (BUCKET_COUNT = 1e3)")]
 	[InlineData("CREATE TYPE ty AS TABLE (a int NOT NULL, INDEX ix NONCLUSTERED HASH (a) WITH (BUCKET_COUNT = 1e3)) WITH (MEMORY_OPTIMIZED = ON)")]
 	[InlineData("ALTER TABLE t ADD INDEX ix HASH (a) WITH (BUCKET_COUNT = 1e3)")]
-	public void A_tables_change_tracking_rebuild_or_switch_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_tables_change_tracking_rebuild_or_switch_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -7952,8 +8048,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER SECURITY POLICY p ADD FILTER PREDICATE dbo.f(c) ON dbo.t, ADD NOT FOR REPLICATION")]
 	[InlineData("ALTER SECURITY POLICY p ADD NOT FOR REPLICATION, ADD FILTER PREDICATE dbo.f(c) ON dbo.t")]
 	[InlineData("CREATE SECURITY POLICY p WITH (SCHEMABINDING = ON) NOT FOR REPLICATION NOT FOR REPLICATION")]
-	public void A_security_policys_options_are_refused_where_the_engine_refuses_them(string input) =>
+	public void A_security_policys_options_are_refused_where_the_engine_refuses_them(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And are read where the engine reads them.</summary>
 	[Theory]
@@ -8133,8 +8231,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER FULLTEXT STOPLIST s ADD @w LANGUAGE 'Spanish' + ''")]
 	[InlineData("ALTER FULLTEXT STOPLIST s DROP @w LANGUAGE 'Spanish' + ''")]
 	[InlineData("CREATE FULLTEXT STOPLIST s FROM db.dbo.o")]
-	public void A_full_text_option_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_full_text_option_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -8342,8 +8442,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a WITH ()")]
 	[InlineData("ALTER SERVER AUDIT SPECIFICATION s ADD (FAILED_LOGIN_GROUP) x y z")]
 	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s ADD (SELECT ON t BY dbo) WITH ()")]
-	public void An_audits_option_is_refused_where_the_engine_refuses_it(string input) =>
+	public void An_audits_option_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -8530,8 +8632,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE ENDPOINT e STATE = STARTED AS HTTP (PATH = '/p', AUTHENTICATION = (INTEGRATED), PORTS = (CLEAR), SITE = x) FOR SOAP (WSDL = DEFAULT)")]
 	[InlineData("CREATE ENDPOINT e STATE = STARTED AS HTTP (PATH = '/p', AUTHENTICATION = (INTEGRATED), PORTS = (CLEAR), CLEAR_PORT = 1.5) FOR SOAP (WSDL = DEFAULT)")]
 	[InlineData("CREATE ENDPOINT e STATE = STARTED AS HTTP (PATH = NONE, AUTHENTICATION = (INTEGRATED), PORTS = (CLEAR)) FOR SOAP (WSDL = DEFAULT)")]
-	public void An_http_or_soap_endpoints_setting_is_refused_where_the_engine_refuses_it(string input) =>
+	public void An_http_or_soap_endpoints_setting_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -8876,8 +8980,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (AFFINITY CPU = SCHEDULER = (0))")]
 	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (AFFINITY NUMANODE = CPU = (0))")]
 	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (AFFINITY CPU = NUMANODE = AUTO)")]
-	public void A_library_pool_or_workload_group_option_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_library_pool_or_workload_group_option_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -9097,8 +9203,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER DATABASE db1 MODIFY (NOSUCH = 1)")]
 	[InlineData("ALTER DATABASE db1 MODIFY (EDITION = 'Premium') WITH NO_WAIT_AT_ALL")]
 	[InlineData("ALTER DATABASE db1 MODIFY BACKUP_STORAGE_REDUNDANCY = ZONE")]
-	public void An_azure_databases_edition_is_refused_where_its_published_syntax_does_not_say_it(string input) =>
+	public void An_azure_databases_edition_is_refused_where_its_published_syntax_does_not_say_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>MAX on every kind of type, where a type stands, as the engine answered 190 lines.</summary>
 	[Theory]
@@ -9162,8 +9270,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT CAST(1 AS BINARY ( MAX ))")]
 	[InlineData("CREATE PROCEDURE p @a BINARY ( MAX ) AS SELECT 1")]
 	[InlineData("CREATE TYPE ty FROM BINARY ( MAX )")]
-	public void A_types_max_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_types_max_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -9337,8 +9447,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT IIF((SELECT 1), 1, 0)")]
 	[InlineData("SELECT IIF()")]
 	[InlineData("SELECT IIF(1)")]
-	public void A_condition_that_is_a_value_is_refused(string input) =>
+	public void A_condition_that_is_a_value_is_refused(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And a predicate is read.</summary>
 	[Theory]
@@ -9551,8 +9663,10 @@ public sealed class TransactSqlTests
 	[InlineData("select * from @t tablesample (10 percent)")]
 	[InlineData("select * from @t x tablesample (10 percent)")]
 	[InlineData("select * from (@t x) join t2 on 1 = 1")]
-	public void A_plans_hints_a_joins_pivots_or_a_bracket_is_refused_where_the_engine_refuses_it(string input) =>
+	public void A_plans_hints_a_joins_pivots_or_a_bracket_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -9911,8 +10025,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE OR ALTER EVENT SESSION s ON SERVER ADD EVENT a.b")]
 	[InlineData("CREATE OR ALTER EVENT SESSION s ON SERVER STATE = START")]
 	[InlineData("CREATE OR ALTER EVENT SESSION s ON SERVER WITH (STARTUP_STATE = ON)")]
-	public void An_event_sessions_piece_or_option_is_refused_where_the_engine_refuses_it(string input) =>
+	public void An_event_sessions_piece_or_option_is_refused_where_the_engine_refuses_it(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And is read where the engine reads it.</summary>
 	[Theory]
@@ -10051,8 +10167,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').db.'Something' AS Z")]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something'.dbo.t1 AS Z")]
-	public void A_server_named_by_a_string_refuse_what_the_engine_does(string input) =>
+	public void A_server_named_by_a_string_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10082,8 +10200,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t1 (c DECIMAL (10, 3) COLLATE Latin1_General_CI_AS)")]
 	[InlineData("CREATE TABLE t1 (c NUMERIC (10, 3) COLLATE Latin1_General_CI_AS NULL)")]
 	[InlineData("CREATE TABLE t1 (c DEC (10, 3) COLLATE Latin1_General_CI_AS)")]
-	public void Masks_and_collations_refuse_what_the_engine_does(string input) =>
+	public void Masks_and_collations_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10121,8 +10241,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]
 	[InlineData("SELECT * FROM t1 INNER LOCAL HASH JOIN t10 ON t1.c1 = t10.c1")]
 	[InlineData("SELECT * FROM (t10 LEFT JOIN t11 ON t10.c1 > t11.c1) AS x")]
-	public void Joins_hanging_off_joins_refuse_what_the_engine_does(string input) =>
+	public void Joins_hanging_off_joins_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10158,8 +10280,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT c1 FROM t1 t (0)")]
 	[InlineData("SELECT c1 FROM t1 AS t (0)")]
 	[InlineData("SELECT c1 FROM t1 table1 (1)")]
-	public void Old_hints_and_sampled_ones_refuse_what_the_engine_does(string input) =>
+	public void Old_hints_and_sampled_ones_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10188,8 +10312,10 @@ public sealed class TransactSqlTests
 	[Theory]
 	[InlineData("SELECT 2e.5")]
 	[InlineData("EXECUTE dbo.p1;1.5")]
-	public void Exponents_and_procedure_numbers_refuse_what_the_engine_does(string input) =>
+	public void Exponents_and_procedure_numbers_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10227,8 +10353,10 @@ public sealed class TransactSqlTests
 	[InlineData("INSERT OVER INTO t1 DEFAULT VALUES")]
 	[InlineData("INSERT INTO OVER t1 DEFAULT VALUES")]
 	[InlineData("INSERT OVER DEFAULT VALUES")]
-	public void Labels_and_the_forms_beside_them_refuse_what_the_engine_does(string input) =>
+	public void Labels_and_the_forms_beside_them_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10329,8 +10457,10 @@ public sealed class TransactSqlTests
 	[InlineData("DECLARE @t TABLE (x AS 1)")]
 	[InlineData("CREATE TYPE t1 AS TABLE (x AS 1)")]
 	[InlineData("CREATE FUNCTION f () RETURNS @t TABLE (x AS 1) AS BEGIN RETURN END")]
-	public void Variables_methods_and_first_columns_refuse_what_the_engine_does(string input) =>
+	public void Variables_methods_and_first_columns_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10448,8 +10578,10 @@ public sealed class TransactSqlTests
 	[InlineData("BULK INSERT t1 FROM 'f1' WITH (CREDENTIAL = c1)")]
 	[InlineData("BULK INSERT t1 FROM 'f1' WITH (CREDENTIAL = 1)")]
 	[InlineData("BULK INSERT t1 FROM 'f1' WITH (ESCAPECHAR = '\\', ESCAPECHAR = '\\')")]
-	public void Bulk_insert_refuse_what_the_engine_does(string input) =>
+	public void Bulk_insert_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10543,8 +10675,10 @@ public sealed class TransactSqlTests
 	/// <summary>How far a money literal's sign, currency and digits stand apart, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT $10 . 12")]
-	public void Money_written_apart_refuse_what_the_engine_does(string input) =>
+	public void Money_written_apart_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10594,8 +10728,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DROP WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'))")]
 	[InlineData("ALTER ENDPOINT e1 FOR SOAP (WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'))")]
 	[InlineData("CREATE ENDPOINT e1 AS TCP (LISTENER_PORT = 4022) FOR SOAP (WEBMETHOD 'm1')")]
-	public void Soap_endpoints_refuse_what_the_engine_does(string input) =>
+	public void Soap_endpoints_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10654,8 +10790,10 @@ public sealed class TransactSqlTests
 	[InlineData("UPDATE t1 SET a.$IDENTITY = 1")]
 	[InlineData("UPDATE t1 SET t1.$node_id = 1")]
 	[InlineData("UPDATE t1 SET [a].$IDENTITY = 1")]
-	public void Written_columns_refuse_what_the_engine_does(string input) =>
+	public void Written_columns_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10721,8 +10859,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM OPENQUERY (s1)")]
 	[InlineData("SELECT * FROM OPENQUERY (s1, @v1)")]
 	[InlineData("SELECT * FROM OPENQUERY (s1, 'q', 'r')")]
-	public void Rowsets_written_to_refuse_what_the_engine_does(string input) =>
+	public void Rowsets_written_to_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10779,8 +10919,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT IDENTITY (INT) INTO t2 FROM t1")]
 	[InlineData("SELECT *, IDENTITY (INT)")]
 	[InlineData("SELECT IDENTITY (INT), c1 FROM t1")]
-	public void Dropped_indexes_and_dotted_names_refuse_what_the_engine_does(string input) =>
+	public void Dropped_indexes_and_dotted_names_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10851,8 +10993,10 @@ public sealed class TransactSqlTests
 	[InlineData("BEGIN TRY ; END TRY BEGIN CATCH ; END CATCH")]
 	[InlineData("BEGIN TRY SELECT 1; END TRY BEGIN CATCH ; END CATCH")]
 	[InlineData("BEGIN TRY BEGIN END END TRY BEGIN CATCH END CATCH")]
-	public void Schemas_and_catches_refuse_what_the_engine_does(string input) =>
+	public void Schemas_and_catches_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -10935,8 +11079,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER TABLE t ALTER COLUMN c INT WITH (FOO = 1)")]
 	[InlineData("ALTER TABLE t ALTER COLUMN c INT WITH (ONLINE = ON, ONLINE = OFF)")]
 	[InlineData("ALTER TABLE t ALTER COLUMN c ADD COLUMN_SET FOR ALL_SPARSE_COLUMNS WITH (ONLINE = ON)")]
-	public void Dropped_and_altered_refuse_what_the_engine_does(string input) =>
+	public void Dropped_and_altered_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11001,8 +11147,10 @@ public sealed class TransactSqlTests
 	[InlineData("SAVE TRANSACTION 5:@a.b")]
 	[InlineData("SAVE TRANSACTION 5e1:a.b")]
 	[InlineData("SAVE TRANSACTION $5:a.b")]
-	public void Old_forms_refuse_what_the_engine_does(string input) =>
+	public void Old_forms_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11069,8 +11217,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (DECRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
 	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH PRIVATE KEY (FILE = 'k', DECRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
 	[InlineData("ALTER CERTIFICATE c WITH PRIVATE KEY (FILE = 'k', DECRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
-	public void Backup_options_refuse_what_the_engine_does(string input) =>
+	public void Backup_options_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11118,8 +11268,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t (a INT) AS SELECT 1")]
 	[InlineData("CREATE TABLE t AS SELECT * FROM u")]
 	[InlineData("CREATE TABLE #t AS SELECT 1 AS a")]
-	public void Table_edges_refuse_what_the_engine_does(string input) =>
+	public void Table_edges_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11165,8 +11317,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT AS JSON) AS p")]
 	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH s AS p")]
 	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d, FOO = 1) WITH (s FLOAT) AS p")]
-	public void Predictions_refuse_what_the_engine_does(string input) =>
+	public void Predictions_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11218,8 +11372,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE PRIMARY XML INDEX i ON t(c) USING XML INDEX sxi")]
 	[InlineData("CREATE PRIMARY XML INDEX i ON t(c) USING XML INDEX sxi FOR (path1)")]
 	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (path1) WITH (ONLINE = ON)")]
-	public void Secondary_XML_indexes_refuse_what_the_engine_does(string input) =>
+	public void Secondary_XML_indexes_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11254,8 +11410,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t (x MASKED WITH (FUNCTION = 'default()'))")]
 	[InlineData("CREATE TABLE t (x NOT FOR REPLICATION)")]
 	[InlineData("CREATE TABLE t (x ENCRYPTED WITH (COLUMN_ENCRYPTION_KEY = k, ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256'))")]
-	public void Untyped_columns_refuse_what_the_engine_does(string input) =>
+	public void Untyped_columns_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11333,8 +11491,10 @@ public sealed class TransactSqlTests
 	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1 OPTION (RECOMPILE)) AS ao")]
 	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1;) AS ao")]
 	[InlineData("INSERT INTO t SELECT * FROM (SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao) AS d")]
-	public void Changed_rows_refuse_what_the_engine_does(string input) =>
+	public void Changed_rows_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11372,8 +11532,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT 1; ;")]
 	[InlineData("sp_who ; ;")]
 	[InlineData("INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT 1, 2, 3, 4 FROM OPENROWSET (BULK 'f.csv', DATA_SOURCE = 'ds', FORMATFILE = 'f.xml', FORMATFILE_DATA_SOURCE = 'fs', FIRSTROW = 2) AS staging_data;\n;")]
-	public void A_statement_takes_the_empty_ones_after_it(string input) =>
+	public void A_statement_takes_the_empty_ones_after_it(string input)
+	{
 		Assert.True(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>A spatial index and the list of options it reads as no other list is read, as the engine answers them.</summary>
 	[Theory]
@@ -11473,8 +11635,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE SPATIAL INDEX i ON t(g) WITH (MAXDOP = NULL)")]
 	[InlineData("CREATE SPATIAL INDEX i ON t(g) WITH (FOO = (OFF))")]
 	[InlineData("CREATE SPATIAL INDEX i ON t($node_id)")]
-	public void Spatial_indexes_refuse_what_the_engine_does(string input) =>
+	public void Spatial_indexes_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -11676,8 +11840,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER SERVICE MASTER KEY WITH OLD_ACCOUNT = 'a' OLD_PASSWORD = 'p'")]
 	[InlineData("ALTER SERVICE MASTER KEY WITH OLD_ACCOUNT = 'a', OLD_PASSWORD = 'p', OLD_ACCOUNT = 'b'")]
 	[InlineData("ALTER SERVICE MASTER KEY REGENERATE FORCE")]
-	public void Text_and_configuration_refuses_what_the_engine_does(string input) =>
+	public void Text_and_configuration_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -11843,8 +12009,10 @@ public sealed class TransactSqlTests
 	[InlineData("DROP SIGNATURE FROM p BY ASYMMETRIC KEY dbo.k")]
 	[InlineData("DROP SIGNATURE FROM TYPE::p BY CERTIFICATE c")]
 	[InlineData("DROP SIGNATURE FROM p BY SYMMETRIC KEY k WITH PASSWORD = 'x'")]
-	public void Code_objects_refuses_what_the_engine_does(string input) =>
+	public void Code_objects_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -11981,8 +12149,10 @@ public sealed class TransactSqlTests
 	[InlineData("p WITH")]
 	[InlineData("p OPTION (RECOMPILE)")]
 	[InlineData("p 1 OUTPUT")]
-	public void Procedure_calls_refuses_what_the_engine_does(string input) =>
+	public void Procedure_calls_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -12064,8 +12234,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE PROCEDURE pp AS p 1", false)]
 	[InlineData("CREATE PROCEDURE pp AS SELECT 1; p 1", false)]
 	[InlineData("p WITH a AS (SELECT 1 x) SELECT x FROM a", false)]
-	public void A_call_without_the_word_stands_first_in_its_batch(string input, bool read) =>
+	public void A_call_without_the_word_stands_first_in_its_batch(string input, bool read)
+	{
 		Assert.Equal(read, TransactSqlParser.TryParseScript(input).IsSuccess);
+	}
 
 	/// <summary>A table emptied, a trigger switched, a session killed and a column classified, as the engine answers them.</summary>
 	[Theory]
@@ -12104,8 +12276,10 @@ public sealed class TransactSqlTests
 	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = 'a' RANK = LOW)")]
 	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL_ID = 0x01)")]
 	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = @l)")]
-	public void Maintenance_refuses_what_the_engine_does(string input) =>
+	public void Maintenance_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -12176,8 +12350,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE SYNONYM s")]
 	[InlineData("CREATE SYNONYM s FOR @t")]
 	[InlineData("ALTER SYNONYM s FOR t")]
-	public void Types_and_synonyms_refuse_what_the_engine_does(string input) =>
+	public void Types_and_synonyms_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -12254,8 +12430,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER SEQUENCE s MINVALUE")]
 	[InlineData("ALTER SEQUENCE s MAXVALUE")]
 	[InlineData("ALTER SEQUENCE s RESTART RESTART")]
-	public void Sequences_refuse_what_the_engine_does(string input) =>
+	public void Sequences_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -12324,8 +12502,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER PARTITION SCHEME dbo.ps NEXT USED fg4")]
 	[InlineData("ALTER PARTITION SCHEME ps NEXT fg4")]
 	[InlineData("ALTER PARTITION SCHEME ps")]
-	public void Partitions_refuse_what_the_engine_does(string input) =>
+	public void Partitions_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -12400,8 +12580,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = dbo.t, RUNTIME = ONNX) WITH (s FLOAT) AS p")]
 	[InlineData("SELECT * FROM PREDICT(MODEL = @m, RUNTIME = ONNX, DATA = dbo.t AS d) WITH (s FLOAT) AS p")]
 	[InlineData("SELECT d.*, p.Score FROM PREDICT(MODEL = (SELECT Model FROM Models WHERE Id = 4), DATA = testData AS d, RUNTIME=ONNX) WITH (Score float) AS p")]
-	public void Names_and_sources_refuse_what_the_engine_does(string input) =>
+	public void Names_and_sources_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -12492,8 +12674,10 @@ public sealed class TransactSqlTests
 	[InlineData("CLOSE ALL SYMMETRIC KEY")]
 	[InlineData("CLOSE MASTER KEY k")]
 	[InlineData("CLOSE ASYMMETRIC KEY k")]
-	public void Members_and_keys_refuse_what_the_engine_does(string input) =>
+	public void Members_and_keys_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -12605,8 +12789,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER SERVER CONFIGURATION SET SOFTNUMA ON, HARDWARE_OFFLOAD ON")]
 	[InlineData("ALTER SERVER CONFIGURATION SET FOO ON")]
 	[InlineData("ALTER SERVER CONFIGURATION SOFTNUMA ON")]
-	public void The_server_configuration_refuses_what_the_engine_does(string input) =>
+	public void The_server_configuration_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -12742,8 +12928,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE BROKER PRIORITY p")]
 	[InlineData("ALTER BROKER PRIORITY p FOR CONVERSATION")]
 	[InlineData("ALTER BROKER PRIORITY p FOR CONVERSATION SET ()")]
-	public void Broker_objects_refuse_what_the_engine_does(string input) =>
+	public void Broker_objects_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -12860,8 +13048,10 @@ public sealed class TransactSqlTests
 	[InlineData("SEND ON CONVERSATION @h ('x') ('y')")]
 	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m (SELECT 1)")]
 	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m ()")]
-	public void Conversations_refuse_what_the_engine_does(string input) =>
+	public void Conversations_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -12977,8 +13167,10 @@ public sealed class TransactSqlTests
 	[InlineData("DBCC FOO ([a] = 1)")]
 	[InlineData("DBCC FOO (KEY)")]
 	[InlineData("DBCC FOO (SELECT 1 AS a)")]
-	public void Dbcc_refuses_what_the_engine_does(string input) =>
+	public void Dbcc_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them, the commands it does not document among them.</summary>
 	[Theory]
@@ -13092,8 +13284,10 @@ public sealed class TransactSqlTests
 	[InlineData("CLOSE master")]
 	[InlineData("CLOSE symmetric")]
 	[InlineData("CLOSE asymmetric")]
-	public void Cursors_refuse_what_the_engine_does(string input) =>
+	public void Cursors_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13175,8 +13369,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c VARCHAR (10) COLLATE)")]
 	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH (c VARCHAR (10) '@c' COLLATE Latin1_General_Bin2)")]
 	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH (c VARCHAR (10) AS JSON)")]
-	public void A_json_schema_refuses_the_collations_the_engine_does(string input) =>
+	public void A_json_schema_refuses_the_collations_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the ones beside them.</summary>
 	[Theory]
@@ -13216,8 +13412,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t ORDER BY a FOR READ ONLY")]
 	[InlineData("SELECT a FROM t UNION SELECT a FROM u FOR READ ONLY")]
 	[InlineData("INSERT INTO t SELECT a FROM u FOR UPDATE")]
-	public void The_row_shapes_refuse_what_the_engine_does(string input) =>
+	public void The_row_shapes_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13249,8 +13447,10 @@ public sealed class TransactSqlTests
 	[InlineData("GRANT CREATE TO u")]
 	[InlineData("GRANT CREATE ANY FOO TO u")]
 	[InlineData("GRANT VIEW FOO TO u")]
-	public void The_permission_statements_refuse_what_the_engine_does(string input) =>
+	public void The_permission_statements_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13284,8 +13484,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER TABLE t CHECK CONSTRAINT")]
 	[InlineData("CREATE INDEX i ON n (c1) INCLUDE (t.c2)")]
 	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX i ON n ORDER ($NODE_ID)")]
-	public void Switched_constraints_and_carried_columns_refuse_what_the_engine_does(string input) =>
+	public void Switched_constraints_and_carried_columns_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13325,8 +13527,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE SECURITY POLICY p ADD FILTER PREDICATE dbo.f(c) ON dbo.t AFTER INSERT")]
 	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t AFTER DELETE")]
 	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t BEFORE INSERT")]
-	public void Keys_and_policies_refuse_what_the_engine_does(string input) =>
+	public void Keys_and_policies_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13390,8 +13594,10 @@ public sealed class TransactSqlTests
 	[InlineData("SET OFFSETS GROUP ON")]
 	[InlineData("SET [NOCOUNT] ON")]
 	[InlineData("SET NOCOUNTON")]
-	public void The_set_statements_refuse_what_the_engine_does(string input) =>
+	public void The_set_statements_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>
 	/// A name the engine does not know, which it parses with whatever follows it to the end of
@@ -13412,8 +13618,10 @@ public sealed class TransactSqlTests
 	[InlineData("SET STATISTICS FOO ON")]
 	[InlineData("SET STATISTICS IO, NOCOUNT ON")]
 	[InlineData("SET OFFSETS FOO ON")]
-	public void The_set_statements_refuse_the_names_the_engine_does_not_know(string input) =>
+	public void The_set_statements_refuse_the_names_the_engine_does_not_know(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13486,8 +13694,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM dbo.f() FOR PATH AS x")]
 	[InlineData("SELECT * FROM @t FOR PATH AS x")]
 	[InlineData("SELECT * FROM OPENJSON('[]') FOR PATH AS x")]
-	public void The_graph_pattern_refuses_what_the_engine_does(string input) =>
+	public void The_graph_pattern_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -13539,8 +13749,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT 1 AS merge")]
 	[InlineData("SELECT t.pivot FROM t")]
 	[InlineData("SELECT a FROM TABLESAMPLE")]
-	public void The_reference_refuses_what_the_engine_does(string input) =>
+	public void The_reference_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -13581,8 +13793,10 @@ public sealed class TransactSqlTests
 	[InlineData("EXEC @s AS USER = 'u'")]
 	[InlineData("EXEC ('SELECT 1') AT a.b")]
 	[InlineData("EXEC ('SELECT 1') AT DATA_SOURCE a.b")]
-	public void A_string_run_refuses_what_the_engine_does(string input) =>
+	public void A_string_run_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside it.</summary>
 	[Theory]
@@ -13612,8 +13826,10 @@ public sealed class TransactSqlTests
 	[InlineData("(SELECT TOP 1 a FROM t ORDER BY a) UNION SELECT 1")]
 	[InlineData("SELECT 1 UNION (SELECT TOP 1 a FROM t ORDER BY a)")]
 	[InlineData("SELECT (SELECT a FROM t ORDER BY a OPTION (MAXDOP 1))")]
-	public void An_ordered_query_refuses_what_the_engine_does(string input) =>
+	public void An_ordered_query_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside it.</summary>
 	[Theory]
@@ -13661,8 +13877,10 @@ public sealed class TransactSqlTests
 	[Theory]
 	[InlineData("SELECT TOP (WITH x AS (SELECT 1 AS n) SELECT n FROM x) a FROM t")]
 	[InlineData("SELECT TOP (VALUES (1)) a FROM t")]
-	public void A_subquery_counted_refuses_what_the_engine_does(string input) =>
+	public void A_subquery_counted_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside it.</summary>
 	[Theory]
@@ -13687,8 +13905,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT (*) FROM t")]
 	[InlineData("SELECT @a = *, 1 FROM t")]
 	[InlineData("SELECT x = * FROM t")]
-	public void A_star_in_the_list_refuses_what_the_engine_does(string input) =>
+	public void A_star_in_the_list_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside it.</summary>
 	[Theory]
@@ -13717,8 +13937,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT IDENTITY(INT, 1, 1) + 1 AS id INTO #t FROM t")]
 	[InlineData("SELECT IDENTITY(INT, 1, 1) AS id FROM t")]
 	[InlineData("INSERT INTO t SELECT IDENTITY(INT, 1, 1) AS id FROM u")]
-	public void An_identity_column_made_refuses_what_the_engine_does(string input) =>
+	public void An_identity_column_made_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside it.</summary>
 	[Theory]
@@ -13753,8 +13975,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a AS IDENTITYCOL FROM t")]
 	[InlineData("UPDATE t SET IDENTITYCOL = 1")]
 	[InlineData("SELECT IDENTITYCOL() FROM t")]
-	public void Reserved_values_refuse_what_the_engine_does(string input) =>
+	public void Reserved_values_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13793,8 +14017,10 @@ public sealed class TransactSqlTests
 	[InlineData("UPDATE t SET @a = c = @a = 1")]
 	[InlineData("UPDATE t SET @a = @a = 1")]
 	[InlineData("UPDATE t SET c = @a = 1")]
-	public void A_variable_assigned_refuses_what_the_engine_does(string input) =>
+	public void A_variable_assigned_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -13821,8 +14047,10 @@ public sealed class TransactSqlTests
 	[InlineData("DELETE dbo.f() AS x")]
 	[InlineData("INSERT INTO dbo.f() WITH (TABLOCK) VALUES (1)")]
 	[InlineData("UPDATE @t.f() SET c = 1")]
-	public void A_function_target_refuses_what_the_engine_does(string input) =>
+	public void A_function_target_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside it.</summary>
 	[Theory]
@@ -13886,8 +14114,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT\u007F1 AS x")]
 	[InlineData("SELECT\u00AD1 AS x")]
 	[InlineData("SELECT\u180E1 AS x")]
-	public void Nothing_else_is_a_space(string input) =>
+	public void Nothing_else_is_a_space(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>
 	/// The operators group as the engine computes them — asked with numbers, since a parse
@@ -13950,8 +14180,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t WHERE a !<= 1")]
 	[InlineData("SELECT a FROM t WHERE a *= b")]
 	[InlineData("SELECT a FROM t WHERE a =* b")]
-	public void The_operators_refuse_what_the_engine_does(string input) =>
+	public void The_operators_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -13992,8 +14224,10 @@ public sealed class TransactSqlTests
 	[InlineData("WAITFOR DELAY 1")]
 	[InlineData("WAITFOR DELAY (@t)")]
 	[InlineData("WAITFOR TIME")]
-	public void Zones_and_waits_refuse_what_the_engine_does(string input) =>
+	public void Zones_and_waits_refuse_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
@@ -14040,8 +14274,10 @@ public sealed class TransactSqlTests
 	[InlineData("INSERT t EXEC p OPTION (RECOMPILE)")]
 	[InlineData("SELECT * FROM t1 OPTION (OPTIMIZE CORRELATED UNION ALL)")]
 	[InlineData("SELECT * FROM t1 OPTION (BYPASS OPTIMIZER_QUEUE)")]
-	public void The_hint_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_hint_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -14086,8 +14322,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE DATABASE d ON FILEGROUP g (NAME = g1, FILENAME = 'g1.ndf')")]
 	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf'), FILEGROUP g CONTAINS FOO (NAME = g1, FILENAME = 'g1.ndf')")]
 	[InlineData("ALTER DATABASE d ADD FILE (NAME = f, FILENAME = 'f.ndf', SIZE = 1 MB, FOO = 1)")]
-	public void The_creation_catalogue_refuses_what_the_engine_does(string input) =>
+	public void The_creation_catalogue_refuses_what_the_engine_does(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
@@ -14116,10 +14354,12 @@ public sealed class TransactSqlTests
 	/// statement: `--split` found this cut wrong in the corpus.
 	/// </summary>
 	[Fact]
-	public void A_creation_does_not_take_the_next_statement_for_an_option() =>
+	public void A_creation_does_not_take_the_next_statement_for_an_option()
+	{
 		Assert.Equal(2, TransactSqlParser.ParseSql(
 			"CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH WITH RESTRICTED_USER\n" +
 			"ALTER DATABASE d SET HADR SUSPEND").Length);
+	}
 
 	/// <summary>
 	/// A script, cut at its <c>GO</c> lines the way ScriptDom cuts it: the number of batches
@@ -14164,12 +14404,16 @@ public sealed class TransactSqlTests
 	[Theory]
 	[InlineData("SELECT a,\ngo\nFROM t")]
 	[InlineData("SELECT 1\nGO\nFROM T")]
-	public void A_GO_line_ends_a_batch_wherever_it_stands(string input) =>
+	public void A_GO_line_ends_a_batch_wherever_it_stands(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseScript(input).IsSuccess, input);
+	}
 
 	[Fact]
-	public void A_text_of_statements_has_no_GO_in_it() =>
+	public void A_text_of_statements_has_no_GO_in_it()
+	{
 		Assert.False(TransactSqlParser.TryParseSql("SELECT 1\nGO\nSELECT 2").IsSuccess);
+	}
 
 	/// <summary>A text of several statements, as one call to the server carries them.</summary>
 	[Theory]
@@ -14204,8 +14448,10 @@ public sealed class TransactSqlTests
 	[InlineData("IF 1 = 1 SELECT 1 WITH a AS (SELECT 1 AS x) SELECT * FROM a", false)]
 	[InlineData("IF 1 = 1 SELECT 1; ELSE SELECT 2; WITH a AS (SELECT 1 AS x) SELECT * FROM a", true)]
 	[InlineData("WHILE 1 = 0 BREAK; WITH a AS (SELECT 1 AS x) SELECT * FROM a", true)]
-	public void A_WITH_after_a_statement_needs_it_ended(string input, bool read) =>
+	public void A_WITH_after_a_statement_needs_it_ended(string input, bool read)
+	{
 		Assert.Equal(read, TransactSqlParser.TryParseSql(input).IsSuccess);
+	}
 
 	/// <summary>A construct taken out of the language: read up to a level and refused after it.</summary>
 	/// <remarks>
@@ -14967,8 +15213,10 @@ public sealed class TransactSqlTests
 	[InlineData("DECLARE @v AS INT NOT NULL = 4")]
 	[InlineData("DECLARE @v AS INT NULL")]
 	[InlineData("UPDATE t SET s.DocumentSummary.WRITE (N'features', 28, 10)")]
-	public void And_what_only_ScriptDom_reads_is_refused(string input) =>
+	public void And_what_only_ScriptDom_reads_is_refused(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>`NULL` is a constant of this dialect and stands wherever a value does.</summary>
 	/// <remarks>
@@ -15093,8 +15341,10 @@ public sealed class TransactSqlTests
 	[InlineData("DROP FOO x")]
 	[InlineData("DROP TABLE")]
 	[InlineData("DROP MASTER KEY k")]
-	public void And_a_drop_of_nothing_is_refused(string input) =>
+	public void And_a_drop_of_nothing_is_refused(string input)
+	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
 
 	/// <summary>Who may connect, and as whom.</summary>
 	/// <remarks>
@@ -15603,9 +15853,11 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>What the dialect read, where it was a query.</summary>
-	static Query.Specification Selected(string input) =>
-		Assert.IsType<Query.Specification>(
+	static Query.Specification Selected(string input)
+	{
+		return Assert.IsType<Query.Specification>(
 			Assert.IsType<Statement.Select>(TransactSqlParser.TryParseSelect(input).Value).Of);
+	}
 
 	/// <summary>A bracketed name may be a reserved word, which is what brackets are for.</summary>
 	/// <remarks>

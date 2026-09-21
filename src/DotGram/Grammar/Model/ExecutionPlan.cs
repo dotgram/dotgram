@@ -35,8 +35,10 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 public sealed class ExecutionPlan
 {
-	ExecutionPlan(IReadOnlyCollection<RuleSymbol> compiledInPlace) =>
+	ExecutionPlan(IReadOnlyCollection<RuleSymbol> compiledInPlace)
+	{
 		CompiledInPlace = compiledInPlace;
+	}
 
 	/// <summary>
 	/// The rules whose bodies are written where they are called, rather than once in a block

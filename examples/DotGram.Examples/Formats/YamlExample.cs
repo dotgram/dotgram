@@ -69,7 +69,10 @@ namespace DotGram.Examples.Formats;
 public sealed partial class YamlLite
 {
 	/// <summary>Reads a document into a tree, nested as deep as its indentation goes.</summary>
-	public static YamlNode Read(string text) => YamlNode.Build(ParseDoc(text));
+	public static YamlNode Read(string text)
+	{
+		return YamlNode.Build(ParseDoc(text));
+	}
 }
 
 /// <summary>One line as the grammar saw it: how far in, what it names, what it holds.</summary>
@@ -82,7 +85,10 @@ public sealed class YamlNode
 {
 	readonly Dictionary<string, YamlNode> _children = new(StringComparer.Ordinal);
 
-	YamlNode(string value) => Value = value;
+	YamlNode(string value)
+	{
+		Value = value;
+	}
 
 	/// <summary>What was written after the colon, empty where the line only opens a block.</summary>
 	public string Value { get; private set; }

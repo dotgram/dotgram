@@ -41,8 +41,14 @@ public partial class Flat
 	static readonly string Input = string.Concat(new string('x', 8), ",").Repeat(50) + ";";
 
 	[Benchmark(Baseline = true)]
-	public bool Flat_method() => Lowered.TryParseDoc(Input).IsSuccess;
+	public bool Flat_method()
+	{
+		return Lowered.TryParseDoc(Input).IsSuccess;
+	}
 
 	[Benchmark]
-	public bool Shared_automaton() => NotLowered.TryParseDoc(Input).IsSuccess;
+	public bool Shared_automaton()
+	{
+		return NotLowered.TryParseDoc(Input).IsSuccess;
+	}
 }

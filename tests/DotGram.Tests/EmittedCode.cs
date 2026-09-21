@@ -50,8 +50,10 @@ static class EmittedCode
 	/// grammar compiles is about everything else, and a test that asserted on the whole
 	/// list would break whenever the compiler learned to offer something new.
 	/// </remarks>
-	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics) =>
+	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
+	{
 		Assert.DoesNotContain(diagnostics, static one => one.Severity != GramSeverity.Info);
+	}
 
 	public static Assembly Compile(
 		string source,
@@ -119,7 +121,10 @@ static class EmittedCode
 		// to `GetMethod` at all.
 		var match = type.GetMethod(method, [typeof(string)])!.Invoke(null, [input])!;
 
-		object? Read(string name) => match.GetType().GetProperty(name)!.GetValue(match);
+		object? Read(string name)
+		{
+			return match.GetType().GetProperty(name)!.GetValue(match);
+		}
 
 		return ((bool)Read("IsSuccess")!, Read("Value"), (string?)Read("Error"), (long)Read("Position")!);
 	}
@@ -136,7 +141,10 @@ static class EmittedCode
 			? type.GetMethod(method, [typeof(string), typeof(int), typeof(int)])!.Invoke(null, [input, at, seen])!
 			: type.GetMethod(method, [typeof(string), typeof(int)])!.Invoke(null, [input, at])!;
 
-		object? Read(string name) => match.GetType().GetProperty(name)!.GetValue(match);
+		object? Read(string name)
+		{
+			return match.GetType().GetProperty(name)!.GetValue(match);
+		}
 
 		return (
 			(bool)Read("IsSuccess")!,

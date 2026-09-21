@@ -18,7 +18,10 @@ public sealed class PrimitiveTests
 
 	[Theory]
 	[MemberData(nameof(KnownCodes))]
-	public void Every_known_code_is_accepted(int tag, string value) => Assert.True(Valid(tag, value), $"Tag {tag}: {value}");
+	public void Every_known_code_is_accepted(int tag, string value)
+	{
+		Assert.True(Valid(tag, value), $"Tag {tag}: {value}");
+	}
 
 	[Theory]
 	[InlineData(38, "0", true)]
@@ -54,7 +57,13 @@ public sealed class PrimitiveTests
 	[InlineData(18, "1  2", false)]
 	[InlineData(18, "1 ", false)]
 	[InlineData(27, "12345", true)]
-	public void Primitive_boundaries(int tag, string value, bool expected) => Assert.Equal(expected, Valid(tag, value));
+	public void Primitive_boundaries(int tag, string value, bool expected)
+	{
+		Assert.Equal(expected, Valid(tag, value));
+	}
 
-	static bool Valid(int tag, string value) => FixPrimitives.Valid(new FixFieldView(value, tag, 0, 0, value.Length), FixSchema.Type(tag), FixSchema.Codes(tag));
+	static bool Valid(int tag, string value)
+	{
+		return FixPrimitives.Valid(new FixFieldView(value, tag, 0, 0, value.Length), FixSchema.Type(tag), FixSchema.Codes(tag));
+	}
 }

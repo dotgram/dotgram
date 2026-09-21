@@ -151,37 +151,46 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether every way into a node reads the seam first: what a rewrite could take out in front of it.</summary>
-	bool LeadsWithSeam(Node node) => node switch
+	bool LeadsWithSeam(Node node)
 	{
-		Node.Capture(_, var body)   => LeadsWithSeam(body),
-		Node.Construct(var body, _) => LeadsWithSeam(body),
-		Node.Sequence(var parts)    => parts.Count > 0 && LeadsWithSeam(parts[0]),
-		Node.Choice(var options)    => options.Count > 0 && options.All(LeadsWithSeam),
-		Node.Call(var called, _)    => _seam is { } seam && ReferenceEquals(called, seam),
-		_                           => false,
-	};
+		return node switch
+		{
+			Node.Capture(_, var body) => LeadsWithSeam(body),
+			Node.Construct(var body, _) => LeadsWithSeam(body),
+			Node.Sequence(var parts) => parts.Count > 0 && LeadsWithSeam(parts[0]),
+			Node.Choice(var options) => options.Count > 0 && options.All(LeadsWithSeam),
+			Node.Call(var called, _) => _seam is { } seam && ReferenceEquals(called, seam),
+			_ => false,
+		};
+	}
 
 	/// <summary>A node without the captures and constructions around it.</summary>
-	static Node Bare(Node node) => node switch
+	static Node Bare(Node node)
 	{
-		Node.Capture(_, var body)   => Bare(body),
-		Node.Construct(var body, _) => Bare(body),
-		_                           => node,
-	};
+		return node switch
+		{
+			Node.Capture(_, var body) => Bare(body),
+			Node.Construct(var body, _) => Bare(body),
+			_ => node,
+		};
+	}
 
 	/// <summary>Whether a node begins with a part that may read nothing, looking through a few calls.</summary>
-	bool LedByNothing(Node node, int depth) => node switch
+	bool LedByNothing(Node node, int depth)
 	{
-		Node.Capture(_, var body)   => LedByNothing(body, depth),
-		Node.Construct(var body, _) => LedByNothing(body, depth),
-		Node.Marked(var body, _)    => LedByNothing(body, depth),
-		Node.Sequence(var parts)    => parts.Count > 1 &&
-		                               (FirstSets.Nullable(parts[0], _graph) || LedByNothing(parts[0], depth)),
-		Node.Choice(var options)    => options.Count > 0 && options.All(one => LedByNothing(one, depth)),
-		Node.Call(var called, _)    => depth > 0 && _graph.Bodies.TryGetValue(called, out var body) &&
-		                               LedByNothing(body, depth - 1),
-		_                           => false,
-	};
+		return node switch
+		{
+			Node.Capture(_, var body) => LedByNothing(body, depth),
+			Node.Construct(var body, _) => LedByNothing(body, depth),
+			Node.Marked(var body, _) => LedByNothing(body, depth),
+			Node.Sequence(var parts) => parts.Count > 1 &&
+										   (FirstSets.Nullable(parts[0], _graph) || LedByNothing(parts[0], depth)),
+			Node.Choice(var options) => options.Count > 0 && options.All(one => LedByNothing(one, depth)),
+			Node.Call(var called, _) => depth > 0 && _graph.Bodies.TryGetValue(called, out var body) &&
+										   LedByNothing(body, depth - 1),
+			_ => false,
+		};
+	}
 
 	/// <summary>
 	/// Why a choice over characters keeps a way: what <c>LiteralRun</c> could not settle, said
@@ -347,10 +356,13 @@ sealed partial class Machine
 
 		_chosen = immediate;
 
-		List<RuleSymbol> Replayed() => building
+		List<RuleSymbol> Replayed()
+		{
+			return building
 			.Where(rule => !_replay.Keeps(rule))
 			.OrderBy(rule => _replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
 			.ToList();
+		}
 	}
 
 	/// <summary>
@@ -398,12 +410,15 @@ sealed partial class Machine
 
 		return [.. rules.Where(rule => opens.Contains(rule) && gives.Contains(rule) && (entries.Contains(rule) || called.Contains(rule)))];
 
-		static Node Unwrapped(Node node) => node switch
+		static Node Unwrapped(Node node)
 		{
-			Node.Capture(_, var body)   => Unwrapped(body),
-			Node.Construct(var body, _) => Unwrapped(body),
-			_                           => node,
-		};
+			return node switch
+			{
+				Node.Capture(_, var body) => Unwrapped(body),
+				Node.Construct(var body, _) => Unwrapped(body),
+				_ => node,
+			};
+		}
 
 		void OpenCalls(Node node, RuleSymbol owner, bool committed)
 		{
@@ -466,11 +481,14 @@ sealed partial class Machine
 
 			return field = new TapeCarrier(this);
 
-			ValueCarrier? Asked() => _carrierKind switch
+			ValueCarrier? Asked()
 			{
-				CarrierKind.Immediate => new ImmediateCarrier(this),
-				_                     => null,
-			};
+				return _carrierKind switch
+				{
+					CarrierKind.Immediate => new ImmediateCarrier(this),
+					_ => null,
+				};
+			}
 		}
 	}
 
@@ -480,18 +498,23 @@ sealed partial class Machine
 	/// keeps the answer; this is the same question about a carrier the machine was not
 	/// given, which is what an offer of one has to know before it is made.
 	/// </remarks>
-	public string? WouldRefuse(CarrierKind kind) => kind switch
+	public string? WouldRefuse(CarrierKind kind)
 	{
-		CarrierKind.Immediate => new ImmediateCarrier(this).Refuses(),
-		_                     => null,
-	};
+		return kind switch
+		{
+			CarrierKind.Immediate => new ImmediateCarrier(this).Refuses(),
+			_ => null,
+		};
+	}
 
 	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
 	internal bool CarriesImmediately => Carrier is ImmediateCarrier;
 
 	/// <summary>The class this machine's carrier rents, or nothing where it rents none.</summary>
-	internal string CarrierStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-		Carrier.RenderStore(valueTypes, stateType);
+	internal string CarrierStore(IReadOnlyList<string> valueTypes, string? stateType)
+	{
+		return Carrier.RenderStore(valueTypes, stateType);
+	}
 
 	/// <summary>
 	/// How a reader carries what it read until the derivation is accepted and the author's
@@ -567,7 +590,10 @@ sealed partial class Machine
 		/// What <see cref="MarkRecords"/> declares, named: a rule read in parts hands its
 		/// mark down to them, and how many numbers that is depends on the carrier.
 		/// </summary>
-		public virtual IReadOnlyList<string> RecordMarks(string name) => [name];
+		public virtual IReadOnlyList<string> RecordMarks(string name)
+		{
+			return [name];
+		}
 
 		/// <summary>Locals remembering where the gathered members of the rule stood.</summary>
 		public abstract IEnumerable<string> MarkGathered(RuleSymbol? owner, string name);
@@ -601,8 +627,10 @@ sealed partial class Machine
 		/// run of their own carries the run instead: where it begins, where it ends, and how
 		/// long it is. The names are the carrier's and appear nowhere else.
 		/// </remarks>
-		public virtual IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner) =>
-			[(RecordLocalType(owner), "fold")];
+		public virtual IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner)
+		{
+			return [(RecordLocalType(owner), "fold")];
+		}
 
 		/// <summary>What a turn does with the value it has just written, if anything.</summary>
 		/// <remarks>
@@ -610,7 +638,10 @@ sealed partial class Machine
 		/// builds on. A carrier keeping the turns as a run has already linked it and has
 		/// nothing to say here.
 		/// </remarks>
-		public virtual string Accumulated(RuleSymbol owner) => $"fold = {Last(owner)};";
+		public virtual string Accumulated(RuleSymbol owner)
+		{
+			return $"fold = {Last(owner)};";
+		}
 
 		/// <summary>What a folding rule is worth once its turns are done, if anything.</summary>
 		/// <remarks>
@@ -618,7 +649,10 @@ sealed partial class Machine
 		/// here. A carrier keeping the turns as a run has the base, the run and its length
 		/// in hand and nothing holding them together: this is where they become the rule.
 		/// </remarks>
-		public virtual string Folded(RuleSymbol owner) => "";
+		public virtual string Folded(RuleSymbol owner)
+		{
+			return "";
+		}
 
 		/// <summary>What the body of a rule that gathers into a slot declares for it, beside the position it keeps.</summary>
 		public abstract IEnumerable<string> DeclareGathered(int slot, string elementType);
@@ -724,7 +758,10 @@ sealed partial class Machine
 		/// asked with the file's own union of value types. A carrier that keeps everything
 		/// in the reader rents nothing and renders nothing.
 		/// </remarks>
-		public virtual string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) => "";
+		public virtual string RenderStore(IReadOnlyList<string> valueTypes, string? stateType)
+		{
+			return "";
+		}
 
 		/// <summary>
 		/// Whether a value handed up unchanged is already where the caller will look for it.
@@ -761,7 +798,10 @@ sealed partial class Machine
 		/// null where it is written as it always was. <paramref name="local"/> is a name the
 		/// call may take for itself.
 		/// </summary>
-		public virtual (string Before, string After)? AroundCall(RuleSymbol owner, Node.Call call, string local) => null;
+		public virtual (string Before, string After)? AroundCall(RuleSymbol owner, Node.Call call, string local)
+		{
+			return null;
+		}
 
 		/// <summary>The slots of a member, as a mask the tape collects by.</summary>
 		protected static long MaskOf(IReadOnlyList<int> slots)
@@ -819,10 +859,15 @@ sealed partial class Machine
 		/// Where the rule gathers across turns, what a record collects is everything pushed
 		/// since the rule began — not since the part did — so the rule's mark is handed on.
 		/// </remarks>
-		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody) =>
-			declared ? ", int refs" : inBody ? ", rb" : ", refs";
+		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody)
+		{
+			return declared ? ", int refs" : inBody ? ", rb" : ", refs";
+		}
 
-		public override IReadOnlyList<string> RecordMarks(string name) => [name, name + "R"];
+		public override IReadOnlyList<string> RecordMarks(string name)
+		{
+			return [name, name + "R"];
+		}
 
 		public override IEnumerable<string> MarkRecords(string name)
 		{
@@ -855,17 +900,35 @@ sealed partial class Machine
 			yield return $"ways.RefsCount = {name};";
 		}
 
-		public override string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional) => $"var r{slot} = -1;";
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional)
+		{
+			return $"var r{slot} = -1;";
+		}
 
-		public override string DeclareAccumulator(RuleSymbol rule) => "var fold = -1;";
+		public override string DeclareAccumulator(RuleSymbol rule)
+		{
+			return "var fold = -1;";
+		}
 
-		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
+		public override IEnumerable<string> DeclareGathered(int slot, string elementType)
+		{
+			return [];
+		}
 
-		public override string RecordLocalType(RuleSymbol rule, bool optional = false) => "int ";
+		public override string RecordLocalType(RuleSymbol rule, bool optional = false)
+		{
+			return "int ";
+		}
 
-		public override string ResetRecordLocal(int slot, bool optional) => $"r{slot} = -1;";
+		public override string ResetRecordLocal(int slot, bool optional)
+		{
+			return $"r{slot} = -1;";
+		}
 
-		public override string Absent(RuleSymbol rule, string local) => $"{local} < 0";
+		public override string Absent(RuleSymbol rule, string local)
+		{
+			return $"{local} < 0";
+		}
 
 		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
 		{
@@ -892,27 +955,52 @@ sealed partial class Machine
 		/// <summary>The rule whose record is open, for <see cref="End"/> to name it by.</summary>
 		RuleSymbol? _rule;
 
-		public override string PutAccumulator() => "ways.Put(fold);";
+		public override string PutAccumulator()
+		{
+			return "ways.Put(fold);";
+		}
 
-		public override string PutText(DirectMember member, string from, string to, string? cached = null) => $"ways.Put({from}, {to});";
+		public override string PutText(DirectMember member, string from, string to, string? cached = null)
+		{
+			return $"ways.Put({from}, {to});";
+		}
 
-		public override string PutRecord(DirectMember member, string record) => $"ways.Put({record});";
+		public override string PutRecord(DirectMember member, string record)
+		{
+			return $"ways.Put({record});";
+		}
 
-		public override string Collect(DirectMember member, string from, bool pairs) =>
-			$"ways.Collect({from}, {member.Mask}L, {(pairs ? "true" : "false")});";
+		public override string Collect(DirectMember member, string from, bool pairs)
+		{
+			return $"ways.Collect({from}, {member.Mask}L, {(pairs ? "true" : "false")});";
+		}
 
-		public override string End(string gatheredFrom) =>
-			_rule is { } rule && machine.IsExtent(rule)
+		public override string End(string gatheredFrom)
+		{
+			return _rule is { } rule && machine.IsExtent(rule)
 				? $"ways.EndAt({gatheredFrom});"
 				: $"ways.End({gatheredFrom});";
+		}
 
-		public override string Last(RuleSymbol rule) => "ways.Last";
+		public override string Last(RuleSymbol rule)
+		{
+			return "ways.Last";
+		}
 
-		public override string PushText(int slot, string from, string to) => $"ways.Push({slot}, {from}, {to});";
+		public override string PushText(int slot, string from, string to)
+		{
+			return $"ways.Push({slot}, {from}, {to});";
+		}
 
-		public override string PushRecord(int slot, RuleSymbol rule) => $"ways.Push({slot}, ways.Last, -1);";
+		public override string PushRecord(int slot, RuleSymbol rule)
+		{
+			return $"ways.Push({slot}, ways.Last, -1);";
+		}
 
-		public override string Mark(int kind, int site) => $"ways.Mark({kind}, {site}, p);";
+		public override string Mark(int kind, int site)
+		{
+			return $"ways.Mark({kind}, {site}, p);";
+		}
 
 		/// <remarks>A record of its own, under its own arm, which the walk builds (Machine.MaterializeRecoveryArm).</remarks>
 		public override IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions)
@@ -929,20 +1017,26 @@ sealed partial class Machine
 				yield return PushRecord(slot, element);
 		}
 
-		public override string Materialize(string record, string sinceMark) =>
-			$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
+		public override string Materialize(string record, string sinceMark)
+		{
+			return $"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
 			$"{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});";
+		}
 
 		/// <summary>From the tables, or for an extent the record itself.</summary>
-		public override string ValueOf(RuleSymbol rule, string record) =>
-			ValueOfType(machine._results.ValueOf(rule), record);
+		public override string ValueOf(RuleSymbol rule, string record)
+		{
+			return ValueOfType(machine._results.ValueOf(rule), record);
+		}
 
-		string ValueOfType(string type, string record) =>
-			type == "SourceSpan"
+		string ValueOfType(string type, string record)
+		{
+			return type == "SourceSpan"
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
 				: machine.DenseDirectValues
 					? $"values.V{TableName(type)}[values.Starts[{record}]].Value"
 					: $"values.V{TableName(type)}[{record}].Value";
+		}
 
 		/// <remarks>
 		/// Gathered turn by turn on the tape, and collected here the way the rule's end would
@@ -1004,11 +1098,19 @@ sealed partial class Machine
 				$"value = {(extent ? machine.RecordValue(type, "ways.Last").Replace("log[", "ways.Log[") : ValueOfType(type, "ways.Last"))};";
 		}
 
-		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => machine.RenderDirectMaterializer(rules);
+		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules)
+		{
+			return machine.RenderDirectMaterializer(rules);
+		}
 
-		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-			CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore, NamesMarks(machine._graph));
+		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType)
+		{
+			return CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore, NamesMarks(machine._graph));
+		}
 
-		public override string? Refuses() => null;
+		public override string? Refuses()
+		{
+			return null;
+		}
 	}
 }

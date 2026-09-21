@@ -158,7 +158,10 @@ static partial class Stand
 	/// Every row, with its readings held to one another. Nothing is timed, so it is the check to
 	/// make after writing a row and before asking anyone for a quiet machine.
 	/// </summary>
-	public static void Check() => Console.WriteLine($"{Agreed().Length} rows, every reading agreeing.");
+	public static void Check()
+	{
+		Console.WriteLine($"{Agreed().Length} rows, every reading agreeing.");
+	}
 
 	/// <summary>The rows of a pair held to what they say, both sides, and to one another; nothing is timed and nothing is pinned.</summary>
 	public static void PairedCheck(string beforeDir, string afterDir, string? only)
@@ -175,11 +178,16 @@ static partial class Stand
 	}
 
 	/// <summary>What <see cref="GenerationGate"/> says of a result already taken, against another.</summary>
-	public static void Gate(string now, string against) =>
+	public static void Gate(string now, string against)
+	{
 		Console.WriteLine(GenerationGate(JsonSerializer.Deserialize<Result>(File.ReadAllText(now), Json)!, null, against));
+	}
 
 	/// <summary>Whether a row's id contains any of the comma-separated pieces of an `--only`.</summary>
-	static bool Matches(string id, string only) => only.Split(',').Any(piece => id.Contains(piece, StringComparison.Ordinal));
+	static bool Matches(string id, string only)
+	{
+		return only.Split(',').Any(piece => id.Contains(piece, StringComparison.Ordinal));
+	}
 
 	/// <summary>
 	/// Before a row is timed: each reading on its own does what the row says (a row whose name says
@@ -399,13 +407,22 @@ static partial class Stand
 	/// SQL:2023 parser was quadratic in time and in allocation (164 MB a call at a thousand), which no row
 	/// of the stand held enough of a list to show.
 	/// </summary>
-	static string SqlConditions(int predicates) => string.Join(" AND ", Enumerable.Range(0, predicates).Select(static i => "a" + i + " = 1"));
+	static string SqlConditions(int predicates)
+	{
+		return string.Join(" AND ", Enumerable.Range(0, predicates).Select(static i => "a" + i + " = 1"));
+	}
 
 	static readonly int[] FixSlopeCounts = [0, 1, 2, 4, 8, 16];
 
-	static byte[] FixSlopeBytes(int fields) => Encoding.Latin1.GetBytes(FixSlopeText(fields));
+	static byte[] FixSlopeBytes(int fields)
+	{
+		return Encoding.Latin1.GetBytes(FixSlopeText(fields));
+	}
 
-	static string FixSlopeText(int fields) => string.Concat(Enumerable.Repeat("55=ABC\u0001", fields));
+	static string FixSlopeText(int fields)
+	{
+		return string.Concat(Enumerable.Repeat("55=ABC\u0001", fields));
+	}
 
 	/// <summary>
 	/// One FIX input three ways: a string, bytes already in memory, and a stream read lazily.
@@ -646,14 +663,17 @@ static partial class Stand
 		public bool HasStock => _stock is not null;
 
 		/// <summary>The types whose thread-static pools <see cref="PoolReadout"/> reads for the rows of a family ("sql", "tsql", "el", "fix", "web").</summary>
-		public Type[] PoolRoots(string family) => family switch
+		public Type[] PoolRoots(string family)
 		{
-			"el"   => [_elTape, _elImmediate],
-			"tsql" => [_tsql],
-			"fix"  => new[] { _fix, _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") }.OfType<Type>().ToArray(),
-			"web"  => new[] { _json, _uri }.OfType<Type>().ToArray(),
-			_      => [_sql],
-		};
+			return family switch
+			{
+				"el" => [_elTape, _elImmediate],
+				"tsql" => [_tsql],
+				"fix" => new[] { _fix, _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") }.OfType<Type>().ToArray(),
+				"web" => new[] { _json, _uri }.OfType<Type>().ToArray(),
+				_ => [_sql],
+			};
+		}
 
 		/// <summary>Whether the side was given DotGram.Web, and so has URLs and JSON to read.</summary>
 		public bool HasWeb => _uri is not null;
@@ -671,9 +691,11 @@ static partial class Stand
 				return File.Exists(path) ? context.LoadFromAssemblyPath(path) : null;
 			};
 
-			Type Load(string assembly, string type) =>
-				alc.LoadFromAssemblyPath(Path.Combine(directory, assembly + ".dll")).GetType(type)
+			Type Load(string assembly, string type)
+			{
+				return alc.LoadFromAssemblyPath(Path.Combine(directory, assembly + ".dll")).GetType(type)
 					?? throw new InvalidOperationException($"{name}: {type} not found in {assembly}");
+			}
 
 			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
 			_tsql        = Load("DotGram.Sql", "DotGram.Sql.TransactSql.TransactSqlParser");
@@ -937,10 +959,16 @@ static partial class Stand
 		enum FixEntry { Mode, Plain, FieldOptions, Door }
 
 		/// <summary>FixParser.DefaultMaxMessageLength of a side that has the door: the value the streaming forms are called with, as a consumer that names none calls them.</summary>
-		int FixMaxMessageLength() => (int)_fix.GetField("DefaultMaxMessageLength", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetRawConstantValue()!;
+		int FixMaxMessageLength()
+		{
+			return (int)_fix.GetField("DefaultMaxMessageLength", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetRawConstantValue()!;
+		}
 
 		/// <summary>Strict, the first member of the enum: what the old sides were always asked for.</summary>
-		object FixStrictMode() => Enum.ToObject(_fixParseMode!, 0);
+		object FixStrictMode()
+		{
+			return Enum.ToObject(_fixParseMode!, 0);
+		}
 
 		/// <summary>
 		/// On a side with no <c>FixParseMode</c> the strict parse is gone and its schema check is <c>FixMessage.Validate()</c>: the nearest work to what the other side does in one call
@@ -1137,7 +1165,10 @@ static partial class Stand
 		}
 
 		/// <summary>UriReference.TryParse(string, out UriReference) of this side, by reflection: whether it read the text.</summary>
-		public Func<int> WebUrl(string text) => WebTryParse(_uri, "UriReference", text);
+		public Func<int> WebUrl(string text)
+		{
+			return WebTryParse(_uri, "UriReference", text);
+		}
 
 		/// <summary>
 		/// <c>DotGram.Web.{type}.{method}(string, out ...)</c> of this side, by reflection: whether it read the text.
@@ -1169,7 +1200,10 @@ static partial class Stand
 		}
 
 		/// <summary>JsonValue.TryParse(string, out JsonValue) of this side, by reflection: whether it read the text.</summary>
-		public Func<int> WebJson(string text) => WebTryParse(_json, "JsonValue", text);
+		public Func<int> WebJson(string text)
+		{
+			return WebTryParse(_json, "JsonValue", text);
+		}
 
 		static Func<int> WebTryParse(Type? type, string name, string text)
 		{
@@ -1261,15 +1295,27 @@ static partial class Stand
 			};
 		}
 
-		public Func<int> FixText(string text) => FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, null]));
-		public Func<int> FixBytes(byte[] bytes) => FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null]));
+		public Func<int> FixText(string text)
+		{
+			return FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, null]));
+		}
+
+		public Func<int> FixBytes(byte[] bytes)
+		{
+			return FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null]));
+		}
 
 		/// <summary>FixParser.Parse(TextReader) of this side, the yield form over a reader: the fields' tags summed.</summary>
-		public IEnumerable<object> FixYieldReaderFields(TextReader input, int? maxRetained = null) =>
-			(IEnumerable<object>)((IEnumerable)FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [input, null, 4096, maxRetained])()).Cast<object>();
+		public IEnumerable<object> FixYieldReaderFields(TextReader input, int? maxRetained = null)
+		{
+			return (IEnumerable<object>)((IEnumerable)FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [input, null, 4096, maxRetained])()).Cast<object>();
+		}
 
-		public Func<int> FixYieldReader(string text) => FixCount(() =>
+		public Func<int> FixYieldReader(string text)
+		{
+			return FixCount(() =>
 			FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [new StringReader(text), null, 4096, null])());
+		}
 
 		/// <summary>
 		/// Every field of the text read by this side's FIX parser, serialized: what it built, not how many it found (the critic, 2026-09-19).
@@ -1288,14 +1334,22 @@ static partial class Stand
 			return [.. ((IEnumerable)fields).Cast<object>().Select(DescribeFixField)];
 		}
 
-		Func<int> FixCountPlaceholder() => () => 0;
+		Func<int> FixCountPlaceholder()
+		{
+			return () => 0;
+		}
 
-		public Func<int> FixStream(byte[] bytes) => FixCount(() =>
+		public Func<int> FixStream(byte[] bytes)
+		{
+			return FixCount(() =>
 			FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
+		}
 
 		/// <summary>The stream form of this side, as the lazy sequence it returns, for a held-memory reading.</summary>
-		public IEnumerable FixStreamFields(Stream stream, int? maxRetained = null) =>
-			(IEnumerable)FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [stream, null, 4096, maxRetained])();
+		public IEnumerable FixStreamFields(Stream stream, int? maxRetained = null)
+		{
+			return (IEnumerable)FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [stream, null, 4096, maxRetained])();
+		}
 
 		Func<object> FixCall(string method, Type[] parameters, object?[] arguments)
 		{
@@ -1671,7 +1725,10 @@ static partial class Stand
 	/// </summary>
 	static string JitNote()
 	{
-		static string Setting(string name) => Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? $"{name}={value}" : $"{name} unset";
+		static string Setting(string name)
+		{
+			return Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? $"{name}={value}" : $"{name} unset";
+		}
 
 		return "JIT: " + string.Join(", ", new[] { "DOTNET_TieredCompilation", "DOTNET_TieredPGO", "DOTNET_TC_QuickJitForLoops", "DOTNET_ReadyToRun" }.Select(Setting)) + " (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).";
 	}

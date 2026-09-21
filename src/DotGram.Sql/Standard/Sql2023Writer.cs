@@ -39,7 +39,10 @@ public static partial class Sql2023Writer
 
 		bool held = true;
 
-		public override string ToString() => written.ToString();
+		public override string ToString()
+		{
+			return written.ToString();
+		}
 
 		public void PutNode(ISqlNode node)
 		{
@@ -57,8 +60,10 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		static NotSupportedException Unwritten(object node) =>
-			new($"{node.GetType().Name} is no node the standard's grammar builds, and is not written.");
+		static NotSupportedException Unwritten(object node)
+		{
+			return new($"{node.GetType().Name} is no node the standard's grammar builds, and is not written.");
+		}
 
 		// ── Tokens ─────────────────────────────────────────────────────────────────
 
@@ -80,7 +85,10 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>No space before the next token.</summary>
-		void Hold() => held = true;
+		void Hold()
+		{
+			held = true;
+		}
 
 		/// <summary>A call's bracket, against the name before it: `f(`.</summary>
 		void Call()
@@ -96,7 +104,10 @@ public static partial class Sql2023Writer
 			Hold();
 		}
 
-		void Close() => Tight(")");
+		void Close()
+		{
+			Tight(")");
+		}
 
 		void Each<T>(IReadOnlyList<T> items, Action<T> put)
 		{
@@ -109,7 +120,10 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void Number(long value) => Word(value.ToString(CultureInfo.InvariantCulture));
+		void Number(long value)
+		{
+			Word(value.ToString(CultureInfo.InvariantCulture));
+		}
 
 		// ── §5.3 Literals, §5.4 Names ──────────────────────────────────────────────
 
@@ -150,9 +164,15 @@ public static partial class Sql2023Writer
 			return text.ToString();
 		}
 
-		void PutCharacterSet(CharacterSetName name) => PutName(name.Name);
+		void PutCharacterSet(CharacterSetName name)
+		{
+			PutName(name.Name);
+		}
 
-		void PutCollation(CollationName name) => PutName(name.Name);
+		void PutCollation(CollationName name)
+		{
+			PutName(name.Name);
+		}
 
 		void PutLiteral(LiteralValue literal)
 		{
@@ -209,8 +229,10 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		static string Truth(BooleanLiteral value) =>
-			value switch { BooleanLiteral.True => "TRUE", BooleanLiteral.False => "FALSE", _ => "UNKNOWN" };
+		static string Truth(BooleanLiteral value)
+		{
+			return value switch { BooleanLiteral.True => "TRUE", BooleanLiteral.False => "FALSE", _ => "UNKNOWN" };
+		}
 
 		// ── §10.1 Interval qualifier ───────────────────────────────────────────────
 
@@ -259,16 +281,18 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		static string Field(DateTimeField field) =>
-			field switch
+		static string Field(DateTimeField field)
+		{
+			return field switch
 			{
-				DateTimeField.Year   => "YEAR",
-				DateTimeField.Month  => "MONTH",
-				DateTimeField.Day    => "DAY",
-				DateTimeField.Hour   => "HOUR",
+				DateTimeField.Year => "YEAR",
+				DateTimeField.Month => "MONTH",
+				DateTimeField.Day => "DAY",
+				DateTimeField.Hour => "HOUR",
 				DateTimeField.Minute => "MINUTE",
-				_                    => "SECOND",
+				_ => "SECOND",
 			};
+		}
 
 		// ── §6.1 Data types ────────────────────────────────────────────────────────
 
@@ -1311,16 +1335,18 @@ public static partial class Sql2023Writer
 				Word(one == CharacterLengthUnits.Characters ? "USING CHARACTERS" : "USING OCTETS");
 		}
 
-		static string Comparison(ComparisonOperator op) =>
-			op switch
+		static string Comparison(ComparisonOperator op)
+		{
+			return op switch
 			{
-				ComparisonOperator.Equal          => "=",
-				ComparisonOperator.NotEqual       => "<>",
-				ComparisonOperator.Less           => "<",
-				ComparisonOperator.Greater        => ">",
-				ComparisonOperator.LessOrEqual    => "<=",
-				_                                 => ">=",
+				ComparisonOperator.Equal => "=",
+				ComparisonOperator.NotEqual => "<>",
+				ComparisonOperator.Less => "<",
+				ComparisonOperator.Greater => ">",
+				ComparisonOperator.LessOrEqual => "<=",
+				_ => ">=",
 			};
+		}
 
 		void PutPeriod(PeriodValue period)
 		{
@@ -1749,27 +1775,31 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		static string Wrapper(JsonWrapperBehavior wrapper) =>
-			wrapper switch
+		static string Wrapper(JsonWrapperBehavior wrapper)
+		{
+			return wrapper switch
 			{
-				JsonWrapperBehavior.Without                => "WITHOUT",
-				JsonWrapperBehavior.WithoutArray           => "WITHOUT ARRAY",
-				JsonWrapperBehavior.With                   => "WITH",
-				JsonWrapperBehavior.WithConditional        => "WITH CONDITIONAL",
-				JsonWrapperBehavior.WithUnconditional      => "WITH UNCONDITIONAL",
-				JsonWrapperBehavior.WithArray              => "WITH ARRAY",
-				JsonWrapperBehavior.WithConditionalArray   => "WITH CONDITIONAL ARRAY",
-				_                                          => "WITH UNCONDITIONAL ARRAY",
+				JsonWrapperBehavior.Without => "WITHOUT",
+				JsonWrapperBehavior.WithoutArray => "WITHOUT ARRAY",
+				JsonWrapperBehavior.With => "WITH",
+				JsonWrapperBehavior.WithConditional => "WITH CONDITIONAL",
+				JsonWrapperBehavior.WithUnconditional => "WITH UNCONDITIONAL",
+				JsonWrapperBehavior.WithArray => "WITH ARRAY",
+				JsonWrapperBehavior.WithConditionalArray => "WITH CONDITIONAL ARRAY",
+				_ => "WITH UNCONDITIONAL ARRAY",
 			};
+		}
 
-		static string QueryBehavior(JsonQueryBehavior behavior) =>
-			behavior switch
+		static string QueryBehavior(JsonQueryBehavior behavior)
+		{
+			return behavior switch
 			{
-				JsonQueryBehavior.Error      => "ERROR",
-				JsonQueryBehavior.Null       => "NULL",
+				JsonQueryBehavior.Error => "ERROR",
+				JsonQueryBehavior.Null => "NULL",
 				JsonQueryBehavior.EmptyArray => "EMPTY ARRAY",
-				_                            => "EMPTY OBJECT",
+				_ => "EMPTY OBJECT",
 			};
+		}
 
 		// ── §6.39 The path language, as far as the SQL tokens reach ────────────────
 

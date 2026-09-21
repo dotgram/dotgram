@@ -90,6 +90,8 @@ public sealed class ScriptScalingTests
 		return read;
 	}
 
-	static string Script(int statements) =>
-		string.Concat(Enumerable.Repeat("SELECT a, b FROM t WHERE a = 1;\r\n", statements));
+	static string Script(int statements)
+	{
+		return string.Concat(Enumerable.Repeat("SELECT a, b FROM t WHERE a = 1;\r\n", statements));
+	}
 }

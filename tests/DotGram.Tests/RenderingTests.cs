@@ -92,18 +92,22 @@ public sealed class RenderingTests
 	/// a gap here is a gap everywhere.
 	/// </remarks>
 	[Fact]
-	public void The_engine_supplies_all_of_them() =>
+	public void The_engine_supplies_all_of_them()
+	{
 		Assert.All(
 			SuppliedNames.All.Concat(["context"]),
 			name => Assert.Null(Reason(Enum.Parse(Rendering, "Engine"), name)));
+	}
 
 	/// <summary>And a name nobody has decided about is an error, not a refusal.</summary>
 	[Fact]
-	public void A_name_nobody_decided_about_is_refused_loudly() =>
+	public void A_name_nobody_decided_about_is_refused_loudly()
+	{
 		Assert.Contains(
 			"No decision",
 			Assert.Throws<InvalidOperationException>(
 				() => Reason(Enum.Parse(Rendering, "Flat"), "parserSomethingNew")).Message);
+	}
 
 	// ── What an arena entry's second field means ────────────────────────────────
 
@@ -170,9 +174,11 @@ public sealed class RenderingTests
 			"cannot move it where the state is collapsed:\n" + string.Join("\n", bare));
 	}
 
-	static DotGram.Grammar.Parsing.GrammarFile Parsed(string grammar) =>
-		DotGram.Grammar.Parsing.GramParser.Parse(
+	static DotGram.Grammar.Parsing.GrammarFile Parsed(string grammar)
+	{
+		return DotGram.Grammar.Parsing.GramParser.Parse(
 			DotGram.Grammar.Parsing.GramLexer.Tokenize(grammar)).File!;
+	}
 
 	static string SolutionRoot()
 	{

@@ -325,7 +325,10 @@ public static partial class CSharpEmitter
 				(carrier == CarrierKind.Tape || carrier == CarrierKind.Auto && replay is not null &&
 					reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)));
 		}
-		HashSet<RuleSymbol> Rules(Compiled compiled) => new(compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule)));
+		HashSet<RuleSymbol> Rules(Compiled compiled)
+		{
+			return new(compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule)));
+		}
 
 		foreach (var compiled in machines)
 			compiled.Machine.CompileRules();
@@ -908,11 +911,15 @@ public static partial class CSharpEmitter
 			if (carriers is not null)
 				Carriers(carriers, machines, replay, graph);
 
-			static List<string> Named(IEnumerable<RuleSymbol> rules) =>
-				[.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
+			static List<string> Named(IEnumerable<RuleSymbol> rules)
+			{
+				return [.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
+			}
 
-			static string Listed(List<string> names) =>
-				string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
+			static string Listed(List<string> names)
+			{
+				return string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
+			}
 		}
 
 		if (carriers is not null && carrier != CarrierKind.Auto)
@@ -1055,19 +1062,26 @@ public static partial class CSharpEmitter
 		string languageId,
 		string source,
 		string classifications,
-		string recognitionContract) =>
-		"[global::DotGram.GramLanguageDescriptorAttribute(" +
+		string recognitionContract)
+	{
+		return "[global::DotGram.GramLanguageDescriptorAttribute(" +
 		$"3, \"{EscapeString(languageId)}\", \"{Hash(source)}\", " +
 		$"\"{Base64(source)}\", \"{Base64(Entries(graph))}\", \"{Base64(classifications)}\", " +
 		$"\"{Base64(recognitionContract)}\")]";
+	}
 
-	static string Entries(RecognitionGraph graph) => string.Join(
+	static string Entries(RecognitionGraph graph)
+	{
+		return string.Join(
 		"\n",
 		graph.Publications.Select(publication =>
 			publication.MethodName + "\t" + publication.Kind + "\t" + publication.Rule.Name));
+	}
 
-	static string Base64(string value) =>
-		Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+	static string Base64(string value)
+	{
+		return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+	}
 
 	static string Hash(string value)
 	{
@@ -1081,8 +1095,10 @@ public static partial class CSharpEmitter
 		return text.ToString();
 	}
 
-	static string EscapeString(string value) =>
-		value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+	static string EscapeString(string value)
+	{
+		return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+	}
 
 	/// <summary>
 	/// One directive (docs/syntax.md §6). <c>parse</c> makes an asserting method and an
@@ -1491,15 +1507,19 @@ public static partial class CSharpEmitter
 		// Where the value begins, past the trivia the reading started on: over kinds the lexer
 		// skipped it, so it is where the first token it read stands; over characters the entry read
 		// it and wrote down where it ended (§6.3).
-		string Began(bool windowed) =>
-			overKinds
+		string Began(bool windowed)
+		{
+			return overKinds
 				? windowed ? "count > 0 ? starts[0] : at" : "starts[from]"
 				: leads ? "failure.Began" : "at";
+		}
 
-		string Recognized(string from, string to) =>
-			built is not null ? "recognized" :
-			overKinds        ? $"Text_DotGram{tag}(source, starts, lengths, {from}, {to})" :
+		string Recognized(string from, string to)
+		{
+			return built is not null ? "recognized" :
+			overKinds ? $"Text_DotGram{tag}(source, starts, lengths, {from}, {to})" :
 			$"input.Substring({from}, {to})";
+		}
 
 		// Where the reading begins, which recognizer reads it, and what the match then says
 		// about where it was. Named rather than written inline because the same body writes
@@ -2605,8 +2625,10 @@ file.Line("return spare;");
 		var name    = results.NameOf(rule)!;
 		var members = graph.Results[rule];
 
-		string Type(ResultMember member) =>
-			results.ValueOf(member.Rule) + (member.IsSequence ? "[]" : member.IsOptional ? "?" : "");
+		string Type(ResultMember member)
+		{
+			return results.ValueOf(member.Rule) + (member.IsSequence ? "[]" : member.IsOptional ? "?" : "");
+		}
 
 		file.Line($"/// <summary>What the rule <c>{rule.Name}</c> recognized.</summary>");
 
@@ -2745,8 +2767,9 @@ file.Line("return spare;");
 	/// over such a grammar changed nothing and said nothing.
 	/// </remarks>
 	static string? Unread(
-		Compiled compiled, RecognitionGraph graph, bool overKinds, CarrierKind carrier) =>
-		compiled.Direct ? null :
+		Compiled compiled, RecognitionGraph graph, bool overKinds, CarrierKind carrier)
+	{
+		return compiled.Direct ? null :
 
 		// The carrier's own answer first, where it has one. Several of these can be true
 		// of one grammar at once — a recovering rule keeps it off the reader and would
@@ -2762,13 +2785,16 @@ file.Line("return spare;");
 			compiled.Machine.Refusal is var (rule, why)
 				? (rule is null ? "it" : $"'{rule.Name}'") + $" cannot be read by methods because {why}"
 				: "it is not read by methods");
+	}
 
 	/// <summary>Where a rule's captures are, with its fold loop known for what it is.</summary>
-	static CaptureLayout LayoutOf(RecognitionGraph graph, ResultTypes results, RuleSymbol rule) =>
-		CaptureLayout.Of(
+	static CaptureLayout LayoutOf(RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
+		return CaptureLayout.Of(
 			graph.Bodies[rule],
 			other => results.QualifiedOf(other) is not null,
 			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+	}
 
 	/// <summary>
 	/// A line of the author's own C#, under a <c>#line</c> that points back at where they
@@ -2811,8 +2837,10 @@ file.Line("return spare;");
 	/// message says what it says.
 	/// </para>
 	/// </remarks>
-	internal static string Quoted(string text) =>
-		Quote(new System.Text.StringBuilder(text.Length + 2), text).ToString();
+	internal static string Quoted(string text)
+	{
+		return Quote(new System.Text.StringBuilder(text.Length + 2), text).ToString();
+	}
 
 	/// <summary><see cref="Quoted"/>, appended where it is wanted rather than made on its own.</summary>
 	internal static System.Text.StringBuilder Quote(System.Text.StringBuilder into, string text)
@@ -3109,7 +3137,10 @@ file.Line("return spare;");
 	/// §7.3 matched a constructor against the supplied names as well as the captures. It
 	/// does not today, so this arm is insurance rather than a feature.
 	/// </remarks>
-	internal static bool WantsText(Machine.Factory factory) => WantsText(null, factory);
+	internal static bool WantsText(Machine.Factory factory)
+	{
+		return WantsText(null, factory);
+	}
 
 	/// <inheritdoc cref="WantsText(Machine.Factory)"/>
 	internal static bool WantsText(RecognitionGraph? graph, Machine.Factory factory)
@@ -3157,9 +3188,11 @@ file.Line("return spare;");
 		return graph.Recoveries.Count > 0;
 	}
 
-	internal static bool Asks(Machine.Factory factory, string name) =>
-		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
+	internal static bool Asks(Machine.Factory factory, string name)
+	{
+		return factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
 		Uses(null, text, name);
+	}
 
 	/// <summary>Whether an embedded expression asks the parser for that name.</summary>
 	/// <remarks>
@@ -3176,22 +3209,28 @@ file.Line("return spare;");
 	/// rather than absent, and so adds a parameter rather than dropping one.
 	/// </para>
 	/// </remarks>
-	internal static bool Uses(RecognitionGraph? graph, string text, string name) =>
-		graph is not null && graph.FreeNames.TryGetValue(text, out var free)
+	internal static bool Uses(RecognitionGraph? graph, string text, string name)
+	{
+		return graph is not null && graph.FreeNames.TryGetValue(text, out var free)
 			? free.Contains(name)
 			: name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name);
+	}
 
 	/// <summary>The same, for a factory whose graph is in hand.</summary>
 	/// <summary>
 	/// Whether a construction is handed the range it was read from — because its C# asked
 	/// for it by name, or because what it builds is told where it was written.
 	/// </summary>
-	internal static bool WantsSpan(RecognitionGraph graph, Machine.Factory factory) =>
-		factory.Located || Asks(graph, factory, "parserSpan");
+	internal static bool WantsSpan(RecognitionGraph graph, Machine.Factory factory)
+	{
+		return factory.Located || Asks(graph, factory, "parserSpan");
+	}
 
-	internal static bool Asks(RecognitionGraph graph, Machine.Factory factory, string name) =>
-		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
+	internal static bool Asks(RecognitionGraph graph, Machine.Factory factory, string name)
+	{
+		return factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
 		Uses(graph, text, name);
+	}
 
 	/// <summary>Whether this C# names that identifier, rather than merely containing it.</summary>
 	/// <remarks>
@@ -3214,7 +3253,10 @@ file.Line("return spare;");
 
 		return false;
 
-		static bool Continues(char c) => char.IsLetterOrDigit(c) || c == '_';
+		static bool Continues(char c)
+		{
+			return char.IsLetterOrDigit(c) || c == '_';
+		}
 	}
 
 	/// <summary>
@@ -3284,20 +3326,25 @@ file.Line("return spare;");
 	/// the name it always had, so a rule with one recovery — every rule that had one until
 	/// now — generates exactly the text it did.
 	/// </summary>
-	internal static string RecoveryMethod(RuleSymbol rule, int index) =>
-		MethodOf(rule) + "_Recover" +
-		(index == 0 ? "" : (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
-
-	static IEnumerable<Node> Children(Node node) => node switch
+	internal static string RecoveryMethod(RuleSymbol rule, int index)
 	{
-		Node.Sequence(var nodes)     => nodes,
-		Node.Choice(var nodes)       => nodes,
-		Node.Repeat(var body, _, _)  => [body],
-		Node.Construct(var body, _)  => [body],
-		Node.Atomic(var body)        => [body],
-		Node.Marked(var body, _)     => [body],
-		_                            => [],
-	};
+		return MethodOf(rule) + "_Recover" +
+		(index == 0 ? "" : (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+	}
+
+	static IEnumerable<Node> Children(Node node)
+	{
+		return node switch
+		{
+			Node.Sequence(var nodes) => nodes,
+			Node.Choice(var nodes) => nodes,
+			Node.Repeat(var body, _, _) => [body],
+			Node.Construct(var body, _) => [body],
+			Node.Atomic(var body) => [body],
+			Node.Marked(var body, _) => [body],
+			_ => [],
+		};
+	}
 
 	/// <summary>
 	/// What a broken element becomes: the C# the <c>recover</c> named, with the extent it
@@ -3365,15 +3412,21 @@ file.Line("return spare;");
 	/// buffer never is. A line number and an ordinal are counts of things in that file
 	/// rather than positions in it, and nothing counts two billion lines.
 	/// </remarks>
-	static string TypeOfSupplied(string name) => name switch
+	static string TypeOfSupplied(string name)
 	{
-		"parserText" or "parserMessage" or "parserInput" => "string",
-		"parserSpan"                    => "SourceSpan",
-		"parserPosition"                => "long",
-		_                               => "int",
-	};
+		return name switch
+		{
+			"parserText" or "parserMessage" or "parserInput" => "string",
+			"parserSpan" => "SourceSpan",
+			"parserPosition" => "long",
+			_ => "int",
+		};
+	}
 
-	internal static string MethodOf(RuleSymbol rule) => "Recognize_" + IdentifierOf(rule);
+	internal static string MethodOf(RuleSymbol rule)
+	{
+		return "Recognize_" + IdentifierOf(rule);
+	}
 
 	/// <summary>The name one machine's wrapper for a rule goes under.</summary>
 	/// <remarks>
@@ -3385,17 +3438,21 @@ file.Line("return spare;");
 	/// enters this machine where it left off, and `find` enters the one compiled for it.
 	/// </remarks>
 	internal static string MethodOf(
-		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, string tag) =>
-		MethodOf(rule) + (rule.Equals(owner) || !IsPublished(graph, rule) ? "" : tag);
+		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, string tag)
+	{
+		return MethodOf(rule) + (rule.Equals(owner) || !IsPublished(graph, rule) ? "" : tag);
+	}
 
 	/// <summary>What a publication's methods are declared as: what its directive said (§6).</summary>
-	internal static string AccessOf(Publication publication) =>
-		publication.Access switch
+	internal static string AccessOf(Publication publication)
+	{
+		return publication.Access switch
 		{
 			PublishAccess.Internal => "internal",
-			PublishAccess.Private  => "private",
-			_                      => "public",
+			PublishAccess.Private => "private",
+			_ => "public",
 		};
+	}
 
 	/// <summary>Whether a rule is published, and so owns the plain name of its wrapper.</summary>
 	static bool IsPublished(RecognitionGraph graph, RuleSymbol rule)
@@ -3591,18 +3648,23 @@ file.Line("return spare;");
 		}
 
 		// A capture, a repetition or a look around what the machine can say.
-		string Shown(Node node) => node switch
+		string Shown(Node node)
 		{
-			Node.Capture(_, var body)         => Shown(body),
-			Node.Construct(var body, _)       => Shown(body),
-			Node.Repeat(var body, _, _)       => Shown(body) + " …",
-			Node.Lookahead(var positive, var body) => (positive ? "?=" : "?!") + Shown(body),
-			Node.Call(var called, _)          => Name(called),
-			_ => direct.Count > 0 ? direct[0].Machine.Display(node) : node.ToString(),
-		};
+			return node switch
+			{
+				Node.Capture(_, var body) => Shown(body),
+				Node.Construct(var body, _) => Shown(body),
+				Node.Repeat(var body, _, _) => Shown(body) + " …",
+				Node.Lookahead(var positive, var body) => (positive ? "?=" : "?!") + Shown(body),
+				Node.Call(var called, _) => Name(called),
+				_ => direct.Count > 0 ? direct[0].Machine.Display(node) : node.ToString(),
+			};
+		}
 
-		bool Own(RuleSymbol rule) =>
-			replay is not null && replay.Rules.TryGetValue(rule, out var why) && why != Replay.Because.Under;
+		bool Own(RuleSymbol rule)
+		{
+			return replay is not null && replay.Rules.TryGetValue(rule, out var why) && why != Replay.Because.Under;
+		}
 
 		// A rule of the set that calls this one, or with `calls`, one this one calls.
 		string? Caller(RuleSymbol rule, List<RuleSymbol> among, bool calls = false)
@@ -3619,7 +3681,10 @@ file.Line("return spare;");
 			return null;
 		}
 
-		static string Name(RuleSymbol rule) => rule.Declaration?.Name ?? rule.Name;
+		static string Name(RuleSymbol rule)
+		{
+			return rule.Declaration?.Name ?? rule.Name;
+		}
 	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>
@@ -4020,8 +4085,9 @@ file.Line("return spare;");
 	/// wrote, and the generator failed on the first grammar whose trivia called a lexeme of
 	/// its own.
 	/// </remarks>
-	internal static Machine Seam(LexicalSplit lexical) =>
-		new(
+	internal static Machine Seam(LexicalSplit lexical)
+	{
+		return new(
 			lexical.Source,
 			new ResultTypes(lexical.Source, "Lexical", null),
 			null,
@@ -4030,23 +4096,28 @@ file.Line("return spare;");
 			// stands in a file another machine has already filled: without it the seam's
 			// character tables collide with the syntax's, name for name.
 			tag: "_Seam");
+	}
 
 	/// <summary>The rules that measure the rest of a terminal the lexer only begins, each once.</summary>
-	static IReadOnlyList<RuleSymbol> Measuring(LexicalSplit lexical) =>
-	[
+	static IReadOnlyList<RuleSymbol> Measuring(LexicalSplit lexical)
+	{
+		return [
 		.. lexical.Inventory.Continued
 			.Select(one => MeasuredBy(lexical, one.Tail))
 			.OfType<RuleSymbol>()
 			.Distinct(),
 	];
+	}
 
 	/// <summary>The rule a terminal's rest is measured by, or null where the host measures it.</summary>
-	static RuleSymbol? MeasuredBy(LexicalSplit lexical, Node tail) =>
-		tail is Node.Call(var rule, _) &&
+	static RuleSymbol? MeasuredBy(LexicalSplit lexical, Node tail)
+	{
+		return tail is Node.Call(var rule, _) &&
 		lexical.Source.Bodies.TryGetValue(rule, out var body) &&
 		body is not Node.External
 			? rule
 			: null;
+	}
 
 	/// <summary>The host's call measuring a terminal's rest, moving <c>measured</c> on.</summary>
 	/// <remarks>
@@ -4055,14 +4126,16 @@ file.Line("return spare;");
 	/// wanted here: the lexer asks how far, and a terminal that builds reads its value again.
 	/// </remarks>
 
-	static string HostMeasure(LexicalSplit lexical, Node tail) =>
-		tail switch
+	static string HostMeasure(LexicalSplit lexical, Node tail)
+	{
+		return tail switch
 		{
 			Node.External(var method) => $"{method}(text, ref measured)",
 			Node.Call(var rule, _) when lexical.Source.Bodies[rule] is Node.External(var method) =>
 				$"{method}(text, ref measured, out _)",
 			_ => throw new InvalidOperationException($"{tail} is not measured by the host"),
 		};
+	}
 
 	static HashSet<RuleSymbol> Rereads(LexicalSplit lexical)
 	{
@@ -4090,7 +4163,10 @@ file.Line("return spare;");
 	/// (<c>Machine.BodyOf</c>), so whatever the trivia calls belongs to that machine as much
 	/// as the body does. A machine built without it would jump to a state nobody wrote.
 	/// </remarks>
-	static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root) => graph.Reaches(root);
+	static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root)
+	{
+		return graph.Reaches(root);
+	}
 
 	/// <summary>A buffer's class without the trace hook that calls the engine's, for a file with no engine.</summary>
 	static string WithoutEngineTrace(string buffered)
@@ -4119,8 +4195,10 @@ file.Line("return spare;");
 	/// recording.
 	/// </para>
 	/// </remarks>
-	static bool ReadsQuietlyFirst(RecognitionGraph graph) =>
-		(graph.Context is null || graph.ContextRewinds) && graph.Recoveries.Count == 0;
+	static bool ReadsQuietlyFirst(RecognitionGraph graph)
+	{
+		return (graph.Context is null || graph.ContextRewinds) && graph.Recoveries.Count == 0;
+	}
 
 	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>
 	/// <remarks>
@@ -4151,10 +4229,12 @@ file.Line("return spare;");
 	}
 
 	/// <summary>Whether anything <paramref name="only"/> reaches climbs precedence.</summary>
-	static bool ClimbsWithin(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol>? only) =>
-		only is null
+	static bool ClimbsWithin(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol>? only)
+	{
+		return only is null
 			? graph.Climbing.Count > 0
 			: graph.Climbing.Keys.Any(only.Contains);
+	}
 
 	/// <summary>
 	/// A rule's name as one C# identifier, unique across the grammar.
@@ -4189,7 +4269,10 @@ file.Line("return spare;");
 	}
 
 	/// <summary>The recognizer that also insists the input ended — what `parse` calls.</summary>
-	static string WholeOf(RuleSymbol rule) => MethodOf(rule) + "_Whole";
+	static string WholeOf(RuleSymbol rule)
+	{
+		return MethodOf(rule) + "_Whole";
+	}
 
 	internal static string Test(Node.Element element, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
 	{
@@ -4340,7 +4423,10 @@ file.Line("return spare;");
 	/// file with a raw control character in it for the rest — and the emitted text is
 	/// read by people, not only by a compiler.
 	/// </remarks>
-	internal static string Char(char value) => _chars[value] ??= Spelled(value);
+	internal static string Char(char value)
+	{
+		return _chars[value] ??= Spelled(value);
+	}
 
 	/// <summary>Each character's literal, written the first time it is asked for.</summary>
 	/// <remarks>
@@ -4350,19 +4436,22 @@ file.Line("return spare;");
 	/// </remarks>
 	static readonly string?[] _chars = new string?[char.MaxValue + 1];
 
-	static string Spelled(char value) => value switch
+	static string Spelled(char value)
 	{
-		'\''                         => @"'\''",
-		'\\'                         => @"'\\'",
-		>= ' ' and <= '~'            => $"'{value}'",
-		'\0'                         => @"'\0'",
-		'\a'                         => @"'\a'",
-		'\b'                         => @"'\b'",
-		'\f'                         => @"'\f'",
-		'\n'                         => @"'\n'",
-		'\r'                         => @"'\r'",
-		'\t'                         => @"'\t'",
-		'\v'                         => @"'\v'",
-		_                            => $@"'\u{(int)value:X4}'",
-	};
+		return value switch
+		{
+			'\'' => @"'\''",
+			'\\' => @"'\\'",
+			>= ' ' and <= '~' => $"'{value}'",
+			'\0' => @"'\0'",
+			'\a' => @"'\a'",
+			'\b' => @"'\b'",
+			'\f' => @"'\f'",
+			'\n' => @"'\n'",
+			'\r' => @"'\r'",
+			'\t' => @"'\t'",
+			'\v' => @"'\v'",
+			_ => $@"'\u{(int)value:X4}'",
+		};
+	}
 }

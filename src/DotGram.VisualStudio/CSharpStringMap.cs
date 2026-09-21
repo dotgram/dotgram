@@ -157,8 +157,10 @@ public sealed class CSharpStringMap
 		return count >= minimum;
 	}
 
-	static bool IsHex(char value) =>
-		value is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F';
+	static bool IsHex(char value)
+	{
+		return value is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F';
+	}
 
 	static bool EightHex(string text, ref int at, int limit, out uint value)
 	{

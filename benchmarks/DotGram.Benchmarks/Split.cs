@@ -149,8 +149,10 @@ static class Split
 		while (i < here.Length && i < there.Length && here[i] == there[i])
 			i++;
 
-		string From(int[] starts) =>
-			i < starts.Length ? Corpus.One(text[starts[i]..Math.Min(text.Length, starts[i] + 100)]) : "(nothing)";
+		string From(int[] starts)
+		{
+			return i < starts.Length ? Corpus.One(text[starts[i]..Math.Min(text.Length, starts[i] + 100)]) : "(nothing)";
+		}
 
 		return
 			$"      {Path.GetFileName(file)}: {here.Length} here, {there.Length} there\n" +

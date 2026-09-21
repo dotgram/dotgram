@@ -65,7 +65,10 @@ public sealed class DiagnosticsReferenceTests
 			"Documented, reported by nothing, and not listed as retired: " + string.Join(", ", stale));
 	}
 
-	static HashSet<string> Reported() => [.. Reported(Compiler), .. Reported(Extension)];
+	static HashSet<string> Reported()
+	{
+		return [.. Reported(Compiler), .. Reported(Extension)];
+	}
 
 	static HashSet<string> Reported(string directory)
 	{
@@ -84,8 +87,10 @@ public sealed class DiagnosticsReferenceTests
 		return found;
 	}
 
-	static HashSet<string> Documented() =>
-		[.. Identifier.Matches(File.ReadAllText(Reference)).Select(match => match.Value)];
+	static HashSet<string> Documented()
+	{
+		return [.. Identifier.Matches(File.ReadAllText(Reference)).Select(match => match.Value)];
+	}
 
 	static readonly Regex Identifier = new("GRAM[0-9]{4}", RegexOptions.Compiled);
 
@@ -98,5 +103,8 @@ public sealed class DiagnosticsReferenceTests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

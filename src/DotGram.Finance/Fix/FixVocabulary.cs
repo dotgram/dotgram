@@ -19,33 +19,36 @@
 static class FixVocabulary
 {
 	/// <summary>The type a dictionary's spelling names, or None for one this package does not model.</summary>
-	public static FixValueType Of(string? declared) => declared?.ToUpperInvariant() switch
+	public static FixValueType Of(string? declared)
 	{
-		"STRING" or "LANGUAGE"     => FixValueType.String,
-		"CHAR"                     => FixValueType.Char,
-		"INT"                      => FixValueType.Int,
-		"LENGTH"                   => FixValueType.Length,
-		"NUMINGROUP"               => FixValueType.NumInGroup,
-		"SEQNUM"                   => FixValueType.SeqNum,
-		"TAGNUM"                   => FixValueType.TagNum,
-		"DAYOFMONTH"               => FixValueType.DayOfMonth,
-		"FLOAT"                    => FixValueType.Float,
-		"QTY"                      => FixValueType.Qty,
-		"PRICE"                    => FixValueType.Price,
-		"PRICEOFFSET"              => FixValueType.PriceOffset,
-		"AMT"                      => FixValueType.Amt,
-		"PERCENTAGE"               => FixValueType.Percentage,
-		"BOOLEAN"                  => FixValueType.Boolean,
-		"CURRENCY"                 => FixValueType.Currency,
-		"COUNTRY"                  => FixValueType.Country,
-		"EXCHANGE"                 => FixValueType.Exchange,
-		"MONTHYEAR"                => FixValueType.MonthYear,
-		"LOCALMKTDATE"             => FixValueType.LocalMktDate,
-		"UTCDATEONLY" or "UTCDATE" => FixValueType.UTCDateOnly,
-		"UTCTIMEONLY"              => FixValueType.UTCTimeOnly,
-		"UTCTIMESTAMP"             => FixValueType.UTCTimestamp,
-		"DATA" or "XMLDATA"        => FixValueType.Data,
-		"MULTIPLEVALUESTRING" or "MULTIPLESTRINGVALUE" or "MULTIPLECHARVALUE" => FixValueType.MultipleValueString,
-		_                          => FixValueType.None,
-	};
+		return declared?.ToUpperInvariant() switch
+		{
+			"STRING" or "LANGUAGE" => FixValueType.String,
+			"CHAR" => FixValueType.Char,
+			"INT" => FixValueType.Int,
+			"LENGTH" => FixValueType.Length,
+			"NUMINGROUP" => FixValueType.NumInGroup,
+			"SEQNUM" => FixValueType.SeqNum,
+			"TAGNUM" => FixValueType.TagNum,
+			"DAYOFMONTH" => FixValueType.DayOfMonth,
+			"FLOAT" => FixValueType.Float,
+			"QTY" => FixValueType.Qty,
+			"PRICE" => FixValueType.Price,
+			"PRICEOFFSET" => FixValueType.PriceOffset,
+			"AMT" => FixValueType.Amt,
+			"PERCENTAGE" => FixValueType.Percentage,
+			"BOOLEAN" => FixValueType.Boolean,
+			"CURRENCY" => FixValueType.Currency,
+			"COUNTRY" => FixValueType.Country,
+			"EXCHANGE" => FixValueType.Exchange,
+			"MONTHYEAR" => FixValueType.MonthYear,
+			"LOCALMKTDATE" => FixValueType.LocalMktDate,
+			"UTCDATEONLY" or "UTCDATE" => FixValueType.UTCDateOnly,
+			"UTCTIMEONLY" => FixValueType.UTCTimeOnly,
+			"UTCTIMESTAMP" => FixValueType.UTCTimestamp,
+			"DATA" or "XMLDATA" => FixValueType.Data,
+			"MULTIPLEVALUESTRING" or "MULTIPLESTRINGVALUE" or "MULTIPLECHARVALUE" => FixValueType.MultipleValueString,
+			_ => FixValueType.None,
+		};
+	}
 }

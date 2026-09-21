@@ -56,7 +56,10 @@ public static partial class Links
 	// methods should not be part of your API — see examples/README.md.)
 
 	/// <summary>Whether the whole input is a URL.</summary>
-	public static bool IsUrl(string text) => TryParseUrl(text).IsSuccess;
+	public static bool IsUrl(string text)
+	{
+		return TryParseUrl(text).IsSuccess;
+	}
 
 	/// <summary>The port, or 443 for https and 80 for the rest.</summary>
 	public static int PortOf(string url)
@@ -102,7 +105,9 @@ public static partial class Links
 
 		// A part that was never there is null, which is a different answer from a part
 		// that matched and was empty: "?q=" has a query, "example.com" has none.
-		void Line(string name, string? value) =>
+		void Line(string name, string? value)
+		{
 			text.Append(name.PadRight(9)).Append(value ?? "—").Append('\n');
+		}
 	}
 }

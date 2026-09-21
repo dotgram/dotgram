@@ -21,10 +21,16 @@ public sealed record Item(BareItem Value, OrderedMap<BareItem> Parameters) : Mem
 public sealed record InnerList(IReadOnlyList<Item> Items, OrderedMap<BareItem> Parameters) : Member(Parameters)
 {
 	/// <summary>Whether the other list has the same items in the same order and the same parameters.</summary>
-	public bool Equals(InnerList? other) => base.Equals(other) && Structural.Same(Items, other!.Items);
+	public bool Equals(InnerList? other)
+	{
+		return base.Equals(other) && Structural.Same(Items, other!.Items);
+	}
 
 	/// <summary>A hash over the items and the parameters.</summary>
-	public override int GetHashCode() => Structural.Combine(base.GetHashCode(), Structural.Hash(Items));
+	public override int GetHashCode()
+	{
+		return Structural.Combine(base.GetHashCode(), Structural.Hash(Items));
+	}
 }
 
 /// <summary>Structured Field Values for HTTP (RFC 9651): the three types a field is, read and written.</summary>
@@ -36,8 +42,10 @@ public static class StructuredField
 {
 	/// <summary>An Item field value (§4.2.3).</summary>
 	/// <exception cref="FormatException">The text is no Item; the message says where.</exception>
-	public static Item ParseItem(string text) =>
-		Rfc9651.ParseItem(text ?? throw new ArgumentNullException(nameof(text)));
+	public static Item ParseItem(string text)
+	{
+		return Rfc9651.ParseItem(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>An Item field value, or false where the text is not one.</summary>
 	public static bool TryParseItem(string text, [NotNullWhen(true)] out Item? item)
@@ -51,8 +59,10 @@ public static class StructuredField
 
 	/// <summary>A List field value (§4.2.1).</summary>
 	/// <exception cref="FormatException">The text is no List; the message says where.</exception>
-	public static IReadOnlyList<Member> ParseList(string text) =>
-		Rfc9651.ParseList(text ?? throw new ArgumentNullException(nameof(text)));
+	public static IReadOnlyList<Member> ParseList(string text)
+	{
+		return Rfc9651.ParseList(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A List field value, or false where the text is not one.</summary>
 	public static bool TryParseList(string text, [NotNullWhen(true)] out IReadOnlyList<Member>? list)
@@ -66,8 +76,10 @@ public static class StructuredField
 
 	/// <summary>A Dictionary field value (§4.2.2).</summary>
 	/// <exception cref="FormatException">The text is no Dictionary; the message says where.</exception>
-	public static OrderedMap<Member> ParseDictionary(string text) =>
-		Rfc9651.ParseDictionary(text ?? throw new ArgumentNullException(nameof(text)));
+	public static OrderedMap<Member> ParseDictionary(string text)
+	{
+		return Rfc9651.ParseDictionary(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A Dictionary field value, or false where the text is not one.</summary>
 	public static bool TryParseDictionary(string text, [NotNullWhen(true)] out OrderedMap<Member>? dictionary)
@@ -84,19 +96,31 @@ public static class StructuredField
 	/// §4.2: a parser "MUST combine all field lines … into one comma-separated field-value". Members of a List or
 	/// a Dictionary survive that; a String split across two lines does not, and gains the comma, as the RFC warns.
 	/// </remarks>
-	public static string Combine(IEnumerable<string> lines) => Rfc9651.Combine(lines);
+	public static string Combine(IEnumerable<string> lines)
+	{
+		return Rfc9651.Combine(lines);
+	}
 
 	/// <summary>An Item as §4.1.3 serializes it.</summary>
 	/// <exception cref="ArgumentException">The Item holds what has no serialization, as §4.1 lists.</exception>
-	public static string SerializeItem(Item item) => Rfc9651.SerializeItem(item);
+	public static string SerializeItem(Item item)
+	{
+		return Rfc9651.SerializeItem(item);
+	}
 
 	/// <summary>A List as §4.1.1 serializes it.</summary>
 	/// <exception cref="ArgumentException">The List holds what has no serialization, as §4.1 lists.</exception>
-	public static string SerializeList(IReadOnlyList<Member> list) => Rfc9651.SerializeList(list);
+	public static string SerializeList(IReadOnlyList<Member> list)
+	{
+		return Rfc9651.SerializeList(list);
+	}
 
 	/// <summary>A Dictionary as §4.1.2 serializes it.</summary>
 	/// <exception cref="ArgumentException">The Dictionary holds what has no serialization, as §4.1 lists.</exception>
-	public static string SerializeDictionary(OrderedMap<Member> dictionary) => Rfc9651.SerializeDictionary(dictionary);
+	public static string SerializeDictionary(OrderedMap<Member> dictionary)
+	{
+		return Rfc9651.SerializeDictionary(dictionary);
+	}
 }
 
 /// <summary>One of the eight values RFC 9651 §3.3 defines.</summary>
@@ -127,10 +151,16 @@ public abstract record BareItem
 	public sealed record ByteSequence(byte[] Value) : BareItem
 	{
 		/// <summary>Whether the other sequence holds the same bytes.</summary>
-		public bool Equals(ByteSequence? other) => other is not null && Structural.Same(Value, other.Value);
+		public bool Equals(ByteSequence? other)
+		{
+			return other is not null && Structural.Same(Value, other.Value);
+		}
 
 		/// <summary>A hash over the bytes.</summary>
-		public override int GetHashCode() => Structural.Hash(Value);
+		public override int GetHashCode()
+		{
+			return Structural.Hash(Value);
+		}
 	}
 
 	/// <summary>§3.3.6.</summary>
@@ -181,7 +211,10 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	/// Whether the other is a map of the same kind with the same keys and values in the same
 	/// order.
 	/// </summary>
-	public override bool Equals(object? other) => Equals(other as OrderedMap<T>);
+	public override bool Equals(object? other)
+	{
+		return Equals(other as OrderedMap<T>);
+	}
 
 	/// <summary>A hash over the keys and the values, in order.</summary>
 	public override int GetHashCode()
@@ -226,7 +259,10 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 		TryGetValue(key, out var value) ? value : throw new KeyNotFoundException($"'{key}' is not in the map.");
 
 	/// <summary>Whether a key is one of the map's, compared as it was written.</summary>
-	public bool ContainsKey(string key) => _places.ContainsKey(key);
+	public bool ContainsKey(string key)
+	{
+		return _places.ContainsKey(key);
+	}
 
 	/// <summary>The value a key names, or false where the map has no such key.</summary>
 	public bool TryGetValue(string key, [MaybeNullWhen(false)] out T value)
@@ -242,9 +278,15 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	}
 
 	/// <summary>The entries in the order they were written.</summary>
-	public IEnumerator<KeyValuePair<string, T>> GetEnumerator() => _entries.GetEnumerator();
+	public IEnumerator<KeyValuePair<string, T>> GetEnumerator()
+	{
+		return _entries.GetEnumerator();
+	}
 
-	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	IEnumerator IEnumerable.GetEnumerator()
+	{
+		return GetEnumerator();
+	}
 
 	internal void Set(string key, T value)
 	{
@@ -434,11 +476,15 @@ static partial class Rfc9651
 		return map;
 	}
 
-	internal static long Integer(string text) =>
-		long.Parse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+	internal static long Integer(string text)
+	{
+		return long.Parse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+	}
 
-	internal static decimal Decimal(string text) =>
-		decimal.Parse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+	internal static decimal Decimal(string text)
+	{
+		return decimal.Parse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+	}
 
 	/// <summary>A String's text, its quotes and its escapes taken off.</summary>
 	internal static string Unquoted(string quoted)
@@ -514,7 +560,10 @@ static partial class Rfc9651
 		}
 	}
 
-	static int Hex(char digit) => digit <= '9' ? digit - '0' : digit - 'a' + 10;
+	static int Hex(char digit)
+	{
+		return digit <= '9' ? digit - '0' : digit - 'a' + 10;
+	}
 
 	// ── Serializing (§4.1) ───────────────────────────────────────────────────────
 
@@ -768,8 +817,10 @@ static partial class Rfc9651
 
 	const string LowerHex = "0123456789abcdef";
 
-	static ArgumentException Refused(string why) =>
-		new($"This value has no serialization in RFC 9651 §4.1: {why}.");
+	static ArgumentException Refused(string why)
+	{
+		return new($"This value has no serialization in RFC 9651 §4.1: {why}.");
+	}
 
 	static readonly UTF8Encoding Strict = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 }

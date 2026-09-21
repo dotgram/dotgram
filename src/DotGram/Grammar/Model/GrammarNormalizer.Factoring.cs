@@ -169,29 +169,37 @@ public sealed partial class GrammarNormalizer
 			return Kinds(one) is { } these && Kinds(lead) is { } those &&
 				!these.Any(a => those.Any(b => a.From <= b.To && b.From <= a.To));
 
-			static IReadOnlyList<CharRange>? Kinds(Node node) => node switch
+			static IReadOnlyList<CharRange>? Kinds(Node node)
 			{
-				Node.Literal { Text.Length: 1, IgnoreCase: false } literal => [new CharRange(literal.Text[0], literal.Text[0])],
-				Node.Element { IsNegated: false, Ranges.Count: > 0, Categories.Count: 0, References.Count: 0 } element => element.Ranges,
-				_ => null,
-			};
+				return node switch
+				{
+					Node.Literal { Text.Length: 1, IgnoreCase: false } literal => [new CharRange(literal.Text[0], literal.Text[0])],
+					Node.Element { IsNegated: false, Ranges.Count: > 0, Categories.Count: 0, References.Count: 0 } element => element.Ranges,
+					_ => null,
+				};
+			}
 		}
 
-		static Node Sequence(IReadOnlyList<Node> parts) =>
-			new Node.Sequence(parts.SelectMany(part =>
+		static Node Sequence(IReadOnlyList<Node> parts)
+		{
+			return new Node.Sequence(parts.SelectMany(part =>
 				part is Node.Sequence(var nested) ? nested : new[] { part }).ToList());
+		}
 
 		// Only identical bindings may survive together: never rewrite user C# names.
 		// A token rule commits its answer unless explicitly marked as giving back.
-		static bool Shareable(Node one, Node other) => (one, other) switch
+		static bool Shareable(Node one, Node other)
 		{
-			(Node.Capture(var a, var x), Node.Capture(var b, var y)) =>
-				a == b && Shareable(x, y),
-			(Node.Call(var a, { Count: 0 }), Node.Call(var b, { Count: 0 })) =>
-				ReferenceEquals(a, b) && !a.GivesBack,
-			(Node.Literal, Node.Literal) or (Node.Element, Node.Element) => SameShape(one, other),
-			_ => false,
-		};
+			return (one, other) switch
+			{
+				(Node.Capture(var a, var x), Node.Capture(var b, var y)) =>
+					a == b && Shareable(x, y),
+				(Node.Call(var a, { Count: 0 }), Node.Call(var b, { Count: 0 })) =>
+					ReferenceEquals(a, b) && !a.GivesBack,
+				(Node.Literal, Node.Literal) or (Node.Element, Node.Element) => SameShape(one, other),
+				_ => false,
+			};
+		}
 	}
 
 	/// <summary>
@@ -456,12 +464,14 @@ public sealed partial class GrammarNormalizer
 	/// A body written as one construction over a choice, given to each alternative instead —
 	/// or null where it is not that shape.
 	/// </summary>
-	Node.Choice? Given(Node body) =>
-		body is Node.Construct(Node.Choice(var shared) { Selection: null }, Construction.Expression(var text, _) how) &&
+	Node.Choice? Given(Node body)
+	{
+		return body is Node.Construct(Node.Choice(var shared) { Selection: null }, Construction.Expression(var text, _) how) &&
 		Handed(text) is { } handed &&
 		Handing(shared, handed)
 			? new Node.Choice([.. shared.Select(one => (Node)new Node.Construct(one, how))])
 			: null;
+	}
 
 	/// <summary>The graph as it stands, for the sets this pass reasons with.</summary>
 	/// <remarks>
@@ -470,16 +480,18 @@ public sealed partial class GrammarNormalizer
 	/// and changes nothing about what can follow that choice, so what these say about the
 	/// position is what they would still say afterwards.
 	/// </remarks>
-	RecognitionGraph Provisional() =>
-		new(_rules, _bodies, _nullable, _results, _types, [], _publications, _diagnostics)
+	RecognitionGraph Provisional()
+	{
+		return new(_rules, _bodies, _nullable, _results, _types, [], _publications, _diagnostics)
 		{
-			Folds      = _folds,
-			Trivia     = _trivia,
+			Folds = _folds,
+			Trivia = _trivia,
 			Recoveries = _recoveries,
-			Says       = _says,
-			Climbing   = _climbing,
-			Powers     = _powers,
+			Says = _says,
+			Climbing = _climbing,
+			Powers = _powers,
 		};
+	}
 
 	/// <summary>This node with every choice inside it folded where one can be.</summary>
 	Node Folded(Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol owner)
@@ -999,14 +1011,18 @@ public sealed partial class GrammarNormalizer
 	/// alternative, which folding a run of them into one would not move but destroy. So those
 	/// are left where they are, and the rest of the rule is still walked.
 	/// </remarks>
-	bool Spoken(Node alternative, RuleSymbol owner) =>
-		_climbing.TryGetValue(owner, out var levels) && levels.ContainsKey(alternative) ||
+	bool Spoken(Node alternative, RuleSymbol owner)
+	{
+		return _climbing.TryGetValue(owner, out var levels) && levels.ContainsKey(alternative) ||
 		_folds.TryGetValue(owner, out var fold) &&
 			(fold.Accumulators.ContainsKey(alternative) || ReferenceEquals(fold.Loop, alternative));
+	}
 
 	/// <summary>An alternative as its leading operand and what comes after it.</summary>
-	static bool Splits(Node alternative, out Construction? how, out Node head, out Node? tail) =>
-		Splits(alternative, 1, out how, out head, out tail);
+	static bool Splits(Node alternative, out Construction? how, out Node head, out Node? tail)
+	{
+		return Splits(alternative, 1, out how, out head, out tail);
+	}
 
 	/// <summary>An alternative as its leading <paramref name="take"/> nodes and what follows them.</summary>
 	static bool Splits(Node alternative, int take, out Construction? how, out Node head, out Node? tail)
@@ -1054,13 +1070,15 @@ public sealed partial class GrammarNormalizer
 	/// name its first node binds — the rest of the prefix is a keyword, a boundary, the
 	/// trivia between tokens, and binds nothing.
 	/// </remarks>
-	static string Named(Node head) =>
-		head switch
+	static string Named(Node head)
+	{
+		return head switch
 		{
 			Node.Sequence({ Count: > 0 } parts) => Named(parts[0]),
-			Node.Capture(var name, _)           => name,
-			_                                   => "",
+			Node.Capture(var name, _) => name,
+			_ => "",
 		};
+	}
 
 	/// <summary>
 	/// Whether an alternative can live with the run's operand being called something else.
@@ -1079,9 +1097,11 @@ public sealed partial class GrammarNormalizer
 	/// expression is not this pass's to rewrite.
 	/// </para>
 	/// </remarks>
-	bool Renamable(Node alternative, string name) =>
-		string.Equals(Named(Head(alternative)), name, StringComparison.Ordinal) ||
+	bool Renamable(Node alternative, string name)
+	{
+		return string.Equals(Named(Head(alternative)), name, StringComparison.Ordinal) ||
 		HandsBack(alternative);
+	}
 
 	static Node Head(Node alternative)
 	{
@@ -1091,9 +1111,11 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether an alternative is the operand and a `=&gt;` that hands it back.</summary>
-	static bool HandsBack(Node alternative) =>
-		alternative is Node.Construct(Node.Capture(var name, _), Construction.Expression(var text, _)) &&
+	static bool HandsBack(Node alternative)
+	{
+		return alternative is Node.Construct(Node.Capture(var name, _), Construction.Expression(var text, _)) &&
 		string.Equals(Handed(text), name, StringComparison.Ordinal);
+	}
 
 	/// <summary>
 	/// Whether an operand may be the one that survives, which is to say whether dropping the

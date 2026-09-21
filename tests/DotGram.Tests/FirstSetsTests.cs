@@ -27,10 +27,12 @@ public sealed class FirstSetsTests
 	[Fact]
 	public void Reachability_reuses_roots_and_keeps_graphs_separate()
 	{
-		static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root) =>
-			(HashSet<RuleSymbol>)typeof(RecognitionGraph).GetMethod("Reaches",
+		static HashSet<RuleSymbol> Reaches(RecognitionGraph graph, RuleSymbol? root)
+		{
+			return (HashSet<RuleSymbol>)typeof(RecognitionGraph).GetMethod("Reaches",
 				System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
 				.Invoke(graph, [root])!;
+		}
 
 		var graph = Graph("A = 'a' & B?\nB = 'b' & A?\nC = 'c'");
 		var a = graph.Rules.Single(rule => rule.Name == "A");
@@ -87,7 +89,10 @@ public sealed class FirstSetsTests
 		}
 	}
 
-	static bool HasBehind(Node node) => node is Node.Behind || node.Children.Any(HasBehind);
+	static bool HasBehind(Node node)
+	{
+		return node is Node.Behind || node.Children.Any(HasBehind);
+	}
 
 	// ── The algebra ──────────────────────────────────────────────────────────────
 
@@ -185,11 +190,13 @@ public sealed class FirstSetsTests
 	[InlineData('a', 'c', 'c', 'e', true)]
 	[InlineData('a', 'c', 'd', 'e', false)]
 	[InlineData('a', 'a', 'a', 'a', true)]
-	public void Overlap_is_exact_at_the_edges(char aFrom, char aTo, char bFrom, char bTo, bool expected) =>
+	public void Overlap_is_exact_at_the_edges(char aFrom, char aTo, char bFrom, char bTo, bool expected)
+	{
 		Assert.Equal(
 			expected,
 			FirstSets.First.Chars([new CharRange(aFrom, aTo)])
 				.Overlaps(FirstSets.First.Chars([new CharRange(bFrom, bTo)])));
+	}
 
 	[Fact]
 	public void Covers_sees_through_a_split_spelling()
@@ -293,7 +300,11 @@ public sealed class FirstSetsTests
 			"Excluded = ?!Prefix & ['a'..'z']",
 		};
 		var graph = Graph(string.Join("\n", reverse ? rules.Reverse() : rules));
-		FirstSets.First FirstOf(string name) => FirstSets.Of(graph.Bodies[graph.Rules.Single(rule => rule.Name == name)], graph);
+		FirstSets.First FirstOf(string name)
+		{
+			return FirstSets.Of(graph.Bodies[graph.Rules.Single(rule => rule.Name == name)], graph);
+		}
+
 		Assert.True(FirstSets.Same(FirstSets.First.Chars([new('a', 'a'), new('z', 'z')]), FirstOf("Start")));
 		Assert.True(FirstSets.Same(FirstSets.First.Chars([new('a', 'a')]), FirstOf("Constrained")));
 		Assert.True(FirstSets.Same(FirstSets.First.Chars([new('b', 'z')]), FirstOf("Excluded")));
@@ -332,11 +343,13 @@ public sealed class FirstSetsTests
 	/// the node, which is what the walk sees.
 	/// </remarks>
 	[Fact]
-	public void A_lookbehind_is_nullable() =>
+	public void A_lookbehind_is_nullable()
+	{
 		Assert.True(
 			FirstSets.Nullable(
 				new Node.Behind(new Node.Element(false, [new CharRange('a', 'z')], [], [])),
 				_ => false));
+	}
 
 	[Fact]
 	public void Contextual_answers_distinguish_continuations_seams_and_graphs()
@@ -347,8 +360,11 @@ public sealed class FirstSetsTests
 		var optional = new Node.Repeat(new Node.Literal("a"), 0, 1);
 		var repeat = new Node.Repeat(new Node.Literal("a"), 0, null);
 
-		static FollowSets.Continuation Following(char value) => new(
+		static FollowSets.Continuation Following(char value)
+		{
+			return new(
 			FirstSets.First.Chars([new CharRange(value, value)]), FirstSets.First.End);
+		}
 
 		FollowSets.Continuation last = default;
 		for (var i = 0; i < 512; i++)
@@ -387,10 +403,12 @@ public sealed class FirstSetsTests
 			FollowSets.Precedes(otherCall, Following('z'), other, null).Plain));
 	}
 
-	static RecognitionGraph Graph(string text) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string text)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).File));
+	}
 
 	static Node Body(string text)
 	{
@@ -490,15 +508,17 @@ public sealed class FirstSetsTests
 	}
 
 	/// <summary>What a grammar cut in two is told about itself.</summary>
-	static IReadOnlyList<GramDiagnostic> Split(string grammar) =>
-		GramCompiler.Compile(
+	static IReadOnlyList<GramDiagnostic> Split(string grammar)
+	{
+		return GramCompiler.Compile(
 			grammar,
 			new GramCompilerOptions
 			{
-				ClassName     = "Grammar",
+				ClassName = "Grammar",
 				CSharpScanner = RoslynCSharpScanner.Instance,
-				Lexical       = true,
+				Lexical = true,
 			}).Diagnostics;
+	}
 
 	/// <summary>And a lookahead one rule down settles it too.</summary>
 	/// <remarks>

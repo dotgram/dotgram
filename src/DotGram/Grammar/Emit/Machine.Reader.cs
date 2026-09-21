@@ -51,8 +51,10 @@ sealed partial class Machine
 	HashSet<RuleSymbol>? _seamReached;
 
 	/// <summary>Whether a node stands in the body of a rule the seam reaches.</summary>
-	bool InSeam(Node node) =>
-		(_seamNodes ??= NodeWalk.ByIdentity(SeamReached.Where(_graph.Bodies.ContainsKey).SelectMany(rule => NodeWalk.Descendants(_graph.Bodies[rule])))).Contains(node);
+	bool InSeam(Node node)
+	{
+		return (_seamNodes ??= NodeWalk.ByIdentity(SeamReached.Where(_graph.Bodies.ContainsKey).SelectMany(rule => NodeWalk.Descendants(_graph.Bodies[rule])))).Contains(node);
+	}
 
 	HashSet<Node>? _seamNodes;
 
@@ -163,9 +165,11 @@ sealed partial class Machine
 	/// Whether anything under a node can put something on the tape: a rule it calls that
 	/// does, once the first pass has said which those are.
 	/// </summary>
-	bool Opens(Node node) =>
-		_opens is null ||
+	bool Opens(Node node)
+	{
+		return _opens is null ||
 		NodeWalk.Descendants(node).Any(one => one is Node.Call(var called, _) && _opens.Contains(called));
+	}
 
 	/// <summary>
 	/// What may follow a rule where it is called, which is what says whether a run inside
@@ -390,10 +394,12 @@ sealed partial class Machine
 	/// </para>
 	/// </remarks>
 	void RenderWayBack(
-		Writer file, RuleSymbol rule, string strength, bool seal = false, RuleSymbol? deepens = null) =>
+		Writer file, RuleSymbol rule, string strength, bool seal = false, RuleSymbol? deepens = null)
+	{
 		RenderWayBack(
 			file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>",
 			strength, seal, deepens);
+	}
 
 	/// <summary>Whether a way back into this rule can reach it again, and so deepen the stack.</summary>
 	bool Deepens(RuleSymbol rule)
@@ -1294,7 +1300,10 @@ sealed partial class Machine
 				}
 			}
 
-			void Declare(string text) => prefix = code.InsertLine(prefix, text);
+			void Declare(string text)
+			{
+				prefix = code.InsertLine(prefix, text);
+			}
 		}
 
 		/// <param name="loaded">
@@ -1740,8 +1749,10 @@ sealed partial class Machine
 		Node? _quiet;
 
 		/// <summary>Whether alternative <paramref name="at"/> is one of the run <paramref name="closing"/> names.</summary>
-		static bool Quiet(List<string>? closing, IReadOnlyList<Node> alternatives, int at) =>
-			closing is not null && at >= alternatives.Count - closing.Count;
+		static bool Quiet(List<string>? closing, IReadOnlyList<Node> alternatives, int at)
+		{
+			return closing is not null && at >= alternatives.Count - closing.Count;
+		}
 
 		/// <summary>
 		/// The texts of the alternatives that end a choice, where they are two or more literals
@@ -1828,8 +1839,10 @@ sealed partial class Machine
 		/// Whether every token the enclosing switch could have chosen this group by is one the
 		/// set admits — so that a test against the set, made on that token, could only pass.
 		/// </summary>
-		bool Chosen(FirstSets.First admits) =>
-			_dispatched is { } chosen && chosen.IsKnown && admits.IsKnown && admits.Covers(chosen);
+		bool Chosen(FirstSets.First admits)
+		{
+			return _dispatched is { } chosen && chosen.IsKnown && admits.IsKnown && admits.Covers(chosen);
+		}
 
 		void EmitElement(Writer code, Node.Element element, bool loaded = false)
 		{
@@ -2195,11 +2208,13 @@ sealed partial class Machine
 		/// groups, which tried in order would have said what they wanted. Null where no member
 		/// begins with a guard.
 		/// </summary>
-		string? GuardRefuses(IReadOnlyList<Node> alternatives, List<Node> members) =>
-			members.Any(LeadsWithGuard)
+		string? GuardRefuses(IReadOnlyList<Node> alternatives, List<Node> members)
+		{
+			return members.Any(LeadsWithGuard)
 				? machine.DeclareExpected(machine.PredictedDisplays(
 					alternatives.Where(one => !members.Contains(one)).ToList()))
 				: null;
+		}
 
 		/// <summary>
 		/// Alternatives the first character tells apart, but too widely for a switch to name:
@@ -2384,7 +2399,10 @@ sealed partial class Machine
 		/// <summary>The line an entry writes between the trivia it begins with and its rule.</summary>
 		string? _leadMark;
 
-		public void MarkLead(string line) => _leadMark = line;
+		public void MarkLead(string line)
+		{
+			_leadMark = line;
+		}
 
 		string? _refuseWith;
 
@@ -2772,7 +2790,10 @@ sealed partial class Machine
 		/// nothing at either width tried (benchmarks/README.md).
 		/// </para>
 		/// </remarks>
-		string Calling(Node part, FollowSets.Continuation following) => Called(part, following).Call;
+		string Calling(Node part, FollowSets.Continuation following)
+		{
+			return Called(part, following).Call;
+		}
 
 		/// <summary>
 		/// The call, and what has to be put back where it failed.
@@ -2928,11 +2949,16 @@ sealed partial class Machine
 		/// values, a record is whatever the carrier keeps one in — and nothing at all where
 		/// this is the argument list rather than the parameters.
 		/// </summary>
-		string TypeOf(string type, int slot, string name) =>
-			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot), Optional(slot))) : type;
+		string TypeOf(string type, int slot, string name)
+		{
+			return name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot), Optional(slot))) : type;
+		}
 
 		/// <summary>The carrier's type where a type is wanted, nothing where it is not.</summary>
-		static string Typed(string type, string carried) => type.Length > 0 ? carried : "";
+		static string Typed(string type, string carried)
+		{
+			return type.Length > 0 ? carried : "";
+		}
 
 		/// <summary>The rule whose value a slot holds, which is what a carrier is asked about.</summary>
 		/// <remarks>
@@ -2941,13 +2967,18 @@ sealed partial class Machine
 		/// immediate carrier project it back themselves, which is where the projection
 		/// belongs — it is an answer about how they carry, not about what the reader read.
 		/// </remarks>
-		RuleSymbol RuleOfSlot(int slot) =>
-			machine.Carrier.ByPlace && machine.RuleAt(owner, slot) is { } read
+		RuleSymbol RuleOfSlot(int slot)
+		{
+			return machine.Carrier.ByPlace && machine.RuleAt(owner, slot) is { } read
 				? read
 				: machine.MemberOfSlot(owner, slot)!.Member.Rule!;
+		}
 
 		/// <summary>Whether the member a slot belongs to may be left out, which a carrier may keep a local for differently.</summary>
-		bool Optional(int slot) => machine.MemberOfSlot(owner, slot)?.Member.IsOptional == true;
+		bool Optional(int slot)
+		{
+			return machine.MemberOfSlot(owner, slot)?.Member.IsOptional == true;
+		}
 
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)
@@ -2981,8 +3012,10 @@ sealed partial class Machine
 		/// method of the rule: nothing about it crosses a method boundary in a local, so
 		/// nothing about it is handed over.
 		/// </remarks>
-		bool Handed(int slot) =>
-			machine.MemberOfSlot(owner, slot)?.Shape is MemberShape.Text or MemberShape.Record;
+		bool Handed(int slot)
+		{
+			return machine.MemberOfSlot(owner, slot)?.Shape is MemberShape.Text or MemberShape.Record;
+		}
 
 		/// <summary>What a part captures, and what the records inside it read.</summary>
 		(HashSet<int> Captured, HashSet<int> Used) Reaches(Node part)
@@ -4294,7 +4327,10 @@ sealed partial class Machine
 		}
 
 		/// <summary>Whether an alternative's reading begins with a guard, through what builds or names it.</summary>
-		static bool LeadsWithGuard(Node alternative) => LeadingGuard(alternative) is not null;
+		static bool LeadsWithGuard(Node alternative)
+		{
+			return LeadingGuard(alternative) is not null;
+		}
 
 		int _guardLocals;
 
@@ -4308,7 +4344,10 @@ sealed partial class Machine
 		readonly List<string> _hoisted = [];
 
 		/// <summary>A record's value as a guard sees it.</summary>
-		string ValueAt(RuleSymbol rule, string record) => machine.Carrier.ValueOf(rule, record);
+		string ValueAt(RuleSymbol rule, string record)
+		{
+			return machine.Carrier.ValueOf(rule, record);
+		}
 
 		void EmitLookahead(Writer code, bool positive, Node inside, bool loaded = false)
 		{
@@ -4444,9 +4483,11 @@ sealed partial class Machine
 		}
 
 		/// <summary>The statement that records a refusal here, asking first where a reading may be quiet.</summary>
-		string Refusal(string expected) =>
-			machine.Quiets
+		string Refusal(string expected)
+		{
+			return machine.Quiets
 				? $"if (!failure.Quiet) {Refusing}(ref failure, p, {expected});"
 				: $"{Refusing}(ref failure, p, {expected});";
+		}
 	}
 }

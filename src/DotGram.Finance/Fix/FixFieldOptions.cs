@@ -142,7 +142,10 @@ public sealed class FixFieldOptions
 		_far   = far;
 		_pairs = pairs;
 
-		static int Room(int tag) => tag < Tabled ? tag + 1 : 0;
+		static int Room(int tag)
+		{
+			return tag < Tabled ? tag + 1 : 0;
+		}
 
 		static void Declare(sbyte[] kinds, ref Dictionary<int, sbyte>? far, int tag, sbyte kind)
 		{
@@ -172,8 +175,10 @@ public sealed class FixFieldOptions
 	/// only thing about a <see cref="FixFieldOptions"/> that is worth changing a copy for; the
 	/// pairs and the custom fields are what the object IS.
 	/// </remarks>
-	public FixFieldOptions With(FixFraming framing) =>
-		framing == Framing ? this : new FixFieldOptions(this, framing);
+	public FixFieldOptions With(FixFraming framing)
+	{
+		return framing == Framing ? this : new FixFieldOptions(this, framing);
+	}
 
 	FixFieldOptions(FixFieldOptions other, FixFraming framing)
 	{
@@ -215,7 +220,10 @@ public sealed class FixFieldOptions
 	}
 
 	/// <summary>Whether a tag carries binary data — the standard's, or one this consumer declared.</summary>
-	internal bool IsData(int tag) => Kind(tag) == Data;
+	internal bool IsData(int tag)
+	{
+		return Kind(tag) == Data;
+	}
 
 	static sbyte[] Settled()
 	{

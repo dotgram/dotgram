@@ -40,8 +40,10 @@ public sealed class NewFormsTests
 	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int>(); t.Add(448); return t.Count; }")]
 	[InlineData("(int x) => { int[] t = new int[] { 448, 447 }; return t.Length; }")]
 	[InlineData("(int x) => { int[] t = new int[2]; return t.Length; }")]
-	public void These_forms_of_new_read(string text) =>
+	public void These_forms_of_new_read(string text)
+	{
 		Assert.True(ExpressionParser.TryParse(text).IsSuccess, text);
+	}
 
 	[Theory]
 	// `new T` alone stays refused: the parentheses are optional only before an initializer,
@@ -56,6 +58,8 @@ public sealed class NewFormsTests
 	[InlineData("(int x) => { int[] t = new[] { 448, 447 }; return t.Length; }")]
 	// An initializer with no `new` at all.
 	[InlineData("(int x) => { int[] t = { 448, 447 }; return t.Length; }")]
-	public void These_forms_of_new_do_not(string text) =>
+	public void These_forms_of_new_do_not(string text)
+	{
 		Assert.False(ExpressionParser.TryParse(text).IsSuccess, text);
+	}
 }

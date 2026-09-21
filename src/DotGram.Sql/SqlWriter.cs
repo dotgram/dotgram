@@ -1303,34 +1303,38 @@ public static class SqlWriter
 	}
 
 	/// <summary>A switch of any group, as its name and whether it is on; null for any other setting.</summary>
-	static (string Option, bool On)? Switched(SetExpression one) =>
-		one switch
+	static (string Option, bool On)? Switched(SetExpression one)
+	{
+		return one switch
 		{
 			SetExpression.QueryExecution.Switch(var option, var on) => (option, on),
-			SetExpression.IsoSettings.Switch(var option, var on)    => (option, on),
-			SetExpression.Statistics.Switch(var option, var on)     => (option, on),
-			SetExpression.Transactions.Switch(var option, var on)   => (option, on),
-			SetExpression.Miscellaneous.Switch(var option, var on)  => (option, on),
-			_                                                       => null,
+			SetExpression.IsoSettings.Switch(var option, var on) => (option, on),
+			SetExpression.Statistics.Switch(var option, var on) => (option, on),
+			SetExpression.Transactions.Switch(var option, var on) => (option, on),
+			SetExpression.Miscellaneous.Switch(var option, var on) => (option, on),
+			_ => null,
 		};
+	}
 
 	/// <summary>A setting given a value, as the name it is written with and the value.</summary>
-	static (string Name, Expression? Value) Valued(SetExpression one) =>
-		one switch
+	static (string Name, Expression? Value) Valued(SetExpression one)
+	{
+		return one switch
 		{
-			SetExpression.DateAndTime.DateFirst(var value)                 => ("DATEFIRST", value),
-			SetExpression.DateAndTime.DateFormat(var value)                => ("DATEFORMAT", value),
-			SetExpression.Locking.DeadlockPriority(var value)              => ("DEADLOCK_PRIORITY", value),
-			SetExpression.Locking.LockTimeout(var value)                   => ("LOCK_TIMEOUT", value),
-			SetExpression.QueryExecution.RowCount(var value)               => ("ROWCOUNT", value),
-			SetExpression.QueryExecution.TextSize(var value)               => ("TEXTSIZE", value),
+			SetExpression.DateAndTime.DateFirst(var value) => ("DATEFIRST", value),
+			SetExpression.DateAndTime.DateFormat(var value) => ("DATEFORMAT", value),
+			SetExpression.Locking.DeadlockPriority(var value) => ("DEADLOCK_PRIORITY", value),
+			SetExpression.Locking.LockTimeout(var value) => ("LOCK_TIMEOUT", value),
+			SetExpression.QueryExecution.RowCount(var value) => ("ROWCOUNT", value),
+			SetExpression.QueryExecution.TextSize(var value) => ("TEXTSIZE", value),
 			SetExpression.QueryExecution.QueryGovernorCostLimit(var value) => ("QUERY_GOVERNOR_COST_LIMIT", value),
-			SetExpression.Miscellaneous.Language(var value)                => ("LANGUAGE", value),
-			SetExpression.Miscellaneous.FipsFlagger(var level)             => ("FIPS_FLAGGER", level),
-			SetExpression.Miscellaneous.ContextInfo(var value)             => ("CONTEXT_INFO", value),
-			SetExpression.Miscellaneous.ErrorLevel(var value)              => ("ERRLVL", value),
+			SetExpression.Miscellaneous.Language(var value) => ("LANGUAGE", value),
+			SetExpression.Miscellaneous.FipsFlagger(var level) => ("FIPS_FLAGGER", level),
+			SetExpression.Miscellaneous.ContextInfo(var value) => ("CONTEXT_INFO", value),
+			SetExpression.Miscellaneous.ErrorLevel(var value) => ("ERRLVL", value),
 			_ => throw new ArgumentOutOfRangeException(nameof(one), one.GetType().Name),
 		};
+	}
 
 	static void Block(StringBuilder text, Statement[] body)
 	{
@@ -2832,25 +2836,28 @@ public static class SqlWriter
 	}
 
 	/// <summary>How tightly a node binds, so that a bracket is written only where it is due.</summary>
-	static int Binds(Expression expression) => expression switch
+	static int Binds(Expression expression)
 	{
-		Expression.Or  => 1,
-		Expression.And => 2,
-		Expression.Not => 3,
+		return expression switch
+		{
+			Expression.Or => 1,
+			Expression.And => 2,
+			Expression.Not => 3,
 
-		Expression.Comparison or Expression.Quantified or Expression.Between or Expression.In or
-		Expression.Like or Expression.IsNull or Expression.Exists or Expression.Unique or
-		Expression.Match or Expression.Overlaps or Expression.IsDistinctFrom or
-		Expression.IsTruth => 4,
+			Expression.Comparison or Expression.Quantified or Expression.Between or Expression.In or
+			Expression.Like or Expression.IsNull or Expression.Exists or Expression.Unique or
+			Expression.Match or Expression.Overlaps or Expression.IsDistinctFrom or
+			Expression.IsTruth => 4,
 
-		Expression.Add or Expression.Subtract or Expression.Concatenate or
-		Expression.BitwiseAnd or Expression.BitwiseOr or Expression.BitwiseXor or
-		Expression.ShiftLeft or Expression.ShiftRight                          => 5,
-		Expression.Multiply or Expression.Divide or Expression.Modulo          => 6,
-		Expression.Negate or Expression.Plus or Expression.BitwiseNot          => 7,
+			Expression.Add or Expression.Subtract or Expression.Concatenate or
+			Expression.BitwiseAnd or Expression.BitwiseOr or Expression.BitwiseXor or
+			Expression.ShiftLeft or Expression.ShiftRight => 5,
+			Expression.Multiply or Expression.Divide or Expression.Modulo => 6,
+			Expression.Negate or Expression.Plus or Expression.BitwiseNot => 7,
 
-		_ => 8,
-	};
+			_ => 8,
+		};
+	}
 
 	static void Put(StringBuilder text, Expression expression, int least)
 	{
@@ -3157,18 +3164,21 @@ public static class SqlWriter
 		Put(text, right, binds + 1);
 	}
 
-	static string Sign(SqlComparison operation) => operation switch
+	static string Sign(SqlComparison operation)
 	{
-		SqlComparison.Equal          => "=",
-		SqlComparison.NotEqual       => "<>",
-		SqlComparison.Less           => "<",
-		SqlComparison.LessOrEqual    => "<=",
-		SqlComparison.Greater        => ">",
-		SqlComparison.NotEqualBang   => "!=",
-		SqlComparison.NotLess        => "!<",
-		SqlComparison.NotGreater     => "!>",
-		_                            => ">=",
-	};
+		return operation switch
+		{
+			SqlComparison.Equal => "=",
+			SqlComparison.NotEqual => "<>",
+			SqlComparison.Less => "<",
+			SqlComparison.LessOrEqual => "<=",
+			SqlComparison.Greater => ">",
+			SqlComparison.NotEqualBang => "!=",
+			SqlComparison.NotLess => "!<",
+			SqlComparison.NotGreater => "!>",
+			_ => ">=",
+		};
+	}
 
 	// ── The calls that are not an argument list ─────────────────────────────────
 	//

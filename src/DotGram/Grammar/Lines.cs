@@ -23,11 +23,15 @@ static class Lines
 {
 	public const string Ending = "\r\n";
 
-	public static StringBuilder EndLine(this StringBuilder text) =>
-		text.Append(Ending);
+	public static StringBuilder EndLine(this StringBuilder text)
+	{
+		return text.Append(Ending);
+	}
 
-	public static StringBuilder AppendEndingWith(this StringBuilder text, string value) =>
-		text.Append(value).Append(Ending);
+	public static StringBuilder AppendEndingWith(this StringBuilder text, string value)
+	{
+		return text.Append(value).Append(Ending);
+	}
 
 	/// <summary>
 	/// The same text with every line ending <see cref="Ending"/>.
@@ -37,6 +41,8 @@ static class Lines
 	/// file it was typed in was saved with, and everything downstream of it reads lines by
 	/// splitting on <see cref="Ending"/>.
 	/// </remarks>
-	public static string Normalize(string text) =>
-		text.IndexOf('\n') < 0 ? text : text.Replace("\r\n", "\n").Replace("\n", Ending);
+	public static string Normalize(string text)
+	{
+		return text.IndexOf('\n') < 0 ? text : text.Replace("\r\n", "\n").Replace("\n", Ending);
+	}
 }

@@ -24,7 +24,10 @@ public class ParserResourceBenchmarks
 	}
 
 	[Benchmark]
-	public bool Parse() => Sql92Parser.TryParseSearchCondition(input).IsSuccess;
+	public bool Parse()
+	{
+		return Sql92Parser.TryParseSearchCondition(input).IsSuccess;
+	}
 }
 
 /// <summary>A scalar reader whose setup should cost no allocations on successful short input.</summary>
@@ -44,7 +47,10 @@ public class TinyParserBenchmarks
 	}
 
 	[Benchmark]
-	public bool Parse() => TinyScalar.TryParseDepth(Input).IsSuccess;
+	public bool Parse()
+	{
+		return TinyScalar.TryParseDepth(Input).IsSuccess;
+	}
 }
 
 [Gram("""

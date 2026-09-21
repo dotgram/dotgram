@@ -17,8 +17,10 @@ partial class HandSqlStandard
 	// ── The publications ───────────────────────────────────────────────────────
 
 	/// <summary>Reads the whole input as a <c>&lt;query expression&gt;</c>.</summary>
-	public static Statement.Select ParseQueryExpression(string input) =>
-		TryParseQueryExpression(input, out var value) ? value : throw Refused(input, "query expression");
+	public static Statement.Select ParseQueryExpression(string input)
+	{
+		return TryParseQueryExpression(input, out var value) ? value : throw Refused(input, "query expression");
+	}
 
 	/// <summary>Reads the whole input as a <c>&lt;query expression&gt;</c>, answering rather than throwing.</summary>
 	public static bool TryParseQueryExpression(string input, out Statement.Select value)
@@ -33,8 +35,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.Select ParseQuerySpecification(string input) =>
-		TryParseQuerySpecification(input, out var value) ? value : throw Refused(input, "query specification");
+	public static Statement.Select ParseQuerySpecification(string input)
+	{
+		return TryParseQuerySpecification(input, out var value) ? value : throw Refused(input, "query specification");
+	}
 
 	public static bool TryParseQuerySpecification(string input, out Statement.Select value)
 	{
@@ -48,8 +52,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static TableSource ParseTableReference(string input) =>
-		TryParseTableReference(input, out var value) ? value : throw Refused(input, "table reference");
+	public static TableSource ParseTableReference(string input)
+	{
+		return TryParseTableReference(input, out var value) ? value : throw Refused(input, "table reference");
+	}
 
 	public static bool TryParseTableReference(string input, out TableSource value)
 	{
@@ -300,11 +306,13 @@ partial class HandSqlStandard
 	}
 
 	/// <summary>An operand as the kind it is: a table value constructor or an explicit table alone, or a query.</summary>
-	static QueryOperand OperandOf(Statement.Select query) =>
-		query.Body is QueryOperand.Values or QueryOperand.Table
+	static QueryOperand OperandOf(Statement.Select query)
+	{
+		return query.Body is QueryOperand.Values or QueryOperand.Table
 		&& query.Parentheses == 0 && query.SetOperations.Count == 0 && query.With is null && query.OrderBy is null && query.Offset is null && query.Fetch is null
 			? query.Body
 			: new QueryOperand.Select(query);
+	}
 
 	/// <summary>An operand and the operations after it, where the first has none of its own.</summary>
 	static Statement.Select Combined(Statement.Select first, List<SetOperation>? rest)
@@ -442,10 +450,12 @@ partial class HandSqlStandard
 		return null;
 	}
 
-	static RowWord? RowWord(ref SqlCursor cursor) =>
-		cursor.Take(SqlWord.Row)  ? Ast.RowWord.Row :
+	static RowWord? RowWord(ref SqlCursor cursor)
+	{
+		return cursor.Take(SqlWord.Row) ? Ast.RowWord.Row :
 		cursor.Take(SqlWord.Rows) ? Ast.RowWord.Rows :
 		null;
+	}
 
 	static FetchClause? FetchFirstClause(ref SqlCursor cursor)
 	{
@@ -2006,9 +2016,15 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool ScalarSubquery(ref SqlCursor cursor, out Statement.Select query) => Subquery(ref cursor, out query);
+	static bool ScalarSubquery(ref SqlCursor cursor, out Statement.Select query)
+	{
+		return Subquery(ref cursor, out query);
+	}
 
-	static bool TableSubquery(ref SqlCursor cursor, out Statement.Select query) => Subquery(ref cursor, out query);
+	static bool TableSubquery(ref SqlCursor cursor, out Statement.Select query)
+	{
+		return Subquery(ref cursor, out query);
+	}
 
 	// ── §7.6 Row pattern recognition clause ────────────────────────────────────
 

@@ -85,15 +85,18 @@ public sealed class WebRefusalScalingTests
 			$"({shorter:F0} µs against {longer:F0} µs).");
 	}
 
-	static Func<int, bool> Reader(string shape) => shape[..8] switch
+	static Func<int, bool> Reader(string shape)
 	{
-		"a URI te" => length => UriTemplate.TryParse(new string('a', length) + "{unclosed", out _),
-		"an addre" => length => EmailAddress.TryParseList(new string('a', length) + "@ex ample.com", out _),
-		"an obsol" when shape.EndsWith("whitespace", StringComparison.Ordinal)
-		           => length => EmailAddress.TryParseList("<" + new string(' ', length) + "@a:b@c.d", out _),
-		_          => length => EmailAddress.TryParseList(
-		                  "<" + string.Concat(Enumerable.Repeat("(a)", length)) + "@a:b@c.d", out _),
-	};
+		return shape[..8] switch
+		{
+			"a URI te" => length => UriTemplate.TryParse(new string('a', length) + "{unclosed", out _),
+			"an addre" => length => EmailAddress.TryParseList(new string('a', length) + "@ex ample.com", out _),
+			"an obsol" when shape.EndsWith("whitespace", StringComparison.Ordinal)
+					   => length => EmailAddress.TryParseList("<" + new string(' ', length) + "@a:b@c.d", out _),
+			_ => length => EmailAddress.TryParseList(
+							  "<" + string.Concat(Enumerable.Repeat("(a)", length)) + "@a:b@c.d", out _),
+		};
+	}
 
 	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
 	static double Best(Func<int, bool> refuse, int length)

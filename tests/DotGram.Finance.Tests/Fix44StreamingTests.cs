@@ -67,12 +67,20 @@ public sealed class Fix44StreamingTests
 		Assert.Equal(wire, FixParser.ReadMessage(new StringReader(wire), options).OriginalWire);
 	}
 
-	static byte[] ToBytes(string text) => text.Select(c => checked((byte)c)).ToArray();
+	static byte[] ToBytes(string text)
+	{
+		return text.Select(c => checked((byte)c)).ToArray();
+	}
+
 	sealed class ShortReader : TextReader
 	{
 		readonly string text;
 		int position;
-		public ShortReader(string text) => this.text = text;
+		public ShortReader(string text)
+		{
+			this.text = text;
+		}
+
 		public override int Read(char[] buffer, int index, int count)
 		{
 			count = Math.Min(Math.Min(count, 3), text.Length - position);
@@ -85,17 +93,41 @@ public sealed class Fix44StreamingTests
 	sealed class ShortStream : Stream
 	{
 		readonly MemoryStream inner;
-		public ShortStream(byte[] data) => inner = new MemoryStream(data);
+		public ShortStream(byte[] data)
+		{
+			inner = new MemoryStream(data);
+		}
+
 		public override bool CanRead => true;
 		public override bool CanSeek => false;
 		public override bool CanWrite => false;
 		public override long Length => throw new NotSupportedException();
 		public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
-		public override int Read(byte[] buffer, int offset, int count) => inner.Read(buffer, offset, Math.Min(3, count));
-		public override void Flush() => throw new NotSupportedException();
-		public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-		public override void SetLength(long value) => throw new NotSupportedException();
-		public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			return inner.Read(buffer, offset, Math.Min(3, count));
+		}
+
+		public override void Flush()
+		{
+			throw new NotSupportedException();
+		}
+
+		public override long Seek(long offset, SeekOrigin origin)
+		{
+			throw new NotSupportedException();
+		}
+
+		public override void SetLength(long value)
+		{
+			throw new NotSupportedException();
+		}
+
+		public override void Write(byte[] buffer, int offset, int count)
+		{
+			throw new NotSupportedException();
+		}
+
 		protected override void Dispose(bool disposing) { if (disposing) inner.Dispose(); base.Dispose(disposing); }
 	}
 }

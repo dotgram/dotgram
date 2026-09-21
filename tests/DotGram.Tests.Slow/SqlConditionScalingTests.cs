@@ -68,8 +68,10 @@ public sealed class SqlConditionScalingTests
 		Assert.True(each < 8 * 1024, $"A predicate allocated {each:N0} bytes.");
 	}
 
-	static void AssertLinear(double shorter, double longer) =>
+	static void AssertLinear(double shorter, double longer)
+	{
 		Assert.True(longer / shorter < 15, $"Ten times the input took {longer / shorter:F1} times as long ({shorter:F0} µs against {longer:F0} µs).");
+	}
 
 	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
 	static double Best(Func<bool> read)
@@ -94,9 +96,13 @@ public sealed class SqlConditionScalingTests
 		return best;
 	}
 
-	static string Condition(int predicates, string connective) =>
-		string.Join(connective, Enumerable.Range(0, predicates).Select(static i => "a" + i + " = 1"));
+	static string Condition(int predicates, string connective)
+	{
+		return string.Join(connective, Enumerable.Range(0, predicates).Select(static i => "a" + i + " = 1"));
+	}
 
-	static string Sum(int terms) =>
-		string.Join(" + ", Enumerable.Range(0, terms).Select(static i => "a" + i));
+	static string Sum(int terms)
+	{
+		return string.Join(" + ", Enumerable.Range(0, terms).Select(static i => "a" + i));
+	}
 }

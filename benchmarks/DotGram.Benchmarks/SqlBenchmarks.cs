@@ -140,5 +140,8 @@ public class SqlBenchmarks
 	}
 
 	[Benchmark]
-	public bool Parse() => Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
+	public bool Parse()
+	{
+		return Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
+	}
 }

@@ -77,14 +77,18 @@ public sealed class LineDirectiveTests
 	}
 
 	[Fact]
-	public void The_generated_file_still_compiles_with_them() =>
+	public void The_generated_file_still_compiles_with_them()
+	{
 		// Directives sit at column 0 inside a class body, which is legal and is worth
 		// pinning: a `#line` in the wrong place is a C# error in the consumer's build.
 		EmittedCode.Compile(Generate(Grammar, "Numbers.gram"), "Grammar", null);
+	}
 
 	[Fact]
-	public void Without_a_map_there_are_no_directives() =>
+	public void Without_a_map_there_are_no_directives()
+	{
 		Assert.DoesNotContain("#line", Generate(Grammar, path: null), StringComparison.Ordinal);
+	}
 
 	static string Generate(string grammar, string? path)
 	{

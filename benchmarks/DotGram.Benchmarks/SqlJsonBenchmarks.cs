@@ -28,5 +28,8 @@ public class SqlJsonBenchmarks
 	public string Input { get; set; } = "SELECT 1";
 
 	[Benchmark]
-	public bool Generated() => TransactSqlParser.TryParseStatement(Input).IsSuccess;
+	public bool Generated()
+	{
+		return TransactSqlParser.TryParseStatement(Input).IsSuccess;
+	}
 }

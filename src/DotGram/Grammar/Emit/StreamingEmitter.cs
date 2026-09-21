@@ -423,15 +423,22 @@ public static partial class CSharpEmitter
 			publication.Rule.Name);
 	}
 
-	static string Comment(Stage stage) =>
-		stage.Rule is { } rule
+	static string Comment(Stage stage)
+	{
+		return stage.Rule is { } rule
 			? (stage.Repeated ? "every " : "") + rule.Name
 			: stage.Node.ToString();
+	}
 
-	static string Named(Stage stage) => stage.Rule?.Name ?? stage.Node.ToString();
+	static string Named(Stage stage)
+	{
+		return stage.Rule?.Name ?? stage.Node.ToString();
+	}
 
-	static string EscapeDiagnostic(string value) =>
-		value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+	static string EscapeDiagnostic(string value)
+	{
+		return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+	}
 
 	/// <summary>
 	/// What a streamed parse does with an element it could not read (§8.2, §8.3).
@@ -447,24 +454,27 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, Publication publication, Recovery recovery,
 		string factory, int stage, string element)
 	{
-		string Supplied(string name) => name switch
+		string Supplied(string name)
 		{
-			"parserText"     => "window.Text(from, to - from)",
-			"parserPosition" => "window.Offset + from",
-			"parserOrdinal"  => $"ordinal{stage}",
-			"parserLine"     => "window.LineAt(from)",
-			"parserColumn"   => "window.ColumnAt(from)",
-			// Where in what was read, on the same terms as everywhere else — an extent, not
-			// an absolute offset, which is what `parserPosition` beside it is for. It used to
-			// add the window's offset and narrow the sum to an `int`, which meant one name
-			// with two meanings and, past two gigabytes, a silently wrong one. Nothing
-			// reaches this now: a grammar that asks for a span is refused a stream.
-			"parserSpan"     => "new SourceSpan(from, to - from)",
-			"parserMessage"  => $"\"Input does not match '{element}' at \" + " +
-				$"(window.Offset + failure{stage}.Reach).ToString(" +
-				"global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
-			_                => "default",
-		};
+			return name switch
+			{
+				"parserText" => "window.Text(from, to - from)",
+				"parserPosition" => "window.Offset + from",
+				"parserOrdinal" => $"ordinal{stage}",
+				"parserLine" => "window.LineAt(from)",
+				"parserColumn" => "window.ColumnAt(from)",
+				// Where in what was read, on the same terms as everywhere else — an extent, not
+				// an absolute offset, which is what `parserPosition` beside it is for. It used to
+				// add the window's offset and narrow the sum to an `int`, which meant one name
+				// with two meanings and, past two gigabytes, a silently wrong one. Nothing
+				// reaches this now: a grammar that asks for a span is refused a stream.
+				"parserSpan" => "new SourceSpan(from, to - from)",
+				"parserMessage" => $"\"Input does not match '{element}' at \" + " +
+					$"(window.Offset + failure{stage}.Reach).ToString(" +
+					"global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+				_ => "default",
+			};
+		}
 
 		if (recovery.Factory is null)
 		{
@@ -516,10 +526,12 @@ public static partial class CSharpEmitter
 	/// </para>
 	/// </remarks>
 	/// <summary>Whether a call is the rule's own seam — the trivia §4.5 weaves.</summary>
-	static bool IsSeamOf(RecognitionGraph graph, RuleSymbol rule, RuleSymbol called) =>
-		graph.Trivia.TryGetValue(rule, out var seam) &&
+	static bool IsSeamOf(RecognitionGraph graph, RuleSymbol rule, RuleSymbol called)
+	{
+		return graph.Trivia.TryGetValue(rule, out var seam) &&
 		seam is Node.Call(var trivia, _) &&
 		ReferenceEquals(trivia, called);
+	}
 
 	static IReadOnlyList<Stage>? StagesOf(RecognitionGraph graph, RuleSymbol rule)
 	{
@@ -579,12 +591,14 @@ public static partial class CSharpEmitter
 	/// where it was found: three call sites in the streamed forms handed the recognizer
 	/// characters where it now wants the text the tokens came from.
 	/// </remarks>
-	static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds = false) =>
-		!overKinds && publication.Kind != PublishKind.Yield &&
+	static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds = false)
+	{
+		return !overKinds && publication.Kind != PublishKind.Yield &&
 		(publication.Kind != PublishKind.Parse || publication.ResultType is null) &&
 		(publication.Kind == PublishKind.Find
 			? Retention.Reads(graph, publication.Rule) is null &&
 				Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
 				extent != LineExtent.Beyond
 			: Retention.StreamedParse(graph, publication.Rule) is null);
+	}
 }

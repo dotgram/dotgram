@@ -350,8 +350,9 @@ public sealed class LexerEmitterTests
 		Assert.Contains("if (c >= ", source, StringComparison.Ordinal);
 	}
 
-	static string Emitted(string grammar) =>
-		LexerEmitter.Emit(
+	static string Emitted(string grammar)
+	{
+		return LexerEmitter.Emit(
 			LexicalSplit.Of(
 				GrammarNormalizer.Normalize(
 					GrammarBinder.Bind(
@@ -359,6 +360,7 @@ public sealed class LexerEmitterTests
 							GramLexer.Tokenize(
 								grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)))!
 			.Inventory.Machine!);
+	}
 
 	/// <summary>The character each state's row begins at.</summary>
 	static IReadOnlyList<int> Rows(string source)
@@ -375,8 +377,11 @@ public sealed class LexerEmitterTests
 		];
 	}
 
-	static string[] Patterns(TerminalInventory inventory, int kind) =>
-		[.. inventory.Kinds.Single(one => one.Number == kind).Matched.Select(one => one.ToString())];
+	static string[] Patterns(TerminalInventory inventory, int kind)
+	{
+		return [.. inventory.Kinds.Single(one => one.Number == kind).Matched.Select(one => one.ToString())];
+	}
+
 	/// <summary>The scanner's chain is divided by what it costs, not by how many states.</summary>
 	/// <remarks>
 	/// <para>

@@ -54,14 +54,16 @@ sealed class EmbeddedGramNavigableSymbolSourceProvider : INavigableSymbolSourceP
 	[Import(typeof(SVsServiceProvider))]
 	IServiceProvider Services { get; set; } = null!;
 
-	public INavigableSymbolSource TryCreateNavigableSymbolSource(ITextView textView, ITextBuffer buffer) =>
-		new EmbeddedGramNavigableSymbolSource(
+	public INavigableSymbolSource TryCreateNavigableSymbolSource(ITextView textView, ITextBuffer buffer)
+	{
+		return new EmbeddedGramNavigableSymbolSource(
 			textView,
 			buffer,
 			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
 			Services,
 			Workspace,
 			Documents);
+	}
 }
 
 sealed class GramNavigableSymbolSource(
@@ -101,11 +103,13 @@ sealed class GramNavigableSymbolSource(
 		ITextSnapshot snapshot,
 		int symbolPosition,
 		int symbolLength,
-		int definitionPosition) =>
-		new GramNavigableSymbol(
+		int definitionPosition)
+	{
+		return new GramNavigableSymbol(
 			view,
 			new SnapshotSpan(snapshot, symbolPosition, symbolLength),
 			snapshot.CreateTrackingPoint(definitionPosition, PointTrackingMode.Negative));
+	}
 
 	public void Dispose()
 	{

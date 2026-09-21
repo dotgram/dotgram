@@ -81,7 +81,10 @@ sealed class FixDictionary
 
 	/// <summary>The name of a tag, or null where the dictionary declares no such tag.</summary>
 	/// <param name="tag">The numeric FIX tag.</param>
-	public string? Name(int tag) => fields.TryGetValue(tag, out var field) ? field.Name : null;
+	public string? Name(int tag)
+	{
+		return fields.TryGetValue(tag, out var field) ? field.Name : null;
+	}
 
 	/// <summary>The declared type of a tag, as the file spells it, or null where there is none.</summary>
 	/// <param name="tag">The numeric FIX tag.</param>
@@ -89,39 +92,79 @@ sealed class FixDictionary
 	/// The vocabulary is the file's and not this package's: a dictionary may name a type this
 	/// package has no code for, and reading one does not fail because of it.
 	/// </remarks>
-	public string? Type(int tag) => fields.TryGetValue(tag, out var field) ? field.Type : null;
+	public string? Type(int tag)
+	{
+		return fields.TryGetValue(tag, out var field) ? field.Type : null;
+	}
 
 	/// <summary>The code set of a tag, or null where the dictionary gives it none.</summary>
 	/// <param name="tag">The numeric FIX tag.</param>
-	public IReadOnlyList<string>? Codes(int tag) =>
-		fields.TryGetValue(tag, out var field) ? field.Codes : null;
+	public IReadOnlyList<string>? Codes(int tag)
+	{
+		return fields.TryGetValue(tag, out var field) ? field.Codes : null;
+	}
 
 	/// <summary>The name a message type is given, or null where the dictionary has no such type.</summary>
 	/// <param name="messageType">The MsgType, tag 35.</param>
-	public string? MessageName(string messageType) =>
-		messageType != null && messageNames.TryGetValue(messageType, out var name) ? name : null;
+	public string? MessageName(string messageType)
+	{
+		return messageType != null && messageNames.TryGetValue(messageType, out var name) ? name : null;
+	}
 
 	// The same shapes FixSchema answers in, so one walk reads either. The ids are this
 	// dictionary's own: a component is one id per declaration, and a group is one id per SITE,
 	// because QuickFIX declares a group inline and the same name carries different members in
 	// different messages — 59 names over 226 sites in the published FIX 4.4 file.
-	internal SchemaRef[] Message(string type) => messages.TryGetValue(type, out var refs) ? refs : [];
-	internal SchemaRef[] Component(int id) => components[id];
+	internal SchemaRef[] Message(string type)
+	{
+		return messages.TryGetValue(type, out var refs) ? refs : [];
+	}
+
+	internal SchemaRef[] Component(int id)
+	{
+		return components[id];
+	}
 
 	// The name the file gave the component, which is what a comment about it has to say: an id
 	// is ours and means nothing in the file a reader would go back to.
-	internal string ComponentName(int id) => componentNames[id];
-	internal SchemaRef[] Group(int id) => groups[id];
-	internal int Counter(int id) => counters[id];
+	internal string ComponentName(int id)
+	{
+		return componentNames[id];
+	}
+
+	internal SchemaRef[] Group(int id)
+	{
+		return groups[id];
+	}
+
+	internal int Counter(int id)
+	{
+		return counters[id];
+	}
+
 	internal SchemaRef[] Header => header;
 	internal SchemaRef[] Trailer => trailer;
-	internal bool Defines(int tag) => fields.ContainsKey(tag);
-	internal bool Describes(string type) => messages.ContainsKey(type);
+	internal bool Defines(int tag)
+	{
+		return fields.ContainsKey(tag);
+	}
+
+	internal bool Describes(string type)
+	{
+		return messages.ContainsKey(type);
+	}
 
 	// What the public Type and Codes answer, without the interface types: the walk asks these once
 	// a field, and an array it can index beats a list it has to go through an interface to read.
-	internal string?   CodeType(int tag) => fields.TryGetValue(tag, out var field) ? field.Type : null;
-	internal string[]? CodeArray(int tag) => fields.TryGetValue(tag, out var field) ? field.Codes : null;
+	internal string? CodeType(int tag)
+	{
+		return fields.TryGetValue(tag, out var field) ? field.Type : null;
+	}
+
+	internal string[]? CodeArray(int tag)
+	{
+		return fields.TryGetValue(tag, out var field) ? field.Codes : null;
+	}
 
 	/// <summary>Reads a dictionary from a stream, which is left open.</summary>
 	/// <param name="input">The file's octets.</param>
@@ -167,14 +210,17 @@ sealed class FixDictionary
 
 	// A dictionary is somebody else's file, and the two things an XML reader fetches from the
 	// network or the disk on its own are the two turned off here.
-	static XmlReaderSettings Settings() => new()
+	static XmlReaderSettings Settings()
 	{
-		DtdProcessing                = DtdProcessing.Prohibit,
-		XmlResolver                  = null,
-		IgnoreComments               = true,
-		IgnoreWhitespace             = true,
-		IgnoreProcessingInstructions = true,
-	};
+		return new()
+		{
+			DtdProcessing = DtdProcessing.Prohibit,
+			XmlResolver = null,
+			IgnoreComments = true,
+			IgnoreWhitespace = true,
+			IgnoreProcessingInstructions = true,
+		};
+	}
 
 	readonly struct Field(string name, string? type, string[]? codes)
 	{
@@ -221,7 +267,9 @@ sealed class FixDictionary
 	}
 
 	static string Required(XmlReader reader, string attribute)
-		=> reader.GetAttribute(attribute) ?? throw Bad(reader, $"<{reader.Name}> has no {attribute}.");
+	{
+		return reader.GetAttribute(attribute) ?? throw Bad(reader, $"<{reader.Name}> has no {attribute}.");
+	}
 
 	static FixDictionary Read(XmlReader reader)
 	{
@@ -494,10 +542,12 @@ sealed class FixDictionary
 			return refs;
 		}
 
-		int Tag(string name, string where) =>
-			read.Tags.TryGetValue(name, out var tag)
+		int Tag(string name, string where)
+		{
+			return read.Tags.TryGetValue(name, out var tag)
 				? tag
 				: throw new FormatException($"{where} names the field '{name}', which the dictionary does not declare.");
+		}
 
 		int ComponentId(string name, string where)
 		{

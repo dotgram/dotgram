@@ -130,5 +130,8 @@ public sealed partial class SqlReadOnly
 	/// harmless is a message, and the cost of admitting something harmful is the thing
 	/// this exists to prevent.
 	/// </remarks>
-	public static bool IsReadOnly(string statement) => TryParseQuery(statement).IsSuccess;
+	public static bool IsReadOnly(string statement)
+	{
+		return TryParseQuery(statement).IsSuccess;
+	}
 }

@@ -234,8 +234,9 @@ static class SyntaxBlocks
 	}
 
 	/// <summary>A sentence with the includes inside it replaced by what they say.</summary>
-	static string Inline(string sentence, string folder, int depth) =>
-		depth >= 4 ? sentence : Include.Replace(sentence, match =>
+	static string Inline(string sentence, string folder, int depth)
+	{
+		return depth >= 4 ? sentence : Include.Replace(sentence, match =>
 		{
 			if (Resolve(folder, match.Groups[1].Value) is not { } included)
 				return match.Value;
@@ -246,6 +247,7 @@ static class SyntaxBlocks
 
 			return said is null ? match.Value : Inline(said, Path.GetDirectoryName(included)!, depth + 1);
 		});
+	}
 
 	static string? Resolve(string folder, string link)
 	{

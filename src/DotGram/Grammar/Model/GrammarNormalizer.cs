@@ -358,16 +358,22 @@ public sealed partial class GrammarNormalizer
 		return names;
 	}
 
-	void Report(string id, string message, Location at) =>
+	void Report(string id, string message, Location at)
+	{
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
+	}
 
 	/// <summary>The same, for a grammar that is correct and will be slower than it reads.</summary>
 	/// <summary>Said only where the grammar is otherwise sound (<c>WhenSound</c>).</summary>
-	void Remark(string id, string message, Location at) =>
+	void Remark(string id, string message, Location at)
+	{
 		_whenSound.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Warning));
+	}
 
-	void Warn(string id, string message, Location at) =>
+	void Warn(string id, string message, Location at)
+	{
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Warning));
+	}
 
 	// ── Nullability and the checks that need it ──────────────────────────────────
 
@@ -416,7 +422,10 @@ public sealed partial class GrammarNormalizer
 	/// knows the shapes — with the answer for a call taken from the estimate this fixed
 	/// point is still refining.
 	/// </summary>
-	bool IsNullable(Node node) => FirstSets.Nullable(node, _ruleIsNullable);
+	bool IsNullable(Node node)
+	{
+		return FirstSets.Nullable(node, _ruleIsNullable);
+	}
 
 	readonly Func<RuleSymbol, bool> _ruleIsNullable;
 
@@ -654,10 +663,12 @@ public sealed partial class GrammarNormalizer
 	/// the body holds is the construct and the strength was recorded against what is
 	/// inside it.
 	/// </remarks>
-	(bool IsLeft, int Level)? BoundOn(Node alternative) =>
-		_bounds.TryGetValue(alternative is Node.Construct(var built, _) ? built : alternative, out var found)
+	(bool IsLeft, int Level)? BoundOn(Node alternative)
+	{
+		return _bounds.TryGetValue(alternative is Node.Construct(var built, _) ? built : alternative, out var found)
 			? found
 			: null;
+	}
 
 	/// <summary>
 	/// The call to <paramref name="rule"/> that an alternative ends with, or null.
@@ -735,19 +746,22 @@ public sealed partial class GrammarNormalizer
 		return imports;
 	}
 
-	internal static bool Writes(Node node, string name) => node switch
+	internal static bool Writes(Node node, string name)
 	{
-		Node.Capture  (var captured, var body)  => captured == name || Writes(body, name),
-		Node.Atomic   (var body)                => Writes(body, name),
-		Node.Marked   (var body, _)             => Writes(body, name),
-		Node.Sequence (var nodes)               => nodes.Any(child => Writes(child, name)),
-		Node.Choice   (var nodes)               => nodes.All(child => Writes(child, name)),
-		Node.Construct(var built, _)            => Writes(built, name),
+		return node switch
+		{
+			Node.Capture(var captured, var body) => captured == name || Writes(body, name),
+			Node.Atomic(var body) => Writes(body, name),
+			Node.Marked(var body, _) => Writes(body, name),
+			Node.Sequence(var nodes) => nodes.Any(child => Writes(child, name)),
+			Node.Choice(var nodes) => nodes.All(child => Writes(child, name)),
+			Node.Construct(var built, _) => Writes(built, name),
 
-		// A run that may be empty still writes: the text of no iterations is "". Only a
-		// genuine option — `X?`, which either happened or did not — leaves it unwritten.
-		Node.Repeat(var body, var min, var max) => (min > 0 || max != 1) && Writes(body, name),
+			// A run that may be empty still writes: the text of no iterations is "". Only a
+			// genuine option — `X?`, which either happened or did not — leaves it unwritten.
+			Node.Repeat(var body, var min, var max) => (min > 0 || max != 1) && Writes(body, name),
 
-		_                                       => false,
-	};
+			_ => false,
+		};
+	}
 }

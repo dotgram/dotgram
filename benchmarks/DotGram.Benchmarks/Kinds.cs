@@ -80,21 +80,24 @@ static class Kinds
 	/// evidence that looks like it settles the question and does not.
 	/// </para>
 	/// </remarks>
-	internal static TSqlParser? Version(string named) => named switch
+	internal static TSqlParser? Version(string named)
 	{
-		"80"  => new TSql80Parser (true),
-		"90"  => new TSql90Parser (true),
-		"100" => new TSql100Parser(true),
-		"110" => new TSql110Parser(true),
-		"120" => new TSql120Parser(true),
-		"130" => new TSql130Parser(true),
-		"140" => new TSql140Parser(true),
-		"150" => new TSql150Parser(true),
-		"160" => new TSql160Parser(true),
-		"170" => new TSql170Parser(true),
-		"180" => new TSql180Parser(true),
-		_     => null,
-	};
+		return named switch
+		{
+			"80" => new TSql80Parser(true),
+			"90" => new TSql90Parser(true),
+			"100" => new TSql100Parser(true),
+			"110" => new TSql110Parser(true),
+			"120" => new TSql120Parser(true),
+			"130" => new TSql130Parser(true),
+			"140" => new TSql140Parser(true),
+			"150" => new TSql150Parser(true),
+			"160" => new TSql160Parser(true),
+			"170" => new TSql170Parser(true),
+			"180" => new TSql180Parser(true),
+			_ => null,
+		};
+	}
 
 	/// <summary>The parser for one file: the version the corpus gives it, never a later one than asked for.</summary>
 	/// <remarks>
@@ -271,6 +274,8 @@ static class Kinds
 		Console.WriteLine($"  {"",-42}{statements,7}{ours,8}{Share(ours, statements),9}");
 	}
 
-	static string Share(int part, int whole) =>
-		whole == 0 ? "—" : $"{100.0 * part / whole:F1}%";
+	static string Share(int part, int whole)
+	{
+		return whole == 0 ? "—" : $"{100.0 * part / whole:F1}%";
+	}
 }

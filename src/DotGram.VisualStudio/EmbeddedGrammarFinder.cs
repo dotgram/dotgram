@@ -127,12 +127,14 @@ public static class EmbeddedGrammarFinder
 		return grammars;
 	}
 
-	static bool HasDotGramStringSyntax(IParameterSymbol parameter) =>
-		parameter.GetAttributes().Any(static attribute =>
+	static bool HasDotGramStringSyntax(IParameterSymbol parameter)
+	{
+		return parameter.GetAttributes().Any(static attribute =>
 			attribute.AttributeClass?.ToDisplayString() == StringSyntaxAttribute &&
 			attribute.ConstructorArguments is [{ Value: string syntax }] &&
 			(string.Equals(syntax, DotGramSyntax, StringComparison.OrdinalIgnoreCase) ||
 			 string.Equals(syntax, DotGramExtensionSyntax, StringComparison.OrdinalIgnoreCase)));
+	}
 
 	static bool IsGramAttribute(
 		SemanticModel model, AttributeSyntax attribute, CancellationToken cancellationToken)
@@ -194,9 +196,11 @@ public static class EmbeddedGrammarFinder
 			}
 	}
 
-	static bool IsFile(string source) =>
-		source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
+	static bool IsFile(string source)
+	{
+		return source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
 		source.IndexOf('\r') < 0 && source.IndexOf('\n') < 0;
+	}
 
 	static bool IsAttribute(ITypeSymbol type)
 	{

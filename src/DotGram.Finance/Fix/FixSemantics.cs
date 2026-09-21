@@ -98,7 +98,10 @@ static class FixSemantics
 			this.options = options;
 		}
 
-		public void Fail(int tag, int position, string reason) => Error ??= new FixParseError(position, tag, type, reason);
+		public void Fail(int tag, int position, string reason)
+		{
+			Error ??= new FixParseError(position, tag, type, reason);
+		}
 
 		public FixNode[] Scope(SchemaRef[] schema, bool body = false)
 		{

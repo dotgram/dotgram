@@ -84,15 +84,22 @@ public static class Demand
 		/// a call of the graph's bodies — is <see cref="Kind.Inherits"/>, which asks nothing
 		/// a rendering does not already do.
 		/// </summary>
-		public Kind Of(Node.Call call) =>
-			_calls.TryGetValue(call ?? throw new ArgumentNullException(nameof(call)), out var kind) ? kind : Kind.Inherits;
+		public Kind Of(Node.Call call)
+		{
+			return _calls.TryGetValue(call ?? throw new ArgumentNullException(nameof(call)), out var kind) ? kind : Kind.Inherits;
+		}
 
 		/// <summary>Whether this report has an answer for the call, as opposed to the default.</summary>
-		public bool Knows(Node.Call call) =>
-			_calls.ContainsKey(call ?? throw new ArgumentNullException(nameof(call)));
+		public bool Knows(Node.Call call)
+		{
+			return _calls.ContainsKey(call ?? throw new ArgumentNullException(nameof(call)));
+		}
 
 		/// <summary>Whether some reading of this rule is one whose value nobody asks for.</summary>
-		public bool ReadUnbuilt(RuleSymbol rule) => _unbuilt.Contains(rule);
+		public bool ReadUnbuilt(RuleSymbol rule)
+		{
+			return _unbuilt.Contains(rule);
+		}
 
 		/// <summary>Whether any call of the graph is <see cref="Kind.Never"/>: whether anything is read and not built.</summary>
 		public bool Discards => _unbuilt.Count > 0;
@@ -145,8 +152,10 @@ public static class Demand
 	}
 
 	/// <summary>What the emitter counts as a rule with a value (<c>Machine.ValueRule</c>).</summary>
-	static bool Valued(RecognitionGraph graph, RuleSymbol rule) =>
-		graph.Results.TryGetValue(rule, out var members) && members.Count > 0 || graph.Types.ContainsKey(rule);
+	static bool Valued(RecognitionGraph graph, RuleSymbol rule)
+	{
+		return graph.Results.TryGetValue(rule, out var members) && members.Count > 0 || graph.Types.ContainsKey(rule);
+	}
 
 	/// <summary>One body: every call in it that builds, answered.</summary>
 	static void Walk(

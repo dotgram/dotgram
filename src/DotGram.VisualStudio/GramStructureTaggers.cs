@@ -15,10 +15,12 @@ namespace DotGram.VisualStudio;
 [TagType(typeof(TextMarkerTag))]
 sealed class GramBraceMatchingTaggerProvider : IViewTaggerProvider
 {
-	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag =>
-		buffer == textView.TextBuffer
+	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
+	{
+		return buffer == textView.TextBuffer
 			? new GramBraceMatchingTagger(textView, GramBufferAnalysis.For(buffer)) as ITagger<T>
 			: null;
+	}
 }
 
 [Export(typeof(IViewTaggerProvider))]
@@ -32,12 +34,14 @@ sealed class EmbeddedGramBraceMatchingTaggerProvider : IViewTaggerProvider
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag =>
-		buffer == textView.TextBuffer
+	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
+	{
+		return buffer == textView.TextBuffer
 			? new EmbeddedGramBraceMatchingTagger(
 				textView,
 				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>
 			: null;
+	}
 }
 
 sealed class GramBraceMatchingTagger : ITagger<TextMarkerTag>, IDisposable
@@ -77,13 +81,30 @@ sealed class GramBraceMatchingTagger : ITagger<TextMarkerTag>, IDisposable
 		}
 	}
 
-	static bool Adjacent(SnapshotSpan span, int position) => span.Contains(position) || span.End.Position == position;
+	static bool Adjacent(SnapshotSpan span, int position)
+	{
+		return span.Contains(position) || span.End.Position == position;
+	}
 
-	void CaretChanged(object sender, CaretPositionChangedEventArgs args) => RaiseChanged(args.NewPosition.BufferPosition.Snapshot);
-	void AnalysisChanged(ITextSnapshot snapshot) => RaiseChanged(snapshot);
-	void RaiseChanged(ITextSnapshot snapshot) =>
+	void CaretChanged(object sender, CaretPositionChangedEventArgs args)
+	{
+		RaiseChanged(args.NewPosition.BufferPosition.Snapshot);
+	}
+
+	void AnalysisChanged(ITextSnapshot snapshot)
+	{
+		RaiseChanged(snapshot);
+	}
+
+	void RaiseChanged(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
-	void ViewClosed(object sender, EventArgs args) => Dispose();
+	}
+
+	void ViewClosed(object sender, EventArgs args)
+	{
+		Dispose();
+	}
 
 	public void Dispose()
 	{
@@ -132,13 +153,30 @@ sealed class EmbeddedGramBraceMatchingTagger : ITagger<TextMarkerTag>, IDisposab
 		}
 	}
 
-	static bool Adjacent(SnapshotSpan span, int position) => span.Contains(position) || span.End.Position == position;
+	static bool Adjacent(SnapshotSpan span, int position)
+	{
+		return span.Contains(position) || span.End.Position == position;
+	}
 
-	void CaretChanged(object sender, CaretPositionChangedEventArgs args) => RaiseChanged(args.NewPosition.BufferPosition.Snapshot);
-	void AnalysisChanged(ITextSnapshot snapshot) => RaiseChanged(snapshot);
-	void RaiseChanged(ITextSnapshot snapshot) =>
+	void CaretChanged(object sender, CaretPositionChangedEventArgs args)
+	{
+		RaiseChanged(args.NewPosition.BufferPosition.Snapshot);
+	}
+
+	void AnalysisChanged(ITextSnapshot snapshot)
+	{
+		RaiseChanged(snapshot);
+	}
+
+	void RaiseChanged(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
-	void ViewClosed(object sender, EventArgs args) => Dispose();
+	}
+
+	void ViewClosed(object sender, EventArgs args)
+	{
+		Dispose();
+	}
 
 	public void Dispose()
 	{
@@ -153,8 +191,10 @@ sealed class EmbeddedGramBraceMatchingTagger : ITagger<TextMarkerTag>, IDisposab
 [TagType(typeof(IOutliningRegionTag))]
 sealed class GramOutliningTaggerProvider : ITaggerProvider
 {
-	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag =>
-		new GramOutliningTagger(GramBufferAnalysis.For(buffer)) as ITagger<T>;
+	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
+	{
+		return new GramOutliningTagger(GramBufferAnalysis.For(buffer)) as ITagger<T>;
+	}
 }
 
 [Export(typeof(ITaggerProvider))]
@@ -168,9 +208,11 @@ sealed class EmbeddedGramOutliningTaggerProvider : ITaggerProvider
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag =>
-		new EmbeddedGramOutliningTagger(
+	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
+	{
+		return new EmbeddedGramOutliningTagger(
 			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>;
+	}
 }
 
 sealed class GramOutliningTagger : ITagger<IOutliningRegionTag>, IDisposable
@@ -185,8 +227,10 @@ sealed class GramOutliningTagger : ITagger<IOutliningRegionTag>, IDisposable
 
 	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
 
-	void AnalysisChanged(ITextSnapshot snapshot) =>
+	void AnalysisChanged(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
 	public IEnumerable<ITagSpan<IOutliningRegionTag>> GetTags(NormalizedSnapshotSpanCollection spans)
 	{
@@ -204,7 +248,10 @@ sealed class GramOutliningTagger : ITagger<IOutliningRegionTag>, IDisposable
 		}
 	}
 
-	public void Dispose() => _analysis.Changed -= AnalysisChanged;
+	public void Dispose()
+	{
+		_analysis.Changed -= AnalysisChanged;
+	}
 }
 
 sealed class EmbeddedGramOutliningTagger : ITagger<IOutliningRegionTag>, IDisposable
@@ -219,8 +266,10 @@ sealed class EmbeddedGramOutliningTagger : ITagger<IOutliningRegionTag>, IDispos
 
 	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
 
-	void AnalysisChanged(ITextSnapshot snapshot) =>
+	void AnalysisChanged(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
 	public IEnumerable<ITagSpan<IOutliningRegionTag>> GetTags(NormalizedSnapshotSpanCollection spans)
 	{
@@ -241,5 +290,8 @@ sealed class EmbeddedGramOutliningTagger : ITagger<IOutliningRegionTag>, IDispos
 		}
 	}
 
-	public void Dispose() => _analysis.Changed -= AnalysisChanged;
+	public void Dispose()
+	{
+		_analysis.Changed -= AnalysisChanged;
+	}
 }

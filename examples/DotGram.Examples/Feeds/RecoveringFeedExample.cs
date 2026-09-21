@@ -77,7 +77,10 @@ public static partial class RecoveringFeedReader
 	/// A missing header or trailer, or anything after it. Recovery is for the records:
 	/// the frame around them still has to be there.
 	/// </exception>
-	public static IReadOnlyList<FeedLine> Read(string text) => ParseFeed(text).Lines;
+	public static IReadOnlyList<FeedLine> Read(string text)
+	{
+		return ParseFeed(text).Lines;
+	}
 
 	/// <summary>Every line the feed did not yield a record for.</summary>
 	public static IEnumerable<RejectedLine> Rejected(string text)
@@ -88,8 +91,13 @@ public static partial class RecoveringFeedReader
 	}
 
 	// Reachable from the grammar's `=>`, which becomes a method of this same class.
-	static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
+	static int Number(string digits)
+	{
+		return int.Parse(digits, CultureInfo.InvariantCulture);
+	}
 
-	static DateOnly ToDate(Date date) =>
-		new(Number(date.Year), Number(date.Month), Number(date.Day));
+	static DateOnly ToDate(Date date)
+	{
+		return new(Number(date.Year), Number(date.Month), Number(date.Day));
+	}
 }

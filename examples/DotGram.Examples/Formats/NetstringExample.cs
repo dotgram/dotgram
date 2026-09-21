@@ -47,7 +47,10 @@ namespace DotGram.Examples.Formats;
 public sealed partial class Netstrings
 {
 	/// <summary>Reads a whole stream of netstrings into their payloads.</summary>
-	public static IReadOnlyList<string> Read(string text) => ParseStream(text);
+	public static IReadOnlyList<string> Read(string text)
+	{
+		return ParseStream(text);
+	}
 
 	/// <summary>
 	/// One frame: digits, a colon, that many characters, a comma.

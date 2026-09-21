@@ -128,17 +128,21 @@ static class Renderings
 
 	/// <summary>Why this rendering cannot hand that over, or null where it can.</summary>
 	/// <exception cref="InvalidOperationException">Nobody has decided.</exception>
-	public static string? Reason(Rendering rendering, string name) =>
-		Answers.TryGetValue((rendering, name), out var reason)
+	public static string? Reason(Rendering rendering, string name)
+	{
+		return Answers.TryGetValue((rendering, name), out var reason)
 			? reason
 			: throw new InvalidOperationException(
 				$"No decision about whether the {rendering} rendering can supply '{name}'. " +
 				"Every supplied name is either handed over or refuses the rendering; there " +
 				"is no third answer (Renderings.cs).");
+	}
 
 	/// <summary>Whether this rendering can hand a factory everything it asks for.</summary>
-	public static bool Supplies(Rendering rendering, Machine.Factory factory, RecognitionGraph graph) =>
-		!Wants(factory, graph).Any(name => Reason(rendering, name) is not null);
+	public static bool Supplies(Rendering rendering, Machine.Factory factory, RecognitionGraph graph)
+	{
+		return !Wants(factory, graph).Any(name => Reason(rendering, name) is not null);
+	}
 
 	/// <summary>Which supplied names a factory names, in the order they are declared.</summary>
 	/// <remarks>

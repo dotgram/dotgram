@@ -67,7 +67,10 @@ namespace DotGram.Examples.Formats;
 	""")]
 public sealed partial class FixParser
 {
-	public static FixMessage Read(string text) => ParseMessage(text);
+	public static FixMessage Read(string text)
+	{
+		return ParseMessage(text);
+	}
 }
 
 /// <summary>One `tag=value`, in the order it arrived.</summary>

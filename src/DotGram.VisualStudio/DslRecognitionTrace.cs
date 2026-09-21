@@ -68,11 +68,15 @@ internal sealed class DslDescriptorRecognitionContract : IDslRecognitionContract
 			.ToDictionary(static item => item.Key, item => rules[item.Value], StringComparer.Ordinal);
 	}
 
-	public bool TryEvaluateGuard(Node.Guard guard, RuleSymbol owner, int position, out bool accepted) =>
-		_guards.TryGetValue(guard.Text, out accepted);
+	public bool TryEvaluateGuard(Node.Guard guard, RuleSymbol owner, int position, out bool accepted)
+	{
+		return _guards.TryGetValue(guard.Text, out accepted);
+	}
 
-	public bool TryResolveExternal(Node.External external, RuleSymbol owner, out RuleSymbol rule) =>
-		_externals.TryGetValue(external.Name, out rule!);
+	public bool TryResolveExternal(Node.External external, RuleSymbol owner, out RuleSymbol rule)
+	{
+		return _externals.TryGetValue(external.Name, out rule!);
+	}
 }
 
 /// <summary>
@@ -383,7 +387,10 @@ internal static class DslRecognitionTrace
 		public int End { get; } = end;
 		public IReadOnlyList<DslRecognitionExtent> Extents { get; } = extents;
 
-		public static Match Empty(int position) => new(position, []);
+		public static Match Empty(int position)
+		{
+			return new(position, []);
+		}
 
 		public Match Append(Match next)
 		{

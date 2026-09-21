@@ -363,8 +363,10 @@ sealed partial class Machine
 		return parts;
 	}
 
-	bool IsExtent(RuleSymbol rule) =>
-		_graph.Types.TryGetValue(rule, out var type) && type == "SourceSpan";
+	bool IsExtent(RuleSymbol rule)
+	{
+		return _graph.Types.TryGetValue(rule, out var type) && type == "SourceSpan";
+	}
 
 	/// <summary>
 	/// Reading a rule's value out of the parse — which for an extent means not reading it.
@@ -382,12 +384,14 @@ sealed partial class Machine
 	/// said.
 	/// </para>
 	/// </remarks>
-	string ValueFrom(string type, string index) =>
-		type == "SourceSpan"
+	string ValueFrom(string type, string index)
+	{
+		return type == "SourceSpan"
 			? Span($"entries[{index}].Position", $"entries[{index}].Value - entries[{index}].Position")
 			: TableFor(type) >= 0
 				? $"values{TableName(type)}[{index}]"
 				: $"({type})values[{index}]!";
+	}
 
 	/// <summary>Writing a rule's value where whatever reads it will look.</summary>
 	/// <remarks>
@@ -401,8 +405,10 @@ sealed partial class Machine
 	/// stops a second build is <c>built</c>, which is what the guard path always used; the
 	/// walk that only runs once never needed either.
 	/// </remarks>
-	string ValueInto(string type, string index) =>
-		TableFor(type) >= 0 ? $"values{TableName(type)}[{index}]" : $"values[{index}]";
+	string ValueInto(string type, string index)
+	{
+		return TableFor(type) >= 0 ? $"values{TableName(type)}[{index}]" : $"values[{index}]";
+	}
 
 	/// <summary>
 	/// Handing the root's value out, which is the one place a type has to be forgotten.
@@ -1062,14 +1068,18 @@ sealed partial class Machine
 	// an optimized method with hundreds of simple cases pays a large frame per call.
 	const int FactoriesPerPart = 64;
 
-	bool SplitConstruction(RuleSymbol rule) =>
-		ValueRule(rule) >= 0 && !IsExtent(rule) &&
+	bool SplitConstruction(RuleSymbol rule)
+	{
+		return ValueRule(rule) >= 0 && !IsExtent(rule) &&
 		!(_reread?.Contains(rule) ?? false) && !_graph.Externals.ContainsKey(rule) &&
 		!_graph.Folds.ContainsKey(rule) && _factories[rule].Count > FactoriesPerPart &&
 		!SameIdentityConstruction(_factories[rule]);
+	}
 
-	string ConstructionPart(RuleSymbol rule, int part) =>
-		$"Materialize_DotGram{_tag}_Construct{_ruleIds[rule]}_Part{part}";
+	string ConstructionPart(RuleSymbol rule, int part)
+	{
+		return $"Materialize_DotGram{_tag}_Construct{_ruleIds[rule]}_Part{part}";
+	}
 
 	static void ChooseConstruction(Writer file)
 	{

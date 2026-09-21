@@ -37,7 +37,10 @@ namespace DotGram.Refusals;
 
 internal static class RefusalLadders
 {
-	internal static string Id(Series series) => series.Parser + " | " + series.Shape;
+	internal static string Id(Series series)
+	{
+		return series.Parser + " | " + series.Shape;
+	}
 
 	/// <summary>
 	/// The readings of the expression language the series run over. The public entry reads the tape, and that is all the slow suite can reach; the stand, which the language
@@ -77,7 +80,10 @@ internal static class RefusalLadders
 
 	internal sealed record Series(string Parser, string Shape, string Unit, int Largest, Func<int, string> Text, Func<string, bool> Accepts);
 
-	static string Copies(string text, int count) => string.Concat(Enumerable.Repeat(text, count));
+	static string Copies(string text, int count)
+	{
+		return string.Concat(Enumerable.Repeat(text, count));
+	}
 
 	internal static IEnumerable<Series> All()
 	{
@@ -85,7 +91,10 @@ internal static class RefusalLadders
 		var quote  = "\"";
 		var cut    = ((char)1).ToString();
 
-		Series R(string parser, string shape, string unit, int largest, Func<int, string> text, Func<string, bool> accepts) => new(parser, shape, unit, largest, text, accepts);
+		Series R(string parser, string shape, string unit, int largest, Func<int, string> text, Func<string, bool> accepts)
+		{
+			return new(parser, shape, unit, largest, text, accepts);
+		}
 
 		// ── the web: one reader a publication, the shapes finance-24 found first ──
 		yield return R("UriTemplate", "a literal run, then an unclosed {", "characters", 4096, n => new string('a', n) + "{unclosed", static t => UriTemplate.TryParse(t, out _));
@@ -155,9 +164,20 @@ internal static class RefusalLadders
 		yield return R("StockCountReader", "lines, then no closing count", "lines", 4096, n => string.Concat(Enumerable.Range(0, n).Select(static i => $"{StockItem(i)}: {i % 100}\n")), static t => StockCountReader.TryParseCount(t).IsSuccess);
 
 		// ── SQL ──
-		string Names(int n) => string.Join(", ", Enumerable.Range(0, n).Select(static i => "c" + i));
-		string Conditions(int n) => string.Join(" AND ", Enumerable.Range(0, n).Select(static i => "a" + i + " = 1"));
-		string Rows(int n) => string.Join(", ", Enumerable.Repeat("(1, 2)", n));
+		string Names(int n)
+		{
+			return string.Join(", ", Enumerable.Range(0, n).Select(static i => "c" + i));
+		}
+
+		string Conditions(int n)
+		{
+			return string.Join(" AND ", Enumerable.Range(0, n).Select(static i => "a" + i + " = 1"));
+		}
+
+		string Rows(int n)
+		{
+			return string.Join(", ", Enumerable.Repeat("(1, 2)", n));
+		}
 
 		yield return R("T-SQL statement", "columns, then a FROM with nothing after it", "columns", 4096, n => $"SELECT {Names(n)} FROM", static t => TransactSqlParser.TryParseStatement(t).IsSuccess);
 		yield return R("T-SQL statement", "an unclosed string", "characters", 4096, n => "SELECT '" + new string('a', n), static t => TransactSqlParser.TryParseStatement(t).IsSuccess);
@@ -259,14 +279,17 @@ internal static class RefusalLadders
 	}
 
 	/// <summary>A time in nanoseconds as nanoseconds, microseconds, milliseconds, seconds or, past a day, years.</summary>
-	internal static string Duration(double nanoseconds) => nanoseconds switch
+	internal static string Duration(double nanoseconds)
 	{
-		< 1e3 => nanoseconds.ToString("F0", CultureInfo.InvariantCulture) + " ns",
-		< 1e6 => (nanoseconds / 1e3).ToString("F1", CultureInfo.InvariantCulture) + " us",
-		< 1e9 => (nanoseconds / 1e6).ToString("F1", CultureInfo.InvariantCulture) + " ms",
-		< 8.64e13 => (nanoseconds / 1e9).ToString("F1", CultureInfo.InvariantCulture) + " s",
-		_ => "over a day",
-	};
+		return nanoseconds switch
+		{
+			< 1e3 => nanoseconds.ToString("F0", CultureInfo.InvariantCulture) + " ns",
+			< 1e6 => (nanoseconds / 1e3).ToString("F1", CultureInfo.InvariantCulture) + " us",
+			< 1e9 => (nanoseconds / 1e6).ToString("F1", CultureInfo.InvariantCulture) + " ms",
+			< 8.64e13 => (nanoseconds / 1e9).ToString("F1", CultureInfo.InvariantCulture) + " s",
+			_ => "over a day",
+		};
+	}
 
 	/// <summary>The sizes of a ladder: four, then a quarter more each step (at least one), up to the largest.</summary>
 	static IEnumerable<int> Sizes(int largest)

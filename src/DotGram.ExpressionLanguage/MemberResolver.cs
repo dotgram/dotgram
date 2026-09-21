@@ -84,12 +84,14 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>A call on a type: the static method C# would choose for these arguments.</summary>
-		public Resolution Static(Type type, string name, Expression[] arguments) =>
-			type is null
+		public Resolution Static(Type type, string name, Expression[] arguments)
+		{
+			return type is null
 				? throw new ArgumentNullException(nameof(type))
 				: Chose(
 					Methods(type, name, instance: false, arguments, Caller), arguments,
 					$"'{type.Name}' has no method '{name}'");
+		}
 
 		/// <summary>The constructor C# would choose for these arguments.</summary>
 		/// <remarks>
@@ -97,10 +99,12 @@ public static partial class ExpressionParser
 		/// choose: that one is <c>Expression.New</c>'s own form, and the caller reads it before
 		/// asking here.
 		/// </remarks>
-		public Resolution Constructor(Type type, Expression[] arguments) =>
-			type is null
+		public Resolution Constructor(Type type, Expression[] arguments)
+		{
+			return type is null
 				? throw new ArgumentNullException(nameof(type))
 				: Chose(Constructing(type, arguments, Caller), arguments, $"'{type.Name}' has no constructor");
+		}
 
 		/// <summary>The indexer C# would choose for these indices.</summary>
 		/// <remarks>
@@ -108,12 +112,14 @@ public static partial class ExpressionParser
 		/// that before asking here, for the reason a value type's default constructor is read
 		/// before asking about constructors.
 		/// </remarks>
-		public Resolution Indexer(Expression target, Expression[] indices) =>
-			target is null
+		public Resolution Indexer(Expression target, Expression[] indices)
+		{
+			return target is null
 				? throw new ArgumentNullException(nameof(target))
 				: Chose(
 					Indexers(target.Type, indices, Caller), indices,
 					$"'{target.Type.Name}' has no indexer");
+		}
 
 		/// <summary>A delegate's <c>Invoke</c>, with the arguments it takes.</summary>
 		/// <remarks>

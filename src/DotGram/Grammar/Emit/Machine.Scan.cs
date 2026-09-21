@@ -214,15 +214,17 @@ sealed partial class Machine
 	/// reading — a run of text somebody can look for — and the shapes a scanner would
 	/// flatten into its own name.
 	/// </remarks>
-	static bool Spells(Node node) =>
-		node switch
+	static bool Spells(Node node)
+	{
+		return node switch
 		{
-			Node.Literal(var text)        => text.Length > 0,
+			Node.Literal(var text) => text.Length > 0,
 			Node.Choice(var alternatives) => alternatives.All(Spells),
-			Node.Atomic(var kept)         => Spells(kept),
-			Node.Marked(var kept, _)      => Spells(kept),
-			_                             => false,
+			Node.Atomic(var kept) => Spells(kept),
+			Node.Marked(var kept, _) => Spells(kept),
+			_ => false,
 		};
+	}
 
 	/// <summary>Whether a node matches at every position — whether it cannot refuse.</summary>
 	/// <remarks>
@@ -240,25 +242,30 @@ sealed partial class Machine
 	/// not need, and a true one has to be true.
 	/// </para>
 	/// </remarks>
-	bool Infallible(Node node) => Infallible(node, []);
+	bool Infallible(Node node)
+	{
+		return Infallible(node, []);
+	}
 
-	bool Infallible(Node node, HashSet<RuleSymbol> seen) =>
-		node switch
+	bool Infallible(Node node, HashSet<RuleSymbol> seen)
+	{
+		return node switch
 		{
-			Node.Empty                    => true,
-			Node.Literal(var text)        => text.Length == 0,
-			Node.Repeat(_, var min, _)    => min == 0,
-			Node.Sequence(var parts)      => parts.All(part => Infallible(part, seen)),
+			Node.Empty => true,
+			Node.Literal(var text) => text.Length == 0,
+			Node.Repeat(_, var min, _) => min == 0,
+			Node.Sequence(var parts) => parts.All(part => Infallible(part, seen)),
 			Node.Choice(var alternatives) => alternatives.Any(one => Infallible(one, seen)),
-			Node.Atomic(var kept)         => Infallible(kept, seen),
-			Node.Marked(var kept, _)      => Infallible(kept, seen),
-			Node.Capture(_, var held)     => Infallible(held, seen),
-			Node.Construct(var built, _)  => Infallible(built, seen),
-			Node.Call(var called, _)      => seen.Add(called) &&
+			Node.Atomic(var kept) => Infallible(kept, seen),
+			Node.Marked(var kept, _) => Infallible(kept, seen),
+			Node.Capture(_, var held) => Infallible(held, seen),
+			Node.Construct(var built, _) => Infallible(built, seen),
+			Node.Call(var called, _) => seen.Add(called) &&
 				_graph.Bodies.TryGetValue(called, out var body) &&
 				Infallible(body, seen),
-			_                             => false,
+			_ => false,
 		};
+	}
 
 	/// <summary>
 	/// The scanner one rule becomes, asked for rather than found by compiling.
@@ -268,7 +275,10 @@ sealed partial class Machine
 	/// no calls to compile and still needs the seam — the tokenizer skips trivia between
 	/// terminals — so it asks for the one rule it wants and renders that.
 	/// </remarks>
-	public string? Scanner(RuleSymbol rule) => ScannerOf(rule);
+	public string? Scanner(RuleSymbol rule)
+	{
+		return ScannerOf(rule);
+	}
 
 	/// <summary>Every scanner the compiled states call, rendered as methods.</summary>
 	/// <summary>What a scanner takes beyond the input, where it has anything to say.</summary>
@@ -466,8 +476,10 @@ sealed partial class Machine
 	/// [^ '\n']</c> — can also stop because its own character test refused, which a
 	/// search for the delimiter would run straight past, so that shape keeps the loop.
 	/// </remarks>
-	static bool ScansUntil(Node.Repeat repeat, RecognitionGraph graph) =>
-		repeat.Body is Node.Sequence({ Count: 2 } parts) && Anything(parts[1], graph, []);
+	static bool ScansUntil(Node.Repeat repeat, RecognitionGraph graph)
+	{
+		return repeat.Body is Node.Sequence({ Count: 2 } parts) && Anything(parts[1], graph, []);
+	}
 
 	/// <summary>Whether a node is one character, whichever character it is.</summary>
 	/// <remarks>
@@ -475,25 +487,29 @@ sealed partial class Machine
 	/// place, so the call is followed — the same unwrapping every other analysis here
 	/// does, with a ring of calls refused rather than walked forever.
 	/// </remarks>
-	static bool Anything(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen) =>
-		node switch
+	static bool Anything(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		return node switch
 		{
-			Node.Element element     => string.Equals(
-			                                CSharpEmitter.Test(element), "true", StringComparison.Ordinal),
-			Node.Atomic(var kept)    => Anything(kept, graph, seen),
+			Node.Element element => string.Equals(
+											CSharpEmitter.Test(element), "true", StringComparison.Ordinal),
+			Node.Atomic(var kept) => Anything(kept, graph, seen),
 			Node.Call(var called, _) => seen.Add(called) &&
-			                            graph.Bodies.TryGetValue(called, out var body) &&
-			                            Anything(body, graph, seen),
-			_                        => false,
+										graph.Bodies.TryGetValue(called, out var body) &&
+										Anything(body, graph, seen),
+			_ => false,
 		};
+	}
 
 	/// <summary>The literal a guarded scan stops at, where the repetition is one.</summary>
-	static string? GuardOf(Node.Repeat repeat) =>
-		repeat.Body is Node.Sequence(var parts) &&
+	static string? GuardOf(Node.Repeat repeat)
+	{
+		return repeat.Body is Node.Sequence(var parts) &&
 		parts.Count >= 1 &&
 		parts[0] is Node.Lookahead(false, Node.Literal(var guard) { IgnoreCase: false })
 			? guard
 			: null;
+	}
 
 	/// <summary>Whether at most one of the two can match at any one position.</summary>
 	bool Exclusive(Node one, Node other)
@@ -569,14 +585,17 @@ sealed partial class Machine
 		return false;
 	}
 
-	string? LeadingLiteral(Node node) => node switch
+	string? LeadingLiteral(Node node)
 	{
-		Node.Literal(var text) { IgnoreCase: false } => text,
-		Node.Sequence(var parts) when parts.Count > 0 => LeadingLiteral(parts[0]),
-		Node.Call(var called, _) when _graph.Bodies.TryGetValue(called, out var body)
-			=> LeadingLiteral(body),
-		_ => null,
-	};
+		return node switch
+		{
+			Node.Literal(var text) { IgnoreCase: false } => text,
+			Node.Sequence(var parts) when parts.Count > 0 => LeadingLiteral(parts[0]),
+			Node.Call(var called, _) when _graph.Bodies.TryGetValue(called, out var body)
+				=> LeadingLiteral(body),
+			_ => null,
+		};
+	}
 
 	/// <summary>Whether a node refuses wherever <paramref name="literal"/> stands.</summary>
 	/// <remarks>
@@ -621,7 +640,10 @@ sealed partial class Machine
 		bool starves = false,
 		Func<Node, char[]?>? stops = null)
 	{
-		static string Short(int count) => count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
+		static string Short(int count)
+		{
+			return count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
+		}
 
 		int _labels;
 		int _marks;
@@ -1136,11 +1158,13 @@ sealed partial class Machine
 			return union;
 		}
 
-		string? FrontTest(IReadOnlyList<Node> alternatives) =>
-			Front(alternatives) is { Anything: false, Nothing: false, Ends: false } union &&
+		string? FrontTest(IReadOnlyList<Node> alternatives)
+		{
+			return Front(alternatives) is { Anything: false, Nothing: false, Ends: false } union &&
 			union.Ranges.Count is > 0 and <= Emitted
 				? ranges(union.Ranges)
 				: null;
+		}
 
 		int Mark()
 		{
@@ -1151,7 +1175,10 @@ sealed partial class Machine
 			return mark;
 		}
 
-		void Unmark() => _marks--;
+		void Unmark()
+		{
+			_marks--;
+		}
 
 		/// <summary>
 		/// The jump threading the emission cannot do for itself: a jump to a label whose

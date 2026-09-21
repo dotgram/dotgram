@@ -121,11 +121,13 @@ public sealed class RereadTests
 		}
 	}
 
-	static RecognitionGraph Graph(string grammar) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string grammar)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(
 					GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!));
+	}
 
 	/// <summary>What the ordinary parser makes of it.</summary>
 	static string Characters(string input)

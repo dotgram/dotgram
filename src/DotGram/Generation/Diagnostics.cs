@@ -107,16 +107,18 @@ static class Diagnostics
 	/// Roslyn is concerned.
 	/// </remarks>
 	public static DiagnosticDescriptor DescriptorFor(
-		string id, string title, string messageFormat, DiagnosticSeverity severity) =>
-		_descriptors.GetOrAdd(
+		string id, string title, string messageFormat, DiagnosticSeverity severity)
+	{
+		return _descriptors.GetOrAdd(
 			id,
 			_ => new DiagnosticDescriptor(
-				id:                 id,
-				title:              title,
-				messageFormat:      messageFormat,
-				category:           Category,
-				defaultSeverity:    severity,
+				id: id,
+				title: title,
+				messageFormat: messageFormat,
+				category: Category,
+				defaultSeverity: severity,
 				isEnabledByDefault: true));
+	}
 
 	/// <summary>
 	/// Turns an offset span into lines and columns.

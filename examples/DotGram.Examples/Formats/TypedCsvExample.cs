@@ -55,7 +55,10 @@ namespace DotGram.Examples.Formats;
 public sealed partial class TypedCsv
 {
 	/// <summary>Reads a whole feed of trades, or throws where it is not one.</summary>
-	public static IReadOnlyList<TradeRow> Read(string text) => ParseFeed(text);
+	public static IReadOnlyList<TradeRow> Read(string text)
+	{
+		return ParseFeed(text);
+	}
 
 	/// <summary>
 	/// The same feed out of a reader, a record at a time (§6.3).
@@ -66,10 +69,16 @@ public sealed partial class TypedCsv
 	/// the same `TradeRow` the string form does — built by the constructor §7.3 matched,
 	/// which the window knows nothing about.
 	/// </remarks>
-	public static IEnumerable<TradeRow> Read(TextReader input) => ParseFeed(input);
+	public static IEnumerable<TradeRow> Read(TextReader input)
+	{
+		return ParseFeed(input);
+	}
 
 	/// <summary>Reads the one line that says what a session covered.</summary>
-	public static Session ReadSession(string text) => ParseSession(text);
+	public static Session ReadSession(string text)
+	{
+		return ParseSession(text);
+	}
 }
 
 /// <summary>Built by its constructor, which the captures of <c>Trade</c> cover.</summary>

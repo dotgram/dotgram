@@ -147,8 +147,10 @@ static class FixRuleDump
 	}
 
 	// A MsgType may be "n" or "AB" and a name is the file's; neither is trusted to be a filename.
-	static string Safe(string name) =>
-		string.Concat(name.Select(c => char.IsLetterOrDigit(c) ? c : '_'));
+	static string Safe(string name)
+	{
+		return string.Concat(name.Select(c => char.IsLetterOrDigit(c) ? c : '_'));
+	}
 
 	static string Repository()
 	{

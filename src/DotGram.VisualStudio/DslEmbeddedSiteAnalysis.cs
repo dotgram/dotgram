@@ -424,14 +424,23 @@ internal static class DslEmbeddedSiteAnalysis
 		return result;
 	}
 
-	static string CaptureName(string target) => target.Substring(target.IndexOf('.') + 1);
-
-	static string FailureMessage(string language, IReadOnlyList<string> expected) => expected.Count switch
+	static string CaptureName(string target)
 	{
-		0 => $"Text does not match DotGram language '{language}'.",
-		1 => $"Expected {expected[0]} in DotGram language '{language}'.",
-		_ => $"Expected one of {string.Join(", ", expected)} in DotGram language '{language}'.",
-	};
+		return target.Substring(target.IndexOf('.') + 1);
+	}
 
-	static bool IsError(GramDiagnostic diagnostic) => diagnostic.Severity == GramSeverity.Error;
+	static string FailureMessage(string language, IReadOnlyList<string> expected)
+	{
+		return expected.Count switch
+		{
+			0 => $"Text does not match DotGram language '{language}'.",
+			1 => $"Expected {expected[0]} in DotGram language '{language}'.",
+			_ => $"Expected one of {string.Join(", ", expected)} in DotGram language '{language}'.",
+		};
+	}
+
+	static bool IsError(GramDiagnostic diagnostic)
+	{
+		return diagnostic.Severity == GramSeverity.Error;
+	}
 }

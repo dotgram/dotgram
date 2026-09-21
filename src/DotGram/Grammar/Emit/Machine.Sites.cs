@@ -55,10 +55,12 @@ sealed partial class Machine
 	/// <summary>The slot renumbering of the site being compiled, or null outside one.</summary>
 	IReadOnlyDictionary<Node, int>? _siteSlots;
 
-	int SlotOf(Node capture) =>
-		_siteSlots is not null && _siteSlots.TryGetValue(capture, out var sited)
+	int SlotOf(Node capture)
+	{
+		return _siteSlots is not null && _siteSlots.TryGetValue(capture, out var sited)
 			? sited
 			: _captureSlots[capture];
+	}
 
 	/// <summary>Whether any written state touches the capture local for a slot.</summary>
 	/// <remarks>
@@ -85,16 +87,20 @@ sealed partial class Machine
 	/// tell which slot a given turn came from without asking, and the join costs nothing
 	/// where the turns turn out to tile their own span. See <see cref="_repeatedCaptures"/>.
 	/// </remarks>
-	bool Joined(int offset, ResultMember member) =>
-		member.Rule is null &&
+	bool Joined(int offset, ResultMember member)
+	{
+		return member.Rule is null &&
 		member.Slots.Any(slot => _repeatedCaptures.Contains(offset + slot));
+	}
 
 	/// <summary>The site a member's one slot was compiled as, or null.</summary>
-	SitePlan? SiteFor(int offset, ResultMember member) =>
-		member is { Rule: not null, Slots.Count: 1 } &&
+	SitePlan? SiteFor(int offset, ResultMember member)
+	{
+		return member is { Rule: not null, Slots.Count: 1 } &&
 		_siteOfSlot.TryGetValue(offset + member.Slots[0], out var plan)
 			? plan
 			: null;
+	}
 
 	/// <summary>
 	/// Find every captured call whose callee can stand in place, and give each site a run
@@ -250,22 +256,24 @@ sealed partial class Machine
 	/// Every capture is a span of the input under no repetition that could multiply it —
 	/// pure text below, nothing valued, nothing sited further down.
 	/// </summary>
-	bool SpanCaptures(Node node, bool repeated) =>
-		node switch
+	bool SpanCaptures(Node node, bool repeated)
+	{
+		return node switch
 		{
-			Node.Capture(_, var captured)     => !repeated && Extent(captured),
-			Node.Sequence(var parts)          => parts.All(part => SpanCaptures(part, repeated)),
-			Node.Choice(var alternatives)     => alternatives.All(part => SpanCaptures(part, repeated)),
+			Node.Capture(_, var captured) => !repeated && Extent(captured),
+			Node.Sequence(var parts) => parts.All(part => SpanCaptures(part, repeated)),
+			Node.Choice(var alternatives) => alternatives.All(part => SpanCaptures(part, repeated)),
 			Node.Repeat(var body, _, var max) => SpanCaptures(body, repeated || max != 1),
-			Node.Atomic(var body)             => SpanCaptures(body, repeated),
-			Node.Marked(var body, _)          => SpanCaptures(body, repeated),
-			Node.Lookahead(_, var seen)       => NodeWalk.Descendants(seen).All(
-			                                         static inner => inner is not Node.Capture),
-			Node.Construct                    => false,
-			Node.Guard                        => false,
-			Node.External { HasValue: true }  => false,
-			_                                 => true,
+			Node.Atomic(var body) => SpanCaptures(body, repeated),
+			Node.Marked(var body, _) => SpanCaptures(body, repeated),
+			Node.Lookahead(_, var seen) => NodeWalk.Descendants(seen).All(
+													 static inner => inner is not Node.Capture),
+			Node.Construct => false,
+			Node.Guard => false,
+			Node.External { HasValue: true } => false,
+			_ => true,
 		};
+	}
 
 	/// <summary>The callee's body compiled where its captured call stood.</summary>
 	/// <remarks>

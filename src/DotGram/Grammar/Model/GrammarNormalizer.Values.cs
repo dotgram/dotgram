@@ -265,7 +265,13 @@ public sealed partial class GrammarNormalizer
 		return csharp.Length;
 	}
 
-	static bool IsIdentifierStart(char c) => char.IsLetter(c) || c == '_';
+	static bool IsIdentifierStart(char c)
+	{
+		return char.IsLetter(c) || c == '_';
+	}
 
-	static bool IsIdentifierPart(char c) => char.IsLetterOrDigit(c) || c == '_';
+	static bool IsIdentifierPart(char c)
+	{
+		return char.IsLetterOrDigit(c) || c == '_';
+	}
 }

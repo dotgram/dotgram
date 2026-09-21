@@ -9,11 +9,10 @@ using DotGram.Examples.Feeds;
 using DotGram.Examples.Formats;
 using DotGram.Examples.Languages;
 
+using Linq = System.Linq.Expressions;
 // The API's own namespace under a name of its own: this file already sees an
 // `Expression`, the examples' record tree, and importing the other would make every
 // existing mention of it ambiguous. `ExtensionNodeExample` explains the collision.
-using Linq = System.Linq.Expressions;
-
 using Xunit;
 
 namespace DotGram.Tests;
@@ -36,16 +35,19 @@ public sealed class ExampleTests
 	// ── The URL parser ───────────────────────────────────────────────────────────
 
 	[Theory]
-	[InlineData("https://example.com",              true)]
-	[InlineData("https://user@example.com:8080/a",  true)]
-	[InlineData("http://192.168.0.1/x?q=1#top",     true)]
-	[InlineData("example.com",                      false)]
-	[InlineData("gopher://example.com",             false)]
-	[InlineData("https://exa mple.com",             false)]
-	[InlineData("ht tps://example.com",             false)]
-	[InlineData("HTTPS://example.com",              true)]     // RFC 3986 §3.1: the scheme
-	[InlineData("Http://example.com",               true)]     // is case-insensitive
-	public void Is_url(string text, bool expected) => Assert.Equal(expected, Links.IsUrl(text));
+	[InlineData("https://example.com", true)]
+	[InlineData("https://user@example.com:8080/a", true)]
+	[InlineData("http://192.168.0.1/x?q=1#top", true)]
+	[InlineData("example.com", false)]
+	[InlineData("gopher://example.com", false)]
+	[InlineData("https://exa mple.com", false)]
+	[InlineData("ht tps://example.com", false)]
+	[InlineData("HTTPS://example.com", true)]     // RFC 3986 §3.1: the scheme
+	[InlineData("Http://example.com", true)]     // is case-insensitive
+	public void Is_url(string text, bool expected)
+	{
+		Assert.Equal(expected, Links.IsUrl(text));
+	}
 
 	// ── The grammar of `.gram` itself ─────────────────────────────────────────────
 
@@ -104,21 +106,29 @@ public sealed class ExampleTests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 
 	[Theory]
 	[InlineData("https://example.com:8080", 8080)]
-	[InlineData("https://example.com",       443)]
-	[InlineData("http://example.com",         80)]
-	[InlineData("ftp://example.com",          80)]
-	[InlineData("HTTPS://example.com",       443)]
-	public void Port_of(string url, int expected) => Assert.Equal(expected, Links.PortOf(url));
+	[InlineData("https://example.com", 443)]
+	[InlineData("http://example.com", 80)]
+	[InlineData("ftp://example.com", 80)]
+	[InlineData("HTTPS://example.com", 443)]
+	public void Port_of(string url, int expected)
+	{
+		Assert.Equal(expected, Links.PortOf(url));
+	}
 
 	[Fact]
-	public void Hosts_in_prose() =>
+	public void Hosts_in_prose()
+	{
 		Assert.Equal(
 			["a.io", "b.io"],
 			Links.HostsIn("see http://a.io and https://b.io/c and http://a.io/again"));
+	}
 
 	[Fact]
 	public void Describe_names_every_part_and_marks_the_missing_ones()
@@ -140,8 +150,10 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void Describe_throws_the_type_int_Parse_throws() =>
+	public void Describe_throws_the_type_int_Parse_throws()
+	{
 		Assert.Throws<FormatException>(static () => Links.Describe("not a url"));
+	}
 
 	[Fact]
 	public void Parse_demands_the_whole_input_and_says_where_it_stopped()
@@ -164,17 +176,19 @@ public sealed class ExampleTests
 	// ── The calculator ───────────────────────────────────────────────────────────
 
 	[Theory]
-	[InlineData("1+2+3",         6)]
-	[InlineData("1-2-3",        -4)]     // (1-2)-3, because `<< 1` reads the right side tighter
-	[InlineData("2+3*4",        14)]
-	[InlineData("(2+3)*4",      20)]
-	[InlineData("100/5/2",      10)]
-	[InlineData("-3*-4",        12)]
-	[InlineData("2^3^2",       512)]     // 2^(3^2), because `>> 3` reads it at its own strength
-	[InlineData("-2^2",         -4)]     // and a prefix is a base, so this is -(2^2)
-	[InlineData(" 1 + 2 * 3 ",   7)]     // trivia is shadowed, so spaces do not matter
-	public void The_calculator_computes(string expression, int expected) =>
+	[InlineData("1+2+3", 6)]
+	[InlineData("1-2-3", -4)]     // (1-2)-3, because `<< 1` reads the right side tighter
+	[InlineData("2+3*4", 14)]
+	[InlineData("(2+3)*4", 20)]
+	[InlineData("100/5/2", 10)]
+	[InlineData("-3*-4", 12)]
+	[InlineData("2^3^2", 512)]     // 2^(3^2), because `>> 3` reads it at its own strength
+	[InlineData("-2^2", -4)]     // and a prefix is a base, so this is -(2^2)
+	[InlineData(" 1 + 2 * 3 ", 7)]     // trivia is shadowed, so spaces do not matter
+	public void The_calculator_computes(string expression, int expected)
+	{
 		Assert.Equal(expected, Calculator.EvaluateInt(expression));
+	}
 
 	/// <summary>The same rule published over decimal, and over a tree.</summary>
 	/// <remarks>
@@ -184,13 +198,15 @@ public sealed class ExampleTests
 	/// a node instead of adding anything.
 	/// </remarks>
 	[Theory]
-	[InlineData("7/2",      "3.5")]      // the int parser says 3 for this one
-	[InlineData("1.5*2",    "3.0")]      // decimal keeps the scale its operands had
-	[InlineData("1+2*3",    "7")]
-	public void And_the_same_rule_over_decimal(string expression, string expected) =>
+	[InlineData("7/2", "3.5")]      // the int parser says 3 for this one
+	[InlineData("1.5*2", "3.0")]      // decimal keeps the scale its operands had
+	[InlineData("1+2*3", "7")]
+	public void And_the_same_rule_over_decimal(string expression, string expected)
+	{
 		Assert.Equal(
 			expected,
 			Calculator.EvaluateDecimal(expression).ToString(CultureInfo.InvariantCulture));
+	}
 
 	[Fact]
 	public void And_the_same_rule_as_a_tree()
@@ -208,17 +224,22 @@ public sealed class ExampleTests
 	}
 
 	/// <summary>A tree back as text, bracketed everywhere, so a shape is readable.</summary>
-	static string Written(Calculator.Node node) => node switch
+	static string Written(Calculator.Node node)
 	{
-		Calculator.Node.Number  number => number.Of.ToString(CultureInfo.InvariantCulture),
-		Calculator.Node.Negate  negate => "-" + Held(negate.Of),
-		Calculator.Node.Binary  binary => Held(binary.Left) + " " + binary.Op + " " + Held(binary.Right),
-		_ => throw new InvalidOperationException(),
-	};
+		return node switch
+		{
+			Calculator.Node.Number number => number.Of.ToString(CultureInfo.InvariantCulture),
+			Calculator.Node.Negate negate => "-" + Held(negate.Of),
+			Calculator.Node.Binary binary => Held(binary.Left) + " " + binary.Op + " " + Held(binary.Right),
+			_ => throw new InvalidOperationException(),
+		};
+	}
 
 	/// <summary>An operand, in brackets where it is itself an operation.</summary>
-	static string Held(Calculator.Node node) =>
-		node is Calculator.Node.Binary ? "(" + Written(node) + ")" : Written(node);
+	static string Held(Calculator.Node node)
+	{
+		return node is Calculator.Node.Binary ? "(" + Written(node) + ")" : Written(node);
+	}
 
 	/// <summary>Each publication hands back its own type, not one with a conversion.</summary>
 	[Fact]
@@ -278,18 +299,22 @@ public sealed class ExampleTests
 	// ── A number read under two decimal points ───────────────────────────────────
 
 	[Theory]
-	[InlineData("1.5",   "1.5")]
-	[InlineData("42",     "42")]
+	[InlineData("1.5", "1.5")]
+	[InlineData("42", "42")]
 	[InlineData("0.125", "0.125")]
-	public void ParseNumber_reads_a_point(string text, string expected) =>
+	public void ParseNumber_reads_a_point(string text, string expected)
+	{
 		Assert.Equal(expected, LocaleNumber.ParseNumber(text).ToString(CultureInfo.InvariantCulture));
+	}
 
 	[Theory]
-	[InlineData("1,5",   "1.5")]
-	[InlineData("42",     "42")]
+	[InlineData("1,5", "1.5")]
+	[InlineData("42", "42")]
 	[InlineData("0,125", "0.125")]
-	public void ParseEuropeanNumber_reads_the_same_grammar_under_a_comma(string text, string expected) =>
+	public void ParseEuropeanNumber_reads_the_same_grammar_under_a_comma(string text, string expected)
+	{
 		Assert.Equal(expected, LocaleNumber.ParseEuropeanNumber(text).ToString(CultureInfo.InvariantCulture));
+	}
 
 	[Fact]
 	public void Each_publication_only_accepts_its_own_separator()
@@ -357,7 +382,8 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_records_make_a_whole_tree_one_assertion() =>
+	public void And_records_make_a_whole_tree_one_assertion()
+	{
 		// Value equality all the way down, which is the other half of "it is ordinary C#
 		// data": no walker, no visitor, one `==`.
 		Assert.Equal(
@@ -365,9 +391,11 @@ public sealed class ExampleTests
 				new Add(new Number(1m), new Number(2m)),
 				new Negate(new Number(3m))),
 			ArithmeticTree.Read("1 + 2 - -3"));
+	}
 
 	[Fact]
-	public void And_every_operator_has_a_node_of_its_own() =>
+	public void And_every_operator_has_a_node_of_its_own()
+	{
 		Assert.Equal(
 			new Add(
 				new Number(1m),
@@ -375,15 +403,18 @@ public sealed class ExampleTests
 					new Mul(new Number(2m), new Pow(new Number(3m), new Number(4m))),
 					new Negate(new Number(5m)))),
 			ArithmeticTree.Read("1 + 2 * 3 ^ 4 / -5"));
+	}
 
 	[Theory]
-	[InlineData("1-2-3",   "((1 - 2) - 3)")]      // Sum's left operand is at Sum's level
-	[InlineData("2^3^2",   "(2 ^ (3 ^ 2))")]      // Power's right operand is at Power's
-	[InlineData("-2^2",    "-(2 ^ 2)")]           // `^` binds tighter than unary minus
-	[InlineData("2*3+4",   "((2 * 3) + 4)")]
+	[InlineData("1-2-3", "((1 - 2) - 3)")]      // Sum's left operand is at Sum's level
+	[InlineData("2^3^2", "(2 ^ (3 ^ 2))")]      // Power's right operand is at Power's
+	[InlineData("-2^2", "-(2 ^ 2)")]           // `^` binds tighter than unary minus
+	[InlineData("2*3+4", "((2 * 3) + 4)")]
 	[InlineData("2*(3+4)", "(2 * (3 + 4))")]
-	public void And_the_shape_is_the_grouping(string expression, string expected) =>
+	public void And_the_shape_is_the_grouping(string expression, string expected)
+	{
 		Assert.Equal(expected, ArithmeticTree.Read(expression).Print());
+	}
 
 	[Fact]
 	public void And_a_tree_can_be_rewritten_before_it_is_walked()
@@ -393,19 +424,22 @@ public sealed class ExampleTests
 		// where it is wanted, over records the tree knows nothing about.
 		Assert.Equal(6m, Double(ArithmeticTree.Read("1 + 2")).Evaluate());
 
-		static Expression Double(Expression node) => node switch
+		static Expression Double(Expression node)
 		{
-			Number(var value)        => new Number(value * 2),
-			Negate(var operand)      => new Negate(Double(operand)),
+			return node switch
+			{
+				Number(var value) => new Number(value * 2),
+				Negate(var operand) => new Negate(Double(operand)),
 
-			Add(var left, var right) => new Add(Double(left), Double(right)),
-			Sub(var left, var right) => new Sub(Double(left), Double(right)),
-			Mul(var left, var right) => new Mul(Double(left), Double(right)),
-			Div(var left, var right) => new Div(Double(left), Double(right)),
-			Pow(var left, var right) => new Pow(Double(left), Double(right)),
+				Add(var left, var right) => new Add(Double(left), Double(right)),
+				Sub(var left, var right) => new Sub(Double(left), Double(right)),
+				Mul(var left, var right) => new Mul(Double(left), Double(right)),
+				Div(var left, var right) => new Div(Double(left), Double(right)),
+				Pow(var left, var right) => new Pow(Double(left), Double(right)),
 
-			_ => node,
-		};
+				_ => node,
+			};
+		}
 	}
 
 	// ── The feed reader ──────────────────────────────────────────────────────────
@@ -435,16 +469,18 @@ public sealed class ExampleTests
 	}
 
 	[Theory]
-	[InlineData("H|2026-08-13|ACME\n",                              "no trailer")]
-	[InlineData("R|AAPL|100|2026-08-12\nT|1\n",                     "no header")]
-	[InlineData("H|2026-08-13|ACME\nT|0\nR|AAPL|1|2026-08-12\n",    "a record after the trailer")]
-	[InlineData("H|2026-08-13|ACME\nR|AAPL|x|2026-08-12\nT|1\n",    "a quantity that is not a number")]
-	[InlineData("H|2026-08-13|ACME\nR|AAPL|1|2026-8-12\nT|1\n",     "a date that is not four-two-two")]
-	[InlineData("H|2026-08-13|ACME\nR|AAPL|1|2026-08-12\nT|9\n",    "a count that disagrees")]
-	public void And_refused_when_it_is_not_whole(string text, string why) =>
+	[InlineData("H|2026-08-13|ACME\n", "no trailer")]
+	[InlineData("R|AAPL|100|2026-08-12\nT|1\n", "no header")]
+	[InlineData("H|2026-08-13|ACME\nT|0\nR|AAPL|1|2026-08-12\n", "a record after the trailer")]
+	[InlineData("H|2026-08-13|ACME\nR|AAPL|x|2026-08-12\nT|1\n", "a quantity that is not a number")]
+	[InlineData("H|2026-08-13|ACME\nR|AAPL|1|2026-8-12\nT|1\n", "a date that is not four-two-two")]
+	[InlineData("H|2026-08-13|ACME\nR|AAPL|1|2026-08-12\nT|9\n", "a count that disagrees")]
+	public void And_refused_when_it_is_not_whole(string text, string why)
+	{
 		Assert.True(
 			Record.Exception(() => FeedReader.Read(text)) is FormatException,
 			$"A feed with {why} should have been refused.");
+	}
 
 	// ── The feed reader that recovers ────────────────────────────────────────────
 
@@ -470,15 +506,19 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_the_rejection_says_which_record_it_was() =>
+	public void And_the_rejection_says_which_record_it_was()
+	{
 		// The ordinal counts rejected records too, so it is the record's place in the file
 		// and not the place it happened to end up in among the good ones.
 		Assert.Equal([1], Array.ConvertAll([.. RecoveringFeedReader.Rejected(Broken)], line => line.Ordinal));
+	}
 
 	[Fact]
-	public void But_the_frame_around_the_records_still_has_to_be_there() =>
+	public void But_the_frame_around_the_records_still_has_to_be_there()
+	{
 		Assert.Throws<FormatException>(
 			static () => RecoveringFeedReader.Read("R|AAPL|100|2026-08-12\n"));
+	}
 
 	// ── The stock count whose closing line begins like an item ────────────────────
 
@@ -504,16 +544,20 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void A_closing_line_written_twice_is_a_broken_line_and_then_the_total() =>
+	public void A_closing_line_written_twice_is_a_broken_line_and_then_the_total()
+	{
 		Assert.Equal([new Unreadable(1, "END 3")], StockCountReader.Read("END 3\nEND 3\n").Lines);
+	}
 
 	[Theory]
-	[InlineData("apples: 12\npears: 7\n",   "no closing line")]
+	[InlineData("apples: 12\npears: 7\n", "no closing line")]
 	[InlineData("apples: 12\na: 1END 3\n", "a last item with no line end, running into the closing line")]
-	public void But_a_count_without_its_closing_line_is_refused(string text, string why) =>
+	public void But_a_count_without_its_closing_line_is_refused(string text, string why)
+	{
 		Assert.True(
 			Record.Exception(() => StockCountReader.Read(text)) is FormatException,
 			$"A count with {why} should have been refused.");
+	}
 
 	[Fact]
 	public void And_a_reader_through_a_small_buffer_reads_the_same_count()
@@ -543,23 +587,29 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_a_whole_feed_reports_nothing() =>
+	public void And_a_whole_feed_reports_nothing()
+	{
 		Assert.Empty(LoggingFeedReader.Read(Text).Rejected);
+	}
 
 	// ── The feed read from a reader ──────────────────────────────────────────────
 
 	[Fact]
-	public void A_feed_can_be_read_from_a_reader_a_part_at_a_time() =>
+	public void A_feed_can_be_read_from_a_reader_a_part_at_a_time()
+	{
 		// The envelope and the records in one sequence, in the order they were read —
 		// which is what makes the trailer checkable at all without holding the file.
 		Assert.Equal(
 			["FeedOpening", "FeedTrade", "FeedTrade", "FeedTrade", "FeedClosing"],
 			[.. StreamingFeedReader.Read(new StringReader(Text))
 				.Select(part => part.GetType().Name)]);
+	}
 
 	[Fact]
-	public void And_adds_up_without_ever_holding_it() =>
+	public void And_adds_up_without_ever_holding_it()
+	{
 		Assert.Equal((3, 425L), StreamingFeedReader.Total(new StringReader(Text)));
+	}
 
 	[Fact]
 	public void And_the_trailer_is_checked_against_what_came_before_it()
@@ -636,7 +686,8 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void Records_can_be_read_out_of_a_feed_that_is_not_whole() =>
+	public void Records_can_be_read_out_of_a_feed_that_is_not_whole()
+	{
 		// No header, no trailer, and a line that is not a record at all — `find all`
 		// passes over what it cannot match and says nothing about it.
 		Assert.Equal(
@@ -647,6 +698,7 @@ public sealed class ExampleTests
 					"what is this line\n" +
 					"R|MSFT|250|2026-08-12\n")],
 				trade => trade.Symbol));
+	}
 
 	// ── The JSON parser ──────────────────────────────────────────────────────────
 
@@ -667,8 +719,10 @@ public sealed class ExampleTests
 	[InlineData("[1, 2 , 3]")]
 	[InlineData("[1 , 2 , 3]")]
 	[InlineData("{\"a\": 1, \"b\": 2 , \"c\": 3}")]
-	public void Json_reads_a_list_however_it_is_spaced(string text) =>
+	public void Json_reads_a_list_however_it_is_spaced(string text)
+	{
 		Assert.True(JsonParser.TryParseJson(text).IsSuccess, text);
+	}
 
 	[Fact]
 	public void Json_reads_a_document_of_every_kind_of_value()
@@ -705,8 +759,10 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_what_is_not_JSON_is_refused() =>
+	public void And_what_is_not_JSON_is_refused()
+	{
 		Assert.Throws<FormatException>(() => JsonParser.Read("{\"a\": }"));
+	}
 
 	// ── The CSV with no `=>` in it (§7.3) ────────────────────────────────────────
 
@@ -835,18 +891,22 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_the_level_of_a_heading_is_how_many_hashes_it_had() =>
+	public void And_the_level_of_a_heading_is_how_many_hashes_it_had()
+	{
 		Assert.Equal(
 			[1, 3],
 			MarkdownParser.Blocks("# a\n### b\n").OfType<MarkdownHeading>().Select(h => h.Level));
+	}
 
 	[Fact]
-	public void And_a_line_that_is_none_of_the_others_is_a_paragraph() =>
+	public void And_a_line_that_is_none_of_the_others_is_a_paragraph()
+	{
 		// Ordered choice is the whole definition: `#nope` has no space after the hash, so
 		// it is not a heading, and nothing else claims it either.
 		Assert.Equal(
 			"#nope",
 			Assert.IsType<MarkdownParagraph>(MarkdownParser.Blocks("#nope\n").Single()).Text);
+	}
 
 	[Fact]
 	public void And_nesting_goes_as_deep_as_the_stack_allows()
@@ -889,7 +949,10 @@ public sealed class ExampleTests
 	[InlineData("select 1 /* update t set x = 1 */")]        // and a block one
 	[InlineData("select into_stock from t")]                 // `into` is not a word here
 	[InlineData("select * from t;")]
-	public void Reads_only(string sql) => Assert.True(SqlReadOnly.IsReadOnly(sql), sql);
+	public void Reads_only(string sql)
+	{
+		Assert.True(SqlReadOnly.IsReadOnly(sql), sql);
+	}
 
 	[Theory]
 	[InlineData("insert into t values (1)")]
@@ -904,8 +967,10 @@ public sealed class ExampleTests
 	[InlineData("execute sp_who")]
 	[InlineData("select * from t; -- and then\ndrop table t")]
 	[InlineData("drop table t -- select")]
-	public void Cannot_be_shown_to_read_only(string sql) =>
+	public void Cannot_be_shown_to_read_only(string sql)
+	{
 		Assert.False(SqlReadOnly.IsReadOnly(sql), sql);
+	}
 
 	[Theory]
 	[InlineData("select '/*' from t")]
@@ -915,16 +980,20 @@ public sealed class ExampleTests
 	[InlineData("select 1 /* it's fine */")]
 	[InlineData("select '''' from t")]
 	[InlineData("select 1 /* unterminated")]
-	public void Reads_only_across_the_awkward_ones(string sql) =>
+	public void Reads_only_across_the_awkward_ones(string sql)
+	{
 		Assert.True(SqlReadOnly.IsReadOnly(sql), sql);
+	}
 
 	[Theory]
 	[InlineData("select/*c*/into other from t")]
 	[InlineData("select 1 /* /* */ drop table t */")]
 	[InlineData("select 1 /* drop table t")]
 	[InlineData("select 'unterminated")]
-	public void Refused_when_it_cannot_be_sure(string sql) =>
+	public void Refused_when_it_cannot_be_sure(string sql)
+	{
 		Assert.False(SqlReadOnly.IsReadOnly(sql), sql);
+	}
 
 	// ── The INI reader ───────────────────────────────────────────────────────────
 
@@ -952,20 +1021,26 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_a_value_keeps_what_INI_has_no_way_to_escape() =>
+	public void And_a_value_keeps_what_INI_has_no_way_to_escape()
+	{
 		// No escaping in the format, so `;` and `=` inside a value are part of it. A reader
 		// that treated `;` as a comment would silently truncate a path list.
 		Assert.Equal(
 			"C:\a;C:\b",
 			IniParser.Read("path = C:\a;C:\b")[""]["path"]);
+	}
 
 	[Fact]
-	public void And_a_later_key_wins_the_way_every_INI_reader_does() =>
+	public void And_a_later_key_wins_the_way_every_INI_reader_does()
+	{
 		Assert.Equal("second", IniParser.Read("k = first\nk = second")[""]["k"]);
+	}
 
 	[Fact]
-	public void And_a_section_nobody_wrote_is_empty_rather_than_missing() =>
+	public void And_a_section_nobody_wrote_is_empty_rather_than_missing()
+	{
 		Assert.Empty(IniParser.Read("[a]\nx = 1")["absent"]);
+	}
 
 	// ── HTTP header fields ───────────────────────────────────────────────────────
 
@@ -982,23 +1057,29 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_a_value_may_continue_on_the_next_line() =>
+	public void And_a_value_may_continue_on_the_next_line()
+	{
 		// The one thing this format has that the others do not: a line starting with a
 		// space is the rest of the field above it, not a field of its own.
 		Assert.Equal(
 			"a long subject continued here",
 			HttpParser.Read("Subject: a long subject\n continued here\n")["Subject"]);
+	}
 
 	[Fact]
-	public void And_a_repeated_field_is_one_value_with_commas() =>
+	public void And_a_repeated_field_is_one_value_with_commas()
+	{
 		// RFC 7230 says repeats mean a list, which is not the same as the last one winning.
 		Assert.Equal(
 			"gzip, br",
 			HttpParser.Read("Accept-Encoding: gzip\nAccept-Encoding: br\n")["Accept-Encoding"]);
+	}
 
 	[Fact]
-	public void And_a_field_nobody_sent_is_null_rather_than_empty() =>
+	public void And_a_field_nobody_sent_is_null_rather_than_empty()
+	{
 		Assert.Null(HttpParser.Read("Host: a\n")["Absent"]);
+	}
 
 	// ── Fixed-width records ─────────────────────────────────────────────────────
 
@@ -1019,11 +1100,13 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_a_record_a_column_short_is_refused() =>
+	public void And_a_record_a_column_short_is_refused()
+	{
 		// The failure this format is prone to: one column missing reads every later field
 		// wrong. `{n}` is exact, so it fails at the field that ran out instead.
 		Assert.Throws<FormatException>(static () =>
 			FixedWidth.Read("000123ACME CORP           2026\n"));
+	}
 
 	[Fact]
 	public void And_fixed_columns_mix_with_delimited_and_a_ragged_last_one()
@@ -1056,14 +1139,18 @@ public sealed class ExampleTests
 	[InlineData("5hello,")]          // no colon
 	[InlineData(":hello,")]          // no length
 	[InlineData("99:hello,")]        // a length past the end of the input
-	public void And_a_frame_that_is_not_one_is_refused(string text) =>
+	public void And_a_frame_that_is_not_one_is_refused(string text)
+	{
 		Assert.Throws<FormatException>(() => Netstrings.Read(text));
+	}
 
 	[Fact]
-	public void And_the_payload_is_whatever_the_length_said() =>
+	public void And_the_payload_is_whatever_the_length_said()
+	{
 		// Including the characters that would end a frame if the length had not spoken
 		// first — which is the whole reason a format counts instead of delimiting.
 		Assert.Equal(["a,b:c"], Netstrings.Read("5:a,b:c,"));
+	}
 
 	// ── The filter language ─────────────────────────────────────────────────────
 
@@ -1077,17 +1164,19 @@ public sealed class ExampleTests
 		};
 
 	[Theory]
-	[InlineData("Price > 10",                       true)]
-	[InlineData("Price < 10",                       false)]
-	[InlineData("Price >= 25 AND Country = 'UK'",   true)]
-	[InlineData("Country IN ('UK', 'DE')",          true)]
-	[InlineData("Country IN ('FR', 'DE')",          false)]
-	[InlineData("NOT Discontinued",                 true)]
-	[InlineData("Note = null",                      true)]
-	[InlineData("Note <> null",                     false)]
-	[InlineData("Missing > 1",                      false)]
-	public void A_filter_answers_about_a_row(string text, bool expected) =>
+	[InlineData("Price > 10", true)]
+	[InlineData("Price < 10", false)]
+	[InlineData("Price >= 25 AND Country = 'UK'", true)]
+	[InlineData("Country IN ('UK', 'DE')", true)]
+	[InlineData("Country IN ('FR', 'DE')", false)]
+	[InlineData("NOT Discontinued", true)]
+	[InlineData("Note = null", true)]
+	[InlineData("Note <> null", false)]
+	[InlineData("Missing > 1", false)]
+	public void A_filter_answers_about_a_row(string text, bool expected)
+	{
 		Assert.True(expected == Filter.Read(text).Matches(Row), text);
+	}
 
 	[Fact]
 	public void And_AND_binds_tighter_than_OR()
@@ -1100,15 +1189,19 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_brackets_say_the_other_grouping() =>
+	public void And_brackets_say_the_other_grouping()
+	{
 		Assert.False(Filter.Read("(Price < 1 OR Price > 10) AND Country = 'FR'").Matches(Row));
+	}
 
 	[Fact]
-	public void And_a_quoted_value_keeps_what_is_inside_it() =>
+	public void And_a_quoted_value_keeps_what_is_inside_it()
+	{
 		// `''` is one quote, the same convention SQL uses.
 		Assert.Equal(
 			"it's",
 			Assert.IsType<Compare>(Filter.Read("Note = 'it''s'")).Value);
+	}
 
 	// ── FIX ──────────────────────────────────────────────────────────────────────
 
@@ -1140,18 +1233,22 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_the_real_separator_is_SOH_rather_than_the_bar() =>
+	public void And_the_real_separator_is_SOH_rather_than_the_bar()
+	{
 		// `|` is what logs print; the wire carries 0x01, and the grammar reads both. The
 		// escape is written `` rather than pasted in, so the character stays visible
 		// to whoever reads the grammar next.
 		Assert.Equal(
 			"AAPL",
 			FixParser.Read("35=D55=AAPL")["55"]);
+	}
 
 	[Fact]
-	public void And_a_value_may_hold_anything_but_the_separator() =>
+	public void And_a_value_may_hold_anything_but_the_separator()
+	{
 		// Which is why the separator is a control character: `58=a=b c` is one value.
 		Assert.Equal("a=b c", FixParser.Read("35=D|58=a=b c|")["58"]);
+	}
 
 	// ── YAML by indentation ─────────────────────────────────────────────────────
 
@@ -1176,43 +1273,53 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_a_level_is_whatever_width_the_file_uses() =>
+	public void And_a_level_is_whatever_width_the_file_uses()
+	{
 		// Nothing decides that a level is two spaces: the tree compares one indent with
 		// another, so a file indented by four reads the same way.
 		Assert.Equal(
 			"1",
 			YamlLite.Read("a:\n" + "    b:\n" + "        c: 1\n")["a"]["b"]["c"].Value);
+	}
 
 	[Fact]
-	public void And_a_missing_key_is_an_empty_node_rather_than_null() =>
+	public void And_a_missing_key_is_an_empty_node_rather_than_null()
+	{
 		Assert.Equal("", YamlLite.Read("a: 1\n")["b"]["c"].Value);
+	}
 
 	// ── Selectors: postfix chains, which is indirect left recursion ─────────────
 
 	[Theory]
-	[InlineData("orders",                     "orders")]
-	[InlineData("orders.total",               "orders|.total")]
-	[InlineData("orders[2]",                  "orders|[2]")]
-	[InlineData("total(net)",                 "total|(net)")]
+	[InlineData("orders", "orders")]
+	[InlineData("orders.total", "orders|.total")]
+	[InlineData("orders[2]", "orders|[2]")]
+	[InlineData("total(net)", "total|(net)")]
 	[InlineData("orders[2].lines.total(net)", "orders|[2]|.lines|.total|(net)")]
-	public void A_selector_is_the_chain_of_steps_it_reads_as(string text, string expected) =>
+	public void A_selector_is_the_chain_of_steps_it_reads_as(string text, string expected)
+	{
 		// `Applied` reaches itself through `Selector`, which only forwards, so the
 		// recursion is made direct and folded — and the steps come back in the order they
 		// were written, because a fold is left-associative.
 		Assert.Equal(expected, string.Join("|", Selectors.Steps(Selectors.ParseSelector(text))));
+	}
 
 	[Fact]
-	public void And_reads_the_same_however_it_is_spaced() =>
+	public void And_reads_the_same_however_it_is_spaced()
+	{
 		// The steps are the same steps; their text is the extent each matched, and a seam
 		// sits inside a step rather than between the two operands of one (§4.5) — so the
 		// space after the dot belongs to `.b`, which is what "the text it matched" means.
 		Assert.Equal(
 			"a|. b|[1]",
 			string.Join("|", Selectors.Steps(Selectors.ParseSelector("a . b [1]"))));
+	}
 
 	[Fact]
-	public void And_writing_it_again_gives_back_what_was_read() =>
+	public void And_writing_it_again_gives_back_what_was_read()
+	{
 		Assert.Equal("orders[2].lines", Selectors.Written(Selectors.ParseSelector("orders[2].lines")));
+	}
 
 	// ── A node the API does not have (ExtensionNodeExample) ──────────────────────
 
@@ -1238,43 +1345,53 @@ public sealed class ExampleTests
 	}
 
 	[Theory]
-	[InlineData(-5,  0)]
-	[InlineData(3,   3)]
+	[InlineData(-5, 0)]
+	[InlineData(3, 3)]
 	[InlineData(15, 10)]
-	public void And_it_becomes_ordinary_nodes_where_something_asks(int argument, int expected) =>
+	public void And_it_becomes_ordinary_nodes_where_something_asks(int argument, int expected)
+	{
 		// `Compile` is the something. Until it ran, nothing had expanded the node — and
 		// the test above is what says so.
 		Assert.Equal(
 			expected,
 			ClampedExample.Read("clamp(x, 0, 10)").Compile().DynamicInvoke(argument));
+	}
 
 	[Fact]
-	public void And_it_is_rewritten_like_any_other_node() =>
+	public void And_it_is_rewritten_like_any_other_node()
+	{
 		// What `VisitChildren` is for: a visitor that knows nothing about clamping still
 		// replaces the operands inside one, and gets a clamp back rather than a clamp that
 		// quietly kept what it had.
 		Assert.Equal(
 			"clamp(x, 1, 11)",
 			new Raise().Visit(ClampedExample.Read("clamp(x, 0, 10)").Body)!.ToString());
+	}
 
 	[Fact]
-	public void And_it_composes_with_the_nodes_that_do_have_factories() =>
+	public void And_it_composes_with_the_nodes_that_do_have_factories()
+	{
 		Assert.Equal(
 			13,
 			ClampedExample.Read("clamp(x, 0, 10) + 3").Compile().DynamicInvoke(15));
+	}
 
 	/// <summary>Every constant one higher, which knows nothing about clamping.</summary>
 	sealed class Raise : Linq.ExpressionVisitor
 	{
-		protected override Linq.Expression VisitConstant(Linq.ConstantExpression node) =>
-			Linq.Expression.Constant((int)node.Value! + 1);
+		protected override Linq.Expression VisitConstant(Linq.ConstantExpression node)
+		{
+			return Linq.Expression.Constant((int)node.Value! + 1);
+		}
 	}
 
 	[Fact]
-	public void A_parameterized_rule_is_published_without_a_rule_to_wrap_it() =>
+	public void A_parameterized_rule_is_published_without_a_rule_to_wrap_it()
+	{
 		// `parse (b: Bracketed(Digits, '[', ']') => @(b)) as ParseSubscript : @string`:
 		// the directive names the expression, and the type is what makes the `=>` legal.
 		Assert.Equal("[42]", Selectors.ParseSubscript("[42]"));
+	}
 
 	// ── A query read over tokens ─────────────────────────────────────────────────
 
@@ -1305,14 +1422,18 @@ public sealed class ExampleTests
 	/// </summary>
 	[Theory]
 	[InlineData("select a from t where a <> 1", "<>")]
-	[InlineData("select a from t where a < 1",  "<")]
-	public void And_the_lexer_settles_the_longest_match(string text, string op) =>
+	[InlineData("select a from t where a < 1", "<")]
+	public void And_the_lexer_settles_the_longest_match(string text, string op)
+	{
 		Assert.Equal(op, TokenizedQuery.ParseQuery(text).Where!.Op);
+	}
 
 	/// <summary>A keyword is a whole word (§4.6), so this one is an identifier.</summary>
 	[Fact]
-	public void And_a_keyword_ends_where_a_word_does() =>
+	public void And_a_keyword_ends_where_a_word_does()
+	{
 		Assert.False(TokenizedQuery.TryParseQuery("selectx a from t").IsSuccess);
+	}
 
 	// ── One library, two grammars written on it ──────────────────────────────────
 
@@ -1378,10 +1499,12 @@ public sealed class ExampleTests
 	/// <summary>`context`: a name has to be declared before it may be used.</summary>
 	[Theory]
 	[InlineData("let x = 2; let y = x + 3; y * x", 10)]
-	[InlineData("1 + 2 * 3",                        7)]
-	[InlineData("let a = 4; (a + 1) * 2",          10)]
-	public void A_scoped_program_works_out(string program, int expected) =>
+	[InlineData("1 + 2 * 3", 7)]
+	[InlineData("let a = 4; (a + 1) * 2", 10)]
+	public void A_scoped_program_works_out(string program, int expected)
+	{
 		Assert.Equal(expected, Scoped.ParseProgram(program, new Names()));
+	}
 
 	/// <summary>
 	/// And a name nobody declared is not a parse. Both of these are the same shape of
@@ -1391,8 +1514,10 @@ public sealed class ExampleTests
 	[Theory]
 	[InlineData("y + 1")]
 	[InlineData("let x = 1; y")]
-	public void And_an_undeclared_name_is_not_one(string program) =>
+	public void And_an_undeclared_name_is_not_one(string program)
+	{
 		Assert.False(Scoped.TryParseProgram(program, new Names()).IsSuccess);
+	}
 
 	/// <summary>Each parse gets its own, so two of them cannot see each other's.</summary>
 	[Fact]
@@ -1422,8 +1547,10 @@ public sealed class ExampleTests
 	[Theory]
 	[InlineData("CON")]          // the guard: a name Windows keeps
 	[InlineData("a//b")]         // and a segment may not be empty
-	public void And_what_it_refuses_it_refuses_for_a_reason(string path) =>
+	public void And_what_it_refuses_it_refuses_for_a_reason(string path)
+	{
 		Assert.False(FileNames.IsUsable(path));
+	}
 
 	/// <summary>
 	/// And the set itself, asked of the platform rather than of this test: `:` is no
@@ -1479,10 +1606,12 @@ public sealed class ExampleTests
 
 	/// <summary>Which is what it is for: telling somebody where to look.</summary>
 	[Fact]
-	public void And_that_is_what_a_message_needs() =>
+	public void And_that_is_what_a_message_needs()
+	{
 		Assert.Equal(
 			["unknown key 'port' at line 3, column 1"],
 			Config.Unknown(Settings, "host"));
+	}
 
 	/// <summary>`: @SourceSpan` — the same question, asked of one rule and much smaller.</summary>
 	[Fact]
@@ -1514,23 +1643,28 @@ public sealed class ExampleTests
 	/// the whole of what makes a region nestable.
 	/// </summary>
 	[Theory]
-	[InlineData("""kind = "Draft" """,         "Ordinal")]
-	[InlineData("""ci(kind = "Draft")""",      "OrdinalIgnoreCase")]
-	[InlineData("""ci(cs(kind = "Draft"))""",  "Ordinal")]
-	[InlineData("""cs(ci(kind = "Draft"))""",  "OrdinalIgnoreCase")]
-	public void And_the_nearest_mark_is_the_one_that_decides(string filter, string how) =>
+	[InlineData("""kind = "Draft" """, "Ordinal")]
+	[InlineData("""ci(kind = "Draft")""", "OrdinalIgnoreCase")]
+	[InlineData("""ci(cs(kind = "Draft"))""", "Ordinal")]
+	[InlineData("""cs(ci(kind = "Draft"))""", "OrdinalIgnoreCase")]
+	public void And_the_nearest_mark_is_the_one_that_decides(string filter, string how)
+	{
 		Assert.Equal(how, Filters.ParseFilter(filter)[0].How.ToString());
+	}
 
 	/// <summary>And the point of it, from a caller that knows nothing about marks.</summary>
 	[Fact]
 	public void And_a_row_is_matched_by_what_the_region_said()
 	{
-		static string? Row(string field) => field switch
+		static string? Row(string field)
 		{
-			"city" => "Berlin",
-			"name" => "Bob",
-			_      => null,
-		};
+			return field switch
+			{
+				"city" => "Berlin",
+				"name" => "Bob",
+				_ => null,
+			};
+		}
 
 		Assert.True(Filters.Matches("""ci(city = "berlin")""", Row));
 		Assert.False(Filters.Matches("""cs(city = "berlin")""", Row));

@@ -27,8 +27,10 @@ public abstract record JsonValue
 
 	/// <summary>A JSON text (RFC 8259 §2): one value, with whitespace around it.</summary>
 	/// <exception cref="FormatException">The text is not JSON; the message says where it stops being so.</exception>
-	public static JsonValue Parse(string text) =>
-		Rfc8259.ParseJson(text ?? throw new ArgumentNullException(nameof(text)));
+	public static JsonValue Parse(string text)
+	{
+		return Rfc8259.ParseJson(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A JSON text, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out JsonValue? value)
@@ -84,7 +86,10 @@ public abstract record JsonValue
 	public sealed record Number(string Text) : JsonValue
 	{
 		/// <summary>The nearest double, as IEEE 754 binary64 reads it; an exponent past its range is infinity.</summary>
-		public double ToDouble() => double.Parse(Text, NumberStyles.Float, CultureInfo.InvariantCulture);
+		public double ToDouble()
+		{
+			return double.Parse(Text, NumberStyles.Float, CultureInfo.InvariantCulture);
+		}
 
 		/// <summary>The number as a decimal, where one holds it exactly.</summary>
 		/// <returns>
@@ -190,8 +195,10 @@ public abstract record JsonValue
 		}
 
 		/// <summary>The number as a long, where it is an integer written without a fraction or exponent.</summary>
-		public bool TryToInt64(out long value) =>
-			long.TryParse(Text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
+		public bool TryToInt64(out long value)
+		{
+			return long.TryParse(Text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
+		}
 	}
 
 	/// <summary>§3: <c>true</c> or <c>false</c>.</summary>

@@ -183,8 +183,10 @@ public sealed class Rfc6570Tests
 		return values;
 
 		// A number is the text the suite wrote, which is what a URI is made of.
-		static string Scalar(JsonElement value) =>
-			value.ValueKind == JsonValueKind.String ? value.GetString()! : value.GetRawText();
+		static string Scalar(JsonElement value)
+		{
+			return value.ValueKind == JsonValueKind.String ? value.GetString()! : value.GetRawText();
+		}
 	}
 
 	static JsonElement Load(string file)
@@ -209,5 +211,8 @@ public sealed class Rfc6570Tests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

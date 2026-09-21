@@ -44,10 +44,12 @@ public static class StandardLibrary
 	/// <summary>
 	/// The grammar with the library spliced onto its end, under <see cref="Name"/>.
 	/// </summary>
-	public static string SplicedOnto(string grammarText) =>
-		GrammarSplice.Join(
+	public static string SplicedOnto(string grammarText)
+	{
+		return GrammarSplice.Join(
 			new GrammarSplice.Part(grammarText, null, null),
 			[new GrammarSplice.Part(Text, Name, null)]).Text;
+	}
 
 	/// <summary>
 	/// The scanner the library's own C# is read with, whatever the caller brought.
@@ -113,8 +115,14 @@ public static class StandardLibrary
 			return text.Length;
 		}
 
-		public IReadOnlyCollection<string>? FreeNames(string expression) => null;
+		public IReadOnlyCollection<string>? FreeNames(string expression)
+		{
+			return null;
+		}
 
-		public string? Renamed(string expression, IReadOnlyDictionary<string, string> names) => null;
+		public string? Renamed(string expression, IReadOnlyDictionary<string, string> names)
+		{
+			return null;
+		}
 	}
 }

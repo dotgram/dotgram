@@ -25,8 +25,10 @@ partial class HandSqlStandard
 	// ── The publications ───────────────────────────────────────────────────────
 
 	/// <summary>Reads the whole input as a <c>&lt;value expression&gt;</c>.</summary>
-	public static Expression ParseValueExpression(string input) =>
-		TryParseValueExpression(input, out var value) ? value : throw Refused(input, "value expression");
+	public static Expression ParseValueExpression(string input)
+	{
+		return TryParseValueExpression(input, out var value) ? value : throw Refused(input, "value expression");
+	}
 
 	/// <summary>Reads the whole input as a <c>&lt;value expression&gt;</c>, answering rather than throwing.</summary>
 	public static bool TryParseValueExpression(string input, out Expression value)
@@ -36,43 +38,80 @@ partial class HandSqlStandard
 		return Whole(ValueExpression(ref cursor, out var read), ref cursor, read, out value);
 	}
 
-	public static Expression ParseCommonValueExpression(string input) =>
-		TryParseCommonValueExpression(input, out var value) ? value : throw Refused(input, "common value expression");
+	public static Expression ParseCommonValueExpression(string input)
+	{
+		return TryParseCommonValueExpression(input, out var value) ? value : throw Refused(input, "common value expression");
+	}
 
-	public static bool TryParseCommonValueExpression(string input, out Expression value) => Tower(input, SqlTowers.Value, out value);
+	public static bool TryParseCommonValueExpression(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.Value, out value);
+	}
 
-	public static Expression ParseNumericValueExpression(string input) =>
-		TryParseNumericValueExpression(input, out var value) ? value : throw Refused(input, "numeric value expression");
+	public static Expression ParseNumericValueExpression(string input)
+	{
+		return TryParseNumericValueExpression(input, out var value) ? value : throw Refused(input, "numeric value expression");
+	}
 
-	public static bool TryParseNumericValueExpression(string input, out Expression value) => Tower(input, SqlTowers.Numeric, out value);
+	public static bool TryParseNumericValueExpression(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.Numeric, out value);
+	}
 
-	public static Expression ParseStringValueExpression(string input) =>
-		TryParseStringValueExpression(input, out var value) ? value : throw Refused(input, "string value expression");
+	public static Expression ParseStringValueExpression(string input)
+	{
+		return TryParseStringValueExpression(input, out var value) ? value : throw Refused(input, "string value expression");
+	}
 
-	public static bool TryParseStringValueExpression(string input, out Expression value) => Tower(input, SqlTowers.String, out value);
+	public static bool TryParseStringValueExpression(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.String, out value);
+	}
 
-	public static Expression ParseCharacterValueExpression(string input) =>
-		TryParseCharacterValueExpression(input, out var value) ? value : throw Refused(input, "character value expression");
+	public static Expression ParseCharacterValueExpression(string input)
+	{
+		return TryParseCharacterValueExpression(input, out var value) ? value : throw Refused(input, "character value expression");
+	}
 
-	public static bool TryParseCharacterValueExpression(string input, out Expression value) => Tower(input, SqlTowers.Character, out value);
+	public static bool TryParseCharacterValueExpression(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.Character, out value);
+	}
 
-	public static Expression ParseBinaryValueExpression(string input) =>
-		TryParseBinaryValueExpression(input, out var value) ? value : throw Refused(input, "binary value expression");
+	public static Expression ParseBinaryValueExpression(string input)
+	{
+		return TryParseBinaryValueExpression(input, out var value) ? value : throw Refused(input, "binary value expression");
+	}
 
-	public static bool TryParseBinaryValueExpression(string input, out Expression value) => Tower(input, SqlTowers.Binary, out value);
+	public static bool TryParseBinaryValueExpression(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.Binary, out value);
+	}
 
-	public static Expression ParseDatetimeValueExpression(string input) =>
-		TryParseDatetimeValueExpression(input, out var value) ? value : throw Refused(input, "datetime value expression");
+	public static Expression ParseDatetimeValueExpression(string input)
+	{
+		return TryParseDatetimeValueExpression(input, out var value) ? value : throw Refused(input, "datetime value expression");
+	}
 
-	public static bool TryParseDatetimeValueExpression(string input, out Expression value) => Tower(input, SqlTowers.Datetime, out value);
+	public static bool TryParseDatetimeValueExpression(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.Datetime, out value);
+	}
 
-	public static Expression ParseIntervalValueExpression(string input) =>
-		TryParseIntervalValueExpression(input, out var value) ? value : throw Refused(input, "interval value expression");
+	public static Expression ParseIntervalValueExpression(string input)
+	{
+		return TryParseIntervalValueExpression(input, out var value) ? value : throw Refused(input, "interval value expression");
+	}
 
-	public static bool TryParseIntervalValueExpression(string input, out Expression value) => Tower(input, SqlTowers.Interval, out value);
+	public static bool TryParseIntervalValueExpression(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.Interval, out value);
+	}
 
-	public static Expression ParseBooleanValueExpression(string input) =>
-		TryParseBooleanValueExpression(input, out var value) ? value : throw Refused(input, "boolean value expression");
+	public static Expression ParseBooleanValueExpression(string input)
+	{
+		return TryParseBooleanValueExpression(input, out var value) ? value : throw Refused(input, "boolean value expression");
+	}
 
 	public static bool TryParseBooleanValueExpression(string input, out Expression value)
 	{
@@ -81,13 +120,20 @@ partial class HandSqlStandard
 		return Whole(BooleanValueExpression(ref cursor, out var read), ref cursor, read, out value);
 	}
 
-	public static Expression ParseSearchCondition(string input) =>
-		TryParseSearchCondition(input, out var value) ? value : throw Refused(input, "search condition");
+	public static Expression ParseSearchCondition(string input)
+	{
+		return TryParseSearchCondition(input, out var value) ? value : throw Refused(input, "search condition");
+	}
 
-	public static bool TryParseSearchCondition(string input, out Expression value) => TryParseBooleanValueExpression(input, out value);
+	public static bool TryParseSearchCondition(string input, out Expression value)
+	{
+		return TryParseBooleanValueExpression(input, out value);
+	}
 
-	public static Expression ParsePredicate(string input) =>
-		TryParsePredicate(input, out var value) ? value : throw Refused(input, "predicate");
+	public static Expression ParsePredicate(string input)
+	{
+		return TryParsePredicate(input, out var value) ? value : throw Refused(input, "predicate");
+	}
 
 	public static bool TryParsePredicate(string input, out Expression value)
 	{
@@ -96,8 +142,10 @@ partial class HandSqlStandard
 		return Whole(BooleanPrimary(ref cursor, out var read) && (read.Roles & SqlTowers.Logical) != 0, ref cursor, read, out value);
 	}
 
-	public static Expression ParseRowValuePredicand(string input) =>
-		TryParseRowValuePredicand(input, out var value) ? value : throw Refused(input, "row value predicand");
+	public static Expression ParseRowValuePredicand(string input)
+	{
+		return TryParseRowValuePredicand(input, out var value) ? value : throw Refused(input, "row value predicand");
+	}
 
 	public static bool TryParseRowValuePredicand(string input, out Expression value)
 	{
@@ -106,11 +154,15 @@ partial class HandSqlStandard
 		return Whole(RowValuePredicand(ref cursor, out var read), ref cursor, read, out value);
 	}
 
-	public static Expression ParseValueExpressionPrimary(string input) =>
-		TryParseValueExpressionPrimary(input, out var value) ? value : throw Refused(input, "value expression primary");
+	public static Expression ParseValueExpressionPrimary(string input)
+	{
+		return TryParseValueExpressionPrimary(input, out var value) ? value : throw Refused(input, "value expression primary");
+	}
 
-	public static bool TryParseValueExpressionPrimary(string input, out Expression value) =>
-		Tower(input, SqlTowers.Bare | SqlTowers.Parenthesized, out value);
+	public static bool TryParseValueExpressionPrimary(string input, out Expression value)
+	{
+		return Tower(input, SqlTowers.Bare | SqlTowers.Parenthesized, out value);
+	}
 
 	/// <summary>A tower of the common value expression, which is the shape they all share.</summary>
 	static bool Tower(string input, int roles, out Expression value)
@@ -835,52 +887,58 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static NormalForm? NormalForm(ref SqlCursor cursor) =>
-		cursor.TakeWord("NFC")  ? Ast.NormalForm.NFC :
-		cursor.TakeWord("NFD")  ? Ast.NormalForm.NFD :
+	static NormalForm? NormalForm(ref SqlCursor cursor)
+	{
+		return cursor.TakeWord("NFC") ? Ast.NormalForm.NFC :
+		cursor.TakeWord("NFD") ? Ast.NormalForm.NFD :
 		cursor.TakeWord("NFKC") ? Ast.NormalForm.NFKC :
 		cursor.TakeWord("NFKD") ? Ast.NormalForm.NFKD :
 		null;
+	}
 
 	/// <summary>A predicate's second part with the predicand it follows put in.</summary>
-	static Expression Predicated(Expression left, Expression tail) =>
-		tail switch
+	static Expression Predicated(Expression left, Expression tail)
+	{
+		return tail switch
 		{
-			Expression.Comparison c           => c with { Left = left },
+			Expression.Comparison c => c with { Left = left },
 			Expression.QuantifiedComparison q => q with { Left = left },
-			Expression.Between b              => b with { Value = left },
-			Expression.In i                   => i with { Value = left },
-			Expression.Like l                 => l with { Value = left },
-			Expression.IsNull n               => n with { Value = left },
-			Expression.IsDistinct d           => d with { Left = left },
-			Expression.IsNormalized n         => n with { Value = left },
-			Expression.MemberOf m             => m with { Value = left },
-			Expression.SubmultisetOf s        => s with { Value = left },
-			Expression.IsSet s                => s with { Value = left },
-			Expression.IsOf o                 => o with { Value = left },
-			Expression.Match m                => m with { Value = left },
-			Expression.Overlaps o             => o with { Left = left },
-			Expression.JsonPredicate j        => j with { Value = left },
-			Expression.PeriodPredicate p      => p with { Left = left is Expression.Reference r ? new PeriodValue.Reference(r.Name) : throw new ArgumentOutOfRangeException(nameof(left), left, "A period predicate names its period by a chain.") },
-			_                                 => throw new ArgumentOutOfRangeException(nameof(tail), tail, "A predicate this method cannot complete."),
+			Expression.Between b => b with { Value = left },
+			Expression.In i => i with { Value = left },
+			Expression.Like l => l with { Value = left },
+			Expression.IsNull n => n with { Value = left },
+			Expression.IsDistinct d => d with { Left = left },
+			Expression.IsNormalized n => n with { Value = left },
+			Expression.MemberOf m => m with { Value = left },
+			Expression.SubmultisetOf s => s with { Value = left },
+			Expression.IsSet s => s with { Value = left },
+			Expression.IsOf o => o with { Value = left },
+			Expression.Match m => m with { Value = left },
+			Expression.Overlaps o => o with { Left = left },
+			Expression.JsonPredicate j => j with { Value = left },
+			Expression.PeriodPredicate p => p with { Left = left is Expression.Reference r ? new PeriodValue.Reference(r.Name) : throw new ArgumentOutOfRangeException(nameof(left), left, "A period predicate names its period by a chain.") },
+			_ => throw new ArgumentOutOfRangeException(nameof(tail), tail, "A predicate this method cannot complete."),
 		};
+	}
 
-	static Expression Negated(Expression predicate, bool not) =>
-		!not ? predicate : predicate switch
+	static Expression Negated(Expression predicate, bool not)
+	{
+		return !not ? predicate : predicate switch
 		{
-			Expression.Between b       => b with { Not = true },
-			Expression.In i            => i with { Not = true },
-			Expression.Like l          => l with { Not = true },
-			Expression.IsNull n        => n with { Not = true },
-			Expression.IsDistinct d    => d with { Not = true },
-			Expression.IsNormalized n  => n with { Not = true },
-			Expression.MemberOf m      => m with { Not = true },
+			Expression.Between b => b with { Not = true },
+			Expression.In i => i with { Not = true },
+			Expression.Like l => l with { Not = true },
+			Expression.IsNull n => n with { Not = true },
+			Expression.IsDistinct d => d with { Not = true },
+			Expression.IsNormalized n => n with { Not = true },
+			Expression.MemberOf m => m with { Not = true },
 			Expression.SubmultisetOf s => s with { Not = true },
-			Expression.IsSet s         => s with { Not = true },
-			Expression.IsOf o          => o with { Not = true },
+			Expression.IsSet s => s with { Not = true },
+			Expression.IsOf o => o with { Not = true },
 			Expression.JsonPredicate j => j with { Not = true },
-			_                          => throw new ArgumentOutOfRangeException(nameof(predicate), predicate, "A predicate that takes no NOT."),
+			_ => throw new ArgumentOutOfRangeException(nameof(predicate), predicate, "A predicate that takes no NOT."),
 		};
+	}
 
 	// ── §8.20 Period predicate ─────────────────────────────────────────────────
 
@@ -1068,13 +1126,25 @@ partial class HandSqlStandard
 	}
 
 	/// <summary>The node of a tower, where a rule keeps the node and asks nothing of its towers.</summary>
-	static bool Value(ref SqlCursor cursor, out Expression value) => Node(ref cursor, SqlTowers.Value | SqlTowers.Row | SqlTowers.Truth, out value);
+	static bool Value(ref SqlCursor cursor, out Expression value)
+	{
+		return Node(ref cursor, SqlTowers.Value | SqlTowers.Row | SqlTowers.Truth, out value);
+	}
 
-	static bool Numeric(ref SqlCursor cursor, out Expression value) => Node(ref cursor, SqlTowers.Numeric, out value);
+	static bool Numeric(ref SqlCursor cursor, out Expression value)
+	{
+		return Node(ref cursor, SqlTowers.Numeric, out value);
+	}
 
-	static bool Character(ref SqlCursor cursor, out Expression value) => Node(ref cursor, SqlTowers.Character, out value);
+	static bool Character(ref SqlCursor cursor, out Expression value)
+	{
+		return Node(ref cursor, SqlTowers.Character, out value);
+	}
 
-	static bool Datetime(ref SqlCursor cursor, out Expression value) => Node(ref cursor, SqlTowers.Datetime, out value);
+	static bool Datetime(ref SqlCursor cursor, out Expression value)
+	{
+		return Node(ref cursor, SqlTowers.Datetime, out value);
+	}
 
 	/// <summary>
 	/// A value expression of one tower, as a node. <c>Value</c> is the whole <c>&lt;value
@@ -2206,8 +2276,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool CastOperand(ref SqlCursor cursor, out Expression value) =>
-		Value(ref cursor, out value) || ImplicitlyTypedValueSpecification(ref cursor, out value);
+	static bool CastOperand(ref SqlCursor cursor, out Expression value)
+	{
+		return Value(ref cursor, out value) || ImplicitlyTypedValueSpecification(ref cursor, out value);
+	}
 
 	static bool ImplicitlyTypedValueSpecification(ref SqlCursor cursor, out Expression value)
 	{
@@ -2602,8 +2674,10 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool ArgumentValue(ref SqlCursor cursor, out Expression value) =>
-		Value(ref cursor, out value) || ContextuallyTypedValueSpecification(ref cursor, out value);
+	static bool ArgumentValue(ref SqlCursor cursor, out Expression value)
+	{
+		return Value(ref cursor, out value) || ContextuallyTypedValueSpecification(ref cursor, out value);
+	}
 
 	/// <summary>A function the BNF spells out whose arguments are a comma list.</summary>
 	static Expression.Invocation Called(string word, params Expression?[] arguments)

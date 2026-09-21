@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+
 using BenchmarkDotNet.Attributes;
+
 using DotGram.Finance.Fix44;
 using DotGram.Finance.Fix;
 

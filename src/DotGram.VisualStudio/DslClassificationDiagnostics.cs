@@ -81,13 +81,16 @@ public static class DslClassificationDiagnostics
 		return expression.Span;
 	}
 
-	static string Id(DslClassificationBindingDiagnosticKind kind) => kind switch
+	static string Id(DslClassificationBindingDiagnosticKind kind)
 	{
-		DslClassificationBindingDiagnosticKind.MalformedTarget => "GRAM6001",
-		DslClassificationBindingDiagnosticKind.UnknownRule     => "GRAM6002",
-		DslClassificationBindingDiagnosticKind.AmbiguousRule   => "GRAM6003",
-		DslClassificationBindingDiagnosticKind.UnknownCapture  => "GRAM6004",
-		DslClassificationBindingDiagnosticKind.DuplicateTarget => "GRAM6005",
-		_ => throw new ArgumentOutOfRangeException(nameof(kind)),
-	};
+		return kind switch
+		{
+			DslClassificationBindingDiagnosticKind.MalformedTarget => "GRAM6001",
+			DslClassificationBindingDiagnosticKind.UnknownRule => "GRAM6002",
+			DslClassificationBindingDiagnosticKind.AmbiguousRule => "GRAM6003",
+			DslClassificationBindingDiagnosticKind.UnknownCapture => "GRAM6004",
+			DslClassificationBindingDiagnosticKind.DuplicateTarget => "GRAM6005",
+			_ => throw new ArgumentOutOfRangeException(nameof(kind)),
+		};
+	}
 }

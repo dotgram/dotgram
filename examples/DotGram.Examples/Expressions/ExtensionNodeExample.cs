@@ -120,11 +120,13 @@ public sealed class ClampExpression : System.Linq.Expressions.Expression
 	public override bool           CanReduce => true;
 
 	/// <summary>What it becomes, and only where something asks.</summary>
-	public override System.Linq.Expressions.Expression Reduce() =>
-		Condition(
+	public override System.Linq.Expressions.Expression Reduce()
+	{
+		return Condition(
 			LessThan(Value, Low),
 			Low,
 			Condition(GreaterThan(Value, High), High, Value));
+	}
 
 	/// <summary>Rewritten with whatever a visitor made of the operands.</summary>
 	protected override System.Linq.Expressions.Expression VisitChildren(ExpressionVisitor visitor)
@@ -143,5 +145,8 @@ public sealed class ClampExpression : System.Linq.Expressions.Expression
 				: new ClampExpression(value, low, high);
 	}
 
-	public override string ToString() => $"clamp({Value}, {Low}, {High})";
+	public override string ToString()
+	{
+		return $"clamp({Value}, {Low}, {High})";
+	}
 }

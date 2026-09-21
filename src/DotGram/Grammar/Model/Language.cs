@@ -27,8 +27,10 @@ namespace DotGram.Grammar.Model;
 static class Language
 {
 	/// <summary>Whether a rule's language holds exactly this string.</summary>
-	public static bool Accepts(RecognitionGraph graph, RuleSymbol rule, string text) =>
-		graph.Bodies.TryGetValue(rule, out var body) && Ends(graph, body, text, 0).Contains(text.Length);
+	public static bool Accepts(RecognitionGraph graph, RuleSymbol rule, string text)
+	{
+		return graph.Bodies.TryGetValue(rule, out var body) && Ends(graph, body, text, 0).Contains(text.Length);
+	}
 
 	/// <summary>The shortest string a node accepts, or null where it accepts none.</summary>
 	/// <remarks>

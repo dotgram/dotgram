@@ -67,14 +67,17 @@ static class HotLoop
 		Console.WriteLine($"{runs} parses in {deadline.Elapsed.TotalSeconds:0.0}s.");
 	}
 
-	static string[]? Inputs(string which) => which switch
+	static string[]? Inputs(string which)
 	{
-		"both"      => [NoMatch, EveryPart],
-		"nomatch"   => [NoMatch],
-		"everypart" => [EveryPart],
-		"iphost"    => [IpHost],
-		"short"     => [Short],
-		"longpath"  => [LongPath],
-		_           => null,
-	};
+		return which switch
+		{
+			"both" => [NoMatch, EveryPart],
+			"nomatch" => [NoMatch],
+			"everypart" => [EveryPart],
+			"iphost" => [IpHost],
+			"short" => [Short],
+			"longpath" => [LongPath],
+			_ => null,
+		};
+	}
 }

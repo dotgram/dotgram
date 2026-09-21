@@ -109,11 +109,13 @@ public sealed class SemanticTests
 	[InlineData("a , a , a", true)]
 	[InlineData("a , a , a , a", true)]
 	[InlineData("a a", false)]
-	public void A_separated_list_is_spaced_on_every_turn(string input, bool expected) =>
+	public void A_separated_list_is_spaced_on_every_turn(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			"trivia = [' ']*" + '\n' +
 			"Start = A & (',' & A)*" + '\n' +
 			"A = ['a'..'z']+".AsDotGram(), input));
+	}
 
 	/// <summary>
 	/// A repetition of one thing is a lexeme, and is not spaced.
@@ -126,30 +128,36 @@ public sealed class SemanticTests
 	[Theory]
 	[InlineData("abcd", true)]
 	[InlineData("ab cd", false)]
-	public void A_repetition_of_one_thing_is_a_lexeme(string input, bool expected) =>
+	public void A_repetition_of_one_thing_is_a_lexeme(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			"trivia = [' ']*" + '\n' +
 			"Start = W*" + '\n' +
 			"W = ['a'..'z']", input));
+	}
 
 	/// <summary>Digits, the example §4.5 gives: <c>1 2</c> is two numbers, not one.</summary>
 	[Theory]
 	[InlineData("123", true)]
 	[InlineData("1 2", false)]
-	public void Digits_are_a_lexeme_too(string input, bool expected) =>
+	public void Digits_are_a_lexeme_too(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			"trivia = [' ']*" + '\n' +
 			"Start = ['0'..'9']+", input));
+	}
 
 	/// <summary>An optional has no second turn, so it has no seam to space.</summary>
 	[Theory]
 	[InlineData("ab", true)]
 	[InlineData("a b", true)]
 	[InlineData("a", true)]
-	public void An_optional_is_left_alone(string input, bool expected) =>
+	public void An_optional_is_left_alone(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			"trivia = [' ']*" + '\n' +
 			"Start = 'a' & 'b'?", input));
+	}
 
 	/// <summary>
 	/// Spacing a repetition of a single thing is the case that cannot be inferred, and is
@@ -158,11 +166,13 @@ public sealed class SemanticTests
 	[Theory]
 	[InlineData("a a a", true)]
 	[InlineData("aaa", true)]
-	public void A_spaced_repetition_of_one_thing_still_says_so(string input, bool expected) =>
+	public void A_spaced_repetition_of_one_thing_still_says_so(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			"trivia = [' ']*" + '\n' +
 			"Start = A & (trivia & A)*" + '\n' +
 			"A = ['a'..'z']", input));
+	}
 
 	// ── §4.5: `~`, where trivia may not go ──────────────────────────────────
 
@@ -384,9 +394,11 @@ public sealed class SemanticTests
 	[InlineData("aab", true)]
 	[InlineData("abab", true)]
 	[InlineData("aa", false)]
-	public void A_settled_repetition_still_rematches_its_body(string input, bool expected) =>
+	public void A_settled_repetition_still_rematches_its_body(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			"Start = (\"ab\" | \"a\")* & 'b'", input));
+	}
 
 	/// <summary>
 	/// §11 makes a comment's interior reachable by backtracking — and atomic trivia is how
@@ -405,11 +417,13 @@ public sealed class SemanticTests
 	[InlineData(true, "x //y", false)]
 	[InlineData(true, "x y", true)]
 	public void A_comment_interior_is_syntax_until_the_trivia_is_atomic(
-		bool atomic, string input, bool expected) =>
+		bool atomic, string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			(atomic
 				? "trivia = { (' ' | \"//\" & [^ '\\n']*)* }"
 				: "trivia = (' ' | \"//\" & [^ '\\n']*)*") + '\n' + "Start = 'x' & 'y'", input));
+	}
 
 	/// <summary>
 	/// A counted repetition does not count a turn twice when the turn re-matches.
@@ -427,9 +441,11 @@ public sealed class SemanticTests
 	[InlineData("aa", true)]
 	[InlineData("ab", true)]
 	[InlineData("aaa", false)]
-	public void A_rematched_turn_is_counted_once(string input, bool expected) =>
+	public void A_rematched_turn_is_counted_once(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(
 			"Start = ({ ['a'|'c'] } | 'a' | ('b' | 'a' | \"b\")){2}", input));
+	}
 
 	// ── Maximal munch is per-symbol, and expressible ───────────────────────
 
@@ -480,7 +496,8 @@ public sealed class SemanticTests
 	[InlineData("a", 1)]
 	[InlineData("b", 2)]
 	[InlineData("c", 3)]
-	public void A_transparent_tower_still_delivers(string input, int expected) =>
+	public void A_transparent_tower_still_delivers(string input, int expected)
+	{
 		Assert.Equal(expected, Parsed(
 			"Start : @int = v: Outer => @(v)" + '\n' +
 			"Outer : @int = o: Middle => @(o) | o: C => @(o)" + '\n' +
@@ -488,8 +505,12 @@ public sealed class SemanticTests
 			"A : @int = 'a' => @(1)" + '\n' +
 			"B : @int = 'b' => @(2)" + '\n' +
 			"C : @int = 'c' => @(3)", input).Value);
+	}
 
-	static bool Matches(string grammar, string input) => Parsed(grammar, input).IsSuccess;
+	static bool Matches(string grammar, string input)
+	{
+		return Parsed(grammar, input).IsSuccess;
+	}
 
 	static (bool IsSuccess, object? Value, string? Error, long Position) Parsed(
 		string grammar, string input, string? expected = null)
@@ -505,15 +526,20 @@ public sealed class SemanticTests
 			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
 	}
 
-	static GramCompilation Compile(string grammar) => GramCompiler.Compile(
+	static GramCompilation Compile(string grammar)
+	{
+		return GramCompiler.Compile(
 		grammar,
 		new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+	}
 
 	/// <summary>The graph itself, where what a test asks about is not a diagnostic.</summary>
-	static RecognitionGraph Graph(string grammar) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string grammar)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance)).File));
+	}
 
 	/// <summary>The one diagnostic a grammar must be refused with.</summary>
 	// ── One mistake, one message about it ────────────────────────────────────────
@@ -573,28 +599,34 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_a_negative_one_saw_nothing() =>
+	public void And_a_negative_one_saw_nothing()
+	{
 		// §3.4: "?!X produces nothing" — it succeeded because what it looked for was not
 		// there, so there is nothing to have seen.
 		Assert.Equal(
 			"",
 			Parsed("Start : @string = seen: ?!'z' & Word => @(seen)\nWord = ['a'..'z']+", "ab")
 				.Value);
+	}
 
 	[Fact]
-	public void And_the_specification_example_works() =>
+	public void And_the_specification_example_works()
+	{
 		// §3.6, written out: look ahead, name what was seen, ask a question of it, then
 		// read it for real.
 		Assert.True(Matches(
 			"Start = n: ?=Word & when @(n.Length < 3) & Word\nWord = ['a'..'z']+",
 			"ab"));
+	}
 
 	[Fact]
-	public void And_the_question_is_asked_of_what_was_seen() =>
+	public void And_the_question_is_asked_of_what_was_seen()
+	{
 		// The guard is what makes the capture worth having, so it has to be able to say no.
 		Assert.False(Matches(
 			"Start = n: ?=Word & when @(n.Length < 3) & Word\nWord = ['a'..'z']+",
 			"abcd"));
+	}
 
 	// ── The extent a rule matched (§4.1 case 4) ──────────────────────────────────
 
@@ -726,19 +758,23 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void Either_directive_may_be_renamed() =>
+	public void Either_directive_may_be_renamed()
+	{
 		// §6: `as` is on both, and only `parse as` had a test.
 		Assert.Single(
 			(System.Collections.IEnumerable)Published(
 				"Word = ['a'..'z']+\nfind Word as AllWords", "AllWords", "ab")!);
+	}
 
 	[Fact]
-	public void A_rule_in_a_namespace_can_be_published() =>
+	public void A_rule_in_a_namespace_can_be_published()
+	{
 		// §5 and §6 together: the directive reaches into a namespace by the qualified name,
 		// and the method is named after the rule rather than after the path to it.
 		Assert.Equal(
 			"ab",
 			Published("namespace Inner { Word = ['a'..'z']+ }\nparse Inner.Word", "ParseWord", "ab"));
+	}
 
 	[Fact]
 	public void A_find_of_a_rule_that_matches_nothing_ends()
@@ -759,7 +795,8 @@ public sealed class SemanticTests
 	/// takes 0.05 ms.
 	/// </remarks>
 	[Fact]
-	public void A_shared_beginning_that_leads_back_to_its_rule_is_reported() =>
+	public void A_shared_beginning_that_leads_back_to_its_rule_is_reported()
+	{
 		Refused(
 			GrammarNormalizer.SharedPrefix,
 			"""
@@ -768,18 +805,22 @@ public sealed class SemanticTests
 			Primary : @int = '(' & inner: Power & ')'           => @(inner)
 			               | d: ['0'..'9']+                    => @(int.Parse(d))
 			""");
+	}
 
 	[Fact]
-	public void And_the_same_written_with_the_rest_optional_is_not() =>
+	public void And_the_same_written_with_the_rest_optional_is_not()
+	{
 		Accepted(
 			"""
 			Power   : @int = left: Primary & ('^' & right: Power)? => @(left + (right ?? 0))
 			Primary : @int = '(' & inner: Power & ')'              => @(inner)
 			               | d: ['0'..'9']+                        => @(int.Parse(d))
 			""");
+	}
 
 	[Fact]
-	public void And_a_shared_beginning_that_leads_nowhere_back_is_said_too() =>
+	public void And_a_shared_beginning_that_leads_nowhere_back_is_said_too()
+	{
 		// Splitting the last segment off a path: two alternatives are the only way to say
 		// it, and the operand gives back so the tail fits. This used to go unreported on
 		// the grounds that nothing nests here and so nothing doubles per level — until a
@@ -791,12 +832,15 @@ public sealed class SemanticTests
 			Segments = Name & ('/' & Name)*
 			Start    = d: Segments & '/' & f: Name | d: Segments
 			""");
+	}
 
 	[Fact]
-	public void And_one_whose_beginning_cannot_give_back_is_not() =>
+	public void And_one_whose_beginning_cannot_give_back_is_not()
+	{
 		// A literal has one reading, so the two orders hold the same one thing and there is
 		// nothing to weigh — which is also why the emitter has always factored these.
 		Accepted("Start = \"ab\" & 'c' | \"ab\" & 'd'");
+	}
 
 	static void Accepted(string grammar)
 	{
@@ -827,7 +871,8 @@ public sealed class SemanticTests
 	/// parser did.
 	/// </remarks>
 	[Fact]
-	public void Two_rules_whose_with_sites_reach_each_other_are_refused() =>
+	public void Two_rules_whose_with_sites_reach_each_other_are_refused()
+	{
 		Refused(
 			GrammarNormalizer.CircularWith,
 			"""
@@ -838,6 +883,7 @@ public sealed class SemanticTests
 			Z = 'z'
 			Start = A
 			""");
+	}
 
 	/// <summary>And the answer does not depend on which of them is written first.</summary>
 	/// <remarks>
@@ -861,7 +907,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_a_chain_that_does_not_come_back_is_not_a_cycle() =>
+	public void And_a_chain_that_does_not_come_back_is_not_a_cycle()
+	{
 		// `C` reaches `B`, and nothing reaches `C`. There is an order and the pass finds it,
 		// which is what the ordering was written for in the first place — the refusal must
 		// not take the feature with it.
@@ -877,6 +924,7 @@ public sealed class SemanticTests
 				""")
 				.Diagnostics,
 			diagnostic => diagnostic.Id == GrammarNormalizer.CircularWith);
+	}
 
 	// ── §7.8, the marks a parse places over an extent ────────────────────────────
 
@@ -931,7 +979,8 @@ public sealed class SemanticTests
 	/// inside it.
 	/// </remarks>
 	[Fact]
-	public void The_marks_a_construction_stands_under_are_the_ones_over_it() =>
+	public void The_marks_a_construction_stands_under_are_the_ones_over_it()
+	{
 		Assert.Equal(
 			"a1b2c-",
 			Built(
@@ -947,9 +996,11 @@ public sealed class SemanticTests
 							: parserState[parserState.Length - 1].ToString()))
 					""",
 				"abc"));
+	}
 
 	[Fact]
-	public void A_mark_an_abandoned_reading_placed_is_not_one_the_accepted_reading_stands_under() =>
+	public void A_mark_an_abandoned_reading_placed_is_not_one_the_accepted_reading_stands_under()
+	{
 		// Nothing unwinds a mark, because nothing has to: the entry recording it is taken
 		// away with everything else the abandoned reading wrote, and the walk that reads
 		// them runs over what is left. The first alternative here matches `ab`, marks it,
@@ -970,6 +1021,7 @@ public sealed class SemanticTests
 							: parserState[parserState.Length - 1].ToString()))
 					""",
 				"ab"));
+	}
 
 	/// <summary>One mark type for a whole parse, wherever the declarations stand.</summary>
 	/// <remarks>
@@ -1013,7 +1065,8 @@ public sealed class SemanticTests
 
 	/// <summary>And where only the included grammar declares one, that one is it.</summary>
 	[Fact]
-	public void And_an_included_grammar_may_be_the_only_one_that_declares_it() =>
+	public void And_an_included_grammar_may_be_the_only_one_that_declares_it()
+	{
 		Assert.Equal(
 			"int",
 			Graph(
@@ -1025,9 +1078,11 @@ public sealed class SemanticTests
 				}
 				Start = Inner.A
 				""").State);
+	}
 
 	[Fact]
-	public void And_a_grammar_declares_one_type_for_all_of_them() =>
+	public void And_a_grammar_declares_one_type_for_all_of_them()
+	{
 		Refused(
 			GrammarBinder.DuplicateState,
 			"""
@@ -1035,6 +1090,7 @@ public sealed class SemanticTests
 			state : @string
 			Start = 'x'
 			""");
+	}
 
 	/// <summary>
 	/// A mark with no type to be written in is the grammar's mistake, and said as one — not a
@@ -1045,12 +1101,15 @@ public sealed class SemanticTests
 	[InlineData("Start : @int = 'x' => @(parserState.Length)")]
 	[InlineData("Start : @int = 'x' => @(parserMarks.Length)")]
 	[InlineData("Start = 'x' & when @(parserState.IsEmpty)")]
-	public void A_mark_in_a_grammar_that_declares_no_state_is_refused(string grammar) =>
+	public void A_mark_in_a_grammar_that_declares_no_state_is_refused(string grammar)
+	{
 		Refused(GrammarNormalizer.MarkWithoutState, grammar);
+	}
 
 	/// <summary>And the same grammar with one declared is what §7.8 describes.</summary>
 	[Fact]
-	public void And_the_same_marks_are_read_once_one_is_declared() =>
+	public void And_the_same_marks_are_read_once_one_is_declared()
+	{
 		Assert.DoesNotContain(
 			Compile(
 				"""
@@ -1059,6 +1118,7 @@ public sealed class SemanticTests
 				A : @int = 'x' => @(parserState.Length + parserMarks.Length)
 				""").Diagnostics,
 			one => one.Id == GrammarNormalizer.MarkWithoutState);
+	}
 
 	/// <summary>
 	/// A mark says what stands over a reading, the same every time its site is reached — so its
@@ -1067,12 +1127,15 @@ public sealed class SemanticTests
 	[Theory]
 	[InlineData("Start : @int = w: ('a' | 'b') & '(' & i: A with state @(w.Length) & ')' => @(i)")]
 	[InlineData("Start : @int = i: A with state @(i) => @(i)")]
-	public void A_mark_that_names_a_capture_is_refused(string grammar) =>
+	public void A_mark_that_names_a_capture_is_refused(string grammar)
+	{
 		Refused(GrammarNormalizer.MarkNamesCapture, "state : @int\nA : @int = 'x' => @(1)\n" + grammar);
+	}
 
 	/// <summary>What only spells a capture, or is a capture of another alternative, is not one.</summary>
 	[Fact]
-	public void And_a_mark_beside_a_capture_it_does_not_name_is_not() =>
+	public void And_a_mark_beside_a_capture_it_does_not_name_is_not()
+	{
 		Assert.DoesNotContain(
 			Compile(
 				"""
@@ -1083,16 +1146,20 @@ public sealed class SemanticTests
 				A : @int = 'x' => @(1)
 				""").Diagnostics,
 			one => one.Id == GrammarNormalizer.MarkNamesCapture);
+	}
 
 	/// <summary>A name that only looks like one is not asking for anything.</summary>
 	[Fact]
-	public void And_a_string_that_spells_one_is_not_asking_for_it() =>
+	public void And_a_string_that_spells_one_is_not_asking_for_it()
+	{
 		Assert.DoesNotContain(
 			Compile("Start : @string = 'x' => @(\"parserState\")").Diagnostics,
 			one => one.Id == GrammarNormalizer.MarkWithoutState);
+	}
 
 	[Fact]
-	public void And_state_is_still_an_ordinary_name_for_a_rule() =>
+	public void And_state_is_still_an_ordinary_name_for_a_rule()
+	{
 		// The body is what tells the two apart, the same as `context` — and `with (state =
 		// other)` still rebinds this rule, because a rebinding is parenthesized and a mark
 		// is not.
@@ -1106,6 +1173,7 @@ public sealed class SemanticTests
 					""",
 					"xy"),
 				"A"));
+	}
 
 	/// <summary>What all of this was built for, written out whole.</summary>
 	/// <remarks>
@@ -1121,12 +1189,13 @@ public sealed class SemanticTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("1+2",           "(1+2)")]
-	[InlineData("c(1+2)",        "(1!2)")]
+	[InlineData("1+2", "(1+2)")]
+	[InlineData("c(1+2)", "(1!2)")]
 	[InlineData("c(1+u(2+3)+4)", "(1!((2+3)!4))")]
-	[InlineData("u(c(1+2))",     "(1!2)")]
-	[InlineData("c(u(c(1+2)))",  "(1!2)")]
-	public void A_mark_is_how_one_rule_reads_two_ways(string input, string expected) =>
+	[InlineData("u(c(1+2))", "(1!2)")]
+	[InlineData("c(u(c(1+2)))", "(1!2)")]
+	public void A_mark_is_how_one_rule_reads_two_ways(string input, string expected)
+	{
 		Assert.Equal(
 			expected,
 			Built(
@@ -1146,6 +1215,7 @@ public sealed class SemanticTests
 				Start : @string = e: Sum => @(e)
 				""",
 				input));
+	}
 
 	// ── FIRST through recursion (§4.3) ──────────────────────────────────────────
 
@@ -1178,10 +1248,12 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_a_directly_recursive_rule_too() =>
+	public void And_a_directly_recursive_rule_too()
+	{
 		// `Sum = Sum '+' Term | Term` is rewritten to a fold before this sees it, but the
 		// shape a reader writes is the shape that used to answer "anything".
 		Assert.True(FirstOf("A = A & 'x' | 'a'\nStart = A", "A").IsKnown);
+	}
 
 	/// <summary>An external recognizer is still "anything", and honestly so.</summary>
 	/// <remarks>
@@ -1190,20 +1262,26 @@ public sealed class SemanticTests
 	/// direction.
 	/// </remarks>
 	[Fact]
-	public void And_a_rule_with_no_body_is_anything() =>
+	public void And_a_rule_with_no_body_is_anything()
+	{
 		Assert.False(FirstOf("A = [@Digit] & 'x'\nStart = A", "A").IsKnown);
+	}
 
 	// ── Which context a rule was written against (§7.7) ─────────────────────────
 
-	static RecognitionGraph Normalized(string grammar) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Normalized(string grammar)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				DotGram.Grammar.Parsing.GramParser.Parse(
 					DotGram.Grammar.Parsing.GramLexer.Tokenize(
 						grammar, RoslynCSharpScanner.Instance)).File!));
+	}
 
-	static string? ContextOf(RecognitionGraph graph, string rule) =>
-		graph.ContextOf(graph.Rules.First(one => one.Name == rule));
+	static string? ContextOf(RecognitionGraph graph, string rule)
+	{
+		return graph.ContextOf(graph.Rules.First(one => one.Name == rule));
+	}
 
 	/// <summary>
 	/// A rule is bound to the contract its own grammar named, and the root's is the
@@ -1235,7 +1313,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_a_grammar_that_declares_one_binds_every_rule_to_it() =>
+	public void And_a_grammar_that_declares_one_binds_every_rule_to_it()
+	{
 		// Where nothing is included there is one contract and it is the effective type, which
 		// is the shape everything written before this had.
 		Assert.Equal(
@@ -1243,10 +1322,13 @@ public sealed class SemanticTests
 			ContextOf(
 				Normalized("context : @Names\nA = 'x'\nStart = a: A"),
 				"A"));
+	}
 
 	[Fact]
-	public void And_a_grammar_that_declares_none_binds_every_rule_to_nothing() =>
+	public void And_a_grammar_that_declares_none_binds_every_rule_to_nothing()
+	{
 		Assert.Null(ContextOf(Normalized("A = 'x'\nStart = a: A"), "A"));
+	}
 
 	/// <summary>A specialized clone keeps the contract of the rule it was cloned from.</summary>
 	/// <remarks>
@@ -1294,7 +1376,8 @@ public sealed class SemanticTests
 	/// it meant (docs/next.md, "Decided: `context` is a contract").
 	/// </remarks>
 	[Fact]
-	public void A_context_inside_a_namespace_is_that_grammar_own_contract() =>
+	public void A_context_inside_a_namespace_is_that_grammar_own_contract()
+	{
 		EmittedCode.Quiet(
 			Compile(
 				"""
@@ -1307,9 +1390,11 @@ public sealed class SemanticTests
 				parse Start
 				""")
 				.Diagnostics);
+	}
 
 	[Fact]
-	public void And_the_one_at_the_top_is_the_one_a_caller_supplies() =>
+	public void And_the_one_at_the_top_is_the_one_a_caller_supplies()
+	{
 		// Two contracts, and the effective type — what the publication takes — is the root's.
 		Assert.Contains(
 			"ParseStart(string input, Outer context)",
@@ -1326,9 +1411,11 @@ public sealed class SemanticTests
 				""")
 				.Sources[0].Text,
 			StringComparison.Ordinal);
+	}
 
 	[Fact]
-	public void And_a_grammar_declares_one_of_them() =>
+	public void And_a_grammar_declares_one_of_them()
+	{
 		Refused(
 			GrammarBinder.DuplicateContext,
 			"""
@@ -1336,9 +1423,11 @@ public sealed class SemanticTests
 			context : @Other
 			Start = 'x'
 			""");
+	}
 
 	[Fact]
-	public void And_context_is_still_an_ordinary_name_for_a_rule() =>
+	public void And_context_is_still_an_ordinary_name_for_a_rule()
+	{
 		// A body is what tells the two apart, so a grammar that had a rule called `context`
 		// before this existed still has one.
 		Assert.Equal(
@@ -1351,6 +1440,7 @@ public sealed class SemanticTests
 					""",
 					"xy"),
 				"A"));
+	}
 
 	static void Refused(string id, string grammar)
 	{
@@ -1393,7 +1483,8 @@ public sealed class SemanticTests
 	/// at all. Each of these was a false report before it was not.
 	/// </remarks>
 	[Fact]
-	public void And_a_call_is_not_the_only_way_to_reach_one() =>
+	public void And_a_call_is_not_the_only_way_to_reach_one()
+	{
 		EmittedCode.Quiet(Compile(
 			"""
 			using Lexical;
@@ -1416,6 +1507,7 @@ public sealed class SemanticTests
 			parse Start with (Number = Other) as Loose
 			parse Start
 			""").Diagnostics);
+	}
 
 	/// <summary>A grammar that was refused is not told what else it might tidy.</summary>
 	/// <remarks>
@@ -1424,10 +1516,12 @@ public sealed class SemanticTests
 	/// be one mistake told as two (implementation.md §0).
 	/// </remarks>
 	[Fact]
-	public void And_a_grammar_that_broke_is_asked_nothing() =>
+	public void And_a_grammar_that_broke_is_asked_nothing()
+	{
 		Assert.DoesNotContain(
 			Compile(OneStrayCharacter).Diagnostics,
 			diagnostic => diagnostic.Id == GrammarNormalizer.UnusedRule);
+	}
 
 	/// <summary>And a grammar with nothing published is asked nothing either.</summary>
 	/// <remarks>
@@ -1435,8 +1529,10 @@ public sealed class SemanticTests
 	/// grammar is missing is a publication, and that is a different remark.
 	/// </remarks>
 	[Fact]
-	public void And_a_grammar_that_publishes_nothing_is_asked_nothing() =>
+	public void And_a_grammar_that_publishes_nothing_is_asked_nothing()
+	{
 		EmittedCode.Quiet(Compile("Start = 'a'\nStray = 'b'").Diagnostics);
+	}
 
 	// ── Parameterized rules (§4.2) ───────────────────────────────────────────────
 
@@ -1454,23 +1550,29 @@ public sealed class SemanticTests
 	const string Separator = "Semi  = ';'\n";
 
 	[Fact]
-	public void A_rule_may_take_another_rule_as_a_parameter() =>
+	public void A_rule_may_take_another_rule_as_a_parameter()
+	{
 		// §4.2. A parameter is a compile-time thing entirely: the call becomes a rule of
 		// its own with `item` and `sep` replaced by what was passed, so nothing downstream
 		// ever meets a parameter and nothing is dispatched at run time.
 		Assert.True(Matches(Listing + "Start = List(Word, Comma)", "ab,cd,ef"));
+	}
 
 	[Fact]
-	public void And_the_same_rule_twice_with_different_arguments() =>
+	public void And_the_same_rule_twice_with_different_arguments()
+	{
 		// Two specializations of one rule, side by side in one grammar, which is the whole
 		// point of writing `List` once.
 		Assert.True(Matches(
 			Listing + Separator + "Start = List(Word, Comma) & ' ' & List(Word, Semi)",
 			"ab,cd ef;gh"));
+	}
 
 	[Fact]
-	public void And_what_it_was_given_still_has_to_match() =>
+	public void And_what_it_was_given_still_has_to_match()
+	{
 		Assert.False(Matches(Listing + "Start = List(Word, Comma)", "ab;cd"));
+	}
 
 	[Fact]
 	public void The_same_arguments_twice_are_one_rule()
@@ -1591,10 +1693,13 @@ public sealed class SemanticTests
 	/// belongs under a test like any other.
 	/// </remarks>
 	[Theory]
-	[InlineData(GrammarNormalizer.LeftRecursion,   "A = B & 'x' | 'a'\nB = A & 'y' | 'b'\nStart = A")]
+	[InlineData(GrammarNormalizer.LeftRecursion, "A = B & 'x' | 'a'\nB = A & 'y' | 'b'\nStart = A")]
 	[InlineData(DotGram.Grammar.Binding.GrammarBinder.ParameterizedRebinding,
 		"B(item) = item\nD = 'd'\nnamespace Ctx with (B = D) { }")]
-	public void Still_refused(string expected, string grammar) => Refused(expected, grammar);
+	public void Still_refused(string expected, string grammar)
+	{
+		Refused(expected, grammar);
+	}
 
 	// ── Atomic groups and what they carry out (§3.2) ────────────────────────────
 
@@ -1664,18 +1769,22 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_without_the_rule_nothing_is_inserted() =>
+	public void And_without_the_rule_nothing_is_inserted()
+	{
 		// Empty by default, so a grammar that never mentions it pays nothing — and keeps
 		// the prefix match it always had.
 		Assert.True(Matches("Start = \"if\" & ['a'..'z']*", "iffy"));
+	}
 
 	[Fact]
-	public void And_the_check_goes_before_the_trivia() =>
+	public void And_the_check_goes_before_the_trivia()
+	{
 		// The other order would ask whether a letter follows the whitespace rather than
 		// whether it follows the keyword, which is no question at all.
 		Assert.False(Matches(
 			"wordboundary = ['a'..'z']\ntrivia = ' '*\nStart = \"if\" & \"then\"",
 			"iffy then"));
+	}
 
 	/// <summary>`word` is a whole word of whatever the boundary says a word is made of.</summary>
 	/// <remarks>
@@ -1689,9 +1798,11 @@ public sealed class SemanticTests
 	[InlineData("x1", true)]
 	[InlineData("(", false)]
 	[InlineData("", false)]
-	public void A_word_is_a_word(string input, bool matches) =>
+	public void A_word_is_a_word(string input, bool matches)
+	{
 		Assert.Equal(matches, Matches(
 			"wordboundary = ['a'..'z' | '0'..'9' | '_']\nStart = word", input));
+	}
 
 	/// <summary>And it is the whole of one, however the parse would rather read it.</summary>
 	/// <remarks>
@@ -1701,9 +1812,11 @@ public sealed class SemanticTests
 	/// the same claim §4.6 makes about a keyword, made about the other side of the boundary.
 	/// </remarks>
 	[Fact]
-	public void And_it_is_the_whole_word() =>
+	public void And_it_is_the_whole_word()
+	{
 		Assert.False(Matches(
 			"wordboundary = ['a'..'z']\nStart = word & \"y\"", "fillfactory"));
+	}
 
 	/// <summary>Where only some words will do, the shape is a lookahead and not a list.</summary>
 	/// <remarks>
@@ -1715,11 +1828,13 @@ public sealed class SemanticTests
 	[InlineData("alter any database on", true)]
 	[InlineData("view definition on", true)]
 	[InlineData("on", false)]
-	public void And_a_run_of_them_ends_where_the_next_clause_begins(string input, bool matches) =>
+	public void And_a_run_of_them_ends_where_the_next_clause_begins(string input, bool matches)
+	{
 		Assert.Equal(matches, Matches(
 			"wordboundary = ['a'..'z']\ntrivia = ' '*\n" +
 			"Start = Name & \"on\"\n" +
 			"Name  = (?!\"on\" & word)+", input));
+	}
 
 	/// <summary>Each namespace's `word` is made of that namespace's own boundary.</summary>
 	/// <remarks>
@@ -1754,10 +1869,12 @@ public sealed class SemanticTests
 	/// nothing, which is the silence GRAM4019 exists to break.
 	/// </remarks>
 	[Fact]
-	public void And_word_without_a_boundary_is_refused() =>
+	public void And_word_without_a_boundary_is_refused()
+	{
 		Assert.Contains(
 			Compile("Start = word\nparse Start").Diagnostics,
 			diagnostic => diagnostic.Id == GrammarNormalizer.WordWithoutBoundary);
+	}
 
 	/// <summary>
 	/// A capture that gathers several pieces over kinds is cut whole where they tile.
@@ -1968,11 +2085,12 @@ public sealed class SemanticTests
 	/// ASCII.
 	/// </remarks>
 	[Theory]
-	[InlineData("if ->",  true)]
+	[InlineData("if ->", true)]
 	[InlineData("if - >", false)]
-	[InlineData("if +>",  false)]
+	[InlineData("if +>", false)]
 	public void A_substitution_reaches_through_a_boundary_and_through_glue(
-		string input, bool expected) =>
+		string input, bool expected)
+	{
 		// Nothing after `if` is a word character, so §4.6 weaves the boundary around the
 		// keyword and around nothing else — the point here is the shape of the tree the
 		// substitution has to copy, not what the boundary itself decides.
@@ -1986,6 +2104,7 @@ public sealed class SemanticTests
 			Start = Word with (A = B)
 			""",
 			input));
+	}
 
 	/// <summary>
 	/// A turn with no seam of its own is still not spaced, which is what keeps a lexeme one.
@@ -2067,23 +2186,26 @@ public sealed class SemanticTests
 	}
 
 	[Theory]
-	[InlineData("http",   true)]
-	[InlineData("https",  true)]
-	[InlineData("ftp",    true)]
-	[InlineData("httpx",  false)]
-	public void A_literal_a_later_one_continues_is_tried_first_and_come_back_for(string input, bool matches) =>
+	[InlineData("http", true)]
+	[InlineData("https", true)]
+	[InlineData("ftp", true)]
+	[InlineData("httpx", false)]
+	public void A_literal_a_later_one_continues_is_tried_first_and_come_back_for(string input, bool matches)
+	{
 		// Ordered choice: `"http"` is preferred where both fit, and the longer one is
 		// reachable because the parse comes back for it when the shorter leaves the input
 		// unfinished. Both readings of `https` exist; which is answered is §11's business.
 		Assert.Equal(
 			matches,
 			Matches("Start = QhttpQ | QhttpsQ | QftpQ".Replace("Q", "\""), input));
+	}
 
 	[Theory]
-	[InlineData("https",  true)]
+	[InlineData("https", true)]
 	[InlineData("httpss", true)]
-	[InlineData("http",   false)]
-	public void And_comes_back_for_it_past_a_shorter_reading_that_did_not_work_out(string input, bool matches) =>
+	[InlineData("http", false)]
+	public void And_comes_back_for_it_past_a_shorter_reading_that_did_not_work_out(string input, bool matches)
+	{
 		// The case the way back exists for. On `httpss` the shorter alternative matches,
 		// the `"s"` after the choice matches, and a character is left over — so the parse
 		// returns to the choice and spends it on the longer alternative instead. The
@@ -2092,6 +2214,7 @@ public sealed class SemanticTests
 		Assert.Equal(
 			matches,
 			Matches("Start = (QhttpQ | QhttpsQ) & QsQ".Replace("Q", "\""), input));
+	}
 
 	[Theory]
 	[InlineData("@int.Parse(d, CultureInfo.InvariantCulture)")]
@@ -2157,27 +2280,33 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_two_counts_are_two_rules() =>
+	public void And_two_counts_are_two_rules()
+	{
 		// One rule written once, two lengths asked of it, side by side.
 		Assert.True(Matches(
 			"Digits(n) = ['0'..'9']{n}\nStart = Digits(4) & '-' & Digits(2)",
 			"2026-08"));
+	}
 
 	[Fact]
-	public void A_count_passed_on_is_still_a_count() =>
+	public void A_count_passed_on_is_still_a_count()
+	{
 		// The argument names the caller's own parameter rather than a number, so what is
 		// passed through is what the outer call was given.
 		Assert.True(Matches(
 			"Digits(n) = ['0'..'9']{n}\nPair(n) = Digits(n) & '-' & Digits(n)\nStart = Pair(2)",
 			"20-26"));
+	}
 
 	[Fact]
-	public void A_count_naming_a_parameter_that_was_not_given_one_is_refused() =>
+	public void A_count_naming_a_parameter_that_was_not_given_one_is_refused()
+	{
 		// The rule takes a piece of grammar and uses it as a number, which is a rule that
 		// would otherwise repeat zero times and match nothing.
 		Refused(
 			GrammarNormalizer.UnbuiltCall,
 			"Digits(n) = ['0'..'9']{n}\nWord = ['a'..'z']\nStart = Digits(Word)");
+	}
 
 	[Fact]
 	public void A_call_that_would_specialize_for_ever_is_refused()
@@ -2196,8 +2325,10 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_call_with_the_wrong_number_of_arguments_is_refused() =>
+	public void A_call_with_the_wrong_number_of_arguments_is_refused()
+	{
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
+	}
 
 	// ── Publishing an expression (§6) ───────────────────────────────────────────
 
@@ -2503,7 +2634,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_refuses_a_value_standing_where_a_recognizer_goes() =>
+	public void And_refuses_a_value_standing_where_a_recognizer_goes()
+	{
 		// The other half of the same silence: §4.2 allows a value where a value is
 		// expected, and an operand is not one of those places. It used to lower to an
 		// element set with nothing in it, so the parse refused everything while naming a
@@ -2512,20 +2644,25 @@ public sealed class SemanticTests
 		Refused(
 			GrammarNormalizer.UnbuiltCall,
 			"Bracketed(item, open: char) = open & item\nWord = ['a'..'z']+\nStart = Bracketed(Word, '[')");
+	}
 
 	[Fact]
-	public void And_refuses_a_rule_where_a_value_was_declared() =>
+	public void And_refuses_a_rule_where_a_value_was_declared()
+	{
 		// The declaration says which kind the parameter is, and a rule is not a value —
 		// taken as a recognizer, it would be the declaration meaning one thing to the
 		// author and another to the compiler.
 		Refused(
 			GrammarNormalizer.UnbuiltCall,
 			"Padded(item, pad: char) = item & @(pad)\nWord = ['a'..'z']+\nSpace = ' '\nStart = Padded(Word, Space)");
+	}
 
 	[Fact]
-	public void A_number_still_reaches_a_parameter_that_declared_its_type() =>
+	public void A_number_still_reaches_a_parameter_that_declared_its_type()
+	{
 		// The half that is built: `n: int` is a value, and a number is a value.
 		Assert.True(Matches("Digits(n: int) = ['0'..'9']{n}\nStart = Digits(4)", "2026"));
+	}
 
 	// ── Backtracking (§11) ───────────────────────────────────────────────────────
 
@@ -2533,55 +2670,90 @@ public sealed class SemanticTests
 	// Every one of these matched nothing before the recognizer became a machine with a
 	// stack of the points it could have gone another way.
 
-	[Fact] public void Optional_gives_back()  => Assert.True(Matches("Start = 'a'? & 'a'",     "a"));
-	[Fact] public void Star_gives_back()      => Assert.True(Matches("Start = 'a'* & 'a'",     "a"));
-	[Fact] public void Plus_gives_back()      => Assert.True(Matches("Start = 'a'+ & 'a'",     "aa"));
-	[Fact] public void Counted_gives_back()   => Assert.True(Matches("Start = 'a'{1,2} & 'a'", "aa"));
+	[Fact]
+	public void Optional_gives_back()
+	{
+		Assert.True(Matches("Start = 'a'? & 'a'", "a"));
+	}
 
 	[Fact]
-	public void A_choice_gives_back_across_the_rest_of_the_sequence() =>
+	public void Star_gives_back()
+	{
+		Assert.True(Matches("Start = 'a'* & 'a'", "a"));
+	}
+
+	[Fact]
+	public void Plus_gives_back()
+	{
+		Assert.True(Matches("Start = 'a'+ & 'a'", "aa"));
+	}
+
+	[Fact]
+	public void Counted_gives_back()
+	{
+		Assert.True(Matches("Start = 'a'{1,2} & 'a'", "aa"));
+	}
+
+	[Fact]
+	public void A_choice_gives_back_across_the_rest_of_the_sequence()
+	{
 		// The specification's own counterexample: §11 rests the rule that alternatives
 		// may never be reordered on this working.
 		Assert.True(Matches("""Start = ("x" | "xy") & 'y'""", "xy"));
+	}
 
 	[Fact]
-	public void And_keeps_giving_back_until_something_fits() =>
+	public void And_keeps_giving_back_until_something_fits()
+	{
 		Assert.True(Matches("Start = ['a'..'z']* & 'c' & ['a'..'z']*", "abcde"));
+	}
 
 	[Theory]
 	[InlineData("aaab", true)]
-	[InlineData("aaa",  false)]
-	public void Nested_repetition_backtracks(string input, bool expected) =>
+	[InlineData("aaa", false)]
+	public void Nested_repetition_backtracks(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches("Start = ('a'+)+ & 'b'", input));
+	}
 
 	[Fact]
-	public void Backtracking_does_not_make_a_failing_match_succeed() =>
+	public void Backtracking_does_not_make_a_failing_match_succeed()
+	{
 		Assert.False(Matches("Start = 'a'* & 'b'", "aaa"));
+	}
 
 	[Fact]
-	public void A_lookahead_leaves_nothing_behind_to_backtrack_into() =>
+	public void A_lookahead_leaves_nothing_behind_to_backtrack_into()
+	{
 		Assert.True(Matches("Start = ?=('a' | 'b') & 'a' & 'b'", "ab"));
+	}
 
 	[Theory]
 	[InlineData("ab", true)]
 	[InlineData("ax", false)]
-	public void A_positive_lookahead_asks_without_consuming(string input, bool expected) =>
+	public void A_positive_lookahead_asks_without_consuming(string input, bool expected)
+	{
 		// It consumes nothing, so the 'b' after it matches the same character it looked at.
 		Assert.Equal(expected, Matches("Start = 'a' & ?='b' & 'b'", input));
+	}
 
 	[Theory]
 	[InlineData("ac", true)]
 	[InlineData("ab", false)]
-	public void A_negative_lookahead_refuses_what_it_finds(string input, bool expected) =>
+	public void A_negative_lookahead_refuses_what_it_finds(string input, bool expected)
+	{
 		// The other half of §3.6, and the only one nothing tested for its own sake: `eof`
 		// lowers to `?![^ ]`, so it was exercised only through that.
 		Assert.Equal(expected, Matches("Start = 'a' & ?!'b' & ['a'..'z']", input));
+	}
 
 	[Theory]
 	[InlineData("Name = \"x\" | \"xy\"")]
 	[InlineData("Name = \"xy\" | \"x\"")]
-	public void Backtracking_crosses_a_rule_boundary(string name) =>
+	public void Backtracking_crosses_a_rule_boundary(string name)
+	{
 		Assert.True(Matches($"Start = Name & 'y'\n{name}", "xy"));
+	}
 
 	[Fact]
 	public void A_repetition_can_give_input_back_across_a_rule_boundary()
@@ -2591,12 +2763,16 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void An_atomic_group_commits_a_called_rule_too() =>
+	public void An_atomic_group_commits_a_called_rule_too()
+	{
 		Assert.False(Matches("Start = { Name } & 'y'\nName = \"xy\" | \"x\"", "xy"));
+	}
 
 	[Fact]
-	public void And_the_same_expressions_in_one_rule_do_backtrack() =>
+	public void And_the_same_expressions_in_one_rule_do_backtrack()
+	{
 		Assert.True(Matches("Start = (\"xy\" | \"x\") & 'y'", "xy"));
+	}
 
 	[Fact]
 	public void An_atomic_group_discards_its_internal_choices_after_success()
@@ -2606,7 +2782,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void Nesting_a_rule_deep_inside_itself() =>
+	public void Nesting_a_rule_deep_inside_itself()
+	{
 		// Backtracking is a machine inside a rule and an ordinary call between rules, so
 		// nesting costs the process stack — about 2700 levels on the default one, which
 		// docs/status.md states and explains. This is well under it, and is here so that a
@@ -2614,110 +2791,150 @@ public sealed class SemanticTests
 		Assert.True(Matches(
 			"Expr = '(' & Expr & ')' | 'x'\nStart = Expr",
 			new string('(', 1000) + "x" + new string(')', 1000)));
+	}
 
 	[Fact]
-	public void Repetition_longer_than_the_first_stack_page() =>
+	public void Repetition_longer_than_the_first_stack_page()
+	{
 		// The stack starts at 48 ints and grows; this needs far more frames than that.
 		Assert.True(Matches("Start = ['a'..'z']* & 'z'", new string('a', 500) + "z"));
+	}
 
 	// ── Unicode categories (§3.1) ────────────────────────────────────────────────
 
 	[Theory]
-	[InlineData("AB",  true)]
-	[InlineData("Ab",  false)]
-	public void Category_by_abbreviation(string input, bool expected) =>
+	[InlineData("AB", true)]
+	[InlineData("Ab", false)]
+	public void Category_by_abbreviation(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(@"Start = [\p{Lu}]+", input));
+	}
 
 	[Theory]
 	[InlineData("abc", true)]
 	[InlineData("ab1", false)]
-	public void A_category_group_is_every_category_in_it(string input, bool expected) =>
+	public void A_category_group_is_every_category_in_it(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches(@"Start = [\p{L}]+", input));
+	}
 
 	[Fact]
-	public void Digits_by_category() => Assert.True(Matches(@"Start = [\p{Nd}]+", "2026"));
+	public void Digits_by_category()
+	{
+		Assert.True(Matches(@"Start = [\p{Nd}]+", "2026"));
+	}
 
 	[Fact]
-	public void An_unknown_category_is_refused() =>
+	public void An_unknown_category_is_refused()
+	{
 		Refused(GramLexer.UnknownCategory, @"Start = [\p{Zz}]");
+	}
 
 	// ── References inside an element set (§3.1) ──────────────────────────────────
 
 	[Theory]
-	[InlineData("ab",  true)]
-	[InlineData("a1",  false)]
-	public void A_set_may_name_an_elementary_rule(string input, bool expected) =>
+	[InlineData("ab", true)]
+	[InlineData("a1", false)]
+	public void A_set_may_name_an_elementary_rule(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches("Letter = ['a'..'z']\nStart = [Letter]+", input));
+	}
 
 	[Theory]
-	[InlineData("a1",  true)]
-	[InlineData("a-",  false)]
-	public void And_is_merged_with_the_rest_of_the_set(string input, bool expected) =>
+	[InlineData("a1", true)]
+	[InlineData("a-", false)]
+	public void And_is_merged_with_the_rest_of_the_set(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches("Letter = ['a'..'z']\nStart = [Letter | '0'..'9']+", input));
+	}
 
 	[Fact]
-	public void A_rule_declared_after_the_set_that_names_it_still_merges() =>
+	public void A_rule_declared_after_the_set_that_names_it_still_merges()
+	{
 		Assert.True(Matches("Start = [Letter]+\nLetter = ['a'..'z']", "ab"));
+	}
 
 	[Fact]
-	public void Complementing_a_set_complements_what_was_merged_into_it() =>
+	public void Complementing_a_set_complements_what_was_merged_into_it()
+	{
 		Assert.False(Matches("Letter = ['a'..'z']\nStart = [^ Letter]+", "ab"));
+	}
 
 	[Fact]
-	public void A_rule_that_is_not_one_element_cannot_be_in_a_set() =>
+	public void A_rule_that_is_not_one_element_cannot_be_in_a_set()
+	{
 		Refused(GrammarNormalizer.UnsupportedElement, "Pair = 'a' & 'b'\nStart = [Pair]");
+	}
 
 	// ── Literals ────────────────────────────────────────────────────────────────
 
 	[Fact]
-	public void A_character_literal_holds_one_character() =>
+	public void A_character_literal_holds_one_character()
+	{
 		Refused(GramLexer.MalformedCharacter, "Start = 'ab'");
+	}
 
 	[Fact]
-	public void An_empty_character_literal_is_refused() =>
+	public void An_empty_character_literal_is_refused()
+	{
 		Refused(GramLexer.MalformedCharacter, "Start = ''");
+	}
 
 	[Theory]
-	[InlineData(@"'\0'",     "\0")]
-	[InlineData(@"'\a'",     "\a")]
-	[InlineData(@"'\v'",     "\v")]
+	[InlineData(@"'\0'", "\0")]
+	[InlineData(@"'\a'", "\a")]
+	[InlineData(@"'\v'", "\v")]
 	[InlineData(@"'é'", "é")]
 	[InlineData("'\u2028'", "\u2028")]     // a line separator: legal in a grammar, not in C# source
-	public void Control_and_non_ascii_characters_survive_emission(string literal, string input) =>
+	public void Control_and_non_ascii_characters_survive_emission(string literal, string input)
+	{
 		Assert.True(Matches($"Start = {literal}", input));
+	}
 
 	[Theory]
 	[InlineData("http")]
 	[InlineData("HTTP")]
 	[InlineData("Http")]
 	[InlineData("hTtP")]
-	public void A_trailing_i_matches_any_case(string input) =>
+	public void A_trailing_i_matches_any_case(string input)
+	{
 		Assert.True(Matches("""Start = "http"i""", input));
+	}
 
 	[Fact]
-	public void A_trailing_i_still_refuses_a_different_word() =>
+	public void A_trailing_i_still_refuses_a_different_word()
+	{
 		Assert.False(Matches("""Start = "http"i""", "htttp"));
+	}
 
 	[Theory]
 	[InlineData("a")]
 	[InlineData("A")]
-	public void A_single_character_literal_takes_i_too(string input) =>
+	public void A_single_character_literal_takes_i_too(string input)
+	{
 		Assert.True(Matches("Start = 'a'i", input));
+	}
 
 	[Fact]
-	public void A_digit_has_no_case_to_ignore_but_i_does_not_mind() =>
+	public void A_digit_has_no_case_to_ignore_but_i_does_not_mind()
+	{
 		Assert.True(Matches("Start = '5'i", "5"));
+	}
 
 	[Fact]
-	public void Without_i_the_literal_stays_case_sensitive() =>
+	public void Without_i_the_literal_stays_case_sensitive()
+	{
 		Assert.False(Matches("""Start = "http" """, "HTTP"));
+	}
 
 	[Theory]
 	[InlineData("htTP", true)]      // "ht" case-sensitive, "tp"i folded — this is what both allow
 	[InlineData("HTtp", false)]     // "ht" wrong case — adjacent-literal merging must not have
-	                                 // silently dropped the second literal's own `i`
-	public void Adjacent_literals_of_different_case_sensitivity_do_not_merge(string input, bool expected) =>
+									// silently dropped the second literal's own `i`
+	public void Adjacent_literals_of_different_case_sensitivity_do_not_merge(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches("""Start = "ht" & "tp"i""", input));
+	}
 
 	// ── Where a failure is reported ─────────────────────────────────────────────
 
@@ -2732,69 +2949,87 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_refusal_names_the_position_the_input_stopped_making_sense_at() =>
+	public void A_refusal_names_the_position_the_input_stopped_making_sense_at()
+	{
 		Assert.Equal(2, Refusal("""Start = "ab" & ['c'] & ['d']""", "abXY").Position);
+	}
 
 	[Fact]
-	public void The_position_is_the_character_that_did_not_fit_not_the_operand_s_start() =>
+	public void The_position_is_the_character_that_did_not_fit_not_the_operand_s_start()
+	{
 		// `"abcd"` is one operand and it starts at 0, but the character that did not fit
 		// is at 2 — the offset is recorded at each failing test rather than one position
 		// at the point of giving up.
 		Assert.Equal(2, Refusal("""Start = "abcd" """, "abXY").Position);
+	}
 
 	[Fact]
-	public void The_same_sharpening_applies_inside_a_merged_literal_run() =>
+	public void The_same_sharpening_applies_inside_a_merged_literal_run()
+	{
 		// "abcd"/"abef" share the prefix "ab" and compile through CompileLiterals's own
 		// merged read rather than Node.Literal's loop — this input fails inside that
 		// shared prefix itself (at 'X', index 1), which needs the identical fix rather
 		// than a free ride off the other site.
 		Assert.Equal(1, Refusal("""Start = "abcd" | "abef" """, "aXYZ").Position);
+	}
 
 	[Fact]
-	public void It_is_the_furthest_reached_and_not_the_last_tried() =>
+	public void It_is_the_furthest_reached_and_not_the_last_tried()
+	{
 		// The first alternative fails at 0 and the second gets to 2 before failing. What
 		// is worth reporting is how far the input could be followed, so the position only
 		// ever rises — a later, shallower failure does not overwrite a deeper one.
 		Assert.Equal(2, Refusal("""Start = ("abc" | "ab") & 'z' """, "abq").Position);
+	}
 
 	[Fact]
-	public void A_failure_inside_a_rule_is_the_caller_s_failure_too() =>
+	public void A_failure_inside_a_rule_is_the_caller_s_failure_too()
+	{
 		// The state is threaded through the call rather than returned, so a rule boundary
 		// does not flatten the position back to where the call was made.
 		Assert.Equal(
 			2,
 			Refusal("Inner = ['a'] & ['b'] & ['c']\nStart = Inner", "abq").Position);
+	}
 
 	// ── What was expected there (§11's first tier) ───────────────────────────────
 
 	[Fact]
-	public void A_refusal_names_the_one_thing_that_would_have_fit() =>
+	public void A_refusal_names_the_one_thing_that_would_have_fit()
+	{
 		// `a: 'a'` keeps the two literals from merging into one "a)"-shaped token during
 		// normalization (adjacent bare literals in a sequence would otherwise become
 		// one, which §11's own concerns start only after) — and unlike a repetition,
 		// a plain capture tries its operand exactly once, so nothing else ties with ')'
 		// at the position it fails.
 		Assert.Equal("Expected ')'.", Refusal("Start = a: 'a' & ')'", "a").Error);
+	}
 
 	[Fact]
-	public void And_names_every_alternative_tried_at_the_same_furthest_position() =>
+	public void And_names_every_alternative_tried_at_the_same_furthest_position()
+	{
 		// "ab"/"ac" share a prefix and are read once as one merged run (Machine.cs's
 		// CompileLiterals) — both alternatives fail together, at the same position, and
 		// both are named.
 		Assert.Equal("Expected \"ab\" or \"ac\".", Refusal("""Start = "ab" | "ac" """, "ax").Error);
+	}
 
 	[Fact]
-	public void And_names_a_repeated_element_the_same_way_as_a_single_one() =>
+	public void And_names_a_repeated_element_the_same_way_as_a_single_one()
+	{
 		Assert.Equal("Expected ['0'..'9'].", Refusal("Start = ['0'..'9']+", "").Error);
+	}
 
 	[Fact]
-	public void With_nothing_left_to_try_it_says_the_input_ran_out() =>
+	public void With_nothing_left_to_try_it_says_the_input_ran_out()
+	{
 		// The guard fails at the end of the input and names no terminal of its own; a
 		// clear failure at a tied position does not erase what an earlier one recorded
 		// there, so this only holds when nothing else was tried at that exact position.
 		Assert.Equal(
 			"Expected more input.",
 			Refusal("Start = 'a' & when @(false)", "a").Error);
+	}
 
 	[Fact]
 	public void A_prefix_conflicted_run_reports_everything_it_covers()
@@ -2810,16 +3045,20 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_case_insensitive_literal_names_itself_with_its_own_i() =>
+	public void A_case_insensitive_literal_names_itself_with_its_own_i()
+	{
 		Assert.Equal("Expected \"http\"i.", Refusal("""Start = "http"i""", "xxxx").Error);
+	}
 
 	[Fact]
-	public void A_lookahead_does_not_report_how_far_it_looked() =>
+	public void A_lookahead_does_not_report_how_far_it_looked()
+	{
 		// It reached position 2 inside itself and consumed nothing. Naming 2 would point
 		// at input the match never needed; what failed is the lookahead, at 0.
 		Assert.Equal(
 			0,
 			Refusal("Start = ?=(['a'] & ['b'] & ['z']) & ['a']", "abq").Position);
+	}
 
 	// ── Captures, and the value they build (§7.3) ───────────────────────────────
 
@@ -2837,7 +3076,8 @@ public sealed class SemanticTests
 	/// fold is refused here and <c>GRAM4016</c> is left to say so.
 	/// </remarks>
 	[Fact]
-	public void An_operand_that_can_give_back_is_not_shared() =>
+	public void An_operand_that_can_give_back_is_not_shared()
+	{
 		Assert.Equal(
 			"first:x",
 			Built(
@@ -2852,6 +3092,7 @@ public sealed class SemanticTests
 				// lead back to the rule, and reporting only where the cost compounds is the
 				// scope this widened out of.
 				GrammarNormalizer.SharedPrefix));
+	}
 
 	/// <summary>And one that cannot is, with nothing to show for it but the reading saved.</summary>
 	/// <remarks>
@@ -2861,7 +3102,8 @@ public sealed class SemanticTests
 	/// — <c>GeneratorDriverTests.And_a_shared_operand_is_read_once</c> counts it.
 	/// </remarks>
 	[Fact]
-	public void And_one_that_cannot_is_shared() =>
+	public void And_one_that_cannot_is_shared()
+	{
 		Assert.Equal(
 			"second:ab",
 			Built(
@@ -2872,6 +3114,7 @@ public sealed class SemanticTests
 					| a: Word & "ce" => @("second:" + a)
 				""",
 				"abce"));
+	}
 
 	static object? Built(string grammar, string input, string? expected = null)
 	{
@@ -2901,32 +3144,42 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_repeated_capture_is_the_text_of_the_whole_run() =>
+	public void A_repeated_capture_is_the_text_of_the_whole_run()
+	{
 		// §10 binds a capture tighter than a quantifier, so this is one capture repeated.
 		// §7.3 gives it the text joined, which is the run rather than its last iteration.
 		Assert.Equal("8080", Read(Built("Start = digits: ['0'..'9']+", "8080"), "Digits"));
+	}
 
 	[Fact]
-	public void A_run_that_matched_nothing_is_empty_rather_than_absent() =>
+	public void A_run_that_matched_nothing_is_empty_rather_than_absent()
+	{
 		Assert.Equal("", Read(Built("Start = digits: ['0'..'9']* & 'x'", "x"), "Digits"));
+	}
 
 	[Fact]
-	public void An_option_that_was_not_taken_is_absent_rather_than_empty() =>
+	public void An_option_that_was_not_taken_is_absent_rather_than_empty()
+	{
 		Assert.Null(Read(Built("Start = (sign: '-')? & 'x'", "x"), "Sign"));
+	}
 
 	[Fact]
-	public void A_capture_of_a_rule_that_builds_holds_its_value() =>
+	public void A_capture_of_a_rule_that_builds_holds_its_value()
+	{
 		Assert.Equal(
 			"x",
 			Read(Built("Inner = letter: 'x'\nStart = inner: Inner", "x"), "Inner", "Letter"));
+	}
 
 	[Theory]
-	[InlineData("y",  null)]
+	[InlineData("y", null)]
 	[InlineData("xy", "x")]
-	public void An_optional_rule_capture_is_absent_or_its_value(string input, string? expected) =>
+	public void An_optional_rule_capture_is_absent_or_its_value(string input, string? expected)
+	{
 		Assert.Equal(
 			expected,
 			Read(Built("Item = letter: 'x'\nStart = (item: Item)? & 'y'", input), "Item", "Letter"));
+	}
 
 	[Fact]
 	public void An_optional_value_type_rule_capture_is_nullable()
@@ -2960,8 +3213,10 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void The_same_name_in_two_alternatives_is_one_member() =>
+	public void The_same_name_in_two_alternatives_is_one_member()
+	{
 		Assert.Equal("y", Read(Built("Start = (v: \"xy\" | v: 'y')", "y"), "V"));
+	}
 
 	[Fact]
 	public void A_repeated_capture_of_a_rule_is_a_sequence_of_its_values()
@@ -2974,9 +3229,11 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void An_empty_run_is_an_empty_sequence_rather_than_null() =>
+	public void An_empty_run_is_an_empty_sequence_rather_than_null()
+	{
 		Assert.Empty((Array)Read(
 			Built("Item = letter: 'x'\nStart = items: Item* & 'y'", "y"), "Items")!);
+	}
 
 	[Fact]
 	public void A_sequence_gives_back_what_an_abandoned_attempt_appended()
@@ -3002,33 +3259,42 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_capture_of_text_inside_a_repetition_is_still_the_run_it_matched() =>
+	public void A_capture_of_text_inside_a_repetition_is_still_the_run_it_matched()
+	{
 		// §7.3 keeps the two apart: a quantifier over text joins it, a quantifier over a
 		// rule collects. Only the second is a sequence.
 		Assert.Equal("8080", Read(Built("Start = digits: ['0'..'9']+", "8080"), "Digits"));
+	}
 
 	[Fact]
-	public void And_text_captured_around_something_else_is_the_turns_joined() =>
+	public void And_text_captured_around_something_else_is_the_turns_joined()
+	{
 		// This was refused while the value was the span the turns lie in — where `'y'`
 		// would have been swept in with them. Each turn records an entry of its own now,
 		// and §10's value is those joined, so the shape is an ordinary one.
 		Assert.Equal("xx", Read(Built("Start = (a: 'x' & 'y')+", "xyxy"), "A"));
+	}
 
 	[Fact]
-	public void Nor_is_one_inside_a_lookahead() =>
+	public void Nor_is_one_inside_a_lookahead()
+	{
 		Refused(GrammarNormalizer.UnbuiltCapture, "Start = ?=(a: 'x') & 'x'");
+	}
 
 	[Fact]
-	public void One_name_cannot_hold_two_different_things() =>
+	public void One_name_cannot_hold_two_different_things()
+	{
 		Refused(
 			GrammarNormalizer.CaptureTypeMismatch,
 			"Item = a: 'x'\nStart = (v: Item | v: 'y')");
+	}
 
 	/// <summary>
 	/// And says so once, where a fold anywhere in the grammar has the members worked out again.
 	/// </summary>
 	[Fact]
-	public void And_says_so_once_where_the_grammar_is_folded() =>
+	public void And_says_so_once_where_the_grammar_is_folded()
+	{
 		Assert.Single(
 			Compile(
 				"Item = a: 'x'\n" +
@@ -3036,11 +3302,13 @@ public sealed class SemanticTests
 				"Other = D & 'a' | D & 'b'\n" +
 				"D = ['0'..'9']").Diagnostics,
 			one => one.Id == GrammarNormalizer.CaptureTypeMismatch);
+	}
 
 	// ── A rule that declares its own type and builds it (§7.3) ──────────────────
 
 	[Fact]
-	public void A_rule_may_name_a_C_sharp_type_and_say_how_to_build_it() =>
+	public void A_rule_may_name_a_C_sharp_type_and_say_how_to_build_it()
+	{
 		Assert.Equal(
 			42,
 			Built(
@@ -3050,23 +3318,29 @@ public sealed class SemanticTests
 				Start : @int = ['0'..'9']+ => @int.Parse(parserText, @CultureInfo.InvariantCulture)
 				""",
 				"42"));
+	}
 
 	[Fact]
-	public void The_matched_text_is_supplied_as_parserText() =>
+	public void The_matched_text_is_supplied_as_parserText()
+	{
 		Assert.Equal(
 			3,
 			Built("Start : @int = ['a'..'z']+ => @(parserText.Length)", "abc"));
+	}
 
 	[Fact]
-	public void Captures_reach_the_expression_by_their_own_names() =>
+	public void Captures_reach_the_expression_by_their_own_names()
+	{
 		Assert.Equal(
 			"b-a",
 			Built("""Start : @string = a: 'a' & b: 'b' => @(b + "-" + a)""", "ab"));
+	}
 
 	[Theory]
-	[InlineData("12",  24)]
+	[InlineData("12", 24)]
 	[InlineData("abc", 3)]
-	public void Each_alternative_may_build_the_value_its_own_way(string input, int expected) =>
+	public void Each_alternative_may_build_the_value_its_own_way(string input, int expected)
+	{
 		Assert.Equal(
 			expected,
 			Built(
@@ -3075,9 +3349,11 @@ public sealed class SemanticTests
 				             | letters: ['a'..'z']+  => @(letters.Length)
 				""",
 				input));
+	}
 
 	[Fact]
-	public void An_alternative_that_was_tried_and_given_back_does_not_build_the_value() =>
+	public void An_alternative_that_was_tried_and_given_back_does_not_build_the_value()
+	{
 		// The first alternative matches "ab" and then `eof` fails, so the match returns
 		// and the second builds instead. Which `=>` fired is undone with everything else
 		// the abandoned attempt did.
@@ -3089,16 +3365,21 @@ public sealed class SemanticTests
 				             | b: ['a'..'z']+ => @(2)
 				""",
 				"abc"));
+	}
 
 	[Fact]
-	public void A_construction_needs_a_type_to_build() =>
+	public void A_construction_needs_a_type_to_build()
+	{
 		Refused(GrammarNormalizer.UnbuiltConstruction, "Start = ['0'..'9']+ => @(1)");
+	}
 
 	[Fact]
-	public void And_a_type_needs_every_alternative_to_build_it() =>
+	public void And_a_type_needs_every_alternative_to_build_it()
+	{
 		Refused(
 			GrammarNormalizer.UnbuiltConstruction,
 			"""Start : @int = "a" => @(1) | "b" """);
+	}
 
 	[Fact]
 	public void A_group_construction_has_its_own_value()
@@ -3123,18 +3404,21 @@ public sealed class SemanticTests
 		""";
 
 	[Theory]
-	[InlineData("1+2+3",       6)]
-	[InlineData("1-2-3",      -4)]     // (1-2)-3, not 1-(2-3)
-	[InlineData("2*3+4",      10)]
-	[InlineData("2+3*4",      14)]
-	[InlineData("(2+3)*4",    20)]
-	[InlineData("100/5/2",    10)]     // (100/5)/2, not 100/(5/2)
-	[InlineData("7",           7)]
-	public void A_calculator(string input, int expected) =>
+	[InlineData("1+2+3", 6)]
+	[InlineData("1-2-3", -4)]     // (1-2)-3, not 1-(2-3)
+	[InlineData("2*3+4", 10)]
+	[InlineData("2+3*4", 14)]
+	[InlineData("(2+3)*4", 20)]
+	[InlineData("100/5/2", 10)]     // (100/5)/2, not 100/(5/2)
+	[InlineData("7", 7)]
+	public void A_calculator(string input, int expected)
+	{
 		Assert.Equal(expected, Built(Calculator + "Start : @int = value: Sum => @(value)", input));
+	}
 
 	[Fact]
-	public void An_alternative_recursive_on_both_sides_is_refused() =>
+	public void An_alternative_recursive_on_both_sides_is_refused()
+	{
 		// `-1-2` would answer 1 rather than -3: the trailing call takes everything to the
 		// right, so what is written left-associative parses right-associative. Ordered
 		// choice cannot settle it, and a wrong answer is worse than a refusal.
@@ -3145,12 +3429,14 @@ public sealed class SemanticTests
 			             | '-' & operand: Start             => @(-operand)
 			             | digits: ['0'..'9']+              => @int.Parse(digits)
 			""");
+	}
 
 	[Theory]
 	[InlineData("-1-2", -3)]
-	[InlineData("1--2",  3)]
-	[InlineData("-1",   -1)]
-	public void A_unary_operator_written_at_its_own_level(string input, int expected) =>
+	[InlineData("1--2", 3)]
+	[InlineData("-1", -1)]
+	public void A_unary_operator_written_at_its_own_level(string input, int expected)
+	{
 		// The same operators, said properly: unary binds tighter, so it is a level of its
 		// own and the binary one takes operands from it.
 		Assert.Equal(
@@ -3164,12 +3450,14 @@ public sealed class SemanticTests
 				             | digits: ['0'..'9']+              => @int.Parse(digits)
 				""",
 				input));
+	}
 
 	[Theory]
-	[InlineData("a.b.c",      "((a.b).c)")]
-	[InlineData("a(b)[c].d",  "(((a(b))[c]).d)")]
-	[InlineData("a",          "a")]
-	public void A_rule_may_have_as_many_recursive_alternatives_as_it_likes(string input, string expected) =>
+	[InlineData("a.b.c", "((a.b).c)")]
+	[InlineData("a(b)[c].d", "(((a(b))[c]).d)")]
+	[InlineData("a", "a")]
+	public void A_rule_may_have_as_many_recursive_alternatives_as_it_likes(string input, string expected)
+	{
 		// A postfix chain wants three, each with captures of its own. Nothing is built
 		// while matching, so nothing has to hold them all in one type.
 		Assert.Equal(
@@ -3184,6 +3472,7 @@ public sealed class SemanticTests
 				Name : @string  = letters: ['a'..'z']+                    => @(letters)
 				""",
 				input));
+	}
 
 	/// <summary>
 	/// §4.3.1 is specified and not built. It parses, so a grammar that uses it is told
@@ -3203,21 +3492,26 @@ public sealed class SemanticTests
 		""";
 
 	[Theory]
-	[InlineData("1+2",       3)]
-	[InlineData("1-2-3",    -4)]    // << is left-associative: (1-2)-3
-	[InlineData("2+3*4",    14)]    // 3*4 is stronger, so it is taken first
-	[InlineData("2*3+4",    10)]
-	[InlineData("(2+3)*4",  20)]
-	[InlineData("-1-2",     -3)]    // §4.3.1's own example: unary is stronger than binary
-	[InlineData("-(1-2)",    1)]
-	public void One_rule_of_strengths_parses_a_whole_expression_language(string input, int expected) =>
+	[InlineData("1+2", 3)]
+	[InlineData("1-2-3", -4)]    // << is left-associative: (1-2)-3
+	[InlineData("2+3*4", 14)]    // 3*4 is stronger, so it is taken first
+	[InlineData("2*3+4", 10)]
+	[InlineData("(2+3)*4", 20)]
+	[InlineData("-1-2", -3)]    // §4.3.1's own example: unary is stronger than binary
+	[InlineData("-(1-2)", 1)]
+	public void One_rule_of_strengths_parses_a_whole_expression_language(string input, int expected)
+	{
 		Assert.Equal(expected, Built(Powers, input));
+	}
 
 	/// <summary>The same operator both ways round — the whole of what the markers say.</summary>
-	static string Associates(string marker) => $"""
+	static string Associates(string marker)
+	{
+		return $"""
 		Start : @int = left: Start & '-' & right: Start {marker} => @(left - right)
 		             | digits: ['0'..'9']+                       => @int.Parse(digits)
 		""";
+	}
 
 	[Fact]
 	public void Left_is_one_strength_tighter_and_right_is_the_same_one()
@@ -3230,13 +3524,16 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void An_alternative_recursive_on_both_sides_is_what_a_strength_settles() =>
+	public void An_alternative_recursive_on_both_sides_is_what_a_strength_settles()
+	{
 		// Refused without a strength (ordered choice cannot say which way it groups), and
 		// the ordinary case with one. The refusal and the feature are the same shape.
 		Assert.Equal(2, Built(Associates(">> 1"), "1-2-3"));
+	}
 
 	[Fact]
-	public void A_prefix_needs_no_loop_and_gets_none() =>
+	public void A_prefix_needs_no_loop_and_gets_none()
+	{
 		// Nothing but a prefix and an atom: every alternative is a base, so the rule climbs
 		// without ever looping. `--1` works because the operand is parsed at 4, where the
 		// prefix itself still lives.
@@ -3246,9 +3543,11 @@ public sealed class SemanticTests
 			             | digits: ['0'..'9']+       => @int.Parse(digits)
 			""",
 			"--1"));
+	}
 
 	[Fact]
-	public void A_recursive_alternative_without_a_strength_among_ones_that_have_it_is_refused() =>
+	public void A_recursive_alternative_without_a_strength_among_ones_that_have_it_is_refused()
+	{
 		// §4.3.1: a rule uses one convention or the other. Half of each would be two
 		// answers to the same question.
 		Refused(
@@ -3258,9 +3557,11 @@ public sealed class SemanticTests
 			             | left: Start & '-' & right: Start      => @(left - right)
 			             | digits: ['0'..'9']+                   => @int.Parse(digits)
 			""");
+	}
 
 	[Fact]
-	public void A_strength_on_something_with_no_operand_is_refused() =>
+	public void A_strength_on_something_with_no_operand_is_refused()
+	{
 		// A strength says how tightly the operand to the right is read, and there is none.
 		Refused(
 			GrammarNormalizer.UnbuiltBinding,
@@ -3268,6 +3569,7 @@ public sealed class SemanticTests
 			Start : @int = left: Start & '+' & right: Start << 1 => @(left + right)
 			             | digits: ['0'..'9']+              >> 9 => @int.Parse(digits)
 			""");
+	}
 
 	// ── `recover` (§8.2) ────────────────────────────────────────────────────────
 
@@ -3277,7 +3579,8 @@ public sealed class SemanticTests
 		""";
 
 	[Fact]
-	public void A_broken_element_is_stepped_over_and_the_rest_are_read() =>
+	public void A_broken_element_is_stepped_over_and_the_rest_are_read()
+	{
 		// The second line begins a Row and breaks in the middle of one, which is an error
 		// rather than the end of the sequence. What follows is read.
 		Assert.Equal(
@@ -3285,6 +3588,7 @@ public sealed class SemanticTests
 			((Array)Read(Built(Records, "aa\nb1b\ncc\n"), "Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
 	public void A_valid_continuation_ends_the_recovering_sequence()
@@ -3322,15 +3626,18 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_broken_element_at_the_end_takes_what_is_left() =>
+	public void A_broken_element_at_the_end_takes_what_is_left()
+	{
 		Assert.Equal(
 			["aa", "!b1b"],
 			((Array)Read(Built(Records, "aa\nb1b"), "Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
-	public void A_synchronization_match_must_consume_input() =>
+	public void A_synchronization_match_must_consume_input()
+	{
 		Assert.Equal(
 			["aa", "!b1b", "cc"],
 			((Array)Read(
@@ -3342,9 +3649,11 @@ public sealed class SemanticTests
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
-	public void A_recovered_element_is_told_where_it_was_and_which_one_it_is() =>
+	public void A_recovered_element_is_told_where_it_was_and_which_one_it_is()
+	{
 		// `parserText`, `parserPosition` and `parserOrdinal` are supplied rather than
 		// captured (§8.2), and the ordinal counts the rejected element too — it holds its
 		// place.
@@ -3359,9 +3668,11 @@ public sealed class SemanticTests
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
-	public void A_recovered_element_knows_where_a_person_would_look_for_it() =>
+	public void A_recovered_element_knows_where_a_person_would_look_for_it()
+	{
 		// `line` and `column` are where the element starts, both from 1 — the header shifts
 		// the first record off line one, which is the whole reason they are not the ordinal.
 		Assert.Equal(
@@ -3375,9 +3686,11 @@ public sealed class SemanticTests
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
-	public void A_recovered_element_knows_its_extent() =>
+	public void A_recovered_element_knows_its_extent()
+	{
 		// `span` is the support type, which a generated parser has beside it — the factory
 		// is private to the host class, so nothing internal reaches a public signature. The
 		// extent stops where the synchronization point begins: `eol` separates the elements
@@ -3393,9 +3706,11 @@ public sealed class SemanticTests
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
-	public void A_recovered_element_can_say_why_it_was_rejected() =>
+	public void A_recovered_element_can_say_why_it_was_rejected()
+	{
 		// The rule it should have been, and where the input stopped being one.
 		Assert.Equal(
 			["aa", "Input does not match 'Row' at 4.", "cc"],
@@ -3408,9 +3723,11 @@ public sealed class SemanticTests
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
-	public void An_ordinary_repetition_hands_an_element_back() =>
+	public void An_ordinary_repetition_hands_an_element_back()
+	{
 		// One row, and `tail` gets the other — the repetition took both and gave one up.
 		Assert.True(
 			Matches("""
@@ -3418,9 +3735,11 @@ public sealed class SemanticTests
 				Start = rows: Row* & tail: ['a'..'z']+ & eol
 				""",
 				"aa\nbb\n"));
+	}
 
 	[Fact]
-	public void A_recovering_repetition_asks_the_continuation_before_another_element() =>
+	public void A_recovering_repetition_asks_the_continuation_before_another_element()
+	{
 		// At every element boundary the complete continuation gets first refusal. Only if
 		// it fails does the repetition ask for another Row, so `tail` owns the second line.
 		Assert.True(
@@ -3429,10 +3748,13 @@ public sealed class SemanticTests
 				Start = rows: Row* recover eol => @(new Row("!" + parserText)) & tail: ['a'..'z']+ & eol
 				""",
 				"aa\nbb\n"));
+	}
 
 	[Fact]
-	public void Recover_belongs_on_a_repetition() =>
+	public void Recover_belongs_on_a_repetition()
+	{
 		Refused(GrammarNormalizer.UnbuiltRecovery, "Start = 'a' recover eol");
+	}
 
 	[Fact]
 	public void Recover_without_a_factory_drops_the_element_and_reports_it()
@@ -3486,7 +3808,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_the_parse_still_steps_over_the_broken_one() =>
+	public void And_the_parse_still_steps_over_the_broken_one()
+	{
 		// Dropped from the sequence, and the rest read — which is what §8.3 promises a
 		// grammar that has no type to spare.
 		Assert.Equal(
@@ -3500,11 +3823,14 @@ public sealed class SemanticTests
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));
+	}
 
 	[Fact]
-	public void And_a_grammar_that_recovers_with_a_factory_declares_no_hook() =>
+	public void And_a_grammar_that_recovers_with_a_factory_declares_no_hook()
+	{
 		// The channel is emitted for the grammars that report on it and no others.
 		Assert.DoesNotContain("OnRecovered", Emitted(Records));
+	}
 
 	[Fact]
 	public void A_synchronization_point_may_be_a_choice_when_it_is_bracketed()
@@ -3524,7 +3850,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void Without_the_brackets_it_binds_tighter_than_the_choice() =>
+	public void Without_the_brackets_it_binds_tighter_than_the_choice()
+	{
 		// `recover` takes one operand, so the `|` belongs to the enclosing expression:
 		// this is `(fields: Field* recover '|') | eol`, not a choice of two sync points.
 		// Precedence, the same as `a & b | c` — and the reason the brackets are not
@@ -3534,6 +3861,7 @@ public sealed class SemanticTests
 			GramParser.Parse(GramLexer.Tokenize(
 				"Start = fields: Field* recover '|' | eol\nField = ['a'..'z']+",
 				RoslynCSharpScanner.Instance)).File.ToString());
+	}
 
 	[Fact]
 	public void Every_repetition_of_a_rule_may_recover()
@@ -3571,7 +3899,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void A_recovery_that_builds_needs_a_sequence_to_build_into() =>
+	public void A_recovery_that_builds_needs_a_sequence_to_build_into()
+	{
 		// `Row` captures nothing, so `rows: Row*` is one string — the run joined (§7.3) —
 		// and a rejection has nowhere to arrive. Found by writing a test about something
 		// else: it emitted a factory call against a list that does not exist, which the
@@ -3582,9 +3911,11 @@ public sealed class SemanticTests
 			Row   = ['a'..'z']+ & eol
 			Start = rows: Row* recover eol => @(parserText)
 			""");
+	}
 
 	[Fact]
-	public void And_the_same_repetition_without_one_is_fine() =>
+	public void And_the_same_repetition_without_one_is_fine()
+	{
 		// §8.3: no `=>`, so nothing is collected and the rejection goes to the hook. The
 		// sequence that is not there is not needed.
 		EmittedCode.Quiet(Compile("""
@@ -3592,13 +3923,17 @@ public sealed class SemanticTests
 			Start = rows: Row* recover eol
 			parse Start
 			""").Diagnostics);
+	}
 
 	[Fact]
-	public void Every_alternative_of_a_rule_being_left_recursive_is_refused() =>
+	public void Every_alternative_of_a_rule_being_left_recursive_is_refused()
+	{
 		Refused(GrammarNormalizer.LeftRecursion, "Start : @int = left: Start & 'x' => @(left)");
+	}
 
 	[Fact]
-	public void Indirect_left_recursion_through_a_rule_that_does_something_is_still_refused() =>
+	public void Indirect_left_recursion_through_a_rule_that_does_something_is_still_refused()
+	{
 		// `Other` is not only a name for what it forwards — one of its alternatives is a
 		// literal of its own — so unfolding it would put that literal, and whatever else
 		// an intermediary might carry, into the fold's tail. Refused, as §4.3 says.
@@ -3608,6 +3943,7 @@ public sealed class SemanticTests
 			Start = Other & 'x'
 			Other = Start | 'y'
 			""");
+	}
 
 	[Fact]
 	public void And_the_tail_may_capture()
@@ -3638,7 +3974,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_so_is_a_mutual_recursion_where_both_sides_build() =>
+	public void And_so_is_a_mutual_recursion_where_both_sides_build()
+	{
 		// The shape the general transform would need: `B`'s own operands and its `=>`
 		// would join `A`'s tail, so the fold would have to apply two constructions in
 		// order against an accumulator that is itself the result of one.
@@ -3649,6 +3986,7 @@ public sealed class SemanticTests
 			A : @int = l: B & '-' & r: N => @(l - r) | v: N => @(v)
 			B : @int = l: A & '+' & r: N => @(l + r) | v: N => @(v)
 			""");
+	}
 
 	[Fact]
 	public void But_one_through_a_rule_that_only_forwards_is_made_direct()
@@ -3723,36 +4061,45 @@ public sealed class SemanticTests
 	// ── `when` guards (§8.1) ───────────────────────────────────────────────────
 
 	[Theory]
-	[InlineData("12",  true)]
+	[InlineData("12", true)]
 	[InlineData("123", false)]
-	public void A_guard_asks_a_question_of_the_text_so_far(string input, bool expected) =>
+	public void A_guard_asks_a_question_of_the_text_so_far(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches("Start = ['0'..'9']+ & when @(parserText.Length < 3)", input));
+	}
 
 	[Theory]
 	[InlineData("ab", true)]
 	[InlineData("ax", false)]
-	public void And_of_the_captures_written_before_it(string input, bool expected) =>
+	public void And_of_the_captures_written_before_it(string input, bool expected)
+	{
 		Assert.Equal(
 			expected,
 			Matches("""Start = a: 'a' & b: ['a'..'z'] & when @(b == "b")""", input));
+	}
 
 	[Fact]
-	public void A_failing_guard_is_a_non_match_and_a_sibling_is_tried() =>
+	public void A_failing_guard_is_a_non_match_and_a_sibling_is_tried()
+	{
 		// Recognition failure: saying no sends the match back into the choice rather than
 		// ending it.
 		Assert.True(Matches(
 			"""Start = (a: "ab" & when @(a == "xy") | a: "ab") & 'c'""",
 			"abc"));
+	}
 
 	[Fact]
-	public void A_guard_may_stand_where_nothing_has_been_captured() =>
+	public void A_guard_may_stand_where_nothing_has_been_captured()
+	{
 		Assert.True(Matches("Start = ['0'..'9']+ & when @(true)", "7"));
+	}
 
 	// §7.1's C# recognizer contracts are fixed by syntactic position; their emitted calls
 	// and ordinary C# diagnostics are tested with a host compilation in GeneratorDriverTests.
 
 	[Fact]
-	public void A_capture_may_not_take_a_name_that_is_supplied() =>
+	public void A_capture_may_not_take_a_name_that_is_supplied()
+	{
 		// The supplied names become parameters of the method a `=>` turns into, so a
 		// capture of the same name wants one that is already taken. The prefix makes that
 		// unlikely rather than impossible, and this is the backstop: before it, the
@@ -3761,6 +4108,7 @@ public sealed class SemanticTests
 		Refused(
 			GrammarNormalizer.ReservedCaptureName,
 			"Start : @string = parserText: ['a'..'z']+ => @(parserText)");
+	}
 
 	[Fact]
 	public void A_rule_may_take_another_rules_value_as_its_own()
@@ -3777,7 +4125,8 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void And_two_operands_that_could_be_it_are_refused() =>
+	public void And_two_operands_that_could_be_it_are_refused()
+	{
 		// Two answers and nothing to say which. A grammar to rewrite rather than a choice
 		// for the compiler to make quietly.
 		Refused(
@@ -3786,11 +4135,13 @@ public sealed class SemanticTests
 			Start : Number = Number & '+' & Number
 			Number : @int = digits: ['0'..'9']+ => @int.Parse(digits)
 			""");
+	}
 
 	// ── Namespaces (§5) ──────────────────────────────────────────────────────────
 
 	[Fact]
-	public void Two_namespaces_may_each_have_a_rule_of_the_same_name() =>
+	public void Two_namespaces_may_each_have_a_rule_of_the_same_name()
+	{
 		// Which is the whole point of a namespace, and which used to emit two C# methods
 		// of the same name into the consumer's build. The namespaces a rule is declared in
 		// are prefixed to the identifier it becomes.
@@ -3808,11 +4159,13 @@ public sealed class SemanticTests
 			Start = Digit & Pair & Digit
 			""",
 			"a12b"));
+	}
 
 	[Theory]
-	[InlineData("1.5",   true)]
+	[InlineData("1.5", true)]
 	[InlineData("1 . 5", false)]
-	public void A_namespace_shadows_Trivia_the_other_way_round(string input, bool expected) =>
+	public void A_namespace_shadows_Trivia_the_other_way_round(string input, bool expected)
+	{
 		// trivia goes between the operands of every sequence, `Number`'s included. A
 		// namespace that shadows it with `none` is how a rule says a space means something
 		// here.
@@ -3833,24 +4186,31 @@ public sealed class SemanticTests
 				Start  = Number
 				""",
 				input));
+	}
 
 	// ── Repetition counts ───────────────────────────────────────────────────────
 
 	[Fact]
-	public void A_count_too_large_for_an_int_is_a_diagnostic_and_not_a_crash() =>
+	public void A_count_too_large_for_an_int_is_a_diagnostic_and_not_a_crash()
+	{
 		Refused(GramParser.InvalidCount, "Start = 'a'{999999999999999999999999999}");
+	}
 
 	[Fact]
-	public void A_range_that_can_never_match_is_a_diagnostic() =>
+	public void A_range_that_can_never_match_is_a_diagnostic()
+	{
 		Refused(GramParser.InvalidCount, "Start = 'a'{5,2}");
+	}
 
 	[Theory]
-	[InlineData("aa",   true)]
-	[InlineData("aaa",  true)]
-	[InlineData("a",    false)]
+	[InlineData("aa", true)]
+	[InlineData("aaa", true)]
+	[InlineData("a", false)]
 	[InlineData("aaaa", false)]
-	public void Bounded_repetition(string input, bool expected) =>
+	public void Bounded_repetition(string input, bool expected)
+	{
 		Assert.Equal(expected, Matches("Start = 'a'{2,3}", input));
+	}
 
 	// ── Namespace rebindings — §23 ───────────────────────────────────────────────
 
@@ -4087,23 +4447,29 @@ public sealed class SemanticTests
 		"Start  = a: Number & ';' & b: Number & ';' & c: Number with (Point = Comma)";
 
 	[Fact]
-	public void With_rebinds_only_the_one_field_it_wraps() =>
+	public void With_rebinds_only_the_one_field_it_wraps()
+	{
 		// A comma is accepted where the third field's decimal point goes — the first two
 		// fields still take an ordinary '.' — because `with` scopes the rebinding to `c`
 		// alone, not to `Number` everywhere it is called.
 		Assert.True(Matches(RowGrammar, "1.2;3.4;5,6"));
+	}
 
 	[Fact]
-	public void And_the_first_two_fields_are_untouched_by_it() =>
+	public void And_the_first_two_fields_are_untouched_by_it()
+	{
 		// The third field still requires a comma — a '.' there is refused, because it is
 		// `c`'s own clone that was rebound, and the clone requires `Comma`.
 		Assert.False(Matches(RowGrammar, "1.2;3.4;5.6"));
+	}
 
 	[Fact]
-	public void And_the_rebinding_does_not_leak_backward_into_the_earlier_fields() =>
+	public void And_the_rebinding_does_not_leak_backward_into_the_earlier_fields()
+	{
 		// The first field is still the plain, unrebound `Number` — a comma there is
 		// refused exactly as it would be with no `with` in the grammar at all.
 		Assert.False(Matches(RowGrammar, "1,2;3.4;5,6"));
+	}
 
 	[Fact]
 	public void A_publication_may_carry_its_own_with_header()

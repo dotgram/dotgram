@@ -312,7 +312,10 @@ static class Speed
 		return GC.GetAllocatedBytesForCurrentThread() - before;
 	}
 
-	static TSqlParser? Version(string named) => Kinds.Version(named);
+	static TSqlParser? Version(string named)
+	{
+		return Kinds.Version(named);
+	}
 
 	static double Median(List<double> values)
 	{

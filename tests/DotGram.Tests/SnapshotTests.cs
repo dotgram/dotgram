@@ -128,19 +128,22 @@ public sealed class SnapshotTests
 	/// </remarks>
 	static IEnumerable<(GramCompilerOptions Options, string? Declarations)> Renderings(string name, string text)
 	{
-		GramCompilerOptions Options() => new()
+		GramCompilerOptions Options()
 		{
-			ClassName = name,
-			Namespace = Namespace,
+			return new()
+			{
+				ClassName = name,
+				Namespace = Namespace,
 
-			// A grammar here may hand C# across, and an inline `@(...)` needs the
-			// scanner to find where it ends.
-			CSharpScanner = RoslynCSharpScanner.Instance,
+				// A grammar here may hand C# across, and an inline `@(...)` needs the
+				// scanner to find where it ends.
+				CSharpScanner = RoslynCSharpScanner.Instance,
 
-			// The file name alone, not where this checkout happens to be: a snapshot
-			// holding an absolute path would differ on every machine that read it.
-			LineMap = new GrammarLineMap(text, name + ".gram"),
-		};
+				// The file name alone, not where this checkout happens to be: a snapshot
+				// holding an absolute path would differ on every machine that read it.
+				LineMap = new GrammarLineMap(text, name + ".gram"),
+			};
+		}
 
 		switch (name)
 		{
@@ -302,7 +305,10 @@ public sealed class SnapshotTests
 		}
 		""";
 
-	static string Normalize(string text) => text.Replace("\r\n", "\n").TrimEnd();
+	static string Normalize(string text)
+	{
+		return text.Replace("\r\n", "\n").TrimEnd();
+	}
 
 	/// <summary>
 	/// Where the snapshots live.
@@ -321,5 +327,8 @@ public sealed class SnapshotTests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

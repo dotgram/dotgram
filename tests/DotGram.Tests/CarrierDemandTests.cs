@@ -175,9 +175,11 @@ public sealed class CarrierDemandTests
 		return (new Outcome(ok ? value : "<refused>", built.Cast<string>().ToArray()), value);
 	}
 
-	static string Counted(string[] built) =>
-		string.Join(", ", built.GroupBy(static one => one).OrderBy(static one => one.Key, StringComparer.Ordinal)
+	static string Counted(string[] built)
+	{
+		return string.Join(", ", built.GroupBy(static one => one).OrderBy(static one => one.Key, StringComparer.Ordinal)
 			.Select(static one => one.Key + "×" + one.Count()));
+	}
 
 	sealed record Outcome(string? Answer, string[] Built);
 }

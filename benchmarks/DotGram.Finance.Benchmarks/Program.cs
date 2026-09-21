@@ -116,14 +116,47 @@ public class Fix44Benchmarks
 		if (FixParser.ReadMessage(orderInput).OriginalWire != order || FixParser.ReadMessage(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
 	}
 
-	[Benchmark] public FixField[] FlatOrderFields() => FixParser.ParseFields(order);
-	[Benchmark] public FixField[] FlatRawFields()   => FixParser.ParseFields(raw);
-	[Benchmark] public FixField[] FlatGroupFields() => FixParser.ParseFields(groups);
+	[Benchmark]
+	public FixField[] FlatOrderFields()
+	{
+		return FixParser.ParseFields(order);
+	}
 
-	[Benchmark] public FixMessage Heartbeat() => FixParser.ParseMessage(heartbeat);
-	[Benchmark] public FixMessage NewOrderSingle() => FixParser.ParseMessage(order);
-	[Benchmark] public FixMessage LargeRawData() => FixParser.ParseMessage(raw);
-	[Benchmark] public FixMessage RepeatingGroups() => FixParser.ParseMessage(groups);
+	[Benchmark]
+	public FixField[] FlatRawFields()
+	{
+		return FixParser.ParseFields(raw);
+	}
+
+	[Benchmark]
+	public FixField[] FlatGroupFields()
+	{
+		return FixParser.ParseFields(groups);
+	}
+
+	[Benchmark]
+	public FixMessage Heartbeat()
+	{
+		return FixParser.ParseMessage(heartbeat);
+	}
+
+	[Benchmark]
+	public FixMessage NewOrderSingle()
+	{
+		return FixParser.ParseMessage(order);
+	}
+
+	[Benchmark]
+	public FixMessage LargeRawData()
+	{
+		return FixParser.ParseMessage(raw);
+	}
+
+	[Benchmark]
+	public FixMessage RepeatingGroups()
+	{
+		return FixParser.ParseMessage(groups);
+	}
 
 	[Benchmark]
 	public FixMessage NewOrderSingleBytes()

@@ -116,15 +116,19 @@ static class SqlTowers
 		return made;
 	}
 
-	public static int Stepped(int primary, int steps) =>
-		steps == 0 ? primary : Value | Truth | Bare | steps;
+	public static int Stepped(int primary, int steps)
+	{
+		return steps == 0 ? primary : Value | Truth | Bare | steps;
+	}
 
 	/// <summary>Steps read, and what they make of a primary.</summary>
 	public readonly record struct Stepping(int Roles, List<Step>? Steps);
 
 	/// <summary>A primary and the steps after it, each taking what stands before it as its target.</summary>
-	public static Typed Stepped(Typed primary, Stepping steps) =>
-		new(Apply(primary.Node, steps.Steps), Stepped(primary.Roles, steps.Roles));
+	public static Typed Stepped(Typed primary, Stepping steps)
+	{
+		return new(Apply(primary.Node, steps.Steps), Stepped(primary.Roles, steps.Roles));
+	}
 
 	/// <summary>A value function's subscript and the steps after it.</summary>
 	public static Stepping Subscripted(Step first, List<Step>? rest)
@@ -215,17 +219,19 @@ static class SqlTowers
 		return piece.Sign is { } sign ? new Expression.Unary(sign, value) : value;
 	}
 
-	static Expression Follow(Expression value, Expression? after) =>
-		after switch
+	static Expression Follow(Expression value, Expression? after)
+	{
+		return after switch
 		{
-			null                                   => value,
-			Expression.IntervalQualified q         => q with { Value = value },
-			Expression.AtTimeZone z                => z with { Value = value },
-			Expression.Collate { Value: null } c   => c with { Value = value },
-			Expression.Collate c                   => c with { Value = Follow(value, c.Value) },
-			Expression.Member m                    => m with { Target = value },
-			_                                      => throw new ArgumentOutOfRangeException(nameof(after), after, "What follows a primary this method cannot complete."),
+			null => value,
+			Expression.IntervalQualified q => q with { Value = value },
+			Expression.AtTimeZone z => z with { Value = value },
+			Expression.Collate { Value: null } c => c with { Value = value },
+			Expression.Collate c => c with { Value = Follow(value, c.Value) },
+			Expression.Member m => m with { Target = value },
+			_ => throw new ArgumentOutOfRangeException(nameof(after), after, "What follows a primary this method cannot complete."),
 		};
+	}
 
 	// ── The operators ──────────────────────────────────────────────────────────
 
@@ -297,16 +303,18 @@ static class SqlTowers
 		return node;
 	}
 
-	static Expression Combine(Expression left, Op op, Expression right) =>
-		op.Kind switch
+	static Expression Combine(Expression left, Op op, Expression right)
+	{
+		return op.Kind switch
 		{
-			Concatenate      => new Expression.Binary(left, BinaryOperator.Concatenate, right),
+			Concatenate => new Expression.Binary(left, BinaryOperator.Concatenate, right),
 			MultisetOperator => new Expression.MultisetOperation(left, op.Multiset, op.Quantifier, right),
-			Times            => new Expression.Binary(left, BinaryOperator.Multiply, right),
-			Divided          => new Expression.Binary(left, BinaryOperator.Divide, right),
-			Plus             => new Expression.Binary(left, BinaryOperator.Add, right),
-			_                => new Expression.Binary(left, BinaryOperator.Subtract, right),
+			Times => new Expression.Binary(left, BinaryOperator.Multiply, right),
+			Divided => new Expression.Binary(left, BinaryOperator.Divide, right),
+			Plus => new Expression.Binary(left, BinaryOperator.Add, right),
+			_ => new Expression.Binary(left, BinaryOperator.Subtract, right),
 		};
+	}
 
 	/// <summary>
 	/// A run of `||` that ends in a subscripted operand is also one array element reference: the run
@@ -363,7 +371,10 @@ static class SqlTowers
 		};
 	}
 
-	static int Kind(int op) => op is Concatenate or MultisetOperator ? op : Times;
+	static int Kind(int op)
+	{
+		return op is Concatenate or MultisetOperator ? op : Times;
+	}
 
 	/// <summary>`||` joins character, binary and array operands, and a `MULTISET` operator multisets: all of one kind.</summary>
 	static int Every(List<Piece> pieces, int kinds)
@@ -383,12 +394,18 @@ static class SqlTowers
 	/// </summary>
 	readonly record struct Product(bool AllNumeric, bool OneInterval, int Alone)
 	{
-		public static Product Of(int roles) => new((roles & Numeric) != 0, (roles & Interval) != 0, roles);
+		public static Product Of(int roles)
+		{
+			return new((roles & Numeric) != 0, (roles & Interval) != 0, roles);
+		}
 
-		public Product Then(bool multiplies, int roles) => new(
+		public Product Then(bool multiplies, int roles)
+		{
+			return new(
 			AllNumeric && (roles & Numeric) != 0,
 			OneInterval && (roles & Numeric) != 0 || AllNumeric && multiplies && (roles & Interval) != 0,
 			0);
+		}
 
 		public int Roles => (AllNumeric ? Numeric : 0) | (OneInterval ? Interval : 0) | Alone & ~(Numeric | Interval);
 	}
@@ -492,6 +509,8 @@ static class SqlTowers
 	/// A character operation, or a binary one where no length unit is named: `POSITION`, `SUBSTRING`
 	/// and `OVERLAY` are each written twice by the BNF, and only the character one takes `USING`.
 	/// </summary>
-	public static bool Characters(int operands, bool units) =>
-		(operands & Character) != 0 || !units && (operands & Binary) != 0;
+	public static bool Characters(int operands, bool units)
+	{
+		return (operands & Character) != 0 || !units && (operands & Binary) != 0;
+	}
 }

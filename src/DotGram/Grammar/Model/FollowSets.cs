@@ -69,11 +69,15 @@ public static class FollowSets
 		public static readonly Continuation None = new(FirstSets.First.None, FirstSets.First.None, Lead.Nothing);
 		public static readonly Continuation End  = new(FirstSets.First.End, FirstSets.First.End, Lead.Ending);
 
-		public Continuation Or(Continuation other) =>
-			new(Plain.Or(other.Plain), AfterSeam.Or(other.AfterSeam), Lead.Or(other.Lead));
+		public Continuation Or(Continuation other)
+		{
+			return new(Plain.Or(other.Plain), AfterSeam.Or(other.AfterSeam), Lead.Or(other.Lead));
+		}
 
-		public bool Covers(Continuation other) =>
-			Plain.Covers(other.Plain) && AfterSeam.Covers(other.AfterSeam) && Lead.Covers(other.Lead);
+		public bool Covers(Continuation other)
+		{
+			return Plain.Covers(other.Plain) && AfterSeam.Covers(other.AfterSeam) && Lead.Covers(other.Lead);
+		}
 	}
 
 	/// <summary>
@@ -127,10 +131,16 @@ public static class FollowSets
 		public static readonly Lead Ending = new(2, null, null, true);
 
 		/// <summary>A continuation that begins by calling one named rule.</summary>
-		public static Lead Calling(RuleSymbol rule) => new(2, rule, null, false);
+		public static Lead Calling(RuleSymbol rule)
+		{
+			return new(2, rule, null, false);
+		}
 
 		/// <summary>A continuation that begins by reading one literal.</summary>
-		public static Lead Reading(string literal) => new(2, null, literal, false);
+		public static Lead Reading(string literal)
+		{
+			return new(2, null, literal, false);
+		}
 
 		public bool IsUnknown => _kind == 0;
 
@@ -160,33 +170,40 @@ public static class FollowSets
 		/// so a test that answered "no" to two values whose join is the first of them would
 		/// send the walk round for ever.
 		/// </summary>
-		public bool Covers(Lead other) =>
-			IsUnknown || other.IsNothing ||
+		public bool Covers(Lead other)
+		{
+			return IsUnknown || other.IsNothing ||
 			!IsNothing &&
 			(ReferenceEquals(Rule, other.Rule) && string.Equals(Literal, other.Literal, StringComparison.Ordinal) ||
 				other.Rule is null && other.Literal is null) &&
 			(Ends || !other.Ends);
+		}
 
 		/// <summary>
 		/// Whether every way into this continuation is the node a look refused, or the end of
 		/// the input. The end is admitted because the question is asked at the start of a turn
 		/// that consumed: there are characters left there, so the end is not one of them.
 		/// </summary>
-		public bool Refuses(Node refused) => !IsUnknown && !IsNothing && refused switch
+		public bool Refuses(Node refused)
 		{
-			Node.Call(var called, { Count: 0 }) => ReferenceEquals(Rule, called),
-			Node.Literal(var text)              => Literal is not null &&
-			                                       string.Equals(Literal, text, StringComparison.Ordinal),
-			_                                   => false,
-		};
+			return !IsUnknown && !IsNothing && refused switch
+			{
+				Node.Call(var called, { Count: 0 }) => ReferenceEquals(Rule, called),
+				Node.Literal(var text) => Literal is not null &&
+													   string.Equals(Literal, text, StringComparison.Ordinal),
+				_ => false,
+			};
+		}
 	}
 
 	/// <summary>The rule a namespace applies at its seams, for the rule being walked.</summary>
-	public static RuleSymbol? SeamOf(RuleSymbol rule, RecognitionGraph graph) =>
-		graph is not null && graph.Trivia.TryGetValue(rule, out var trivia) &&
+	public static RuleSymbol? SeamOf(RuleSymbol rule, RecognitionGraph graph)
+	{
+		return graph is not null && graph.Trivia.TryGetValue(rule, out var trivia) &&
 		trivia is Node.Call(var seam, _)
 			? seam
 			: null;
+	}
 
 	/// <summary>What may follow each rule, as far as the grammar settles it.</summary>
 	public static IReadOnlyDictionary<RuleSymbol, Continuation> Of(RecognitionGraph graph)
@@ -442,8 +459,10 @@ public static class FollowSets
 	}
 
 	static Continuation ComputePrecedes(
-		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam) =>
-		Characters(node, after, graph, seam) with { Lead = LeadOf(node, after, graph) };
+		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		return Characters(node, after, graph, seam) with { Lead = LeadOf(node, after, graph) };
+	}
 
 	/// <summary>The two character halves, which is what this answered before there was a third.</summary>
 	static Continuation Characters(
@@ -589,12 +608,15 @@ public static class FollowSets
 	}
 
 	/// <summary>A rule's body as it reads, past what builds and names it.</summary>
-	static Node Unwrapped(Node body) => body switch
+	static Node Unwrapped(Node body)
 	{
-		Node.Construct(var built, _) => Unwrapped(built),
-		Node.Capture(_, var captured) => Unwrapped(captured),
-		_ => body,
-	};
+		return body switch
+		{
+			Node.Construct(var built, _) => Unwrapped(built),
+			Node.Capture(_, var captured) => Unwrapped(captured),
+			_ => body,
+		};
+	}
 
 	/// <summary>
 	/// Whether a node matches only at the end of the input: <c>?!any</c>, or a rule that is
@@ -605,11 +627,14 @@ public static class FollowSets
 	/// what may begin the input where it stands. Where it succeeds nothing follows, so the end is
 	/// the whole answer.
 	/// </remarks>
-	internal static bool AtEnd(Node node, RecognitionGraph graph) => node switch
+	internal static bool AtEnd(Node node, RecognitionGraph graph)
 	{
-		Node.Lookahead(false, Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }) => true,
-		Node.Call(var called, { Count: 0 }) => graph.Bodies.TryGetValue(called, out var body) &&
-			body is Node.Lookahead(false, Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }),
-		_ => false,
-	};
+		return node switch
+		{
+			Node.Lookahead(false, Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }) => true,
+			Node.Call(var called, { Count: 0 }) => graph.Bodies.TryGetValue(called, out var body) &&
+				body is Node.Lookahead(false, Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }),
+			_ => false,
+		};
+	}
 }

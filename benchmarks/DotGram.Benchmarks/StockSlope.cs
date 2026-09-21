@@ -47,7 +47,10 @@ static class StockSlope
 			}
 	}
 
-	static string Text(int lines, bool broken) => Stand.StockText(lines, broken);
+	static string Text(int lines, bool broken)
+	{
+		return Stand.StockText(lines, broken);
+	}
 
 	/// <summary>Nanoseconds a call takes: warmed for 100 ms, then timed for at least 300 ms and 3 calls.</summary>
 	static double Time(Func<bool> run)

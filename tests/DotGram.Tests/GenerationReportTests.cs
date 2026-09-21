@@ -118,9 +118,15 @@ public sealed class GenerationReportTests
 		Assert.Contains(details, detail => detail.Contains("DotGram: Parser.Alternate,", StringComparison.Ordinal) && detail.Contains("Carrier=Tape", StringComparison.Ordinal));
 	}
 
-	static string Report(GeneratorDriverRunResult run) => run.GeneratedTrees.Single(tree => tree.FilePath.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal)).ToString();
+	static string Report(GeneratorDriverRunResult run)
+	{
+		return run.GeneratedTrees.Single(tree => tree.FilePath.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal)).ToString();
+	}
 
-	static string Detail(GeneratorDriverRunResult run) => run.GeneratedTrees.Single(tree => tree.FilePath.EndsWith(".DotGramReportDetail.g.cs", StringComparison.Ordinal)).ToString();
+	static string Detail(GeneratorDriverRunResult run)
+	{
+		return run.GeneratedTrees.Single(tree => tree.FilePath.EndsWith(".DotGramReportDetail.g.cs", StringComparison.Ordinal)).ToString();
+	}
 
 	static GeneratorDriverRunResult Run(string source, string level, bool designTime = false)
 	{
@@ -138,8 +144,15 @@ public sealed class GenerationReportTests
 	sealed class OptionsProvider(string level, bool designTime) : AnalyzerConfigOptionsProvider
 	{
 		public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(level, designTime);
-		public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
-		public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
+		public override AnalyzerConfigOptions GetOptions(SyntaxTree tree)
+		{
+			return GlobalOptions;
+		}
+
+		public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
+		{
+			return GlobalOptions;
+		}
 	}
 
 	sealed class Options(string level, bool designTime) : AnalyzerConfigOptions

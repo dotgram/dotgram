@@ -200,15 +200,20 @@ public sealed class SelfHostingTests(Xunit.ITestOutputHelper output)
 	}
 
 	/// <summary>The checked-in grammars, the same way the corpus test finds them.</summary>
-	static (string Name, string Text)[] Corpus() =>
-		[.. Directory
+	static (string Name, string Text)[] Corpus()
+	{
+		return [.. Directory
 			.GetFiles(Snapshots, "*.gram")
 			.Select(path => (Path.GetFileName(path), File.ReadAllText(path)))];
+	}
 
 	static string Snapshots =>
 		Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!, "Snapshots");
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

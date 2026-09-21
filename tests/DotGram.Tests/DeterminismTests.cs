@@ -80,12 +80,16 @@ public sealed class DeterminismTests
 		return new FollowSets.Continuation(only, only);
 	}
 
-	static Node Body(RecognitionGraph graph, string rule) =>
-		graph.Bodies[graph.Rules.First(one => one.Name == rule)];
+	static Node Body(RecognitionGraph graph, string rule)
+	{
+		return graph.Bodies[graph.Rules.First(one => one.Name == rule)];
+	}
 
-	static RecognitionGraph Graph(string text) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string text)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(
 					GramLexer.Tokenize(text + "\nparse Start", RoslynCSharpScanner.Instance)).File));
+	}
 }

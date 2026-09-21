@@ -216,8 +216,10 @@ public static partial class HandSqlStandard
 		return false;
 	}
 
-	static FormatException Refused(string input, string production) =>
-		new("Input does not match '" + production + "': " + input);
+	static FormatException Refused(string input, string production)
+	{
+		return new("Input does not match '" + production + "': " + input);
+	}
 
 	// ── §5.4 Names and identifiers ─────────────────────────────────────────────
 
@@ -329,7 +331,10 @@ public static partial class HandSqlStandard
 	}
 
 	/// <summary><c>&lt;schema name&gt;</c>: a catalog's name may stand before it.</summary>
-	static bool SchemaName(ref SqlCursor cursor, out QualifiedName name) => Names(ref cursor, 2, out name);
+	static bool SchemaName(ref SqlCursor cursor, out QualifiedName name)
+	{
+		return Names(ref cursor, 2, out name);
+	}
 
 	/// <summary>
 	/// <c>&lt;schema qualified name&gt;</c>, and every name the BNF nests the same way: at most
@@ -442,5 +447,8 @@ public static partial class HandSqlStandard
 		return value;
 	}
 
-	static int Integer(ReadOnlySpan<char> text) => (int)Long(text);
+	static int Integer(ReadOnlySpan<char> text)
+	{
+		return (int)Long(text);
+	}
 }

@@ -295,36 +295,40 @@ sealed partial class Machine
 	/// continuations against its own namespace's trivia, and a crossing would degrade
 	/// them to "anything", which is exactly what the silence proofs cannot survive.
 	/// </remarks>
-	RuleSymbol? SiteCallee(Node node) =>
-		node is Node.Capture(_, Node.Call(var called, { Count: 0 })) &&
+	RuleSymbol? SiteCallee(Node node)
+	{
+		return node is Node.Capture(_, Node.Call(var called, { Count: 0 })) &&
 		FlatValued(called) &&
 		_owners.TryGetValue(node, out var owner) &&
 		ReferenceEquals(FollowSets.SeamOf(called, _graph), FollowSets.SeamOf(owner, _graph))
 			? called
 			: null;
+	}
 
 	/// <summary>
 	/// Every capture is a span two locals can hold — pure text below it, or a flat-valued
 	/// call — and no repetition above it that could run the locals over.
 	/// </summary>
-	bool CapturesAreExtents(Node node, bool repeated) =>
-		node switch
+	bool CapturesAreExtents(Node node, bool repeated)
+	{
+		return node switch
 		{
-			Node.Capture(_, var captured)     => !repeated &&
-			                                     (Extent(captured) || SiteCallee(node) is not null),
-			Node.Sequence(var parts)          => parts.All(part => CapturesAreExtents(part, repeated)),
-			Node.Choice(var alternatives)     => alternatives.All(part => CapturesAreExtents(part, repeated)),
+			Node.Capture(_, var captured) => !repeated &&
+												 (Extent(captured) || SiteCallee(node) is not null),
+			Node.Sequence(var parts) => parts.All(part => CapturesAreExtents(part, repeated)),
+			Node.Choice(var alternatives) => alternatives.All(part => CapturesAreExtents(part, repeated)),
 			Node.Repeat(var body, _, var max) => CapturesAreExtents(body, repeated || max != 1),
-			Node.Atomic(var body)             => CapturesAreExtents(body, repeated),
-			Node.Marked(var body, _)          => CapturesAreExtents(body, repeated),
+			Node.Atomic(var body) => CapturesAreExtents(body, repeated),
+			Node.Marked(var body, _) => CapturesAreExtents(body, repeated),
 
-			Node.Lookahead(_, var seen)       => NodeWalk.Descendants(seen).All(
-			                                         static inner => inner is not Node.Capture),
-			Node.Construct                    => false,
-			Node.Guard                        => false,
-			Node.External { HasValue: true }  => false,
-			_                                 => true,
+			Node.Lookahead(_, var seen) => NodeWalk.Descendants(seen).All(
+													 static inner => inner is not Node.Capture),
+			Node.Construct => false,
+			Node.Guard => false,
+			Node.External { HasValue: true } => false,
+			_ => true,
 		};
+	}
 
 	/// <summary>Matches text and could mean nothing else — the value is the extent.</summary>
 	/// <remarks>
@@ -333,18 +337,20 @@ sealed partial class Machine
 	/// capture through <see cref="Silent"/>, which is what refuses the calls it cannot
 	/// compile without an arena; a sited capture needs no such gate — its records unwind.
 	/// </remarks>
-	bool Extent(Node node) =>
-		node switch
+	bool Extent(Node node)
+	{
+		return node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
-			Node.Sequence(var parts)      => parts.All(Extent),
+			Node.Sequence(var parts) => parts.All(Extent),
 			Node.Choice(var alternatives) => alternatives.All(Extent),
-			Node.Repeat(var body, _, _)   => Extent(body),
-			Node.Atomic(var body)         => Extent(body),
-			Node.Call(var called, _)      => _graph.Results[called].Count == 0 &&
-			                                 !_graph.Types.ContainsKey(called),
-			_                             => false,
+			Node.Repeat(var body, _, _) => Extent(body),
+			Node.Atomic(var body) => Extent(body),
+			Node.Call(var called, _) => _graph.Results[called].Count == 0 &&
+											 !_graph.Types.ContainsKey(called),
+			_ => false,
 		};
+	}
 
 	/// <summary>A capture whose value another flat-valued rule builds, compiled in place.</summary>
 	/// <param name="Id">The instance its own capture locals are named under.</param>

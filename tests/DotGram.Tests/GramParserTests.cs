@@ -13,11 +13,15 @@ namespace DotGram.Tests;
 /// </summary>
 public sealed class GramParserTests
 {
-	static string Parse(string source) =>
-		GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).ToString();
+	static string Parse(string source)
+	{
+		return GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).ToString();
+	}
 
-	static string[] Diagnostics(string source) =>
-		[.. GramParser.Parse(GramLexer.Tokenize(source)).Diagnostics.Select(d => d.Id)];
+	static string[] Diagnostics(string source)
+	{
+		return [.. GramParser.Parse(GramLexer.Tokenize(source)).Diagnostics.Select(d => d.Id)];
+	}
 
 	[Fact]
 	public void Parses_a_rule()

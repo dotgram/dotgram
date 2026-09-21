@@ -303,5 +303,8 @@ public sealed class RecoveringReaderTests
 		}
 	}
 
-	static string Escaped(string text) => "\"" + text.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
+	static string Escaped(string text)
+	{
+		return "\"" + text.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
+	}
 }

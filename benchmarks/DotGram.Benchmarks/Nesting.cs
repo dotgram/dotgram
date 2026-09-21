@@ -15,6 +15,8 @@ namespace DotGram.Benchmarks;
 public sealed partial class Nesting
 {
 	/// <summary>Parses <paramref name="depth"/> brackets round an `x`, or dies trying.</summary>
-	public static bool Reads(int depth) =>
-		TryParseExpr(new string('(', depth) + "x" + new string(')', depth)).IsSuccess;
+	public static bool Reads(int depth)
+	{
+		return TryParseExpr(new string('(', depth) + "x" + new string(')', depth)).IsSuccess;
+	}
 }

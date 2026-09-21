@@ -136,18 +136,25 @@ public sealed class CommittedResidueTests
 		Assert.Equal(1, Rendered(graph, "Start").Split("trivia").Length - 1);
 	}
 
-	static string Rendered(RecognitionGraph graph, string name) =>
-		graph.Bodies[graph.Rules.First(rule => rule.Name == name)].ToString();
+	static string Rendered(RecognitionGraph graph, string name)
+	{
+		return graph.Bodies[graph.Rules.First(rule => rule.Name == name)].ToString();
+	}
 
-	static RecognitionGraph Graph(string grammar) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string grammar)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(
 					GramLexer.Tokenize(grammar + "\nparse Start", RoslynCSharpScanner.Instance)).File),
 			null,
 			RoslynCSharpScanner.Instance);
+	}
 
-	static GramCompilation Compile(string grammar) => GramCompiler.Compile(
+	static GramCompilation Compile(string grammar)
+	{
+		return GramCompiler.Compile(
 		grammar,
 		new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+	}
 }

@@ -438,8 +438,10 @@ partial class HandSqlStandard
 	/// <summary>What a regular expression function searches: a pattern, its flags, the string, where to start, and the units.</summary>
 	readonly record struct Search(Expression Pattern, Expression? Flag, Expression Value, Expression? From, CharacterLengthUnits? Using);
 
-	static Expression.Regex Regex(RegexFunction function, Search search) =>
-		new(function, search.Pattern, search.Value) { Flag = search.Flag, From = search.From, Using = search.Using };
+	static Expression.Regex Regex(RegexFunction function, Search search)
+	{
+		return new(function, search.Pattern, search.Value) { Flag = search.Flag, From = search.From, Using = search.Using };
+	}
 
 	static Expression? Occurrence(ref SqlCursor cursor)
 	{
@@ -483,27 +485,33 @@ partial class HandSqlStandard
 		return 0;
 	}
 
-	static int CharLengthUnits(ref SqlCursor cursor) =>
-		cursor.TakeWord("CHARACTERS") ? 1 :
-		cursor.TakeWord("OCTETS")     ? 2 :
+	static int CharLengthUnits(ref SqlCursor cursor)
+	{
+		return cursor.TakeWord("CHARACTERS") ? 1 :
+		cursor.TakeWord("OCTETS") ? 2 :
 		0;
+	}
 
 	/// <summary>The same units as a character string type writes them.</summary>
-	static LengthUnit? LengthUnitOf(int code) =>
-		code switch
+	static LengthUnit? LengthUnitOf(int code)
+	{
+		return code switch
 		{
 			1 => LengthUnit.Characters,
 			2 => LengthUnit.Octets,
 			_ => null,
 		};
+	}
 
-	static CharacterLengthUnits? Units(int code) =>
-		code switch
+	static CharacterLengthUnits? Units(int code)
+	{
+		return code switch
 		{
 			1 => CharacterLengthUnits.Characters,
 			2 => CharacterLengthUnits.Octets,
 			_ => null,
 		};
+	}
 
 	// ── §6.31 String value function ────────────────────────────────────────────
 
@@ -1393,32 +1401,38 @@ partial class HandSqlStandard
 		return SimpleValueSpecification(ref cursor, out value);
 	}
 
-	static Expression WithSemantics(Expression aggregate, RowPatternSemantics semantics) =>
-		aggregate switch
+	static Expression WithSemantics(Expression aggregate, RowPatternSemantics semantics)
+	{
+		return aggregate switch
 		{
-			Expression.Invocation i          => i with { Semantics = semantics },
-			Expression.JsonArrayAggregate a  => a with { Semantics = semantics },
+			Expression.Invocation i => i with { Semantics = semantics },
+			Expression.JsonArrayAggregate a => a with { Semantics = semantics },
 			Expression.JsonObjectAggregate o => o with { Semantics = semantics },
-			_                                => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
+			_ => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
 		};
+	}
 
-	static Expression WithOver(Expression aggregate, WindowReference over) =>
-		aggregate switch
+	static Expression WithOver(Expression aggregate, WindowReference over)
+	{
+		return aggregate switch
 		{
-			Expression.Invocation i          => i with { Over = over },
-			Expression.JsonArrayAggregate a  => a with { Over = over },
+			Expression.Invocation i => i with { Over = over },
+			Expression.JsonArrayAggregate a => a with { Over = over },
 			Expression.JsonObjectAggregate o => o with { Over = over },
-			_                                => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
+			_ => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
 		};
+	}
 
-	static Expression Filtered(Expression aggregate, FilterClause filter) =>
-		aggregate switch
+	static Expression Filtered(Expression aggregate, FilterClause filter)
+	{
+		return aggregate switch
 		{
-			Expression.Invocation i          => i with { Filter = filter },
-			Expression.JsonArrayAggregate a  => a with { Filter = filter },
+			Expression.Invocation i => i with { Filter = filter },
+			Expression.JsonArrayAggregate a => a with { Filter = filter },
 			Expression.JsonObjectAggregate o => o with { Filter = filter },
-			_                                => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
+			_ => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
 		};
+	}
 
 	// ── §10.9 Aggregate function ───────────────────────────────────────────────
 
@@ -1641,19 +1655,25 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool ComputationalOperation(SqlWord word) =>
-		word is SqlWord.Avg or SqlWord.Max or SqlWord.Min or SqlWord.Sum or SqlWord.Every or SqlWord.AnyValue or SqlWord.Any or SqlWord.Some
+	static bool ComputationalOperation(SqlWord word)
+	{
+		return word is SqlWord.Avg or SqlWord.Max or SqlWord.Min or SqlWord.Sum or SqlWord.Every or SqlWord.AnyValue or SqlWord.Any or SqlWord.Some
 			or SqlWord.Count or SqlWord.StddevPop or SqlWord.StddevSamp or SqlWord.VarSamp or SqlWord.VarPop or SqlWord.Collect
 			or SqlWord.Fusion or SqlWord.Intersection;
+	}
 
-	static bool BinarySetFunction(SqlWord word) =>
-		word is SqlWord.CovarPop or SqlWord.CovarSamp or SqlWord.Corr or SqlWord.RegrSlope or SqlWord.RegrIntercept or SqlWord.RegrCount
+	static bool BinarySetFunction(SqlWord word)
+	{
+		return word is SqlWord.CovarPop or SqlWord.CovarSamp or SqlWord.Corr or SqlWord.RegrSlope or SqlWord.RegrIntercept or SqlWord.RegrCount
 			or SqlWord.RegrR2 or SqlWord.RegrAvgx or SqlWord.RegrAvgy or SqlWord.RegrSxx or SqlWord.RegrSyy or SqlWord.RegrSxy;
+	}
 
-	static SetQuantifier? SetQuantifier(ref SqlCursor cursor) =>
-		cursor.Take(SqlWord.Distinct) ? Ast.SetQuantifier.Distinct :
-		cursor.Take(SqlWord.All)      ? Ast.SetQuantifier.All :
+	static SetQuantifier? SetQuantifier(ref SqlCursor cursor)
+	{
+		return cursor.Take(SqlWord.Distinct) ? Ast.SetQuantifier.Distinct :
+		cursor.Take(SqlWord.All) ? Ast.SetQuantifier.All :
 		null;
+	}
 
 	static bool WithinGroupSpecification(ref SqlCursor cursor, out WithinGroupClause within)
 	{

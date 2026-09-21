@@ -47,67 +47,85 @@ public sealed class UrlTests
 	[InlineData("https://example.com/a~b_c-d.e")]
 	[InlineData("https://example.com?just=query")]
 	[InlineData("https://example.com#just-fragment")]
-	public void Parses(string url) => Assert.True(Match(url), url);
+	public void Parses(string url)
+	{
+		Assert.True(Match(url), url);
+	}
 
 	[Theory]
-	[InlineData("",                          "nothing at all")]
-	[InlineData("example.com",               "no scheme")]
-	[InlineData("gopher://example.com",      "a scheme the grammar does not list")]
-	[InlineData("https:/example.com",        "one slash")]
-	[InlineData("https://",                  "no host")]
-	[InlineData("https://example.com:",      "a colon and no port")]
-	[InlineData("https://example.com:80a",   "a port that is not a number")]
-	[InlineData("https://exa mple.com",      "a space in the host")]
-	[InlineData("https://example.com/%zz",   "a percent escape that is not hex")]
+	[InlineData("", "nothing at all")]
+	[InlineData("example.com", "no scheme")]
+	[InlineData("gopher://example.com", "a scheme the grammar does not list")]
+	[InlineData("https:/example.com", "one slash")]
+	[InlineData("https://", "no host")]
+	[InlineData("https://example.com:", "a colon and no port")]
+	[InlineData("https://example.com:80a", "a port that is not a number")]
+	[InlineData("https://exa mple.com", "a space in the host")]
+	[InlineData("https://example.com/%zz", "a percent escape that is not hex")]
 	[InlineData("https://example.com/a#b#c", "two fragments")]
-	public void Refuses(string url, string why) => Assert.False(Match(url), why);
+	public void Refuses(string url, string why)
+	{
+		Assert.False(Match(url), why);
+	}
 
 	[Theory]
-	[InlineData("https://[2001:db8:85a3:8d3:1319:8a2e:370:7348]",   "eight groups, none elided")]
-	[InlineData("https://[2001:db8::1]",                            "a run elided in the middle")]
-	[InlineData("https://[::1]",                                    "the loopback")]
-	[InlineData("https://[::]",                                     "all of it elided")]
-	[InlineData("https://[1::]",                                    "elided at the end")]
-	[InlineData("https://[::8]",                                    "elided at the start")]
-	[InlineData("https://[1:2:3:4:5:6:7:8]",                        "the plain eight")]
-	[InlineData("https://[1:2:3:4:5:6::8]",                         "one group elided")]
-	[InlineData("https://[1:2:3:4:5::7:8]",                         "elided with groups after")]
-	[InlineData("https://[fe80::1]:8080",                           "with a port after the bracket")]
-	[InlineData("https://[::ffff:192.0.2.1]",                       "an IPv4 tail")]
-	[InlineData("https://[64:ff9b::192.0.2.33]",                    "an IPv4 tail after groups")]
-	[InlineData("https://[2001:db8::1]/a/b?q=1#f",                  "the rest of the URL still follows")]
-	public void Parses_an_address_literal(string url, string what) => Assert.True(Match(url), what);
+	[InlineData("https://[2001:db8:85a3:8d3:1319:8a2e:370:7348]", "eight groups, none elided")]
+	[InlineData("https://[2001:db8::1]", "a run elided in the middle")]
+	[InlineData("https://[::1]", "the loopback")]
+	[InlineData("https://[::]", "all of it elided")]
+	[InlineData("https://[1::]", "elided at the end")]
+	[InlineData("https://[::8]", "elided at the start")]
+	[InlineData("https://[1:2:3:4:5:6:7:8]", "the plain eight")]
+	[InlineData("https://[1:2:3:4:5:6::8]", "one group elided")]
+	[InlineData("https://[1:2:3:4:5::7:8]", "elided with groups after")]
+	[InlineData("https://[fe80::1]:8080", "with a port after the bracket")]
+	[InlineData("https://[::ffff:192.0.2.1]", "an IPv4 tail")]
+	[InlineData("https://[64:ff9b::192.0.2.33]", "an IPv4 tail after groups")]
+	[InlineData("https://[2001:db8::1]/a/b?q=1#f", "the rest of the URL still follows")]
+	public void Parses_an_address_literal(string url, string what)
+	{
+		Assert.True(Match(url), what);
+	}
 
 	[Theory]
 	[InlineData("https://[2001:db8:85a3:8d3:1319:8a2e:370:7348:9]", "nine groups")]
-	[InlineData("https://[1:2:3:4:5:6:7]",                          "seven groups and no elision")]
-	[InlineData("https://[12345::1]",                               "five hex digits in a group")]
-	[InlineData("https://[1:::2]",                                  "three colons")]
-	[InlineData("https://[gggg::1]",                                "not hexadecimal")]
-	[InlineData("https://[::1",                                     "no closing bracket")]
-	[InlineData("https://2001:db8::1",                              "an address literal without its brackets")]
-	public void Refuses_a_bad_address_literal(string url, string why) => Assert.False(Match(url), why);
+	[InlineData("https://[1:2:3:4:5:6:7]", "seven groups and no elision")]
+	[InlineData("https://[12345::1]", "five hex digits in a group")]
+	[InlineData("https://[1:::2]", "three colons")]
+	[InlineData("https://[gggg::1]", "not hexadecimal")]
+	[InlineData("https://[::1", "no closing bracket")]
+	[InlineData("https://2001:db8::1", "an address literal without its brackets")]
+	public void Refuses_a_bad_address_literal(string url, string why)
+	{
+		Assert.False(Match(url), why);
+	}
 
 	[Fact]
-	public void The_elision_is_where_backtracking_earns_its_keep() =>
+	public void The_elision_is_where_backtracking_earns_its_keep()
+	{
 		// `(Group{0,5} & H16)? & "::" & H16` on `1::8`: the greedy run takes `1:`, then
 		// needs another group and finds a colon, gives the group back, matches `1` as the
 		// H16 instead, and only then does `::` line up. Every alternative before this one
 		// was tried and given back whole.
 		Assert.True(Match("https://[1::8]"));
+	}
 
 	[Fact]
-	public void The_scheme_prefix_does_not_shadow_the_longer_one() =>
+	public void The_scheme_prefix_does_not_shadow_the_longer_one()
+	{
 		// "https" comes first in the grammar, but ordering it the other way would still
 		// work: "http" would match, "://" would fail on the s, and the choice would be
 		// asked for its next answer. Ordered choice is not first-wins-for-ever.
 		Assert.True(Match("https://example.com"));
+	}
 
 	[Fact]
-	public void A_host_that_looks_like_userinfo_until_the_end_is_given_back() =>
+	public void A_host_that_looks_like_userinfo_until_the_end_is_given_back()
+	{
 		// UserInfo greedily eats "example.com" looking for an '@' that is not there, and
 		// has to hand every character of it back for Host to have anything to match.
 		Assert.True(Match("https://example.com"));
+	}
 
 	[Fact]
 	public void Finding_urls_inside_other_text()
@@ -128,29 +146,33 @@ public sealed class UrlTests
 	/// asks the same question of the compiler instead, over the same grammar.
 	/// </remarks>
 	[Theory]
-	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Scheme",         "https")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Scheme", "https")]
 	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Authority.User", "user:secret")]
 	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Authority.Host", "example.com")]
 	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Authority.Port", "8080")]
-	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Path",           "/a/b")]
-	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Query",          "q=1")]
-	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Fragment",       "top")]
-	[InlineData("ftp://example.com",                                "Authority.Host", "example.com")]
-	[InlineData("ftp://example.com",                                "Path",           "")]
-	[InlineData("ftp://example.com",                                "Authority.User", null)]
-	[InlineData("ftp://example.com",                                "Authority.Port", null)]
-	[InlineData("ftp://example.com",                                "Query",          null)]
-	[InlineData("https://[2001:db8::1]:99/x",                       "Authority.Host", "[2001:db8::1]")]
-	[InlineData("https://192.168.0.1:443/x",                        "Authority.Port", "443")]
-	public void The_parts_of_a_url_are_members_of_the_result(string url, string member, string? expected) =>
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Path", "/a/b")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Query", "q=1")]
+	[InlineData("https://user:secret@example.com:8080/a/b?q=1#top", "Fragment", "top")]
+	[InlineData("ftp://example.com", "Authority.Host", "example.com")]
+	[InlineData("ftp://example.com", "Path", "")]
+	[InlineData("ftp://example.com", "Authority.User", null)]
+	[InlineData("ftp://example.com", "Authority.Port", null)]
+	[InlineData("ftp://example.com", "Query", null)]
+	[InlineData("https://[2001:db8::1]:99/x", "Authority.Host", "[2001:db8::1]")]
+	[InlineData("https://192.168.0.1:443/x", "Authority.Port", "443")]
+	public void The_parts_of_a_url_are_members_of_the_result(string url, string member, string? expected)
+	{
 		Assert.Equal(expected, Read(Invoke("ParseUrl", url).Value, member.Split('.')));
+	}
 
 	[Fact]
-	public void A_capture_the_parser_gave_back_is_not_in_the_result() =>
+	public void A_capture_the_parser_gave_back_is_not_in_the_result()
+	{
 		// UserInfo eats "example.com" looking for an '@' that is not there. Giving the
 		// characters back has to give the capture back with them — the state the match
 		// resumes at clears every slot the abandoned attempt could have written.
 		Assert.Null(Read(Invoke("ParseUrl", "https://example.com").Value, "Authority", "User"));
+	}
 
 	static object? Read(object? value, params string[] path)
 	{
@@ -171,7 +193,10 @@ public sealed class UrlTests
 		Assert.True(Match("https://1.2.3.4"));
 	}
 
-	static bool Match(string url) => Invoke("ParseUrl", url).Matched;
+	static bool Match(string url)
+	{
+		return Invoke("ParseUrl", url).Matched;
+	}
 
 	static (bool Matched, object? Value) Invoke(string method, string input)
 	{
@@ -197,5 +222,8 @@ public sealed class UrlTests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

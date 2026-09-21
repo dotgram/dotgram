@@ -195,27 +195,35 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void A_host_that_is_not_partial_is_told_so() =>
+	public void A_host_that_is_not_partial_is_told_so()
+	{
 		AssertDiagnostic("GRAM0002", RunGenerator(
 			"[DotGram.Gram] public class Numbers { }",
 			("/proj/Numbers.gram", Digits)));
+	}
 
 	[Fact]
-	public void A_host_whose_enclosing_class_is_not_partial_is_told_so_too() =>
+	public void A_host_whose_enclosing_class_is_not_partial_is_told_so_too()
+	{
 		AssertDiagnostic("GRAM0002", RunGenerator(
 			"public class Outer { [DotGram.Gram] public partial class Inner { } }",
 			("/proj/Inner.gram", Digits)));
+	}
 
 	[Fact]
-	public void A_missing_grammar_file_is_a_diagnostic_and_not_a_crash() =>
+	public void A_missing_grammar_file_is_a_diagnostic_and_not_a_crash()
+	{
 		AssertDiagnostic("GRAM0003", RunGenerator("[DotGram.Gram] public partial class Numbers;"));
+	}
 
 	[Fact]
-	public void Two_files_matching_one_path_is_a_diagnostic() =>
+	public void Two_files_matching_one_path_is_a_diagnostic()
+	{
 		AssertDiagnostic("GRAM0004", RunGenerator(
 			"[DotGram.Gram] public partial class Numbers;",
 			("/a/Numbers.gram", Digits),
 			("/b/Numbers.gram", Digits)));
+	}
 
 	[Fact]
 	public void A_gram_file_no_class_claims_generates_nothing()
@@ -387,7 +395,8 @@ public sealed class GeneratorDriverTests
 	}
 
 	[Fact]
-	public void And_a_base_that_declares_no_grammar_is_walked_past() =>
+	public void And_a_base_that_declares_no_grammar_is_walked_past()
+	{
 		// A class may sit between two that have one for reasons of its own.
 		Assert.DoesNotContain(
 			RunGenerator(
@@ -402,6 +411,7 @@ public sealed class GeneratorDriverTests
 				""")
 				.Diagnostics,
 			diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+	}
 
 	/// <summary>An error in the base's grammar is underlined in the base's grammar.</summary>
 	/// <remarks>
@@ -482,7 +492,8 @@ public sealed class GeneratorDriverTests
 	[InlineData("")]
 	[InlineData("1st")]
 	[InlineData("has space")]
-	public void A_name_that_is_not_an_identifier_is_refused(string name) =>
+	public void A_name_that_is_not_an_identifier_is_refused(string name)
+	{
 		// A grammar is included by being wrapped in a namespace, and a namespace is named
 		// by an identifier. Said at the host, before the splice can turn it into a parse
 		// error in a text nobody wrote.
@@ -493,9 +504,11 @@ public sealed class GeneratorDriverTests
 				[DotGram.Gram("Start = 'a'\nparse Start", IncludedAs = "{{name}}")]
 				public partial class Grammar { }
 				"""));
+	}
 
 	[Fact]
-	public void And_a_name_that_is_one_is_not() =>
+	public void And_a_name_that_is_one_is_not()
+	{
 		Assert.DoesNotContain(
 			RunGenerator(
 				"""
@@ -504,6 +517,7 @@ public sealed class GeneratorDriverTests
 				""")
 				.Diagnostics,
 			diagnostic => diagnostic.Id == "GRAM0005");
+	}
 
 	// ── A context is a contract, and inheritance refines it (GRAM3019, GRAM3020) ──
 
@@ -516,7 +530,8 @@ public sealed class GeneratorDriverTests
 	/// grammars in one assembly are no longer refused for a reason neither of them can see.
 	/// </remarks>
 	[Fact]
-	public void Two_grammars_in_one_assembly_are_not_one_grammar() =>
+	public void Two_grammars_in_one_assembly_are_not_one_grammar()
+	{
 		Assert.Empty(
 			RunGenerator(
 				"""
@@ -530,6 +545,7 @@ public sealed class GeneratorDriverTests
 				public partial class Two { }
 				""")
 				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3019" or "GRAM3020"));
+	}
 
 	/// <summary>A derived grammar may need more of the same object than its base does.</summary>
 	/// <remarks>
@@ -622,18 +638,21 @@ public sealed class GeneratorDriverTests
 		Assert.DoesNotContain("Quiet = true", source, StringComparison.Ordinal);
 	}
 
-	static string Generated(GeneratorDriverRunResult result, string host) =>
-		result
+	static string Generated(GeneratorDriverRunResult result, string host)
+	{
+		return result
 			.Results
 			.SelectMany(one => one.GeneratedSources)
 			.Single(one => one.HintName.StartsWith(host + ".", StringComparison.Ordinal) &&
 				!one.HintName.Contains("DotGramReport", StringComparison.Ordinal))
 			.SourceText
 			.ToString();
+	}
 
 	/// <summary>And may not replace it.</summary>
 	[Fact]
-	public void And_may_not_replace_it() =>
+	public void And_may_not_replace_it()
+	{
 		AssertDiagnostic(
 			"GRAM3019",
 			RunGenerator(
@@ -647,6 +666,7 @@ public sealed class GeneratorDriverTests
 				[DotGram.Gram("using Lexemes;\ncontext : @ISomething\nStart = Word\nparse Start")]
 				public partial class Reader : Lexemes { }
 				"""));
+	}
 
 	/// <summary>A state is inherited as it stands, since there is one type for all marks.</summary>
 	/// <remarks>
@@ -655,7 +675,8 @@ public sealed class GeneratorDriverTests
 	/// all. It is the parse's mark type now, and the derived grammar need say nothing.
 	/// </remarks>
 	[Fact]
-	public void A_state_is_inherited_rather_than_redeclared() =>
+	public void A_state_is_inherited_rather_than_redeclared()
+	{
 		Assert.Empty(
 			RunGenerator(
 				"""
@@ -666,10 +687,12 @@ public sealed class GeneratorDriverTests
 				public partial class Reader : Lexemes { }
 				""")
 				.Diagnostics.Where(diagnostic => diagnostic.Id is "GRAM3020" or "GRAM3015"));
+	}
 
 	/// <summary>And a second type for it is a second type for part of one answer.</summary>
 	[Fact]
-	public void And_a_derived_grammar_may_not_write_its_marks_in_another_type() =>
+	public void And_a_derived_grammar_may_not_write_its_marks_in_another_type()
+	{
 		AssertDiagnostic(
 			"GRAM3020",
 			RunGenerator(
@@ -680,9 +703,12 @@ public sealed class GeneratorDriverTests
 				[DotGram.Gram("using Lexemes;\nstate : @string\nStart = Word\nparse Start")]
 				public partial class Reader : Lexemes { }
 				"""));
+	}
 
-	static void AssertDiagnostic(string id, GeneratorDriverRunResult result) =>
+	static void AssertDiagnostic(string id, GeneratorDriverRunResult result)
+	{
 		Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == id);
+	}
 
 	[Fact]
 	public void A_partial_void_with_a_ref_parameter_vanishes_when_nobody_implements_it()
@@ -784,9 +810,11 @@ public sealed class GeneratorDriverTests
 	/// The attributes are ours, and the definition of <c>[Embedded]</c> they are marked with is
 	/// Roslyn's, asked for beside them and named in its namespace rather than ours.
 	/// </remarks>
-	static bool IsSupport(string hintName) =>
-		hintName.StartsWith("DotGram.", StringComparison.Ordinal) ||
+	static bool IsSupport(string hintName)
+	{
+		return hintName.StartsWith("DotGram.", StringComparison.Ordinal) ||
 		hintName.StartsWith("Microsoft.CodeAnalysis.", StringComparison.Ordinal);
+	}
 
 	[Fact]
 	public void An_external_recognizer_is_silent_and_the_grammar_lowers()
@@ -1364,8 +1392,9 @@ public sealed class GeneratorDriverTests
 	/// factory runs once however many readings were tried and thrown away. A <c>when</c>
 	/// runs while the text is read, which is the work being saved.
 	/// </remarks>
-	static Type Read(string name) =>
-		Build($$"""
+	static Type Read(string name)
+	{
+		return Build($$"""
 			[DotGram.Gram("Word : @string = t: ['a'..'z']+ & when @({{name}}.Seen()) => @(t)\nCall : @string = target: Word & '(' & ')' => @(target + \"()\")\nPrimary : @string = c: Call => @(c) | r: Word => @(r)\nStart : @string = p: Primary => @(p)\nparse Start")]
 			public partial class {{name}}
 			{
@@ -1373,6 +1402,7 @@ public sealed class GeneratorDriverTests
 				public static bool Seen() { Reads++; return true; }
 			}
 			""").GetType(name)!;
+	}
 
 	/// <summary>And the same grammar with the operand shared reads it once.</summary>
 	/// <remarks>
@@ -1501,8 +1531,10 @@ public sealed class GeneratorDriverTests
 			items.Cast<object>().Select(static item => item.GetType().Name + Named(item)));
 	}
 
-	static string Named(object item) =>
-		item.GetType().GetProperty("Name") is { } name ? ":" + name.GetValue(item) : "";
+	static string Named(object item)
+	{
+		return item.GetType().GetProperty("Name") is { } name ? ":" + name.GetValue(item) : "";
+	}
 
 	[Fact]
 	public void An_operand_that_does_not_fit_the_element_type_is_left_out()
@@ -1539,8 +1571,9 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>Two grammars that differ in one thing: whether the separator declares a type.</summary>
-	static string[] Words(string space) =>
-		(string[])Build(
+	static string[] Words(string space)
+	{
+		return (string[])Build(
 			$$"""
 			[DotGram.Gram("Words : @string[] = Word & Space & Word\nWord : @string = t: ['a'..'z']+ => @(t)\n{{space}}\nparse Words")]
 			public partial class Spacing { }
@@ -1548,6 +1581,7 @@ public sealed class GeneratorDriverTests
 			.GetType("Spacing")!
 			.GetMethod("ParseWords", [typeof(string)])!
 			.Invoke(null, ["ab cd"])!;
+	}
 
 	[Fact]
 	public void What_joins_a_sequence_is_the_declared_type_and_nothing_else()
@@ -1608,13 +1642,15 @@ public sealed class GeneratorDriverTests
 		}
 		""";
 
-	static string[] Read(Assembly assembly, string type, string method, object input) =>
-		[.. ((System.Collections.IEnumerable)assembly
+	static string[] Read(Assembly assembly, string type, string method, object input)
+	{
+		return [.. ((System.Collections.IEnumerable)assembly
 				.GetType(type)!
 				.GetMethod(method, [input.GetType() == typeof(string) ? typeof(string) : typeof(TextReader)])!
 				.Invoke(null, [input])!)
 			.Cast<object>()
 			.Select(static item => item.GetType().Name + Named(item))];
+	}
 
 	[Fact]
 	public void A_parse_over_a_reader_reads_the_same_things()
@@ -1657,14 +1693,16 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>What a `find` handed back, named by what each occurrence built.</summary>
-	static string[] Found(Assembly assembly, string type, string method, string input) =>
-		[.. ((System.Collections.IEnumerable)assembly
+	static string[] Found(Assembly assembly, string type, string method, string input)
+	{
+		return [.. ((System.Collections.IEnumerable)assembly
 				.GetType(type)!
 				.GetMethod(method, [typeof(string)])!
 				.Invoke(null, [input])!)
 			.Cast<object>()
 			.Select(static found => found.GetType().GetProperty("Value")!.GetValue(found)!)
 			.Select(static line => (string)line.GetType().GetProperty("Name")!.GetValue(line)!)];
+	}
 
 	/// <summary>
 	/// A spaced collection streams too: the driver skips the seam §4.5 weaves between
@@ -2765,14 +2803,16 @@ public sealed class GeneratorDriverTests
 	}
 
 	static ImmutableArray<(object Value, IncrementalStepRunReason Reason)> Runs(
-		GeneratorDriverRunResult run, string stage) =>
-	[
+		GeneratorDriverRunResult run, string stage)
+	{
+		return [
 		.. run.Results
 			.SelectMany(result => result.TrackedSteps.TryGetValue(stage, out var steps)
 				? steps
 				: [])
 			.SelectMany(step => step.Outputs)
 	];
+	}
 
 	/// <summary>
 	/// Runs the generator twice over the same host, changing only a file that has nothing
@@ -2822,8 +2862,10 @@ public sealed class GeneratorDriverTests
 		return driver.RunGenerators(edited, TestContext.Current.CancellationToken).GetRunResult();
 	}
 
-	internal static GeneratorDriverRunResult RunGenerator(string source, params (string Path, string Text)[] additionalFiles) =>
-		RunGenerator(source, out _, additionalFiles);
+	internal static GeneratorDriverRunResult RunGenerator(string source, params (string Path, string Text)[] additionalFiles)
+	{
+		return RunGenerator(source, out _, additionalFiles);
+	}
 
 	static GeneratorDriverRunResult RunGenerator(
 		string source,
@@ -2891,8 +2933,10 @@ public sealed class GeneratorDriverTests
 	{
 		public override string Path { get; } = path;
 
-		public override SourceText GetText(CancellationToken cancellationToken = default) =>
-			SourceText.From(text);
+		public override SourceText GetText(CancellationToken cancellationToken = default)
+		{
+			return SourceText.From(text);
+		}
 	}
 
 	internal static string GetGeneratedSource(GeneratorDriverRunResult result, string hintName)
@@ -2910,13 +2954,15 @@ public sealed class GeneratorDriverTests
 		return sources[0].SourceText.ToString();
 	}
 
-	static ImmutableArray<MetadataReference> GetMetadataReferences() =>
-	[
+	static ImmutableArray<MetadataReference> GetMetadataReferences()
+	{
+		return [
 		.. AppDomain.CurrentDomain
 			.GetAssemblies()
 			.Where(static assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
 			.Select(static assembly => (MetadataReference)MetadataReference.CreateFromFile(assembly.Location)),
 	];
+	}
 
 	// ── §8.3 over a streamed parse ───────────────────────────────────────────────
 
@@ -3060,8 +3106,15 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(13, Start (port));
 		Assert.Equal(4,  Length(port));
 
-		static int Start (object span) => (int)span.GetType().GetProperty("Start")!.GetValue(span)!;
-		static int Length(object span) => (int)span.GetType().GetProperty("Length")!.GetValue(span)!;
+		static int Start(object span)
+		{
+			return (int)span.GetType().GetProperty("Start")!.GetValue(span)!;
+		}
+
+		static int Length(object span)
+		{
+			return (int)span.GetType().GetProperty("Length")!.GetValue(span)!;
+		}
 	}
 
 	// ── The whole input, handed to a construction ────────────────────────────────
@@ -3099,8 +3152,15 @@ public sealed class GeneratorDriverTests
 
 		var held = type.GetMethod("ParseUrl", [typeof(string)])!.Invoke(null, ["http://a.com"])!;
 
-		string Read(string name) => (string)held.GetType().GetProperty(name)!.GetValue(held)!;
-		int    Count(string name) => (int)held.GetType().GetProperty(name)!.GetValue(held)!;
+		string Read(string name)
+		{
+			return (string)held.GetType().GetProperty(name)!.GetValue(held)!;
+		}
+
+		int Count(string name)
+		{
+			return (int)held.GetType().GetProperty(name)!.GetValue(held)!;
+		}
 
 		// Written in the call form on purpose: §2 makes a bare name in an argument list a
 		// grammar name, and a supplied name is one of the names a rule has, so this and
@@ -3120,12 +3180,14 @@ public sealed class GeneratorDriverTests
 	/// One rule published twice, the second rebinding the port to a rule that gives it a
 	/// value of its own — §14's own example, written the way a consumer writes it.
 	/// </summary>
-	static string Source(string name) =>
-		$$"""
+	static string Source(string name)
+	{
+		return $$"""
 		[DotGram.Gram("Url        = scheme: Scheme & \"://\" & host: Host & (':' & port: Port)?\nScheme     = \"https\" | \"http\"\nHost       = (Letter | Digit | '.' | '-')+\nPort       = Digit+\nPortAsInt  : @int = Digit+ => @Number(parserText)\nPortAsSpan : @SourceSpan = Digit+\nHostAsSpan : @SourceSpan = (Letter | Digit | '.' | '-')+\nLetter     = ['a'..'z']\nDigit      = ['0'..'9']\nparse Url as UrlWithStrings\nparse Url with (Port = PortAsInt) as UrlWithInt\nparse Url with (Port = PortAsSpan, Host = HostAsSpan) as UrlWithSpans")]
 		public partial class {{name}}
 		{
 			static int Number(string text) => int.Parse(text);
 		}
 		""";
+	}
 }

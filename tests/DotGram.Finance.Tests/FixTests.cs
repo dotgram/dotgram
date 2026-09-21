@@ -10,9 +10,15 @@ namespace DotGram.Finance.Tests;
 
 public sealed class FixTests
 {
-	static string Describe(FixField field) => field.GetType().Name + JsonSerializer.Serialize(field, field.GetType());
-	static void Equal(IEnumerable<FixField> expected, IEnumerable<FixField> actual) =>
+	static string Describe(FixField field)
+	{
+		return field.GetType().Name + JsonSerializer.Serialize(field, field.GetType());
+	}
+
+	static void Equal(IEnumerable<FixField> expected, IEnumerable<FixField> actual)
+	{
 		Assert.Equal(expected.Select(Describe), actual.Select(Describe));
+	}
 
 	[Theory]
 	[InlineData(0)]
@@ -96,6 +102,9 @@ public sealed class FixTests
 
 	sealed class ShortStream(byte[] input) : MemoryStream(input)
 	{
-		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, 1));
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			return base.Read(buffer, offset, Math.Min(count, 1));
+		}
 	}
 }

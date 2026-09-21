@@ -84,30 +84,40 @@ namespace DotGram.Examples.Languages;
 public sealed partial class Filter
 {
 	/// <summary>Reads a filter, or throws where the text is not one.</summary>
-	public static Predicate Read(string text) => ParseFilter(text);
+	public static Predicate Read(string text)
+	{
+		return ParseFilter(text);
+	}
 }
 
 /// <summary>One node of a filter. Plain records, so a caller walks it with patterns.</summary>
 public abstract record Predicate
 {
 	/// <summary>Whether this row satisfies the filter.</summary>
-	public bool Matches(IReadOnlyDictionary<string, object?> row) => this switch
+	public bool Matches(IReadOnlyDictionary<string, object?> row)
 	{
-		Any(var left, var right)     => left.Matches(row) || right.Matches(row),
-		All(var left, var right)     => left.Matches(row) && right.Matches(row),
-		Not(var operand)             => !operand.Matches(row),
-		Truth(var field)             => Read(row, field) is true,
-		In(var field, var values)    => values.Any(value => Same(Read(row, field), value)),
-		Compare(var f, var op, var v) => Holds(Read(row, f), op, v),
+		return this switch
+		{
+			Any(var left, var right) => left.Matches(row) || right.Matches(row),
+			All(var left, var right) => left.Matches(row) && right.Matches(row),
+			Not(var operand) => !operand.Matches(row),
+			Truth(var field) => Read(row, field) is true,
+			In(var field, var values) => values.Any(value => Same(Read(row, field), value)),
+			Compare(var f, var op, var v) => Holds(Read(row, f), op, v),
 
-		_ => false,
-	};
+			_ => false,
+		};
+	}
 
-	static object? Read(IReadOnlyDictionary<string, object?> row, string field) =>
-		row.TryGetValue(field, out var value) ? value : null;
+	static object? Read(IReadOnlyDictionary<string, object?> row, string field)
+	{
+		return row.TryGetValue(field, out var value) ? value : null;
+	}
 
-	static bool Same(object? left, object? right) =>
-		left is null || right is null ? left is null && right is null : Compare(left, right) == 0;
+	static bool Same(object? left, object? right)
+	{
+		return left is null || right is null ? left is null && right is null : Compare(left, right) == 0;
+	}
 
 	/// <remarks>
 	/// A missing field satisfies nothing, which is the choice every filter language has to

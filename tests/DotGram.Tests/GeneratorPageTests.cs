@@ -230,5 +230,8 @@ public sealed class GeneratorPageTests
 		}
 	}
 
-	static string Page(string name) => ShippedPages.PageOf(typeof(GramCompiler), name);
+	static string Page(string name)
+	{
+		return ShippedPages.PageOf(typeof(GramCompiler), name);
+	}
 }

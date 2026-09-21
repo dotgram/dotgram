@@ -33,8 +33,10 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 
 	/// <summary>A Content-Disposition field value (RFC 6266 §4.1).</summary>
 	/// <exception cref="FormatException">The text is no Content-Disposition field; the message says where.</exception>
-	public static ContentDisposition Parse(string text) =>
-		Rfc6266.ParseContentDisposition(text ?? throw new ArgumentNullException(nameof(text)));
+	public static ContentDisposition Parse(string text)
+	{
+		return Rfc6266.ParseContentDisposition(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A Content-Disposition field value, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out ContentDisposition? field)
@@ -205,8 +207,10 @@ static partial class Rfc6266
 	}
 
 	/// <summary>Whether a name and a value make a parameter: an ext-token's value has to be an ext-value.</summary>
-	internal static bool IsParameter(string name, string value) =>
-		!IsExtToken(name) || value[0] != '"' && Rfc8288.Extended(value) is not null;
+	internal static bool IsParameter(string name, string value)
+	{
+		return !IsExtToken(name) || value[0] != '"' && Rfc8288.Extended(value) is not null;
+	}
 
 	/// <summary>A parameter from its name and its value as written.</summary>
 	internal static ContentDisposition.Parameter Parameter(string name, string value)
@@ -231,5 +235,8 @@ static partial class Rfc6266
 	}
 
 	// ext-token = <the characters in token, followed by "*">.
-	static bool IsExtToken(string name) => name.Length > 1 && name[name.Length - 1] == '*';
+	static bool IsExtToken(string name)
+	{
+		return name.Length > 1 && name[name.Length - 1] == '*';
+	}
 }

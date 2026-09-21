@@ -160,8 +160,10 @@ static class RefusalCorpus
 			$"A refusal is not the one it was; DotGram.Tests.Slow runs the whole record and writes what differs beside {Expected}.");
 	}
 
-	static string Key((string Name, string Grammar, string[] Inputs, bool Lexical, (string Name, bool Direct, CarrierKind Carrier) Rendering) reading) =>
-		reading.Name + " | " + reading.Rendering.Name + (reading.Lexical ? " over tokens" : "");
+	static string Key((string Name, string Grammar, string[] Inputs, bool Lexical, (string Name, bool Direct, CarrierKind Carrier) Rendering) reading)
+	{
+		return reading.Name + " | " + reading.Rendering.Name + (reading.Lexical ? " over tokens" : "");
+	}
 
 	static string KeyOf(string line)
 	{
@@ -230,7 +232,10 @@ static class RefusalCorpus
 		}
 	}
 
-	static string Escaped(string input) => "\"" + input.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+	static string Escaped(string input)
+	{
+		return "\"" + input.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+	}
 
 	static Assembly Compiled(string grammar, bool direct, CarrierKind carrier, bool lexical)
 	{
@@ -256,5 +261,8 @@ static class RefusalCorpus
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

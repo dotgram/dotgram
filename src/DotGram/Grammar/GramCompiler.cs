@@ -195,7 +195,8 @@ public static class GramCompiler
 		// character rather than nothing at all. SQL92 was read that way for a while, and
 		// took `t INNER JOIN u` for an alias, because the fallback was an Info that no
 		// build shows.
-		void Say(string why) =>
+		void Say(string why)
+		{
 			diagnostics.Add(new GramDiagnostic(
 				NotCut,
 				"This grammar is compiled over characters rather than tokens: " + why + ". " +
@@ -203,6 +204,7 @@ public static class GramCompiler
 				0,
 				0,
 				GramSeverity.Warning));
+		}
 
 		if (graph.Publications.Any(one => one.Kind == PublishKind.Yield))
 		{
@@ -378,6 +380,8 @@ public static class GramCompiler
 	/// <c>SourceSpan</c> used to be here beside it and is emitted into each host class
 	/// instead, where it can be public without two assemblies colliding over it.
 	/// </summary>
-	public static GeneratedSource EmitMarkerAttributes() =>
-		new("DotGram.Attributes.g.cs", SupportEmitter.Attributes);
+	public static GeneratedSource EmitMarkerAttributes()
+	{
+		return new("DotGram.Attributes.g.cs", SupportEmitter.Attributes);
+	}
 }

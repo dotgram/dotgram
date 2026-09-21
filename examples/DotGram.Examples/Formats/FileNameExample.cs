@@ -62,11 +62,20 @@ public static partial class FileNames
 	static readonly string[] Reserved = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1"];
 
 	/// <summary>Whether a character may stand in a name — asked once per character.</summary>
-	static bool IsAllowed(char c) => Array.IndexOf(Invalid, c) < 0 && c != '/';
+	static bool IsAllowed(char c)
+	{
+		return Array.IndexOf(Invalid, c) < 0 && c != '/';
+	}
 
 	/// <summary>Whether the name they added up to is one somebody may use.</summary>
-	static bool NotReserved(string segment) => !Reserved.Contains(segment.ToUpperInvariant());
+	static bool NotReserved(string segment)
+	{
+		return !Reserved.Contains(segment.ToUpperInvariant());
+	}
 
 	/// <summary>Whether a path is one this platform would accept, in full.</summary>
-	public static bool IsUsable(string path) => TryParseRoute(path).IsSuccess;
+	public static bool IsUsable(string path)
+	{
+		return TryParseRoute(path).IsSuccess;
+	}
 }

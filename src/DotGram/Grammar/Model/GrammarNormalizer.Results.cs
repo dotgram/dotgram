@@ -26,7 +26,10 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 public sealed partial class GrammarNormalizer
 {
-	static IReadOnlyList<Node> ValueAlternatives(Node body) => body is Node.Choice(var nodes) ? nodes : [body];
+	static IReadOnlyList<Node> ValueAlternatives(Node body)
+	{
+		return body is Node.Choice(var nodes) ? nodes : [body];
+	}
 
 	/// <summary>
 	/// The C# type a rule declared for itself, if it declared one.
@@ -230,8 +233,10 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The one type §4.1 case 4 names besides <c>string</c>, however it is written.</summary>
-	static bool IsSourceSpan(string type) =>
-		type is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
+	static bool IsSourceSpan(string type)
+	{
+		return type is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
+	}
 
 	void PassThrough()
 	{
@@ -706,9 +711,12 @@ public sealed partial class GrammarNormalizer
 			_resolver.IsAssignable(type, element);
 	}
 
-	static bool IsCSharpKeyword(string name) => name is
+	static bool IsCSharpKeyword(string name)
+	{
+		return name is
 		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
 		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
+	}
 
 	void ComputeResults()
 	{
@@ -769,12 +777,14 @@ public sealed partial class GrammarNormalizer
 		}
 	}
 
-	static string Held(CaptureSlot slot) =>
-		slot.Rule is null
+	static string Held(CaptureSlot slot)
+	{
+		return slot.Rule is null
 			? "text"
 			: slot.IsSequence
 				? $"a sequence of '{slot.Rule.Name}'"
 				: $"the value of '{slot.Rule.Name}'";
+	}
 
 	/// <summary>Whether a rule has a value of its own — which is to say, any capture.</summary>
 	/// <summary>
@@ -786,21 +796,26 @@ public sealed partial class GrammarNormalizer
 	/// @(new Head())</c> — a rule that plainly has a value and no captures — was treated as
 	/// text, and a capture of it held the characters instead of the <c>Item</c>.
 	/// </remarks>
-	bool BuildsValue(RuleSymbol rule) =>
-		_types.ContainsKey(rule) || (_bodies.TryGetValue(rule, out var body) && HasCapture(body));
-
-	static bool HasCapture(Node node) => node switch
+	bool BuildsValue(RuleSymbol rule)
 	{
-		Node.Capture                 => true,
-		Node.Sequence(var nodes)     => nodes.Any(HasCapture),
-		Node.Choice(var nodes)       => nodes.Any(HasCapture),
-		Node.Repeat(var body, _, _)  => HasCapture(body),
-		Node.Atomic(var body)        => HasCapture(body),
-		Node.Marked(var body, _)     => HasCapture(body),
-		Node.Construct(var built, _) => HasCapture(built),
+		return _types.ContainsKey(rule) || (_bodies.TryGetValue(rule, out var body) && HasCapture(body));
+	}
 
-		// Not across a call — that is another rule's result — and not into a lookahead,
-		// which consumes nothing and is compiled with its captures stripped.
-		_                            => false,
-	};
+	static bool HasCapture(Node node)
+	{
+		return node switch
+		{
+			Node.Capture => true,
+			Node.Sequence(var nodes) => nodes.Any(HasCapture),
+			Node.Choice(var nodes) => nodes.Any(HasCapture),
+			Node.Repeat(var body, _, _) => HasCapture(body),
+			Node.Atomic(var body) => HasCapture(body),
+			Node.Marked(var body, _) => HasCapture(body),
+			Node.Construct(var built, _) => HasCapture(built),
+
+			// Not across a call — that is another rule's result — and not into a lookahead,
+			// which consumes nothing and is compiled with its captures stripped.
+			_ => false,
+		};
+	}
 }

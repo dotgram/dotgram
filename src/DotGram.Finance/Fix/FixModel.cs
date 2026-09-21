@@ -60,7 +60,10 @@ public sealed class FixParseError
 	/// <summary>
 	/// Formats the message type, tag, offset and reason on one line.
 	/// </summary>
-	public override string ToString() => $"FIX {MessageType ?? "?"}, tag {Tag?.ToString(CultureInfo.InvariantCulture) ?? "?"}, offset {Position}: {Reason}";
+	public override string ToString()
+	{
+		return $"FIX {MessageType ?? "?"}, tag {Tag?.ToString(CultureInfo.InvariantCulture) ?? "?"}, offset {Position}: {Reason}";
+	}
 }
 
 /// <summary>A field backed by the original message; reading Value allocates nothing.</summary>
@@ -107,24 +110,39 @@ public readonly struct FixFieldView
 	/// <summary>
 	/// Returns the value text as a new string.
 	/// </summary>
-	public override string ToString() => Value.ToString();
+	public override string ToString()
+	{
+		return Value.ToString();
+	}
+
 	/// <summary>
 	/// Reads the value as a decimal with an optional sign and decimal point.
 	/// </summary>
 	/// <returns>False when the value is not such a number or does not fit a decimal.</returns>
-	public bool TryGetDecimal(out decimal value) => decimal.TryParse(Value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value);
+	public bool TryGetDecimal(out decimal value)
+	{
+		return decimal.TryParse(Value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value);
+	}
+
 	/// <summary>
 	/// Reads the value as a 64-bit integer with an optional sign.
 	/// </summary>
 	/// <returns>False when the value is not such a number or does not fit a long.</returns>
-	public bool TryGetInt64(out long value) => long.TryParse(Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
+	public bool TryGetInt64(out long value)
+	{
+		return long.TryParse(Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
+	}
 }
 
 /// <summary>A decimal wire value without a CLR decimal range or precision restriction.</summary>
 public readonly struct FixNumber
 {
 	readonly FixFieldView wireField;
-	internal FixNumber(FixFieldView field) => wireField = field;
+	internal FixNumber(FixFieldView field)
+	{
+		wireField = field;
+	}
+
 	/// <summary>
 	/// The number exactly as written.
 	/// </summary>
@@ -133,7 +151,11 @@ public readonly struct FixNumber
 	/// Reads the number as a decimal.
 	/// </summary>
 	/// <returns>False when the number does not fit a decimal; FIX sets no limit on range or precision.</returns>
-	public bool TryGetDecimal(out decimal value) => wireField.TryGetDecimal(out value);
+	public bool TryGetDecimal(out decimal value)
+	{
+		return wireField.TryGetDecimal(out value);
+	}
+
 	/// <summary>
 	/// Reads the number as a 64-bit integer.
 	/// </summary>
@@ -144,11 +166,18 @@ public readonly struct FixNumber
 	/// <c>EncodedTextLen</c> — every one of them an integer. Without this, reading one went
 	/// through a decimal or through the string, in a type whose only job is to forward.
 	/// </remarks>
-	public bool TryGetInt64(out long value) => wireField.TryGetInt64(out value);
+	public bool TryGetInt64(out long value)
+	{
+		return wireField.TryGetInt64(out value);
+	}
+
 	/// <summary>
 	/// Returns the number as written.
 	/// </summary>
-	public override string ToString() => wireField.ToString();
+	public override string ToString()
+	{
+		return wireField.ToString();
+	}
 }
 
 /// <summary>An ordered field scope: a message part or one repeating group entry.</summary>
@@ -198,11 +227,18 @@ public class FixFieldSet
 	/// <summary>
 	/// Returns the value text of the first field with the tag, or null when there is none.
 	/// </summary>
-	protected string? GetText(int tag) => GetField(tag)?.ToString();
+	protected string? GetText(int tag)
+	{
+		return GetField(tag)?.ToString();
+	}
+
 	/// <summary>
 	/// Returns the first field with the tag as a number, or null when there is none.
 	/// </summary>
-	protected FixNumber? GetNumber(int tag) => GetField(tag) is { } field ? new FixNumber(field) : null;
+	protected FixNumber? GetNumber(int tag)
+	{
+		return GetField(tag) is { } field ? new FixNumber(field) : null;
+	}
 }
 
 /// <summary>A complete FIX message with its exact original wire representation.</summary>

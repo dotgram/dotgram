@@ -209,6 +209,8 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>Whether a method's type arguments were inferred rather than written.</summary>
-	static bool Guessed(MemberInfo member) => member is MethodInfo { IsGenericMethod: true };
-
+	static bool Guessed(MemberInfo member)
+	{
+		return member is MethodInfo { IsGenericMethod: true };
+	}
 }

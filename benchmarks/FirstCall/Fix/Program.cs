@@ -179,7 +179,10 @@ switch (mode)
 return 0;
 
 // A stream form reads lazily: what it returns is walked to the end so that the first parse is the whole parse.
-static Array Materialized(object fields) => fields is Array array ? array : ((System.Collections.IEnumerable)fields).Cast<object>().ToArray();
+static Array Materialized(object fields)
+{
+	return fields is Array array ? array : ((System.Collections.IEnumerable)fields).Cast<object>().ToArray();
+}
 
 void Phase(string name, bool everyMethod)
 {

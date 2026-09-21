@@ -75,7 +75,10 @@ namespace DotGram.Examples.Formats;
 	""")]
 public sealed partial class IniParser
 {
-	public static IniFile Read(string text) => ParseIni(text);
+	public static IniFile Read(string text)
+	{
+		return ParseIni(text);
+	}
 }
 
 /// <summary>One `key = value`.</summary>
@@ -110,7 +113,10 @@ public sealed class IniFile
 	/// <summary>Section names, in the order they were written.</summary>
 	public IReadOnlyList<string> Sections { get; }
 
-	public bool Has(string section) => _sections.ContainsKey(section);
+	public bool Has(string section)
+	{
+		return _sections.ContainsKey(section);
+	}
 
 	/// <remarks>
 	/// A later key wins, which is what every INI reader does and what <c>ToDictionary</c>

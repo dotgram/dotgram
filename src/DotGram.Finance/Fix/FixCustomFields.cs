@@ -60,16 +60,22 @@ public abstract class FixCustomFields
 	/// For a tag a consumer's own switch does not recognise either. Falling through is then one
 	/// line and reads as falling through.
 	/// </remarks>
-	protected static FixField Spare(int tag, ReadOnlySpan<char> value) =>
-		new FixField.Custom(tag, FixConvert.Data(value));
+	protected static FixField Spare(int tag, ReadOnlySpan<char> value)
+	{
+		return new FixField.Custom(tag, FixConvert.Data(value));
+	}
 
 	/// <inheritdoc cref="Spare(int, ReadOnlySpan{char})"/>
-	protected static FixField Spare(int tag, ReadOnlySpan<byte> value) =>
-		new FixField.Custom(tag, FixConvert.Data(value));
+	protected static FixField Spare(int tag, ReadOnlySpan<byte> value)
+	{
+		return new FixField.Custom(tag, FixConvert.Data(value));
+	}
 
 	/// <inheritdoc cref="Spare(int, ReadOnlySpan{char})"/>
-	protected static FixField Spare(int tag, ReadOnlyMemory<byte> value) =>
-		new FixField.Custom(tag, (true, value));
+	protected static FixField Spare(int tag, ReadOnlyMemory<byte> value)
+	{
+		return new FixField.Custom(tag, (true, value));
+	}
 }
 
 /// <summary>
@@ -86,9 +92,18 @@ sealed class FixSpareFields : FixCustomFields
 
 	FixSpareFields() { }
 
-	public override FixField Text(int tag, ReadOnlySpan<char> value) => Spare(tag, value);
+	public override FixField Text(int tag, ReadOnlySpan<char> value)
+	{
+		return Spare(tag, value);
+	}
 
-	public override FixField Text(int tag, ReadOnlySpan<byte> value) => Spare(tag, value);
+	public override FixField Text(int tag, ReadOnlySpan<byte> value)
+	{
+		return Spare(tag, value);
+	}
 
-	public override FixField Binary(int tag, ReadOnlyMemory<byte> value) => Spare(tag, value);
+	public override FixField Binary(int tag, ReadOnlyMemory<byte> value)
+	{
+		return Spare(tag, value);
+	}
 }

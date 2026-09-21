@@ -75,27 +75,38 @@ sealed partial class Machine
 	}
 
 	internal string InputType => BufferedBytes ? "BufferedBytes" : BufferedInput ? "BufferedText" : "global::System.ReadOnlySpan<char>";
-	string ReadAt(string position) => BufferedInput ? $"text.Get({position})" : $"text[{position}]";
+	string ReadAt(string position)
+	{
+		return BufferedInput ? $"text.Get({position})" : $"text[{position}]";
+	}
 
 	// What the reader asks of its text, spelled for the text it holds: a span, as always, or a
 	// buffer that reads on as it is asked (docs/design/fix-reader-buffered-2026-09-18.md). Over a
 	// span each is exactly what the reader wrote before it asked through these.
 
 	/// <summary>Whether <paramref name="position"/> is past the end of the input.</summary>
-	string Past(string position) =>
-		BufferedInput ? $"!text.Ensure({position}, 1)" : $"(uint){position} >= (uint)text.Length";
+	string Past(string position)
+	{
+		return BufferedInput ? $"!text.Ensure({position}, 1)" : $"(uint){position} >= (uint)text.Length";
+	}
 
 	/// <summary>Whether <paramref name="position"/> holds a character of the input.</summary>
-	string Within(string position) =>
-		BufferedInput ? $"text.Ensure({position}, 1)" : $"(uint){position} < (uint)text.Length";
+	string Within(string position)
+	{
+		return BufferedInput ? $"text.Ensure({position}, 1)" : $"(uint){position} < (uint)text.Length";
+	}
 
 	/// <summary>Whether fewer than <paramref name="count"/> characters remain from <c>p</c>, for a literal.</summary>
-	string LacksRoom(int count) =>
-		BufferedInput ? $"!text.Ensure(p, {count})" : $"(uint)(p + {count}) > (uint)text.Length";
+	string LacksRoom(int count)
+	{
+		return BufferedInput ? $"!text.Ensure(p, {count})" : $"(uint)(p + {count}) > (uint)text.Length";
+	}
 
 	/// <summary>Whether input remains at <paramref name="position"/>, which a whole reading refuses.</summary>
-	string NotAtEnd(string position) =>
-		BufferedInput ? $"text.Peek({position}, out _)" : $"{position} != text.Length";
+	string NotAtEnd(string position)
+	{
+		return BufferedInput ? $"text.Peek({position}, out _)" : $"{position} != text.Length";
+	}
 
 	/// <summary>
 	/// Writes <c>var <paramref name="into"/> = …;</c>: the position of the first of
@@ -141,7 +152,10 @@ sealed partial class Machine
 		BufferedInput ? "text.End" : "text.Length";
 
 	/// <summary>The text between two positions, for use at once: over a buffer it lives until the next read.</summary>
-	string Slice(string from, string to) => $"text.Slice({from}, {to} - {from})";
+	string Slice(string from, string to)
+	{
+		return $"text.Slice({from}, {to} - {from})";
+	}
 
 	const int Return = 0;
 	const int Accept = 1;
@@ -346,7 +360,10 @@ sealed partial class Machine
 	/// the one that did not restore on the way out of an exception at the same time.
 	/// </para>
 	/// </remarks>
-	Modes Keeping() => new(this);
+	Modes Keeping()
+	{
+		return new(this);
+	}
 
 	readonly ref struct Modes(Machine machine)
 	{
@@ -821,7 +838,10 @@ sealed partial class Machine
 	/// always used. That costs the boxing this exists to avoid and nothing else — the wrong
 	/// answer here would be a table that does not exist, and this cannot give one.
 	/// </remarks>
-	int TableFor(string type) => _valueTypes.IndexOf(type);
+	int TableFor(string type)
+	{
+		return _valueTypes.IndexOf(type);
+	}
 
 	/// <summary>A value table's number as the emitted text says it: by its type, until the file's order is known.</summary>
 	/// <remarks>
@@ -839,7 +859,10 @@ sealed partial class Machine
 	/// once, after the last machine has shared it.
 	/// </para>
 	/// </remarks>
-	internal static string TableName(string type) => TableOpens + type + TableCloses;
+	internal static string TableName(string type)
+	{
+		return TableOpens + type + TableCloses;
+	}
 
 	/// <summary>What a table's type stands between in the emitted text, for <c>CSharpEmitter.Numbered</c> to find.</summary>
 	internal const char TableOpens  = (char)3;
@@ -847,8 +870,10 @@ sealed partial class Machine
 	/// <summary>And where it ends.</summary>
 	internal const char TableCloses = (char)4;
 
-	string RecoveredType(RecoveryPlan plan) =>
-		plan.Element is { } element ? _results.ValueOf(element) : _results.ValueOf(plan.Rule);
+	string RecoveredType(RecoveryPlan plan)
+	{
+		return plan.Element is { } element ? _results.ValueOf(element) : _results.ValueOf(plan.Rule);
+	}
 
 	public void Register(RuleSymbol root, bool whole)
 	{
@@ -893,10 +918,12 @@ sealed partial class Machine
 	/// to disagree about: whether a rule can be lowered is a fact about the same body
 	/// <see cref="Register"/> would otherwise have compiled into the shared table.
 	/// </remarks>
-	Node BodyOf(RuleSymbol rule, bool whole) =>
-		whole && _graph.Trivia.TryGetValue(rule, out var trivia)
+	Node BodyOf(RuleSymbol rule, bool whole)
+	{
+		return whole && _graph.Trivia.TryGetValue(rule, out var trivia)
 			? new Node.Sequence([trivia, _graph.Bodies[rule], trivia])
 			: _graph.Bodies[rule];
+	}
 
 	/// <summary>
 	/// Whether a publication of <paramref name="rule"/> needs none of the three things the
@@ -936,8 +963,10 @@ sealed partial class Machine
 	IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> _follow =
 		new Dictionary<RuleSymbol, FollowSets.Continuation>();
 
-	FollowSets.Continuation Follows(RuleSymbol rule) =>
-		_follow.TryGetValue(rule, out var after) ? after : FollowSets.Continuation.All;
+	FollowSets.Continuation Follows(RuleSymbol rule)
+	{
+		return _follow.TryGetValue(rule, out var after) ? after : FollowSets.Continuation.All;
+	}
 
 	/// <summary>
 	/// The seam of the rule whose body is being compiled — which trivia a leading call
@@ -1177,10 +1206,12 @@ sealed partial class Machine
 	/// parse). Whoever makes one live across a call breaks the stream forms.
 	/// </para>
 	/// </remarks>
-	string Cut(string from, string length) =>
-		OverKinds
+	string Cut(string from, string length)
+	{
+		return OverKinds
 			? $"Text_DotGram{_tag}(parserSource, parserStarts, parserLengths, {from}, {length})"
 			: $"text.Slice({from}, {length}){(BorrowedCaptures ? "" : ".ToString()")}";
+	}
 
 	/// <summary>
 	/// The token a terminal that builds stands on: the source it came from, where it begins,
@@ -1191,20 +1222,24 @@ sealed partial class Machine
 	/// extent is that token's start and length, with no run to add up. Only over kinds: a
 	/// terminal is read again only because a lexer swallowed it.
 	/// </remarks>
-	string TokenOf(string at) =>
-		OverKinds
+	string TokenOf(string at)
+	{
+		return OverKinds
 			? $"parserSource, parserStarts[{at}], parserLengths[{at}]"
 			: throw new InvalidOperationException("A terminal is read again only over kinds.");
+	}
 
 	/// <summary>Where one position of the machine's own stands in the input.</summary>
 	/// <remarks>
 	/// A token's position is its first character's. Past the last token it is the end of the
 	/// input, which is where a refusal for running out has to point.
 	/// </remarks>
-	string At(string position) =>
-		OverKinds
+	string At(string position)
+	{
+		return OverKinds
 			? $"({position} < parserStarts.Length ? parserStarts[{position}] : parserSource.Length)"
 			: position;
+	}
 
 	/// <summary>The input as characters — what it is being read as, or what it came from.</summary>
 	string Source => OverKinds ? "global::System.MemoryExtensions.AsSpan(parserSource)" : "text";
@@ -3306,7 +3341,10 @@ sealed partial class Machine
 	/// a rule only in the source text.
 	/// </para>
 	/// </remarks>
-	bool CanInline(RuleSymbol rule) => _plan.CompiledInPlace.Contains(rule);
+	bool CanInline(RuleSymbol rule)
+	{
+		return _plan.CompiledInPlace.Contains(rule);
+	}
 
 	readonly ExecutionPlan _plan;
 
@@ -4051,8 +4089,9 @@ sealed partial class Machine
 
 		return Entered(node, next, following);
 
-		int Entered(Node at, int to, FollowSets.Continuation after) =>
-			at switch
+		int Entered(Node at, int to, FollowSets.Continuation after)
+		{
+			return at switch
 			{
 				// The terminal itself contributes no state: the dispatch steps over it.
 				Node.Element => to,
@@ -4066,6 +4105,7 @@ sealed partial class Machine
 				// BeginsWith admits these three and nothing else.
 				_ => throw new InvalidOperationException($"{at.GetType().Name} does not begin with a terminal."),
 			};
+		}
 
 		int Threaded(IReadOnlyList<Node> nodes, int to, FollowSets.Continuation after)
 		{
@@ -4091,16 +4131,18 @@ sealed partial class Machine
 	/// character class wearing a name, and an alternative that is a call to it begins with
 	/// its element as surely as if the class had been written in place.
 	/// </remarks>
-	bool BeginsWith(Node node, string test) =>
-		node switch
+	bool BeginsWith(Node node, string test)
+	{
+		return node switch
 		{
-			Node.Element element     => CSharpEmitter.Test(element) == $"({test})",
-			Node.Call(var rule, _)   => CanInline(rule) &&
-			                            _graph.Bodies.TryGetValue(rule, out var body) &&
-			                            BeginsWith(body, test),
+			Node.Element element => CSharpEmitter.Test(element) == $"({test})",
+			Node.Call(var rule, _) => CanInline(rule) &&
+										_graph.Bodies.TryGetValue(rule, out var body) &&
+										BeginsWith(body, test),
 			Node.Sequence(var nodes) => nodes.Count > 0 && BeginsWith(nodes[0], test),
-			_                        => false,
+			_ => false,
 		};
+	}
 
 	/// <summary>What a predicted choice's first sets accept, said as one element set would be.</summary>
 	/// <remarks>
@@ -4319,18 +4361,20 @@ sealed partial class Machine
 	/// than one is not, and not only for the obvious reason — its failure branch moves
 	/// <c>p</c> to the character that did not fit, for the diagnostic.
 	/// </remarks>
-	static bool FailsWhereItBegan(Node node) =>
-		node switch
+	static bool FailsWhereItBegan(Node node)
+	{
+		return node switch
 		{
 			Node.Empty or Node.Behind => true,
-			Node.Glue                 => true,
-			Node.Reading              => true,
-			Node.Element              => true,
-			Node.Literal(var text)    => text.Length == 1,
-			Node.Atomic(var kept)     => FailsWhereItBegan(kept),
-			Node.Marked(var kept, _)  => FailsWhereItBegan(kept),
-			_                         => false,
+			Node.Glue => true,
+			Node.Reading => true,
+			Node.Element => true,
+			Node.Literal(var text) => text.Length == 1,
+			Node.Atomic(var kept) => FailsWhereItBegan(kept),
+			Node.Marked(var kept, _) => FailsWhereItBegan(kept),
+			_ => false,
 		};
+	}
 
 	int GiveBack(int next, int depth, out string start, IReadOnlyList<string>? resetLocals = null)
 	{
@@ -4754,10 +4798,12 @@ sealed partial class Machine
 				return null;
 		}
 
-		static string Joined(List<string> tests) =>
-			tests.Count == 1
+		static string Joined(List<string> tests)
+		{
+			return tests.Count == 1
 				? tests[0]
 				: string.Join(" || ", tests.Select(static test => $"({test})"));
+		}
 	}
 
 	void LeaveRepeat(Writer writer, int next)
@@ -4782,8 +4828,10 @@ sealed partial class Machine
 		writer.Line($"goto {Label(writer, next)};");
 	}
 
-	int ValueRule(RuleSymbol rule) =>
-		_graph.Results[rule].Count > 0 || _graph.Types.ContainsKey(rule) ? _ruleIds[rule] : -1;
+	int ValueRule(RuleSymbol rule)
+	{
+		return _graph.Results[rule].Count > 0 || _graph.Types.ContainsKey(rule) ? _ruleIds[rule] : -1;
+	}
 
 	/// <summary>
 	/// The states something still names once the chained jumps are dropped.
@@ -4936,7 +4984,10 @@ sealed partial class Machine
 	/// character left, and <c>p + 1 &gt; text.Length</c> is the general form of that
 	/// question rather than the question.
 	/// </remarks>
-	string At(int offset) => ReadAt(offset == 0 ? "p" : $"p + {offset}");
+	string At(int offset)
+	{
+		return ReadAt(offset == 0 ? "p" : $"p + {offset}");
+	}
 
 	/// <summary>Whether the input is too short for <paramref name="count"/> more.</summary>
 	/// <remarks>
@@ -4975,15 +5026,19 @@ sealed partial class Machine
 	/// which is the one direction a room check may not fail in.
 	/// </para>
 	/// </remarks>
-	string Short(int count) =>
-		BufferedInput ? $"!text.Ensure(p, {count})" :
+	string Short(int count)
+	{
+		return BufferedInput ? $"!text.Ensure(p, {count})" :
 		count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
+	}
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
 	/// <remarks>The same the other way up — see <see cref="Short"/>.</remarks>
-	string Room(int count) =>
-		BufferedInput ? $"text.Ensure(p, {count})" :
+	string Room(int count)
+	{
+		return BufferedInput ? $"text.Ensure(p, {count})" :
 		count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
+	}
 
 	/// <summary>The literal as a span, for a comparison to be made against.</summary>
 	/// <remarks>
@@ -4993,11 +5048,16 @@ sealed partial class Machine
 	/// this is a compile error in somebody else's build. <c>DotGram.Compatibility</c> is
 	/// there to catch exactly this, and did.
 	/// </remarks>
-	static string Spanned(string value) =>
-		$"global::System.MemoryExtensions.AsSpan({Quoted(value)})";
+	static string Spanned(string value)
+	{
+		return $"global::System.MemoryExtensions.AsSpan({Quoted(value)})";
+	}
 
 	/// <summary>The literal as C# source (<see cref="CSharpEmitter.Quoted"/>).</summary>
-	static string Quoted(string value) => CSharpEmitter.Quoted(value);
+	static string Quoted(string value)
+	{
+		return CSharpEmitter.Quoted(value);
+	}
 
 	/// <summary>
 	/// Move <c>p</c> to the character of a literal that did not fit, knowing one of them
@@ -5027,8 +5087,10 @@ sealed partial class Machine
 	/// them. On the failing branch only, like everything else here.
 	/// </para>
 	/// </remarks>
-	void SharpenAll(Writer writer, IReadOnlyList<string> texts, IReadOnlyList<string> displays) =>
+	void SharpenAll(Writer writer, IReadOnlyList<string> texts, IReadOnlyList<string> displays)
+	{
 		writer.Line($"p = {Sharpening(texts, displays)}(text, p, ref expected);");
+	}
 
 	/// <summary>
 	/// The walk <see cref="SharpenAll"/> calls, written out of line and named: from <c>p</c> to
@@ -5191,12 +5253,16 @@ sealed partial class Machine
 	}
 
 	/// <summary>A character read, folded where the literal ignores case.</summary>
-	static string Folded(string read, bool ignoreCase) =>
-		ignoreCase ? $"global::System.Char.ToUpperInvariant({read})" : read;
+	static string Folded(string read, bool ignoreCase)
+	{
+		return ignoreCase ? $"global::System.Char.ToUpperInvariant({read})" : read;
+	}
 
 	/// <summary>And the constant it is compared against, folded the same way.</summary>
-	static string Folded(char value, bool ignoreCase) =>
-		CSharpEmitter.Char(ignoreCase ? char.ToUpperInvariant(value) : value);
+	static string Folded(char value, bool ignoreCase)
+	{
+		return CSharpEmitter.Char(ignoreCase ? char.ToUpperInvariant(value) : value);
+	}
 
 	int Reserve(out Writer writer)
 	{
@@ -5212,13 +5278,16 @@ sealed partial class Machine
 	/// committed choice of such tails can be compiled as a plain decision. The emitter's
 	/// answer to the shape the fold's <c>Committed</c> builds, asked of the same tails.
 	/// </summary>
-	static bool Weightless(Node node) => node switch
+	static bool Weightless(Node node)
 	{
-		Node.Empty or Node.Guard    => true,
-		Node.Construct(var body, _) => Weightless(body),
-		Node.Sequence(var parts)    => parts.All(Weightless),
-		_                           => false,
-	};
+		return node switch
+		{
+			Node.Empty or Node.Guard => true,
+			Node.Construct(var body, _) => Weightless(body),
+			Node.Sequence(var parts) => parts.All(Weightless),
+			_ => false,
+		};
+	}
 
 	bool KeepsRecords(Node body)
 	{
@@ -5237,7 +5306,10 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether a rule's value is where it matched rather than something built.</summary>
-	static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+	static string Escape(string value)
+	{
+		return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+	}
 
 	/// <summary>
 	/// A precomputed, once-per-occurrence table of what a terminal test would have
@@ -5544,7 +5616,10 @@ sealed partial class Machine
 	int _setCount;
 
 	/// <summary>The test a tabulated class is, over <c>c</c>.</summary>
-	static string TableTest(string name) => $"c <= {TableSize - 1} && {name}[c] != 0";
+	static string TableTest(string name)
+	{
+		return $"c <= {TableSize - 1} && {name}[c] != 0";
+	}
 
 	/// <summary>
 	/// How far a class table reaches: the whole of Latin-1, which is also where the kinds
@@ -5589,7 +5664,10 @@ sealed partial class Machine
 	}
 
 	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>
-	internal string Display(Node node) => string.Join(" or ", Displays(node));
+	internal string Display(Node node)
+	{
+		return string.Join(" or ", Displays(node));
+	}
 
 	/// <summary>
 	/// The kinds an element over kinds admits, its complement where it is negated, as a mask
@@ -5739,17 +5817,21 @@ sealed partial class Machine
 	/// <c>UnsignedLong_Hex</c> inside the generator, and what the author wrote is
 	/// <c>UnsignedLong</c> — the same leak a publication's <c>Lambda_With1</c> once was.
 	/// </remarks>
-	static string Named(TerminalInventory.Pattern pattern) =>
-		pattern is TerminalInventory.Pattern.Class @class
+	static string Named(TerminalInventory.Pattern pattern)
+	{
+		return pattern is TerminalInventory.Pattern.Class @class
 			? @class.Rule.OnFail ?? @class.Rule.Declaration?.Name ?? @class.Rule.Name
 			: pattern.ToString();
+	}
 
 	/// <summary>
 	/// What a refusal of this rule says: what it declared, or what a rule that collapsed into
 	/// it left behind (§4's <c>on fail</c>).
 	/// </summary>
-	internal string? SaysOf(RuleSymbol rule) =>
-		rule.OnFail ?? (_graph.Says.TryGetValue(rule, out var said) ? said : null);
+	internal string? SaysOf(RuleSymbol rule)
+	{
+		return rule.OnFail ?? (_graph.Says.TryGetValue(rule, out var said) ? said : null);
+	}
 
 	/// <summary>What a rule's <c>on fail</c> says, marked as the whole answer (§4, §7.5).</summary>
 	/// <remarks>
@@ -5758,7 +5840,10 @@ sealed partial class Machine
 	/// cannot write, which is how <c>Match&lt;T&gt;.Error</c> tells it from what could have
 	/// stood here and hands it back alone.
 	/// </remarks>
-	internal static string Spoken(string message) => "\u0000" + message;
+	internal static string Spoken(string message)
+	{
+		return "\u0000" + message;
+	}
 
 	string DeclareExpected(IReadOnlyList<string> display)
 	{
@@ -5877,15 +5962,20 @@ sealed partial class Machine
 		writer.Line($"goto {Label(writer, fail)};");
 	}
 
-	void PushRepeatExit(Writer writer, int exit) =>
+	void PushRepeatExit(Writer writer, int exit)
+	{
 		writer.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, exit)}, p, call, atomic, repeat, lookahead, 0));");
+	}
 
-	static string Label(int state) => state switch
+	static string Label(int state)
 	{
-		Return => "Return",
-		Accept => "Accept",
-		Fail   => "Fail",
-		_      => "S" + state,
-	};
+		return state switch
+		{
+			Return => "Return",
+			Accept => "Accept",
+			Fail => "Fail",
+			_ => "S" + state,
+		};
+	}
 }

@@ -11,10 +11,14 @@ namespace DotGram.VisualStudio.Tests.Playground;
 public static partial class StandaloneVisualStudioToolingPlayground
 {
 	// F12 on Raise in VisualStudioToolingPlayground.gram should land here.
-	static decimal Raise(decimal value, decimal exponent) =>
-		(decimal)Math.Pow((double)value, (double)exponent);
+	static decimal Raise(decimal value, decimal exponent)
+	{
+		return (decimal)Math.Pow((double)value, (double)exponent);
+	}
 
 	// F12 on ToolingEvaluate should return to its publication in the standalone .gram file.
-	public static decimal EvaluateForTooling(string expression) =>
-		ToolingEvaluate(expression);
+	public static decimal EvaluateForTooling(string expression)
+	{
+		return ToolingEvaluate(expression);
+	}
 }

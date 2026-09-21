@@ -146,7 +146,10 @@ public static partial class ExpressionParser
 		{
 			public bool Found { get; private set; }
 
-			public override Expression? Visit(Expression? node) => Found ? node : base.Visit(node);
+			public override Expression? Visit(Expression? node)
+			{
+				return Found ? node : base.Visit(node);
+			}
 
 			protected override Expression VisitExtension(Expression node)
 			{
@@ -162,16 +165,20 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>The parameter types a delegate takes, or null where it is no delegate.</summary>
-		internal static Type[]? Taken(Type delegated) =>
-			typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
+		internal static Type[]? Taken(Type delegated)
+		{
+			return typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
 				? Array.ConvertAll(invoke.GetParameters(), one => one.ParameterType)
 				: null;
+		}
 
 		/// <summary>What a delegate gives back — <c>void</c> where it gives nothing — or null where it is no delegate.</summary>
-		internal static Type? Returned(Type delegated) =>
-			typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
+		internal static Type? Returned(Type delegated)
+		{
+			return typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
 				? invoke.ReturnType
 				: null;
+		}
 	}
 
 	/// <summary>Whether an expression has a type of its own to be weighed by.</summary>
@@ -180,5 +187,8 @@ public static partial class ExpressionParser
 	/// the first by where it stands and the second by what it is handed to, so neither says
 	/// anything about which overload is the better one until that is settled.
 	/// </remarks>
-	static bool Typed(Expression value) => !ReferenceEquals(value, Null) && value is not Unbuilt;
+	static bool Typed(Expression value)
+	{
+		return !ReferenceEquals(value, Null) && value is not Unbuilt;
+	}
 }

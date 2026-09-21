@@ -71,10 +71,12 @@ public static partial class ExpressionParser
 	/// both of them read `s.length` as `s.Length`.
 	/// </para>
 	/// </remarks>
-	static MemberInfo? InstanceMember(Type type, string name, Assembly caller) =>
-		Cached(
+	static MemberInfo? InstanceMember(Type type, string name, Assembly caller)
+	{
+		return Cached(
 			_instanceMembers, (type, name, caller),
 			static key => SearchedMember(key.Item1, key.Item2, key.Item3));
+	}
 
 	/// <summary>The search <see cref="InstanceMember"/> makes, once for each type, name and caller.</summary>
 	static MemberInfo? SearchedMember(Type type, string name, Assembly caller)
@@ -117,16 +119,19 @@ public static partial class ExpressionParser
 	/// the type or one derived from it. A property is reachable where either of its accessors
 	/// is, as C# declares a property's accessibility and lets an accessor narrow it.
 	/// </remarks>
-	static bool Reachable(MemberInfo? member, Assembly caller) => member switch
+	static bool Reachable(MemberInfo? member, Assembly caller)
 	{
-		FieldInfo field =>
-			field.IsPublic || (field.IsAssembly || field.IsFamilyOrAssembly) && field.DeclaringType!.Assembly == caller,
-		MethodBase method =>
-			method.IsPublic || (method.IsAssembly || method.IsFamilyOrAssembly) && method.DeclaringType!.Assembly == caller,
-		PropertyInfo property =>
-			Reachable(property.GetMethod, caller) || Reachable(property.SetMethod, caller),
-		_ => false,
-	};
+		return member switch
+		{
+			FieldInfo field =>
+				field.IsPublic || (field.IsAssembly || field.IsFamilyOrAssembly) && field.DeclaringType!.Assembly == caller,
+			MethodBase method =>
+				method.IsPublic || (method.IsAssembly || method.IsFamilyOrAssembly) && method.DeclaringType!.Assembly == caller,
+			PropertyInfo property =>
+				Reachable(property.GetMethod, caller) || Reachable(property.SetMethod, caller),
+			_ => false,
+		};
+	}
 
 	/// <summary>The same element as a place to write rather than a value to read.</summary>
 	/// <remarks>

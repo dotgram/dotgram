@@ -105,8 +105,13 @@ public static partial class FeedReader
 	}
 
 	// The grammar has already said these are digits, so neither can fail.
-	static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
+	static int Number(string digits)
+	{
+		return int.Parse(digits, CultureInfo.InvariantCulture);
+	}
 
-	static DateOnly ToDate(Date date) =>
-		new(Number(date.Year), Number(date.Month), Number(date.Day));
+	static DateOnly ToDate(Date date)
+	{
+		return new(Number(date.Year), Number(date.Month), Number(date.Day));
+	}
 }

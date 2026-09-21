@@ -158,13 +158,15 @@ public sealed partial class GrammarNormalizer
 	/// spaced. A rule whose body carries its own seam has a seam inside a turn, and §4.5 says
 	/// the join between turns is the same seam.
 	/// </remarks>
-	bool Listed(Node turn) =>
-		turn switch
+	bool Listed(Node turn)
+	{
+		return turn switch
 		{
-			Node.Call(var called, { Count: 0 })                  => Spaceable(called),
+			Node.Call(var called, { Count: 0 }) => Spaceable(called),
 			Node.Capture(_, Node.Call(var called, { Count: 0 })) => Spaceable(called),
-			_                                                    => false,
+			_ => false,
 		};
+	}
 
 	/// <summary>Whether a called rule is a list's element or carries a seam of its own.</summary>
 	/// <remarks>
@@ -174,10 +176,12 @@ public sealed partial class GrammarNormalizer
 	/// mid-pass is safe because spacing only ever inserts seams, so a body examined before
 	/// its own turn comes round cannot lose one.
 	/// </remarks>
-	bool Spaceable(RuleSymbol called) =>
-		_types.ContainsKey(called) ||
+	bool Spaceable(RuleSymbol called)
+	{
+		return _types.ContainsKey(called) ||
 		_trivia.TryGetValue(called, out var inner) &&
 		_bodies.TryGetValue(called, out var body) &&
 		body is Node.Sequence(var parts) &&
 		parts.Any(part => IsSeam(part, inner));
+	}
 }

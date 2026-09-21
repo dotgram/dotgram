@@ -33,8 +33,10 @@ public static class Determinism
 {
 	/// <summary>Whether this node has at most one match, given what follows it.</summary>
 	public static bool Of(
-		Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
-		Of(node, [], following, graph, seam);
+		Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		return Of(node, [], following, graph, seam);
+	}
 
 	/// <summary>
 	/// Whether a repetition can be run to its end and never asked to give any of it back.
@@ -170,23 +172,29 @@ public static class Determinism
 	}
 
 	/// <summary>A node without the captures and constructions around it.</summary>
-	static Node Unbuilt(Node node) => node switch
+	static Node Unbuilt(Node node)
 	{
-		Node.Capture(_, var body)   => Unbuilt(body),
-		Node.Construct(var body, _) => Unbuilt(body),
-		_                           => node,
-	};
+		return node switch
+		{
+			Node.Capture(_, var body) => Unbuilt(body),
+			Node.Construct(var body, _) => Unbuilt(body),
+			_ => node,
+		};
+	}
 
 	/// <summary>What a turn begins with, past what is written around it rather than read.</summary>
-	static Node Leading(Node node) => node switch
+	static Node Leading(Node node)
 	{
-		Node.Sequence(var parts) when parts.Count > 0 => Leading(parts[0]),
-		Node.Capture(_, var held)                     => Leading(held),
-		Node.Construct(var built, _)                  => Leading(built),
-		Node.Marked(var kept, _)                      => Leading(kept),
-		Node.Atomic(var kept)                         => Leading(kept),
-		_                                             => node,
-	};
+		return node switch
+		{
+			Node.Sequence(var parts) when parts.Count > 0 => Leading(parts[0]),
+			Node.Capture(_, var held) => Leading(held),
+			Node.Construct(var built, _) => Leading(built),
+			Node.Marked(var kept, _) => Leading(kept),
+			Node.Atomic(var kept) => Leading(kept),
+			_ => node,
+		};
+	}
 
 	/// <summary>
 	/// The characters a continuation could meet by starting inside a span the seam
@@ -296,13 +304,18 @@ public static class Determinism
 
 		return null;
 
-		static bool Reads(Node body) => !NodeWalk.Descendants(body).Any(static node =>
+		static bool Reads(Node body)
+		{
+			return !NodeWalk.Descendants(body).Any(static node =>
 			node is Node.Guard or Node.Capture or Node.Construct or Node.Marked or Node.Lookahead or Node.Behind or Node.Glue or Node.External);
+		}
 	}
 
 	/// <summary>What a rule repeats, where its whole body is a repetition without a bound.</summary>
-	internal static Node? Starred(RuleSymbol rule, RecognitionGraph graph) =>
-		graph.Bodies.TryGetValue(rule, out var body) && body is Node.Repeat(var unit, _, null) ? unit : null;
+	internal static Node? Starred(RuleSymbol rule, RecognitionGraph graph)
+	{
+		return graph.Bodies.TryGetValue(rule, out var body) && body is Node.Repeat(var unit, _, null) ? unit : null;
+	}
 
 	internal static FirstSets.First Contained(RuleSymbol seam, RecognitionGraph graph)
 	{
@@ -320,28 +333,32 @@ public static class Determinism
 		};
 	}
 
-	static FirstSets.First Boundaries(Node unit, RecognitionGraph graph) => unit switch
+	static FirstSets.First Boundaries(Node unit, RecognitionGraph graph)
 	{
-		Node.Element                => FirstSets.Of(unit, graph),
-		Node.Literal(var text)      => text.Length == 0
-			? FirstSets.First.None
-			: FirstSets.First.Chars([new CharRange(text[0], text[0])]),
-		Node.Choice(var alternatives) => alternatives.Aggregate(
-			FirstSets.First.None, (set, alternative) => set.Or(Boundaries(alternative, graph))),
-		Node.Sequence(var sequenceParts) when sequenceParts.All(
-			static part => part is Node.Literal or Node.Element)
-			=> FirstSets.Of(unit, graph),
-		_ => FirstSets.First.All,
-	};
-
+		return unit switch
+		{
+			Node.Element => FirstSets.Of(unit, graph),
+			Node.Literal(var text) => text.Length == 0
+				? FirstSets.First.None
+				: FirstSets.First.Chars([new CharRange(text[0], text[0])]),
+			Node.Choice(var alternatives) => alternatives.Aggregate(
+				FirstSets.First.None, (set, alternative) => set.Or(Boundaries(alternative, graph))),
+			Node.Sequence(var sequenceParts) when sequenceParts.All(
+				static part => part is Node.Literal or Node.Element)
+				=> FirstSets.Of(unit, graph),
+			_ => FirstSets.First.All,
+		};
+	}
 
 	static bool Possessive(
-		Node body, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
-		following.Plain.IsKnown &&
+		Node body, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		return following.Plain.IsKnown &&
 		!FirstSets.Nullable(body, graph) &&
 		!Decides(body, graph, seam).Overlaps(Against(body, following, seam)) &&
 		Of(body, asked, following.Or(new FollowSets.Continuation(
 			FirstSets.Of(body, graph), FirstSets.Of(body, graph))), graph, seam);
+	}
 
 	/// <summary>
 	/// What tells a turn from the continuation behind it: the turn's own first set, or what
@@ -355,45 +372,53 @@ public static class Determinism
 	/// the two overlap on the trivia itself and the comparison says nothing, which on a
 	/// grammar written the way §4.5 recommends is nearly every loop there is.
 	/// </remarks>
-	static FirstSets.First Decides(Node body, RecognitionGraph graph, RuleSymbol? seam) =>
-		Past(body, seam) is { } past ? FirstSets.Of(past, graph) : FirstSets.Of(body, graph);
+	static FirstSets.First Decides(Node body, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		return Past(body, seam) is { } past ? FirstSets.Of(past, graph) : FirstSets.Of(body, graph);
+	}
 
 	/// <summary>And the half of the continuation it is compared against.</summary>
-	static FirstSets.First Against(Node body, FollowSets.Continuation following, RuleSymbol? seam) =>
-		Past(body, seam) is null ? following.Plain : following.AfterSeam;
+	static FirstSets.First Against(Node body, FollowSets.Continuation following, RuleSymbol? seam)
+	{
+		return Past(body, seam) is null ? following.Plain : following.AfterSeam;
+	}
 
 	/// <summary>A turn with the trivia it leads with taken off, or null where it leads with none.</summary>
-	static Node? Past(Node body, RuleSymbol? seam) =>
-		seam is not null &&
+	static Node? Past(Node body, RuleSymbol? seam)
+	{
+		return seam is not null &&
 		body is Node.Sequence(var parts) &&
 		parts.Count > 1 &&
 		parts[0] is Node.Call(var called, { Count: 0 }) &&
 		ReferenceEquals(called, seam)
 			? parts.Count == 2 ? parts[1] : new Node.Sequence([.. parts.Skip(1)])
 			: null;
+	}
 
 	static bool Of(
-		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam) =>
-		node switch
+		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+	{
+		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
 			Node.Literal or Node.Element or Node.External => true,
-			Node.Capture  (_, var body)   => Of(body, asked, following, graph, seam),
-			Node.Construct(var body, _)   => Of(body, asked, following, graph, seam),
+			Node.Capture(_, var body) => Of(body, asked, following, graph, seam),
+			Node.Construct(var body, _) => Of(body, asked, following, graph, seam),
 			// An atomic group commits its first reading and never gives one back, which is
 			// what "at most one match" says. Looking inside asked a harder question than the
 			// braces already answer, and answered it badly wherever the body was a choice or
 			// a star — which is every trivia written the way §4.5 recommends, and so nearly
 			// every grammar.
-			Node.Atomic                   => true,
-			Node.Marked   (var body, _)   => Of(body, asked, following, graph, seam),
-			Node.Sequence (var parts)     => All(parts, asked, following, graph, seam),
-			Node.Choice   (var options)   => Distinguishable(options, graph) &&
-			                                 All(options, asked, following, graph, seam, sequence: false),
-			Node.Repeat   (var body, _, _) => Possessive(body, asked, following, graph, seam),
-			Node.Call     (var rule, _)   => Of(rule, asked, following, graph, seam),
-			_                             => false,
+			Node.Atomic => true,
+			Node.Marked(var body, _) => Of(body, asked, following, graph, seam),
+			Node.Sequence(var parts) => All(parts, asked, following, graph, seam),
+			Node.Choice(var options) => Distinguishable(options, graph) &&
+											 All(options, asked, following, graph, seam, sequence: false),
+			Node.Repeat(var body, _, _) => Possessive(body, asked, following, graph, seam),
+			Node.Call(var rule, _) => Of(rule, asked, following, graph, seam),
+			_ => false,
 		};
+	}
 
 	/// <summary>Whether a call is to something determinate, guarded against calling round.</summary>
 	/// <remarks>

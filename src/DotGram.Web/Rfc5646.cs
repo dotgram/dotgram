@@ -43,8 +43,10 @@ public sealed record LanguageTag(
 {
 	/// <summary>A well-formed language tag (RFC 5646 §2.1), whatever its case.</summary>
 	/// <exception cref="FormatException">The text is no well-formed tag; the message says where.</exception>
-	public static LanguageTag Parse(string text) =>
-		Rfc5646.ParseTag(text ?? throw new ArgumentNullException(nameof(text)));
+	public static LanguageTag Parse(string text)
+	{
+		return Rfc5646.ParseTag(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A well-formed language tag, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out LanguageTag? tag)
@@ -64,17 +66,23 @@ public sealed record LanguageTag(
 		/// Whether the other extension has the same singleton and the same subtags, letter case
 		/// aside.
 		/// </summary>
-		public bool Equals(Extension? other) =>
-			other is not null && Lower(Singleton) == Lower(other.Singleton) && Structural.Same(Subtags, other.Subtags, Cases);
+		public bool Equals(Extension? other)
+		{
+			return other is not null && Lower(Singleton) == Lower(other.Singleton) && Structural.Same(Subtags, other.Subtags, Cases);
+		}
 
 		/// <summary>A hash over the singleton and the subtags, letter case aside.</summary>
-		public override int GetHashCode() => Structural.Combine(Lower(Singleton), Structural.Hash(Subtags, Cases));
+		public override int GetHashCode()
+		{
+			return Structural.Combine(Lower(Singleton), Structural.Hash(Subtags, Cases));
+		}
 	}
 
 	/// <summary>Equal to another tag whatever the case of either: case carries no meaning in a tag (§2.1.1).</summary>
 	/// <remarks>The parts keep the case they were written in; it is only not asked here.</remarks>
-	public bool Equals(LanguageTag? other) =>
-		other is not null &&
+	public bool Equals(LanguageTag? other)
+	{
+		return other is not null &&
 		Cases.Equals(Language, other.Language) &&
 		Structural.Same(ExtendedLanguages, other.ExtendedLanguages, Cases) &&
 		Cases.Equals(Script, other.Script) &&
@@ -83,6 +91,7 @@ public sealed record LanguageTag(
 		Structural.Same(Extensions, other.Extensions) &&
 		Structural.Same(PrivateUse, other.PrivateUse, Cases) &&
 		Cases.Equals(Grandfathered, other.Grandfathered);
+	}
 
 	/// <summary>A hash over every part of the tag, letter case aside.</summary>
 	public override int GetHashCode()
@@ -177,9 +186,15 @@ public sealed record LanguageTag(
 		}
 	}
 
-	static char Lower(char c) => c is >= 'A' and <= 'Z' ? (char)(c + ('a' - 'A')) : c;
+	static char Lower(char c)
+	{
+		return c is >= 'A' and <= 'Z' ? (char)(c + ('a' - 'A')) : c;
+	}
 
-	static char Upper(char c) => c is >= 'a' and <= 'z' ? (char)(c - ('a' - 'A')) : c;
+	static char Upper(char c)
+	{
+		return c is >= 'a' and <= 'z' ? (char)(c - ('a' - 'A')) : c;
+	}
 }
 
 // RFC 5646, Tags for Identifying Languages — BCP 47. The grammar is Figure 1, §2.1's ABNF,
@@ -274,6 +289,8 @@ static partial class Rfc5646
 {
 	// ParseTag and TryParseTag are generated here.
 
-	internal static LanguageTag Registered(string tag) =>
-		new(null, [], null, null, [], [], [], tag);
+	internal static LanguageTag Registered(string tag)
+	{
+		return new(null, [], null, null, [], [], [], tag);
+	}
 }

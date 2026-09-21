@@ -308,8 +308,10 @@ static class FixRuleCompiled
 		return clock.ElapsedTicks;
 	}
 
-	static double Nanoseconds(long ticks, int operations) =>
-		ticks * (1_000_000_000.0 / Stopwatch.Frequency) / operations;
+	static double Nanoseconds(long ticks, int operations)
+	{
+		return ticks * (1_000_000_000.0 / Stopwatch.Frequency) / operations;
+	}
 
 	static string Repository()
 	{
@@ -330,12 +332,14 @@ static class FixRuleCompiled
 	}
 
 	/// <summary>One rule over a table of composed ones, so that the two sides are the same shape.</summary>
-	static FixMessageRule Composed(Dictionary<string, FixMessageRule> rules) =>
-		(message, findings) =>
+	static FixMessageRule Composed(Dictionary<string, FixMessageRule> rules)
+	{
+		return (message, findings) =>
 		{
 			if (rules.TryGetValue(message.MessageType, out var rule))
 				rule(message, findings);
 		};
+	}
 
 	/// <summary>Runs a rule the way Validate runs the field's.</summary>
 	static FixFinding[] Answer(FixMessageRule rule, FixMessage message)

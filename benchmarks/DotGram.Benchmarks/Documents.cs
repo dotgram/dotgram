@@ -79,13 +79,22 @@ public class Documents
 	}
 
 	[Benchmark(Baseline = true, Description = "dense, no seams to skip")]
-	public int Dense_() => Config.Read(Dense).Length;
+	public int Dense_()
+	{
+		return Config.Read(Dense).Length;
+	}
 
 	[Benchmark(Description = "spaced")]
-	public int Spaced_() => Config.Read(Spaced).Length;
+	public int Spaced_()
+	{
+		return Config.Read(Spaced).Length;
+	}
 
 	[Benchmark(Description = "spaced, with comments")]
-	public int Commented_() => Config.Read(Commented).Length;
+	public int Commented_()
+	{
+		return Config.Read(Commented).Length;
+	}
 }
 
 /// <summary>
@@ -120,5 +129,8 @@ public class Documents
 	""")]
 public partial class Config
 {
-	public static Setting[] Read(string text) => ParseFile(text);
+	public static Setting[] Read(string text)
+	{
+		return ParseFile(text);
+	}
 }

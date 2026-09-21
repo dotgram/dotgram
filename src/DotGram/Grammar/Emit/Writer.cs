@@ -13,7 +13,10 @@ sealed class Writer(int depth)
 	readonly string? _observing;
 
 	/// <summary>Observes a substring within written lines without retaining their text.</summary>
-	public Writer(int depth, string observing) : this(depth) => _observing = observing;
+	public Writer(int depth, string observing) : this(depth)
+	{
+		_observing = observing;
+	}
 
 	public bool Observed { get; private set; }
 
@@ -170,7 +173,10 @@ sealed class Writer(int depth)
 	/// Read their line ranges directly and emit CRLF, without copying the whole block to
 	/// normalize its endings or to append a final ending.
 	/// </remarks>
-	public void Write(string text) => AppendLines(text, 0, normalize: true);
+	public void Write(string text)
+	{
+		AppendLines(text, 0, normalize: true);
+	}
 
 	/// <summary>Appends another writer's text, shifted in to this one's depth.</summary>
 	/// <remarks>
@@ -178,7 +184,10 @@ sealed class Writer(int depth)
 	/// what puts a C# error under the code the author wrote (§7.6) — so shifting those
 	/// lines in would move every error one tab to the right of where it belongs.
 	/// </remarks>
-	public void AppendIndented(Writer other, int extra = 1) => AppendLines(other.ToString(), extra);
+	public void AppendIndented(Writer other, int extra = 1)
+	{
+		AppendLines(other.ToString(), extra);
+	}
 
 	/// <summary>Appends line ranges, optionally normalizing raw text and closing its last line.</summary>
 	/// <remarks>
@@ -239,8 +248,10 @@ sealed class Writer(int depth)
 			at = end + (normalize ? 1 : Lines.Ending.Length);
 		}
 
-		static bool Leads(string text, int at, int length, string prefix) =>
-			length >= prefix.Length && string.CompareOrdinal(text, at, prefix, 0, prefix.Length) == 0;
+		static bool Leads(string text, int at, int length, string prefix)
+		{
+			return length >= prefix.Length && string.CompareOrdinal(text, at, prefix, 0, prefix.Length) == 0;
+		}
 	}
 
 	/// <summary>A sink for complete method/reader groups; host fields never use this path.</summary>
@@ -252,7 +263,10 @@ sealed class Writer(int depth)
 			Write(text);
 	}
 
-	public override string ToString() => _text.ToString();
+	public override string ToString()
+	{
+		return _text.ToString();
+	}
 
 	sealed class Closer(Writer writer) : IDisposable
 	{
@@ -265,6 +279,9 @@ sealed class Writer(int depth)
 
 	sealed class Outdenter(Writer writer) : IDisposable
 	{
-		public void Dispose() => writer._depth--;
+		public void Dispose()
+		{
+			writer._depth--;
+		}
 	}
 }

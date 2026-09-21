@@ -28,7 +28,10 @@ sealed class GramNativeNavigationListener : IWpfTextViewCreationListener
 	readonly IVsEditorAdaptersFactoryService _adapters;
 
 	[ImportingConstructor]
-	public GramNativeNavigationListener(IVsEditorAdaptersFactoryService adapters) => _adapters = adapters;
+	public GramNativeNavigationListener(IVsEditorAdaptersFactoryService adapters)
+	{
+		_adapters = adapters;
+	}
 
 	public void TextViewCreated(IWpfTextView textView)
 	{
@@ -173,20 +176,43 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 		return moniker?.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) == true;
 	}
 
-	public int OnAfterFirstDocumentLock(uint cookie, uint lockType, uint readLocks, uint editLocks) => VSConstants.S_OK;
-	public int OnBeforeLastDocumentUnlock(uint cookie, uint lockType, uint readLocks, uint editLocks) => VSConstants.S_OK;
-	public int OnAfterSave(uint cookie) => VSConstants.S_OK;
-	public int OnAfterAttributeChange(uint cookie, uint attributes) => VSConstants.S_OK;
+	public int OnAfterFirstDocumentLock(uint cookie, uint lockType, uint readLocks, uint editLocks)
+	{
+		return VSConstants.S_OK;
+	}
+
+	public int OnBeforeLastDocumentUnlock(uint cookie, uint lockType, uint readLocks, uint editLocks)
+	{
+		return VSConstants.S_OK;
+	}
+
+	public int OnAfterSave(uint cookie)
+	{
+		return VSConstants.S_OK;
+	}
+
+	public int OnAfterAttributeChange(uint cookie, uint attributes)
+	{
+		return VSConstants.S_OK;
+	}
+
 	public int OnAfterAttributeChangeEx(
-		uint cookie,
-		uint attributes,
-		IVsHierarchy oldHierarchy,
-		uint oldItemId,
-		string oldMoniker,
-		IVsHierarchy newHierarchy,
-		uint newItemId,
-		string newMoniker) => VSConstants.S_OK;
-	public int OnBeforeSave(uint cookie) => VSConstants.S_OK;
+			uint cookie,
+			uint attributes,
+			IVsHierarchy oldHierarchy,
+			uint oldItemId,
+			string oldMoniker,
+			IVsHierarchy newHierarchy,
+			uint newItemId,
+			string newMoniker)
+	{
+		return VSConstants.S_OK;
+	}
+
+	public int OnBeforeSave(uint cookie)
+	{
+		return VSConstants.S_OK;
+	}
 }
 
 sealed class GramPriorityCommandTarget(
@@ -228,9 +254,11 @@ sealed class GramPriorityCommandTarget(
 				: null;
 	}
 
-	static bool IsFindReferences(Guid group, uint commandId) =>
-		group == VSConstants.GUID_VSStandardCommandSet97 &&
+	static bool IsFindReferences(Guid group, uint commandId)
+	{
+		return group == VSConstants.GUID_VSStandardCommandSet97 &&
 		commandId == (uint)VSConstants.VSStd97CmdID.FindReferences;
+	}
 }
 
 sealed class GramCodeWindowManager(IVsCodeWindow codeWindow) : IVsCodeWindowManager
@@ -277,7 +305,10 @@ sealed class GramCodeWindowManager(IVsCodeWindow codeWindow) : IVsCodeWindowMana
 			: VSConstants.S_OK;
 	}
 
-	public int OnNewView(IVsTextView view) => VSConstants.S_OK;
+	public int OnNewView(IVsTextView view)
+	{
+		return VSConstants.S_OK;
+	}
 }
 
 sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
@@ -333,7 +364,10 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 		return Valid(index) ? VSConstants.S_OK : VSConstants.E_INVALIDARG;
 	}
 
-	public int OnItemSelected(int combo, int index) => VSConstants.S_OK;
+	public int OnItemSelected(int combo, int index)
+	{
+		return VSConstants.S_OK;
+	}
 
 	public int OnItemChosen(int combo, int index)
 	{
@@ -349,7 +383,10 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 		return VSConstants.S_OK;
 	}
 
-	public int OnComboGetFocus(int combo) => VSConstants.S_OK;
+	public int OnComboGetFocus(int combo)
+	{
+		return VSConstants.S_OK;
+	}
 
 	public int GetComboTipText(int combo, out string text)
 	{
@@ -367,7 +404,10 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 		SelectAtCaret();
 	}
 
-	void CaretChanged(object sender, CaretPositionChangedEventArgs args) => SelectAtCaret();
+	void CaretChanged(object sender, CaretPositionChangedEventArgs args)
+	{
+		SelectAtCaret();
+	}
 
 	void Refresh(ITextSnapshot snapshot)
 	{
@@ -415,7 +455,10 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 		_dropdown.SetCurrentSelection(0, selected);
 	}
 
-	bool Valid(int index) => index >= 0 && index < _items.Count;
+	bool Valid(int index)
+	{
+		return index >= 0 && index < _items.Count;
+	}
 
 	public void Dispose()
 	{

@@ -323,13 +323,18 @@ static class ExpressionAgainst
 	/// abandons, and one of them may throw what the host throws for text it refuses
 	/// (CarrierKind.Immediate; the architect's ruling of 2026-09-18).
 	/// </remarks>
-	static bool Agrees(string tape, string immediate) =>
-		tape == immediate ||
+	static bool Agrees(string tape, string immediate)
+	{
+		return tape == immediate ||
 		tape.StartsWith("refused ", StringComparison.Ordinal) && immediate.StartsWith("threw ", StringComparison.Ordinal);
+	}
 
 	enum Reading { Tape, Immediate, Hand }
 
-	static int Nothing(string input) => input.Length & 1;
+	static int Nothing(string input)
+	{
+		return input.Length & 1;
+	}
 
 	/// <remarks>
 	/// Nothing is done about the collector between samples, and that was tried: settling

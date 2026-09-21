@@ -33,7 +33,10 @@ public sealed record RuleSymbol(
 	/// </remarks>
 	public string? OnFail => Declaration?.OnFail;
 
-	public override string ToString() => Name;
+	public override string ToString()
+	{
+		return Name;
+	}
 
 	// ── Equality ─────────────────────────────────────────────────────────────────
 
@@ -46,13 +49,15 @@ public sealed record RuleSymbol(
 	/// once; and because a record compares every field it declares, equality is written out
 	/// here too, or two equal symbols would differ by whether either had been hashed yet.
 	/// </remarks>
-	public bool Equals(RuleSymbol? other) =>
-		ReferenceEquals(this, other) ||
+	public bool Equals(RuleSymbol? other)
+	{
+		return ReferenceEquals(this, other) ||
 		other is not null &&
 		(_hash == 0 || other._hash == 0 || _hash == other._hash) &&
 		base.Equals(other) &&
 		ReferenceEquals(Namespace, other.Namespace) &&
 		EqualityComparer<Decl.Rule?>.Default.Equals(Declaration, other.Declaration);
+	}
 
 	public override int GetHashCode()
 	{
@@ -195,9 +200,20 @@ public sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool
 		return true;
 	}
 
-	internal void Add(GrammarNamespace nested)   => _nested.Add(nested);
-	internal void Import(GrammarNamespace other) => _imports.Add(other);
-	internal void ImportCSharp(string name)      => _csharpImports.Add(name);
+	internal void Add(GrammarNamespace nested)
+	{
+		_nested.Add(nested);
+	}
+
+	internal void Import(GrammarNamespace other)
+	{
+		_imports.Add(other);
+	}
+
+	internal void ImportCSharp(string name)
+	{
+		_csharpImports.Add(name);
+	}
 
 	/// <summary>
 	/// Looks a name up the way §5 says: this namespace, then what it imports, then
@@ -272,7 +288,10 @@ public sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool
 		return FindNamespace(path);
 	}
 
-	public override string ToString() => Name.Length == 0 ? "<global>" : Name;
+	public override string ToString()
+	{
+		return Name.Length == 0 ? "<global>" : Name;
+	}
 }
 
 /// <summary>
@@ -285,9 +304,15 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 {
 	public static readonly NodeIdentityComparer Instance = new();
 
-	public bool Equals(Expr? x, Expr? y) => ReferenceEquals(x, y);
+	public bool Equals(Expr? x, Expr? y)
+	{
+		return ReferenceEquals(x, y);
+	}
 
-	public int GetHashCode(Expr node) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(node);
+	public int GetHashCode(Expr node)
+	{
+		return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(node);
+	}
 }
 
 /// <summary>
@@ -339,8 +364,10 @@ public sealed record Publication(
 	public bool YieldBatch { get; init; }
 
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
-	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
-		(kind == PublishKind.Parse ? "Parse" : "Find") + ruleName;
+	public static string DefaultMethodName(PublishKind kind, string ruleName)
+	{
+		return (kind == PublishKind.Parse ? "Parse" : "Find") + ruleName;
+	}
 
 	/// <summary>What every method this publication makes is declared as (§6).</summary>
 	/// <remarks>
@@ -350,7 +377,10 @@ public sealed record Publication(
 	/// </remarks>
 	public PublishAccess Access { get; init; }
 
-	public override string ToString() => $"{Kind} {Rule.Name} -> {MethodName}";
+	public override string ToString()
+	{
+		return $"{Kind} {Rule.Name} -> {MethodName}";
+	}
 }
 
 /// <summary>What binding produced: a namespace tree, resolved references, diagnostics.</summary>

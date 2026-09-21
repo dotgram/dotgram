@@ -86,7 +86,10 @@ public static partial class StreamingFeedReader
 	/// A missing header or trailer, or anything after it — thrown where the sequence is
 	/// walked rather than where it was asked for, because nothing is read until then.
 	/// </exception>
-	public static IEnumerable<FeedPart> Read(TextReader input) => ParseFeed(input);
+	public static IEnumerable<FeedPart> Read(TextReader input)
+	{
+		return ParseFeed(input);
+	}
 
 	/// <summary>
 	/// Reads a feed from lines, which is the same thing said another way.
@@ -97,7 +100,10 @@ public static partial class StreamingFeedReader
 	/// them taken off, so the parser puts them back. <c>File.ReadLines</c> is the ordinary
 	/// caller, and it is lazy too, so the file is still read as the parts are asked for.
 	/// </remarks>
-	public static IEnumerable<FeedPart> Read(IEnumerable<string> lines) => ParseFeed(lines);
+	public static IEnumerable<FeedPart> Read(IEnumerable<string> lines)
+	{
+		return ParseFeed(lines);
+	}
 
 	/// <summary>
 	/// What the feed adds up to, without ever holding it.
@@ -145,8 +151,13 @@ public static partial class StreamingFeedReader
 	}
 
 	// Reachable from the grammar's `=>`, which becomes a method of this same class.
-	static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
+	static int Number(string digits)
+	{
+		return int.Parse(digits, CultureInfo.InvariantCulture);
+	}
 
-	static DateOnly ToDate(Date date) =>
-		new(Number(date.Year), Number(date.Month), Number(date.Day));
+	static DateOnly ToDate(Date date)
+	{
+		return new(Number(date.Year), Number(date.Month), Number(date.Day));
+	}
 }

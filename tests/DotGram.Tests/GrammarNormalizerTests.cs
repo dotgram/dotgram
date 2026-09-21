@@ -18,13 +18,17 @@ namespace DotGram.Tests;
 /// </summary>
 public sealed class GrammarNormalizerTests
 {
-	static RecognitionGraph Normalize(string source) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Normalize(string source)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).File));
+	}
 
-	static string[] Diagnostics(string source) =>
-		[.. Normalize(source).Diagnostics.Select(d => d.Id)];
+	static string[] Diagnostics(string source)
+	{
+		return [.. Normalize(source).Diagnostics.Select(d => d.Id)];
+	}
 
 	[Fact]
 	public void Merges_adjacent_literals()
@@ -217,7 +221,8 @@ public sealed class GrammarNormalizerTests
 	/// generated file, so it is rendered rather than described.
 	/// </summary>
 	[Fact]
-	public void C_sharp_values_come_through_as_C_sharp() =>
+	public void C_sharp_values_come_through_as_C_sharp()
+	{
 		Assert.Equal(
 			"""
 			N = ['0'..'9']+ => int.Parse(text, CultureInfo.InvariantCulture)
@@ -231,6 +236,7 @@ public sealed class GrammarNormalizerTests
 				Q : @Row = ['a'..'z']+ => @Make<@Row, @int>(text)
 				R : @int = ['a'..'z']+ => @(text.Length * 2)
 				""").ToString());
+	}
 
 	[Fact]
 	public void A_correct_grammar_normalizes_without_complaint()
@@ -248,11 +254,13 @@ public sealed class GrammarNormalizerTests
 
 	// ── Namespace rebindings — §22, §25 ─────────────────────────────────────────
 
-	static RecognitionGraph Normalize(string source, ISymbolResolver resolver) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Normalize(string source, ISymbolResolver resolver)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).File, resolver),
 			resolver);
+	}
 
 	[Fact]
 	public void An_ordinary_namespace_body_declaration_stays_lexical_and_clones_nothing()
@@ -735,9 +743,15 @@ public sealed class GrammarNormalizerTests
 
 	sealed class StrictAssignabilityResolver : ISymbolResolver
 	{
-		public bool TypeExists(string qualifiedName) => true;
+		public bool TypeExists(string qualifiedName)
+		{
+			return true;
+		}
 
-		public bool IsAssignable(string from, string to) => from == to;
+		public bool IsAssignable(string from, string to)
+		{
+			return from == to;
+		}
 
 		public bool TryResolveConstructors(
 			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
@@ -761,10 +775,15 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.NotFound;
 		}
 
-		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
-			ExternalMethodResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+		{
+			return ExternalMethodResolution.Found;
+		}
 
-		public bool Rewinds(string qualifiedName) => false;
+		public bool Rewinds(string qualifiedName)
+		{
+			return false;
+		}
 	}
 
 	// ── External recognizers with a value of their own — §7.1's third row ────────
@@ -776,10 +795,15 @@ public sealed class GrammarNormalizerTests
 	/// </summary>
 	sealed class TimestampResolver : ISymbolResolver
 	{
-		public bool TypeExists(string qualifiedName) => true;
+		public bool TypeExists(string qualifiedName)
+		{
+			return true;
+		}
 
-		public bool IsAssignable(string from, string to) =>
-			string.Equals(from, to, StringComparison.Ordinal);
+		public bool IsAssignable(string from, string to)
+		{
+			return string.Equals(from, to, StringComparison.Ordinal);
+		}
 
 		public bool TryResolveConstructors(
 			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
@@ -811,10 +835,15 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.Found;
 		}
 
-		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
-			ExternalMethodResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+		{
+			return ExternalMethodResolution.Found;
+		}
 
-		public bool Rewinds(string qualifiedName) => false;
+		public bool Rewinds(string qualifiedName)
+		{
+			return false;
+		}
 	}
 
 	[Fact]
@@ -860,9 +889,15 @@ public sealed class GrammarNormalizerTests
 
 	sealed class AmbiguousResolver : ISymbolResolver
 	{
-		public bool TypeExists(string qualifiedName) => true;
+		public bool TypeExists(string qualifiedName)
+		{
+			return true;
+		}
 
-		public bool IsAssignable(string from, string to) => string.Equals(from, to, StringComparison.Ordinal);
+		public bool IsAssignable(string from, string to)
+		{
+			return string.Equals(from, to, StringComparison.Ordinal);
+		}
 
 		public bool TryResolveConstructors(
 			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
@@ -886,10 +921,15 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.Ambiguous;
 		}
 
-		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
-			ExternalMethodResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+		{
+			return ExternalMethodResolution.Found;
+		}
 
-		public bool Rewinds(string qualifiedName) => false;
+		public bool Rewinds(string qualifiedName)
+		{
+			return false;
+		}
 	}
 
 	/// <summary>A recognizer the host cannot call is said about the grammar, in the words of what is wrong with it.</summary>
@@ -924,9 +964,15 @@ public sealed class GrammarNormalizerTests
 	/// <summary>`@Nowhere` names nothing, and `@Misshapen` names methods of another shape.</summary>
 	sealed class MissingResolver : ISymbolResolver
 	{
-		public bool TypeExists(string qualifiedName) => true;
+		public bool TypeExists(string qualifiedName)
+		{
+			return true;
+		}
 
-		public bool IsAssignable(string from, string to) => string.Equals(from, to, StringComparison.Ordinal);
+		public bool IsAssignable(string from, string to)
+		{
+			return string.Equals(from, to, StringComparison.Ordinal);
+		}
 
 		public bool TryResolveConstructors(
 			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
@@ -950,11 +996,16 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.NotFound;
 		}
 
-		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
-			methodName == "Nowhere"
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+		{
+			return methodName == "Nowhere"
 				? ExternalMethodResolution.NoMethod
 				: ExternalMethodResolution.NoOverload;
+		}
 
-		public bool Rewinds(string qualifiedName) => false;
+		public bool Rewinds(string qualifiedName)
+		{
+			return false;
+		}
 	}
 }

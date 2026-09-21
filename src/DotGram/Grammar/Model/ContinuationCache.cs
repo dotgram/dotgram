@@ -19,9 +19,12 @@ sealed class ContinuationCache
 
 	sealed class Keys : IEqualityComparer<Key>
 	{
-		public bool Equals(Key x, Key y) => ReferenceEquals(x.Node, y.Node) &&
+		public bool Equals(Key x, Key y)
+		{
+			return ReferenceEquals(x.Node, y.Node) &&
 			ReferenceEquals(x.Seam, y.Seam) && x.Plain == y.Plain && x.AfterSeam == y.AfterSeam &&
 			x.Lead.Equals(y.Lead);
+		}
 
 		public int GetHashCode(Key key)
 		{
@@ -37,14 +40,24 @@ sealed class ContinuationCache
 
 	sealed class FirstIdentity : IEqualityComparer<FirstSets.First>
 	{
-		public bool Equals(FirstSets.First? x, FirstSets.First? y) => ReferenceEquals(x, y);
-		public int GetHashCode(FirstSets.First value) => RuntimeHelpers.GetHashCode(value);
+		public bool Equals(FirstSets.First? x, FirstSets.First? y)
+		{
+			return ReferenceEquals(x, y);
+		}
+
+		public int GetHashCode(FirstSets.First value)
+		{
+			return RuntimeHelpers.GetHashCode(value);
+		}
 	}
 
 	sealed class FirstContents : IEqualityComparer<FirstSets.First>
 	{
-		public bool Equals(FirstSets.First? x, FirstSets.First? y) => ReferenceEquals(x, y) ||
+		public bool Equals(FirstSets.First? x, FirstSets.First? y)
+		{
+			return ReferenceEquals(x, y) ||
 			x is not null && y is not null && FirstSets.Same(x, y);
+		}
 
 		public int GetHashCode(FirstSets.First value)
 		{
@@ -74,6 +87,8 @@ sealed class ContinuationCache
 		return id;
 	}
 
-	internal Key Of(Node node, FollowSets.Continuation following, RuleSymbol? seam) =>
-		new(node, seam, Identify(following.Plain), Identify(following.AfterSeam), following.Lead);
+	internal Key Of(Node node, FollowSets.Continuation following, RuleSymbol? seam)
+	{
+		return new(node, seam, Identify(following.Plain), Identify(following.AfterSeam), following.Lead);
+	}
 }

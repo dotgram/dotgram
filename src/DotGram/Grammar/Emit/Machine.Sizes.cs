@@ -119,8 +119,10 @@ sealed partial class Machine
 	const int Tabulated = 3;
 
 	/// <summary>Whether a repetition is small enough to write out rather than loop.</summary>
-	bool Unrolls(Node.Repeat repeat) =>
-		(repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable;
+	bool Unrolls(Node.Repeat repeat)
+	{
+		return (repeat.Max ?? repeat.Min + 1) * Weight(repeat.Body, Unrollable) <= Unrollable;
+	}
 
 	/// <summary>
 	/// How much a repetition may be written out one after another rather than looped, counted

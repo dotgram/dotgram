@@ -111,11 +111,20 @@ public class StreamingBenchmarks
 	}
 
 	[Benchmark(Baseline = true, Description = "string")]
-	public int Whole() => Count(Feed.ParseFeed(_text));
+	public int Whole()
+	{
+		return Count(Feed.ParseFeed(_text));
+	}
 
 	[Benchmark(Description = "TextReader")]
-	public int Reader() => Count(Feed.ParseFeed(new StringReader(_text)));
+	public int Reader()
+	{
+		return Count(Feed.ParseFeed(new StringReader(_text)));
+	}
 
 	[Benchmark(Description = "IEnumerable<string>")]
-	public int Lines() => Count(Feed.ParseFeed(_lines));
+	public int Lines()
+	{
+		return Count(Feed.ParseFeed(_lines));
+	}
 }

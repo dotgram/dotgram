@@ -69,11 +69,16 @@ namespace DotGram.Examples.Formats;
 public sealed partial class MarkdownParser
 {
 	/// <summary>Reads a document into its blocks, blank lines and all.</summary>
-	public static IReadOnlyList<MarkdownBlock> Read(string text) => ParseDoc(text);
+	public static IReadOnlyList<MarkdownBlock> Read(string text)
+	{
+		return ParseDoc(text);
+	}
 
 	/// <summary>The same, with the blank lines dropped — usually what a caller wants.</summary>
-	public static IEnumerable<MarkdownBlock> Blocks(string text) =>
-		Read(text).Where(block => block is not MarkdownBlank);
+	public static IEnumerable<MarkdownBlock> Blocks(string text)
+	{
+		return Read(text).Where(block => block is not MarkdownBlank);
+	}
 }
 
 /// <summary>One block of a document.</summary>

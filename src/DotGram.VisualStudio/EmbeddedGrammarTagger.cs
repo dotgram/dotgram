@@ -35,11 +35,13 @@ sealed class EmbeddedGrammarClassifierProvider : IClassifierProvider
 	[Import]
 	IClassificationTypeRegistryService Classifications { get; set; } = null!;
 
-	public IClassifier GetClassifier(ITextBuffer buffer) =>
-		buffer.Properties.GetOrCreateSingletonProperty(() =>
+	public IClassifier GetClassifier(ITextBuffer buffer)
+	{
+		return buffer.Properties.GetOrCreateSingletonProperty(() =>
 			new EmbeddedGrammarClassifier(
 				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
 				Classifications));
+	}
 }
 
 sealed class EmbeddedGrammarClassifier : IClassifier
@@ -108,33 +110,40 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 		return result;
 	}
 
-	void Changed(ITextSnapshot snapshot) =>
+	void Changed(ITextSnapshot snapshot)
+	{
 		ClassificationChanged?.Invoke(
 			this,
 			new ClassificationChangedEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
-	static IClassificationType Type(IClassificationTypeRegistryService classifications, string name) =>
-		classifications.GetClassificationType(name) ??
-		throw new InvalidOperationException($"Visual Studio classification '{name}' is unavailable.");
-
-	static Dictionary<string, IClassificationType> DslTypes(IClassificationTypeRegistryService types) => new()
+	static IClassificationType Type(IClassificationTypeRegistryService classifications, string name)
 	{
-		["Keyword"]     = Type(types, GramClassificationTypes.Keyword),
-		["Identifier"]  = Type(types, GramClassificationTypes.Identifier),
-		["Type"]        = Type(types, GramClassificationTypes.DslType),
-		["Variable"]    = Type(types, GramClassificationTypes.DslVariable),
-		["Function"]    = Type(types, GramClassificationTypes.DslFunction),
-		["Method"]      = Type(types, GramClassificationTypes.DslFunction),
-		["Property"]    = Type(types, GramClassificationTypes.DslProperty),
-		["Number"]      = Type(types, GramClassificationTypes.Number),
-		["String"]      = Type(types, GramClassificationTypes.Literal),
-		["Comment"]     = Type(types, GramClassificationTypes.Comment),
-		["Operator"]    = Type(types, GramClassificationTypes.Operator),
-		["Punctuation"] = Type(types, GramClassificationTypes.Punctuation),
-		["Namespace"]   = Type(types, GramClassificationTypes.DslNamespace),
-		["Parameter"]   = Type(types, GramClassificationTypes.DslParameter),
-		["Label"]       = Type(types, GramClassificationTypes.DslLabel),
-	};
+		return classifications.GetClassificationType(name) ??
+		throw new InvalidOperationException($"Visual Studio classification '{name}' is unavailable.");
+	}
+
+	static Dictionary<string, IClassificationType> DslTypes(IClassificationTypeRegistryService types)
+	{
+		return new()
+		{
+			["Keyword"] = Type(types, GramClassificationTypes.Keyword),
+			["Identifier"] = Type(types, GramClassificationTypes.Identifier),
+			["Type"] = Type(types, GramClassificationTypes.DslType),
+			["Variable"] = Type(types, GramClassificationTypes.DslVariable),
+			["Function"] = Type(types, GramClassificationTypes.DslFunction),
+			["Method"] = Type(types, GramClassificationTypes.DslFunction),
+			["Property"] = Type(types, GramClassificationTypes.DslProperty),
+			["Number"] = Type(types, GramClassificationTypes.Number),
+			["String"] = Type(types, GramClassificationTypes.Literal),
+			["Comment"] = Type(types, GramClassificationTypes.Comment),
+			["Operator"] = Type(types, GramClassificationTypes.Operator),
+			["Punctuation"] = Type(types, GramClassificationTypes.Punctuation),
+			["Namespace"] = Type(types, GramClassificationTypes.DslNamespace),
+			["Parameter"] = Type(types, GramClassificationTypes.DslParameter),
+			["Label"] = Type(types, GramClassificationTypes.DslLabel),
+		};
+	}
 }
 
 [Export(typeof(ITaggerProvider))]
@@ -148,9 +157,11 @@ sealed class EmbeddedGrammarDiagnosticTaggerProvider : ITaggerProvider
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag =>
-		new EmbeddedGrammarDiagnosticTagger(
+	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
+	{
+		return new EmbeddedGrammarDiagnosticTagger(
 			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>;
+	}
 }
 
 sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
@@ -188,9 +199,11 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 		}
 	}
 
-	void Changed(ITextSnapshot snapshot) =>
+	void Changed(ITextSnapshot snapshot)
+	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
 			new SnapshotSpan(snapshot, 0, snapshot.Length)));
+	}
 
 	static SnapshotSpan Span(ITextSnapshot snapshot, int position, int length)
 	{
@@ -208,12 +221,15 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 		return new SnapshotSpan(snapshot, position, length);
 	}
 
-	static string ErrorType(GramSeverity severity) => severity switch
+	static string ErrorType(GramSeverity severity)
 	{
-		GramSeverity.Error   => PredefinedErrorTypeNames.SyntaxError,
-		GramSeverity.Warning => PredefinedErrorTypeNames.Warning,
-		_                    => PredefinedErrorTypeNames.Information,
-	};
+		return severity switch
+		{
+			GramSeverity.Error => PredefinedErrorTypeNames.SyntaxError,
+			GramSeverity.Warning => PredefinedErrorTypeNames.Warning,
+			_ => PredefinedErrorTypeNames.Information,
+		};
+	}
 }
 
 sealed class EmbeddedGrammarBufferAnalysis
@@ -261,9 +277,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 	public static EmbeddedGrammarBufferAnalysis For(
 		ITextBuffer buffer,
 		VisualStudioWorkspace workspace,
-		ITextDocumentFactoryService documents) =>
-		buffer.Properties.GetOrCreateSingletonProperty(() =>
+		ITextDocumentFactoryService documents)
+	{
+		return buffer.Properties.GetOrCreateSingletonProperty(() =>
 			new EmbeddedGrammarBufferAnalysis(buffer, workspace, documents));
+	}
 
 	public bool TryGet(
 		ITextSnapshot snapshot,
@@ -703,16 +721,19 @@ sealed class EmbeddedGrammarBufferAnalysis
 		int previousClassificationCount,
 		int previousDslClassificationCount,
 		int previousSymbolCount,
-		int previousDslSiteCount) =>
-		hasSyntaxErrors && analysisCount == 0 &&
+		int previousDslSiteCount)
+	{
+		return hasSyntaxErrors && analysisCount == 0 &&
 		(previousClassificationCount > 0 || previousDslClassificationCount > 0 ||
 		 previousSymbolCount > 0 || previousDslSiteCount > 0);
+	}
 
 	static IReadOnlyList<HostClassification> TranslateClassifications(
 		IReadOnlyList<HostClassification> classifications,
 		ITextSnapshot source,
-		ITextSnapshot target) =>
-		classifications.Select(item => new HostClassification(
+		ITextSnapshot target)
+	{
+		return classifications.Select(item => new HostClassification(
 			Translate(item.Span, source, target),
 			item.Kind,
 			item.QuickInfo,
@@ -721,6 +742,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 			item.RuleSignature,
 			item.RuleParameterCount,
 			item.SymbolKind)).ToArray();
+	}
 
 	static (IReadOnlyList<HostClassification> Classifications, bool Changed) RefreshLiteralStyles(
 		IReadOnlyList<HostClassification> classifications,
@@ -770,33 +792,39 @@ sealed class EmbeddedGrammarBufferAnalysis
 	static IReadOnlyList<HostDslClassification> TranslateDslClassifications(
 		IReadOnlyList<HostDslClassification> classifications,
 		ITextSnapshot source,
-		ITextSnapshot target) =>
-		classifications.Select(item => new HostDslClassification(
+		ITextSnapshot target)
+	{
+		return classifications.Select(item => new HostDslClassification(
 			Translate(item.Span, source, target),
 			item.Role)).ToArray();
+	}
 
 	static IReadOnlyList<HostDslSymbol> TranslateDslSymbols(
 		IReadOnlyList<HostDslSymbol> symbols,
 		ITextSnapshot source,
-		ITextSnapshot target) =>
-		symbols.Select(item => new HostDslSymbol(
+		ITextSnapshot target)
+	{
+		return symbols.Select(item => new HostDslSymbol(
 			Translate(item.Span, source, target),
 			item.Role,
 			item.Target,
 			item.DefinitionPath,
 			item.DefinitionLine,
 			item.DefinitionColumn)).ToArray();
+	}
 
 	static IReadOnlyList<HostDslSite> TranslateDslSites(
 		IReadOnlyList<HostDslSite> sites,
 		ITextSnapshot source,
-		ITextSnapshot target) =>
-		sites.Select(item => new HostDslSite(
+		ITextSnapshot target)
+	{
+		return sites.Select(item => new HostDslSite(
 			Translate(item.Span, source, target),
 			item.LanguageId,
 			item.EntryRule,
 			Translate(new TextSpan(item.CompletionPosition, 0), source, target).Start,
 			item.Expected)).ToArray();
+	}
 
 	static TextSpan Translate(TextSpan span, ITextSnapshot source, ITextSnapshot target)
 	{

@@ -24,25 +24,31 @@ public sealed class SeamTests
 	/// its trivia, and the immediate carrier takes it.
 	/// </summary>
 	[Fact]
-	public void A_seam_run_gives_nothing_to_the_seam_after_it() =>
+	public void A_seam_run_gives_nothing_to_the_seam_after_it()
+	{
 		Assert.Contains(
 			Carriers(Spaced + "File : @string[] = '[' & (Item & ';')* & eof\nparse File\n"),
 			line => line.StartsWith("carrier: immediate; gate: none;", System.StringComparison.Ordinal));
+	}
 
 	/// <summary>
 	/// Unless something between the two seams answers by where it stands: a guard there passes
 	/// or fails by which split was taken, so the run keeps its way.
 	/// </summary>
 	[Fact]
-	public void A_guard_between_two_seams_keeps_the_way() =>
+	public void A_guard_between_two_seams_keeps_the_way()
+	{
 		Assert.Contains("again trivia: opens a way",
 			Carriers(Spaced + "Checked = when @(Ok())\nFile : @string[] = '[' & (Item & Checked & ';')* & eof\nparse File\n"));
+	}
 
 	/// <summary>And where what follows the seam can itself begin with what the seam reads.</summary>
 	[Fact]
-	public void What_can_begin_inside_the_seam_keeps_the_way() =>
+	public void What_can_begin_inside_the_seam_keeps_the_way()
+	{
 		Assert.Contains("again trivia: opens a way",
 			Carriers(Spaced + "File : @string[] = '[' & (Item & v: [^ ';']+ & ';')* & eof\nparse File\n"));
+	}
 
 	/// <summary>
 	/// A turn that is a choice of alternatives each led by the seam — what an operator loop and
@@ -73,23 +79,27 @@ public sealed class SeamTests
 	[InlineData("", "File : @string[] = (Item & ';')* & eof", "trivia & (item0: Item & trivia & ';' & trivia)* & eof")]
 	[InlineData("", "File : @string[] = '[' & (Item & ';')* & eof", "'[' & trivia & (item0: Item & trivia & ';' & trivia)* & eof")]
 	[InlineData("Spacing = [' ' | '\\t']+\n", "File : @string[] = (Item & ';')* & eof", "trivia & (item0: Item & trivia & ';' & trivia)* & eof")]
-	public void The_seam_leaves_the_head_of_the_turn(string before, string rule, string body) =>
+	public void The_seam_leaves_the_head_of_the_turn(string before, string rule, string body)
+	{
 		Assert.Equal(body, Body(
 			(before.Length > 0 ? before + "trivia = Spacing?\nItem : @string = 'b' => @(\"b\")\n" : Spaced) + rule + "\nparse File\n",
 			"File"));
+	}
 
 	/// <summary>
 	/// Not where what the turn reads could begin inside the seam: trivia with a comment in it
 	/// stops anywhere inside the comment.
 	/// </summary>
 	[Fact]
-	public void A_seam_something_can_begin_inside_stays_at_the_head_of_the_turn() =>
+	public void A_seam_something_can_begin_inside_stays_at_the_head_of_the_turn()
+	{
 		Assert.Equal(
 			"(trivia & item0: Item & trivia & ';')* & trivia & eof",
 			Body(
 				"trivia = (' ' | '/' & '*' & (?!'*' & any)* & '*')*\nItem : @string = 'b' => @(\"b\")\n" +
 				"File : @string[] = (Item & ';')* & eof\nparse File\n",
 				"File"));
+	}
 
 	/// <summary>
 	/// What the rewritten grammar answers, on every carrier and rendering: the same values, and
@@ -131,8 +141,10 @@ public sealed class SeamTests
 		return graph.Bodies.Single(one => one.Key.Name == rule).Value.ToString()!.Replace(" => <sequence>", "");
 	}
 
-	static System.Collections.Generic.IEnumerable<Node> Within(Node node) =>
-		node.Children.SelectMany(Within).Prepend(node);
+	static System.Collections.Generic.IEnumerable<Node> Within(Node node)
+	{
+		return node.Children.SelectMany(Within).Prepend(node);
+	}
 
 	static string[] Carriers(string grammar)
 	{

@@ -36,8 +36,10 @@ public sealed class GraphIntegrityTests
 {
 	[Theory]
 	[MemberData(nameof(Grammars))]
-	public void Nothing_the_graph_knows_is_about_a_node_that_is_gone(string path) =>
+	public void Nothing_the_graph_knows_is_about_a_node_that_is_gone(string path)
+	{
 		Assert.Empty(Normalized(File.ReadAllText(path)).Orphans());
+	}
 
 	[Theory]
 	[MemberData(nameof(MutatedGrammars))]
@@ -186,10 +188,12 @@ public sealed class GraphIntegrityTests
 	/// With the real scanner: without one an inline <c>@(...)</c> is not read as C# and
 	/// the grammar around it comes out as something nobody wrote.
 	/// </remarks>
-	static RecognitionGraph Normalized(string text) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Normalized(string text)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).File));
+	}
 
 	static string Snapshots => Path.Combine(Here, "..", "Snapshots");
 	static string Examples  => Path.Combine(Here, "..", "..", "examples");
@@ -200,5 +204,8 @@ public sealed class GraphIntegrityTests
 
 	static string Here { get; } = Path.GetDirectoryName(ThisFile)!;
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

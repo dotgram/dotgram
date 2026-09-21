@@ -14,9 +14,15 @@ sealed class NodeIdentity : IEqualityComparer<Node>
 {
 	public static readonly NodeIdentity Instance = new();
 
-	public bool Equals(Node? x, Node? y) => ReferenceEquals(x, y);
+	public bool Equals(Node? x, Node? y)
+	{
+		return ReferenceEquals(x, y);
+	}
 
-	public int GetHashCode(Node node) => RuntimeHelpers.GetHashCode(node);
+	public int GetHashCode(Node node)
+	{
+		return RuntimeHelpers.GetHashCode(node);
+	}
 }
 
 /// <summary>
@@ -75,22 +81,34 @@ public sealed class CaptureLayout
 	public bool IsEmpty => _slots.Count == 0;
 
 	/// <summary>The slot a <see cref="Node.Capture"/> writes.</summary>
-	public int SlotOf(Node capture) => _slotOf[capture];
+	public int SlotOf(Node capture)
+	{
+		return _slotOf[capture];
+	}
 
 	/// <summary>The slot a capture writes, or -1 where this layout numbered none for it.</summary>
-	public int SlotOrNone(Node capture) => _slotOf.TryGetValue(capture, out var slot) ? slot : -1;
+	public int SlotOrNone(Node capture)
+	{
+		return _slotOf.TryGetValue(capture, out var slot) ? slot : -1;
+	}
 
 	/// <summary>
 	/// How many slots were already settled when this node began — so the slots from here
 	/// on are exactly the ones an attempt at it could have written.
 	/// </summary>
-	public int Before(Node node) => _before.TryGetValue(node, out var count) ? count : 0;
+	public int Before(Node node)
+	{
+		return _before.TryGetValue(node, out var count) ? count : 0;
+	}
 
 	/// <summary>
 	/// How many slots were settled once this node was done — so the slots from here on are
 	/// the ones written after it, and nothing of its own is among them.
 	/// </summary>
-	public int After(Node node) => _after.TryGetValue(node, out var count) ? count : 0;
+	public int After(Node node)
+	{
+		return _after.TryGetValue(node, out var count) ? count : 0;
+	}
 
 	/// <summary>
 	/// The operand a left-factored alternative shares with its siblings, or null where it
@@ -101,7 +119,10 @@ public sealed class CaptureLayout
 	/// part of that alternative is the head standing in front of the choice. Asking the tail
 	/// alone would call the head's captures a sibling's and hand them over as optional.
 	/// </remarks>
-	public Node? SharedHead(Node node) => _shared.TryGetValue(node, out var head) ? head : null;
+	public Node? SharedHead(Node node)
+	{
+		return _shared.TryGetValue(node, out var head) ? head : null;
+	}
 
 	/// <param name="buildsValue">Whether a rule has a value of its own rather than text.</param>
 	/// <summary>Every slot that collects rather than holds.</summary>
@@ -315,7 +336,10 @@ public sealed record Recovery(Node Sync, string? Factory)
 		return false;
 	}
 
-	static bool IsPartOfAName(char c) => char.IsLetterOrDigit(c) || c is '_' or '@';
+	static bool IsPartOfAName(char c)
+	{
+		return char.IsLetterOrDigit(c) || c is '_' or '@';
+	}
 }
 
 /// <summary>

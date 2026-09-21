@@ -127,7 +127,9 @@ public sealed class FixShapedCarrierTests
 		return (string.Join(" | ", fields), built.Cast<string>().ToArray());
 	}
 
-	static string Counted(string[] built) =>
-		string.Join(", ", built.GroupBy(static one => one).OrderBy(static one => one.Key, StringComparer.Ordinal)
+	static string Counted(string[] built)
+	{
+		return string.Join(", ", built.GroupBy(static one => one).OrderBy(static one => one.Key, StringComparer.Ordinal)
 			.Select(static one => one.Key + "×" + one.Count()));
+	}
 }

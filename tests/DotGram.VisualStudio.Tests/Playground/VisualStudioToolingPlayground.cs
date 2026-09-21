@@ -74,12 +74,16 @@ namespace DotGram.VisualStudio.Tests.Playground;
 public static partial class VisualStudioToolingPlayground
 {
 	// Target for F12 from the Power rule above.
-	static decimal Raise(decimal value, decimal exponent) =>
-		(decimal)Math.Pow((double)value, (double)exponent);
+	static decimal Raise(decimal value, decimal exponent)
+	{
+		return (decimal)Math.Pow((double)value, (double)exponent);
+	}
 
 	// F12 on ToolingEvaluate should return to its publication inside the Gram string.
-	public static decimal EvaluateForTooling(string expression) =>
-		ToolingEvaluate(expression);
+	public static decimal EvaluateForTooling(string expression)
+	{
+		return ToolingEvaluate(expression);
+	}
 }
 
 public static class GramStringSyntaxExample
@@ -93,11 +97,14 @@ public static class GramStringSyntaxExample
 
 	// This raw string should have the same colors, diagnostics, hover and navigation
 	// as the grammar inside [Gram] above.
-	public static void Use() => Inspect("""
+	public static void Use()
+	{
+		Inspect("""
 		Word = ['a'..'z']+
 		Start = Word
 		parse Start
 		""");
+	}
 }
 
 // StringSyntax DSL check. In the ToolingQuery string below, `select` should use the
@@ -113,7 +120,10 @@ public static partial class ToolingQueryLanguage
 
 public sealed class ToolingQuery
 {
-	public ToolingQuery([StringSyntax("dotgram.tooling.query")] string text) => Text = text;
+	public ToolingQuery([StringSyntax("dotgram.tooling.query")] string text)
+	{
+		Text = text;
+	}
 
 	public string Text { get; }
 }
@@ -122,7 +132,10 @@ public static class ToolingQuerySyntax
 {
 	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 	public static string AsToolingQuery(
-		[StringSyntax("dotgram.tooling.query")] this string text) => text;
+		[StringSyntax("dotgram.tooling.query")] this string text)
+	{
+		return text;
+	}
 }
 
 public static class ToolingQueryExample
@@ -135,8 +148,15 @@ public static class ToolingQueryExample
 
 	// Generated publication calls route their input from parser publication metadata.
 	// Both strings should have the same DSL colors and diagnostics as Query above.
-	public static object ParseDirect() => ToolingQueryLanguage.ParseQuery("select customer");
-	public static object TryParseDirect() => ToolingQueryLanguage.TryParseQuery("select customer");
+	public static object ParseDirect()
+	{
+		return ToolingQueryLanguage.ParseQuery("select customer");
+	}
+
+	public static object TryParseDirect()
+	{
+		return ToolingQueryLanguage.TryParseQuery("select customer");
+	}
 }
 
 // Multiple-publication DSL check. Each generated method must select its own entry rule.
@@ -176,13 +196,26 @@ public static partial class PublicationSyntaxPlayground;
 
 public static class MultiQueryExample
 {
-	public static object Select() => MultiQueryLanguage.ParseSelectQuery("select customer");
-	public static object Count() => MultiQueryLanguage.ParseCountQuery("count customer");
+	public static object Select()
+	{
+		return MultiQueryLanguage.ParseSelectQuery("select customer");
+	}
+
+	public static object Count()
+	{
+		return MultiQueryLanguage.ParseCountQuery("count customer");
+	}
 
 	// Clear the string, put the caret between the quotes and press Ctrl+Space:
 	// `select` and `choose` should be offered as DotGram literals.
-	public static object CompleteSelect() => MultiQueryLanguage.ParseSelectQuery("select");
+	public static object CompleteSelect()
+	{
+		return MultiQueryLanguage.ParseSelectQuery("select");
+	}
 
 	// Put the caret after the space and press Ctrl+Space: `+` and `-` should be offered.
-	public static object CompleteOperator() => MultiQueryLanguage.ParseOperation("customer ");
+	public static object CompleteOperator()
+	{
+		return MultiQueryLanguage.ParseOperation("customer ");
+	}
 }

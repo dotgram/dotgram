@@ -33,21 +33,27 @@ public abstract record Test
 	public sealed record Any(Test Left, Test Right) : Test;
 
 	/// <summary>Every C# guard under a test, which resolves as C# and not as a rule.</summary>
-	public static IReadOnlyList<Expr> Guards(Test test) => test switch
+	public static IReadOnlyList<Expr> Guards(Test test)
 	{
-		Runs(var value)          => [value],
-		All(var left, var right) => [.. Guards(left), .. Guards(right)],
-		Any(var left, var right) => [.. Guards(left), .. Guards(right)],
-		_                        => [],
-	};
+		return test switch
+		{
+			Runs(var value) => [value],
+			All(var left, var right) => [.. Guards(left), .. Guards(right)],
+			Any(var left, var right) => [.. Guards(left), .. Guards(right)],
+			_ => [],
+		};
+	}
 
 	/// <summary>Every recognizer under a test, for the walks that read expressions.</summary>
-	public static IReadOnlyList<Expr> Operands(Test test) => test switch
+	public static IReadOnlyList<Expr> Operands(Test test)
 	{
-		Meets(var left, var right, _) => [left, right],
-		Runs                          => [],
-		All(var left, var right)      => [.. Operands(left), .. Operands(right)],
-		Any(var left, var right)      => [.. Operands(left), .. Operands(right)],
-		_                             => [],
-	};
+		return test switch
+		{
+			Meets(var left, var right, _) => [left, right],
+			Runs => [],
+			All(var left, var right) => [.. Operands(left), .. Operands(right)],
+			Any(var left, var right) => [.. Operands(left), .. Operands(right)],
+			_ => [],
+		};
+	}
 }

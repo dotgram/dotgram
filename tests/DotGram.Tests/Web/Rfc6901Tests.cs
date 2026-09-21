@@ -124,8 +124,10 @@ public sealed class Rfc6901Tests
 	[InlineData("/~")]          // a `~` with nothing after it
 	[InlineData("/~2")]         // a `~` that escapes nothing
 	[InlineData("/a~b")]
-	public void A_pointer_the_ABNF_does_not_make_is_refused(string pointer) =>
+	public void A_pointer_the_ABNF_does_not_make_is_refused(string pointer)
+	{
 		Assert.False(JsonPointer.TryParse(pointer, out _), $"'{pointer}' was read.");
+	}
 
 	[Theory]
 	[InlineData("/foo")]        // a fragment begins with `#`
@@ -134,8 +136,10 @@ public sealed class Rfc6901Tests
 	[InlineData("#/%C3")]       // a byte that begins a character and no more
 	[InlineData("#foo")]        // a fragment whose text is no pointer
 	[InlineData("#/%7E2")]      // `~2`, encoded, is still no escape
-	public void A_fragment_that_holds_no_pointer_is_refused(string fragment) =>
+	public void A_fragment_that_holds_no_pointer_is_refused(string fragment)
+	{
 		Assert.False(JsonPointer.TryParseFragment(fragment, out _), $"'{fragment}' was read.");
+	}
 
 	[Theory]
 	[InlineData("0",   0)]

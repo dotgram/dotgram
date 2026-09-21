@@ -141,7 +141,10 @@ sealed partial class Machine
 			var core = rank < 0 ? type : type.Substring(0, rank);
 			var rest = rank < 0 ? ""   : type.Substring(rank);
 
-			string Made(string count) => "new " + core + "[" + count + "]" + rest;
+			string Made(string count)
+			{
+				return "new " + core + "[" + count + "]" + rest;
+			}
 
 			text.Append("\tinternal ").Append(type).Append("[] Stack").Append(tag).Append(" = ").Append(Made("8")).Append(";\n");
 			text.Append("\tinternal int Count").Append(tag).Append(";\n");
@@ -350,12 +353,16 @@ sealed partial class Machine
 		/// left standing. Taken and put back wherever the tape takes and puts back its log,
 		/// which is every place a reading may be abandoned.
 		/// </remarks>
-		public override IEnumerable<string> MarkRecords(string name) =>
-			Marks ? [$"var {name} = marked;"] : [];
+		public override IEnumerable<string> MarkRecords(string name)
+		{
+			return Marks ? [$"var {name} = marked;"] : [];
+		}
 
 		/// <remarks>Only what <see cref="MarkRecords"/> declared: without marks, a part is handed none.</remarks>
-		public override IReadOnlyList<string> RecordMarks(string name) =>
-			Marks ? [name] : [];
+		public override IReadOnlyList<string> RecordMarks(string name)
+		{
+			return Marks ? [name] : [];
+		}
 
 		/// <remarks>A failed turn has pushed onto the stacks; the mark is where they stood.</remarks>
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
@@ -367,8 +374,10 @@ sealed partial class Machine
 				yield return $"var {name}_{stack} = values.Count{stack};";
 		}
 
-		public override IEnumerable<string> UnwindRecords(string name) =>
-			Marks ? [$"marked = {name};"] : [];
+		public override IEnumerable<string> UnwindRecords(string name)
+		{
+			return Marks ? [$"marked = {name};"] : [];
+		}
 
 		/// <summary>
 		/// Whether this parser carries §7.8 marks: whether a state type is declared at all.
@@ -395,10 +404,12 @@ sealed partial class Machine
 		/// is also a value: an <c>int</c> left out and an <c>int</c> read as nought would be one
 		/// answer. So a member that may be left out is kept in a local that can say nothing.
 		/// </remarks>
-		public override string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional) =>
-			optional
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional)
+		{
+			return optional
 				? $"{Local(rule, optional)} r{slot} = default;"
 				: $"{Local(rule, optional)} r{slot} = default!;";
+		}
 
 		/// <summary>What a record local of a rule is declared as: its type, or one that can be nothing.</summary>
 		string Local(RuleSymbol rule, bool optional)
@@ -408,16 +419,30 @@ sealed partial class Machine
 			return optional && !type.EndsWith("?", StringComparison.Ordinal) ? type + "?" : type;
 		}
 
-		public override string DeclareAccumulator(RuleSymbol rule) => $"{machine._results.ValueOf(rule)} fold = default!;";
+		public override string DeclareAccumulator(RuleSymbol rule)
+		{
+			return $"{machine._results.ValueOf(rule)} fold = default!;";
+		}
 
-		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
+		public override IEnumerable<string> DeclareGathered(int slot, string elementType)
+		{
+			return [];
+		}
 
-		public override string RecordLocalType(RuleSymbol rule, bool optional = false) => Local(rule, optional) + " ";
+		public override string RecordLocalType(RuleSymbol rule, bool optional = false)
+		{
+			return Local(rule, optional) + " ";
+		}
 
-		public override string ResetRecordLocal(int slot, bool optional) =>
-			optional ? $"r{slot} = default;" : $"r{slot} = default!;";
+		public override string ResetRecordLocal(int slot, bool optional)
+		{
+			return optional ? $"r{slot} = default;" : $"r{slot} = default!;";
+		}
 
-		public override string Absent(RuleSymbol rule, string local) => $"ImmediateValues.IsDefault({local})";
+		public override string Absent(RuleSymbol rule, string local)
+		{
+			return $"ImmediateValues.IsDefault({local})";
+		}
 
 		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
 		{
@@ -527,8 +552,15 @@ sealed partial class Machine
 			// helper that makes one.
 			var (start, end) = (_start, _end);
 
-			string Text() => start is null ? "string.Empty" : machine.Cut(start, $"{end} - {start}");
-			string Span() => start is null ? "default" : machine.Span(start, $"{end} - {start}");
+			string Text()
+			{
+				return start is null ? "string.Empty" : machine.Cut(start, $"{end} - {start}");
+			}
+
+			string Span()
+			{
+				return start is null ? "default" : machine.Span(start, $"{end} - {start}");
+			}
 
 			// An extent is where it matched and nothing else — no members to pass and no
 			// factory to call. The tape reads it off the record the rule stands on; here the
@@ -563,13 +595,20 @@ sealed partial class Machine
 			}
 		}
 
-		public override string Last(RuleSymbol rule) => Register(machine._results.ValueOf(rule));
+		public override string Last(RuleSymbol rule)
+		{
+			return Register(machine._results.ValueOf(rule));
+		}
 
-		string Register(string valueType) =>
-			valueType == "SourceSpan" ? "lastSpan" : $"last{TableName(valueType)}";
+		string Register(string valueType)
+		{
+			return valueType == "SourceSpan" ? "lastSpan" : $"last{TableName(valueType)}";
+		}
 
-		public override string PushText(int slot, string from, string to) =>
-			$"values.Push{Gathering("Spans")}(((long)({from}) << 32) | (uint)({to}));";
+		public override string PushText(int slot, string from, string to)
+		{
+			return $"values.Push{Gathering("Spans")}(((long)({from}) << 32) | (uint)({to}));";
+		}
 
 		/// <remarks>
 		/// §10's join, written once for the reader and called where a run of text is collected.
@@ -628,8 +667,10 @@ sealed partial class Machine
 			}
 		}
 
-		public override string PushRecord(int slot, RuleSymbol rule) =>
-			$"values.Push{StackOf(machine._results.ValueOf(rule))}({Last(rule)});";
+		public override string PushRecord(int slot, RuleSymbol rule)
+		{
+			return $"values.Push{StackOf(machine._results.ValueOf(rule))}({Last(rule)});";
+		}
 
 		/// <remarks>
 		/// Built where it is stepped over, by the <c>recover</c> factory, from the four numbers the
@@ -674,9 +715,15 @@ sealed partial class Machine
 				$"values.MarkState[marked++] = {machine._marks[site]};";
 		}
 
-		public override string Materialize(string record, string sinceMark) => "";
+		public override string Materialize(string record, string sinceMark)
+		{
+			return "";
+		}
 
-		public override string ValueOf(RuleSymbol rule, string record) => record;
+		public override string ValueOf(RuleSymbol rule, string record)
+		{
+			return record;
+		}
 
 		/// <remarks>Peeked rather than taken: the record written later collects the same items.</remarks>
 		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text)
@@ -704,10 +751,15 @@ sealed partial class Machine
 			yield return $"value = reader.{Register(type)};";
 		}
 
-		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => "";
+		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules)
+		{
+			return "";
+		}
 
-		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
-			ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType, NamesMarks(machine._graph));
+		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType)
+		{
+			return ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType, NamesMarks(machine._graph));
+		}
 
 		public override string? Refuses()
 		{
@@ -797,9 +849,11 @@ sealed partial class Machine
 		}
 
 		/// <summary>The stack a type's gathered values go on: the one numbered as its table is.</summary>
-		string StackOf(string valueType) =>
-			machine.TableFor(valueType) >= 0
+		string StackOf(string valueType)
+		{
+			return machine.TableFor(valueType) >= 0
 				? Gathering(TableName(valueType))
 				: throw new InvalidOperationException($"No value table for '{valueType}'.");
+		}
 	}
 }

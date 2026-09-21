@@ -10,17 +10,23 @@ public readonly record struct CharRange(char From, char To)
 {
 	public bool IsSingle => From == To;
 
-	public override string ToString() => IsSingle ? Quote(From) : $"{Quote(From)}..{Quote(To)}";
-
-	internal static string Quote(char value) => value switch
+	public override string ToString()
 	{
-		'\n' => @"'\n'",
-		'\r' => @"'\r'",
-		'\t' => @"'\t'",
-		'\'' => @"'\''",
-		'\\' => @"'\\'",
-		_    => $"'{value}'",
-	};
+		return IsSingle ? Quote(From) : $"{Quote(From)}..{Quote(To)}";
+	}
+
+	internal static string Quote(char value)
+	{
+		return value switch
+		{
+			'\n' => @"'\n'",
+			'\r' => @"'\r'",
+			'\t' => @"'\t'",
+			'\'' => @"'\''",
+			'\\' => @"'\\'",
+			_ => $"'{value}'",
+		};
+	}
 }
 
 /// <summary>
@@ -59,7 +65,10 @@ public abstract record Node
 	{
 		public static readonly Empty Instance = new();
 
-		public override string ToString() => "none";
+		public override string ToString()
+		{
+			return "none";
+		}
 	}
 
 	/// <summary>One input item drawn from a set.</summary>
@@ -87,15 +96,20 @@ public abstract record Node
 		/// <summary>Whether this matches without regard to case (`"text"i`, `'x'i`).</summary>
 		public bool IgnoreCase { get; init; }
 
-		public override string ToString() =>
-			(Text.Length == 1 ? CharRange.Quote(Text[0]) : $"\"{Text}\"") + (IgnoreCase ? "i" : "");
+		public override string ToString()
+		{
+			return (Text.Length == 1 ? CharRange.Quote(Text[0]) : $"\"{Text}\"") + (IgnoreCase ? "i" : "");
+		}
 	}
 
 	public sealed record Sequence(IReadOnlyList<Node> Nodes) : Node
 	{
 		public override IEnumerable<Node> Children => Nodes;
 
-		public override string ToString() => string.Join(" & ", Nodes);
+		public override string ToString()
+		{
+			return string.Join(" & ", Nodes);
+		}
 	}
 
 	public sealed record SwitchSelection(Guard Selector, IReadOnlyList<string?> Labels);
@@ -104,14 +118,21 @@ public abstract record Node
 	{
 		/// <summary>A computed dispatch, rather than an ordered backtracking choice.</summary>
 		public SwitchSelection? Selection { get; init; }
-		public Choice Rebuild(IReadOnlyList<Node> nodes) => this with { Nodes = nodes };
+		public Choice Rebuild(IReadOnlyList<Node> nodes)
+		{
+			return this with { Nodes = nodes };
+		}
+
 		public override IEnumerable<Node> Children => Selection is { } selection
 			? new Node[] { selection.Selector }.Concat(Nodes) : Nodes;
 
-		public override string ToString() => Selection is { } selection
+		public override string ToString()
+		{
+			return Selection is { } selection
 			? $"switch {selection.Selector.Text} {{ " + string.Join(" ", Nodes.Select((node, index) =>
 				(selection.Labels[index] is { } label ? $"case {label}" : "default") + $": {node}")) + " }"
 			: $"({string.Join(" | ", Nodes)})";
+		}
 	}
 
 	/// <summary>An explicit commit-on-success backtracking boundary.</summary>
@@ -119,7 +140,10 @@ public abstract record Node
 	{
 		public override IEnumerable<Node> Children => [Body];
 
-		public override string ToString() => $"{{ {Body} }}";
+		public override string ToString()
+		{
+			return $"{{ {Body} }}";
+		}
 	}
 
 	/// <summary>
@@ -144,22 +168,28 @@ public abstract record Node
 	{
 		public override IEnumerable<Node> Children => [Body];
 
-		public override string ToString() => $"{Body} with state {Text}";
+		public override string ToString()
+		{
+			return $"{Body} with state {Text}";
+		}
 	}
 
 	public sealed record Repeat(Node Body, int Min, int? Max) : Node
 	{
 		public override IEnumerable<Node> Children => [Body];
 
-		public override string ToString() => (Min, Max) switch
+		public override string ToString()
 		{
-			(0, 1)                         => $"{Repeated}?",
-			(0, null)                      => $"{Repeated}*",
-			(1, null)                      => $"{Repeated}+",
-			var (min, max) when min == max => $"{Repeated}{{{min}}}",
-			(var min, null)                => $"{Repeated}{{{min},}}",
-			var (min, max)                 => $"{Repeated}{{{min},{max}}}",
-		};
+			return (Min, Max) switch
+			{
+				(0, 1) => $"{Repeated}?",
+				(0, null) => $"{Repeated}*",
+				(1, null) => $"{Repeated}+",
+				var (min, max) when min == max => $"{Repeated}{{{min}}}",
+				(var min, null) => $"{Repeated}{{{min},}}",
+				var (min, max) => $"{Repeated}{{{min},{max}}}",
+			};
+		}
 
 		/// <summary>
 		/// The body, bracketed where the quantifier would otherwise read as applying to the
@@ -173,7 +203,10 @@ public abstract record Node
 	{
 		public override IEnumerable<Node> Children => [Body];
 
-		public override string ToString() => $"{(IsPositive ? "?=" : "?!")}{Body}";
+		public override string ToString()
+		{
+			return $"{(IsPositive ? "?=" : "?!")}{Body}";
+		}
 	}
 
 	/// <summary>
@@ -191,7 +224,10 @@ public abstract record Node
 	/// </remarks>
 	public sealed record Behind(Element Test) : Node
 	{
-		public override string ToString() => $"?<!{Test}";
+		public override string ToString()
+		{
+			return $"?<!{Test}";
+		}
 	}
 
 	/// <summary>
@@ -206,7 +242,10 @@ public abstract record Node
 	/// </remarks>
 	public sealed record Reading(ulong Readings) : Node
 	{
-		public override string ToString() => $"?reading(0x{Readings:X})";
+		public override string ToString()
+		{
+			return $"?reading(0x{Readings:X})";
+		}
 	}
 
 	/// <summary>
@@ -234,14 +273,20 @@ public abstract record Node
 	{
 		public static readonly Glue Instance = new();
 
-		public override string ToString() => "~";
+		public override string ToString()
+		{
+			return "~";
+		}
 	}
 
 	public sealed record Capture(string Name, Node Body) : Node
 	{
 		public override IEnumerable<Node> Children => [Body];
 
-		public override string ToString() => $"{Name}: {Body}";
+		public override string ToString()
+		{
+			return $"{Name}: {Body}";
+		}
 	}
 
 	/// <summary>A `when` guard. Consumes nothing.</summary>
@@ -263,15 +308,24 @@ public abstract record Node
 	{
 		public override IEnumerable<Node> Children => Model.Test.Operands(Test);
 
-		public override string ToString() => $"when {Test}";
+		public override string ToString()
+		{
+			return $"when {Test}";
+		}
 	}
 
 	public sealed record Guard(string Text, int At = -1) : Node
 	{
 		/// <summary>Without the position, for the passes that only read the C#.</summary>
-		public void Deconstruct(out string text) => text = Text;
+		public void Deconstruct(out string text)
+		{
+			text = Text;
+		}
 
-		public override string ToString() => $"when {Text}";
+		public override string ToString()
+		{
+			return $"when {Text}";
+		}
 	}
 
 	/// <summary>
@@ -282,7 +336,10 @@ public abstract record Node
 	{
 		public override IEnumerable<Node> Children => [Body];
 
-		public override string ToString() => $"{Body} => {How}";
+		public override string ToString()
+		{
+			return $"{Body} => {How}";
+		}
 	}
 
 	/// <summary>
@@ -314,7 +371,10 @@ public abstract record Node
 
 		public bool UsesContext { get; init; }
 
-		public override string ToString() => "@" + Name;
+		public override string ToString()
+		{
+			return "@" + Name;
+		}
 	}
 
 	/// <summary>A call to another rule; rule boundaries survive normalization.</summary>
@@ -326,8 +386,10 @@ public abstract record Node
 		/// </remarks>
 		public override IEnumerable<Node> Children => Arguments;
 
-		public override string ToString() =>
-			Arguments.Count == 0 ? Rule.Name : $"{Rule.Name}({string.Join(", ", Arguments)})";
+		public override string ToString()
+		{
+			return Arguments.Count == 0 ? Rule.Name : $"{Rule.Name}({string.Join(", ", Arguments)})";
+		}
 	}
 }
 

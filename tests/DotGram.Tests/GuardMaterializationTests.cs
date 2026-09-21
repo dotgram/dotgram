@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
+
 using DotGram.Generation;
 using DotGram.Grammar;
+
 using Xunit;
 
 namespace DotGram.Tests;

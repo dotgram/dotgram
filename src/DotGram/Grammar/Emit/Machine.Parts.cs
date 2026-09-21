@@ -72,8 +72,10 @@ sealed partial class Machine
 	bool Divided => _parts.Count > 1;
 
 	/// <summary>Which part a state is written in, or 0 for anything not written.</summary>
-	int PartOf(int state) =>
-		state - First is var index && index >= 0 && index < _partOf.Length ? _partOf[index] : 0;
+	int PartOf(int state)
+	{
+		return state - First is var index && index >= 0 && index < _partOf.Length ? _partOf[index] : 0;
+	}
 
 	/// <summary>
 	/// Divides the states between as few methods as will each stay inside the budget.
@@ -214,7 +216,10 @@ sealed partial class Machine
 	/// more, so it becomes a departure and comes back through here.
 	/// </para>
 	/// </remarks>
-	SortedDictionary<int, int> Dispatching() => _dispatching ??= DispatchingNow();
+	SortedDictionary<int, int> Dispatching()
+	{
+		return _dispatching ??= DispatchingNow();
+	}
 
 	/// <summary>
 	/// Cleared when a layout is planned, which is the only thing that can change the
@@ -255,8 +260,10 @@ sealed partial class Machine
 	/// written under rather than the one it was compiled as, and the parts are kept in the
 	/// latter.
 	/// </remarks>
-	bool Departs(int index, int target) =>
-		target >= First && PartOf(Denumber(target)) != PartOf(index + First);
+	bool Departs(int index, int target)
+	{
+		return target >= First && PartOf(Denumber(target)) != PartOf(index + First);
+	}
 
 	/// <summary>
 	/// The same text with every jump that leaves the part turned into a departure.
@@ -393,7 +400,10 @@ sealed partial class Machine
 	/// nothing, because it divides a little sooner than it had to.
 	/// </para>
 	/// </remarks>
-	public static int Branches(string body) => Branches(body, 0, body.Length);
+	public static int Branches(string body)
+	{
+		return Branches(body, 0, body.Length);
+	}
 
 	/// <summary>Counts a method directly in the emitted file, within [start, end).</summary>
 	public static int Branches(string body, int start, int end)

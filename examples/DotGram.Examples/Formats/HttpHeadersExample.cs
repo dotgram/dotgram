@@ -57,7 +57,10 @@ namespace DotGram.Examples.Formats;
 	""")]
 public sealed partial class HttpParser
 {
-	public static HttpHeaders Read(string text) => ParseHeaders(text);
+	public static HttpHeaders Read(string text)
+	{
+		return ParseHeaders(text);
+	}
 }
 
 /// <summary>One field, with the lines it was folded across.</summary>
@@ -95,5 +98,8 @@ public sealed class HttpHeaders
 	/// <summary>Field names, in the order they arrived, repeats included.</summary>
 	public IReadOnlyList<string> Names { get; }
 
-	public bool Has(string name) => _fields.ContainsKey(name);
+	public bool Has(string name)
+	{
+		return _fields.ContainsKey(name);
+	}
 }

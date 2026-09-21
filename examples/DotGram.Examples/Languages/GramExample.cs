@@ -377,33 +377,47 @@ public partial class GramGrammar
 	/// in the tree that nothing in the text asked for. The same goes for a sequence, a
 	/// quantifier that is not there, and a lookahead that is not there.
 	/// </remarks>
-	public static GramExpr Choice(GramExpr first, GramExpr[] rest) =>
-		rest.Length == 0 ? first : new GramChoice(Joined(first, rest));
+	public static GramExpr Choice(GramExpr first, GramExpr[] rest)
+	{
+		return rest.Length == 0 ? first : new GramChoice(Joined(first, rest));
+	}
 
-	public static GramExpr Sequence(GramExpr first, GramExpr[] rest) =>
-		rest.Length == 0 ? first : new GramSequence(Joined(first, rest));
+	public static GramExpr Sequence(GramExpr first, GramExpr[] rest)
+	{
+		return rest.Length == 0 ? first : new GramSequence(Joined(first, rest));
+	}
 
-	public static GramExpr Glued(GramExpr first, GramExpr[] rest) =>
-		rest.Length == 0 ? first : new GramGlued(Joined(first, rest));
+	public static GramExpr Glued(GramExpr first, GramExpr[] rest)
+	{
+		return rest.Length == 0 ? first : new GramGlued(Joined(first, rest));
+	}
 
-	public static GramExpr Both(GramExpr first, GramExpr[] rest) =>
-		rest.Length == 0 ? first : new GramAll(Joined(first, rest));
+	public static GramExpr Both(GramExpr first, GramExpr[] rest)
+	{
+		return rest.Length == 0 ? first : new GramAll(Joined(first, rest));
+	}
 
-	public static GramExpr Either(GramExpr first, GramExpr[] rest) =>
-		rest.Length == 0 ? first : new GramAny(Joined(first, rest));
+	public static GramExpr Either(GramExpr first, GramExpr[] rest)
+	{
+		return rest.Length == 0 ? first : new GramAny(Joined(first, rest));
+	}
 
-	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery) =>
-		quantifier is null && recovery is null
+	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery)
+	{
+		return quantifier is null && recovery is null
 			? body
 			: new GramQuantified(body, quantifier, recovery, false);
+	}
 
 	/// <summary>The `with` suffixes that may follow an operand, where any do (§5.1).</summary>
-	public static GramExpr Rebound(GramExpr body, string? rebound) =>
-		string.IsNullOrEmpty(rebound)
+	public static GramExpr Rebound(GramExpr body, string? rebound)
+	{
+		return string.IsNullOrEmpty(rebound)
 			? body
 			: body is GramQuantified quantified
 				? quantified with { Rebound = true }
 				: new GramQuantified(body, null, null, true);
+	}
 
 	/// <summary>The `with state` marks that may follow an operand, where any do (§7.8).</summary>
 	public static GramExpr Marked(GramExpr body, string[] mark)
@@ -414,11 +428,15 @@ public partial class GramGrammar
 		return body;
 	}
 
-	public static GramExpr Call(GramExpr target, GramExpr? first, GramExpr[] rest) =>
-		new GramCall(target, first is null ? [] : Joined(first, rest));
+	public static GramExpr Call(GramExpr target, GramExpr? first, GramExpr[] rest)
+	{
+		return new GramCall(target, first is null ? [] : Joined(first, rest));
+	}
 
-	public static GramExpr Set(string? negated, string first, string[] rest) =>
-		new GramSet(negated is not null, Joined(first, rest));
+	public static GramExpr Set(string? negated, string first, string[] rest)
+	{
+		return new GramSet(negated is not null, Joined(first, rest));
+	}
 
 	static T[] Joined<T>(T first, T[] rest)
 	{
@@ -527,5 +545,8 @@ public partial class GramGrammar
 	}
 
 	/// <summary>Whether <paramref name="text"/> is a whole, well-formed grammar.</summary>
-	public static bool IsGrammar(string text) => TryParseFile(text).IsSuccess;
+	public static bool IsGrammar(string text)
+	{
+		return TryParseFile(text).IsSuccess;
+	}
 }

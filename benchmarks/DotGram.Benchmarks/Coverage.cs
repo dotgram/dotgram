@@ -246,8 +246,10 @@ static class Coverage
 	}
 
 	/// <summary>Whether a range leaves SQL Server out, which makes what it marks another product's.</summary>
-	static bool Other(string? moniker) =>
-		moniker is not null && moniker.IndexOf("sql-server", StringComparison.OrdinalIgnoreCase) < 0;
+	static bool Other(string? moniker)
+	{
+		return moniker is not null && moniker.IndexOf("sql-server", StringComparison.OrdinalIgnoreCase) < 0;
+	}
 
 	/// <summary>The directory of the reference a page is in: `statements`, `functions`, `queries`.</summary>
 	static string Section(string name)
@@ -429,9 +431,15 @@ static class Coverage
 	}
 
 	/// <summary>A statement on one line, fit for a code span in a table.</summary>
-	static string Code(string text) => Corpus.One(text).Replace('`', '\'').Replace("|", "\\|");
+	static string Code(string text)
+	{
+		return Corpus.One(text).Replace('`', '\'').Replace("|", "\\|");
+	}
 
-	static string Cell(string text) => text.Replace("|", "\\|");
+	static string Cell(string text)
+	{
+		return text.Replace("|", "\\|");
+	}
 
 	static void Write(string target, string commit, int files, List<Page> pages, Findings findings)
 	{
@@ -553,7 +561,8 @@ static class Coverage
 			$"{all.Neither} neither, {all.Skipped} left out, {findings.Moved} moved back, {findings.Reset} options reset; into {target}");
 	}
 
-	static void Total(StringBuilder text, string name, int pages, Tally tally) =>
+	static void Total(StringBuilder text, string name, int pages, Tally tally)
+	{
 		text.Append("| ").Append(name).Append(" | ")
 			.Append(pages).Append(" | ")
 			.Append(tally.Statements).Append(" | ")
@@ -565,6 +574,7 @@ static class Coverage
 			.Append(tally.Other).Append(" | ")
 			.Append(tally.Neither).Append(" | ")
 			.Append(tally.Skipped).Append(" |\r\n");
+	}
 
 	/// <summary>Beside the grammar's documentation, found by walking up to the solution.</summary>
 	static string Default()

@@ -164,6 +164,8 @@ static class CompatibilityLevels
 	}
 
 	/// <summary>One column a level: <c>ok</c> where it reads, the message number where it does not.</summary>
-	static string Shape(int[] answers) =>
-		string.Join(" ", answers.Select(static message => message == 0 ? "   ok" : $"{message,5}"));
+	static string Shape(int[] answers)
+	{
+		return string.Join(" ", answers.Select(static message => message == 0 ? "   ok" : $"{message,5}"));
+	}
 }

@@ -75,16 +75,20 @@ public static class Replay
 		public IReadOnlyList<Site>? Sites { get; init; }
 
 		/// <summary>Whether this rule's reading always stands, so its value may be built where it is read.</summary>
-		public bool Stands(RuleSymbol rule) =>
-			!Rules.TryGetValue(rule, out var because) || because == Because.Stands;
+		public bool Stands(RuleSymbol rule)
+		{
+			return !Rules.TryGetValue(rule, out var because) || because == Because.Stands;
+		}
 
 		/// <summary>
 		/// Whether every reading of it that a parse keeps is on the accepted derivation:
 		/// true where it stands, and where the only readings put back belong to a parse
 		/// that goes on to fail and hand nothing back.
 		/// </summary>
-		public bool Keeps(RuleSymbol rule) =>
-			!Rules.TryGetValue(rule, out var because) || because is Because.Stands or Because.Losing;
+		public bool Keeps(RuleSymbol rule)
+		{
+			return !Rules.TryGetValue(rule, out var because) || because is Because.Stands or Because.Losing;
+		}
 
 		/// <summary>How many rules stand, of those the graph holds.</summary>
 		public int Standing
@@ -110,7 +114,10 @@ public static class Replay
 	public sealed record Site(RuleSymbol Owner, RuleSymbol Called, Because Because, string? Around, Node? Failing);
 
 	/// <summary>Every rule of the graph, and whether a reading of it can fail to stand.</summary>
-	public static Report Of(RecognitionGraph graph) => Of(graph, sites: false);
+	public static Report Of(RecognitionGraph graph)
+	{
+		return Of(graph, sites: false);
+	}
 
 	/// <summary>
 	/// The same, and where <paramref name="sites"/> is asked, where each cause was found. Kept only
@@ -380,17 +387,25 @@ public static class Replay
 	readonly record struct Where(RuleSymbol Owner, List<Site>? Places, string? Why, Node? Failing = null);
 
 	/// <summary>The reason already known, or the new one where nothing was known.</summary>
-	internal static Because Worse(Because taken, Because other) => taken == Because.Stands ? other : taken;
+	internal static Because Worse(Because taken, Because other)
+	{
+		return taken == Because.Stands ? other : taken;
+	}
 
 	/// <summary>Whether the first reason says less than the second, so the second replaces it.</summary>
-	internal static bool Weaker(Because was, Because now) =>
-		was == Because.Stands || was == Because.Losing && now != Because.Losing;
+	internal static bool Weaker(Because was, Because now)
+	{
+		return was == Because.Stands || was == Because.Losing && now != Because.Losing;
+	}
 
 	/// <summary>
 	/// Whether this node can refuse where it stands. Conservative: only what provably
 	/// always matches answers no, so a reason to put a reading back is never missed.
 	/// </summary>
-	internal static bool CanFail(Node node, RecognitionGraph graph) => CanFail(node, graph, null);
+	internal static bool CanFail(Node node, RecognitionGraph graph)
+	{
+		return CanFail(node, graph, null);
+	}
 
 	/// <summary>Whether each rule asked about can refuse, per graph.</summary>
 	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, System.Collections.Concurrent.ConcurrentDictionary<RuleSymbol, bool>> Refusing = new();
@@ -502,7 +517,10 @@ public static class Replay
 	}
 
 	/// <summary>A reading under a lost one is lost with it, and under a replaced one replaced.</summary>
-	static Because Under(Because owner) => owner == Because.Losing ? Because.Losing : Because.Under;
+	static Because Under(Because owner)
+	{
+		return owner == Because.Losing ? Because.Losing : Because.Under;
+	}
 
 	/// <summary>The rules one rule's body names.</summary>
 	static IEnumerable<RuleSymbol> Called(RecognitionGraph graph, RuleSymbol rule)

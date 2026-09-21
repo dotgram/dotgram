@@ -438,8 +438,10 @@ static class Engine
 	/// looked at.
 	/// </para>
 	/// </remarks>
-	internal static bool Elsewhere(string statement, int message) =>
-		ElsewhereBecause(statement, message) is not null;
+	internal static bool Elsewhere(string statement, int message)
+	{
+		return ElsewhereBecause(statement, message) is not null;
+	}
 
 	/// <summary>
 	/// Why a statement is counted as another product's — the message that said so, or the word
@@ -450,8 +452,9 @@ static class Engine
 	/// statement found by a word may be this product's refusal all the same, and the report has
 	/// to show which statements rest on a guess for anybody to check them.
 	/// </remarks>
-	internal static string? ElsewhereBecause(string statement, int message) =>
-		message switch
+	internal static string? ElsewhereBecause(string statement, int message)
+	{
+		return message switch
 		{
 			// 40514 "'…' is not supported in this version of SQL Server", and 40517 the same
 			// answer about one keyword or option rather than a whole feature.
@@ -468,9 +471,13 @@ static class Engine
 			22487 => $"Msg {message}",
 			_ => OtherProducts.FirstOrDefault(word => Compact(statement).IndexOf(Compact(word), StringComparison.OrdinalIgnoreCase) >= 0),
 		};
+	}
 
 	/// <summary>A text with its whitespace taken out, so that `with(order(A))` is `WITH (ORDER (A))`.</summary>
-	static string Compact(string text) => string.Concat(text.Where(static one => !char.IsWhiteSpace(one)));
+	static string Compact(string text)
+	{
+		return string.Concat(text.Where(static one => !char.IsWhiteSpace(one)));
+	}
 
 	/// <summary>What names a statement as another product's, and which product that is.</summary>
 	static readonly string[] OtherProducts =
@@ -567,7 +574,8 @@ static class Engine
 		"TRUNCATE_TARGET",
 	];
 
-	internal static bool AboutNames(int message) =>
+	internal static bool AboutNames(int message)
+	{
 		// 911: a database that does not exist — `USE AdventureWorks2022`, which the reference's
 		// examples open with, read and then objected to by name. 12703: an external data source
 		// that does not exist, named in an `OPENROWSET`. Not 4145, "an expression of non-boolean
@@ -577,7 +585,7 @@ static class Engine
 		// quote after it. Nor 1003, "… clause allowed only for …": a clause of another statement —
 		// `FOR UPDATE` outside a cursor, `CHECKCONSTRAINTS PLAN` outside `DBCC` — at which it stops as
 		// well, and `OPTION (CHECKCONSTRAINTS PLAN, x) SELECT 1)` was read.
-		message is 117 or 137 or 195 or 207 or 208 or 448 or 911 or 1047 or 1087 or 12703
+		return message is 117 or 137 or 195 or 207 or 208 or 448 or 911 or 1047 or 1087 or 12703
 			or 4104 or 4112
 			or 5369 or 5371 or 5374
 			or 10715
@@ -835,11 +843,12 @@ static class Engine
 			//  12709  Structure of JSON with S3 connection options is not correct. Cannot get subobject "s3".
 			//  46508  Incorrect syntax on external DDL option '%S_MSG'.
 			or 12708 or 12709 or 46508;
+	}
 
-		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
-		// belong. They stood here while this grammar read every option list as an open
-		// vocabulary; with the catalogue written from the published syntax they are refusals
-		// it has to share, and a statement answered with one is not a statement read.
+	// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
+	// belong. They stood here while this grammar read every option list as an open
+	// vocabulary; with the catalogue written from the published syntax they are refusals
+	// it has to share, and a statement answered with one is not a statement read.
 
 	/// <summary>
 	/// The local engine, on a database whose compatibility level is the version being asked

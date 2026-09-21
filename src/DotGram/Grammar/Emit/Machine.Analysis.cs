@@ -72,44 +72,45 @@ sealed partial class Machine
 	/// an optional two rules away from the climb was found renting a parser.
 	/// </para>
 	/// </remarks>
-	bool Silent(Node node, FollowSets.Continuation following) =>
-		!(_owners.TryGetValue(node, out var owner) && _graph.Climbing.ContainsKey(owner)) &&
+	bool Silent(Node node, FollowSets.Continuation following)
+	{
+		return !(_owners.TryGetValue(node, out var owner) && _graph.Climbing.ContainsKey(owner)) &&
 		node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.External => true,
 
 			// One comparison against the character behind, no entry — its compile already
 			// routes failure through `_fail` like every other silent node.
-			Node.Behind                                => true,
+			Node.Behind => true,
 
 			// One test of the reading, no entry, its failure routed like the look-behind's.
-			Node.Reading                               => true,
+			Node.Reading => true,
 
 			// Nothing read and nothing kept, whichever half of a split grammar it lands in.
-			Node.Glue                                  => true,
+			Node.Glue => true,
 
 			// A lookahead over a silent body needs no entry either: the body writes
 			// nothing, so entering is a checkpoint local and leaving is putting the
 			// position back — both directions, since a negative lookahead's failure is
 			// its body succeeding. "Anything" for the body's own continuation: what
 			// follows the lookahead does not follow the body, which is rewound.
-			Node.Lookahead(_, var seen)                => SilentWithin(seen, FollowSets.Continuation.All),
+			Node.Lookahead(_, var seen) => SilentWithin(seen, FollowSets.Continuation.All),
 
 			// A capture kept in locals writes nothing — sound only where nothing ever
 			// backtracks over it, which is what every other case here already proves,
 			// and only the flat-value rendering compiles it that way. A capture of a
 			// flat-valued call is the call's body compiled in place, silent when it is.
-			Node.Capture(_, var captured)              => _valuesInLocals &&
-			                                              (SiteCallee(node) is { } called
-			                                                  ? Silent(_graph.Bodies[called], following)
-			                                                  : Silent(captured, following)),
+			Node.Capture(_, var captured) => _valuesInLocals &&
+														  (SiteCallee(node) is { } called
+															  ? Silent(_graph.Bodies[called], following)
+															  : Silent(captured, following)),
 
 			// The single construction a flat-value method runs at Accept, once the
 			// whole parse is decided — deferred construction kept, no entry written.
-			Node.Construct(var built, _)               => _valuesInLocals && Silent(built, following),
+			Node.Construct(var built, _) => _valuesInLocals && Silent(built, following),
 
-			Node.Sequence(var parts)                   => AllSilent(parts, following),
-			Node.Choice { Selection: not null }        => false,
+			Node.Sequence(var parts) => AllSilent(parts, following),
+			Node.Choice { Selection: not null } => false,
 			// Three ways a choice writes nothing. One character telling every alternative
 			// apart is the first, and the second is the whole choice being one run of
 			// literals: `CompileLiterals` decides those where their texts differ and never
@@ -119,36 +120,37 @@ sealed partial class Machine
 			// whose way back three locals hold — sound only where failure routes through
 			// `Fail:`, which is what <see cref="_checkpointsAllowed"/> stands for, and
 			// only in the valueless rendering, whose retries have no captures to unset.
-			Node.Choice(var alternatives)              => Predictive(alternatives) is not null &&
-			                                              AllSilent(alternatives, following, sequence: false) ||
-			                                              LiteralRun(
-			                                                  alternatives,
-			                                                  alternatives.Count - 1,
-			                                                  following.Plain) == alternatives.Count ||
-			                                              CheckpointSilent(alternatives, following),
+			Node.Choice(var alternatives) => Predictive(alternatives) is not null &&
+														  AllSilent(alternatives, following, sequence: false) ||
+														  LiteralRun(
+															  alternatives,
+															  alternatives.Count - 1,
+															  following.Plain) == alternatives.Count ||
+														  CheckpointSilent(alternatives, following),
 			// A scanner call is one method call that writes nothing; failing one already
 			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
-			Node.Call(var rule, _)                     => ScannerOf(rule) is not null ||
-			                                              CanInline(rule) &&
-			                                              _graph.Bodies.TryGetValue(rule, out var called) &&
-			                                              Silent(called, following),
+			Node.Call(var rule, _) => ScannerOf(rule) is not null ||
+														  CanInline(rule) &&
+														  _graph.Bodies.TryGetValue(rule, out var called) &&
+														  Silent(called, following),
 
 			// A repetition inside another is silent exactly when it is itself the loop and
 			// nothing else — which is the same question, asked of it. `Path = ('/' & Segment)*`
 			// with `Segment` a repetition of its own is the shape this was refusing, and it is
 			// the shape most path-like grammars are written in.
-			Node.Repeat repeat                         => SilentRepeat(repeat, following),
+			Node.Repeat repeat => SilentRepeat(repeat, following),
 
 			// An atomic group is first-match-commits, and that is a shape locals can hold:
 			// try each alternative in order through the give-back door, and the first that
 			// matches is final — nothing ever comes back, which is what "atomic" says.
 			// The alternatives may share prefixes freely; what each must be is silent.
-			Node.Atomic(var kept)                      => kept is Node.Choice(var options) { Selection: null }
-			                                              ? AllSilentWithin(options, following)
-			                                              : SilentWithin(kept, following),
+			Node.Atomic(var kept) => kept is Node.Choice(var options) { Selection: null }
+														  ? AllSilentWithin(options, following)
+														  : SilentWithin(kept, following),
 
-			_                                          => false,
+			_ => false,
 		};
+	}
 
 	/// <summary>
 	/// Whether a choice neither of the first two ways admitted may still keep its way
@@ -215,17 +217,19 @@ sealed partial class Machine
 	/// thing around it writes nothing, and at the point of compiling it, to decide what to
 	/// write. Different answers would mean jumping past entries that were made after all.
 	/// </remarks>
-	bool SilentRepeat(Node.Repeat repeat, FollowSets.Continuation following) =>
+	bool SilentRepeat(Node.Repeat repeat, FollowSets.Continuation following)
+	{
 		// One estimate and two proofs, and the order is not an accident: the estimate only
 		// chooses between two shapes that both mean the repetition, and the proofs are what
 		// say the silent one is available at all. Too heavy to unroll answers no here and
 		// the general machinery stays, which is the safe direction for a guess to fail in.
-		Unrolls(repeat) &&
+		return Unrolls(repeat) &&
 		Possessive(repeat.Body, following) &&
 		SilentWithin(
 			repeat.Body,
 			following.Or(new FollowSets.Continuation(
 				FirstSets.Of(repeat.Body, _graph), FirstSets.Of(repeat.Body, _graph))));
+	}
 
 	/// <summary>
 	/// Every one of them, each followed by what follows it.
@@ -255,8 +259,10 @@ sealed partial class Machine
 	/// Whether a repetition of this body may run to its end and never be asked to give a
 	/// turn back — asked of the model, which is where the question lives now.
 	/// </summary>
-	bool Possessive(Node body, FollowSets.Continuation following) =>
-		Determinism.Possessive(body, following, _graph, _seam);
+	bool Possessive(Node body, FollowSets.Continuation following)
+	{
+		return Determinism.Possessive(body, following, _graph, _seam);
+	}
 
 	/// <summary>
 	/// The character tests that decide a choice outright, or null where the input does not.
@@ -413,26 +419,33 @@ sealed partial class Machine
 		// What an alternative can begin with, or null where that is not known: a lookahead for
 		// the end holds only there, a lookahead for something that reads holds where that thing
 		// begins, and anything else where its first set says.
-		(FirstSets.First? Set, bool End)? Begins(Node node) => node switch
+		(FirstSets.First? Set, bool End)? Begins(Node node)
 		{
-			Node.Lookahead(false, var body) when Everything(body) => (null, true),
-			Node.Lookahead(true, Node.Lookahead(false, var body)) when Everything(body) => (null, true),
-			// `eof` called as a rule rather than written in place: FIX's `(Separator | eof)`.
-			Node.Call(var called, { Count: 0 }) when _graph.Bodies.TryGetValue(called, out var body) &&
-				body is Node.Lookahead(false, var any) && Everything(any) => (null, true),
-			Node.Lookahead(true, var body) => Consumes(body) is { } set ? (set, false) : null,
-			_ => Decidable(node) is { Ends: false } set ? (set, false) : null,
-		};
+			return node switch
+			{
+				Node.Lookahead(false, var body) when Everything(body) => (null, true),
+				Node.Lookahead(true, Node.Lookahead(false, var body)) when Everything(body) => (null, true),
+				// `eof` called as a rule rather than written in place: FIX's `(Separator | eof)`.
+				Node.Call(var called, { Count: 0 }) when _graph.Bodies.TryGetValue(called, out var body) &&
+					body is Node.Lookahead(false, var any) && Everything(any) => (null, true),
+				Node.Lookahead(true, var body) => Consumes(body) is { } set ? (set, false) : null,
+				_ => Decidable(node) is { Ends: false } set ? (set, false) : null,
+			};
+		}
 
-		FirstSets.First? Consumes(Node body) =>
-			!FirstSets.Nullable(body, _graph) && FirstSets.Of(body, _graph) is { Nothing: false, Anything: false } set ? set : null;
+		FirstSets.First? Consumes(Node body)
+		{
+			return !FirstSets.Nullable(body, _graph) && FirstSets.Of(body, _graph) is { Nothing: false, Anything: false } set ? set : null;
+		}
 
 		// One character of anything, which only the end of the input refuses: `eof` is `?!any`.
-		bool Everything(Node body) =>
-			!FirstSets.Nullable(body, _graph) &&
+		bool Everything(Node body)
+		{
+			return !FirstSets.Nullable(body, _graph) &&
 			FirstSets.Of(body, _graph) is var set &&
 			(set.Anything || set.Ranges.Count == 1 && set.Ranges[0].From == char.MinValue && set.Ranges[0].To == char.MaxValue) &&
 			body is Node.Element;
+		}
 	}
 
 	/// <summary>

@@ -105,14 +105,17 @@ static class BnfGram
 		}
 	}
 
-	static bool Narrowed(BnfNode node) => node switch
+	static bool Narrowed(BnfNode node)
 	{
-		BnfSequence sequence => sequence.Items.Any(static item => item is BnfText || Narrowed(item)),
-		BnfChoice choice     => choice.Options.Any(static option => option is BnfText || Narrowed(option)),
-		BnfOptional optional => Narrowed(optional.Body),
-		BnfRepeated repeated => Narrowed(repeated.Body),
-		_                    => false,
-	};
+		return node switch
+		{
+			BnfSequence sequence => sequence.Items.Any(static item => item is BnfText || Narrowed(item)),
+			BnfChoice choice => choice.Options.Any(static option => option is BnfText || Narrowed(option)),
+			BnfOptional optional => Narrowed(optional.Body),
+			BnfRepeated repeated => Narrowed(repeated.Body),
+			_ => false,
+		};
+	}
 
 	/// <summary>
 	/// A piece as a `.gram` expression, bracketed as its place needs: a choice below the top, and a
@@ -172,8 +175,10 @@ static class BnfGram
 		return "\"" + Escape(text, '"') + "\"" + (keyword ? "i" : "");
 	}
 
-	static string Escape(string text, char quote) =>
-		text.Replace("\\", "\\\\").Replace(quote.ToString(), "\\" + quote);
+	static string Escape(string text, char quote)
+	{
+		return text.Replace("\\", "\\\\").Replace(quote.ToString(), "\\" + quote);
+	}
 
 	static string Root()
 	{

@@ -80,7 +80,10 @@ namespace DotGram.Examples.Formats;
 public sealed partial class FixedWidth
 {
 	/// <summary>Reads a whole file of settlement records.</summary>
-	public static IReadOnlyList<Settlement> Read(string text) => ParseFeed(text);
+	public static IReadOnlyList<Settlement> Read(string text)
+	{
+		return ParseFeed(text);
+	}
 }
 
 /// <summary>One record, with its fields already the types they mean.</summary>

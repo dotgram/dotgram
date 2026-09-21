@@ -103,8 +103,10 @@ public static partial class ExpressionParser
 	/// language has, and `Money` beats `decimal` where `Money` is what declares the operator
 	/// between them — asked of the C# compiler itself, which is what chooses there.
 	/// </remarks>
-	static bool Converts(Type from, Type to) =>
-		Standard(from, to) || UserDefined(from, to) is not null;
+	static bool Converts(Type from, Type to)
+	{
+		return Standard(from, to) || UserDefined(from, to) is not null;
+	}
 
 	/// <summary>
 	/// A standard implicit conversion between two types: identity, numeric widening,
@@ -195,8 +197,10 @@ public static partial class ExpressionParser
 
 	/// <summary>A numeric constant as the number of a wider type.</summary>
 	/// <remarks>A <c>char</c> goes through its code, which is all it converts as.</remarks>
-	static object Changed(object constant, Type to) =>
-		Convert.ChangeType(constant is char character ? (int)character : constant, to, CultureInfo.InvariantCulture);
+	static object Changed(object constant, Type to)
+	{
+		return Convert.ChangeType(constant is char character ? (int)character : constant, to, CultureInfo.InvariantCulture);
+	}
 
 	/// <summary>The user-defined implicit conversion from one type to another, or null.</summary>
 	/// <remarks>
@@ -207,10 +211,12 @@ public static partial class ExpressionParser
 	/// numeric types have no user-defined conversion between them even where one is written,
 	/// as <c>decimal</c>'s are, and nothing converts to or from an interface this way.
 	/// </remarks>
-	static MethodInfo? UserDefined(Type from, Type to) =>
-		IsNumeric(Underlying(from)) && IsNumeric(Underlying(to))
+	static MethodInfo? UserDefined(Type from, Type to)
+	{
+		return IsNumeric(Underlying(from)) && IsNumeric(Underlying(to))
 			? null
 			: _operators.GetOrAdd((from, to), static pair => Declared(pair.Item1, pair.Item2));
+	}
 
 	/// <summary>The search <see cref="UserDefined"/> makes, once for each pair of types.</summary>
 	static MethodInfo? Declared(Type from, Type to)
@@ -254,16 +260,28 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>Whether a type is one of C#'s numeric types, <c>char</c> among them.</summary>
-	static bool IsNumeric(Type type) =>
-		!type.IsEnum && Type.GetTypeCode(type) is >= TypeCode.Char and <= TypeCode.Decimal;
+	static bool IsNumeric(Type type)
+	{
+		return !type.IsEnum && Type.GetTypeCode(type) is >= TypeCode.Char and <= TypeCode.Decimal;
+	}
 
-	static Type Underlying(Type type) => Nullable.GetUnderlyingType(type) ?? type;
+	static Type Underlying(Type type)
+	{
+		return Nullable.GetUnderlyingType(type) ?? type;
+	}
 
-	static Type Lifted(Type type) => typeof(Nullable<>).MakeGenericType(type);
+	static Type Lifted(Type type)
+	{
+		return typeof(Nullable<>).MakeGenericType(type);
+	}
 
-	static bool CanBeNull(Type type) => !type.IsValueType || Nullable.GetUnderlyingType(type) is not null;
+	static bool CanBeNull(Type type)
+	{
+		return !type.IsValueType || Nullable.GetUnderlyingType(type) is not null;
+	}
 
-	static bool IsLifted(Expression operand) =>
-		ReferenceEquals(operand, Null) || Nullable.GetUnderlyingType(operand.Type) is not null;
-
+	static bool IsLifted(Expression operand)
+	{
+		return ReferenceEquals(operand, Null) || Nullable.GetUnderlyingType(operand.Type) is not null;
+	}
 }

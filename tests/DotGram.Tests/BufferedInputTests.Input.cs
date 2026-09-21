@@ -18,7 +18,11 @@ public sealed partial class BufferedInputTests
 	static (bool Success, object? Value, long Position, string? Error) Read(Assembly assembly, TextReader reader, int capacity, int limit = int.MaxValue)
 	{
 		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int?), typeof(int?)])!.Invoke(null, [reader, capacity, limit])!;
-		object? Get(string property) => match.GetType().GetProperty(property)!.GetValue(match);
+		object? Get(string property)
+		{
+			return match.GetType().GetProperty(property)!.GetValue(match);
+		}
+
 		return ((bool)Get("IsSuccess")!, Get("Value"), (long)Get("Position")!, (string?)Get("Error"));
 	}
 
@@ -38,6 +42,9 @@ public sealed partial class BufferedInputTests
 
 	sealed class ShortStream(byte[] bytes) : MemoryStream(bytes)
 	{
-		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, 1));
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			return base.Read(buffer, offset, Math.Min(count, 1));
+		}
 	}
 }

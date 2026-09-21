@@ -35,21 +35,25 @@ public sealed class CalculatorFormsTests
 	/// published method, which is why one of these returns `int` and the other `decimal`.
 	/// </remarks>
 	[Theory]
-	[InlineData("1+2*3",     7)]
-	[InlineData("(1+2)*3",   9)]
-	[InlineData("7/2",       3)]     // integer division, because this one works in int
-	public void One_grammar_publishes_an_int_calculator(string expression, int expected) =>
+	[InlineData("1+2*3", 7)]
+	[InlineData("(1+2)*3", 9)]
+	[InlineData("7/2", 3)]     // integer division, because this one works in int
+	public void One_grammar_publishes_an_int_calculator(string expression, int expected)
+	{
 		Assert.Equal(expected, TwoCalculators.EvaluateInt(expression));
+	}
 
 	[Theory]
-	[InlineData("1+2*3",     "7")]
-	[InlineData("(1+2)*3",   "9")]
-	[InlineData("7/2",       "3.5")]  // and this one in double, from the same four rules
-	[InlineData("1.5*2",     "3")]    // double, so no trailing zero where decimal would keep one
-	public void And_a_double_one_beside_it(string expression, string expected) =>
+	[InlineData("1+2*3", "7")]
+	[InlineData("(1+2)*3", "9")]
+	[InlineData("7/2", "3.5")]  // and this one in double, from the same four rules
+	[InlineData("1.5*2", "3")]    // double, so no trailing zero where decimal would keep one
+	public void And_a_double_one_beside_it(string expression, string expected)
+	{
 		Assert.Equal(
 			expected,
 			TwoCalculators.EvaluateDouble(expression).ToString(CultureInfo.InvariantCulture));
+	}
 
 	/// <summary>And the two really are two types, not one with a conversion.</summary>
 	[Fact]
@@ -65,26 +69,32 @@ public sealed class CalculatorFormsTests
 
 	// ── The calculator that recurses both ways ───────────────────────────────────
 
-	static string Decimal(string expression) =>
-		DecimalCalculator.Evaluate(expression).ToString(CultureInfo.InvariantCulture);
+	static string Decimal(string expression)
+	{
+		return DecimalCalculator.Evaluate(expression).ToString(CultureInfo.InvariantCulture);
+	}
 
 	[Theory]
-	[InlineData("1-2-3",         "-4")]     // (1-2)-3 — Sum takes its left operand at its own level
-	[InlineData("100/5/2",       "10")]     // (100/5)/2, the same reason
-	[InlineData("2^3^2",        "512")]     // 2^(3^2) — Power takes its right one there instead
-	[InlineData("(2^3)^2",       "64")]     // and this is what the other grouping means
+	[InlineData("1-2-3", "-4")]     // (1-2)-3 — Sum takes its left operand at its own level
+	[InlineData("100/5/2", "10")]     // (100/5)/2, the same reason
+	[InlineData("2^3^2", "512")]     // 2^(3^2) — Power takes its right one there instead
+	[InlineData("(2^3)^2", "64")]     // and this is what the other grouping means
 	public void Each_operator_groups_by_which_side_is_parsed_at_its_own_level(
-		string expression, string expected) =>
+		string expression, string expected)
+	{
 		Assert.Equal(expected, Decimal(expression));
+	}
 
 	[Theory]
-	[InlineData("1/8",        "0.125")]     // `: @decimal`, so not the 0 the int one gives
-	[InlineData("1.5*2",        "3.0")]
-	[InlineData("2^-2",        "0.25")]
-	[InlineData("-2^2",          "-4")]     // -(2^2): `^` binds tighter than unary minus
-	[InlineData("2*3^2",         "18")]     // and looser than `*`
-	public void And_reckons_in_decimal(string expression, string expected) =>
+	[InlineData("1/8", "0.125")]     // `: @decimal`, so not the 0 the int one gives
+	[InlineData("1.5*2", "3.0")]
+	[InlineData("2^-2", "0.25")]
+	[InlineData("-2^2", "-4")]     // -(2^2): `^` binds tighter than unary minus
+	[InlineData("2*3^2", "18")]     // and looser than `*`
+	public void And_reckons_in_decimal(string expression, string expected)
+	{
 		Assert.Equal(expected, Decimal(expression));
+	}
 
 	[Fact]
 	public void And_says_where_a_decimal_expression_stops_being_one()
@@ -104,17 +114,21 @@ public sealed class CalculatorFormsTests
 
 	// ── The calculator of one rule ───────────────────────────────────────────────
 
-	static string Strength(string expression) =>
-		StrengthCalculator.Evaluate(expression).ToString(CultureInfo.InvariantCulture);
+	static string Strength(string expression)
+	{
+		return StrengthCalculator.Evaluate(expression).ToString(CultureInfo.InvariantCulture);
+	}
 
 	[Theory]
-	[InlineData("1-2-3",         "-4")]     // `<< 1` reads its right operand at 2 → groups left
-	[InlineData("2^3^2",        "512")]     // `>> 3` reads it at 3 → groups right
-	[InlineData("-1-2",          "-3")]
-	[InlineData("1/8",        "0.125")]
-	[InlineData(" 1 + 2 * 3 ",    "7")]
-	public void One_rule_holds_a_whole_expression_language(string expression, string expected) =>
+	[InlineData("1-2-3", "-4")]     // `<< 1` reads its right operand at 2 → groups left
+	[InlineData("2^3^2", "512")]     // `>> 3` reads it at 3 → groups right
+	[InlineData("-1-2", "-3")]
+	[InlineData("1/8", "0.125")]
+	[InlineData(" 1 + 2 * 3 ", "7")]
+	public void One_rule_holds_a_whole_expression_language(string expression, string expected)
+	{
 		Assert.Equal(expected, Strength(expression));
+	}
 
 	[Fact]
 	public void And_says_where_a_one_rule_expression_stops_being_one()
@@ -128,7 +142,8 @@ public sealed class CalculatorFormsTests
 
 	[Theory]
 	[MemberData(nameof(ExampleTests.Expressions), MemberType = typeof(ExampleTests))]
-	public void One_rule_of_strengths_means_what_the_five_rules_of_levels_mean(string expression) =>
+	public void One_rule_of_strengths_means_what_the_five_rules_of_levels_mean(string expression)
+	{
 		// The two calculators, expression by expression. The last pair is the one that
 		// looked as though it could not translate: levels say the asymmetry by naming two
 		// different rules either side of `^`, and a strength is one number.
@@ -140,25 +155,31 @@ public sealed class CalculatorFormsTests
 		// So `^` and unary minus at the same 3 gives -(2^2) on one side and 2^(-2) on the
 		// other.
 		Assert.Equal(Decimal(expression), Strength(expression));
+	}
 
 	[Theory]
 	[MemberData(nameof(ExampleTests.Expressions), MemberType = typeof(ExampleTests))]
-	public void And_one_rule_of_strengths_builds_the_very_same_tree(string expression) =>
+	public void And_one_rule_of_strengths_builds_the_very_same_tree(string expression)
+	{
 		// Not "the same answer" — the same tree, node for node, by record equality. Five
 		// rules of levels and one rule of strengths are two ways of writing one language,
 		// and this is as close as a test can get to saying so.
 		Assert.Equal(ArithmeticTree.Read(expression), OneRuleParser.Read(expression));
+	}
 
 	[Fact]
-	public void And_the_walks_do_not_know_which_grammar_built_it() =>
+	public void And_the_walks_do_not_know_which_grammar_built_it()
+	{
 		// `Evaluate` and `Print` are on the tree and mention no parser, which is why one
 		// set of them serves both grammars — and why this line says nothing about which
 		// one built the node it is calling.
 		Assert.Equal("((1 - 2) - -3)", OneRuleParser.Read("1-2--3").Print());
+	}
 
 	[Theory]
 	[MemberData(nameof(ExampleTests.Expressions), MemberType = typeof(ExampleTests))]
-	public void And_a_walk_over_it_gets_the_same_answers_as_the_calculator(string expression) =>
+	public void And_a_walk_over_it_gets_the_same_answers_as_the_calculator(string expression)
+	{
 		// The tree is built by a grammar of levels, like DecimalCalculatorExample and
 		// unlike StrengthCalculatorExample. All three answer the same, which is the point:
 		// the two conventions are two ways of saying one language, and what a `=>` builds
@@ -166,4 +187,5 @@ public sealed class CalculatorFormsTests
 		Assert.Equal(
 			Decimal(expression),
 			ArithmeticTree.Read(expression).Evaluate().ToString(CultureInfo.InvariantCulture));
+	}
 }

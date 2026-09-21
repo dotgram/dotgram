@@ -22,11 +22,13 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class LexicalSplitTests
 {
-	static RecognitionGraph Graph(string grammar) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Graph(string grammar)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(
 					GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!));
+	}
 
 	const string Spaced =
 		"""
@@ -487,11 +489,15 @@ public sealed class LexicalSplitTests
 		Assert.Equal(GramSeverity.Warning, said.Severity);
 	}
 
-	static TerminalInventory.Pattern Class(TerminalInventory inventory, string name) =>
-		inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Single(one => one.Rule.Name == name);
+	static TerminalInventory.Pattern Class(TerminalInventory inventory, string name)
+	{
+		return inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Single(one => one.Rule.Name == name);
+	}
 
-	static IEnumerable<int> Numbers(TerminalInventory inventory, TerminalInventory.Pattern pattern) =>
-		inventory.KindsOf(pattern).SelectMany(range => Enumerable.Range(range.From, range.Count));
+	static IEnumerable<int> Numbers(TerminalInventory inventory, TerminalInventory.Pattern pattern)
+	{
+		return inventory.KindsOf(pattern).SelectMany(range => Enumerable.Range(range.From, range.Count));
+	}
 
 	/// <summary>Every node of a body, the compiler's own walker being internal.</summary>
 	static IEnumerable<Node> Descendants(Node node)
@@ -503,6 +509,8 @@ public sealed class LexicalSplitTests
 				yield return one;
 	}
 
-	static int Count(Node.Element element) =>
-		element.Ranges.Sum(range => range.To - range.From + 1);
+	static int Count(Node.Element element)
+	{
+		return element.Ranges.Sum(range => range.To - range.From + 1);
+	}
 }

@@ -165,13 +165,17 @@ sealed class GramRenameCommandFilter(
 		return target(snapshot, position);
 	}
 
-	static bool IsRename(Guid group, uint commandId) =>
-		group == VSConstants.VSStd2K &&
+	static bool IsRename(Guid group, uint commandId)
+	{
+		return group == VSConstants.VSStd2K &&
 			(commandId == (uint)VSConstants.VSStd2KCmdID.RENAME ||
 			 commandId == (uint)VSConstants.VSStd2KCmdID.ECMD_RENAMESYMBOL) ||
 		group == VSConstants.GUID_VSStandardCommandSet97 &&
 			commandId == (uint)VSConstants.VSStd97CmdID.Rename;
+	}
 
-	static bool IsFindReferences(Guid group, uint commandId) =>
-		group == VSConstants.GUID_VSStandardCommandSet97 && commandId == (uint)VSConstants.VSStd97CmdID.FindReferences;
+	static bool IsFindReferences(Guid group, uint commandId)
+	{
+		return group == VSConstants.GUID_VSStandardCommandSet97 && commandId == (uint)VSConstants.VSStd97CmdID.FindReferences;
+	}
 }

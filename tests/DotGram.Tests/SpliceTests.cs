@@ -23,10 +23,12 @@ public sealed class SpliceTests
 	const string Own      = "using Base;\nStart = a: Base.Word\n";
 	const string Included = "trivia = none\nWord = ['a'..'z']+\n";
 
-	static (string Text, SplicedLineMap Map) Joined() =>
-		GrammarSplice.Join(
+	static (string Text, SplicedLineMap Map) Joined()
+	{
+		return GrammarSplice.Join(
 			new GrammarSplice.Part(Own, null, new GrammarLineMap(Own, "Derived.gram")),
 			[new GrammarSplice.Part(Included, "Base", new GrammarLineMap(Included, "Base.gram"))]);
+	}
 
 	/// <summary>
 	/// The including grammar keeps the positions it had, which is the whole reason it goes
@@ -149,24 +151,28 @@ public sealed class SpliceTests
 
 	/// <summary>An included grammar has to be named, because it is wrapped in one.</summary>
 	[Fact]
-	public void And_what_is_included_must_be_named() =>
+	public void And_what_is_included_must_be_named()
+	{
 		Assert.Throws<ArgumentException>(
 			() => GrammarSplice.Join(
 				new GrammarSplice.Part("Start = 'a'", null, null),
 				[new GrammarSplice.Part("Word = 'b'", null, null)]));
+	}
 
 	// ── The joined text as the compiler sees it ─────────────────────────────────
 
 	/// <summary>A grammar that says nothing itself and reaches into what it included.</summary>
 	const string Deriving = "using Base;\nStart = w: Word\nparse Start\n";
 
-	static GramCompilation Compiled(string text, SplicedLineMap map) =>
-		GramCompiler.Compile(text, new GramCompilerOptions
+	static GramCompilation Compiled(string text, SplicedLineMap map)
+	{
+		return GramCompiler.Compile(text, new GramCompilerOptions
 		{
-			ClassName     = "Grammar",
+			ClassName = "Grammar",
 			CSharpScanner = RoslynCSharpScanner.Instance,
-			LineMap       = map,
+			LineMap = map,
 		});
+	}
 
 	/// <summary>
 	/// A grammar including another compiles, and the `using` reaches into the wrapper.

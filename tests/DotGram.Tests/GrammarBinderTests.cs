@@ -16,11 +16,15 @@ namespace DotGram.Tests;
 /// </summary>
 public sealed class GrammarBinderTests
 {
-	static GrammarModel Bind(string source) =>
-		GrammarBinder.Bind(GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).File);
+	static GrammarModel Bind(string source)
+	{
+		return GrammarBinder.Bind(GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).File);
+	}
 
-	static string[] Diagnostics(string source) =>
-		[.. Bind(source).Diagnostics.Select(d => d.Id)];
+	static string[] Diagnostics(string source)
+	{
+		return [.. Bind(source).Diagnostics.Select(d => d.Id)];
+	}
 
 	[Fact]
 	public void Builds_the_namespace_tree()
@@ -473,7 +477,10 @@ public sealed class GrammarBinderTests
 			return known.Contains(qualifiedName);
 		}
 
-		public bool IsAssignable(string from, string to) => false;
+		public bool IsAssignable(string from, string to)
+		{
+			return false;
+		}
 
 		public bool TryResolveSettableProperties(
 			string qualifiedName, out System.Collections.Generic.IReadOnlyList<ObjectMember> properties)
@@ -499,9 +506,14 @@ public sealed class GrammarBinderTests
 			return ExternalValueResolution.NotFound;
 		}
 
-		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
-			ExternalMethodResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+		{
+			return ExternalMethodResolution.Found;
+		}
 
-		public bool Rewinds(string qualifiedName) => false;
+		public bool Rewinds(string qualifiedName)
+		{
+			return false;
+		}
 	}
 }

@@ -92,7 +92,10 @@ public abstract record Statement : ISqlSpan
 	public SqlSpan Span { get; private set; }
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
-	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
 
 	/// <summary>
 	/// What the statement does — a query, rows changed, an object defined, a permission, the flow
@@ -117,8 +120,10 @@ public abstract record Statement : ISqlSpan
 	}
 
 	/// <summary>A select with nothing around it, which is the whole of the standard's.</summary>
-	public static Select Selected(Query of, Clause? by = null) =>
-		new(Clause.None, of, by, Clause.None, Clause.None);
+	public static Select Selected(Query of, Clause? by = null)
+	{
+		return new(Clause.None, of, by, Clause.None, Clause.None);
+	}
 
 	/// <summary>§14.11 rows written into a table, from a list, a query or nothing at all.</summary>
 	/// <remarks>
@@ -1805,207 +1810,233 @@ public abstract record Statement : ISqlSpan
 	public static readonly Statement[] None = [];
 
 	/// <summary>The statement the word names, for the ten that are a word and a value.</summary>
-	public static Statement Commanded(string word, Expression? value) =>
-		word switch
+	public static Statement Commanded(string word, Expression? value)
+	{
+		return word switch
 		{
-			"PRINT"      => new Print(value!),
-			"RETURN"     => new Return(value),
-			"THROW"      => new Throw(value is null ? Expression.None : [value]),
-			"GOTO"       => new GoTo(value!),
-			"BREAK"      => new Break(),
-			"CONTINUE"   => new Continue(),
+			"PRINT" => new Print(value!),
+			"RETURN" => new Return(value),
+			"THROW" => new Throw(value is null ? Expression.None : [value]),
+			"GOTO" => new GoTo(value!),
+			"BREAK" => new Break(),
+			"CONTINUE" => new Continue(),
 			"CHECKPOINT" => new Checkpoint(value),
-			"USE"        => new Use(value!),
-			"RAISERROR"  => new RaiseError(value is null ? Expression.None : [value]),
-			"WAITFOR"    => new WaitFor(value!),
-			_            => throw Syntax.Unknown(word),
+			"USE" => new Use(value!),
+			"RAISERROR" => new RaiseError(value is null ? Expression.None : [value]),
+			"WAITFOR" => new WaitFor(value!),
+			_ => throw Syntax.Unknown(word),
 		};
+	}
 
 	/// <summary>The same where the values arrived as a list that may not be there.</summary>
-	public static Statement Commanded(string word, Expression[]? values) =>
-		word switch
+	public static Statement Commanded(string word, Expression[]? values)
+	{
+		return word switch
 		{
-			"PRINT"      => new Print(values is { Length: > 0 } some ? some[0] : null!),
-			"RETURN"     => new Return(values is { Length: > 0 } some ? some[0] : null),
-			"THROW"      => new Throw(values ?? Expression.None),
-			"GOTO"       => new GoTo(values is { Length: > 0 } some ? some[0] : null!),
-			"BREAK"      => new Break(),
-			"CONTINUE"   => new Continue(),
+			"PRINT" => new Print(values is { Length: > 0 } some ? some[0] : null!),
+			"RETURN" => new Return(values is { Length: > 0 } some ? some[0] : null),
+			"THROW" => new Throw(values ?? Expression.None),
+			"GOTO" => new GoTo(values is { Length: > 0 } some ? some[0] : null!),
+			"BREAK" => new Break(),
+			"CONTINUE" => new Continue(),
 			"CHECKPOINT" => new Checkpoint(values is { Length: > 0 } some ? some[0] : null),
-			"USE"        => new Use(values is { Length: > 0 } some ? some[0] : null!),
-			"RAISERROR"  => new RaiseError(values ?? Expression.None),
-			"WAITFOR"    => new WaitFor(values is { Length: > 0 } some ? some[0] : null!),
-			_            => throw Syntax.Unknown(word),
+			"USE" => new Use(values is { Length: > 0 } some ? some[0] : null!),
+			"RAISERROR" => new RaiseError(values ?? Expression.None),
+			"WAITFOR" => new WaitFor(values is { Length: > 0 } some ? some[0] : null!),
+			_ => throw Syntax.Unknown(word),
 		};
+	}
 
 	/// <summary>What is being backed up, as the statement it is.</summary>
-	public static Statement BackedUp(string what, string? name, string? tail = null) =>
-		BackedUp(what, name ?? "") with { Tail = tail };
+	public static Statement BackedUp(string what, string? name, string? tail = null)
+	{
+		return BackedUp(what, name ?? "") with { Tail = tail };
+	}
 
-	static Definition BackedUp(string what, string name) =>
-		what switch
+	static Definition BackedUp(string what, string name)
+	{
+		return what switch
 		{
-			"DATABASE"           => new BackupDatabase(name),
-			"LOG"                => new BackupTransactionLog(name),
-			"SERVER"             => new BackupServer(name),
-			"GROUP"              => new BackupGroup(name),
-			"CERTIFICATE"        => new BackupCertificate(name),
-			"MASTER KEY"         => new BackupMasterKey(name),
+			"DATABASE" => new BackupDatabase(name),
+			"LOG" => new BackupTransactionLog(name),
+			"SERVER" => new BackupServer(name),
+			"GROUP" => new BackupGroup(name),
+			"CERTIFICATE" => new BackupCertificate(name),
+			"MASTER KEY" => new BackupMasterKey(name),
 			"SERVICE MASTER KEY" => new BackupServiceMasterKey(name),
-			"SYMMETRIC KEY"      => new BackupSymmetricKey(name),
-			_                    => throw Syntax.Unknown(what),
+			"SYMMETRIC KEY" => new BackupSymmetricKey(name),
+			_ => throw Syntax.Unknown(what),
 		};
+	}
 
 	/// <summary>What is being restored, likewise.</summary>
-	public static Statement Restored(string what, string? name, string? tail = null) =>
-		Restored(what, name ?? "") with { Tail = tail };
+	public static Statement Restored(string what, string? name, string? tail = null)
+	{
+		return Restored(what, name ?? "") with { Tail = tail };
+	}
 
-	static Definition Restored(string what, string name) =>
-		what switch
+	static Definition Restored(string what, string name)
+	{
+		return what switch
 		{
-			"DATABASE"           => new RestoreDatabase(name),
-			"LOG"                => new RestoreLog(name),
-			"FILELISTONLY"       => new RestoreFileListOnly(name),
-			"HEADERONLY"         => new RestoreHeaderOnly(name),
-			"LABELONLY"          => new RestoreLabelOnly(name),
-			"REWINDONLY"         => new RestoreRewindOnly(name),
-			"VERIFYONLY"         => new RestoreVerifyOnly(name),
-			"MASTER KEY"         => new RestoreMasterKey(name),
+			"DATABASE" => new RestoreDatabase(name),
+			"LOG" => new RestoreLog(name),
+			"FILELISTONLY" => new RestoreFileListOnly(name),
+			"HEADERONLY" => new RestoreHeaderOnly(name),
+			"LABELONLY" => new RestoreLabelOnly(name),
+			"REWINDONLY" => new RestoreRewindOnly(name),
+			"VERIFYONLY" => new RestoreVerifyOnly(name),
+			"MASTER KEY" => new RestoreMasterKey(name),
 			"SERVICE MASTER KEY" => new RestoreServiceMasterKey(name),
-			"SYMMETRIC KEY"      => new RestoreSymmetricKey(name),
-			_                    => throw Syntax.Unknown(what),
+			"SYMMETRIC KEY" => new RestoreSymmetricKey(name),
+			_ => throw Syntax.Unknown(what),
 		};
+	}
 
 	/// <summary>The definition the words name, where the tree keeps the name and no more.</summary>
 	public static Statement Defined(
-		string what, string name, string? tail = null, string? verb = null, Clause[]? options = null) =>
-		Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = options };
+		string what, string name, string? tail = null, string? verb = null, Clause[]? options = null)
+	{
+		return Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = options };
+	}
 
 	/// <summary>A list held under one name: a private key's settings, an Always Encrypted value's parts.</summary>
-	public static Clause[] Holding(string name, Clause[]? settings) =>
-		settings is null ? Clause.None : [new Clause.Option(name, null, settings)];
+	public static Clause[] Holding(string name, Clause[]? settings)
+	{
+		return settings is null ? Clause.None : [new Clause.Option(name, null, settings)];
+	}
 
-	static Definition Named(string what, string name) =>
-		what switch
+	static Definition Named(string what, string name)
+	{
+		return what switch
 		{
-			"CREATE LOGIN"            => new CreateLogin(name),
-			"ALTER LOGIN"             => new AlterLogin(name),
-			"CREATE USER"             => new CreateUser(name),
-			"ALTER USER"              => new AlterUser(name),
-			"CREATE ROLE"             => new CreateRole(name),
-			"ALTER ROLE"              => new AlterRole(name),
-			"CREATE SERVER ROLE"      => new CreateServerRole(name),
-			"ALTER SERVER ROLE"       => new AlterServerRole(name),
+			"CREATE LOGIN" => new CreateLogin(name),
+			"ALTER LOGIN" => new AlterLogin(name),
+			"CREATE USER" => new CreateUser(name),
+			"ALTER USER" => new AlterUser(name),
+			"CREATE ROLE" => new CreateRole(name),
+			"ALTER ROLE" => new AlterRole(name),
+			"CREATE SERVER ROLE" => new CreateServerRole(name),
+			"ALTER SERVER ROLE" => new AlterServerRole(name),
 			"CREATE APPLICATION ROLE" => new CreateApplicationRole(name),
-			"ALTER APPLICATION ROLE"  => new AlterApplicationRole(name),
-			"CREATE SCHEMA"           => new SchemaDefinition(name),
-			"ALTER SCHEMA"            => new AlterSchema(name),
-			"ALTER AUTHORIZATION"     => new AlterAuthorization(name),
-			"EXTERNAL DATA SOURCE"    => new ExternalDataSourceDefinition(name),
-			"EXTERNAL FILE FORMAT"    => new ExternalFileFormatDefinition(name),
-			"EXTERNAL LIBRARY"        => new ExternalLibraryDefinition(name),
-			"EXTERNAL RESOURCE POOL"  => new ExternalResourcePoolDefinition(name),
-			"RESOURCE POOL"           => new ResourcePoolDefinition(name),
-			"WORKLOAD GROUP"          => new WorkloadGroupDefinition(name),
-			"SERVER AUDIT"            => new ServerAuditDefinition(name),
-			"AUDIT SPECIFICATION"     => new AuditSpecificationDefinition(name),
+			"ALTER APPLICATION ROLE" => new AlterApplicationRole(name),
+			"CREATE SCHEMA" => new SchemaDefinition(name),
+			"ALTER SCHEMA" => new AlterSchema(name),
+			"ALTER AUTHORIZATION" => new AlterAuthorization(name),
+			"EXTERNAL DATA SOURCE" => new ExternalDataSourceDefinition(name),
+			"EXTERNAL FILE FORMAT" => new ExternalFileFormatDefinition(name),
+			"EXTERNAL LIBRARY" => new ExternalLibraryDefinition(name),
+			"EXTERNAL RESOURCE POOL" => new ExternalResourcePoolDefinition(name),
+			"RESOURCE POOL" => new ResourcePoolDefinition(name),
+			"WORKLOAD GROUP" => new WorkloadGroupDefinition(name),
+			"SERVER AUDIT" => new ServerAuditDefinition(name),
+			"AUDIT SPECIFICATION" => new AuditSpecificationDefinition(name),
 			"DATABASE AUDIT SPECIFICATION" => new DatabaseAuditSpecificationDefinition(name),
-			"EVENT NOTIFICATION"      => new EventNotificationDefinition(name),
-			"AVAILABILITY GROUP"      => new AvailabilityGroupDefinition(name),
-			"MESSAGE TYPE"            => new MessageTypeDefinition(name),
-			"CONTRACT"                => new ContractDefinition(name),
-			"QUEUE"                   => new QueueDefinition(name),
-			"SERVICE"                 => new ServiceDefinition(name),
-			"ROUTE"                   => new RouteDefinition(name),
-			"REMOTE SERVICE BINDING"  => new RemoteServiceBindingDefinition(name),
-			"BROKER PRIORITY"         => new BrokerPriorityDefinition(name),
-			"ALTER RESOURCE GOVERNOR"    => new AlterResourceGovernor(name),
+			"EVENT NOTIFICATION" => new EventNotificationDefinition(name),
+			"AVAILABILITY GROUP" => new AvailabilityGroupDefinition(name),
+			"MESSAGE TYPE" => new MessageTypeDefinition(name),
+			"CONTRACT" => new ContractDefinition(name),
+			"QUEUE" => new QueueDefinition(name),
+			"SERVICE" => new ServiceDefinition(name),
+			"ROUTE" => new RouteDefinition(name),
+			"REMOTE SERVICE BINDING" => new RemoteServiceBindingDefinition(name),
+			"BROKER PRIORITY" => new BrokerPriorityDefinition(name),
+			"ALTER RESOURCE GOVERNOR" => new AlterResourceGovernor(name),
 			"ALTER SERVER CONFIGURATION" => new AlterServerConfiguration(name),
-			"OPEN SYMMETRIC KEY"         => new OpenSymmetricKey(name),
-			"OPEN MASTER KEY"            => new OpenMasterKey(name),
-			"CLOSE SYMMETRIC KEY"        => new CloseSymmetricKey(name),
-			"CLOSE ALL SYMMETRIC KEYS"   => new CloseAllSymmetricKeys(name),
-			"CLOSE MASTER KEY"           => new CloseMasterKey(name),
-			"PARTITION FUNCTION"         => new PartitionFunctionDefinition(name),
-			"ALTER PARTITION FUNCTION"   => new AlterPartitionFunction(name),
-			"PARTITION SCHEME"           => new PartitionSchemeDefinition(name),
-			"ALTER PARTITION SCHEME"     => new AlterPartitionScheme(name),
-			"SEQUENCE"                   => new SequenceDefinition(name),
-			"TYPE"                       => new TypeDefinition(name),
-			"XML SCHEMA COLLECTION"      => new XmlSchemaCollectionDefinition(name),
+			"OPEN SYMMETRIC KEY" => new OpenSymmetricKey(name),
+			"OPEN MASTER KEY" => new OpenMasterKey(name),
+			"CLOSE SYMMETRIC KEY" => new CloseSymmetricKey(name),
+			"CLOSE ALL SYMMETRIC KEYS" => new CloseAllSymmetricKeys(name),
+			"CLOSE MASTER KEY" => new CloseMasterKey(name),
+			"PARTITION FUNCTION" => new PartitionFunctionDefinition(name),
+			"ALTER PARTITION FUNCTION" => new AlterPartitionFunction(name),
+			"PARTITION SCHEME" => new PartitionSchemeDefinition(name),
+			"ALTER PARTITION SCHEME" => new AlterPartitionScheme(name),
+			"SEQUENCE" => new SequenceDefinition(name),
+			"TYPE" => new TypeDefinition(name),
+			"XML SCHEMA COLLECTION" => new XmlSchemaCollectionDefinition(name),
 			"ALTER XML SCHEMA COLLECTION" => new AlterXmlSchemaCollection(name),
-			"SYNONYM"                    => new SynonymDefinition(name),
-			"ASSEMBLY"                   => new AssemblyDefinition(name),
-			"CRYPTOGRAPHIC PROVIDER"     => new CryptographicProviderDefinition(name),
-			"EXTERNAL LANGUAGE"          => new ExternalLanguageDefinition(name),
-			"EXTERNAL MODEL"             => new ExternalModelDefinition(name),
-			"RULE"                       => new RuleDefinition(name),
-			"DEFAULT"                    => new DefaultDefinition(name),
-			"AGGREGATE"                  => new AggregateDefinition(name),
+			"SYNONYM" => new SynonymDefinition(name),
+			"ASSEMBLY" => new AssemblyDefinition(name),
+			"CRYPTOGRAPHIC PROVIDER" => new CryptographicProviderDefinition(name),
+			"EXTERNAL LANGUAGE" => new ExternalLanguageDefinition(name),
+			"EXTERNAL MODEL" => new ExternalModelDefinition(name),
+			"RULE" => new RuleDefinition(name),
+			"DEFAULT" => new DefaultDefinition(name),
+			"AGGREGATE" => new AggregateDefinition(name),
 
-			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
-			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),
-			"FULLTEXT CATALOG"           => new FullTextCatalogDefinition(name),
-			"ALTER FULLTEXT CATALOG"     => new AlterFullTextCatalog(name),
-			"FULLTEXT STOPLIST"          => new FullTextStopListDefinition(name),
-			"ALTER FULLTEXT STOPLIST"    => new AlterFullTextStopList(name),
-			"SEARCH PROPERTY LIST"       => new SearchPropertyListDefinition(name),
+			"FULLTEXT INDEX" => new FullTextIndexDefinition(name),
+			"ALTER FULLTEXT INDEX" => new AlterFullTextIndex(name),
+			"FULLTEXT CATALOG" => new FullTextCatalogDefinition(name),
+			"ALTER FULLTEXT CATALOG" => new AlterFullTextCatalog(name),
+			"FULLTEXT STOPLIST" => new FullTextStopListDefinition(name),
+			"ALTER FULLTEXT STOPLIST" => new AlterFullTextStopList(name),
+			"SEARCH PROPERTY LIST" => new SearchPropertyListDefinition(name),
 			"ALTER SEARCH PROPERTY LIST" => new AlterSearchPropertyList(name),
 
-			"ASYMMETRIC KEY"                => new AsymmetricKeyDefinition(name),
-			"ALTER ASYMMETRIC KEY"          => new AlterAsymmetricKey(name),
-			"SYMMETRIC KEY"                 => new SymmetricKeyDefinition(name),
-			"ALTER SYMMETRIC KEY"           => new AlterSymmetricKey(name),
-			"CERTIFICATE"                   => new CertificateDefinition(name),
-			"ALTER CERTIFICATE"             => new AlterCertificate(name),
-			"MASTER KEY"                    => new MasterKeyDefinition(name),
-			"ALTER MASTER KEY"              => new AlterMasterKey(name),
-			"ALTER SERVICE MASTER KEY"      => new AlterServiceMasterKey(name),
-			"DATABASE ENCRYPTION KEY"       => new DatabaseEncryptionKeyDefinition(name),
+			"ASYMMETRIC KEY" => new AsymmetricKeyDefinition(name),
+			"ALTER ASYMMETRIC KEY" => new AlterAsymmetricKey(name),
+			"SYMMETRIC KEY" => new SymmetricKeyDefinition(name),
+			"ALTER SYMMETRIC KEY" => new AlterSymmetricKey(name),
+			"CERTIFICATE" => new CertificateDefinition(name),
+			"ALTER CERTIFICATE" => new AlterCertificate(name),
+			"MASTER KEY" => new MasterKeyDefinition(name),
+			"ALTER MASTER KEY" => new AlterMasterKey(name),
+			"ALTER SERVICE MASTER KEY" => new AlterServiceMasterKey(name),
+			"DATABASE ENCRYPTION KEY" => new DatabaseEncryptionKeyDefinition(name),
 			"ALTER DATABASE ENCRYPTION KEY" => new AlterDatabaseEncryptionKey(name),
-			"COLUMN ENCRYPTION KEY"         => new ColumnEncryptionKeyDefinition(name),
-			"ALTER COLUMN ENCRYPTION KEY"   => new AlterColumnEncryptionKey(name),
-			"COLUMN MASTER KEY"             => new ColumnMasterKeyDefinition(name),
-			"CREDENTIAL"                    => new CredentialDefinition(name),
-			"DATABASE SCOPED CREDENTIAL"    => new DatabaseScopedCredentialDefinition(name),
-			"SECURITY POLICY"               => new SecurityPolicyDefinition(name),
-			_                               => throw Syntax.Unknown(what),
+			"COLUMN ENCRYPTION KEY" => new ColumnEncryptionKeyDefinition(name),
+			"ALTER COLUMN ENCRYPTION KEY" => new AlterColumnEncryptionKey(name),
+			"COLUMN MASTER KEY" => new ColumnMasterKeyDefinition(name),
+			"CREDENTIAL" => new CredentialDefinition(name),
+			"DATABASE SCOPED CREDENTIAL" => new DatabaseScopedCredentialDefinition(name),
+			"SECURITY POLICY" => new SecurityPolicyDefinition(name),
+			_ => throw Syntax.Unknown(what),
 		};
+	}
 
 	/// <summary>What is being done to a database, as the statement it is.</summary>
-	public static Statement OfDatabase(string name, string action, Clause[]? settings, string? tail = null) =>
-		OfDatabase(name, action, settings) is Definition made ? made with { Tail = Syntax.Tail(tail) } : OfDatabase(name, action, settings);
+	public static Statement OfDatabase(string name, string action, Clause[]? settings, string? tail = null)
+	{
+		return OfDatabase(name, action, settings) is Definition made ? made with { Tail = Syntax.Tail(tail) } : OfDatabase(name, action, settings);
+	}
 
-	static Statement OfDatabase(string name, string action, Clause[]? settings) =>
-		action switch
+	static Statement OfDatabase(string name, string action, Clause[]? settings)
+	{
+		return action switch
 		{
-			"CREATE"               => new CreateDatabase(name, settings ?? Clause.None),
-			"SET"                  => new AlterDatabaseSet(name, settings ?? Clause.None),
-			"COLLATE"              => new AlterDatabaseCollate(name),
-			"MODIFY NAME"          => new AlterDatabaseModifyName(name),
-			"MODIFY FILEGROUP"     => new AlterDatabaseModifyFileGroup(name),
-			"MODIFY FILE"          => new AlterDatabaseModifyFile(name),
-			"MODIFY"               => new AlterDatabaseModify(name),
-			"ADD FILEGROUP"        => new AlterDatabaseAddFileGroup(name),
-			"ADD LOG FILE"         => new AlterDatabaseAddLogFile(name),
-			"ADD FILE"             => new AlterDatabaseAddFile(name),
-			"REMOVE FILEGROUP"     => new AlterDatabaseRemoveFileGroup(name),
-			"REMOVE FILE"          => new AlterDatabaseRemoveFile(name),
-			"REBUILD LOG"          => new AlterDatabaseRebuildLog(name),
-			"PERFORM_CUTOVER"      => new AlterDatabasePerformCutover(name),
+			"CREATE" => new CreateDatabase(name, settings ?? Clause.None),
+			"SET" => new AlterDatabaseSet(name, settings ?? Clause.None),
+			"COLLATE" => new AlterDatabaseCollate(name),
+			"MODIFY NAME" => new AlterDatabaseModifyName(name),
+			"MODIFY FILEGROUP" => new AlterDatabaseModifyFileGroup(name),
+			"MODIFY FILE" => new AlterDatabaseModifyFile(name),
+			"MODIFY" => new AlterDatabaseModify(name),
+			"ADD FILEGROUP" => new AlterDatabaseAddFileGroup(name),
+			"ADD LOG FILE" => new AlterDatabaseAddLogFile(name),
+			"ADD FILE" => new AlterDatabaseAddFile(name),
+			"REMOVE FILEGROUP" => new AlterDatabaseRemoveFileGroup(name),
+			"REMOVE FILE" => new AlterDatabaseRemoveFile(name),
+			"REBUILD LOG" => new AlterDatabaseRebuildLog(name),
+			"PERFORM_CUTOVER" => new AlterDatabasePerformCutover(name),
 			"MODIFY BACKUP_STORAGE_REDUNDANCY" => new AlterDatabaseModifyBackupStorageRedundancy(name),
-			_                      => throw Syntax.Unknown(action),
+			_ => throw Syntax.Unknown(action),
 		};
+	}
 
 
 	/// <summary>An alteration before the table it is applied to is known.</summary>
 	public static AlterTable Altered(
-		string action, Clause[]? elements, Clause[]? options = null, string? tail = null) =>
-		new("", action, elements ?? Clause.None, options, Syntax.Tail(tail));
+		string action, Clause[]? elements, Clause[]? options = null, string? tail = null)
+	{
+		return new("", action, elements ?? Clause.None, options, Syntax.Tail(tail));
+	}
 
 	/// <summary>A column altered by one word — <c>ADD SPARSE</c>, <c>DROP PERSISTED</c>.</summary>
-	public static AlterTable Flagged(string name, string flag, Clause[]? options) =>
-		new("", "ALTER COLUMN", [new Clause.ColumnDefinition(name, null, null, [Clause.Optioned(flag)])], options);
+	public static AlterTable Flagged(string name, string flag, Clause[]? options)
+	{
+		return new("", "ALTER COLUMN", [new Clause.ColumnDefinition(name, null, null, [Clause.Optioned(flag)])], options);
+	}
 
 	/// <summary>The <c>DROP</c> the word names, which is what a <c>DROP</c> statement is.</summary>
 	/// <remarks>
@@ -2016,12 +2047,14 @@ public abstract record Statement : ISqlSpan
 	/// is a defect in this file and not in anybody's SQL.
 	/// </remarks>
 	public static Statement Dropped(
-		string kind, Expression[]? some, string? tail = null, string? ifExists = null) =>
-		Removed(kind, some) switch
+		string kind, Expression[]? some, string? tail = null, string? ifExists = null)
+	{
+		return Removed(kind, some) switch
 		{
 			Removal made => made with { Tail = Syntax.Tail(tail), IfExists = ifExists is not null },
-			var other    => other,
+			var other => other,
 		};
+	}
 
 	static Statement Removed(string kind, Expression[]? some)
 	{
@@ -2162,7 +2195,10 @@ public abstract record SetExpression : ISqlSpan
 	public SqlSpan Span { get; private set; }
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
-	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
 
 	/// <summary>The group Microsoft's page of the SET statements puts the setting in.</summary>
 	public abstract SetCategory Category { get; }
@@ -2336,7 +2372,10 @@ public abstract record Query : ISqlSpan
 	public SqlSpan Span { get; private set; }
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
-	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
 
 	/// <summary>§7.12 <c>SELECT</c>, and the clauses under it.</summary>
 	/// <remarks>
@@ -2414,17 +2453,21 @@ public abstract record Query : ISqlSpan
 	public sealed record FromExecute(Statement.Execute Execute) : Query;
 
 	/// <summary>Whether a set quantifier asked for distinct rows, for a reader that wants to know.</summary>
-	public static bool IsDistinct(string? quantifier) =>
-		quantifier is not null && (quantifier[0] | 0x20) == 'd';
+	public static bool IsDistinct(string? quantifier)
+	{
+		return quantifier is not null && (quantifier[0] | 0x20) == 'd';
+	}
 
 	/// <summary>Which set operator was written, and whether it keeps duplicates.</summary>
-	public static Query Combined(string operatorText, string? all, Query left, Query right) =>
-		(operatorText[0] | 0x20) switch
+	public static Query Combined(string operatorText, string? all, Query left, Query right)
+	{
+		return (operatorText[0] | 0x20) switch
 		{
 			'u' => new Union(left, right, all is not null),
 			'e' => new Except(left, right, all is not null),
-			_   => new Intersect(left, right, all is not null),
+			_ => new Intersect(left, right, all is not null),
 		};
+	}
 }
 
 /// <summary>§6 the value level, and §8 the predicates: what stands where a value does.</summary>
@@ -2434,7 +2477,10 @@ public abstract record Expression : ISqlSpan
 	public SqlSpan Span { get; private set; }
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
-	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
 
 	// ---- §6.39 the boolean tower ---------------------------------------------------------------
 
@@ -2716,8 +2762,9 @@ public abstract record Expression : ISqlSpan
 	/// An additive operator and its two operands, as the node the operator names — T-SQL's
 	/// bitwise three and its two shifts among them, which bind as weakly.
 	/// </summary>
-	public static Expression Additive(string operatorText, Expression left, Expression right) =>
-		operatorText switch
+	public static Expression Additive(string operatorText, Expression left, Expression right)
+	{
+		return operatorText switch
 		{
 			"+" => new Add(left, right),
 			"-" => new Subtract(left, right),
@@ -2726,26 +2773,31 @@ public abstract record Expression : ISqlSpan
 			"^" => new BitwiseXor(left, right),
 			"<<" => new ShiftLeft(left, right),
 			">>" => new ShiftRight(left, right),
-			_   => new Concatenate(left, right),
+			_ => new Concatenate(left, right),
 		};
+	}
 
 	/// <summary>Likewise for the multiplicative operators, T-SQL's <c>%</c> among them.</summary>
-	public static Expression Multiplicative(string operatorText, Expression left, Expression right) =>
-		operatorText switch
+	public static Expression Multiplicative(string operatorText, Expression left, Expression right)
+	{
+		return operatorText switch
 		{
 			"*" => new Multiply(left, right),
 			"/" => new Divide(left, right),
-			_   => new Modulo(left, right),
+			_ => new Modulo(left, right),
 		};
+	}
 
 	/// <summary>Likewise for the sign in front of one operand, T-SQL's <c>~</c> among them.</summary>
-	public static Expression Signed(string sign, Expression operand) =>
-		sign switch
+	public static Expression Signed(string sign, Expression operand)
+	{
+		return sign switch
 		{
 			"-" => new Negate(operand),
 			"~" => new BitwiseNot(operand),
-			_   => new Plus(operand),
+			_ => new Plus(operand),
 		};
+	}
 
 	/// <summary>
 	/// The left operand written into the tail the predicate was read as.
@@ -2756,21 +2808,23 @@ public abstract record Expression : ISqlSpan
 	/// tail was built with its left side null and no one has seen it, so the copy costs one
 	/// allocation and the array the operands used to live in costs none.
 	/// </remarks>
-	public static Expression Predicated(Expression left, Expression tail) =>
-		tail switch
+	public static Expression Predicated(Expression left, Expression tail)
+	{
+		return tail switch
 		{
-			Comparison c => c with { Left  = left },
-			Quantified q => q with { Left  = left },
-			Between    b => b with { Value = left },
-			In         i => i with { Value = left },
-			Like       l => l with { Value = left },
-			IsNull     n => n with { Value = left },
-			Match      m => m with { Value = left },
-			Overlaps   o => o with { Left  = left },
-			_            => throw new ArgumentOutOfRangeException(
+			Comparison c => c with { Left = left },
+			Quantified q => q with { Left = left },
+			Between b => b with { Value = left },
+			In i => i with { Value = left },
+			Like l => l with { Value = left },
+			IsNull n => n with { Value = left },
+			Match m => m with { Value = left },
+			Overlaps o => o with { Left = left },
+			_ => throw new ArgumentOutOfRangeException(
 				nameof(tail), tail,
 				"The grammar read a predicate tail this method does not know how to complete."),
 		};
+	}
 }
 
 /// <summary>
@@ -2783,7 +2837,10 @@ public abstract record TableReference : ISqlSpan
 	public SqlSpan Span { get; private set; }
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
-	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
 
 	/// <summary>
 	/// §7.6 a table named, the name it is known by there, and the names its columns are given.
@@ -2863,8 +2920,10 @@ public abstract record TableReference : ISqlSpan
 	/// <summary>A join from the words around it: the kind, and which of the two tails it had.</summary>
 	public static Joined Joining(
 		string? kind, string? natural, TableReference left, TableReference right,
-		Expression? on, string[]? columns, string? hint = null) =>
-		new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, columns, hint);
+		Expression? on, string[]? columns, string? hint = null)
+	{
+		return new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, columns, hint);
+	}
 }
 
 /// <summary>
@@ -2877,7 +2936,10 @@ public abstract record Clause : ISqlSpan
 	public SqlSpan Span { get; private set; }
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
-	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
 
 	/// <summary>§7.12 one entry of a select list: what it is, and what it is called.</summary>
 	public sealed record DerivedColumn(Expression Value, string? Name) : Clause;
@@ -3183,7 +3245,10 @@ public abstract record Clause : ISqlSpan
 
 	/// <summary>A constraint written without a name, which is most of them.</summary>
 	public static ConstraintDefinition Constrained(
-		string kind, Clause[]? columns, Expression? check) => new(null, kind, columns ?? None, check);
+		string kind, Clause[]? columns, Expression? check)
+	{
+		return new(null, kind, columns ?? None, check);
+	}
 
 	/// <summary>A default and what was written after it: the column it is for, and whether the rows already there take it.</summary>
 	/// <remarks>
@@ -3211,46 +3276,60 @@ public abstract record Clause : ISqlSpan
 	}
 
 	/// <summary>A named thing dropped, where only the kind and the name matter.</summary>
-	public static Dropped Marked(string kind, string? name) => new(kind, name);
+	public static Dropped Marked(string kind, string? name)
+	{
+		return new(kind, name);
+	}
 
 	/// <summary>A dropped thing with what was written around it.</summary>
-	public static Dropped Marked(string kind, string? name, string? ifExists, string? tail) =>
-		new(kind, name, ifExists is not null, Syntax.Tail(tail));
+	public static Dropped Marked(string kind, string? name, string? ifExists, string? tail)
+	{
+		return new(kind, name, ifExists is not null, Syntax.Tail(tail));
+	}
 
 	/// <summary>
 	/// A key or a uniqueness: the kind, and everything T-SQL lets stand after it.
 	/// </summary>
 	public static ConstraintDefinition Keyed(
 		string kind, string? clustering, string? hash, Clause[]? columns,
-		Clause[]? options, Clause? placement, string? enforced) =>
-		new(null, kind, columns ?? None, null,
+		Clause[]? options, Clause? placement, string? enforced)
+	{
+		return new(null, kind, columns ?? None, null,
 			Clustering: clustering, Hash: hash is not null,
 			Options: options, Placements: placement is null ? null : [placement],
 			Enforced: Syntax.Enforced(enforced));
+	}
 
 	/// <summary>An index written inside a table or on its own, with everything that may follow it.</summary>
 	public static ConstraintDefinition Indexed(
 		string name, string? unique, string? clustering, string? columnstore, string? hash,
 		Clause[]? columns, string[]? order, string[]? include, Expression? filter,
-		Clause[]? options, Placement? on, Placement? filestream) =>
-		new(name, unique is null ? "INDEX" : "UNIQUE INDEX", columns ?? None, null,
+		Clause[]? options, Placement? on, Placement? filestream)
+	{
+		return new(name, unique is null ? "INDEX" : "UNIQUE INDEX", columns ?? None, null,
 			Clustering: clustering, Hash: hash is not null, Columnstore: columnstore is not null,
 			Order: order, Include: include, Filter: filter, Options: options,
 			Placements: on is null && filestream is null
 				? null
 				: [.. new[] { on, filestream }.OfType<Clause>()]);
+	}
 
 	/// <summary>What a column is told after its type: one word or several, and its argument.</summary>
-	public static ColumnOption Optioned(string kind, Expression? argument = null) =>
-		new(Syntax.Squared(kind), argument is null ? Expression.None : [argument], None, null);
+	public static ColumnOption Optioned(string kind, Expression? argument = null)
+	{
+		return new(Syntax.Squared(kind), argument is null ? Expression.None : [argument], None, null);
+	}
 
 	/// <summary>A column's option or constraint, given the name written in front of it.</summary>
-	public static Clause Named(Clause one, string name) => one switch
+	public static Clause Named(Clause one, string name)
 	{
-		ColumnOption option             => option with { ConstraintName = name },
-		ConstraintDefinition constraint => constraint with { Name = name },
-		_                               => one,
-	};
+		return one switch
+		{
+			ColumnOption option => option with { ConstraintName = name },
+			ConstraintDefinition constraint => constraint with { Name = name },
+			_ => one,
+		};
+	}
 
 	/// <summary>
 	/// A <c>TOP</c> from the words written after it, which are two questions and one rule:
@@ -3272,10 +3351,12 @@ public abstract record Clause : ISqlSpan
 	/// The order clause and the two the reference writes inside it, gathered where they were
 	/// read apart. Nothing where nothing was written.
 	/// </summary>
-	public static OrderBy? Ordered(Clause[]? by, OrderBy? window) =>
-		by is null && window is null
+	public static OrderBy? Ordered(Clause[]? by, OrderBy? window)
+	{
+		return by is null && window is null
 			? null
 			: new OrderBy(by ?? None, window?.Offset, window?.Fetch);
+	}
 }
 
 /// <summary>
@@ -3306,19 +3387,28 @@ public static class Syntax
 	}
 
 	/// <summary>A session's events and the targets written after them, as its one list of pieces.</summary>
-	public static Clause[] Pieces(Clause[]? events, Clause[]? targets) =>
-		[.. events ?? Clause.None, .. targets ?? Clause.None];
+	public static Clause[] Pieces(Clause[]? events, Clause[]? targets)
+	{
+		return [.. events ?? Clause.None, .. targets ?? Clause.None];
+	}
 
 	/// <summary>A head and a tail of names as one array, the way <see cref="Listed"/> does nodes.</summary>
-	public static string[] Named(string first, string[]? rest) => Listed(first, rest);
+	public static string[] Named(string first, string[]? rest)
+	{
+		return Listed(first, rest);
+	}
 
 	/// <summary>Names as sort specifications with no direction, which is how a column list stands.</summary>
-	public static Clause[] Columns(string[]? names) =>
-		names is null ? Clause.None : [.. names.Select(static one => new Clause.SortSpecification(new Expression.ColumnReference(one), SqlOrder.Unspecified))];
+	public static Clause[] Columns(string[]? names)
+	{
+		return names is null ? Clause.None : [.. names.Select(static one => new Clause.SortSpecification(new Expression.ColumnReference(one), SqlOrder.Unspecified))];
+	}
 
 	/// <summary>One word as an option with nothing set, or nothing where none was written.</summary>
-	public static Clause[] Unit(string? word) =>
-		word is null ? Clause.None : [new Clause.Option(Squared(word), null, Clause.None)];
+	public static Clause[] Unit(string? word)
+	{
+		return word is null ? Clause.None : [new Clause.Option(Squared(word), null, Clause.None)];
+	}
 
 	/// <summary>A grouping column with what was written after it: a collation, a hint.</summary>
 	public static Expression Grouped(Expression column, string? collation, string? hint)
@@ -3336,14 +3426,17 @@ public static class Syntax
 	/// all of them and is read once — so which word was written is a fact about the statement
 	/// rather than about which of the four it is.
 	/// </remarks>
-	public static Statement Verbed(Statement routine, string verb) => routine switch
+	public static Statement Verbed(Statement routine, string verb)
 	{
-		Statement.CreateProcedure  one => one with { Verb = Squared(verb) },
-		Statement.CreateFunction   one => one with { Verb = Squared(verb) },
-		Statement.CreateTrigger    one => one with { Verb = Squared(verb) },
-		Statement.ViewDefinition   one => one with { Verb = Squared(verb) },
-		_                              => routine,
-	};
+		return routine switch
+		{
+			Statement.CreateProcedure one => one with { Verb = Squared(verb) },
+			Statement.CreateFunction one => one with { Verb = Squared(verb) },
+			Statement.CreateTrigger one => one with { Verb = Squared(verb) },
+			Statement.ViewDefinition one => one with { Verb = Squared(verb) },
+			_ => routine,
+		};
+	}
 
 	/// <summary>A table source rooted at a variable, once the variable's name is known.</summary>
 	/// <remarks>
@@ -3352,29 +3445,39 @@ public static class Syntax
 	/// table-valued method on a variable of a user-defined type is a call whose name begins
 	/// with one.
 	/// </remarks>
-	public static TableReference OfVariable(string name, TableReference source) => source switch
+	public static TableReference OfVariable(string name, TableReference source)
 	{
-		TableReference.Named one        => one with { Table = name },
-		TableReference.FunctionCall two => two with
+		return source switch
 		{
-			Function = two.Function with { Name = name + two.Function.Name },
-		},
-		_                               => source,
-	};
+			TableReference.Named one => one with { Table = name },
+			TableReference.FunctionCall two => two with
+			{
+				Function = two.Function with { Name = name + two.Function.Name },
+			},
+			_ => source,
+		};
+	}
 
 	/// <summary>A value with words after it, or the value alone where there were none.</summary>
-	public static Expression Hinted(Expression value, string? words) =>
-		words is null || words.Length == 0 ? value : new Expression.Hinted(value, Spaced(words));
+	public static Expression Hinted(Expression value, string? words)
+	{
+		return words is null || words.Length == 0 ? value : new Expression.Hinted(value, Spaced(words));
+	}
 
 	/// <summary>
 	/// What a catalogue statement wrote after its name, as the words were written — or null
 	/// where it wrote nothing (<see cref="Statement.Definition.Tail"/>).
 	/// </summary>
-	public static string? Tail(string? words) =>
-		words is null || words.Length == 0 ? null : Spaced(words);
+	public static string? Tail(string? words)
+	{
+		return words is null || words.Length == 0 ? null : Spaced(words);
+	}
 
 	/// <summary>Words as written, with the whitespace between them made one space.</summary>
-	public static string Spaced(string words) => Run(words, false);
+	public static string Spaced(string words)
+	{
+		return Run(words, false);
+	}
 
 	/// <summary>Text with every whitespace character taken out: <c>(1 . 2 . 3 . 4)</c> as <c>(1.2.3.4)</c>.</summary>
 	/// <summary>
@@ -3430,23 +3533,34 @@ public static class Syntax
 	};
 
 	/// <summary>Whether a name, bracketed, quoted or neither, is a date part's.</summary>
-	public static bool IsDatePart(string? name) => name is not null && DateParts.Contains(Unquoted(name));
+	public static bool IsDatePart(string? name)
+	{
+		return name is not null && DateParts.Contains(Unquoted(name));
+	}
 
 	/// <summary>Whether a name of one part is a function whose first argument is a date part.</summary>
-	public static bool IsDatePartFunction(string name) => DatePartFunctions.Contains(name);
+	public static bool IsDatePartFunction(string name)
+	{
+		return DatePartFunctions.Contains(name);
+	}
 
 	/// <summary>Whether a value is a column and nothing more, brackets aside.</summary>
-	public static bool IsColumn(Expression? value) => value switch
+	public static bool IsColumn(Expression? value)
 	{
-		Expression.ColumnReference    => true,
-		Expression.Parenthesized(var inner) => IsColumn(inner),
-		_                             => false,
-	};
+		return value switch
+		{
+			Expression.ColumnReference => true,
+			Expression.Parenthesized(var inner) => IsColumn(inner),
+			_ => false,
+		};
+	}
 
-	static string Unquoted(string name) =>
-		name.Length >= 2 && (name[0] == '[' && name[^1] == ']' || name[0] == '"' && name[^1] == '"')
+	static string Unquoted(string name)
+	{
+		return name.Length >= 2 && (name[0] == '[' && name[^1] == ']' || name[0] == '"' && name[^1] == '"')
 			? name[1..^1]
 			: name;
+	}
 
 	/// <summary>
 	/// Whether a select list holds T-SQL's <c>IDENTITY(…)</c>, which only a <c>SELECT … INTO</c>
@@ -3519,8 +3633,10 @@ public static class Syntax
 	}
 
 	/// <summary>The arguments that were written, in order, leaving out the optional ones that were not.</summary>
-	public static Expression[] Written(params Expression?[] arguments) =>
-		arguments.Where(static one => one is not null).Select(static one => one!).ToArray();
+	public static Expression[] Written(params Expression?[] arguments)
+	{
+		return arguments.Where(static one => one is not null).Select(static one => one!).ToArray();
+	}
 
 	/// <summary>
 	/// A run of words, one space between them — and what stands inside quotes copied
@@ -3595,12 +3711,16 @@ public static class Syntax
 	}
 
 	/// <summary>A value with the unit after it, or the value alone where none was written.</summary>
-	public static Expression Measured(Expression value, string? unit) =>
-		unit is null ? value : new Expression.Measured(value, Squared(unit));
+	public static Expression Measured(Expression value, string? unit)
+	{
+		return unit is null ? value : new Expression.Measured(value, Squared(unit));
+	}
 
 	/// <summary>Whether a key is enforced: null where nothing was said, false for <c>NOT ENFORCED</c>.</summary>
-	public static bool? Enforced(string? words) =>
-		words is null ? null : !Squared(words).StartsWith("NOT", StringComparison.Ordinal);
+	public static bool? Enforced(string? words)
+	{
+		return words is null ? null : !Squared(words).StartsWith("NOT", StringComparison.Ordinal);
+	}
 
 	/// <summary>A <c>REFERENCES</c> from its parts, the actions read back from the words.</summary>
 	public static Clause.References Referenced(string table, string[]? columns, string[]? actions, string? replication = null)
@@ -3643,54 +3763,70 @@ public static class Syntax
 	}
 
 	/// <summary>A <c>CONNECTION</c>'s pairs and the actions after them, as one list.</summary>
-	public static Clause[] Connected(Clause first, Clause[]? rest, string[]? actions) =>
-		[.. Listed(first, rest), .. (actions ?? NoNames).Select(static one => (Clause)new Clause.Option(Squared(one), null, Clause.None))];
+	public static Clause[] Connected(Clause first, Clause[]? rest, string[]? actions)
+	{
+		return [.. Listed(first, rest), .. (actions ?? NoNames).Select(static one => (Clause)new Clause.Option(Squared(one), null, Clause.None))];
+	}
 
 	/// <summary>Whether a word that is <c>ON</c> or <c>OFF</c> was the first of the two.</summary>
-	public static bool Switched(string word) => (word[0] | 0x20) == 'o' && word.Length == 2;
+	public static bool Switched(string word)
+	{
+		return (word[0] | 0x20) == 'o' && word.Length == 2;
+	}
 
 	/// <summary>
 	/// A query with the order and the shape written inside its brackets, where either was;
 	/// the query alone where neither was.
 	/// </summary>
-	public static Query Ordered(Query query, Clause.OrderBy? by, Clause? shape) =>
-		by is null && shape is null ? query : new Query.Ordered(query, by, shape);
+	public static Query Ordered(Query query, Clause.OrderBy? by, Clause? shape)
+	{
+		return by is null && shape is null ? query : new Query.Ordered(query, by, shape);
+	}
 
 	/// <summary>Which way a sort specification asked for its rows (§10.10).</summary>
-	public static SqlOrder Ordered(string? order) =>
-		order is null   ? SqlOrder.Unspecified :
+	public static SqlOrder Ordered(string? order)
+	{
+		return order is null ? SqlOrder.Unspecified :
 		(order[0] | 0x20) == 'a' ? SqlOrder.Ascending
-		                         : SqlOrder.Descending;
+								 : SqlOrder.Descending;
+	}
 
 	/// <summary>Which comparison operator was written (§8.2's <c>&lt;comp op&gt;</c>).</summary>
 	/// <summary>A <c>BETWEEN</c>, <c>IN</c> or <c>LIKE</c> predicate with the <c>NOT</c> read in front of it.</summary>
-	public static Expression Negated(Expression predicate, bool not) =>
-		!not ? predicate : predicate switch
+	public static Expression Negated(Expression predicate, bool not)
+	{
+		return !not ? predicate : predicate switch
 		{
 			Expression.Between between => between with { Negated = true },
-			Expression.In @in          => @in with { Negated = true },
-			Expression.Like like       => like with { Negated = true },
-			_                          => predicate,
+			Expression.In @in => @in with { Negated = true },
+			Expression.Like like => like with { Negated = true },
+			_ => predicate,
 		};
+	}
 
-	public static SqlComparison Compared(string operatorText) => Compacted(operatorText) switch
+	public static SqlComparison Compared(string operatorText)
 	{
-		"="  => SqlComparison.Equal,
-		"<>" => SqlComparison.NotEqual,
-		"!=" => SqlComparison.NotEqualBang,
-		"<"  => SqlComparison.Less,
-		"<=" => SqlComparison.LessOrEqual,
-		"!<" => SqlComparison.NotLess,
-		">"  => SqlComparison.Greater,
-		"!>" => SqlComparison.NotGreater,
-		_    => SqlComparison.GreaterOrEqual,
-	};
+		return Compacted(operatorText) switch
+		{
+			"=" => SqlComparison.Equal,
+			"<>" => SqlComparison.NotEqual,
+			"!=" => SqlComparison.NotEqualBang,
+			"<" => SqlComparison.Less,
+			"<=" => SqlComparison.LessOrEqual,
+			"!<" => SqlComparison.NotLess,
+			">" => SqlComparison.Greater,
+			"!>" => SqlComparison.NotGreater,
+			_ => SqlComparison.GreaterOrEqual,
+		};
+	}
 
 	/// <summary>Which join was written, from the words in front of <c>JOIN</c>.</summary>
 	/// <remarks><c>OUTER</c> is noise beside <c>LEFT</c>, <c>RIGHT</c> and <c>FULL</c> (§7.7).</remarks>
 	/// <summary>Whether <c>OUTER</c> was written, which is a word and not a meaning.</summary>
-	public static bool Outer(string? kind) =>
-		kind is not null && kind.EndsWith("OUTER", StringComparison.OrdinalIgnoreCase);
+	public static bool Outer(string? kind)
+	{
+		return kind is not null && kind.EndsWith("OUTER", StringComparison.OrdinalIgnoreCase);
+	}
 
 	public static SqlJoin Joined(string? kind)
 	{
@@ -3717,16 +3853,18 @@ public static class Syntax
 	/// A <c>WITH</c> may precede five statements, and each of the five keeps it; any other
 	/// statement has no <c>WITH</c> to be given, and the grammar does not offer it one.
 	/// </remarks>
-	public static Statement Preceded(Clause[]? with, Statement statement) =>
-		with is null || with.Length == 0 ? statement : statement switch
+	public static Statement Preceded(Clause[]? with, Statement statement)
+	{
+		return with is null || with.Length == 0 ? statement : statement switch
 		{
 			Statement.Select select => select with { With = with },
 			Statement.Insert insert => insert with { With = with },
 			Statement.Update update => update with { With = with },
 			Statement.Delete delete => delete with { With = with },
-			Statement.Merge  merge  => merge  with { With = with },
-			_                       => statement,
+			Statement.Merge merge => merge with { With = with },
+			_ => statement,
 		};
+	}
 
 	/// <summary>
 	/// The batches of a script from what its grammar reads: the text before the first
@@ -3808,25 +3946,29 @@ public static class Syntax
 
 		return source;
 
-		static TableReference Hung(TableReference source, TableReference tail) =>
-			tail switch
+		static TableReference Hung(TableReference source, TableReference tail)
+		{
+			return tail switch
 			{
-				TableReference.Joined joined  => joined with { Left = source },
-				TableReference.Pivot turned   => turned with { Of = Hung(source, turned.Of) },
+				TableReference.Joined joined => joined with { Left = source },
+				TableReference.Pivot turned => turned with { Of = Hung(source, turned.Of) },
 				TableReference.Unpivot turned => turned with { Of = Hung(source, turned.Of) },
-				_                             => source,
+				_ => source,
 			};
+		}
 	}
 
 	/// <summary>A source and the pivots applied to it, where any were written.</summary>
 	/// <remarks>The source goes to the first of them, which is the innermost (<see cref="Chained"/>).</remarks>
-	public static TableReference Pivoted(TableReference source, TableReference? pivot) =>
-		pivot switch
+	public static TableReference Pivoted(TableReference source, TableReference? pivot)
+	{
+		return pivot switch
 		{
-			TableReference.Pivot turned   => turned with { Of = turned.Of is null ? source : Pivoted(source, turned.Of) },
+			TableReference.Pivot turned => turned with { Of = turned.Of is null ? source : Pivoted(source, turned.Of) },
 			TableReference.Unpivot turned => turned with { Of = turned.Of is null ? source : Pivoted(source, turned.Of) },
-			_                             => source,
+			_ => source,
 		};
+	}
 
 	/// <summary>
 	/// Pivots one after another, each applied to the one before it: <c>t PIVOT (…) p UNPIVOT (…)
@@ -3855,17 +3997,21 @@ public static class Syntax
 	/// PIVOT (…) p)</c> — where a pivot before an <c>ON</c> inside them is read. A table variable
 	/// is no exception: <c>(@t)</c> and <c>(@t x)</c> are <c>Msg 102</c> once it is declared.
 	/// </remarks>
-	public static bool Bracketable(TableReference? inner) =>
-		inner switch
+	public static bool Bracketable(TableReference? inner)
+	{
+		return inner switch
 		{
 			TableReference.Joined { Kind: SqlJoin.Cross or SqlJoin.CrossApply or SqlJoin.OuterApply, Right: TableReference.Pivot or TableReference.Unpivot } => false,
 			TableReference.Joined or TableReference.Parenthesized or TableReference.OdbcJoin => true,
 			_ => false,
 		};
+	}
 
 	/// <summary>A call and what was written after it, where anything was.</summary>
-	public static Expression Called(Expression call, Expression.WindowFunction? tail) =>
-		tail is null ? call : tail with { Function = call };
+	public static Expression Called(Expression call, Expression.WindowFunction? tail)
+	{
+		return tail is null ? call : tail with { Function = call };
+	}
 
 	/// <summary>
 	/// Whether <c>JSON_ARRAYAGG</c>'s clauses and what follows its bracket stand as the engine
@@ -3918,31 +4064,37 @@ public static class Syntax
 	}
 
 	/// <summary>A word the grammar matched, as the one constant that stands for it.</summary>
-	public static SqlTruth TruthOf(string word) =>
-		(word[0] | 0x20) switch
+	public static SqlTruth TruthOf(string word)
+	{
+		return (word[0] | 0x20) switch
 		{
 			't' => SqlTruth.True,
 			'f' => SqlTruth.False,
-			_   => SqlTruth.Unknown,
+			_ => SqlTruth.Unknown,
 		};
+	}
 
-	public static string Aggregate(string word) =>
-		(word[0] | 0x20) switch
+	public static string Aggregate(string word)
+	{
+		return (word[0] | 0x20) switch
 		{
 			'a' => "AVG",
 			's' => "SUM",
 			'c' => "COUNT",
 			'm' => (word[1] | 0x20) == 'a' ? "MAX" : "MIN",
-			_   => word,
+			_ => word,
 		};
+	}
 
-	public static string Quantified(string word) =>
-		(word[0] | 0x20) switch
+	public static string Quantified(string word)
+	{
+		return (word[0] | 0x20) switch
 		{
 			'a' => (word[1] | 0x20) == 'l' ? "ALL" : "ANY",
 			's' => "SOME",
-			_   => word,
+			_ => word,
 		};
+	}
 
 	/// <summary>
 	/// A set quantifier, as it was written.
@@ -3954,7 +4106,10 @@ public static class Syntax
 	/// author did not ask it to decide. What a missing <c>ALL</c> <em>means</em> is a question
 	/// for whatever reads the tree.
 	/// </remarks>
-	public static string? Distinctly(string? word) => word;
+	public static string? Distinctly(string? word)
+	{
+		return word;
+	}
 
 	/// <summary>What a match predicate was qualified by, as one word or two.</summary>
 	public static string? Matched(string? unique, string? kind)
@@ -3998,23 +4153,32 @@ public static class Syntax
 
 		return true;
 
-		static int Group(string word) =>
-			word switch
+		static int Group(string word)
+		{
+			return word switch
 			{
-				"LOCAL" or "GLOBAL"                                 => 1,
-				"FORWARD_ONLY" or "SCROLL"                          => 2,
+				"LOCAL" or "GLOBAL" => 1,
+				"FORWARD_ONLY" or "SCROLL" => 2,
 				"STATIC" or "KEYSET" or "DYNAMIC" or "FAST_FORWARD" => 3,
-				"READ_ONLY" or "SCROLL_LOCKS" or "OPTIMISTIC"       => 4,
-				_                                                   => 0,
+				"READ_ONLY" or "SCROLL_LOCKS" or "OPTIMISTIC" => 4,
+				_ => 0,
 			};
+		}
 
-		static bool Faster(string one, string other) =>
-			one == "FAST_FORWARD" && other is "SCROLL" or "SCROLL_LOCKS" or "OPTIMISTIC";
+		static bool Faster(string one, string other)
+		{
+			return one == "FAST_FORWARD" && other is "SCROLL" or "SCROLL_LOCKS" or "OPTIMISTIC";
+		}
 
-		static bool Fixed(string word) => word is "STATIC" or "FAST_FORWARD" or "READ_ONLY" or "INSENSITIVE";
+		static bool Fixed(string word)
+		{
+			return word is "STATIC" or "FAST_FORWARD" or "READ_ONLY" or "INSENSITIVE";
+		}
 
-		static bool Locked(string word, bool declared) =>
-			word is "SCROLL_LOCKS" or "OPTIMISTIC" || declared && word == "READ_ONLY";
+		static bool Locked(string word, bool declared)
+		{
+			return word is "SCROLL_LOCKS" or "OPTIMISTIC" || declared && word == "READ_ONLY";
+		}
 	}
 
 	/// <summary>Whether a query may be a cursor's.</summary>
@@ -4023,27 +4187,34 @@ public static class Syntax
 	/// (<c>Msg 154</c>) and <c>VALUES</c> standing for one (<c>Msg 156</c>), in brackets or in a
 	/// union as well.
 	/// </remarks>
-	public static bool Cursorable(Query? query) =>
-		query switch
+	public static bool Cursorable(Query? query)
+	{
+		return query switch
 		{
-			null                                    => false,
-			Query.Specification { Into: not null }  => false,
-			Query.TableValueConstructor             => false,
-			Query.Union(var left, var right, _)     => Cursorable(left) && Cursorable(right),
-			Query.Except(var left, var right, _)    => Cursorable(left) && Cursorable(right),
+			null => false,
+			Query.Specification { Into: not null } => false,
+			Query.TableValueConstructor => false,
+			Query.Union(var left, var right, _) => Cursorable(left) && Cursorable(right),
+			Query.Except(var left, var right, _) => Cursorable(left) && Cursorable(right),
 			Query.Intersect(var left, var right, _) => Cursorable(left) && Cursorable(right),
-			Query.Parenthesized(var inner)          => Cursorable(inner),
-			Query.Ordered(var inner, _, _)          => Cursorable(inner),
-			_                                       => true,
+			Query.Parenthesized(var inner) => Cursorable(inner),
+			Query.Ordered(var inner, _, _) => Cursorable(inner),
+			_ => true,
 		};
+	}
 
 	/// <summary>Whether a routine's parameters pass a cursor, which a function may not.</summary>
-	public static bool HasCursorParameter(Clause[]? parameters) =>
-		parameters is not null &&
+	public static bool HasCursorParameter(Clause[]? parameters)
+	{
+		return parameters is not null &&
 		Array.Exists(parameters, static one => one is Clause.ParameterDeclaration(_, "CURSOR", _, _, _, _));
+	}
 
 	/// <summary>Whether a name was written bare, rather than in brackets or quotes.</summary>
-	public static bool IsBare(string? name) => name is { Length: > 0 } && name[0] is not ('[' or '"');
+	public static bool IsBare(string? name)
+	{
+		return name is { Length: > 0 } && name[0] is not ('[' or '"');
+	}
 
 	/// <summary>
 	/// Whether a type is one <c>JSON_VALUE</c> may return: any but the large and the special —
@@ -4085,35 +4256,43 @@ public static class Syntax
 	static readonly string[] Brokers = ["ENABLE_BROKER", "NEW_BROKER", "ERROR_BROKER_CONVERSATIONS"];
 
 	/// <summary>Whether a query assigns a variable in its select list, anywhere down its brackets.</summary>
-	public static bool Assigns(Query? query) =>
-		query switch
+	public static bool Assigns(Query? query)
+	{
+		return query switch
 		{
 			Query.Specification { Columns: var columns } => Array.Exists(columns, static one => one is Clause.VariableAssignment),
-			Query.Parenthesized(var inner)               => Assigns(inner),
-			_                                            => false,
+			Query.Parenthesized(var inner) => Assigns(inner),
+			_ => false,
 		};
+	}
 
 	/// <summary>
 	/// Whether a query combines, by <c>UNION</c>, <c>EXCEPT</c> or <c>INTERSECT</c>, a select that
 	/// assigns a variable — on either side, in brackets, or under another such operator.
 	/// </summary>
-	public static bool AssignsCombined(Query? query) =>
-		query switch
+	public static bool AssignsCombined(Query? query)
+	{
+		return query switch
 		{
-			Query.Union(var left, var right, _)     => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
-			Query.Except(var left, var right, _)    => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
+			Query.Union(var left, var right, _) => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
+			Query.Except(var left, var right, _) => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
 			Query.Intersect(var left, var right, _) => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
-			Query.Parenthesized(var inner)          => AssignsCombined(inner),
-			_                                       => false,
+			Query.Parenthesized(var inner) => AssignsCombined(inner),
+			_ => false,
 		};
+	}
 
 	/// <summary>Whether a query assigns a variable and has nothing to select from — which no `ORDER BY` may follow.</summary>
-	public static bool AssignsFromNothing(Query? query) =>
-		query is Query.Specification { From: null or { Length: 0 } } && Assigns(query);
+	public static bool AssignsFromNothing(Query? query)
+	{
+		return query is Query.Specification { From: null or { Length: 0 } } && Assigns(query);
+	}
 
 	/// <summary>Whether no assignment of a list goes through a column — `@a = c = 1`, which a `MERGE` refuses.</summary>
-	public static bool Unchained(Clause[]? sets) =>
-		sets is null || Array.TrueForAll(sets, static one => one is not Clause.Set { Through: not null });
+	public static bool Unchained(Clause[]? sets)
+	{
+		return sets is null || Array.TrueForAll(sets, static one => one is not Clause.Set { Through: not null });
+	}
 
 	/// <summary>Whether a <c>RECEIVE</c>'s list assigns variables or retrieves columns, and not both.</summary>
 	public static bool OneWay(Clause? first, Clause[]? rest)
@@ -4149,13 +4328,15 @@ public static class Syntax
 		return arguments.Length == 3 && Stringy(arguments[0]) && Stringy(arguments[1])
 			&& (Stringy(arguments[2]) || arguments[2] is not Expression.Literal);
 
-		static bool Stringy(Expression one) =>
-			one switch
+		static bool Stringy(Expression one)
+		{
+			return one switch
 			{
 				Expression.Literal { Kind: SqlLiteralKind.Text or SqlLiteralKind.National } => true,
 				Expression.Pieced(var parts) => Array.TrueForAll(parts, Stringy),
 				_ => false,
 			};
+		}
 	}
 
 	/// <summary>
@@ -4204,14 +4385,19 @@ public static class Syntax
 
 		return Fresh(first) && Array.TrueForAll(rest ?? [], Fresh);
 
-		bool Fresh(Clause? one) => one is not Clause.Option { Name: var name } || seen.Add(name);
+		bool Fresh(Clause? one)
+		{
+			return one is not Clause.Option { Name: var name } || seen.Add(name);
+		}
 	}
 
 	/// <summary>Whether a list of options names one.</summary>
-	public static bool HasOption(Clause[]? options, string name) =>
-		options is not null &&
+	public static bool HasOption(Clause[]? options, string name)
+	{
+		return options is not null &&
 		Array.Exists(options, one => one is Clause.Option { Name: var named } &&
 			string.Equals(named, name, StringComparison.OrdinalIgnoreCase));
+	}
 
 	/// <summary>Whether a column's encryption names its key, its type and its algorithm.</summary>
 	public static bool Encrypts(Clause? first, Clause[]? rest)
@@ -4237,18 +4423,22 @@ public static class Syntax
 	/// Whether a natively compiled block's list names its isolation level and its language, which
 	/// it must: without either it is <c>Msg 10784</c>.
 	/// </summary>
-	public static bool Atomically(Clause[] options) =>
-		Array.Exists(options, static one => one is Clause.Option { Name: var name } && AtomicKey(name) == "TRANSACTION ISOLATION LEVEL") &&
+	public static bool Atomically(Clause[] options)
+	{
+		return Array.Exists(options, static one => one is Clause.Option { Name: var name } && AtomicKey(name) == "TRANSACTION ISOLATION LEVEL") &&
 		Array.Exists(options, static one => one is Clause.Option { Name: var name } && AtomicKey(name) == "LANGUAGE");
+	}
 
 	/// <summary>Whether a module's body is the one its options call for.</summary>
 	/// <remarks>
 	/// A module compiled natively has one body, an atomic block — <c>Msg 10783</c> for any other —
 	/// and an atomic block is no other module's body, <c>Msg 10782</c>.
 	/// </remarks>
-	public static bool Natively(Clause[]? options, bool atomic) =>
-		atomic == (options is not null && Array.Exists(options, static one =>
+	public static bool Natively(Clause[]? options, bool atomic)
+	{
+		return atomic == (options is not null && Array.Exists(options, static one =>
 			one is Clause.Option { Name: var name } && name.Equals("NATIVE_COMPILATION", StringComparison.OrdinalIgnoreCase)));
+	}
 
 	/// <summary>An option's name as the engine matches it: its words, in capitals, and <c>TRAN</c> as <c>TRANSACTION</c>.</summary>
 	static string AtomicKey(string name)
@@ -4280,8 +4470,10 @@ public static class Syntax
 	/// Whether an argument is passed back only where it can be: <c>OUTPUT</c> after a variable,
 	/// and <c>Msg 179</c> after anything else.
 	/// </summary>
-	public static bool Passes(Expression? value, string? back) =>
-		string.IsNullOrEmpty(back) || value is Expression.Literal(SqlLiteralKind.Parameter, _);
+	public static bool Passes(Expression? value, string? back)
+	{
+		return string.IsNullOrEmpty(back) || value is Expression.Literal(SqlLiteralKind.Parameter, _);
+	}
 
 	/// <summary>Whether what a rule or a default is made of is what the engine binds.</summary>
 	/// <remarks>
@@ -4343,7 +4535,10 @@ public static class Syntax
 	{
 		return Whole(file) && (other is null || Whole(other) && Platforms(file!) != Platforms(other));
 
-		static bool Whole(Clause[]? one) => HasOption(one, "CONTENT") && HasOption(one, "FILE_NAME");
+		static bool Whole(Clause[]? one)
+		{
+			return HasOption(one, "CONTENT") && HasOption(one, "FILE_NAME");
+		}
 
 		static int Platforms(Clause[] one)
 		{
@@ -4407,13 +4602,17 @@ public static class Syntax
 		return !(on || off) || Array.IndexOf(Switches, key) >= 0 && !(on && Array.IndexOf(Unswitched, key) >= 0);
 
 		// Digits, perhaps a point and a sign: no exponent, and no currency in front.
-		static bool Plain(string number) =>
-			number.IndexOfAny(['e', 'E']) < 0 && number.TrimStart('-') is { Length: > 0 } digits && (char.IsDigit(digits[0]) || digits[0] == '.');
+		static bool Plain(string number)
+		{
+			return number.IndexOfAny(['e', 'E']) < 0 && number.TrimStart('-') is { Length: > 0 } digits && (char.IsDigit(digits[0]) || digits[0] == '.');
+		}
 
-		static long Whole(string number) =>
-			long.TryParse(number, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var whole)
+		static long Whole(string number)
+		{
+			return long.TryParse(number, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var whole)
 				? whole
 				: long.MinValue;
+		}
 	}
 
 	static readonly string[] Switches =
@@ -4434,12 +4633,14 @@ public static class Syntax
 	/// sends the rows elsewhere, which the engine answers the same; a second <c>OUTPUT</c> is
 	/// refused, and so are the statement's own hints (<c>Msg 10718</c>).
 	/// </remarks>
-	public static bool Returns(Statement? statement) =>
-		statement is
+	public static bool Returns(Statement? statement)
+	{
+		return statement is
 			Statement.Delete { Output: Clause.Output { Target: null, Next: null }, Options: null } or
 			Statement.Update { Output: Clause.Output { Target: null, Next: null }, Options: null } or
 			Statement.Merge { Output: Clause.Output { Target: null, Next: null }, Options: null } or
 			Statement.Insert { Output: Clause.Output { Target: null, Next: null }, Options: null };
+	}
 
 	/// <summary>
 	/// Whether a call read where an insert's column list stands names its columns as an insert
@@ -4451,9 +4652,11 @@ public static class Syntax
 	/// read as arguments here, one reading having failed, so the question is put to them; as a
 	/// value the name is ordinary, and <c>SELECT dbo.f (a.$ACTION)</c> is read.
 	/// </remarks>
-	public static bool Written(TableReference? target) =>
-		target is not TableReference.FunctionCall { Function.Arguments: var arguments } ||
+	public static bool Written(TableReference? target)
+	{
+		return target is not TableReference.FunctionCall { Function.Arguments: var arguments } ||
 		Array.TrueForAll(arguments, static one => one is not Expression.ColumnReference(var text) || Written(text));
+	}
 
 	/// <summary>Whether a name written as a column carries no <c>$</c> part under a prefix.</summary>
 	static bool Written(string text)
@@ -4507,10 +4710,12 @@ public static class Syntax
 	/// in ALTER ENDPOINT"; altered, a method is added, altered or dropped by name. The verb is
 	/// read by the statement and the list by a rule of its own, so the question is put here.
 	/// </remarks>
-	public static bool Created(string? verb, Clause.Option? spoken) =>
-		string.Equals(verb, "CREATE", StringComparison.OrdinalIgnoreCase) ||
+	public static bool Created(string? verb, Clause.Option? spoken)
+	{
+		return string.Equals(verb, "CREATE", StringComparison.OrdinalIgnoreCase) ||
 		spoken?.Options is not { } options ||
 		!Array.Exists(options, static one => one is Clause.Option { Name: "WEBMETHOD" });
+	}
 
 	/// <summary>Whether a string written out is one of a catalogue, whatever its quotes and case.</summary>
 	/// <remarks>
@@ -4537,8 +4742,10 @@ public static class Syntax
 	/// its own exponent, so this is a question about what was read rather than about what
 	/// follows it.
 	/// </remarks>
-	public static bool Plain(string? text) =>
-		text is not null && text.IndexOf('e') < 0 && text.IndexOf('E') < 0;
+	public static bool Plain(string? text)
+	{
+		return text is not null && text.IndexOf('e') < 0 && text.IndexOf('E') < 0;
+	}
 
 	/// <summary>
 	/// Whether a procedure written against somebody else's code carries only the options it may.
@@ -4548,21 +4755,25 @@ public static class Syntax
 	/// and <c>WITH ENCRYPTION</c> are <c>Msg 155</c> there and read of a procedure whose body is
 	/// written out.
 	/// </remarks>
-	public static bool Externally(Clause[]? options) =>
-		options is null ||
+	public static bool Externally(Clause[]? options)
+	{
+		return options is null ||
 		Array.TrueForAll(options, static one =>
 			one is Clause.Option { Name: var name } && name.StartsWith("EXECUTE AS", StringComparison.OrdinalIgnoreCase));
+	}
 
 	/// <summary>Whether a function returning a query is told nothing about a null argument.</summary>
 	/// <remarks>
 	/// <c>CALLED ON NULL INPUT</c> and <c>RETURNS NULL ON NULL INPUT</c> are <c>Msg 487</c> of an
 	/// inline table function and read of a scalar one.
 	/// </remarks>
-	public static bool Inlined(Clause[]? options) =>
-		options is null ||
+	public static bool Inlined(Clause[]? options)
+	{
+		return options is null ||
 		Array.TrueForAll(options, static one =>
 			one is not Clause.Option { Name: var name } ||
 			!(name.EndsWith("ON NULL INPUT", StringComparison.OrdinalIgnoreCase)));
+	}
 
 	/// <summary>Whether a table computing a column has one of its own to compute it from.</summary>
 	/// <remarks>
@@ -4573,10 +4784,12 @@ public static class Syntax
 	/// at all and is read. Asked of a table variable, a table type and a function's returned
 	/// table as well, and not of <c>ALTER TABLE … ADD</c>, whose table has its columns already.
 	/// </remarks>
-	public static bool Stored(Clause[]? body) =>
-		body is null ||
+	public static bool Stored(Clause[]? body)
+	{
+		return body is null ||
 		!Array.Exists(body, static one => one is Clause.ColumnDefinition(_, _, not null, _)) ||
 		Array.Exists(body, static one => one is Clause.ColumnDefinition(_, _, null, _));
+	}
 
 	/// <summary>Whether a type named through its schema takes the tail it was given.</summary>
 	/// <remarks>
@@ -4701,10 +4914,12 @@ public static class Syntax
 	/// 12 fillfactor = 13</c> is <c>Msg 156</c> and <c>WITH sorted_data sorted_data</c> is
 	/// <c>Msg 102</c> — and neither is a third.
 	/// </remarks>
-	public static bool Paired(Clause first, Clause? second) =>
-		second is null ||
+	public static bool Paired(Clause first, Clause? second)
+	{
+		return second is null ||
 		first is Clause.Option { Name: var one } && second is Clause.Option { Name: var other } &&
 		!string.Equals(one, other, StringComparison.OrdinalIgnoreCase);
+	}
 
 	/// <summary>Whether a kept sample percentage stands beside the scan it was kept from.</summary>
 	/// <remarks>
@@ -4854,9 +5069,15 @@ public static class Syntax
 
 		return true;
 
-		bool Is(int index, string wanted) => index < tail.Length && Kind(tail[index]) == wanted;
+		bool Is(int index, string wanted)
+		{
+			return index < tail.Length && Kind(tail[index]) == wanted;
+		}
 
-		static string? Kind(Clause one) => one is Clause.ColumnOption { Kind: var kind } ? kind : null;
+		static string? Kind(Clause one)
+		{
+			return one is Clause.ColumnOption { Kind: var kind } ? kind : null;
+		}
 	}
 
 	/// <summary>Whether an altered column is told only what an altered column may be.</summary>
@@ -4886,9 +5107,11 @@ public static class Syntax
 	}
 
 	/// <summary>Whether something said about a column belongs to the front of its tail.</summary>
-	static bool Fronting(string kind) =>
-		kind is "COLLATE" or "FILESTREAM" or "SPARSE" or "MASKED" or "ENCRYPTED" or ColumnSet ||
+	static bool Fronting(string kind)
+	{
+		return kind is "COLLATE" or "FILESTREAM" or "SPARSE" or "MASKED" or "ENCRYPTED" or ColumnSet ||
 		kind.StartsWith("GENERATED", StringComparison.Ordinal);
+	}
 
 	const string ColumnSet = "COLUMN_SET FOR ALL_SPARSE_COLUMNS";
 
@@ -4941,8 +5164,10 @@ public static class Syntax
 
 	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
 	/// <remarks>Asked of a result set, which unlike a table may not leave a type out (<c>Msg 102</c>).</remarks>
-	public static bool Typed(Clause[]? body) =>
-		body is not null && Array.TrueForAll(body, static one => one is not Clause.ColumnDefinition(_, null, null, _));
+	public static bool Typed(Clause[]? body)
+	{
+		return body is not null && Array.TrueForAll(body, static one => one is not Clause.ColumnDefinition(_, null, null, _));
+	}
 
 	/// <summary>Whether what follows a column written without a type is what the engine reads there.</summary>
 	/// <remarks>
@@ -4950,11 +5175,13 @@ public static class Syntax
 	/// collation (<c>Msg 156</c>), <c>NOT FOR REPLICATION</c>, a mask, an encryption or a
 	/// generation (<c>Msg 102</c>, <c>156</c>).
 	/// </remarks>
-	public static bool Untyped(Clause[]? tail) =>
-		tail is null || Array.TrueForAll(tail, static one =>
+	public static bool Untyped(Clause[]? tail)
+	{
+		return tail is null || Array.TrueForAll(tail, static one =>
 			one is not Clause.ColumnOption { Kind: var kind } ||
 			!(kind is "COLLATE" or "NOT FOR REPLICATION" or "MASKED" or "ENCRYPTED" ||
 			  kind.StartsWith("GENERATED", StringComparison.Ordinal)));
+	}
 
 	/// <summary>Whether no more than one of a list's items, as written, begins with a word.</summary>
 	public static bool Once(string word, string? first, string[]? rest)
@@ -4967,7 +5194,10 @@ public static class Syntax
 
 		return said <= 1;
 
-		bool Begins(string? one) => one is not null && one.TrimStart().StartsWith(word, StringComparison.OrdinalIgnoreCase);
+		bool Begins(string? one)
+		{
+			return one is not null && one.TrimStart().StartsWith(word, StringComparison.OrdinalIgnoreCase);
+		}
 	}
 
 	/// <summary>Whether a column's flag, added or dropped, may be so with the options said.</summary>
@@ -5046,17 +5276,25 @@ public static class Syntax
 	/// holds, signed or not. Zero and a negative are read by the engine and objected to after
 	/// the parse (<c>Msg 16204</c>); a number past an <c>int</c> is <c>Msg 102</c>.
 	/// </summary>
-	public static bool Ranked(string? ordinal) =>
-		int.TryParse(ordinal, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out _);
+	public static bool Ranked(string? ordinal)
+	{
+		return int.TryParse(ordinal, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out _);
+	}
 
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>
 	{
 		public static readonly ByReference Instance = new();
 
-		public bool Equals(ISqlSpan? x, ISqlSpan? y) => ReferenceEquals(x, y);
+		public bool Equals(ISqlSpan? x, ISqlSpan? y)
+		{
+			return ReferenceEquals(x, y);
+		}
 
-		public int GetHashCode(ISqlSpan obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+		public int GetHashCode(ISqlSpan obj)
+		{
+			return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+		}
 	}
 
 	/// <summary>Whether a queue created has what its activation needs.</summary>
@@ -5081,13 +5319,17 @@ public static class Syntax
 	}
 
 	/// <summary>Whether a dialog's options are each said once, and relate it one way at most.</summary>
-	public static bool DialogAgrees(Clause[]? options) =>
-		NamedOnce(null, options) &&
+	public static bool DialogAgrees(Clause[]? options)
+	{
+		return NamedOnce(null, options) &&
 		!(HasOption(options, "RELATED_CONVERSATION") && HasOption(options, "RELATED_CONVERSATION_GROUP"));
+	}
 
 	/// <summary>A variable and the members named after it, joined as one name.</summary>
-	public static string Member(string variable, string[]? members) =>
-		members is null or { Length: 0 } ? variable : variable + "." + string.Join(".", members);
+	public static string Member(string variable, string[]? members)
+	{
+		return members is null or { Length: 0 } ? variable : variable + "." + string.Join(".", members);
+	}
 
 	/// <summary>Whether <c>PREDICT</c>'s arguments are ones it takes.</summary>
 	/// <remarks>
@@ -5152,29 +5394,33 @@ public static class Syntax
 	{
 		return body is not null && Array.TrueForAll(body, Typed);
 
-		static bool Typed(Clause one) =>
-			one switch
+		static bool Typed(Clause one)
+		{
+			return one switch
 			{
 				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" } index => Told(index),
-				Clause.ConstraintDefinition { Name: not null }                        => false,
-				Clause.ConstraintDefinition { Kind: "FOREIGN KEY" or "REFERENCES" }   => false,
-				Clause.ConstraintDefinition { Kind: "PRIMARY KEY" or "UNIQUE" } key   => Told(key),
-				Clause.ColumnOption { ConstraintName: not null }                      => false,
+				Clause.ConstraintDefinition { Name: not null } => false,
+				Clause.ConstraintDefinition { Kind: "FOREIGN KEY" or "REFERENCES" } => false,
+				Clause.ConstraintDefinition { Kind: "PRIMARY KEY" or "UNIQUE" } key => Told(key),
+				Clause.ColumnOption { ConstraintName: not null } => false,
 				Clause.ColumnOption { Kind: "SPARSE" or "FILESTREAM" or "ENCRYPTED" or "NOT FOR REPLICATION" or ColumnSet } => false,
-				Clause.ColumnDefinition { Options: var options }                      => Array.TrueForAll(options, Typed),
-				_                                                                     => true,
+				Clause.ColumnDefinition { Options: var options } => Array.TrueForAll(options, Typed),
+				_ => true,
 			};
+		}
 
 		// What a key or an index of a table type may be told, which is the brackets' question
 		// as much as the name's: the constraint holds the list itself and says on `Bracketed`
 		// which spelling it was written in.
-		static bool Told(Clause.ConstraintDefinition constraint) =>
-			constraint.Options is not { } options ||
+		static bool Told(Clause.ConstraintDefinition constraint)
+		{
+			return constraint.Options is not { } options ||
 			Array.TrueForAll(options, one =>
 				one is Clause.Option { Name: var name } &&
 				Array.Exists(
 					constraint.Bracketed ? TypeKeyBracketed : TypeKeyBare,
 					word => string.Equals(word, name, StringComparison.OrdinalIgnoreCase)));
+		}
 	}
 
 	/// <summary>Whether a table's body may be a table variable's or a returned table's.</summary>
@@ -5193,17 +5439,19 @@ public static class Syntax
 	{
 		return body is not null && Array.TrueForAll(body, Nameless);
 
-		static bool Nameless(Clause one) =>
-			one switch
+		static bool Nameless(Clause one)
+		{
+			return one switch
 			{
-				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" }  => true,
-				Clause.ConstraintDefinition { Name: not null }                  => false,
-				Clause.ColumnOption { ConstraintName: not null }                => false,
+				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" } => true,
+				Clause.ConstraintDefinition { Name: not null } => false,
+				Clause.ColumnOption { ConstraintName: not null } => false,
 				Clause.ColumnOption { Kind: "FILESTREAM" or "NOT FOR REPLICATION" } => false,
-				Clause.ConstraintDefinition { Kind: "REFERENCES" }              => false,
-				Clause.ColumnDefinition { Options: var options }                => Array.TrueForAll(options, Nameless),
-				_                                                               => true,
+				Clause.ConstraintDefinition { Kind: "REFERENCES" } => false,
+				Clause.ColumnDefinition { Options: var options } => Array.TrueForAll(options, Nameless),
+				_ => true,
 			};
+		}
 	}
 
 	/// <summary>Whether a table's body may be a function's returned table.</summary>
@@ -5216,14 +5464,16 @@ public static class Syntax
 	{
 		return body is not null && Array.TrueForAll(body, Kept);
 
-		static bool Kept(Clause one) =>
-			one switch
+		static bool Kept(Clause one)
+		{
+			return one switch
 			{
 				Clause.ColumnOption { Kind: "SPARSE" or "FILESTREAM" or "NOT FOR REPLICATION" or ColumnSet } => false,
-				Clause.ConstraintDefinition { Kind: "REFERENCES" }                                          => false,
-				Clause.ColumnDefinition { Options: var options }                                            => Array.TrueForAll(options, Kept),
-				_                                                                                           => true,
+				Clause.ConstraintDefinition { Kind: "REFERENCES" } => false,
+				Clause.ColumnDefinition { Options: var options } => Array.TrueForAll(options, Kept),
+				_ => true,
 			};
+		}
 	}
 
 	/// <summary>What a table type's key or index may be told inside brackets.</summary>
@@ -5234,8 +5484,10 @@ public static class Syntax
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(
-		Clause[]? with, Query query, Clause? @for, Clause[]? hints, bool forFirst) =>
-		new([], [], with ?? Clause.None, query, @for, hints ?? Clause.None, forFirst);
+		Clause[]? with, Query query, Clause? @for, Clause[]? hints, bool forFirst)
+	{
+		return new([], [], with ?? Clause.None, query, @for, hints ?? Clause.None, forFirst);
+	}
 
 	/// <summary>Whether a variable is one of the server's, <c>@@ROWCOUNT</c> and its kind.</summary>
 	/// <remarks>
@@ -5243,8 +5495,10 @@ public static class Syntax
 	/// row's number (<c>Msg 102</c>), every one of the published names put to the engine. A name
 	/// the server has not heard of, <c>@@x</c>, is a variable like any other.
 	/// </remarks>
-	public static bool IsServerVariable(string? variable) =>
-		variable is not null && ServerVariables.Contains(variable);
+	public static bool IsServerVariable(string? variable)
+	{
+		return variable is not null && ServerVariables.Contains(variable);
+	}
 
 	static readonly HashSet<string> ServerVariables = new(StringComparer.OrdinalIgnoreCase)
 	{
@@ -5259,7 +5513,10 @@ public static class Syntax
 	};
 
 	/// <summary>A run of words as one upper-case word per space.</summary>
-	public static string Squared(string words) => Run(words, true);
+	public static string Squared(string words)
+	{
+		return Run(words, true);
+	}
 
 	/// <summary>
 	/// One setting of a catalogue's list as a node, from the words its line read: the name up
@@ -5302,8 +5559,10 @@ public static class Syntax
 	/// agree; where they have drifted apart this says so rather than quietly building the wrong
 	/// node. A defect in this file, not in anybody's SQL.
 	/// </remarks>
-	public static ArgumentOutOfRangeException Unknown(string word) =>
-		new(nameof(word), word, "The grammar reads this and the tree has no record for it.");
+	public static ArgumentOutOfRangeException Unknown(string word)
+	{
+		return new(nameof(word), word, "The grammar reads this and the tree has no record for it.");
+	}
 }
 
 /// <summary>§8.2 <c>&lt;comp op&gt;</c>, which the standard writes as a production of its own.</summary>

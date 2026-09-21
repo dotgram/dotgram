@@ -244,5 +244,8 @@ public sealed class Rfc5322Tests
 		return tests;
 	}
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

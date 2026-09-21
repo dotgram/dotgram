@@ -32,8 +32,10 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 
 	/// <summary>A Set-Cookie field value, read by RFC 6265 §5.2's algorithm.</summary>
 	/// <exception cref="FormatException">The field is one §5.2 ignores: no <c>=</c> in its pair, or no name.</exception>
-	public static SetCookie Parse(string text) =>
-		Rfc6265.ParseSetCookie(text ?? throw new ArgumentNullException(nameof(text)));
+	public static SetCookie Parse(string text)
+	{
+		return Rfc6265.ParseSetCookie(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A Set-Cookie field value, or false where §5.2 ignores it.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out SetCookie? cookie)
@@ -47,13 +49,22 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 
 	/// <summary>§5.1.3: whether a canonicalized host name domain-matches a domain string.</summary>
 	/// <remarks>Both are compared as given; §5.1.2 canonicalizes them to lower case first, and that is the caller's.</remarks>
-	public static bool DomainMatches(string host, string domain) => Rfc6265.DomainMatches(host, domain);
+	public static bool DomainMatches(string host, string domain)
+	{
+		return Rfc6265.DomainMatches(host, domain);
+	}
 
 	/// <summary>§5.1.4: the default-path of a request's path — its directory, or <c>/</c>.</summary>
-	public static string DefaultPath(string requestPath) => Rfc6265.DefaultPath(requestPath);
+	public static string DefaultPath(string requestPath)
+	{
+		return Rfc6265.DefaultPath(requestPath);
+	}
 
 	/// <summary>§5.1.4: whether a request's path path-matches a cookie-path.</summary>
-	public static bool PathMatches(string requestPath, string cookiePath) => Rfc6265.PathMatches(requestPath, cookiePath);
+	public static bool PathMatches(string requestPath, string cookiePath)
+	{
+		return Rfc6265.PathMatches(requestPath, cookiePath);
+	}
 
 	/// <summary>§5.2.1: the last Expires whose value is a cookie-date, or null.</summary>
 	public DateTimeOffset? Expires
@@ -238,8 +249,10 @@ public sealed record CookiePair(string Name, string Value)
 {
 	/// <summary>A Cookie field value (RFC 6265 §4.2.1): its pairs, in the order sent.</summary>
 	/// <exception cref="FormatException">The text is no Cookie field; the message says where.</exception>
-	public static CookiePair[] ParseField(string text) =>
-		Rfc6265.ParseCookies(text ?? throw new ArgumentNullException(nameof(text)));
+	public static CookiePair[] ParseField(string text)
+	{
+		return Rfc6265.ParseCookies(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A Cookie field value, or false where the text is not one.</summary>
 	public static bool TryParseField(string text, [NotNullWhen(true)] out CookiePair[]? pairs)
@@ -257,10 +270,16 @@ public static class CookieDate
 {
 	/// <summary>A cookie-date, in UTC.</summary>
 	/// <exception cref="FormatException">The text is no cookie-date.</exception>
-	public static DateTimeOffset Parse(string text) => Rfc6265.ParseCookieDate(text);
+	public static DateTimeOffset Parse(string text)
+	{
+		return Rfc6265.ParseCookieDate(text);
+	}
 
 	/// <summary>A cookie-date, in UTC, or false where §5.1.1's steps fail.</summary>
-	public static bool TryParse(string text, out DateTimeOffset date) => Rfc6265.TryParseCookieDate(text, out date);
+	public static bool TryParse(string text, out DateTimeOffset date)
+	{
+		return Rfc6265.TryParseCookieDate(text, out date);
+	}
 }
 
 // RFC 6265, HTTP State Management Mechanism. Two readings, because the RFC has two:
@@ -370,8 +389,10 @@ static partial class Rfc6265
 
 	/// <summary>A cookie-date as §5.1.1 reads one, in UTC.</summary>
 	/// <exception cref="FormatException">The text is no cookie-date.</exception>
-	public static DateTimeOffset ParseCookieDate(string text) =>
-		TryParseCookieDate(text, out var date) ? date : throw new FormatException($"'{text}' is no cookie-date (RFC 6265 §5.1.1).");
+	public static DateTimeOffset ParseCookieDate(string text)
+	{
+		return TryParseCookieDate(text, out var date) ? date : throw new FormatException($"'{text}' is no cookie-date (RFC 6265 §5.1.1).");
+	}
 
 	/// <summary>A cookie-date as §5.1.1 reads one, in UTC, or false where the steps fail.</summary>
 	public static bool TryParseCookieDate(string text, out DateTimeOffset date)
@@ -511,8 +532,14 @@ static partial class Rfc6265
 		return all;
 	}
 
-	internal static int Number(string digits) => int.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture);
+	internal static int Number(string digits)
+	{
+		return int.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture);
+	}
 
 	// WSP is SP and HTAB (RFC 5234), and nothing else is trimmed.
-	static string Trimmed(string text) => text.Trim(' ', '\t');
+	static string Trimmed(string text)
+	{
+		return text.Trim(' ', '\t');
+	}
 }

@@ -26,8 +26,10 @@ public sealed record ForwardedElement(IReadOnlyList<ForwardedElement.Pair> Pairs
 
 	/// <summary>A Forwarded field value (RFC 7239 §4): an element per proxy, empty ones left out.</summary>
 	/// <exception cref="FormatException">The text is no Forwarded field; the message says where.</exception>
-	public static ForwardedElement[] ParseField(string text) =>
-		Rfc7239.ParseForwarded(text ?? throw new ArgumentNullException(nameof(text)));
+	public static ForwardedElement[] ParseField(string text)
+	{
+		return Rfc7239.ParseForwarded(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A Forwarded field value, or false where the text is not one.</summary>
 	public static bool TryParseField(string text, [NotNullWhen(true)] out ForwardedElement[]? elements)
@@ -138,8 +140,10 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 {
 	/// <summary>A node identifier (§6), after its value's quoted-string unescaping.</summary>
 	/// <exception cref="FormatException">The text is no node identifier; the message says where.</exception>
-	public static ForwardedNode Parse(string text) =>
-		Rfc7239.ParseNode(text ?? throw new ArgumentNullException(nameof(text)));
+	public static ForwardedNode Parse(string text)
+	{
+		return Rfc7239.ParseNode(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A node identifier, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out ForwardedNode? node)
@@ -172,8 +176,10 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 		Port is { Length: > 0 } port && port[0] != '_' ? int.Parse(port, NumberStyles.None, CultureInfo.InvariantCulture) : null;
 
 	/// <summary>The node as a value writes it.</summary>
-	public override string ToString() =>
-		(Kind == Kinds.IPv6 ? "[" + Name + "]" : Name) + (Port is null ? "" : ":" + Port);
+	public override string ToString()
+	{
+		return (Kind == Kinds.IPv6 ? "[" + Name + "]" : Name) + (Port is null ? "" : ":" + Port);
+	}
 }
 
 // RFC 7239, Forwarded HTTP Extension. The field is §4's ABNF — a list whose empty elements a recipient
@@ -351,7 +357,10 @@ static partial class Rfc7239
 	}
 
 	/// <summary>A node-port from what followed a name: nothing, or a colon and the port.</summary>
-	internal static string? Port(string text) => text.Length == 0 ? null : text.Substring(1);
+	internal static string? Port(string text)
+	{
+		return text.Length == 0 ? null : text.Substring(1);
+	}
 
 	// RFC 7230 §5.4: Host = uri-host [ ":" port ], an authority with no userinfo.
 	static bool IsHost(string value)

@@ -204,36 +204,45 @@ public sealed class Rfc9651Tests
 		};
 	}
 
-	static Member ToMember(JsonElement member) =>
-		member[0].ValueKind == JsonValueKind.Array
+	static Member ToMember(JsonElement member)
+	{
+		return member[0].ValueKind == JsonValueKind.Array
 			? new InnerList([.. member[0].EnumerateArray().Select(ToItem)], ToParameters(member[1]))
 			: ToItem(member);
+	}
 
-	static Item ToItem(JsonElement item) =>
-		new(ToBare(item[0]), ToParameters(item[1]));
-
-	static OrderedMap<BareItem> ToParameters(JsonElement parameters) =>
-		new(parameters.EnumerateArray().Select(entry => new KeyValuePair<string, BareItem>(entry[0].GetString()!, ToBare(entry[1]))));
-
-	static BareItem ToBare(JsonElement value) => value.ValueKind switch
+	static Item ToItem(JsonElement item)
 	{
-		JsonValueKind.True   => BareItem.Boolean.True,
-		JsonValueKind.False  => BareItem.Boolean.False,
-		JsonValueKind.String => new BareItem.String(value.GetString()!),
+		return new(ToBare(item[0]), ToParameters(item[1]));
+	}
 
-		JsonValueKind.Number => value.GetRawText().IndexOfAny(['.', 'e', 'E']) >= 0
-			? new BareItem.Decimal(value.GetDecimal())
-			: new BareItem.Integer(value.GetInt64()),
+	static OrderedMap<BareItem> ToParameters(JsonElement parameters)
+	{
+		return new(parameters.EnumerateArray().Select(entry => new KeyValuePair<string, BareItem>(entry[0].GetString()!, ToBare(entry[1]))));
+	}
 
-		_ => value.GetProperty("__type").GetString() switch
+	static BareItem ToBare(JsonElement value)
+	{
+		return value.ValueKind switch
 		{
-			"token"         => new BareItem.Token(value.GetProperty("value").GetString()!),
-			"binary"        => new BareItem.ByteSequence(Base32(value.GetProperty("value").GetString()!)),
-			"date"          => new BareItem.Date(value.GetProperty("value").GetInt64()),
-			"displaystring" => new BareItem.DisplayString(value.GetProperty("value").GetString()!),
-			var other       => throw new InvalidOperationException($"A value of a type nobody told this about: {other}."),
-		},
-	};
+			JsonValueKind.True => BareItem.Boolean.True,
+			JsonValueKind.False => BareItem.Boolean.False,
+			JsonValueKind.String => new BareItem.String(value.GetString()!),
+
+			JsonValueKind.Number => value.GetRawText().IndexOfAny(['.', 'e', 'E']) >= 0
+				? new BareItem.Decimal(value.GetDecimal())
+				: new BareItem.Integer(value.GetInt64()),
+
+			_ => value.GetProperty("__type").GetString() switch
+			{
+				"token" => new BareItem.Token(value.GetProperty("value").GetString()!),
+				"binary" => new BareItem.ByteSequence(Base32(value.GetProperty("value").GetString()!)),
+				"date" => new BareItem.Date(value.GetProperty("value").GetInt64()),
+				"displaystring" => new BareItem.DisplayString(value.GetProperty("value").GetString()!),
+				var other => throw new InvalidOperationException($"A value of a type nobody told this about: {other}."),
+			},
+		};
+	}
 
 	// ── The suite's JSON, held against what was read ─────────────────────────────
 
@@ -272,10 +281,12 @@ public sealed class Rfc9651Tests
 		return null;
 	}
 
-	static string? SameMember(JsonElement expected, Member member) =>
-		expected[0].ValueKind == JsonValueKind.Array
+	static string? SameMember(JsonElement expected, Member member)
+	{
+		return expected[0].ValueKind == JsonValueKind.Array
 			? member is InnerList inner ? SameInnerList(expected, inner) : $"an item where an inner list was expected"
 			: member is Item item ? SameItem(expected, item) : $"an inner list where an item was expected";
+	}
 
 	static string? SameInnerList(JsonElement expected, InnerList inner)
 	{
@@ -293,8 +304,10 @@ public sealed class Rfc9651Tests
 		return SameParameters(expected[1], inner.Parameters);
 	}
 
-	static string? SameItem(JsonElement expected, Item item) =>
-		SameBare(expected[0], item.Value) ?? SameParameters(expected[1], item.Parameters);
+	static string? SameItem(JsonElement expected, Item item)
+	{
+		return SameBare(expected[0], item.Value) ?? SameParameters(expected[1], item.Parameters);
+	}
 
 	static string? SameParameters(JsonElement expected, OrderedMap<BareItem> parameters)
 	{
@@ -392,5 +405,8 @@ public sealed class Rfc9651Tests
 
 	static string ThisFile { get; } = FilePath();
 
-	static string FilePath([CallerFilePath] string path = "") => path;
+	static string FilePath([CallerFilePath] string path = "")
+	{
+		return path;
+	}
 }

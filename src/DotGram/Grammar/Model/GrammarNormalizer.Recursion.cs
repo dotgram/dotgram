@@ -218,12 +218,15 @@ public sealed partial class GrammarNormalizer
 	IReadOnlyList<(object Table, Action<Node, Node> Move)>? _annotations;
 
 	/// <summary>One table keyed by node, and the move that follows a rebuild through it.</summary>
-	static (object, Action<Node, Node>) Moving<T>(Dictionary<Node, T> table) =>
-		(table, (from, to) =>
+	static (object, Action<Node, Node>) Moving<T>(Dictionary<Node, T> table)
+	{
+		return (table, (from, to) =>
 		{
 			if (table.TryGetValue(from, out var found))
 				table[to] = found;
-		});
+		}
+		);
+	}
 
 	/// <summary>A fold naming the node that replaced one of the two kinds it names.</summary>
 	static Fold Moved(Fold fold, Node from, Node to)
@@ -348,10 +351,12 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether two rules declare the same type, textually, or neither declares one.</summary>
-	static bool SameDeclaredType(TypeRef? one, TypeRef? other) =>
-		one is null
+	static bool SameDeclaredType(TypeRef? one, TypeRef? other)
+	{
+		return one is null
 			? other is null
 			: other is not null &&
 				one.IsSequence == other.IsSequence &&
 				string.Equals(one.Name, other.Name, StringComparison.Ordinal);
+	}
 }

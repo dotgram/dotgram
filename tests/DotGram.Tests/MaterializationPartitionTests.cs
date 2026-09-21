@@ -13,8 +13,11 @@ namespace DotGram.Tests;
 
 public sealed class MaterializationPartitionTests
 {
-	static string Alternatives(int count) => string.Join("\n | ", Enumerable.Range(0, count)
+	static string Alternatives(int count)
+	{
+		return string.Join("\n | ", Enumerable.Range(0, count)
 		.Select(i => $"\"{i}=\" & value: ['a'..'z']+ & ';' => @({i} * 100 + value.Length + parserSpan.Length)"));
+	}
 
 	static Assembly Compile(string grammar, bool spanCaptures)
 	{
@@ -65,7 +68,14 @@ public sealed class MaterializationPartitionTests
 
 	sealed class OneByteStream(byte[] input) : MemoryStream(input)
 	{
-		public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(1, count));
-		public override int Read(Span<byte> buffer) => base.Read(buffer[..Math.Min(1, buffer.Length)]);
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			return base.Read(buffer, offset, Math.Min(1, count));
+		}
+
+		public override int Read(Span<byte> buffer)
+		{
+			return base.Read(buffer[..Math.Min(1, buffer.Length)]);
+		}
 	}
 }

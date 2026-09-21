@@ -170,9 +170,15 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 {
 	public static readonly PermissiveSymbolResolver Instance = new();
 
-	public bool TypeExists(string qualifiedName) => true;
+	public bool TypeExists(string qualifiedName)
+	{
+		return true;
+	}
 
-	public bool IsAssignable(string from, string to) => true;
+	public bool IsAssignable(string from, string to)
+	{
+		return true;
+	}
 
 	/// <remarks>
 	/// None, rather than everything: a made-up constructor would have the grammar half
@@ -209,10 +215,15 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	/// Yes, unlike the answers above: here a no is an error, and a grammar tested without a host
 	/// names methods that are nowhere.
 	/// </remarks>
-	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
-		ExternalMethodResolution.Found;
+	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+	{
+		return ExternalMethodResolution.Found;
+	}
 
 	// Permissive about names and not about this: saying yes would have a parser call two
 	// methods nobody said exist, where saying no costs only the quiet first reading.
-	public bool Rewinds(string qualifiedName) => false;
+	public bool Rewinds(string qualifiedName)
+	{
+		return false;
+	}
 }

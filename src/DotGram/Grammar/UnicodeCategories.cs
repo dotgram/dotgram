@@ -45,8 +45,10 @@ public static class UnicodeCategories
 	};
 
 	/// <summary>The .NET name, or null when no such category is spelled that way.</summary>
-	public static string? NameOf(string abbreviation) =>
-		abbreviation is not null && _names.TryGetValue(abbreviation, out var name) ? name : null;
+	public static string? NameOf(string abbreviation)
+	{
+		return abbreviation is not null && _names.TryGetValue(abbreviation, out var name) ? name : null;
+	}
 
 	/// <summary>
 	/// The groups .NET regular expressions also accept — <c>\p{L}</c> for every letter.
@@ -85,5 +87,8 @@ public static class UnicodeCategories
 		return [];
 	}
 
-	public static bool Exists(string abbreviation) => Expand(abbreviation).Count > 0;
+	public static bool Exists(string abbreviation)
+	{
+		return Expand(abbreviation).Count > 0;
+	}
 }

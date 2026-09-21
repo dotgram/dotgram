@@ -39,12 +39,14 @@ sealed class GramCompletionSourceProvider : IAsyncCompletionSourceProvider
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public IAsyncCompletionSource GetOrCreate(ITextView textView) =>
-		textView.Properties.GetOrCreateSingletonProperty(() =>
+	public IAsyncCompletionSource GetOrCreate(ITextView textView)
+	{
+		return textView.Properties.GetOrCreateSingletonProperty(() =>
 			new GramCompletionSource(
 				textView.TextBuffer,
 				GramBufferAnalysis.For(textView.TextBuffer),
 				new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents)));
+	}
 }
 
 [Export(typeof(IAsyncCompletionSourceProvider))]
@@ -58,12 +60,14 @@ sealed class EmbeddedGramCompletionSourceProvider : IAsyncCompletionSourceProvid
 	[Import]
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
-	public IAsyncCompletionSource GetOrCreate(ITextView textView) =>
-		textView.Properties.GetOrCreateSingletonProperty(() =>
+	public IAsyncCompletionSource GetOrCreate(ITextView textView)
+	{
+		return textView.Properties.GetOrCreateSingletonProperty(() =>
 			new EmbeddedGramCompletionSource(
 				textView.TextBuffer,
 				EmbeddedGrammarBufferAnalysis.For(textView.TextBuffer, Workspace, Documents),
 				new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents)));
+	}
 }
 
 abstract class GramCompletionSourceBase : IAsyncCompletionSource
@@ -162,19 +166,24 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	public Task<object> GetDescriptionAsync(
 		IAsyncCompletionSession session,
 		CompletionItem item,
-		CancellationToken token) =>
-		Task.FromResult<object>(
+		CancellationToken token)
+	{
+		return Task.FromResult<object>(
 			_descriptions.TryGetValue(item.DisplayText, out var description)
 				? description
 				: _csharpItems.Contains(item.DisplayText)
 					? "C# symbol provided by Roslyn"
 				: "DotGram syntax");
+	}
 
 	protected abstract bool IsApplicable(SnapshotPoint point);
 	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point);
 	protected abstract Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
 		string prefix, CancellationToken cancellationToken);
-	protected virtual IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point) => [];
+	protected virtual IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point)
+	{
+		return [];
+	}
 
 	CompletionItem DslCompletion(DslLiteralCompletion suggestion)
 	{
@@ -198,13 +207,15 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		public int ParameterCount { get; } = parameterCount;
 	}
 
-	protected static RuleCompletion LocalCompletion(string name, GramSymbolKind kind) =>
-		new(
+	protected static RuleCompletion LocalCompletion(string name, GramSymbolKind kind)
+	{
+		return new(
 			kind == GramSymbolKind.Parameter
 				? $"{name}: DotGram rule parameter"
 				: $"{name}: DotGram capture",
 			name,
 			0);
+	}
 
 	static SnapshotSpan WordSpan(SnapshotPoint point)
 	{
@@ -218,20 +229,25 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		return new SnapshotSpan(snapshot, start, end - start);
 	}
 
-	static bool IsNameCharacter(char character) =>
-		char.IsLetterOrDigit(character) || character == '_';
-
-	static string BuiltInDescription(string name) => name switch
+	static bool IsNameCharacter(char character)
 	{
-		"any"             => "DotGram built-in rule: matches any character",
-		"none"            => "DotGram built-in rule: never matches",
-		"eol"             => "DotGram built-in rule: matches an end of line",
-		"eof"             => "DotGram built-in rule: matches the end of input",
-		"trivia"          => "DotGram built-in rule: matches grammar trivia",
-		"word"            => "DotGram built-in rule: one whole word, as wordboundary defines it",
-		"wordboundary"    => "DotGram built-in rule: what a word is made of",
-		_                  => $"DotGram keyword: {name}",
-	};
+		return char.IsLetterOrDigit(character) || character == '_';
+	}
+
+	static string BuiltInDescription(string name)
+	{
+		return name switch
+		{
+			"any" => "DotGram built-in rule: matches any character",
+			"none" => "DotGram built-in rule: never matches",
+			"eol" => "DotGram built-in rule: matches an end of line",
+			"eof" => "DotGram built-in rule: matches the end of input",
+			"trivia" => "DotGram built-in rule: matches grammar trivia",
+			"word" => "DotGram built-in rule: one whole word, as wordboundary defines it",
+			"wordboundary" => "DotGram built-in rule: what a word is made of",
+			_ => $"DotGram keyword: {name}",
+		};
+	}
 }
 
 sealed class GramCompletionSource(
@@ -239,7 +255,10 @@ sealed class GramCompletionSource(
 	GramBufferAnalysis analysis,
 	RoslynGramCompletion roslyn) : GramCompletionSourceBase
 {
-	protected override bool IsApplicable(SnapshotPoint point) => point.Snapshot.TextBuffer == buffer;
+	protected override bool IsApplicable(SnapshotPoint point)
+	{
+		return point.Snapshot.TextBuffer == buffer;
+	}
 
 	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
 	{
@@ -270,9 +289,10 @@ sealed class GramCompletionSource(
 	}
 
 	protected override Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
-		string prefix, CancellationToken cancellationToken) =>
-		roslyn.GetItemsAsync(this, prefix, cancellationToken);
-
+		string prefix, CancellationToken cancellationToken)
+	{
+		return roslyn.GetItemsAsync(this, prefix, cancellationToken);
+	}
 }
 
 sealed class EmbeddedGramCompletionSource(
@@ -291,15 +311,20 @@ sealed class EmbeddedGramCompletionSource(
 			LiteralCompletions(expected).Count > 0;
 	}
 
-	protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point) =>
-		analysis.TryGetDslCompletions(point.Snapshot, point.Position, out var expected)
+	protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point)
+	{
+		return analysis.TryGetDslCompletions(point.Snapshot, point.Position, out var expected)
 			? LiteralCompletions(expected)
 			: [];
+	}
 
-	static IReadOnlyList<DslLiteralCompletion> LiteralCompletions(IReadOnlyList<string> expected) => expected
+	static IReadOnlyList<DslLiteralCompletion> LiteralCompletions(IReadOnlyList<string> expected)
+	{
+		return expected
 		.SelectMany(DslLiteralCompletionParser.ParseAll)
 		.Distinct()
 		.ToArray();
+	}
 
 	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
 	{
@@ -337,8 +362,10 @@ sealed class EmbeddedGramCompletionSource(
 	}
 
 	protected override Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
-		string prefix, CancellationToken cancellationToken) =>
-		roslyn.GetItemsAsync(this, prefix, cancellationToken);
+		string prefix, CancellationToken cancellationToken)
+	{
+		return roslyn.GetItemsAsync(this, prefix, cancellationToken);
+	}
 }
 
 internal readonly record struct DslLiteralCompletion(string Display, string Insertion);
@@ -887,9 +914,11 @@ sealed class RoslynGramCompletion(
 			.FirstOrDefault(static candidate => candidate is not null);
 	}
 
-	static bool IsIdentifier(string source, int position, int length) =>
-		(position == 0 || !IsIdentifierCharacter(source[position - 1])) &&
+	static bool IsIdentifier(string source, int position, int length)
+	{
+		return (position == 0 || !IsIdentifierCharacter(source[position - 1])) &&
 		(position + length == source.Length || !IsIdentifierCharacter(source[position + length]));
+	}
 
 	async Task<INamedTypeSymbol?> HostTypeAsync(Project project, CancellationToken cancellationToken)
 	{
@@ -954,13 +983,17 @@ sealed class RoslynGramCompletion(
 		return expression.Substring(start, end - start);
 	}
 
-	static bool IsIdentifierCharacter(char character) =>
-		char.IsLetterOrDigit(character) || character == '_';
+	static bool IsIdentifierCharacter(char character)
+	{
+		return char.IsLetterOrDigit(character) || character == '_';
+	}
 
-	static Document SyntheticDocument(Project project, string expression) =>
-		project.AddDocument(
+	static Document SyntheticDocument(Project project, string expression)
+	{
+		return project.AddDocument(
 			"__DotGramCompletion.cs",
 			SourceText.From(Before + expression + After));
+	}
 
 	Project? Project()
 	{

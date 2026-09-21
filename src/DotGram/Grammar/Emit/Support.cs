@@ -782,8 +782,9 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false, bool began = false) =>
-		Lines.Normalize(FailureStruct)
+		bool looking = false, bool quiet = false, bool began = false)
+	{
+		return Lines.Normalize(FailureStruct)
 			.Replace(
 				"	{{began}}" + Lines.Ending,
 				began ? Lines.Normalize(BeganField) + Lines.Ending : "")
@@ -818,6 +819,7 @@ public static partial class CSharpEmitter
 			.Replace("{{restore:Began}}", Mark("Began", false))
 			.Replace("{{suppress:OutOfInput}}", Mark("OutOfInput", true))
 			.Replace("{{restore:OutOfInput}}", Mark("OutOfInput", false));
+	}
 
 	/// <summary>Where a reading that begins where it is told read its value, past the trivia at it.</summary>
 	/// <remarks>

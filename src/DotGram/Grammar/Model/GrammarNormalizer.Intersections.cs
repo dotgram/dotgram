@@ -170,8 +170,10 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Where the first condition of an alternative was written, or -1.</summary>
-	static int Opened(Node alternative) =>
-		NodeWalk.Descendants(alternative).Concat([alternative]).OfType<Node.Condition>().FirstOrDefault()?.At ?? -1;
+	static int Opened(Node alternative)
+	{
+		return NodeWalk.Descendants(alternative).Concat([alternative]).OfType<Node.Condition>().FirstOrDefault()?.At ?? -1;
+	}
 
 	/// <summary>The operand an alternative's first condition stands at, which is where its test goes.</summary>
 	static int Opening(Node alternative)
@@ -196,13 +198,16 @@ public sealed partial class GrammarNormalizer
 	/// alternative would hide the recursion from the rewrite that removes it, and a condition
 	/// written at the end of an alternative is one the author was content to have asked last.
 	/// </remarks>
-	static Node Gated(Node kept, int at, ulong readings) => kept switch
+	static Node Gated(Node kept, int at, ulong readings)
 	{
-		Node.Construct(var built, var how) => new Node.Construct(Gated(built, at, readings), how),
-		Node.Sequence(var operands)        =>
-			new Node.Sequence([.. operands.Take(at), new Node.Reading(readings), .. operands.Skip(at)]),
-		_ => new Node.Sequence([new Node.Reading(readings), kept]),
-	};
+		return kept switch
+		{
+			Node.Construct(var built, var how) => new Node.Construct(Gated(built, at, readings), how),
+			Node.Sequence(var operands) =>
+				new Node.Sequence([.. operands.Take(at), new Node.Reading(readings), .. operands.Skip(at)]),
+			_ => new Node.Sequence([new Node.Reading(readings), kept]),
+		};
+	}
 
 	/// <summary>A rule's body with every alternative's condition answered.</summary>
 	Node Decided(RuleSymbol rule, Node body)
@@ -348,13 +353,16 @@ public sealed partial class GrammarNormalizer
 	/// the rule's value and belongs at the end of an alternative, so wrapping one in anything
 	/// puts it where it does not belong. Inside, it is the first thing asked and the last.
 	/// </remarks>
-	static Node Unreachable(Node alternative) => alternative switch
+	static Node Unreachable(Node alternative)
 	{
-		Node.Construct(var body, var how) => new Node.Construct(Unreachable(body), how),
-		Node.Sequence(var operands)       =>
-			new Node.Sequence([new Node.Lookahead(false, Node.Empty.Instance), .. operands.Select(Answered)]),
-		_ => new Node.Sequence([new Node.Lookahead(false, Node.Empty.Instance), Answered(alternative)]),
-	};
+		return alternative switch
+		{
+			Node.Construct(var body, var how) => new Node.Construct(Unreachable(body), how),
+			Node.Sequence(var operands) =>
+				new Node.Sequence([new Node.Lookahead(false, Node.Empty.Instance), .. operands.Select(Answered)]),
+			_ => new Node.Sequence([new Node.Lookahead(false, Node.Empty.Instance), Answered(alternative)]),
+		};
+	}
 
 	/// <summary>
 	/// An operand with its condition gone, whatever the condition said.
@@ -364,8 +372,10 @@ public sealed partial class GrammarNormalizer
 	/// takes it out — so an alternative kept for its shape has to lose its conditions too,
 	/// even though it is the conditions that made it unreachable.
 	/// </remarks>
-	static Node Answered(Node operand) =>
-		operand is Node.Condition ? Node.Empty.Instance : operand;
+	static Node Answered(Node operand)
+	{
+		return operand is Node.Condition ? Node.Empty.Instance : operand;
+	}
 
 	/// <summary>
 	/// What a condition leaves behind: nothing, a guard to ask later, or no alternative.
@@ -377,10 +387,12 @@ public sealed partial class GrammarNormalizer
 	/// C# behind as an ordinary guard; and two C# halves are joined into one, bracketed,
 	/// because what they were written with was `and` and not `&amp;&amp;`.
 	/// </remarks>
-	Node? Left(Test test, int at) =>
-		Folded(test, at) is { } residue
+	Node? Left(Test test, int at)
+	{
+		return Folded(test, at) is { } residue
 			? residue.Text is { } text ? new Node.Guard(text, residue.At) : Node.Empty.Instance
 			: null;
+	}
 
 	/// <summary>A residue: the C# still to ask, or none. Null is the alternative going.</summary>
 	readonly record struct Residue(string? Text, int At);
@@ -434,14 +446,18 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Two pieces of C#, bracketed so that what joins them is what was written.</summary>
-	static string? Joined(string? ours, string? theirs, string with) =>
-		ours is null ? theirs
+	static string? Joined(string? ours, string? theirs, string with)
+	{
+		return ours is null ? theirs
 			: theirs is null ? ours
 			: $"({ours}) {with} ({theirs})";
+	}
 
 	/// <summary>Where the surviving C# was written, which is the first of it there is.</summary>
-	static int Where(Residue ours, Residue theirs, int at) =>
-		ours.Text is not null ? ours.At : theirs.Text is not null ? theirs.At : at;
+	static int Where(Residue ours, Residue theirs, int at)
+	{
+		return ours.Text is not null ? ours.At : theirs.Text is not null ? theirs.At : at;
+	}
 
 	/// <summary>
 	/// Whether the two have a string in common, or null where this compiler cannot say.
@@ -535,17 +551,20 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether one look holds at this offset of a text that is all there is.</summary>
-	bool? Holds(Node test, string text, int at) => test switch
+	bool? Holds(Node test, string text, int at)
 	{
-		// Only where the item before, if there is one, is outside the set.
-		Node.Behind(var element) =>
-			at == 0 ? true : Within(element, text[at - 1]) is { } inside ? !inside : null,
+		return test switch
+		{
+			// Only where the item before, if there is one, is outside the set.
+			Node.Behind(var element) =>
+				at == 0 ? true : Within(element, text[at - 1]) is { } inside ? !inside : null,
 
-		Node.Lookahead(var positive, var body) =>
-			Starts(body, text, at) is { } starts ? starts == positive : null,
+			Node.Lookahead(var positive, var body) =>
+				Starts(body, text, at) is { } starts ? starts == positive : null,
 
-		_ => null,
-	};
+			_ => null,
+		};
+	}
 
 	/// <summary>Whether a node matches some beginning of the text from this offset.</summary>
 	bool? Starts(Node body, string text, int at)
@@ -576,10 +595,12 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether a character is in an element's set, or null where the set is not known.</summary>
-	static bool? Within(Node.Element element, char character) =>
-		FirstSets.OfElement(element) is { Anything: false } characters
+	static bool? Within(Node.Element element, char character)
+	{
+		return FirstSets.OfElement(element) is { Anything: false } characters
 			? characters.Overlaps(FirstSets.First.Chars([new CharRange(character, character)]))
 			: null;
+	}
 
 	/// <summary>Every string a node accepts, or null where they are not a listable set.</summary>
 	List<Spelling>? Spellings(Node node, HashSet<RuleSymbol> seen)
@@ -678,11 +699,13 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>One spelling followed by another, the second's looks moved along by the first.</summary>
-	static Spelling Then(Spelling head, Spelling tail) =>
-		new(head.Text + tail.Text,
+	static Spelling Then(Spelling head, Spelling tail)
+	{
+		return new(head.Text + tail.Text,
 			tail.Looks.Length == 0
 				? head.Looks
 				: [.. head.Looks, .. tail.Looks.Select(look => look with { At = look.At + head.Text.Length })]);
+	}
 
 	/// <summary>Every way a case-insensitive literal may be spelled, or null where too many.</summary>
 	/// <remarks>
@@ -713,6 +736,8 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Where a node was written, as well as the graph can say.</summary>
-	static Location Where(Node node) =>
-		node is Node.Condition(_, var at) && at >= 0 ? new Location(at, 0) : new Location(0, 0);
+	static Location Where(Node node)
+	{
+		return node is Node.Condition(_, var at) && at >= 0 ? new Location(at, 0) : new Location(0, 0);
+	}
 }

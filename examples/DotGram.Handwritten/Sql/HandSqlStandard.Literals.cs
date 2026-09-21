@@ -196,10 +196,12 @@ partial class HandSqlStandard
 	}
 
 	/// <summary>How a name in an introducer was written: `"a"`, `U&"a"`, or neither.</summary>
-	static IdentifierStyle Styled(ReadOnlySpan<char> part) =>
-		part.Length > 2 && (part[0] | 0x20) == 'u' && part[1] == '&' && part[2] == '"' ? IdentifierStyle.UnicodeDelimited :
+	static IdentifierStyle Styled(ReadOnlySpan<char> part)
+	{
+		return part.Length > 2 && (part[0] | 0x20) == 'u' && part[1] == '&' && part[2] == '"' ? IdentifierStyle.UnicodeDelimited :
 		part.Length > 0 && part[0] == '"' ? IdentifierStyle.Delimited :
 		IdentifierStyle.Regular;
+	}
 
 	/// <summary>A character set as an introducer writes it, divided at the periods between its parts.</summary>
 	static CharacterSetName CharacterSet(ReadOnlySpan<char> dotted)
@@ -342,12 +344,16 @@ partial class HandSqlStandard
 	}
 
 	/// <summary><c>&lt;date value&gt;</c>: three unsigned integers, periods apart.</summary>
-	static bool Date(ReadOnlySpan<char> body, ref int at) =>
-		Decimal(body, ref at) && Take(body, ref at, '-') && Decimal(body, ref at) && Take(body, ref at, '-') && Decimal(body, ref at);
+	static bool Date(ReadOnlySpan<char> body, ref int at)
+	{
+		return Decimal(body, ref at) && Take(body, ref at, '-') && Decimal(body, ref at) && Take(body, ref at, '-') && Decimal(body, ref at);
+	}
 
 	/// <summary><c>&lt;time value&gt;</c>: hours, minutes, and a seconds value.</summary>
-	static bool Time(ReadOnlySpan<char> body, ref int at) =>
-		Decimal(body, ref at) && Take(body, ref at, ':') && Decimal(body, ref at) && Take(body, ref at, ':') && Seconds(body, ref at);
+	static bool Time(ReadOnlySpan<char> body, ref int at)
+	{
+		return Decimal(body, ref at) && Take(body, ref at, ':') && Decimal(body, ref at) && Take(body, ref at, ':') && Seconds(body, ref at);
+	}
 
 	/// <summary><c>&lt;time zone interval&gt;</c>, where one was written.</summary>
 	static bool Zone(ReadOnlySpan<char> body, ref int at)
@@ -590,17 +596,19 @@ partial class HandSqlStandard
 	}
 
 	/// <summary>Which <c>&lt;primary datetime field&gt;</c> a word is, where it is one.</summary>
-	static DateTimeField? Field(SqlWord word) =>
-		word switch
+	static DateTimeField? Field(SqlWord word)
+	{
+		return word switch
 		{
-			SqlWord.Year   => DateTimeField.Year,
-			SqlWord.Month  => DateTimeField.Month,
-			SqlWord.Day    => DateTimeField.Day,
-			SqlWord.Hour   => DateTimeField.Hour,
+			SqlWord.Year => DateTimeField.Year,
+			SqlWord.Month => DateTimeField.Month,
+			SqlWord.Day => DateTimeField.Day,
+			SqlWord.Hour => DateTimeField.Hour,
 			SqlWord.Minute => DateTimeField.Minute,
 			SqlWord.Second => DateTimeField.Second,
-			_              => null,
+			_ => null,
 		};
+	}
 
 	/// <summary>An <c>&lt;unsigned integer&gt;</c> where the BNF writes one inside a production.</summary>
 	static bool Unsigned(ref SqlCursor cursor, out int? value)

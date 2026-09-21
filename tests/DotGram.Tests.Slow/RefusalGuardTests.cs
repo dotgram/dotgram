@@ -38,7 +38,10 @@ public sealed class RefusalGuardTests
 {
 	static readonly Lazy<Dictionary<string, RefusalLadders.Class>> Baseline = new(ReadBaseline);
 
-	public static TheoryData<string> Ids() => new(RefusalLadders.All().Select(RefusalLadders.Id));
+	public static TheoryData<string> Ids()
+	{
+		return new(RefusalLadders.All().Select(RefusalLadders.Id));
+	}
 
 	[Theory]
 	[MemberData(nameof(Ids))]
@@ -155,13 +158,16 @@ public sealed class RefusalGuardTests
 	}
 
 	/// <summary>The exponent up to which a series of a baseline class still passes.</summary>
-	static double Limit(RefusalLadders.Class baseline) => baseline switch
+	static double Limit(RefusalLadders.Class baseline)
 	{
-		RefusalLadders.Class.Linear      => 1.20,
-		RefusalLadders.Class.Superlinear => 1.60,
-		RefusalLadders.Class.Quadratic   => RefusalLadders.Explosive,
-		_                                => throw new InvalidOperationException("An explosive series cannot be in the baseline."),
-	};
+		return baseline switch
+		{
+			RefusalLadders.Class.Linear => 1.20,
+			RefusalLadders.Class.Superlinear => 1.60,
+			RefusalLadders.Class.Quadratic => RefusalLadders.Explosive,
+			_ => throw new InvalidOperationException("An explosive series cannot be in the baseline."),
+		};
+	}
 
 	static Dictionary<string, RefusalLadders.Class> ReadBaseline()
 	{

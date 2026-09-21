@@ -16,7 +16,10 @@ static partial class Stand
 	/// </summary>
 	static IEnumerable<Workload> PairedCliffs(PairedSide before, PairedSide after)
 	{
-		string Predicates(int n) => string.Join(" AND ", Enumerable.Range(0, n).Select(static i => "a" + i + " = 1"));
+		string Predicates(int n)
+		{
+			return string.Join(" AND ", Enumerable.Range(0, n).Select(static i => "a" + i + " = 1"));
+		}
 
 		var rows = new List<(string Name, string Method, string Text)>();
 

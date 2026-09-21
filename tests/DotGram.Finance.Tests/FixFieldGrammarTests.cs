@@ -72,5 +72,8 @@ public sealed class FixFieldGrammarTests
 		Assert.Throws<FormatException>(() => FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixFieldOptions.Log));
 	}
 
-	static byte[] Bytes(string text) => text.Select(c => checked((byte)c)).ToArray();
+	static byte[] Bytes(string text)
+	{
+		return text.Select(c => checked((byte)c)).ToArray();
+	}
 }

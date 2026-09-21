@@ -268,12 +268,14 @@ public sealed class LexicalAutomaton
 		/// what it could cost is an overlap gone unnoticed, and an overlap between two
 		/// patterns that differ only in the long s is not one either of them meant.
 		/// </remarks>
-		static FirstSets.First Folded(char c, bool ignoreCase) =>
-			ignoreCase
+		static FirstSets.First Folded(char c, bool ignoreCase)
+		{
+			return ignoreCase
 				? FirstSets.First.Chars(
 					[new CharRange(Char.ToUpperInvariant(c), Char.ToUpperInvariant(c)),
 					 new CharRange(Char.ToLowerInvariant(c), Char.ToLowerInvariant(c))])
 				: FirstSets.First.Chars([new CharRange(c, c)]);
+		}
 
 		/// <summary>
 		/// The coarsest ranges every set is a union of.
@@ -463,14 +465,16 @@ public sealed class LexicalAutomaton
 		/// its three cases. So the idiom is recognized and built, and anything else wearing a
 		/// lookahead is still refused.
 		/// </remarks>
-		static (string Delimiter, Node Item)? Until(Node node) =>
-			node is Node.Repeat(
+		static (string Delimiter, Node Item)? Until(Node node)
+		{
+			return node is Node.Repeat(
 				Node.Sequence([Node.Lookahead(false, Node.Literal(var delimiter) { IgnoreCase: false }), var item]),
 				0,
 				null) &&
 			delimiter.Length > 0
 				? (delimiter, item)
 				: null;
+		}
 
 		/// <summary>
 		/// The machine for "an item at a time, and the delimiter never begins here".
@@ -543,7 +547,10 @@ public sealed class LexicalAutomaton
 			// How much of the delimiter is still matched once the next character is not the
 			// one that would continue it. Strictly less than what came in, which is what makes
 			// the walk below finish.
-			int Fail(int state) => state == 0 ? 0 : prefix[state - 1];
+			int Fail(int state)
+			{
+				return state == 0 ? 0 : prefix[state - 1];
+			}
 
 			int Delta(int state, char? c)
 			{

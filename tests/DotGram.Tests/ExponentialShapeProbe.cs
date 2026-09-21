@@ -184,12 +184,15 @@ public sealed class ExponentialShapeProbe
 	}
 
 	/// <summary>What the inner repetition is written as, as far as one line can say it.</summary>
-	static string Spelling(Node.Repeat inner) => Unwrapped(inner.Body) switch
+	static string Spelling(Node.Repeat inner)
 	{
-		Node.Choice(var alternatives) => alternatives.Count + " alternatives",
-		Node.Call(var called, _)      => called.Name,
-		var other                     => other.GetType().Name,
-	};
+		return Unwrapped(inner.Body) switch
+		{
+			Node.Choice(var alternatives) => alternatives.Count + " alternatives",
+			Node.Call(var called, _) => called.Name,
+			var other => other.GetType().Name,
+		};
+	}
 
 	/// <summary>Every node, not entering an atomic group: what it seals cannot be re-cut.</summary>
 	static IEnumerable<Node> Walk(Node node, bool inAtomic)
@@ -205,26 +208,32 @@ public sealed class ExponentialShapeProbe
 				yield return one;
 	}
 
-	static IEnumerable<Node> Children(Node node) => node switch
+	static IEnumerable<Node> Children(Node node)
 	{
-		Node.Sequence(var parts)     => parts,
-		Node.Choice(var choices)     => choices,
-		Node.Repeat(var body, _, _)  => [body],
-		Node.Capture(_, var held)    => [held],
-		Node.Construct(var built, _) => [built],
-		Node.Marked(var kept, _)     => [kept],
-		Node.Lookahead(_, var seen)  => [seen],
-		Node.Atomic(var kept)        => [kept],
-		_                            => [],
-	};
+		return node switch
+		{
+			Node.Sequence(var parts) => parts,
+			Node.Choice(var choices) => choices,
+			Node.Repeat(var body, _, _) => [body],
+			Node.Capture(_, var held) => [held],
+			Node.Construct(var built, _) => [built],
+			Node.Marked(var kept, _) => [kept],
+			Node.Lookahead(_, var seen) => [seen],
+			Node.Atomic(var kept) => [kept],
+			_ => [],
+		};
+	}
 
-	static Node Unwrapped(Node node) => node switch
+	static Node Unwrapped(Node node)
 	{
-		Node.Capture(_, var held)    => Unwrapped(held),
-		Node.Construct(var built, _) => Unwrapped(built),
-		Node.Marked(var kept, _)     => Unwrapped(kept),
-		_                            => node,
-	};
+		return node switch
+		{
+			Node.Capture(_, var held) => Unwrapped(held),
+			Node.Construct(var built, _) => Unwrapped(built),
+			Node.Marked(var kept, _) => Unwrapped(kept),
+			_ => node,
+		};
+	}
 
 	/// <summary>Build output and the scratch directory, neither of which is the repository's.</summary>
 	/// <remarks>
@@ -244,8 +253,10 @@ public sealed class ExponentialShapeProbe
 			below.Contains($"{Path.DirectorySeparatorChar}.work{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
 	}
 
-	static string Describe(Node.Repeat repeat) =>
-		(repeat.Min == 0 ? "(…)*" : "(…)+") + " of " + Unwrapped(repeat.Body).GetType().Name.Replace("Node+", "");
+	static string Describe(Node.Repeat repeat)
+	{
+		return (repeat.Min == 0 ? "(…)*" : "(…)+") + " of " + Unwrapped(repeat.Body).GetType().Name.Replace("Node+", "");
+	}
 
 	/// <summary>Every grammar in the repository: the files, and the text of every attribute.</summary>
 	/// <remarks>

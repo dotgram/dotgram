@@ -69,8 +69,10 @@ public static partial class MetricsLine
 	/// The library hands back the text as written, quotes and all: it knows how a quoted
 	/// string is spelled and not what this format means by one.
 	/// </remarks>
-	static string Unquoted(string quoted) =>
-		quoted.Substring(1, quoted.Length - 2).Replace("\"\"", "\"");
+	static string Unquoted(string quoted)
+	{
+		return quoted.Substring(1, quoted.Length - 2).Replace("\"\"", "\"");
+	}
 
 	/// <summary>A line read into a lookup, for a caller that wants one.</summary>
 	public static System.Collections.Generic.Dictionary<string, object> Read(string line)

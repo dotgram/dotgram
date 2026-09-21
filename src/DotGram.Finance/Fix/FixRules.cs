@@ -51,7 +51,10 @@ abstract class FixTables
 	/// body's references to them are not followed. A loaded dictionary has its own ids and its
 	/// header is a list of its own, so nothing here is outer.
 	/// </remarks>
-	public virtual bool IsOuterScope(int componentId) => false;
+	public virtual bool IsOuterScope(int componentId)
+	{
+		return false;
+	}
 
 	readonly ConditionalWeakTable<SchemaRef[], Dictionary<int, int>> scopes = new();
 
@@ -64,7 +67,10 @@ abstract class FixTables
 	/// wrong for a dictionary whose ids are its own. Reading a venue's file with the wrong one
 	/// throws "Unknown component" on the first message, which is how this was found.
 	/// </remarks>
-	public Dictionary<int, int> Members(SchemaRef[] schema) => scopes.GetValue(schema, Create);
+	public Dictionary<int, int> Members(SchemaRef[] schema)
+	{
+		return scopes.GetValue(schema, Create);
+	}
 
 	Dictionary<int, int> Create(SchemaRef[] schema)
 	{
@@ -100,23 +106,69 @@ sealed class CompiledTables : FixTables
 
 	CompiledTables() { }
 
-	public override SchemaRef[] Message(string type) => FixSchema.Message(type);
+	public override SchemaRef[] Message(string type)
+	{
+		return FixSchema.Message(type);
+	}
 
 	// The compiled tables have no way to say it but the composition, which is what they have
 	// always answered with; an empty one here means the type is not described.
-	public override bool Describes(string type) => FixSchema.Message(type).Length != 0;
-	public override SchemaRef[] Component(int id) => FixSchema.Component(id);
-	public override SchemaRef[] Group(int id) => FixSchema.Group(id);
-	public override int         Counter(int id) => FixSchema.Counter(id);
+	public override bool Describes(string type)
+	{
+		return FixSchema.Message(type).Length != 0;
+	}
+
+	public override SchemaRef[] Component(int id)
+	{
+		return FixSchema.Component(id);
+	}
+
+	public override SchemaRef[] Group(int id)
+	{
+		return FixSchema.Group(id);
+	}
+
+	public override int Counter(int id)
+	{
+		return FixSchema.Counter(id);
+	}
+
 	public override SchemaRef[] Header  => FixSchema.Component(1024);
 	public override SchemaRef[] Trailer => FixSchema.Component(1025);
-	public override FixValueType Type(int tag) => FixSchema.Type(tag);
-	public override string[]?   Codes(int tag) => FixSchema.Codes(tag);
-	public override int         LengthTag(int dataTag) => FixSchema.LengthTag(dataTag);
-	public override int         DataTag(int lengthTag) => FixSchema.DataTag(lengthTag);
-	public override bool        RequiresEncoding(int tag) => FixSchema.RequiresEncoding(tag);
-	public override bool        Defines(int tag) => FixSchema.Defines(tag);
-	public override bool        IsOuterScope(int componentId) => componentId is 1024 or 1025;
+	public override FixValueType Type(int tag)
+	{
+		return FixSchema.Type(tag);
+	}
+
+	public override string[]? Codes(int tag)
+	{
+		return FixSchema.Codes(tag);
+	}
+
+	public override int LengthTag(int dataTag)
+	{
+		return FixSchema.LengthTag(dataTag);
+	}
+
+	public override int DataTag(int lengthTag)
+	{
+		return FixSchema.DataTag(lengthTag);
+	}
+
+	public override bool RequiresEncoding(int tag)
+	{
+		return FixSchema.RequiresEncoding(tag);
+	}
+
+	public override bool Defines(int tag)
+	{
+		return FixSchema.Defines(tag);
+	}
+
+	public override bool IsOuterScope(int componentId)
+	{
+		return componentId is 1024 or 1025;
+	}
 }
 
 /// <summary>A dictionary somebody loaded, in the same shapes.</summary>
@@ -127,11 +179,31 @@ sealed class CompiledTables : FixTables
 /// </remarks>
 sealed class DictionaryTables(FixDictionary dictionary) : FixTables
 {
-	public override SchemaRef[] Message(string type) => dictionary.Message(type);
-	public override bool        Describes(string type) => dictionary.Describes(type);
-	public override SchemaRef[] Component(int id) => dictionary.Component(id);
-	public override SchemaRef[] Group(int id) => dictionary.Group(id);
-	public override int         Counter(int id) => dictionary.Counter(id);
+	public override SchemaRef[] Message(string type)
+	{
+		return dictionary.Message(type);
+	}
+
+	public override bool Describes(string type)
+	{
+		return dictionary.Describes(type);
+	}
+
+	public override SchemaRef[] Component(int id)
+	{
+		return dictionary.Component(id);
+	}
+
+	public override SchemaRef[] Group(int id)
+	{
+		return dictionary.Group(id);
+	}
+
+	public override int Counter(int id)
+	{
+		return dictionary.Counter(id);
+	}
+
 	public override SchemaRef[] Header  => dictionary.Header;
 	public override SchemaRef[] Trailer => dictionary.Trailer;
 	// One read a tag at construction, not a name parsed a field: loading is where a dictionary is
@@ -139,7 +211,10 @@ sealed class DictionaryTables(FixDictionary dictionary) : FixTables
 	// which the generator compiles too, so there is one map and not two.
 	readonly FixValueType[] types = Read(dictionary);
 
-	public override FixValueType Type(int tag) => (uint)tag < (uint)types.Length ? types[tag] : FixValueType.None;
+	public override FixValueType Type(int tag)
+	{
+		return (uint)tag < (uint)types.Length ? types[tag] : FixValueType.None;
+	}
 
 	static FixValueType[] Read(FixDictionary dictionary)
 	{
@@ -157,16 +232,34 @@ sealed class DictionaryTables(FixDictionary dictionary) : FixTables
 		return types;
 	}
 
-	public override string[]?   Codes(int tag) => dictionary.CodeArray(tag);
-	public override bool        Defines(int tag) => dictionary.Defines(tag);
+	public override string[]? Codes(int tag)
+	{
+		return dictionary.CodeArray(tag);
+	}
+
+	public override bool Defines(int tag)
+	{
+		return dictionary.Defines(tag);
+	}
 
 	// A QuickFIX dictionary wires a length to its data by the convention that the length tag is
 	// the data tag minus one, with Signature the one exception it hard-codes. Reading that
 	// convention off a loaded file would be guessing where the file is silent, so the pairs stay
 	// the standard's until a format that declares them arrives — Orchestra's lengthId.
-	public override int  LengthTag(int dataTag) => FixSchema.LengthTag(dataTag);
-	public override int  DataTag(int lengthTag) => FixSchema.DataTag(lengthTag);
-	public override bool RequiresEncoding(int tag) => FixSchema.RequiresEncoding(tag);
+	public override int LengthTag(int dataTag)
+	{
+		return FixSchema.LengthTag(dataTag);
+	}
+
+	public override int DataTag(int lengthTag)
+	{
+		return FixSchema.DataTag(lengthTag);
+	}
+
+	public override bool RequiresEncoding(int tag)
+	{
+		return FixSchema.RequiresEncoding(tag);
+	}
 }
 
 /// <summary>The rules, over whatever schema they are given.</summary>
@@ -381,8 +474,10 @@ static class FixRules
 
 	// A scope's standard tags are in the mask its fields marked; any other tag is looked for
 	// among the fields themselves.
-	internal static bool Has(FixFieldSet scope, ReadOnlySpan<ulong> seen, int tag) =>
-		tag is > 0 and < 957 ? (seen[tag >> 6] & 1UL << (tag & 63)) != 0 : scope.GetField(tag) != null;
+	internal static bool Has(FixFieldSet scope, ReadOnlySpan<ulong> seen, int tag)
+	{
+		return tag is > 0 and < 957 ? (seen[tag >> 6] & 1UL << (tag & 63)) != 0 : scope.GetField(tag) != null;
+	}
 
 	static bool Present(FixTables tables, FixFieldSet scope, ReadOnlySpan<ulong> seen, SchemaRef[] schema)
 	{
@@ -418,6 +513,8 @@ static class FixRules
 		return -1;
 	}
 
-	static FixFinding Wrong(FixRule rule, FixScope where, FixFieldView field, int groupTag, int entryIndex, string reason) =>
-		new(rule, where, field.Tag, groupTag, entryIndex, field.ValuePosition, reason);
+	static FixFinding Wrong(FixRule rule, FixScope where, FixFieldView field, int groupTag, int entryIndex, string reason)
+	{
+		return new(rule, where, field.Tag, groupTag, entryIndex, field.ValuePosition, reason);
+	}
 }

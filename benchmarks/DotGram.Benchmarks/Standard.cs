@@ -347,11 +347,13 @@ static class Standard
 	/// <summary>Kept assigned so that nothing measured here can be optimized away.</summary>
 	static volatile int _sink;
 
-	static Reading Bind(string binder, Type built, MethodInfo method) =>
-		(Reading)typeof(Standard)
+	static Reading Bind(string binder, Type built, MethodInfo method)
+	{
+		return (Reading)typeof(Standard)
 			.GetMethod(binder, BindingFlags.NonPublic | BindingFlags.Static)!
 			.MakeGenericMethod(built)
 			.Invoke(null, [method])!;
+	}
 
 	static Reading Generated<T>(MethodInfo method)
 	{
@@ -429,14 +431,17 @@ static class Standard
 		text.Append(')');
 	}
 
-	static bool HasEmpty(BnfNode node) => node switch
+	static bool HasEmpty(BnfNode node)
 	{
-		BnfSequence sequence => sequence.Items.Length == 0 || sequence.Items.Any(HasEmpty),
-		BnfChoice choice     => choice.Options.Any(static option => option is BnfSequence { Items.Length: 0 } || HasEmpty(option)),
-		BnfOptional optional => HasEmpty(optional.Body),
-		BnfRepeated repeated => HasEmpty(repeated.Body),
-		_                    => false,
-	};
+		return node switch
+		{
+			BnfSequence sequence => sequence.Items.Length == 0 || sequence.Items.Any(HasEmpty),
+			BnfChoice choice => choice.Options.Any(static option => option is BnfSequence { Items.Length: 0 } || HasEmpty(option)),
+			BnfOptional optional => HasEmpty(optional.Body),
+			BnfRepeated repeated => HasEmpty(repeated.Body),
+			_ => false,
+		};
+	}
 
 	static string At(StandardOracle oracle, string line, int stopped)
 	{

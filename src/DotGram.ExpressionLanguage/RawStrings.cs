@@ -31,9 +31,11 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>A raw interpolated string the grammar measured, its lines unindented.</summary>
-	internal static InterpolatedText Raw(Segment[] parts, string input) =>
-		new(Unindented(parts ?? throw new ArgumentNullException(nameof(parts))),
+	internal static InterpolatedText Raw(Segment[] parts, string input)
+	{
+		return new(Unindented(parts ?? throw new ArgumentNullException(nameof(parts))),
 			input ?? throw new ArgumentNullException(nameof(input)));
+	}
 
 	/// <summary>A raw string of more quotes or dollars than the grammar writes out, cut by hand.</summary>
 	/// <param name="token">The whole token, dollars and quotes included.</param>
@@ -473,8 +475,10 @@ public static partial class ExpressionParser
 
 		return Merged(made);
 
-		static string Mismatch(string line, string indentation) =>
-			"Line does not start with the same whitespace as the closing line of the raw string literal.";
+		static string Mismatch(string line, string indentation)
+		{
+			return "Line does not start with the same whitespace as the closing line of the raw string literal.";
+		}
 	}
 
 	/// <summary>The text of a line that holds nothing but whitespace, or null where it holds more.</summary>

@@ -98,8 +98,9 @@ static partial class Stand
 	}
 
 	/// <summary>A row of a published form: the constant, and the two sides, each asked to give the same answer.</summary>
-	static Workload PairedFormRow(string family, string name, string baseName, Func<int> hand, Func<int> before, Func<int> after) =>
-		new(family, name,
+	static Workload PairedFormRow(string family, string name, string baseName, Func<int> hand, Func<int> before, Func<int> after)
+	{
+		return new(family, name,
 			[new Reading(baseName, hand), new Reading("before", before), new Reading("after", after)],
 			() =>
 			{
@@ -109,4 +110,5 @@ static partial class Stand
 
 				return h == b && b == a ? null : $"  {family}/{name}: the constant says {h}, before {b}, after {a}";
 			});
+	}
 }

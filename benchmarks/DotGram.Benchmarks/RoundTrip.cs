@@ -223,8 +223,10 @@ static class RoundTrip
 			Console.WriteLine(one);
 	}
 
-	static string Share(int part, int all) =>
-		all == 0 ? "" : $"{100.0 * part / all,7:0.0}%";
+	static string Share(int part, int all)
+	{
+		return all == 0 ? "" : $"{100.0 * part / all,7:0.0}%";
+	}
 
 	/// <summary>
 	/// A few examples of each kind, so that the list stays readable — or a great many of one
@@ -288,13 +290,17 @@ static class RoundTrip
 	/// Whitespace is not meaning. Both sides come out of the same generator, so the only
 	/// difference this erases is the one a line break makes to a string comparison.
 	/// </summary>
-	static string Normalized(string text) =>
-		string.Join(' ', text.Split(' ', '\t', '\n', '\r')
+	static string Normalized(string text)
+	{
+		return string.Join(' ', text.Split(' ', '\t', '\n', '\r')
 			.Where(static one => one.Length > 0));
+	}
 
 	/// <summary>The version to read and print one file with: its own, capped at the one asked for.</summary>
-	static string Named(string ceiling, string? version) =>
-		version is not null && int.Parse(version) < int.Parse(ceiling) ? version : ceiling;
+	static string Named(string ceiling, string? version)
+	{
+		return version is not null && int.Parse(version) < int.Parse(ceiling) ? version : ceiling;
+	}
 
 	static SqlScriptGenerator Generator(string version)
 	{

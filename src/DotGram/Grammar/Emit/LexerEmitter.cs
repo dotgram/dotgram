@@ -1439,19 +1439,36 @@ public static class LexerEmitter
 		/// A line to write into directly, its indentation already there; <see cref="CloseLine"/>
 		/// ends it. Nothing written here may end in whitespace, and an opened line is not left empty.
 		/// </summary>
-		public StringBuilder OpenLine() => _text.Append('\t', _depth);
+		public StringBuilder OpenLine()
+		{
+			return _text.Append('\t', _depth);
+		}
 
 		/// <summary>Ends a line <see cref="OpenLine"/> began.</summary>
-		public void CloseLine() => _text.Append("\r\n");
+		public void CloseLine()
+		{
+			_text.Append("\r\n");
+		}
 
-		public IDisposable Indent() => new Block(this, null, null);
+		public IDisposable Indent()
+		{
+			return new Block(this, null, null);
+		}
 
-		public IDisposable Braces(string head = "", string? tail = null) =>
-			new Block(this, head, tail ?? "");
+		public IDisposable Braces(string head = "", string? tail = null)
+		{
+			return new Block(this, head, tail ?? "");
+		}
 
-		public void Add(Writer other) => _text.Append(other._text);
+		public void Add(Writer other)
+		{
+			_text.Append(other._text);
+		}
 
-		public override string ToString() => _text.ToString();
+		public override string ToString()
+		{
+			return _text.ToString();
+		}
 
 		sealed class Block : IDisposable
 		{

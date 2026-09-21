@@ -211,7 +211,10 @@ public sealed class ReferenceDifferentialTests
 		}
 	}
 
-	static char Letter(Random random) => (char)('a' + random.Next(3));
+	static char Letter(Random random)
+	{
+		return (char)('a' + random.Next(3));
+	}
 
 	static string Input(Random random)
 	{
@@ -224,8 +227,10 @@ public sealed class ReferenceDifferentialTests
 		return text.ToString();
 	}
 
-	static RecognitionGraph Normalized(string text) =>
-		GrammarNormalizer.Normalize(
+	static RecognitionGraph Normalized(string text)
+	{
+		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).File));
+	}
 }

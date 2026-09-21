@@ -158,7 +158,10 @@ static partial class Stand
 		Console.WriteLine($"Written to {output}");
 	}
 
-	static DateTime? Deadline(double? minutes) => minutes is { } limit ? DateTime.Now.AddMinutes(limit) : null;
+	static DateTime? Deadline(double? minutes)
+	{
+		return minutes is { } limit ? DateTime.Now.AddMinutes(limit) : null;
+	}
 
 	/// <summary>Whether another run may begin: the limit has not come, and there is time for one as long as the last (unknown: half the limit's remainder).</summary>
 	static bool Within(DateTime? deadline, int run, int planned, ref int count)
@@ -219,7 +222,10 @@ static partial class Stand
 	}
 
 	/// <summary>One-decimal percent with a sign; a change that rounds to nothing is +0.0%, not the "-+0.0%" a negative zero would print.</summary>
-	static string Percent(double change) => (Math.Round(change, 3) + 0.0).ToString("+0.0%;-0.0%;+0.0%", CultureInfo.InvariantCulture);
+	static string Percent(double change)
+	{
+		return (Math.Round(change, 3) + 0.0).ToString("+0.0%;-0.0%;+0.0%", CultureInfo.InvariantCulture);
+	}
 
 	/// <summary>One row with each reading's median over the runs, and the base's run-to-run spread.</summary>
 	static Row Merge(Row row, Taken[] runs)

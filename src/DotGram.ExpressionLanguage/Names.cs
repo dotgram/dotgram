@@ -32,11 +32,15 @@ public static partial class ExpressionParser
 	/// `nameof(s.Length)` is "Length" and `nameof(x)` is "x": C# answers with the name and
 	/// not with the path to it, and the path is what the parts before the last one are.
 	/// </remarks>
-	internal static string Last(string head, string[]? tail) =>
-		tail is { Length: > 0 } ? tail[tail.Length - 1] : head;
+	internal static string Last(string head, string[]? tail)
+	{
+		return tail is { Length: > 0 } ? tail[tail.Length - 1] : head;
+	}
 
-	internal static string Dotted(string head, string[]? tail) =>
-		tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
+	internal static string Dotted(string head, string[]? tail)
+	{
+		return tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
+	}
 
 	/// <summary>A dotted name within a namespace as a type, or null where it is none.</summary>
 	/// <remarks>
@@ -87,11 +91,13 @@ public static partial class ExpressionParser
 	/// internal. Never private or protected alone: nothing here is written inside the type
 	/// that holds it, or one derived from it.
 	/// </remarks>
-	static Type? Nested(Type outer, string name, Assembly caller) =>
-		outer.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic) is { } nested &&
+	static Type? Nested(Type outer, string name, Assembly caller)
+	{
+		return outer.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic) is { } nested &&
 		(nested.IsNestedPublic || outer.Assembly == caller && (nested.IsNestedAssembly || nested.IsNestedFamORAssem))
 			? nested
 			: null;
+	}
 
 	/// <summary>What the assemblies loaded into this process say about names.</summary>
 	/// <remarks>
@@ -114,13 +120,15 @@ public static partial class ExpressionParser
 
 		static HashSet<string>? _namespaces;
 
-		static Loaded() =>
+		static Loaded()
+		{
 			AppDomain.CurrentDomain.AssemblyLoad += static (_, _) =>
 			{
 				_types.Clear();
 				_holders.Clear();
 				_namespaces = null;
 			};
+		}
 
 		static readonly ConcurrentDictionary<string, Type[]> _holders = new(StringComparer.Ordinal);
 
@@ -131,12 +139,15 @@ public static partial class ExpressionParser
 		/// What an extension method is written in, and the only thing worth walking a namespace
 		/// for: a class that is not static holds none, and C# looks for one nowhere else.
 		/// </remarks>
-		public static Type[] Holders(string @namespace) =>
-			Cached(_holders, @namespace, static space => Held(space));
+		public static Type[] Holders(string @namespace)
+		{
+			return Cached(_holders, @namespace, static space => Held(space));
+		}
 
 		/// <summary>The same in the calling assembly, where an internal class is nameable too.</summary>
-		public static Type[] HoldersInside(Assembly caller, string @namespace) =>
-			_holdersInside.GetOrAdd(
+		public static Type[] HoldersInside(Assembly caller, string @namespace)
+		{
+			return _holdersInside.GetOrAdd(
 				(caller, @namespace),
 				static key =>
 				{
@@ -148,6 +159,7 @@ public static partial class ExpressionParser
 
 					return [.. holders];
 				});
+		}
 
 		static Type[] Held(string @namespace)
 		{
@@ -172,10 +184,12 @@ public static partial class ExpressionParser
 		/// metadata, and one holding extension methods carries the attribute the compiler puts
 		/// on it — asked here so that a namespace of ordinary classes costs one test each.
 		/// </remarks>
-		static bool Holds(Type type, string @namespace) =>
-			type is { IsAbstract: true, IsSealed: true, IsNested: false, IsGenericTypeDefinition: false } &&
+		static bool Holds(Type type, string @namespace)
+		{
+			return type is { IsAbstract: true, IsSealed: true, IsNested: false, IsGenericTypeDefinition: false } &&
 			string.Equals(type.Namespace, @namespace, StringComparison.Ordinal) &&
 			type.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false);
+		}
 
 		/// <summary>An assembly's types, or as many of them as it can load.</summary>
 		static IEnumerable<Type> Declared(Assembly assembly)
@@ -191,14 +205,20 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
-		public static Type? Find(string fullName) => Cached(_types, fullName, static name => Search(name));
+		public static Type? Find(string fullName)
+		{
+			return Cached(_types, fullName, static name => Search(name));
+		}
 
 		/// <summary>Whether a loaded assembly has a public type in that namespace, or in one inside it.</summary>
 		/// <remarks>
 		/// Inside it too, because C# takes `using System.Collections;` whether or not that
 		/// namespace declares a type of its own: it is there because something is in it.
 		/// </remarks>
-		public static bool Has(string @namespace) => (_namespaces ?? Gather()).Contains(@namespace);
+		public static bool Has(string @namespace)
+		{
+			return (_namespaces ?? Gather()).Contains(@namespace);
+		}
 
 		static readonly ConcurrentDictionary<(Assembly, string), Type?> _inside = new();
 
@@ -212,15 +232,19 @@ public static partial class ExpressionParser
 		/// Kept apart from the rest and never forgotten: what one assembly declares does not
 		/// change when another loads.
 		/// </remarks>
-		public static Type? Inside(Assembly caller, string fullName) =>
-			Cached(
+		public static Type? Inside(Assembly caller, string fullName)
+		{
+			return Cached(
 				_inside,
 				(caller, fullName),
 				static key => key.Item1.GetType(key.Item2, false, false) is { } type && Nameable(type) ? type : null);
+		}
 
 		/// <summary>Whether the calling assembly declares a type in that namespace, or in one inside it.</summary>
-		public static bool HasInside(Assembly caller, string @namespace) =>
-			_insideNamespaces.GetOrAdd(caller, static assembly => Spaces(assembly)).Contains(@namespace);
+		public static bool HasInside(Assembly caller, string @namespace)
+		{
+			return _insideNamespaces.GetOrAdd(caller, static assembly => Spaces(assembly)).Contains(@namespace);
+		}
 
 		/// <summary>Every namespace an assembly's nameable types stand in, and each one around those.</summary>
 		static HashSet<string> Spaces(Assembly assembly)

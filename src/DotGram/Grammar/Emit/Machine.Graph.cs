@@ -101,7 +101,10 @@ sealed partial class Machine
 	/// moves, which <see cref="Renumber"/> now does to every state there is.
 	/// </para>
 	/// </remarks>
-	static string Mark(char kind, int state) => $"{Fence}{kind}{state.ToString(CultureInfo.InvariantCulture)}{Fence}";
+	static string Mark(char kind, int state)
+	{
+		return $"{Fence}{kind}{state.ToString(CultureInfo.InvariantCulture)}{Fence}";
+	}
 
 	const char Fence  = '\u0001';
 	const char Jumps  = 'J';
@@ -152,10 +155,12 @@ sealed partial class Machine
 	}
 
 	/// <summary>What the state at an index recorded, which is nothing where it wrote nothing.</summary>
-	Edges Recorded(int index) =>
-		index >= 0 && index < _states.Count && _edges.TryGetValue(_states[index], out var edges)
+	Edges Recorded(int index)
+	{
+		return index >= 0 && index < _states.Count && _edges.TryGetValue(_states[index], out var edges)
 			? edges
 			: None;
+	}
 
 	static readonly Edges None = new();
 

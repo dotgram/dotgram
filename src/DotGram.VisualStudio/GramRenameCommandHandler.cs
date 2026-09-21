@@ -24,8 +24,10 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 
 	public string DisplayName => "DotGram Rename";
 
-	public CommandState GetCommandState(RenameCommandArgs args) =>
-		Target(args) is null ? CommandState.Unavailable : CommandState.Available;
+	public CommandState GetCommandState(RenameCommandArgs args)
+	{
+		return Target(args) is null ? CommandState.Unavailable : CommandState.Available;
+	}
 
 	public bool ExecuteCommand(RenameCommandArgs args, CommandExecutionContext executionContext)
 	{

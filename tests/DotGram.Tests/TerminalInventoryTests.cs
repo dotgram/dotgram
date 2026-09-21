@@ -21,12 +21,14 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class TerminalInventoryTests
 {
-	static TerminalInventory Of(string grammar) =>
-		TerminalInventory.Of(
+	static TerminalInventory Of(string grammar)
+	{
+		return TerminalInventory.Of(
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
 						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+	}
 
 	/// <summary>A grammar in which nothing is trivia has no boundary to find.</summary>
 	/// <remarks>
@@ -309,12 +311,18 @@ public sealed class TerminalInventoryTests
 		Assert.Equal(2, Assert.Single(inventory.Sets, set => set.Name == "Both").Ranges.Count);
 	}
 
-	static string[] Words(TerminalInventory inventory) =>
-		[.. inventory.Patterns.OfType<TerminalInventory.Pattern.Word>().Select(word => word.Text)];
+	static string[] Words(TerminalInventory inventory)
+	{
+		return [.. inventory.Patterns.OfType<TerminalInventory.Pattern.Word>().Select(word => word.Text)];
+	}
 
-	static string[] Marks(TerminalInventory inventory) =>
-		[.. inventory.Patterns.OfType<TerminalInventory.Pattern.Mark>().Select(mark => mark.Text)];
+	static string[] Marks(TerminalInventory inventory)
+	{
+		return [.. inventory.Patterns.OfType<TerminalInventory.Pattern.Mark>().Select(mark => mark.Text)];
+	}
 
-	static string[] Classes(TerminalInventory inventory) =>
-		[.. inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Select(one => one.Rule.Name)];
+	static string[] Classes(TerminalInventory inventory)
+	{
+		return [.. inventory.Patterns.OfType<TerminalInventory.Pattern.Class>().Select(one => one.Rule.Name)];
+	}
 }

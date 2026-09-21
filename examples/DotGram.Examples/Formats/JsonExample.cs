@@ -85,7 +85,10 @@ namespace DotGram.Examples.Formats;
 public sealed partial class JsonParser
 {
 	/// <summary>Reads one JSON document, or throws where it is not one.</summary>
-	public static JsonValue Read(string text) => ParseJson(text);
+	public static JsonValue Read(string text)
+	{
+		return ParseJson(text);
+	}
 }
 
 /// <summary>One JSON value, which is one of six things.</summary>

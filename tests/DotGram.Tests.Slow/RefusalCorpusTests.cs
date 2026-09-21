@@ -12,6 +12,8 @@ namespace DotGram.Tests;
 public sealed class RefusalCorpusTests
 {
 	[Fact]
-	public void Every_refusal_is_the_one_it_was() =>
+	public void Every_refusal_is_the_one_it_was()
+	{
 		RefusalCorpus.AssertWhole();
+	}
 }

@@ -32,12 +32,16 @@ public partial class UrlGrammar;
 public sealed class GeneratedApiTests
 {
 	[Fact]
-	public void The_generated_api_exists_and_is_callable() =>
+	public void The_generated_api_exists_and_is_callable()
+	{
 		Assert.Equal("example.com", UrlGrammar.ParseUrl("https://example.com/a").Authority.Host);
+	}
 
 	[Fact]
-	public void Parse_throws_the_type_int_Parse_throws() =>
+	public void Parse_throws_the_type_int_Parse_throws()
+	{
 		Assert.Throws<FormatException>(static () => UrlGrammar.ParseUrl("not a url"));
+	}
 
 	[Fact]
 	public void Try_parse_answers_instead_of_throwing()

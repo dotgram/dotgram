@@ -397,10 +397,12 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static DropBehavior? DropBehavior(ref SqlCursor cursor) =>
-		cursor.TakeWord("CASCADE")  ? Ast.DropBehavior.Cascade :
+	static DropBehavior? DropBehavior(ref SqlCursor cursor)
+	{
+		return cursor.TakeWord("CASCADE") ? Ast.DropBehavior.Cascade :
 		cursor.TakeWord("RESTRICT") ? Ast.DropBehavior.Restrict :
 		null;
+	}
 
 	// ── §11.10 Alter table ─────────────────────────────────────────────────────
 
@@ -955,11 +957,13 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static MethodModifier? MethodModifier(ref SqlCursor cursor) =>
-		cursor.TakeWord("INSTANCE")   ? Ast.MethodModifier.Instance :
-		cursor.Take(SqlWord.Static)     ? Ast.MethodModifier.Static :
-		cursor.TakeWord("CONSTRUCTOR")  ? Ast.MethodModifier.Constructor :
+	static MethodModifier? MethodModifier(ref SqlCursor cursor)
+	{
+		return cursor.TakeWord("INSTANCE") ? Ast.MethodModifier.Instance :
+		cursor.Take(SqlWord.Static) ? Ast.MethodModifier.Static :
+		cursor.TakeWord("CONSTRUCTOR") ? Ast.MethodModifier.Constructor :
 		null;
+	}
 
 	static bool SQLParameterDeclarationList(ref SqlCursor cursor, out IReadOnlyList<ParameterDefinition> parameters)
 	{
@@ -3195,10 +3199,12 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static Grantor? Grantor(ref SqlCursor cursor) =>
-		cursor.Take(SqlWord.CurrentUser) ? Ast.Grantor.CurrentUser :
+	static Grantor? Grantor(ref SqlCursor cursor)
+	{
+		return cursor.Take(SqlWord.CurrentUser) ? Ast.Grantor.CurrentUser :
 		cursor.Take(SqlWord.CurrentRole) ? Ast.Grantor.CurrentRole :
 		null;
+	}
 
 	static Grantor? GrantedBy(ref SqlCursor cursor)
 	{

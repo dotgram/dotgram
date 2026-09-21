@@ -29,11 +29,20 @@ public sealed class SourcePartsTests
 	[InlineData(ValueStorageKind.Adaptive, true)]
 	public void Separated_engines_keep_bodies_and_parse_all_input_forms(ValueStorageKind storage, bool direct)
 	{
-		GramCompilation Compile(int size) => GramCompiler.Compile(Grammar, new GramCompilerOptions
+		GramCompilation Compile(int size)
 		{
-			Direct = direct, BufferedInput = true, BufferedBytes = true,
-			ValueStorage = storage, Portable = true, SourceFileSize = size, CSharpScanner = RoslynCSharpScanner.Instance,
-		});
+			return GramCompiler.Compile(Grammar, new GramCompilerOptions
+			{
+				Direct = direct,
+				BufferedInput = true,
+				BufferedBytes = true,
+				ValueStorage = storage,
+				Portable = true,
+				SourceFileSize = size,
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+		}
+
 		var whole = Compile(0);
 		var split = Compile(1);
 		EmittedCode.Quiet(split.Diagnostics);
@@ -78,7 +87,10 @@ public sealed class SourcePartsTests
 		Assert.Equal(split.Sources.ToArray(), repeated.Sources.ToArray());
 	}
 
-	static string[] Bodies(GramCompilation result) => result.Sources
+	static string[] Bodies(GramCompilation result)
+	{
+		return result.Sources
 		.SelectMany(source => CSharpSyntaxTree.ParseText(source.Text).GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
 		.Select(method => method.Identifier.ValueText + method.Body?.ToFullString() + method.ExpressionBody?.ToFullString()).Order().ToArray();
+	}
 }

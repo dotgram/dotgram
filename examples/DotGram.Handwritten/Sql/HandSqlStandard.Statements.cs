@@ -14,8 +14,10 @@ partial class HandSqlStandard
 {
 	// ── The publications ───────────────────────────────────────────────────────
 
-	public static Statement ParseDirectSQLStatement(string input) =>
-		TryParseDirectSQLStatement(input, out var value) ? value : throw Refused(input, "direct SQL statement");
+	public static Statement ParseDirectSQLStatement(string input)
+	{
+		return TryParseDirectSQLStatement(input, out var value) ? value : throw Refused(input, "direct SQL statement");
+	}
 
 	public static bool TryParseDirectSQLStatement(string input, out Statement value)
 	{
@@ -29,39 +31,70 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement ParseDirectSQLDataStatement(string input) =>
-		TryParseDirectSQLDataStatement(input, out var value) ? value : throw Refused(input, "direct SQL data statement");
+	public static Statement ParseDirectSQLDataStatement(string input)
+	{
+		return TryParseDirectSQLDataStatement(input, out var value) ? value : throw Refused(input, "direct SQL data statement");
+	}
 
-	public static bool TryParseDirectSQLDataStatement(string input, out Statement value) =>
-		Whole(input, DirectSQLDataStatement, out value);
+	public static bool TryParseDirectSQLDataStatement(string input, out Statement value)
+	{
+		return Whole(input, DirectSQLDataStatement, out value);
+	}
 
-	public static Statement ParseSQLDataStatement(string input) =>
-		TryParseSQLDataStatement(input, out var value) ? value : throw Refused(input, "SQL data statement");
+	public static Statement ParseSQLDataStatement(string input)
+	{
+		return TryParseSQLDataStatement(input, out var value) ? value : throw Refused(input, "SQL data statement");
+	}
 
-	public static bool TryParseSQLDataStatement(string input, out Statement value) => Whole(input, SQLDataStatement, out value);
+	public static bool TryParseSQLDataStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLDataStatement, out value);
+	}
 
-	public static Statement ParseSQLControlStatement(string input) =>
-		TryParseSQLControlStatement(input, out var value) ? value : throw Refused(input, "SQL control statement");
+	public static Statement ParseSQLControlStatement(string input)
+	{
+		return TryParseSQLControlStatement(input, out var value) ? value : throw Refused(input, "SQL control statement");
+	}
 
-	public static bool TryParseSQLControlStatement(string input, out Statement value) => Whole(input, SQLControlStatement, out value);
+	public static bool TryParseSQLControlStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLControlStatement, out value);
+	}
 
-	public static Statement ParseSQLTransactionStatement(string input) =>
-		TryParseSQLTransactionStatement(input, out var value) ? value : throw Refused(input, "SQL transaction statement");
+	public static Statement ParseSQLTransactionStatement(string input)
+	{
+		return TryParseSQLTransactionStatement(input, out var value) ? value : throw Refused(input, "SQL transaction statement");
+	}
 
-	public static bool TryParseSQLTransactionStatement(string input, out Statement value) => Whole(input, SQLTransactionStatement, out value);
+	public static bool TryParseSQLTransactionStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLTransactionStatement, out value);
+	}
 
-	public static Statement ParseSQLConnectionStatement(string input) =>
-		TryParseSQLConnectionStatement(input, out var value) ? value : throw Refused(input, "SQL connection statement");
+	public static Statement ParseSQLConnectionStatement(string input)
+	{
+		return TryParseSQLConnectionStatement(input, out var value) ? value : throw Refused(input, "SQL connection statement");
+	}
 
-	public static bool TryParseSQLConnectionStatement(string input, out Statement value) => Whole(input, SQLConnectionStatement, out value);
+	public static bool TryParseSQLConnectionStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLConnectionStatement, out value);
+	}
 
-	public static Statement ParseSQLSessionStatement(string input) =>
-		TryParseSQLSessionStatement(input, out var value) ? value : throw Refused(input, "SQL session statement");
+	public static Statement ParseSQLSessionStatement(string input)
+	{
+		return TryParseSQLSessionStatement(input, out var value) ? value : throw Refused(input, "SQL session statement");
+	}
 
-	public static bool TryParseSQLSessionStatement(string input, out Statement value) => Whole(input, SQLSessionStatement, out value);
+	public static bool TryParseSQLSessionStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLSessionStatement, out value);
+	}
 
-	public static Statement.GetDiagnostics ParseSQLDiagnosticsStatement(string input) =>
-		TryParseSQLDiagnosticsStatement(input, out var value) ? value : throw Refused(input, "SQL diagnostics statement");
+	public static Statement.GetDiagnostics ParseSQLDiagnosticsStatement(string input)
+	{
+		return TryParseSQLDiagnosticsStatement(input, out var value) ? value : throw Refused(input, "SQL diagnostics statement");
+	}
 
 	public static bool TryParseSQLDiagnosticsStatement(string input, out Statement.GetDiagnostics value)
 	{
@@ -75,15 +108,25 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement ParseSQLDynamicStatement(string input) =>
-		TryParseSQLDynamicStatement(input, out var value) ? value : throw Refused(input, "SQL dynamic statement");
+	public static Statement ParseSQLDynamicStatement(string input)
+	{
+		return TryParseSQLDynamicStatement(input, out var value) ? value : throw Refused(input, "SQL dynamic statement");
+	}
 
-	public static bool TryParseSQLDynamicStatement(string input, out Statement value) => Whole(input, SQLDynamicStatement, out value);
+	public static bool TryParseSQLDynamicStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLDynamicStatement, out value);
+	}
 
-	public static Statement ParseSQLProcedureStatement(string input) =>
-		TryParseSQLProcedureStatement(input, out var value) ? value : throw Refused(input, "SQL procedure statement");
+	public static Statement ParseSQLProcedureStatement(string input)
+	{
+		return TryParseSQLProcedureStatement(input, out var value) ? value : throw Refused(input, "SQL procedure statement");
+	}
 
-	public static bool TryParseSQLProcedureStatement(string input, out Statement value) => Whole(input, SQLExecutableStatement, out value);
+	public static bool TryParseSQLProcedureStatement(string input, out Statement value)
+	{
+		return Whole(input, SQLExecutableStatement, out value);
+	}
 
 	/// <summary>What a statement's publication does: read it, and ask that nothing followed it.</summary>
 	delegate bool Reading(ref SqlCursor cursor, out Statement value);
@@ -102,12 +145,14 @@ partial class HandSqlStandard
 
 	// ── §22 Direct invocation of SQL ───────────────────────────────────────────
 
-	static bool DirectlyExecutableStatement(ref SqlCursor cursor, out Statement statement) =>
-		DirectSQLDataStatement(ref cursor, out statement) ||
+	static bool DirectlyExecutableStatement(ref SqlCursor cursor, out Statement statement)
+	{
+		return DirectSQLDataStatement(ref cursor, out statement) ||
 		SQLSchemaStatement(ref cursor, out statement) ||
 		SQLTransactionStatement(ref cursor, out statement) ||
 		SQLConnectionStatement(ref cursor, out statement) ||
 		SQLSessionStatement(ref cursor, out statement);
+	}
 
 	static bool DirectSQLDataStatement(ref SqlCursor cursor, out Statement statement)
 	{
@@ -1534,25 +1579,32 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool StatementInformationItemName(ref SqlCursor cursor, out StatementInformationItemName name) =>
-		Named(ref cursor, out name,
+	static bool StatementInformationItemName(ref SqlCursor cursor, out StatementInformationItemName name)
+	{
+		return Named(ref cursor, out name,
 			"NUMBER", "MORE", "COMMAND_FUNCTION_CODE", "COMMAND_FUNCTION", "DYNAMIC_FUNCTION_CODE", "DYNAMIC_FUNCTION",
 			"ROW_COUNT", "TRANSACTIONS_COMMITTED", "TRANSACTIONS_ROLLED_BACK", "TRANSACTION_ACTIVE");
+	}
 
-	static bool ConditionInformationItemName(ref SqlCursor cursor, out ConditionInformationItemName name) =>
-		Named(ref cursor, out name,
+	static bool ConditionInformationItemName(ref SqlCursor cursor, out ConditionInformationItemName name)
+	{
+		return Named(ref cursor, out name,
 			"CATALOG_NAME", "CLASS_ORIGIN", "COLUMN_NAME", "CONDITION_NUMBER", "CONNECTION_NAME",
 			"CONSTRAINT_CATALOG", "CONSTRAINT_NAME", "CONSTRAINT_SCHEMA", "CURSOR_NAME",
 			"MESSAGE_LENGTH", "MESSAGE_OCTET_LENGTH", "MESSAGE_TEXT", "PARAMETER_MODE", "PARAMETER_NAME",
 			"PARAMETER_ORDINAL_POSITION", "RETURNED_SQLSTATE", "ROUTINE_CATALOG", "ROUTINE_NAME", "ROUTINE_SCHEMA",
 			"SCHEMA_NAME", "SERVER_NAME", "SPECIFIC_NAME", "SUBCLASS_ORIGIN", "TABLE_NAME",
 			"TRIGGER_CATALOG", "TRIGGER_NAME", "TRIGGER_SCHEMA");
+	}
 
-	static bool HeaderItemName(ref SqlCursor cursor, out DescriptorItem name) =>
-		Named(ref cursor, out name, "COUNT", "KEY_TYPE", "DYNAMIC_FUNCTION_CODE", "DYNAMIC_FUNCTION", "TOP_LEVEL_COUNT");
+	static bool HeaderItemName(ref SqlCursor cursor, out DescriptorItem name)
+	{
+		return Named(ref cursor, out name, "COUNT", "KEY_TYPE", "DYNAMIC_FUNCTION_CODE", "DYNAMIC_FUNCTION", "TOP_LEVEL_COUNT");
+	}
 
-	static bool DescriptorItemName(ref SqlCursor cursor, out DescriptorItem name) =>
-		Named(ref cursor, out name,
+	static bool DescriptorItemName(ref SqlCursor cursor, out DescriptorItem name)
+	{
+		return Named(ref cursor, out name,
 			"CARDINALITY", "CHARACTER_SET_CATALOG", "CHARACTER_SET_NAME", "CHARACTER_SET_SCHEMA",
 			"COLLATION_CATALOG", "COLLATION_NAME", "COLLATION_SCHEMA", "DATA", "DATETIME_INTERVAL_CODE",
 			"DATETIME_INTERVAL_PRECISION", "DEGREE", "INDICATOR", "KEY_MEMBER", "LENGTH", "LEVEL", "NAME",
@@ -1561,6 +1613,7 @@ partial class HandSqlStandard
 			"RETURNED_CARDINALITY", "RETURNED_LENGTH", "RETURNED_OCTET_LENGTH", "SCALE", "SCOPE_CATALOG",
 			"SCOPE_NAME", "SCOPE_SCHEMA", "SORT_DIRECTION", "TYPE", "UNNAMED", "USER_DEFINED_TYPE_CATALOG",
 			"USER_DEFINED_TYPE_NAME", "USER_DEFINED_TYPE_SCHEMA", "USER_DEFINED_TYPE_CODE");
+	}
 
 	/// <summary>
 	/// One of the names the BNF spells out, as the enum member of that name: the underscores are
@@ -2161,9 +2214,15 @@ partial class HandSqlStandard
 		return null;
 	}
 
-	static DynamicArguments? InputUsingClause(ref SqlCursor cursor) => UsingArguments(ref cursor, true);
+	static DynamicArguments? InputUsingClause(ref SqlCursor cursor)
+	{
+		return UsingArguments(ref cursor, true);
+	}
 
-	static DynamicArguments? OutputUsingClause(ref SqlCursor cursor) => UsingArguments(ref cursor, false);
+	static DynamicArguments? OutputUsingClause(ref SqlCursor cursor)
+	{
+		return UsingArguments(ref cursor, false);
+	}
 
 	/// <summary>
 	/// <c>&lt;input using clause&gt;</c> and <c>&lt;output using clause&gt;</c>: arguments, or a
@@ -2463,10 +2522,12 @@ partial class HandSqlStandard
 
 	// ── The names a dynamic statement gives a statement, a descriptor or a cursor ──
 
-	static string? ScopeOption(ref SqlCursor cursor) =>
-		cursor.Take(SqlWord.Global) ? "GLOBAL" :
-		cursor.Take(SqlWord.Local)  ? "LOCAL" :
+	static string? ScopeOption(ref SqlCursor cursor)
+	{
+		return cursor.Take(SqlWord.Global) ? "GLOBAL" :
+		cursor.Take(SqlWord.Local) ? "LOCAL" :
 		null;
+	}
 
 	static bool SQLStatementName(ref SqlCursor cursor, out StatementReference name)
 	{
@@ -2580,23 +2641,31 @@ partial class HandSqlStandard
 	/// The identifier a statement, a descriptor or a cursor is named by, where it was named by one
 	/// alone; with a scope before it, or a value of another kind, the name is an extended one.
 	/// </summary>
-	static Identifier? Alone(string? scope, Expression value) =>
-		scope is null && value is Expression.Reference { Name.Parts.Count: 1 } reference ? reference.Name.Parts[0] : null;
+	static Identifier? Alone(string? scope, Expression value)
+	{
+		return scope is null && value is Expression.Reference { Name.Parts.Count: 1 } reference ? reference.Name.Parts[0] : null;
+	}
 
-	static StatementReference StatementNameOf(string? scope, Expression value) =>
-		Alone(scope, value) is { } name
+	static StatementReference StatementNameOf(string? scope, Expression value)
+	{
+		return Alone(scope, value) is { } name
 			? new StatementReference(name)
 			: new StatementReference(null, value, scope == "GLOBAL", scope == "LOCAL");
+	}
 
-	static DescriptorReference DescriptorNameOf(string? scope, Expression value, bool ptf) =>
-		Alone(scope, value) is { } name
+	static DescriptorReference DescriptorNameOf(string? scope, Expression value, bool ptf)
+	{
+		return Alone(scope, value) is { } name
 			? new DescriptorReference(name, null, ptf)
 			: new DescriptorReference(null, value, ptf, scope == "GLOBAL", scope == "LOCAL");
+	}
 
-	static CursorReference CursorNameOf(string? scope, Expression value, bool ptf) =>
-		Alone(scope, value) is { } name
+	static CursorReference CursorNameOf(string? scope, Expression value, bool ptf)
+	{
+		return Alone(scope, value) is { } name
 			? new CursorReference(new QualifiedName([name]), null, ptf)
 			: new CursorReference(null, value, ptf, scope == "GLOBAL", scope == "LOCAL");
+	}
 
 	// ── What a routine's body and a trigger's action are ───────────────────────
 
@@ -2605,8 +2674,9 @@ partial class HandSqlStandard
 	/// a searched <c>UPDATE</c> or <c>DELETE</c> reads what comes before a dynamic cursor's
 	/// <c>WHERE CURRENT OF GLOBAL :c</c> and ends there.
 	/// </summary>
-	static bool SQLExecutableStatement(ref SqlCursor cursor, out Statement statement) =>
-		SQLSchemaStatement(ref cursor, out statement) ||
+	static bool SQLExecutableStatement(ref SqlCursor cursor, out Statement statement)
+	{
+		return SQLSchemaStatement(ref cursor, out statement) ||
 		SQLDynamicStatement(ref cursor, out statement) ||
 		SQLDataStatement(ref cursor, out statement) ||
 		SQLControlStatement(ref cursor, out statement) ||
@@ -2614,6 +2684,7 @@ partial class HandSqlStandard
 		SQLConnectionStatement(ref cursor, out statement) ||
 		SQLSessionStatement(ref cursor, out statement) ||
 		SQLDiagnosticsStatementOf(ref cursor, out statement);
+	}
 
 	static bool SQLDiagnosticsStatementOf(ref SqlCursor cursor, out Statement statement)
 	{
@@ -2629,5 +2700,8 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool SQLProcedureStatement(ref SqlCursor cursor, out Statement statement) => SQLExecutableStatement(ref cursor, out statement);
+	static bool SQLProcedureStatement(ref SqlCursor cursor, out Statement statement)
+	{
+		return SQLExecutableStatement(ref cursor, out statement);
+	}
 }

@@ -581,7 +581,10 @@ public static partial class Sql2023Writer
 			PutCharacterSet(set);
 		}
 
-		void PutBehavior(DropBehavior behavior) => Word(behavior == DropBehavior.Cascade ? "CASCADE" : "RESTRICT");
+		void PutBehavior(DropBehavior behavior)
+		{
+			Word(behavior == DropBehavior.Cascade ? "CASCADE" : "RESTRICT");
+		}
 
 		void PutBehavior(DropBehavior? behavior)
 		{

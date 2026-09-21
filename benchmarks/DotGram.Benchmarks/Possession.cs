@@ -72,10 +72,16 @@ public partial class Possession
 	static readonly string Open_input    = string.Concat(new string('x', 8), ",").Repeat(50) + "yyy;";
 
 	[Benchmark(Baseline = true)]
-	public bool Nothing_to_give_back() => Settled.TryParseDoc(Settled_input).IsSuccess;
+	public bool Nothing_to_give_back()
+	{
+		return Settled.TryParseDoc(Settled_input).IsSuccess;
+	}
 
 	[Benchmark]
-	public bool A_resume_point_every_turn() => Open.TryParseDoc(Open_input).IsSuccess;
+	public bool A_resume_point_every_turn()
+	{
+		return Open.TryParseDoc(Open_input).IsSuccess;
+	}
 }
 
 static class Repeated

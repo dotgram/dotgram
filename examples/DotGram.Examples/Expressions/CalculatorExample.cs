@@ -86,7 +86,18 @@ public static partial class Calculator
 	// Power, three ways, because no operator will do: `^` is exclusive-or on `int` and is
 	// not defined for `decimal` at all. A decimal power written to be exact is longer than
 	// this — tests/DotGram.Tests/Calculators/DecimalCalculator.cs has one.
-	static int     Raise(int     left, int     right) => (int)Math.Pow(left, right);
-	static decimal Raise(decimal left, decimal right) => (decimal)Math.Pow((double)left, (double)right);
-	static Node    Raise(Node    left, Node    right) => new Node.Binary('^', left, right);
+	static int Raise(int left, int right)
+	{
+		return (int)Math.Pow(left, right);
+	}
+
+	static decimal Raise(decimal left, decimal right)
+	{
+		return (decimal)Math.Pow((double)left, (double)right);
+	}
+
+	static Node Raise(Node left, Node right)
+	{
+		return new Node.Binary('^', left, right);
+	}
 }

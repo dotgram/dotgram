@@ -193,12 +193,35 @@ public static partial class Settlements
 	// 1500 is what the generator did before whether-to-divide and how-large-a-part became
 	// two numbers, so this is that shape asked for by name.
 
-	static long     Big(string digits)   => long.Parse(digits, CultureInfo.InvariantCulture);
-	static int      Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
-	static decimal  Amount(string money) => decimal.Parse(money, CultureInfo.InvariantCulture);
-	static DateOnly Day(string date)     => DateOnly.Parse(date, CultureInfo.InvariantCulture);
-	static DateTime At(string stamp)     => DateTime.Parse(stamp, CultureInfo.InvariantCulture);
-	static Side     Which(string side)   => side == "B" ? Side.Buy : Side.Sell;
+	static long Big(string digits)
+	{
+		return long.Parse(digits, CultureInfo.InvariantCulture);
+	}
+
+	static int Number(string digits)
+	{
+		return int.Parse(digits, CultureInfo.InvariantCulture);
+	}
+
+	static decimal Amount(string money)
+	{
+		return decimal.Parse(money, CultureInfo.InvariantCulture);
+	}
+
+	static DateOnly Day(string date)
+	{
+		return DateOnly.Parse(date, CultureInfo.InvariantCulture);
+	}
+
+	static DateTime At(string stamp)
+	{
+		return DateTime.Parse(stamp, CultureInfo.InvariantCulture);
+	}
+
+	static Side Which(string side)
+	{
+		return side == "B" ? Side.Buy : Side.Sell;
+	}
 }
 
 /// <summary>
@@ -281,35 +304,38 @@ public class WideFeedBenchmarks
 	}
 
 	/// <summary>What each field carries, by its place in the record.</summary>
-	static string Field(int field, int record) => field switch
+	static string Field(int field, int record)
 	{
-		1      => record.ToString(CultureInfo.InvariantCulture),
-		3      => "AAPL",
-		5      => "XLON",
-		8      => (record % 5000 + 1).ToString(CultureInfo.InvariantCulture),
-		10     => (record % 10000 + 1) + ".25",
-		13     => "1.5",
-		14     => "0.75",
-		16     => "2026-08-12",
-		18     => "2026-08-14",
-		21     => "2026-08-12T09:30:00",
-		22     => "USD",
-		24     => "CPTY" + record % 97,
-		25     => "ACC" + record % 41,
-		28     => "BOOK" + record % 13,
-		29     => "TRD" + record % 29,
-		31     => record % 2 == 0 ? "B" : "S",
-		33     => "100",
-		34     => (record % 7919 + 1) + ".00",
-		37     => (record % 7919 + 1) + ".50",
-		38     => "SETTLED",
-		40     => "REF" + record,
-		42     => (record % 9 + 1).ToString(CultureInfo.InvariantCulture),
-		43     => "1.0",
-		46     => "note " + record % 3,
-		47     => record.ToString(CultureInfo.InvariantCulture),
-		_      => "x" + record % 100,
-	};
+		return field switch
+		{
+			1 => record.ToString(CultureInfo.InvariantCulture),
+			3 => "AAPL",
+			5 => "XLON",
+			8 => (record % 5000 + 1).ToString(CultureInfo.InvariantCulture),
+			10 => (record % 10000 + 1) + ".25",
+			13 => "1.5",
+			14 => "0.75",
+			16 => "2026-08-12",
+			18 => "2026-08-14",
+			21 => "2026-08-12T09:30:00",
+			22 => "USD",
+			24 => "CPTY" + record % 97,
+			25 => "ACC" + record % 41,
+			28 => "BOOK" + record % 13,
+			29 => "TRD" + record % 29,
+			31 => record % 2 == 0 ? "B" : "S",
+			33 => "100",
+			34 => (record % 7919 + 1) + ".00",
+			37 => (record % 7919 + 1) + ".50",
+			38 => "SETTLED",
+			40 => "REF" + record,
+			42 => (record % 9 + 1).ToString(CultureInfo.InvariantCulture),
+			43 => "1.0",
+			46 => "note " + record % 3,
+			47 => record.ToString(CultureInfo.InvariantCulture),
+			_ => "x" + record % 100,
+		};
+	}
 
 	/// <summary>What a caller does with the records, keeping none of them.</summary>
 	static (int Count, long Quantity, decimal Net) Total(IEnumerable<object> parts)
@@ -330,7 +356,10 @@ public class WideFeedBenchmarks
 	}
 
 	[Benchmark(Baseline = true, Description = "string")]
-	public int Whole() => Total(Settlements.ParseFeed(File.ReadAllText(_path))).Count;
+	public int Whole()
+	{
+		return Total(Settlements.ParseFeed(File.ReadAllText(_path))).Count;
+	}
 
 	[Benchmark(Description = "TextReader")]
 	public int Reader()
@@ -341,5 +370,8 @@ public class WideFeedBenchmarks
 	}
 
 	[Benchmark(Description = "File.ReadLines")]
-	public int Lines() => Total(Settlements.ParseFeed(File.ReadLines(_path))).Count;
+	public int Lines()
+	{
+		return Total(Settlements.ParseFeed(File.ReadLines(_path))).Count;
+	}
 }

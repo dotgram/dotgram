@@ -1,4 +1,5 @@
 using System.Linq;
+
 using Microsoft.VisualStudio.Text;
 
 namespace DotGram.VisualStudio;

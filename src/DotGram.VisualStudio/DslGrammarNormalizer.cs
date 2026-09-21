@@ -56,8 +56,10 @@ internal static class DslGrammarNormalizer
 		return GrammarNormalizer.Normalize(toolingModel);
 	}
 
-	public static bool IsToolingPublication(Publication publication) =>
-		publication.MethodName.StartsWith(ToolingPublicationPrefix, StringComparison.Ordinal);
+	public static bool IsToolingPublication(Publication publication)
+	{
+		return publication.MethodName.StartsWith(ToolingPublicationPrefix, StringComparison.Ordinal);
+	}
 
 	static IEnumerable<RuleSymbol> Rules(GrammarNamespace grammarNamespace)
 	{

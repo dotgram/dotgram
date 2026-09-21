@@ -66,24 +66,26 @@ public static class Doors
 
 	/// <summary>Whether this node leaves one, given the answer for every rule.</summary>
 	/// <remarks>A callee nothing knows about is assumed to leave one.</remarks>
-	public static bool LeavesOne(Node node, IReadOnlyDictionary<RuleSymbol, bool> doors) =>
-		node switch
+	public static bool LeavesOne(Node node, IReadOnlyDictionary<RuleSymbol, bool> doors)
+	{
+		return node switch
 		{
-			Node.Repeat                     => true,
+			Node.Repeat => true,
 			Node.Lookahead(var positive, _) => !positive,
-			Node.Call(var called, _)        => !doors.TryGetValue(called, out var door) || door,
-			Node.Choice(var alternatives)   => alternatives.Count > 1 ||
-			                                   alternatives.Any(one => LeavesOne(one, doors)),
-			Node.Sequence(var parts)        => parts.Any(part => LeavesOne(part, doors)),
+			Node.Call(var called, _) => !doors.TryGetValue(called, out var door) || door,
+			Node.Choice(var alternatives) => alternatives.Count > 1 ||
+											   alternatives.Any(one => LeavesOne(one, doors)),
+			Node.Sequence(var parts) => parts.Any(part => LeavesOne(part, doors)),
 			// Nothing comes back into the middle of one: an atomic group commits its
 			// first reading, so a failure that reaches past it has the group to give
 			// back and nowhere inside it to resume. Walking in asks what the braces
 			// have already answered — the same question `Determinism` used to ask of
 			// them and stopped.
-			Node.Atomic                     => false,
-			Node.Marked(var body, _)        => LeavesOne(body, doors),
-			Node.Capture(_, var captured)   => LeavesOne(captured, doors),
-			Node.Construct(var built, _)    => LeavesOne(built, doors),
-			_                               => false,
+			Node.Atomic => false,
+			Node.Marked(var body, _) => LeavesOne(body, doors),
+			Node.Capture(_, var captured) => LeavesOne(captured, doors),
+			Node.Construct(var built, _) => LeavesOne(built, doors),
+			_ => false,
 		};
+	}
 }

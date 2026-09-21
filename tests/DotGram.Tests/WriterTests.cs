@@ -111,14 +111,23 @@ public sealed class WriterTests
 		Assert.Equal("", writer.ToString());
 	}
 
-	static int Insert(object writer, int at, string text) =>
-		(int)WriterType.GetMethod("InsertLine")!.Invoke(writer, [at, text])!;
+	static int Insert(object writer, int at, string text)
+	{
+		return (int)WriterType.GetMethod("InsertLine")!.Invoke(writer, [at, text])!;
+	}
 
-	static bool Contains(object writer, string text, int at) =>
-		(bool)WriterType.GetMethod("Contains")!.Invoke(writer, [text, at])!;
+	static bool Contains(object writer, string text, int at)
+	{
+		return (bool)WriterType.GetMethod("Contains")!.Invoke(writer, [text, at])!;
+	}
 
-	static object Create(int depth) => Activator.CreateInstance(WriterType, [depth])!;
+	static object Create(int depth)
+	{
+		return Activator.CreateInstance(WriterType, [depth])!;
+	}
 
-	static void Call(object writer, string method, params object[] arguments) =>
+	static void Call(object writer, string method, params object[] arguments)
+	{
 		WriterType.GetMethod(method, BindingFlags.Public | BindingFlags.Instance)!.Invoke(writer, arguments);
+	}
 }

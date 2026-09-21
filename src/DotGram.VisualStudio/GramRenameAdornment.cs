@@ -16,8 +16,10 @@ static class GramRenameAdornment
 {
 	static readonly Dictionary<IWpfTextView, Func<Guid, uint, bool>> CommandHandlers = new();
 
-	public static bool TryHandleCommand(IWpfTextView view, Guid group, uint commandId) =>
-		CommandHandlers.TryGetValue(view, out var handler) && handler(group, commandId);
+	public static bool TryHandleCommand(IWpfTextView view, Guid group, uint commandId)
+	{
+		return CommandHandlers.TryGetValue(view, out var handler) && handler(group, commandId);
+	}
 
 	public static void Show(IWpfTextView view, string name, Action<string> apply)
 	{

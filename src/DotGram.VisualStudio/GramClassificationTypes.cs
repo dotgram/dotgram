@@ -87,7 +87,10 @@ static class GramClassificationTypes
 
 abstract class GramFormatDefinition : ClassificationFormatDefinition
 {
-	protected GramFormatDefinition(string displayName) => DisplayName = displayName;
+	protected GramFormatDefinition(string displayName)
+	{
+		DisplayName = displayName;
+	}
 }
 
 [Export(typeof(EditorFormatDefinition))]

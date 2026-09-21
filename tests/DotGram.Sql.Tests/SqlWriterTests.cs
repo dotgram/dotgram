@@ -29,15 +29,17 @@ public sealed class SqlWriterTests
 	/// that changes nothing.
 	/// </remarks>
 	[Theory]
-	[InlineData("a + b * c",        "a + b * c")]
-	[InlineData("(a + b) * c",      "(a + b) * c")]
-	[InlineData("a * b + c",        "a * b + c")]
-	[InlineData("a - (b - c)",      "a - (b - c)")]
-	[InlineData("(a) + b",          "(a) + b")]
-	[InlineData("- a * b",          "-a * b")]
-	[InlineData("- (a * b)",        "-(a * b)")]
-	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed) =>
+	[InlineData("a + b * c", "a + b * c")]
+	[InlineData("(a + b) * c", "(a + b) * c")]
+	[InlineData("a * b + c", "a * b + c")]
+	[InlineData("a - (b - c)", "a - (b - c)")]
+	[InlineData("(a) + b", "(a) + b")]
+	[InlineData("- a * b", "-a * b")]
+	[InlineData("- (a * b)", "-(a * b)")]
+	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed)
+	{
 		Assert.Equal(printed, SqlWriter.Write(TransactSqlParser.ParseValueExpression(input)));
+	}
 
 	/// <summary>A default's <c>WITH VALUES</c> comes back after the column it is for.</summary>
 	[Theory]
@@ -101,66 +103,70 @@ public sealed class SqlWriterTests
 
 	/// <summary>And the same for the tower of conditions.</summary>
 	[Theory]
-	[InlineData("a = 1 AND b = 2 OR c = 3",   "a = 1 AND b = 2 OR c = 3")]
+	[InlineData("a = 1 AND b = 2 OR c = 3", "a = 1 AND b = 2 OR c = 3")]
 	[InlineData("a = 1 AND (b = 2 OR c = 3)", "a = 1 AND (b = 2 OR c = 3)")]
-	[InlineData("NOT (a = 1 AND b = 2)",      "NOT (a = 1 AND b = 2)")]
-	[InlineData("NOT a = 1 AND b = 2",        "NOT a = 1 AND b = 2")]
-	[InlineData("(a = 1)",                    "(a = 1)")]
-	[InlineData("a NOT BETWEEN 1 AND 2",      "a NOT BETWEEN 1 AND 2")]
-	[InlineData("a NOT IN (1, 2)",            "a NOT IN (1, 2)")]
-	[InlineData("a LIKE 'x%' ESCAPE '\\'",    "a LIKE 'x%' ESCAPE '\\'")]
-	[InlineData("a IS NOT NULL",              "a IS NOT NULL")]
-	public void And_where_a_condition_needs_it(string input, string printed) =>
+	[InlineData("NOT (a = 1 AND b = 2)", "NOT (a = 1 AND b = 2)")]
+	[InlineData("NOT a = 1 AND b = 2", "NOT a = 1 AND b = 2")]
+	[InlineData("(a = 1)", "(a = 1)")]
+	[InlineData("a NOT BETWEEN 1 AND 2", "a NOT BETWEEN 1 AND 2")]
+	[InlineData("a NOT IN (1, 2)", "a NOT IN (1, 2)")]
+	[InlineData("a LIKE 'x%' ESCAPE '\\'", "a LIKE 'x%' ESCAPE '\\'")]
+	[InlineData("a IS NOT NULL", "a IS NOT NULL")]
+	public void And_where_a_condition_needs_it(string input, string printed)
+	{
 		Assert.Equal(printed, SqlWriter.Write(TransactSqlParser.ParseSearchCondition(input)));
+	}
 
 	/// <summary>The calls whose syntax is their own, and not an argument list.</summary>
 	[Theory]
-	[InlineData("CAST(a AS INT)",              "CAST(a AS INT)")]
-	[InlineData("TRY_CAST(a AS INT)",          "TRY_CAST(a AS INT)")]
-	[InlineData("CONVERT(INT, a)",             "CONVERT(INT, a)")]
-	[InlineData("CONVERT(INT, a, 101)",        "CONVERT(INT, a, 101)")]
-	[InlineData("PARSE(a AS INT)",             "PARSE(a AS INT)")]
-	[InlineData("COUNT(*)",                    "COUNT(*)")]
-	[InlineData("COUNT(DISTINCT a)",           "COUNT(DISTINCT a)")]
-	[InlineData("NEXT VALUE FOR dbo.s",        "NEXT VALUE FOR dbo.s")]
-	[InlineData("a AT TIME ZONE 'UTC'",        "a AT TIME ZONE 'UTC'")]
-	[InlineData("dbo.f(a, 1)",                 "dbo.f(a, 1)")]
+	[InlineData("CAST(a AS INT)", "CAST(a AS INT)")]
+	[InlineData("TRY_CAST(a AS INT)", "TRY_CAST(a AS INT)")]
+	[InlineData("CONVERT(INT, a)", "CONVERT(INT, a)")]
+	[InlineData("CONVERT(INT, a, 101)", "CONVERT(INT, a, 101)")]
+	[InlineData("PARSE(a AS INT)", "PARSE(a AS INT)")]
+	[InlineData("COUNT(*)", "COUNT(*)")]
+	[InlineData("COUNT(DISTINCT a)", "COUNT(DISTINCT a)")]
+	[InlineData("NEXT VALUE FOR dbo.s", "NEXT VALUE FOR dbo.s")]
+	[InlineData("a AT TIME ZONE 'UTC'", "a AT TIME ZONE 'UTC'")]
+	[InlineData("dbo.f(a, 1)", "dbo.f(a, 1)")]
 	[InlineData("CASE WHEN a > 1 THEN 2 ELSE 3 END", "CASE WHEN a > 1 THEN 2 ELSE 3 END")]
-	public void A_call_with_a_syntax_of_its_own_comes_back_in_it(string input, string printed) =>
+	public void A_call_with_a_syntax_of_its_own_comes_back_in_it(string input, string printed)
+	{
 		Assert.Equal(printed, SqlWriter.Write(TransactSqlParser.ParseValueExpression(input)));
+	}
 
 	/// <summary>And the statements the tree holds whole.</summary>
 	[Theory]
-	[InlineData("SELECT a FROM t",                        "SELECT a FROM t")]
+	[InlineData("SELECT a FROM t", "SELECT a FROM t")]
 	[InlineData("SELECT DISTINCT a, b FROM t WHERE a > 1", "SELECT DISTINCT a, b FROM t WHERE a > 1")]
-	[InlineData("SELECT * FROM t ORDER BY a DESC",        "SELECT * FROM t ORDER BY a DESC")]
-	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a",    "SELECT a FROM t JOIN u ON t.a = u.a")]
+	[InlineData("SELECT * FROM t ORDER BY a DESC", "SELECT * FROM t ORDER BY a DESC")]
+	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a", "SELECT a FROM t JOIN u ON t.a = u.a")]
 	[InlineData("SELECT a FROM t INNER JOIN u ON t.a = u.a", "SELECT a FROM t INNER JOIN u ON t.a = u.a")]
 	[InlineData("SELECT a FROM t LEFT OUTER JOIN u ON t.a = u.a",
 		"SELECT a FROM t LEFT OUTER JOIN u ON t.a = u.a")]
 	[InlineData("SELECT a FROM t LEFT JOIN u ON t.a = u.a", "SELECT a FROM t LEFT JOIN u ON t.a = u.a")]
-	[InlineData("SELECT a FROM (SELECT b FROM u) AS d",   "SELECT a FROM (SELECT b FROM u) AS d")]
+	[InlineData("SELECT a FROM (SELECT b FROM u) AS d", "SELECT a FROM (SELECT b FROM u) AS d")]
 	[InlineData("SELECT a FROM t UNION ALL SELECT b FROM u",
 		"SELECT a FROM t UNION ALL SELECT b FROM u")]
-	[InlineData("INSERT INTO t (a) VALUES (1)",           "INSERT INTO t (a) VALUES (1)")]
-	[InlineData("UPDATE t SET a = 1 WHERE b = 2",         "UPDATE t SET a = 1 WHERE b = 2")]
-	[InlineData("DELETE FROM t WHERE a = 1",              "DELETE FROM t WHERE a = 1")]
-	[InlineData("PRINT 1",                                "PRINT 1")]
-	[InlineData("DROP TABLE a, b",                        "DROP TABLE a, b")]
-	[InlineData("DROP XML SCHEMA COLLECTION c",           "DROP XML SCHEMA COLLECTION c")]
-	[InlineData("CREATE SCHEMA s",                        "CREATE SCHEMA s")]
+	[InlineData("INSERT INTO t (a) VALUES (1)", "INSERT INTO t (a) VALUES (1)")]
+	[InlineData("UPDATE t SET a = 1 WHERE b = 2", "UPDATE t SET a = 1 WHERE b = 2")]
+	[InlineData("DELETE FROM t WHERE a = 1", "DELETE FROM t WHERE a = 1")]
+	[InlineData("PRINT 1", "PRINT 1")]
+	[InlineData("DROP TABLE a, b", "DROP TABLE a, b")]
+	[InlineData("DROP XML SCHEMA COLLECTION c", "DROP XML SCHEMA COLLECTION c")]
+	[InlineData("CREATE SCHEMA s", "CREATE SCHEMA s")]
 	[InlineData("ALTER DATABASE d SET COMPATIBILITY_LEVEL = 150", "ALTER DATABASE d SET COMPATIBILITY_LEVEL = 150")]
 	[InlineData("INSERT INTO t VALUES (1) OPTION (RECOMPILE)", "INSERT INTO t VALUES (1) OPTION (RECOMPILE)")]
-	[InlineData("EXEC AS CALLER",                         "EXECUTE AS CALLER")]
-	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT",   "EXECUTE AS USER = 'u' WITH NO REVERT")]
+	[InlineData("EXEC AS CALLER", "EXECUTE AS CALLER")]
+	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT", "EXECUTE AS USER = 'u' WITH NO REVERT")]
 	[InlineData("EXECUTE AS LOGIN = @l WITH COOKIE INTO @c", "EXECUTE AS LOGIN = @l WITH COOKIE INTO @c")]
-	[InlineData("REVERT WITH COOKIE = @c",                "REVERT WITH COOKIE = @c")]
-	[InlineData("SETUSER",                                "SETUSER")]
-	[InlineData("SETUSER N'u' WITH NORESET",              "SETUSER N'u' WITH NORESET")]
+	[InlineData("REVERT WITH COOKIE = @c", "REVERT WITH COOKIE = @c")]
+	[InlineData("SETUSER", "SETUSER")]
+	[InlineData("SETUSER N'u' WITH NORESET", "SETUSER N'u' WITH NORESET")]
 	[InlineData("DECLARE c CURSOR FOR SELECT a FROM t FOR UPDATE OF a, b", "DECLARE c CURSOR FOR SELECT a FROM t FOR UPDATE OF a, b")]
 	[InlineData("DECLARE c CURSOR FOR SELECT a FROM t FOR READ ONLY", "DECLARE c CURSOR FOR SELECT a FROM t FOR READ ONLY")]
 	[InlineData("SELECT a FROM t FOR XML AUTO, BINARY BASE64", "SELECT a FROM t FOR XML AUTO, BINARY BASE64")]
-	[InlineData("GRANT ALL, SELECT ON t (c1) TO u, NULL",  "GRANT ALL, SELECT ON t (c1) TO u, NULL")]
+	[InlineData("GRANT ALL, SELECT ON t (c1) TO u, NULL", "GRANT ALL, SELECT ON t (c1) TO u, NULL")]
 	[InlineData("SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x", "SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x")]
 	[InlineData("SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE - c FROM T", "SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE -c FROM T")]
 	[InlineData("WAITFOR TIME '10:00'", "WAITFOR TIME '10:00'")]
@@ -188,17 +194,19 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a FROM t WHERE a != 1 AND b !< 2 AND c !> 3 AND d < > 4", "SELECT a FROM t WHERE a != 1 AND b !< 2 AND c !> 3 AND d <> 4")]
 	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH AS x (c1)", "SELECT * FROM (SELECT * FROM t) FOR PATH AS x (c1)")]
 	[InlineData("SET ANSI_NULLS, NOCOUNT, XACT_ABORT OFF", "SET ANSI_NULLS, NOCOUNT, XACT_ABORT OFF")]
-	[InlineData("SET STATISTICS IO, TIME ON",             "SET STATISTICS IO, TIME ON")]
-	[InlineData("SET OFFSETS SELECT, FROM ON",            "SET OFFSETS SELECT, FROM ON")]
+	[InlineData("SET STATISTICS IO, TIME ON", "SET STATISTICS IO, TIME ON")]
+	[InlineData("SET OFFSETS SELECT, FROM ON", "SET OFFSETS SELECT, FROM ON")]
 	[InlineData("SET DEADLOCK_PRIORITY HIGH, LOCK_TIMEOUT -1, LANGUAGE 'us_english'",
 		"SET DEADLOCK_PRIORITY HIGH, LOCK_TIMEOUT -1, LANGUAGE 'us_english'")]
 	[InlineData("SET QUOTED_IDENTIFIER, NO_BROWSETABLE ON", "SET QUOTED_IDENTIFIER, NO_BROWSETABLE ON")]
 	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SET TRANSACTION ISOLATION LEVEL SNAPSHOT")]
-	[InlineData("SET IDENTITY_INSERT t ON",               "SET IDENTITY_INSERT t ON")]
-	[InlineData("SET ROWCOUNT 10",                        "SET ROWCOUNT 10")]
-	[InlineData("SET ERRLVL 1",                           "SET ERRLVL 1")]
-	public void A_statement_comes_back_as_what_it_said(string input, string printed) =>
+	[InlineData("SET IDENTITY_INSERT t ON", "SET IDENTITY_INSERT t ON")]
+	[InlineData("SET ROWCOUNT 10", "SET ROWCOUNT 10")]
+	[InlineData("SET ERRLVL 1", "SET ERRLVL 1")]
+	public void A_statement_comes_back_as_what_it_said(string input, string printed)
+	{
 		Assert.Equal(printed, SqlWriter.Write(Read(input)));
+	}
 
 	/// <summary>
 	/// What the writer prints, the parser reads into a tree the writer prints the same way.
@@ -296,7 +304,10 @@ public sealed class SqlWriterTests
 	}
 
 	/// <summary>And a span is where it says, in the text it was measured against.</summary>
-	static string Cut(string input, SqlSpan span) => input.Substring(span.At, span.Length);
+	static string Cut(string input, SqlSpan span)
+	{
+		return input.Substring(span.At, span.Length);
+	}
 
 	static Statement Read(string input)
 	{

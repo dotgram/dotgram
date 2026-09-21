@@ -80,11 +80,14 @@ sealed partial class Machine
 		return false;
 	}
 
-	static string Directive(PublishKind kind) => kind switch
+	static string Directive(PublishKind kind)
 	{
-		PublishKind.Find => "find",
-		_                => kind.ToString().ToLowerInvariant(),
-	};
+		return kind switch
+		{
+			PublishKind.Find => "find",
+			_ => kind.ToString().ToLowerInvariant(),
+		};
+	}
 
 	/// <summary>What a machine that could not be written as methods is refused for (§4, over kinds).</summary>
 	public const string Backtracks = "GRAM5005";
@@ -392,16 +395,21 @@ sealed partial class Machine
 	/// (§4.3.1). Last of the parameters rather than beside the position, because every
 	/// other reader in the file has the same shape without it.
 	/// </summary>
-	string DirectStrength(RuleSymbol rule) => _graph.Climbing.ContainsKey(rule) ? ", int power" : "";
+	string DirectStrength(RuleSymbol rule)
+	{
+		return _graph.Climbing.ContainsKey(rule) ? ", int power" : "";
+	}
 
 	/// <summary>
 	/// The strength a call reads its operand at: what <c>&lt;&lt;</c> or <c>&gt;&gt;</c>
 	/// recorded against this call, and 0 — everything — where it recorded nothing.
 	/// </summary>
-	string DirectStrengthOf(Node call, RuleSymbol called) =>
-		_graph.Climbing.ContainsKey(called)
+	string DirectStrengthOf(Node call, RuleSymbol called)
+	{
+		return _graph.Climbing.ContainsKey(called)
 			? ", " + (_graph.Powers.TryGetValue(call, out var requested) ? requested : 0)
 			: "";
+	}
 
 	/// <summary>
 	/// The capture slots of a rule that a turn of a loop writes again — a fold's loop
@@ -476,7 +484,10 @@ sealed partial class Machine
 	}
 
 	/// <summary>The method a rule is read by, tagged like everything else this machine writes.</summary>
-	string ReaderOf(RuleSymbol rule) => "Read_" + CSharpEmitter.IdentifierOf(rule) + _tag;
+	string ReaderOf(RuleSymbol rule)
+	{
+		return "Read_" + CSharpEmitter.IdentifierOf(rule) + _tag;
+	}
 
 	/// <summary>
 	/// The calls that close a cycle: from a rule to one still being entered above it. Every

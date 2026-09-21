@@ -79,8 +79,10 @@ public sealed class Sql92ParserTests
 	// what it is, so it is read and dropped. Found by ScriptDom's corpus (`--corpus`).
 	[InlineData("SELECT a COLLATE SQL_Latin1_General_CP1_CI_AS FROM t")]
 	[InlineData("SELECT a FROM t WHERE b COLLATE X = c")]
-	public void A_query_reads(string input) =>
+	public void A_query_reads(string input)
+	{
 		Assert.True(Sql92Parser.TryParseSelect(input).IsSuccess, input);
+	}
 
 	/// <summary>And what it reads, it builds.</summary>
 	[Fact]
@@ -143,13 +145,16 @@ public sealed class Sql92ParserTests
 	}
 
 	/// <summary>The two operands of a set operator, and nothing for anything else.</summary>
-	static Query[] Sides(Query query) => query switch
+	static Query[] Sides(Query query)
 	{
-		Query.Union    (var left, var right, _) => [left, right],
-		Query.Except   (var left, var right, _) => [left, right],
-		Query.Intersect(var left, var right, _) => [left, right],
-		_                                       => [],
-	};
+		return query switch
+		{
+			Query.Union(var left, var right, _) => [left, right],
+			Query.Except(var left, var right, _) => [left, right],
+			Query.Intersect(var left, var right, _) => [left, right],
+			_ => [],
+		};
+	}
 
 	/// <summary>A subquery is a query now, and no longer the text between brackets.</summary>
 	[Fact]
@@ -167,9 +172,11 @@ public sealed class Sql92ParserTests
 	}
 
 	/// <summary>What the standard read, where it was a query specification.</summary>
-	static Query.Specification Selected(string input) =>
-		Assert.IsType<Query.Specification>(
+	static Query.Specification Selected(string input)
+	{
+		return Assert.IsType<Query.Specification>(
 			Assert.IsType<Statement.Select>(Sql92Parser.TryParseSelect(input).Value).Of);
+	}
 
 	/// <summary>
 	/// And it groups the way §6.11 says, which the tower states as three strengths
@@ -199,22 +206,25 @@ public sealed class Sql92ParserTests
 	}
 
 	/// <summary>A value expression as parentheses and operator names, for comparing.</summary>
-	static string Shape(Expression node) => node switch
+	static string Shape(Expression node)
 	{
-		Expression.Add        (var left, var right) => $"({Shape(left)} Add {Shape(right)})",
-		Expression.Subtract   (var left, var right) => $"({Shape(left)} Subtract {Shape(right)})",
-		Expression.Multiply   (var left, var right) => $"({Shape(left)} Multiply {Shape(right)})",
-		Expression.Divide     (var left, var right) => $"({Shape(left)} Divide {Shape(right)})",
-		Expression.Concatenate(var left, var right) => $"({Shape(left)} Concatenate {Shape(right)})",
-		Expression.Negate(var operand)              => $"(Negate {Shape(operand)})",
-		Expression.Plus  (var operand)              => $"(Identity {Shape(operand)})",
-		// The brackets somebody wrote are looked through: this test is about how the
-		// operators group, and a bracket that changed the grouping is already a node.
-		Expression.Parenthesized(var inner)         => Shape(inner),
-		Expression.ColumnReference(var text)        => text,
-		Expression.Literal(_, var text)             => text,
-		_                                           => node.GetType().Name,
-	};
+		return node switch
+		{
+			Expression.Add(var left, var right) => $"({Shape(left)} Add {Shape(right)})",
+			Expression.Subtract(var left, var right) => $"({Shape(left)} Subtract {Shape(right)})",
+			Expression.Multiply(var left, var right) => $"({Shape(left)} Multiply {Shape(right)})",
+			Expression.Divide(var left, var right) => $"({Shape(left)} Divide {Shape(right)})",
+			Expression.Concatenate(var left, var right) => $"({Shape(left)} Concatenate {Shape(right)})",
+			Expression.Negate(var operand) => $"(Negate {Shape(operand)})",
+			Expression.Plus(var operand) => $"(Identity {Shape(operand)})",
+			// The brackets somebody wrote are looked through: this test is about how the
+			// operators group, and a bracket that changed the grouping is already a node.
+			Expression.Parenthesized(var inner) => Shape(inner),
+			Expression.ColumnReference(var text) => text,
+			Expression.Literal(_, var text) => text,
+			_ => node.GetType().Name,
+		};
+	}
 
 	/// <summary>
 	/// A word the standard does not reserve is a name, and a word it reserves is not.

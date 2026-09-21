@@ -34,57 +34,108 @@ public abstract record Expression
 	public abstract string Print();
 
 	/// <summary>An infix operation in brackets — how all of them print.</summary>
-	protected static string Group(Expression left, string @operator, Expression right) =>
-		$"({left.Print()} {@operator} {right.Print()})";
+	protected static string Group(Expression left, string @operator, Expression right)
+	{
+		return $"({left.Print()} {@operator} {right.Print()})";
+	}
 }
 
 /// <summary>A literal.</summary>
 public sealed record Number(decimal Value) : Expression
 {
-	public override decimal Evaluate() => Value;
-	public override string  Print()    => Value.ToString(CultureInfo.InvariantCulture);
+	public override decimal Evaluate()
+	{
+		return Value;
+	}
+
+	public override string Print()
+	{
+		return Value.ToString(CultureInfo.InvariantCulture);
+	}
 }
 
 /// <summary>Unary minus.</summary>
 public sealed record Negate(Expression Operand) : Expression
 {
-	public override decimal Evaluate() => -Operand.Evaluate();
-	public override string  Print()    => "-" + Operand.Print();
+	public override decimal Evaluate()
+	{
+		return -Operand.Evaluate();
+	}
+
+	public override string Print()
+	{
+		return "-" + Operand.Print();
+	}
 }
 
 /// <summary><c>a + b</c>.</summary>
 public sealed record Add(Expression Left, Expression Right) : Expression
 {
-	public override decimal Evaluate() => Left.Evaluate() + Right.Evaluate();
-	public override string  Print()    => Group(Left, "+", Right);
+	public override decimal Evaluate()
+	{
+		return Left.Evaluate() + Right.Evaluate();
+	}
+
+	public override string Print()
+	{
+		return Group(Left, "+", Right);
+	}
 }
 
 /// <summary><c>a - b</c>.</summary>
 public sealed record Sub(Expression Left, Expression Right) : Expression
 {
-	public override decimal Evaluate() => Left.Evaluate() - Right.Evaluate();
-	public override string  Print()    => Group(Left, "-", Right);
+	public override decimal Evaluate()
+	{
+		return Left.Evaluate() - Right.Evaluate();
+	}
+
+	public override string Print()
+	{
+		return Group(Left, "-", Right);
+	}
 }
 
 /// <summary><c>a * b</c>.</summary>
 public sealed record Mul(Expression Left, Expression Right) : Expression
 {
-	public override decimal Evaluate() => Left.Evaluate() * Right.Evaluate();
-	public override string  Print()    => Group(Left, "*", Right);
+	public override decimal Evaluate()
+	{
+		return Left.Evaluate() * Right.Evaluate();
+	}
+
+	public override string Print()
+	{
+		return Group(Left, "*", Right);
+	}
 }
 
 /// <summary><c>a / b</c>.</summary>
 public sealed record Div(Expression Left, Expression Right) : Expression
 {
-	public override decimal Evaluate() => Left.Evaluate() / Right.Evaluate();
-	public override string  Print()    => Group(Left, "/", Right);
+	public override decimal Evaluate()
+	{
+		return Left.Evaluate() / Right.Evaluate();
+	}
+
+	public override string Print()
+	{
+		return Group(Left, "/", Right);
+	}
 }
 
 /// <summary><c>a ^ b</c>.</summary>
 public sealed record Pow(Expression Left, Expression Right) : Expression
 {
-	public override decimal Evaluate() => Raise(Left.Evaluate(), Right.Evaluate());
-	public override string  Print()    => Group(Left, "^", Right);
+	public override decimal Evaluate()
+	{
+		return Raise(Left.Evaluate(), Right.Evaluate());
+	}
+
+	public override string Print()
+	{
+		return Group(Left, "^", Right);
+	}
 
 	/// <summary>
 	/// Power — the one operator C# does not have.

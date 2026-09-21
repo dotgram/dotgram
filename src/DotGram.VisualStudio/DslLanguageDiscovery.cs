@@ -347,10 +347,12 @@ public static class DslLanguageDiscovery
 		return text.ToString();
 	}
 
-	static bool HasDescriptorMarker(IAssemblySymbol assembly) =>
-		assembly.GlobalNamespace.GetNamespaceMembers()
+	static bool HasDescriptorMarker(IAssemblySymbol assembly)
+	{
+		return assembly.GlobalNamespace.GetNamespaceMembers()
 			.FirstOrDefault(static item => item.Name == "DotGram")?
 			.GetTypeMembers("GramLanguageDescriptorAttribute").Length > 0;
+	}
 
 	static (DslGrammarSourceKind Kind, string Source)? Grammar(
 		INamedTypeSymbol parserType,
@@ -413,10 +415,12 @@ public static class DslLanguageDiscovery
 			}
 	}
 
-	static bool IsIdentifier(string value) =>
-		value.Length > 0 &&
+	static bool IsIdentifier(string value)
+	{
+		return value.Length > 0 &&
 		(value[0] == '_' || char.IsLetter(value[0])) &&
 		value.Skip(1).All(static character => character == '_' || char.IsLetterOrDigit(character));
+	}
 
 	static IReadOnlyList<string> Extensions(AttributeData attribute)
 	{
@@ -445,25 +449,32 @@ public static class DslLanguageDiscovery
 		return field is null ? null : new DslClassificationDefinition(target, field.Name, attribute);
 	}
 
-	static bool IsGramAttribute(AttributeData attribute) =>
-		IsAttributeType(attribute.AttributeClass, GramAttribute) &&
+	static bool IsGramAttribute(AttributeData attribute)
+	{
+		return IsAttributeType(attribute.AttributeClass, GramAttribute) &&
 		attribute.AttributeConstructor?.Parameters.Length is 0 or 1 &&
 		(attribute.AttributeConstructor.Parameters.Length == 0 ||
 			IsString(attribute.AttributeConstructor.Parameters[0].Type)) &&
 		HasProperty(attribute.AttributeClass!, "Source", SpecialType.System_String, writable: false) &&
 		HasProperty(attribute.AttributeClass!, "IncludedAs", SpecialType.System_String, writable: true);
+	}
 
-	static AttributeData? PrimaryGramAttribute(IEnumerable<AttributeData> attributes) =>
-		attributes.FirstOrDefault(IsGramAttribute);
+	static AttributeData? PrimaryGramAttribute(IEnumerable<AttributeData> attributes)
+	{
+		return attributes.FirstOrDefault(IsGramAttribute);
+	}
 
-	static bool IsLanguageAttribute(AttributeData attribute) =>
-		IsAttributeType(attribute.AttributeClass, LanguageAttribute) &&
+	static bool IsLanguageAttribute(AttributeData attribute)
+	{
+		return IsAttributeType(attribute.AttributeClass, LanguageAttribute) &&
 		HasConstructor(attribute.AttributeClass!, SpecialType.System_String) &&
 		HasProperty(attribute.AttributeClass!, "Id", SpecialType.System_String, writable: false) &&
 		HasStringArrayProperty(attribute.AttributeClass!, "Extensions", writable: true);
+	}
 
-	static bool IsClassificationAttribute(AttributeData attribute) =>
-		IsAttributeType(attribute.AttributeClass, ClassificationAttribute) &&
+	static bool IsClassificationAttribute(AttributeData attribute)
+	{
+		return IsAttributeType(attribute.AttributeClass, ClassificationAttribute) &&
 		attribute.AttributeClass is { } type &&
 		type.InstanceConstructors.Any(constructor =>
 			constructor.Parameters is [{ Type.SpecialType: SpecialType.System_String }, { Type: INamedTypeSymbol role }] &&
@@ -471,22 +482,29 @@ public static class DslLanguageDiscovery
 		HasProperty(type, "Target", SpecialType.System_String, writable: false) &&
 		type.GetMembers("Role").OfType<IPropertySymbol>().Any(property =>
 			!property.IsStatic && IsClassification(property.Type));
+	}
 
-	static bool IsDescriptorAttribute(AttributeData attribute) =>
-		IsAttributeType(attribute.AttributeClass, LanguageDescriptorAttribute) &&
+	static bool IsDescriptorAttribute(AttributeData attribute)
+	{
+		return IsAttributeType(attribute.AttributeClass, LanguageDescriptorAttribute) &&
 		attribute.AttributeConstructor?.Parameters is { } parameters &&
 		parameters.Length is 5 or 6 or 7 &&
 		parameters[0].Type.SpecialType == SpecialType.System_Int32 &&
 		parameters.Skip(1).All(static parameter =>
 			parameter.Type.SpecialType == SpecialType.System_String);
+	}
 
-	static bool IsClassification(ITypeSymbol type) =>
-		type.TypeKind == TypeKind.Enum &&
+	static bool IsClassification(ITypeSymbol type)
+	{
+		return type.TypeKind == TypeKind.Enum &&
 		type.ToDisplayString() == Classification &&
 		ClassificationMembers.All(name => type.GetMembers(name).OfType<IFieldSymbol>().Any(static field => field.HasConstantValue));
+	}
 
-	static bool IsAttributeType(INamedTypeSymbol? type, string metadataName) =>
-		type?.ToDisplayString() == metadataName && IsAttribute(type);
+	static bool IsAttributeType(INamedTypeSymbol? type, string metadataName)
+	{
+		return type?.ToDisplayString() == metadataName && IsAttribute(type);
+	}
 
 	static bool IsAttribute(INamedTypeSymbol type)
 	{
@@ -497,34 +515,45 @@ public static class DslLanguageDiscovery
 		return false;
 	}
 
-	static bool HasConstructor(INamedTypeSymbol type, SpecialType parameter) =>
-		type.InstanceConstructors.Any(constructor =>
+	static bool HasConstructor(INamedTypeSymbol type, SpecialType parameter)
+	{
+		return type.InstanceConstructors.Any(constructor =>
 			constructor.Parameters is [{ Type.SpecialType: var specialType }] && specialType == parameter);
+	}
 
 	static bool HasProperty(
 		INamedTypeSymbol type,
 		string name,
 		SpecialType propertyType,
-		bool writable) =>
-		type.GetMembers(name).OfType<IPropertySymbol>().Any(property =>
+		bool writable)
+	{
+		return type.GetMembers(name).OfType<IPropertySymbol>().Any(property =>
 			!property.IsStatic && property.Type.SpecialType == propertyType &&
 			property.GetMethod is not null && (!writable || property.SetMethod is not null));
+	}
 
 	static bool HasProperty(
 		INamedTypeSymbol type,
 		string name,
 		string propertyType,
-		bool writable) =>
-		type.GetMembers(name).OfType<IPropertySymbol>().Any(property =>
+		bool writable)
+	{
+		return type.GetMembers(name).OfType<IPropertySymbol>().Any(property =>
 			!property.IsStatic && property.Type.ToDisplayString() == propertyType &&
 			property.GetMethod is not null && (!writable || property.SetMethod is not null));
+	}
 
-	static bool HasStringArrayProperty(INamedTypeSymbol type, string name, bool writable) =>
-		type.GetMembers(name).OfType<IPropertySymbol>().Any(property =>
+	static bool HasStringArrayProperty(INamedTypeSymbol type, string name, bool writable)
+	{
+		return type.GetMembers(name).OfType<IPropertySymbol>().Any(property =>
 			!property.IsStatic && property.Type is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String } &&
 			property.GetMethod is not null && (!writable || property.SetMethod is not null));
+	}
 
-	static bool IsString(ITypeSymbol type) => type.SpecialType == SpecialType.System_String;
+	static bool IsString(ITypeSymbol type)
+	{
+		return type.SpecialType == SpecialType.System_String;
+	}
 
 	static IEnumerable<INamedTypeSymbol> Types(
 		INamespaceSymbol @namespace,

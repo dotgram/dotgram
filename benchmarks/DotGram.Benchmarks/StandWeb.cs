@@ -31,20 +31,29 @@ static partial class Stand
 {
 	const RegexOptions Options = RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant;
 
-	static Lazy<Regex> Lazily(string pattern, RegexOptions options = Options) =>
-		new(() => new Regex(pattern, options));
+	static Lazy<Regex> Lazily(string pattern, RegexOptions options = Options)
+	{
+		return new(() => new Regex(pattern, options));
+	}
 
 	/// <summary>The interpreted reading and the compiled one of the same pattern.</summary>
-	static (Lazy<Regex> Interpreted, Lazy<Regex> Compiled) Both(string pattern, RegexOptions options = Options) =>
-		(Lazily(pattern, options), Lazily(pattern, options | RegexOptions.Compiled));
+	static (Lazy<Regex> Interpreted, Lazy<Regex> Compiled) Both(string pattern, RegexOptions options = Options)
+	{
+		return (Lazily(pattern, options), Lazily(pattern, options | RegexOptions.Compiled));
+	}
 
-	static Workload Web(string name, Reading[] readings, Func<string?> agreement) => new("web", name, readings, agreement);
+	static Workload Web(string name, Reading[] readings, Func<string?> agreement)
+	{
+		return new("web", name, readings, agreement);
+	}
 
 	/// <summary>One text, read by the generated parser alone: the formats no regex can be honest about.</summary>
-	static Workload WebGenerated(string name, string text, Func<string, bool> accepts, bool accepted = true) =>
-		Web(name,
+	static Workload WebGenerated(string name, string text, Func<string, bool> accepts, bool accepted = true)
+	{
+		return Web(name,
 			[new Reading("generated", () => accepts(text) ? 1 : 0)],
 			() => accepts(text) == accepted ? null : $"  the generated parser {(accepts(text) ? "accepts" : "refuses")} it, and the row says it must {(accepted ? "accept" : "refuse")}");
+	}
 
 	/// <summary>The JSON objects and arrays of the web rows, shared with the paired stand.</summary>
 	const string JsonObjectText = "{\"id\": 12345, \"name\": \"dotgram\", \"tags\": [\"parser\", \"generator\", \"analyzer\"], \"nested\": {\"x\": 1.5, \"y\": null, \"z\": true}, \"text\": \"a string with an escape \\n and a unicode one \\u00e9\", \"list\": [1, 2, 3, 4, 5]}";
@@ -244,11 +253,15 @@ static partial class Stand
 		}
 	}
 
-	static int UrlHand(string text) =>
-		HandUrl.TryParseReference(text, out var url, out _) ? UrlLength(url!) : 0;
+	static int UrlHand(string text)
+	{
+		return HandUrl.TryParseReference(text, out var url, out _) ? UrlLength(url!) : 0;
+	}
 
-	static int UrlGenerated(string text) =>
-		UriReference.TryParse(text, out var url) ? UrlLength(url) : 0;
+	static int UrlGenerated(string text)
+	{
+		return UriReference.TryParse(text, out var url) ? UrlLength(url) : 0;
+	}
 
 	static int UrlLength(UriReference url)
 	{
@@ -337,11 +350,15 @@ static partial class Stand
 		}
 	}
 
-	static int TimestampHand(string text) =>
-		HandDateTime.TryParseTimestamp(text, out var timestamp, out _) ? TimestampLength(timestamp!) : 0;
+	static int TimestampHand(string text)
+	{
+		return HandDateTime.TryParseTimestamp(text, out var timestamp, out _) ? TimestampLength(timestamp!) : 0;
+	}
 
-	static int TimestampGenerated(string text) =>
-		Timestamp.TryParse(text, out var timestamp) ? TimestampLength(timestamp) : 0;
+	static int TimestampGenerated(string text)
+	{
+		return Timestamp.TryParse(text, out var timestamp) ? TimestampLength(timestamp) : 0;
+	}
 
 	static int TimestampLength(Timestamp timestamp)
 	{
@@ -375,7 +392,10 @@ static partial class Stand
 
 		return year + month + day + hour + minute + second + fraction + minutes;
 
-		static int Number(Group group) => int.Parse(group.ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
+		static int Number(Group group)
+		{
+			return int.Parse(group.ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
+		}
 	}
 
 	static string? TimestampDisagreement(Regex regex, string text)
@@ -501,8 +521,10 @@ static partial class Stand
 		}
 	}
 
-	static int AddressGenerated(string text) =>
-		AddrSpec.TryParseStrict(text, out var address) ? address.LocalPart.Length + address.Domain.Length : 0;
+	static int AddressGenerated(string text)
+	{
+		return AddrSpec.TryParseStrict(text, out var address) ? address.LocalPart.Length + address.Domain.Length : 0;
+	}
 
 	static int AddressRegex(Regex regex, string text)
 	{
@@ -577,7 +599,10 @@ static partial class Stand
 		return length;
 	}
 
-	static string Unquoted(string value) => value.Length > 1 && value[0] == '"' ? value.Substring(1, value.Length - 2) : value;
+	static string Unquoted(string value)
+	{
+		return value.Length > 1 && value[0] == '"' ? value.Substring(1, value.Length - 2) : value;
+	}
 
 	static string? MediaTypeDisagreement(Regex regex, string text)
 	{

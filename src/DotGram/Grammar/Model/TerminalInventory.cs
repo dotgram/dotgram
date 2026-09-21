@@ -157,7 +157,10 @@ public sealed class TerminalInventory
 	}
 
 	/// <summary>The ranges a rule that is a set of terminals occupies, or null.</summary>
-	public Named? SetOf(string name) => Sets.FirstOrDefault(set => set.Name == name);
+	public Named? SetOf(string name)
+	{
+		return Sets.FirstOrDefault(set => set.Name == name);
+	}
 
 	/// <summary>The terminals host code measures, with the kind each one is.</summary>
 	/// <remarks>
@@ -219,13 +222,15 @@ public sealed class TerminalInventory
 		public IReadOnlyList<(int Kind, int Union)> Extended { get; init; } = [];
 	}
 
-	static Text Spelling(Pattern pattern) =>
-		pattern switch
+	static Text Spelling(Pattern pattern)
+	{
+		return pattern switch
 		{
 			Pattern.Word(_, var text, var fold) => (text, fold),
 			Pattern.Mark(_, var text, var fold) => (text, fold),
-			_                                   => ("", false),
+			_ => ("", false),
 		};
+	}
 
 	Dictionary<Pattern, IReadOnlyList<Group>> Indexed()
 	{
@@ -259,20 +264,28 @@ public sealed class TerminalInventory
 		/// <summary>A literal every character of which continues a word (§4.6) — a keyword.</summary>
 		public sealed record Word(int Index, string Text, bool IgnoreCase) : Pattern(Index)
 		{
-			public override string ToString() => $"\"{Text}\"" + (IgnoreCase ? "i" : "");
+			public override string ToString()
+			{
+				return $"\"{Text}\"" + (IgnoreCase ? "i" : "");
+			}
 		}
 
 		/// <summary>A literal that is not a word: a bracket, an operator, punctuation.</summary>
 		public sealed record Mark(int Index, string Text, bool IgnoreCase) : Pattern(Index)
 		{
-			public override string ToString() =>
-				(Text.Length == 1 ? CharRange.Quote(Text[0]) : $"\"{Text}\"") + (IgnoreCase ? "i" : "");
+			public override string ToString()
+			{
+				return (Text.Length == 1 ? CharRange.Quote(Text[0]) : $"\"{Text}\"") + (IgnoreCase ? "i" : "");
+			}
 		}
 
 		/// <summary>A class of strings — the crossing into a rule that carries no trivia.</summary>
 		public sealed record Class(int Index, RuleSymbol Rule) : Pattern(Index)
 		{
-			public override string ToString() => Rule.Name;
+			public override string ToString()
+			{
+				return Rule.Name;
+			}
 		}
 
 		/// <summary>A terminal the host recognizes: a rule whose whole body is a bare `@M`.</summary>
@@ -286,7 +299,10 @@ public sealed class TerminalInventory
 		/// </remarks>
 		public sealed record External(int Index, RuleSymbol Rule, string Method) : Pattern(Index)
 		{
-			public override string ToString() => $"@{Method}";
+			public override string ToString()
+			{
+				return $"@{Method}";
+			}
 		}
 	}
 
@@ -297,7 +313,10 @@ public sealed class TerminalInventory
 	/// </remarks>
 	public sealed record Kind(int Number, IReadOnlyList<Pattern> Matched)
 	{
-		public override string ToString() => $"{Number} {{{string.Join(", ", Matched)}}}";
+		public override string ToString()
+		{
+			return $"{Number} {{{string.Join(", ", Matched)}}}";
+		}
 	}
 
 	/// <summary>A rule that is a set of terminals, and the runs of kinds it comes to.</summary>
@@ -305,8 +324,10 @@ public sealed class TerminalInventory
 	{
 		public int Count => Ranges.Sum(range => range.Count);
 
-		public override string ToString() =>
-			$"{Name} = {string.Join(", ", Ranges.Select(range => $"{range.From}..{range.To}"))}";
+		public override string ToString()
+		{
+			return $"{Name} = {string.Join(", ", Ranges.Select(range => $"{range.From}..{range.To}"))}";
+		}
 	}
 
 	/// <summary>A contiguous run of kinds, which is what makes membership a range test.</summary>
@@ -319,7 +340,10 @@ public sealed class TerminalInventory
 	{
 		public int Count => To - From + 1;
 
-		public override string ToString() => $"{Name} {From}..{To}";
+		public override string ToString()
+		{
+			return $"{Name} {From}..{To}";
+		}
 	}
 
 	/// <summary>Works out the inventory for a graph.</summary>
@@ -418,8 +442,10 @@ public sealed class TerminalInventory
 
 		public bool Applies => graph.Trivia.Count > 0;
 
-		public bool IsSyntactic(RuleSymbol rule) =>
-			graph.Trivia.ContainsKey(rule) && !_lexical.Contains(rule);
+		public bool IsSyntactic(RuleSymbol rule)
+		{
+			return graph.Trivia.ContainsKey(rule) && !_lexical.Contains(rule);
+		}
 
 		public void Walk(Node node, RuleSymbol owner)
 		{
@@ -549,8 +575,9 @@ public sealed class TerminalInventory
 			}
 		}
 
-		static (Node.Literal Literal, int Last)? Worded(IReadOnlyList<Node> parts, int at) =>
-			parts.Count > at + 2 &&
+		static (Node.Literal Literal, int Last)? Worded(IReadOnlyList<Node> parts, int at)
+		{
+			return parts.Count > at + 2 &&
 			parts[at] is Node.Behind &&
 			parts[at + 1] is Node.Literal behind &&
 			IsBoundary(parts[at + 2])
@@ -560,10 +587,13 @@ public sealed class TerminalInventory
 					IsBoundary(parts[at + 1])
 					? (ahead, at + 1)
 					: null;
+		}
 
 		/// <summary>The `?!wordboundary` §4.6 weaves, as against any other refusal.</summary>
-		static bool IsBoundary(Node node) =>
-			node is Node.Lookahead(false, Node.Call(var rule, _)) && rule.Name == Boundary;
+		static bool IsBoundary(Node node)
+		{
+			return node is Node.Lookahead(false, Node.Call(var rule, _)) && rule.Name == Boundary;
+		}
 
 		const string Boundary = "wordboundary";
 
@@ -747,28 +777,32 @@ public sealed class TerminalInventory
 			return true;
 		}
 
-		static bool Silent(Node node) =>
-			node switch
+		static bool Silent(Node node)
+		{
+			return node switch
 			{
 				Node.Lookahead or Node.Behind or Node.Glue or Node.Guard or Node.Empty or Node.Reading => true,
-				Node.Literal(var text)      => text.Length == 0,
-				Node.Marked(var body, _)    => Silent(body),
-				Node.Atomic(var body)       => Silent(body),
-				Node.Sequence(var nodes)    => Silent(nodes, 0),
-				Node.Repeat(_, _, var max)  => max == 0,
-				_                           => false,
+				Node.Literal(var text) => text.Length == 0,
+				Node.Marked(var body, _) => Silent(body),
+				Node.Atomic(var body) => Silent(body),
+				Node.Sequence(var nodes) => Silent(nodes, 0),
+				Node.Repeat(_, _, var max) => max == 0,
+				_ => false,
 			};
+		}
 
 		/// <summary>The one literal an alternative is, boundary and all — and nothing looser.</summary>
-		static Node.Literal? Only(Node node) =>
-			node switch
+		static Node.Literal? Only(Node node)
+		{
+			return node switch
 			{
-				Node.Literal literal                  => literal,
+				Node.Literal literal => literal,
 				Node.Sequence([Node.Literal literal]) => literal,
 				Node.Sequence([Node.Literal literal, Node.Lookahead(false, _)]) => literal,
 				Node.Sequence([Node.Behind, Node.Literal literal, Node.Lookahead(false, _)]) => literal,
-				_                                     => null,
+				_ => null,
 			};
+		}
 
 		/// <summary>
 		/// Orders patterns so that as many named sets as possible are one run of kinds.
@@ -972,8 +1006,9 @@ public sealed class TerminalInventory
 		}
 
 		/// <summary>Whether one pattern is a word — §4.6's question asked of a token.</summary>
-		bool IsWord(Pattern pattern) =>
-			pattern switch
+		bool IsWord(Pattern pattern)
+		{
+			return pattern switch
 			{
 				Pattern.Word => true,
 				Pattern.Mark => false,
@@ -983,6 +1018,7 @@ public sealed class TerminalInventory
 
 				_ => false,
 			};
+		}
 
 		/// <summary>Whether everything the rule a class crosses into can hold continues a word.</summary>
 		/// <remarks>
@@ -990,10 +1026,12 @@ public sealed class TerminalInventory
 		/// identifier's parts are usually the very rule the boundary names, and where they are
 		/// not this answers no, which costs a grammar nothing it had.
 		/// </remarks>
-		bool WordShaped(RuleSymbol rule) =>
-			Boundaries() is { } within &&
+		bool WordShaped(RuleSymbol rule)
+		{
+			return Boundaries() is { } within &&
 			graph.Bodies.TryGetValue(rule, out var body) &&
 			Within(body, within, []);
+		}
 
 		Node.Element? _boundary;
 		bool          _looked;
@@ -1038,18 +1076,20 @@ public sealed class TerminalInventory
 		}
 
 		/// <summary>A body reduced to the one element it is, through however many calls.</summary>
-		Node.Element? Resolve(Node node, HashSet<RuleSymbol> seen) =>
-			node switch
+		Node.Element? Resolve(Node node, HashSet<RuleSymbol> seen)
+		{
+			return node switch
 			{
-				Node.Element element                  => element.IsNegated ? null : element,
+				Node.Element element => element.IsNegated ? null : element,
 				Node.Call(var rule, _) when seen.Add(rule) &&
 					graph.Bodies.TryGetValue(rule, out var called) => Resolve(called, seen),
-				Node.Sequence([var only])             => Resolve(only, seen),
+				Node.Sequence([var only]) => Resolve(only, seen),
 				Node.Choice([var only]) { Selection: null } => Resolve(only, seen),
-				Node.Atomic(var kept)                 => Resolve(kept, seen),
-				Node.Marked(var marked, _)            => Resolve(marked, seen),
-				_                                     => null,
+				Node.Atomic(var kept) => Resolve(kept, seen),
+				Node.Marked(var marked, _) => Resolve(marked, seen),
+				_ => null,
 			};
+		}
 
 		/// <summary>Whether everything a body can hold is inside the boundary.</summary>
 		bool Within(Node node, Node.Element boundary, HashSet<RuleSymbol> seen)
@@ -1080,26 +1120,33 @@ public sealed class TerminalInventory
 			}
 		}
 
-		static Node.Element One(char c) => new(false, [new CharRange(c, c)], [], []);
+		static Node.Element One(char c)
+		{
+			return new(false, [new CharRange(c, c)], [], []);
+		}
 
 		/// <summary>Whether one element admits nothing the boundary does not.</summary>
-		static bool Inside(Node.Element element, Node.Element boundary) =>
-			element.Ranges.All(range =>
+		static bool Inside(Node.Element element, Node.Element boundary)
+		{
+			return element.Ranges.All(range =>
 				boundary.Ranges.Any(one => one.From <= range.From && range.To <= one.To)) &&
 			element.Categories.All(boundary.Categories.Contains) &&
 			element.References.All(boundary.References.Contains);
+		}
 
 		/// <summary>The node a pattern recognizes, as the automaton needs to read it.</summary>
-		Node? Shape(Pattern pattern) =>
-			pattern switch
+		Node? Shape(Pattern pattern)
+		{
+			return pattern switch
 			{
 				Pattern.Word(_, var word, var fold) => new Node.Literal(word) { IgnoreCase = fold },
 				Pattern.Mark(_, var mark, var fold) => new Node.Literal(mark) { IgnoreCase = fold },
-				Pattern.Class(_, var rule)          => Continuation(rule) is var (prefix, _)
+				Pattern.Class(_, var rule) => Continuation(rule) is var (prefix, _)
 					? prefix
 					: graph.Bodies.TryGetValue(rule, out var body) ? body : null,
-				_                                   => null,
+				_ => null,
 			};
+		}
 
 		/// <summary>
 		/// A class that is a regular beginning and then one operand that is not, split there.
@@ -1190,14 +1237,16 @@ public sealed class TerminalInventory
 		/// overload that has a value (§7.1's third row). It has no declaration, which is what
 		/// <see cref="RuleSymbol.IsBuiltIn"/> asks, so that question is kept for the rest.
 		/// </remarks>
-		bool Unread(Node tail) =>
-			tail switch
+		bool Unread(Node tail)
+		{
+			return tail switch
 			{
 				Node.External => true,
 				Node.Call(var called, _) when graph.Bodies.TryGetValue(called, out var body) =>
 					body is Node.External || !called.IsBuiltIn && LexicalAutomaton.Of(graph, [body], []) is null,
 				_ => false,
 			};
+		}
 
 		/// <summary>
 		/// The sets of classes that can match one string at once, over-approximated.

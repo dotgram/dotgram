@@ -28,8 +28,10 @@ public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaT
 
 	/// <summary>A Content-Type field value (RFC 9110 §8.3): a media type, with whitespace around it allowed.</summary>
 	/// <exception cref="FormatException">The text is no media type; the message says where.</exception>
-	public static MediaType Parse(string text) =>
-		Rfc9110.ParseContentType(text ?? throw new ArgumentNullException(nameof(text)));
+	public static MediaType Parse(string text)
+	{
+		return Rfc9110.ParseContentType(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>A Content-Type field value, or false where the text is not one.</summary>
 	public static bool TryParse(string text, [NotNullWhen(true)] out MediaType? type)
@@ -136,8 +138,10 @@ public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaT
 		return output.ToString();
 	}
 
-	static StringComparison ValueComparison(string name) =>
-		string.Equals(name, "charset", StringComparison.OrdinalIgnoreCase) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+	static StringComparison ValueComparison(string name)
+	{
+		return string.Equals(name, "charset", StringComparison.OrdinalIgnoreCase) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+	}
 }
 
 /// <summary>A media range of an <c>Accept</c> field (§12.5.1) and the weight it was given (§12.4.2).</summary>
@@ -149,8 +153,10 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 {
 	/// <summary>An Accept field value (RFC 9110 §12.5.1): media ranges and their weights, empty elements left out.</summary>
 	/// <exception cref="FormatException">The text is no Accept field; the message says where.</exception>
-	public static MediaRange[] ParseAccept(string text) =>
-		Rfc9110.ParseAccept(text ?? throw new ArgumentNullException(nameof(text)));
+	public static MediaRange[] ParseAccept(string text)
+	{
+		return Rfc9110.ParseAccept(text ?? throw new ArgumentNullException(nameof(text)));
+	}
 
 	/// <summary>An Accept field value, or false where the text is not one.</summary>
 	public static bool TryParseAccept(string text, [NotNullWhen(true)] out MediaRange[]? ranges)
@@ -171,7 +177,10 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 	/// <c>*/*</c>. Where two ranges are as specific, the first written counts. An absent field is not an empty
 	/// one — without it any media type is acceptable — and that is the caller's to tell apart.
 	/// </remarks>
-	public static decimal Quality(IReadOnlyList<MediaRange> accept, MediaType type) => Rfc9110.Quality(accept, type);
+	public static decimal Quality(IReadOnlyList<MediaRange> accept, MediaType type)
+	{
+		return Rfc9110.Quality(accept, type);
+	}
 
 	/// <summary>Whether this range covers a media type: its type and subtype, and every parameter it names.</summary>
 	public bool Matches(MediaType type)

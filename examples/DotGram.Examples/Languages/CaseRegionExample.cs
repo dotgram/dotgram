@@ -59,8 +59,10 @@ public sealed record Match(string Field, string Value, StringComparison How)
 		return new Match(field, Unquoted(value), StringComparison.Ordinal);
 	}
 
-	static string Unquoted(string quoted) =>
-		quoted.Substring(1, quoted.Length - 2).Replace("\"\"", "\"");
+	static string Unquoted(string quoted)
+	{
+		return quoted.Substring(1, quoted.Length - 2).Replace("\"\"", "\"");
+	}
 }
 
 [Gram("""

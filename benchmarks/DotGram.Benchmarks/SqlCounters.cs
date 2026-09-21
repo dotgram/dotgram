@@ -41,8 +41,14 @@ public class SqlCounters
 		"a56 = 1 AND a57 = 1 AND a58 = 1 AND a59 = 1 AND a60 = 1 AND a61 = 1 AND a62 = 1 AND a63 = 1";
 
 	[Benchmark(Baseline = true)]
-	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Long).IsSuccess;
+	public bool Immediate()
+	{
+		return ImmediateSql.TryParseSearchCondition(Long).IsSuccess;
+	}
 
 	[Benchmark]
-	public bool Tape() => Sql92Parser.TryParseSearchCondition(Long).IsSuccess;
+	public bool Tape()
+	{
+		return Sql92Parser.TryParseSearchCondition(Long).IsSuccess;
+	}
 }

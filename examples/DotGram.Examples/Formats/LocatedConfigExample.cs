@@ -63,7 +63,10 @@ public sealed record Entry(string Key, string Value) : ILocated
 	public At Where { get; private set; }
 
 	/// <inheritdoc cref="ILocated.Locate"/>
-	public void Locate(int at, int length) => Where = new At(at, length);
+	public void Locate(int at, int length)
+	{
+		Where = new At(at, length);
+	}
 }
 
 [Gram("""

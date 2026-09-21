@@ -27,7 +27,10 @@ public abstract record Construction
 	/// <param name="At">-1 for text this compiler wrote rather than read.</param>
 	public sealed record Expression(string Text, int At = -1) : Construction
 	{
-		public override string ToString() => Text;
+		public override string ToString()
+		{
+			return Text;
+		}
 	}
 
 	/// <summary>§4.1 case 2: everything the rule is made of, in order.</summary>
@@ -35,7 +38,10 @@ public abstract record Construction
 	{
 		public static readonly Sequence Instance = new();
 
-		public override string ToString() => "<sequence>";
+		public override string ToString()
+		{
+			return "<sequence>";
+		}
 	}
 
 	/// <summary>
@@ -45,7 +51,10 @@ public abstract record Construction
 	{
 		public static readonly Operand Instance = new();
 
-		public override string ToString() => "<operand>";
+		public override string ToString()
+		{
+			return "<operand>";
+		}
 	}
 
 	/// <summary>
@@ -54,7 +63,10 @@ public abstract record Construction
 	/// </summary>
 	public sealed record Constructor(IReadOnlyList<string> Arguments) : Construction
 	{
-		public override string ToString() => "<constructor>";
+		public override string ToString()
+		{
+			return "<constructor>";
+		}
 	}
 
 	/// <summary>
@@ -63,7 +75,10 @@ public abstract record Construction
 	/// </summary>
 	public sealed record Initializer(IReadOnlyList<PropertyBinding> Bindings) : Construction
 	{
-		public override string ToString() => "<initializer>";
+		public override string ToString()
+		{
+			return "<initializer>";
+		}
 	}
 }
 

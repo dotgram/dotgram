@@ -585,7 +585,9 @@ public sealed partial class GrammarNormalizer
 		return _readings.Count - 1;
 	}
 
-	static bool Same(IReadOnlyDictionary<RuleSymbol, RuleSymbol> one, IReadOnlyDictionary<RuleSymbol, RuleSymbol> other) =>
-		one.Count == other.Count &&
+	static bool Same(IReadOnlyDictionary<RuleSymbol, RuleSymbol> one, IReadOnlyDictionary<RuleSymbol, RuleSymbol> other)
+	{
+		return one.Count == other.Count &&
 		one.All(pair => other.TryGetValue(pair.Key, out var to) && to.Equals(pair.Value));
+	}
 }

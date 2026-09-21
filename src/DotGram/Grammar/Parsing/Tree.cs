@@ -9,7 +9,10 @@ public readonly record struct Location(int Position, int Length)
 {
 	public int End => Position + Length;
 
-	public override string ToString() => $"[{Position}..{End})";
+	public override string ToString()
+	{
+		return $"[{Position}..{End})";
+	}
 }
 
 /// <summary>
@@ -29,7 +32,10 @@ public interface ILocated
 
 public sealed record GrammarFile(IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls, Location At) : ILocated
 {
-	public override string ToString() => Dump.Of(this);
+	public override string ToString()
+	{
+		return Dump.Of(this);
+	}
 }
 
 public sealed record Using     (bool IsCSharp, string Name, Location At)                  : ILocated;
@@ -134,7 +140,10 @@ public abstract record Decl : ILocated
 	/// </remarks>
 	public sealed record State(TypeRef Type) : Decl;
 
-	public sealed override string ToString() => Dump.Of(this);
+	public sealed override string ToString()
+	{
+		return Dump.Of(this);
+	}
 }
 
 public enum QuantifierKind { Optional, ZeroOrMore, OneOrMore, Count }
@@ -217,7 +226,10 @@ public abstract record Expr : ILocated
 	/// </remarks>
 	public sealed record Marked(Expr Operand, Expr Value) : Expr;
 
-	public sealed override string ToString() => Dump.Of(this);
+	public sealed override string ToString()
+	{
+		return Dump.Of(this);
+	}
 }
 
 /// <summary>One member of an element set.</summary>
@@ -265,8 +277,10 @@ static class Dump
 		return text.ToString().TrimEnd();
 	}
 
-	static void Write(StringBuilder text, int depth, string label) =>
+	static void Write(StringBuilder text, int depth, string label)
+	{
 		text.Append('\t', depth).AppendEndingWith(label);
+	}
 
 	static void Write(StringBuilder text, int depth, Decl declaration)
 	{
@@ -341,89 +355,112 @@ static class Dump
 	}
 
 	/// <summary>Sub-expressions, in source order. The one place traversal is defined.</summary>
-	public static IReadOnlyList<Expr> Children(Expr expression) => expression switch
+	public static IReadOnlyList<Expr> Children(Expr expression)
 	{
-		Expr.Choice(var alternatives)       => alternatives,
-		Expr.Sequence(var operands)         => operands,
-		Expr.Glued(var operands)            => operands,
-		Expr.Construct(var pattern, var value) => [pattern, value],
-		Expr.Guard(var value)               => [value],
-		Expr.Switch(var value, var cases)    => new[] { value }.Concat(cases.Select(one => one.Body)).ToArray(),
-		Expr.Condition(var test)            => Test.Operands(test),
-		Expr.Capture(_, var operand)        => [operand],
-		Expr.Bound(var body, _, _)          => [body],
-		Expr.Recovering(var body, var sync, null)         => [body, sync],
-		Expr.Recovering(var body, var sync, var factory)  => [body, sync, factory],
-		Expr.Group(var body)                => [body],
-		Expr.Atomic(var body)               => [body],
-		Expr.Lookahead(_, var operand)      => [operand],
-		Expr.Quantified(var operand, _, _, _, _, _) => [operand],
-		Expr.With(var operand, _)            => [operand],
-		Expr.Marked(var operand, var value)  => [operand, value],
-		Expr.Call(var target, var arguments) => [target, .. arguments],
-		_                                   => [],
-	};
-
-	public static string Label(Using import) =>
-		$"Using{(import.IsCSharp ? " (C#)" : "")} {Quote(import.Name)}";
-
-	public static string Label(Param parameter) => $"Parameter {Quote(parameter.Name)}";
-
-	public static string Label(Rebinding rebinding) =>
-		$"Rebinding {Quote(rebinding.Left)} = {Quote(rebinding.Right)}";
-
-	public static string Label(TypeRef type) =>
-		$"Type{(type.IsCSharp ? " (C#)" : "")} {Quote(type.Name)}{(type.IsSequence ? "[]" : "")}";
-
-	public static string Label(Expr expression) => expression switch
-	{
-		Expr.Choice                               => "Choice",
-		Expr.Construct                            => "Alternative",
-		Expr.Bound(_, var isLeft, var level)      => (isLeft ? "Left " : "Right ") + level,
-		Expr.Recovering                           => "Recovering",
-		Expr.Sequence                             => "Sequence",
-		Expr.Glued                                => "Glued",
-		Expr.Guard                                => "Guard",
-		Expr.Switch                               => "Switch",
-		Expr.Condition                            => "Condition",
-		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",
-		Expr.Group                                => "Group",
-		Expr.Atomic                               => "Atomic",
-		Expr.Lookahead(true,  _)                  => "PositiveLookahead",
-		Expr.Lookahead(false, _)                  => "NegativeLookahead",
-		Expr.Literal(true,  var value)            => $"Char {Quote(value)}",
-		Expr.Literal(false, var value)            => $"String {Quote(value)}",
-		Expr.ElementSet(true,  _)                 => "ElementSet (negated)",
-		Expr.ElementSet(false, _)                 => "ElementSet",
-		Expr.CSharp(var text)                     => $"CSharp {Quote(text)}",
-		Expr.Reference(var isCSharp, var name, _) => $"Reference{(isCSharp ? " (C#)" : "")} {Quote(name)}",
-		Expr.Call                                 => "Call",
-
-		Expr.Quantified(_, var kind, var min, var minName, var max, var maxName) => kind switch
+		return expression switch
 		{
-			QuantifierKind.Optional   => "Optional",
-			QuantifierKind.ZeroOrMore => "ZeroOrMore",
-			QuantifierKind.OneOrMore  => "OneOrMore",
-			_                         => $"Count {Bound(min, minName)}..{Bound(max, maxName) ?? "*"}",
-		},
+			Expr.Choice(var alternatives) => alternatives,
+			Expr.Sequence(var operands) => operands,
+			Expr.Glued(var operands) => operands,
+			Expr.Construct(var pattern, var value) => [pattern, value],
+			Expr.Guard(var value) => [value],
+			Expr.Switch(var value, var cases) => new[] { value }.Concat(cases.Select(one => one.Body)).ToArray(),
+			Expr.Condition(var test) => Test.Operands(test),
+			Expr.Capture(_, var operand) => [operand],
+			Expr.Bound(var body, _, _) => [body],
+			Expr.Recovering(var body, var sync, null) => [body, sync],
+			Expr.Recovering(var body, var sync, var factory) => [body, sync, factory],
+			Expr.Group(var body) => [body],
+			Expr.Atomic(var body) => [body],
+			Expr.Lookahead(_, var operand) => [operand],
+			Expr.Quantified(var operand, _, _, _, _, _) => [operand],
+			Expr.With(var operand, _) => [operand],
+			Expr.Marked(var operand, var value) => [operand, value],
+			Expr.Call(var target, var arguments) => [target, .. arguments],
+			_ => [],
+		};
+	}
 
-		Expr.With                                 => "With",
-		Expr.Marked                               => "Marked",
-
-		_ => expression.GetType().Name,
-	};
-
-	public static string Label(Elem item) => item switch
+	public static string Label(Using import)
 	{
-		Elem.Chars(var from, null)   => $"Char {Quote(from)}",
-		Elem.Chars(var from, var to) => $"Range {Quote(from)}..{Quote(to)}",
-		Elem.Category(var name)      => $"Category {Quote(name)}",
-		Elem.Ref                     => "Item",
-		_                            => item.GetType().Name,
-	};
+		return $"Using{(import.IsCSharp ? " (C#)" : "")} {Quote(import.Name)}";
+	}
 
-	static string? Bound(int? value, string? name) => name ?? value?.ToString();
+	public static string Label(Param parameter)
+	{
+		return $"Parameter {Quote(parameter.Name)}";
+	}
 
-	public static string Quote(string value) =>
-		$"\"{value.Replace("\\", @"\\").Replace("\"", "\\\"")}\"";
+	public static string Label(Rebinding rebinding)
+	{
+		return $"Rebinding {Quote(rebinding.Left)} = {Quote(rebinding.Right)}";
+	}
+
+	public static string Label(TypeRef type)
+	{
+		return $"Type{(type.IsCSharp ? " (C#)" : "")} {Quote(type.Name)}{(type.IsSequence ? "[]" : "")}";
+	}
+
+	public static string Label(Expr expression)
+	{
+		return expression switch
+		{
+			Expr.Choice => "Choice",
+			Expr.Construct => "Alternative",
+			Expr.Bound(_, var isLeft, var level) => (isLeft ? "Left " : "Right ") + level,
+			Expr.Recovering => "Recovering",
+			Expr.Sequence => "Sequence",
+			Expr.Glued => "Glued",
+			Expr.Guard => "Guard",
+			Expr.Switch => "Switch",
+			Expr.Condition => "Condition",
+			Expr.Capture(var name, _) => $"Capture {Quote(name)}",
+			Expr.Group => "Group",
+			Expr.Atomic => "Atomic",
+			Expr.Lookahead(true, _) => "PositiveLookahead",
+			Expr.Lookahead(false, _) => "NegativeLookahead",
+			Expr.Literal(true, var value) => $"Char {Quote(value)}",
+			Expr.Literal(false, var value) => $"String {Quote(value)}",
+			Expr.ElementSet(true, _) => "ElementSet (negated)",
+			Expr.ElementSet(false, _) => "ElementSet",
+			Expr.CSharp(var text) => $"CSharp {Quote(text)}",
+			Expr.Reference(var isCSharp, var name, _) => $"Reference{(isCSharp ? " (C#)" : "")} {Quote(name)}",
+			Expr.Call => "Call",
+
+			Expr.Quantified(_, var kind, var min, var minName, var max, var maxName) => kind switch
+			{
+				QuantifierKind.Optional => "Optional",
+				QuantifierKind.ZeroOrMore => "ZeroOrMore",
+				QuantifierKind.OneOrMore => "OneOrMore",
+				_ => $"Count {Bound(min, minName)}..{Bound(max, maxName) ?? "*"}",
+			},
+
+			Expr.With => "With",
+			Expr.Marked => "Marked",
+
+			_ => expression.GetType().Name,
+		};
+	}
+
+	public static string Label(Elem item)
+	{
+		return item switch
+		{
+			Elem.Chars(var from, null) => $"Char {Quote(from)}",
+			Elem.Chars(var from, var to) => $"Range {Quote(from)}..{Quote(to)}",
+			Elem.Category(var name) => $"Category {Quote(name)}",
+			Elem.Ref => "Item",
+			_ => item.GetType().Name,
+		};
+	}
+
+	static string? Bound(int? value, string? name)
+	{
+		return name ?? value?.ToString();
+	}
+
+	public static string Quote(string value)
+	{
+		return $"\"{value.Replace("\\", @"\\").Replace("\"", "\\\"")}\"";
+	}
 }
