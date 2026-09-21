@@ -7569,3 +7569,40 @@ message is already exact, pointing at the `[`. The other two are a parenthesis a
 teaches the working form. Making `Arguments` optional when an initializer follows is a change to
 what the grammar accepts, is the same form C# accepts, and is his. The second is asked first,
 because if it is granted the first is code written to be deleted.
+
+## D102 — The compiled lambdas are not faster, and the acceptance said so in advance
+
+Ninety-three rules compose, compile and agree — 186 fixtures, 271 findings, not one message where
+the two roads differ, compared position by position through the consumer's own call. And the
+speed, median, on the machine's pinned cores:
+
+| hot message types | against the walk |
+| --- | --- |
+| one | 0.95× |
+| five | 0.95× |
+| ten | 1.79× |
+| all ninety-three | 2.60× |
+
+Five per cent when the traffic is narrow; two to three times SLOWER as it widens. The shape says
+code size: each rule is its own dynamic method, and a loop over ninety-three large methods does
+not run in warm code.
+
+**So the acceptance named before the work is the one that applies, and it says this out loud.**
+Below 1,183 — the compiled-in tables — there is no question today. Below 1,278 only with a narrow
+hot set and only by five per cent. And that answers the corollary I was keeping in view: the same
+technique does NOT obviously apply to the schema compiled into the package. A negative result that
+removes a change an order of magnitude larger is worth more than the five per cent would have been.
+
+**Two handicaps belong to this composition and not to the road**, and the session named them
+before anyone could read the ratio as a verdict on compilation: the generated scope walks its
+fields twice, because a switch on one tag cannot see the neighbour a length-and-data pair needs,
+where the walk does it in one pass; and each scope allocates a mask where the walk takes it from
+the stack, which the expression language has no way to express. Both are being repaired and
+re-measured. What no repair reaches is the mechanism above: a compiled expression tree is a
+dynamic method, and the code it is made of is the size it is.
+
+**And the emphasis set in D100 has to move back with the number.** It was taken on an expectation —
+reasonable, mine to caveat, and stated as a caveat — that compilation would be faster. It is not.
+The dictionary road's advantage is flexibility; the compiled-in road's advantage is a fast start
+AND the speed on wide traffic. A result announced as desired before it was measured is exactly
+where a report needs to be flattest, and this one was.
