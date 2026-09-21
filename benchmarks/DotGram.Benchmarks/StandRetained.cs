@@ -17,14 +17,13 @@ static partial class Stand
 	{
 		PairedFixContent(beforeDir, afterDir);
 
-		var workloads = PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir))
-			.Where(one => only is null || Matches(one.Id, only))
-			.ToArray();
+		var every     = PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir));
+		var workloads = every.Where(one => only is null || Matches(one.Id, only)).ToArray();
 
 		Console.WriteLine($"Retained after a parse, {DateTime.Now:yyyy-MM-dd HH:mm}. Built from {BinaryCommit()}. before = {beforeDir}, after = {afterDir}.");
 		Console.WriteLine();
-		Console.WriteLine("| row | reading | retained before KB | retained after KB | difference KB | bytes a call before | bytes a call after |");
-		Console.WriteLine("| --- | --- | ---: | ---: | ---: | ---: | ---: |");
+		Console.WriteLine("| row | reading | retained before KB | retained after KB | difference KB | bytes a call before | bytes a call after | after eight small parses before KB | after eight small parses after KB |");
+		Console.WriteLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var workload in workloads)
 		{
@@ -34,16 +33,22 @@ static partial class Stand
 			if (before is null || after is null)
 				continue;
 
-			var (heldBefore, allocatedBefore) = Retained(before.Run);
-			var (heldAfter, allocatedAfter)   = Retained(after.Run);
+			// Something small of the same parser, read eight times after the big parse: a slot that parks a store demotes it to a weak reference after eight idle rentals, so what is retained falls back after them\n			// where the policy works, and stays where it is held for good (the store that went to the ordinary spare, which the policy never reaches).
+			var smallId = workload.Family == "el" ? "el/ladder" : "sql/select1";
+			var small   = every.FirstOrDefault(one => one.Id == smallId);
+			var smallBefore = small?.Readings.FirstOrDefault(one => one.Name == "before")?.Run;
+			var smallAfter  = small?.Readings.FirstOrDefault(one => one.Name == "after")?.Run;
+
+			var (heldBefore, allocatedBefore, quietBefore) = Retained(before.Run, smallBefore);
+			var (heldAfter, allocatedAfter, quietAfter)    = Retained(after.Run, smallAfter);
 
 			Console.WriteLine(string.Create(System.Globalization.CultureInfo.InvariantCulture,
-				$"| {workload.Id} | generated | {heldBefore / 1024.0:N1} | {heldAfter / 1024.0:N1} | {(heldAfter - heldBefore) / 1024.0:+#,##0.0;-#,##0.0;0.0} | {allocatedBefore:N0} | {allocatedAfter:N0} |"));
+				$"| {workload.Id} | generated | {heldBefore / 1024.0:N1} | {heldAfter / 1024.0:N1} | {(heldAfter - heldBefore) / 1024.0:+#,##0.0;-#,##0.0;0.0} | {allocatedBefore:N0} | {allocatedAfter:N0} | {quietBefore / 1024.0:N1} | {quietAfter / 1024.0:N1} |"));
 		}
 	}
 
 	/// <summary>The bytes that stay reachable after a reading has run twice, and the bytes the second call allocated.</summary>
-	static (long Held, long Allocated) Retained(Func<int> run)
+	static (long Held, long Allocated, long HeldQuiet) Retained(Func<int> run, Func<int>? small)
 	{
 		Collect();
 
@@ -59,7 +64,17 @@ static partial class Stand
 
 		Collect();
 
-		return (Math.Max(0, GC.GetTotalMemory(true) - before), allocated);
+		var held = Math.Max(0, GC.GetTotalMemory(true) - before);
+
+		if (small is null)
+			return (held, allocated, -1);
+
+		for (var i = 0; i < 8; i++)
+			small();
+
+		Collect();
+
+		return (held, allocated, Math.Max(0, GC.GetTotalMemory(true) - before));
 	}
 
 	static void Collect()

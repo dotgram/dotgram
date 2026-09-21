@@ -62,6 +62,14 @@ internal static class RefusalLadders
 	/// <summary>The time a first call at a size is given, in milliseconds, before it is abandoned and the series is called explosive.</summary>
 	internal const int WatchdogMilliseconds = 2000;
 
+	/// <summary>
+	/// The largest size, in units, that a ladder's SECOND pass goes to. It is every size: the second pass was tried below 128 units only (the gaps between the two passes are multiples only at 33-63 units and
+	/// never above 1.7 from 121, so the warm-up seemed owed only there, and the large sizes are nearly all of the time of a ladder), and five runs of that build on a quiet machine moved 11 series by 0.15 or more
+	/// in the exponent (4 class changes) against 2 series (2 class changes) for two passes everywhere (2026-09-20, spread sets d and e): the second pass at the large sizes buys stability, and the +60% of
+	/// the slow suite's time is paid knowingly. A ladder that goes to 128 is set with WarmLimit = 128.
+	/// </summary>
+	internal const int WarmLimit = int.MaxValue;
+
 	/// <summary>The step, in bytes or time a unit of the head between two sizes a quarter apart, from which a series is said to have a cliff, and the rise over the last sixteenth from which it is said to be a slope.</summary>
 	internal const double CliffFactor = 2.5;
 
@@ -447,24 +455,25 @@ internal static class RefusalLadders
 	/// </summary>
 	internal static Result Run(Series series)
 	{
-		var first = RunPass(series);
+		var first = RunPass(series, series.Largest);
 
 		if (first.Hung || first.Faulty || first.Thrown is not null)
 			return first;
 
-		var second = RunPass(series);
+		// The second pass only where the first is cold: below WarmLimit units. The gaps between the two passes are multiples only at 33-63 units and never above 1.7 from 121 (2026-09-20, 101 series),
+		// and the large sizes are nearly all of the time of a ladder, so a second pass there bought a tenth of a percent of stability for half of the slow suite's time.
+		var second = RunPass(series, Math.Min(series.Largest, WarmLimit));
 
-		// Each size takes the faster of its two readings: a burst of another process that stalls a call of the first pass rarely stalls the same call of the second, a whole ladder later,
-		// and the median of the slopes does not hold against a burst that covers the several largest points at once.
-		var merged = second.Points.Select(point => first.Points.FirstOrDefault(one => one.N == point.N) is { N: > 0 } other
+		// Each size that was read twice takes the faster of its two readings: a burst of another process that stalls a call of the first pass rarely stalls the same call of the second.
+		var merged = first.Points.Select(point => second.Points.FirstOrDefault(one => one.N == point.N) is { N: > 0 } other
 			? (point.N, Math.Min(point.Ns, other.Ns), point.Bytes > 0 && other.Bytes > 0 ? Math.Min(point.Bytes, other.Bytes) : Math.Max(point.Bytes, other.Bytes))
 			: point).ToList();
 
-		// The gap needs both readings of a size: the second pass's is the one the second result holds, and the first pass's is kept beside the merged list.
+		// The gap needs both readings of a size: the first pass's and the second's are kept beside the merged list.
 		var slower = second.Points.Select(point => (point.N, point.Ns)).ToList();
 		var gaps   = first.Points.Select(point => (point.N, point.Ns)).ToList();
 
-		return second with
+		return first with
 		{
 			FirstPass  = gaps,
 			SecondPass = slower,
@@ -475,7 +484,7 @@ internal static class RefusalLadders
 	}
 
 	/// <summary>Walks one ladder under the budget and the watchdog. Nothing it meets ends the process: a call that hangs is abandoned and the series is explosive.</summary>
-	static Result RunPass(Series series)
+	static Result RunPass(Series series, int largest)
 	{
 		var points = new List<(int N, double Ns, double Bytes)>();
 		var budget = false;
@@ -485,7 +494,7 @@ internal static class RefusalLadders
 
 		try
 		{
-			foreach (var n in Sizes(series.Largest))
+			foreach (var n in Sizes(largest))
 			{
 				var text = series.Text(n);
 				var read = () => series.Accepts(text);

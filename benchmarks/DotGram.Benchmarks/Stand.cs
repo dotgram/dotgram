@@ -1378,6 +1378,7 @@ static partial class Stand
 			// The quiet form beside the match (expr's dba87a9e): only where the after side has it.
 			.. PairedBool(before, after),
 			.. PairedCliffs(before, after),
+			.. PairedRetention(before, after),
 
 			// The whole-stream forms, FixGrammar.ParseFields(Stream | TextReader): the yield form `.stream` is another driver.
 			.. PairedWholeStreams(before, after),
