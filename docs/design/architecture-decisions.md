@@ -7797,3 +7797,31 @@ retention must be SEEN to fall after eight small parses, not asserted from the c
 must be of the order of what the parse itself needed rather than a multiple of it; and the
 non-dense rows must not regress. Named now so that the numbers are read against a standard rather
 than a standard fitted to the numbers.
+
+## D107 — Correct in place where you can, and do not write what you cannot correct
+
+A withdrawal goes where the claim is. That rule has a second half, found by the session it was
+given to: **where the record cannot be edited, the rule becomes "do not put it there yet".** A
+commit message is immutable, so a figure still liable to move does not belong in one — the
+correcting commit does not stand where the claim stands and will never be read with it. The same
+shape held here: D102 carried three retracted ratios with the correction two entries later, and an
+entry is read alone.
+
+So the axis is not care but **editability**, and it sorts our records:
+
+- Editable — the journal, the memory, the pages, a diary: a wrong claim is corrected AT the claim,
+  and the correction says it is one. Filing it elsewhere is the same as not filing it.
+- Immutable — a commit message, a pushed history, a tag, a published package: nothing is written
+  there that has not survived a check. There is no correcting in place; there is only a second
+  record that nobody reads beside the first.
+
+**And it reaches the things we ship.** A release cannot be recalled either, which is the same rule
+one size up and why this morning's "free before release" cost what it did: 0.1.0 is immutable in
+exactly the sense a commit message is. Where a number is still moving, its place is a letter or a
+scratch directory — and a commit message when it has held.
+
+**One observation the day earned, from three sessions independently.** Every one of tonight's
+uncorrected claims was made while PASSING SOMETHING ON, and none while doing the work. Restating
+feels like repeating something already checked; it is a fresh assertion made without the
+instrument. The check belongs at the moment of handing over, because the sender is the last person
+who can still apply it and the receiver has nothing left to apply it to.
