@@ -24661,9 +24661,61 @@ but it wants the whole accepted set measured with the slots exchanged before any
 **What the commit stands on is not performance.** Written first as a branch that parked a store and
 returned, it returned past the lines that empty the tables and the one that resets the cursor, so a
 kept store reached the next parse believing it already held a document: 453 failures across 190
-tests in suites with no connection to pooling. That is what it fixes. It also costs a little --
-about two to three per cent on the largest documents, a lean consistent with the one `Array.Clear`
-a parse now pays where documents cross the bound.
+tests in suites with no connection to pooling. That is what it fixes. What it costs is the
+paragraph above: the two to three per cent on the largest documents kept its sign when the slots
+were exchanged, so it is the second slot's and not the commit's.
 
 Anyone reading this later should not conclude that the cliffs are cured. Four bounds are under the
 rule and the dense store's tables are not.
+
+## A lean of one to three per cent that nothing can be said about, and the number that says why
+
+Five small SQL rows lean one to three per cent against the pooling chain, and the sign holds when
+the slots are exchanged -- which is the test that separates a real change from the second slot's
+bias, and the same test that acquitted the commit of the two to three per cent on the largest
+documents a day earlier. So the lean is the chain's. Everything after that is about what could
+then be learnt about it, and the answer is nothing.
+
+The capture at the top of `Return` was the obvious suspect -- a parse now reads the usage before
+the emptying zeroes it -- so a throwaway build was made with that one line broken
+(`var used = 0L;`), handed to the stand marked DO NOT LAND, and run in both orders, ten runs an
+order: -0.2, +0.2, 0.0, -0.3, -0.7, +0.1, with the controls unmoved. I read that as the candidate
+being dead.
+
+**It is not what the experiment says, and the stand's owner is the one who could tell me so.**
+Ten runs an order resolve to about +-1.8 points on this stand, and an A/A of one build against
+itself reads +-1.9. What the throwaway establishes is therefore **"the capture costs less than
+about one to two per cent"** -- a ceiling, on an effect of one to three. It does not exclude the
+capture; on some of those rows the capture could be most of the lean. A flat reading from an
+instrument whose resolution is the size of the effect is not evidence of absence, and the hardest
+case to notice is this one, where the zero points **away** from you, in the direction a careful
+person is trained to trust.
+
+That correction is stronger than the argument it replaces, and in the useful direction. The claim
+had been that no one-line subtraction can attribute the lean. The truer claim is that **at this
+resolution nothing at all can be established about it** -- not its cause, and not the innocence of
+any candidate, mine included. Several of the rows in this session's ledger are of the same shape,
+and this is the one that needed somebody else to catch.
+
+**The price of doing better is known, which is what actually closes the question.** Resolution
+falls as one over the root of the runs: +-1 point is about ten runs an order, +-0.5 about forty --
+roughly five hours of exclusive windows for both orders, ten with the A/A beside them, in time no
+other session can measure in. And it buys the **number**, not the cause: reading a half-per-cent
+share for any one line then costs its own forty runs an order. Ten hours for a figure, and a
+multiple of that for an attribution, against one to three per cent on the common path. Not taken
+now -- but written down with its price, so that "not now" can be revisited by someone who knows
+what it would cost rather than guessing.
+
+What goes in the record, and the resolution belongs inside the sentence rather than beside it:
+**a one-to-three per cent lean on small SQL parses, sign stable under exchange of order, cause
+unattributable at the stand's present resolution, which is +-1.8 points at ten runs an order.**
+Drop the last clause and the next reader repeats this evening entire, including the part where a
+flat throwaway looks like an acquittal.
+
+The general form is about handing a number over rather than about this lean. **A figure carries
+its resolution the way it carries its units.** Three of the corrections in this chain were
+arithmetic their author could have done alone; this one was not, because the resolution of an
+instrument is knowledge its owner holds and the reader of a number usually cannot derive it. So
+where the receiver cannot ask, the owner says it unprompted -- which extends the older rule that
+the sender is the last person who can still apply a check, with: there are checks only the sender
+can apply.
