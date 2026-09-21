@@ -227,10 +227,22 @@ public sealed class ExponentialShapeProbe
 	};
 
 	/// <summary>Build output and the scratch directory, neither of which is the repository's.</summary>
-	static bool Scratch(string path) =>
-		path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-		path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-		path.Contains($"{Path.DirectorySeparatorChar}.work{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+	/// <remarks>
+	/// Asked of the path <b>below the root</b> and not of the whole of it. A worktree may itself
+	/// sit in a directory called <c>.work</c> -- this repository keeps them there -- and a test
+	/// over the absolute path then calls every grammar in the repository scratch and reports the
+	/// walk as broken. What is scratch is scratch relative to the repository, like everything
+	/// else this walk decides.
+	/// </remarks>
+	static bool Scratch(string root, string path)
+	{
+		var below = path.Substring(root.Length);
+
+		return
+			below.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+			below.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+			below.Contains($"{Path.DirectorySeparatorChar}.work{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+	}
 
 	static string Describe(Node.Repeat repeat) =>
 		(repeat.Min == 0 ? "(…)*" : "(…)+") + " of " + Unwrapped(repeat.Body).GetType().Name.Replace("Node+", "");
@@ -246,12 +258,12 @@ public sealed class ExponentialShapeProbe
 	static IEnumerable<(string Name, string Text)> Grammars(string root)
 	{
 		foreach (var path in Directory.EnumerateFiles(root, "*.gram", SearchOption.AllDirectories))
-			if (!Scratch(path))
+			if (!Scratch(root, path))
 				yield return (Path.GetFileName(path), File.ReadAllText(path));
 
 		foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
 		{
-			if (Scratch(path))
+			if (Scratch(root, path))
 				continue;
 
 			var source = File.ReadAllText(path);
