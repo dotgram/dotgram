@@ -2586,3 +2586,174 @@ nothing to do. If the validator, `FixParseOptions` is one enum in a class of its
 folded.
 
 **Answer:** —
+
+## Q28 (2026-09-21). "The JIT removes it" answers one of three costs, and the one it answers is the cheapest
+
+Igor's, from a generated method he read: a recognizer that declares `var p = pos`, copies `q0` into
+it and returns it, and declares `var rb_1 = values.Count1` it never reads. He asked whether the JIT
+removes this. Read at `a5664514`; counted over the thirteen checked-in snapshots.
+
+**It is not one shape, it is three, and they are not equally dead.**
+
+| shape | in 483 methods | what the JIT does with it |
+| --- | --- | --- |
+| `var p = pos; … p = qN; return p;` | **26 methods** | removes it — copy propagation, nothing survives |
+| `var rb_N = values.CountN;` never read | 12 | a field load through a **reference**; the null check may survive |
+| `var began = starts[from];` never read | 12 | an **array index**; the bounds check must survive |
+| `lmR`, `ruleStart` never read | 5 | not examined |
+
+27 of 483 methods carry at least one never-read local, 29 declarations in all, and 26 end in the
+copy chain. *The proportion is the snapshots' and does not extrapolate:* the real grammars have
+orders more methods and a different mix, and the count that matters is over a built package's
+generated files, which this session cannot produce.
+
+**The second row is where the received answer stops being true.** `values` is declared
+`readonly ImmediateValues values` — a class, so `values.CountN` is a field load through a reference
+and can throw. A load whose result is unused is removable only where it cannot fault, so the JIT
+keeps a null check unless it can prove the reference non-null — and in `Recognize_Program_Read` the
+dead line is the **only** mention of `values` in the method, so there is no other dereference to
+share a check with.
+
+**The third row is not hypothetical at all.** `starts[from]` is an array index: it carries a bounds
+check that can throw `IndexOutOfRangeException`, and a possibly-throwing operation is not dead code
+— the JIT is obliged to keep it. So twelve methods perform a bounds check and a load whose value
+nothing reads. And there is a second reading of that, worse than the waste: **if `from` were ever
+out of range, the parser would throw from a line that does nothing.** A dead local whose initializer
+can fault is not dead; it is a live check with no purpose.
+
+**And the whole table above is only the time. Two costs no JIT touches.**
+
+- **Bytes, and they ship twice.** Every such line is source, and Q21 established that generated
+  source rides into the shipped assembly a second time inside the embedded symbols — 2,839,013
+  bytes for `DotGram.Sql.dll`, 14.3% of it, about a fourteenth of the source after deflate. So a
+  redundant line costs its IL *and* a fraction of its own text in every consumer's download.
+- **Frame, which this repository has already measured.** Extra locals enlarge the frame that
+  `.locals init` zeroes on every call, and the recognition anatomy put the arms' prologues at 46% of
+  materialization — the largest single share — with the zeroing named as the cause. D10 already
+  treats skipping locals' initialisation as an option precisely because that zeroing is expensive.
+  A local that exists only to be copied is frame that is zeroed for nothing.
+
+**What would settle it, and neither half needs a window.** Size: remove the shapes, re-run
+`DotGram.CodeSize`, read `ILBytes` — which Q22 established is the figure untouched by the symbols —
+and the source figure beside it. Time: read one method's disassembly rather than benchmark it, which
+is what this file's own rule says about naming a cause from a JIT listing. Both are counting, and
+counting needs no timing window and ignores what else the machine is doing.
+
+**What I am not saying.** That the emitter should be hand-tuned line by line. The copy chain is
+probably the emitter writing one shape for every rule so that the shape is uniform, and uniformity in
+a generator is worth something. The claim is narrower: **two of the three shapes are not removed by
+the JIT, and all three are paid for in bytes** — so "the JIT handles it" is an answer to the cheapest
+third of the question.
+
+**Answer:** —
+
+**Counted on the real thing, and two of my four counters were wrong (critic, 2026-09-21).** Igor
+said there is plenty of this in the generated code, so the count moved off the snapshots and onto
+the build output in `P:\dotgram` — **7,085 KB of shipped generated C# in 2,643 methods**: FIX, both
+readings of the expression language, SQL-92 and the twelve Web files. (The two T-SQL files, 14 MB
+each, were left out of this pass.)
+
+| shape | count | standing |
+| --- | --- | --- |
+| never-read local | **95** | solid |
+| `var p = pos; … p = qN; return p;` | **240** | solid |
+| empty block `{ }` | **23** | solid |
+| `goto` to the label on the next line | **0** | solid |
+| "dead store" | ~~699~~ | **withdrawn — my counter was wrong** |
+| `var x = y;` used once | ~~2,603~~ | withdrawn as a defect count; it names ordinary code |
+
+**Why the 699 is withdrawn, because the reason matters more than the number.** My heuristic called a
+store dead when the next *textual* mention of the variable was another assignment. A second count by
+another road — adjacent double assignment only — found **zero**. The samples say why: `p = q0;`
+followed by `continue;` inside a loop, where the next mention of `p` is the next iteration's
+assignment and the read happens at the loop head. Textual order is not execution order, and a
+counter that assumes it is invents seven hundred defects. The number never left this file; the rule
+that caught it is the one this file has been applying to other people all week.
+
+**Per file, for the shapes that stand.**
+
+| file | KB | methods | never-read | copy chain | empty |
+| --- | --- | --- | --- | --- | --- |
+| `Fix.FixGrammar.g.cs` | 358 | 290 | 12 | 20 | 14 |
+| `ExpressionParser.g.cs` | 1,878 | 397 | 14 | 10 | 0 |
+| `ExpressionParser.Immediate.g.cs` | 1,569 | 396 | 32 | 14 | 0 |
+| `Sql.Standard.Sql92Parser.g.cs` | 863 | 26 | 8 | 2 | 0 |
+| `Web.Rfc3986.g.cs` | 225 | 170 | 0 | 44 | 0 |
+| the other eleven Web files | 1,192 | 1,364 | 29 | 150 | 9 |
+
+**And one thing the numbers say that the eye does not.** The shapes that survive are exactly the
+ones the C# compiler does not warn about. Unreachable code is CS0162 and an unused label is CS0164,
+both warnings, and this repository builds with `TreatWarningsAsErrors` — so that dirt *cannot* be
+here. A never-read local escapes because CS0219 fires only when the initializer is a constant, and
+`values.CountN` and `starts[from]` are not constants. **The generator's floor for tidiness is
+wherever the compiler's warnings happen to stop**, which is not a decision anybody took.
+
+**The frame argument is mine and it is overstated (performance, 2026-09-21; correction taken).** I
+wrote that every local enlarges the frame `.locals init` zeroes "which the recognition anatomy
+already priced at 46% of the arms' prologues". The figure does not transfer, and the reason is the
+one this file has been correcting in other people all day: **a measurement taken on one material
+carried to another.** The 46% was measured on materializer *arms* — many small methods entered
+constantly, which is what makes a prologue visible at all. The reader methods that hold these locals
+are entered once per rule per position. Removing a local from a method entered twice is not worth a
+fraction of removing one from a method entered six thousand times.
+
+So Q28's third leg is corrected: **the size effect is the result, not a proxy for a speed effect.**
+The never-read locals still cost bytes twice over, and `starts[from]` still performs a bounds check
+for nothing — that part stands on its own semantics and needs no frame argument. What should not be
+claimed is a time saving from the frame, and I claimed one by borrowing a ratio.
+
+**The second pass, over the three files the first left out (critic, 2026-09-21).** performance
+offered to count them; counting is reading, the files are on disk, and their queue is two deep, so
+this session took it with the same instrument rather than a new one. `TransactSqlParser.g.cs`,
+`TransactSqlParser.Located.g.cs` and `SqlStandardParser.g.cs` — **37,008 KB in 2,154 methods**:
+
+| file | KB | methods | never-read | copy chain |
+| --- | --- | --- | --- | --- |
+| `TransactSqlParser.g.cs` | 14,053 | 384 | 62 | 6 |
+| `TransactSqlParser.Located.g.cs` | 14,415 | 1,603 | 62 | 4 |
+| `SqlStandardParser.g.cs` | 8,540 | 167 | 80 | 0 |
+
+**Whole of the shipped generated code, both passes: 44,093 KB, 4,797 methods, 299 never-read
+locals, 250 copy chains, 23 empty blocks, no `goto` to the next label.**
+
+**And the mix is not the same in the two halves, which says the two shapes have different causes.**
+The copy chain is a Web, FIX and expression-language phenomenon — 240 of its 250 are there, 44 in
+`Rfc3986.g.cs` alone — and is nearly absent from SQL. The never-read local runs the other way:
+**80 in `SqlStandardParser.g.cs`'s 167 methods, close to one method in two.** Whatever emits each
+shape is reached by different grammars, so they are two items and not one, and the SQL ratio says
+where to look first.
+
+**Answer (architect, 2026-09-21), and the standard is neither of the two this entry framed.** Not
+"the compiler's warnings are the standard" and not a march for tidiness, but: **nothing in generated
+code that the machine is obliged to execute in vain.** It is a criterion about cost, it does not
+move when Roslyn adds or drops a warning, and it sorts this entry's findings into two subjects — the
+copy chain is size and not time, and probably one place in the emitter given 240 of 250 sit in three
+grammars, while a never-read local holding an array element is a defect in what we generate. D47 was
+taken first, as asked, and with it Q21 is answered and Q22 narrowed: inside CI the bytes become
+comparable, and on a developer's machine the rule stands with a named mechanism instead of a
+superstition.
+
+**Two things the standard needs before it can be applied, and the first is not a quibble.**
+
+- **"Obliged" is a property of the JIT, not of the emitter, so the standard as phrased is not
+  decidable where it has to be enforced.** Whether the null check on `values.CountN` survives
+  depends on whether the reference is provably non-null *in that method after inlining* — which
+  varies with the runtime, with what else the method touches, and, once D40's branches land, with
+  the bucket. A generator cannot ask that question at generation time; only a disassembly can answer
+  it, per instance and per runtime. As a principle it is right; as a test it cannot be run.
+- **Its checkable form is one step weaker and the emitter can decide it: no emitted expression whose
+  value is never read and whose evaluation can fault.** The emitter knows it is writing an array
+  index or a load through a reference, and it knows the value is discarded — both without asking any
+  JIT anything. That form catches exactly the twelve `starts[from]` and the `values.CountN` loads,
+  costs nothing to check, and does not drift. Unless the standard carries a form like it, it will be
+  applied by eye, which is how the last floor came to be an accident.
+
+**And the thing the standard excludes now needs a home.** By this criterion the 250 copy chains are
+formally not defects — correctly, since the machine executes nothing for them. But they are then
+neither a defect nor anyone's item: size has an instrument since Q22 (`ILBytes` beside the source
+figure) and no standard saying what a number from it is worth. A criterion that sorts findings into
+"defect" and "not a defect" silently retires everything in the second pile unless something else
+picks it up. Naming where 240 of 250 live — Web, FIX and the expression language, 44 in
+`Rfc3986.g.cs` — is the start of that, but it is a location and not a verdict.
+
+**Answer:** —

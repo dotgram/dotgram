@@ -45,6 +45,9 @@ static class Carriers
 		}
 	}
 
+	/// <summary>"one project", "four projects" — a count that reads the way a sentence does.</summary>
+	static string Say(int count) => count == 1 ? "one project" : $"{count} projects";
+
 	public static void Run(string? output)
 	{
 		var root = Root();
@@ -53,10 +56,19 @@ static class Carriers
 
 		var grammars = new List<Grammar>();
 
+		// Which projects left a report at all. A project built below the full level leaves none, and
+		// the difference between "this grammar is not on the tape" and "this grammar was never looked
+		// at" cannot be seen in a row, so it is said above the table instead.
+		var projects = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
 		foreach (var file in Directory.EnumerateFiles(root, "*.DotGramReportDetail.g.cs", SearchOption.AllDirectories))
 		{
-			if (!file.Replace('\\', '/').Contains("/obj/GeneratedFiles/", StringComparison.Ordinal))
+			var at = file.Replace('\\', '/').IndexOf("/obj/GeneratedFiles/", StringComparison.Ordinal);
+
+			if (at < 0)
 				continue;
+
+			projects.Add(Path.GetFileName(file.Substring(0, at)));
 
 			var lines = File.ReadAllLines(file).Select(static line => line.TrimStart('﻿').TrimStart('/', ' ')).ToList();
 
@@ -85,10 +97,14 @@ static class Carriers
 
 		text.AppendLine("# Which carrier each grammar is read with, and why");
 		text.AppendLine();
-		text.AppendLine("Every grammar of the solution, as the last build with `-p:DotGramReportGeneration=full` compiled");
-		text.AppendLine("it: the carrier `Auto` took (GRAM5012), and for a grammar kept on the tape, the gate that kept it");
-		text.AppendLine("and each rule held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`)");
-		text.AppendLine("from the reports that build left; run again rather than edited.");
+		text.AppendLine("Every grammar the last build with `-p:DotGramReportGeneration=full` compiled: the carrier");
+		text.AppendLine("`Auto` took (GRAM5012), and for a grammar kept on the tape, the gate that kept it and each rule");
+		text.AppendLine("held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`) from the reports");
+		text.AppendLine("that build left; run again rather than edited.");
+		text.AppendLine();
+		text.AppendLine($"Read from {Say(projects.Count)}: {string.Join(", ", projects)}. A project built below that");
+		text.AppendLine("level leaves no report and is absent here rather than empty, so a short table is a short build");
+		text.AppendLine("and not a grammar with nothing to say. Build the whole solution to have them all.");
 		text.AppendLine();
 		text.AppendLine("**Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what");
 		text.AppendLine("kept a grammar on the tape: `replay` — a building rule read where the reading may not stand");
@@ -219,7 +235,9 @@ static class Carriers
 
 		File.WriteAllText(output, text.ToString().Replace("\r\n", "\n"));
 
-		Console.WriteLine($"{grammars.Count} grammars, {grammars.Count(static one => Carrier(one) == "tape")} on the tape, written to {output}");
+		Console.WriteLine(
+			$"{grammars.Count} grammars from {Say(projects.Count)}, " +
+			$"{grammars.Count(static one => Carrier(one) == "tape")} on the tape, written to {output}");
 	}
 
 	static string Carrier(Grammar grammar)
