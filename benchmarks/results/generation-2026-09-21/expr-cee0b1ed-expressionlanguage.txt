@@ -1,0 +1,23 @@
+round 1 base a8097696 00:28:38
+round 1 head cee0b1ed 00:28:53
+round 2 base a8097696 00:29:07
+round 2 head cee0b1ed 00:29:21
+round 3 base a8097696 00:29:35
+round 3 head cee0b1ed 00:29:49
+round 4 base a8097696 00:30:03
+round 4 head cee0b1ed 00:30:17
+round 5 base a8097696 00:30:31
+round 5 head cee0b1ed 00:30:45
+
+Generator time, head cee0b1ed against base a8097696, median of 5 alternating rounds (same cores):
+
+JIT of the compiler process the generator runs in (the environment of this script, inherited by the builds): DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime default). Cores FFFF, report level true on both sides, node reuse and the shared compiler server off.
+Projects rebuilt, and the hosts each gave (a project that gave 0 is a hole in this report, not a pass):
+- src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj: base 2, head 2
+
+| host | base ms (min-max) | head ms (min-max) | head / base |
+| --- | ---: | ---: | ---: |
+| DotGram.ExpressionLanguage.ExpressionParser | 866 (828-879) | 862 (847-900) | 1.00x |
+| DotGram.ExpressionLanguage.ExpressionParser.Immediate | 530 (502-558) | 543 (540-572) | 1.02x |
+
+No host of the projects named above moved by more than the tolerance.

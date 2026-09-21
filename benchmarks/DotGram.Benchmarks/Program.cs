@@ -18,8 +18,21 @@ namespace DotGram.Benchmarks;
 /// </remarks>
 static class Program
 {
+	/// <summary>The minutes of a --limit, or null.</summary>
+	static double? LimitOf(string[] args)
+	{
+		var at = Array.IndexOf(args, "--limit");
+
+		return at >= 0 && at + 1 < args.Length && double.TryParse(args[at + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var minutes) ? minutes : null;
+	}
+
 	static void Main(string[] args)
 	{
+		// A timing run announces itself for as long as it runs, and says when it ends (StandWindow.cs): one file in the temp directory, read before anything else is timed.
+		using var window = args.Length > 0 && args[0] is "--stand" or "--stand-paired" or "--stand-first" or "--stand-held" or "--stand-held-whole" or "linearity" or "linearity-refused"
+			? Stand.AnnounceWindow(LimitOf(args), string.Join(' ', args))
+			: null;
+
 		// `--load-order` first, and first for a reason: it checks what the process has loaded, so
 		// every line of work above it is a chance for something to load the assembly it asks
 		// about. It prints whether that happened (see LoadOrder.cs) rather than trusting this
@@ -167,10 +180,21 @@ static class Program
 			return;
 		}
 
-		// `--stand-retained beforeDir afterDir [--only a,b]` prints what each side's parser still holds after it has read a row's input, beside the bytes a call allocates (D97). Times nothing.
-		if (args.Length is 3 or 5 && args[0] == "--stand-retained")
+		// `--stand-retained dir [dir ...] [--only a,b]` prints what each side's parser still holds after it has read a row's input, beside the bytes a call allocates (D97). Times nothing.
+		if (args.Length >= 2 && args[0] == "--stand-retained")
 		{
-			Stand.PairedRetained(args[1], args[2], args.Length == 5 && args[3] == "--only" ? args[4] : null);
+			var rest  = args.Skip(1).ToList();
+			var only  = (string?)null;
+			var index = rest.IndexOf("--only");
+
+			if (index >= 0)
+			{
+				only = rest[index + 1];
+
+				rest.RemoveRange(index, 2);
+			}
+
+			Stand.PairedRetained([.. rest], only);
 
 			return;
 		}
