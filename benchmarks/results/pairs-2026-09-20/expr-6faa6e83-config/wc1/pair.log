@@ -1,0 +1,373 @@
+=== run 1 of 6, 20:54:40
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      642.0 ns before      617.8 ns after      614.9 ns  before/hand 0.96x  after/hand 0.96x
+tsql/columns1000       scriptdom  2194631.2 ns before   195818.8 ns after   176000.0 ns  before/scriptdom 0.09x  after/scriptdom 0.08x
+config/dense           control    12043.4 ns before    13446.7 ns after    10997.2 ns  before/control 1.12x  after/control 0.91x
+config/spaced          control    13546.7 ns before    15536.8 ns after    13970.1 ns  before/control 1.15x  after/control 1.03x
+config/commented       control    18488.2 ns before    22111.8 ns after    20604.2 ns  before/control 1.20x  after/control 1.11x
+
+# Paired stand, 2026-09-20 20:54
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 6faa6e83, framework net10.0, no properties, emitted 5aaa4eb426ed9d99). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 642.0 | 617.8 | 0.96x | 614.9 | 0.96x | -0.5% | 1096 | 1096 | 16 % |  |
+| tsql/columns1000 | generated | scriptdom | 2194631.2 | 195818.8 | 0.09x | 176000.0 | 0.08x | -10.1% | 200464 | 200464 | 49 % |  |
+| config/dense | generated | control | 12043.4 | 13446.7 | 1.12x | 10997.2 | 0.91x | -18.2% | 47256 | 47256 | 23 % |  |
+| config/spaced | generated | control | 13546.7 | 15536.8 | 1.15x | 13970.1 | 1.03x | -10.1% | 47256 | 47256 | 43 % |  |
+| config/commented | generated | control | 18488.2 | 22111.8 | 1.20x | 20604.2 | 1.11x | -6.8% | 47256 | 47256 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\run-1
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      643.8 ns before      635.0 ns after      635.2 ns  before/hand 0.99x  after/hand 0.99x
+tsql/columns1000       scriptdom  2202018.8 ns before   177168.8 ns after   195812.5 ns  before/scriptdom 0.08x  after/scriptdom 0.09x
+config/dense           control    12078.8 ns before    13666.6 ns after    11573.4 ns  before/control 1.13x  after/control 0.96x
+config/spaced          control    13564.2 ns before    15481.2 ns after    14096.3 ns  before/control 1.14x  after/control 1.04x
+config/commented       control    19722.8 ns before    22733.3 ns after    21174.4 ns  before/control 1.15x  after/control 1.07x
+
+# Paired stand, 2026-09-20 20:55
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 32.1 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 643.8 | 635.0 | 0.99x | 635.2 | 0.99x | 0.0% | 1096 | 1096 | 16 % |  |
+| tsql/columns1000 | generated | scriptdom | 2202018.8 | 177168.8 | 0.08x | 195812.5 | 0.09x | +10.5% | 200464 | 200464 | 50 % |  |
+| config/dense | generated | control | 12078.8 | 13666.6 | 1.13x | 11573.4 | 0.96x | -15.3% | 47256 | 47256 | 21 % |  |
+| config/spaced | generated | control | 13564.2 | 15481.2 | 1.14x | 14096.3 | 1.04x | -8.9% | 47256 | 47256 | 8 % |  |
+| config/commented | generated | control | 19722.8 | 22733.3 | 1.15x | 21174.4 | 1.07x | -6.9% | 47256 | 47256 | 13 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\aa-run-1
+=== run 2 of 6, 20:55:09
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      638.9 ns before      615.5 ns after      623.6 ns  before/hand 0.96x  after/hand 0.98x
+tsql/columns1000       scriptdom  1886968.8 ns before   175118.8 ns after   176993.8 ns  before/scriptdom 0.09x  after/scriptdom 0.09x
+config/dense           control    12197.2 ns before    10966.2 ns after    10877.5 ns  before/control 0.90x  after/control 0.89x
+config/spaced          control    13683.1 ns before    14064.6 ns after    13807.5 ns  before/control 1.03x  after/control 1.01x
+config/commented       control    18381.9 ns before    20497.1 ns after    20528.3 ns  before/control 1.12x  after/control 1.12x
+
+# Paired stand, 2026-09-20 20:55
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 6faa6e83, framework net10.0, no properties, emitted 5aaa4eb426ed9d99). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 638.9 | 615.5 | 0.96x | 623.6 | 0.98x | +1.3% | 1096 | 1096 | 16 % |  |
+| tsql/columns1000 | generated | scriptdom | 1886968.8 | 175118.8 | 0.09x | 176993.8 | 0.09x | +1.1% | 200464 | 200464 | 51 % |  |
+| config/dense | generated | control | 12197.2 | 10966.2 | 0.90x | 10877.5 | 0.89x | -0.8% | 47256 | 47256 | 8 % |  |
+| config/spaced | generated | control | 13683.1 | 14064.6 | 1.03x | 13807.5 | 1.01x | -1.8% | 47256 | 47256 | 5 % |  |
+| config/commented | generated | control | 18381.9 | 20497.1 | 1.12x | 20528.3 | 1.12x | +0.2% | 47256 | 47256 | 6 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\run-2
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      636.7 ns before      619.2 ns after      625.2 ns  before/hand 0.97x  after/hand 0.98x
+tsql/columns1000       scriptdom  2052562.5 ns before   201481.2 ns after   191225.0 ns  before/scriptdom 0.10x  after/scriptdom 0.09x
+config/dense           control    12453.2 ns before    14044.4 ns after    11374.4 ns  before/control 1.13x  after/control 0.91x
+config/spaced          control    13588.8 ns before    15705.7 ns after    13932.0 ns  before/control 1.16x  after/control 1.03x
+config/commented       control    18670.4 ns before    22037.8 ns after    20355.9 ns  before/control 1.18x  after/control 1.09x
+
+# Paired stand, 2026-09-20 20:55
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.9 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 636.7 | 619.2 | 0.97x | 625.2 | 0.98x | +1.0% | 1096 | 1096 | 15 % |  |
+| tsql/columns1000 | generated | scriptdom | 2052562.5 | 201481.2 | 0.10x | 191225.0 | 0.09x | -5.1% | 200464 | 200464 | 54 % |  |
+| config/dense | generated | control | 12453.2 | 14044.4 | 1.13x | 11374.4 | 0.91x | -19.0% | 47256 | 47256 | 4 % |  |
+| config/spaced | generated | control | 13588.8 | 15705.7 | 1.16x | 13932.0 | 1.03x | -11.3% | 47256 | 47256 | 17 % |  |
+| config/commented | generated | control | 18670.4 | 22037.8 | 1.18x | 20355.9 | 1.09x | -7.6% | 47256 | 47256 | 6 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\aa-run-2
+=== run 3 of 6, 20:55:39
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      653.1 ns before      616.1 ns after      614.9 ns  before/hand 0.94x  after/hand 0.94x
+tsql/columns1000       scriptdom  2164912.5 ns before   192931.2 ns after   183262.5 ns  before/scriptdom 0.09x  after/scriptdom 0.08x
+config/dense           control    12291.3 ns before    13914.9 ns after    11274.2 ns  before/control 1.13x  after/control 0.92x
+  config/spaced: 1 round(s) redone after a gen1/gen2 collection
+config/spaced          control    14743.8 ns before    17020.1 ns after    15016.7 ns  before/control 1.15x  after/control 1.02x
+config/commented       control    19407.2 ns before    23540.0 ns after    21602.3 ns  before/control 1.21x  after/control 1.11x
+
+# Paired stand, 2026-09-20 20:55
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 32.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 6faa6e83, framework net10.0, no properties, emitted 5aaa4eb426ed9d99). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 653.1 | 616.1 | 0.94x | 614.9 | 0.94x | -0.2% | 1096 | 1096 | 2 % |  |
+| tsql/columns1000 | generated | scriptdom | 2164912.5 | 192931.2 | 0.09x | 183262.5 | 0.08x | -5.0% | 200464 | 200464 | 59 % |  |
+| config/dense | generated | control | 12291.3 | 13914.9 | 1.13x | 11274.2 | 0.92x | -19.0% | 47256 | 47256 | 10 % |  |
+| config/spaced | generated | control | 14743.8 | 17020.1 | 1.15x | 15016.7 | 1.02x | -11.8% | 47256 | 47256 | 16 % |  |
+| config/commented | generated | control | 19407.2 | 23540.0 | 1.21x | 21602.3 | 1.11x | -8.2% | 47256 | 47256 | 16 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\run-3
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      634.1 ns before      621.2 ns after      632.2 ns  before/hand 0.98x  after/hand 1.00x
+tsql/columns1000       scriptdom  2172143.8 ns before   190925.0 ns after   204981.2 ns  before/scriptdom 0.09x  after/scriptdom 0.09x
+config/dense           control    12208.3 ns before    13699.3 ns after    11265.7 ns  before/control 1.12x  after/control 0.92x
+config/spaced          control    14047.9 ns before    16117.0 ns after    14241.6 ns  before/control 1.15x  after/control 1.01x
+config/commented       control    19283.4 ns before    22076.5 ns after    20444.4 ns  before/control 1.14x  after/control 1.06x
+
+# Paired stand, 2026-09-20 20:56
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 32.1 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 634.1 | 621.2 | 0.98x | 632.2 | 1.00x | +1.8% | 1096 | 1096 | 16 % |  |
+| tsql/columns1000 | generated | scriptdom | 2172143.8 | 190925.0 | 0.09x | 204981.2 | 0.09x | +7.4% | 200464 | 200464 | 55 % |  |
+| config/dense | generated | control | 12208.3 | 13699.3 | 1.12x | 11265.7 | 0.92x | -17.8% | 47256 | 47256 | 25 % |  |
+| config/spaced | generated | control | 14047.9 | 16117.0 | 1.15x | 14241.6 | 1.01x | -11.6% | 47256 | 47256 | 22 % |  |
+| config/commented | generated | control | 19283.4 | 22076.5 | 1.14x | 20444.4 | 1.06x | -7.4% | 47256 | 47256 | 4 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\aa-run-3
+=== run 4 of 6, 20:56:07
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      643.5 ns before      616.8 ns after      635.5 ns  before/hand 0.96x  after/hand 0.99x
+tsql/columns1000       scriptdom  2119150.0 ns before   205206.2 ns after   206393.8 ns  before/scriptdom 0.10x  after/scriptdom 0.10x
+config/dense           control    13580.7 ns before    15638.0 ns after    12754.4 ns  before/control 1.15x  after/control 0.94x
+  config/spaced: 2 round(s) redone after a gen1/gen2 collection
+config/spaced          control    13726.2 ns before    15661.7 ns after    13787.9 ns  before/control 1.14x  after/control 1.00x
+config/commented       control    18483.0 ns before    21416.9 ns after    20794.7 ns  before/control 1.16x  after/control 1.13x
+
+# Paired stand, 2026-09-20 20:56
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 32.4 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 6faa6e83, framework net10.0, no properties, emitted 5aaa4eb426ed9d99). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 643.5 | 616.8 | 0.96x | 635.5 | 0.99x | +3.0% | 1096 | 1096 | 16 % |  |
+| tsql/columns1000 | generated | scriptdom | 2119150.0 | 205206.2 | 0.10x | 206393.8 | 0.10x | +0.6% | 200464 | 200464 | 52 % |  |
+| config/dense | generated | control | 13580.7 | 15638.0 | 1.15x | 12754.4 | 0.94x | -18.4% | 47256 | 47256 | 36 % |  |
+| config/spaced | generated | control | 13726.2 | 15661.7 | 1.14x | 13787.9 | 1.00x | -12.0% | 47256 | 47256 | 12 % |  |
+| config/commented | generated | control | 18483.0 | 21416.9 | 1.16x | 20794.7 | 1.13x | -2.9% | 47256 | 47256 | 6 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\run-4
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      633.2 ns before      622.2 ns after      632.3 ns  before/hand 0.98x  after/hand 1.00x
+tsql/columns1000       scriptdom  2133500.0 ns before   177068.8 ns after   179206.2 ns  before/scriptdom 0.08x  after/scriptdom 0.08x
+config/dense           control    12211.1 ns before    13167.6 ns after    11227.5 ns  before/control 1.08x  after/control 0.92x
+config/spaced          control    13563.1 ns before    16086.1 ns after    14051.9 ns  before/control 1.19x  after/control 1.04x
+config/commented       control    18746.8 ns before    22484.0 ns after    20592.7 ns  before/control 1.20x  after/control 1.10x
+
+# Paired stand, 2026-09-20 20:56
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.6 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 633.2 | 622.2 | 0.98x | 632.3 | 1.00x | +1.6% | 1096 | 1096 | 2 % |  |
+| tsql/columns1000 | generated | scriptdom | 2133500.0 | 177068.8 | 0.08x | 179206.2 | 0.08x | +1.2% | 200464 | 200464 | 54 % |  |
+| config/dense | generated | control | 12211.1 | 13167.6 | 1.08x | 11227.5 | 0.92x | -14.7% | 47256 | 47256 | 15 % |  |
+| config/spaced | generated | control | 13563.1 | 16086.1 | 1.19x | 14051.9 | 1.04x | -12.6% | 47256 | 47256 | 16 % |  |
+| config/commented | generated | control | 18746.8 | 22484.0 | 1.20x | 20592.7 | 1.10x | -8.4% | 47256 | 47256 | 7 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\aa-run-4
+=== run 5 of 6, 20:56:36
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      684.0 ns before      624.6 ns after      647.3 ns  before/hand 0.91x  after/hand 0.95x
+tsql/columns1000       scriptdom  2206868.8 ns before   198818.8 ns after   190300.0 ns  before/scriptdom 0.09x  after/scriptdom 0.09x
+config/dense           control    12188.3 ns before    13734.8 ns after    11123.4 ns  before/control 1.13x  after/control 0.91x
+config/spaced          control    13955.0 ns before    15961.0 ns after    14096.4 ns  before/control 1.14x  after/control 1.01x
+config/commented       control    18523.6 ns before    22659.0 ns after    21122.6 ns  before/control 1.22x  after/control 1.14x
+
+# Paired stand, 2026-09-20 20:56
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.6 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 6faa6e83, framework net10.0, no properties, emitted 5aaa4eb426ed9d99). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 684.0 | 624.6 | 0.91x | 647.3 | 0.95x | +3.6% | 1096 | 1096 | 17 % |  |
+| tsql/columns1000 | generated | scriptdom | 2206868.8 | 198818.8 | 0.09x | 190300.0 | 0.09x | -4.3% | 200464 | 200464 | 58 % |  |
+| config/dense | generated | control | 12188.3 | 13734.8 | 1.13x | 11123.4 | 0.91x | -19.0% | 47256 | 47256 | 13 % |  |
+| config/spaced | generated | control | 13955.0 | 15961.0 | 1.14x | 14096.4 | 1.01x | -11.7% | 47256 | 47256 | 5 % |  |
+| config/commented | generated | control | 18523.6 | 22659.0 | 1.22x | 21122.6 | 1.14x | -6.8% | 47256 | 47256 | 5 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\run-5
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      643.5 ns before      636.8 ns after      635.1 ns  before/hand 0.99x  after/hand 0.99x
+tsql/columns1000       scriptdom  2100000.0 ns before   183718.8 ns after   178562.5 ns  before/scriptdom 0.09x  after/scriptdom 0.09x
+config/dense           control    11761.4 ns before    13423.5 ns after    11397.7 ns  before/control 1.14x  after/control 0.97x
+config/spaced          control    13910.2 ns before    15552.3 ns after    14151.8 ns  before/control 1.12x  after/control 1.02x
+config/commented       control    19382.2 ns before    22623.6 ns after    21743.1 ns  before/control 1.17x  after/control 1.12x
+
+# Paired stand, 2026-09-20 20:57
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 32.4 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 643.5 | 636.8 | 0.99x | 635.1 | 0.99x | -0.3% | 1096 | 1096 | 15 % |  |
+| tsql/columns1000 | generated | scriptdom | 2100000.0 | 183718.8 | 0.09x | 178562.5 | 0.09x | -2.8% | 200464 | 200464 | 52 % |  |
+| config/dense | generated | control | 11761.4 | 13423.5 | 1.14x | 11397.7 | 0.97x | -15.1% | 47256 | 47256 | 19 % |  |
+| config/spaced | generated | control | 13910.2 | 15552.3 | 1.12x | 14151.8 | 1.02x | -9.0% | 47256 | 47256 | 41 % |  |
+| config/commented | generated | control | 19382.2 | 22623.6 | 1.17x | 21743.1 | 1.12x | -3.9% | 47256 | 47256 | 11 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\aa-run-5
+=== run 6 of 6, 20:57:06
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      641.6 ns before      599.6 ns after      636.1 ns  before/hand 0.93x  after/hand 0.99x
+tsql/columns1000       scriptdom  2078912.5 ns before   183475.0 ns after   189900.0 ns  before/scriptdom 0.09x  after/scriptdom 0.09x
+config/dense           control    12077.6 ns before    13350.7 ns after    10987.0 ns  before/control 1.11x  after/control 0.91x
+  config/spaced: 1 round(s) redone after a gen1/gen2 collection
+config/spaced          control    13882.3 ns before    15720.9 ns after    14209.6 ns  before/control 1.13x  after/control 1.02x
+config/commented       control    19123.2 ns before    22016.8 ns after    20713.8 ns  before/control 1.15x  after/control 1.08x
+
+# Paired stand, 2026-09-20 20:57
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.9 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 6faa6e83, framework net10.0, no properties, emitted 5aaa4eb426ed9d99). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 641.6 | 599.6 | 0.93x | 636.1 | 0.99x | +6.1% | 1096 | 1096 | 15 % |  |
+| tsql/columns1000 | generated | scriptdom | 2078912.5 | 183475.0 | 0.09x | 189900.0 | 0.09x | +3.5% | 200464 | 200464 | 52 % |  |
+| config/dense | generated | control | 12077.6 | 13350.7 | 1.11x | 10987.0 | 0.91x | -17.7% | 47256 | 47256 | 7 % |  |
+| config/spaced | generated | control | 13882.3 | 15720.9 | 1.13x | 14209.6 | 1.02x | -9.6% | 47256 | 47256 | 13 % |  |
+| config/commented | generated | control | 19123.2 | 22016.8 | 1.15x | 20713.8 | 1.08x | -5.9% | 47256 | 47256 | 13 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\run-6
+5 rows, every reading agreeing. Timing 8 rounds.
+fix/Order.text         hand      655.2 ns before      599.4 ns after      625.1 ns  before/hand 0.91x  after/hand 0.95x
+tsql/columns1000       scriptdom  2335006.2 ns before   185831.2 ns after   180287.5 ns  before/scriptdom 0.08x  after/scriptdom 0.08x
+config/dense           control    11654.2 ns before    13749.3 ns after    10801.3 ns  before/control 1.18x  after/control 0.93x
+config/spaced          control    13106.8 ns before    15631.5 ns after    13993.5 ns  before/control 1.19x  after/control 1.07x
+config/commented       control    18115.6 ns before    22027.7 ns after    20676.3 ns  before/control 1.22x  after/control 1.14x
+
+# Paired stand, 2026-09-20 20:57
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.7 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| fix/Order.text | generated | hand | 655.2 | 599.4 | 0.91x | 625.1 | 0.95x | +4.3% | 1096 | 1096 | 15 % |  |
+| tsql/columns1000 | generated | scriptdom | 2335006.2 | 185831.2 | 0.08x | 180287.5 | 0.08x | -3.0% | 200464 | 200464 | 46 % |  |
+| config/dense | generated | control | 11654.2 | 13749.3 | 1.18x | 10801.3 | 0.93x | -21.4% | 47256 | 47256 | 18 % |  |
+| config/spaced | generated | control | 13106.8 | 15631.5 | 1.19x | 13993.5 | 1.07x | -10.5% | 47256 | 47256 | 9 % |  |
+| config/commented | generated | control | 18115.6 | 22027.7 | 1.22x | 20676.3 | 1.14x | -6.1% | 47256 | 47256 | 13 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair\aa-run-6
+
+Median of 6 of 6 runs, each in a process of its own; control 31.8 ns (the runs' controls: 31.7, 31.7, 32.2, 32.4, 31.6, 31.9).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-20 20:57
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 31.8 ns.
+
+This binary, and the libraries it holds as the control, was built from 0c0b75ff. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit 475e6864, framework net10.0, no properties, emitted e40ed39227dae137); after (commit 6faa6e83, framework net10.0, no properties, emitted 5aaa4eb426ed9d99). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+The last column is the **A/A of the parent** taken in the same slot, on the same rows: the parent's build against itself, its median change and its range over the runs. What the stand says of a row when nothing changed; a change is read as its excess over it (D50).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs | A/A of the parent |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| fix/Order.text | generated | hand | 642.7 | 616.5 | 0.96x | 629.5 | 0.98x | +2.1% | 1096 | 1096 | 7 % | [-0.5%..+6.1%], 4 of 6 positive | +1.7% [-0.3%..+4.3%], 5 of 6 positive |
+| tsql/columns1000 | generated | scriptdom | 2142031.2 | 194375.0 | 0.09x | 186581.2 | 0.09x | -4.0% | 200464 | 200464 | 15 % | [-10.1%..+3.5%], 3 of 6 positive | +0.5% [-5.1%..+10.5%], 3 of 6 positive |
+| config/dense | generated | control | 12192.7 | 13590.7 | 1.11x | 11060.3 | 0.91x | -18.6% | 47256 | 47256 | 13 % | [-19.0%..-0.8%], 0 of 6 positive | -17.3% [-21.4%..-14.7%], 0 of 6 positive |
+| config/spaced | generated | control | 13804.2 | 15691.3 | 1.14x | 14033.2 | 1.02x | -10.6% | 47256 | 47256 | 9 % | [-12.0%..-1.8%], 0 of 6 positive | -10.2% [-12.6%..-8.9%], 0 of 6 positive |
+| config/commented | generated | control | 18505.9 | 22064.3 | 1.19x | 20754.2 | 1.12x | -5.9% | 47256 | 47256 | 6 % | [-8.2%..+0.2%], 1 of 6 positive | -7.4% [-8.4%..-3.9%], 0 of 6 positive |
+
+Written to T:\TEMP\dotgram-stand\wc1\pair

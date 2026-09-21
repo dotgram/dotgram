@@ -1,0 +1,155 @@
+{
+  "Control": 31.837125,
+  "Rows": [
+    {
+      "Id": "fix/Order.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 642.7322387695312,
+          "Bytes": 920,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 616.4810180664062,
+          "Bytes": 1096,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 629.5333862304688,
+          "Bytes": 1096,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.07008197596985906,
+      "Ranges": {
+        "": "[-0.5%..\u002B6.1%], 4 of 6 positive"
+      }
+    },
+    {
+      "Id": "tsql/columns1000",
+      "Readings": [
+        {
+          "Reading": "scriptdom",
+          "Nanoseconds": 2142031.25,
+          "Bytes": 1498956,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 194375,
+          "Bytes": 200464,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 186581.25,
+          "Bytes": 200464,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.1493442264205996,
+      "Ranges": {
+        "": "[-10.1%..\u002B3.5%], 3 of 6 positive"
+      }
+    },
+    {
+      "Id": "config/dense",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 12192.7490234375,
+          "Bytes": 47224,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 13590.7470703125,
+          "Bytes": 47256,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 11060.302734375,
+          "Bytes": 47256,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.1260795130302454,
+      "Ranges": {
+        "": "[-19.0%..-0.8%], 0 of 6 positive"
+      }
+    },
+    {
+      "Id": "config/spaced",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 13804.248046875,
+          "Bytes": 47224,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 15691.314697265625,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 14033.245849609375,
+          "Bytes": 47256,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08672106851166032,
+      "Ranges": {
+        "": "[-12.0%..-1.8%], 0 of 6 positive"
+      }
+    },
+    {
+      "Id": "config/commented",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 18505.89599609375,
+          "Bytes": 47224,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 22064.29443359375,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 20754.248046875,
+          "Bytes": 47256,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0554029246643971,
+      "Ranges": {
+        "": "[-8.2%..\u002B0.2%], 1 of 6 positive"
+      }
+    }
+  ]
+}

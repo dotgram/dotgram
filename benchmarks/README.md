@@ -283,7 +283,7 @@ address list, 3.2 s at twenty-four characters and 107 s at twenty-eight) while e
 input only, and a refusal is sent by anyone. The bar is therefore harder than the accepted ladders': an exponent
 above 1.10 is a defect, from 1.5 it is called quadratic and from 3 explosive; the exponent is the MEDIAN of the pairwise
 slopes (Theil-Sen, pairs at least twice apart in size) over the largest sixteenth of the ladder, each ladder walked twice and the
-faster reading of the two taken at every size (the first pass warms the tiering; a fresh process reads a curve flatter than a warm one, and a
+faster reading of the two taken at every size (the price is time: the whole `DotGram.Tests.Slow` project went from 105 s to 167 s when the ladders were walked twice, so a slow suite that is "half again slower" since 2026-09-20 is this and not a regression; the first pass warms the tiering; a fresh process reads a curve flatter than a warm one, and a
 least-squares line was moved to an exponent of 45 by one stalled call at the largest size on a loaded machine; the median is deaf to a third of the points
 being wrong, which is not the case of a burst that lasts seconds), and the column beside it carries the time at the largest size
 along it to 64 KiB of input, which is what tells a mild curve from a denial of service. The exit code is 1 when a
