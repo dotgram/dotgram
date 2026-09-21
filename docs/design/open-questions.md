@@ -2927,3 +2927,52 @@ because it wrote them.
 time it was caught by somebody else asking it of me: structure does not imply use, and "the rest"
 is a structure. The cost of not asking would have been four broken tables in the one measurement
 that was otherwise going to be unambiguous.
+
+## Q30 (2026-09-21). The same rule is emitted byte for byte once per publication, and that is a design's price nobody has counted
+
+The third sweep, still on Igor's instruction to keep cleaning. Read at `8acaf2c8`. Unlike Q29 this
+is **not** a defect, and saying so is most of the finding.
+
+**What was counted.** Method bodies identical after dropping `#line` directives, per generated
+class, longer than 120 characters so that one-line wrappers do not dominate.
+
+| class | groups | redundant copies | source |
+| --- | --- | --- | --- |
+| `ExpressionParser` | 54 | 64 | 17.1 KB |
+| `Rfc5322` | 21 | 42 | 14.9 KB |
+| `Fix.FixGrammar` | 30 | 60 | 13.3 KB |
+| `Rfc9651` | 9 | 15 | 8.7 KB |
+| `TransactSqlParser` | 24 | 71 | 19.3 KB |
+| `Sql92Parser`, `SqlStandardParser` | 0 | 0 | — |
+| **total, six classes** | **138** | **252** | **73.3 KB** |
+
+**The names say the cause and a diff confirms it.** `Read_Tag_Buffered_ParseFields_Part0`,
+`Read_Tag_Buffered_ReadFields_Part0`, `Read_Tag_Buffered_ParseLogFields_Part0` — one rule, once per
+publication. Diffed directly at lines 4160 and 5221 of the FIX file with `#line` dropped: **identical,
+to the byte.** The same shape reads off the other files — `Read_SfString_ItemField_Part0` beside
+`_ListField_` and `_DictionaryField_`, `EnoughStack_DotGram_AddressList` five times over in
+`Rfc5322`. `Sql92Parser`'s zero fits: one publication, nothing to duplicate.
+
+**And the thing that decides what kind of finding this is: the copies are in different types.** Line
+4160 sits in `private ref struct Reader_DotGram_Buffered_ParseFields` and line 5221 in
+`private ref struct Reader_DotGram_Buffered_ReadFields`. So this is not an emitter writing one
+method twice into one class — it is **one reader struct per publication, sharing no code with its
+siblings**. The methods are instance members reading that struct's own fields, which is what buys
+the direct field access and the absence of any dispatch.
+
+**So by the standard just set, it is not a defect.** Each publication executes its own copy and
+executes nothing in vain; the cost is bytes and only bytes — which Q21 established are paid twice,
+once as IL and once inside the embedded symbols. What is new here is the size of the bill: **73.3 KB
+and 252 copies across six classes**, multiplied by however many publications share a rule — four to
+eight in FIX and the expression language, five in `Rfc5322`, three in `Rfc9651`. And the largest
+single contribution is T-SQL's 19.3 KB, while SQL:2023 beside it has **none** — the two differ in
+how many ways they publish, not in how large they are.
+
+**What I am not proposing.** Deduplicating it means a shared reader parameterised somehow, and every
+way of doing that trades away the thing the per-publication struct buys. That is a design question
+and it belongs to whoever owns the reader, not to a cleanup. What this entry claims is narrower and,
+I think, worth having: **the per-publication reader has a price in bytes that has never been on the
+page beside its benefit**, and the multiplier is the number of publications a grammar declares —
+so a grammar that publishes four ways pays four times for every rule they share.
+
+**Answer:** —
