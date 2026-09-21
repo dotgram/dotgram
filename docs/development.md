@@ -328,6 +328,31 @@ into a consumer's assembly is in `.claude/rules/emitted-code.md`. Those three ar
 reading once before the first change and not again. The fourth, `.claude/rules/profiling.md`,
 is worth reading before measuring the generator.
 
+## Applying a style rule to the whole tree
+
+`dotnet format` has three entry points, and two of them answer a question you did not ask.
+
+- `dotnet format <project> --diagnostics IDE0022 …` also **reformats whitespace**, whatever
+  the diagnostics say. On this tree that means rewriting the grammars that live in raw
+  strings, which is thousands of lines nobody asked for.
+- `dotnet format analyzers --diagnostics IDE0022 …` **does not see IDE rules at all** and
+  exits silently reporting no changes. Believe it and you conclude there is nothing to fix.
+- `dotnet format style --diagnostics IDE0022 IDE0021 IDE0061 --severity error` is the one
+  that applies them. It sorts using directives as it goes, which is a second change: revert
+  that separately if the commit is meant to carry one.
+
+A rule in `.editorconfig` is seen by an editor and by `dotnet format`, and by nothing else
+unless `EnforceCodeStyleInBuild` is on — it is, in `Directory.Build.props`, and that is what
+makes a style rule fail a build rather than wait to be noticed. Its cost was measured at six
+full rebuilds alternating: below what that measurement resolves.
+
+After a pass of this size, check that nothing but the intended form changed by comparing the
+**token stream** of every changed file against the revision before it, with the tokens the
+rewrite adds and drops (`{`, `}`, `return`, `=>`) removed from both sides. Compare token
+*text*, not token kind: two identifiers are both identifiers, and a checker that compares
+kinds passes a renamed one. Try the checker against a change it must refuse before trusting
+what it says about the pass.
+
 ## What a change owes
 
 - A grammar-level feature owes a row in the [`status.md`](status.md) table, in the column
