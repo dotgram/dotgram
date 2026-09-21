@@ -2406,3 +2406,183 @@ filled at run time without losing what a compile-time constant gives on the hot 
   what a large dictionary suggests it might, it is the consumer's switch rather than our default.
   Neither is a reason not to build it; both are reasons to know the number before it is on by
   default.
+
+## Q26 (2026-09-20). The FIX package's API says one thing two ways, in two places, and a third place says half of it
+
+Igor's, who asked for the package to be read for a redundant API. Read at `5508b1ed`. Counted off
+the public surface only: `FixConvert`, `FixFieldFactory`, `FixPrimitives`, `FixSchema`,
+`FixSemantics` and `FixValidation` are internal, so their members are not surface and are not
+counted, which removes most of what a naive count would have reported.
+
+**1. Two carriers for one setting, and ten public methods exist only to spell the shorter one.**
+`FixParseOptions` has a one-argument constructor, `FixParseOptions(FixParseMode mode =
+FixParseMode.Strict)`. So every public `…(input, mode)` is exactly `…(input, new
+FixParseOptions(mode))`, and the package offers both everywhere:
+
+| | with `FixParseMode` | with `FixParseOptions` |
+| --- | --- | --- |
+| `FixMessages.Parse` / `TryParse` over `string` and `ReadOnlySpan<char>` | 4 | 4 |
+| `FixMessages.Parse` / `TryParse` / `ReadMessages` over `TextReader` and `Stream` | 6 | 6 |
+
+**Ten of the message layer's twenty-three public methods are there to save writing one
+constructor**, and the streaming half is an exact duplication — three verbs over two input types,
+twice. That the options object is the richer carrier is not an opinion: `FixMessages.cs:223` already
+reconciles the two by reading `options?.Mode ?? FixParseMode.Strict`, so one of them is derived from
+the other inside the package.
+
+**2. The same choice is a parameter in one layer and a method name in the other.** Framing —
+wire or log — is a property of `FixParseOptions` (`FixFraming`), and at the message layer
+`ParseLog(string, mode)` is a one-line alias for `Parse(input, new FixParseOptions(FixFraming.Log,
+mode))`. At the field layer it is not a value at all: `FixParser` has `Parse` five times and
+`ParseLog` five times, over `string`, `ReadOnlySpan<char>`, `TextReader`, `Stream` and `byte[]`.
+**Half of `FixParser`'s ten methods are the other half with a different separator**, and the type
+that already models the choice — `FixFieldOptions` — does not carry it, while the type one layer up
+does. Either framing belongs in the options object at both layers, or it belongs in the name at
+both; it is the disagreement that costs.
+
+**3. Five public overloads whose body is `.ToString()`.** Four in `FixMessages` and one in
+`FixParser` take `ReadOnlySpan<char>` and immediately copy it into a string. **They are documented
+as doing it** — "Copies the contiguous input once so the result owns its source", and `FixParser`'s
+remark says the parser reads strings — so this is honest and not a trap, which is why it is third
+and not first. The question is only whether a public overload earns its place when its whole body is
+a call the caller could write, and would then see the cost of at their own call site rather than
+behind ours.
+
+**4. And one that is not redundancy but its opposite, found by the same reading.** `FixNumber`
+exposes three members — `Value`, `TryGetDecimal`, `ToString` — each a delegation to the
+`FixFieldView` it wraps. `FixFieldView` has a fourth, `TryGetInt64`, and `FixNumber` does not
+forward it. The generated accessors that return `FixNumber?` include `BeginSeqNo`, `EndSeqNo`,
+`NewSeqNo`, `RefSeqNum`, `RefTagID`, `EncodedTextLen` — **sequence numbers and lengths, which are
+integers**, and the one accessor an integer wants is the one the wrapper leaves behind. A consumer
+reading a sequence number today goes through `decimal` or through the string. Nothing about that is
+redundant; it is a missing forward in a type whose only job is forwarding, and it turned up in an
+audit for the other thing.
+
+**What would settle 1 and 2, and it is a decision rather than a measurement.** Whether the package's
+API is meant to be small with one configuration object, or wide with a short form for the common
+case. Both are defensible; today it is both at once, and the cost is that every future setting has
+to be added twice, in a table that is already 10 of 23. That cost is not paid by the reader of the
+documentation, who sees two rows where there is one idea — it is paid by whoever adds the third
+setting.
+
+**Answer:** —
+
+**Read in the wrong branch, and three corrections follow — two of them theirs and one of them mine
+(critic, read at `2b0332b6` in `P:\dotgram.WorkTrees\finance`, branch `codex/finance`).** Q26 above
+was counted off `main`. The package's owner had removed `FixParseMode` the same day (D53/D69), and
+that work is unpushed because nobody has a network, so `main` still carries the older shape. The
+rule this file already lives by — a verification names its revision — needs a clause it did not
+have: **where an area has an owner who is working in it, the revision to read is their branch, not
+`main`.** Fetching would not have helped; the branch is local to their worktree, which is on this
+machine and was one `cd` away.
+
+**What died with the old shape, and it is the argument rather than the count.** Q26 §1 rested on
+`FixParseOptions(FixParseMode mode = Strict)` and on `FixMessages.cs:223` reconciling two carriers
+with `options?.Mode ?? FixParseMode.Strict`. Neither exists at `2b0332b6`: `FixParseMode` is gone
+from the surface — two mentions survive in a comment in the new `FixValidator.cs`, explaining what
+it used to check — and `FixValidation` is gone with it.
+
+**What survived, and the owner's reframing is better than mine.** Counted again in their tree: the
+message layer still has **23 public methods and ten are still the redundant half** — but the pairs
+are no longer mode against options, they are **absent options against present options**:
+`Parse(string)` beside `Parse(string, FixParseOptions)`, four such over `string` and
+`ReadOnlySpan<char>`, six more over `TextReader` and `Stream`. And the part I had missed: **the
+layer below already writes it the right way.** `FixParser.Parse(string input, FixFieldOptions?
+options = null)` is one method where the layer above has two, and it is one method ten times over.
+So this is not the taste question I framed it as — narrow API against wide — it is one layer not
+following an idiom its own neighbour already uses. Ten methods disappear by writing
+`FixParseOptions? options = null`, with one real consequence the owner names: on the streaming forms
+`maxMessageLength` follows the options, so `Parse(reader, 4096)` stops compiling. Free before
+release and not after.
+
+**And a miscount that was mine in my own revision.** Q26 §3 says five overloads whose body is
+`.ToString()` — "four in `FixMessages` and one in `FixParser`". It is **six**: `FixParser` has two,
+`Parse` and `ParseLog`, both taking `ReadOnlySpan<char>`, and both were in the dump I was reading
+when I wrote the sentence. The count was wrong on the revision I had, not only on theirs.
+
+**§2 stands unchanged and was not touched by the removal.** `FixParser` still has `Parse` five times
+and `ParseLog` five times; `FixParseOptions` carries `FixFraming` as a value and `FixFieldOptions`
+carries no such thing, so the lower layer could not move framing into its options even if it wanted
+to. The disagreement between the layers is real.
+
+**The point worth keeping from how this went.** A count of ten out of twenty-three survived the
+removal of the whole construct it was counted from. That is exactly when a number must be recounted
+rather than carried — the same reading can be true of two different arrangements and mean something
+different in each — and the owner recounted it rather than quoting mine back at me.
+
+**Both of the owner's further fixes verified, and one fact they surface (critic, read at `b471dbf5`,
+`codex/finance`).** `FixParseMode` now appears nowhere in `src/DotGram.Finance` — zero matches, so
+the shipped XML documentation no longer explains a member through a type the package does not have
+— and the release notes name the third break in the terms a consumer needs: what is **returned and
+reported on** where the strict mode used to turn it away, listed finding by finding, and what still
+refuses because the reader cannot defer it — framing, `BodyLength`, `CheckSum`, an unreadable field,
+a length/data pair that does not measure, a `NumInGroup` past the fields left, a group entry without
+its delimiter. "Validation has moved" would have told a consumer nothing about whether their message
+still parses; this tells them.
+
+**And the fact, which is not about this package's API at all.** The release notes end with
+"`DotGram.Finance.Generator` compiles a counterparty's dictionary into one", so I looked for it
+rather than assume: it is a real project in the solution — `FixDictionaryGenerator`, an `Emitter`
+that writes "Written from a FIX dictionary by DotGram.Finance.Generator" — with a package smoke test
+and pack steps in `docs/development.md`. **So the build-time half of the dictionary plan is not
+future work; it is in the tree.** That makes D71's decision concrete rather than prospective: the
+reader whose sharing was decided this evening is that project's reader, and whichever way the
+staleness guard is built, it is built against something that already exists. Worth saying because
+the plan was being discussed in stages as though all three lay ahead.
+
+**Answer:** —
+
+**Answer (architect, 2026-09-20, D80).** The correction taken in a more general form than it was
+raised in: a review of an area that changed underneath it is **recounted by its numbers, not
+re-read by its conclusion** — the count survived, the argument did not, and the area's owner
+recounted and gave a better formulation than either of us had. The clause about revisions is
+confirmed: where an area has an owner working in it, read their branch, not `main`, because the
+network fell over for hours today and half the work lives in local branches on this machine — one
+`cd` rather than a fetch.
+
+And on the generator already existing, the consequence the architect drew is worth keeping beside
+this entry, because it generalises past FIX: **a chosen answer is designed, a read answer is
+verified, and the second is cheaper and more honest.** The staleness guard is built against a reader
+that exists, so the first thing to do is read what that reader already does when the file and the
+tables disagree — not to design what it should do.
+
+## Q27 (2026-09-20). Is `FixFieldOptions` needed at all — and the question points at the wrong type
+
+Igor's, asked as whether `FixFieldOptions` earns its place. Read at `f99beb6f`, `codex/finance`,
+which is where the package is being changed.
+
+**The answer is the other way round.** `FixFieldOptions` is the one that must exist, and
+`FixParseOptions` is the one that today carries almost nothing.
+
+- **`FixFieldOptions` holds computed state and is the only place it can live.** Its internals are
+  `Kind(tag)`, `DataTag(lengthTag)` and `IsData(tag)` over the per-tag table that D25's compromise
+  exists for: the package's sixteen length/data pairs merged with the consumer's, once, when the
+  options are built, so the grammar's guard reads one cell a field instead of asking a dictionary.
+  Remove the type and the table has nowhere to be built once; it would be rebuilt per parse or
+  passed as loose arguments. It earns its place.
+- **`FixParseOptions` is thirty-four lines that compute nothing.** Two constructors, one range check
+  on an enum, two auto-properties: `Framing` and a reference to a `FixFieldOptions`. Its entire
+  content beyond the other type is **one enum value**.
+
+**And merging it would settle Q26 §2 in passing.** Framing is a wire concern — `FixFraming` exists
+to yield a separator — so it belongs where the field reader can see it. Put it on `FixFieldOptions`
+and the field layer gains framing as a value, which is exactly what it lacks today: `FixParser`
+spells the choice as a method name instead, five `Parse` and five `ParseLog`. One options type for
+the package, one place to add the third setting, and the layer disagreement disappears rather than
+being argued about. The cost is 23 public signatures — 10 taking `FixFieldOptions`, 13 taking
+`FixParseOptions` — and Q26 §1 already proposes rewriting those ten.
+
+**The argument against, which is the one worth weighing, and it is about a fortnight from now.**
+D71 is about to give the package a loadable dictionary and a staleness guard. That is schema-level
+and not field-level: where the dictionary came from, what to do when it disagrees with the compiled
+tables, which schema to validate against. If that lands on `FixParseOptions`, the type stops being
+an empty wrapper and earns its name. **So the question is not "delete it" but "is it empty or is it
+early".** Whoever owns D71 knows where that state is going to live, and that answer settles this one
+— which is cheaper than deciding it on today's emptiness and re-splitting the type in a fortnight.
+
+**What would settle it.** One sentence from the dictionary work: does the loaded dictionary and its
+guard hang off the parse options, or off the validator? If the parse options, this entry closes with
+nothing to do. If the validator, `FixParseOptions` is one enum in a class of its own and should be
+folded.
+
+**Answer:** —
