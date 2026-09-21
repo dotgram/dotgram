@@ -140,6 +140,89 @@ static class FixRuleCompiled
 		}
 	}
 
+
+	/// <summary>
+	/// What it costs to keep many rules hot, measured over the SAME messages.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The first attempt at this compared one message type against all of them, which compares two
+	/// different sets of MESSAGES: a corpus of one type is one message's worth of work per message,
+	/// and the whole corpus averages over ninety-three. It cannot tell a cost of going wide from a
+	/// difference in what the messages hold, and it was read as if it could.
+	/// </para>
+	/// <para>
+	/// So the price is taken by arithmetic over identical messages instead. Every type is timed on
+	/// its own, which is as narrow as a hot set gets; those per-type costs are then weighted by how
+	/// many fixtures each type has, which is what the whole corpus WOULD cost if running them in
+	/// turn cost nothing extra. The measured corpus against that expectation is the price of going
+	/// wide, and the walk beside it is the control: it is one method whatever the message type, so
+	/// whatever it shows is what the measurement itself costs.
+	/// </para>
+	/// </remarks>
+	public static void Size(string[] args)
+	{
+		var rounds = args.Length > 0 ? int.Parse(args[0], System.Globalization.CultureInfo.InvariantCulture) : 7;
+		var repeat = args.Length > 1 ? int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 300;
+
+		var root = Repository();
+
+		FixDictionary dictionary;
+
+		using (var input = File.OpenRead(Path.Combine(root, "tests", "Corpus", "Fix", "FIX44.xml")))
+			dictionary = FixDictionary.Load(input);
+
+		var messages = Fixtures(root).ToArray();
+		var byType   = messages.GroupBy(message => message.MessageType).ToArray();
+
+		var walk = new FixValidator();
+
+		walk.Load(dictionary);
+
+		Price("the walk", walk, messages, byType, repeat, rounds, 0);
+
+		foreach (var lean in new[] { 0, 1, 2 })
+		{
+			var composer   = new FixRuleComposer(dictionary, lean);
+			var characters = dictionary.MessageTypes.Sum(type => (long)composer.Rule(type).Length);
+			var validator  = new FixValidator();
+
+			validator.Load(Compile(dictionary, composer));
+
+			Price(lean == 0 ? "full rules" : lean == 1 ? "no values" : "no switch", validator, messages, byType, repeat, rounds, characters);
+		}
+	}
+
+	static void Price(
+		string                              what,
+		FixValidator                        validator,
+		FixMessage[]                        messages,
+		IGrouping<string, FixMessage>[]     byType,
+		int                                 repeat,
+		int                                 rounds,
+		long                                characters)
+	{
+		Warm(messages, validator, repeat);
+
+		var narrow = 0.0;
+
+		foreach (var group in byType)
+		{
+			var one = group.ToArray();
+
+			narrow += Fastest(one, validator, repeat, rounds) * one.Length;
+		}
+
+		narrow /= messages.Length;
+
+		var wide = Fastest(messages, validator, repeat, rounds);
+
+		Console.WriteLine(
+			$"{what,-11}{(characters == 0 ? "" : $" ({characters:N0} characters)")}: " +
+			$"one type at a time {narrow:F0} ns/message, all of them {wide:F0} ns/message, " +
+			$"going wide costs {wide / narrow:F2}x");
+	}
+
 	static Dictionary<string, FixMessageRule> Compile(FixDictionary dictionary, FixRuleComposer composer)
 	{
 		var tables   = new DictionaryTables(dictionary);

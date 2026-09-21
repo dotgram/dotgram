@@ -31,8 +31,20 @@ namespace DotGram.Finance.Fix;
 /// disagree with each other.
 /// </para>
 /// </remarks>
-sealed class FixRuleComposer(FixDictionary dictionary)
+sealed class FixRuleComposer(FixDictionary dictionary, int lean = 0)
 {
+	/// <summary>
+	/// How much of the rule to leave out: 0 all of it, 1 without the value checks and the
+	/// length/data scan, 2 without the membership switch as well.
+	/// </summary>
+	/// <remarks>
+	/// Not an option anybody is offered: it exists so that the SAME rules can be built small and
+	/// large and the difference measured. A compiled rule's price turned out to follow how many of
+	/// them are hot rather than what they do, which is a claim about code — and a claim about code
+	/// is tested by taking code away, a layer at a time, and nothing else with it.
+	/// </remarks>
+	readonly int lean = lean;
+
 	readonly List<string>    constants = [];
 	readonly HashSet<string> declared  = [];
 
@@ -119,7 +131,7 @@ sealed class FixRuleComposer(FixDictionary dictionary)
 		Line(at + 1, $"FixFieldSet {scope} = {source};");
 		Line(at + 1, $"ulong[] {seen} = new ulong[15];");
 
-		if (groupTag != 0)
+		if (groupTag != 0 && lean < 2)
 			Line(at + 1, $"int {rank} = -1;");
 
 		Blank();
@@ -127,19 +139,24 @@ sealed class FixRuleComposer(FixDictionary dictionary)
 		Line(at + 1, "{");
 		Line(at + 2, $"FixFieldView field = node.Field({scope}.Source);");
 		Blank();
-		Line(at + 2, "switch (node.Tag)");
-		Line(at + 2, "{");
+		// Level 2 writes no switch at all. It is not a validator -- it cannot say that a tag does not
+		// belong -- and exists only to ask whether the switch is what the wide runs are paying for.
+		if (lean < 2)
+		{
+			Line(at + 2, "switch (node.Tag)");
+			Line(at + 2, "{");
 
-		var ranks = groupTag == 0 ? null : Ranks(schema);
+			var ranks = groupTag == 0 ? null : Ranks(schema);
 
-		foreach (var tag in Members(schema))
-			Case(at + 3, tag, where, ranks, rank, groupTag, entry);
+			foreach (var tag in Members(schema))
+				Case(at + 3, tag, where, ranks, rank, groupTag, entry);
 
-		Line(at + 3, "default:");
-		Line(at + 4, $"FixRuleSupport.NotInScope(tables, found, {Where(where)}, field, {groupTag}, {entry});");
-		Line(at + 4, "break;");
-		Line(at + 2, "}");
-		Blank();
+			Line(at + 3, "default:");
+			Line(at + 4, $"FixRuleSupport.NotInScope(tables, found, {Where(where)}, field, {groupTag}, {entry});");
+			Line(at + 4, "break;");
+			Line(at + 2, "}");
+			Blank();
+		}
 		Line(at + 2, $"if (FixRuleSupport.Seen({seen}, node.Tag))");
 		Line(at + 3, $"found.Add(FixRuleSupport.Wrong(FixRule.DuplicateField, {Where(where)}, field, {groupTag}, {entry},");
 		Line(at + 4, "\"The tag appears more than once in this scope.\"));");
@@ -147,8 +164,11 @@ sealed class FixRuleComposer(FixDictionary dictionary)
 		Line(at + 2, $"FixRuleSupport.Mark({seen}, node.Tag);");
 		Line(at + 1, "}");
 		Blank();
-		Line(at + 1, $"FixRuleSupport.Pairs(tables, found, {scope}, {Where(where)}, {groupTag}, {entry});");
-		Blank();
+		if (lean == 0)
+		{
+			Line(at + 1, $"FixRuleSupport.Pairs(tables, found, {scope}, {Where(where)}, {groupTag}, {entry});");
+			Blank();
+		}
 
 		References(at + 1, schema, where, groupTag, entry, depth);
 
@@ -173,7 +193,7 @@ sealed class FixRuleComposer(FixDictionary dictionary)
 			Blank();
 		}
 
-		var type = FixVocabulary.Of(dictionary.CodeType(tag));
+		var type = lean > 0 ? FixValueType.None : FixVocabulary.Of(dictionary.CodeType(tag));
 
 		if (type != FixValueType.None)
 		{
