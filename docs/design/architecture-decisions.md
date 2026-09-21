@@ -8521,3 +8521,37 @@ three slots of some eight megabytes each, twenty-four of the thirty-five we woul
 re-enter at all, and a readout after a suite run rather than a stand row. Not to order the work,
 which the first count settled, but because a slot that never fills in any shipped grammar is not a
 slot to release; it is a slot to question.
+
+**The spare's release, read in the emitted text before landing.** The new weak slot is the **last**
+branch of `Rent`, after the spare, the deeper array, the parked slot and its weak retake, so an
+ordinary rental never evaluates it — which is the flagged concern answered by reading rather than
+by either of our accounts of it.
+
+**Both constants are arguments, and both are grounded in the data rather than in taste.** The
+quantity compared is the **record tables against this parse's record count**, not the store against
+its use: a dense store's three hundred value tables each grow to the largest record index written
+in them, so their capacities sum to several times the record count **even when every one fits** —
+the readout's own 305 arrays and 1.43 M elements are that arithmetic — and a test on the total
+would demote a perfectly fitted store. `Live` doubles to hold the records, so room and use are read
+in one unit.
+
+**And the factor is four because growth doubles.** A table grows to the larger of the count and
+twice its length, so a store serving a steady workload sits between once and twice what that
+workload needs: **one doubling is ordinary slack**, and a threshold at twice would demote the spare
+of every steady parse in the world every eight parses — a behaviour change on the common path
+dressed as a bound. Two doublings cannot be reached by slack, only by a workload that actually
+shrank, which is the thing the release exists to notice.
+
+**A second construct this night that would have broken a consumer's build, caught by the same
+guard.** A pool with marks and no stacks has no usage to read, and the first form gave it the
+constant `false`, which emits `if (!(false))` — CS0162, unreachable code — plus two fields nothing
+assigns. It failed in the Visual Studio tests at net472: **in the consumer-shaped build and not in
+ours.** After the CS0649 pragma this is the second, and both were caught by the one project whose
+whole assertion is that a build succeeds. That project earns its place twice over, and the argument
+for running it early rather than last is now made of two instances instead of none.
+
+**Landing on a transitions test, pairing after — and the pair must force a collection.** The
+counter is read at every step, because a counter that never advances and one that advances and
+resets are the same from outside. And the retained reading that follows has to force a collection
+before it looks: a released store is weakly held, and the instrument that could not tell released
+from released-and-retaken was this same reading without that step.
