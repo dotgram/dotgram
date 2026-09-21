@@ -1,0 +1,68 @@
+# BenchmarkDotNet run fix-hot, 2026-09-21 11:17 - 11:40
+
+Assembly P:\dotgram.WorkTrees\finance\.work\qfcompare\bin\Release\net10.0\qfcompare.dll, commit library d476b533, main d476b533 (qfcompare built outside the repository, ProjectReference to the library). Arguments: --filter *FixAgainstQuickFix*. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Quiet check before the start: 2.2% of the machine (0.7 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.312; claude (pid 36144) 0.062; explorer (pid 15080) 0.057.
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 60 workers (its log), 58 were read; the others ended between two reads, and the mask they had is the inherited one, not a reading.
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 57264 | 0xFFFF | High | 11:17:12 |
+| 46684 | 0xFFFF | High | 11:17:31 |
+| 44872 | 0xFFFF | High | 11:17:47 |
+| 54328 | 0xFFFF | High | 11:18:13 |
+| 48164 | 0xFFFF | High | 11:18:31 |
+| 46452 | 0xFFFF | High | 11:18:54 |
+| 11800 | 0xFFFF | High | 11:19:13 |
+| 54840 | 0xFFFF | High | 11:19:40 |
+| 58832 | 0xFFFF | High | 11:19:55 |
+| 49760 | 0xFFFF | High | 11:20:16 |
+| 25868 | 0xFFFF | High | 11:20:32 |
+| 50612 | 0xFFFF | High | 11:21:06 |
+| 52068 | 0xFFFF | High | 11:21:21 |
+| 41624 | 0xFFFF | High | 11:21:43 |
+| 54816 | 0xFFFF | High | 11:22:07 |
+| 56436 | 0xFFFF | High | 11:22:30 |
+| 53108 | 0xFFFF | High | 11:22:52 |
+| 49068 | 0xFFFF | High | 11:23:09 |
+| 53304 | 0xFFFF | High | 11:24:04 |
+| 53940 | 0xFFFF | High | 11:24:31 |
+| 42920 | 0xFFFF | High | 11:24:48 |
+| 51460 | 0xFFFF | High | 11:25:35 |
+| 59028 | 0xFFFF | High | 11:25:58 |
+| 56176 | 0xFFFF | High | 11:26:23 |
+| 60320 | 0xFFFF | High | 11:26:38 |
+| 59296 | 0xFFFF | High | 11:27:06 |
+| 4760 | 0xFFFF | High | 11:27:34 |
+| 38496 | 0xFFFF | High | 11:27:53 |
+| 39780 | 0xFFFF | High | 11:28:18 |
+| 59580 | 0xFFFF | High | 11:28:43 |
+| 10040 | 0xFFFF | High | 11:29:10 |
+| 50892 | 0xFFFF | High | 11:29:28 |
+| 45660 | 0xFFFF | High | 11:29:46 |
+| 41436 | 0xFFFF | High | 11:30:11 |
+| 58680 | 0xFFFF | High | 11:30:40 |
+| 58996 | 0xFFFF | High | 11:31:03 |
+| 58052 | 0xFFFF | High | 11:31:23 |
+| 60328 | 0xFFFF | High | 11:31:50 |
+| 45036 | 0xFFFF | High | 11:32:13 |
+| 43980 | 0xFFFF | High | 11:32:57 |
+| 47948 | 0xFFFF | High | 11:33:42 |
+| 39692 | 0xFFFF | High | 11:33:59 |
+| 57028 | 0xFFFF | High | 11:34:26 |
+| 49216 | 0xFFFF | High | 11:34:50 |
+| 20024 | 0xFFFF | High | 11:35:20 |
+| 46736 | 0xFFFF | High | 11:35:42 |
+| 52920 | 0xFFFF | High | 11:35:58 |
+| 23832 | 0xFFFF | High | 11:36:48 |
+| 43776 | 0xFFFF | High | 11:37:04 |
+| 45716 | 0xFFFF | High | 11:37:42 |
+| 50408 | 0xFFFF | High | 11:38:07 |
+| 44280 | 0xFFFF | High | 11:38:30 |
+| 41520 | 0xFFFF | High | 11:38:47 |
+| 55464 | 0xFFFF | High | 11:39:12 |
+| 59508 | 0xFFFF | High | 11:39:30 |
+| 43300 | 0xFFFF | High | 11:39:51 |
+| 7020 | 0xFFFF | High | 11:40:13 |
+| 26864 | 0xFFFF | High | 11:40:38 |

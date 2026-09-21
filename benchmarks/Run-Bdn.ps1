@@ -38,7 +38,9 @@ param(
 	[UInt64]$Affinity = 0xFFFF,
 	[string]$Root = 'T:\TEMP\dotgram-bdn',
 	[string]$Note = '',
-	[string]$Commit = ''
+	[string]$Commit = '',
+	[switch]$Within,
+	[switch]$Probe
 )
 
 $ErrorActionPreference = 'Stop'
@@ -53,7 +55,12 @@ if ($BdnArgs -contains '--inProcess' -or $BdnArgs -contains '-i') { Write-Error 
 
 if (-not (Test-Path $window)) { Write-Warning 'The announcement file did not exist (it is meant to exist always, idle when there is no window): something deleted it. It is created now.' }
 
-if (Test-Path $window) {
+# -Within: this run is one step of a window that its CALLER announced in the same process (benchmarks/Run-BdnQueue.ps1): the file must already say `pid <this process>`, and the step neither rewrites the announcement nor puts the file back to idle, so that the
+# window has no gap between its steps. The quiet check still runs before every step.
+if ($Within) {
+	if ((Get-Content $window -ErrorAction SilentlyContinue | Select-Object -First 1) -ne "pid $PID") { Write-Error '-Within needs the window to be announced by the calling process (the first line of the file must be its pid).'; exit 3 }
+}
+elseif (Test-Path $window) {
 	$owner = (Get-Content $window | Where-Object { $_ -like 'pid *' } | Select-Object -First 1)
 	$ownerPid = if ($owner) { [int]($owner.Substring(4)) } else { 0 }
 
@@ -98,13 +105,69 @@ if ($percent -gt $quietPercent -or $builders.Count -gt 0) {
 	exit 5
 }
 
+# THE STATE OF WHAT WILL BE MEASURED, read and never asserted (2026-09-21: BenchmarkDotNet does not run the dll it is given; at the start of every run it builds a generated project that references the benchmark
+# PROJECT, so it rebuilds the project and what it references from the SOURCES as they are then. A tree that somebody edits while a window is open is measured as edited, and a caller's sentence about the commit
+# hid what this script would have read: -Commit is now printed beside the reading and can never replace it.)
+function ProjectDirectory([string]$assemblyPath) {
+	$name = [IO.Path]::GetFileNameWithoutExtension($assemblyPath)
+
+	for ($dir = Split-Path $assemblyPath; $dir; $dir = Split-Path $dir) {
+		if (Test-Path (Join-Path $dir "$name.csproj")) { return $dir }
+	}
+
+	return $null
+}
+
+function SourceFiles([string]$dir) {
+	Get-ChildItem $dir -Recurse -File -Include '*.cs', '*.csproj', '*.props', '*.targets', '*.json' -ErrorAction SilentlyContinue |
+		Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' } | Sort-Object FullName
+}
+
+function SourceHash([string]$dir) {
+	$lines = foreach ($file in SourceFiles $dir) { "$($file.FullName.Substring($dir.Length)) $((Get-FileHash $file.FullName -Algorithm SHA256).Hash)" }
+
+	[BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n")))).Replace('-', '').Substring(0, 16)
+}
+
+$project      = ProjectDirectory $Assembly
+$stateLines   = @()
+$stateRefusal = @()
+$hashAtStart  = $null
+
+if (-not $project) {
+	$stateLines += "State of the sources: no project file named after the assembly was found above it, so BenchmarkDotNet's rebuild cannot be watched; the run is not quotable."
+	$stateRefusal += 'no project directory found for the assembly'
+}
+else {
+	$assemblyTime = (Get-Item $Assembly).LastWriteTime
+	$newer        = @(SourceFiles $project | Where-Object { $_.LastWriteTime -gt $assemblyTime })
+	$hashAtStart  = SourceHash $project
+	$root         = git -C $project rev-parse --show-toplevel 2>$null
+	$head         = if ($root) { (git -C $root rev-parse --short HEAD) } else { 'not in a repository' }
+	$tracked      = if ($root) { @(git -C $root status --porcelain --untracked-files=no 2>$null) } else { @() }
+	$untracked    = if ($root) { @(git -C $root status --porcelain -- $project 2>$null | Where-Object { $_ -like '`?`?*' }) } else { @() }
+	$stateLines  += "State of the sources, read at $((Get-Date).ToString('HH:mm:ss')): project $project; repository HEAD $head; $($tracked.Count) tracked files modified in the repository, $($untracked.Count) untracked (not ignored) in the project (a benchmark project outside the repository is untracked by design: the source hash below is what watches it); source hash of the project $hashAtStart; $($newer.Count) source files NEWER than the assembly ($($assemblyTime.ToString('HH:mm:ss')))$(if ($newer.Count -gt 0) { ', newest ' + ($newer | Sort-Object LastWriteTime -Descending | Select-Object -First 1).Name + ' at ' + ($newer | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.ToString('HH:mm:ss') })."
+
+	if ($tracked.Count -gt 0) { $stateRefusal += "the repository has $($tracked.Count) modified tracked files ($(($tracked | Select-Object -First 3) -join '; '))" }
+	if ($newer.Count -gt 0) { $stateRefusal += "$($newer.Count) source files are newer than the assembly, so BenchmarkDotNet will build something other than the assembly it was given" }
+}
+
+if ($Commit) { $stateLines += "Caller says: $Commit (a sentence, printed beside the reading above and never in place of it)." }
+
+$stateLines
+
+if ($stateRefusal.Count -gt 0) {
+	if ($Probe) { $stateLines += "PROBE: a run marked a probe is allowed on this state, and its numbers are not to be quoted ($($stateRefusal -join '; '))." }
+	else { Write-Error "The tree is not in a state to be measured: $($stateRefusal -join '; '). A quotable run needs a clean, frozen tree built once before the window (or -Probe, and the numbers are then not quoted). Nothing was announced or started."; exit 5 }
+}
+
 New-Item -ItemType Directory -Force $out | Out-Null
 
 $started = Get-Date
 $until   = $started.AddMinutes($LimitMinutes)
 $what    = "Run-Bdn.ps1 $Label $($BdnArgs -join ' ')$(if ($Note) { ' [' + $Note + ']' })"
 
-Set-Content $window @("pid $PID", "started $($started.ToString('yyyy-MM-dd HH:mm:ss'))", "until $($until.ToString('yyyy-MM-dd HH:mm:ss'))", "what $what")
+if (-not $Within) { Set-Content $window @("pid $PID", "started $($started.ToString('yyyy-MM-dd HH:mm:ss'))", "until $($until.ToString('yyyy-MM-dd HH:mm:ss'))", "what $what") }
 
 $me = Get-Process -Id $PID
 $me.ProcessorAffinity = [IntPtr][int64]$Affinity
@@ -176,13 +239,17 @@ try {
 }
 finally {
 	# The file stays and says idle: its absence must mean "something is wrong with the stand", never "no window" (benchmarks/Window.ps1).
-	if ((Test-Path $window) -and ((Get-Content $window | Select-Object -First 1) -eq "pid $PID")) { Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", "why the window of pid $PID ended: $what") }
+	if (-not $Within -and (Test-Path $window) -and ((Get-Content $window | Select-Object -First 1) -eq "pid $PID")) { Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", "why the window of pid $PID ended: $what") }
 }
 
 if (-not $failure -and -not $truncated -and $checked.Count -eq 0) { $failure = 'no benchmark worker was seen, so no case was checked: the run measured nothing this script can vouch for' }
 
+$hashAtEnd = if ($project) { SourceHash $project } else { $null }
+
+if ($project -and $hashAtEnd -ne $hashAtStart) { $failure = "the sources of the project changed while the run was going (source hash $hashAtStart at the start, $hashAtEnd at the end): BenchmarkDotNet builds from them, so what was measured is not what the start line says" }
+
 $executed = if (Test-Path (Join-Path $out 'bdn.log')) { @(Select-String -Path (Join-Path $out 'bdn.log') -Pattern '^// Execute:').Count } else { 0 }
-$commit = if ($Commit) { $Commit } elseif ($repo) { (git -C $repo rev-parse --short HEAD) + $(if (git -C $repo status --porcelain 2>$null) { ' (+ uncommitted changes)' } else { '' }) } else { 'no repository' }
+$commit = if ($repo) { (git -C $repo rev-parse --short HEAD) + $(if (git -C $repo status --porcelain 2>$null) { ' (+ uncommitted changes)' } else { '' }) } else { 'no repository' }
 $jit    = 'DOTNET_TieredCompilation', 'DOTNET_TieredPGO', 'DOTNET_TC_QuickJitForLoops', 'DOTNET_ReadyToRun' | ForEach-Object { $v = [Environment]::GetEnvironmentVariable($_); if ($v) { "$_=$v" } else { "$_ unset" } }
 
 $report = @(
@@ -192,6 +259,8 @@ $report = @(
 	"JIT: $($jit -join ', ') (unset is the runtime's default: tiered compilation on, dynamic PGO on).",
 	$(if ($Note) { "**$Note**" }),
 	$quiet,
+	$stateLines,
+	"Source hash at the end: $hashAtEnd$(if ($hashAtEnd -eq $hashAtStart) { ' (the same as at the start)' } else { ' (NOT the same as at the start)' }).",
 	"Exit code: $(if ($null -ne $exit) { $exit } else { 'none (stopped)' }). $(if ($truncated) { 'STOPPED at the limit of ' + $LimitMinutes + ' minutes: the results are incomplete.' })",
 	$(if ($failure) { "**FAILED: $failure**" } else { "Every worker that was read back from the operating system was on the mask. Coverage: BDN executed $executed workers (its log), $($checked.Count) were read$(if ($checked.Count -lt $executed) { '; the others ended between two reads, and the mask they had is the inherited one, not a reading' })." }),
 	'',
@@ -204,4 +273,5 @@ Set-Content (Join-Path $out 'run.txt') $report
 $report
 if ($failure) { exit 4 }
 if ($truncated) { exit 6 }
-if ($exit) { exit $exit }
+# An explicit code on every path: a caller (Run-BdnQueue.ps1) reads $LASTEXITCODE, and a stale one left by a failed `git` above would stop its queue.
+exit $(if ($exit) { $exit } else { 0 })
