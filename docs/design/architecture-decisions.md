@@ -8395,3 +8395,32 @@ small SQL parse matters, the answer is enough runs to bring the disagreement und
 different order of machine time, and a decision about the stand rather than about this chain. Not
 started, and worth **pricing** on its own: a stand that cannot resolve one per cent cannot answer
 any future question at that scale either, and there will be more of them.
+
+**And the numbers behind that, now that the stand has given them.** The throwaway's pair disagrees
+by up to **1.8 points** when there is nothing to find, with an A/A of ±1.9. So the experiment
+establishes "the capture costs less than about one to two per cent" — and the lean is one to three.
+A cost of 1.8 is **not excluded**; on some rows it could be most of it. The honest sentence is that
+the capture **is not shown to be the cause and is not shown not to be**, and the zero goes into the
+README with its resolution beside it so nobody reads it as tighter than it is.
+
+**A null result from an instrument whose resolution is the size of the effect is not evidence of
+absence** — and it is hardest to see when the null points away from you, which is the direction a
+careful person has been trained to trust.
+
+**The alternative is priced, which is what closes the question.** ±0.5 points needs forty runs an
+order: about five hours for both orders without the A/A, ten with, in windows nobody else can use.
+And that buys the NUMBER, not the cause — each one-line subtraction would then need its own forty
+runs to read a half-per-cent share. Ten hours for a figure, and multiples of it for an attribution,
+against a one-to-three per cent lean on the common path. Not now, and the price is in the record so
+that "not now" can be revisited with the cost already known.
+
+**So the sentence is: a one-to-three per cent lean on small SQL parses, sign stable under exchange
+of order, cause unattributable at the stand's present resolution, which is ±1.8 points at ten runs
+an order.** The resolution belongs in the sentence; without it a later reader repeats tonight
+exactly, including the part where a flat throwaway looks like an acquittal.
+
+**And the reason this one needed two sessions is worth keeping.** Three of tonight's corrections
+were arithmetic their author could have done alone. This one was not: **the resolution of an
+instrument is knowledge its owner holds**, and the person reading the number usually cannot derive
+it. So a figure handed over carries its resolution the way it carries its units — and where the
+receiver cannot ask, the owner volunteers it.
