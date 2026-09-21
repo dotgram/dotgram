@@ -7606,3 +7606,34 @@ reasonable, mine to caveat, and stated as a caveat — that compilation would be
 The dictionary road's advantage is flexibility; the compiled-in road's advantage is a fast start
 AND the speed on wide traffic. A result announced as desired before it was measured is exactly
 where a report needs to be flattest, and this one was.
+
+## D103 — A counter reset by the very event it exists to count
+
+The idle demotion never fires. `_largeIdle` is reset by every rental that takes the parked store,
+and the parked store is all the pool has once a large parse has returned it — so each following
+parse, however small, takes it and resets the counter. The counter can only advance when a rental
+is served from elsewhere WHILE the large store is also set, which needs two stores in flight, which
+needs nested parses. In the ordinary workload — one document at a time — the demotion is not slow,
+it is unreachable.
+
+**The comment describes an intention the mechanism cannot express**: "if eight parses in a row have
+not wanted the large store". The pool has no notion of wanting. It hands out what it has, and a
+rental is therefore evidence of nothing. That is the second time tonight a comment has described
+something that was never built, and the two have the same tell — the sentence says what SHOULD
+decide, and no line under it reads that quantity.
+
+**The signal is the return, not the rental** — a parse tells you the size it needed only when it
+gives the store back. **But the returned store's capacity is the wrong quantity**, and using it
+would rebuild the same dead end: once the large store is handed out, every return has large
+capacity whatever the parse did. What advances the counter is the high-water USE of the parse just
+finished, which the store already tracks; a use past the bound resets it, a use below advances it,
+and eight small parses in a row demote a store they have been borrowing all along. That is the
+policy as written, for the first time.
+
+**And the ordering, which was the question asked.** The dense change is not shipped on its
+allocation figure while the release is broken. Its allocation win is real — about tenfold — and its
+retention is 0.4 to 1.3 GB held for the life of the thread, which is not the policy anyone
+approved; the approved policy was *keep the room, then let it go*. A change whose acceptability
+depends on a repair that has not been made is not ready, however separable the two are on paper.
+Repair first, then the pair, then the commit — and the parent is repaired on the same grounds,
+since it is on main and carries the same dead counter.
