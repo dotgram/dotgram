@@ -8625,3 +8625,43 @@ derivation we are refusing** — and it is the third time this week that one con
 to be two. The observing mechanism makes the question moot: where the answer is always "assigned",
 the conditional costs nothing and a grammar nobody has written yet cannot break it. **A regularity
 observed across the grammars we happen to ship is not a property of the emitter.**
+
+## D123 — Measuring ourselves against somebody else's library (Igor)
+
+Igor wants BenchmarkDotNet figures for SQL and, above all, for FIX, compared with the existing
+libraries in two modes: the schema compiled in, and a dictionary loaded from outside.
+
+**What is already there, read rather than recalled.** `ScriptDomBenchmarks` is a BenchmarkDotNet
+class and already measures us against ScriptDom — tokens, tree, located, grammar. QuickFIX/n is
+referenced too, but **only from the stand and only as a correctness oracle**: `FromString` with the
+dictionary, then `DataDictionary.Validate`, asked whether it accepts. There is no timing comparison
+with it anywhere, and `DotGram.Finance.Benchmarks` does not reference it at all. So the SQL side is
+an extension and the FIX side is new work.
+
+**The comparison is like for like, and where it cannot be, the asymmetry is the row's headline
+rather than its footnote.** Three conditions decide whether these numbers are worth taking:
+
+**The same work on both sides.** Their call parses and validates in one; ours parses and validates
+in two. So a row is *parse* against *parse*, and *parse and validate* against *parse and validate*
+— never one of ours against both of theirs.
+
+**The fields are read.** Ours is source-backed and lazy; theirs builds a field map eagerly. A row
+that parses and never looks at a field measures our laziness and calls it speed. **Every row reads
+a stated number of fields on both sides**, and says how many.
+
+**Their fast path, chosen from their documentation.** A competitor configured badly is not a
+measurement, it is a claim we would not let anyone make about us. What was chosen, and on what
+authority, goes in the file beside the number — as does their version, read from the package.
+
+**The two modes are ours; the asymmetry is the finding.** We have a schema compiled in and a
+dictionary loaded at run time; QuickFIX/n has only the second. That is not a flaw in the comparison
+— it is the thing the comparison is for, and it is stated where a reader meets it. Loading is its
+own row: their dictionary is read at construction, ours at `LoadDictionary`, and a startup cost
+belongs beside a steady-state one rather than inside it.
+
+**Allocation is measured with time**, since the road we did not take was chosen on allocation as
+much as on nanoseconds.
+
+**And nothing comparative reaches a shipped page without Igor.** Numbers about a named third
+party's software are exactly the claim a page of ours cannot keep true, which is already decided;
+internal, dated results files are where they live until he says otherwise.
