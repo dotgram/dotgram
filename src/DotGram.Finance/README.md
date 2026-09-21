@@ -300,12 +300,22 @@ want. A finding is the same story: where a message carries nine parties, `GroupT
 `EntryIndex` and `Position` are what say which one, and code that reads `Tag` alone throws
 that away.
 
-`message.Validate(validator)` holds it to a schema of your own instead. `FixValidator.Standard`
-is the shared default and refuses to be written to — make your own with `new FixValidator()`,
-and fill it either from a counterparty's QuickFIX dictionary, `validator.Load(FixDictionary.Load(stream))`,
-or one message type at a time, `validator["D"] = (message, findings) => …`. The last write wins,
-and `FixValidator.Compiled` puts this package's own rule back. The package ships nobody's
+**The rule lives in the class, because a message type and a class are the same thing here.**
+`Validate()` asks the `Rule` field of the class the message is; replacing a rule is assigning to
+that field — `FixMessage.NewOrderSingle.Rule = (message, findings) => …` — and undoing it is
+assigning the name back, `FixValidator.ValidateNewOrderSingle`. `FixValidator` is not an entry
+point: it holds the ninety-four rules this package compiles in, one named method a type, so that
+a replacement can be taken back.
+
+`FixParser.LoadDictionary(stream)` reads a counterparty's QuickFIX dictionary and writes the rule
+of every type it describes. It answers with nothing and throws where the file is not a dictionary
+it accepts, because validation holding half of one schema and half of another is worse than a
+refusal at the door. A type this package has no class for keeps no rule of its own and stays
+unknown; what to do about such a type is to write its class. The package ships nobody's
 dictionary: the file is yours, in your repository, and its licence obligations are yours with it.
+
+One field a class means **one configuration for the process**: two counterparties with two
+schemas at once is not expressible, and that is the trade this shape was chosen for.
 
 It is not a trading or session validator. Prose-only conditional requirements,
 sequence-number state, order economics, live ISO registry assignments and announced

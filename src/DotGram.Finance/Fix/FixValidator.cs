@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace DotGram.Finance.Fix;
 
@@ -8,8 +7,8 @@ namespace DotGram.Finance.Fix;
 /// <param name="findings">Where to put what is wrong; it may already hold findings of another rule.</param>
 /// <remarks>
 /// <para>
-/// One shape throughout, taking the base message, because one table holds them all. A rule written
-/// for a message type the package models casts to that type itself, knowing which it is.
+/// One shape throughout, taking the base message, because a rule written for a type is reached
+/// through that type's own field and already knows which it is.
 /// </para>
 /// <para>
 /// A rule is called once per message and may be called from several threads at once, so it must not
@@ -20,175 +19,587 @@ namespace DotGram.Finance.Fix;
 public delegate void FixMessageRule(FixMessage message, List<FixFinding> findings);
 
 /// <summary>
-/// The schema a message is held to, and the rules that hold it.
+/// The rules this package compiles in, one named method a message type.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A message is asked whether it is right — <see cref="FixMessage.Validate(FixValidator)"/> — and
-/// this is what it is asked against. Checking is a layer over a built message and not a mode of
-/// building one (D53): what a parse does is read the wire, what this does is hold the result to a
-/// schema. Keeping them apart is what lets a counterparty's dictionary be data — reading is fixed
-/// at build time and checking is not, so a schema richer than FIX 4.4's can arrive at run time
-/// without touching the parser.
+/// <strong>Not a way in.</strong> Nothing here is called to validate a message — that is
+/// <see cref="FixMessage.Validate"/>, and what it asks is the <c>Rule</c> field of the message's
+/// own class. What this class is for is the NAME: a consumer who replaces
+/// <c>FixMessage.NewOrderSingle.Rule</c> can put the package's own rule back by assigning
+/// <see cref="ValidateNewOrderSingle"/> to it, which is what makes a replacement undoable.
 /// </para>
 /// <para>
-/// <strong>The rules are a table, and it is the consumer's to write.</strong> A rule can be
-/// replaced at any moment, loading a dictionary is simply a call that writes many entries, and the
-/// last write wins. Nothing is restored for you and nothing is copied behind your back; putting an
-/// entry back is reading <see cref="Compiled"/> and writing it. Reading an entry while another
-/// thread replaces it is safe — a reader sees one rule or the other — and the one hazard is order:
-/// a dictionary loaded after a rule was replaced overwrites it.
-/// </para>
-/// <para>
-/// <strong><see cref="Standard"/> is shared and cannot be written to.</strong> It is what
-/// <see cref="FixMessage.Validate()"/> asks, so a write to it would change the answer for every
-/// caller in the process, including code that never asked for a dictionary to be loaded. Make your
-/// own with <c>new FixValidator()</c>, which starts from the same rules.
-/// </para>
-/// <para>
-/// It answers with every finding. A reader chasing a disagreement with a counterparty is ill
-/// served by a check that stops at the first: they would run it again for each of the rest.
+/// Every one of them holds the message to FIX 4.4 as this package compiles it: required fields and
+/// components, the order and uniqueness of a group entry's fields, primitive syntax, code sets, and
+/// the rule that <c>MessageEncoding</c> accompanies an <c>Encoded</c> field. They are one walk over
+/// one set of tables, reached by ninety-four names, because the name is the point and a second copy
+/// of the rules would be a second thing to disagree with the first.
 /// </para>
 /// </remarks>
-public sealed class FixValidator
+public static class FixValidator
 {
-	static readonly FixFinding[] _nothing = [];
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Custom"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCustom(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	readonly Dictionary<string, FixMessageRule> _rules;
-	readonly bool                               _shared;
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Heartbeat"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateHeartbeat(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	FixValidator(bool shared)
-	{
-		_rules       = new Dictionary<string, FixMessageRule>(StringComparer.Ordinal);
-		this._shared = shared;
-	}
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.TestRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateTestRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	/// <summary>A validator whose rules are the ones this package compiles in, and yours to replace.</summary>
-	public FixValidator() : this(shared: false) { }
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ResendRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateResendRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	/// <summary>The rules this package compiles in, shared by every caller and not written to.</summary>
-	/// <remarks>
-	/// FIX 4.4's schema as this package holds it: required fields and components, the order and
-	/// uniqueness of a group entry's fields, primitive syntax, code sets, and the rule that
-	/// <c>MessageEncoding</c> accompanies an <c>Encoded</c> field. What <see cref="FixMessage.Validate()"/>
-	/// asks when it is given nothing else.
-	/// </remarks>
-	public static FixValidator Standard { get; } = new(shared: true);
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Reject"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateReject(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	/// <summary>
-	/// The rule this package compiles in, which holds a message to FIX 4.4 whatever its type.
-	/// </summary>
-	/// <remarks>
-	/// The entry every message type starts at, and what to write back to undo a replacement. It is
-	/// one rule rather than one per type because it reads the type off the message it is given.
-	/// </remarks>
-	public static FixMessageRule Compiled { get; } =
-		static (message, findings) => FixRules.Check(CompiledTables.Instance, message, findings);
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SequenceReset"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSequenceReset(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	/// <summary>The rule a message type is held to.</summary>
-	/// <param name="messageType">The MsgType, tag 35.</param>
-	/// <value>
-	/// The rule written for that type, or <see cref="Compiled"/> where none has been: an entry is
-	/// never null, and a type nobody has written an entry for is held to the compiled rule, which
-	/// reports the type as unknown if the schema does not describe it.
-	/// </value>
-	/// <exception cref="ArgumentNullException"><paramref name="messageType"/> is null, or the value written is.</exception>
-	/// <exception cref="InvalidOperationException">
-	/// The validator is <see cref="Standard"/>, which is shared and cannot be written to.
-	/// </exception>
-	public FixMessageRule this[string messageType]
-	{
-		get
-		{
-			if (messageType is null)
-				throw new ArgumentNullException(nameof(messageType));
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Logout"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateLogout(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-			return _rules.TryGetValue(messageType, out var rule) ? rule : Compiled;
-		}
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.IOI"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateIOI(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		set
-		{
-			if (messageType is null)
-				throw new ArgumentNullException(nameof(messageType));
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Advertisement"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateAdvertisement(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-			if (value is null)
-				throw new ArgumentNullException(nameof(value));
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ExecutionReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateExecutionReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-			Mine();
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.OrderCancelReject"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateOrderCancelReject(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-			_rules[messageType] = value;
-		}
-	}
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Logon"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateLogon(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	/// <summary>
-	/// Writes a rule for every message type a dictionary describes, replacing what was there.
-	/// </summary>
-	/// <param name="dictionary">A dictionary some consumer read.</param>
-	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
-	/// <exception cref="InvalidOperationException">
-	/// The validator is <see cref="Standard"/>, which is shared and cannot be written to.
-	/// </exception>
-	/// <remarks>
-	/// Many entries, one call, and the last write wins: a type the dictionary does not describe is
-	/// left at whatever it was, and a rule replaced before this call is overwritten by it.
-	/// </remarks>
-	public void Load(FixDictionary dictionary)
-	{
-		if (dictionary is null)
-			throw new ArgumentNullException(nameof(dictionary));
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.News"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateNews(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		Mine();
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Email"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateEmail(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		var tables = new DictionaryTables(dictionary);
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.NewOrderSingle"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateNewOrderSingle(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		foreach (var type in dictionary.MessageTypes)
-			_rules[type] = (message, findings) => FixRules.Check(tables, message, findings);
-	}
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.NewOrderList"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateNewOrderList(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	/// <summary>Writes a rule for every entry of a table, replacing what was there.</summary>
-	/// <param name="rules">A table of rules, by MsgType.</param>
-	/// <exception cref="ArgumentNullException"><paramref name="rules"/> is null.</exception>
-	/// <exception cref="InvalidOperationException">
-	/// The validator is <see cref="Standard"/>, which is shared and cannot be written to.
-	/// </exception>
-	/// <remarks>
-	/// What a generated table is loaded through, and the only way to put two schemas into one
-	/// validator: load the first, load the second, and where they describe the same type the
-	/// second wins.
-	/// </remarks>
-	public void Load(IReadOnlyDictionary<string, FixMessageRule> rules)
-	{
-		if (rules is null)
-			throw new ArgumentNullException(nameof(rules));
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.OrderCancelRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateOrderCancelRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		Mine();
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.OrderCancelReplaceRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateOrderCancelReplaceRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		foreach (var rule in rules)
-		{
-			if (rule.Key is null || rule.Value is null)
-				throw new ArgumentException("A table holds no null type and no null rule.", nameof(rules));
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.OrderStatusRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateOrderStatusRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-			this._rules[rule.Key] = rule.Value;
-		}
-	}
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.AllocationInstruction"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateAllocationInstruction(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	void Mine()
-	{
-		if (_shared)
-			throw new InvalidOperationException(
-				"FixValidator.Standard is shared by every caller in the process and cannot be written to: " +
-				"a rule written here would change what FixMessage.Validate() answers for code that never " +
-				"asked. Use new FixValidator(), which starts from the same rules.");
-	}
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ListCancelRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateListCancelRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-	// A message is asked whether it is valid, so the verb is FixMessage.Validate and this is what
-	// stands behind it (D69). One public way in, and it reads the way a consumer says the thing.
-	internal FixFinding[] Check(FixMessage message)
-	{
-		var found = new List<FixFinding>();
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ListExecute"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateListExecute(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		this[message.MessageType](message, found);
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ListStatusRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateListStatusRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 
-		return found.Count == 0 ? _nothing : found.ToArray();
-	}
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ListStatus"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateListStatus(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.AllocationInstructionAck"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateAllocationInstructionAck(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.DontKnowTrade"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateDontKnowTrade(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.QuoteRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateQuoteRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Quote"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateQuote(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SettlementInstructions"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSettlementInstructions(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.MarketDataRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateMarketDataRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.MarketDataSnapshotFullRefresh"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateMarketDataSnapshotFullRefresh(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.MarketDataIncrementalRefresh"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateMarketDataIncrementalRefresh(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.MarketDataRequestReject"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateMarketDataRequestReject(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.QuoteCancel"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateQuoteCancel(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.QuoteStatusRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateQuoteStatusRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.MassQuoteAcknowledgement"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateMassQuoteAcknowledgement(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityDefinitionRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityDefinitionRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityDefinition"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityDefinition(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityStatusRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityStatusRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityStatus"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityStatus(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.TradingSessionStatusRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateTradingSessionStatusRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.TradingSessionStatus"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateTradingSessionStatus(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.MassQuote"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateMassQuote(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.BusinessMessageReject"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateBusinessMessageReject(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.BidRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateBidRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.BidResponse"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateBidResponse(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ListStrikePrice"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateListStrikePrice(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.XMLnonFIX"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateXMLnonFIX(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.RegistrationInstructions"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateRegistrationInstructions(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.RegistrationInstructionsResponse"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateRegistrationInstructionsResponse(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.OrderMassCancelRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateOrderMassCancelRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.OrderMassCancelReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateOrderMassCancelReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.NewOrderCross"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateNewOrderCross(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CrossOrderCancelReplaceRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCrossOrderCancelReplaceRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CrossOrderCancelRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCrossOrderCancelRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityTypeRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityTypeRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityTypes"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityTypes(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityListRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityListRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SecurityList"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSecurityList(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.DerivativeSecurityListRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateDerivativeSecurityListRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.DerivativeSecurityList"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateDerivativeSecurityList(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.NewOrderMultileg"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateNewOrderMultileg(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.MultilegOrderCancelReplace"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateMultilegOrderCancelReplace(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.TradeCaptureReportRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateTradeCaptureReportRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.TradeCaptureReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateTradeCaptureReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.OrderMassStatusRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateOrderMassStatusRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.QuoteRequestReject"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateQuoteRequestReject(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.RFQRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateRFQRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.QuoteStatusReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateQuoteStatusReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.QuoteResponse"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateQuoteResponse(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.Confirmation"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateConfirmation(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.PositionMaintenanceRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidatePositionMaintenanceRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.PositionMaintenanceReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidatePositionMaintenanceReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.RequestForPositions"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateRequestForPositions(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.RequestForPositionsAck"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateRequestForPositionsAck(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.PositionReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidatePositionReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.TradeCaptureReportRequestAck"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateTradeCaptureReportRequestAck(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.TradeCaptureReportAck"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateTradeCaptureReportAck(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.AllocationReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateAllocationReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.AllocationReportAck"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateAllocationReportAck(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ConfirmationAck"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateConfirmationAck(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.SettlementInstructionRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateSettlementInstructionRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.AssignmentReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateAssignmentReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CollateralRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCollateralRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CollateralAssignment"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCollateralAssignment(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CollateralResponse"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCollateralResponse(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CollateralReport"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCollateralReport(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CollateralInquiry"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCollateralInquiry(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.NetworkCounterpartySystemStatusRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateNetworkCounterpartySystemStatusRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.NetworkCounterpartySystemStatusResponse"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateNetworkCounterpartySystemStatusResponse(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.UserRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateUserRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.UserResponse"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateUserResponse(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.CollateralInquiryAck"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateCollateralInquiryAck(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
+
+	/// <summary>FIX 4.4 as this package compiles it, for <see cref="FixMessage.ConfirmationRequest"/>.</summary>
+	/// <param name="message">The message to check.</param>
+	/// <param name="findings">Where to put what is wrong.</param>
+	public static void ValidateConfirmationRequest(FixMessage message, List<FixFinding> findings) =>
+		FixRules.Check(CompiledTables.Instance, message, findings);
 }

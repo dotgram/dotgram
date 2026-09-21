@@ -11,6 +11,11 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
+		<!-- One configuration a process (D115): a rule lives in a static field on the message class,
+		     so a test that loads somebody's dictionary changes what every other test sees while it
+		     runs. Collections would not do, since different collections run at the same time and a dozen
+		     classes here validate, so the suite runs one test at a time. It costs about a second. -->
+		<None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="Fixtures.json" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="FieldCases.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>

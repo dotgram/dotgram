@@ -170,81 +170,114 @@ shape said out loud, if it is really what you want. And where a message carries 
 `finding.GroupTag`, `finding.EntryIndex` and `finding.Position` are the part that says which
 one; a bare tag does not.
 
-`message.Validate(validator)` checks against a `FixValidator` instead; the no-argument
-form is `Validate(FixValidator.Standard)`, which is FIX 4.4's schema as this package
-compiles it.
+### Replacing a rule
+
+**A message type and a class are the same thing, so the rule lives in the class's own field.**
+There is no validator to make, nothing to pass and nothing to look up: `Validate()` asks the
+`Rule` field of the class the message is, and you replace it by assigning to that field.
+
+```csharp
+using System.Collections.Generic;
+
+using DotGram.Finance.Fix;
+
+FixMessage.NewOrderSingle.Rule = (message, findings) =>
+{
+    var order = (FixMessage.NewOrderSingle)message;   // the class is the key, so you know which it is
+
+    if (order.Symbol is null)
+        findings.Add(new FixFinding(FixRule.RequiredFieldMissing, FixScope.Body, 55, 0, -1, 0, "mine"));
+};
+
+// And back again: what the package compiles in is reached by name.
+FixMessage.NewOrderSingle.Rule = FixValidator.ValidateNewOrderSingle;
+```
+
+`FixValidator` is not a way in — nothing there is called to validate a message. It holds the
+ninety-four rules this package compiles in, one named method a type, so that a replacement can be
+undone by assigning the name back.
+
+**One field means one configuration for the process.** Two counterparties with two different
+schemas in one process is not expressible, and that is the trade the shape was chosen for.
 
 ### A counterparty's dictionary
 
-The rules are a table, and it is yours to write. `FixValidator.Standard` is the shared
-default and cannot be written to — a write there would change what `Validate()` answers
-for every caller in the process — so make your own:
+One call reads a QuickFIX dictionary and writes the rules of every type it describes:
 
 ```csharp
 using System.IO;
 
-var validator = new FixValidator();
+using DotGram.Finance.Fix;
 
 using (var file = File.OpenRead("FIX44-venue.xml"))
-    validator.Load(FixDictionary.Load(file));
+    FixParser.LoadDictionary(file);
 
-validator["D"] = (order, findings) => { /* your rule for NewOrderSingle */ };
-
-var wire    = "8=FIX.4.4\u00019=51\u000135=0\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000110=136\u0001";
+var wire    = "8=FIX.4.49=5135=049=SENDER56=TARGET34=152=20260915-12:00:0010=136";
 var message = FixParser.ParseMessage(wire);
 
-foreach (var finding in message.Validate(validator))
+foreach (var finding in message.Validate())
     Console.WriteLine(finding);
 ```
 
-`Load` writes an entry for every message type the dictionary describes, a type it does
-not describe keeps whatever it had, and the last write wins — so a dictionary loaded
-after a rule of yours overwrites it. Put an entry back by writing `FixValidator.Compiled`,
-which is the rule this package ships.
+It answers with nothing and it **throws** where the file is not a dictionary it accepts: check the
+file before you deploy it, because validation holding half of one schema and half of another is
+worse than a refusal. A type the file does not describe keeps the rule it had.
 
-This package ships no dictionary of anyone's. The file is yours, in your repository, read
-by your code, and its licence obligations are yours with it.
+**A type this package has no class for stays unknown.** A venue's own MsgType has no class, so it
+has no field for a rule to live in: loading a dictionary moves the ninety-three and no more, and
+a message of such a type still reports `UnknownMessageType`. What to do about it is to write the
+class — see **Custom fields** for the same seam one layer down.
 
+This package ships no dictionary of anyone's. The file is yours, in your repository, read by your
+code, and its licence obligations are yours with it.
 
 ### Before you trust a new dictionary
 
-**What this tells you is what your own messages exercise, and nothing else.** A dictionary
-that changes a message type you have never received says nothing here until the day you
-receive one. Read that first: a guard whose limits you learn on the day it misses is worse
-than no guard, because no guard does not reassure.
+**What this tells you is what your own messages exercise, and nothing else.** A dictionary that
+changes a message type you have never received says nothing here until the day you receive one.
+Read that first: a guard whose limits you learn on the day it misses is worse than no guard,
+because no guard does not reassure.
 
 With that said, the question worth asking before a new file goes live is not "do these two
 descriptions differ" — they will, in tags you never send — but "does this file change what
-validation says about *my* traffic". Ask it with the messages you already have:
+validation says about *my* traffic". Ask it with the messages you already have, and in this order,
+because one field holds one rule at a time:
 
 ```csharp
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-var theirs = new FixValidator();
-
-using (var file = File.OpenRead("FIX44-venue-new.xml"))
-    theirs.Load(FixDictionary.Load(file));
+using DotGram.Finance.Fix;
 
 var captured = File.ReadAllLines("yesterday.log");   // your own, in wire or log framing
+var messages = new List<FixMessage>();
+var before   = new List<FixFinding[]>();
 
 foreach (var line in captured)
-{
-    if (!FixParser.TryParseMessage(line, out var message, out _, FixFieldOptions.Log))
-        continue;
+    if (FixParser.TryParseMessage(line, out var message, out _, FixFieldOptions.Log))
+    {
+        messages.Add(message!);
+        before.Add(message!.Validate());          // what today's rules say
+    }
 
-    var before = message!.Validate();          // or the validator you run today
-    var after  = message.Validate(theirs);
+using (var file = File.OpenRead("FIX44-venue-new.xml"))
+    FixParser.LoadDictionary(file);
+
+for (var i = 0; i < messages.Count; i++)
+{
+    var after = messages[i].Validate();
 
     // In ORDER, not as sets: two schemas can report the same findings in a different
     // sequence, and that is a difference a reader sees.
-    if (!before.SequenceEqual(after))
-        Console.WriteLine($"{message.MessageType}: [{string.Join("; ", before)}] -> [{string.Join("; ", after)}]");
+    if (!before[i].SequenceEqual(after))
+        Console.WriteLine($"{messages[i].MessageType}: [{string.Join("; ", before[i])}] -> [{string.Join("; ", after)}]");
 }
 ```
 
-Every difference it prints is one the new file would have made yesterday. An empty run means
-the file changes nothing about the traffic you fed it — not that it changes nothing.
+Every difference it prints is one the new file would have made yesterday. An empty run means the
+file changes nothing about the traffic you fed it — not that it changes nothing.
 
 The other half of this is already done and is not yours to write: the tags, the code sets and
 the message compositions where this package's own FIX 4.4 tables and the published QuickFIX

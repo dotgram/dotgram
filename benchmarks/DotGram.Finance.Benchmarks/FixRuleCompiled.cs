@@ -47,18 +47,14 @@ static class FixRuleCompiled
 		using (var input = File.OpenRead(Path.Combine(root, "tests", "Corpus", "Fix", "FIX44.xml")))
 			dictionary = FixDictionary.Load(input);
 
-		var loaded = new FixValidator();
-
-		loaded.Load(dictionary);
+		var loaded = Walk(dictionary);
 
 		var composer = new FixRuleComposer(dictionary);
 		var clock    = Stopwatch.StartNew();
 		var composed = Compile(dictionary, composer);
 		var built    = clock.ElapsedMilliseconds;
 
-		var compiled = new FixValidator();
-
-		compiled.Load(composed);
+		var compiled = Composed(composed);
 
 		Console.WriteLine($"{composed.Count} rules composed, compiled and installed in {built:N0} ms.");
 
@@ -71,8 +67,8 @@ static class FixRuleCompiled
 
 		foreach (var message in messages)
 		{
-			var walked = message.Validate(loaded);
-			var ran    = message.Validate(compiled);
+			var walked = Answer(loaded, message);
+			var ran    = Answer(compiled, message);
 
 			findings += walked.Length;
 
@@ -175,9 +171,7 @@ static class FixRuleCompiled
 		var messages = Fixtures(root).ToArray();
 		var byType   = messages.GroupBy(message => message.MessageType).ToArray();
 
-		var walk = new FixValidator();
-
-		walk.Load(dictionary);
+		var walk = Walk(dictionary);
 
 		Price("the walk", walk, messages, byType, repeat, rounds, 0);
 
@@ -185,9 +179,7 @@ static class FixRuleCompiled
 		{
 			var composer   = new FixRuleComposer(dictionary, lean);
 			var characters = dictionary.MessageTypes.Sum(type => (long)composer.Rule(type).Length);
-			var validator  = new FixValidator();
-
-			validator.Load(Compile(dictionary, composer));
+			var validator  = Composed(Compile(dictionary, composer));
 
 			Price(lean == 0 ? "full rules" : lean == 1 ? "no values" : "no switch", validator, messages, byType, repeat, rounds, characters);
 		}
@@ -195,7 +187,7 @@ static class FixRuleCompiled
 
 	static void Price(
 		string                              what,
-		FixValidator                        validator,
+		FixMessageRule                      validator,
 		FixMessage[]                        messages,
 		IGrouping<string, FixMessage>[]     byType,
 		int                                 repeat,
@@ -281,7 +273,7 @@ static class FixRuleCompiled
 	}
 
 	/// <summary>The fastest of several rounds over one type's messages, in nanoseconds each.</summary>
-	static double Fastest(FixMessage[] corpus, FixValidator validator, int repeat, int rounds)
+	static double Fastest(FixMessage[] corpus, FixMessageRule validator, int repeat, int rounds)
 	{
 		var best = double.MaxValue;
 
@@ -291,7 +283,7 @@ static class FixRuleCompiled
 		return best;
 	}
 
-	static void Warm(FixMessage[] corpus, FixValidator validator, int repeat)
+	static void Warm(FixMessage[] corpus, FixMessageRule validator, int repeat)
 	{
 		var clock = Stopwatch.StartNew();
 
@@ -299,14 +291,14 @@ static class FixRuleCompiled
 			Time(corpus, validator, repeat);
 	}
 
-	static long Time(FixMessage[] corpus, FixValidator validator, int repeat)
+	static long Time(FixMessage[] corpus, FixMessageRule validator, int repeat)
 	{
 		var sink  = 0;
 		var clock = Stopwatch.StartNew();
 
 		for (var pass = 0; pass < repeat; pass++)
 			foreach (var message in corpus)
-				sink += message.Validate(validator).Length;
+				sink += Answer(validator, message).Length;
 
 		clock.Stop();
 
@@ -327,5 +319,31 @@ static class FixRuleCompiled
 			at = at.Parent;
 
 		return at?.FullName ?? throw new InvalidOperationException("The repository root was not found.");
+	}
+
+	/// <summary>The rule a loaded dictionary installs, built without installing it.</summary>
+	static FixMessageRule Walk(FixDictionary dictionary)
+	{
+		var tables = new DictionaryTables(dictionary);
+
+		return (message, findings) => FixRules.Check(tables, message, findings);
+	}
+
+	/// <summary>One rule over a table of composed ones, so that the two sides are the same shape.</summary>
+	static FixMessageRule Composed(Dictionary<string, FixMessageRule> rules) =>
+		(message, findings) =>
+		{
+			if (rules.TryGetValue(message.MessageType, out var rule))
+				rule(message, findings);
+		};
+
+	/// <summary>Runs a rule the way Validate runs the field's.</summary>
+	static FixFinding[] Answer(FixMessageRule rule, FixMessage message)
+	{
+		var found = new List<FixFinding>();
+
+		rule(message, found);
+
+		return [.. found];
 	}
 }

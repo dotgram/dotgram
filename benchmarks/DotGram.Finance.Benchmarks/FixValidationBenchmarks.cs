@@ -25,7 +25,7 @@ namespace DotGram.Finance.Benchmarks;
 /// * <c>Standard</c> — <c>message.Validate()</c>, this package's own FIX 4.4 tables compiled into
 ///   the assembly. It is not what changes, which is exactly why it is here: it is the control, and
 ///   a run where it moves says the run is not to be believed.
-/// * <c>Dictionary</c> — <c>message.Validate(loaded)</c>, over <c>tests/Corpus/Fix/FIX44.xml</c>.
+/// * <c>Dictionary</c> — <c>the rule a loaded dictionary installs</c>, over <c>tests/Corpus/Fix/FIX44.xml</c>.
 ///   This is the side the expression language would replace.
 ///
 /// The two do not answer the same findings — their tables disagree about 26 message compositions
@@ -48,7 +48,7 @@ static class FixValidationBenchmarks
 		// round is held to: a validator that stops finding what it found is not faster, it is
 		// broken, and a timing loop is the last place that shows.
 		var standard   = messages.Sum(message => message.Validate().Length);
-		var dictionary = messages.Sum(message => message.Validate(loaded).Length);
+		var dictionary = messages.Sum(message => Answer(loaded, message));
 
 		Console.WriteLine($"findings: standard {standard}, dictionary {dictionary}");
 
@@ -58,7 +58,7 @@ static class FixValidationBenchmarks
 		foreach (var message in messages)
 			Console.WriteLine(
 				$"  {message.MessageType,-2} {message.OriginalWire.Length,4} octets: " +
-				$"standard {message.Validate().Length}, dictionary {message.Validate(loaded).Length}");
+				$"standard {message.Validate().Length}, dictionary {Answer(loaded, message)}");
 
 		// Warm-up is timed, not counted. One round of each was not enough: the first four rounds
 		// of a seven-round run came back five times slower than the last three, which is tier-0
@@ -111,7 +111,7 @@ static class FixValidationBenchmarks
 			: (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2;
 	}
 
-	static void Warm(FixMessage[] messages, FixValidator? validator, int repeat, TimeSpan budget)
+	static void Warm(FixMessage[] messages, FixMessageRule? validator, int repeat, TimeSpan budget)
 	{
 		var clock = Stopwatch.StartNew();
 
@@ -199,14 +199,14 @@ static class FixValidationBenchmarks
 		return clock.ElapsedTicks;
 	}
 
-	static (long Ticks, int Findings) Time(FixMessage[] messages, FixValidator? validator, int repeat)
+	static (long Ticks, int Findings) Time(FixMessage[] messages, FixMessageRule? validator, int repeat)
 	{
 		var findings = 0;
 		var clock    = Stopwatch.StartNew();
 
 		for (var pass = 0; pass < repeat; pass++)
 			foreach (var message in messages)
-				findings += validator is null ? message.Validate().Length : message.Validate(validator).Length;
+				findings += validator is null ? message.Validate().Length : Answer(validator, message);
 
 		clock.Stop();
 
@@ -231,7 +231,7 @@ static class FixValidationBenchmarks
 		FixParser.ParseMessage(Fix44Benchmarks.Wire("A", "98=0|108=30|")),
 	];
 
-	static FixValidator Loaded()
+	static FixMessageRule Loaded()
 	{
 		var at = new DirectoryInfo(AppContext.BaseDirectory);
 
@@ -241,11 +241,28 @@ static class FixValidationBenchmarks
 		if (at is null)
 			throw new InvalidOperationException("The repository root was not found above the benchmark's output.");
 
-		var validator = new FixValidator();
+		FixDictionary dictionary;
 
 		using (var file = File.OpenRead(Path.Combine(at.FullName, "tests", "Corpus", "Fix", "FIX44.xml")))
-			validator.Load(FixDictionary.Load(file));
+			dictionary = FixDictionary.Load(file);
 
-		return validator;
+		var tables = new DictionaryTables(dictionary);
+
+		return (message, findings) => FixRules.Check(tables, message, findings);
+	}
+
+	/// <summary>Runs a rule over a message the way Validate does, for a side that is not installed.</summary>
+	/// <remarks>
+	/// A field holds one rule at a time, so a run that compares two of them over the same messages
+	/// cannot install both. What is measured is therefore the rule itself, which is what the field
+	/// would be holding.
+	/// </remarks>
+	static int Answer(FixMessageRule rule, FixMessage message)
+	{
+		var found = new List<FixFinding>();
+
+		rule(message, found);
+
+		return found.Count;
 	}
 }

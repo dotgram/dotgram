@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 using DotGram.Finance.Fix;
@@ -50,24 +51,30 @@ public sealed class FixValidatorTests
 		Assert.Empty(Message(Header + Order).Validate());
 	}
 
+	/// <summary>
+	/// A message is held to the rule its own class holds, and the class is the key: there is no
+	/// table between the two and nothing to pass.
+	/// </summary>
 	[Fact]
-	public void Asking_with_no_validator_asks_the_standard_one()
+	public void A_message_is_held_to_the_rule_of_its_own_class()
 	{
 		var message = Message(Header + Order.Replace("11=ORDER123|", ""));
+		var found   = new List<FixFinding>();
 
-		Assert.Equal(message.Validate(), message.Validate(FixValidator.Standard));
+		FixMessage.NewOrderSingle.Rule(message, found);
+
+		Assert.Equal(message.Validate(), found);
 	}
 
+	/// <summary>
+	/// What the package compiles in is reached by name, and the name is how a replacement is undone.
+	/// </summary>
 	[Fact]
-	public void A_null_validator_is_refused_rather_than_answered()
+	public void Every_class_starts_at_the_rule_this_package_compiles_in()
 	{
-		Assert.Throws<ArgumentNullException>(() => Message(Header + Order).Validate(null!));
-	}
-
-	[Fact]
-	public void The_standard_validator_is_one_object_for_every_caller()
-	{
-		Assert.Same(FixValidator.Standard, FixValidator.Standard);
+		Assert.Equal((FixMessageRule)FixValidator.ValidateNewOrderSingle, FixMessage.NewOrderSingle.Rule);
+		Assert.Equal((FixMessageRule)FixValidator.ValidateHeartbeat, FixMessage.Heartbeat.Rule);
+		Assert.Equal((FixMessageRule)FixValidator.ValidateCustom, FixMessage.Custom.Rule);
 	}
 
 	[Fact]

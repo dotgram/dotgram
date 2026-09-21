@@ -238,22 +238,27 @@ public abstract partial class FixMessage : FixFieldSet
 	/// where it is right.
 	/// </summary>
 	/// <remarks>
-	/// The same as passing <see cref="FixValidator.Standard"/>. Reading a message and checking it
-	/// are two acts, not one (D53): nothing here is asked while the wire is being read, and a
-	/// message that was built is a message whose fields are all reachable whatever this answers.
+	/// What a message of this package's own ninety-three types is held to is the <c>Rule</c> field
+	/// of its own class — a message type and a class are the same thing here, so there is nothing
+	/// to look up and nothing to pass. A consumer's own message type is a class they wrote, so it
+	/// overrides this and answers for itself. Reading
+	/// a message and checking it are two acts, not one (D53): nothing here is asked while the wire
+	/// is being read, and a message that was built is a message whose fields are all reachable
+	/// whatever this answers.
 	/// </remarks>
-	public FixFinding[] Validate() => FixValidator.Standard.Check(this);
+	public virtual FixFinding[] Validate()
+	{
+		var found = new List<FixFinding>();
 
-	/// <summary>Everything wrong with this message against a schema, or nothing where it is right.</summary>
-	/// <param name="validator">The schema to hold it to.</param>
-	/// <exception cref="ArgumentNullException"><paramref name="validator"/> is null.</exception>
-	/// <remarks>
-	/// The validator is the parameter and not the receiver because a dictionary is read once and
-	/// asked many times: one validator is built from a counterparty's dictionary and then every
-	/// message of the session is asked of it.
-	/// </remarks>
-	public FixFinding[] Validate(FixValidator validator) =>
-		validator is null ? throw new ArgumentNullException(nameof(validator)) : validator.Check(this);
+		Checking(this, found);
+
+		return found.Count == 0 ? Nothing : found.ToArray();
+	}
+
+	/// <summary>The rule this message's own class is holding, which <see cref="Validate"/> asks.</summary>
+	private protected abstract FixMessageRule Checking { get; }
+
+	static readonly FixFinding[] Nothing = [];
 
 	/// <summary>All fields in wire order, recursively including group entries.</summary>
 	public IEnumerable<FixFieldView> AllFields

@@ -28,7 +28,7 @@ namespace DotGram.Finance.Fix;
 /// several threads.
 /// </para>
 /// </remarks>
-public sealed class FixDictionary
+sealed class FixDictionary
 {
 	readonly Dictionary<int, Field>         fields;
 	readonly Dictionary<string, SchemaRef[]> messages;

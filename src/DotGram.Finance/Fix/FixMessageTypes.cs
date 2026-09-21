@@ -127,8 +127,20 @@ public abstract partial class FixMessage
 	/// without being complete: a MsgType nobody here has heard of is still a message, and still one
 	/// of these.
 	/// </remarks>
-	public sealed class Custom : FixMessage
+	public class Custom : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCustom"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCustom;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Custom(string source, string type, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, type, header, body, trailer)
 		{
@@ -138,6 +150,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Heartbeat, MsgType 0.</summary>
 	public sealed class Heartbeat : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateHeartbeat"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateHeartbeat;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Heartbeat(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "0", header, body, trailer)
 		{
@@ -152,6 +176,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TestRequest, MsgType 1.</summary>
 	public sealed class TestRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateTestRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateTestRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal TestRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "1", header, body, trailer)
 		{
@@ -166,6 +202,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ResendRequest, MsgType 2.</summary>
 	public sealed class ResendRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateResendRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateResendRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ResendRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "2", header, body, trailer)
 		{
@@ -184,6 +232,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Reject, MsgType 3.</summary>
 	public sealed class Reject : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateReject"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateReject;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Reject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "3", header, body, trailer)
 		{
@@ -222,6 +282,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SequenceReset, MsgType 4.</summary>
 	public sealed class SequenceReset : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSequenceReset"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSequenceReset;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SequenceReset(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "4", header, body, trailer)
 		{
@@ -240,6 +312,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Logout, MsgType 5.</summary>
 	public sealed class Logout : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateLogout"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateLogout;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Logout(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "5", header, body, trailer)
 		{
@@ -262,6 +346,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 IOI, MsgType 6.</summary>
 	public sealed class IOI : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateIOI"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateIOI;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal IOI(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "6", header, body, trailer)
 		{
@@ -644,6 +740,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Advertisement, MsgType 7.</summary>
 	public sealed class Advertisement : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateAdvertisement"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateAdvertisement;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Advertisement(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "7", header, body, trailer)
 		{
@@ -902,6 +1010,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ExecutionReport, MsgType 8.</summary>
 	public sealed class ExecutionReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateExecutionReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateExecutionReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ExecutionReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "8", header, body, trailer)
 		{
@@ -1784,6 +1904,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderCancelReject, MsgType 9.</summary>
 	public sealed class OrderCancelReject : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateOrderCancelReject"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateOrderCancelReject;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal OrderCancelReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "9", header, body, trailer)
 		{
@@ -1878,6 +2010,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Logon, MsgType A.</summary>
 	public sealed class Logon : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateLogon"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateLogon;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Logon(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "A", header, body, trailer)
 		{
@@ -1932,6 +2076,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 News, MsgType B.</summary>
 	public sealed class News : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateNews"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateNews;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal News(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "B", header, body, trailer)
 		{
@@ -1994,6 +2150,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Email, MsgType C.</summary>
 	public sealed class Email : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateEmail"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateEmail;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Email(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "C", header, body, trailer)
 		{
@@ -2064,6 +2232,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderSingle, MsgType D.</summary>
 	public sealed class NewOrderSingle : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateNewOrderSingle"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateNewOrderSingle;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal NewOrderSingle(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "D", header, body, trailer)
 		{
@@ -2698,6 +2878,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderList, MsgType E.</summary>
 	public sealed class NewOrderList : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateNewOrderList"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateNewOrderList;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal NewOrderList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "E", header, body, trailer)
 		{
@@ -2784,6 +2976,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderCancelRequest, MsgType F.</summary>
 	public sealed class OrderCancelRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateOrderCancelRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateOrderCancelRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal OrderCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "F", header, body, trailer)
 		{
@@ -3094,6 +3298,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderCancelReplaceRequest, MsgType G.</summary>
 	public sealed class OrderCancelReplaceRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateOrderCancelReplaceRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateOrderCancelReplaceRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal OrderCancelReplaceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "G", header, body, trailer)
 		{
@@ -3724,6 +3940,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderStatusRequest, MsgType H.</summary>
 	public sealed class OrderStatusRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateOrderStatusRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateOrderStatusRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal OrderStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "H", header, body, trailer)
 		{
@@ -3982,6 +4210,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationInstruction, MsgType J.</summary>
 	public sealed class AllocationInstruction : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateAllocationInstruction"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateAllocationInstruction;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal AllocationInstruction(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "J", header, body, trailer)
 		{
@@ -4500,6 +4740,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListCancelRequest, MsgType K.</summary>
 	public sealed class ListCancelRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateListCancelRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateListCancelRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ListCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "K", header, body, trailer)
 		{
@@ -4538,6 +4790,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListExecute, MsgType L.</summary>
 	public sealed class ListExecute : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateListExecute"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateListExecute;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ListExecute(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "L", header, body, trailer)
 		{
@@ -4576,6 +4840,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListStatusRequest, MsgType M.</summary>
 	public sealed class ListStatusRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateListStatusRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateListStatusRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ListStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "M", header, body, trailer)
 		{
@@ -4602,6 +4878,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListStatus, MsgType N.</summary>
 	public sealed class ListStatus : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateListStatus"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateListStatus;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ListStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "N", header, body, trailer)
 		{
@@ -4660,6 +4948,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationInstructionAck, MsgType P.</summary>
 	public sealed class AllocationInstructionAck : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateAllocationInstructionAck"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateAllocationInstructionAck;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal AllocationInstructionAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "P", header, body, trailer)
 		{
@@ -4734,6 +5034,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 DontKnowTrade, MsgType Q.</summary>
 	public sealed class DontKnowTrade : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateDontKnowTrade"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateDontKnowTrade;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal DontKnowTrade(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "Q", header, body, trailer)
 		{
@@ -4984,6 +5296,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteRequest, MsgType R.</summary>
 	public sealed class QuoteRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateQuoteRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateQuoteRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal QuoteRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "R", header, body, trailer)
 		{
@@ -5026,6 +5350,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Quote, MsgType S.</summary>
 	public sealed class Quote : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateQuote"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateQuote;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Quote(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "S", header, body, trailer)
 		{
@@ -5536,6 +5872,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SettlementInstructions, MsgType T.</summary>
 	public sealed class SettlementInstructions : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSettlementInstructions"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSettlementInstructions;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SettlementInstructions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "T", header, body, trailer)
 		{
@@ -5586,6 +5934,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataRequest, MsgType V.</summary>
 	public sealed class MarketDataRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateMarketDataRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateMarketDataRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal MarketDataRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "V", header, body, trailer)
 		{
@@ -5648,6 +6008,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataSnapshotFullRefresh, MsgType W.</summary>
 	public sealed class MarketDataSnapshotFullRefresh : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateMarketDataSnapshotFullRefresh"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateMarketDataSnapshotFullRefresh;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal MarketDataSnapshotFullRefresh(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "W", header, body, trailer)
 		{
@@ -5866,6 +6238,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataIncrementalRefresh, MsgType X.</summary>
 	public sealed class MarketDataIncrementalRefresh : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateMarketDataIncrementalRefresh"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateMarketDataIncrementalRefresh;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal MarketDataIncrementalRefresh(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "X", header, body, trailer)
 		{
@@ -5892,6 +6276,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataRequestReject, MsgType Y.</summary>
 	public sealed class MarketDataRequestReject : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateMarketDataRequestReject"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateMarketDataRequestReject;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal MarketDataRequestReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "Y", header, body, trailer)
 		{
@@ -5926,6 +6322,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteCancel, MsgType Z.</summary>
 	public sealed class QuoteCancel : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateQuoteCancel"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateQuoteCancel;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal QuoteCancel(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "Z", header, body, trailer)
 		{
@@ -5980,6 +6388,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteStatusRequest, MsgType a.</summary>
 	public sealed class QuoteStatusRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateQuoteStatusRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateQuoteStatusRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal QuoteStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "a", header, body, trailer)
 		{
@@ -6242,6 +6662,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MassQuoteAcknowledgement, MsgType b.</summary>
 	public sealed class MassQuoteAcknowledgement : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateMassQuoteAcknowledgement"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateMassQuoteAcknowledgement;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal MassQuoteAcknowledgement(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "b", header, body, trailer)
 		{
@@ -6308,6 +6740,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityDefinitionRequest, MsgType c.</summary>
 	public sealed class SecurityDefinitionRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityDefinitionRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityDefinitionRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityDefinitionRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "c", header, body, trailer)
 		{
@@ -6550,6 +6994,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityDefinition, MsgType d.</summary>
 	public sealed class SecurityDefinition : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityDefinition"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityDefinition;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityDefinition(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "d", header, body, trailer)
 		{
@@ -6800,6 +7256,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityStatusRequest, MsgType e.</summary>
 	public sealed class SecurityStatusRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityStatusRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityStatusRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "e", header, body, trailer)
 		{
@@ -7022,6 +7490,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityStatus, MsgType f.</summary>
 	public sealed class SecurityStatus : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityStatus"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityStatus;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "f", header, body, trailer)
 		{
@@ -7308,6 +7788,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradingSessionStatusRequest, MsgType g.</summary>
 	public sealed class TradingSessionStatusRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateTradingSessionStatusRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateTradingSessionStatusRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal TradingSessionStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "g", header, body, trailer)
 		{
@@ -7342,6 +7834,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradingSessionStatus, MsgType h.</summary>
 	public sealed class TradingSessionStatus : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateTradingSessionStatus"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateTradingSessionStatus;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal TradingSessionStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "h", header, body, trailer)
 		{
@@ -7420,6 +7924,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MassQuote, MsgType i.</summary>
 	public sealed class MassQuote : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateMassQuote"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateMassQuote;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal MassQuote(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "i", header, body, trailer)
 		{
@@ -7474,6 +7990,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 BusinessMessageReject, MsgType j.</summary>
 	public sealed class BusinessMessageReject : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateBusinessMessageReject"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateBusinessMessageReject;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal BusinessMessageReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "j", header, body, trailer)
 		{
@@ -7512,6 +8040,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 BidRequest, MsgType k.</summary>
 	public sealed class BidRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateBidRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateBidRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal BidRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "k", header, body, trailer)
 		{
@@ -7638,6 +8178,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 BidResponse, MsgType l.</summary>
 	public sealed class BidResponse : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateBidResponse"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateBidResponse;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal BidResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "l", header, body, trailer)
 		{
@@ -7660,6 +8212,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListStrikePrice, MsgType m.</summary>
 	public sealed class ListStrikePrice : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateListStrikePrice"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateListStrikePrice;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ListStrikePrice(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "m", header, body, trailer)
 		{
@@ -7690,6 +8254,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 XMLnonFIX, MsgType n.</summary>
 	public sealed class XMLnonFIX : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateXMLnonFIX"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateXMLnonFIX;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal XMLnonFIX(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "n", header, body, trailer)
 		{
@@ -7700,6 +8276,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RegistrationInstructions, MsgType o.</summary>
 	public sealed class RegistrationInstructions : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateRegistrationInstructions"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateRegistrationInstructions;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal RegistrationInstructions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "o", header, body, trailer)
 		{
@@ -7758,6 +8346,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RegistrationInstructionsResponse, MsgType p.</summary>
 	public sealed class RegistrationInstructionsResponse : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateRegistrationInstructionsResponse"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateRegistrationInstructionsResponse;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal RegistrationInstructionsResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "p", header, body, trailer)
 		{
@@ -7808,6 +8408,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderMassCancelRequest, MsgType q.</summary>
 	public sealed class OrderMassCancelRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateOrderMassCancelRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateOrderMassCancelRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal OrderMassCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "q", header, body, trailer)
 		{
@@ -8218,6 +8830,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderMassCancelReport, MsgType r.</summary>
 	public sealed class OrderMassCancelReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateOrderMassCancelReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateOrderMassCancelReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal OrderMassCancelReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "r", header, body, trailer)
 		{
@@ -8652,6 +9276,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderCross, MsgType s.</summary>
 	public sealed class NewOrderCross : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateNewOrderCross"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateNewOrderCross;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal NewOrderCross(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "s", header, body, trailer)
 		{
@@ -9102,6 +9738,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CrossOrderCancelReplaceRequest, MsgType t.</summary>
 	public sealed class CrossOrderCancelReplaceRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCrossOrderCancelReplaceRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCrossOrderCancelReplaceRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CrossOrderCancelReplaceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "t", header, body, trailer)
 		{
@@ -9560,6 +10208,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CrossOrderCancelRequest, MsgType u.</summary>
 	public sealed class CrossOrderCancelRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCrossOrderCancelRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCrossOrderCancelRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CrossOrderCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "u", header, body, trailer)
 		{
@@ -9778,6 +10438,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityTypeRequest, MsgType v.</summary>
 	public sealed class SecurityTypeRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityTypeRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityTypeRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityTypeRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "v", header, body, trailer)
 		{
@@ -9824,6 +10496,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityTypes, MsgType w.</summary>
 	public sealed class SecurityTypes : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityTypes"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityTypes;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityTypes(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "w", header, body, trailer)
 		{
@@ -9882,6 +10566,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityListRequest, MsgType x.</summary>
 	public sealed class SecurityListRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityListRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityListRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityListRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "x", header, body, trailer)
 		{
@@ -10156,6 +10852,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityList, MsgType y.</summary>
 	public sealed class SecurityList : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSecurityList"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSecurityList;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SecurityList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "y", header, body, trailer)
 		{
@@ -10190,6 +10898,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 DerivativeSecurityListRequest, MsgType z.</summary>
 	public sealed class DerivativeSecurityListRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateDerivativeSecurityListRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateDerivativeSecurityListRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal DerivativeSecurityListRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "z", header, body, trailer)
 		{
@@ -10428,6 +11148,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 DerivativeSecurityList, MsgType AA.</summary>
 	public sealed class DerivativeSecurityList : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateDerivativeSecurityList"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateDerivativeSecurityList;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal DerivativeSecurityList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AA", header, body, trailer)
 		{
@@ -10650,6 +11382,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderMultileg, MsgType AB.</summary>
 	public sealed class NewOrderMultileg : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateNewOrderMultileg"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateNewOrderMultileg;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal NewOrderMultileg(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AB", header, body, trailer)
 		{
@@ -11184,6 +11928,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MultilegOrderCancelReplace, MsgType AC.</summary>
 	public sealed class MultilegOrderCancelReplace : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateMultilegOrderCancelReplace"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateMultilegOrderCancelReplace;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal MultilegOrderCancelReplace(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AC", header, body, trailer)
 		{
@@ -11730,6 +12486,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReportRequest, MsgType AD.</summary>
 	public sealed class TradeCaptureReportRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateTradeCaptureReportRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateTradeCaptureReportRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal TradeCaptureReportRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AD", header, body, trailer)
 		{
@@ -12092,6 +12860,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReport, MsgType AE.</summary>
 	public sealed class TradeCaptureReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateTradeCaptureReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateTradeCaptureReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal TradeCaptureReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AE", header, body, trailer)
 		{
@@ -12594,6 +13374,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderMassStatusRequest, MsgType AF.</summary>
 	public sealed class OrderMassStatusRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateOrderMassStatusRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateOrderMassStatusRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal OrderMassStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AF", header, body, trailer)
 		{
@@ -12996,6 +13788,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteRequestReject, MsgType AG.</summary>
 	public sealed class QuoteRequestReject : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateQuoteRequestReject"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateQuoteRequestReject;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal QuoteRequestReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AG", header, body, trailer)
 		{
@@ -13034,6 +13838,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RFQRequest, MsgType AH.</summary>
 	public sealed class RFQRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateRFQRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateRFQRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal RFQRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AH", header, body, trailer)
 		{
@@ -13056,6 +13872,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteStatusReport, MsgType AI.</summary>
 	public sealed class QuoteStatusReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateQuoteStatusReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateQuoteStatusReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal QuoteStatusReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AI", header, body, trailer)
 		{
@@ -13574,6 +14402,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteResponse, MsgType AJ.</summary>
 	public sealed class QuoteResponse : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateQuoteResponse"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateQuoteResponse;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal QuoteResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AJ", header, body, trailer)
 		{
@@ -14092,6 +14932,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Confirmation, MsgType AK.</summary>
 	public sealed class Confirmation : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateConfirmation"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateConfirmation;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal Confirmation(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AK", header, body, trailer)
 		{
@@ -14646,6 +15498,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 PositionMaintenanceRequest, MsgType AL.</summary>
 	public sealed class PositionMaintenanceRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidatePositionMaintenanceRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidatePositionMaintenanceRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal PositionMaintenanceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AL", header, body, trailer)
 		{
@@ -14928,6 +15792,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 PositionMaintenanceReport, MsgType AM.</summary>
 	public sealed class PositionMaintenanceReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidatePositionMaintenanceReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidatePositionMaintenanceReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal PositionMaintenanceReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AM", header, body, trailer)
 		{
@@ -15214,6 +16090,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RequestForPositions, MsgType AN.</summary>
 	public sealed class RequestForPositions : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateRequestForPositions"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateRequestForPositions;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal RequestForPositions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AN", header, body, trailer)
 		{
@@ -15480,6 +16368,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RequestForPositionsAck, MsgType AO.</summary>
 	public sealed class RequestForPositionsAck : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateRequestForPositionsAck"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateRequestForPositionsAck;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal RequestForPositionsAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AO", header, body, trailer)
 		{
@@ -15734,6 +16634,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 PositionReport, MsgType AP.</summary>
 	public sealed class PositionReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidatePositionReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidatePositionReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal PositionReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AP", header, body, trailer)
 		{
@@ -16024,6 +16936,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReportRequestAck, MsgType AQ.</summary>
 	public sealed class TradeCaptureReportRequestAck : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateTradeCaptureReportRequestAck"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateTradeCaptureReportRequestAck;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal TradeCaptureReportRequestAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AQ", header, body, trailer)
 		{
@@ -16262,6 +17186,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReportAck, MsgType AR.</summary>
 	public sealed class TradeCaptureReportAck : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateTradeCaptureReportAck"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateTradeCaptureReportAck;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal TradeCaptureReportAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AR", header, body, trailer)
 		{
@@ -16588,6 +17524,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationReport, MsgType AS.</summary>
 	public sealed class AllocationReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateAllocationReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateAllocationReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal AllocationReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AS", header, body, trailer)
 		{
@@ -17122,6 +18070,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationReportAck, MsgType AT.</summary>
 	public sealed class AllocationReportAck : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateAllocationReportAck"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateAllocationReportAck;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal AllocationReportAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AT", header, body, trailer)
 		{
@@ -17200,6 +18160,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ConfirmationAck, MsgType AU.</summary>
 	public sealed class ConfirmationAck : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateConfirmationAck"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateConfirmationAck;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ConfirmationAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AU", header, body, trailer)
 		{
@@ -17246,6 +18218,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SettlementInstructionRequest, MsgType AV.</summary>
 	public sealed class SettlementInstructionRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateSettlementInstructionRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateSettlementInstructionRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal SettlementInstructionRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AV", header, body, trailer)
 		{
@@ -17316,6 +18300,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AssignmentReport, MsgType AW.</summary>
 	public sealed class AssignmentReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateAssignmentReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateAssignmentReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal AssignmentReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AW", header, body, trailer)
 		{
@@ -17602,6 +18598,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralRequest, MsgType AX.</summary>
 	public sealed class CollateralRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCollateralRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCollateralRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CollateralRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AX", header, body, trailer)
 		{
@@ -18012,6 +19020,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralAssignment, MsgType AY.</summary>
 	public sealed class CollateralAssignment : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCollateralAssignment"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCollateralAssignment;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CollateralAssignment(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AY", header, body, trailer)
 		{
@@ -18454,6 +19474,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralResponse, MsgType AZ.</summary>
 	public sealed class CollateralResponse : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCollateralResponse"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCollateralResponse;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CollateralResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "AZ", header, body, trailer)
 		{
@@ -18860,6 +19892,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralReport, MsgType BA.</summary>
 	public sealed class CollateralReport : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCollateralReport"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCollateralReport;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CollateralReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BA", header, body, trailer)
 		{
@@ -19294,6 +20338,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralInquiry, MsgType BB.</summary>
 	public sealed class CollateralInquiry : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCollateralInquiry"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCollateralInquiry;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CollateralInquiry(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BB", header, body, trailer)
 		{
@@ -19724,6 +20780,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NetworkCounterpartySystemStatusRequest, MsgType BC.</summary>
 	public sealed class NetworkCounterpartySystemStatusRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateNetworkCounterpartySystemStatusRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateNetworkCounterpartySystemStatusRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal NetworkCounterpartySystemStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BC", header, body, trailer)
 		{
@@ -19746,6 +20814,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NetworkCounterpartySystemStatusResponse, MsgType BD.</summary>
 	public sealed class NetworkCounterpartySystemStatusResponse : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateNetworkCounterpartySystemStatusResponse"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateNetworkCounterpartySystemStatusResponse;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal NetworkCounterpartySystemStatusResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BD", header, body, trailer)
 		{
@@ -19776,6 +20856,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 UserRequest, MsgType BE.</summary>
 	public sealed class UserRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateUserRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateUserRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal UserRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BE", header, body, trailer)
 		{
@@ -19814,6 +20906,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 UserResponse, MsgType BF.</summary>
 	public sealed class UserResponse : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateUserResponse"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateUserResponse;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal UserResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BF", header, body, trailer)
 		{
@@ -19840,6 +20944,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralInquiryAck, MsgType BG.</summary>
 	public sealed class CollateralInquiryAck : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateCollateralInquiryAck"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateCollateralInquiryAck;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal CollateralInquiryAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BG", header, body, trailer)
 		{
@@ -20178,6 +21294,18 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ConfirmationRequest, MsgType BH.</summary>
 	public sealed class ConfirmationRequest : FixMessage
 	{
+		/// <summary>The rule this type is held to, and yours to replace.</summary>
+		/// <remarks>
+		/// A message type and a class are one and the same thing here, so the rule lives where
+		/// the type does: no table, no lookup, and the class is the key. Assign to replace it —
+		/// a reference assignment, so a reader sees one rule or the other and never half of a
+		/// change — and assign <see cref="FixValidator.ValidateConfirmationRequest"/> to put it back.
+		/// </remarks>
+		public static FixMessageRule Rule = FixValidator.ValidateConfirmationRequest;
+
+		/// <inheritdoc/>
+		private protected override FixMessageRule Checking => Rule;
+
 		internal ConfirmationRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, "BH", header, body, trailer)
 		{

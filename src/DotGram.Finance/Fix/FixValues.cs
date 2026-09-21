@@ -8,7 +8,7 @@
 /// would be a second thing to disagree with the first, and three quarters of what it costs is
 /// reading the characters of the value, which no arrangement of the code removes.
 /// </remarks>
-public static class FixValues
+static class FixValues
 {
 	/// <summary>Whether a value fits a type, and is one of the code set where one is given.</summary>
 	/// <param name="field">The field, whose tag settles the one rule that needs it: IOIQty takes either a quantity or a code.</param>
