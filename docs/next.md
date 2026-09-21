@@ -24748,3 +24748,69 @@ they are what the four-slot work is about. The arithmetic worth writing down bef
 starts is the multiplicity: the bound admits a store of about a megabyte of entries to the
 ordinary slots, `DeeperSpares` is 3, so a thread may hold **four** of them per pool, none bounded
 beyond the admission test and none ever given back.
+
+## The slot that was never bounded: eight megabytes a thread, and the dense store was the exception
+
+The bound governs what may be **parked**. Until `f18a941b` nothing governed what was **kept**: a
+store grown once for a large document went to `_spare` and stayed there for the life of the
+thread, and every measurement of the parked slot's release was reading past it. The retained
+readout had been saying so plainly for a day -- `DirectValues._spare`, 305 arrays, 716,592
+elements, 8,543 KB on `sql/refused-cliff-case-1391` -- and it was read as background rather than
+as the finding, because the attention was on the slot that had just been given a release.
+
+**What it is worth, measured with a collection after each small parse** (r6-0 `0783f47b` against
+r6-1 `f18a941b`, one row per process, 2026-09-21): case-1391 11,561 -> 2,997 KB, joins-891 7,804
+-> 1,845, joins-1113 12,990 -> 1,875, paren-2715 13,764 -> 3,080, and the expression language's
+own small row, el/terms1000, 866.8 -> 448.2. The readout says where it went: `DirectValues._spare`
+holds 8,543 KB on the old side and a fresh 41 KB store on the new one. **`Ways._spare` is byte for
+byte identical on both sides** -- 2,183 KB, Log 552,390 -- which is the pool still outside the
+rule, and its not moving is what says the change did this and nothing else.
+
+The stand's own caveat belongs in the same paragraph as the numbers: the first side measured in a
+process reads about 63.7 KB high on almost every row, cause not found and demonstrably not the
+pools, so **differences between sides are good to about 64 KB**. Eleven thousand against sixty-four
+is not a close call, and the only reason that sentence can be written at all is that somebody
+measured the offset rather than assuming it away.
+
+**The quantity, and the thing worth keeping.** The obvious test -- total room against total use --
+would have fired on a store that is exactly the right size. A dense store carries three hundred
+value tables, each grown to the largest record index written **in that table**, so their capacities
+sum to several times the record count even when every one of them fits perfectly; 305 arrays and
+1.43 million elements against a far smaller record count is that arithmetic and it was already on
+disk. So the test reads `Live.Length` against this parse's record count: `Live` grows by doubling
+to hold the records, so those two are room and use in one unit.
+
+**And the generalisation ran the other way from the one I was carrying.** I had the dense store as
+the plain case and the rest as details. Reading the three pools still outside the rule -- the
+engine's arena, the lexer's buffer, the tape -- every one of them already computes **both** numbers,
+in the bound test and the idle test sitting next to each other, and every array in each is indexed
+by the same thing: `Entries.Capacity` against `Entries.Count`; `Kinds + Starts + Lengths` against
+`Count * 3`; `Items + Log + Refs` against `Count * 2 + LogCount + RefsCount`. The ordinary release
+needs no new quantity for any of them. **The dense value store is the exception, not the pattern**,
+and it needed a quantity of its own for exactly the reason above.
+
+**Four times and not twice, and the factor is the allocator's own.** A table grows to
+`Math.Max(count, Length * 2)`, so a store serving a steady workload sits between once and twice
+what that workload needs. One doubling is ordinary slack, and a threshold there would demote the
+spare of every steady parse in the world every eight parses -- a change of behaviour on the common
+path dressed up as a bound. Two doublings cannot be reached by slack, only by a workload that has
+actually shrunk, which is the change this exists to notice.
+
+**Two things the episode is worth keeping for, neither of them the megabytes.**
+
+The first is that `if (!(false))` -- a release whose condition is a constant, emitted for a pool
+with marks but no stacks -- is **CS0162 in the consumer's build**, along with two fields nothing
+assigns. It failed in `DotGram.VisualStudio.Tests` at net472 and nowhere else. That is the second
+time in one night that the project whose entire assertion is "it compiled" caught something the
+whole suite could not, and the argument for running it early rather than last now has two cases
+behind it instead of none.
+
+The second is a column that agreed for the wrong reason. The retained table's older "after eight
+small parses" column also showed the fall, and that looked like a second confirmation. It is not:
+the harness runs exactly eight small parses and the release fires on the eighth, so its collection
+frees the store by arithmetic. At a threshold of nine that column would have read high and the
+working release would have looked dead. **The column to stand behind is the one that collects after
+each parse**, which does not care where the threshold sits -- and the reason it was put first was a
+different true one, that a weakly held store is retaken by the next rental if nothing collects in
+between. Two independent reasons for the same choice, and only one of them was known when it was
+made.
