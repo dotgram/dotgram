@@ -91,6 +91,16 @@ sealed class FixRuleComposer(FixDictionary dictionary)
 	}
 
 	/// <summary>
+	/// How many arms that message type's body switch has, which is what its text costs most.
+	/// </summary>
+	/// <remarks>
+	/// For measuring, not for composing: the question behind it is whether a compiled rule's price
+	/// follows the number of tags it can name, which is a property of the schema and not of any
+	/// message.
+	/// </remarks>
+	public int Arms(string messageType) => Members(dictionary.Message(messageType)).Count;
+
+	/// <summary>
 	/// One scope: the header, the body, the trailer, or one entry of a repeating group.
 	/// </summary>
 	/// <remarks>
