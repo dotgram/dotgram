@@ -1,0 +1,33 @@
+# BenchmarkDotNet run sql-scriptdom, 2026-09-21 11:51 - 11:58
+
+Assembly P:\dotgram.WorkTrees\sql\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll, commit d476b533. Arguments: --filter *ScriptDomBenchmarks*. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Quiet check before the start: 1.8% of the machine (0.57 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.276; claude (pid 36752) 0.094; claude (pid 36144) 0.073.
+State of the sources, read at 11:51:15: project P:\dotgram.WorkTrees\sql\benchmarks\DotGram.Benchmarks; repository HEAD d476b533; 0 tracked files modified in the repository, 0 untracked (not ignored) in the project (a benchmark project outside the repository is untracked by design: the source hash below is what watches it); source hash of the project 8DFF3D974453C156; 0 source files NEWER than the assembly (11:03:58).
+Source hash at the end: 8DFF3D974453C156 (the same as at the start).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 21 workers (its log), 21 were read.
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 43808 | 0xFFFF | High | 11:52:18 |
+| 41836 | 0xFFFF | High | 11:52:36 |
+| 47680 | 0xFFFF | High | 11:52:54 |
+| 22056 | 0xFFFF | High | 11:53:11 |
+| 55696 | 0xFFFF | High | 11:53:26 |
+| 57524 | 0xFFFF | High | 11:53:39 |
+| 26408 | 0xFFFF | High | 11:53:59 |
+| 50132 | 0xFFFF | High | 11:54:14 |
+| 46200 | 0xFFFF | High | 11:54:32 |
+| 49824 | 0xFFFF | High | 11:54:52 |
+| 47320 | 0xFFFF | High | 11:55:13 |
+| 56784 | 0xFFFF | High | 11:55:27 |
+| 55480 | 0xFFFF | High | 11:55:39 |
+| 57960 | 0xFFFF | High | 11:56:01 |
+| 43768 | 0xFFFF | High | 11:56:16 |
+| 49968 | 0xFFFF | High | 11:56:37 |
+| 59520 | 0xFFFF | High | 11:56:53 |
+| 44188 | 0xFFFF | High | 11:57:12 |
+| 54116 | 0xFFFF | High | 11:57:27 |
+| 3276 | 0xFFFF | High | 11:57:44 |
+| 15640 | 0xFFFF | High | 11:58:05 |
