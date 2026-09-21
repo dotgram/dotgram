@@ -34,17 +34,18 @@ public sealed class PoolRetentionTests
 	/// new one in everything but capacity, and that is what is checked here.
 	/// </para>
 	/// <para>
-	/// <c>Tokens_DotGram</c> is <em>not</em> under this policy yet: it still drops what is past
-	/// the bound, which is why it is the one case that passed while the other three failed. It is
-	/// named here rather than left out, so that the gap is visible in the test that owns the rule.
+	/// All four pools are under this policy. <c>Tokens_DotGram</c> was not when this was written
+	/// and was carried here anyway, asserting that it dropped — so that the gap stayed visible in
+	/// the test that owns the rule rather than being absent from it. Bringing it under the rule is
+	/// what made that case fail, which is the whole of why it was written that way.
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues", true)]
-	[InlineData(CarrierKind.Tape, "Ways", true)]
-	[InlineData(CarrierKind.Immediate, "ImmediateValues", true)]
-	[InlineData(CarrierKind.Tape, "Tokens_DotGram", false)]
-	public void An_oversized_store_is_kept_in_a_slot_of_its_own_and_comes_back_as_new(CarrierKind carrier, string name, bool keeps)
+	[InlineData(CarrierKind.Tape, "DirectValues")]
+	[InlineData(CarrierKind.Tape, "Ways")]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues")]
+	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
+	public void An_oversized_store_is_kept_in_a_slot_of_its_own_and_comes_back_as_new(CarrierKind carrier, string name)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
 		const int Budget = 1048576;
@@ -105,13 +106,6 @@ public sealed class PoolRetentionTests
 		Assert.NotSame(ordinary, nested);
 
 		Return(ordinary);
-
-		if (!keeps)
-		{
-			// Still dropped, and said so out loud: this pool has not been brought under the rule.
-			Assert.NotSame(ordinary, Rent());
-			return;
-		}
 
 		// A reentrant parse returns its smaller store while the large one is already parked.
 		// The ordinary spare is handed back first, and the large one is not lost behind it.

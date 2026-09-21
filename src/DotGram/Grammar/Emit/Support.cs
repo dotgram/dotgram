@@ -1432,23 +1432,6 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
-	/// The typed value tables a direct materialization writes into, one per type a rule
-	/// can produce, indexed by record or by a dense per-type index for final walks.
-	/// Unlike the engine's <c>Parser</c>, these need no arena. Rented per parse and kept
-	/// per thread, cleared on the way back so a pooled table holds no document alive.
-	/// </summary>
-	/// <remarks>
-	/// Each table holds its values in a one-field struct rather than directly. An array of
-	/// a reference type is covariant in .NET — a <c>Derived[]</c> is a <c>Base[]</c> — so
-	/// every store into one asks the runtime whether the value fits the array it is going
-	/// into, and the answer cannot be known at compile time for a table held in a field.
-	/// The check was a tenth of what building a tree cost. An array of structs is not
-	/// covariant, and a store into a field of one asks nothing.
-	/// </remarks>
-	/// <summary>The longest table of values a thread keeps for its next parse.</summary>
-	const int TableKept = 65536;
-
-	/// <summary>
 	/// And the longest of the arrays indexed by record — the flags and the maps every walk reads —
 	/// which are as long as the log, not as the values of one type.
 	/// </summary>
@@ -1489,30 +1472,13 @@ public static partial class CSharpEmitter
 		Spares(text, "DirectValues");
 		text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 
-		if (dense)
-		{
-			// Table by table, and only the tables written to: the store holds a table per value
-			// type, three hundred for SQL:2023, and a bound on them summed was passed by the first
-			// long parse, after which every parse rented an empty store and grew it again. An
-			// oversized table is let go and the store with the rest is kept.
-			text.Append("\t\t// An oversized table is let go instead of retained by the thread; the rest are kept.\n");
-			text.Append("\t\tif (values.Live.Length > ").Append(RecordsKept).Append(" || values.Starts.Length > ").Append(RecordsKept)
-				.Append(" || values.Built.Length > ").Append(RecordsKept).Append(")\n\t\t{\n");
-			text.Append("\t\t\tvalues.Live   = new bool[16];\n\t\t\tvalues.Starts = new int[16];\n\t\t\tvalues.Built  = new bool[16];\n\t\t\tvalues._used  = 0;\n\t\t}\n");
-			if (stateType is not null)
-				text.Append("\t\tif (values.MarkState.Length > ").Append(TableKept).Append(") values.MarkState = new ").Append(stateType).Append("[8];\n");
-			if (stateType is not null && markPositions)
-				text.Append("\t\tif (values.MarkAt.Length > ").Append(TableKept).Append(") values.MarkAt = new int[8];\n");
-			text.Append("\n");
-		}
-
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (dense)
 			{
 				text.Append("\t\tif (values.N").Append(i).Append(" > 0)\n\t\t{\n");
-				text.Append("\t\t\tif (values.V").Append(i).Append(".Length > ").Append(TableKept).Append(") values.V").Append(i)
-					.Append(" = new Held<").Append(valueTypes[i]).Append(">[16];\n");
-				text.Append("\t\t\telse global::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values.N").Append(i).Append(", values.V").Append(i).Append(".Length));\n");
+				// Emptied, never replaced: what the table holds goes, the room it holds it in
+				// stays. Replacing it was the cliff the bound below now answers.
+				text.Append("\t\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values.N").Append(i).Append(", values.V").Append(i).Append(".Length));\n");
 				text.Append("\t\t\tvalues.N").Append(i).Append(" = 0;\n\t\t}\n");
 			}
 			else if (adaptive)
@@ -1526,26 +1492,30 @@ public static partial class CSharpEmitter
 
 		text.Append("\t\tvalues._used = 0;\n");
 
-		if (!dense)
-		{
-			// After the tables are emptied and not before. The branch below returns, so a store
-			// that goes past the bound never reaches any line after it - and a store parked with
-			// its tables still full held every value of the last parse for as long as the thread
-			// held the store: eight rentals in the slot, and a weak reference after that. Kept
-			// capacity is what the bound is for; kept contents were never part of it.
-			var capacities = Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
+		// After the tables are emptied and not before. The branch below returns, so a store
+		// that goes past the bound never reaches any line after it - and a store parked with
+		// its tables still full held every value of the last parse for as long as the thread
+		// held the store: eight rentals in the slot, and a weak reference after that. Kept
+		// capacity is what the bound is for; kept contents were never part of it.
+		//
+		// A dense store is measured by its record tables rather than its value tables: there
+		// are three hundred of the latter for SQL:2023, and summing them on every return would
+		// cost more than the bound saves. The record tables grow with the parse, which is what
+		// the bound is about.
+		var capacities = dense
+			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }
+			: Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
 				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
-			if (stateType is not null)
-				capacities.Add("values.MarkState.Length");
-			if (stateType is not null && markPositions)
-				capacities.Add("values.MarkAt.Length");
-			text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
-			text.Append("\t\t// and not a bound - it is kept while the work keeps wanting it, and handed\n");
-			text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
-			text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
-			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
-			Outsized(text, "DirectValues", "values");
-		}
+		if (stateType is not null)
+			capacities.Add("values.MarkState.Length");
+		if (stateType is not null && markPositions)
+			capacities.Add("values.MarkAt.Length");
+		text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
+		text.Append("\t\t// and not a bound - it is kept while the work keeps wanting it, and handed\n");
+		text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
+		text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
+		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
+		Outsized(text, "DirectValues", "values");
 
 		Spared(text, "DirectValues", "values");
 		text.Append("\t}\n\n");

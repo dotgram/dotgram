@@ -2125,6 +2125,18 @@ public static partial class CSharpEmitter
 		file.Line("[global::System.ThreadStatic]");
 		file.Line("static int _deeperTokenCount;");
 		file.Line();
+		file.Line("/// <summary>A buffer past the bound, kept while this thread keeps wanting it.</summary>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static Tokens_DotGram? _largeTokens;");
+		file.Line();
+		file.Line("/// <summary>Rentals since it was last taken; at eight it is let go of.</summary>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static int _largeTokensIdle;");
+		file.Line();
+		file.Line("/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line("static global::System.WeakReference<Tokens_DotGram>? _largeTokensLetGo;");
+		file.Line();
 
 		using (file.Block("static Tokens_DotGram Rented_DotGram()"))
 		{
@@ -2139,9 +2151,32 @@ public static partial class CSharpEmitter
 				file.Line("_deeperTokens![_deeperTokenCount] = null;");
 			}
 
+			using (file.Block("else if (_largeTokens != null)"))
+			{
+				file.Line("spare = _largeTokens;");
+				file.Line("_largeTokens = null;");
+				file.Line("_largeTokensIdle = 0;");
+			}
+
+			using (file.Block("else if (_largeTokensLetGo != null && _largeTokensLetGo.TryGetTarget(out var letGo))"))
+			{
+				file.Line("spare = letGo;");
+				file.Line("_largeTokensLetGo.SetTarget(null!);");
+				file.Line("_largeTokensIdle = 0;");
+			}
+
 			file.Line("else");
 			file.Then("return new Tokens_DotGram();");
 			file.Line();
+			file.Line("// A large buffer nobody has wanted for a while stops being held against the");
+			file.Line("// collector, without being thrown away: what the work stopped needing is still");
+			file.Line("// there if the work comes back before the memory is wanted elsewhere.");
+			using (file.Block("if (_largeTokens != null && ++_largeTokensIdle >= 8)"))
+			{
+				file.Line("(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);");
+				file.Line("_largeTokens = null;");
+				file.Line("_largeTokensIdle = 0;");
+			}
 			file.Line("return spare;");
 		}
 
@@ -2149,8 +2184,20 @@ public static partial class CSharpEmitter
 
 		using (file.Block("static void Recycle_DotGram(Tokens_DotGram tokens)"))
 		{
-			file.Line("if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length > 1048576)");
-			file.Then("return;");
+			file.Line("// Past the bound the buffer is not thrown away - that was a cliff and not a");
+			file.Line("// bound: a document one token over rebuilt it on every parse. It goes to a slot");
+			file.Line("// of its own, held while the work keeps wanting it and let go of afterwards.");
+			file.Line("// Its three arrays hold numbers, so what the slot pins is numbers.");
+			using (file.Block("if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length > 1048576)"))
+			{
+				file.Line("if (_largeTokens != null && !ReferenceEquals(_largeTokens, tokens))");
+				file.Then("(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);");
+				file.Line();
+				file.Line("_largeTokens = tokens;");
+				file.Line("_largeTokensIdle = 0;");
+				file.Line();
+				file.Line("return;");
+			}
 			file.Line();
 			file.Line("if (_spareTokens == null)");
 			file.Then("_spareTokens = tokens;");

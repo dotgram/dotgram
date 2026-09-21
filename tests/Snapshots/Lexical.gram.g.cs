@@ -1246,6 +1246,18 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static int _deeperTokenCount;
 
+		/// <summary>A buffer past the bound, kept while this thread keeps wanting it.</summary>
+		[global::System.ThreadStatic]
+		static Tokens_DotGram? _largeTokens;
+
+		/// <summary>Rentals since it was last taken; at eight it is let go of.</summary>
+		[global::System.ThreadStatic]
+		static int _largeTokensIdle;
+
+		/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
+		[global::System.ThreadStatic]
+		static global::System.WeakReference<Tokens_DotGram>? _largeTokensLetGo;
+
 		static Tokens_DotGram Rented_DotGram()
 		{
 			var spare = _spareTokens;
@@ -1257,16 +1269,49 @@ namespace DotGram.Snapshots
 				spare = _deeperTokens![--_deeperTokenCount]!;
 				_deeperTokens![_deeperTokenCount] = null;
 			}
+			else if (_largeTokens != null)
+			{
+				spare = _largeTokens;
+				_largeTokens = null;
+				_largeTokensIdle = 0;
+			}
+			else if (_largeTokensLetGo != null && _largeTokensLetGo.TryGetTarget(out var letGo))
+			{
+				spare = letGo;
+				_largeTokensLetGo.SetTarget(null!);
+				_largeTokensIdle = 0;
+			}
 			else
 				return new Tokens_DotGram();
 
+			// A large buffer nobody has wanted for a while stops being held against the
+			// collector, without being thrown away: what the work stopped needing is still
+			// there if the work comes back before the memory is wanted elsewhere.
+			if (_largeTokens != null && ++_largeTokensIdle >= 8)
+			{
+				(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);
+				_largeTokens = null;
+				_largeTokensIdle = 0;
+			}
 			return spare;
 		}
 
 		static void Recycle_DotGram(Tokens_DotGram tokens)
 		{
+			// Past the bound the buffer is not thrown away - that was a cliff and not a
+			// bound: a document one token over rebuilt it on every parse. It goes to a slot
+			// of its own, held while the work keeps wanting it and let go of afterwards.
+			// Its three arrays hold numbers, so what the slot pins is numbers.
 			if ((long)tokens.Kinds.Length + tokens.Starts.Length + tokens.Lengths.Length > 1048576)
+			{
+				if (_largeTokens != null && !ReferenceEquals(_largeTokens, tokens))
+					(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);
+
+				_largeTokens = tokens;
+				_largeTokensIdle = 0;
+
 				return;
+			}
 
 			if (_spareTokens == null)
 				_spareTokens = tokens;
