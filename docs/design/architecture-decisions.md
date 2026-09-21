@@ -8060,3 +8060,22 @@ of the seventy-five suppressions were first read as carrying no reason; every on
 the line above where the search was looking. The care about to be criticised was there all along.
 That is D110 one step earlier: not a count the mechanism explains, but **a reading the source
 explains if you look one line further**.
+
+**The acceptance case exists already and does not need constructing.** The two conditions diverge
+in the current set, in one place: **`Looking` in FIX is emitted, read forty-three times, and
+assigned nowhere** — those reads are of the default, which is the value's meaning, so its pragma is
+genuinely needed. `Quiet` is assigned in all nineteen files that emit it, so for that field the two
+conditions have never diverged. So the acceptance is a diff, not a fixture: after the change FIX
+still carries the pragma on `Looking`, and the nineteen lose theirs on `Quiet` and `OutOfInput`.
+
+**And the worst direction of error already has a standing guard.** A change that gets it backwards
+shows in the snapshot set and in `DotGram.Compatibility`, which builds three frameworks with
+warnings as errors and whose whole assertion is that building succeeds — the one project shaped
+like a consumer's build. That is what makes this safe to do: the failure mode we most feared is
+the one thing already watched.
+
+**What the narrow condition buys, said exactly.** Wherever a field is meant to be assigned, CS0649
+is armed again, so a grammar that stops writing one is reported rather than silently defaulted.
+`Looking` is the single place where "never assigned" is the design, and keeping its pragma says so
+in the code — which is the difference between a suppression that documents an intention and one
+that hides the absence of a check.
