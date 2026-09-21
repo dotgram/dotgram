@@ -7415,3 +7415,30 @@ the case for one more measurement rather than for a shrug.
 **What that next measurement has to do is swap the slots.** The one row below the bound moves 1.9%
 with five signs out of five, and the session cannot separate it from the bias of the second slot —
 which is exactly what swapping decides, and nothing else does.
+
+## D98 — The rows were chosen for steepness, and they test a different bound
+
+The negative pair has a cause read out of the code rather than guessed. `DirectValuesClass` has two
+branches, and the parking that landed is in one of them; the **dense** branch still throws an
+oversized table away at `TableKept = 65536` — exactly the boundary all four SQL:2023 cliffs step
+at. SQL:2023 is dense by the gate that decides it. So the commit reaches the non-dense store, the
+ways and the arena, and does not reach the store those rows use.
+
+**The claim was not false; it was narrower than the rows chosen to test it.** Its evidence was
+ladders on Web's accept and address lists, which are non-dense, and there the cliff is gone. The
+SQL:2023 rows were picked for showing the steepest steps — which is how one picks a row to be
+impressed by, not how one picks a row to test a mechanism. Steepness says where an illness is
+worst; it says nothing about which of several bounds produces it, and two bounds with the same
+disease look alike from outside.
+
+**So the rule: a row is chosen by the mechanism it exercises, and the choice is written down with
+it.** "The steepest ten" is a selection made by the answer rather than by the question, and a pair
+run on such rows can come back negative while the change works perfectly — which is exactly what
+happened, and it cost a window to learn.
+
+**And the record is corrected before anything is built on it.** The commit pays two to three per
+cent on the largest documents and buys nothing measurable on the rows everybody will look up. It
+lands for a different reason — the intermediate state corrupted reused stores and failed 453 tests,
+and the emptying is what fixes that — and the pooling half is justified by the non-dense ladders.
+It must not be remembered as the cliff fix. A commit remembered for what it did not do is how a
+later session concludes the cliffs are cured and stops looking.
