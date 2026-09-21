@@ -7753,3 +7753,38 @@ measurement, warm-up by the clock, did not attach to a number it was *relaying*.
 the act of measuring and does not follow a number into someone else's hands** — which is the
 relaying rule seen from the other end: the sender is the last person who can still apply it, and
 the receiver has nothing to apply it to.
+
+## D106 — The defect propagated by duplication faster than the fix did
+
+The dead counter was not in two pools but in **five**. Two are written by the generator through one
+emitter; the arena, the tape and the lexer's buffer carry hand-written copies of the same logic,
+and every copy carried the same defect — including the one written two hours earlier that evening
+by copying the pattern. A repair aimed at the place the defect was found reached two of five.
+
+**That is the argument for holding the five to one policy with a test rather than to one text.** The
+same morning's decision said so on general grounds; tonight it has a number. A test asserting the
+policy — eight returns whose usage is under the bound demote a parked store, a return over the
+bound resets — would have failed on three pools at once and named them. Commissioned now, with the
+work, and not left as a thing to do later: a rule that only exists as a sentence is a rule that the
+next copy will not inherit.
+
+**And the four defects met on the way are a set rather than a list.** Two pools missed, found by
+grepping for the counter; a repair script that matched the first occurrence in the file rather than
+the intended one, found by reading the EMITTED output, since a broken emitted program is not a
+broken emitter and the generator built happily; a malformed sum for a grammar with marks and no
+stacks, found by the suite; a static method called as an instance one, found by the build. **No one
+of the four instruments would have found the other three.** That is the case for keeping all of
+them rather than the fastest.
+
+**The comments described the version that did not work**, in four places, and sending the reader to
+`Rent` is exactly how the next person rebuilds the broken model — and the broken model here is "the
+counter counts rentals", which kept it dead through two commits. Third time tonight a comment has
+named a quantity no line reads.
+
+**The dense change is decided on the clean table, and the acceptance is named before it arrives.**
+With the release working the arithmetic is different — hundreds of megabytes for eight small parses
+rather than for the life of a thread — so the earlier verdict does not carry. Three conditions:
+retention must be SEEN to fall after eight small parses, not asserted from the code; peak retention
+must be of the order of what the parse itself needed rather than a multiple of it; and the
+non-dense rows must not regress. Named now so that the numbers are read against a standard rather
+than a standard fitted to the numbers.
