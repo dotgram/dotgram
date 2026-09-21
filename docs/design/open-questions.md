@@ -3343,3 +3343,38 @@ many-messages-from-a-buffer method today — `FixMessages` offers one from a str
 stream, and nothing in between, so a log held in a string is read through a `StringReader` now.
 `ParseMessages(string) → FixMessage[]` fills that hole, which is probably right for a log file, but
 it is a new public method and not a rename, and the surface is Igor's to grant.
+
+**Igor's decision: `FixParser` becomes the central point. And his doubt about `Fix` as the name,
+settled by the compiler rather than by recollection (critic, 2026-09-21).** Four arrangements were
+compiled with Roslyn against `System.Runtime`, not reasoned about:
+
+| arrangement | result |
+| --- | --- |
+| type `Fix` **inside** `namespace DotGram.Finance.Fix`, consumer has `using DotGram.Finance.Fix;` | compiles; `Fix.ParseMessage(…)` binds to the type |
+| type `Fix` in `namespace DotGram.Finance`, beside the child namespace of that name | **CS0101** — "The namespace 'DotGram.Finance' already contains a definition for 'Fix'" |
+| type as above, consumer has only `using DotGram.Finance;` | **CS0103** — "The name 'Fix' does not exist in the current context" |
+| type as above, consumer has both usings | compiles |
+
+**So the doubt is right about one arrangement and unfounded about the other.** A type named `Fix`
+cannot sit one level up, in `DotGram.Finance`, because the child namespace already owns that name —
+that is a hard error and not a matter of style. Inside the package's own namespace it is legal, and
+its full name is then `DotGram.Finance.Fix.Fix`. The failure a consumer would meet is not an
+ambiguity but a miss: importing only the parent namespace gives "the name `Fix` does not exist",
+which is a clear message and a one-line fix.
+
+**I would still keep `FixParser`.** What `Fix` buys is three characters at the call site. What it
+costs is `DotGram.Finance.Fix.Fix` in every fully-qualified reference, in XML documentation and in
+stack traces; the resolution papercut above; the Framework Design Guidelines' standing advice
+against a type sharing the name of its namespace; and a word that is also an English verb, so
+`Fix.Parse` can be read as an instruction rather than a scope. And brevity is already the
+consumer's to take without our spending the name on it: `using FixApi = DotGram.Finance.Fix.FixParser;`
+is one line in their file, which is the right place for a preference about how short a call should
+be.
+
+**One thing that follows from making `FixParser` central and is worth saying before it is built.**
+Once it carries `ParseFields`, `ParseMessage`, `ParseMessages`, `ReadFields`, `ReadMessage` and
+`ReadMessages`, the name `FixParser` is again slightly narrower than the type — `Build` and the
+`Try…` forms are not parsing. That is a smaller mismatch than today's, where the type called the
+main parser cannot parse a message at all, and it is not a reason to reopen the name; but if
+`Build` moves onto it as well, the type is the package's façade and not its parser, and the
+documentation should say façade rather than repeat "main parser".
