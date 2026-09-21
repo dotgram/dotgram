@@ -7,6 +7,13 @@ identical, because a give-back reads one turn fewer and so the tail must differ 
 52% to 91% of each discarded segment is written back unchanged, and THE SHARE GROWS WITH
 THE INPUT, which is the quadratic seen from the log instead of from the call counts.
 
+THE SHARE GROWS WITH THE INPUT, and that is stronger than any single row: 57 to 73 per cent
+for a media type, 52 to 71 for a language tag, 84 to 92 for a structured field, as the input
+goes from sixteen units to sixty-four. A lengthening identical prefix against a differing tail
+of about constant size is the same quadratic the call counts show, appearing here in a second
+instrument that measures something else entirely. That is how a disease is told from an
+artefact of one instrument: it shows up where the instrument was not built to look for it.
+
 Revision: 4e541d8a, on top of origin/main e48ab0aa. Counts, not times: the instrumented
 build is slower and only its counts mean anything.
 
