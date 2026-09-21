@@ -8372,3 +8372,26 @@ belonging to the commit flips sign when the sides are exchanged; a bias of the s
 its sign.* Three small-row suspicions carried since the refusal-rent pair — a JSON array, a media
 type, an orders row — dissolved under it. This lean is the one that did not, which is precisely why
 it was worth asking about rather than dropping.
+
+**Corrected within the hour, and the correction strengthens the decision while weakening one of its
+premises.** I wrote that the `used` capture is "measured and innocent". It is not shown innocent.
+The stand qualified the figure: the lean is +1.1 to +2.8% over two orders, and **the two orders
+disagree by as much as eight points on the same row**. On an instrument whose own disagreement is
+eight points, a genuine one-per-cent line would have measured exactly as flat as the capture did.
+The throwaway did not exonerate the candidate; it showed that the apparatus cannot tell.
+
+**Which makes "keep isolating" not a slower path to an answer but no path at all.** Every
+sub-component of a one-to-three per cent effect has a share smaller still, and every share is far
+under the resolution that would have to distinguish it. That is a stronger reason to stop than the
+one I gave, and it is about the instrument rather than about the candidates.
+
+**So the sentence in the report carries the resolution beside the number**: measured, unattributed,
+one to three per cent on small SQL parses, sign stable under exchange of order, on a pair whose
+orders disagree by up to eight points. A reader who does not know the resolution cannot tell a real
+one-per-cent cost from an artefact — which is exactly what nobody here could tell.
+
+**And the thing worth wanting is not more subtractions but a better instrument.** If a tax on every
+small SQL parse matters, the answer is enough runs to bring the disagreement under a point — a
+different order of machine time, and a decision about the stand rather than about this chain. Not
+started, and worth **pricing** on its own: a stand that cannot resolve one per cent cannot answer
+any future question at that scale either, and there will be more of them.
