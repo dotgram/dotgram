@@ -1,0 +1,156 @@
+Built from 0504c6d3: the libraries measured are this build's own (DotGram.Web, DotGram.Sql, DotGram.ExpressionLanguage, DotGram.Finance, the examples).
+
+Refused inputs: a growing head and a tail no reader can finish; each series asserts that the input is refused. The exponent is the slope of log time on log size over the largest sixteenth of the ladder (at least four points); above 1.10 a refusal is a defect, from 1.5 quadratic, from 3.0 explosive. A ladder ends at the first call over 20 ms.
+
+| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | shape of the growth | projected at 64 KiB | KB a call at the largest | allocation exponent | |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- |
+| UriTemplate | a literal run, then an unclosed { | characters | 4 - 18 | 9 | 27 | 41.8 ms | 5.63 | bytes -; time - | explosive | 0.0 | 5.14 | EXPLOSIVE, stopped at 18 (42 ms) |
+| UriTemplate | literals and expressions, then an unclosed { | expressions | 4 - 457 | 24 | 1,840 | 23.4 ms | 0.97 | bytes flat; time flat | 833.5 ms | 0.0 | 0.33 | large and linear, stopped at 457 (23 ms) |
+| UriTemplate | an expression of n variables, unclosed | variables | 4 - 2,715 | 32 | 5,441 | 21.4 ms | 0.98 | bytes flat; time flat | 257.4 ms | 0.0 | 0.45 | large and linear, stopped at 2,715 (21 ms) |
+| EmailAddress.TryParseList | a long atom, then a bare @ | characters | 4 - 18 | 9 | 19 | 58.5 ms | 6.89 | bytes -; time - | explosive | 0.0 | 6.07 | EXPLOSIVE, stopped at 18 (58 ms) |
+| EmailAddress.TryParseList | words, then an unclosed < | words | 4 - 10 | 6 | 24 | 38.9 ms | 8.09 | bytes -; time - | explosive | 0.0 | 6.83 | EXPLOSIVE, stopped at 10 (39 ms) |
+| EmailAddress.TryParseList | addresses, then a bare @ | addresses | 4 - 235 | 21 | 3,527 | 23.5 ms | 1.98 | bytes rising x1.6; time rising x7.0 | 7.7 s | 0.0 | 1.73 | QUADRATIC, stopped at 235 (24 ms) |
+| EmailAddress.TryParseList | an unclosed quoted string | characters | 4 - 1,738 | 30 | 1,739 | 28.6 ms | 1.99 | bytes rising x2.9; time rising x14.0 | 39.3 s | 0.0 | 1.55 | QUADRATIC, stopped at 1,738 (29 ms) |
+| EmailAddress.TryParseList | comments nested and unclosed | levels | 4 - 457 | 24 | 460 | 47.2 us | 0.95 | bytes flat; time flat | 6.7 ms | 0.0 | 0.95 |  |
+| EmailAddress.TryParseList | an unclosed domain literal | characters | 4 - 3,393 | 33 | 3,396 | 17.7 ms | 1.99 | bytes rising x3.2; time rising x14.0 | 6.4 s | 0.0 | 1.67 | QUADRATIC |
+| AddrSpec.TryParseStrict | a long local part, then @@ | characters | 4 - 3,393 | 33 | 3,406 | 1.2 us | 0.78 | bytes flat; time flat | 22.3 us | 0.0 | 0.78 |  |
+| MediaType | parameters, then an unclosed quoted string | parameters | 4 - 891 | 27 | 4,470 | 27.9 ms | 1.97 | bytes rising x2.8; time rising x12.9 | 5.5 s | 0.0 | 1.56 | QUADRATIC, stopped at 891 (28 ms) |
+| MediaType | an unclosed quoted string | characters | 4 - 3,393 | 33 | 3,407 | 4.0 us | 0.69 | bytes flat; time flat | 77.5 us | 0.0 | 0.69 |  |
+| MediaType | a long subtype, then a slash | characters | 4 - 3,393 | 33 | 3,400 | 6.7 ms | 1.93 | bytes rising x7.1; time rising x11.8 | 2.0 s | 0.0 | 1.85 | QUADRATIC |
+| MediaRange.TryParseAccept | ranges, then a range with no weight | ranges | 4 - 3,393 | 33 | 50,904 | 4.2 ms | 1.01 | bytes CLIFF x6.3 between 2,715 and 3,393; time rising x1.5 | 5.4 ms | 14168.3 | 1.00 |  |
+| MediaRange.TryParseAccept | a long token, then a weight with no value | characters | 4 - 3,393 | 33 | 3,401 | 525.6 us | 1.16 | bytes rising x10.0; time rising x1.6 | 16.2 ms | 11627.1 | 1.87 | SUPERLINEAR |
+| StructuredField.TryParseList | items, then an unclosed ( | items | 4 - 1,113 | 28 | 3,340 | 23.2 ms | 1.99 | bytes rising x3.7; time rising x14.1 | 8.6 s | 0.0 | 1.68 | QUADRATIC, stopped at 1,113 (23 ms) |
+| StructuredField.TryParseList | an unclosed string | characters | 4 - 3,393 | 33 | 3,394 | 8.5 us | 0.97 | bytes flat; time flat | 164.2 us | 0.0 | 0.97 |  |
+| StructuredField.TryParseList | an inner list, unclosed | items | 4 - 3,393 | 33 | 6,787 | 118.4 us | 0.97 | bytes flat; time flat | 1.1 ms | 0.0 | 0.97 |  |
+| StructuredField.TryParseDictionary | members, then an unclosed string | members | 4 - 713 | 26 | 3,569 | 29.0 ms | 1.99 | bytes rising x3.0; time rising x14.2 | 9.5 s | 0.0 | 1.59 | QUADRATIC, stopped at 713 (29 ms) |
+| StructuredField.TryParseItem | parameters, then a parameter with no value | parameters | 4 - 3,393 | 33 | 13,576 | 78.6 us | 1.01 | bytes flat; time flat | 384.0 us | 0.0 | 1.01 |  |
+| ForwardedElement.TryParseField | elements, then for= with no value | elements | 4 - 188 | 20 | 5,080 | 21.0 ms | 1.93 | bytes rising x4.3; time rising x7.6 | 2.9 s | 0.0 | 1.94 | QUADRATIC, stopped at 188 (21 ms) |
+| ForwardedElement.TryParseField | an unclosed quoted string | characters | 4 - 3,393 | 33 | 3,398 | 3.6 us | 0.84 | bytes flat; time flat | 68.9 us | 0.3 | 0.00 |  |
+| WebLink.TryParseField | links, then an unclosed < | links | 4 - 293 | 22 | 10,851 | 23.4 ms | 1.92 | bytes rising x6.2; time rising x7.8 | 739.6 ms | 0.0 | 1.91 | QUADRATIC, stopped at 293 (23 ms) |
+| WebLink.TryParseField | an unclosed URI reference | characters | 4 - 3,393 | 33 | 3,414 | 10.4 us | 0.90 | bytes flat; time flat | 199.9 us | 13.6 | 0.89 |  |
+| WebLink.TryParseField | parameters, then an unclosed quoted string | parameters | 4 - 1,113 | 28 | 5,581 | 28.7 ms | 1.94 | bytes flat; time rising x11.7 | 3.4 s | 0.0 | 1.00 | QUADRATIC, stopped at 1,113 (29 ms) |
+| CookiePair.TryParseField | pairs, then a control character | pairs | 4 - 3,393 | 33 | 16,968 | 58.7 us | 1.00 | bytes flat; time flat | 226.7 us | 0.0 | 0.99 |  |
+| LanguageTag | variants, then a bare hyphen | variants | 4 - 1,738 | 30 | 8,693 | 20.6 ms | 1.98 | bytes rising x4.0; time rising x13.6 | 1.1 s | 0.0 | 1.77 | QUADRATIC, stopped at 1,738 (21 ms) |
+| LanguageTag | extension subtags, then a doubled hyphen | subtags | 4 - 2,172 | 31 | 10,866 | 26.3 ms | 1.97 | bytes rising x3.2; time rising x13.5 | 899.1 ms | 0.0 | 1.61 | QUADRATIC, stopped at 2,172 (26 ms) |
+| ContentDisposition | parameters, then an unclosed quoted string | parameters | 4 - 891 | 27 | 4,471 | 31.3 ms | 2.05 | bytes rising x13.1; time rising x25.4 | 7.7 s | 0.0 | 1.98 | QUADRATIC, stopped at 891 (31 ms) |
+| ContentDisposition | an extended value, then a cut percent-encoding | octets | 4 - 3,393 | 33 | 10,210 | 7.8 us | 0.92 | bytes flat; time flat | 49.9 us | 50.0 | 0.98 |  |
+| JsonPointer | segments, then a bad escape | segments | 4 - 3,393 | 33 | 6,787 | 53.8 us | 1.00 | bytes flat; time flat | 519.6 us | 106.1 | 1.00 |  |
+| JsonPointer | escapes, then a bad escape | escapes | 4 - 3,393 | 33 | 6,788 | 36.6 us | 1.00 | bytes flat; time flat | 357.0 us | 20.0 | 0.98 |  |
+| JsonPatch | operations, then a cut one | operations | 4 - 3,393 | 33 | 95,011 | 962.9 us | 0.99 | bytes flat; time flat | 664.2 us | 3075.6 | 1.00 |  |
+| JsonValue | an array, unclosed | elements | 4 - 3,393 | 33 | 6,788 | 66.6 us | 1.00 | bytes flat; time flat | 643.4 us | 212.2 | 1.00 |  |
+| JsonValue | an object, cut at a value | members | 4 - 3,393 | 33 | 20,363 | 125.3 us | 1.00 | bytes flat; time flat | 403.6 us | 450.7 | 1.00 |  |
+| JsonValue | an unclosed string | characters | 4 - 3,393 | 33 | 3,394 | 7.8 us | 0.98 | bytes flat; time flat | 150.2 us | 0.0 | 0.98 |  |
+| JsonValue | a long number, then a bare point | digits | 4 - 3,393 | 33 | 3,395 | 1.5 us | 0.85 | bytes flat; time flat | 28.1 us | 6.7 | 0.97 |  |
+| JsonValue | arrays nested and unclosed | levels | 4 - 293 | 22 | 293 | 2.2 us | 0.97 | bytes flat; time flat | 496.9 us | 0.0 | 0.97 |  |
+| JsonValue | objects nested and unclosed | levels | 4 - 293 | 22 | 1,465 | 3.4 us | 0.98 | bytes flat; time flat | 151.4 us | 0.0 | 0.98 |  |
+| UriReference | segments, then a bad percent-encoding | segments | 4 - 3,393 | 33 | 13,595 | 33.0 us | 0.97 | bytes flat; time flat | 158.9 us | 0.0 | 0.97 |  |
+| UriReference | a query, then a bad percent-encoding | pairs | 4 - 3,393 | 33 | 13,594 | 41.1 us | 0.97 | bytes flat; time flat | 198.1 us | 0.0 | 0.97 |  |
+| UriReference | an unclosed IPv6 literal | groups | 4 - 3,393 | 33 | 6,794 | 720 ns | 0.00 | bytes flat; time flat | 6.9 us | 0.0 | 0.00 |  |
+| UriReference | a long host, then a bracket | characters | 4 - 3,393 | 33 | 3,402 | 19.8 us | 0.96 | bytes flat; time flat | 380.9 us | 0.0 | 0.96 |  |
+| FixMessages.TryParse | fields, then a checksum cut short | fields | 4 - 3,393 | 33 | 27,170 | 5.1 us | 0.93 | bytes flat; time flat | 12.3 us | 0.1 | 0.00 |  |
+| FixMessages.TryParse | one value never terminated | characters | 4 - 3,393 | 33 | 3,415 | 707 ns | 0.66 | bytes flat; time flat | 13.6 us | 0.1 | 0.00 |  |
+| FeedReader | records, then a cut record | records | 4 - 3,393 | 33 | 74,675 | 188.7 us | 0.96 | bytes flat; time flat | 165.6 us | 0.6 | 0.00 |  |
+| StockCountReader | lines, then no closing count | lines | 4 - 3,393 | 33 | 39,674 | 124.3 us | 1.01 | bytes flat; time flat | 206.3 us | 341.8 | 1.00 |  |
+| T-SQL statement | columns, then a FROM with nothing after it | columns | 4 - 3,393 | 33 | 22,651 | 1.1 ms | 0.99 | bytes flat; time flat | 3.3 ms | 1325.7 | 1.00 |  |
+| T-SQL statement | an unclosed string | characters | 4 - 3,393 | 33 | 3,401 | 1.2 us | 0.74 | bytes flat; time flat | 22.9 us | 0.2 | 0.00 |  |
+| T-SQL statement | an unclosed comment | characters | 4 - 3,393 | 33 | 3,405 | 6.6 us | 0.60 | bytes flat; time flat | 127.6 us | 0.6 | 0.00 |  |
+| T-SQL statement | an unclosed bracketed identifier | characters | 4 - 3,393 | 33 | 3,401 | 1.2 us | 0.78 | bytes flat; time flat | 22.9 us | 0.1 | 0.00 |  |
+| T-SQL statement | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 293 | 22 | 301 | 328.7 us | 1.86 | bytes rising x6.6; time rising x6.7 | 7.2 s | 0.0 | 1.85 | QUADRATIC |
+| T-SQL statement | subqueries opened and not closed | levels | 4 - 188 | 20 | 2,835 | 57.2 us | 0.94 | bytes flat; time flat | 1.3 ms | 32.7 | 0.95 |  |
+| T-SQL statement | CASE arms, no END | arms | 4 - 3,393 | 33 | 61,085 | 854.2 us | 1.00 | bytes flat; time flat | 916.4 us | 0.1 | 0.01 |  |
+| T-SQL statement | rows, then a cut row | rows | 4 - 3,393 | 33 | 27,175 | 1.4 ms | 1.00 | bytes flat; time flat | 3.4 ms | 1961.7 | 1.00 |  |
+| T-SQL search condition | predicates, then a dangling AND | predicates | 4 - 3,393 | 33 | 46,391 | 843.5 us | 1.01 | bytes flat; time flat | 1.2 ms | 212.2 | 1.00 |  |
+| T-SQL search condition | predicates, then an unclosed ( | predicates | 4 - 3,393 | 33 | 46,398 | 855.2 us | 1.00 | bytes flat; time flat | 1.2 ms | 212.4 | 0.99 |  |
+| T-SQL search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 188 | 20 | 193 | 30.7 ms | 2.67 | bytes flat; time rising x22.9 | over a day | 0.0 | 0.89 | QUADRATIC, stopped at 188 (31 ms) |
+| SQL:2023 query | columns, then a FROM with nothing after it | columns | 4 - 3,393 | 33 | 22,651 | 5.0 ms | 1.00 | bytes flat; time flat | 14.5 ms | 5885.1 | 1.00 |  |
+| SQL:2023 query | an unclosed string | characters | 4 - 3,393 | 33 | 3,401 | 29.7 us | 0.86 | bytes flat; time flat | 573.2 us | 0.2 | 0.00 |  |
+| SQL:2023 query | an unclosed comment | characters | 4 - 3,393 | 33 | 3,405 | 6.6 us | 0.60 | bytes flat; time flat | 127.1 us | 0.8 | 0.00 |  |
+| SQL:2023 query | an unclosed quoted identifier | characters | 4 - 3,393 | 33 | 3,401 | 1.5 us | 0.79 | bytes flat; time flat | 28.9 us | 0.1 | 0.00 |  |
+| SQL:2023 query | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 293 | 22 | 301 | 401.8 us | 1.64 | bytes flat; time rising x4.4 | 2.7 s | 1.6 | 0.00 | QUADRATIC |
+| SQL:2023 query | subqueries opened and not closed | levels | 4 - 188 | 20 | 2,835 | 26.1 us | 0.93 | bytes flat; time flat | 604.2 us | 0.1 | 0.00 |  |
+| SQL:2023 query | CASE arms, no END | arms | 4 - 1,738 | 30 | 31,295 | 26.1 ms | 1.02 | bytes flat; time CLIFF x4.8 between 1,391 and 1,738 | 55.4 ms | 0.0 | 1.00 | large and linear, stopped at 1,738 (26 ms) |
+| SQL:2023 query | joins, then a JOIN with nothing after it | joins | 4 - 2,172 | 31 | 34,772 | 32.8 ms | 1.02 | bytes flat; time CLIFF x5.0 between 1,738 and 2,172 | 62.6 ms | 0.0 | 1.17 | large and linear, stopped at 2,172 (33 ms) |
+| SQL:2023 search condition | predicates, then a dangling AND | predicates | 4 - 3,393 | 33 | 46,391 | 33.0 ms | 0.98 | bytes CLIFF x8.6 between 2,715 and 3,393; time CLIFF x4.1 between 2,715 and 3,393 | 46.6 ms | 92634.2 | 1.00 |  |
+| SQL:2023 search condition | predicates, then an unclosed ( | predicates | 4 - 3,393 | 33 | 46,398 | 33.2 ms | 1.02 | bytes CLIFF x8.6 between 2,715 and 3,393; time CLIFF x4.1 between 2,715 and 3,393 | 47.2 ms | 92636.4 | 1.00 |  |
+| SQL:2023 search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) | levels | 4 - 293 | 22 | 298 | 404.7 us | 1.57 | bytes flat; time rising x4.1 | 1.9 s | 3.3 | 0.00 | QUADRATIC |
+| expression, tape | terms, then a dangling + | terms | 4 - 3,393 | 33 | 13,586 | 716.8 us | 0.99 | bytes flat; time flat | 3.5 ms | 584.1 | 0.99 |  |
+| expression, tape | parentheses opened and not closed | levels | 4 - 293 | 22 | 305 | 50.4 us | 0.93 | bytes flat; time flat | 10.8 ms | 1.0 | 0.00 |  |
+| expression, tape | an unclosed string | characters | 4 - 3,393 | 33 | 3,405 | 1.4 us | 0.77 | bytes flat; time flat | 27.0 us | 0.3 | 0.00 |  |
+| expression, tape | an unclosed verbatim string | characters | 4 - 3,393 | 33 | 3,406 | 1.4 us | 0.76 | bytes flat; time flat | 27.4 us | 0.3 | 0.00 |  |
+| expression, tape | an unclosed interpolated string | characters | 4 - 18 | 9 | 31 | 37.7 ms | 6.29 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (38 ms) |
+| expression, tape | an interpolated string, an unclosed hole | characters | 4 - 18 | 9 | 33 | 34.9 ms | 6.28 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (35 ms) |
+| expression, tape | an unclosed interpolated verbatim string | characters | 4 - 18 | 9 | 32 | 23.6 ms | 6.27 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (24 ms) |
+| expression, tape | an interpolated verbatim string, an unclosed hole | characters | 4 - 18 | 9 | 34 | 38.1 ms | 6.28 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (38 ms) |
+| expression, tape | an unclosed raw interpolated string | characters | 4 - 22 | 10 | 37 | 187.4 ms | 6.96 | bytes -; time - | explosive | 0.0 | 0.02 | EXPLOSIVE, stopped at 22 (187 ms) |
+| expression, tape | a raw interpolated string, an unclosed hole | characters | 4 - 18 | 9 | 35 | 31.7 ms | 6.33 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (32 ms) |
+| expression, tape | an unclosed raw interpolated string, two dollars | characters | 4 - 18 | 9 | 34 | 21.5 ms | 6.26 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (21 ms) |
+| expression, tape | an interpolated string ending in a backslash | characters | 4 - 18 | 9 | 32 | 34.0 ms | 6.31 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (34 ms) |
+| expression, tape | an interpolated string with holes, then no closing quote | holes | 4 - 3,393 | 33 | 13,585 | 609.1 us | 1.00 | bytes flat; time flat | 2.9 ms | 0.3 | 0.00 |  |
+| expression, tape | an unclosed character literal | characters | 4 - 3,393 | 33 | 3,405 | 101 ns | -0.01 | bytes flat; time flat | 1.9 us | 0.3 | -0.00 |  |
+| expression, tape | member accesses, then a dangling . | members | 4 - 3,393 | 33 | 37,339 | 217.9 us | 0.97 | bytes flat; time flat | 382.4 us | 1.2 | 0.00 |  |
+| expression, tape | conditionals, then a cut one | levels | 4 - 293 | 22 | 2,356 | 128.8 us | 0.97 | bytes flat; time flat | 3.6 ms | 101.3 | 0.97 |  |
+| expression, immediate | terms, then a dangling + | terms | 4 - 3,393 | 33 | 13,586 | 898.9 us | 0.99 | bytes flat; time flat | 4.3 ms | 1168.1 | 0.99 |  |
+| expression, immediate | parentheses opened and not closed | levels | 4 - 293 | 22 | 305 | 49.5 us | 0.95 | bytes flat; time flat | 10.6 ms | 1.1 | 0.00 |  |
+| expression, immediate | an unclosed string | characters | 4 - 3,393 | 33 | 3,405 | 1.4 us | 0.77 | bytes flat; time flat | 27.3 us | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed verbatim string | characters | 4 - 3,393 | 33 | 3,406 | 1.4 us | 0.75 | bytes flat; time flat | 27.1 us | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed interpolated string | characters | 4 - 18 | 9 | 31 | 38.1 ms | 6.28 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (38 ms) |
+| expression, immediate | an interpolated string, an unclosed hole | characters | 4 - 18 | 9 | 33 | 35.1 ms | 6.28 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (35 ms) |
+| expression, immediate | an unclosed interpolated verbatim string | characters | 4 - 18 | 9 | 32 | 24.0 ms | 6.26 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (24 ms) |
+| expression, immediate | an interpolated verbatim string, an unclosed hole | characters | 4 - 18 | 9 | 34 | 38.0 ms | 6.29 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (38 ms) |
+| expression, immediate | an unclosed raw interpolated string | characters | 4 - 22 | 10 | 37 | 186.8 ms | 6.95 | bytes -; time - | explosive | 0.0 | 0.02 | EXPLOSIVE, stopped at 22 (187 ms) |
+| expression, immediate | a raw interpolated string, an unclosed hole | characters | 4 - 18 | 9 | 35 | 32.2 ms | 6.31 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (32 ms) |
+| expression, immediate | an unclosed raw interpolated string, two dollars | characters | 4 - 18 | 9 | 34 | 22.2 ms | 6.26 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (22 ms) |
+| expression, immediate | an interpolated string ending in a backslash | characters | 4 - 18 | 9 | 32 | 34.2 ms | 6.29 | bytes -; time - | explosive | 0.0 | 0.01 | EXPLOSIVE, stopped at 18 (34 ms) |
+| expression, immediate | an interpolated string with holes, then no closing quote | holes | 4 - 3,393 | 33 | 13,585 | 598.0 us | 1.00 | bytes flat; time flat | 2.9 ms | 0.3 | 0.00 |  |
+| expression, immediate | an unclosed character literal | characters | 4 - 3,393 | 33 | 3,405 | 95 ns | -0.00 | bytes flat; time flat | 1.8 us | 0.3 | -0.00 |  |
+| expression, immediate | member accesses, then a dangling . | members | 4 - 3,393 | 33 | 37,339 | 1.1 ms | 1.01 | bytes flat; time flat | 2.0 ms | 4879.5 | 1.00 |  |
+| expression, immediate | conditionals, then a cut one | levels | 4 - 293 | 22 | 2,356 | 136.6 us | 0.98 | bytes flat; time flat | 3.8 ms | 170.7 | 0.97 |  |
+
+101 series, 37 defective or faulty:
+- UriTemplate, a literal run, then an unclosed {: EXPLOSIVE, stopped at 18 (42 ms), time exponent 5.63, bytes -; time -, explosive at 64 KiB
+- EmailAddress.TryParseList, a long atom, then a bare @: EXPLOSIVE, stopped at 18 (58 ms), time exponent 6.89, bytes -; time -, explosive at 64 KiB
+- EmailAddress.TryParseList, words, then an unclosed <: EXPLOSIVE, stopped at 10 (39 ms), time exponent 8.09, bytes -; time -, explosive at 64 KiB
+- EmailAddress.TryParseList, addresses, then a bare @: QUADRATIC, stopped at 235 (24 ms), time exponent 1.98, bytes rising x1.6; time rising x7.0, 7.7 s at 64 KiB
+- EmailAddress.TryParseList, an unclosed quoted string: QUADRATIC, stopped at 1,738 (29 ms), time exponent 1.99, bytes rising x2.9; time rising x14.0, 39.3 s at 64 KiB
+- EmailAddress.TryParseList, an unclosed domain literal: QUADRATIC, time exponent 1.99, bytes rising x3.2; time rising x14.0, 6.4 s at 64 KiB
+- MediaType, parameters, then an unclosed quoted string: QUADRATIC, stopped at 891 (28 ms), time exponent 1.97, bytes rising x2.8; time rising x12.9, 5.5 s at 64 KiB
+- MediaType, a long subtype, then a slash: QUADRATIC, time exponent 1.93, bytes rising x7.1; time rising x11.8, 2.0 s at 64 KiB
+- MediaRange.TryParseAccept, a long token, then a weight with no value: SUPERLINEAR, time exponent 1.16, bytes rising x10.0; time rising x1.6, 16.2 ms at 64 KiB
+- StructuredField.TryParseList, items, then an unclosed (: QUADRATIC, stopped at 1,113 (23 ms), time exponent 1.99, bytes rising x3.7; time rising x14.1, 8.6 s at 64 KiB
+- StructuredField.TryParseDictionary, members, then an unclosed string: QUADRATIC, stopped at 713 (29 ms), time exponent 1.99, bytes rising x3.0; time rising x14.2, 9.5 s at 64 KiB
+- ForwardedElement.TryParseField, elements, then for= with no value: QUADRATIC, stopped at 188 (21 ms), time exponent 1.93, bytes rising x4.3; time rising x7.6, 2.9 s at 64 KiB
+- WebLink.TryParseField, links, then an unclosed <: QUADRATIC, stopped at 293 (23 ms), time exponent 1.92, bytes rising x6.2; time rising x7.8, 739.6 ms at 64 KiB
+- WebLink.TryParseField, parameters, then an unclosed quoted string: QUADRATIC, stopped at 1,113 (29 ms), time exponent 1.94, bytes flat; time rising x11.7, 3.4 s at 64 KiB
+- LanguageTag, variants, then a bare hyphen: QUADRATIC, stopped at 1,738 (21 ms), time exponent 1.98, bytes rising x4.0; time rising x13.6, 1.1 s at 64 KiB
+- LanguageTag, extension subtags, then a doubled hyphen: QUADRATIC, stopped at 2,172 (26 ms), time exponent 1.97, bytes rising x3.2; time rising x13.5, 899.1 ms at 64 KiB
+- ContentDisposition, parameters, then an unclosed quoted string: QUADRATIC, stopped at 891 (31 ms), time exponent 2.05, bytes rising x13.1; time rising x25.4, 7.7 s at 64 KiB
+- T-SQL statement, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, time exponent 1.86, bytes rising x6.6; time rising x6.7, 7.2 s at 64 KiB
+- T-SQL search condition, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, stopped at 188 (31 ms), time exponent 2.67, bytes flat; time rising x22.9, over a day at 64 KiB
+- SQL:2023 query, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, time exponent 1.64, bytes flat; time rising x4.4, 2.7 s at 64 KiB
+- SQL:2023 search condition, nested parentheses, never closed (the closed form is as dear: a cost of nesting): QUADRATIC, time exponent 1.57, bytes flat; time rising x4.1, 1.9 s at 64 KiB
+- expression, tape, an unclosed interpolated string: EXPLOSIVE, stopped at 18 (38 ms), time exponent 6.29, bytes -; time -, explosive at 64 KiB
+- expression, tape, an interpolated string, an unclosed hole: EXPLOSIVE, stopped at 18 (35 ms), time exponent 6.28, bytes -; time -, explosive at 64 KiB
+- expression, tape, an unclosed interpolated verbatim string: EXPLOSIVE, stopped at 18 (24 ms), time exponent 6.27, bytes -; time -, explosive at 64 KiB
+- expression, tape, an interpolated verbatim string, an unclosed hole: EXPLOSIVE, stopped at 18 (38 ms), time exponent 6.28, bytes -; time -, explosive at 64 KiB
+- expression, tape, an unclosed raw interpolated string: EXPLOSIVE, stopped at 22 (187 ms), time exponent 6.96, bytes -; time -, explosive at 64 KiB
+- expression, tape, a raw interpolated string, an unclosed hole: EXPLOSIVE, stopped at 18 (32 ms), time exponent 6.33, bytes -; time -, explosive at 64 KiB
+- expression, tape, an unclosed raw interpolated string, two dollars: EXPLOSIVE, stopped at 18 (21 ms), time exponent 6.26, bytes -; time -, explosive at 64 KiB
+- expression, tape, an interpolated string ending in a backslash: EXPLOSIVE, stopped at 18 (34 ms), time exponent 6.31, bytes -; time -, explosive at 64 KiB
+- expression, immediate, an unclosed interpolated string: EXPLOSIVE, stopped at 18 (38 ms), time exponent 6.28, bytes -; time -, explosive at 64 KiB
+- expression, immediate, an interpolated string, an unclosed hole: EXPLOSIVE, stopped at 18 (35 ms), time exponent 6.28, bytes -; time -, explosive at 64 KiB
+- expression, immediate, an unclosed interpolated verbatim string: EXPLOSIVE, stopped at 18 (24 ms), time exponent 6.26, bytes -; time -, explosive at 64 KiB
+- expression, immediate, an interpolated verbatim string, an unclosed hole: EXPLOSIVE, stopped at 18 (38 ms), time exponent 6.29, bytes -; time -, explosive at 64 KiB
+- expression, immediate, an unclosed raw interpolated string: EXPLOSIVE, stopped at 22 (187 ms), time exponent 6.95, bytes -; time -, explosive at 64 KiB
+- expression, immediate, a raw interpolated string, an unclosed hole: EXPLOSIVE, stopped at 18 (32 ms), time exponent 6.31, bytes -; time -, explosive at 64 KiB
+- expression, immediate, an unclosed raw interpolated string, two dollars: EXPLOSIVE, stopped at 18 (22 ms), time exponent 6.26, bytes -; time -, explosive at 64 KiB
+- expression, immediate, an interpolated string ending in a backslash: EXPLOSIVE, stopped at 18 (34 ms), time exponent 6.29, bytes -; time -, explosive at 64 KiB
+
+Not covered by a refusal ladder:
+- Timestamp (RFC 3339): a fixed-length form, there is no head that grows before a refusal.
+- SetCookie: the reader is lenient, and every tail tried (a control character in a value or in an attribute) was accepted, so the series that asserted a refusal was a fault and was dropped; a refused shape with a growing head is not known.
+- The reader, stream and span forms of every grammar above: the ladders read a string, and the driver that pulls a TextReader or a Stream in pieces is a different piece of code over the same rules.
+- FixParser.Parse and the streaming FIX forms: they yield fields lazily and do not report a refusal as a value, so a ladder has nothing to read a refusal from.
+- SQL and T-SQL entry points other than a statement, a query expression and a search condition (scripts, the positional forms, expressions alone).
+- Rules that are reachable only from a start the ladders do not use: a shape whose bad tail sits inside a rule no series begins in is not seen here, and the static probe is the way to find it.
+- The examples under examples/ (not shipped), and the hand-written parsers (not a grammar's).
+done 20:01:52
