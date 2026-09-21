@@ -6855,3 +6855,46 @@ machine is answered by it; what a size measurement can compare is narrowed by it
 bytes become comparable, on a developer's machine the rule "compare only within one worktree"
 stands, with its mechanism now named rather than obeyed. Neither of those is settled ahead of
 this one.
+
+## D84 — The staleness guard answers the consumer's question, not the maintainer's
+
+A dictionary loaded at run time can disagree with the tables compiled into the package. D71 asked
+for a guard. Reading the existing reader first — as the order of work required — changed what the
+guard should be.
+
+**What the reader does today with a disagreement is nothing, deliberately.** It sets a rule for
+every type the dictionary describes and never consults the compiled tables; two schemas coexist
+and the last write wins. That is D72's shape — the consumer's table, and the package does not
+argue with their entry. So the guard changes no behaviour; it is new, and the only question is
+where it lives.
+
+**And the consumer can reproduce none of our three disagreement lists**, because the schema is
+internal: the schema type, its members, the composition array, and the vocabulary that maps a
+spelling to a value are all internal, and the one line reachable from both sides does not agree in
+shape. Ten disagreements on types, seventy-seven on code sets, twenty-six on composition — a
+consumer can ask about none of them.
+
+**What they can do is what found the most.** Read a corpus, ask both validators, compare the
+findings: the strongest check we have is over messages, not tables, and it is public today —
+parsing, validating, and every field of a finding. A guard written that way needs no new member.
+
+**And it answers a different question, which is the one actually asked.** "Does this new file
+change what my validation says" is not "do these two descriptions differ": they may differ in a
+tag the consumer never sends. A table comparison returns seventy-seven code sets and leaves the
+reader to work out which matter; a message comparison returns only what showed up in their own
+traffic, in the words they already read.
+
+**The price is named beside it.** Such a guard sees only what the corpus touches: a dictionary
+that changed a message type they have never received stays silent until the day they receive one.
+That is the opposite trade from tables — complete and undirected against partial and to the point
+— and the recipe must say which of the two it is.
+
+**So: the recipe first, and the table comparison only if somebody asks for it** — and then as a
+decision about how much of the schema the package publishes, taken as that decision, not arrived
+at while building a guard. Publishing a tag's code set, a tag's name, a message's composition and
+the spelling vocabulary is four or five members and a public shape for a schema reference, which
+is a larger promise than a method.
+
+**Half of it already exists, from the maintainer's side.** Our three lists are a guard, fixed in
+the suite, and they fire when our tables and the published dictionary disagree. What is missing is
+the consumer's half, which is the half this decides.
