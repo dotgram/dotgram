@@ -46,6 +46,11 @@ static class Program
 			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix");
 			return;
 		}
+		if (args.Length >= 1 && args[0] == "--validation")
+		{
+			FixValidationBenchmarks.Run(args[1..]);
+			return;
+		}
 		if (args.Length == 2 && args[0] == "--fix-jit-probe")
 		{
 			FixInitializationBenchmarks.Probe(args[1] == "previous");
