@@ -9158,3 +9158,44 @@ not repetitions' turns; it was reported as "the multiplier is already printed", 
 filed record now warns the next reader against the reading its own author made that morning, and
 states in capitals what would silently make the peak column a lower bound: a third place that
 advances `LogCount`.
+
+## D134 — Four rules for handing a measurement on, each bought by an error today
+
+All four came out of work done in one afternoon, and three of them were formulated by the sessions
+that made the mistake rather than by the one keeping the record. They are about reporting, not
+about FIX or SQL, and they are the part of the day most likely to be needed again.
+
+**A ratio without both numbers is not a result.** "The package is three times larger" travelled one
+hop and became true of the wrong artifact. There were three ratios, not one: the net10.0 assembly
+×3.96, the netstandard2.0 assembly ×2.47, and **the `.nupkg` anyone downloads ×1.65** — the
+generated code compresses well, being repetitive by construction. Which of the three a consumer
+feels depends on what they are short of: traffic once, or the bytes mapped and read at every
+process start. I took the ratio without asking what it was of, and carried it.
+
+**A property named without its axis is a property of the measurement wearing the clothes of a
+property of the thing.** "The walk is flat" was true across message *types* and false across the
+*number* of types: 6.8 ms for one and 12.2 ms for all ninety-three, because ninety-three messages
+reach 345 of its methods instead of 64. What is unbounded in the type count is the generated path,
+not the walk being free. Said by the session that had written "flat" an hour earlier.
+
+**Read the zeroes first and the percentages second**, in the words of the session that did not:
+*"A table that contains its own refutation does not protect you from it. A zero reads as 'nothing
+was measured here' when it is the measurement, and the eye goes instead to whatever number beside
+it looks informative — most often a percentage, which describes the remainder. When a column can
+hold the answer 'never', a percentage of what did happen cannot tell you that the thing itself
+never did."* The `same` column was zero in every row of their own table, printed an hour before
+they argued the opposite from the prefix percentage next to it.
+
+**A test has two subjects — the one in its name and the one in its control — and the decision goes
+by the name.** When a road is removed, a test that merely *used* the removed helper may still be
+about surviving behaviour, and a test whose *name* states the vanished question is finished even
+though its control assertions still pass. Here `A_tag_the_mask_does_not_cover_is_looked_for` named
+a question that only a loaded dictionary could raise; its two control lines about the mask are
+alive and covered 9,320 times elsewhere. My own formulation — "a test survives a behaviour's move
+but not a question's disappearance" — was an observation; theirs is a procedure: **look at what
+stands in the name.**
+
+**And the deletion is guarded at its reason, not at its consequence.** One assertion replaced the
+removed test: the largest tag the repository declares is inside the mask. It is trivially true
+today, and its remark says what it is holding up — the day it stops being trivial is the day a
+presence question would be asked of a bit that does not exist.
