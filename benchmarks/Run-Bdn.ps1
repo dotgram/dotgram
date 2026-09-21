@@ -15,7 +15,7 @@
 	     to run in process (`--inProcess`: a number taken there is not a number of this stand);
 	  2. announces the window (pid, started, until, what) in the same format as the stand's own runs, and puts the file back to `idle` when the run ends (benchmarks/Window.ps1 reads it);
 	  3. pins itself to logical processors 0-15 (0xFFFF) at high priority and starts `dotnet <Assembly> <BdnArgs> --artifacts <out>`; the children inherit the mask;
-	  4. every 100 ms reads the workers that appeared and checks each once (a worker that starts and ends between two reads is not checked, and run.txt says how many
+	  4. every 100 ms reads the workers that appeared and checks each once, by pid and start time (a worker that starts and ends between two reads is not checked, and run.txt says how many
 	     workers BDN executed, from its own log, against how many were read: a case of a real run lasts many seconds, a dry job's does not);
 	  5. (-Commit names the commit of what is under test when the assembly is built outside the repository, e.g. "library 1a2b3c4d, main 5e6f7a8b"; without it the commit is read from the repository the assembly sits in, and says "no repository" when there is none. -Note is written into the announcement and into run.txt: "a pricing probe, its numbers are not to be quoted")
 	  6. at the end writes run.txt beside BDN's artifacts: the commit, the mask, the JIT variables, every worker checked (pid, affinity, priority,
@@ -202,7 +202,11 @@ try {
 
 		# One query for every worker there is (a walk of the whole tree costs several hundred milliseconds and a short case is over before it ends); the workers of THIS run are its direct children.
 		foreach ($worker in @(Get-CimInstance Win32_Process -Filter "Name='dotnet.exe' AND CommandLine LIKE '%--benchmarkId%'" -ErrorAction SilentlyContinue | Where-Object { $_.ParentProcessId -eq $process.Id })) {
-			if ($checked.ContainsKey($worker.ProcessId)) { continue }
+			# A worker is told apart by its pid AND its start time: Windows recycles pids, and a set keyed by the pid alone skipped the second worker of a recycled pid (2026-09-21, the FIX window: 58 of 60 read, and the two
+			# unread were the second bearers of pids 60320 and 59296, not short cases).
+			$key = "$($worker.ProcessId)@$($worker.CreationDate.Ticks)"
+
+			if ($checked.ContainsKey($key)) { continue }
 
 			$live = Get-Process -Id $worker.ProcessId -ErrorAction SilentlyContinue
 
@@ -218,7 +222,7 @@ try {
 				$priority = "$((Get-Process -Id $worker.ProcessId).PriorityClass)"
 			}
 
-			$checked[$worker.ProcessId] = $true
+			$checked[$key] = $true
 			$rows.Add("| $($worker.ProcessId) | 0x$($mask.ToString('X')) | $priority$note | $((Get-Date).ToString('HH:mm:ss')) |")
 			"worker $($worker.ProcessId): affinity 0x$($mask.ToString('X')), priority $priority$note"
 
