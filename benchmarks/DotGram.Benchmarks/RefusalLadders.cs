@@ -298,7 +298,12 @@ internal static class RefusalLadders
 		return (best, bytes);
 	}
 
-	/// <summary>The slope of log time on log size over the points from a sixteenth of the largest size up (the last four at least).</summary>
+	/// <summary>
+	/// The exponent of a curve: the MEDIAN of the slopes between every two points of the largest sixteenth of the ladder (the last four at least) that are at least twice as far apart in size
+	/// (Theil-Sen). A least-squares line over those points is moved by one point: a single stalled call on a loaded machine at the largest size gave an exponent of 45 for a series of 0.9, and a
+	/// cliff of two points at the top turns a flat curve into a slope; the median of the slopes ignores up to a third of the points being wrong, which is the noise of a shared machine and the two
+	/// points above a bound. What a cliff is, the shape beside the exponent says.
+	/// </summary>
 	static double Exponent(List<(int N, double Ns, double Bytes)> points, Func<(int N, double Ns, double Bytes), double> value)
 	{
 		var top = points[^1].N;
@@ -310,13 +315,30 @@ internal static class RefusalLadders
 		if (use.Count < 2)
 			return double.NaN;
 
-		var x    = use.Select(p => Math.Log(p.N)).ToArray();
-		var y    = use.Select(p => Math.Log(value(p))).ToArray();
-		var mean = (x.Average(), y.Average());
-		var sxy  = x.Zip(y, (a, b) => (a - mean.Item1) * (b - mean.Item2)).Sum();
-		var sxx  = x.Sum(a => (a - mean.Item1) * (a - mean.Item1));
+		var slopes = new List<double>();
 
-		return sxx == 0 ? double.NaN : sxy / sxx;
+		foreach (var ratio in new[] { 2.0, 1.0 })
+		{
+			for (var i = 0; i < use.Count; i++)
+			{
+				for (var j = i + 1; j < use.Count; j++)
+				{
+					if (use[j].N >= use[i].N * ratio && use[j].N > use[i].N)
+						slopes.Add(Math.Log(value(use[j]) / value(use[i])) / Math.Log((double)use[j].N / use[i].N));
+				}
+			}
+
+			// Points less than twice apart only where there are no others: a curve of five points from 4 to 8 has no pair at a ratio of two but one.
+			if (slopes.Count > 0)
+				break;
+		}
+
+		if (slopes.Count == 0)
+			return double.NaN;
+
+		slopes.Sort();
+
+		return slopes.Count % 2 == 1 ? slopes[slopes.Count / 2] : (slopes[slopes.Count / 2 - 1] + slopes[slopes.Count / 2]) / 2;
 	}
 
 	static bool JsonPatchAccepts(string text)
@@ -404,8 +426,36 @@ internal static class RefusalLadders
 		internal (int N, double Ns, double Bytes) Last => Points.Count == 0 ? (0, double.NaN, double.NaN) : Points[^1];
 	}
 
-	/// <summary>Walks one ladder under the budget and the watchdog. Nothing it meets ends the process: a call that hangs is abandoned and the series is explosive.</summary>
+	/// <summary>
+	/// Walks one ladder twice and reads the faster of the two at every size: the first pass is also a warm-up, so that what is read is not the tiered compiler at work. A fresh process reads the small sizes of a ladder in code that
+	/// is not yet optimized and the large ones in code that is, which flattens the curve (WebLink, links then an unclosed <: 1.2-1.5 in a fresh process, 1.8-2.0 in one that had run other ladders),
+	/// and a class written down in one process then fails in another. A ladder that is explosive, refused wrongly or throws ends at the first pass.
+	/// </summary>
 	internal static Result Run(Series series)
+	{
+		var first = RunPass(series);
+
+		if (first.Hung || first.Faulty || first.Thrown is not null)
+			return first;
+
+		var second = RunPass(series);
+
+		// Each size takes the faster of its two readings: a burst of another process that stalls a call of the first pass rarely stalls the same call of the second, a whole ladder later,
+		// and the median of the slopes does not hold against a burst that covers the several largest points at once.
+		var merged = second.Points.Select(point => first.Points.FirstOrDefault(one => one.N == point.N) is { N: > 0 } other
+			? (point.N, Math.Min(point.Ns, other.Ns), point.Bytes > 0 && other.Bytes > 0 ? Math.Min(point.Bytes, other.Bytes) : Math.Max(point.Bytes, other.Bytes))
+			: point).ToList();
+
+		return second with
+		{
+			Points     = merged,
+			Exponent   = merged.Count < 2 ? double.NaN : Exponent(merged, static p => p.Ns),
+			Allocation = merged.Count < 2 ? double.NaN : Exponent(merged, static p => p.Bytes),
+		};
+	}
+
+	/// <summary>Walks one ladder under the budget and the watchdog. Nothing it meets ends the process: a call that hangs is abandoned and the series is explosive.</summary>
+	static Result RunPass(Series series)
 	{
 		var points = new List<(int N, double Ns, double Bytes)>();
 		var budget = false;
