@@ -71,6 +71,10 @@ sealed partial class Machine
 			// mark includes values discarded by backtracking, so every retained reference
 			// is cleared before the store is made available to another parse.
 			text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
+			// Taken before the emptying below, which zeroes the high-water marks.
+			var high = stacks.OrderBy(stack => stack, StringComparer.Ordinal)
+				.Select(stack => "values.High" + stack).ToList();
+			text.Append("\t\tvar used = ").Append(high.Count == 0 ? "0L" : "0L + " + string.Join(" + ", high)).Append(";\n\n");
 			Emptied(text, "Text");
 			Emptied(text, "Spans");
 
@@ -92,7 +96,7 @@ sealed partial class Machine
 			text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
 			text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
 			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
-			CSharpEmitter.Outsized(text, "ImmediateValues", "values");
+			CSharpEmitter.Outsized(text, "ImmediateValues", "values", "used");
 
 			CSharpEmitter.Spared(text, "ImmediateValues", "values");
 			text.Append("\t}\n\n");

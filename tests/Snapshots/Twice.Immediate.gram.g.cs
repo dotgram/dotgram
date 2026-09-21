@@ -1278,7 +1278,7 @@ namespace DotGram.Snapshots
 				[global::System.ThreadStatic]
 				static Ways? _large;
 
-				/// <summary>Rentals since the large one was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+				/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>
 				[global::System.ThreadStatic]
 				static int _largeIdle;
 
@@ -1309,27 +1309,14 @@ namespace DotGram.Snapshots
 					{
 						spare = _large;
 						_large = null;
-						_largeIdle = 0;
 					}
 					else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
 					{
 						spare = letGo;
 						_largeLetGo.SetTarget(null!);
-						_largeIdle = 0;
 					}
 					else
 						return new Ways();
-
-					// A large tape nobody has wanted for a while stops being held against the
-					// collector's wishes, without being thrown away: what the work stopped needing
-					// is still there if the work comes back before the memory is wanted elsewhere.
-					if (_large != null && ++_largeIdle >= LargeIdle)
-					{
-						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
-						_large = null;
-						_largeIdle = 0;
-					}
-
 					spare.Count = 0;
 					spare.Cursor = 0;
 					spare.LogCount  = 0;
@@ -1348,7 +1335,7 @@ namespace DotGram.Snapshots
 					// over and the next parse of a document that size grew everything again from
 					// nothing, which cost twenty times the memory of a document a third smaller.
 					// It goes to a slot of its own instead, held while the work keeps wanting it
-					// (Rent, LargeIdle) and let go of by the collector afterwards. Handing it to
+					// (Return, LargeIdle) and let go of by the collector afterwards. Handing it to
 					// ArrayPool<T>.Shared instead was considered and is not the same thing: that
 					// pool's largest kept array is 2^20 elements, the very number this bound is
 					// written in, so it would decline exactly these arrays and "pool it" would mean
@@ -1358,8 +1345,19 @@ namespace DotGram.Snapshots
 						if (_large != null && !ReferenceEquals(_large, ways))
 							(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
 
+						// Against what this parse USED, read the same way the bound reads capacity.
+						if (ways.Count * 2L + ways.LogCount + ways.RefsCount > 1048576)
+							_largeIdle = 0;
+						else if (++_largeIdle >= LargeIdle)
+						{
+							(_largeLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+							_large = null;
+							_largeIdle = 0;
+
+							return;
+						}
+
 						_large = ways;
-						_largeIdle = 0;
 
 						return;
 					}
@@ -1704,7 +1702,7 @@ namespace DotGram.Snapshots
 				[global::System.ThreadStatic]
 				static ImmediateValues? _large;
 
-				/// <summary>Rentals since it was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+				/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>
 				[global::System.ThreadStatic]
 				static int _largeIdle;
 
@@ -1717,6 +1715,12 @@ namespace DotGram.Snapshots
 				/// the large store, this thread's work has changed and the next parse is unlikely
 				/// to want it either. Carrying it through a few small parses costs the memory this
 				/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.
+				///
+				/// Counted where a parse ENDS, against what that parse USED. At the rental it
+				/// could never arrive: a rental that takes the kept store zeroes the count, and
+				/// with no ordinary spare - the state right after a large parse - every rental
+				/// takes it. Against CAPACITY it could never arrive either: a store comes back
+				/// as large as it was grown, whatever the document was.
 				/// </summary>
 				const int LargeIdle = 8;
 
@@ -1735,32 +1739,22 @@ namespace DotGram.Snapshots
 					{
 						spare = _large;
 						_large = null;
-						_largeIdle = 0;
 					}
 					else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
 					{
 						spare = letGo;
 						_largeLetGo.SetTarget(null!);
-						_largeIdle = 0;
 					}
 					else
 						return new ImmediateValues();
-
-					// A large store nobody has wanted for a while stops being held against the
-					// collector, without being thrown away: what the work stopped needing is still
-					// there if the work comes back before the memory is wanted elsewhere.
-					if (_large != null && ++_largeIdle >= LargeIdle)
-					{
-						(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(_large)).SetTarget(_large);
-						_large = null;
-						_largeIdle = 0;
-					}
 
 					return spare;
 				}
 
 				internal static void Return(ImmediateValues values)
 				{
+					var used = 0L + values.High0;
+
 					if (values.High0 > 0)
 					{
 						global::System.Array.Clear(values.Stack0, 0, values.High0);
@@ -1774,11 +1768,25 @@ namespace DotGram.Snapshots
 					// first, above: what is kept is the room, never what was built in it.
 					if (0L + values.Stack0.Length > 1048576)
 					{
+						// Against what this parse USED, not what the store holds: capacity does not
+						// shrink because a document was small, so a count against it would reset here
+						// every time and never arrive. Eight parses that did not use the room and it
+						// stops being held strongly - the borrower is what demotes it.
+						if (used > 1048576)
+							_largeIdle = 0;
+						else if (++_largeIdle >= LargeIdle)
+						{
+							(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(values)).SetTarget(values);
+							_large = null;
+							_largeIdle = 0;
+
+							return;
+						}
+
 						if (_large != null && !ReferenceEquals(_large, values))
 							(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(_large)).SetTarget(_large);
 
 						_large = values;
-						_largeIdle = 0;
 
 						return;
 					}

@@ -2129,7 +2129,7 @@ public static partial class CSharpEmitter
 		file.Line("[global::System.ThreadStatic]");
 		file.Line("static Tokens_DotGram? _largeTokens;");
 		file.Line();
-		file.Line("/// <summary>Rentals since it was last taken; at eight it is let go of.</summary>");
+		file.Line("/// <summary>Parses in a row that did not use the room; at eight it is let go of.</summary>");
 		file.Line("[global::System.ThreadStatic]");
 		file.Line("static int _largeTokensIdle;");
 		file.Line();
@@ -2155,29 +2155,18 @@ public static partial class CSharpEmitter
 			{
 				file.Line("spare = _largeTokens;");
 				file.Line("_largeTokens = null;");
-				file.Line("_largeTokensIdle = 0;");
 			}
 
 			using (file.Block("else if (_largeTokensLetGo != null && _largeTokensLetGo.TryGetTarget(out var letGo))"))
 			{
 				file.Line("spare = letGo;");
 				file.Line("_largeTokensLetGo.SetTarget(null!);");
-				file.Line("_largeTokensIdle = 0;");
 			}
 
 			file.Line("else");
 			file.Then("return new Tokens_DotGram();");
 			file.Line();
-			file.Line("// A large buffer nobody has wanted for a while stops being held against the");
-			file.Line("// collector, without being thrown away: what the work stopped needing is still");
-			file.Line("// there if the work comes back before the memory is wanted elsewhere.");
-			using (file.Block("if (_largeTokens != null && ++_largeTokensIdle >= 8)"))
-			{
-				file.Line("(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);");
-				file.Line("_largeTokens = null;");
-				file.Line("_largeTokensIdle = 0;");
-			}
-			file.Line("return spare;");
+file.Line("return spare;");
 		}
 
 		file.Line();
@@ -2193,8 +2182,21 @@ public static partial class CSharpEmitter
 				file.Line("if (_largeTokens != null && !ReferenceEquals(_largeTokens, tokens))");
 				file.Then("(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(_largeTokens)).SetTarget(_largeTokens);");
 				file.Line();
+				file.Line("// Against what this parse USED. At the rental it could never arrive: a");
+				file.Line("// rental that takes the kept buffer zeroes the count, and with no ordinary");
+				file.Line("// spare - the state right after a large parse - every rental takes it.");
+				file.Line("if (tokens.Count * 3L > 1048576)");
+				file.Then("_largeTokensIdle = 0;");
+				using (file.Block("else if (++_largeTokensIdle >= 8)"))
+				{
+					file.Line("(_largeTokensLetGo ??= new global::System.WeakReference<Tokens_DotGram>(tokens)).SetTarget(tokens);");
+					file.Line("_largeTokens = null;");
+					file.Line("_largeTokensIdle = 0;");
+					file.Line();
+					file.Line("return;");
+				}
+				file.Line();
 				file.Line("_largeTokens = tokens;");
-				file.Line("_largeTokensIdle = 0;");
 				file.Line();
 				file.Line("return;");
 			}

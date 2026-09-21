@@ -1115,7 +1115,7 @@ public static partial class CSharpEmitter
 		[global::System.ThreadStatic]
 		static Parser? _largeParser;
 
-		/// <summary>Parses since it was last taken; at <see cref="LargeParserIdle"/> it is let go of.</summary>
+		/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle"/> it is let go of.</summary>
 		[global::System.ThreadStatic]
 		static int _largeParserIdle;
 
@@ -1146,27 +1146,14 @@ public static partial class CSharpEmitter
 			{
 				spare = _largeParser;
 				_largeParser = null;
-				_largeParserIdle = 0;
 			}
 			else if (_largeParserLetGo != null && _largeParserLetGo.TryGetTarget(out var letGo))
 			{
 				spare = letGo;
 				_largeParserLetGo.SetTarget(null!);
-				_largeParserIdle = 0;
 			}
 			else
 				return new Parser();
-
-			// A large arena nobody has wanted for eight parses stops being held against the
-			// collector, without being thrown away: what the work stopped needing is still
-			// there if the work comes back before the memory is wanted elsewhere.
-			if (_largeParser != null && ++_largeParserIdle >= LargeParserIdle)
-			{
-				(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
-				_largeParser = null;
-				_largeParserIdle = 0;
-			}
-
 			return spare;
 		}
 
@@ -1177,8 +1164,21 @@ public static partial class CSharpEmitter
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
 
+				// Against what this parse USED. Counted at the rental it could never arrive:
+				// a rental that takes the kept arena zeroes the count, and with no ordinary
+				// spare - the state right after a large parse - every rental takes it.
+				if (parser.Entries.Count > KeptEntries)
+					_largeParserIdle = 0;
+				else if (++_largeParserIdle >= LargeParserIdle)
+				{
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+					_largeParser = null;
+					_largeParserIdle = 0;
+
+					return;
+				}
+
 				_largeParser = parser;
-				_largeParserIdle = 0;
 
 				return;
 			}
@@ -1375,7 +1375,7 @@ public static partial class CSharpEmitter
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _deeperCount;\n\n");
 		text.Append("\t/// <summary>A store past the bound, kept while this thread's work still wants it.</summary>\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic ").Append(type).Append("? _large;\n\n");
-		text.Append("\t/// <summary>Rentals since it was last taken; at <c>LargeIdle</c> it is let go of.</summary>\n");
+		text.Append("\t/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic int _largeIdle;\n\n");
 		text.Append("\t/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic global::System.WeakReference<").Append(type).Append(">? _largeLetGo;\n\n");
@@ -1384,22 +1384,22 @@ public static partial class CSharpEmitter
 		text.Append("\t/// the large store, this thread's work has changed and the next parse is unlikely\n");
 		text.Append("\t/// to want it either. Carrying it through a few small parses costs the memory this\n");
 		text.Append("\t/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.\n");
+		text.Append("\t///\n");
+		text.Append("\t/// Counted where a parse ENDS, against what that parse USED. At the rental it\n");
+		text.Append("\t/// could never arrive: a rental that takes the kept store zeroes the count, and\n");
+		text.Append("\t/// with no ordinary spare - the state right after a large parse - every rental\n");
+		text.Append("\t/// takes it. Against CAPACITY it could never arrive either: a store comes back\n");
+		text.Append("\t/// as large as it was grown, whatever the document was.\n");
 		text.Append("\t/// </summary>\n");
 		text.Append("\tconst int LargeIdle = 8;\n\n");
 		text.Append("\tinternal static ").Append(type).Append(" Rent()\n\t{\n\t\tvar spare = _spare;\n\n");
 		text.Append("\t\tif (spare != null)\n\t\t\t_spare = null;\n");
 		text.Append("\t\telse if (_deeperCount > 0)\n\t\t{\n\t\t\tspare = _deeper![--_deeperCount]!;\n\t\t\t_deeper![_deeperCount] = null;\n\t\t}\n");
-		text.Append("\t\telse if (_large != null)\n\t\t{\n\t\t\tspare = _large;\n\t\t\t_large = null;\n\t\t\t_largeIdle = 0;\n\t\t}\n");
+		text.Append("\t\telse if (_large != null)\n\t\t{\n\t\t\tspare = _large;\n\t\t\t_large = null;\n\t\t}\n");
 		text.Append("\t\telse if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))\n\t\t{\n");
-		text.Append("\t\t\tspare = letGo;\n\t\t\t_largeLetGo.SetTarget(null!);\n\t\t\t_largeIdle = 0;\n\t\t}\n");
+		text.Append("\t\t\tspare = letGo;\n\t\t\t_largeLetGo.SetTarget(null!);\n\t\t}\n");
 		text.Append("\t\telse\n\t\t\treturn new ").Append(type).Append("();\n\n");
-		text.Append("\t\t// A large store nobody has wanted for a while stops being held against the\n");
-		text.Append("\t\t// collector, without being thrown away: what the work stopped needing is still\n");
-		text.Append("\t\t// there if the work comes back before the memory is wanted elsewhere.\n");
-		text.Append("\t\tif (_large != null && ++_largeIdle >= LargeIdle)\n\t\t{\n");
-		text.Append("\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(_large)).SetTarget(_large);\n");
-		text.Append("\t\t\t_large = null;\n\t\t\t_largeIdle = 0;\n\t\t}\n\n");
-		text.Append("\t\treturn spare;\n\t}\n\n");
+				text.Append("\t\treturn spare;\n\t}\n\n");
 	}
 
 	/// <summary>
@@ -1415,12 +1415,22 @@ public static partial class CSharpEmitter
 	/// alternative it looks like: that pool's largest kept array is 2^20 elements, the same
 	/// number this bound is written in, so it declines exactly these arrays.
 	/// </remarks>
-	internal static void Outsized(StringBuilder text, string type, string store)
+	internal static void Outsized(StringBuilder text, string type, string store, string used)
 	{
 		text.Append("\t\t{\n");
+		text.Append("\t\t\t// Against what this parse USED, not what the store holds: capacity does not\n");
+		text.Append("\t\t\t// shrink because a document was small, so a count against it would reset here\n");
+		text.Append("\t\t\t// every time and never arrive. Eight parses that did not use the room and it\n");
+		text.Append("\t\t\t// stops being held strongly - the borrower is what demotes it.\n");
+		text.Append("\t\t\tif (").Append(used).Append(" > 1048576)\n");
+		text.Append("\t\t\t\t_largeIdle = 0;\n");
+		text.Append("\t\t\telse if (++_largeIdle >= LargeIdle)\n\t\t\t{\n");
+		text.Append("\t\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(").Append(store).Append(")).SetTarget(").Append(store).Append(");\n");
+		text.Append("\t\t\t\t_large = null;\n\t\t\t\t_largeIdle = 0;\n\n");
+		text.Append("\t\t\t\treturn;\n\t\t\t}\n\n");
 		text.Append("\t\t\tif (_large != null && !ReferenceEquals(_large, ").Append(store).Append("))\n");
 		text.Append("\t\t\t\t(_largeLetGo ??= new global::System.WeakReference<").Append(type).Append(">(_large)).SetTarget(_large);\n\n");
-		text.Append("\t\t\t_large = ").Append(store).Append(";\n\t\t\t_largeIdle = 0;\n\n\t\t\treturn;\n\t\t}\n\n");
+		text.Append("\t\t\t_large = ").Append(store).Append(";\n\n\t\t\treturn;\n\t\t}\n\n");
 	}
 
 	/// <summary>The last lines of a <c>Return</c> written by <see cref="Spares"/>: the store goes back.</summary>
@@ -1470,7 +1480,19 @@ public static partial class CSharpEmitter
 
 		text.Append("\tint _used;\n\n");
 		Spares(text, "DirectValues");
-		text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
+				var capacities = dense
+			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }
+			: Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
+				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
+		if (stateType is not null)
+			capacities.Add("values.MarkState.Length");
+		if (stateType is not null && markPositions)
+			capacities.Add("values.MarkAt.Length");
+text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
+		// Taken before the emptying below, which zeroes it. Every table the bound counts
+		// is indexed by the record, so the room a parse used is its count of records once
+		// per table - the same sum the bound is read from, with use in place of length.
+		text.Append("\t\tvar used = ").Append(capacities.Count).Append("L * values._used;\n\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (dense)
@@ -1502,20 +1524,12 @@ public static partial class CSharpEmitter
 		// are three hundred of the latter for SQL:2023, and summing them on every return would
 		// cost more than the bound saves. The record tables grow with the parse, which is what
 		// the bound is about.
-		var capacities = dense
-			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }
-			: Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
-				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
-		if (stateType is not null)
-			capacities.Add("values.MarkState.Length");
-		if (stateType is not null && markPositions)
-			capacities.Add("values.MarkAt.Length");
-		text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
+				text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
 		text.Append("\t\t// and not a bound - it is kept while the work keeps wanting it, and handed\n");
 		text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
 		text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
 		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
-		Outsized(text, "DirectValues", "values");
+		Outsized(text, "DirectValues", "values", "used");
 
 		Spared(text, "DirectValues", "values");
 		text.Append("\t}\n\n");
@@ -1773,7 +1787,7 @@ public static partial class CSharpEmitter
 			[global::System.ThreadStatic]
 			static Ways? _large;
 
-			/// <summary>Rentals since the large one was last taken; at <c>LargeIdle</c> it is let go of.</summary>
+			/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>
 			[global::System.ThreadStatic]
 			static int _largeIdle;
 
@@ -1804,27 +1818,14 @@ public static partial class CSharpEmitter
 				{
 					spare = _large;
 					_large = null;
-					_largeIdle = 0;
 				}
 				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
 				{
 					spare = letGo;
 					_largeLetGo.SetTarget(null!);
-					_largeIdle = 0;
 				}
 				else
 					return new Ways();
-
-				// A large tape nobody has wanted for a while stops being held against the
-				// collector's wishes, without being thrown away: what the work stopped needing
-				// is still there if the work comes back before the memory is wanted elsewhere.
-				if (_large != null && ++_largeIdle >= LargeIdle)
-				{
-					(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
-					_large = null;
-					_largeIdle = 0;
-				}
-
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.LogCount  = 0;
@@ -1843,7 +1844,7 @@ public static partial class CSharpEmitter
 				// over and the next parse of a document that size grew everything again from
 				// nothing, which cost twenty times the memory of a document a third smaller.
 				// It goes to a slot of its own instead, held while the work keeps wanting it
-				// (Rent, LargeIdle) and let go of by the collector afterwards. Handing it to
+				// (Return, LargeIdle) and let go of by the collector afterwards. Handing it to
 				// ArrayPool<T>.Shared instead was considered and is not the same thing: that
 				// pool's largest kept array is 2^20 elements, the very number this bound is
 				// written in, so it would decline exactly these arrays and "pool it" would mean
@@ -1853,8 +1854,19 @@ public static partial class CSharpEmitter
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
 
+					// Against what this parse USED, read the same way the bound reads capacity.
+					if (ways.Count * 2L + ways.LogCount + ways.RefsCount > 1048576)
+						_largeIdle = 0;
+					else if (++_largeIdle >= LargeIdle)
+					{
+						(_largeLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+						_large = null;
+						_largeIdle = 0;
+
+						return;
+					}
+
 					_large = ways;
-					_largeIdle = 0;
 
 					return;
 				}

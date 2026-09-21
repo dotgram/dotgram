@@ -1660,7 +1660,7 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static Parser? _largeParser;
 
-		/// <summary>Parses since it was last taken; at <see cref="LargeParserIdle"/> it is let go of.</summary>
+		/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle"/> it is let go of.</summary>
 		[global::System.ThreadStatic]
 		static int _largeParserIdle;
 
@@ -1691,27 +1691,14 @@ namespace DotGram.Snapshots
 			{
 				spare = _largeParser;
 				_largeParser = null;
-				_largeParserIdle = 0;
 			}
 			else if (_largeParserLetGo != null && _largeParserLetGo.TryGetTarget(out var letGo))
 			{
 				spare = letGo;
 				_largeParserLetGo.SetTarget(null!);
-				_largeParserIdle = 0;
 			}
 			else
 				return new Parser();
-
-			// A large arena nobody has wanted for eight parses stops being held against the
-			// collector, without being thrown away: what the work stopped needing is still
-			// there if the work comes back before the memory is wanted elsewhere.
-			if (_largeParser != null && ++_largeParserIdle >= LargeParserIdle)
-			{
-				(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
-				_largeParser = null;
-				_largeParserIdle = 0;
-			}
-
 			return spare;
 		}
 
@@ -1722,8 +1709,21 @@ namespace DotGram.Snapshots
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
 
+				// Against what this parse USED. Counted at the rental it could never arrive:
+				// a rental that takes the kept arena zeroes the count, and with no ordinary
+				// spare - the state right after a large parse - every rental takes it.
+				if (parser.Entries.Count > KeptEntries)
+					_largeParserIdle = 0;
+				else if (++_largeParserIdle >= LargeParserIdle)
+				{
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+					_largeParser = null;
+					_largeParserIdle = 0;
+
+					return;
+				}
+
 				_largeParser = parser;
-				_largeParserIdle = 0;
 
 				return;
 			}
