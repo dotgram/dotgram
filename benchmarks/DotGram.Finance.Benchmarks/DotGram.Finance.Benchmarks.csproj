@@ -7,12 +7,6 @@
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" />
 
-		<!-- The library this package is compared against (D123), and the FIX 4.4 dictionary that
-		     ships with it: their schema is read from that file, and our loaded mode reads the same
-		     one, so the comparison is over one description and not two. -->
-		<PackageReference Include="QuickFIXn.Core" />
-		<PackageReference Include="QuickFIXn.FIX44" />
-		<None Include="$([MSBuild]::EnsureTrailingSlash($(NuGetPackageRoot)))quickfixn.fix44/1.14.1/DataDictionary/FIX44.xml" Link="FIX44.xml" CopyToOutputDirectory="PreserveNewest" />
 		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
 
