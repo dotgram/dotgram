@@ -305,7 +305,8 @@ that away.
 that field — `FixMessage.NewOrderSingle.Rule = (message, findings) => …` — and undoing it is
 assigning the name back, `FixValidator.ValidateNewOrderSingle`. `FixValidator` is not an entry
 point: it holds the ninety-four rules this package compiles in, one named method a type, so that
-a replacement can be taken back.
+a replacement can be taken back. Whether a rule is still in place is asked with `==` rather than
+`ReferenceEquals`: the two may or may not be one object, and that is the compiler's business.
 
 `FixParser.LoadDictionary(stream)` reads a counterparty's QuickFIX dictionary and writes the rule
 of every type it describes. It answers with nothing and throws where the file is not a dictionary

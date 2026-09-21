@@ -197,6 +197,10 @@ FixMessage.NewOrderSingle.Rule = FixValidator.ValidateNewOrderSingle;
 ninety-four rules this package compiles in, one named method a type, so that a replacement can be
 undone by assigning the name back.
 
+**Ask whether a rule is still in place with `==`, not with `ReferenceEquals`.**
+`FixMessage.NewOrderSingle.Rule == FixValidator.ValidateNewOrderSingle` is the question; whether
+the two are also one object is the compiler's business and not something to rely on.
+
 **One field means one configuration for the process.** Two counterparties with two different
 schemas in one process is not expressible, and that is the trade the shape was chosen for.
 

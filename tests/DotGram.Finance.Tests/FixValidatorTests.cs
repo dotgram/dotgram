@@ -69,6 +69,12 @@ public sealed class FixValidatorTests
 	/// <summary>
 	/// What the package compiles in is reached by name, and the name is how a replacement is undone.
 	/// </summary>
+	/// <remarks>
+	/// Equality, not identity: a delegate built from a static method group is cached at the place
+	/// the conversion is written, so two places give two objects that are equal and not the same.
+	/// The test below pins that, because it is what a consumer asking "is my rule still in place"
+	/// has to know.
+	/// </remarks>
 	[Fact]
 	public void Every_class_starts_at_the_rule_this_package_compiles_in()
 	{
@@ -245,5 +251,38 @@ public sealed class FixValidatorTests
 		// And nothing else: there is no schema to be out of place against, so saying so of every
 		// field would bury the one finding that matters.
 		Assert.DoesNotContain(message.Validate(), one => one.Rule == FixRule.FieldNotInScope);
+	}
+
+	/// <summary>
+	/// A rule is compared with <c>==</c>, never with <see cref="object.ReferenceEquals"/>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Written as a test because two accounts of WHY were offered and the compiler agreed with
+	/// neither. "Every conversion of a method group builds a new object" is wrong — the conversion
+	/// of a static method group is cached. "Cached at the place the conversion is written, so two
+	/// places give two objects" is also wrong: the two conversions below are two places in one
+	/// method and they came back as ONE object.
+	/// </para>
+	/// <para>
+	/// What a consumer can rely on is therefore equality and not identity: a rule is the same rule
+	/// when it is <c>==</c> to the name, and whether it is also the same object is the compiler's
+	/// business and may differ between call sites, assemblies and versions.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_rule_is_compared_by_equality_and_not_by_identity()
+	{
+		FixMessageRule here  = FixValidator.ValidateNewOrderSingle;
+		FixMessageRule there = FixValidator.ValidateNewOrderSingle;
+
+		Assert.True(here == there);
+		Assert.Equal(here, there);
+
+		// And a rule wrapped in a lambda is a different rule, however equal its behaviour: what the
+		// field holds is the delegate, and this is what a consumer's check would see.
+		FixMessageRule wrapped = (message, findings) => FixValidator.ValidateNewOrderSingle(message, findings);
+
+		Assert.NotEqual(here, wrapped);
 	}
 }
