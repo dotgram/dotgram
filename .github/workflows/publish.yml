@@ -1,21 +1,32 @@
 ﻿name: publish
 
 # A release is a tag. Pushing `v0.2.0` builds the repository at that commit, checks that the
-# tag and the version in Directory.Build.props are the same thing, packs the five packages and
-# publishes them. Everything up to the push happens whether or not the account's API key is
-# configured: without it the packages are still built, checked and uploaded as artifacts of the
-# run, so a dry run is the same run with the last step skipped.
+# tag and the version in Directory.Build.props are the same thing, packs the six packages and
+# publishes them. Everything up to the push happens on a manual run too: without a tag the
+# packages are still built, checked and uploaded as artifacts of the run, so a dry run is the
+# same run with the last job left off.
 #
 # It does not build the Visual Studio extension: that is Windows, and the VSIX goes to the
 # Marketplace by hand from the `windows` job's artifact of the same commit.
+#
+# Nothing here holds a nuget.org key. The `publish` job asks GitHub for a short-lived OIDC token,
+# nuget.org checks it against a trusted publishing policy naming this repository and this file,
+# and hands back an API key that lives one hour. The repository therefore has no secret to leak,
+# to rotate, or to forget to set — which is why the key is requested in the last job, seconds
+# before it is used, rather than at the top of a run whose tests and package smokes take a while.
 
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  publish:
+  # Everything that can be checked without leaving the machine. It runs for a manual dispatch as
+  # well as for a tag, and it is the whole of a dry run.
+  pack:
     runs-on: ubuntu-latest
 
     steps:
@@ -99,25 +110,54 @@ jobs:
           name: nupkg
           path: artifacts/*.nupkg
 
-      # The only step that leaves the machine, and the only one gated twice.
-      #
-      # It is skipped until the repository has the account's API key as a secret, so this workflow
-      # can be run and read before it can publish anything. `--skip-duplicate` makes a re-run of a
-      # finished release harmless.
-      #
-      # It is also skipped unless the run is a tag, and that condition is first because it is the
-      # one that cannot be waived. "The tag is the version" above runs only for a tag, so without
-      # this a manual run would pack whatever version happens to be in Directory.Build.props, from
-      # whatever commit it was started on, with the one check that nobody can take back skipped.
-      # Today the missing key hides that; the day the key arrives is the day nobody rereads this
-      # file. A manual run stays what the first line of this file calls it: the same run with the
-      # last step left off.
+  # The only job that leaves the machine, and everything about it is a gate.
+  #
+  # It runs only for a tag. That condition used to share the work with "unless the API key is
+  # missing", which was never a decision — the key had simply never been set, and a check that
+  # holds only because somebody forgot something stops holding on the day they remember. So the
+  # second gate is now a real one: the `release` environment. An environment that does not exist
+  # yet is created on first use with no rules, and required reviewers can be added to it in the
+  # repository's settings afterwards, at which point a release waits for a person.
+  #
+  # It packs nothing. It takes the files the job above checked, byte for byte, which is the same
+  # argument as packing in this workflow rather than trusting another one's pack: what leaves is
+  # what was checked, and there is no second build in between for them to differ across.
+  publish:
+    needs: pack
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment: release
+
+    permissions:
+      contents: read
+      id-token: write   # lets this job ask GitHub for the OIDC token nuget.org will verify
+
+    steps:
+      # A checkout for global.json alone: it pins the SDK, and this job would otherwise push with
+      # whatever .NET the runner image happens to carry. Naming a version here instead would move
+      # that decision out of the repository, which is what global.json exists to prevent.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts
+
+      # Pinned by commit rather than by tag. A tag is a name its owner can move, and this is the
+      # one action in the repository that mints a credential able to publish under our name.
+      - name: NuGet login (OIDC, for a key that lives an hour)
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841   # v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # `--skip-duplicate` makes a re-run of a finished release harmless: a version already on
+      # nuget.org is left alone rather than failing the job.
       - name: Push to nuget.org
-        if: startsWith(github.ref, 'refs/tags/') && env.NUGET_API_KEY != ''
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: >
           dotnet nuget push 'artifacts/*.nupkg'
-          --api-key "$NUGET_API_KEY"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
