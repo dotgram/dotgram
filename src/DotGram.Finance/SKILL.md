@@ -90,7 +90,7 @@ foreach (var field in FixParser.Parse(wire))
   instead — three methods, because a field is built from characters, from bytes and from the
   payload of a length/data pair, and answering one of them and not the others gives you two
   parses of one message that disagree. It builds field objects only: the tag stays unknown to
-  the message schema, so the strict mode still refuses it.
+  the message schema, so `Validate` still reports it.
 - A syntax error does not throw. It becomes one `FixField.Invalid`, and reading
   resumes after the next separator.
 
@@ -121,8 +121,8 @@ switch (message)
 }
 ```
 
-- All 93 standard messages have a class; match on it. Under `Lenient`, a MsgType the
-  schema does not know becomes a `CustomFixMessage`.
+- All 93 standard messages have a class; match on it. A MsgType the schema does not know
+  becomes a `CustomFixMessage`, and `Validate` reports the type as unknown.
 - A message's properties are named after its fields. Text is `string?` and numbers are
   `FixNumber?`, which keeps the digits exactly as written; both are null when the field
   is absent. A group is `IReadOnlyList<FixFieldSet>`, empty when absent, and each entry
@@ -188,6 +188,52 @@ which is the rule this package ships.
 
 This package ships no dictionary of anyone's. The file is yours, in your repository, read
 by your code, and its licence obligations are yours with it.
+
+
+### Before you trust a new dictionary
+
+**What this tells you is what your own messages exercise, and nothing else.** A dictionary
+that changes a message type you have never received says nothing here until the day you
+receive one. Read that first: a guard whose limits you learn on the day it misses is worse
+than no guard, because no guard does not reassure.
+
+With that said, the question worth asking before a new file goes live is not "do these two
+descriptions differ" — they will, in tags you never send — but "does this file change what
+validation says about *my* traffic". Ask it with the messages you already have:
+
+```csharp
+using System.IO;
+using System.Linq;
+
+var theirs = new FixValidator();
+
+using (var file = File.OpenRead("FIX44-venue-new.xml"))
+    theirs.Load(FixDictionary.Load(file));
+
+var captured = File.ReadAllLines("yesterday.log");   // your own, in wire or log framing
+
+foreach (var line in captured)
+{
+    if (!FixMessages.TryParse(line, out var message, out _, FixFieldOptions.Log))
+        continue;
+
+    var before = message!.Validate();          // or the validator you run today
+    var after  = message.Validate(theirs);
+
+    // In ORDER, not as sets: two schemas can report the same findings in a different
+    // sequence, and that is a difference a reader sees.
+    if (!before.SequenceEqual(after))
+        Console.WriteLine($"{message.MessageType}: [{string.Join("; ", before)}] -> [{string.Join("; ", after)}]");
+}
+```
+
+Every difference it prints is one the new file would have made yesterday. An empty run means
+the file changes nothing about the traffic you fed it — not that it changes nothing.
+
+The other half of this is already done and is not yours to write: the tags, the code sets and
+the message compositions where this package's own FIX 4.4 tables and the published QuickFIX
+dictionary disagree are pinned in this package's test suite, and a change on either side
+fails a build here. What is left for you is the half about *your* counterparty's file.
 
 It is not a trading validator. Sequence numbers, session state and business rules are
 the application's.
