@@ -1,0 +1,8 @@
+xUnit.net v3 In-Process Runner v4.0.0+8bf043c053 (64-bit .NET 10.0.12)
+  Discovering: DotGram.Tests.Slow
+  Discovered:  DotGram.Tests.Slow
+  Starting:    DotGram.Tests.Slow
+  Finished:    DotGram.Tests.Slow (ID = '9969e03f0c5a2a7259068d54612b85be842893b33d0c7b51bc6601c0e3c7cefd')
+=== TEST EXECUTION SUMMARY ===
+   DotGram.Tests.Slow  Total: 259, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 166.390s
+exit 0 after 166.5907341 s

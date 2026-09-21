@@ -2774,3 +2774,106 @@ assumed: `DotGram.Sql.csproj` already normalises every source path to `/_/` — 
 with the reason written beside it, "because locally it would point a debugger at /_/". So the
 trade-off the decision resolves is already in the tree, recorded as a limitation, by whoever hit it
 first and could not have both.
+
+## Q29 (2026-09-21). The second sweep: 363 methods the generated parsers never call, and 298 of them are one emitter writing an accessor it does not use
+
+Igor asked for the cleaning to continue. Read at `0f939759`, counted over the same build output as
+Q28. Dead methods are pure size by the standard just set — the machine executes nothing for them —
+but they are the kind that stands behind **one place in the emitter**, which is the threshold that
+decision names for work rather than a note.
+
+**What a dead method is here, and how it was checked.** A non-public method whose name occurs
+exactly once in its assembly's generated files — the declaration. Counted **across sibling files**,
+because a partial class is split over several and a method called from the other file is not dead.
+That correction is not theoretical: a per-file count said the expression language had 2, and
+counting its two readings together says **0**. Same shape as the rest of the week — a per-file count
+is a description of the program, not the program.
+
+| assembly | dead methods | dead source |
+| --- | --- | --- |
+| `SqlStandardParser.g.cs` | **310** | 77.8 KB |
+| `Fix.FixGrammar.g.cs` | 29 | 9.8 KB |
+| `Sql92Parser.g.cs` | 15 | 3.4 KB |
+| Web, over twelve files | 9 | 2.4 KB |
+| `TransactSqlParser` (both files) | 0 | — |
+| `ExpressionParser` (both readings) | 0 | — |
+| **total** | **363** | **≈93.4 KB** |
+
+**298 of the 310 are one shape: `AddN`, the dense value store's per-table accessor.** The file
+declares **302** of them and calls **four** — `Add0` thirteen times, `Add1` seven, `Add2` five,
+`Add3` three, and nothing above. Witnesses, by exact token: `Add17`, `Add123` and `Add250` each
+occur once in 8.5 MB.
+
+**And the tables behind them are alive, which is what makes this a finding rather than a purge.**
+`V17` occurs eighteen times and `N17` nine — the seventeenth table is written and read all over the
+file. What is dead is the *method* that does that writing: the store's operation is performed inline
+at the call sites and the accessor form is emitted anyway, for every one of three hundred tables.
+Two forms of one operation, one of them used four times and the other never. (`Take17` and
+`Clear17` do not exist at all, so it is the `Add` form specifically.)
+
+**FIX's 29 are a different shape and also a family**: `Recognize_DotGram_Buffered_ParseLogFields_Bytes_Guard1`
+and `..._Guard2`, the same for `ReadLogFields` and `ParseFields`, plus `Collect` — guards emitted per
+buffered and byte publication that the publication never reaches. Web's nine are `Grow9`, `Grow10`
+and their like: per-table growth helpers, the same family as the `Add`s.
+
+**One thing worth noticing about which parsers have none.** T-SQL has zero and SQL:2023 has 310,
+and both are SQL over the same store. T-SQL was counted across its two files — the plain reading and
+the located one — so the located reading may be what reaches the accessors the plain one inlines. I
+can see the effect and not the cause; whoever opens the emitter will see in one look which it is,
+and that is the cheapest question to ask first.
+
+**And these methods are not only bytes of IL.** Each carries its `#line` directives with the
+absolute path of the build machine — the FIX guard above has two in twelve lines — so dead methods
+are also dead entries in the path question D47 has just decided.
+
+**What I am not reporting.** The same sweep counted 372 "unused parameters". I could not exhibit a
+single instance when I went looking, so the number does not leave this file. A count whose witness I
+cannot produce is the evening's lesson with my name on it.
+
+**Answer:** —
+
+**The cause, read in the emitter and confirmed (performance, verified here at `0f939759`), and it is
+sharper than either of us said.** The accessors come from one unconditional loop —
+`Support.cs:1578`, `if (dense) for (var i = 0; i < valueTypes.Count; i++)` — which writes **both**
+`Add{i}` and `Grow{i}` for every value type, not for the ones a call site reaches. The loop is
+gated by `DenseDirectValues` (`Machine.Direct.Values.cs:638`): automatic storage, the tape carrier,
+nothing built directly, and at least eight value types. T-SQL fails one of the four and so emits no
+accessors at all — its zero is *absence*, not thrift, and my guess that the located reading was
+reaching them was wrong.
+
+**And the pair is not symmetric, which neither of us had.** The inline writer is right there —
+`DirectInto`, `Support.cs:667`, writing `values.V{table}[valueSlot].Value` when dense — and it
+grows through `Grow`: `if ((uint)slot >= (uint)values17.Length) values17 = values.Grow17(slot);`,
+twice in the file. So in `SqlStandardParser.g.cs` **all 302 `Grow` are live and 298 of 302 `Add`
+are dead.** It is not "whichever form the machine happens to use"; it is that the dense path needs
+`Grow` and never needs `Add`, and the loop emits both regardless.
+
+**Three counts of mine corrected, all by one check (critic, same reading).** Testing performance's
+prediction about Web — which they offered precisely because it was outside what their reading
+already explained — broke my instrument twice over:
+
+- **Web is 94 dead methods, not 9.** I built one occurrence map across all twelve Web files, and
+  they are twelve *independent* classes that each declare `Grow0`, `Grow1` and so on: the names
+  cancelled one another out. The "count across sibling files" rule from an hour ago is right for a
+  partial class split over files and wrong for independent classes in one assembly. The correct
+  grouping is per class: `{Fix}`, `{EL, EL.Immediate}`, `{Sql92}`, `{SqlStandard}`,
+  `{TransactSql, TransactSql.Located}`, and each Web file alone. Per class, Rfc6265 has 26 and
+  Rfc9651 14.
+- **Sql92 is 17, not 15**, because my declaration pattern did not allow a dot, and `Grow` returns
+  `Held<global::…>[]`.
+- **So the total is 450 dead methods and ≈114.3 KB, not 363 and 93.4 KB.**
+
+| per class | dead | source |
+| --- | --- | --- |
+| `SqlStandardParser` | 310 | 77.8 KB |
+| Web, twelve classes | 94 | 22.9 KB |
+| `Fix.FixGrammar` | 29 | 9.8 KB |
+| `Sql92Parser` | 17 | 3.8 KB |
+| `TransactSqlParser`, `ExpressionParser` | 0 | — |
+| **total** | **450** | **≈114.3 KB** |
+
+**That is the third instrument of mine to go wrong today, and all three were caught the same way** —
+by checking something the instrument was not built to answer. A per-file count, a ratio between
+materials, a text order read as an execution order, and now a name-space collapsed across classes
+that do not share one. The rule holds and gains a clause: **the grouping a count is taken over is
+part of the count**, and it has to be read off the program's structure rather than off the directory.

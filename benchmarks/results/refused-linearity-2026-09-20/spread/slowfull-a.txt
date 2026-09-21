@@ -1,0 +1,12 @@
+The '-xml' switch has been deprecated in favor of '-result-xml' and will be removed in the next major version
+
+xUnit.net v3 In-Process Runner v4.0.0+8bf043c053 (64-bit .NET 10.0.12)
+  Discovering: DotGram.Tests.Slow
+  Discovered:  DotGram.Tests.Slow
+  Starting:    DotGram.Tests.Slow
+    DotGram.Tests.RefusalGuardTests.A_refusal_is_no_worse_than_its_baseline(id: "WebLink.TryParseField | links, then an unclosed <") [SKIP]
+      REPORT ONLY, not failing: WebLink.TryParseField | links, then an unclosed <: got WORSE. Baseline Superlinear, measured Quadratic (time exponent 1.96, 5,597 characters at the largest size). A refusal that grows faster than its head is a defect a caller can send. Worse in 3 runs of 3 (exponents 1.77, 1.86, 1.96).
+  Finished:    DotGram.Tests.Slow (ID = '9969e03f0c5a2a7259068d54612b85be842893b33d0c7b51bc6601c0e3c7cefd')
+=== TEST EXECUTION SUMMARY ===
+   DotGram.Tests.Slow  Total: 258, Errors: 0, Failed: 0, Skipped: 1, Not Run: 0, Time: 105.285s
+exit 0 after 105.9291318 s

@@ -281,8 +281,11 @@ input IS refused, and a series that is accepted is reported as a fault of the se
 exists because two shipped readers were exponential on a refusal (`(A+)*` over an atom: a URI template and an
 address list, 3.2 s at twenty-four characters and 107 s at twenty-eight) while every ladder above covered accepted
 input only, and a refusal is sent by anyone. The bar is therefore harder than the accepted ladders': an exponent
-above 1.10 is a defect, from 1.5 it is called quadratic and from 3 explosive; the exponent is the slope of log time
-on log size over the largest sixteenth of the ladder, and the column beside it carries the time at the largest size
+above 1.10 is a defect, from 1.5 it is called quadratic and from 3 explosive; the exponent is the MEDIAN of the pairwise
+slopes (Theil-Sen, pairs at least twice apart in size) over the largest sixteenth of the ladder, each ladder walked twice and the
+faster reading of the two taken at every size (the first pass warms the tiering; a fresh process reads a curve flatter than a warm one, and a
+least-squares line was moved to an exponent of 45 by one stalled call at the largest size on a loaded machine; the median is deaf to a third of the points
+being wrong, which is not the case of a burst that lasts seconds), and the column beside it carries the time at the largest size
 along it to 64 KiB of input, which is what tells a mild curve from a denial of service. The exit code is 1 when a
 series is a defect or a fault.
 
@@ -298,13 +301,21 @@ on a tree from before a fix and it must find what the fix removed.
 The series and the runner are one file, `RefusalLadders.cs`, written once in the benchmarks and linked into
 `DotGram.Tests.Slow` (`RefusalGuardTests`), so that the audit (this mode, which prints every series) and the guard
 cannot drift. The guard holds each series to `tests/DotGram.Tests.Slow/RefusalBaseline.txt`, which writes down the
-class each series was measured at (`parser | shape = Linear | Superlinear | Quadratic`) and is asymmetric on
-purpose: a series fails when it is worse than its baseline (with a margin: linear to 1.20, superlinear to 1.60),
-when its input is no longer refused, when it is missing from the file, and always when it is explosive, which no
-baseline may hold, so that the file describes what is allowed and not what happens to be there; a series that is
-better than its baseline passes and says so, and the file only ever tightens. `linearity-refused --baseline`
-prints the lines for the file after the table; take them from a build of main, never from an older binary,
-which would write down as normal what has since been fixed. Every report of a measurement names the commit its
+class each series was measured at (`parser | shape = Linear | Superlinear | Quadratic`, or `Unstable # reason, date`) and is asymmetric on
+purpose. It FAILS on what noise cannot forge: the reader threw, the input is no longer refused, the series is missing from the file, a call had not
+finished in the watchdog's two seconds, and an explosion, meaning an exponent of 3 and more on every one of three runs WITH the ladder ended by its
+budget at 512 units or fewer (all nineteen known explosions end at 10 to 22). A series that is only WORSE than its class (linear to 1.20,
+superlinear to 1.60) is measured again, twice at most, and if it is worse every time it is SKIPPED with the message `REPORT ONLY, not failing`, and
+a series that was worse and is within its class on a later run is reported as FLAKY: an exponent measured in milliseconds on a shared machine
+is not a gate (spread of an unchanged build, 2026-09-20: on a quiet machine 99 of 101 series never changed class over five runs and the median range of
+the exponent was 0.01; on a loaded one four flipped, and one series read 10.07 once against 0.94 in the other four). `Unstable` is for a series whose class flips between runs of one build (today
+the two SQL:2023 rows with two cliffs in the tail, where the exponent is the wrong summary of a step): it is measured and reported, never fails on its exponent,
+carries its reason and its date in the line, and at most four may be held so (`Few_series_are_held_as_unstable`): if the number grows, it is the instrument that
+is decaying. A series that is better than its baseline passes and says so, and the file only ever tightens.
+
+The baseline is written by the guard's OWN process and signed in the file (estimator, process, commit, date): `DOTGRAM_RECORD_BASELINE=<file>` on the
+test exe appends one line a series, the worst class of three runs, and asserts nothing. A class taken in the audit's fresh process is another number, and one taken
+from an older binary writes down as normal what has since been fixed. `linearity-refused --baseline` prints lines too, for reading, not for the file. Every report of a measurement names the commit its
 binary was built from (`Built from ...`, and the plain and paired stand's headers): a binary has no date that shows it.
 
 ### Which carrier a grammar took: `--carriers`

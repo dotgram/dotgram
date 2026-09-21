@@ -50,7 +50,9 @@ if (-not $Tree) { $Tree = Join-Path $Root "wt\$Name-$sha" }
 if (-not (Test-Path $Tree)) { git -C $repo worktree add --detach $Tree $sha | Out-Null }
 
 $projects = 'src\DotGram.Finance\DotGram.Finance.csproj', 'src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj',
-	'src\DotGram.Web\DotGram.Web.csproj', 'examples\DotGram.Examples\DotGram.Examples.csproj', 'src\DotGram.Sql\DotGram.Sql.csproj'
+	'src\DotGram.Web\DotGram.Web.csproj', 'examples\DotGram.Examples\DotGram.Examples.csproj', 'src\DotGram.Sql\DotGram.Sql.csproj',
+	# The document grammar the config rows read (Documents.cs, Config) is compiled into the benchmarks assembly, so a side without it has no config rows: window 79 of 2026-09-20 asked for config/ and got nothing.
+	'benchmarks\DotGram.Benchmarks\DotGram.Benchmarks.csproj'
 $flags    = @($Property | ForEach-Object { "-p:$_" })
 $rebuild  = @(if ($Property.Count -gt 0) { '-t:Rebuild' })
 $watch    = [Diagnostics.Stopwatch]::StartNew()

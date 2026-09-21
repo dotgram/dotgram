@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -370,6 +370,14 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY CLEAR PROCEDURE_CACHE")]
 	[InlineData("WITH a AS (SELECT 1 AS x) WITH b AS (SELECT 2 AS y) SELECT * FROM a, b")]
 	[InlineData("WITH a AS (SELECT 1 AS x) WITH b AS (SELECT 2 AS y) UPDATE t SET c = 1")]
+	// Where a rule ends in optional clauses one after another, their order is the grammar's to get
+	// right, and reading one in the wrong order is as much a defect as refusing a right one --
+	// and nobody would notice. The server fixes the same order in each of these four families.
+	[InlineData("UPDATE t SET a = 1 FROM t2 OUTPUT inserted.a WHERE t.b = t2.b")]
+	[InlineData("DELETE t FROM t2 OUTPUT deleted.a WHERE t.b = t2.b")]
+	[InlineData("SELECT a FROM t ORDER BY a FOR JSON AUTO OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY")]
+	[InlineData("SELECT a FROM t FOR JSON AUTO ORDER BY a")]
+	[InlineData("EXEC ('SELECT 1') AT [srv] AS USER = 'u'")]
 	public void Statements_the_engine_refuses_are_refused(string input) =>
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
 
@@ -382,6 +390,12 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER TABLE t ALTER COLUMN s DROP HIDDEN")]
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET MAXDOP = PRIMARY")]
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE")]
+	// The right order of the same four, so that the refusals above are read as an order and not
+	// as a statement we cannot read at all.
+	[InlineData("UPDATE t SET a = 1 OUTPUT inserted.a FROM t2 WHERE t.b = t2.b")]
+	[InlineData("DELETE t OUTPUT deleted.a FROM t2 WHERE t.b = t2.b")]
+	[InlineData("SELECT a FROM t ORDER BY a OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY FOR JSON AUTO")]
+	[InlineData("EXEC ('SELECT 1') AS USER = 'u' AT [srv]")]
 	public void Statements_the_engine_reads_are_read(string input)
 	{
 		var match = TransactSqlParser.TryParseStatement(input);

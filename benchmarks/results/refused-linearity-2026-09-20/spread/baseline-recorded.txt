@@ -1,11 +1,3 @@
-# The class of each refusal series as measured by the GUARD's own process (D57, D79): `parser | shape = class`, class one of Linear, Superlinear, Quadratic, or Unstable with a reason and a date after a #.
-# Signature, so that it can be checked in a week: estimator = the median of the pairwise slopes (Theil-Sen) over the largest sixteenth of the ladder, pairs at least 2x apart in size; each ladder walked twice
-# (the first pass warms the tiering) and the faster reading of the two taken at every size. Process = DotGram.Tests.Slow.exe -class DotGram.Tests.RefusalGuardTests, Release, cores 0-15 at high priority,
-# DOTGRAM_RECORD_BASELINE set: the class written is the WORST of three runs of the series, in the process that later reads it (a fresh audit process reads a curve flatter than a warm one).
-# Taken 2026-09-20 20:33-20:40 by the stand branch at 0504c6d3 plus the uncommitted guard and estimator changes that this file is committed with; the machine was quiet (8-11% CPU before it started).
-# It holds the TAPE reading of the expression language only: the immediate reading is reachable only through internals, and the stand's audit covers it. It only ever tightens; an explosive series is never here.
-# Unstable lines: at most four (Few_series_are_held_as_unstable). Two today, both with two cliffs in the tail (the exponent is the wrong summary of a step; D67).
-
 UriTemplate | a literal run, then an unclosed { = Linear
 UriTemplate | literals and expressions, then an unclosed { = Linear
 UriTemplate | an expression of n variables, unclosed = Linear
@@ -70,8 +62,8 @@ SQL:2023 query | an unclosed comment = Linear
 SQL:2023 query | an unclosed quoted identifier = Linear
 SQL:2023 query | nested parentheses, never closed (the closed form is as dear: a cost of nesting) = Quadratic
 SQL:2023 query | subqueries opened and not closed = Linear
-SQL:2023 query | CASE arms, no END = Unstable # class flips between runs of one build: exponent 1.00-1.67 over five runs of the spread set d, two cliffs in the tail (D67); 2026-09-20
-SQL:2023 query | joins, then a JOIN with nothing after it = Unstable # class flips between runs of one build: exponent 1.02-1.35 over five runs of the spread set d, two cliffs in the tail (D67); 2026-09-20
+SQL:2023 query | CASE arms, no END = Linear
+SQL:2023 query | joins, then a JOIN with nothing after it = Superlinear
 SQL:2023 search condition | predicates, then a dangling AND = Linear
 SQL:2023 search condition | predicates, then an unclosed ( = Linear
 SQL:2023 search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) = Quadratic
