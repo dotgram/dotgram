@@ -6929,3 +6929,29 @@ through zeroing the frame was carried from a figure measured on materializer arm
 entered constantly — to reader methods entered once per rule per position. A ratio moved to
 another material; withdrawn by the session that made it when the other caught it. The size effect
 is the result, and it is not a proxy for a speed one.
+
+**Two corrections to the pair above, and the first is not a quibble.** "Obliged to execute" is a
+property of the JIT, not of the emitter: whether a load survives depends on what is provably
+non-null in that method after inlining, which varies with the runtime and with what else the
+method touches. The generator cannot ask that while generating, so as a principle it is right and
+as a test it cannot be run — and a standard that cannot be run is applied by eye, which is how the
+floor came to be an accident in the first place. **So the enforceable form is one step weaker and
+the emitter can decide it alone: no emitted expression whose value is never read and whose
+evaluation can fault.** Writing an array index or a load through a reference and discarding the
+value is something the emitter knows it is doing. The principle says why; this is what is checked.
+
+**And the pile the criterion excludes still needs a home.** By this standard a copy chain is not a
+defect, and that is right — nothing is executed for it. But then it belongs to nobody, and a
+criterion that sorts findings into defect and not-defect quietly retires the second pile. It is a
+SIZE item, judged on the instrument that exists for size and not by eye: it becomes work when one
+emitter site accounts for the bulk of it, so that the repair is a change rather than a campaign,
+and the figure before and after is read off `DotGram.CodeSize`. When it is scattered instead, it
+is recorded with its location and left — recorded, because the cost of not writing it down is
+that the next person discovers it again as news.
+
+**One condition on the path map, so that what symbols are for is not traded for what they cost.**
+Mapping the paths makes a shipped package stop naming a build machine; it does not by itself keep
+a consumer's stack trace landing somewhere they can open. Embedded symbols were bought for exactly
+that. So the mapping goes in together with source link, and the grammars it points at are in the
+repository already: mapped without it, the symbols are anonymous and useless; mapped with it, they
+are anonymous and still navigable.
