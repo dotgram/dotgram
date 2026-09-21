@@ -24613,3 +24613,41 @@ had covered the area.
 The same day produced the general form of this twice more, in timing: what a measurement cannot
 see belongs beside what it says. Here it is the sharper version — what a measurement was *built
 from* bounds what it can find, and a probe written from a hypothesis cannot contradict it.
+
+Its practical form is not "run something broad" -- a defect in one test would have been as
+invisible to the suite as to the probe -- but **run something whose shape your hypothesis did
+not choose**. The suite qualified because it was written before the defect existed and could
+not be fitted to any description of it. Somebody else's ladder and a harness built for a
+different question qualify the same way, and neither is large.
+
+## The pool that keeps what it grew does not touch the rows it was tested on
+
+The paired run of the pooling commit against its parent (window 21:15-22:28 on 2026-09-20, five
+runs kept, control 31.7 ns) is **negative on the ten SQL:2023 cliff rows it was measured on**.
+Bytes a call are identical before and after to the last digits -- CASE arms at 1,738 went
+74,363,488 to 74,363,549; the unclosed-`(` row at 2,715 went 8,778,600 to 8,778,600 -- and the
+step of twelve times the bytes for a quarter more arms stands on both sides. Times are inside the
+A/A on all ten.
+
+The reason is three lines of the emitter and a number that matches. `DirectValuesClass` has two
+branches, and the **dense** one still throws an oversized table away: `if (values.V17.Length >
+TableKept) values.V17 = new Held<T>[16];`, with `TableKept = 65536` -- exactly the boundary the
+stand saw all four cliffs step at. The parking the commit adds is in the other branch. SQL:2023 is
+dense, so nothing that changed is on those rows' path, and identical bytes on both sides is what
+that predicts rather than a surprise.
+
+So the commit's claim was not false but narrower than the rows chosen to test it: its evidence was
+finance-24's accept and address ladders, which are not dense, and there the cliff is gone. The ten
+rows were picked for having the steepest steps, which is a sample chosen by the answer rather than
+by the question, and they turned out to be a different bound in a different branch with the same
+disease.
+
+**What the commit stands on is not performance.** Written first as a branch that parked a store and
+returned, it returned past the lines that empty the tables and the one that resets the cursor, so a
+kept store reached the next parse believing it already held a document: 453 failures across 190
+tests in suites with no connection to pooling. That is what it fixes. It also costs a little --
+about two to three per cent on the largest documents, a lean consistent with the one `Array.Clear`
+a parse now pays where documents cross the bound.
+
+Anyone reading this later should not conclude that the cliffs are cured. Four bounds are under the
+rule and the dense store's tables are not.
