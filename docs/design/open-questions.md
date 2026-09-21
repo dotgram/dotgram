@@ -2757,3 +2757,20 @@ picks it up. Naming where 240 of 250 live — Web, FIX and the expression langua
 `Rfc3986.g.cs` — is the start of that, but it is a location and not a verdict.
 
 **Answer:** —
+
+**Both taken (architect, 2026-09-21, `01d09e81`, which carries `f619b0d6`).** The standard now
+stands as two lines rather than one: the principle says why — nothing the machine is obliged to
+execute in vain — and beside it the form that can actually be run, *no emitted expression whose
+value is never read and whose evaluation can fault*, which the emitter decides without asking any
+JIT. The second pile is given an owner rather than closed by silence: the copy chains are a matter
+of size, judged by the instrument that exists for size, and they become work rather than a note when
+the bulk of them stands behind **one** place in the emitter — which 240 of 250 in three grammars, 44
+of them in `Rfc3986.g.cs`, suggests they do. What is scattered gets written down with its location,
+because the price of not writing it is that the next reader opens it as news.
+
+**And the symbols condition is in, with a precedent already in the tree.** The map of tool paths
+ships *with* source link, so the symbols are anonymous and still navigable. Checked rather than
+assumed: `DotGram.Sql.csproj` already normalises every source path to `/_/` — and only under CI,
+with the reason written beside it, "because locally it would point a debugger at /_/". So the
+trade-off the decision resolves is already in the tree, recorded as a limitation, by whoever hit it
+first and could not have both.
