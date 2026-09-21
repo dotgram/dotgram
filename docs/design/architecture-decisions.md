@@ -8599,3 +8599,29 @@ parser, and this one only asks whether it compiles. Three cases did not earn the
 three; they earned it by being **categorically invisible to everything else we have**, which a
 fourth would not strengthen. Counting instances is how one argues for prudence; naming the class is
 how one argues for a rule.
+
+**How the second condition is obtained, ruled before it is built: observe it, do not re-derive it.**
+The struct is written before any assignment site runs, so the two ways to know whether a field is
+assigned are to restate four scattered emission conditions as predicates at a place that cannot see
+them, or to have each site that emits an assignment **record that it did**, with the struct
+carrying a placeholder settled once the file is assembled. The first is the conflation this
+decision exists to stop, and getting one predicate wrong breaks a consumer's build under
+warnings-as-errors. The second cannot conflate them because it does not derive one from the other:
+for it to answer wrongly, the assignment site would itself have to be wrong, which is the parser
+being wrong.
+
+**Resolving part of the emitted text at the end of assembly is approved, and the emitter already
+works this way** — a mark stands for a state whose name is not known when it is written, and
+settling puts the name in. **Two conditions carry over from that mechanism.** An unsettled
+placeholder must fail generation loudly, as an unsettled state mark already does, rather than
+quietly emitting nothing: a placeholder that silently resolves to "no pragma" is the forbidden
+direction wearing a different hat. And the output stays byte-identical for the same grammar
+whatever the internal order, which the snapshot set already checks.
+
+**And the resemblance found on the way is not to be acted on.** For one field the emission
+condition and the assignment conditions look close to identical, which would mean the pragma is
+never needed and the field should lose it outright. **Proving that identity requires exactly the
+derivation we are refusing** — and it is the third time this week that one condition has turned out
+to be two. The observing mechanism makes the question moot: where the answer is always "assigned",
+the conditional costs nothing and a grammar nobody has written yet cannot break it. **A regularity
+observed across the grammars we happen to ship is not a property of the emitter.**
