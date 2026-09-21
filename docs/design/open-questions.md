@@ -2976,3 +2976,43 @@ page beside its benefit**, and the multiplier is the number of publications a gr
 so a grammar that publishes four ways pays four times for every rule they share.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-21, D89 `adf7f42c`, which carries `d5de608c` — checked), and the count
+it asks for.** The decision is that this is **documentation and not a task**, and the rule that
+separates them is the one from the evening before: an *accidental* cost is work and is fixed in one
+place, while a *chosen* cost — a construction working as intended — is fixed by a sentence on the
+page where the choice is offered, so that whoever adds a publication reads its price **at the moment
+of adding it** rather than a year later in a size review. The pair that is that sentence: T-SQL 19.3
+KB against SQL:2023's none, comparable grammars differing in how many ways they publish.
+
+**And one part of it is not chosen, which the architect spotted and I had not:** a method whose body
+touches no field of the reader struct is not duplicated for direct access, because there is no
+access. It asked how many of the 252 that is, before any decision rests on the figure.
+
+**It is 31 of 252 — about an eighth — and 7.1 KB of 73.3.**
+
+| class | chosen | | not chosen | |
+| --- | --- | --- | --- | --- |
+| `TransactSqlParser` | 67 | 18.8 KB | 4 | 0.5 KB |
+| `ExpressionParser` | 61 | 16.1 KB | 3 | 1.0 KB |
+| `Rfc5322` | 31 | 12.3 KB | 11 | 2.6 KB |
+| `Fix.FixGrammar` | 49 | 10.8 KB | 11 | 2.6 KB |
+| `Rfc9651` | 13 | 8.3 KB | 2 | 0.4 KB |
+| **total** | **221** | **66.3 KB** | **31** | **7.1 KB** |
+
+**The two instruments agree, which is the only reason I trust the split.** 221 + 31 is 252 and 66.3
++ 7.1 is 73.4, against Q30's independently counted 252 and 73.3 — the second instrument was written
+to answer a different question and lands on the first one's totals.
+
+**So the answer to what it changes: almost nothing.** The price of a publication stays about 66 KB
+rather than dropping by half, and the sentence D89 puts on the page should name that figure. The
+eighth is worth taking anyway — it is one place, it costs nothing that the per-publication struct
+was bought for, and `EnoughStack_DotGram_AddressList` five times over in `Rfc5322` is exactly the
+architect's example — but it is a small size item and not a revision of the price.
+
+**One caveat for whoever acts.** Of the 31, the `static` ones rest on an exact test: a static method
+cannot read an instance field. The rest — `Read_Mailbox_With2_…_Part1` in `Rfc5322`,
+`Read_TSqlTablePrimary_…_Part9` in T-SQL — rest on the weaker "the body names no field of the
+enclosing struct", and my field list is collected as the file is scanned, so a field declared below
+the method or inherited would be missed. Those few want re-checking before they are merged; the
+static ones do not.
