@@ -21,8 +21,48 @@ namespace RecProbe
 			if (reaches > Deepest)
 				Deepest = reaches;
 		}
-		public static void Enter(int rule, int pos) { Calls++; ByRule[rule]++; }
-		public static int Fail(int rule, int pos) { Fails++; return -1; }
+		// What a memo of REFUSALS would serve, counted where it would serve it. A rule entered
+		// at a position it has already been entered at is a re-read; one that then refuses at a
+		// position it has already refused at is a re-read a bit per (rule, position) would have
+		// answered without reading anything. Nothing here stores what was built - only that it
+		// happened - which is the whole difference between a memo of results and a memo of
+		// refusals.
+		static readonly HashSet<(int Rule, int At)> Entered = new();
+		static readonly HashSet<(int Rule, int At)> Refused = new();
+		public static long Repeats, RefusedAgain, RepeatsSound, RefusedAgainSound;
+
+		public static void Enter(int rule, int pos)
+		{
+			Calls++;
+			ByRule[rule]++;
+
+			if (Entered.Add((rule, pos)))
+				return;
+
+			Repeats++;
+
+			// Sound only where the verdict cannot turn on the tape: a reader that asks whether to
+			// replay a recorded way takes its alternative from the tape, so the same rule at the
+			// same position can go a different way. The flag is the generator's knowledge, read
+			// off the text this run instrumented.
+			if (!Legality.Asks[rule])
+				RepeatsSound++;
+		}
+
+		public static int Fail(int rule, int pos)
+		{
+			Fails++;
+
+			if (!Refused.Add((rule, pos)))
+			{
+				RefusedAgain++;
+
+				if (!Legality.Asks[rule])
+					RefusedAgainSound++;
+			}
+
+			return -1;
+		}
 
 		// D63: a failing turn restores the log to a mark, and the next attempt writes into the
 		// same place. If what it writes is always what was discarded, the roll-back and the
@@ -79,6 +119,9 @@ namespace RecProbe
 			DifferentAt = -1;
 			Discarded.Clear();
 			Array.Clear(ByRule);
+			Entered.Clear();
+			Refused.Clear();
+			Repeats = RefusedAgain = RepeatsSound = RefusedAgainSound = 0;
 			Writes = 0;
 			Deepest = 0;
 		}
@@ -90,7 +133,7 @@ namespace RecProbe
 		{
 			Console.WriteLine("Does what a failing turn discards come back the same?");
 			Console.WriteLine();
-			Console.WriteLine("shape                                          n      calls  begins  rollbacks  rewritten   same    log writes  deepest Log   differ   shared prefix");
+			Console.WriteLine("shape                                          n      calls    repeats  of them sound  refused again  of them sound    log writes  deepest Log");
 
 			Ask("addresses, an unclosed quoted string (refuses)",
 				n => "\"" + new string('a', n),
@@ -126,7 +169,7 @@ namespace RecProbe
 				parse(shape(n));
 				var differ = C.Different == 0 ? "none" : $"{C.Different:N0} (first at position {C.DifferentAt})";
 				var shared = C.PrefixTotal == 0 ? "-" : $"{100.0 * C.PrefixKept / C.PrefixTotal:F1}% of {C.PrefixTotal:N0}";
-				Console.WriteLine($"{title,-46} {n,3} {C.Calls,10:N0} {C.Begins,7:N0} {C.Rollbacks,10:N0} {C.Rewrites,10:N0} {C.Same,6:N0} {C.Writes,12:N0} {C.Deepest,12:N0}   {differ,-28} {shared}");
+				Console.WriteLine($"{title,-46} {n,3} {C.Calls,10:N0} {C.Repeats,10:N0} {C.RepeatsSound,14:N0} {C.RefusedAgain,14:N0} {C.RefusedAgainSound,14:N0} {C.Writes,13:N0} {C.Deepest,12:N0}");
 			}
 		}
 	}

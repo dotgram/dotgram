@@ -1,0 +1,25 @@
+Does what a failing turn discards come back the same?
+
+shape                                          n      calls    repeats  of them sound  refused again  of them sound    log writes  deepest Log
+addresses, an unclosed quoted string (refuses)  16      1,723      1,627          1,177             59              1             0            0
+addresses, an unclosed quoted string (refuses)  64     25,195     24,907         18,529            203              1             0            0
+addresses, a valid list (accepts)               16      1,532        633            437            166             30           608          608
+addresses, a valid list (accepts)               64      6,284      2,649          1,829            694            126         2,432        2,432
+media type, parameters then unclosed string (refuses)  16      4,511      4,246            878              2              2         1,939           98
+media type, parameters then unclosed string (refuses)  64     60,719     59,782         12,686              2              2        22,867          338
+language tag, variants then a bare hyphen (refuses)  16      1,564      1,244            768            136            136           935           95
+language tag, variants then a bare hyphen (refuses)  64     19,972     18,788         12,288          2,080          2,080        11,375          335
+structured field, items then an unclosed ( (refuses)  16      5,266      4,953          1,274              0              0         6,354          288
+structured field, items then an unclosed ( (refuses)  64     92,602     91,281         24,122              0              0       111,330        1,152
+
+Readers classified by the instrument that produced this table: 995 in all, 671 touch the
+tape at all, 497 have a decision that reads it. The "sound" columns count only entries into
+the remaining 498, which are the rules where a memo keyed on (rule, position) could be
+correct at all.
+
+shape (n=64)                 repeats/calls  sound/repeats  refused again  = share of repeats
+addresses, unclosed quote           98.9%         74.4%              1          0.00%
+addresses, valid (ACCEPTS)          42.2%         69.0%            126          4.76%
+media type                          98.5%         21.2%              2          0.00%
+language tag                        94.1%         65.4%          2,080         11.07%
+structured field                    98.6%         26.4%              0          0.00%

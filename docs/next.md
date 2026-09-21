@@ -24880,3 +24880,72 @@ ceiling and not a zero: *the extra work in `Return` -- three more pools, both sl
 than about two percent on these rows at this resolution.* Worth keeping as a general point: **the
 resolution is a property of the hour, not a constant of the stand**, so it is measured with each
 pair rather than carried over from the last one.
+
+## D63's cure is closed by counting: the repeated work is repeated success, not repeated refusal
+
+The reader re-reads a prefix that grows, and the twenty-odd quadratics are one illness. That
+stands: measured again on 2026-09-21 at `80ba6733`, sixty commits and a whole pooling chain after
+the first taking, and the numbers come back to the digit -- 995 reader methods, 249 roll-backs,
+1,723 entries at sixteen and 25,195 at sixty-four. **What is closed is the cure, not the disease.**
+Whoever returns to this should not rediscover the quadratic as news.
+
+**The cure commissioned was a memo: remember that a rule failed at a position, and refuse at once
+instead of reading again.** D63 defended it in advance against the objection it expected --
+*"remembering that a rule failed at a position, after a long re-read, is not memoizing every
+position"*. The sentence is true and it is aimed at the wrong event.
+
+| shape (n=64) | repeats / calls | of them sound | refused again | share of repeats |
+| --- | ---: | ---: | ---: | ---: |
+| addresses, unclosed quote | 98.9% | 74.4% | 1 | 0.00% |
+| addresses, valid list (**accepts**) | 42.2% | 69.0% | 126 | 4.76% |
+| media type | 98.5% | 21.2% | 2 | 0.00% |
+| language tag | 94.1% | 65.4% | 2,080 | 11.07% |
+| structured field | 98.6% | 26.4% | 0 | 0.00% |
+
+**Ninety-four to ninety-nine per cent of every call is a rule re-entered where it has already
+been. One to two thousand and eighty of those are refusals repeating.** `structured field` puts it
+without a word: **91,281 repeats and not one repeated refusal**, on the steepest quadratic of the
+five. The long re-read is made of **successes** -- the same prefix parsed again correctly, with
+only the tail failing -- so the thing D63's sentence excused remembering is precisely the thing
+that would have had to be remembered.
+
+**Two exits, closed by different evidence, with nothing between them.** A memo of refusals is
+**legal** on a fifth to three quarters of the repeats and **useless**. A memo of results would
+fire constantly and is **unsound**: a reader asks the tape whether to replay a recorded way and
+takes its alternative **from the tape**, so the same rule at the same position goes a different
+way and can refuse on one visit and pass on another. The first half came from counting, the
+second from reading the emitter -- two instruments, and they do not overlap.
+
+**The unsoundness was found where nobody sent me to look.** The instruction was to check the
+guards, the context and the state. `Rfc5322` has **no guards at all**, and the tape-dependence is
+in the ordinary machinery of giving back: eighty-eight branches choosing between replaying a
+recorded way and opening a new one, beside 383 retry conditions. So the key cannot be widened
+either -- what the outcome depends on is the tape, and the tape is the whole parse, which
+collapses the "wider key" into the wholesale memoization that was refused at the start.
+
+**The bar for any future attempt, read off these same rows rather than asserted.** It must shorten
+repeated **successes** and not refusals; it must stay correct while a reader's alternative comes
+off the tape; and it must not become remembering everything. Three conditions, each with a column
+under it. A negative result that leaves a specification behind is not a gravestone.
+
+**And one fact that outlives D63**: even a sound memo would cover a minority. Twenty-one to
+seventy-four per cent of repeats sit on rules where a key of (rule, position) could be correct at
+all -- a fact about how these grammars are built, not about this cure.
+
+**Three things went right in the method and are worth more than the result.**
+
+**The instrument was pointed at a known answer before it measured a new one.** The filed
+before-picture was the known answer, and the re-take reproduced it exactly on every untouched
+column. Had it not, the change to the instrument would have been wrong and everything after it
+void -- and that would have been discovered at the after-picture, when it was expensive.
+
+**A table containing its own refutation does not protect you from it.** The `same` column was zero
+in every row of the four-column table; an hour later I argued from the prefix percentage beside it
+that discarded records could be kept, which that zero denies. **When a column can hold the answer
+"never", read the zeroes first and the percentages second** -- a percentage of what did happen
+cannot tell you that the thing itself never happened. The refusal column is zero for
+`structured field`, and this time the zero was read as the answer.
+
+**"Nothing" was one of two outcomes from the first line.** It was held so before any number
+existed, not adopted once the numbers disappointed. A report in which the refusal appears only at
+the end reads as an excuse; one in which it was an outcome throughout reads as a decision.

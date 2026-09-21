@@ -13,6 +13,15 @@ NL = chr(10)
 TAB = chr(9)
 
 names = []
+# The third axis (D63): a memo of refusals is sound only where a rule's verdict is a
+# function of (rule, position). A reader that asks the tape whether to replay a recorded
+# way takes its alternative FROM the tape, so the same rule at the same position can go a
+# different way and refuse in one visit and pass in another. Two flags, because the strict
+# one is a lower bound on what is legal and the loose one is where the unsoundness is:
+#   touches - mentions the tape at all (writing included)
+#   reads   - reads it where a decision turns on it
+touches, asks = [], []
+READS = ('ways.Cursor', 'ways.Count', 'ways.Retry(', 'ways.Items')
 skipped = [0]
 sig = re.compile(r'^\s*public int (Read_\w+)\(int (\w+)')
 enter = re.compile(r'global::RecProbe\.C\.Enter\((\d+), (\w+)\);')
@@ -56,9 +65,16 @@ for path in sorted(glob.glob(G + '/*.cs')):
         if ln.strip() == 'var p = pos;':
             reader = True
 
+        if names and 'ways.' in ln:
+            touches[-1] = True
+            if any(one in ln for one in READS):
+                asks[-1] = True
+
         m = sig.match(ln)
         if m:
             names.append(base.replace('DotGram.Web.', '').replace('.g.cs', '') + '  ' + m.group(1))
+            touches.append(False)
+            asks.append(False)
             pending = (len(names) - 1, m.group(2))
 
         # Before the log is rolled back, hand the probe what is about to be discarded - but
@@ -101,5 +117,17 @@ for path in sorted(glob.glob(G + '/*.cs')):
     open(S + '/gen/' + base, 'w', encoding='utf-8').write(whole)
 
 open(S + '/names.txt', 'w', encoding='utf-8').write(NL.join(names))
+
+# The flags reach the probe as a generated table rather than a file it parses: the
+# classification is a property of the text this run instrumented, so it is written by the
+# run that instrumented it.
+open(S + '/gen/Legality.g.cs', 'w', encoding='utf-8').write(
+    'namespace RecProbe' + NL + '{' + NL +
+    TAB + 'static class Legality' + NL + TAB + '{' + NL +
+    TAB * 2 + 'internal static readonly bool[] Touches = { ' + ', '.join('true' if one else 'false' for one in touches) + ' };' + NL +
+    TAB * 2 + 'internal static readonly bool[] Asks = { ' + ', '.join('true' if one else 'false' for one in asks) + ' };' + NL +
+    TAB + '}' + NL + '}' + NL)
+print('readers that touch the tape:', sum(touches), 'of', len(touches))
+print('readers whose decision reads it:', sum(asks))
 print('reader methods instrumented:', len(names))
 print('roll-backs in a way-back wrapper, keyed by its entry:', skipped[0])

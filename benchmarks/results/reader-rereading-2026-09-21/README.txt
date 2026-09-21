@@ -68,3 +68,44 @@ with a .txt suffix so that nothing in the repository globs it. Build the Web pac
 so the generated files are the ones being asked about. The project is filed this time
 because the first taking left it in scratch, and scratch was cleaned: an artifact a queue
 item depends on is filed before the cleaning, not after.
+
+WHAT THE THIRD COLUMN SET SAYS, AND IT CLOSES D63'S CURE. what-a-memo-would-cover.txt asks
+the two questions that decide a memo of refusals: how much of the quadratic is a rule
+re-entered at a position it has already been entered at, and how much of THAT is a rule
+refusing where it has already refused.
+
+The first is 94 to 99 per cent of all calls. The second is 1, 2, 2,080 and zero.
+
+So the repeated work is repeated SUCCESS: a rule re-entered at the same position parses the
+same prefix again, successfully, and only the tail fails. A memo that remembers refusals
+shortens none of it. `structured field` says it without a word - 91,281 repeats and not one
+repeated refusal, on the steepest quadratic in the set.
+
+That turns D63's own sentence around. It read: "remembering that a rule failed at a
+position, after a long re-read, is not memoizing every position". True - but the long
+re-read is made of successes, so the thing it excused remembering is the thing that would
+have to be remembered.
+
+TWO EXITS, CLOSED BY DIFFERENT EVIDENCE AND WITH NOTHING BETWEEN THEM. A memo of refusals is
+LEGAL on 21 to 74 per cent of the repeats (the `sound` columns, from reading the emitter) and
+USELESS (it fires almost never, from counting). A memo of results would fire constantly and
+is UNSOUND: a reader asks the tape whether to replay a recorded way and takes its
+alternative FROM the tape, so the same rule at the same position can go a different way and
+refuse on one visit and pass on another.
+
+WHAT IS CLOSED IS THE CURE, NOT THE DISEASE. The quadratic is real, measured on two
+instruments, and reproduced on today's main sixty commits after the first taking. Whoever
+comes back to this must not rediscover it as news.
+
+THE BAR FOR ANY FUTURE ATTEMPT, read off these same numbers. It must shorten repeated
+SUCCESSES rather than refusals; it must stay correct while a reader's alternative comes off
+the tape; and it must not become remembering everything. Each of the three is a row in this
+directory rather than an opinion.
+
+AND ONE FACT THAT OUTLIVES D63: even a sound memo would cover a minority. Between 21 and 74
+per cent of repeats sit on rules where a key of (rule, position) could be correct at all -
+which is a fact about how these grammars are built, not about this cure.
+
+"NOTHING" WAS ONE OF TWO OUTCOMES FROM THE FIRST LINE, held so before any number existed and
+not adopted afterwards. A report where the refusal appears only at the end reads as an
+excuse; this one had it as an outcome from the start.
