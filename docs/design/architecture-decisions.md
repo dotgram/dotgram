@@ -7090,3 +7090,31 @@ more care: a header names what a rebase cannot move — the published `origin/ma
 measurement was taken AGAINST, and a fingerprint of the thing measured, the binary or the library
 file. Where the file itself ended up is said by the commit that lands it, and that is written by
 somebody other than the author.
+
+## D89 — A chosen cost belongs on the page where the choice is offered
+
+One rule's body is emitted once per publication: 138 groups of byte-identical methods across the
+shipped grammars, 252 redundant copies, 73.3 KB of source. The copies sit in different types —
+one reader struct per publication, each method reading that struct's own fields — which is what
+buys the direct access and the absence of dispatch. By D85 this is not a defect: every publication
+executes its own copy and executes nothing in vain.
+
+**But it is a price, and the price has never stood beside the benefit.** The multiplier is how
+many ways a grammar publishes, and the sharpest pair says it without argument: T-SQL contributes
+19.3 KB of duplicate source and SQL:2023 none. They are comparable grammars; the difference is not
+size or complexity but the number of publications. A fifth way of publishing costs bytes that
+nothing today quotes, and it is paid twice — as IL and inside the embedded symbols.
+
+**So this is documentation, not a task, and the rule that sorts them is the one to keep.** An
+ACCIDENTAL cost — a copy chain the emitter did not mean to write — is an item, and it is fixed at
+its one site. A CHOSEN cost is a consequence of a design working as intended, and the repair for
+it is a sentence on the page where the choice is offered, so that whoever adds a publication reads
+what it costs at the moment of adding it. Deduplicating here would trade away exactly what the
+per-publication struct exists for, which is why nobody is proposing it and why the finding has no
+owner otherwise.
+
+**One part of it is not chosen, and that part is an item.** A method whose body touches none of
+the reader struct's fields — a stack check appearing five times in one grammar — is duplicated for
+no reason the design needs, and the emitter can tell which those are: it knows whether a body
+reads a field. Sharing only that subset takes nothing away from the direct access, so it belongs
+in the other pile.
