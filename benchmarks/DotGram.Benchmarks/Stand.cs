@@ -673,11 +673,12 @@ static partial class Stand
 			_fix         = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser");
 			_fixOptions  = Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
 			_fixMessages = Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages");
-			// FixParseMode is gone from a side after D53/D69 (the schema check moved to FixMessage.Validate()): a side may have it, or the options, or neither.
+			// Three forms of the FIX message layer (finance-9a, 2026-09-20): (1) FixParseMode is a parameter; (2) no mode, FixParseOptions still there and a plain overload (2d3373f6); (3) no mode and no FixParseOptions, the
+			// settings are FixFieldOptions, an optional parameter after the first (main): the entry is found with the mode, plain, or with FixFieldOptions after the first parameter, in that order.
 			var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
 
 			_fixParseMode    = finance.GetType("DotGram.Finance.Fix.FixParseMode");
-			_fixParseOptions = finance.GetType("DotGram.Finance.Fix.FixFieldOptions");
+			_fixParseOptions = finance.GetType("DotGram.Finance.Fix.FixParseOptions");
 
 			// Only a side that was given DotGram.Web has URLs and JSON to read.
 			if (File.Exists(Path.Combine(directory, "DotGram.Web.dll")))
@@ -850,23 +851,23 @@ static partial class Stand
 
 			if (form == "parse-span")
 			{
-				var (target, withMode) = FixMessagesEntry("Parse", [typeof(ReadOnlySpan<char>)]);
-				var call         = SpanCall(target);
-				var validateSpan = withMode ? null : FixValidate();
+				var (target, spanKind) = FixMessagesEntry("Parse", [typeof(ReadOnlySpan<char>)]);
+				var call           = SpanCall(target);
+				var validateSpan   = spanKind == FixEntry.Mode ? null : FixValidate();
 
 				return () => Checked(call(wire), validateSpan) is null ? 0 : 1;
 			}
 
 			var parse = form.StartsWith("parse", StringComparison.Ordinal);
 			var input = form.EndsWith("stream", StringComparison.Ordinal) ? typeof(Stream) : typeof(TextReader);
-			var (entry, mode) = FixMessagesEntry(parse ? "Parse" : "ReadMessages", [input, typeof(int)]);
-			var strict   = mode ? FixStrictMode() : null;
-			var validate = mode ? null : FixValidate();
+			var (entry, kind) = FixMessagesEntry(parse ? "Parse" : "ReadMessages", [input, typeof(int)]);
+			var strict   = kind == FixEntry.Mode ? FixStrictMode() : null;
+			var validate = kind == FixEntry.Mode ? null : FixValidate();
 
 			return () =>
 			{
 				var source = input == typeof(Stream) ? (object)new MemoryStream(parse ? one : many, false) : new StringReader(parse ? wire : text);
-				var result = entry.Invoke(null, mode ? [source, strict, 4096] : [source, 4096]);
+				var result = entry.Invoke(null, kind switch { FixEntry.Mode => [source, strict, 4096], FixEntry.FieldOptions => [source, null, 4096], _ => [source, 4096] });
 
 				if (parse)
 					return Checked(result, validate) is null ? 0 : 1;
@@ -887,23 +888,34 @@ static partial class Stand
 		/// The entry of <c>FixMessages</c> named <paramref name="name"/> taking <paramref name="plain"/>: where this side still has <c>FixParseMode</c> (before D53/D69) the one that takes
 		/// the mode after its first parameter, which is what those sides always measured, and where it does not the one without it.
 		/// </summary>
-		(MethodInfo Method, bool WithMode) FixMessagesEntry(string name, Type[] plain)
+		(MethodInfo Method, FixEntry Kind) FixMessagesEntry(string name, Type[] plain)
 		{
-			if (_fixParseMode is not null)
+			Type[] Inserted(Type extra)
 			{
-				var withMode = new Type[plain.Length + 1];
+				var one = new Type[plain.Length + 1];
 
-				withMode[0] = plain[0];
-				withMode[1] = _fixParseMode;
+				one[0] = plain[0];
+				one[1] = extra;
 
-				Array.Copy(plain, 1, withMode, 2, plain.Length - 1);
+				Array.Copy(plain, 1, one, 2, plain.Length - 1);
 
-				if (_fixMessages.GetMethod(name, withMode) is { } found)
-					return (found, true);
+				return one;
 			}
 
-			return (_fixMessages.GetMethod(name, plain) ?? throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found, with or without FixParseMode"), false);
+			if (_fixParseMode is not null && _fixMessages.GetMethod(name, Inserted(_fixParseMode)) is { } withMode)
+				return (withMode, FixEntry.Mode);
+
+			if (_fixMessages.GetMethod(name, plain) is { } direct)
+				return (direct, FixEntry.Plain);
+
+			if (_fixMessages.GetMethod(name, Inserted(_fixOptions)) is { } withOptions)
+				return (withOptions, FixEntry.FieldOptions);
+
+			throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found: not with FixParseMode, plain, or with FixFieldOptions after the first parameter");
 		}
+
+		/// <summary>Which overload of the message layer a side has: with the mode (strict), plain, or with FixFieldOptions after the first parameter (passed as null).</summary>
+		enum FixEntry { Mode, Plain, FieldOptions }
 
 		/// <summary>Strict, the first member of the enum: what the old sides were always asked for.</summary>
 		object FixStrictMode() => Enum.ToObject(_fixParseMode!, 0);
@@ -1181,11 +1193,11 @@ static partial class Stand
 		/// <summary>FixMessages.Parse of a wire message, strict, by reflection: what it read, as 1.</summary>
 		public Func<int> FixMessageParse(string wire)
 		{
-			var (call, mode) = FixMessagesEntry("Parse", [typeof(string)]);
-			var strict   = mode ? FixStrictMode() : null;
-			var validate = mode ? null : FixValidate();
+			var (call, kind) = FixMessagesEntry("Parse", [typeof(string)]);
+			var strict   = kind == FixEntry.Mode ? FixStrictMode() : null;
+			var validate = kind == FixEntry.Mode ? null : FixValidate();
 
-			return () => Checked(call.Invoke(null, mode ? [wire, strict] : [wire]), validate) is null ? 0 : 1;
+			return () => Checked(call.Invoke(null, kind switch { FixEntry.Mode => [wire, strict], FixEntry.FieldOptions => [wire, null], _ => [wire] }), validate) is null ? 0 : 1;
 		}
 
 		/// <summary>FixMessages.Build over the fields this side's FixParser reads from the wire, by reflection.</summary>
@@ -1195,7 +1207,8 @@ static partial class Stand
 			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod(_fix.Assembly.GetType("DotGram.Finance.Fix.FixField")!);
 			var build  = (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
 				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType])
-				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[]) or (string, FixField[], FixFieldOptions) not found");
+				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixOptions])
+				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[]) with FixParseOptions, plain, or with FixFieldOptions not found");
 			var withOptions = build.GetParameters().Length == 3;
 
 			return () => build.Invoke(null, withOptions ? [wire, array.Invoke(null, [fields()]), null] : [wire, array.Invoke(null, [fields()])]) is null ? 0 : 1;
@@ -1205,6 +1218,17 @@ static partial class Stand
 		public Func<int> FixLog(string form, string text)
 		{
 			var bytes = Encoding.Latin1.GetBytes(text);
+
+			// Form 3 of the message layer has no ParseLog at all: the framing is a value, FixFieldOptions.Log, passed to Parse (finance-9a, 2026-09-20).
+			if (_fix.GetMethod("ParseLog", [typeof(string), _fixOptions]) is null && _fixOptions.GetProperty("Log", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is { } log)
+			{
+				return form switch
+				{
+					"bytes"  => FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, log])),
+					"stream" => FixCount(() => FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), log, 4096, null])()),
+					_        => FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, log])),
+				};
+			}
 
 			return form switch
 			{
@@ -1591,20 +1615,39 @@ static partial class Stand
 	/// build properties it was given): a pair of two branches of one commit differs by those properties and nothing else, and the report says so.
 	/// Empty where a folder has no such file.
 	/// </summary>
-	/// <summary>Whether this side's DotGram.Finance still has FixParseMode: the enum's name is in the assembly's metadata strings.</summary>
-	static bool HasFixParseMode(string directory)
+	/// <summary>
+	/// Which form of the FIX message layer this side's DotGram.Finance is in, read from the names in the assembly's metadata strings: 1 has FixParseMode (a parameter, strict), 2 has no mode but still
+	/// FixParseOptions, 3 has neither (the settings are FixFieldOptions, an optional parameter). The stand's binder asks each form what it can answer; a pair of two forms compares two readings.
+	/// </summary>
+	static int FixForm(string directory)
 	{
 		var path = Path.Combine(directory, "DotGram.Finance.dll");
 
-		return File.Exists(path) && File.ReadAllBytes(path).AsSpan().IndexOf("FixParseMode"u8) >= 0;
+		if (!File.Exists(path))
+			return 0;
+
+		var bytes = File.ReadAllBytes(path);
+
+		return bytes.AsSpan().IndexOf("FixParseMode"u8) >= 0 ? 1 : bytes.AsSpan().IndexOf("FixParseOptions"u8) >= 0 ? 2 : 3;
 	}
 
 	static string FixModeNote(string beforeDir, string afterDir)
 	{
-		var before = HasFixParseMode(beforeDir);
-		var after  = HasFixParseMode(afterDir);
+		var before = FixForm(beforeDir);
+		var after  = FixForm(afterDir);
 
-		return before == after ? "" : $" **The FIX message rows (fixmsg/) compare two different readings: the {(before ? "before" : "after")} side still has FixParseMode and reads strict (schema checked in the parse), the {(before ? "after" : "before")} side has none and is read as Parse plus FixMessage.Validate(), the nearest work to what the strict parse did, and not identical to it. A difference there is the price of the move, not a speed.**";
+		// Form 1 reads strict inside the parse; forms 2 and 3 have no such parse and are read as Parse plus FixMessage.Validate(), the nearest work and not identical to it.
+		return (before == 1) == (after == 1) ? "" : $" **The FIX message rows (fixmsg/) compare two different readings: the before side is in form {before} and the after side in form {after} of the message layer (1: FixParseMode is a parameter and the parse is strict, the schema checked inside it; 2 and 3: there is no mode, and the side is read as Parse plus FixMessage.Validate(), the nearest work to what the strict parse did, and not identical to it). A difference there is the price of the move, not a speed.**";
+	}
+	/// <summary>
+	/// The JIT's tiering modes this process ran under, as the environment set them (DOTNET_TieredCompilation, DOTNET_TieredPGO, DOTNET_TC_QuickJitForLoops, DOTNET_OSR_HitLimit, DOTNET_ReadyToRun): a report of a time names them as it names the commit,
+	/// because a row measured in the quickly-compiled code and one measured in the optimized code are two different numbers (expr measured a factor of three, 2026-09-20). Unset means the runtime's default (tiered, PGO on).
+	/// </summary>
+	static string JitNote()
+	{
+		static string Setting(string name) => Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? $"{name}={value}" : $"{name} unset";
+
+		return "JIT: " + string.Join(", ", new[] { "DOTNET_TieredCompilation", "DOTNET_TieredPGO", "DOTNET_TC_QuickJitForLoops", "DOTNET_ReadyToRun" }.Select(Setting)) + " (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).";
 	}
 
 	static string SideNote(string beforeDir, string afterDir)
@@ -1662,7 +1705,7 @@ static partial class Stand
 		text.AppendLine(CultureInfo.InvariantCulture,
 			$"{Environment.MachineName}, {(pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {control:F1} ns.");
 		text.AppendLine();
-		text.AppendLine(CultureInfo.InvariantCulture, $"This binary, and the libraries it holds as the control, was built from {BinaryCommit()}.");
+		text.AppendLine(CultureInfo.InvariantCulture, $"This binary, and the libraries it holds as the control, was built from {BinaryCommit()}. {JitNote()}");
 		text.AppendLine();
 
 		if (sides.Length > 0)
