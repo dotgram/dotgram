@@ -232,7 +232,7 @@ source. Networking and FIX session state are outside this package.
 
 The 93 standard message types are the cases of `FixMessage`, nested in it and written
 `FixMessage.NewOrderSingle`: a closed set, so a `switch` over it reads as one and the base
-type stands in front of every arm. `FixMessage.CustomFixMessage` is the case for a MsgType
+type stands in front of every arm. `FixMessage.Custom` is the case for a MsgType
 the schema does not describe, which is what lets the set be closed without being complete.
 Messages, the header and the trailer have named properties. A group property returns the group's entries, each a
 `FixFieldSet` read with `GetField` and `GetGroup`.

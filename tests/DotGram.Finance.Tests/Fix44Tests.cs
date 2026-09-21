@@ -193,7 +193,7 @@ public sealed class Fix44Tests
 
 		// The strict mode refused an unknown MsgType; it is now a finding about a built message.
 		Assert.True(FixMessages.TryParse(wire, out var result, out var error), error?.ToString());
-		Assert.IsType<FixMessage.CustomFixMessage>(result);
+		Assert.IsType<FixMessage.Custom>(result);
 		Assert.Equal(wire, result!.OriginalWire);
 		Assert.Contains(result.Validate(), f => f.Rule == FixRule.UnknownMessageType);
 	}

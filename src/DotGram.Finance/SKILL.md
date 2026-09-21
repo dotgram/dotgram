@@ -123,7 +123,7 @@ switch (message)
 
 - The 93 standard messages are the cases of `FixMessage`, nested in it: write
   `FixMessage.NewOrderSingle`, and a `switch` over them reads as the closed set it is. A
-  MsgType the schema does not know becomes `FixMessage.CustomFixMessage`, and `Validate`
+  MsgType the schema does not know becomes `FixMessage.Custom`, and `Validate`
   reports the type as unknown — that case is why the set can be closed without covering
   every MsgType that exists.
 - A message's properties are named after its fields. Text is `string?` and numbers are

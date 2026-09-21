@@ -103,7 +103,7 @@ static class FixMessageFactory
 		"BF" => new FixMessage.UserResponse                           (source, header, body, trailer),
 		"BG" => new FixMessage.CollateralInquiryAck                   (source, header, body, trailer),
 		"BH" => new FixMessage.ConfirmationRequest                    (source, header, body, trailer),
-		_    => new FixMessage.CustomFixMessage                       (source, type, header, body, trailer),
+		_    => new FixMessage.Custom                                 (source, type, header, body, trailer),
 	};
 }
 
@@ -127,9 +127,9 @@ public abstract partial class FixMessage
 	/// without being complete: a MsgType nobody here has heard of is still a message, and still one
 	/// of these.
 	/// </remarks>
-	public sealed class CustomFixMessage : FixMessage
+	public sealed class Custom : FixMessage
 	{
-		internal CustomFixMessage(string source, string type, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		internal Custom(string source, string type, FixNode[] header, FixNode[] body, FixNode[] trailer)
 			: base(source, type, header, body, trailer)
 		{
 		}
