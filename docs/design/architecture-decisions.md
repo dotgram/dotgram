@@ -7525,3 +7525,20 @@ one appears; completing it against the whole of C# is not the work.
 **And one finding to keep beside the code.** `state.Refused() ?? match.Error!` has a comment
 describing a position-aware intent the code never had. The comment was not stale — it described
 something that was never built. Where the two disagree, neither is evidence for the other.
+
+**Answered with data, and the answer fits the estimator exactly.** Over 101 series on a quiet
+machine, ninety never differ between the two passes by more than 1.7 at any size; eleven differ by
+a multiple of 2.9 to 8.1, and every one of those eleven has its widest gap at 33 to 63 units — the
+smallest sizes measured. From 121 units upward the widest gap of any series is 1.69. That is the
+shape of a warm-up and not of a reading that is fast for a wrong reason: the first pass meets the
+small sizes in code the tiered JIT has not promoted, which is why the second pass exists at all.
+And the exponent is read at the largest sixteenth of the ladder, where no gap above 1.7 appears —
+so taking the faster of two passes is safe in the region the guard uses, by a reading rather than
+by an argument.
+
+**What remains an inference is named as one.** Which pass was the fast one at each size was not
+recorded, so "the fast side is always the second" follows from where the gaps sit rather than from
+a column. It is worth one more field, because it is also the evidence that the warm-up pass earns
+its cost — if the first pass were ever the faster, walking twice would be buying nothing there.
+Nothing waiting on it: the claim the guard rests on was read, not inferred, and the distinction
+between the two was drawn by the session that could have blurred it.
