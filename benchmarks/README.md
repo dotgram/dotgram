@@ -39,8 +39,9 @@ every round, so that two runs taken on different days can be told apart from two
 differ. Results go to `T:\TEMP\dotgram-stand\<time>` (`stand.md`, `stand.json`), or to a
 directory named after `--stand`.
 
-It times; so, under the rule every session here keeps, it runs in an announced window with
-nothing else building. Reports of the generator appear only for projects the last build
+It times; so, under the rule every session here keeps (docs/development.md), it runs in an announced window on cores 0-15 with
+nothing else TIMING; builds and tests of others run meanwhile pinned to 16-31 (Igor, D4: sessions do not wait for each other, a window is only for a measurement). A build on the other half still
+shares the last-level cache and the memory bandwidth, and it has spoiled a window before (2026-09-19, 6-11% of a false fall), so the stand does not trust one run: each run has its own control, a run whose control leaves 5% is dropped and named, and the A/A rides beside each pair; a session that needs a quiet machine for a particular run asks for that slot by name, and the practice of asking builders to hold is the stand's, not a rule. Reports of the generator appear only for projects the last build
 actually compiled: `--rebuild` rebuilds every grammar-hosting project first (with `-t:Rebuild`,
 node reuse and the compiler server off) so the table is complete; without it, a project whose
 report is missing is named in its own section, with why.

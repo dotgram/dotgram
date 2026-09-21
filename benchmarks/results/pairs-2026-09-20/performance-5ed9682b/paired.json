@@ -1,0 +1,2255 @@
+{
+  "Control": 31.6575,
+  "Rows": [
+    {
+      "Id": "fix/Orders128.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 82583.203125,
+          "Bytes": 95408,
+          "Warmup": 6,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 72111.328125,
+          "Bytes": 129112,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 71799.609375,
+          "Bytes": 129112,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05108011333267112,
+      "Ranges": {
+        "": "[-3.2%..\u002B6.1%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.bytes",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 80866.40625,
+          "Bytes": 95408,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 82555.859375,
+          "Bytes": 129168,
+          "Warmup": 5,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 82792.578125,
+          "Bytes": 129168,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.062231303558144706,
+      "Ranges": {
+        "": "[-0.2%..\u002B3.0%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 118172.65625,
+          "Bytes": 88400,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 91975.390625,
+          "Bytes": 118552,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 91358.7890625,
+          "Bytes": 118552,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09058680029882124,
+      "Ranges": {
+        "": "[-2.9%..\u002B5.9%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "fixmsg/Order.parse",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1252.435302734375,
+          "Bytes": 3456,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1857.16552734375,
+          "Bytes": 3400,
+          "Warmup": 6,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1890.0390625,
+          "Bytes": 3400,
+          "Warmup": 5,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.1307901110629194,
+      "Ranges": {
+        "": "[-1.5%..\u002B3.7%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "fixmsg/Order.build",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1574.700927734375,
+          "Bytes": 3608,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2379.2587280273438,
+          "Bytes": 3592,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2365.9820556640625,
+          "Bytes": 3592,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09422517141539308,
+      "Ranges": {
+        "": "[-0.9%..\u002B5.2%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/orders400.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 257887.3046875,
+          "Bytes": 297776,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 223431.640625,
+          "Bytes": 403288,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 218571.09375,
+          "Bytes": 403288,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0720662110917817,
+      "Ranges": {
+        "": "[-3.5%..\u002B2.3%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "tsql/script100.bool",
+      "Readings": [
+        {
+          "Reading": "scriptdom",
+          "Nanoseconds": 670793.75,
+          "Bytes": 703028.5,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 126078.125,
+          "Bytes": 113600,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 126825,
+          "Bytes": 105600,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03878800301881167,
+      "Ranges": {
+        "": "[-0.1%..\u002B4.5%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "tsql/script100.boolboth",
+      "Readings": [
+        {
+          "Reading": "scriptdom",
+          "Nanoseconds": 672004.6875,
+          "Bytes": 703028.5,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 125635.15625,
+          "Bytes": 105600,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 126225,
+          "Bytes": 105600,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.045340085518376684,
+      "Ranges": {
+        "": "[-3.6%..\u002B3.3%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "tsql/script100",
+      "Readings": [
+        {
+          "Reading": "scriptdom",
+          "Nanoseconds": 673652.34375,
+          "Bytes": 703028.5,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 125239.0625,
+          "Bytes": 113600,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 125321.09375,
+          "Bytes": 113600,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05603780696413557,
+      "Ranges": {
+        "": "[-1.5%..\u002B5.0%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "tsql/columns1000",
+      "Readings": [
+        {
+          "Reading": "scriptdom",
+          "Nanoseconds": 1762923.4375,
+          "Bytes": 1498956,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 193420.3125,
+          "Bytes": 200464,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 192940.625,
+          "Bytes": 200464,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04723421943841506,
+      "Ranges": {
+        "": "[-8.8%..\u002B0.6%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/json.array10000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 172227.1484375,
+          "Bytes": 640128,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 194887.890625,
+          "Bytes": 720048,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 202098.2421875,
+          "Bytes": 720048,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.062166946585575235,
+      "Ranges": {
+        "": "[\u002B0.0%..\u002B5.2%], 5 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/json.object10000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 764749.21875,
+          "Bytes": 1040128,
+          "Warmup": 12,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1172372.65625,
+          "Bytes": 1599240.25,
+          "Warmup": 10,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1232761.71875,
+          "Bytes": 1599240.25,
+          "Warmup": 7,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.21454234895221982,
+      "Ranges": {
+        "": "[-10.4%..\u002B20.3%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.path1000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 9454.45556640625,
+          "Bytes": 8176,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 11009.228515625,
+          "Bytes": 8384,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 10968.212890625,
+          "Bytes": 8384,
+          "Warmup": 6,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.030318563115470574,
+      "Ranges": {
+        "": "[-0.8%..\u002B1.0%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/media-type.params1000",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 48333.251953125,
+          "Bytes": 151408,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 45250.1953125,
+          "Bytes": 151472,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 45401.26953125,
+          "Bytes": 151472,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0571128386194077,
+      "Ranges": {
+        "": "[-7.1%..\u002B2.0%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/sf.list10000",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1197653.125,
+          "Bytes": 2719992,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1229214.0625,
+          "Bytes": 2720056,
+          "Warmup": 5,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1238103.125,
+          "Bytes": 2720056,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09028073132610913,
+      "Ranges": {
+        "": "[-1.4%..\u002B8.2%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/select20.at",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 6900.1708984375,
+          "Bytes": 24040,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 17780.224609375,
+          "Bytes": 21416,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 17915.72265625,
+          "Bytes": 21416,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.057820975052276645,
+      "Ranges": {
+        "": "[-1.1%..\u002B0.8%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/select20.window",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 6920.135498046875,
+          "Bytes": 24040,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 18437.298583984375,
+          "Bytes": 21416,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 18154.937744140625,
+          "Bytes": 21416,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.07156584744155689,
+      "Ranges": {
+        "": "[-4.8%..\u002B1.5%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/select20.scan",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 384.39178466796875,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 387.0006561279297,
+          "Bytes": 0,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 387.96653747558594,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.11638052517714309,
+      "Ranges": {
+        "": "[-0.1%..\u002B4.4%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "tsql/select20.scan",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 383.6982727050781,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 389.71824645996094,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 385.8650207519531,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03528188323812289,
+      "Ranges": {
+        "": "[-2.1%..\u002B6.9%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "el/ladder.scan",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 138.9388084411621,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 140.82088470458984,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 140.22903442382812,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04715834328039597,
+      "Ranges": {
+        "": "[-3.9%..\u002B1.0%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "fixmsg/Order.parse-stream",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1967.4880981445312,
+          "Bytes": 3488,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2184.4985961914062,
+          "Bytes": 8224,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2183.2260131835938,
+          "Bytes": 8224,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04454662703105987,
+      "Ranges": {
+        "": "[-1.0%..\u002B1.6%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "fixmsg/Order.parse-reader",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1954.8492431640625,
+          "Bytes": 3488,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2113.0722045898438,
+          "Bytes": 12112,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2103.1723022460938,
+          "Bytes": 12112,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.034016063943549835,
+      "Ranges": {
+        "": "[-2.1%..\u002B3.7%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fixmsg/Order.parse-span",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1983.9950561523438,
+          "Bytes": 3488,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1843.8934326171875,
+          "Bytes": 3672,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1866.2200927734375,
+          "Bytes": 3672,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0529975058278106,
+      "Ranges": {
+        "": "[-1.2%..\u002B2.0%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fixmsg/Order.read-stream100",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 207408.984375,
+          "Bytes": 388432,
+          "Warmup": 6,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 202368.5546875,
+          "Bytes": 389248,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 204905.859375,
+          "Bytes": 389248,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03937815344456435,
+      "Ranges": {
+        "": "[-1.6%..\u002B2.6%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fixmsg/Order.read-reader100",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 204870.703125,
+          "Bytes": 388432,
+          "Warmup": 5,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 193062.3046875,
+          "Bytes": 375712,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 195144.53125,
+          "Bytes": 375712,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.025269367684267324,
+      "Ranges": {
+        "": "[-1.4%..\u002B2.6%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.log-text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 92595.1171875,
+          "Bytes": 95408,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 72188.0859375,
+          "Bytes": 129112,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 70990.91796875,
+          "Bytes": 129112,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04885390234281893,
+      "Ranges": {
+        "": "[-3.0%..\u002B0.1%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.log-bytes",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 91348.92578125,
+          "Bytes": 95408,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 94824.8046875,
+          "Bytes": 129168,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 95707.51953125,
+          "Bytes": 129168,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0449544746545109,
+      "Ranges": {
+        "": "[-1.7%..\u002B6.6%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.log-stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 91651.953125,
+          "Bytes": 95408,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 102566.2109375,
+          "Bytes": 118552,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 103496.38671875,
+          "Bytes": 118552,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04143989020965013,
+      "Ranges": {
+        "": "[-0.3%..\u002B6.0%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "el/ladder.bool",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1005.4443359375,
+          "Bytes": 1712,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1732.537841796875,
+          "Bytes": 1776,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1764.410400390625,
+          "Bytes": 1720,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05523516985163781,
+      "Ranges": {
+        "": "[-0.4%..\u002B2.5%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-late.bool",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2573.2208251953125,
+          "Bytes": 8440,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 12001.211547851562,
+          "Bytes": 13552,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 5809.7015380859375,
+          "Bytes": 6616,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03414520756220699,
+      "Ranges": {
+        "": "[-52.2%..-51.2%], 0 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/select20.bool",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 6964.5751953125,
+          "Bytes": 24040,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 18029.986572265625,
+          "Bytes": 21448,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 18167.645263671875,
+          "Bytes": 21392,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04845426597351973,
+      "Ranges": {
+        "": "[-2.2%..\u002B1.7%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-case-1391",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 4562881.25,
+          "Bytes": 6276368,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 4605025,
+          "Bytes": 6276488,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 4614350,
+          "Bytes": 6276660.5,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.01625617585379852,
+      "Ranges": {
+        "": "[-2.3%..\u002B0.9%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-case-1738",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 22233525,
+          "Bytes": 74362254.125,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 26995900,
+          "Bytes": 74363488,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 29922650,
+          "Bytes": 74363548.875,
+          "Warmup": 5,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.3222296059666652,
+      "Ranges": {
+        "": "[-3.6%..\u002B19.2%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-joins-891",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 2616550,
+          "Bytes": 2993936,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 2579921.875,
+          "Bytes": 2994123.125,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 2611337.5,
+          "Bytes": 2994142.25,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03182148248648029,
+      "Ranges": {
+        "": "[-3.4%..\u002B3.8%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-joins-1113",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 5985625,
+          "Bytes": 12948272,
+          "Warmup": 12,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 5690493.75,
+          "Bytes": 12948797.25,
+          "Warmup": 14,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 5751800,
+          "Bytes": 12948779.625,
+          "Warmup": 12,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.21533047927325885,
+      "Ranges": {
+        "": "[-2.8%..\u002B2.1%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-joins-1738",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 10353581.25,
+          "Bytes": 21143389.375,
+          "Warmup": 11,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 10718112.5,
+          "Bytes": 21144107.875,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 10471093.75,
+          "Bytes": 21144137.625,
+          "Warmup": 13,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.1183322437345049,
+      "Ranges": {
+        "": "[-13.6%..\u002B4.1%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-joins-2172",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 31197325,
+          "Bytes": 94724727.125,
+          "Warmup": 5,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 31230575,
+          "Bytes": 94726470,
+          "Warmup": 5,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 30538550,
+          "Bytes": 94726542.25,
+          "Warmup": 7,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.38550660994171776,
+      "Ranges": {
+        "": "[-18.9%..-0.4%], 0 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-paren-2715",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 6686912.5,
+          "Bytes": 8778240,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 6812875,
+          "Bytes": 8778599.625,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 6846925,
+          "Bytes": 8778599.625,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.38605354115221335,
+      "Ranges": {
+        "": "[-6.9%..\u002B3.1%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-and-2715",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 6737306.25,
+          "Bytes": 8775088,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 6801337.5,
+          "Bytes": 8775447.625,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 6690831.25,
+          "Bytes": 8775447.625,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.5117392058584245,
+      "Ranges": {
+        "": "[-5.2%..-0.2%], 0 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-paren-3393",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 31191950,
+          "Bytes": 94859692,
+          "Warmup": 13,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 30237425,
+          "Bytes": 94860574.75,
+          "Warmup": 9,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 29033925,
+          "Bytes": 94861051.125,
+          "Warmup": 5,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.2603868946955865,
+      "Ranges": {
+        "": "[-6.2%..\u002B18.2%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-cliff-and-3393",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 27555050,
+          "Bytes": 94856063.375,
+          "Warmup": 14,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 26118875,
+          "Bytes": 94857393.875,
+          "Warmup": 13,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 29146325,
+          "Bytes": 94857729.625,
+          "Warmup": 8,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.6393328990511721,
+      "Ranges": {
+        "": "[-21.0%..\u002B20.4%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.yield-reader",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 140983.59375,
+          "Bytes": 92464,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 95063.0859375,
+          "Bytes": 118520,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 94531.34765625,
+          "Bytes": 118520,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05175275270283001,
+      "Ranges": {
+        "": "[-2.1%..\u002B2.9%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.yield-string",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 84797.0703125,
+          "Bytes": 95408,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 268473.92578125,
+          "Bytes": 117936,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 283967.67578125,
+          "Bytes": 117936,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04832654245775185,
+      "Ranges": {
+        "": "[-5.8%..\u002B11.5%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.yield-memory",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 84403.80859375,
+          "Bytes": 95408,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 87205.37109375,
+          "Bytes": 118016,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 87293.75,
+          "Bytes": 118016,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.3981094417993856,
+      "Ranges": {
+        "": "[-2.0%..\u002B5.4%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.whole-stream",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 118827.63671875,
+          "Bytes": 88400,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 83713.4765625,
+          "Bytes": 129368,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 83852.63671875,
+          "Bytes": 129368,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.4620844102745327,
+      "Ranges": {
+        "": "[-1.9%..\u002B26.3%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "fix/Orders128.whole-reader",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 118713.37890625,
+          "Bytes": 88400,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 85865.13671875,
+          "Bytes": 129336,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 86209.9609375,
+          "Bytes": 129336,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.028806580976863755,
+      "Ranges": {
+        "": "[-2.0%..\u002B0.6%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "feeds/stock-count.good.text",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 37069.62890625,
+          "Bytes": 197664,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 29986.03515625,
+          "Bytes": 111312,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 29696.435546875,
+          "Bytes": 111403.375,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09372538482005727,
+      "Ranges": {
+        "": "[-8.7%..\u002B1.3%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "feeds/stock-count.good.reader",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 45180.1025390625,
+          "Bytes": 183440,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 38393.896484375,
+          "Bytes": 111488,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 37978.41796875,
+          "Bytes": 111579.375,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06490300052362047,
+      "Ranges": {
+        "": "[-7.6%..\u002B0.5%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "feeds/stock-count.good.reader64",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 46793.798828125,
+          "Bytes": 175376,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 42717.529296875,
+          "Bytes": 111536,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 42361.1328125,
+          "Bytes": 111627.375,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04700329842216256,
+      "Ranges": {
+        "": "[-7.1%..\u002B0.3%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.plain",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 97.41134643554688,
+          "Bytes": 152,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 226.95655822753906,
+          "Bytes": 360,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 231.38561248779297,
+          "Bytes": 360,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.027699347582609512,
+      "Ranges": {
+        "": "[-1.7%..\u002B3.7%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.full",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 169.32621002197266,
+          "Bytes": 328,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 300.7678985595703,
+          "Bytes": 536,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 302.4576187133789,
+          "Bytes": 536,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.04959915832823622,
+      "Ranges": {
+        "": "[-3.6%..\u002B7.5%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.ipv4",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 112.56561279296875,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 237.96358108520508,
+          "Bytes": 384,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 236.4147186279297,
+          "Bytes": 384,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.040492707161350665,
+      "Ranges": {
+        "": "[-4.5%..\u002B2.0%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.long-path",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 179.34398651123047,
+          "Bytes": 304,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 435.26134490966797,
+          "Bytes": 512,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 428.85684967041016,
+          "Bytes": 512,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.6998858849341525,
+      "Ranges": {
+        "": "[-1.5%..\u002B9.1%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.refused",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 68.14842224121094,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 199.51324462890625,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 202.8182029724121,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08236844167548293,
+      "Ranges": {
+        "": "[-0.8%..\u002B4.9%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.relative",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 76.93948745727539,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 202.67629623413086,
+          "Bytes": 312,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 202.78034210205078,
+          "Bytes": 312,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.12737722941759042,
+      "Ranges": {
+        "": "[-11.5%..\u002B1.2%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.relative-dot-colon",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 64.3280029296875,
+          "Bytes": 144,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 178.52320671081543,
+          "Bytes": 280,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 177.2197723388672,
+          "Bytes": 280,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08005523862612078,
+      "Ranges": {
+        "": "[-6.8%..\u002B3.9%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/url.relative-letters",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 105.4697036743164,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 242.45548248291016,
+          "Bytes": 312,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 243.00355911254883,
+          "Bytes": 312,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.2814337254618285,
+      "Ranges": {
+        "": "[-1.9%..\u002B3.3%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/json.object",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 605.621337890625,
+          "Bytes": 1976,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 946.5229034423828,
+          "Bytes": 2584,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 967.3324584960938,
+          "Bytes": 2584,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.24318216175359034,
+      "Ranges": {
+        "": "[-6.2%..\u002B3.4%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/json.array",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 600.8945465087891,
+          "Bytes": 2112,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 761.1934661865234,
+          "Bytes": 2400,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 740.704345703125,
+          "Bytes": 2400,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.19979634448508102,
+      "Ranges": {
+        "": "[-3.4%..-0.3%], 0 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/media-type.plain",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 165.3085708618164,
+          "Bytes": 384,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 206.011962890625,
+          "Bytes": 448,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 216.70284271240234,
+          "Bytes": 448,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.18740315198115134,
+      "Ranges": {
+        "": "[-8.6%..\u002B5.3%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/media-type.quoted",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 267.6654815673828,
+          "Bytes": 752,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 304.33292388916016,
+          "Bytes": 816,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 331.33888244628906,
+          "Bytes": 816,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.23999706414277958,
+      "Ranges": {
+        "": "[\u002B0.5%..\u002B8.9%], 5 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/media-type.refused",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 46.109914779663086,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 83.02044868469238,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 82.1326732635498,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.2099431744734978,
+      "Ranges": {
+        "": "[-1.6%..\u002B1.9%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/addr-spec.plain",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 89.19229507446289,
+          "Bytes": 112,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 121.83752059936523,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 124.5859146118164,
+          "Bytes": 176,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.14362912978254988,
+      "Ranges": {
+        "": "[-2.6%..\u002B2.5%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/addr-spec.refused",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 25.055646896362305,
+          "Bytes": 0,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 60.84322929382324,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 60.62297821044922,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.15981197248099266,
+      "Ranges": {
+        "": "[-1.9%..\u002B0.3%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/json-patch.full",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1378.3828735351562,
+          "Bytes": 4520,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1444.9874877929688,
+          "Bytes": 4552,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1426.0894775390625,
+          "Bytes": 4552,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.26709965383904344,
+      "Ranges": {
+        "": "[-1.3%..\u002B0.8%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/link.full",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1316.937255859375,
+          "Bytes": 2904,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1419.110107421875,
+          "Bytes": 2968,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1435.4248046875,
+          "Bytes": 2968,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.16307405673712846,
+      "Ranges": {
+        "": "[-2.8%..\u002B5.7%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/link.refused",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 20.81012725830078,
+          "Bytes": 0,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 55.045199394226074,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 55.56778907775879,
+          "Bytes": 64,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.26081526969433116,
+      "Ranges": {
+        "": "[-0.5%..\u002B2.2%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/sf.item",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 283.87508392333984,
+          "Bytes": 736,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 354.4715881347656,
+          "Bytes": 800,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 332.9536437988281,
+          "Bytes": 800,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.13209498207042422,
+      "Ranges": {
+        "": "[-6.4%..\u002B4.2%], 1 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/sf.list",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1223.7594604492188,
+          "Bytes": 3000,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1336.883544921875,
+          "Bytes": 3064,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1320.4788208007812,
+          "Bytes": 3064,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.12310801829918341,
+      "Ranges": {
+        "": "[-2.6%..\u002B2.1%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "web/sf.dictionary",
+      "Readings": [
+        {
+          "Reading": "control",
+          "Nanoseconds": 1254.78515625,
+          "Bytes": 3216,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1288.6322021484375,
+          "Bytes": 3280,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1316.217041015625,
+          "Bytes": 3280,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0933097906451864,
+      "Ranges": {
+        "": "[-6.1%..\u002B3.4%], 3 of 5 positive"
+      }
+    },
+    {
+      "Id": "el/ladder",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 1030.975341796875,
+          "Bytes": 1712,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 1769.4267272949219,
+          "Bytes": 1776,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 1781.3880920410156,
+          "Bytes": 1776,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before-immediate",
+          "Nanoseconds": 1223.8655090332031,
+          "Bytes": 1784,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after-immediate",
+          "Nanoseconds": 1207.0671081542969,
+          "Bytes": 1784,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0573417103276796,
+      "Ranges": {
+        "": "[\u002B0.2%..\u002B5.1%], 5 of 5 positive",
+        "-immediate": "[-1.9%..\u002B3.0%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "el/terms1000",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 115529.1015625,
+          "Bytes": 169026.625,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 159622.8515625,
+          "Bytes": 169104,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 156244.82421875,
+          "Bytes": 169104,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before-immediate",
+          "Nanoseconds": 129285.05859375,
+          "Bytes": 177120,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after-immediate",
+          "Nanoseconds": 130977.44140625,
+          "Bytes": 177122.625,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.07928197204100022,
+      "Ranges": {
+        "": "[-4.4%..\u002B6.3%], 3 of 5 positive",
+        "-immediate": "[-0.1%..\u002B2.0%], 4 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/select20",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 7231.988525390625,
+          "Bytes": 24040,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 19192.510986328125,
+          "Bytes": 21448,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 18601.251220703125,
+          "Bytes": 21448,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.16079480862764362,
+      "Ranges": {
+        "": "[-4.8%..\u002B2.2%], 2 of 5 positive"
+      }
+    },
+    {
+      "Id": "sql/refused-late",
+      "Readings": [
+        {
+          "Reading": "hand",
+          "Nanoseconds": 2744.71435546875,
+          "Bytes": 8440,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "before",
+          "Nanoseconds": 12240.505981445312,
+          "Bytes": 13552,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "after",
+          "Nanoseconds": 12341.519165039062,
+          "Bytes": 13552,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.07775731942165116,
+      "Ranges": {
+        "": "[-2.0%..\u002B0.9%], 2 of 5 positive"
+      }
+    }
+  ]
+}
