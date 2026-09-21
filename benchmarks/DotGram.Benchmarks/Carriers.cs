@@ -48,6 +48,20 @@ static class Carriers
 	/// <summary>"one project", "four projects" — a count that reads the way a sentence does.</summary>
 	static string Say(int count) => count == 1 ? "one project" : $"{count} projects";
 
+	/// <summary>When the reports were written: one time, or the oldest and the newest.</summary>
+	/// <remarks>
+	/// Both ends rather than the newest, because the newest is the one that is right and the oldest
+	/// is the one worth seeing. Reports of a single build land within the same minute.
+	/// </remarks>
+	static string Span(IEnumerable<DateTime> times)
+	{
+		var all = times.OrderBy(static one => one).ToList();
+
+		return all.Count == 0 || all[0].ToString("yyyy-MM-dd HH:mm") == all[^1].ToString("yyyy-MM-dd HH:mm")
+			? $"written {all[^1]:yyyy-MM-dd HH:mm}"
+			: $"written {all[0]:yyyy-MM-dd HH:mm} to {all[^1]:yyyy-MM-dd HH:mm}";
+	}
+
 	public static void Run(string? output)
 	{
 		var root = Root();
@@ -56,10 +70,15 @@ static class Carriers
 
 		var grammars = new List<Grammar>();
 
-		// Which projects left a report at all. A project built below the full level leaves none, and
-		// the difference between "this grammar is not on the tape" and "this grammar was never looked
-		// at" cannot be seen in a row, so it is said above the table instead.
-		var projects = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+		// Which projects left a report, and when. A project built below the full level leaves none,
+		// and the difference between "this grammar is not on the tape" and "this grammar was never
+		// looked at" cannot be seen in a row, so it is said above the table instead.
+		//
+		// The time is there for the other end of the same defect: a report is a file, a file outlives
+		// the build that wrote it, and a project built at `none` — or not built at all — keeps the one
+		// an older build left. Read today, it answers as today's, and nothing in a row says otherwise.
+		// A date beside the project's name says it at a glance.
+		var projects = new SortedDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
 
 		foreach (var file in Directory.EnumerateFiles(root, "*.DotGramReportDetail.g.cs", SearchOption.AllDirectories))
 		{
@@ -68,7 +87,13 @@ static class Carriers
 			if (at < 0)
 				continue;
 
-			projects.Add(Path.GetFileName(file.Substring(0, at)));
+			var project = Path.GetFileName(file.Substring(0, at));
+			var written = File.GetLastWriteTime(file);
+
+			// The newest of a project's reports: one build wrote them all, and a project built for two
+			// target frameworks writes the same report twice.
+			if (!projects.TryGetValue(project, out var already) || already < written)
+				projects[project] = written;
 
 			var lines = File.ReadAllLines(file).Select(static line => line.TrimStart('﻿').TrimStart('/', ' ')).ToList();
 
@@ -102,9 +127,17 @@ static class Carriers
 		text.AppendLine("held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`) from the reports");
 		text.AppendLine("that build left; run again rather than edited.");
 		text.AppendLine();
-		text.AppendLine($"Read from {Say(projects.Count)}: {string.Join(", ", projects)}. A project built below that");
-		text.AppendLine("level leaves no report and is absent here rather than empty, so a short table is a short build");
-		text.AppendLine("and not a grammar with nothing to say. Build the whole solution to have them all.");
+		text.AppendLine($"Read from {Say(projects.Count)}, and written when each one was last compiled with the");
+		text.AppendLine("report on. A project built below that level leaves no report and is absent here rather than");
+		text.AppendLine("empty, so a short table is a short build and not a grammar with nothing to say; a project whose");
+		text.AppendLine("time is older than the rest was not in the last build, and its rows are that build's answer.");
+		text.AppendLine();
+		text.AppendLine("| Read from | Report written |");
+		text.AppendLine("| --- | --- |");
+
+		foreach (var (project, written) in projects)
+			text.AppendLine($"| {project} | {written:yyyy-MM-dd HH:mm} |");
+
 		text.AppendLine();
 		text.AppendLine("**Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what");
 		text.AppendLine("kept a grammar on the tape: `replay` — a building rule read where the reading may not stand");
@@ -236,7 +269,7 @@ static class Carriers
 		File.WriteAllText(output, text.ToString().Replace("\r\n", "\n"));
 
 		Console.WriteLine(
-			$"{grammars.Count} grammars from {Say(projects.Count)}, " +
+			$"{grammars.Count} grammars from {Say(projects.Count)} ({Span(projects.Values)}), " +
 			$"{grammars.Count(static one => Carrier(one) == "tape")} on the tape, written to {output}");
 	}
 
