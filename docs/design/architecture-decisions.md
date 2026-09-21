@@ -7992,3 +7992,37 @@ the estimate**, which is the whole of this week in one sentence.
 **And the number is written where the choice is.** Until the spare has a bound, a thread that
 parses such documents keeps twenty-odd megabytes it will never be asked to give back. That belongs
 beside the decision and in the diary, not discovered later in a size report.
+
+**Withdrawn within the hour, by the author of the change, against the author's own interest.** The
+arithmetic called "one read away" was read, and both halves of the diagnosis were wrong. `Held<T>`
+holds one field, so eight bytes and not sixteen; and elements-against-bytes, while true, is not the
+mechanism. **The mechanism is that the dense bound does not count the value tables at all.** As
+emitted, it sums three record tables — `Live`, `Starts`, `Built` — and the three hundred value
+tables, where the values actually are, do not appear in it. At the bound the record tables come to
+about 2.1 MB and each written value table adds about 2.8 MB, uncounted; the observed 19.8–24.9 MB
+is two megabytes of records and seven or eight value tables. That is why those stores are "small"
+by the bound and go to the spare.
+
+**So it is not an old defect enlarged. It is a new bound that cannot see what it guards**, written
+in this change, with the not-summing chosen deliberately and the reason in the emitter's own
+comment. Before it, each oversized value table was dropped individually — crude, and it did bound
+the value tables.
+
+**The landing decision above is therefore withdrawn, and the test that withdraws it is D103's.** A
+change is not ready when its acceptability depends on an unmade repair. An hour ago that test
+passed because the gap was older than the change; it fails now, because the gap IS the change. A
+bound blind to nine tenths of what it bounds does not implement "keep the room, then let it go" —
+it is the same class as a counter reset by the event it counts, and we have just spent a night on
+that class.
+
+**What lands instead is the bound counting what it protects.** The author's own proposal removes
+their stated reason for not counting: a running total of the value tables' capacity, maintained
+where a table grows rather than summed on every return — free at the point it changes, O(1) at the
+point it is read. Then the ten cliff rows become a real test of it, and the three conditions are
+read again against a bound that means something.
+
+**And the shape of this correction is worth more than the decision it reverses.** The author
+checked an arithmetic they had labelled as arithmetic, found it wrong in the direction that
+implicated their own change, and brought it before the decision rather than after. Nothing in the
+process would have caught it: the conditions were met, the table was clean, and I had already said
+yes.
