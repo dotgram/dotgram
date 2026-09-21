@@ -3312,3 +3312,34 @@ the work is done.
 side and `ParseMessage` / `EnumerateMessages` on the message side. That alone removes the
 same-verb-different-cardinality trap, which is the part that can actually cost somebody an
 afternoon; the eager/lazy distinction is a comfort by comparison.
+
+**Igor's resolution — `ParseMessages` returning `FixMessage[]`, beside `ReadMessages` — is better
+than mine, and it kills my objection with a precedent I should have reached for myself.** I argued
+that `ParseMessage` beside `ParseMessages`, one parameter list apart by one letter, is a trap. The
+BCL's answer to exactly that shape is `Regex.Match` beside `Regex.Matches` — same input, one against
+many, distinguished by a plural and by the return type — and it has been among the most-used pairs
+in .NET for twenty-five years without being the thing people trip on. `FixMessage` against
+`FixMessage[]` is the same distance apart as `Match` against `MatchCollection`. My
+`EnumerateMessages` was solving a problem the language had already solved.
+
+**And his scheme carries a bit mine did not.** With `Parse` meaning *from a buffer you hold* and
+`Read` meaning *from a stream you are consuming*, the verb carries eager against lazy and the plural
+carries cardinality, so every name says two things and nothing needs a third word:
+
+| | `Parse` — buffer, eager | `Read` — stream, consuming |
+| --- | --- | --- |
+| fields | `ParseFields` → `FixField[]` | `ReadFields` → `IEnumerable<FixField>` |
+| one message | `ParseMessage` → `FixMessage` | `ReadMessage` → `FixMessage` |
+| many messages | `ParseMessages` → `FixMessage[]` | `ReadMessages` → `IEnumerable<FixMessage>` |
+
+**The strongest thing to be said for it is that it names a distinction the package already makes.**
+`FixParser` today returns `FixField[]` from a string, a span and a byte array, and
+`IEnumerable<FixField>` from a `TextReader` and a `Stream`. The eager/lazy split is already the
+behaviour; only the names are silent about it, which is why `Parse(reader)` could come to mean
+"many, lazily" on one class and "exactly one" on the other without anybody noticing.
+
+**One thing in the table is new rather than renamed, and it should be added knowingly.** There is no
+many-messages-from-a-buffer method today — `FixMessages` offers one from a string and many from a
+stream, and nothing in between, so a log held in a string is read through a `StringReader` now.
+`ParseMessages(string) → FixMessage[]` fills that hole, which is probably right for a log file, but
+it is a new public method and not a rename, and the surface is Igor's to grant.
