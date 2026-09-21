@@ -250,6 +250,12 @@ public sealed class FixValidatorRulesTests
 						+ " tag " + finding.Tag);
 		}
 
+		// Named before compared: a set difference printed as text is what a reader of a failure
+		// needs, and the comparison below is still the one that decides.
+		Assert.True(structural.SetEquals(Structural),
+			"new: "  + string.Join(", ", structural.Except(Structural)) + Environment.NewLine +
+			"gone: " + string.Join(", ", Structural.Except(structural)));
+
 		Assert.Equal(Structural, structural);
 	}
 
@@ -267,13 +273,23 @@ public sealed class FixValidatorRulesTests
 	/// <para>
 	/// Two shapes. QuoteRequestReject's NoRelatedSym entry holds twenty tags in our tables that the
 	/// file does not place there. And four messages require something the file requires and we do
-	/// not: PosAmt inside NoPosAmt in three of them, NoAllocs in AllocationReport, OrigClOrdID and
-	/// OrigOrdModTime inside NoSides in the two cross-order messages.
+	/// not: PosAmt inside NoPosAmt in three of them, NoAllocs in AllocationReport, OrigClOrdID
+	/// inside NoSides in CrossOrderCancelReplaceRequest.
 	/// </para>
 	/// <para>
-	/// Which reading is FIX 4.4 is the published specification's answer and nobody here has looked
-	/// it up, so the list is pinned rather than resolved. A row that appears or disappears fails
-	/// this test, which is what makes it a guard rather than a note.
+	/// <strong>The cross-order rows have been looked up and are settled.</strong> The FIX
+	/// Repository gives NewOrderCross and CrossOrderCancelReplaceRequest one and the same side
+	/// component, SideCrossOrdModGrp, and it holds neither OrigClOrdID (41) nor OrigOrdModTime
+	/// (586). The file gives the replace message a side group of its own with both. These tables
+	/// followed the repository for 41 and the file for 586, which was neither reading whole; they
+	/// now follow the repository for both, and the two rows here are what the file says and we do
+	/// not.
+	/// </para>
+	/// <para>
+	/// The rest are not looked up. Which reading is FIX 4.4 is the published specification's
+	/// answer, and <c>tests/Corpus/FixRepository</c> is now in this repository to give it — what is
+	/// missing is the work, not the source. A row that appears or disappears fails this test, which
+	/// is what makes it a guard rather than a note.
 	/// </para>
 	/// </remarks>
 	static readonly SortedSet<string> Structural = new(StringComparer.Ordinal)
@@ -302,8 +318,8 @@ public sealed class FixValidatorRulesTests
 		"AP file: RequiredFieldMissing Body/753 tag 708",
 		"AS file: RequiredFieldMissing Body tag 78",
 		"AW file: RequiredFieldMissing Body/753 tag 708",
-		"s file: FieldNotInScope Body/552 tag 586",
 		"t file: RequiredFieldMissing Body/552 tag 41",
+		"t ours: FieldNotInScope Body/552 tag 586",
 	};
 
 	/// <summary>

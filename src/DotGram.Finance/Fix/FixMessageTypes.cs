@@ -8877,7 +8877,7 @@ public abstract partial class FixMessage
 		/// <summary>
 		/// FIX tag 532, wire type <c>int</c>; null when the field is absent.
 		/// </summary>
-		public FixNumber? MassCancelRejectReason => GetNumber(532);
+		public string? MassCancelRejectReason => GetText(532);
 		/// <summary>
 		/// FIX tag 533, wire type <c>int</c>; null when the field is absent.
 		/// </summary>

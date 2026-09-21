@@ -1972,7 +1972,7 @@ public enum FixFieldType
 	/// </summary>
 	MassCancelResponse                   = 531,
 	/// <summary>
-	/// Identifies MassCancelRejectReason, FIX tag 532, with wire type <c>int</c>.
+	/// Identifies MassCancelRejectReason, FIX tag 532, with wire type <c>String</c>.
 	/// </summary>
 	MassCancelRejectReason               = 532,
 	/// <summary>

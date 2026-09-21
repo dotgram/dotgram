@@ -1384,7 +1384,6 @@ static class FixSchema
 		new SchemaRef(11, true, 0), // ClOrdID
 		new SchemaRef(526, false, 0), // SecondaryClOrdID
 		new SchemaRef(583, false, 0), // ClOrdLinkID
-		new SchemaRef(586, false, 0), // OrigOrdModTime
 		new SchemaRef(1012, false, 2), // Parties
 		new SchemaRef(229, false, 0), // TradeOriginationDate
 		new SchemaRef(75, false, 0), // TradeDate
@@ -1445,7 +1444,6 @@ static class FixSchema
 		new SchemaRef(81, false, 0), // ProcessCode
 		new SchemaRef(575, false, 0), // OddLot
 		new SchemaRef(2007, false, 2), // ClrInstGrp
-		new SchemaRef(635, false, 0), // ClearingFeeIndicator
 		new SchemaRef(578, false, 0), // TradeInputSource
 		new SchemaRef(579, false, 0), // TradeInputDevice
 		new SchemaRef(821, false, 0), // OrderInputDevice
@@ -4388,7 +4386,7 @@ static class FixSchema
 	static SchemaRef[] M87 => m87 ?? Publish(ref m87,
 	[
 		new SchemaRef(1024, true, 1), // StandardHeader
-		new SchemaRef(909, true, 0), // CollInquiryID
+		new SchemaRef(909, false, 0), // CollInquiryID
 		new SchemaRef(2008, false, 2), // CollInqQualGrp
 		new SchemaRef(263, false, 0), // SubscriptionRequestType
 		new SchemaRef(725, false, 0), // ResponseTransportType
@@ -4958,7 +4956,7 @@ static class FixSchema
 		 3,  3, 20, 23,  3,  8, 11,  9, 20, 20, 11, 20,  9, 20, 20,  9, // 480
 		20,  3, 20, 20, 20, 20, 20, 11, 11, 20,  3,  9, 20, 20, 14, 20, // 496
 		15, 20,  3, 23, 15,  3, 14,  9,  8,  5,  9, 20, 20,  3, 20, 20, // 512
-		 3, 13,  3,  3,  9,  9, 14, 20, 20,  9,  9, 14,  1, 11, 11, 20, // 528
+		 3, 13,  3,  3, 20,  9, 14, 20, 20,  9,  9, 14,  1, 11, 11, 20, // 528
 		 3, 20, 13,  2, 20,  9,  9, 20, 14, 20, 20, 14,  5,  9, 14,  9, // 544
 		 9, 18, 18,  9,  3,  9, 16,  9, 20,  9,  2, 20, 20,  3, 20,  2, // 560
 		14,  9, 20, 20, 14,  9,  9, 20, 20,  9, 23,  3, 11,  3,  3,  3, // 576
@@ -4967,7 +4965,7 @@ static class FixSchema
 		 3, 20,  9, 14, 20, 23, 19, 16, 15, 15, 15, 20,  2, 16,  9, 17, // 624
 		16, 17, 17, 17, 20, 16, 16, 18, 18, 20,  2, 16, 18,  0, 20, 20, // 640
 		 8,  8,  9, 20,  9,  9, 16,  9, 20,  9,  9, 12,  9, 16, 14, 20, // 656
-		20, 18,  9,  5,  5, 20, 20, 16,  9, 16, 20, 14, 16,  0,  9, 18, // 672
+		20, 18, 20,  5,  5, 20, 20, 16,  9, 16, 20, 14, 16,  0,  9, 18, // 672
 		20, 20,  9, 20,  9, 20,  9,  3, 11, 16,  9, 20,  2, 11, 14, 20, // 688
 		18, 18,  9, 20,  1,  9, 20, 14,  9, 20, 20, 11, 20, 20,  9,  2, // 704
 		 2, 20,  9,  9,  9,  9, 20,  9,  9,  9, 16,  9, 16,  9, 16, 14, // 720

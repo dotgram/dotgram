@@ -1214,6 +1214,13 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents MiscFeeType, FIX tag 139, with wire type <c>String</c>.
 	/// </summary>
+	/// <remarks>
+	/// FIX 4.4 declares this field <c>char</c> and, in the same table, publishes the values 10, 11
+	/// and 12 for it, which a single character cannot hold. Where the declared type cannot hold
+	/// what the specification publishes, this package reads the field as a string: it keeps every
+	/// value the document prints, and which of them are allowed is the code set's answer rather
+	/// than the type's shape.
+	/// </remarks>
 	/// <param name="value">The field text, stored directly without primitive conversion.</param>
 	public sealed class MiscFeeType(string value)
 		: Typed<string>(139, value);
@@ -3859,11 +3866,18 @@ public abstract class FixField : IFixLocation
 		: Typed<char>(531, value);
 
 	/// <summary>
-	/// Represents MassCancelRejectReason, FIX tag 532, with wire type <c>int</c>.
+	/// Represents MassCancelRejectReason, FIX tag 532, with wire type <c>String</c>.
 	/// </summary>
-	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MassCancelRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(532, value);
+	/// <remarks>
+	/// FIX 4.4 declares this field <c>char</c> and, in the same table, publishes the value 99 for
+	/// it, which a single character cannot hold. Where the declared type cannot hold what the
+	/// specification publishes, this package reads the field as a string: it keeps every value the
+	/// document prints, and which of them are allowed is the code set's answer rather than the
+	/// type's shape.
+	/// </remarks>
+	/// <param name="value">The field text, stored directly without primitive conversion.</param>
+	public sealed class MassCancelRejectReason(string value)
+		: Typed<string>(532, value);
 
 	/// <summary>
 	/// Represents TotalAffectedOrders, FIX tag 533, with wire type <c>int</c>.

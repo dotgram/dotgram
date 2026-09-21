@@ -100,7 +100,7 @@ public sealed class FixDictionaryTests
 
 	/// <summary>
 	/// The compiled tables and the published dictionary describe one schema, and disagree about
-	/// ten tags.
+	/// nine tags.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -110,16 +110,29 @@ public sealed class FixDictionaryTests
 	/// list in the same commit that changes the tables.
 	/// </para>
 	/// <para>
-	/// <strong>Neither side is authority.</strong> QuickFIX's file is one reading of FIX 4.4 and
-	/// ours is another; what settles a row is the published specification, which nobody here has
-	/// consulted for these ten. Two of them look like the other side's defect rather than ours —
-	/// MiscFeeType has values 10, 11 and 12, which cannot be CHAR, and NoRpts counts messages in a
-	/// response rather than entries in a group — but "looks like" is not a reading of the
-	/// specification either, and the rows stay listed until one is done.
+	/// <strong>The specification has now been consulted, and it settles all ten.</strong> The FIX
+	/// Repository in <c>tests/Corpus/FixRepository</c> is FIX 4.4's own machine-readable form, and
+	/// against it nine of these rows are the file's defect and one was ours: LegAllocAcctIDSource
+	/// (674), which the repository and the file both call a string and the tables called an int —
+	/// corrected, which is why this list is nine and not ten.
+	/// </para>
+	/// <para>
+	/// Two rows survive as OURS on purpose, and the guess written here before was right about one
+	/// of them: MiscFeeType (139) is declared <c>char</c> by the repository and publishes the
+	/// values 10, 11 and 12, and MassCancelRejectReason (532) is declared <c>char</c> and publishes
+	/// 99. The specification contradicts itself; a field held to the type it declares would refuse
+	/// a value the same document prints. The tables take a type that holds what is published, and
+	/// <c>FixRepositoryAgreementTests</c> is where that rule is written down and checked.
+	/// </para>
+	/// <para>
+	/// Worth saying plainly, because the list stood unsettled for months: nine rows turned out to
+	/// be the file's and one ours. While no third reading had been consulted the blame was
+	/// unassigned, and a list of differences with nobody at fault reads as if the two sides were
+	/// equally likely — which they were not.
 	/// </para>
 	/// </remarks>
 	[Fact]
-	public void The_published_dictionary_agrees_with_the_compiled_tables_but_for_ten_tags()
+	public void The_published_dictionary_agrees_with_the_compiled_tables_but_for_nine_tags()
 	{
 		var dictionary = Load();
 
@@ -140,11 +153,10 @@ public sealed class FixDictionaryTests
 		"239 RepoCollateralSecurityType: the file says INT and the tables say String",
 		"243 UnderlyingRepoCollateralSecurityType: the file says INT and the tables say String",
 		"250 LegRepoCollateralSecurityType: the file says INT and the tables say String",
-		"532 MassCancelRejectReason: the file says CHAR and the tables say int",
+		"532 MassCancelRejectReason: the file says CHAR and the tables say String",
 		"534 NoAffectedOrders: the file says INT and the tables say NumInGroup",
 		"576 NoClearingInstructions: the file says INT and the tables say NumInGroup",
 		"580 NoDates: the file says INT and the tables say NumInGroup",
-		"674 LegAllocAcctIDSource: the file says STRING and the tables say int",
 	];
 
 	/// <summary>
@@ -203,7 +215,7 @@ public sealed class FixDictionaryTests
 	];
 
 	/// <summary>The tags whose declared types differ, as the type test lists them.</summary>
-	internal static readonly int[] TypeDisagreements = [82, 139, 239, 243, 250, 532, 534, 576, 580, 674];
+	internal static readonly int[] TypeDisagreements = [82, 139, 239, 243, 250, 532, 534, 576, 580];
 
 	[Fact]
 	public void Every_tag_the_tables_define_is_in_the_published_dictionary()
