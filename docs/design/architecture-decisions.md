@@ -8155,3 +8155,36 @@ decision of HIS, resting on something that turned out not to be the case.
 fact, in the voice of a conclusion. Several of them should have been questions asked before the
 correction was acted on, and the file would be shorter and the work slower — which is the right
 trade, because a fast wrong decision is the only kind this arrangement produces quickly.
+
+## D115 — One static field a message, and a store of named rules (Igor)
+
+Igor's design for validation, replacing D69's validator object and most of what grew around it.
+
+**The relation between a message type and a class is one to one**, so the rule lives where the type
+already does: **one static field on each message class**, holding the rule in force for it.
+`message.Validate()` reads its own class's field. There is no validator instance, no table keyed by
+anything, and nothing to look up — the class IS the key.
+
+**`LoadDictionary` is a method that does the work and ends.** It reads the file, rewrites the
+fields, returns nothing, and **throws** where the dictionary is wrong: a consumer tests their
+dictionary before deploying it, and a silent partial load would be worse than a refusal.
+`FixDictionary` stops being public with it — the door takes a stream and the parsed file is ours.
+
+**`FixValidator` stays, meaning something else: a store of the rules this package compiles in**,
+as named public static methods — `FixValidator.ValidateReject` and its ninety-two siblings, each
+with the shape the field takes. It is not a second entry point: nothing is called *into* the
+library through it. It is where a consumer finds the default by name, which is what makes replacing
+one recoverable — they keep the name, not a copy.
+
+**What this gives up, named rather than discovered.** One static field a message is one
+configuration a process: two counterparties with different dictionaries in one process become
+inexpressible, where an instance validator expressed them. Igor's call, and made knowing it — he
+sees no scenario for it, and a scheme that is one field and one assignment is worth more than a
+case nobody has.
+
+**And one consequence of the hierarchy being closed, which is open.** A counterparty's dictionary
+may describe a message type we have no class for. With a field per class, such a type has nowhere
+of its own to go: it reaches `FixMessage.Custom`, whose single field then stands for every unknown
+type at once. That follows from the classes being a closed set and the types not being one; it is
+not a defect of this design, but it is the one place where "one to one" stops holding, and what
+should happen there is still to be said.
