@@ -6,6 +6,8 @@ The shas the pair READMEs of the pooling chain name are the shas of the chain in
 e1c2e8f1  ->  8234bdcf  "One test holds all five pools to the release policy"
 e93675cc  ->  52f52800  "The dense bound counts the tables it guards"
 f18a941b  ->  c9904b56  "The ordinary slot lets go of room the parses have stopped wanting" (rebased when pushed; the diary entry beside it is 3f292ba6; its parent 0783f47b is unchanged on main)
+77c2a88f  ->  342b76c8  "The tape, the arena and the lexer buffer let go too" (never timed alone: its retained table found the parked slot demoting a steady workload and the commit was changed before any window; the diary entry is d3bccb83)
+15e42dc3  ->  6a144ca3  "Both slots ask one question, and the lexer counts what it was asked for" (timed together with 77c2a88f against c9904b56, which is unchanged on main)
 7eca1ce9  ->  nowhere, by design (the throwaway with `used = 0L`, deleted)
 bc7a860d  ->  f3c70da7  "The release counts what a parse used, where a parse ends" (never paired under its own name; inside the span of the e1c2e8f1 pair)
 
