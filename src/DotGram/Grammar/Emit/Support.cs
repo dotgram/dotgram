@@ -1475,13 +1475,22 @@ public static partial class CSharpEmitter
 		}
 
 		if (dense)
+		{
 			for (var i = 0; i < valueTypes.Count; i++)
 				text.Append("\tinternal int N").Append(i).Append(";\n");
+
+			// What the value tables hold between them, kept as they grow rather than
+			// summed when it is read: there are three hundred of them for SQL:2023, and
+			// the cost of reading three hundred lengths on every return is the reason the
+			// bound below used not to count them at all.
+			text.Append("\t/// <summary>The value tables' capacity between them, carried rather than counted.</summary>\n");
+			text.Append("\tinternal long Tables = ").Append(valueTypes.Count * 16).Append(";\n");
+		}
 
 		text.Append("\tint _used;\n\n");
 		Spares(text, "DirectValues");
 				var capacities = dense
-			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }
+			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length", "values.Tables" }
 			: Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
 				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
 		if (stateType is not null)
@@ -1520,10 +1529,10 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		// held the store: eight rentals in the slot, and a weak reference after that. Kept
 		// capacity is what the bound is for; kept contents were never part of it.
 		//
-		// A dense store is measured by its record tables rather than its value tables: there
-		// are three hundred of the latter for SQL:2023, and summing them on every return would
-		// cost more than the bound saves. The record tables grow with the parse, which is what
-		// the bound is about.
+		// A dense store carries its value tables' capacity rather than summing three hundred
+		// lengths here. It did neither at first, and counted only the record tables - a bound
+		// blind to nine tenths of what it guarded, so a store holding twenty megabytes of
+		// values read as small and was kept for the life of the thread.
 				text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
 		text.Append("\t\t// and not a bound - it is kept while the work keeps wanting it, and handed\n");
 		text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
@@ -1564,12 +1573,17 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 			{
 				text.Append("\tinternal int Add").Append(i).Append("(int record)\n\t{\n");
 				text.Append("\t\tvar index = N").Append(i).Append("++;\n");
-				text.Append("\t\tif (index == V").Append(i).Append(".Length) global::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(16, index * 2));\n");
+				text.Append("\t\tif (index == V").Append(i).Append(".Length)\n\t\t{\n");
+				text.Append("\t\t\tvar was = V").Append(i).Append(".Length;\n");
+				text.Append("\t\t\tglobal::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(16, index * 2));\n");
+				text.Append("\t\t\tTables += V").Append(i).Append(".Length - was;\n\t\t}\n\n");
 				text.Append("\t\tStarts[record] = index;\n\t\treturn index;\n\t}\n");
 
 				// The table a record-indexed write reaches past, grown to reach it.
 				text.Append("\tinternal Held<").Append(valueTypes[i]).Append(">[] Grow").Append(i).Append("(int record)\n\t{\n");
+				text.Append("\t\tvar was = V").Append(i).Append(".Length;\n");
 				text.Append("\t\tglobal::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(record + 1, V").Append(i).Append(".Length * 2));\n");
+				text.Append("\t\tTables += V").Append(i).Append(".Length - was;\n");
 				text.Append("\t\treturn V").Append(i).Append(";\n\t}\n");
 			}
 		text.Append("}\n\n");
