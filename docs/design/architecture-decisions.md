@@ -3859,6 +3859,25 @@ bucket, net472 not reaching it. The version in which `SearchValues<string>` arri
 bucket the keyword work lands in and the sources disagree, so it is read off the API reference
 before anything is built rather than guessed.
 
+**Corrected where it stands: the third bucket named the wrong API.** Recognising a keyword is not
+`SearchValues<string>`. That searches a HAYSTACK for any of many needles; recognising a keyword is
+a LOOKUP — is this span one of four hundred and ten words, and which one — and the API for it is
+`Dictionary<string,V>.GetAlternateLookup<ReadOnlySpan<char>>()`, which needs the comparer to
+implement `IAlternateEqualityComparer<ReadOnlySpan<char>, string>`. Both are net9, so the bucket
+does not move and nothing else in this decision changes. It is corrected anyway, because somebody
+building from it as written reaches for the wrong tool, finds it does not fit, and concludes the
+bucket was overrated — a decision that names the wrong instrument discredits the finding it
+carries. `FrozenDictionary` offers the same lookup, which matters here: this decision already puts
+frozen tables in the net8 bucket for a grammar over tokens.
+
+**And the rule about sources paid twice on one API.** A current article says `SearchValues<string>`
+arrived in .NET 10; the reference's moniker range for `Create(ReadOnlySpan<string>, StringComparison)`
+is net-9.0 through net-11.0. Read off the reference, it stays settled. The rest, each version read
+rather than recalled: `SearchValues<byte>`/`<char>`, `MemoryExtensions.Count`, `IndexOfAnyExcept`,
+`System.Text.Ascii` and `decimal.TryParse(ReadOnlySpan<byte>)` are net8; `allows ref struct` is
+net9. `[InlineArray]` is explicitly NOT priced: believed net8 and C# 12, not read, therefore not
+counted.
+
 **Capability switches, not framework tests** — `#if DOTGRAM_HAS_SEARCHVALUES`, with one place
 mapping a framework to its capabilities. A framework test scattered over five emission sites
 multiplies by the buckets while a capability name stays one word, a consumer's framework set is not
@@ -7910,3 +7929,28 @@ wrong three times tonight, and a grep over "existing" is checking by names.
 snapshot is worse than either state. It gained a header saying what it is, on what day, which names
 have moved since, and where the current description lives; the reasoning and the measurements stay,
 dated by what they measured.
+
+## D110 — A count that the mechanism explains is not a finding
+
+A sweep for tests repeated inside one method found sixteen `!text.Ensure(p, 1)` in a FIX method and
+thirty-two bounds checks in an expression-language one. **The numbers mean nothing.** A
+recursive-descent reader tests the same thing at every position it advances to; that is what it is.
+A count is a finding only when the mechanism does not already account for it, and here it does,
+completely.
+
+**Pointed instead at the case the mechanism cannot explain — two identical guards on adjacent
+lines — the same instrument finds zero**, in all three files. So the emitter does not write an
+adjacent duplicate guard, and anything beyond that needs dataflow rather than text. That is a
+result: a line of enquiry closed, cheaply, by an instrument that was sharpened until it could
+return an honest nothing.
+
+**Four of one session's instruments were withdrawn in a day, and that is the healthy number.** Each
+was withdrawn by its own author, and each withdrawal came from asking what the number would look
+like if the instrument were measuring something other than what it was pointed at. An instrument
+that has never been withdrawn has usually never been asked.
+
+**And a caveat that was nearly filed as a free win was not.** The UTF-8 parse overloads look like a
+straight replacement for hand-written byte parsing in FIX — until the comment on the existing
+overload says why it is hand-written: nine digits per operation, no text decoding, no decimal
+rounding. Replacing deliberate code with a framework call is a PAIR on the rows that exercise it,
+not a cleanup, and calling it the latter is how a measured decision gets undone by a tidy one.
