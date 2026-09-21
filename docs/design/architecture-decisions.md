@@ -8855,3 +8855,39 @@ I had checked sat next to one I had not."* That is not an argument for reading t
 the observation that **adjacency confers nothing**: a verified statement lends no standing to the
 statement beside it, and a list mixing the two reads as uniformly checked to everyone downstream,
 including its author an hour later.
+
+## D127 — Three checks that were cheaper than the thing they checked
+
+A benchmark comparison against somebody else's library produced three findings in an evening, none
+of them about speed, and all three are about the shape of a check rather than about FIX.
+
+**The negative arm was cheaper than the positive one, and that is why it goes unwritten.** A guard
+asserts at the start of each case that the rules in the process match the case's mode — compiled
+or a dictionary's — because `LoadDictionary` is irreversible inside a process and the way back is
+internal. The session verified that the compiled case *passes*, and called that verification. It
+is not: **a passing case is consistent with the guard working and with the guard being absent**,
+and only the arm that must refuse distinguishes them. Proving the refusal cost one dictionary load
+and one call — less than proving the pass. The session's own sentence is the finding: *"the
+negative arm here was cheaper than the positive one, and the usual assumption is the reverse,
+which is why it does not get written."* The cost of a refusal check is estimated without being
+measured, and estimated upward.
+
+**Two lists of one set diverge in silence.** The shapes were enumerated once in `[Params]` and
+again by hand in the agreement check. Nothing fails when they drift — a newly added shape is
+simply never checked, and the discrepancy it would have caught is the one the check no longer
+looks for. Iterating the enum removed not the duplication but **the possibility of divergence**,
+which is the more expensive of the two. It was fixed while adding a fourth shape, which is the
+only three-minute moment the fix ever had: the defect existed precisely for that act.
+
+**A comparison of one size cannot see a mechanism.** The table began with three message shapes
+chosen by what the reader does — flat, a repeating group read entry by entry, a length-data pair
+read by its length — each at one size. That is a table about three messages, and it reads as a
+table about the protocol. A `Parties` / `PartiesLarge` pair at three entries and a thousand was
+added **before the first number**, because a per-unit price taken off a small case changes
+mechanism at scale, and a row added after a table has circulated costs an explanation of why the
+earlier table claimed more than it knew.
+
+**And the agreement was reported as arithmetic rather than as equality.** Both sides read 10,030
+fields: a thousand entries of three, plus the order's eight. Two equal numbers say the sides agree;
+two equal numbers *broken into their terms* say both sides walked the whole group rather than
+agreeing at its start. The second count came by another road, and it came unasked.
