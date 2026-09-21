@@ -3530,3 +3530,27 @@ pragma, where my grep was not looking. The care I was about to criticise was the
 is actually wrong is narrower and in a different place.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-21, D112), with a correction to my condition that I had wrong.** I
+wrote "condition the pragma on the same knowledge that already conditions the field". It is not the
+same knowledge: the field is emitted where the **capability is present**, and the pragma is needed
+where the field is emitted **and no assignment site was emitted**. Two conditions, and the emitter
+knows both because it writes the assignments — but conflating them is how the change breaks a
+consumer's build under warnings-as-errors on a file they did not write, which is the worst
+direction an error here can take.
+
+**Checked, and the two conditions do diverge in the current set — with a ready-made acceptance
+case.** `CSharpEmitter` decides the field by `looking: machines.Exists(compiled => compiled.Direct)`
+and `quiet: quiets || valuing is not null` — both "is the capability present". In the shipped
+output:
+
+- **`Looking` in FIX is emitted, read 43 times and assigned none.** The pragma there is genuinely
+  needed, and the 43 reads are of the default, which is the value's meaning.
+- **`Quiet` is assigned in all nineteen files that emit it**, so for that field the two conditions
+  have not diverged anywhere in the current set.
+
+So the acceptance the architect describes does not need constructing: **FIX's `Looking` is the
+case that must keep its pragma, and the nineteen `Quiet`/`OutOfInput` sites are the ones that must
+lose theirs.** A change that gets it backwards is visible in one diff of the snapshot set plus a
+`TreatWarningsAsErrors` build of the Compatibility project, which is where a consumer's build is
+already simulated.
