@@ -8978,3 +8978,56 @@ for everybody else.
 "no file" and "cannot check" look identical to whoever is about to build — which is the same
 defect again, in the fix for the defect. It is now written once, empty, and kept: its absence
 means the stand is broken, which is a thing that can be seen.
+
+## D130 — FIX validation: the rule lives on the type, and the type system guards it (Igor)
+
+Igor read `FixValidator` and said what was true: ninety-four names, one body —
+`FixRules.Check(CompiledTables.Instance, message, findings)` — and no knowledge of any type in any
+of them. A run proved the consequence: **the names are interchangeable.** Assigning
+`ExecutionReport`'s rule to `NewOrderSingle.Rule` changes nothing, because every rule reads the
+type off the message. Put back by any name, replaced by any name, and nothing says so.
+
+**Which defeats the reason the class existed.** Its own remarks say the point is the NAME, so that
+a replacement is undoable by assigning it back. Undoability rests on the names meaning different
+things. They did not.
+
+**The form Igor settled on:**
+
+```csharp
+public sealed class NewOrderSingle : FixMessage
+{
+    public static Func<NewOrderSingle, FixFinding[]> Validator = ValidateDefault;
+
+    public static FixFinding[] ValidateDefault(NewOrderSingle message) { … }
+
+    public override FixFinding[] Validate() { return Validator(this); }
+}
+```
+
+Straight-line typed checks, written beside the type's own fields; no tables for the ninety-three
+described types. The table walk survives exactly where it cannot be avoided — `Custom`, whose type
+is unknown at build time, and a loaded dictionary. `Custom` carries the virtual method alone, with
+no field: a consumer subclasses it. `FixValidator` disappears; the name lives on the type.
+
+**The interchangeability is closed by the compiler, not by a check.**
+`NewOrderSingle.Validator = ExecutionReport.ValidateDefault` does not build. That is strictly
+better than the runtime comparison I first proposed — which, being a comparison of a literal with
+the literal the constructor wrote, could never have failed at all.
+
+**And the rule returns its findings rather than filling a list.** Igor's question — why not a
+return — landed on waste: `Validate()` allocates a `List<FixFinding>` on **every** message,
+including the valid ones, to discover it is empty. Returning makes the valid path `Array.Empty`
+and builds a list only when there is something to put in it. It also retires a contract that lived
+in a comment: "add and do not clear", which a rule could break silently.
+
+**Two things I got wrong on the way, both the same wrong.** I proposed a typed field plus
+ninety-three `Validate` overrides whose only work was to reach that field — machinery in service of
+a mechanism that exists for the *external dictionary* mode, which Igor had just postponed. He
+named it: fixing one defect with another. Then I proposed removing the field entirely without
+saying that this removes a capability **he** had chosen. **A seam he decided on is not mine to
+withdraw as a consequence of an implementation I prefer** — the session working the package caught
+that second one before he did.
+
+**What is not decided:** whether the 4,823 checks are written by hand or produced from the
+specification, and whether generated code derived from FIX Protocol Ltd's tables carries an
+attribution line.
