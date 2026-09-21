@@ -8108,3 +8108,17 @@ for which half each site is.
 binder looks for **on any side** were renamed with the rest and then put back: prose about all
 forms must not be narrowed to ours. A mechanical pass reaches text that is not about the thing
 being renamed, and only reading stops it.
+
+**And the method behind that acceptance is worth more than the acceptance.** The instinct when a
+change has two conditions that might diverge is to BUILD the case where they do. Looking for it in
+the tree first cost one search and found it already shipped — `Looking` in FIX — which is better
+than a fixture in three ways: it exercises the real emitter rather than a miniature, it cannot be
+written to pass, and if it ever stops diverging that is itself news. **Before constructing a case,
+look for the one already there**; a repository of twenty generated files and a hundred grammars
+usually has it.
+
+**A note on the shape of the pool bound now written.** The value tables' total is carried at the
+two sites where a table grows and read once where the bound is tested — free where it changes,
+O(1) where it is used. That is the general answer whenever "summing it would cost more than the
+bound saves" is the reason for not measuring something: the sum is not taken at the moment of
+asking, it is maintained at the moments of changing, and those are few and already written.
