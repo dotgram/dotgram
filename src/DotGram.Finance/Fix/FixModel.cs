@@ -206,7 +206,7 @@ public class FixFieldSet
 }
 
 /// <summary>A complete FIX message with its exact original wire representation.</summary>
-public abstract class FixMessage : FixFieldSet
+public abstract partial class FixMessage : FixFieldSet
 {
 	internal FixMessage(string source, string messageType, FixNode[] header, FixNode[] body, FixNode[] trailer)
 		: base(source, body)
@@ -278,12 +278,6 @@ public abstract class FixMessage : FixFieldSet
 						yield return field;
 		}
 	}
-}
-
-/// <summary>A vendor message of unknown MsgType; its body fields remain in wire order.</summary>
-public sealed class CustomFixMessage : FixMessage
-{
-	internal CustomFixMessage(string source, string type, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, type, header, body, trailer) { }
 }
 
 readonly struct FixNode

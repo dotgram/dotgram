@@ -149,7 +149,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 
 if (FixMessages.TryParse(wire, out var message, out var error))
 {
-    if (message is NewOrderSingle order)
+    if (message is FixMessage.NewOrderSingle order)
     {
         Console.WriteLine(order.Symbol);
         Console.WriteLine(order.OrderQty);
@@ -230,8 +230,11 @@ source. Networking and FIX session state are outside this package.
 
 ## Model
 
-All 93 standard message types have public classes. Messages, the header and the
-trailer have named properties. A group property returns the group's entries, each a
+The 93 standard message types are the cases of `FixMessage`, nested in it and written
+`FixMessage.NewOrderSingle`: a closed set, so a `switch` over it reads as one and the base
+type stands in front of every arm. `FixMessage.CustomFixMessage` is the case for a MsgType
+the schema does not describe, which is what lets the set be closed without being complete.
+Messages, the header and the trailer have named properties. A group property returns the group's entries, each a
 `FixFieldSet` read with `GetField` and `GetGroup`.
 Flattened component fields are properties of their containing scope.
 
@@ -301,7 +304,7 @@ standard tag. Each case declares its tag and primitive type:
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-var order = (NewOrderSingle)FixMessages.Parse(wire);
+var order = (FixMessage.NewOrderSingle)FixMessages.Parse(wire);
 var symbol = (FixField.Symbol)order.GetField(55)!.Value.TypedValue!;
 var quantity = (FixField.OrderQty)order.GetField(38)!.Value.TypedValue!;
 Console.WriteLine(symbol.Value);             // string

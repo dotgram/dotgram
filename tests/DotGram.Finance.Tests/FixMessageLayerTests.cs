@@ -40,8 +40,8 @@ public sealed class FixMessageLayerTests
 	[Fact]
 	public void A_number_reads_as_an_integer_and_not_only_as_a_decimal()
 	{
-		// A Reject: RefSeqNum and RefTagID both answer with a number, and both are integers.
-		var reject = (Reject)FixFixtures.Message("35=3|49=S|56=T|34=1|52=20260920-12:00:00|45=12345|371=44|");
+		// A FixMessage.Reject: RefSeqNum and RefTagID both answer with a number, and both are integers.
+		var reject = (FixMessage.Reject)FixFixtures.Message("35=3|49=S|56=T|34=1|52=20260920-12:00:00|45=12345|371=44|");
 
 		Assert.True(reject.RefSeqNum!.Value.TryGetInt64(out var sequence));
 		Assert.Equal(12345, sequence);
@@ -50,7 +50,7 @@ public sealed class FixMessageLayerTests
 
 		// And it refuses what is not a whole number rather than truncating it, which is why the
 		// decimal reading stays: the two answer different questions about the same characters.
-		var fractional = (Reject)FixFixtures.Message("35=3|49=S|56=T|34=1|52=20260920-12:00:00|45=1.5|");
+		var fractional = (FixMessage.Reject)FixFixtures.Message("35=3|49=S|56=T|34=1|52=20260920-12:00:00|45=1.5|");
 
 		Assert.False(fractional.RefSeqNum!.Value.TryGetInt64(out _));
 		Assert.True(fractional.RefSeqNum!.Value.TryGetDecimal(out var exact));

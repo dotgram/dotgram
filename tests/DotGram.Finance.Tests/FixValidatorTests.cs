@@ -232,7 +232,7 @@ public sealed class FixValidatorTests
 	{
 		var message = Message("35=ZZ|49=S|56=T|34=1|52=20260920-12:00:00|");
 
-		Assert.IsType<CustomFixMessage>(message);
+		Assert.IsType<FixMessage.CustomFixMessage>(message);
 		Assert.Contains(message.Validate(), one => one.Rule == FixRule.UnknownMessageType);
 
 		// And nothing else: there is no schema to be out of place against, so saying so of every

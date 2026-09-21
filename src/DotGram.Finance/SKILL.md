@@ -108,21 +108,24 @@ if (!FixMessages.TryParse(wire, out var message, out var error))
 
 switch (message)
 {
-    case ExecutionReport report:
+    case FixMessage.ExecutionReport report:
         string? status = report.OrdStatus;        // null when the field is absent
         if (report.LastPx is { } price && price.TryGetDecimal(out var px))
             Console.WriteLine(px);
         break;
 
-    case NewOrderSingle order:
+    case FixMessage.NewOrderSingle order:
         foreach (var party in order.Parties)      // one FixFieldSet per entry, in order
             Console.WriteLine(party.GetField(448)?.ToString());
         break;
 }
 ```
 
-- All 93 standard messages have a class; match on it. A MsgType the schema does not know
-  becomes a `CustomFixMessage`, and `Validate` reports the type as unknown.
+- The 93 standard messages are the cases of `FixMessage`, nested in it: write
+  `FixMessage.NewOrderSingle`, and a `switch` over them reads as the closed set it is. A
+  MsgType the schema does not know becomes `FixMessage.CustomFixMessage`, and `Validate`
+  reports the type as unknown — that case is why the set can be closed without covering
+  every MsgType that exists.
 - A message's properties are named after its fields. Text is `string?` and numbers are
   `FixNumber?`, which keeps the digits exactly as written; both are null when the field
   is absent. A group is `IReadOnlyList<FixFieldSet>`, empty when absent, and each entry

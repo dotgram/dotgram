@@ -52,7 +52,7 @@ public sealed class Fix44Tests
 	[Fact]
 	public void Public_order_api_and_optional_values()
 	{
-		var order = Assert.IsType<NewOrderSingle>(FixMessages.Parse(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")));
+		var order = Assert.IsType<FixMessage.NewOrderSingle>(FixMessages.Parse(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")));
 		Assert.Equal("ABC", order.Symbol);
 		Assert.True(order.OrderQty!.Value.TryGetDecimal(out var quantity));
 		Assert.Equal(100m, quantity);
@@ -73,7 +73,7 @@ public sealed class Fix44Tests
 		Assert.Equal(2, parties.Count);
 		Assert.Equal("P2", parties[1].GetField(448)!.Value.ToString());
 		Assert.Equal(2, parties[0].GetGroup(802).Count);
-		var order = Assert.IsType<NewOrderSingle>(message);
+		var order = Assert.IsType<FixMessage.NewOrderSingle>(message);
 		Assert.Equal("P1", order.Parties[0].GetField(448)!.Value.ToString());
 		Assert.Equal("S2", order.Parties[0].GetGroup(802)[1].GetField(523)!.Value.ToString());
 	}
@@ -193,7 +193,7 @@ public sealed class Fix44Tests
 
 		// The strict mode refused an unknown MsgType; it is now a finding about a built message.
 		Assert.True(FixMessages.TryParse(wire, out var result, out var error), error?.ToString());
-		Assert.IsType<CustomFixMessage>(result);
+		Assert.IsType<FixMessage.CustomFixMessage>(result);
 		Assert.Equal(wire, result!.OriginalWire);
 		Assert.Contains(result.Validate(), f => f.Rule == FixRule.UnknownMessageType);
 	}
