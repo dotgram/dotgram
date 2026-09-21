@@ -139,7 +139,8 @@ The following APIs belong to `FixMessages` and run only when called explicitly.
 This layer restores separate length nodes for the wire message model; that work
 is not part of flat field parsing.
 `Build(source, fields)` requires fields parsed from that exact source and performs
-validation and group assembly without parsing it again. `Parse` combines both steps.
+recognition and group assembly without parsing it again. `Parse` combines both steps.
+Holding the result to a schema is `Validate`, a call of its own.
 
 ```csharp
 using DotGram.Finance.Fix;

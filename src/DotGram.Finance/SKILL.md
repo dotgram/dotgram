@@ -25,12 +25,12 @@ There are two, and most wrong code starts from the wrong one.
   CheckSum, no required fields. Use it for logs, for pulling a few values out, and for
   anything that must not reject input.
 - **`FixMessages` reads messages.** It checks the envelope, BodyLength and CheckSum,
-  assembles repeating groups, validates against the FIX 4.4 schema and returns the
-  message's own class. Use it when a message has to be known correct, or when its
-  groups matter.
+  assembles repeating groups and returns the message's own class. Use it when a message's
+  groups matter, or when it is to be held to the schema — which is `Validate`, a separate
+  call over the built message, not something `Parse` does on the way.
 
-`FixMessages.Build(source, fields)` joins them: it validates fields that `FixParser`
-already returned without reading the input again.
+`FixMessages.Build(source, fields)` joins them: it builds the message from fields that
+`FixParser` already returned, without reading the input again.
 
 ## Input
 
@@ -253,17 +253,18 @@ using System.Collections.Generic;
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-var pairs = new FixFieldOptions(new Dictionary<int, int>
+var options = new FixFieldOptions(new Dictionary<int, int>
 {
     [5000] = 5001,   // added to the standard's sixteen pairs, which hold and may not be redeclared
 });
 
-var fields  = FixParser.Parse(wire, pairs);
-var options = pairs;
+var fields  = FixParser.Parse(wire, options);
+var message = FixMessages.Parse(wire, options);   // the same value describes both layers
 ```
 
-The dictionary **replaces** the standard pairs rather than adding to them, so list the
-standard ones still needed. The same object is what `FixMessages` takes. When
+The dictionary **adds to** the standard's sixteen pairs, which always hold: list only
+what the standard does not define, and repeating one of its pairs is refused with the tag
+named. The same object is what `FixMessages` takes. When
 reading a stream, `maxRetained` bounds one field, from its tag through the separator that
 ends it, or a whole pair: 16 Mi characters from a `TextReader` or bytes from a `Stream` by
 default. A field that needs more throws `IOException`, so pass a larger `maxRetained` for
@@ -283,5 +284,6 @@ large binary data.
 3. Expecting `FixParser` to reject a bad message. It does not validate; `FixMessages`
    does.
 4. Feeding a space-padded log to `FixMessages`. Only `FixParser` reads padding.
-5. Supplying a length/data dictionary and dropping the standard pairs it replaced.
+5. Repeating a standard length/data pair in a dictionary of your own to keep it. They hold
+   without being listed, and redeclaring one is refused.
 6. Holding a `FixMessage` longer than needed. It keeps its whole source string alive.
