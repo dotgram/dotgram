@@ -20,6 +20,17 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		// `--load-order` first, and first for a reason: it checks what the process has loaded, so
+		// every line of work above it is a chance for something to load the assembly it asks
+		// about. It prints whether that happened (see LoadOrder.cs) rather than trusting this
+		// placement. DotGram.Tests runs it and reports what it said.
+		if (args.Length == 1 && args[0] == "--load-order")
+		{
+			Environment.ExitCode = LoadOrder.Run();
+
+			return;
+		}
+
 		// `--stand [directory] [--rebuild]` is where every generated parser stands against the
 		// hand-written one it is measured by, in one run, written down where two runs can be
 		// compared with `--stand-compare before.json after.json`. `--rebuild` rebuilds every

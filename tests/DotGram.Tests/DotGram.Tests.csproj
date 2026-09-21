@@ -53,10 +53,11 @@
 
 		<!-- The one check that has to run in a process of its own: what a text can name
 		     depends on what the process has loaded, and this assembly has loaded everything
-		     it references before the first test runs. `ReferenceOutputAssembly="false"`
+		     it references before the first test runs. It is the benchmarks console's
+		     load-order mode rather than a project of its own. `ReferenceOutputAssembly="false"`
 		     fixes the build order without letting this assembly hold its types — holding
 		     them would load them, which is the very thing being checked. -->
-		<ProjectReference Include="..\DotGram.ExpressionLanguage.LoadOrder\DotGram.ExpressionLanguage.LoadOrder.csproj"
+		<ProjectReference Include="..\..\benchmarks\DotGram.Benchmarks\DotGram.Benchmarks.csproj"
 		                  ReferenceOutputAssembly="false" />
 	</ItemGroup>
 

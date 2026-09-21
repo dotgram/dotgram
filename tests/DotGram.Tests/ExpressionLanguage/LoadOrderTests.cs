@@ -18,10 +18,16 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// test: not merely failing to catch the defect, but convincing a reader that it would have.
 /// </para>
 /// <para>
-/// So the check is a program, <c>DotGram.ExpressionLanguage.LoadOrder</c>, and this runs it and
-/// reports what it printed. The project is referenced with
-/// <c>ReferenceOutputAssembly="false"</c>: that fixes the build order without letting this
+/// So the check is a program: <c>DotGram.Benchmarks --load-order</c>, a mode of the console that
+/// is already run by hand, rather than a project of its own — new projects are Igor's to approve,
+/// and a mode costs nothing. This runs it and reports what it printed. The project is referenced
+/// with <c>ReferenceOutputAssembly="false"</c>: that fixes the build order without letting this
 /// assembly hold its types, which would load them and put us back where we started.
+/// </para>
+/// <para>
+/// What makes the mode viable is checked rather than assumed: the mode's own first step prints
+/// whether <c>DotGram.Web</c> was loaded before it ran, so if anything in that console ever starts
+/// naming a type from it, the check says so instead of quietly measuring itself.
 /// </para>
 /// </remarks>
 public sealed class LoadOrderTests
@@ -33,7 +39,7 @@ public sealed class LoadOrderTests
 
 		Assert.True(File.Exists(program), $"The load-order program is not built: {program}");
 
-		using var ran = Process.Start(new ProcessStartInfo(program)
+		using var ran = Process.Start(new ProcessStartInfo(program, "--load-order")
 		{
 			RedirectStandardOutput = true,
 			RedirectStandardError  = true,
@@ -67,11 +73,11 @@ public sealed class LoadOrderTests
 
 		return Path.Combine(
 			root.FullName,
-			"tests",
-			"DotGram.ExpressionLanguage.LoadOrder",
+			"benchmarks",
+			"DotGram.Benchmarks",
 			"bin",
 			configuration,
 			framework,
-			"DotGram.ExpressionLanguage.LoadOrder" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+			"DotGram.Benchmarks" + (OperatingSystem.IsWindows() ? ".exe" : ""));
 	}
 }
