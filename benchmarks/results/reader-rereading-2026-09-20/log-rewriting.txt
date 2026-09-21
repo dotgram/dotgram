@@ -1,0 +1,46 @@
+Does a failing turn's log come back the same? (D63's correctness question)
+
+A turn that fails restores the log to a mark, and the next attempt writes into the same
+place. If what it writes were always what was discarded, a replay could keep the records
+rather than make them again. The answer is neither yes nor no: nothing comes back
+identical, because a give-back reads one turn fewer and so the tail must differ - but
+52% to 91% of each discarded segment is written back unchanged, and THE SHARE GROWS WITH
+THE INPUT, which is the quadratic seen from the log instead of from the call counts.
+
+Revision: 4e541d8a, on top of origin/main e48ab0aa. Counts, not times: the instrumented
+build is slower and only its counts mean anything.
+
+HOW IT IS KEYED, and three ways it was keyed wrongly first - each produced a confident
+wrong answer, so they are recorded rather than tidied away:
+
+  1. By the log mark alone. Every difference reported 'first at 0', which is where every
+     top-level attempt begins, so unrelated turns sharing an offset were compared.
+  2. By mark and position, with the hook gated to methods declaring 'var p = pos;'. That
+     dropped 249 roll-backs - and give-backs happen in the way-back wrappers, which was
+     exactly what the gate excluded. Media type had 1 of its 140 roll-backs covered, and
+     reported 'none differ'.
+  3. By whole-segment equality, which calls everything different. The tail must differ;
+     the question is how much of the head does not.
+
+The key that answers it: the log mark, plus the moving position inside a reader or the
+entry position inside a way-back wrapper - the wrapper being re-entered at the same place
+each time a way is retried is what makes it the same place.
+
+revision under the instrument: 4e541d8a The before-picture for the reader change, at a revision that exists
+Build succeeded.
+reader methods instrumented: 995
+roll-backs in a way-back wrapper, keyed by its entry: 249
+Does what a failing turn discards come back the same?
+
+shape                                          n  begins  rollbacks  rewritten   same   differ   shared prefix
+addresses, an unclosed quoted string (refuses)  16       0         73          0      0   none                         -
+addresses, an unclosed quoted string (refuses)  64       0        217          0      0   none                         -
+addresses, a valid list (accepts)               16     160        244          0      0   none                         -
+addresses, a valid list (accepts)               64     640      1,012          0      0   none                         -
+media type, parameters then unclosed string (refuses)  16     403         44         37      0   37 (first at position 0)     57.4% of 1,926
+media type, parameters then unclosed string (refuses)  64   4,627        140        133      0   133 (first at position 0)    72.7% of 22,854
+language tag, variants then a bare hyphen (refuses)  16     170        265         16      0   16 (first at position 0)     52.2% of 920
+language tag, variants then a bare hyphen (refuses)  64   2,210      2,545         64      0   64 (first at position 0)     71.0% of 11,360
+structured field, items then an unclosed ( (refuses)  16   1,765         42         37      0   37 (first at position 0)     83.9% of 6,336
+structured field, items then an unclosed ( (refuses)  64  30,925        186        181      0   181 (first at position 0)    91.5% of 111,312
+EXIT done
