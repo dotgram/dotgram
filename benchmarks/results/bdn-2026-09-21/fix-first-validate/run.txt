@@ -1,0 +1,8 @@
+# fix-first-validate, 2026-09-21 13:19 - 13:20
+
+Script P:\dotgram.WorkTrees\finance\benchmarks\FirstCall\Fix\Run-Validate.ps1, arguments: . Machine IGOR-DESKTOP, this process and its children on mask 0xFFFF at high priority (the children inherit it; whether they stayed on it was not read back).
+Quiet check before the start: 1.7% of the machine (0.54 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.297; claude (pid 35900) 0.073; conhost (pid 36432) 0.052.
+State of the repository the script sits in, read at 13:19:18: HEAD 402055eb; 0 tracked files modified.
+Artifact P:\dotgram.WorkTrees\finance\benchmarks\FirstCall\Fix\bin\Release\net10.0\fixfirst.exe: sha256 CE69668CBB65B1D2, 162304 bytes, written 13:18:14.
+Artifact P:\dotgram.WorkTrees\finance\src\DotGram.Finance\bin\Release\net10.0\DotGram.Finance.dll: sha256 617C60335DF2E397, 3389440 bytes, written 13:18:13.
+Exit code: 0.

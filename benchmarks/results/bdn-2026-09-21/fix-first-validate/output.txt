@@ -1,0 +1,32 @@
+affinity 0xFFFF priority Normal
+launch 1 of 11   
+launch 2 of 11   
+launch 3 of 11   
+launch 4 of 11   
+launch 5 of 11   
+launch 6 of 11   
+launch 7 of 11   
+launch 8 of 11   
+launch 9 of 11   
+launch 10 of 11   
+launch 11 of 11   
+
+message              road                 wall ms (min/med/max) compiling ms (min/med/max)   methods   IL bytes
+-------              ----                 --------------------- --------------------------   -------   --------
+Heartbeat            the walk                6.31 / 6.53 / 6.76         5.81 / 6.02 / 6.21        57      11009
+Heartbeat            generated               7.79 / 8.04 / 8.64         7.41 / 7.67 / 8.21        28      24994
+Heartbeat            generated A/A           7.72 / 8.12 / 8.39         7.38 / 7.74 / 7.94        28      24994
+NewOrderSingle       the walk                6.63 / 6.81 / 7.12         6.08 / 6.24 / 6.51        64      11520
+NewOrderSingle       generated            22.56 / 22.69 / 23.63      22.04 / 22.23 / 23.10        35      60919
+NewOrderSingle       generated A/A        22.48 / 22.82 / 23.41      22.03 / 22.33 / 22.88        35      60919
+ExecutionReport      the walk                6.60 / 6.91 / 7.12         6.04 / 6.34 / 6.51        64      11520
+ExecutionReport      generated            31.76 / 32.56 / 34.15      31.27 / 32.03 / 33.45        35      79562
+ExecutionReport      generated A/A        32.06 / 32.29 / 33.57      31.55 / 31.81 / 33.16        35      79562
+TradeCaptureReport   the walk                6.67 / 6.80 / 7.12         6.11 / 6.24 / 6.56        64      11520
+TradeCaptureReport   generated            34.99 / 35.65 / 36.62      34.48 / 35.17 / 36.07        35      90064
+TradeCaptureReport   generated A/A        35.66 / 35.98 / 36.32      35.17 / 35.47 / 35.84        35      90064
+
+11 launches a cell, one fresh process each, on the mask this script inherited.
+Wall is the call; compiling is the part of it the runtime spent on the JIT.
+Read every difference against the two generated cells of the same message: that pair is the same
+road twice, so what separates them is what this run cannot tell apart.
