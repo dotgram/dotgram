@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.IO;
 using System.Linq;
 
@@ -46,6 +47,38 @@ static class Kinds
 	/// Flat, and that is Microsoft's arrangement rather than an accident: every one of
 	/// these derives from <c>TSqlParser</c> and carries a whole grammar of its own, where
 	/// the twelve differ by what one version added to the one before it.
+	/// </remarks>
+	/// <summary>The ScriptDom that is loaded, as it names itself.</summary>
+	/// <remarks>
+	/// Read from the assembly rather than from the version the project asks for: those are two
+	/// facts, a restore can make them differ, and only this one is what ran.
+	/// </remarks>
+	internal static string ScriptDomVersion =>
+		typeof(TSqlParser).Assembly
+		.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+			?? typeof(TSqlParser).Assembly.GetName().Version?.ToString()
+			?? "an unnamed version";
+
+	/// <summary>A ScriptDom parser of one version, with quoted identifiers on.</summary>
+	/// <remarks>
+	/// <para>
+	/// <b>The flag is <c>initialQuotedIdentifiers</c>, and it is true for a reason that can be
+	/// checked rather than argued.</b> This grammar reads <c>"a"</c> as a name and has no other
+	/// reading of it: <c>Identifier</c> in TransactSql.gram admits
+	/// <c>Sql92.Lexical.DelimitedIdentifier</c> unconditionally. With the flag false ScriptDom
+	/// reads the same text as a string, so the two would be reading two languages -- and the
+	/// corpus filter would quietly drop every statement that contains one, narrowing the
+	/// comparison without saying so. True is the only setting under which both sides are asked
+	/// the same question.
+	/// </para>
+	/// <para>
+	/// It is also what a modern connection does: <c>SET QUOTED_IDENTIFIER ON</c> is required by
+	/// filtered indexes, indexed views and computed-column indexes, so it is the setting real
+	/// T-SQL is written under. Not measured here, and named as the second reason rather than
+	/// the first: `sqlcmd` answers 0 to <c>SESSIONPROPERTY('QUOTED_IDENTIFIER')</c>, because
+	/// that is `sqlcmd`'s own default and not the server's, which is exactly the kind of
+	/// evidence that looks like it settles the question and does not.
+	/// </para>
 	/// </remarks>
 	internal static TSqlParser? Version(string named) => named switch
 	{

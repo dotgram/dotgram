@@ -123,11 +123,16 @@ static class Program
 			return;
 		}
 
-		// `tsql-loop plain|located [rounds]` reads the T-SQL corpus with one reading alone, for a profiler
+		// `tsql-loop plain|located [every|short|medium|long] [rounds]` reads the T-SQL corpus with one
+		// reading alone, for a profiler; without a slice it reads the corpus entire, as it always did
 		// (no dashes: dotTrace takes those for its own). See TsqlLoop.cs.
 		if (args.Length >= 2 && args[0] == "tsql-loop")
 		{
-			TsqlLoop.Run(args[1], args.Length > 2 ? int.Parse(args[2]) : 300);
+			var sized  = args.Length > 2 && !int.TryParse(args[2], out _);
+			var slice  = sized ? args[2] : ScriptDomBenchmarks.Every;
+			var rounds = args.Length > (sized ? 3 : 2) ? int.Parse(args[sized ? 3 : 2]) : 300;
+
+			TsqlLoop.Run(args[1], slice, rounds);
 
 			return;
 		}
