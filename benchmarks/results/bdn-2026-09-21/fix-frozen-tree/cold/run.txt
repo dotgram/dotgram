@@ -1,0 +1,25 @@
+# BenchmarkDotNet run fix-cold, 2026-09-21 12:47 - 12:47
+
+Assembly P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare.dll, commit 95866fc8. Arguments: --filter *FixDictionaryFirstCall*. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Quiet check before the start: 1.6% of the machine (0.51 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.307; claude (pid 36444) 0.052; iCUE (pid 21640) 0.052.
+State of the sources, read at 12:47:40: project P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare; repository HEAD 95866fc8; 0 tracked files modified in the repository, 0 untracked (not ignored) in the project (a benchmark project outside the repository is untracked by design: the source hash below is what watches it); source hash of the project C14EF82B4F3E9988; 0 source files NEWER than the assembly (11:45:54).
+Caller says: caller says: the frozen tree fix-frozen at 95866fc8 (finance-41), built once at 11:45:54; the reading is in the state line (a sentence, printed beside the reading above and never in place of it).
+Source hash at the end: C14EF82B4F3E9988 (the same as at the start).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 20 workers (its log), 12 were read; the others ended between two reads, and the mask they had is the inherited one, not a reading.
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 53488 | 0xFFFF | High | 12:47:50 |
+| 52084 | 0xFFFF | High | 12:47:50 |
+| 26844 | 0xFFFF | High | 12:47:50 |
+| 17568 | 0xFFFF | High | 12:47:51 |
+| 58516 | 0xFFFF | High | 12:47:51 |
+| 57636 | 0xFFFF | High | 12:47:51 |
+| 41688 | 0xFFFF | High | 12:47:51 |
+| 11348 | 0xFFFF | High | 12:47:51 |
+| 42460 | 0xFFFF | High | 12:47:52 |
+| 43592 | 0xFFFF | High | 12:47:52 |
+| 46144 | 0xFFFF | High | 12:47:52 |
+| 57300 | 0xFFFF | High | 12:47:53 |

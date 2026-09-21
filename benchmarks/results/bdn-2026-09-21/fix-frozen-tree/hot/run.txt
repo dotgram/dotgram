@@ -1,0 +1,73 @@
+# BenchmarkDotNet run fix-hot, 2026-09-21 12:15 - 12:39
+
+Assembly P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare.dll, commit 95866fc8. Arguments: --filter *FixAgainstQuickFix*. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Quiet check before the start: 2% of the machine (0.64 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.333; claude (pid 36144) 0.057; ReSharper.Backend64c (pid 41888) 0.036.
+State of the sources, read at 12:15:42: project P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare; repository HEAD 95866fc8; 0 tracked files modified in the repository, 0 untracked (not ignored) in the project (a benchmark project outside the repository is untracked by design: the source hash below is what watches it); source hash of the project C14EF82B4F3E9988; 0 source files NEWER than the assembly (11:45:54).
+Caller says: caller says: the frozen tree fix-frozen at 95866fc8 (finance-41), built once at 11:45:54; the reading is in the state line (a sentence, printed beside the reading above and never in place of it).
+Source hash at the end: C14EF82B4F3E9988 (the same as at the start).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 60 workers (its log), 60 were read.
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 4364 | 0xFFFF | High | 12:15:54 |
+| 45752 | 0xFFFF | High | 12:16:13 |
+| 49072 | 0xFFFF | High | 12:16:33 |
+| 54320 | 0xFFFF | High | 12:17:00 |
+| 49412 | 0xFFFF | High | 12:17:18 |
+| 14512 | 0xFFFF | High | 12:17:36 |
+| 16924 | 0xFFFF | High | 12:18:53 |
+| 50308 | 0xFFFF | High | 12:19:18 |
+| 14272 | 0xFFFF | High | 12:19:34 |
+| 58552 | 0xFFFF | High | 12:19:54 |
+| 55708 | 0xFFFF | High | 12:20:10 |
+| 45748 | 0xFFFF | High | 12:20:38 |
+| 50000 | 0xFFFF | High | 12:22:02 |
+| 55832 | 0xFFFF | High | 12:22:23 |
+| 47180 | 0xFFFF | High | 12:22:55 |
+| 49932 | 0xFFFF | High | 12:23:19 |
+| 49564 | 0xFFFF | High | 12:23:42 |
+| 51492 | 0xFFFF | High | 12:23:59 |
+| 44720 | 0xFFFF | High | 12:24:23 |
+| 49948 | 0xFFFF | High | 12:24:48 |
+| 45836 | 0xFFFF | High | 12:25:07 |
+| 27884 | 0xFFFF | High | 12:26:02 |
+| 28536 | 0xFFFF | High | 12:26:17 |
+| 53536 | 0xFFFF | High | 12:26:42 |
+| 7720 | 0xFFFF | High | 12:27:00 |
+| 49284 | 0xFFFF | High | 12:27:25 |
+| 54992 | 0xFFFF | High | 12:27:43 |
+| 57852 | 0xFFFF | High | 12:28:04 |
+| 49680 | 0xFFFF | High | 12:28:29 |
+| 39460 | 0xFFFF | High | 12:28:56 |
+| 50352 | 0xFFFF | High | 12:29:15 |
+| 1352 | 0xFFFF | High | 12:29:32 |
+| 24008 | 0xFFFF | High | 12:29:49 |
+| 27388 | 0xFFFF | High | 12:30:16 |
+| 57976 | 0xFFFF | High | 12:30:35 |
+| 58676 | 0xFFFF | High | 12:30:52 |
+| 54232 | 0xFFFF | High | 12:31:15 |
+| 50040 | 0xFFFF | High | 12:31:43 |
+| 60224 | 0xFFFF | High | 12:31:59 |
+| 55616 | 0xFFFF | High | 12:32:20 |
+| 59296 | 0xFFFF | High | 12:32:37 |
+| 57844 | 0xFFFF | High | 12:33:02 |
+| 53272 | 0xFFFF | High | 12:33:21 |
+| 49056 | 0xFFFF | High | 12:33:37 |
+| 17972 | 0xFFFF | High | 12:34:04 |
+| 28136 | 0xFFFF | High | 12:34:27 |
+| 29072 | 0xFFFF | High | 12:34:49 |
+| 30844 | 0xFFFF | High | 12:35:05 |
+| 51056 | 0xFFFF | High | 12:35:30 |
+| 47468 | 0xFFFF | High | 12:35:53 |
+| 39340 | 0xFFFF | High | 12:36:09 |
+| 41524 | 0xFFFF | High | 12:36:34 |
+| 17816 | 0xFFFF | High | 12:36:50 |
+| 42788 | 0xFFFF | High | 12:37:13 |
+| 48824 | 0xFFFF | High | 12:37:29 |
+| 59136 | 0xFFFF | High | 12:37:55 |
+| 41196 | 0xFFFF | High | 12:38:16 |
+| 53740 | 0xFFFF | High | 12:38:36 |
+| 53840 | 0xFFFF | High | 12:38:59 |
+| 15984 | 0xFFFF | High | 12:39:24 |
