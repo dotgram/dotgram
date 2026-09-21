@@ -7362,3 +7362,30 @@ evidence that the round did not do the work, or did different work. So the minim
 only where the fast tail is; a fast outlier appearing on one arm and not on its pair is a defect
 to explain, not a clean number to keep. Fifteen rounds and a median, with the fastest and the
 slowest printed beside it, says both things at once — which is why the report carries all three.
+
+## D96 — A shipped page does not assert what somebody else's library does
+
+The FIX package's page came to say that "the libraries this one is compared with stop at the first
+problem". It is there for a good reason: someone porting code from another engine will otherwise
+assume one finding a message and silently drop the rest. The warning is worth keeping. The claim
+is not.
+
+**Three things are wrong with asserting it, and only the first is about effort.** The evidence
+available for the engines that matter most here — the commercial ones, bought by the people who
+reconcile with a counterparty for money — is their documentation, which describes intent rather
+than what is there; that is the rule we derived today from reading an assembly instead of a
+vendor's page. Second, the ten implementations that can be read are all open and free, which is
+not a sample of anything. Third and decisively: a page of ours cannot stay right about a product
+we do not control. Our pages carry no history, so they can only be right or wrong — and this
+sentence becomes wrong the day a vendor changes their API, with nothing in our build able to
+notice.
+
+**The warning survives without the claim, by being addressed to the reader instead of to the
+competition.** "This package returns every finding; if you are porting from a library that stops
+at the first problem, code written for one error a message will drop the rest." That is
+unconditionally true, needs no survey, and does the same work for the person it was written for.
+
+**What was read still gets written down — in the design note, with its date and its tags**, where
+a dated internal document is exactly the right form and where its being a snapshot is understood.
+A survey is knowledge; a comparative claim on a shipped page is a liability that ages without
+telling anyone.
