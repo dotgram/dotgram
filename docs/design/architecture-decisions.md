@@ -6998,3 +6998,38 @@ mapped paths itself, and then its numbers are publishable by construction — in
 reader having to remember the range a figure was sound in. That is the cheaper half of today's
 lesson about numbers read further than they were taken: an instrument that cannot produce an
 unpublishable number needs no rule about publishing.
+
+## D87 — A hypothesis killed by a count, and the count's own three near-misses
+
+Keeping the log instead of rolling it back — reusing a doomed attempt's records the way a replay
+reuses its decisions — is **unsound, and the number says so without argument**: of the segments
+discarded and written again, not one comes back identical. It cannot: a give-back reads one turn
+fewer, so the tail must differ. That closes the shape as stated, and closes it in an hour rather
+than in a week of it half-built.
+
+**What the same count opened is narrower and better founded.** The difference is confined to the
+tail: between 52% and 91% of the discarded entries are written back unchanged, and the share
+CLIMBS with the input — 57 to 73, 52 to 71, 84 to 92 per cent as the input goes from sixteen units
+to sixty-four. One shape writes 111,312 entries at sixty-four units, discards them, and rewrites
+91.5% of them identically. The climbing share is the signature: the repeated prefix lengthens
+while the differing tail stays about constant. That is the quadratic, seen from the log instead of
+from the calls — the same illness this whole line of work is about, showing up in a second
+instrument, which is how one knows it is the illness and not an artefact.
+
+**So the shape to consider is not "keep the records" but "roll back only the tail".** It is not
+approved here and wants its own design; the question to answer before designing it is whether the
+marks the rule already takes per turn locate that boundary, in which case the change is small and
+local rather than a new meaning for the tape.
+
+**And the three near-misses of the instrument belong in the record, because each would have been
+believed.** Keyed by the log mark alone, every difference reported "first at 0" — which is where
+every top-level attempt starts, so unrelated turns were being compared. Keyed by mark and
+position, a gate on the method's shape silently dropped 249 of 280 roll-backs, precisely the ones
+that matter, leaving a run with one per cent coverage reporting "none differ". Compared whole
+segments, everything differed and the idea would have died on a technicality.
+
+**A measurement with one per cent coverage reads exactly like a clean result**, and a conflated
+key reads exactly like a finding. Neither announces itself. What caught all three was the same
+question asked three times: what would this number look like if my key were not measuring what I
+think it is? That question is cheap, it is asked before the result is believed rather than after
+it is doubted, and today it saved three confident wrong answers in one hour.
