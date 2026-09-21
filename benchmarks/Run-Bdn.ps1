@@ -12,11 +12,12 @@
 	What it does, in order:
 	  1. refuses to start when another window is announced and its process is alive (`dotgram-timing-window.txt` in the temp directory), or when BDN is asked
 	     to run in process (`--inProcess`: a number taken there is not a number of this stand);
-	  2. announces the window (pid, started, until, what) in the same format as the stand's own runs, and removes it when the run ends;
+	  2. announces the window (pid, started, until, what) in the same format as the stand's own runs, and puts the file back to `idle` when the run ends (benchmarks/Window.ps1 reads it);
 	  3. pins itself to logical processors 0-15 (0xFFFF) at high priority and starts `dotnet <Assembly> <BdnArgs> --artifacts <out>`; the children inherit the mask;
 	  4. every 100 ms reads the workers that appeared and checks each once (a worker that starts and ends between two reads is not checked, and run.txt says how many
 	     workers BDN executed, from its own log, against how many were read: a case of a real run lasts many seconds, a dry job's does not);
-	  5. at the end writes run.txt beside BDN's artifacts: the commit, the mask, the JIT variables, every worker checked (pid, affinity, priority,
+	  5. (-Note is written into the announcement and into run.txt: "a pricing probe, its numbers are not to be quoted")
+	  6. at the end writes run.txt beside BDN's artifacts: the commit, the mask, the JIT variables, every worker checked (pid, affinity, priority,
 	     when) and the exit code, so that a reader a month later has the header a paired report carries.
 
 	It builds nothing: build the assembly first, on 16-31 and before the window (benchmarks/Build-Side.ps1 pins builds there). BDN itself compiles a generated
@@ -34,7 +35,8 @@ param(
 	[string[]]$BdnArgs = @(),
 	[double]$LimitMinutes = 60,
 	[UInt64]$Affinity = 0xFFFF,
-	[string]$Root = 'T:\TEMP\dotgram-bdn'
+	[string]$Root = 'T:\TEMP\dotgram-bdn',
+	[string]$Note = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,6 +48,8 @@ $out      = Join-Path $Root "$Label-$stamp"
 $repo     = (git -C (Split-Path $Assembly) rev-parse --show-toplevel 2>$null)
 
 if ($BdnArgs -contains '--inProcess' -or $BdnArgs -contains '-i') { Write-Error 'BDN in process is not a timing of this stand (benchmarks/README.md): run it out of process.'; exit 2 }
+
+if (-not (Test-Path $window)) { Write-Warning 'The announcement file did not exist (it is meant to exist always, idle when there is no window): something deleted it. It is created now.' }
 
 if (Test-Path $window) {
 	$owner = (Get-Content $window | Where-Object { $_ -like 'pid *' } | Select-Object -First 1)
@@ -60,7 +64,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 
 $started = Get-Date
 $until   = $started.AddMinutes($LimitMinutes)
-$what    = "Run-Bdn.ps1 $Label $($BdnArgs -join ' ')"
+$what    = "Run-Bdn.ps1 $Label $($BdnArgs -join ' ')$(if ($Note) { ' [' + $Note + ']' })"
 
 Set-Content $window @("pid $PID", "started $($started.ToString('yyyy-MM-dd HH:mm:ss'))", "until $($until.ToString('yyyy-MM-dd HH:mm:ss'))", "what $what")
 
@@ -133,7 +137,8 @@ try {
 	}
 }
 finally {
-	if ((Test-Path $window) -and ((Get-Content $window | Select-Object -First 1) -eq "pid $PID")) { Remove-Item $window -ErrorAction SilentlyContinue }
+	# The file stays and says idle: its absence must mean "something is wrong with the stand", never "no window" (benchmarks/Window.ps1).
+	if ((Test-Path $window) -and ((Get-Content $window | Select-Object -First 1) -eq "pid $PID")) { Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", "why the window of pid $PID ended: $what") }
 }
 
 if (-not $failure -and -not $truncated -and $checked.Count -eq 0) { $failure = 'no benchmark worker was seen, so no case was checked: the run measured nothing this script can vouch for' }
@@ -147,6 +152,7 @@ $report = @(
 	'',
 	"Assembly $Assembly, commit $commit. Arguments: $($BdnArgs -join ' '). Machine $env:COMPUTERNAME, launcher and workers on mask 0x$($Affinity.ToString('X')) at high priority.",
 	"JIT: $($jit -join ', ') (unset is the runtime's default: tiered compilation on, dynamic PGO on).",
+	$(if ($Note) { "**$Note**" }),
 	"Exit code: $(if ($null -ne $exit) { $exit } else { 'none (stopped)' }). $(if ($truncated) { 'STOPPED at the limit of ' + $LimitMinutes + ' minutes: the results are incomplete.' })",
 	$(if ($failure) { "**FAILED: $failure**" } else { "Every worker that was read back from the operating system was on the mask. Coverage: BDN executed $executed workers (its log), $($checked.Count) were read$(if ($checked.Count -lt $executed) { '; the others ended between two reads, and the mask they had is the inherited one, not a reading' })." }),
 	'',
