@@ -7135,3 +7135,31 @@ because it is wrong but because it is in the wrong place. Beside the choice — 
 offers the option, in the words someone reads while deciding — the same sentence does work every
 time the choice is made. That is the difference between a review that accumulates and one that
 repeats.
+
+## D90 — The FIX messages are nested in `FixMessage`, as the fields already are (Igor)
+
+Igor's instruction: every class deriving from `FixMessage` becomes a nested class of it, the way
+an algebraic data type is written. Ninety-three of them, today declared at namespace level in
+`FixMessageTypes.cs`.
+
+**The package already writes it that way one layer down.** `FixField.SettlDate`,
+`FixField.Custom` — the fields are a closed hierarchy nested in their base, and the messages are
+the same kind of thing: a fixed set of cases, each a case of the base, exhaustively matched by
+whoever reads them. Two shapes for one idea in one package is what this removes, and it is the
+same argument that collapsed the framing into the options: not narrow against wide, but a layer
+not following its neighbour's idiom.
+
+**It reads at the use site as a closed set rather than as ninety-three loose names.**
+`FixMessage.NewOrderSingle` says what it is where it is written; `NewOrderSingle` alone says only
+that somebody named a type. Nesting also puts the base's name in front of every arm of every
+`switch`, which is what makes a hierarchy look closed at the place it is matched.
+
+**The price is one public break, and it is free before release.** Every name a consumer writes
+changes, which is the kind of break a version number is for — and this package has not been
+published, so it costs nothing but our own call sites. After publication it would cost everyone
+who had written against it, which is why it is done now rather than considered later.
+
+**Two things go with it, and neither is optional.** The pages name these types throughout, and by
+D88 the edit re-reads them for the CONCEPT — "a message class", "the message types" — and not only
+for the identifiers the compiler will find. And the release notes gain their fifth break, in the
+same commit as the change, since a break recorded later is a break somebody met first.
